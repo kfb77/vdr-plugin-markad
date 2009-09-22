@@ -29,19 +29,25 @@ void cMarkAdTS2PES::Reset()
     pesdata=NULL;
     pessize=0;
     data_left=false;
-    streamsize=0;
     counter=-1;
     sync=false;
 }
 
-int cMarkAdTS2PES::FindPESHeader(uchar *TSData, int TSSize, int *StreamSize)
+int cMarkAdTS2PES::FindPESHeader(uchar *TSData, int TSSize, int *StreamSize,
+                                 int *HeaderSize)
 {
-    unsigned long scanner=0xFFFFFFFF;
-    int i;
+    if ((!TSData) || (!TSSize)) return -1;
+#define PESHDRSIZE 6
+    if (StreamSize) (*StreamSize)=0;
+    if (HeaderSize) (*HeaderSize)=3;
+    //unsigned long scanner=0xFFFFFFFF;
+    int i=0;
+long scanner=-1;
+
     for (i=0; i<TSSize; i++)
     {
         scanner<<=8;
-        if (scanner==0x00000100)
+        if (scanner==(long) 0x00000100L)
         {
             break;
         }
@@ -49,12 +55,25 @@ int cMarkAdTS2PES::FindPESHeader(uchar *TSData, int TSSize, int *StreamSize)
     }
     if (i!=TSSize)
     {
-        if (StreamSize)
+        if ((StreamSize) && ((i+2)<TSSize))
         {
             if (TSData[i]>=0xBC)
             {
-                *StreamSize=(TSData[i+1]<<8)+TSData[i+2];
+                (*StreamSize)=(TSData[i+1]<<8)+TSData[i+2];
                 if (*StreamSize) (*StreamSize)+=6; // 6 Byte PES-Header
+            }
+        }
+        if ((HeaderSize) && ((i+6)<TSSize))
+        {
+            struct PESHDROPT *peshdropt=(struct PESHDROPT *) &TSData[i+3];
+            if (peshdropt->MarkerBits==0x2)
+            {
+                (*HeaderSize)=PESHDRSIZE+sizeof(struct PESHDROPT)+
+                              peshdropt->Length;
+            }
+            else
+            {
+                (*HeaderSize)=PESHDRSIZE;
             }
         }
         return i-3;
@@ -62,9 +81,9 @@ int cMarkAdTS2PES::FindPESHeader(uchar *TSData, int TSSize, int *StreamSize)
     return -1;
 }
 
-int cMarkAdTS2PES::Process(int Pid, uchar *TSData, int TSSize, uchar **PESData, int *PESSize)
+int cMarkAdTS2PES::Process(MarkAdPid Pid, uchar *TSData, int TSSize, uchar **PESData, int *PESSize)
 {
-    if ((!PESData) || (!PESSize)) return -1;
+    if ((!PESData) || (!PESSize) || (!TSData) || (!TSSize)) return -1;
     *PESData=NULL;
     *PESSize=0;
 
@@ -92,7 +111,7 @@ int cMarkAdTS2PES::Process(int Pid, uchar *TSData, int TSSize, uchar **PESData, 
         struct TSHDR *tshdr = (struct TSHDR *) TSData;
 
         int pid = (tshdr->PidH << 8) | tshdr->PidL;
-        if (Pid!=pid)
+        if (Pid.Num!=pid)
         {
             return TS_SIZE; // not for us
         }
@@ -148,6 +167,13 @@ int cMarkAdTS2PES::Process(int Pid, uchar *TSData, int TSSize, uchar **PESData, 
             Reset();
             return TS_SIZE;
         }
+        if (buflen<0)
+        {
+            // error in size
+            Reset();
+            return TS_SIZE;
+        }
+
         bytes_processed=TS_SIZE-buflen;
 
         pesdata=(uchar *) realloc(pesdata,pessize+buflen);
@@ -166,20 +192,26 @@ int cMarkAdTS2PES::Process(int Pid, uchar *TSData, int TSSize, uchar **PESData, 
         data_left=false;
     }
 
-    int peshdr=FindPESHeader(pesdata, pessize, &streamsize);
+    int streamsize=0;
+    int peshdrsize=3; // size of sync (just as start)
+    int peshdr=FindPESHeader(pesdata, pessize, &streamsize, &peshdrsize);
+
     if (peshdr==0)
     {
         if (!streamsize)
         {
-            peshdr=FindPESHeader(pesdata+3,pessize-3,NULL);
-            if (peshdr>0) peshdr+=3;
+            peshdr=FindPESHeader(pesdata+peshdrsize,pessize-peshdrsize,NULL,NULL);
+            if (peshdr>=0)
+            {
+                peshdr+=peshdrsize;
+            }
         }
         else
         {
             if (pessize>streamsize)
             {
                 int size=pessize-streamsize;
-
+                uchar *pesptr=pesdata;
                 *PESData=pesdata;
                 *PESSize=streamsize;
                 if (pesdatalast) free(pesdatalast);
@@ -189,43 +221,47 @@ int cMarkAdTS2PES::Process(int Pid, uchar *TSData, int TSSize, uchar **PESData, 
 
                 void *ptr=malloc(size);
                 if (!ptr) return -1;
-                memcpy(ptr,(*PESData)+streamsize,size);
+                memcpy(ptr,pesptr+streamsize,size);
                 bytes_processed-=size;
                 pessize=size;
                 pesdata=(uchar *) ptr;
                 data_left=true;
-                streamsize=0;
             }
         }
     }
+
     if (peshdr>0)
     {
         // start of next PES paket found
         if (pesdata)
         {
-            // return old data
-            *PESData=pesdata;
-            *PESSize=peshdr;
-            if (pesdatalast) free(pesdatalast);
-            pesdatalast=pesdata;
-            int size=pessize-peshdr;
-            pesdata=NULL;
-            pessize=0;
+            if ((pesdata[0]==0) && (pesdata[1]==0) && (pesdata[2]==1))
+            {
+                // return old data
+                uchar *pesptr=pesdata;
+                *PESData=pesdata;
+                *PESSize=peshdr;
+                if (pesdatalast) free(pesdatalast);
+                pesdatalast=pesdata;
+                int size=pessize-peshdr;
+                pesdata=NULL;
+                pessize=0;
 
-            if (size>0)
-            {
-                void *ptr=malloc(size);
-                if (!ptr) return -1;
-                memcpy(ptr,(*PESData)+peshdr,size);
-                bytes_processed-=size;
-                pessize=size;
-                pesdata=(uchar *) ptr;
-                data_left=true;
-            }
-            else
-            {
-                // TODO: not sure if this is ok
-                bytes_processed-=size;
+                if (size>0)
+                {
+                    void *ptr=malloc(size);
+                    if (!ptr) return -1;
+                    memcpy(ptr,pesptr+peshdr,size);
+                    bytes_processed-=size;
+                    pessize=size;
+                    pesdata=(uchar *) ptr;
+                    data_left=true;
+                }
+                else
+                {
+                    // TODO: not sure if this is ok
+                    bytes_processed-=size;
+                }
             }
         }
     }

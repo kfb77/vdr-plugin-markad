@@ -36,6 +36,17 @@ typedef struct MarkAdAspectRatio
     int Den;
 } MarkAdAspectRatio;
 
+#define MARKAD_PIDTYPE_VIDEO_H262 0x10
+#define MARKAD_PIDTYPE_VIDEO_H264 0x11
+#define MARKAD_PIDTYPE_AUDIO_AC3  0x20
+#define MARKAD_PIDTYPE_AUDIO_MP2  0x21
+
+typedef struct MarkAdPid
+{
+    int Num;
+    int Type;
+} MarkAdPid;
+
 typedef struct MarkAdContext
 {
     struct General
@@ -44,9 +55,9 @@ typedef struct MarkAdContext
         time_t EndTime;
         bool ManualRecording;
         bool H264;
-        int VPid;
-        int APid;
-        int DPid;
+        MarkAdPid VPid;
+        MarkAdPid APid;
+        MarkAdPid DPid;
     } General;
 
     struct State

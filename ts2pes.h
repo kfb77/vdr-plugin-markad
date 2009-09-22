@@ -20,6 +20,8 @@ typedef unsigned char uchar;
 #include <stdlib.h>
 #include <string.h>
 
+#include "global.h"
+
 class cMarkAdTS2PES
 {
 private:
@@ -53,20 +55,53 @@ unsigned Flags:
         8;
     };
 
+#pragma pack(1)
+    struct PESHDROPT
+    {
+unsigned OOC:
+        1;
+unsigned CY:
+        1;
+unsigned DAI:
+        1;
+unsigned PESP:
+        1;
+unsigned PESSC:
+        2;
+unsigned MarkerBits:
+        2;
+unsigned EXT:
+        1;
+unsigned CRC:
+        1;
+unsigned ACI:
+        1;
+unsigned TM:
+        1;
+unsigned RATE:
+        1;
+unsigned ESCR:
+        1;
+unsigned TSF:
+        2;
+unsigned Length:
+        8;
+    };
+#pragma pack()
+
     uchar *pesdatalast;
     uchar *pesdata;
     int pessize;
-    int streamsize;
     bool data_left;
     int counter;
     bool sync;
 
     void Reset();
-    int FindPESHeader(uchar *TSData, int TSSize, int *StreamSize);
+    int FindPESHeader(uchar *TSData, int TSSize, int *StreamSize, int *HeaderSize);
 public:
     cMarkAdTS2PES();
     ~cMarkAdTS2PES();
-    int Process(int Pid,uchar *TSData, int TSSize, uchar **PESData, int *PESSize);
+    int Process(MarkAdPid Pid,uchar *TSData, int TSSize, uchar **PESData, int *PESSize);
 };
 
 #endif

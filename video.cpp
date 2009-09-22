@@ -50,6 +50,7 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
 #define BRIGHTNESS 20
     if (!macontext) return 0;
     if (!macontext->Video.Data.Valid) return 0;
+return 0;
 
     *BorderIFrame=borderiframe;
 

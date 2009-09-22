@@ -1,4 +1,3 @@
-
 /*
  * markad.h: A plugin for the Video Disk Recorder
  *
@@ -10,9 +9,10 @@
 #ifndef __markad_h_
 #define __markad_h_
 
+#include "version.h"
 #include "status.h"
 
-static const char *VERSION        = "0.0.3";
+extern const char *VERSION;
 static const char *DESCRIPTION    = trNOOP("Mark advertisements");
 
 class cPluginMarkAd : public cPlugin {

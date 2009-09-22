@@ -24,7 +24,7 @@ private:
 public:
     cMarkAdDemux();
     ~cMarkAdDemux();
-    int Process(int Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);
+    int Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);
 };
 
 #endif

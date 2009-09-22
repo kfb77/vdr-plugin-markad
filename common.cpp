@@ -55,6 +55,7 @@ bool cMarkAdCommon::AddMark(int Position, const char *Comment)
 void cMarkAdCommon::SetTimerMarks(int LastIFrame)
 {
     if (!macontext) return;
+    if (!LastIFrame) return;
 
     if ((time(NULL)>macontext->General.StartTime) && (!macontext->State.ContentStarted))
     {

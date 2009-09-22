@@ -23,10 +23,10 @@ cMarkAdDemux::~cMarkAdDemux()
     if (pes2audioes) delete pes2audioes;
 }
 
-int cMarkAdDemux::Process(int Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen)
+int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen)
 {
     if ((!Data) && (!Count) && (!ts2pes) && (!pes2audioes) ||
-            (!Pkt) || (!PktLen) || (!Pid)) return -1;
+            (!Pkt) || (!PktLen) || (!Pid.Num)) return -1;
     *Pkt=NULL;
     *PktLen=0;
 

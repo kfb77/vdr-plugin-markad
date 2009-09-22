@@ -254,7 +254,7 @@ int cMarkAdPES2AudioES::Process(uchar *PESData, int PESSize, uchar **ESData, int
                 esdata=NULL;
                 essize=0;
 
-                if (size)
+                if (size>0)
                 {
                     void *ptr=malloc(size);
                     if (!ptr) return -1;

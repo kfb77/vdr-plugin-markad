@@ -44,14 +44,27 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
         macontext.General.ManualRecording=true;
     }
 
-    macontext.General.VPid=Timer->Channel()->Vpid();
-//    macontext.General.APid=Timer->Channel()->Apid(0); // TODO ... better solution?
-    macontext.General.DPid=Timer->Channel()->Dpid(0); // TODO ... better solution?
+    macontext.General.VPid.Num=Timer->Channel()->Vpid();
+    if (useH264)
+    {
+        macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
+    }
+    else
+    {
+        macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+    }
+
+//    macontext.General.APid.Pid=Timer->Channel()->Apid(0); // TODO ... better solution?
+//    macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
+
+    macontext.General.DPid.Num=Timer->Channel()->Dpid(0); // TODO ... better solution?
+    macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
 
     macontext.General.H264=useH264;
 
-    if (macontext.General.VPid)
+    if (macontext.General.VPid.Num)
     {
+        dsyslog("markad [%i]: using video",recvnumber);
         video=new cMarkAdVideo(RecvNumber,&macontext);
         video_demux = new cMarkAdDemux();
     }
@@ -61,8 +74,9 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
         video_demux=NULL;
     }
 
-    if (macontext.General.APid)
+    if (macontext.General.APid.Num)
     {
+        dsyslog("markad [%i]: using mp2",recvnumber);
         mp2_demux = new cMarkAdDemux();
     }
     else
@@ -70,8 +84,9 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
         mp2_demux = NULL;
     }
 
-    if (macontext.General.DPid)
+    if (macontext.General.DPid.Num)
     {
+        dsyslog("markad [%i]: using ac3",recvnumber);
         ac3_demux = new cMarkAdDemux();
     }
     else
@@ -79,7 +94,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
         ac3_demux=NULL;
     }
 
-    if ((macontext.General.APid) || (macontext.General.DPid))
+    if ((macontext.General.APid.Num) || (macontext.General.DPid.Num))
     {
         audio=new cMarkAdAudio(RecvNumber,&macontext);
     }
@@ -88,7 +103,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
         audio=NULL;
     }
 
-    decoder=new cMarkAdDecoder(RecvNumber,useH264,macontext.General.DPid!=0);
+    decoder=new cMarkAdDecoder(RecvNumber,useH264,macontext.General.DPid.Num!=0);
     common=new cMarkAdCommon(RecvNumber,&macontext);
 
     marks.Load(Filename);
@@ -111,10 +126,16 @@ cMarkAdReceiver::~cMarkAdReceiver()
     {
         MarkAdMark tempmark;
         tempmark.Position=lastiframe;
-        tempmark.Comment=strdup("stop of content (user)");
-        AddMark(&tempmark);
-        isyslog("markad [%i]: stop of content (user)",recvnumber);
-        free(tempmark.Comment);
+
+        char *buf;
+        asprintf(&buf,"stop of user content (%i)",lastiframe);
+        if (buf)
+        {
+            tempmark.Comment=buf;
+            AddMark(&tempmark);
+            isyslog("markad [%i]: %s",recvnumber,buf);
+            free(buf);
+        }
     }
 
     if (video_demux) delete video_demux;
@@ -135,14 +156,14 @@ int cMarkAdReceiver::LastIFrame()
         if (!Index)
         {
             esyslog("markad [%i]: ERROR can't allocate index",recvnumber);
-            return -1;
+            return 0;
         }
         else if (!Index->Ok())
         {
             // index file is not ready till now, try it later
             delete Index;
             Index=NULL;
-            return -1;
+            return 0;
         }
     }
     return Index->GetNextIFrame(Index->Last(),false,NULL,NULL,NULL,true);
@@ -299,7 +320,7 @@ void cMarkAdReceiver::Action()
 
                 while (tslen>0)
                 {
-                    int len=ac3_demux->Process(macontext.General.APid,tspkt,tslen,&pkt,&pktlen);
+                    int len=ac3_demux->Process(macontext.General.DPid,tspkt,tslen,&pkt,&pktlen);
                     if (len<0)
                     {
                         break;
@@ -312,6 +333,7 @@ void cMarkAdReceiver::Action()
                             if (decoder->DecodeAC3(&macontext,pkt,pktlen))
                             {
                                 mark=audio->Process(lastiframe);
+                                AddMark(mark);
                             }
                         }
                         tspkt+=len;

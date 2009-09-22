@@ -53,12 +53,14 @@ PKG-INCLUDES += libavcodec
 INCLUDES += -I$(VDRDIR)/include
 
 DEFINES += -D_GNU_SOURCE -DPLUGIN_NAME_I18N='"$(PLUGIN)"'
+DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
 
 ifeq ($(AVCODEC),1)
-DEFINES += DHAVE_AVCODEC
+DEFINES += -DHAVE_AVCODEC
 INCLUDES += $(shell $(PKG-CONFIG) --cflags $(PKG-INCLUDES))
 LIBS += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS))
 endif
+
 ### The object files (add further files here):
 
 OBJS-CMD = markad-standalone.o
