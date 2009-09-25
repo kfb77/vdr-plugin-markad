@@ -55,7 +55,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
     }
 
 //    macontext.General.APid.Pid=Timer->Channel()->Apid(0); // TODO ... better solution?
-//    macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
+//    macontext.General.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
 
     macontext.General.DPid.Num=Timer->Channel()->Dpid(0); // TODO ... better solution?
     macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
@@ -64,9 +64,9 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
 
     if (macontext.General.VPid.Num)
     {
-        dsyslog("markad [%i]: using video",recvnumber);
+        dsyslog("markad [%i]: using %s-video",recvnumber,useH264 ? "H262": "H264");
         video=new cMarkAdVideo(RecvNumber,&macontext);
-        video_demux = new cMarkAdDemux();
+        video_demux = new cMarkAdDemux(RecvNumber);
     }
     else
     {
@@ -77,7 +77,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
     if (macontext.General.APid.Num)
     {
         dsyslog("markad [%i]: using mp2",recvnumber);
-        mp2_demux = new cMarkAdDemux();
+        mp2_demux = new cMarkAdDemux(RecvNumber);
     }
     else
     {
@@ -87,7 +87,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
     if (macontext.General.DPid.Num)
     {
         dsyslog("markad [%i]: using ac3",recvnumber);
-        ac3_demux = new cMarkAdDemux();
+        ac3_demux = new cMarkAdDemux(RecvNumber);
     }
     else
     {
@@ -274,7 +274,7 @@ void cMarkAdReceiver::Action()
                 }
                 if (t.Elapsed()>100)
                 {
-                    isyslog("markad [%i]: 100ms exceeded -> %Li",
+                    isyslog("markad [%i]: 100ms exceeded -> %Lims",
                             recvnumber,t.Elapsed());
                 }
             }

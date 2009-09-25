@@ -1,13 +1,15 @@
 /*
- * ts2pes.h: A plugin for the Video Disk Recorder
+ * ts2pkt.h: A plugin for the Video Disk Recorder
  *
  * See the README file for copyright information and how to reach the author.
  *
  * $Id$
  */
 
-#ifndef __ts2pes_h_
-#define __ts2pes_h_
+#ifndef __ts2pkt_h_
+#define __ts2pkt_h_
+
+#include <vdr/tools.h>
 
 #ifndef TS_SIZE
 #define TS_SIZE 188
@@ -22,7 +24,7 @@ typedef unsigned char uchar;
 
 #include "global.h"
 
-class cMarkAdTS2PES
+class cMarkAdTS2Pkt
 {
 private:
     struct TSHDR
@@ -89,19 +91,37 @@ unsigned Length:
     };
 #pragma pack()
 
-    uchar *pesdatalast;
-    uchar *pesdata;
-    int pessize;
-    bool data_left;
-    int counter;
-    bool sync;
+    struct pktinfo
+    {
+        int pkthdr;
+        int pkthdrsize;
+        int streamsize;
+    } pktinfo;
 
-    void Reset();
-    int FindPESHeader(uchar *TSData, int TSSize, int *StreamSize, int *HeaderSize);
+    int recvnumber;
+
+    bool isPES;
+    uchar *pktdatalast;
+    uchar *pktdata;
+    int pktsize;
+    bool dataleft;
+    int counter;
+
+#define MA_ERR_STARTUP 0
+#define MA_ERR_TOSMALL 1
+#define MA_ERR_NOSYNC 2
+#define MA_ERR_SEQ 3
+#define MA_ERR_AFC 4
+#define MA_ERR_TOBIG 5
+#define MA_ERR_NEG 6
+#define MA_ERR_MEM 7
+    void Reset(int ErrIndex=MA_ERR_STARTUP);
+    int FindPktHeader(uchar *TSData, int TSSize, int *StreamSize, int *HeaderSize);
+    bool CheckStreamID(MarkAdPid Pid, uchar *Data, int Size);
 public:
-    cMarkAdTS2PES();
-    ~cMarkAdTS2PES();
-    int Process(MarkAdPid Pid,uchar *TSData, int TSSize, uchar **PESData, int *PESSize);
+    cMarkAdTS2Pkt(int RecvNumber);
+    ~cMarkAdTS2Pkt();
+    int Process(MarkAdPid Pid,uchar *TSData, int TSSize, uchar **PktData, int *PktSize);
 };
 
 #endif

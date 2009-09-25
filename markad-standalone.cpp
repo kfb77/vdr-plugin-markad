@@ -125,16 +125,23 @@ bool cMarkAdStandalone::ProcessFile(int Number)
     if (!dir) return false;
     if (!Number) return false;
 
-    uchar data[2048];
+    uchar *data;
     int datalen;
+    int dataread;
 
     char *fbuf;
     if (index->isTS())
     {
+        datalen=70688; // multiple of 188
+        data=(uchar *) malloc(datalen);
+        if (!data) return false;
         asprintf(&fbuf,"%s/%05i.ts",dir,Number);
     }
     else
     {
+        datalen=69632; // VDR paket size
+        data=(uchar *) malloc(datalen);
+        if (!data)return false;
         asprintf(&fbuf,"%s/%03i.vdr",dir,Number);
     }
     if (!fbuf) return false;
@@ -144,10 +151,10 @@ bool cMarkAdStandalone::ProcessFile(int Number)
     if (f==-1) return false;
 
     int lastiframe;
-    while ((datalen=read(f,&data,sizeof(data))>0))
+    while ((dataread=read(f,data,datalen))>0)
     {
 
-        lastiframe=LastIFrame(Number,lseek(f,0,SEEK_CUR)-datalen);
+        lastiframe=LastIFrame(Number,lseek(f,0,SEEK_CUR)-dataread);
         MarkAdMark *mark;
 
         if (common)
@@ -162,7 +169,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
             int pktlen;
 
             uchar *tspkt = data;
-            int tslen = datalen;
+            int tslen = dataread;
 
             while (tslen>0)
             {
@@ -180,7 +187,6 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                         {
                             mark=video->Process(lastiframe);
                             AddMark(mark);
-
                         }
                     }
                     tspkt+=len;
@@ -195,7 +201,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
             int pktlen;
 
             uchar *tspkt = data;
-            int tslen = datalen;
+            int tslen = dataread;
 
             while (tslen>0)
             {
@@ -226,7 +232,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
             int pktlen;
 
             uchar *tspkt = data;
-            int tslen = datalen;
+            int tslen = dataread;
 
             while (tslen>0)
             {
@@ -250,8 +256,9 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                     tslen-=len;
                 }
             }
-       }
+        }
     }
+    free(data);
     close(f);
     return true;
 }
@@ -279,30 +286,47 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
 {
     dir=strdup(Directory);
 
+    index = new cMarkAdIndex(Directory);
+    if (!index)
+    {
+        video_demux=ac3_demux=mp2_demux=NULL;
+        decoder=NULL;
+        video=NULL;
+        audio=NULL;
+        common=NULL;
+        return;
+    }
+
     memset(&macontext,0,sizeof(macontext));
     macontext.General.StartTime=0;
     macontext.General.EndTime=time(NULL)+(7*86400);
     macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
     macontext.General.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
 
-    macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+    if (index->isTS())
+    {
+        macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
+    }
+    else
+    {
+        macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+    }
 
-    macontext.General.VPid.Num=0x100;
-    macontext.General.DPid.Num=0x102;
-    macontext.General.APid.Num=0x101;
+    macontext.General.VPid.Num=0x3ff;
+//   macontext.General.DPid.Num=0x403;
+    macontext.General.APid.Num=0x0;
 
-    video_demux = new cMarkAdDemux();
+    video_demux = new cMarkAdDemux(255);
 
-//    mp2_demux = new cMarkAdDemux();
+//    mp2_demux = new cMarkAdDemux(255);
     mp2_demux=NULL;
 
-    ac3_demux = new cMarkAdDemux();
-    decoder = new cMarkAdDecoder(255,false,false);
+    ac3_demux = new cMarkAdDemux(255);
+    decoder = new cMarkAdDecoder(255,index->isTS(),
+                                 macontext.General.DPid.Num!=0);
     video = new cMarkAdVideo(255,&macontext);
     audio = new cMarkAdAudio(255,&macontext);
     common = new cMarkAdCommon(255,&macontext);
-
-    index = new cMarkAdIndex(Directory);
 }
 
 cMarkAdStandalone::~cMarkAdStandalone()

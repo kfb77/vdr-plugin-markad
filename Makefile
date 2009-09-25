@@ -64,7 +64,7 @@ endif
 ### The object files (add further files here):
 
 OBJS-CMD = markad-standalone.o
-OBJS-COMMON = demux.o video.o audio.o decoder.o common.o ts2pes.o pes2audioes.o
+OBJS-COMMON = demux.o video.o audio.o decoder.o common.o ts2pkt.o pes2audioes.o
 OBJS = $(PLUGIN).o recv.o status.o $(OBJS-COMMON)
 
 ### The main target:

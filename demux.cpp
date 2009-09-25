@@ -8,38 +8,67 @@
 
 #include "demux.h"
 
-cMarkAdDemux::cMarkAdDemux()
+cMarkAdDemux::cMarkAdDemux(int RecvNumber)
 {
-    ts2pes=new cMarkAdTS2PES();
+    ts2pkt=new cMarkAdTS2Pkt(RecvNumber);
     pes2audioes=NULL;
-    pespkt=NULL;
+    pkt=NULL;
     pesptr=NULL;
-    peslen=0;
+    pktlen=0;
+    tsdata=tsptr=NULL;
+    tssize=0;
 }
 
 cMarkAdDemux::~cMarkAdDemux()
 {
-    if (ts2pes) delete ts2pes;
+    if (ts2pkt) delete ts2pkt;
     if (pes2audioes) delete pes2audioes;
+    if (tsdata) free(tsdata);
 }
 
 int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen)
 {
-    if ((!Data) && (!Count) && (!ts2pes) && (!pes2audioes) ||
+    if ((!Data) && (!Count) && (!ts2pkt) && (!pes2audioes) ||
             (!Pkt) || (!PktLen) || (!Pid.Num)) return -1;
     *Pkt=NULL;
     *PktLen=0;
 
     int len=-1; // we don't want loops
 
-    if (!peslen)
+    if (!pktlen)
     {
-        len=ts2pes->Process(Pid,Data,Count,&pespkt,&peslen);
+        if (tssize<TS_SIZE)
+        {
+            tsdata=(uchar *) realloc(tsdata,tssize+Count);
+            if (!tsdata) return -1;
+            memcpy(tsdata+tssize,Data,Count);
+            tssize+=Count;
+            tsptr=tsdata;
+            if (tssize<TS_SIZE) return Count;
+        }
+        len=ts2pkt->Process(Pid,tsdata,tssize,&pkt,&pktlen);
+
+        int bufleftsize=tssize-len;
+        uchar *ptr=(uchar *) malloc(bufleftsize);
+        if (!ptr) return -1;
+        memcpy(ptr,tsdata+len,bufleftsize);
+
+        free(tsdata);
+        tsdata=ptr;
+        tssize=bufleftsize;
+        if (tssize<TS_SIZE)
+        {
+            len=Count;
+        }
+        else
+        {
+            len=0;
+        }
     }
-    if (pespkt)
+    if (pkt)
     {
 
-        if ((((pespkt[3]>=0xc0) && (pespkt[3]<=0xDF)) || (pespkt[3]==0xBD))
+        if ((((pkt[3]>=0xc0) && (pkt[3]<=0xDF)) || (pkt[3]==0xBD))
                 && (!pesptr))
         {
             if (!pes2audioes)
@@ -48,7 +77,7 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, in
             }
             if (pes2audioes)
             {
-                pesptr=pespkt;
+                pesptr=pkt;
             }
             else
             {
@@ -61,9 +90,9 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, in
             if (len==-1) len=0;
             uchar *esdata;
             int essize;
-            while (peslen>0)
+            while (pktlen>0)
             {
-                int len2=pes2audioes->Process(pesptr,peslen,&esdata,&essize);
+                int len2=pes2audioes->Process(pesptr,pktlen,&esdata,&essize);
                 if (len2<0)
                 {
                     break;
@@ -76,8 +105,8 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, in
                         *PktLen=essize;
                     }
                     pesptr+=len2;
-                    peslen-=len2;
-                    if (!peslen) pesptr=NULL;
+                    pktlen-=len2;
+                    if (!pktlen) pesptr=NULL;
                     break;
                 }
             }
@@ -85,10 +114,10 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, in
         }
         else
         {
-            *Pkt=pespkt;
-            *PktLen=peslen;
-            pespkt=pesptr=NULL;
-            peslen=0;
+            *Pkt=pkt;
+            *PktLen=pktlen;
+            pkt=pesptr=NULL;
+            pktlen=0;
         }
     }
     return len;
