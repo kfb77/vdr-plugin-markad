@@ -182,7 +182,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                 {
                     if (pkt)
                     {
-                        decoder->FindH262VideoInfos(&macontext,pkt,pktlen);
+                        decoder->FindVideoInfos(&macontext,pkt,pktlen);
                         if (decoder->DecodeVideo(&macontext,pkt,pktlen))
                         {
                             mark=video->Process(lastiframe);
@@ -306,15 +306,17 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
     if (index->isTS())
     {
         macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
+        macontext.General.H264=true;
     }
     else
     {
         macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+        macontext.General.H264=false;
     }
 
-    macontext.General.VPid.Num=0xa5;
+    macontext.General.VPid.Num=0x3ff;
     //macontext.General.DPid.Num=0x403;
-    macontext.General.APid.Num=0x78;
+    //macontext.General.APid.Num=0;
 
     video_demux = new cMarkAdDemux(255);
 

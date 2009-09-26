@@ -64,7 +64,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
 
     if (macontext.General.VPid.Num)
     {
-        dsyslog("markad [%i]: using %s-video",recvnumber,useH264 ? "H262": "H264");
+        dsyslog("markad [%i]: using %s-video",recvnumber,useH264 ? "H264": "H262");
         video=new cMarkAdVideo(RecvNumber,&macontext);
         video_demux = new cMarkAdDemux(RecvNumber);
     }
@@ -249,14 +249,6 @@ void cMarkAdReceiver::Action()
                 uchar *tspkt = frame->Data();
                 int tslen = frame->Count();
 
-#if 0
-int w=open("/tmp/test.ts",O_CREAT|O_RDWR|O_APPEND,0644);
-if (w!=-1) {
-write(w,tspkt,tslen);
-close(w);
-}
-#endif
-
                 while (tslen>0)
                 {
                     int len=video_demux->Process(macontext.General.VPid,tspkt,tslen,&pkt,&pktlen);
@@ -268,7 +260,7 @@ close(w);
                     {
                         if (pkt)
                         {
-                            decoder->FindH262VideoInfos(&macontext,pkt,pktlen);
+                            decoder->FindVideoInfos(&macontext,pkt,pktlen);
                             if (decoder->DecodeVideo(&macontext,pkt,pktlen))
                             {
                                 mark=video->Process(lastiframe);
