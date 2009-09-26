@@ -312,16 +312,22 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
         macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
     }
 
-    macontext.General.VPid.Num=0x3ff;
-//   macontext.General.DPid.Num=0x403;
-    macontext.General.APid.Num=0x0;
+    macontext.General.VPid.Num=0xa5;
+    //macontext.General.DPid.Num=0x403;
+    macontext.General.APid.Num=0x78;
 
     video_demux = new cMarkAdDemux(255);
 
-//    mp2_demux = new cMarkAdDemux(255);
-    mp2_demux=NULL;
+    if (macontext.General.APid.Num)
+    {
+        mp2_demux = new cMarkAdDemux(255);
+    }
 
-    ac3_demux = new cMarkAdDemux(255);
+    if (macontext.General.DPid.Num)
+    {
+        ac3_demux = new cMarkAdDemux(255);
+    }
+
     decoder = new cMarkAdDecoder(255,index->isTS(),
                                  macontext.General.DPid.Num!=0);
     video = new cMarkAdVideo(255,&macontext);

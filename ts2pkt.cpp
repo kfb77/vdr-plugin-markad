@@ -190,6 +190,11 @@ int cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, uchar **Pkt
 
             if ((counter!=-1) && (((counter+1) & 0xF)!=tshdr->Counter))
             {
+                if (counter==tshdr->Counter)
+                {
+                    // duplicate paket -> just ignore
+                    return TS_SIZE;
+                }
                 // sequence error
                 Reset(MA_ERR_SEQ);
                 return TS_SIZE;

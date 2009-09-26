@@ -13,7 +13,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
         cReceiver(Timer->Channel()->GetChannelID(), -1,
                   Timer->Channel()->Vpid(),Timer->Channel()->Apids(),
                   Timer->Channel()->Dpids()),cThread("markad"),
-        buffer(MEGABYTE(3)), running(false) // 3MB Buffer
+        buffer(MEGATS(3)), running(false) // 3MB Buffer
 {
     if ((!Filename) || (!Timer)) return;
 
@@ -248,6 +248,14 @@ void cMarkAdReceiver::Action()
 
                 uchar *tspkt = frame->Data();
                 int tslen = frame->Count();
+
+#if 0
+int w=open("/tmp/test.ts",O_CREAT|O_RDWR|O_APPEND,0644);
+if (w!=-1) {
+write(w,tspkt,tslen);
+close(w);
+}
+#endif
 
                 while (tslen>0)
                 {

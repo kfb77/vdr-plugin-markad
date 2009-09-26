@@ -25,6 +25,8 @@
 #include <linux/dvb/frontend.h>
 #endif
 
+#define MEGATS(n) ((n)*1024*1880)
+
 class cMarkAdRingBuffer : public cRingBufferFrame
 {
 private:
