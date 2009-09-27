@@ -264,8 +264,8 @@ void cMarkAdReceiver::AddMark(MarkAdMark *mark, int Priority)
         prevmark->comment=strcatrealloc(prevmark->comment," ");
         prevmark->comment=strcatrealloc(prevmark->comment,mark->Comment);
 
-        marks.Del(newmark,true);
         dsyslog("markad [%i]: delete mark %i",recvnumber,newmark->position);
+        marks.Del(newmark,true);
     }
     else
     {
@@ -273,8 +273,8 @@ void cMarkAdReceiver::AddMark(MarkAdMark *mark, int Priority)
         mark->Comment=strcatrealloc(mark->Comment," ");
         mark->Comment=strcatrealloc(mark->Comment,prevmark->comment);
 
-        marks.Del(prevmark,true);
         dsyslog("markad [%i]: delete previous mark %i",recvnumber,prevmark->position);
+        marks.Del(prevmark,true);
     }
     marks.Save();
 }

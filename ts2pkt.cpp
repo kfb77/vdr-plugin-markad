@@ -235,7 +235,7 @@ int cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, uchar **Pkt
                 Reset(MA_ERR_TOBIG);
                 return TS_SIZE;
             }
-            if (buflen<0)
+            if (buflen<=0)
             {
                 // error in size
                 Reset(MA_ERR_NEG);
@@ -307,7 +307,11 @@ int cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, uchar **Pkt
     pktdatalast=pktdata;
 
     int bufleftsize=pktsize-(pktinfo.pkthdr+size);
-
+    if (bufleftsize<=0)
+    {
+        Reset(MA_ERR_NEG);
+        return bytes_processed;
+    }
     uchar *bufleft=(uchar *) malloc(bufleftsize);
     if (!bufleft)
     {
