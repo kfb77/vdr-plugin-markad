@@ -72,16 +72,14 @@ bool cMarkAdIndex::Open(const char *Directory)
 {
     if (!Directory) return false;
     char *ibuf;
-    asprintf(&ibuf,"%s/index.vdr",Directory);
-    if (!ibuf) return false;
+    if (asprintf(&ibuf,"%s/index.vdr",Directory)==-1) return false;
     index_fd = open(ibuf,O_RDONLY);
     free(ibuf);
     maxfiles=999;
     if (index_fd==-1)
     {
         // second try just index -> ts format
-        asprintf(&ibuf,"%s/index",Directory);
-        if (!ibuf) return false;
+        if (asprintf(&ibuf,"%s/index",Directory)==-1) return false;
         index_fd = open(ibuf,O_RDONLY);
         free(ibuf);
         if (index_fd==-1)
@@ -106,6 +104,7 @@ cMarkAdIndex::cMarkAdIndex(const char *Directory)
     iframe=0;
     offset=0;
     index=0;
+    index_fd=-1;
     ts=false;
     Open(Directory);
 }
@@ -135,16 +134,23 @@ bool cMarkAdStandalone::ProcessFile(int Number)
         datalen=70688; // multiple of 188
         data=(uchar *) malloc(datalen);
         if (!data) return false;
-        asprintf(&fbuf,"%s/%05i.ts",dir,Number);
+        if (asprintf(&fbuf,"%s/%05i.ts",dir,Number)==-1)
+        {
+            free(data);
+            return false;
+        }
     }
     else
     {
         datalen=69632; // VDR paket size
         data=(uchar *) malloc(datalen);
-        if (!data)return false;
-        asprintf(&fbuf,"%s/%03i.vdr",dir,Number);
+        if (!data) return false;
+        if (asprintf(&fbuf,"%s/%03i.vdr",dir,Number)==-1)
+        {
+            free(data);
+            return false;
+        }
     }
-    if (!fbuf) return false;
 
     int f=open(fbuf,O_RDONLY);
     free(fbuf);
@@ -583,7 +589,11 @@ int main(int argc, char *argv[])
         if ( bFork )
         {
             isyslog("markad (forked) pid: %d", getpid());
-            chdir("/");
+            if (chdir("/")==-1)
+            {
+                perror("chdir");
+                exit(EXIT_FAILURE);
+            }
             if (setsid() == (pid_t)(-1))
             {
                 perror("setsid");

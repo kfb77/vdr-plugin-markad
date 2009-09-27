@@ -71,9 +71,8 @@ MarkAdMark *cMarkAdAudio::Process(int LastIFrame)
         if (ChannelChange(macontext->Audio.Info.Channels,channels))
         {
             char *buf=NULL;
-            asprintf(&buf,"audio channel change from %i to %i (%i)", channels,
-                     macontext->Audio.Info.Channels,LastIFrame);
-            if (buf)
+            if (asprintf(&buf,"audio channel change from %i to %i (%i)", channels,
+                         macontext->Audio.Info.Channels,LastIFrame)!=-1)
             {
                 isyslog("markad [%i]: %s",recvnumber, buf);
                 AddMark(LastIFrame,buf);

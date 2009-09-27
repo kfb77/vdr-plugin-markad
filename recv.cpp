@@ -128,8 +128,7 @@ cMarkAdReceiver::~cMarkAdReceiver()
         tempmark.Position=lastiframe;
 
         char *buf;
-        asprintf(&buf,"stop of user content (%i)",lastiframe);
-        if (buf)
+        if (asprintf(&buf,"stop of user content (%i)",lastiframe)!=-1)
         {
             tempmark.Comment=buf;
             AddMark(&tempmark,0);
@@ -239,8 +238,7 @@ void cMarkAdReceiver::AddMark(MarkAdMark *mark, int Priority)
     if (newmark)
     {
         char *buf;
-        asprintf(&buf,"P%i %s",Priority,mark->Comment);
-        if (buf)
+        if (asprintf(&buf,"P%i %s",Priority,mark->Comment)!=-1)
         {
             if (newmark->comment) free(newmark->comment);
             newmark->comment=buf;

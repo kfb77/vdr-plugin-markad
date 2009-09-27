@@ -223,8 +223,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         if ((hret>0) && (borderiframe))
         {
             char *buf=NULL;
-            asprintf(&buf,"detected start of horiz. borders (%i)",borderiframe);
-            if (buf)
+            if (asprintf(&buf,"detected start of horiz. borders (%i)",borderiframe)!=-1)
             {
                 isyslog("markad [%i]: %s",recvnumber,buf);
                 AddMark(borderiframe,buf);
@@ -235,8 +234,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         if ((hret<0) && (borderiframe))
         {
             char *buf=NULL;
-            asprintf(&buf,"detected stop of horiz. borders (%i)",borderiframe);
-            if (buf)
+            if (asprintf(&buf,"detected stop of horiz. borders (%i)",borderiframe)!=-1)
             {
                 isyslog("markad [%i]: %s",recvnumber,buf);
                 AddMark(borderiframe,buf);
@@ -248,11 +246,10 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
     if (AspectRatioChange(&macontext->Video.Info.AspectRatio,&aspectratio))
     {
         char *buf=NULL;
-        asprintf(&buf,"aspect ratio change from %i:%i to %i:%i (%i)",
+        if (asprintf(&buf,"aspect ratio change from %i:%i to %i:%i (%i)",
                  aspectratio.Num,aspectratio.Den,
                  macontext->Video.Info.AspectRatio.Num,
-                 macontext->Video.Info.AspectRatio.Den,LastIFrame);
-        if (buf)
+                 macontext->Video.Info.AspectRatio.Den,LastIFrame)!=-1)
         {
             isyslog("markad [%i]: %s",recvnumber, buf);
             AddMark(LastIFrame,buf);

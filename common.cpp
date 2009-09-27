@@ -60,9 +60,8 @@ void cMarkAdCommon::SetTimerMarks(int LastIFrame)
     if ((time(NULL)>macontext->General.StartTime) && (!macontext->State.ContentStarted))
     {
         char *buf=NULL;
-        asprintf(&buf,"start of %s content (%i)",
-                 macontext->General.ManualRecording ? "user" : "event",LastIFrame);
-        if (buf)
+        if (asprintf(&buf,"start of %s content (%i)",
+                 macontext->General.ManualRecording ? "user" : "event",LastIFrame)!=-1)
         {
             isyslog("markad [%i]: %s",recvnumber,buf);
             AddMark(LastIFrame,buf);
@@ -75,9 +74,8 @@ void cMarkAdCommon::SetTimerMarks(int LastIFrame)
             (macontext->State.ContentStarted) && (!macontext->State.ContentStopped))
     {
         char *buf=NULL;
-        asprintf(&buf,"stop of %s content (%i)",
-                 macontext->General.ManualRecording ? "user" : "event",LastIFrame);
-        if (buf)
+        if (asprintf(&buf,"stop of %s content (%i)",
+                 macontext->General.ManualRecording ? "user" : "event",LastIFrame)!=-1)
         {
             isyslog("markad [%i]: %s",recvnumber,buf);
             AddMark(LastIFrame,buf);
