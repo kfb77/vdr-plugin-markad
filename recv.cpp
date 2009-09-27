@@ -132,7 +132,7 @@ cMarkAdReceiver::~cMarkAdReceiver()
         if (buf)
         {
             tempmark.Comment=buf;
-            AddMark(&tempmark);
+            AddMark(&tempmark,0);
             isyslog("markad [%i]: %s",recvnumber,buf);
             free(buf);
         }
@@ -146,6 +146,25 @@ cMarkAdReceiver::~cMarkAdReceiver()
     if (audio) delete audio;
     if (common) delete common;
     if (filename) free(filename);
+}
+
+char *cMarkAdReceiver::strcatrealloc(char *dest, const char *src)
+{
+    if (!src || !*src)
+        return dest;
+
+    size_t l = (dest ? strlen(dest) : 0) + strlen(src) + 1;
+    if (dest)
+    {
+        dest = (char *)realloc(dest, l);
+        strcat(dest, src);
+    }
+    else
+    {
+        dest = (char*)malloc(l);
+        strcpy(dest, src);
+    }
+    return dest;
 }
 
 int cMarkAdReceiver::LastIFrame()
@@ -210,7 +229,8 @@ void cMarkAdReceiver::Receive(uchar *Data, int Length)
         buffer.Signal();
     }
 }
-void cMarkAdReceiver::AddMark(MarkAdMark *mark)
+
+void cMarkAdReceiver::AddMark(MarkAdMark *mark, int Priority)
 {
     if (!mark) return;
     if (!mark->Position) return;
@@ -218,8 +238,43 @@ void cMarkAdReceiver::AddMark(MarkAdMark *mark)
     cMark *newmark=marks.Add(mark->Position);
     if (newmark)
     {
-        if (newmark->comment) free(newmark->comment);
-        newmark->comment=strdup(mark->Comment);
+        char *buf;
+        asprintf(&buf,"P%i %s",Priority,mark->Comment);
+        if (buf)
+        {
+            if (newmark->comment) free(newmark->comment);
+            newmark->comment=buf;
+        }
+    }
+    marks.Save();
+
+#define MAXPOSDIFF 10500 // = 7 min
+
+    cMark *prevmark=marks.GetPrev(mark->Position);
+    if (!prevmark) return;
+    if (!prevmark->comment) return;
+    if (abs(mark->Position-prevmark->position)>MAXPOSDIFF) return;
+
+    int prevPriority=atoi(prevmark->comment+1);
+    if (prevPriority==Priority) return;
+
+    if (prevPriority>Priority)
+    {
+        // add text from mark to prevmark
+        prevmark->comment=strcatrealloc(prevmark->comment," ");
+        prevmark->comment=strcatrealloc(prevmark->comment,mark->Comment);
+
+        marks.Del(newmark,true);
+        dsyslog("markad [%i]: delete mark %i",recvnumber,newmark->position);
+    }
+    else
+    {
+        // add text from prevmark to mark
+        mark->Comment=strcatrealloc(mark->Comment," ");
+        mark->Comment=strcatrealloc(mark->Comment,prevmark->comment);
+
+        marks.Del(prevmark,true);
+        dsyslog("markad [%i]: delete previous mark %i",recvnumber,prevmark->position);
     }
     marks.Save();
 }
@@ -237,7 +292,7 @@ void cMarkAdReceiver::Action()
             if (common)
             {
                 mark=common->Process(lastiframe);
-                AddMark(mark);
+                AddMark(mark,0);
             }
 
             if ((video_demux) && (decoder) && (video))
@@ -264,8 +319,7 @@ void cMarkAdReceiver::Action()
                             if (decoder->DecodeVideo(&macontext,pkt,pktlen))
                             {
                                 mark=video->Process(lastiframe);
-                                AddMark(mark);
-
+                                AddMark(mark,3);
                             }
                         }
                         tspkt+=len;
@@ -301,7 +355,7 @@ void cMarkAdReceiver::Action()
                             if (decoder->DecodeMP2(&macontext,pkt,pktlen))
                             {
                                 mark=audio->Process(lastiframe);
-                                AddMark(mark);
+                                AddMark(mark,1);
                             }
                         }
                         tspkt+=len;
@@ -333,7 +387,7 @@ void cMarkAdReceiver::Action()
                             if (decoder->DecodeAC3(&macontext,pkt,pktlen))
                             {
                                 mark=audio->Process(lastiframe);
-                                AddMark(mark);
+                                AddMark(mark,2);
                             }
                         }
                         tspkt+=len;

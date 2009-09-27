@@ -124,10 +124,10 @@ void cMarkAdDecoder::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt, in
             maContext->Video.Info.Pict_Type=MA_P_TYPE;
             break;
         case 2:
-        case 7:         // B_FRAME;
+        case 7: // B_FRAME;
             maContext->Video.Info.Pict_Type=MA_B_TYPE;
             break;
-        default:                // NO_PICTURE;
+        default: // NO_PICTURE;
             maContext->Video.Info.Pict_Type=0;
             break;
         }

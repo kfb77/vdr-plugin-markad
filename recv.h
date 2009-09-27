@@ -58,6 +58,7 @@ private:
     char *filename;
     int lastiframe;
 
+    char *strcatrealloc(char *dest, const char *src);
     cMarks marks;
     cIndexFile *Index;
 
@@ -73,7 +74,7 @@ private:
     cMarkAdDemux *mp2_demux;
     cMarkAdDemux *ac3_demux;
 
-    void AddMark(MarkAdMark *mark);
+    void AddMark(MarkAdMark *mark, int Priority);
 protected:
     virtual void Activate(bool On);
     virtual void Receive(uchar *Data, int Length);

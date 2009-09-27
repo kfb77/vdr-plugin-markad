@@ -1,9 +1,20 @@
-VDR Plugin 'noad' Revision History
+VDR Plugin 'markad' Revision History
 ----------------------------------
+
+2009-09-27: Version 0.0.4
+
+- Change marks upon priority
+
+2009-09-17: Version 0.0.3
+
+- Changed name from noad to markad
+- Added H264 SPS processor from femon
+- Ignore duplicate TS-packets
+- Added standalone version (still not working)
 
 2009-09-11: Version 0.0.2
 
-- Fixed H264 decoder
+- Fixed H264 decoding
 - Added mp2 decoder 
 - Added ac3 decoder  
 

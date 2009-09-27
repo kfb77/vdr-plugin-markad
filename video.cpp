@@ -226,7 +226,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
             asprintf(&buf,"detected start of horiz. borders (%i)",borderiframe);
             if (buf)
             {
-                dsyslog("markad [%i]: %s",recvnumber,buf);
+                isyslog("markad [%i]: %s",recvnumber,buf);
                 AddMark(borderiframe,buf);
                 free(buf);
             }
@@ -238,7 +238,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
             asprintf(&buf,"detected stop of horiz. borders (%i)",borderiframe);
             if (buf)
             {
-                dsyslog("markad [%i]: %s",recvnumber,buf);
+                isyslog("markad [%i]: %s",recvnumber,buf);
                 AddMark(borderiframe,buf);
                 free(buf);
             }
