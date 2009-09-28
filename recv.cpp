@@ -184,7 +184,15 @@ int cMarkAdReceiver::LastIFrame()
             return 0;
         }
     }
-    return Index->GetNextIFrame(Index->Last(),false,NULL,NULL,NULL,true);
+    int iframe=Index->GetNextIFrame(Index->Last(),false,NULL,NULL,NULL,true);
+    if (iframe>0)
+    {
+        return iframe;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 void cMarkAdReceiver::Activate(bool On)
@@ -316,8 +324,11 @@ void cMarkAdReceiver::Action()
                             decoder->FindVideoInfos(&macontext,pkt,pktlen);
                             if (decoder->DecodeVideo(&macontext,pkt,pktlen))
                             {
-                                mark=video->Process(lastiframe);
-                                AddMark(mark,3);
+                                if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
+                                {
+                                    mark=video->Process(lastiframe);
+                                    AddMark(mark,3);
+                                }
                             }
                         }
                         tspkt+=len;

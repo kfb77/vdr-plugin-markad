@@ -25,103 +25,14 @@ void syslog_with_tid(int priority, const char *format, ...)
 #endif
 }
 
-int cMarkAdIndex::GetNext(off_t Offset)
-{
-    if (index_fd==-1) return 0;
-
-    struct tIndexPes
-    {
-        uint32_t offset;
-        uchar type;
-        uchar number;
-        uint16_t reserved;
-    };
-
-    struct tIndexTs
-    {
-uint64_t offset:
-        40;
-unsigned reserved:
-        7;
-unsigned independent:
-        1;
-uint16_t number:
-        16;
-    };
-
-    if (offset>Offset) return iframe;
-    if (ts)
-    {
-        struct tIndexTs its;
-        if (read(index_fd,&its,sizeof(its))==-1) return 0;
-        offset=(off_t) its.offset;
-        if (its.independent==1) iframe=index;
-    }
-    else
-    {
-        struct tIndexPes ipes;
-        if (read(index_fd,&ipes,sizeof(ipes))==-1) return 0;
-        offset=ipes.offset;
-        if (ipes.type==1) iframe=index;
-    }
-    index++;
-    return iframe;
-}
-
-bool cMarkAdIndex::Open(const char *Directory)
-{
-    if (!Directory) return false;
-    char *ibuf;
-    if (asprintf(&ibuf,"%s/index.vdr",Directory)==-1) return false;
-    index_fd = open(ibuf,O_RDONLY);
-    free(ibuf);
-    maxfiles=999;
-    if (index_fd==-1)
-    {
-        // second try just index -> ts format
-        if (asprintf(&ibuf,"%s/index",Directory)==-1) return false;
-        index_fd = open(ibuf,O_RDONLY);
-        free(ibuf);
-        if (index_fd==-1)
-        {
-            fprintf(stderr,"Cannot open index file in %s\n",Directory);
-            return false;
-        }
-        ts=true;
-        maxfiles=65535;
-    }
-    return true;
-}
-
-void cMarkAdIndex::Close()
-{
-    if (index_fd!=-1) close(index_fd);
-}
-
-cMarkAdIndex::cMarkAdIndex(const char *Directory)
-{
-    if (!Directory) return;
-    iframe=0;
-    offset=0;
-    index=0;
-    index_fd=-1;
-    ts=false;
-    Open(Directory);
-}
-
-cMarkAdIndex::~cMarkAdIndex()
-{
-    Close();
-}
-
 void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 {
 // TODO: Implement this!
 }
 
-bool cMarkAdStandalone::ProcessFile(int Number)
+bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
 {
-    if (!dir) return false;
+    if (!Directory) return false;
     if (!Number) return false;
 
     uchar *data;
@@ -129,12 +40,12 @@ bool cMarkAdStandalone::ProcessFile(int Number)
     int dataread;
 
     char *fbuf;
-    if (index->isTS())
+    if (isTS)
     {
         datalen=70688; // multiple of 188
         data=(uchar *) malloc(datalen);
         if (!data) return false;
-        if (asprintf(&fbuf,"%s/%05i.ts",dir,Number)==-1)
+        if (asprintf(&fbuf,"%s/%05i.ts",Directory,Number)==-1)
         {
             free(data);
             return false;
@@ -145,7 +56,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
         datalen=69632; // VDR paket size
         data=(uchar *) malloc(datalen);
         if (!data) return false;
-        if (asprintf(&fbuf,"%s/%03i.vdr",dir,Number)==-1)
+        if (asprintf(&fbuf,"%s/%03i.vdr",Directory,Number)==-1)
         {
             free(data);
             return false;
@@ -154,13 +65,16 @@ bool cMarkAdStandalone::ProcessFile(int Number)
 
     int f=open(fbuf,O_RDONLY);
     free(fbuf);
-    if (f==-1) return false;
+    if (f==-1)
+    {
+        free(data);
+        return false;
+    }
 
-    int lastiframe;
+    int lastiframe=0;
     while ((dataread=read(f,data,datalen))>0)
     {
 
-        lastiframe=LastIFrame(Number,lseek(f,0,SEEK_CUR)-dataread);
         MarkAdMark *mark;
 
         if (common)
@@ -191,8 +105,13 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                         decoder->FindVideoInfos(&macontext,pkt,pktlen);
                         if (decoder->DecodeVideo(&macontext,pkt,pktlen))
                         {
-                            mark=video->Process(lastiframe);
-                            AddMark(mark);
+                            if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
+                            {
+                                lastiframe=framecnt;
+                                mark=video->Process(lastiframe);
+                                AddMark(mark);
+                            }
+                            framecnt++;
                         }
                     }
                     tspkt+=len;
@@ -269,39 +188,149 @@ bool cMarkAdStandalone::ProcessFile(int Number)
     return true;
 }
 
-int cMarkAdStandalone::LastIFrame(int Number, off_t Offset)
+void cMarkAdStandalone::Process(const char *Directory)
 {
-    return index->GetNext(Offset);
-}
-
-
-void cMarkAdStandalone::Process()
-{
-    if (!index) return;
-
-    for (int i=1; i<=index->MaxFiles(); i++)
+    for (int i=1; i<=MaxFiles; i++)
     {
-        if (!ProcessFile(i))
+        if (!ProcessFile(Directory,i))
         {
             break;
         }
     }
 }
 
-cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
+bool cMarkAdStandalone::CheckTS(const char *Directory)
 {
-    dir=strdup(Directory);
-
-    index = new cMarkAdIndex(Directory);
-    if (!index)
+    MaxFiles=0;
+    isTS=false;
+    if (!Directory) return false;
+    char *buf;
+    if (asprintf(&buf,"%s/00001.ts",Directory)==-1) return false;
+    struct stat statbuf;
+    if (stat(buf,&statbuf)==-1)
     {
-        video_demux=ac3_demux=mp2_demux=NULL;
-        decoder=NULL;
-        video=NULL;
-        audio=NULL;
-        common=NULL;
+        if (errno!=ENOENT)
+        {
+            free(buf);
+            return false;
+        }
+        free(buf);
+        if (asprintf(&buf,"%s/001.vdr",Directory)==-1) return false;
+        if (stat(buf,&statbuf)==-1)
+        {
+            free(buf);
+            return false;
+        }
+        free(buf);
+        // VDR detected
+        isTS=false;
+        MaxFiles=999;
+        return true;
+    }
+    free(buf);
+    // TS detected
+    isTS=true;
+    MaxFiles=65535;
+    return true;
+}
+
+void cMarkAdStandalone::CheckPATPMT(const char *Directory)
+{
+    char *buf;
+    if (asprintf(&buf,"%s/00001.ts",Directory)==-1) return;
+
+    int fd=open(buf,O_RDONLY);
+    free(buf);
+    if (fd==-1) return;
+
+    uchar patpmt[376];
+
+    if (read(fd,patpmt,sizeof(patpmt))!=sizeof(patpmt))
+    {
+        close(fd);
         return;
     }
+    close(fd);
+
+    // some checks
+    if ((patpmt[0]!=0x47) || (patpmt[188]!=0x47)) return; // no TS-Sync
+    if (((patpmt[1] & 0x5F)!=0x40) && (patpmt[2]!=0)) return; // no PAT
+    if ((patpmt[3] & 0x10)!=0x10) return; // PAT not without AFC
+    if ((patpmt[191] & 0x10)!=0x10) return; // PMT not without AFC
+    struct PAT *pat = (struct PAT *) &patpmt[5];
+
+    // more checks
+    if (pat->reserved1!=3) return; // is always 11
+    if (pat->reserved3!=7) return; // is always 111
+
+    int pid=pat->pid_L+(pat->pid_H<<8);
+    int pmtpid=((patpmt[189] & 0x1f)<<8)+patpmt[190];
+    if (pid!=pmtpid) return; // pid in PAT differs from pid in PMT
+
+    struct PMT *pmt = (struct PMT *) &patpmt[193];
+
+    // still more checks
+    if (pmt->reserved1!=3) return; // is always 11
+    if (pmt->reserved2!=3) return; // is always 11
+    if (pmt->reserved3!=7) return; // is always 111
+    if (pmt->reserved4!=15) return; // is always 1111
+
+    if ((pmt->program_number_H!=pat->program_number_H) ||
+            (pmt->program_number_L!=pat->program_number_L)) return;
+
+    int desc_len=(pmt->program_info_length_H<<8)+pmt->program_info_length_L;
+    if (desc_len>166) return; // beyond patpmt buffer
+
+    int section_end = 196+(pmt->section_length_H<<8)+pmt->section_length_L;
+    section_end-=4; // we don't care about the CRC32
+    if (section_end>376) return; //beyond patpmt buffer
+
+    int i=205+desc_len;
+
+    while (i<section_end)
+    {
+        struct STREAMINFO *si = (struct STREAMINFO *) &patpmt[i];
+
+        // oh no -> more checks!
+        if (si->reserved1!=7) return;
+        if (si->reserved2!=15) return;
+
+        int pid=(si->PID_H<<8)+si->PID_L;
+
+        switch (si->stream_type)
+        {
+        case 0x1:
+        case 0x2:
+            macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+            macontext.General.VPid.Num=pid;
+            break;
+
+        case 0x3:
+        case 0x4:
+            macontext.General.APid.Num=pid;
+
+        case 0x6:
+            macontext.General.DPid.Num=pid;
+            break;
+
+        case 0x1b:
+            macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
+            macontext.General.VPid.Num=pid;
+            macontext.General.H264=true;
+            break;
+        }
+
+        int esinfo_len=(si->ES_info_length_H<<8)+si->ES_info_length_L;
+
+        i+=(sizeof(struct STREAMINFO)+esinfo_len);
+    }
+
+    return;
+}
+
+cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
+{
+    recvnumber=255;
 
     memset(&macontext,0,sizeof(macontext));
     macontext.General.StartTime=0;
@@ -309,38 +338,66 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
     macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
     macontext.General.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
 
-    if (index->isTS())
+    if (!CheckTS(Directory))
     {
-        macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
-        macontext.General.H264=true;
+        video_demux=NULL;
+        ac3_demux=NULL;
+        mp2_demux=NULL;
+        decoder=NULL;
+        video=NULL;
+        audio=NULL;
+        common=NULL;
+        return;
+    }
+
+    if (isTS)
+    {
+        CheckPATPMT(Directory);
     }
     else
     {
+        // TODO: get infos from VDR PES
         macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
         macontext.General.H264=false;
     }
 
-    macontext.General.VPid.Num=0x3ff;
-    //macontext.General.DPid.Num=0x403;
-    //macontext.General.APid.Num=0;
-
-    video_demux = new cMarkAdDemux(255);
+    if (macontext.General.VPid.Num)
+    {
+        dsyslog("markad [%i]: using %s-video",recvnumber,macontext.General.H264 ? "H264": "H262");
+        video_demux = new cMarkAdDemux(recvnumber);
+    }
+    else
+    {
+        video_demux=NULL;
+    }
 
     if (macontext.General.APid.Num)
     {
-        mp2_demux = new cMarkAdDemux(255);
+        dsyslog("markad [%i]: using mp2",recvnumber);
+        mp2_demux = new cMarkAdDemux(recvnumber);
+    }
+    else
+    {
+        mp2_demux=NULL;
     }
 
     if (macontext.General.DPid.Num)
     {
-        ac3_demux = new cMarkAdDemux(255);
+        dsyslog("markad [%i]: using ac3",recvnumber);
+        ac3_demux = new cMarkAdDemux(recvnumber);
+    }
+    else
+    {
+        ac3_demux=NULL;
     }
 
-    decoder = new cMarkAdDecoder(255,index->isTS(),
+    decoder = new cMarkAdDecoder(recvnumber,macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,
                                  macontext.General.DPid.Num!=0);
-    video = new cMarkAdVideo(255,&macontext);
-    audio = new cMarkAdAudio(255,&macontext);
-    common = new cMarkAdCommon(255,&macontext);
+    video = new cMarkAdVideo(recvnumber,&macontext);
+    audio = new cMarkAdAudio(recvnumber,&macontext);
+    common = new cMarkAdCommon(recvnumber,&macontext);
+
+    framecnt=0;
 }
 
 cMarkAdStandalone::~cMarkAdStandalone()
@@ -352,9 +409,6 @@ cMarkAdStandalone::~cMarkAdStandalone()
     if (video) delete video;
     if (audio) delete audio;
     if (common) delete common;
-    if (index) delete index;
-
-    if (dir) free(dir);
 }
 
 bool isnumber(const char *s)
@@ -696,7 +750,7 @@ int main(int argc, char *argv[])
         cMarkAdStandalone *cmasta = new cMarkAdStandalone(recDir);
         if (cmasta)
         {
-            cmasta->Process();
+            cmasta->Process(recDir);
             delete cmasta;
         }
 

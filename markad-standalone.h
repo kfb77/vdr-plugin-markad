@@ -28,36 +28,112 @@
 
 int SysLogLevel=2;
 
-class cMarkAdIndex
-{
-private:
-    int index_fd; // index file descriptor
-    int maxfiles;
-    bool ts;
-
-    int index;
-    int iframe;
-    off_t offset;
-
-    bool Open(const char *Directory);
-    void Close();
-public:
-    bool isTS()
-    {
-        return ts;
-    }
-    int MaxFiles()
-    {
-        return maxfiles;
-    }
-    int GetNext(off_t Offset);
-    cMarkAdIndex(const char *Directory);
-    ~cMarkAdIndex();
-};
-
 class cMarkAdStandalone
 {
 private:
+
+    struct PAT
+    {
+unsigned table_id:
+        8;
+unsigned section_length_H:
+        4;
+unsigned reserved1:
+        2;
+unsigned zero:
+        1;
+unsigned section_syntax_indicator:
+        1;
+unsigned section_length_L:
+        8;
+unsigned transport_stream_id_H:
+        8;
+unsigned transport_stream_id_L:
+        8;
+unsigned current_next_indicator:
+        1;
+unsigned version_number:
+        5;
+unsigned reserved2:
+        2;
+unsigned section_number:
+        8;
+unsigned last_section_number:
+        8;
+unsigned program_number_H:
+        8;
+unsigned program_number_L:
+        8;
+unsigned pid_H:
+        5;
+unsigned reserved3:
+        3;
+unsigned pid_L:
+        8;
+    };
+
+    struct PMT
+    {
+unsigned table_id:
+        8;
+unsigned section_length_H:
+        4;
+unsigned reserved1:
+        2;
+unsigned zero:
+        1;
+unsigned section_syntax_indicator:
+        1;
+unsigned section_length_L:
+        8;
+unsigned program_number_H:
+        8;
+unsigned program_number_L:
+        8;
+unsigned current_next_indicator:
+        1;
+unsigned version_number:
+        5;
+unsigned reserved2:
+        2;
+unsigned section_number:
+        8;
+unsigned last_section_number:
+        8;
+unsigned PCR_PID_H:
+        5;
+unsigned reserved3:
+        3;
+unsigned PCR_PID_L:
+        8;
+unsigned program_info_length_H:
+        4;
+unsigned reserved4:
+        4;
+unsigned program_info_length_L:
+        8;
+    };
+
+#pragma pack(1)
+    struct STREAMINFO
+    {
+unsigned stream_type:
+        8;
+unsigned PID_H:
+        5;
+unsigned reserved1:
+        3;
+unsigned PID_L:
+        8;
+unsigned ES_info_length_H:
+        4;
+unsigned reserved2:
+        4;
+unsigned ES_info_length_L:
+        8;
+    };
+#pragma pack()
+
     cMarkAdDemux *video_demux;
     cMarkAdDemux *ac3_demux;
     cMarkAdDemux *mp2_demux;
@@ -67,16 +143,19 @@ private:
     cMarkAdCommon *common;
 
     MarkAdContext macontext;
-    char *dir;
+    int recvnumber;
 
-    cMarkAdIndex *index;
+    bool isTS;
+    int MaxFiles;
+    int framecnt;
 
     void AddMark(MarkAdMark *Mark);
-    int LastIFrame(int Number, off_t Offset);
-    bool ProcessFile(int Number);
+    void CheckPATPMT(const char *Directory);
+    bool CheckTS(const char *Directory);
+    bool ProcessFile(const char *Directory, int Number);
 
 public:
-    void Process();
+    void Process(const char *Directory);
     cMarkAdStandalone(const char *Directory);
     ~cMarkAdStandalone();
 };

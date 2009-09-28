@@ -109,6 +109,8 @@ void cMarkAdDecoder::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt, in
 {
     if ((!maContext) || (!pkt) || (!len)) return;
 
+    maContext->Video.Info.Pict_Type=0;
+
     if ((pkt[3] & 0x1F)==NAL_AUD)
     {
         switch (pkt[4] >> 5)
@@ -611,6 +613,8 @@ void cMarkAdDecoder::FindH262VideoInfos(MarkAdContext *maContext, uchar *pkt, in
 {
     if ((!maContext) || (!pkt) || (!len)) return;
 
+    maContext->Video.Info.Pict_Type=0;
+
     struct H262_SequenceHdr
     {
 unsigned Sync1:
@@ -660,6 +664,8 @@ unsigned TemporalReferenceL:
 
     if (pichdr->Sync1==0 && pichdr->Sync2==0 && pichdr->Sync3==1 && pichdr->Sync4==0)
     {
+        if (maContext->Video.Info.Height==0) return;
+
         switch (pichdr->CodingType)
         {
         case 1:
@@ -730,7 +736,7 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool hasAC3)
         cpucount=CPU_COUNT(&cpumask);
     }
 
-    isyslog("markad [%i]: using %i threads",recvnumber,cpucount);
+    isyslog("markad [%i]: using ffmpeg with %i threads",recvnumber,cpucount);
 
     CodecID mp2_codecid=CODEC_ID_MP2;
     AVCodec *mp2_codec= avcodec_find_decoder(mp2_codecid);
@@ -1045,7 +1051,7 @@ bool cMarkAdDecoder::SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Vide
 }
 #endif
 
-bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int len)
+bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
 {
 #ifdef HAVE_AVCODEC
     AVPacket avpkt;
@@ -1057,7 +1063,7 @@ bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int len)
     avpkt.pos = -1;
 #endif
     avpkt.data=pkt;
-    avpkt.size=len;
+    avpkt.size=plen;
 
     // decode video
     int video_frame_ready=0;
@@ -1090,7 +1096,14 @@ bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int len)
     }
     return ret;
 #else
-    return true;
+    if (maContext->Video.Info.Pict_Type!=0)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 #endif
 }
 

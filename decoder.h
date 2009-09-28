@@ -71,7 +71,7 @@ private:
     void FindH262VideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
 public:
     void FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
-    bool DecodeVideo(MarkAdContext *maContext, uchar *pkt, int len);
+    bool DecodeVideo(MarkAdContext *maContext, uchar *pkt, int plen);
     bool DecodeMP2(MarkAdContext *maContext, uchar *espkt, int eslen);
     void FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen);
     bool DecodeAC3(MarkAdContext *maContext, uchar *espkt, int eslen);
