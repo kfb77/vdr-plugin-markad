@@ -287,9 +287,16 @@ void cMarkAdStandalone::CheckPATPMT(const char *Directory)
 
     int i=205+desc_len;
 
+
     while (i<section_end)
     {
+        struct ES_DESCRIPTOR *es=NULL;
         struct STREAMINFO *si = (struct STREAMINFO *) &patpmt[i];
+        int esinfo_len=(si->ES_info_length_H<<8)+si->ES_info_length_L;
+        if (esinfo_len)
+        {
+            es = (struct ES_DESCRIPTOR *) &patpmt[i+sizeof(struct STREAMINFO)];
+        }
 
         // oh no -> more checks!
         if (si->reserved1!=7) return;
@@ -302,25 +309,34 @@ void cMarkAdStandalone::CheckPATPMT(const char *Directory)
         case 0x1:
         case 0x2:
             macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
-            macontext.General.VPid.Num=pid;
+            // just use the first pid
+            if (!macontext.General.VPid.Num) macontext.General.VPid.Num=pid;
             break;
 
         case 0x3:
         case 0x4:
-            macontext.General.APid.Num=pid;
+            // just use the first pid
+            if (!macontext.General.APid.Num) macontext.General.APid.Num=pid;
+            break;
 
         case 0x6:
-            macontext.General.DPid.Num=pid;
+            if (es)
+            {
+                if (es->Descriptor_Tag==0x6A) macontext.General.DPid.Num=pid;
+            }
+            else
+            {
+                macontext.General.DPid.Num=pid;
+            }
             break;
 
         case 0x1b:
             macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
-            macontext.General.VPid.Num=pid;
             macontext.General.H264=true;
+            // just use the first pid
+            if (!macontext.General.VPid.Num) macontext.General.VPid.Num=pid;
             break;
         }
-
-        int esinfo_len=(si->ES_info_length_H<<8)+si->ES_info_length_L;
 
         i+=(sizeof(struct STREAMINFO)+esinfo_len);
     }
@@ -363,7 +379,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
 
     if (macontext.General.VPid.Num)
     {
-        dsyslog("markad [%i]: using %s-video",recvnumber,macontext.General.H264 ? "H264": "H262");
+        dsyslog("markad [%i]: using %s-video (0x%04x)",recvnumber,macontext.General.H264 ? "H264": "H262",
+                macontext.General.VPid.Num);
         video_demux = new cMarkAdDemux(recvnumber);
     }
     else
@@ -373,7 +390,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
 
     if (macontext.General.APid.Num)
     {
-        dsyslog("markad [%i]: using mp2",recvnumber);
+        dsyslog("markad [%i]: using mp2 (0x%04x)",recvnumber,macontext.General.APid.Num);
         mp2_demux = new cMarkAdDemux(recvnumber);
     }
     else
@@ -383,7 +400,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
 
     if (macontext.General.DPid.Num)
     {
-        dsyslog("markad [%i]: using ac3",recvnumber);
+        dsyslog("markad [%i]: using ac3 (0x%04x)",recvnumber,macontext.General.DPid.Num);
         ac3_demux = new cMarkAdDemux(recvnumber);
     }
     else

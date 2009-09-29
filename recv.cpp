@@ -24,12 +24,12 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
     buffer.SetTimeouts(0, 10);
 
     bool useH264=false;
-#if APIVERSNUM >= 10700 && APIVERSNUM < 10702
+#if APIVERSNUM >= 10700
+#ifdef DVBFE_DELSYS_DVBS2
     if (Timer->Channel()->System()==DVBFE_DELSYS_DVBS2) useH264=true;
-#endif
-
-#if APIVERSNUM >= 10702
+#else
     if (Timer->Channel()->System()==SYS_DVBS2) useH264=true;
+#endif
 #endif
     memset(&macontext,0,sizeof(macontext));
     if (Timer->Event())

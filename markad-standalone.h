@@ -131,8 +131,16 @@ unsigned reserved2:
         4;
 unsigned ES_info_length_L:
         8;
-    };
+};
 #pragma pack()
+
+struct ES_DESCRIPTOR {
+unsigned Descriptor_Tag:
+        8;
+unsigned Descriptor_Length:
+        8;
+};
+
 
     cMarkAdDemux *video_demux;
     cMarkAdDemux *ac3_demux;
