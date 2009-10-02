@@ -94,8 +94,9 @@ unsigned AcMod:
 void cMarkAdDecoder::FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len)
 {
     if ((!maContext) || (!pkt) || (!len)) return;
+    if (!maContext->General.VPid.Type) return;
 
-    if (maContext->General.H264)
+    if (maContext->General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
     {
         FindH264VideoInfos(maContext, pkt, len);
     }

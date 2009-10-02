@@ -23,6 +23,7 @@ typedef unsigned char uchar;
 #include <string.h>
 
 #include "global.h"
+#include "tools.h"
 
 class cMarkAdTS2Pkt
 {
@@ -57,55 +58,10 @@ unsigned Flags:
         8;
     };
 
-#pragma pack(1)
-    struct PESHDROPT
-    {
-unsigned OOC:
-        1;
-unsigned CY:
-        1;
-unsigned DAI:
-        1;
-unsigned PESP:
-        1;
-unsigned PESSC:
-        2;
-unsigned MarkerBits:
-        2;
-unsigned EXT:
-        1;
-unsigned CRC:
-        1;
-unsigned ACI:
-        1;
-unsigned TM:
-        1;
-unsigned RATE:
-        1;
-unsigned ESCR:
-        1;
-unsigned TSF:
-        2;
-unsigned Length:
-        8;
-    };
-#pragma pack()
-
-    struct pktinfo
-    {
-        int pkthdr;
-        int pkthdrsize;
-        int streamsize;
-    } pktinfo;
-
     int recvnumber;
-
-    bool isPES;
-    uchar *pktdatalast;
-    uchar *pktdata;
-    int pktsize;
-    bool dataleft;
     int counter;
+
+    cMarkAdPaketQueue *queue;
 
 #define MA_ERR_STARTUP 0
 #define MA_ERR_TOSMALL 1
@@ -114,14 +70,11 @@ unsigned Length:
 #define MA_ERR_AFC 4
 #define MA_ERR_TOBIG 5
 #define MA_ERR_NEG 6
-#define MA_ERR_MEM 7
     void Reset(int ErrIndex=MA_ERR_STARTUP);
-    int FindPktHeader(uchar *TSData, int TSSize, int *StreamSize, int *HeaderSize);
-    bool CheckStreamID(MarkAdPid Pid, uchar *Data, int Size);
 public:
-    cMarkAdTS2Pkt(int RecvNumber);
+    cMarkAdTS2Pkt(int RecvNumber, const char *QueueName="TS2Pkt", int QueueSize=262144);
     ~cMarkAdTS2Pkt();
-    int Process(MarkAdPid Pid,uchar *TSData, int TSSize, uchar **PktData, int *PktSize);
+    void Process(MarkAdPid Pid,uchar *TSData, int TSSize, uchar **PktData, int *PktSize);
 };
 
 #endif

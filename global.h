@@ -54,7 +54,6 @@ typedef struct MarkAdContext
         time_t StartTime;
         time_t EndTime;
         bool ManualRecording;
-        bool H264;
         MarkAdPid VPid;
         MarkAdPid APid;
         MarkAdPid DPid;

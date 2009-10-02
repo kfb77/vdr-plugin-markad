@@ -10,116 +10,119 @@
 
 cMarkAdDemux::cMarkAdDemux(int RecvNumber)
 {
-    ts2pkt=new cMarkAdTS2Pkt(RecvNumber);
+    recvnumber=RecvNumber;
+    ts2pkt=NULL;
+    vdr2pkt=NULL;
     pes2audioes=NULL;
-    pkt=NULL;
-    pesptr=NULL;
-    pktlen=0;
-    tsdata=tsptr=NULL;
-    tssize=0;
+    pes2videoes=NULL;
+    queue = new cMarkAdPaketQueue(RecvNumber,"Demux");
 }
 
 cMarkAdDemux::~cMarkAdDemux()
 {
     if (ts2pkt) delete ts2pkt;
+    if (vdr2pkt) delete vdr2pkt;
     if (pes2audioes) delete pes2audioes;
-    if (tsdata) free(tsdata);
+    if (pes2videoes) delete pes2videoes;
+    if (queue) delete queue;
+}
+
+void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen)
+{
+    if ((!Pkt) || (!PktLen)) return;
+    *Pkt=NULL;
+    *PktLen=0;
+
+    uchar *pkt;
+    int pktlen;
+
+    if (!vdr2pkt) vdr2pkt= new cMarkAdVDR2Pkt(recvnumber);
+    if (!vdr2pkt) return;
+
+    vdr2pkt->Process(Pid,Data,Count,&pkt,&pktlen);
+
+    if ((Pid.Type==MARKAD_PIDTYPE_AUDIO_AC3) || (Pid.Type==MARKAD_PIDTYPE_AUDIO_MP2))
+    {
+        if (!pes2audioes) pes2audioes=new cMarkAdPES2ES(recvnumber,"PES2ES audio");
+        if (!pes2audioes) return;
+        pes2audioes->Process(Pid,pkt,pktlen,Pkt,PktLen);
+        return;
+    }
+
+    if ((Pid.Type==MARKAD_PIDTYPE_VIDEO_H262) || (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264))
+    {
+        if (!pes2videoes) pes2videoes=new cMarkAdPES2ES(recvnumber,"PES2ES video",262144);
+        if (!pes2videoes) return;
+        pes2videoes->Process(Pid,pkt,pktlen,Pkt,PktLen);
+        return;
+    }
+    return;
+}
+
+void cMarkAdDemux::ProcessTS(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen)
+{
+    if ((!Pkt) || (!PktLen) || (!Data)) return;
+    *Pkt=NULL;
+    *PktLen=0;
+
+    uchar *pkt;
+    int pktlen;
+
+    if (!ts2pkt) ts2pkt=new cMarkAdTS2Pkt(recvnumber);
+    if (!ts2pkt) return;
+
+    ts2pkt->Process(Pid,Data,Count,&pkt,&pktlen);
+
+    if ((Pid.Type==MARKAD_PIDTYPE_AUDIO_AC3) || (Pid.Type==MARKAD_PIDTYPE_AUDIO_MP2))
+    {
+        if (!pes2audioes) pes2audioes=new cMarkAdPES2ES(recvnumber,"PES2ES audio");
+        if (!pes2audioes) return;
+        pes2audioes->Process(Pid,pkt,pktlen,Pkt,PktLen);
+        return;
+    }
+
+    if (pkt)
+    {
+        *Pkt=pkt;
+        *PktLen=pktlen;
+    }
+    return;
 }
 
 int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen)
 {
-    if ((!Data) && (!Count) && (!ts2pkt) && (!pes2audioes) ||
-            (!Pkt) || (!PktLen) || (!Pid.Num)) return -1;
+    if ((!Data) && (!Count) && (!Pkt) || (!PktLen)) return -1;
+
     *Pkt=NULL;
     *PktLen=0;
 
-    int len=-1; // we don't want loops
+    int retval;
+    int min_needed=TS_SIZE;
 
-    if (!pktlen)
+    int needed=min_needed-queue->Length();
+    if (Count>needed)
     {
-        if (tssize<TS_SIZE)
-        {
-            tsdata=(uchar *) realloc(tsdata,tssize+Count);
-            if (!tsdata) return -1;
-            memcpy(tsdata+tssize,Data,Count);
-            tssize+=Count;
-            tsptr=tsdata;
-            if (tssize<TS_SIZE) return Count;
-        }
-        len=ts2pkt->Process(Pid,tsdata,tssize,&pkt,&pktlen);
-
-        int bufleftsize=tssize-len;
-        uchar *ptr=(uchar *) malloc(bufleftsize);
-        if (!ptr) return -1;
-        memcpy(ptr,tsdata+len,bufleftsize);
-
-        free(tsdata);
-        tsdata=ptr;
-        tssize=bufleftsize;
-        if (tssize<TS_SIZE)
-        {
-            len=Count;
-        }
-        else
-        {
-            len=0;
-        }
+        queue->Put(Data,needed);
+        retval=needed;
     }
-    if (pkt)
+    else
     {
-
-        if ((((pkt[3]>=0xc0) && (pkt[3]<=0xDF)) || (pkt[3]==0xBD))
-                && (!pesptr))
-        {
-            if (!pes2audioes)
-            {
-                pes2audioes=new cMarkAdPES2AudioES();
-            }
-            if (pes2audioes)
-            {
-                pesptr=pkt;
-            }
-            else
-            {
-                pesptr=NULL;
-            }
-        }
-        if (pesptr)
-        {
-
-            if (len==-1) len=0;
-            uchar *esdata;
-            int essize;
-            while (pktlen>0)
-            {
-                int len2=pes2audioes->Process(pesptr,pktlen,&esdata,&essize);
-                if (len2<0)
-                {
-                    break;
-                }
-                else
-                {
-                    if (esdata)
-                    {
-                        *Pkt=esdata;
-                        *PktLen=essize;
-                    }
-                    pesptr+=len2;
-                    pktlen-=len2;
-                    if (!pktlen) pesptr=NULL;
-                    break;
-                }
-            }
-
-        }
-        else
-        {
-            *Pkt=pkt;
-            *PktLen=pktlen;
-            pkt=pesptr=NULL;
-            pktlen=0;
-        }
+        queue->Put(Data,Count);
+        retval=Count;
     }
-    return len;
+    if (queue->Length()<min_needed) return Count;
+
+    uchar *in;
+    int inlen=TS_SIZE;
+    in=queue->Get(&inlen);
+
+    if (Pid.Num>=0)
+    {
+        ProcessTS(Pid, in, inlen, Pkt, PktLen);
+    }
+    else
+    {
+        ProcessVDR(Pid, in, inlen, Pkt, PktLen);
+    }
+    return retval;
 }
-

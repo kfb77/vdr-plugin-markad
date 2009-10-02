@@ -1,0 +1,29 @@
+/*
+ * vdr2pkt.h: A plugin for the Video Disk Recorder
+ *
+ * See the README file for copyright information and how to reach the author.
+ *
+ * $Id$
+ */
+
+#ifndef __vdr2pkt_h_
+#define __vdr2pkt_h_
+
+#ifndef uchar
+typedef unsigned char uchar;
+#endif
+
+#include "global.h"
+#include "tools.h"
+
+class cMarkAdVDR2Pkt
+{
+private:
+    cMarkAdPaketQueue *queue;
+public:
+    cMarkAdVDR2Pkt(int RecvNumber, const char *QueueName="VDR2PKT", int QueueSize=32768);
+    ~cMarkAdVDR2Pkt();
+    void Process(MarkAdPid Pid,uchar *VDRData, int VDRSize, uchar **PktData, int *PktSize);
+};
+
+#endif

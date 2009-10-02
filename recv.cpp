@@ -60,8 +60,6 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
     macontext.General.DPid.Num=Timer->Channel()->Dpid(0); // TODO ... better solution?
     macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
 
-    macontext.General.H264=useH264;
-
     if (macontext.General.VPid.Num)
     {
         dsyslog("markad [%i]: using %s-video",recvnumber,useH264 ? "H264": "H262");
@@ -122,21 +120,6 @@ cMarkAdReceiver::~cMarkAdReceiver()
     }
     buffer.Clear();
 
-    if ((!macontext.State.ContentStopped) && (lastiframe))
-    {
-        MarkAdMark tempmark;
-        tempmark.Position=lastiframe;
-
-        char *buf;
-        if (asprintf(&buf,"stop of user content (%i)",lastiframe)!=-1)
-        {
-            tempmark.Comment=buf;
-            AddMark(&tempmark,0);
-            isyslog("markad [%i]: %s",recvnumber,buf);
-            free(buf);
-        }
-    }
-
     if (video_demux) delete video_demux;
     if (mp2_demux) delete mp2_demux;
     if (ac3_demux) delete ac3_demux;
@@ -170,6 +153,7 @@ int cMarkAdReceiver::LastIFrame()
 {
     if (!Index)
     {
+        if (!filename) return 0;
         Index = new cIndexFile(filename,false);
         if (!Index)
         {
@@ -207,7 +191,21 @@ void cMarkAdReceiver::Activate(bool On)
     }
     else if (running)
     {
-        marks.Save();
+        if ((!macontext.State.ContentStopped) && (lastiframe))
+        {
+            MarkAdMark tempmark;
+            tempmark.Position=lastiframe;
+
+            char *buf;
+            if (asprintf(&buf,"stop of user content (%i)",lastiframe)!=-1)
+            {
+                tempmark.Comment=buf;
+                AddMark(&tempmark,0);
+                isyslog("markad [%i]: %s",recvnumber,buf);
+                free(buf);
+            }
+        }
+
         if (Index) delete Index;
         running = false;
         buffer.Signal();
@@ -254,7 +252,7 @@ void cMarkAdReceiver::AddMark(MarkAdMark *mark, int Priority)
     }
     marks.Save();
 
-#define MAXPOSDIFF 10500 // = 7 min
+#define MAXPOSDIFF (25*60*9) // = 9 min
 
     cMark *prevmark=marks.GetPrev(mark->Position);
     if (!prevmark) return;

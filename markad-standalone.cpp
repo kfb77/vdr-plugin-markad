@@ -35,43 +35,26 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     if (!Directory) return false;
     if (!Number) return false;
 
-    uchar *data;
-    int datalen;
-    int dataread;
+    int datalen=385024;
+    uchar data[datalen];
 
     char *fbuf;
     if (isTS)
     {
-        datalen=70688; // multiple of 188
-        data=(uchar *) malloc(datalen);
-        if (!data) return false;
-        if (asprintf(&fbuf,"%s/%05i.ts",Directory,Number)==-1)
-        {
-            free(data);
-            return false;
-        }
+        if (asprintf(&fbuf,"%s/%05i.ts",Directory,Number)==-1) return false;
     }
     else
     {
-        datalen=69632; // VDR paket size
-        data=(uchar *) malloc(datalen);
-        if (!data) return false;
-        if (asprintf(&fbuf,"%s/%03i.vdr",Directory,Number)==-1)
-        {
-            free(data);
-            return false;
-        }
+        if (asprintf(&fbuf,"%s/%03i.vdr",Directory,Number)==-1) return false;
     }
 
     int f=open(fbuf,O_RDONLY);
     free(fbuf);
-    if (f==-1)
-    {
-        free(data);
-        return false;
-    }
+    if (f==-1) return false;
 
-    int lastiframe=0;
+    int dataread,lastiframe=0;
+    dsyslog("markad [%i]: processing file %05i",recvnumber,Number);
+
     while ((dataread=read(f,data,datalen))>0)
     {
 
@@ -183,7 +166,6 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
             }
         }
     }
-    free(data);
     close(f);
     return true;
 }
@@ -222,13 +204,13 @@ bool cMarkAdStandalone::CheckTS(const char *Directory)
             return false;
         }
         free(buf);
-        // VDR detected
+        // .VDR detected
         isTS=false;
         MaxFiles=999;
         return true;
     }
     free(buf);
-    // TS detected
+    // .TS detected
     isTS=true;
     MaxFiles=65535;
     return true;
@@ -332,7 +314,6 @@ void cMarkAdStandalone::CheckPATPMT(const char *Directory)
 
         case 0x1b:
             macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
-            macontext.General.H264=true;
             // just use the first pid
             if (!macontext.General.VPid.Num) macontext.General.VPid.Num=pid;
             break;
@@ -372,14 +353,15 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
     }
     else
     {
-        // TODO: get infos from VDR PES
+        //macontext.General.APid.Num=-1;
+        macontext.General.DPid.Num=-1;
+        macontext.General.VPid.Num=-1;
         macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
-        macontext.General.H264=false;
     }
 
     if (macontext.General.VPid.Num)
     {
-        dsyslog("markad [%i]: using %s-video (0x%04x)",recvnumber,macontext.General.H264 ? "H264": "H262",
+        dsyslog("markad [%i]: using %s-video (0x%04x)",recvnumber,macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262",
                 macontext.General.VPid.Num);
         video_demux = new cMarkAdDemux(recvnumber);
     }
@@ -746,9 +728,6 @@ int main(int argc, char *argv[])
                 signal(SIGSEGV, signal_handler);
                 signal(SIGUSR1, signal_handler);
         */
-
-        // do cleanup at exit...
-//        atexit(cleanUp);
 
         // now do the work...
         struct stat statbuf;

@@ -13,23 +13,28 @@
 #define TS_SIZE 188
 #endif
 
+#ifndef VDR_SIZE
+#define VDR_SIZE 2048
+#endif
+
 #include "global.h"
+#include "tools.h"
+#include "vdr2pkt.h"
 #include "ts2pkt.h"
-#include "pes2audioes.h"
+#include "pes2es.h"
 
 class cMarkAdDemux
 {
 private:
+    int recvnumber;
+    cMarkAdVDR2Pkt *vdr2pkt;
     cMarkAdTS2Pkt *ts2pkt;
-    cMarkAdPES2AudioES *pes2audioes;
-    uchar *pkt;
-    uchar *pesptr; // pointer into pkt
+    cMarkAdPES2ES *pes2audioes;
+    cMarkAdPES2ES *pes2videoes;
+    cMarkAdPaketQueue *queue;
 
-    uchar *tsdata;
-    int tssize;
-    uchar *tsptr;
-
-    int pktlen;
+    void ProcessTS(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);
+    void ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);
 public:
     cMarkAdDemux(int RecvNumber);
     ~cMarkAdDemux();
