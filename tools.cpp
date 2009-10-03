@@ -317,7 +317,7 @@ uchar *cMarkAdPaketQueue::GetPacket(int *Size, int Type)
     outptr=pkthdr;
 
     int bytesleft=inptr-outptr;
-    if (pktinfo.pkthdr>(8192+bytesleft))
+    if (pktinfo.pkthdr>(4096+bytesleft))
     {
         memcpy(buffer,&buffer[pkthdr],bytesleft);
         inptr=bytesleft;

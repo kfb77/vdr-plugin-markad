@@ -15,7 +15,9 @@ cMarkAdDemux::cMarkAdDemux(int RecvNumber)
     vdr2pkt=NULL;
     pes2audioes=NULL;
     pes2videoes=NULL;
-    queue = new cMarkAdPaketQueue(RecvNumber,"Demux");
+    pause=false;
+    pause_retval=0;
+    queue = new cMarkAdPaketQueue(RecvNumber,"Demux",376);
 }
 
 cMarkAdDemux::~cMarkAdDemux()
@@ -51,7 +53,7 @@ void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt
 
     if ((Pid.Type==MARKAD_PIDTYPE_VIDEO_H262) || (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264))
     {
-        if (!pes2videoes) pes2videoes=new cMarkAdPES2ES(recvnumber,"PES2ES video",262144);
+        if (!pes2videoes) pes2videoes=new cMarkAdPES2ES(recvnumber,"PES2ES video",65536);
         if (!pes2videoes) return;
         pes2videoes->Process(Pid,pkt,pktlen,Pkt,PktLen);
         return;
@@ -68,7 +70,7 @@ void cMarkAdDemux::ProcessTS(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt,
     uchar *pkt;
     int pktlen;
 
-    if (!ts2pkt) ts2pkt=new cMarkAdTS2Pkt(recvnumber);
+    if (!ts2pkt) ts2pkt=new cMarkAdTS2Pkt(recvnumber,"TS2PES",262144);
     if (!ts2pkt) return;
 
     ts2pkt->Process(Pid,Data,Count,&pkt,&pktlen);
@@ -96,25 +98,30 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, in
     *Pkt=NULL;
     *PktLen=0;
 
+    uchar *in=NULL;
+    int inlen=0;
     int retval;
-    int min_needed=TS_SIZE;
 
-    int needed=min_needed-queue->Length();
-    if (Count>needed)
+    if (!pause)
     {
-        queue->Put(Data,needed);
-        retval=needed;
-    }
-    else
-    {
-        queue->Put(Data,Count);
-        retval=Count;
-    }
-    if (queue->Length()<min_needed) return Count;
+        int min_needed=TS_SIZE;
 
-    uchar *in;
-    int inlen=TS_SIZE;
-    in=queue->Get(&inlen);
+        int needed=min_needed-queue->Length();
+        if (Count>needed)
+        {
+            queue->Put(Data,needed);
+            retval=needed;
+        }
+        else
+        {
+            queue->Put(Data,Count);
+            retval=Count;
+        }
+        if (queue->Length()<min_needed) return Count;
+
+        inlen=TS_SIZE;
+        in=queue->Get(&inlen);
+    }
 
     if (Pid.Num>=0)
     {
@@ -124,5 +131,23 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, in
     {
         ProcessVDR(Pid, in, inlen, Pkt, PktLen);
     }
+
+    if (*Pkt)
+    {
+        if (!pause_retval) pause_retval=retval;
+        pause=true;
+        return 0;
+    }
+
+    if (pause)
+    {
+        if (pause_retval)
+        {
+            retval=pause_retval;
+            pause_retval=0;
+        }
+        pause=false;
+    }
+
     return retval;
 }

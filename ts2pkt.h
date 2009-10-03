@@ -72,7 +72,7 @@ unsigned Flags:
 #define MA_ERR_NEG 6
     void Reset(int ErrIndex=MA_ERR_STARTUP);
 public:
-    cMarkAdTS2Pkt(int RecvNumber, const char *QueueName="TS2Pkt", int QueueSize=262144);
+    cMarkAdTS2Pkt(int RecvNumber, const char *QueueName="TS2Pkt", int QueueSize=32768);
     ~cMarkAdTS2Pkt();
     void Process(MarkAdPid Pid,uchar *TSData, int TSSize, uchar **PktData, int *PktSize);
 };

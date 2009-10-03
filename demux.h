@@ -23,6 +23,10 @@
 #include "ts2pkt.h"
 #include "pes2es.h"
 
+#if 1
+#include <unistd.h>
+#endif
+
 class cMarkAdDemux
 {
 private:
@@ -32,6 +36,9 @@ private:
     cMarkAdPES2ES *pes2audioes;
     cMarkAdPES2ES *pes2videoes;
     cMarkAdPaketQueue *queue;
+
+    bool pause;
+    int pause_retval;
 
     void ProcessTS(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);
     void ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);

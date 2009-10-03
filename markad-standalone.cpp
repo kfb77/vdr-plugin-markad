@@ -306,10 +306,6 @@ void cMarkAdStandalone::CheckPATPMT(const char *Directory)
             {
                 if (es->Descriptor_Tag==0x6A) macontext.General.DPid.Num=pid;
             }
-            else
-            {
-                macontext.General.DPid.Num=pid;
-            }
             break;
 
         case 0x1b:
@@ -350,10 +346,11 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
     if (isTS)
     {
         CheckPATPMT(Directory);
+        macontext.General.APid.Num=0;
     }
     else
     {
-        //macontext.General.APid.Num=-1;
+        macontext.General.APid.Num=0;
         macontext.General.DPid.Num=-1;
         macontext.General.VPid.Num=-1;
         macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
