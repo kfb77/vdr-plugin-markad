@@ -57,6 +57,7 @@ private:
     int recvnumber;
     char *filename;
     int lastiframe;
+    int framecnt;
 
     char *strcatrealloc(char *dest, const char *src);
     cMarks marks;

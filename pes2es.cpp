@@ -41,9 +41,13 @@ void cMarkAdPES2ES::Process(MarkAdPid Pid, uchar *PESData, int PESSize, uchar **
             return;
         }
 
-        int Length=(peshdr->LenH<<8)+peshdr->LenL+sizeof(PESHDR);
+        if (peshdr->StreamID<=0xBC) return;
+
+        int Length=(peshdr->LenH<<8)+peshdr->LenL;
+        if (Length) Length+=sizeof(PESHDR);
         if (Length!=PESSize)
         {
+            if ((peshdr->StreamID & 0xF0)==0xE0) return;
             Reset();
             return;
         }
@@ -87,7 +91,6 @@ void cMarkAdPES2ES::Process(MarkAdPid Pid, uchar *PESData, int PESSize, uchar **
             buf=&PESData[bpos];
             buflen=PESSize-bpos;
         }
-
         queue->Put(buf,buflen);
     }
     if (type) *ESData=queue->GetPacket(ESSize,type);

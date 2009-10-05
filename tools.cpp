@@ -26,6 +26,36 @@ cMarkAdPaketQueue::~cMarkAdPaketQueue()
     if (buffer) free(buffer);
 }
 
+bool cMarkAdPaketQueue::Inject(uchar *Data, int Size)
+{
+    if (!buffer) return false;
+    if (outptr>Size)
+    {
+        uchar temp[Size+1];
+        memcpy(temp,Data,Size);
+        outptr-=Size;
+        memcpy(&buffer[outptr],temp,Size);
+        pktinfo.pkthdr=-1;
+    }
+    else
+    {
+        int oldSize=Length();
+        uchar tempold[oldSize+1];
+        memcpy(tempold,&buffer[outptr],oldSize);
+
+        uchar temp[Size+1];
+        memcpy(temp,Data,Size);
+
+        memcpy(buffer,temp,Size);
+        memcpy(buffer+Size,tempold,oldSize);
+
+        inptr=Size+oldSize;
+        outptr=0;
+        pktinfo.pkthdr=-1;
+    }
+    return true;
+}
+
 bool cMarkAdPaketQueue::Put(uchar *Data, int Size)
 {
     if (!buffer) return false;

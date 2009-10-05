@@ -58,13 +58,57 @@ unsigned Flags:
         8;
     };
 
+    struct PESHDR
+    {
+        uchar Sync1;
+        uchar Sync2;
+        uchar Sync3;
+        uchar StreamID;
+        uchar LenH;
+        uchar LenL;
+    };
+
+#pragma pack(1)
+    struct PESHDROPT
+    {
+unsigned OOC:
+        1;
+unsigned CY:
+        1;
+unsigned DAI:
+        1;
+unsigned PESP:
+        1;
+unsigned PESSC:
+        2;
+unsigned MarkerBits:
+        2;
+unsigned EXT:
+        1;
+unsigned CRC:
+        1;
+unsigned ACI:
+        1;
+unsigned TM:
+        1;
+unsigned RATE:
+        1;
+unsigned ESCR:
+        1;
+unsigned TSF:
+        2;
+unsigned Length:
+        8;
+    };
+#pragma pack()
+
     int recvnumber;
     int counter;
 
     cMarkAdPaketQueue *queue;
 
 #define MA_ERR_STARTUP 0
-#define MA_ERR_TOSMALL 1
+#define MA_ERR_TSSIZE 1
 #define MA_ERR_NOSYNC 2
 #define MA_ERR_SEQ 3
 #define MA_ERR_AFC 4
@@ -75,6 +119,7 @@ public:
     cMarkAdTS2Pkt(int RecvNumber, const char *QueueName="TS2Pkt", int QueueSize=32768);
     ~cMarkAdTS2Pkt();
     void Process(MarkAdPid Pid,uchar *TSData, int TSSize, uchar **PktData, int *PktSize);
+    bool InjectVideoPES(uchar *PESData, int PESSize);
 };
 
 #endif

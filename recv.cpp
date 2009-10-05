@@ -74,7 +74,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
 
     if (macontext.General.APid.Num)
     {
-        dsyslog("markad [%i]: using mp2",recvnumber);
+        dsyslog("markad [%i]: using MP2",recvnumber);
         mp2_demux = new cMarkAdDemux(RecvNumber);
     }
     else
@@ -84,7 +84,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
 
     if (macontext.General.DPid.Num)
     {
-        dsyslog("markad [%i]: using ac3",recvnumber);
+        dsyslog("markad [%i]: using AC3",recvnumber);
         ac3_demux = new cMarkAdDemux(RecvNumber);
     }
     else
@@ -107,6 +107,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
     marks.Load(Filename);
     Index=NULL;
     lastiframe=0;
+    framecnt=-1;
 }
 
 cMarkAdReceiver::~cMarkAdReceiver()
@@ -324,9 +325,17 @@ void cMarkAdReceiver::Action()
                             {
                                 if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                                 {
-                                    mark=video->Process(lastiframe);
-                                    AddMark(mark,3);
+                                    if (framecnt==-1)
+                                    {
+                                        framecnt=0;
+                                    }
+                                    else
+                                    {
+                                        mark=video->Process(lastiframe);
+                                        AddMark(mark,3);
+                                    }
                                 }
+                                if (framecnt!=-1) framecnt++;
                             }
                         }
                         tspkt+=len;

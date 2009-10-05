@@ -8,6 +8,8 @@
 
 #include "markad-standalone.h"
 
+cMarkAdStandalone *cmasta=NULL;
+
 void syslog_with_tid(int priority, const char *format, ...)
 {
     va_list ap;
@@ -57,7 +59,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
 
     while ((dataread=read(f,data,datalen))>0)
     {
-
+        if (abort) break;
         MarkAdMark *mark;
 
         if (common)
@@ -172,12 +174,18 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
 
 void cMarkAdStandalone::Process(const char *Directory)
 {
+    if (abort) return;
     for (int i=1; i<=MaxFiles; i++)
     {
+        if (abort) break;
         if (!ProcessFile(Directory,i))
         {
             break;
         }
+    }
+    if (abort)
+    {
+        isyslog("markad [%i]: aborted",recvnumber);
     }
 }
 
@@ -216,59 +224,58 @@ bool cMarkAdStandalone::CheckTS(const char *Directory)
     return true;
 }
 
-void cMarkAdStandalone::CheckPATPMT(const char *Directory)
+bool cMarkAdStandalone::CheckPATPMT(const char *Directory)
 {
     char *buf;
-    if (asprintf(&buf,"%s/00001.ts",Directory)==-1) return;
+    if (asprintf(&buf,"%s/00001.ts",Directory)==-1) return false;
 
     int fd=open(buf,O_RDONLY);
     free(buf);
-    if (fd==-1) return;
+    if (fd==-1) return false;
 
     uchar patpmt[376];
 
     if (read(fd,patpmt,sizeof(patpmt))!=sizeof(patpmt))
     {
         close(fd);
-        return;
+        return false;
     }
     close(fd);
 
     // some checks
-    if ((patpmt[0]!=0x47) || (patpmt[188]!=0x47)) return; // no TS-Sync
-    if (((patpmt[1] & 0x5F)!=0x40) && (patpmt[2]!=0)) return; // no PAT
-    if ((patpmt[3] & 0x10)!=0x10) return; // PAT not without AFC
-    if ((patpmt[191] & 0x10)!=0x10) return; // PMT not without AFC
+    if ((patpmt[0]!=0x47) || (patpmt[188]!=0x47)) return false; // no TS-Sync
+    if (((patpmt[1] & 0x5F)!=0x40) && (patpmt[2]!=0)) return false; // no PAT
+    if ((patpmt[3] & 0x10)!=0x10) return false; // PAT not without AFC
+    if ((patpmt[191] & 0x10)!=0x10) return false; // PMT not without AFC
     struct PAT *pat = (struct PAT *) &patpmt[5];
 
     // more checks
-    if (pat->reserved1!=3) return; // is always 11
-    if (pat->reserved3!=7) return; // is always 111
+    if (pat->reserved1!=3) return false; // is always 11
+    if (pat->reserved3!=7) return false; // is always 111
 
     int pid=pat->pid_L+(pat->pid_H<<8);
     int pmtpid=((patpmt[189] & 0x1f)<<8)+patpmt[190];
-    if (pid!=pmtpid) return; // pid in PAT differs from pid in PMT
+    if (pid!=pmtpid) return false; // pid in PAT differs from pid in PMT
 
     struct PMT *pmt = (struct PMT *) &patpmt[193];
 
     // still more checks
-    if (pmt->reserved1!=3) return; // is always 11
-    if (pmt->reserved2!=3) return; // is always 11
-    if (pmt->reserved3!=7) return; // is always 111
-    if (pmt->reserved4!=15) return; // is always 1111
+    if (pmt->reserved1!=3) return false; // is always 11
+    if (pmt->reserved2!=3) return false; // is always 11
+    if (pmt->reserved3!=7) return false; // is always 111
+    if (pmt->reserved4!=15) return false; // is always 1111
 
     if ((pmt->program_number_H!=pat->program_number_H) ||
-            (pmt->program_number_L!=pat->program_number_L)) return;
+            (pmt->program_number_L!=pat->program_number_L)) return false;
 
     int desc_len=(pmt->program_info_length_H<<8)+pmt->program_info_length_L;
-    if (desc_len>166) return; // beyond patpmt buffer
+    if (desc_len>166) return false; // beyond patpmt buffer
 
     int section_end = 196+(pmt->section_length_H<<8)+pmt->section_length_L;
     section_end-=4; // we don't care about the CRC32
-    if (section_end>376) return; //beyond patpmt buffer
+    if (section_end>376) return false; //beyond patpmt buffer
 
     int i=205+desc_len;
-
 
     while (i<section_end)
     {
@@ -281,8 +288,8 @@ void cMarkAdStandalone::CheckPATPMT(const char *Directory)
         }
 
         // oh no -> more checks!
-        if (si->reserved1!=7) return;
-        if (si->reserved2!=15) return;
+        if (si->reserved1!=7) return false;
+        if (si->reserved2!=15) return false;
 
         int pid=(si->PID_H<<8)+si->PID_L;
 
@@ -318,12 +325,13 @@ void cMarkAdStandalone::CheckPATPMT(const char *Directory)
         i+=(sizeof(struct STREAMINFO)+esinfo_len);
     }
 
-    return;
+    return true;
 }
 
 cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
 {
     recvnumber=255;
+    abort=false;
 
     memset(&macontext,0,sizeof(macontext));
     macontext.General.StartTime=0;
@@ -345,12 +353,15 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
 
     if (isTS)
     {
-        CheckPATPMT(Directory);
+        if (!CheckPATPMT(Directory))
+        {
+            esyslog("markad [%i]: no PAT/PMT found -> nothing to process",recvnumber);
+            abort=true;
+        }
         macontext.General.APid.Num=0;
     }
     else
     {
-        macontext.General.APid.Num=0;
         macontext.General.DPid.Num=-1;
         macontext.General.VPid.Num=-1;
         macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
@@ -369,7 +380,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
 
     if (macontext.General.APid.Num)
     {
-        dsyslog("markad [%i]: using mp2 (0x%04x)",recvnumber,macontext.General.APid.Num);
+        dsyslog("markad [%i]: using MP2 (0x%04x)",recvnumber,macontext.General.APid.Num);
         mp2_demux = new cMarkAdDemux(recvnumber);
     }
     else
@@ -379,7 +390,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
 
     if (macontext.General.DPid.Num)
     {
-        dsyslog("markad [%i]: using ac3 (0x%04x)",recvnumber,macontext.General.DPid.Num);
+        dsyslog("markad [%i]: using AC3 (0x%04x)",recvnumber,macontext.General.DPid.Num);
         ac3_demux = new cMarkAdDemux(recvnumber);
     }
     else
@@ -451,6 +462,21 @@ int usage()
     return -1;
 }
 
+void signal_handler(int sig)
+{
+    if (sig==SIGUSR1)
+    {
+        // TODO: what we are supposed to do?
+    }
+    else
+    {
+        if (cmasta)
+        {
+            cmasta->SetAbort();
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     int c;
@@ -518,14 +544,17 @@ int main(int argc, char *argv[])
             break;
 
         case 'O':
-//            osdMsg = 1;
+            // --OSD
+            break;
+
+        case 'o':
+            // --overlap
             break;
 
         case 's':
         case 'l':
         case 'c':
         case 'j':
-        case 'o':
         case 'a':
         case 'S':
         case 'B':
@@ -552,9 +581,10 @@ int main(int argc, char *argv[])
             //setMarkfileName(optarg); // TODO: implement this
             break;
 
-        case 2: // --verbose
-            //if (isnumber(optarg))
-            //    verbosity = atoi(optarg);
+        case 2: // --loglevel
+            SysLogLevel=atoi(optarg);
+            if (SysLogLevel>10) SysLogLevel=10;
+            if (SysLogLevel<0) SysLogLevel=2;
             break;
 
         case 3: // --testmode
@@ -717,15 +747,6 @@ int main(int argc, char *argv[])
             }
         }
 
-        // catch some signals
-        /*
-                signal(SIGINT, signal_handler);
-                signal(SIGTERM, signal_handler);
-                signal(SIGABRT, signal_handler);
-                signal(SIGSEGV, signal_handler);
-                signal(SIGUSR1, signal_handler);
-        */
-
         // now do the work...
         struct stat statbuf;
         if (stat(recDir,&statbuf)==-1)
@@ -740,13 +761,19 @@ int main(int argc, char *argv[])
             return -1;
         }
 
-        cMarkAdStandalone *cmasta = new cMarkAdStandalone(recDir);
-        if (cmasta)
-        {
-            cmasta->Process(recDir);
-            delete cmasta;
-        }
+        cmasta = new cMarkAdStandalone(recDir);
+        if (!cmasta) return -1;
 
+        // ignore some signals
+        signal(SIGHUP, SIG_IGN);
+
+        // catch some signals
+        signal(SIGINT, signal_handler);
+        signal(SIGTERM, signal_handler);
+        signal(SIGUSR1, signal_handler);
+
+        cmasta->Process(recDir);
+        delete cmasta;
         return 0;
     }
 

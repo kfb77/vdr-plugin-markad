@@ -129,7 +129,9 @@ public:
     void Clear()
     {
         inptr=outptr=0;
+        pktinfo.pkthdr=-1;
     }
+    bool Inject(uchar *Data, int Size);
     bool Put(uchar *Data, int Size);
     uchar *Get(int *Size);
 

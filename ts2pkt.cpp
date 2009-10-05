@@ -24,8 +24,8 @@ void cMarkAdTS2Pkt::Reset(int ErrIndex)
 {
     switch (ErrIndex)
     {
-    case MA_ERR_TOSMALL:
-        dsyslog("markad [%i]: input to small",recvnumber);
+    case MA_ERR_TSSIZE:
+        dsyslog("markad [%i]: inbuf not 188 bytes",recvnumber);
         break;
     case MA_ERR_NOSYNC:
         dsyslog("markad [%i]: found no sync",recvnumber);
@@ -37,14 +37,51 @@ void cMarkAdTS2Pkt::Reset(int ErrIndex)
         dsyslog("markad [%i]: wrong AFC value",recvnumber);
         break;
     case MA_ERR_TOBIG:
-        dsyslog("markad [%i]: buflen > 188",recvnumber);
+        dsyslog("markad [%i]: buflen > 188 bytes",recvnumber);
         break;
     case MA_ERR_NEG:
-        dsyslog("markad [%i]: buflen < 0",recvnumber);
+        dsyslog("markad [%i]: buflen negative",recvnumber);
         break;
     }
     counter=-1;
     if (queue) queue->Clear();
+}
+
+bool cMarkAdTS2Pkt::InjectVideoPES(uchar *PESData, int PESSize)
+{
+    if ((!PESData) || (!PESSize)) return false;
+
+    struct PESHDR *peshdr=(struct PESHDR *) PESData;
+
+    // first check some simple things
+    if ((peshdr->Sync1!=0) && (peshdr->Sync2!=0) && (peshdr->Sync3!=1)) return false;
+    if ((peshdr->StreamID & 0xF0)!=0xE0) return false;
+
+    int Length=(peshdr->LenH<<8)+peshdr->LenL;
+    if (Length) Length+=sizeof(PESHDR);
+    if (Length!=PESSize) return false;
+
+    struct PESHDROPT *peshdropt=(struct PESHDROPT *) &PESData[sizeof(struct PESHDR)];
+
+    uchar *buf;
+    int buflen;
+
+    if (peshdropt->MarkerBits==0x2)
+    {
+        // we have an optional PES header
+        int bpos=sizeof(struct PESHDR)+sizeof(struct PESHDROPT)+
+                 peshdropt->Length;
+        buf=&PESData[bpos];
+        buflen=PESSize-bpos;
+    }
+    else
+    {
+        int bpos=sizeof(struct PESHDR);
+        buf=&PESData[bpos];
+        buflen=PESSize-bpos;
+    }
+    queue->Inject(buf,buflen);
+    return true;
 }
 
 void cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, uchar **PktData, int *PktSize)
@@ -57,7 +94,7 @@ void cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, uchar **Pk
     {
         if (TSSize!=TS_SIZE)
         {
-            Reset(MA_ERR_TOSMALL);
+            Reset(MA_ERR_TSSIZE);
             return; // we need a full packet
         }
 

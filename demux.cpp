@@ -48,7 +48,6 @@ void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt
         if (!pes2audioes) pes2audioes=new cMarkAdPES2ES(recvnumber,"PES2ES audio");
         if (!pes2audioes) return;
         pes2audioes->Process(Pid,pkt,pktlen,Pkt,PktLen);
-        return;
     }
 
     if ((Pid.Type==MARKAD_PIDTYPE_VIDEO_H262) || (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264))
@@ -56,14 +55,14 @@ void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt
         if (!pes2videoes) pes2videoes=new cMarkAdPES2ES(recvnumber,"PES2ES video",65536);
         if (!pes2videoes) return;
         pes2videoes->Process(Pid,pkt,pktlen,Pkt,PktLen);
-        return;
     }
+
     return;
 }
 
 void cMarkAdDemux::ProcessTS(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen)
 {
-    if ((!Pkt) || (!PktLen) || (!Data)) return;
+    if ((!Pkt) || (!PktLen)) return;
     *Pkt=NULL;
     *PktLen=0;
 
@@ -80,14 +79,24 @@ void cMarkAdDemux::ProcessTS(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt,
         if (!pes2audioes) pes2audioes=new cMarkAdPES2ES(recvnumber,"PES2ES audio");
         if (!pes2audioes) return;
         pes2audioes->Process(Pid,pkt,pktlen,Pkt,PktLen);
-        return;
     }
 
-    if (pkt)
+    if ((Pid.Type==MARKAD_PIDTYPE_VIDEO_H262) || (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264))
+    {
+        if ((pkt) && ((pkt[3] & 0xF0)==0xE0) && (pkt[4]!=0) && (pkt[5]!=0))
+        {
+            ts2pkt->InjectVideoPES(pkt,pktlen);
+            pkt=NULL;
+            pktlen=0;
+        }
+    }
+
+    if ((pkt) && (!*Pkt))
     {
         *Pkt=pkt;
         *PktLen=pktlen;
     }
+
     return;
 }
 
