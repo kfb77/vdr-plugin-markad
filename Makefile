@@ -11,11 +11,6 @@
 #
 PLUGIN = markad
 
-### ffmpeg usage ####
-#
-# Set this to 0, if you don't want to use ffmpeg
-AVCODEC = 0
-
 ### The version number of this plugin (taken from the main source file):
 
 VERSION = $(shell grep 'static const char \*VERSION *=' version.h | awk '{ print $$6 }' | sed -e 's/[";]//g')
@@ -55,17 +50,14 @@ INCLUDES += -I$(VDRDIR)/include
 DEFINES += -D_GNU_SOURCE -DPLUGIN_NAME_I18N='"$(PLUGIN)"'
 DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
 
-ifeq ($(AVCODEC),1)
-DEFINES += -DHAVE_AVCODEC
 INCLUDES += $(shell $(PKG-CONFIG) --cflags $(PKG-INCLUDES))
-LIBS += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS))
-endif
+LIBS-CMD += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS))
 
 ### The object files (add further files here):
 
-OBJS-CMD = markad-standalone.o 
-OBJS-COMMON = demux.o video.o audio.o decoder.o common.o tools.o vdr2pkt.o ts2pkt.o pes2es.o
-OBJS = $(PLUGIN).o recv.o status.o $(OBJS-COMMON)
+OBJS-CMD = markad-standalone.o decoder.o 
+OBJS-COMMON = common.o video.o audio.o demux.o tools.o vdr2pkt.o ts2pkt.o pes2es.o
+OBJS = $(PLUGIN).o recv.o status.o streaminfo.o $(OBJS-COMMON)
 
 ### The main target:
 
@@ -118,7 +110,7 @@ libvdr-$(PLUGIN).so: $(OBJS)
 	@cp --remove-destination $@ $(LIBDIR)/$@.$(APIVERSION)
 
 $(PLUGIN): $(OBJS-COMMON) $(OBJS-CMD)
-	$(CXX) $(CXXFLAGS) $(OBJS-COMMON) $(OBJS-CMD) $(LIBS) -o $@
+	$(CXX) $(CXXFLAGS) $(OBJS-COMMON) $(OBJS-CMD) $(LIBS-CMD) -o $@
 
 dist: clean
 	@-rm -rf $(TMPDIR)/$(ARCHIVE)

@@ -12,9 +12,30 @@
 #include <vdr/tools.h> // needed for (d/e/i)syslog
 
 #include <time.h>
+
+#if 1
 #include <stdio.h>
+#endif
+
+#include <math.h>
 
 #include "global.h"
+
+class cMarkAdLogo
+{
+private:
+#define LOGOHEIGHT 100
+    int GX[3][3];
+    int GY[3][3];
+    uchar *plane;
+    bool first;
+    MarkAdContext *macontext;
+public:
+    cMarkAdLogo(int RecvNumber, MarkAdContext *maContext);
+    ~cMarkAdLogo();
+    void SaveFrame(int LastIFrame);
+    int Process(int LastIFrame);
+};
 
 class cMarkAdBlackBordersHoriz
 {
@@ -38,6 +59,7 @@ private:
 
     MarkAdAspectRatio aspectratio;
     cMarkAdBlackBordersHoriz *hborder;
+    cMarkAdLogo *logo;
 
     void ResetMark();
     bool AddMark(int Position, const char *Comment);

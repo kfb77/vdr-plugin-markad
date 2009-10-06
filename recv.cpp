@@ -11,8 +11,8 @@
 cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *Timer)
         :
         cReceiver(Timer->Channel()->GetChannelID(), -1,
-                  Timer->Channel()->Vpid(),Timer->Channel()->Apids(),
-                  Timer->Channel()->Dpids()),cThread("markad"),
+                  Timer->Channel()->Vpid(),Timer->Channel()->Dpids()),
+                  cThread("markad"),
         buffer(MEGATS(3)), running(false) // 3MB Buffer
 {
     if ((!Filename) || (!Timer)) return;
@@ -72,16 +72,6 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
         video_demux=NULL;
     }
 
-    if (macontext.General.APid.Num)
-    {
-        dsyslog("markad [%i]: using MP2",recvnumber);
-        mp2_demux = new cMarkAdDemux(RecvNumber);
-    }
-    else
-    {
-        mp2_demux = NULL;
-    }
-
     if (macontext.General.DPid.Num)
     {
         dsyslog("markad [%i]: using AC3",recvnumber);
@@ -101,7 +91,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
         audio=NULL;
     }
 
-    decoder=new cMarkAdDecoder(RecvNumber,useH264,macontext.General.DPid.Num!=0);
+    streaminfo=new cMarkAdStreamInfo;
     common=new cMarkAdCommon(RecvNumber,&macontext);
 
     marks.Load(Filename);
@@ -122,9 +112,8 @@ cMarkAdReceiver::~cMarkAdReceiver()
     buffer.Clear();
 
     if (video_demux) delete video_demux;
-    if (mp2_demux) delete mp2_demux;
     if (ac3_demux) delete ac3_demux;
-    if (decoder) delete decoder;
+    if (streaminfo) delete streaminfo;
     if (video) delete video;
     if (audio) delete audio;
     if (common) delete common;
@@ -300,7 +289,7 @@ void cMarkAdReceiver::Action()
                 AddMark(mark,0);
             }
 
-            if ((video_demux) && (decoder) && (video))
+            if ((video_demux) && (streaminfo) && (video))
             {
                 cTimeMs t;
                 uchar *pkt;
@@ -320,23 +309,20 @@ void cMarkAdReceiver::Action()
                     {
                         if (pkt)
                         {
-                            decoder->FindVideoInfos(&macontext,pkt,pktlen);
-                            if (decoder->DecodeVideo(&macontext,pkt,pktlen))
+                            streaminfo->FindVideoInfos(&macontext,pkt,pktlen);
+                            if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                             {
-                                if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
+                                if (framecnt==-1)
                                 {
-                                    if (framecnt==-1)
-                                    {
-                                        framecnt=0;
-                                    }
-                                    else
-                                    {
-                                        mark=video->Process(lastiframe);
-                                        AddMark(mark,3);
-                                    }
+                                    framecnt=0;
                                 }
-                                if (framecnt!=-1) framecnt++;
+                                else
+                                {
+                                    mark=video->Process(lastiframe);
+                                    AddMark(mark,3);
+                                }
                             }
+                            if (framecnt!=-1) framecnt++;
                         }
                         tspkt+=len;
                         tslen-=len;
@@ -349,38 +335,7 @@ void cMarkAdReceiver::Action()
                 }
             }
 
-            if ((mp2_demux) && (decoder) && (audio))
-            {
-                uchar *pkt;
-                int pktlen;
-
-                uchar *tspkt = frame->Data();
-                int tslen = frame->Count();
-
-                while (tslen>0)
-                {
-                    int len=mp2_demux->Process(macontext.General.APid,tspkt,tslen,&pkt,&pktlen);
-                    if (len<0)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        if (pkt)
-                        {
-                            if (decoder->DecodeMP2(&macontext,pkt,pktlen))
-                            {
-                                mark=audio->Process(lastiframe);
-                                AddMark(mark,1);
-                            }
-                        }
-                        tspkt+=len;
-                        tslen-=len;
-                    }
-                }
-            }
-
-            if ((ac3_demux) && (decoder) && (audio))
+            if ((ac3_demux) && (streaminfo) && (audio))
             {
                 uchar *pkt;
                 int pktlen;
@@ -399,12 +354,9 @@ void cMarkAdReceiver::Action()
                     {
                         if (pkt)
                         {
-                            decoder->FindAC3AudioInfos(&macontext,pkt,pktlen);
-                            if (decoder->DecodeAC3(&macontext,pkt,pktlen))
-                            {
-                                mark=audio->Process(lastiframe);
-                                AddMark(mark,2);
-                            }
+                            streaminfo->FindAC3AudioInfos(&macontext,pkt,pktlen);
+                            mark=audio->Process(lastiframe);
+                            AddMark(mark,2);
                         }
                         tspkt+=len;
                         tslen-=len;

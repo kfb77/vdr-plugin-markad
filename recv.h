@@ -16,7 +16,7 @@
 #include <vdr/recording.h>
 
 #include "demux.h"
-#include "decoder.h"
+#include "streaminfo.h"
 #include "audio.h"
 #include "video.h"
 #include "common.h"
@@ -66,13 +66,12 @@ private:
     int LastIFrame();
     MarkAdContext macontext;
 
-    cMarkAdDecoder *decoder;
+    cMarkAdStreamInfo *streaminfo;
     cMarkAdCommon *common;
     cMarkAdAudio *audio;
     cMarkAdVideo *video;
 
     cMarkAdDemux *video_demux;
-    cMarkAdDemux *mp2_demux;
     cMarkAdDemux *ac3_demux;
 
     void AddMark(MarkAdMark *mark, int Priority);

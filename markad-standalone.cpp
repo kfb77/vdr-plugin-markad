@@ -87,15 +87,15 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                 {
                     if (pkt)
                     {
-                        decoder->FindVideoInfos(&macontext,pkt,pktlen);
                         if (decoder->DecodeVideo(&macontext,pkt,pktlen))
                         {
                             if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                             {
                                 lastiframe=framecnt;
-                                mark=video->Process(lastiframe);
-                                AddMark(mark);
                             }
+                            mark=video->Process(framecnt);
+                            AddMark(mark);
+
                             framecnt++;
                         }
                     }
@@ -155,7 +155,6 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                 {
                     if (pkt)
                     {
-                        decoder->FindAC3AudioInfos(&macontext,pkt,pktlen);
                         if (decoder->DecodeAC3(&macontext,pkt,pktlen))
                         {
                             mark=audio->Process(lastiframe);
@@ -233,14 +232,19 @@ bool cMarkAdStandalone::CheckPATPMT(const char *Directory)
     free(buf);
     if (fd==-1) return false;
 
-    uchar patpmt[376];
+    uchar patpmt_buf[564];
+    uchar *patpmt;
 
-    if (read(fd,patpmt,sizeof(patpmt))!=sizeof(patpmt))
+    if (read(fd,patpmt_buf,sizeof(patpmt_buf))!=sizeof(patpmt_buf))
     {
         close(fd);
         return false;
     }
     close(fd);
+    patpmt=patpmt_buf;
+
+    if ((patpmt[0]==0x47) && ((patpmt[1] & 0x5F)==0x40) && (patpmt[2]==0x11) &&
+            ((patpmt[3] & 0x10)==0x10)) patpmt+=188; // skip SDT
 
     // some checks
     if ((patpmt[0]!=0x47) || (patpmt[188]!=0x47)) return false; // no TS-Sync
@@ -398,11 +402,21 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
         ac3_demux=NULL;
     }
 
-    decoder = new cMarkAdDecoder(recvnumber,macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,
-                                 macontext.General.DPid.Num!=0);
-    video = new cMarkAdVideo(recvnumber,&macontext);
-    audio = new cMarkAdAudio(recvnumber,&macontext);
-    common = new cMarkAdCommon(recvnumber,&macontext);
+    if (!abort)
+    {
+        decoder = new cMarkAdDecoder(recvnumber,macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,
+                                     macontext.General.DPid.Num!=0);
+        video = new cMarkAdVideo(recvnumber,&macontext);
+        audio = new cMarkAdAudio(recvnumber,&macontext);
+        common = new cMarkAdCommon(recvnumber,&macontext);
+    }
+    else
+    {
+        decoder=NULL;
+        video=NULL;
+        audio=NULL;
+        common=NULL;
+    }
 
     framecnt=0;
 }
