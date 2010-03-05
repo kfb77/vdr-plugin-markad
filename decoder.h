@@ -42,10 +42,15 @@ class cMarkAdDecoder
 {
 private:
     int recvnumber;
+    int16_t *audiobuf;
+    int audiobufsize;
+
     AVCodecContext *ac3_context;
     AVCodecContext *mp2_context;
     AVCodecContext *video_context;
     AVFrame *video_frame;
+
+    int8_t *last_qscale_table;
 
     bool SetAudioInfos(MarkAdContext *maContext, AVCodecContext *Audio_Context);
 
@@ -56,7 +61,7 @@ public:
     bool DecodeVideo(MarkAdContext *maContext, uchar *pkt, int plen);
     bool DecodeMP2(MarkAdContext *maContext, uchar *espkt, int eslen);
     bool DecodeAC3(MarkAdContext *maContext, uchar *espkt, int eslen);
-    cMarkAdDecoder(int recvnumber, bool useH264, bool hasAC3);
+    cMarkAdDecoder(int recvnumber, bool useH264, bool useMP2, bool hasAC3);
     ~cMarkAdDecoder();
 };
 

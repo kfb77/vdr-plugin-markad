@@ -18,7 +18,7 @@
 #endif
 
 #include "global.h"
-#include "tools.h"
+#include "queue.h"
 #include "vdr2pkt.h"
 #include "ts2pkt.h"
 #include "pes2es.h"

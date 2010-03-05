@@ -51,19 +51,10 @@ typedef struct MarkAdContext
 {
     struct General
     {
-        time_t StartTime;
-        time_t EndTime;
-        bool ManualRecording;
         MarkAdPid VPid;
         MarkAdPid APid;
         MarkAdPid DPid;
     } General;
-
-    struct State
-    {
-        int ContentStarted;
-        int ContentStopped;
-    } State;
 
     struct Video
     {
@@ -73,6 +64,7 @@ typedef struct MarkAdContext
             int Height; // height of pic
             int Pict_Type; // picture type (I,P,B,S,SI,SP,BI)
             MarkAdAspectRatio AspectRatio;
+            double FramesPerSecond;
         } Info;
 
         struct Data
@@ -92,10 +84,8 @@ typedef struct MarkAdContext
         struct Data
         {
             bool Valid;
-            uchar *SampleBufAC3;
-            int SampleBufLenAC3;
-            uchar *SampleBufMP2;
-            int SampleBufLenMP2;
+            short *SampleBuf;
+            int SampleBufLen;
         } Data;
     } Audio;
 

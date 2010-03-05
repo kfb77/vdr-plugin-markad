@@ -9,6 +9,6 @@
 #ifndef __version_h_
 #define __version_h_
 
-static const char *VERSION        = "0.0.4";
+static const char *VERSION        = "0.0.5";
 
 #endif

@@ -18,7 +18,7 @@ typedef unsigned char uchar;
 #include <string.h>
 
 #include "global.h"
-#include "tools.h"
+#include "queue.h"
 
 class cMarkAdPES2ES
 {

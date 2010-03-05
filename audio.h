@@ -10,6 +10,8 @@
 #define __audio_h_
 
 #include <vdr/tools.h> // needed for (d/e/i)syslog
+#include <netinet/in.h> // for htonl
+
 #include "global.h"
 
 class cMarkAdAudio
@@ -24,10 +26,7 @@ private:
     bool AddMark(int Position, const char *Comment);
 
     int channels;
-
-private:
     bool ChannelChange(int a, int b);
-
 public:
     cMarkAdAudio(int RecvNumber,MarkAdContext *maContext);
     ~cMarkAdAudio();

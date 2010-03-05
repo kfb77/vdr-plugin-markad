@@ -6,18 +6,22 @@
  * $Id$
  */
 
-#include "tools.h"
+#include "queue.h"
 
 cMarkAdPaketQueue::cMarkAdPaketQueue(int RecvNumber, const char *Name, int Size)
 {
     recvnumber=RecvNumber;
     inptr=0;
     outptr=0;
+    memset(&pktinfo,0,sizeof(pktinfo));
     pktinfo.pkthdr=-1;
     maxqueue=Size;
     name=strdup(Name);
     buffer=(uchar *) malloc(Size+1);
     if (!buffer) maxqueue=0;
+    scanner=0xFFFFFFFF;
+    scannerstart=-1;
+    percent=-1;
 }
 
 cMarkAdPaketQueue::~cMarkAdPaketQueue()
@@ -70,10 +74,13 @@ bool cMarkAdPaketQueue::Put(uchar *Data, int Size)
     memcpy(&buffer[inptr],Data,Size);
     inptr+=Size;
 
-    if ((inptr>(0.9*maxqueue)) && (name))
+    int npercent=((double) inptr/(double) maxqueue)*100;
+
+    if ((npercent>90) && (name) && (npercent!=percent))
     {
-        dsyslog("markad [%i]: buffer %s usage: %3.f%%",recvnumber,
-                name,((double) inptr/(double) maxqueue)*100);
+        dsyslog("markad [%i]: buffer %s usage: %3i%%",recvnumber,
+                name,npercent);
+        percent=npercent;
     }
 
     return true;
@@ -93,28 +100,45 @@ uchar *cMarkAdPaketQueue::Get(int *Size)
     return ret;
 }
 
-int cMarkAdPaketQueue::FindPktHeader(int Start, int *StreamSize,int *HeaderSize)
+int cMarkAdPaketQueue::FindPktHeader(int Start, int *StreamSize,int *HeaderSize, bool LongStartCode)
 {
     if ((!StreamSize) || (!HeaderSize)) return -1;
     if (!Start) Start=outptr;
-    if (Start>inptr) return -1;
+    if (Start>=inptr) return -1;
     *StreamSize=0;
-    *HeaderSize=4; // 0x0 0x0 0x1 0xNN
-    unsigned long scanner=0xFFFFFFFF;
+    if (LongStartCode)
+    {
+        *HeaderSize=4; // 0x0 0x0 0x0 0x1
+    }
+    else
+    {
+        *HeaderSize=3; // 0x0 0x0 0x1
+    }
     int i;
+
+    if (scanner!=0xFFFFFFFF)
+    {
+        scanner<<=8;
+        scanner|=buffer[Start++];
+    }
 
     for (i=Start; i<inptr; i++)
     {
-        scanner<<=8;
-        if (scanner==0x00000100L)
+        if (LongStartCode)
         {
-            break;
+            if (scanner==1L) break;
+            if ((scanner & 0xFFFFFFF0)==0x1E0L) break;
         }
+        else
+        {
+            if ((scanner & 0x00FFFFFF)==1L) break;
+        }
+        scanner<<=8;
         scanner|=buffer[i];
     }
 
     if (i==inptr) return -1;
-
+    if (LongStartCode) i--;
     if (buffer[i]>=0xBC)// do we have a PES packet?
     {
 #define PESHDRSIZE 6
@@ -125,44 +149,63 @@ int cMarkAdPaketQueue::FindPktHeader(int Start, int *StreamSize,int *HeaderSize)
 
         *StreamSize=(buffer[i+1]<<8)+buffer[i+2];
         if (*StreamSize) (*StreamSize)+=PESHDRSIZE; // 6 Byte PES-Header
-
-        struct PESHDROPT *peshdropt=(struct PESHDROPT *) &buffer[i+3];
-        if (peshdropt->MarkerBits==0x2)
+        if (LongStartCode)
         {
-            *HeaderSize=PESHDRSIZE+sizeof(struct PESHDROPT)+
-                        peshdropt->Length;
-        }
-        else
-        {
-            *HeaderSize=PESHDRSIZE;
+            struct PESHDROPT *peshdropt=(struct PESHDROPT *) &buffer[i+3];
+            if (peshdropt->MarkerBits==0x2)
+            {
+                *HeaderSize=PESHDRSIZE+sizeof(struct PESHDROPT)+
+                            peshdropt->Length;
+            }
+            else
+            {
+                *HeaderSize=PESHDRSIZE;
+            }
         }
     }
+
     return i-3;
 }
 
 int cMarkAdPaketQueue::FindAudioHeader(int Start, int *FrameSize, int *HeaderSize, bool AC3)
 {
+    if ((!FrameSize) || (!HeaderSize)) return -1;
     if (!Start) Start=outptr;
-    if (Start>inptr) return -1;
-    if (FrameSize) (*FrameSize)=0;
-    if (HeaderSize) (*HeaderSize)=4;
-    unsigned short scanner=0x0;
+    if (Start>=inptr) return -1;
+    (*FrameSize)=0;
+    if (AC3)
+    {
+        (*HeaderSize)=2;
+    }
+    else
+    {
+        (*HeaderSize)=3;
+    }
     int i;
+
+    if (scanner!=0xFFFFFFFF)
+    {
+        scanner<<=8;
+        scanner|=buffer[Start++];
+    }
+
     for (i=Start; i<inptr; i++)
     {
-        scanner|=buffer[i];
+
         if (AC3)
         {
-            if (scanner==0x0B77) break;
+            if ((scanner & 0x0000FFFF)==0xB77L) break;
         }
         else
         {
-            if ((scanner & 0xFFE0)==0xFFE0) break;
+            if ((scanner & 0x00000FFE)==0xFFEL) break;
         }
+
         scanner<<=8;
+        scanner|=buffer[i];
     }
     if (i==inptr) return -1;
-    i--;
+    i-=2;
 
     if (AC3)
     {
@@ -170,7 +213,6 @@ int cMarkAdPaketQueue::FindAudioHeader(int Start, int *FrameSize, int *HeaderSiz
 
         if (ac3hdr->SampleRateIndex==3) return -1; // reserved
         if (ac3hdr->FrameSizeIndex>=38) return -1; // reserved
-        if (HeaderSize) (*HeaderSize)=sizeof(struct AC3HDR);
 
         if (FrameSize)
         {
@@ -201,8 +243,6 @@ int cMarkAdPaketQueue::FindAudioHeader(int Start, int *FrameSize, int *HeaderSiz
         if (mp2hdr->BitRateIndex==0xF) return -1; // forbidden
         if (mp2hdr->SampleRateIndex==3) return -1; //reserved
         if (mp2hdr->Emphasis==2) return -1; // reserved
-
-        if (HeaderSize) (*HeaderSize)=sizeof(struct MP2HDR);
 
         if (FrameSize)
         {
@@ -279,30 +319,48 @@ uchar *cMarkAdPaketQueue::GetPacket(int *Size, int Type)
 {
     if (!Size) return NULL;
     *Size=0;
-    if (!Length()) return NULL;
+    if (Length()<4) return NULL;
+
+    if ((Type==MA_PACKET_H264) && (pktinfo.pktsyncsize>5) && (pktinfo.pkthdr!=-1))
+    {
+        // ignore PES paket
+        pktinfo.pkthdr=-1;
+        outptr+=pktinfo.pktsyncsize;
+    }
 
     if (pktinfo.pkthdr==-1)
     {
-
+        scanner=0xFFFFFFFF;
         switch (Type)
         {
         case MA_PACKET_AC3:
-            pktinfo.pkthdr=FindAudioHeader(0,&pktinfo.streamsize,&pktinfo.pkthdrsize, true);
+            pktinfo.pkthdr=FindAudioHeader(0,&pktinfo.streamsize,&pktinfo.pktsyncsize, true);
             break;
         case MA_PACKET_MP2:
-            pktinfo.pkthdr=FindAudioHeader(0,&pktinfo.streamsize,&pktinfo.pkthdrsize, false);
+            pktinfo.pkthdr=FindAudioHeader(0,&pktinfo.streamsize,&pktinfo.pktsyncsize, false);
+            break;
+        case MA_PACKET_H264:
+            pktinfo.pkthdr=FindPktHeader(0,&pktinfo.streamsize,&pktinfo.pktsyncsize,true);
+            if (pktinfo.pktsyncsize>5)
+            {
+                // ignore PES paket
+                pktinfo.pkthdr=-1;
+                outptr+=pktinfo.pktsyncsize;
+            }
             break;
         default:
-            pktinfo.pkthdr=FindPktHeader(0,&pktinfo.streamsize,&pktinfo.pkthdrsize);
+            pktinfo.pkthdr=FindPktHeader(0,&pktinfo.streamsize,&pktinfo.pktsyncsize,false);
+            break;
         }
 
         if (pktinfo.pkthdr==-1)
         {
             return NULL;
         }
+        scannerstart=pktinfo.pkthdr+pktinfo.pktsyncsize;
     }
 
-    int start,streamsize,pkthdrsize,pkthdr=-1;
+    int streamsize,pktsyncsize,pkthdr=-1;
 
     if (pktinfo.streamsize)
     {
@@ -312,27 +370,33 @@ uchar *cMarkAdPaketQueue::GetPacket(int *Size, int Type)
         }
         else
         {
-            start=pktinfo.pkthdr+pktinfo.streamsize;
+            scannerstart=pktinfo.pkthdr+pktinfo.streamsize;
+            scanner=0xFFFFFFFF;
         }
-    }
-    else
-    {
-        start=pktinfo.pkthdr+pktinfo.pkthdrsize;
     }
 
     switch (Type)
     {
     case MA_PACKET_AC3:
-        pkthdr=FindAudioHeader(start,&streamsize,&pkthdrsize, true);
+        pkthdr=FindAudioHeader(scannerstart,&streamsize,&pktsyncsize, true);
         break;
     case MA_PACKET_MP2:
-        pkthdr=FindAudioHeader(start,&streamsize,&pkthdrsize, false);
+        pkthdr=FindAudioHeader(scannerstart,&streamsize,&pktsyncsize, false);
+        break;
+    case MA_PACKET_H264:
+        pkthdr=FindPktHeader(scannerstart,&streamsize,&pktsyncsize, true);
         break;
     default:
-        pkthdr=FindPktHeader(start,&streamsize,&pkthdrsize);
+        pkthdr=FindPktHeader(scannerstart,&streamsize,&pktsyncsize, false);
+        break;
     }
 
-    if (pkthdr==-1) return NULL;
+    if (pkthdr==-1)
+    {
+        scannerstart=inptr;
+        return NULL;
+    }
+    scannerstart=pkthdr+pktsyncsize;
 
     uchar *ptr=&buffer[pktinfo.pkthdr];
 
@@ -350,6 +414,7 @@ uchar *cMarkAdPaketQueue::GetPacket(int *Size, int Type)
     if (pktinfo.pkthdr>(4096+bytesleft))
     {
         memcpy(buffer,&buffer[pkthdr],bytesleft);
+        scannerstart-=outptr;
         inptr=bytesleft;
         outptr=0;
         pkthdr=0;
@@ -357,7 +422,7 @@ uchar *cMarkAdPaketQueue::GetPacket(int *Size, int Type)
 
     pktinfo.pkthdr=pkthdr;
     pktinfo.streamsize=streamsize;
-    pktinfo.pkthdrsize=pkthdrsize;
+    pktinfo.pktsyncsize=pktsyncsize;
 
     return ptr;
 }

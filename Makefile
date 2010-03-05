@@ -18,7 +18,7 @@ VERSION = $(shell grep 'static const char \*VERSION *=' version.h | awk '{ print
 ### The C++ compiler and options:
 
 CXX      ?= g++
-CXXFLAGS ?= -fPIC -g -O0 -Wall -Woverloaded-virtual -Wno-parentheses
+CXXFLAGS ?= -fPIC -g -O2 -Wall -Woverloaded-virtual -Wno-parentheses
 PKG-CONFIG ?= pkg-config
 
 ### The directory environment:
@@ -56,8 +56,8 @@ LIBS-CMD += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS))
 ### The object files (add further files here):
 
 OBJS-CMD = markad-standalone.o decoder.o 
-OBJS-COMMON = common.o video.o audio.o demux.o tools.o vdr2pkt.o ts2pkt.o pes2es.o
-OBJS = $(PLUGIN).o recv.o status.o streaminfo.o $(OBJS-COMMON)
+OBJS-COMMON = streaminfo.o video.o audio.o demux.o queue.o vdr2pkt.o ts2pkt.o pes2es.o
+OBJS = $(PLUGIN).o recv.o status.o $(OBJS-COMMON)
 
 ### The main target:
 

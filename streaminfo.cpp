@@ -8,9 +8,9 @@
 
 #include "streaminfo.h"
 
-void cMarkAdStreamInfo::FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen)
+bool cMarkAdStreamInfo::FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen)
 {
-    if ((!maContext) || (!espkt)) return;
+    if ((!maContext) || (!espkt)) return false;
 
 #pragma pack(1)
     struct AC3HDR
@@ -43,8 +43,8 @@ unsigned AcMod:
     if ((ac3hdr->Sync1==0x0b) && (ac3hdr->Sync2==0x77))
     {
         // some extra checks
-        if (ac3hdr->SampleRateIndex==3) return; // reserved
-        if (ac3hdr->FrameSizeIndex>=38) return; // reserved
+        if (ac3hdr->SampleRateIndex==3) return false; // reserved
+        if (ac3hdr->FrameSizeIndex>=38) return false; // reserved
 
         maContext->Audio.Info.Channels=0;
         int lfe_bitmask = 0x0;
@@ -87,34 +87,37 @@ unsigned AcMod:
 
         if ((ac3hdr->LFE_Mix_VarField & lfe_bitmask)==lfe_bitmask)
             maContext->Audio.Info.Channels++;
-    }
 
+        return true;
+    }
+    return false;
 }
 
-void cMarkAdStreamInfo::FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len)
+bool cMarkAdStreamInfo::FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len)
 {
-    if ((!maContext) || (!pkt) || (!len)) return;
-    if (!maContext->General.VPid.Type) return;
+    if ((!maContext) || (!pkt) || (!len)) return false;
+    if (!maContext->General.VPid.Type) return false;
 
-    if (maContext->General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
+    switch (maContext->General.VPid.Type)
     {
-        FindH264VideoInfos(maContext, pkt, len);
+    case MARKAD_PIDTYPE_VIDEO_H264:
+        return FindH264VideoInfos(maContext, pkt, len);
+        break;
+    case MARKAD_PIDTYPE_VIDEO_H262:
+        return FindH262VideoInfos(maContext, pkt, len);
+        break;
     }
-    else
-    {
-        FindH262VideoInfos(maContext, pkt, len);
-    }
+    return false;
 }
 
-void cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt, int len)
+bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt, int len)
 {
-    if ((!maContext) || (!pkt) || (!len)) return;
+    if ((!maContext) || (!pkt) || (!len)) return false;
 
-    maContext->Video.Info.Pict_Type=0;
-
-    if ((pkt[3] & 0x1F)==NAL_AUD)
+    if ((pkt[4] & 0x1F)==NAL_AUD)
     {
-        switch (pkt[4] >> 5)
+
+        switch (pkt[5] >> 5)
         {
         case 0:
         case 3:
@@ -127,262 +130,37 @@ void cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
             maContext->Video.Info.Pict_Type=MA_P_TYPE;
             break;
         case 2:
-        case 7: // B_FRAME;
+        case 7:  // B_FRAME;
             maContext->Video.Info.Pict_Type=MA_B_TYPE;
             break;
         default: // NO_PICTURE;
-            maContext->Video.Info.Pict_Type=0;
+            return false;
             break;
         }
+        return true;
     }
 
-    if ((pkt[3] & 0x1F)==NAL_SPS)
+    if ((pkt[4] & 0x1F)==NAL_SPS)
     {
         uint8_t nal_data[len];
-        const uint8_t *end = pkt + len;
-        int nal_len = nalUnescape(nal_data, pkt + 4, int(end - pkt - 4));
-
-        int profile_idc, level_idc, constraint_set3_flag, pic_order_cnt_type, i, j;
+        int nal_len = nalUnescape(nal_data, pkt + 5, len - 5);
         cBitStream bs(nal_data, nal_len);
+
+        int profile_idc, pic_order_cnt_type, i, j;
 
         uint32_t width=0;
         uint32_t height=0;
         uint32_t aspect_ratio_idc=0;
-        uint32_t video_format=0;
         double frame_rate=0;
-        double bit_rate=0;
-        bool cpb_dpb_delays_present_flag=false;
-        bool pic_struct_present_flag=false;
         bool frame_mbs_only_flag=false;
-        bool mb_adaptive_frame_field_flag=false;
-        uint32_t time_offset_length=0;
 
         profile_idc = bs.getU8();                 // profile_idc
-        bs.skipBit();                             // constraint_set0_flag
-        bs.skipBit();                             // constraint_set1_flag
-        bs.skipBit();                             // constraint_set2_flag
-        constraint_set3_flag = bs.getBit();       // constraint_set3_flag
-        bs.skipBits(4);                           // reserved_zero_4bits
-        level_idc = bs.getU8();                   // level_idc
+        bs.skipBits(8);                           // constraint_setN_flags and reserved_zero_Nbits
+        bs.skipBits(8);                           // level_idc
         bs.skipUeGolomb();                        // seq_parameter_set_id
 
-        switch (profile_idc)
-        {
-        case 66:                                // baseline profile
-        case 77:                                // main profile
-        case 88:                                // extended profile
-            switch (level_idc)
-            {
-            case 10:                         // level 1.0
-                bit_rate = 64000;
-                break;
-            case 11:                         // level 1b / 1.1
-                bit_rate = constraint_set3_flag ? 128000 : 192000;
-                break;
-            case 12:                         // level 1.2
-                bit_rate = 384000;
-                break;
-            case 13:                         // level 1.3
-                bit_rate = 768000;
-                break;
-            case 20:                         // level 2.0
-                bit_rate = 2000000;
-                break;
-            case 21:                         // level 2.1
-                bit_rate = 4000000;
-                break;
-            case 22:                         // level 2.2
-                bit_rate = 4000000;
-                break;
-            case 30:                         // level 3.0
-                bit_rate = 10000000;
-                break;
-            case 31:                         // level 3.1
-                bit_rate = 14000000;
-                break;
-            case 32:                         // level 3.2
-                bit_rate = 20000000;
-                break;
-            case 40:                         // level 4.0
-                bit_rate = 20000000;
-                break;
-            case 41:                         // level 4.1
-                bit_rate = 50000000;
-                break;
-            case 42:                         // level 4.2
-                bit_rate = 50000000;
-                break;
-            case 50:                         // level 5.0
-                bit_rate = 135000000;
-                break;
-            case 51:                         // level 5.1
-                bit_rate = 240000000;
-                break;
-            default:
-                break;
-            }
-            break;
-        case 100:                               // high profile
-            switch (level_idc)
-            {
-            case 10:                         // level 1.0
-                bit_rate = 80000;
-                break;
-            case 11:                         // level 1b / 1.1
-                bit_rate = constraint_set3_flag ? 160000 : 240000;
-                break;
-            case 12:                         // level 1.2
-                bit_rate = 480000;
-                break;
-            case 13:                         // level 1.3
-                bit_rate = 960000;
-                break;
-            case 20:                         // level 2.0
-                bit_rate = 2500000;
-                break;
-            case 21:                         // level 2.1
-                bit_rate = 5000000;
-                break;
-            case 22:                         // level 2.2
-                bit_rate = 5000000;
-                break;
-            case 30:                         // level 3.0
-                bit_rate = 12500000;
-                break;
-            case 31:                         // level 3.1
-                bit_rate = 17500000;
-                break;
-            case 32:                         // level 3.2
-                bit_rate = 25000000;
-                break;
-            case 40:                         // level 4.0
-                bit_rate = 25000000;
-                break;
-            case 41:                         // level 4.1
-                bit_rate = 62500000;
-                break;
-            case 42:                         // level 4.2
-                bit_rate = 62500000;
-                break;
-            case 50:                         // level 5.0
-                bit_rate = 168750000;
-                break;
-            case 51:                         // level 5.1
-                bit_rate = 300000000;
-                break;
-            default:
-                break;
-            }
-            break;
-        case 110:                               // high 10 profile
-            switch (level_idc)
-            {
-            case 10:                         // level 1.0
-                bit_rate = 192000;
-                break;
-            case 11:                         // level 1b / 1.1
-                bit_rate = constraint_set3_flag ? 384000 : 576000;
-                break;
-            case 12:                         // level 1.2
-                bit_rate = 115200;
-                break;
-            case 13:                         // level 1.3
-                bit_rate = 2304000;
-                break;
-            case 20:                         // level 2.0
-                bit_rate = 6000000;
-                break;
-            case 21:                         // level 2.1
-                bit_rate = 12000000;
-                break;
-            case 22:                         // level 2.2
-                bit_rate = 12000000;
-                break;
-            case 30:                         // level 3.0
-                bit_rate = 30000000;
-                break;
-            case 31:                         // level 3.1
-                bit_rate = 42000000;
-                break;
-            case 32:                         // level 3.2
-                bit_rate = 60000000;
-                break;
-            case 40:                         // level 4.0
-                bit_rate = 60000000;
-                break;
-            case 41:                         // level 4.1
-                bit_rate = 150000000;
-                break;
-            case 42:                         // level 4.2
-                bit_rate = 150000000;
-                break;
-            case 50:                         // level 5.0
-                bit_rate = 405000000;
-                break;
-            case 51:                         // level 5.1
-                bit_rate = 720000000;
-                break;
-            default:
-                break;
-            }
-            break;
-        case 122:                               // high 4:2:2 profile
-        case 144:                               // high 4:4:4 profile
-            switch (level_idc)
-            {
-            case 10:                         // level 1.0
-                bit_rate = 256000;
-                break;
-            case 11:                         // level 1b / 1.1
-                bit_rate = constraint_set3_flag ? 512000 : 768000;
-                break;
-            case 12:                         // level 1.2
-                bit_rate = 1536000;
-                break;
-            case 13:                         // level 1.3
-                bit_rate = 3072000;
-                break;
-            case 20:                         // level 2.0
-                bit_rate = 8000000;
-                break;
-            case 21:                         // level 2.1
-                bit_rate = 16000000;
-                break;
-            case 22:                         // level 2.2
-                bit_rate = 16000000;
-                break;
-            case 30:                         // level 3.0
-                bit_rate = 40000000;
-                break;
-            case 31:                         // level 3.1
-                bit_rate = 56000000;
-                break;
-            case 32:                         // level 3.2
-                bit_rate = 80000000;
-                break;
-            case 40:                         // level 4.0
-                bit_rate = 80000000;
-                break;
-            case 41:                         // level 4.1
-                bit_rate = 200000000;
-                break;
-            case 42:                         // level 4.2
-                bit_rate = 200000000;
-                break;
-            case 50:                         // level 5.0
-                bit_rate = 540000000;
-                break;
-            case 51:                         // level 5.1
-                bit_rate = 960000000;
-                break;
-            default:
-                break;
-            }
-            break;
-        default:
-            break;
-        }
-        if ((profile_idc == 100) || (profile_idc == 110) || (profile_idc == 122) || (profile_idc == 144))
+        if ((profile_idc == 100) || (profile_idc == 110) || (profile_idc == 122) || (profile_idc == 244) ||
+                (profile_idc==44) || (profile_idc==83) || (profile_idc==86))
         {
             if (bs.getUeGolomb() == 3)             // chroma_format_idc
                 bs.skipBit();                       // residual_colour_transform_flag
@@ -419,7 +197,7 @@ void cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
             for (i = 0; i < j; ++i)
                 bs.skipSeGolomb();                 // offset_for_ref_frame[i]
         }
-        bs.skipUeGolomb();                        // num_ref_frames
+        bs.skipUeGolomb();                        // max num_ref_frames
         bs.skipBit();                             // gaps_in_frame_num_value_allowed_flag
         width  = bs.getUeGolomb() + 1;            // pic_width_in_mbs_minus1
         height = bs.getUeGolomb() + 1;            // pic_height_in_mbs_minus1
@@ -427,7 +205,7 @@ void cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         width  *= 16;
         height *= 16 * (frame_mbs_only_flag ? 1 : 2);
         if (!frame_mbs_only_flag)
-            mb_adaptive_frame_field_flag = bs.getBit(); // mb_adaptive_frame_field_flag
+            bs.skipBit();                         // mb_adaptive_frame_field_flag
         bs.skipBit();                             // direct_8x8_inference_flag
         if (bs.getBit())                          // frame_cropping_flag
         {
@@ -458,7 +236,7 @@ void cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 bs.skipBit();                       // overscan_approriate_flag
             if (bs.getBit())                       // video_signal_type_present_flag
             {
-                video_format = bs.getBits(3);       // video_format
+                bs.skipBits(3);                     // video_format
                 bs.skipBit();                       // video_full_range_flag
                 if (bs.getBit())                    // colour_description_present_flag
                 {
@@ -478,64 +256,68 @@ void cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 num_units_in_tick = bs.getU32();    // num_units_in_tick
                 time_scale        = bs.getU32();    // time_scale
                 if (num_units_in_tick > 0)
-                    frame_rate = time_scale / num_units_in_tick;
-                bs.skipBit();                       // fixed_frame_rate_flag
+                    frame_rate = time_scale / (2*num_units_in_tick);
+
+                //bs.skipBit();                       // fixed_frame_rate_flag
             }
-            int nal_hrd_parameters_present_flag = bs.getBit(); // nal_hrd_parameters_present_flag
-            if (nal_hrd_parameters_present_flag)
-            {
-                int cpb_cnt_minus1;
-                cpb_cnt_minus1 = bs.getUeGolomb();  // cpb_cnt_minus1
-                bs.skipBits(4);                     // bit_rate_scale
-                bs.skipBits(4);                     // cpb_size_scale
-                for (int i = 0; i < cpb_cnt_minus1; ++i)
-                {
-                    bs.skipUeGolomb();              // bit_rate_value_minus1[i]
-                    bs.skipUeGolomb();              // cpb_size_value_minus1[i]
-                    bs.skipBit();                   // cbr_flag[i]
-                }
-                bs.skipBits(5);                     // initial_cpb_removal_delay_length_minus1
-                bs.skipBits(5);                     // cpb_removal_delay_length_minus1
-                bs.skipBits(5);                     // dpb_output_delay_length_minus1
-                time_offset_length = bs.getBits(5); // time_offset_length
-            }
-            int vlc_hrd_parameters_present_flag = bs.getBit(); // vlc_hrd_parameters_present_flag
-            if (vlc_hrd_parameters_present_flag)
-            {
-                int cpb_cnt_minus1;
-                cpb_cnt_minus1 = bs.getUeGolomb(); // cpb_cnt_minus1
-                bs.skipBits(4);                    // bit_rate_scale
-                bs.skipBits(4);                    // cpb_size_scale
-                for (int i = 0; i < cpb_cnt_minus1; ++i)
-                {
-                    bs.skipUeGolomb();             // bit_rate_value_minus1[i]
-                    bs.skipUeGolomb();             // cpb_size_value_minus1[i]
-                    bs.skipBit();                  // cbr_flag[i]
-                }
-                bs.skipBits(5);                    // initial_cpb_removal_delay_length_minus1
-                bs.skipBits(5);                    // cpb_removal_delay_length_minus1
-                bs.skipBits(5);                    // dpb_output_delay_length_minus1
-                time_offset_length = bs.getBits(5);// time_offset_length
-            }
-            cpb_dpb_delays_present_flag = (nal_hrd_parameters_present_flag | vlc_hrd_parameters_present_flag);
-            if (cpb_dpb_delays_present_flag)
-                bs.skipBit();                       // low_delay_hrd_flag
-            pic_struct_present_flag = bs.getBit(); // pic_struct_present_flag
-            if (bs.getBit())                       // bitstream_restriction_flag
-            {
-                bs.skipBit();                       // motion_vectors_over_pic_boundaries_flag
-                bs.skipUeGolomb();                  // max_bytes_per_pic_denom
-                bs.skipUeGolomb();                  // max_bits_per_mb_denom
-                bs.skipUeGolomb();                  // log2_max_mv_length_horizontal
-                bs.skipUeGolomb();                  // log2_max_mv_length_vertical
-                bs.skipUeGolomb();                  // num_reorder_frames
-                bs.skipUeGolomb();                  // max_dec_frame_buffering
-            }
+            /*
+                        int nal_hrd_parameters_present_flag = bs.getBit(); // nal_hrd_parameters_present_flag
+                        if (nal_hrd_parameters_present_flag)
+                        {
+                            int cpb_cnt_minus1;
+                            cpb_cnt_minus1 = bs.getUeGolomb();  // cpb_cnt_minus1
+                            bs.skipBits(4);                     // bit_rate_scale
+                            bs.skipBits(4);                     // cpb_size_scale
+                            for (int i = 0; i <= cpb_cnt_minus1; i++)
+                            {
+                                bs.skipUeGolomb();              // bit_rate_value_minus1[i]
+                                bs.skipUeGolomb();              // cpb_size_value_minus1[i]
+                                bs.skipBit();                   // cbr_flag[i]
+                            }
+                            bs.skipBits(5);                     // initial_cpb_removal_delay_length_minus1
+                            bs.skipBits(5);                     // cpb_removal_delay_length_minus1
+                            bs.skipBits(5);                     // dpb_output_delay_length_minus1
+                            bs.skipBits(5);                     // time_offset_length
+                        }
+                        int vlc_hrd_parameters_present_flag = bs.getBit(); // vlc_hrd_parameters_present_flag
+                        if (vlc_hrd_parameters_present_flag)
+                        {
+                            int cpb_cnt_minus1;
+                            cpb_cnt_minus1 = bs.getUeGolomb(); // cpb_cnt_minus1
+                            bs.skipBits(4);                    // bit_rate_scale
+                            bs.skipBits(4);                    // cpb_size_scale
+                            for (int i = 0; i <= cpb_cnt_minus1; i++)
+                            {
+                                bs.skipUeGolomb();             // bit_rate_value_minus1[i]
+                                bs.skipUeGolomb();             // cpb_size_value_minus1[i]
+                                bs.skipBit();                  // cbr_flag[i]
+                            }
+                            bs.skipBits(5);                    // initial_cpb_removal_delay_length_minus1
+                            bs.skipBits(5);                    // cpb_removal_delay_length_minus1
+                            bs.skipBits(5);                    // dpb_output_delay_length_minus1
+                            bs.skipBits(5);                    // time_offset_length
+                        }
+                        cpb_dpb_delays_present_flag = (nal_hrd_parameters_present_flag | vlc_hrd_parameters_present_flag);
+                        if (cpb_dpb_delays_present_flag)
+                            bs.skipBit();                       // low_delay_hrd_flag
+                        bs.skipBit();                           // pic_struct_present_flag
+                        if (bs.getBit())                       // bitstream_restriction_flag
+                        {
+                            bs.skipBit();                       // motion_vectors_over_pic_boundaries_flag
+                            bs.skipUeGolomb();                  // max_bytes_per_pic_denom
+                            bs.skipUeGolomb();                  // max_bits_per_mb_denom
+                            bs.skipUeGolomb();                  // log2_max_mv_length_horizontal
+                            bs.skipUeGolomb();                  // log2_max_mv_length_vertical
+                            bs.skipUeGolomb();                  // num_reorder_frames
+                            bs.skipUeGolomb();                  // max_dec_frame_buffering
+                        }
+            */
         }
 
         if  ((bs.getIndex() / 8)>0)
         {
             // set values
+            maContext->Video.Info.FramesPerSecond=frame_rate;
             maContext->Video.Info.Width=width;
             maContext->Video.Info.Height=height;
 
@@ -544,6 +326,30 @@ void cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
             case 1:
                 maContext->Video.Info.AspectRatio.Num=1;
                 maContext->Video.Info.AspectRatio.Den=1;
+
+                if (height==1080)
+                {
+                    if (width==1920)
+                    {
+                        maContext->Video.Info.AspectRatio.Num=16;
+                        maContext->Video.Info.AspectRatio.Den=9;
+                    }
+                }
+
+                if (height==720)
+                {
+                    if (width==960)
+                    {
+                        maContext->Video.Info.AspectRatio.Num=4;
+                        maContext->Video.Info.AspectRatio.Den=3;
+                    }
+
+                    if (width==1280)
+                    {
+                        maContext->Video.Info.AspectRatio.Num=16;
+                        maContext->Video.Info.AspectRatio.Den=9;
+                    }
+                }
                 break;
             case 2:
                 maContext->Video.Info.AspectRatio.Num=12;
@@ -608,13 +414,22 @@ void cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
             }
         }
     }
+    return false;
 }
 
-void cMarkAdStreamInfo::FindH262VideoInfos(MarkAdContext *maContext, uchar *pkt, int len)
+const uint8_t *cMarkAdStreamInfo::nextStartCode(const uint8_t *start, const uint8_t *end)
 {
-    if ((!maContext) || (!pkt) || (!len)) return;
+    for (end -= 4; start < end; ++start)
+    {
+        if ((start[0] == 0x00) && (start[1] == 0x00) && (start[2] == 0x00) && (start[3] == 0x01))
+            return start;
+    }
+    return (end + 4);
+}
 
-    maContext->Video.Info.Pict_Type=0;
+bool cMarkAdStreamInfo::FindH262VideoInfos(MarkAdContext *maContext, uchar *pkt, int len)
+{
+    if ((!maContext) || (!pkt) || (!len)) return false;
 
     struct H262_SequenceHdr
     {
@@ -665,7 +480,7 @@ unsigned TemporalReferenceL:
 
     if (pichdr->Sync1==0 && pichdr->Sync2==0 && pichdr->Sync3==1 && pichdr->Sync4==0)
     {
-        if (maContext->Video.Info.Height==0) return;
+        if (maContext->Video.Info.Height==0) return false;
 
         switch (pichdr->CodingType)
         {
@@ -682,9 +497,10 @@ unsigned TemporalReferenceL:
             maContext->Video.Info.Pict_Type=MA_D_TYPE;
             break;
         default:
-            maContext->Video.Info.Pict_Type=0;
+            return false;
             break;
         }
+        return true;
     }
 
     if (seqhdr->Sync1==0 && seqhdr->Sync2==0 && seqhdr->Sync3==1 && seqhdr->Sync4==0xb3)
@@ -714,9 +530,127 @@ unsigned TemporalReferenceL:
         default:
             break;
         }
+
+        switch (seqhdr->FrameRateIndex)
+        {
+        case 1:
+            maContext->Video.Info.FramesPerSecond=24000/1001; // 23.976 fps NTSC encapsulated
+            break;
+        case 2:
+            maContext->Video.Info.FramesPerSecond=24.0; // Standard international cinema film rate
+            break;
+        case 3:
+            maContext->Video.Info.FramesPerSecond=25.0; // PAL (625/50) video frame rate
+            break;
+
+        case 4:
+            maContext->Video.Info.FramesPerSecond=30000/1001; // 29.97 NTSC video frame rate
+            break;
+
+        case 5:
+            maContext->Video.Info.FramesPerSecond=30.0; // NTSC drop frame (525/60) video frame rate
+            break;
+
+        case 6:
+            maContext->Video.Info.FramesPerSecond=50.0; // double frame rate/progressive PAL
+            break;
+
+        case 7:
+            maContext->Video.Info.FramesPerSecond=60000/1001; // double frame rate NTSC
+            break;
+
+        case 8:
+            maContext->Video.Info.FramesPerSecond=60.0; // double frame rate drop-frame NTSC
+            break;
+
+        default:
+            break;
+        }
+
+    }
+    return false;
+}
+
+/*
+// taken from ffmpeg
+int cMarkAdStreamInfo::nalUnescape(uint8_t *dst, const uint8_t *src, int length)
+{
+    int i;
+
+#if HAVE_FAST_UNALIGNED
+# if HAVE_FAST_64BIT
+#   define RS 7
+    for (i=0; i+1<length; i+=9)
+    {
+        if (!((~*(const uint64_t*)(src+i) & (*(const uint64_t*)(src+i) - 0x0100010001000101ULL)) & 0x8000800080008080ULL))
+# else
+#   define RS 3
+    for (i=0; i+1<length; i+=5)
+    {
+        if (!((~*(const uint32_t*)(src+i) & (*(const uint32_t*)(src+i) - 0x01000101U)) & 0x80008080U))
+# endif
+            continue;
+        if (i>0 && !src[i]) i--;
+        while (src[i]) i++;
+#else
+#   define RS 0
+    for (i=0; i+1<length; i+=2)
+    {
+        if (src[i]) continue;
+        if (i>0 && src[i-1]==0) i--;
+#endif
+        if (i+2<length && src[i+1]==0 && src[i+2]<=3)
+        {
+            if (src[i+2]!=3)
+            {
+                // startcode, so we must be past the end
+                length=i;
+            }
+            break;
+        }
+        i-= RS;
     }
 
+    memcpy(dst,src,i);
+
+    if (i>=length-1) //no escaped 0
+    {
+        return length;
+    }
+
+    int si,di;
+    si=di=i;
+    while (si+2<length)
+    {
+        //remove escapes (very rare 1:2^22)
+        if (src[si+2]>3)
+        {
+            dst[di++]= src[si++];
+            dst[di++]= src[si++];
+        }
+        else if (src[si]==0 && src[si+1]==0)
+        {
+            if (src[si+2]==3) //escape
+            {
+                dst[di++]= 0;
+                dst[di++]= 0;
+                si+=3;
+                continue;
+            }
+            else //next start code
+                goto nsc;
+        }
+
+        dst[di++]= src[si++];
+    }
+    while (si<length)
+        dst[di++]= src[si++];
+nsc:
+
+    return di;
 }
+*/
+
 
 // taken from femon
 int cMarkAdStreamInfo::nalUnescape(uint8_t *dst, const uint8_t *src, int len)
@@ -744,9 +678,10 @@ int cMarkAdStreamInfo::nalUnescape(uint8_t *dst, const uint8_t *src, int len)
     return d;
 }
 
+
 cBitStream::cBitStream(const uint8_t *buf, const int len)
         : data(buf),
-        count(len),
+        count(len*8),
         index(0)
 {
 }

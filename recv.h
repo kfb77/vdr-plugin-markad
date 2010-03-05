@@ -19,7 +19,6 @@
 #include "streaminfo.h"
 #include "audio.h"
 #include "video.h"
-#include "common.h"
 
 #if (APIVERSNUM >= 10700)
 #include <linux/dvb/frontend.h>
@@ -58,6 +57,7 @@ private:
     char *filename;
     int lastiframe;
     int framecnt;
+    bool marksfound;
 
     char *strcatrealloc(char *dest, const char *src);
     cMarks marks;
@@ -67,7 +67,6 @@ private:
     MarkAdContext macontext;
 
     cMarkAdStreamInfo *streaminfo;
-    cMarkAdCommon *common;
     cMarkAdAudio *audio;
     cMarkAdVideo *video;
 
@@ -83,6 +82,10 @@ protected:
     bool running;
 public:
     cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *Timer);
+    bool FoundMarks()
+    {
+        return marksfound;
+    }
     const char *FileName()
     {
         return (const char *) filename;

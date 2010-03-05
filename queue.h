@@ -1,13 +1,13 @@
 /*
- * tools.h: A plugin for the Video Disk Recorder
+ * queue.h: A plugin for the Video Disk Recorder
  *
  * See the README file for copyright information and how to reach the author.
  *
  * $Id$
  */
 
-#ifndef __tools_h_
-#define __tools_h_
+#ifndef __queue_h_
+#define __queue_h_
 
 #include <vdr/tools.h> // needed for (d/e/i)syslog
 
@@ -109,16 +109,23 @@ private:
     struct pktinfo
     {
         int pkthdr;
-        int pkthdrsize;
+        int pktsyncsize;
         int streamsize;
+        bool ispes;
     } pktinfo;
+
+    int percent;
 
     uchar *buffer;
     int maxqueue;
     int inptr;
     int outptr;
-    int FindPktHeader(int Start, int *StreamSize,int *HeaderSize);
-    int FindAudioHeader(int Start, int *FrameSize, int *HeaderSize, bool AC3);
+
+    unsigned long scanner;
+    int scannerstart;
+
+    int FindPktHeader(int Start, int *StreamSize,int *SyncSize, bool LongStartCode);
+    int FindAudioHeader(int Start, int *FrameSize, int *SyncSize, bool AC3);
 public:
     cMarkAdPaketQueue(int RecvNumber, const char *Name, int Size=32768);
     ~cMarkAdPaketQueue();
@@ -130,14 +137,17 @@ public:
     {
         inptr=outptr=0;
         pktinfo.pkthdr=-1;
+        scanner=0xFFFFFFFF;
+        scannerstart=-1;
     }
     bool Inject(uchar *Data, int Size);
     bool Put(uchar *Data, int Size);
     uchar *Get(int *Size);
 
-#define MA_PACKET_PKT 1
-#define MA_PACKET_AC3 2
-#define MA_PACKET_MP2 3
+#define MA_PACKET_PKT		0x10 // 0x00 0x00 0x01 (PES / H262)
+#define MA_PACKET_H264		0x11 // 0x00 0x00 0x00 0x01 (H264)
+#define MA_PACKET_AC3		0x20
+#define MA_PACKET_MP2		0x30
 
     uchar *GetPacket(int *Size, int Type);
 };

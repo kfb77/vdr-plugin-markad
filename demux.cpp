@@ -69,7 +69,17 @@ void cMarkAdDemux::ProcessTS(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt,
     uchar *pkt;
     int pktlen;
 
-    if (!ts2pkt) ts2pkt=new cMarkAdTS2Pkt(recvnumber,"TS2PES",262144);
+    if (!ts2pkt)
+    {
+        if (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264)
+        {
+            ts2pkt=new cMarkAdTS2Pkt(recvnumber,"TS2H264",393216);
+        }
+        else
+        {
+            ts2pkt=new cMarkAdTS2Pkt(recvnumber,"TS2PKT",262144);
+        }
+    }
     if (!ts2pkt) return;
 
     ts2pkt->Process(Pid,Data,Count,&pkt,&pktlen);

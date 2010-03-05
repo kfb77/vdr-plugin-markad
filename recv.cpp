@@ -8,12 +8,20 @@
 
 #include "recv.h"
 
+#if APIVERSNUM > 10711
+cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *Timer)
+        :
+        cReceiver(Timer->Channel()->GetChannelID(), -1),
+        cThread("markad"),
+        buffer(MEGATS(3)), running(false) // 3MB Buffer
+#else
 cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *Timer)
         :
         cReceiver(Timer->Channel()->GetChannelID(), -1,
                   Timer->Channel()->Vpid(),Timer->Channel()->Dpids()),
-                  cThread("markad"),
+        cThread("markad"),
         buffer(MEGATS(3)), running(false) // 3MB Buffer
+#endif
 {
     if ((!Filename) || (!Timer)) return;
 
@@ -23,46 +31,37 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
     // 10 ms timeout on getting TS frames
     buffer.SetTimeouts(0, 10);
 
-    bool useH264=false;
-#if APIVERSNUM >= 10700
-#ifdef DVBFE_DELSYS_DVBS2
-    if (Timer->Channel()->System()==DVBFE_DELSYS_DVBS2) useH264=true;
-#else
-    if (Timer->Channel()->System()==SYS_DVBS2) useH264=true;
-#endif
-#endif
     memset(&macontext,0,sizeof(macontext));
-    if (Timer->Event())
-    {
-        macontext.General.StartTime=Timer->Event()->StartTime();
-        macontext.General.EndTime=Timer->Event()->EndTime();
-    }
-    else
-    {
-        macontext.General.StartTime=Timer->StartTime();
-        macontext.General.EndTime=Timer->StopTime();
-        macontext.General.ManualRecording=true;
-    }
-
     macontext.General.VPid.Num=Timer->Channel()->Vpid();
-    if (useH264)
+
+#if APIVERSNUM == 10700
+#error "VDR-1.7.0 is not supported"
+#endif
+#if APIVERSNUM > 10700
+    switch Timer->Channel()->Vtype()
     {
-        macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
-    }
-    else
-    {
+    case 0x2:
         macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+        break;
+    case 0x1b:
+        macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
+        break;
+    default:
+        macontext.General.VPid.Num=0;
+        macontext.General.VPid.Type=0;
+        break;
     }
+#else
+    macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+#endif
 
-//    macontext.General.APid.Pid=Timer->Channel()->Apid(0); // TODO ... better solution?
-//    macontext.General.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
-
-    macontext.General.DPid.Num=Timer->Channel()->Dpid(0); // TODO ... better solution?
+    macontext.General.DPid.Num=Timer->Channel()->Dpid(0); // ... better solution?
     macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
 
     if (macontext.General.VPid.Num)
     {
-        dsyslog("markad [%i]: using %s-video",recvnumber,useH264 ? "H264": "H262");
+        dsyslog("markad [%i]: using %s-video",recvnumber,
+                (macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) ? "H264": "H262");
         video=new cMarkAdVideo(RecvNumber,&macontext);
         video_demux = new cMarkAdDemux(RecvNumber);
     }
@@ -92,12 +91,31 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
     }
 
     streaminfo=new cMarkAdStreamInfo;
-    common=new cMarkAdCommon(RecvNumber,&macontext);
 
     marks.Load(Filename);
+
     Index=NULL;
     lastiframe=0;
     framecnt=-1;
+    marksfound=false;
+
+    if (!marks.Count())
+    {
+        MarkAdMark tempmark;
+        char *buf;
+        tempmark.Position=0;
+        if (asprintf(&buf,"start of recording (0)")!=-1)
+        {
+            tempmark.Comment=buf;
+            AddMark(&tempmark,0);
+            isyslog("markad [%i]: %s",recvnumber,buf);
+            free(buf);
+        }
+    }
+    else
+    {
+        marksfound=true;
+    }
 }
 
 cMarkAdReceiver::~cMarkAdReceiver()
@@ -111,12 +129,27 @@ cMarkAdReceiver::~cMarkAdReceiver()
     }
     buffer.Clear();
 
+    if (lastiframe)
+    {
+        MarkAdMark tempmark;
+        tempmark.Position=lastiframe;
+        char *buf;
+
+        if (asprintf(&buf,"stop of recording (%i)",lastiframe)!=-1)
+        {
+            tempmark.Comment=buf;
+            AddMark(&tempmark,0);
+            isyslog("markad [%i]: %s",recvnumber,buf);
+            free(buf);
+        }
+    }
+
+    if (Index) delete Index;
     if (video_demux) delete video_demux;
     if (ac3_demux) delete ac3_demux;
     if (streaminfo) delete streaminfo;
     if (video) delete video;
     if (audio) delete audio;
-    if (common) delete common;
     if (filename) free(filename);
 }
 
@@ -181,22 +214,6 @@ void cMarkAdReceiver::Activate(bool On)
     }
     else if (running)
     {
-        if ((!macontext.State.ContentStopped) && (lastiframe))
-        {
-            MarkAdMark tempmark;
-            tempmark.Position=lastiframe;
-
-            char *buf;
-            if (asprintf(&buf,"stop of user content (%i)",lastiframe)!=-1)
-            {
-                tempmark.Comment=buf;
-                AddMark(&tempmark,0);
-                isyslog("markad [%i]: %s",recvnumber,buf);
-                free(buf);
-            }
-        }
-
-        if (Index) delete Index;
         running = false;
         buffer.Signal();
         Cancel(2);
@@ -228,8 +245,9 @@ void cMarkAdReceiver::Receive(uchar *Data, int Length)
 void cMarkAdReceiver::AddMark(MarkAdMark *mark, int Priority)
 {
     if (!mark) return;
-    if (!mark->Position) return;
     if (!mark->Comment) return;
+    if (mark->Position<0) return;
+
     cMark *newmark=marks.Add(mark->Position);
     if (newmark)
     {
@@ -242,35 +260,28 @@ void cMarkAdReceiver::AddMark(MarkAdMark *mark, int Priority)
     }
     marks.Save();
 
-#define MAXPOSDIFF (25*60*9) // = 9 min
-
-    cMark *prevmark=marks.GetPrev(mark->Position);
-    if (!prevmark) return;
-    if (!prevmark->comment) return;
-    if (abs(mark->Position-prevmark->position)>MAXPOSDIFF) return;
-
-    int prevPriority=atoi(prevmark->comment+1);
-    if (prevPriority==Priority) return;
-
-    if (prevPriority>Priority)
+    if (!marksfound)
     {
-        // add text from mark to prevmark
-        prevmark->comment=strcatrealloc(prevmark->comment," ");
-        prevmark->comment=strcatrealloc(prevmark->comment,mark->Comment);
-
-        dsyslog("markad [%i]: delete mark %i",recvnumber,newmark->position);
-        marks.Del(newmark,true);
+        cMark *prevmark=marks.GetPrev(mark->Position);
+        if (!prevmark) return;
+        if (!prevmark->comment) return;
+        if (prevmark->position==0) return;
+#define MAXPOSDIFF (25*60*13) // = 13 min
+        if (abs(mark->Position-prevmark->position)>MAXPOSDIFF)
+        {
+            cMark *firstmark=marks.Get(0);
+            if (firstmark)
+            {
+                marks.Del(firstmark,true);
+                marks.Save();
+                marksfound=true;
+            }
+        }
+        else
+        {
+            marksfound=true;
+        }
     }
-    else
-    {
-        // add text from prevmark to mark
-        mark->Comment=strcatrealloc(mark->Comment," ");
-        mark->Comment=strcatrealloc(mark->Comment,prevmark->comment);
-
-        dsyslog("markad [%i]: delete previous mark %i",recvnumber,prevmark->position);
-        marks.Del(prevmark,true);
-    }
-    marks.Save();
 }
 
 void cMarkAdReceiver::Action()
@@ -282,12 +293,6 @@ void cMarkAdReceiver::Action()
         {
             lastiframe=LastIFrame();
             MarkAdMark *mark;
-
-            if (common)
-            {
-                mark=common->Process(lastiframe);
-                AddMark(mark,0);
-            }
 
             if ((video_demux) && (streaminfo) && (video))
             {
@@ -309,20 +314,22 @@ void cMarkAdReceiver::Action()
                     {
                         if (pkt)
                         {
-                            streaminfo->FindVideoInfos(&macontext,pkt,pktlen);
-                            if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
+                            if (streaminfo->FindVideoInfos(&macontext,pkt,pktlen))
                             {
-                                if (framecnt==-1)
+                                if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                                 {
-                                    framecnt=0;
+                                    if (framecnt==-1)
+                                    {
+                                        framecnt=0;
+                                    }
+                                    else
+                                    {
+                                        mark=video->Process(lastiframe);
+                                        AddMark(mark,3);
+                                    }
                                 }
-                                else
-                                {
-                                    mark=video->Process(lastiframe);
-                                    AddMark(mark,3);
-                                }
+                                if (framecnt!=-1) framecnt++;
                             }
-                            if (framecnt!=-1) framecnt++;
                         }
                         tspkt+=len;
                         tslen-=len;
@@ -354,9 +361,11 @@ void cMarkAdReceiver::Action()
                     {
                         if (pkt)
                         {
-                            streaminfo->FindAC3AudioInfos(&macontext,pkt,pktlen);
-                            mark=audio->Process(lastiframe);
-                            AddMark(mark,2);
+                            if (streaminfo->FindAC3AudioInfos(&macontext,pkt,pktlen))
+                            {
+                                mark=audio->Process(lastiframe);
+                                AddMark(mark,2);
+                            }
                         }
                         tspkt+=len;
                         tslen-=len;

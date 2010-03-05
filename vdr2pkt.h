@@ -14,7 +14,7 @@ typedef unsigned char uchar;
 #endif
 
 #include "global.h"
-#include "tools.h"
+#include "queue.h"
 
 class cMarkAdVDR2Pkt
 {

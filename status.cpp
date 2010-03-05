@@ -72,6 +72,10 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
 
         dsyslog("markad [%i]: stop recording %s ",recvnumber,FileName);
         ((cDevice *) Device)->Detach(recv[recvnumber]);
+        if (!recv[recvnumber]->FoundMarks())
+        {
+            // TODO: start standalone markad with logo detection
+        }
         delete recv[recvnumber];
         recv[recvnumber]=NULL;
     }

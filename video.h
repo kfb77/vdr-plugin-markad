@@ -24,16 +24,52 @@
 class cMarkAdLogo
 {
 private:
-#define LOGOHEIGHT 100
+#define MAXFRAMES 25
+
+    enum
+    {
+        TOP_LEFT,
+        TOP_RIGHT,
+        BOTTOM_LEFT,
+        BOTTOM_RIGHT
+    };
+
+    int LOGOHEIGHT; // max. 100
+    int LOGOWIDTH; // max. 288
+
+    struct area
+    {
+        uchar plane[28800];
+        bool init;
+        int blackpixel;
+//        int cntfound;
+    } area[4];
+
+    int savedlastiframe;
+    int framecnt;
+
+    int logostart;
+
     int GX[3][3];
     int GY[3][3];
-    uchar *plane;
-    bool first;
+
+    int counter;
+
+    int logostate;
     MarkAdContext *macontext;
+    void CheckCorner(int corner);
+    void CheckCorners(int lastiframe);
+    void RestartLogoDetection();
+    bool LogoVisible();
+
+    /*
+        void ResetLogoDetection();
+        bool LogoFound();
+    */
+    void SaveLogo(int corner, int lastiframe);
 public:
     cMarkAdLogo(int RecvNumber, MarkAdContext *maContext);
     ~cMarkAdLogo();
-    void SaveFrame(int LastIFrame);
     int Process(int LastIFrame);
 };
 

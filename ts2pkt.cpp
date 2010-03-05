@@ -22,6 +22,7 @@ cMarkAdTS2Pkt::~cMarkAdTS2Pkt()
 
 void cMarkAdTS2Pkt::Reset(int ErrIndex)
 {
+    sync=false;
     switch (ErrIndex)
     {
     case MA_ERR_TSSIZE:
@@ -113,6 +114,12 @@ void cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, uchar **Pk
             return; // not for us
         }
 
+        if (tshdr->PayloadStart) sync=true;
+        if (!sync)
+        {
+            return; // not synced
+        }
+
         if ((counter!=-1) && (((counter+1) & 0xF)!=tshdr->Counter))
         {
             if (counter==tshdr->Counter)
@@ -177,6 +184,13 @@ void cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, uchar **Pk
 
         queue->Put(buf,buflen);
     }
-    *PktData=queue->GetPacket(PktSize,MA_PACKET_PKT);
+    if (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264)
+    {
+        *PktData=queue->GetPacket(PktSize,MA_PACKET_H264);
+    }
+    else
+    {
+        *PktData=queue->GetPacket(PktSize,MA_PACKET_PKT);
+    }
     return;
 }

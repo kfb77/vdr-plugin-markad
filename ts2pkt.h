@@ -23,7 +23,7 @@ typedef unsigned char uchar;
 #include <string.h>
 
 #include "global.h"
-#include "tools.h"
+#include "queue.h"
 
 class cMarkAdTS2Pkt
 {
@@ -104,6 +104,7 @@ unsigned Length:
 
     int recvnumber;
     int counter;
+    bool sync;
 
     cMarkAdPaketQueue *queue;
 

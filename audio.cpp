@@ -65,19 +65,15 @@ MarkAdMark *cMarkAdAudio::Process(int LastIFrame)
     ResetMark();
     if (!LastIFrame) return NULL;
 
-
-    if (macontext->State.ContentStarted)
+    if (ChannelChange(macontext->Audio.Info.Channels,channels))
     {
-        if (ChannelChange(macontext->Audio.Info.Channels,channels))
+        char *buf=NULL;
+        if (asprintf(&buf,"audio channel change from %i to %i (%i)", channels,
+                     macontext->Audio.Info.Channels,LastIFrame)!=-1)
         {
-            char *buf=NULL;
-            if (asprintf(&buf,"audio channel change from %i to %i (%i)", channels,
-                         macontext->Audio.Info.Channels,LastIFrame)!=-1)
-            {
-                isyslog("markad [%i]: %s",recvnumber, buf);
-                AddMark(LastIFrame,buf);
-                free(buf);
-            }
+            isyslog("markad [%i]: %s",recvnumber, buf);
+            AddMark(LastIFrame,buf);
+            free(buf);
         }
     }
 

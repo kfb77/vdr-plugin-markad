@@ -9,6 +9,8 @@
 #include "markad-standalone.h"
 
 cMarkAdStandalone *cmasta=NULL;
+int SysLogLevel=2;
+char markFileName[1024]="";
 
 void syslog_with_tid(int priority, const char *format, ...)
 {
@@ -27,9 +29,59 @@ void syslog_with_tid(int priority, const char *format, ...)
 #endif
 }
 
+char *cMarkAdStandalone::IndexToHMSF(int Index)
+{
+    if (macontext.Video.Info.FramesPerSecond==0.0) return NULL;
+    char *buf;
+    double Seconds;
+    int f = int(modf((Index+0.5)/macontext.Video.Info.FramesPerSecond,&Seconds)*
+                macontext.Video.Info.FramesPerSecond+1);
+    int s = int(Seconds);
+    int m = s / 60 % 60;
+    int h = s / 3600;
+    s %= 60;
+    if (asprintf(&buf,"%d:%02d:%02d.%02d",h,m,s,f)==-1) return NULL;
+    return buf;
+}
+
 void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 {
-// TODO: Implement this!
+    if (!Mark) return;
+
+    if (Mark->Comment)
+    {
+        char *buf=IndexToHMSF(Mark->Position);
+        if (buf)
+        {
+            fprintf(stderr,"%s %s\n",buf,Mark->Comment);
+            free(buf);
+        }
+    }
+// TODO: Implement creating marks/marks.vdr!
+
+}
+
+void cMarkAdStandalone::SaveFrame(int frame)
+{
+    if (!macontext.Video.Info.Width) return;
+    if (!macontext.Video.Data.Valid) return;
+
+    FILE *pFile;
+    char szFilename[32];
+
+    // Open file
+    sprintf(szFilename, "frame%06d.pgm", frame);
+    pFile=fopen(szFilename, "wb");
+    if (pFile==NULL)
+        return;
+
+    // Write header
+    fprintf(pFile, "P5\n%d %d\n255\n", macontext.Video.Info.Width,macontext.Video.Info.Height);
+
+    // Write pixel data
+    fwrite(macontext.Video.Data.Plane[0],1,macontext.Video.Info.Width*macontext.Video.Info.Height,pFile);
+    // Close file
+    fclose(pFile);
 }
 
 bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
@@ -60,15 +112,9 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     while ((dataread=read(f,data,datalen))>0)
     {
         if (abort) break;
-        MarkAdMark *mark;
+        MarkAdMark *mark=NULL;
 
-        if (common)
-        {
-            mark=common->Process(lastiframe);
-            AddMark(mark);
-        }
-
-        if ((video_demux) && (decoder) && (video))
+        if ((video_demux) && (video) && (decoder) && (streaminfo))
         {
             uchar *pkt;
             int pktlen;
@@ -91,12 +137,55 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                         {
                             if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                             {
-                                lastiframe=framecnt;
+                                lastiframe=framecnt-1;
+                                mark=video->Process(lastiframe);
+                                AddMark(mark);
                             }
-                            mark=video->Process(framecnt);
-                            AddMark(mark);
-
+                        }
+                        if (streaminfo->FindVideoInfos(&macontext,pkt,pktlen))
+                        {
                             framecnt++;
+                        }
+                    }
+                    tspkt+=len;
+                    tslen-=len;
+                }
+            }
+        }
+
+        if ((ac3_demux) && (streaminfo) && (audio))
+        {
+            uchar *pkt;
+            int pktlen;
+
+            uchar *tspkt = data;
+            int tslen = dataread;
+
+            while (tslen>0)
+            {
+                int len=ac3_demux->Process(macontext.General.DPid,tspkt,tslen,&pkt,&pktlen);
+                if (len<0)
+                {
+                    break;
+                }
+                else
+                {
+                    if (pkt)
+                    {
+                        if (streaminfo->FindAC3AudioInfos(&macontext,pkt,pktlen))
+                        {
+                            if ((!isTS) && (!noticeVDR_AC3))
+                            {
+                                dsyslog("markad [%i]: found AC3",recvnumber);
+                                if (mp2_demux)
+                                {
+                                    delete mp2_demux;
+                                    mp2_demux=NULL;
+                                }
+                                noticeVDR_AC3=true;
+                            }
+                            mark=audio->Process(lastiframe);
+                            AddMark(mark);
                         }
                     }
                     tspkt+=len;
@@ -126,6 +215,11 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                     {
                         if (decoder->DecodeMP2(&macontext,pkt,pktlen))
                         {
+                            if ((!isTS) && (!noticeVDR_MP2))
+                            {
+                                dsyslog("markad [%i]: found MP2",recvnumber);
+                                noticeVDR_MP2=true;
+                            }
                             mark=audio->Process(lastiframe);
                             AddMark(mark);
                         }
@@ -136,36 +230,6 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
             }
         }
 
-        if ((ac3_demux) && (decoder) && (audio))
-        {
-            uchar *pkt;
-            int pktlen;
-
-            uchar *tspkt = data;
-            int tslen = dataread;
-
-            while (tslen>0)
-            {
-                int len=ac3_demux->Process(macontext.General.DPid,tspkt,tslen,&pkt,&pktlen);
-                if (len<0)
-                {
-                    break;
-                }
-                else
-                {
-                    if (pkt)
-                    {
-                        if (decoder->DecodeAC3(&macontext,pkt,pktlen))
-                        {
-                            mark=audio->Process(lastiframe);
-                            AddMark(mark);
-                        }
-                    }
-                    tspkt+=len;
-                    tslen-=len;
-                }
-            }
-        }
     }
     close(f);
     return true;
@@ -337,9 +401,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
     recvnumber=255;
     abort=false;
 
+    noticeVDR_MP2=false;
+    noticeVDR_AC3=false;
+
     memset(&macontext,0,sizeof(macontext));
-    macontext.General.StartTime=0;
-    macontext.General.EndTime=time(NULL)+(7*86400);
     macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
     macontext.General.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
 
@@ -351,7 +416,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
         decoder=NULL;
         video=NULL;
         audio=NULL;
-        common=NULL;
         return;
     }
 
@@ -363,18 +427,28 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
             abort=true;
         }
         macontext.General.APid.Num=0;
+        if (!markFileName[0]) strcpy(markFileName,"marks");
     }
     else
     {
         macontext.General.DPid.Num=-1;
         macontext.General.VPid.Num=-1;
         macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+        if (!markFileName[0]) strcpy(markFileName,"marks.vdr");
     }
 
     if (macontext.General.VPid.Num)
     {
-        dsyslog("markad [%i]: using %s-video (0x%04x)",recvnumber,macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262",
-                macontext.General.VPid.Num);
+        if (isTS)
+        {
+            dsyslog("markad [%i]: using %s-video (0x%04x)",recvnumber,macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262",
+                    macontext.General.VPid.Num);
+        }
+        else
+        {
+            dsyslog("markad [%i]: using %s-video",
+                    recvnumber,macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262");
+        }
         video_demux = new cMarkAdDemux(recvnumber);
     }
     else
@@ -384,7 +458,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
 
     if (macontext.General.APid.Num)
     {
-        dsyslog("markad [%i]: using MP2 (0x%04x)",recvnumber,macontext.General.APid.Num);
+        if (macontext.General.APid.Num!=-1)
+            dsyslog("markad [%i]: using MP2 (0x%04x)",recvnumber,macontext.General.APid.Num);
         mp2_demux = new cMarkAdDemux(recvnumber);
     }
     else
@@ -394,7 +469,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
 
     if (macontext.General.DPid.Num)
     {
-        dsyslog("markad [%i]: using AC3 (0x%04x)",recvnumber,macontext.General.DPid.Num);
+        if (macontext.General.DPid.Num!=-1)
+            dsyslog("markad [%i]: using AC3 (0x%04x)",recvnumber,macontext.General.DPid.Num);
         ac3_demux = new cMarkAdDemux(recvnumber);
     }
     else
@@ -405,17 +481,17 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
     if (!abort)
     {
         decoder = new cMarkAdDecoder(recvnumber,macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,
-                                     macontext.General.DPid.Num!=0);
+                                     macontext.General.APid.Num!=0,macontext.General.DPid.Num!=0);
         video = new cMarkAdVideo(recvnumber,&macontext);
         audio = new cMarkAdAudio(recvnumber,&macontext);
-        common = new cMarkAdCommon(recvnumber,&macontext);
+        streaminfo = new cMarkAdStreamInfo;
     }
     else
     {
         decoder=NULL;
         video=NULL;
         audio=NULL;
-        common=NULL;
+        streaminfo=NULL;
     }
 
     framecnt=0;
@@ -429,7 +505,7 @@ cMarkAdStandalone::~cMarkAdStandalone()
     if (decoder) delete decoder;
     if (video) delete video;
     if (audio) delete audio;
-    if (common) delete common;
+    if (streaminfo) delete streaminfo;
 }
 
 bool isnumber(const char *s)
@@ -557,6 +633,10 @@ int main(int argc, char *argv[])
             bNice = true;
             break;
 
+        case 'B':
+            // backupmarks
+            break;
+
         case 'O':
             // --OSD
             break;
@@ -571,7 +651,6 @@ int main(int argc, char *argv[])
         case 'j':
         case 'a':
         case 'S':
-        case 'B':
         case 'n':
         case 'C':
             break;
@@ -592,7 +671,8 @@ int main(int argc, char *argv[])
             break;
 
         case 1: // --markfile
-            //setMarkfileName(optarg); // TODO: implement this
+            strncpy(markFileName,optarg,1024);
+            markFileName[1023]=0;
             break;
 
         case 2: // --loglevel

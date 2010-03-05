@@ -8,11 +8,13 @@
 
 #include "decoder.h"
 
-cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool hasAC3)
+cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool useMP2, bool hasAC3)
 {
     recvnumber=RecvNumber;
     avcodec_init();
     avcodec_register_all();
+
+    last_qscale_table=NULL;
 
     cpu_set_t cpumask;
     uint len = sizeof(cpumask);
@@ -29,29 +31,36 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool hasAC3)
     isyslog("markad [%i]: using libavcodec.so.%s with %i threads",recvnumber,
             AV_STRINGIFY(LIBAVCODEC_VERSION),cpucount);
 
-    CodecID mp2_codecid=CODEC_ID_MP2;
-    AVCodec *mp2_codec= avcodec_find_decoder(mp2_codecid);
-    if (mp2_codec)
+    if (useMP2)
     {
-        mp2_context = avcodec_alloc_context();
-        if (mp2_context)
+        CodecID mp2_codecid=CODEC_ID_MP2;
+        AVCodec *mp2_codec= avcodec_find_decoder(mp2_codecid);
+        if (mp2_codec)
         {
-            mp2_context->thread_count=cpucount;
-            if (avcodec_open(mp2_context, mp2_codec) < 0)
+            mp2_context = avcodec_alloc_context();
+            if (mp2_context)
             {
-                esyslog("markad [%i]: could not open codec 0x%05x",recvnumber,mp2_codecid);
-                av_free(mp2_context);
-                mp2_context=NULL;
+                mp2_context->thread_count=cpucount;
+                if (avcodec_open(mp2_context, mp2_codec) < 0)
+                {
+                    esyslog("markad [%i]: could not open codec 0x%05x",recvnumber,mp2_codecid);
+                    av_free(mp2_context);
+                    mp2_context=NULL;
+                }
+            }
+            else
+            {
+                esyslog("markad [%i]: could not allocate mp2 context",recvnumber);
             }
         }
         else
         {
-            esyslog("markad [%i]: could not allocate mp2 context",recvnumber);
+            esyslog("markad [%i]: codec 0x%05x not found",recvnumber,mp2_codecid);
+            mp2_context=NULL;
         }
     }
     else
     {
-        esyslog("markad [%i]: codec 0x%05x not found",recvnumber,mp2_codecid);
         mp2_context=NULL;
     }
 
@@ -97,10 +106,17 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool hasAC3)
     }
     else
     {
-        video_codecid=CODEC_ID_MPEG2VIDEO;
+        video_codecid=CODEC_ID_MPEG2VIDEO_XVMC;
     }
 
     video_codec = avcodec_find_decoder(video_codecid);
+    if ((!video_codec) && (video_codecid==CODEC_ID_MPEG2VIDEO_XVMC))
+    {
+        // fallback to MPEG2VIDEO
+        video_codecid=CODEC_ID_MPEG2VIDEO;
+        video_codec=avcodec_find_decoder(video_codecid);
+    }
+
     if (video_codec)
     {
         video_context = avcodec_alloc_context();
@@ -109,11 +125,45 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool hasAC3)
             video_context->thread_count=cpucount;
             if (video_codec->capabilities & CODEC_CAP_TRUNCATED)
                 video_context->flags|=CODEC_FLAG_TRUNCATED; // we do not send complete frames
+
             video_context->flags|=CODEC_FLAG_EMU_EDGE; // now linesize should be the same as width
-            video_context->flags2|=CODEC_FLAG2_CHUNKS; // needed for H264!
+
+            video_context->flags|=CODEC_FLAG_GRAY; // only decode grayscale
             video_context->flags2|=CODEC_FLAG2_FAST; // really?
 
-            if (avcodec_open(video_context, video_codec) < 0)
+            video_context->skip_idct=AVDISCARD_ALL;
+
+            if (video_codecid==CODEC_ID_H264)
+            {
+                video_context->flags2|=CODEC_FLAG2_CHUNKS; // needed for H264!
+                video_context->skip_loop_filter=AVDISCARD_ALL; // skip deblocking
+                video_context->skip_frame=AVDISCARD_NONREF; // P/I-frames
+            }
+            else
+            {
+                video_context->skip_frame=AVDISCARD_NONKEY; // I-frames
+            }
+
+            int ret=avcodec_open(video_context, video_codec);
+            if ((ret < 0) && (video_codecid==CODEC_ID_MPEG2VIDEO_XVMC))
+            {
+                // fallback to MPEG2VIDEO
+                video_codecid=CODEC_ID_MPEG2VIDEO;
+                video_codec=avcodec_find_decoder(video_codecid);
+                if (video_codec)
+                {
+                    video_context->codec_type=CODEC_TYPE_UNKNOWN;
+                    video_context->codec_id=CODEC_ID_NONE;
+                    video_context->codec_tag=0;
+                    memset(video_context->codec_name,0,sizeof(video_context->codec_name));
+                    ret=avcodec_open(video_context, video_codec);
+                }
+                else
+                {
+                    ret=-1;
+                }
+            }
+            if (ret < 0)
             {
                 esyslog("markad [%i]: could not open codec 0x%05x",recvnumber,video_codecid);
                 av_free(video_context);
@@ -141,6 +191,16 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool hasAC3)
         esyslog("markad [%i]: codec 0x%05x not found",recvnumber,video_codecid);
         video_context=NULL;
     }
+
+    if ((ac3_context) || (mp2_context))
+    {
+        audiobuf=(int16_t*) malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
+    }
+    else
+    {
+        audiobuf=NULL;
+    }
+
 }
 
 cMarkAdDecoder::~cMarkAdDecoder()
@@ -163,6 +223,7 @@ cMarkAdDecoder::~cMarkAdDecoder()
         avcodec_close(mp2_context);
         av_free(mp2_context);
     }
+    if (audiobuf) free(audiobuf);
     SetVideoInfos(NULL,NULL,NULL,NULL);
 }
 
@@ -180,24 +241,25 @@ bool cMarkAdDecoder::DecodeMP2(MarkAdContext *maContext, uchar *espkt, int eslen
     avpkt.data=espkt;
     avpkt.size=eslen;
 
-    DECLARE_ALIGNED(16,char,outbuf[AVCODEC_MAX_AUDIO_FRAME_SIZE]);
-    int outbuf_size=AVCODEC_MAX_AUDIO_FRAME_SIZE;
+    audiobufsize=AVCODEC_MAX_AUDIO_FRAME_SIZE;
     int ret=false;
+    int16_t Taudiobuf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
     while (avpkt.size>0)
     {
 #if LIBAVCODEC_VERSION_INT < ((52<<16)+(25<<8)+0)
-        int len=avcodec_decode_audio2(mp2_context,(short *) &outbuf,&outbuf_size,
+        int len=avcodec_decode_audio2(mp2_context,Taudiobuf,&audiobufsize,
                                       avpkt.data,avpkt.size);
 #else
-        int len=avcodec_decode_audio3(mp2_context,(short *) &outbuf,&outbuf_size,&avpkt);
+        int len=avcodec_decode_audio3(mp2_context,Taudiobuf,&audiobufsize,&avpkt);
 #endif
         if (len<0)
         {
             esyslog("markad [%i]: error decoding mp2",recvnumber);
             break;
         }
-        else
+        if (audiobufsize>0)
         {
+            memcpy(audiobuf,Taudiobuf,audiobufsize);
             SetAudioInfos(maContext,ac3_context);
             ret=true;
             avpkt.size-=len;
@@ -212,6 +274,9 @@ bool cMarkAdDecoder::SetAudioInfos(MarkAdContext *maContext, AVCodecContext *Aud
     if ((!maContext) || (!Audio_Context)) return false;
 
     maContext->Audio.Info.Channels = Audio_Context->channels;
+    maContext->Audio.Data.SampleBuf=audiobuf;
+    maContext->Audio.Data.SampleBufLen=audiobufsize;
+    maContext->Audio.Data.Valid=true;
     return true;
 }
 
@@ -229,24 +294,25 @@ bool cMarkAdDecoder::DecodeAC3(MarkAdContext *maContext, uchar *espkt, int eslen
     avpkt.data=espkt;
     avpkt.size=eslen;
 
-    DECLARE_ALIGNED(16,char,outbuf[AVCODEC_MAX_AUDIO_FRAME_SIZE]);
-    int outbuf_size=AVCODEC_MAX_AUDIO_FRAME_SIZE;
     int ret=false;
+    int16_t Taudiobuf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
     while (avpkt.size>0)
     {
+        audiobufsize=AVCODEC_MAX_AUDIO_FRAME_SIZE;
 #if LIBAVCODEC_VERSION_INT < ((52<<16)+(25<<8)+0)
-        int len=avcodec_decode_audio2(ac3_context,(short *) &outbuf,&outbuf_size,
+        int len=avcodec_decode_audio2(ac3_context,Taudiobuf,&audiobufsize,
                                       avpkt.data,avpkt.size);
 #else
-        int len=avcodec_decode_audio3(ac3_context,(short *) &outbuf,&outbuf_size,&avpkt);
+        int len=avcodec_decode_audio3(ac3_context,Taudiobuf,&audiobufsize,&avpkt);
 #endif
         if (len<0)
         {
             esyslog("markad [%i]: error decoding ac3",recvnumber);
             break;
         }
-        else
+        if (audiobufsize>0)
         {
+            memcpy(audiobuf,Taudiobuf,audiobufsize);
             SetAudioInfos(maContext,ac3_context);
             ret=true;
             avpkt.size-=len;
@@ -277,32 +343,7 @@ bool cMarkAdDecoder::SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Vide
     maContext->Video.Info.Height=Video_Context->height;
     maContext->Video.Info.Width=Video_Context->width;
 
-    switch (Video_Frame->pict_type)
-    {
-    case FF_I_TYPE:
-        maContext->Video.Info.Pict_Type=MA_I_TYPE;
-        break;
-    case FF_P_TYPE:
-        maContext->Video.Info.Pict_Type=MA_P_TYPE;
-        break;
-    case FF_B_TYPE:
-        maContext->Video.Info.Pict_Type=MA_B_TYPE;
-        break;
-    case FF_S_TYPE:
-        maContext->Video.Info.Pict_Type=MA_S_TYPE;
-        break;
-    case FF_SI_TYPE:
-        maContext->Video.Info.Pict_Type=MA_SI_TYPE;
-        break;
-    case FF_SP_TYPE:
-        maContext->Video.Info.Pict_Type=MA_SP_TYPE;
-        break;
-    case FF_BI_TYPE:
-        maContext->Video.Info.Pict_Type=MA_BI_TYPE;
-        break;
-    default:
-        maContext->Video.Info.Pict_Type=0;
-    }
+    maContext->Video.Info.Pict_Type=Video_Context->coded_frame->pict_type;
 
     if (DAR)
     {
@@ -316,6 +357,8 @@ bool cMarkAdDecoder::SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Vide
 
 bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
 {
+    if (!video_context) return false;
+
     AVPacket avpkt;
 #if LIBAVCODEC_VERSION_INT >= ((52<<16)+(25<<8)+0)
     av_init_packet(&avpkt);
@@ -330,6 +373,7 @@ bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
     // decode video
     int video_frame_ready=0;
     int len,ret=false;
+
     while (avpkt.size>0)
     {
 #if LIBAVCODEC_VERSION_INT < ((52<<16)+(25<<8)+0)
@@ -351,9 +395,13 @@ bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
         }
         if (video_frame_ready)
         {
-            AVRational dar;
-            PAR2DAR(video_context->sample_aspect_ratio,&dar);
-            if (SetVideoInfos(maContext,video_context,video_frame,&dar)) ret=true;
+            if (last_qscale_table!=video_frame->qscale_table)
+            {
+                AVRational dar;
+                PAR2DAR(video_context->sample_aspect_ratio,&dar);
+                if (SetVideoInfos(maContext,video_context,video_frame,&dar)) ret=true;
+                last_qscale_table=video_frame->qscale_table;
+            }
         }
     }
     return ret;

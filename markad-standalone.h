@@ -23,10 +23,8 @@
 #include "decoder.h"
 #include "video.h"
 #include "audio.h"
-#include "common.h"
+#include "streaminfo.h"
 #include "version.h"
-
-int SysLogLevel=2;
 
 class cMarkAdStandalone
 {
@@ -142,14 +140,13 @@ unsigned Descriptor_Length:
         8;
     };
 
-
     cMarkAdDemux *video_demux;
     cMarkAdDemux *ac3_demux;
     cMarkAdDemux *mp2_demux;
     cMarkAdDecoder *decoder;
     cMarkAdVideo *video;
     cMarkAdAudio *audio;
-    cMarkAdCommon *common;
+    cMarkAdStreamInfo *streaminfo;
 
     MarkAdContext macontext;
     int recvnumber;
@@ -159,6 +156,11 @@ unsigned Descriptor_Length:
     int framecnt;
     bool abort;
 
+    bool noticeVDR_MP2;
+    bool noticeVDR_AC3;
+
+    void SaveFrame(int Frame);
+    char *IndexToHMSF(int Index);
     void AddMark(MarkAdMark *Mark);
     bool CheckPATPMT(const char *Directory);
     bool CheckTS(const char *Directory);

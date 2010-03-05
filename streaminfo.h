@@ -10,6 +10,7 @@
 #define __streaminfo_h_
 
 #include <stdint.h>
+#include <string.h>
 
 #include "global.h"
 
@@ -25,12 +26,12 @@ private:
         NAL_END_SEQ = 0x0A  // End of Sequence
     };
     int nalUnescape(uint8_t *dst, const uint8_t *src, int len);
-
-    void FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
-    void FindH262VideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
+    const uint8_t *nextStartCode(const uint8_t *start, const uint8_t *end);
+    bool FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
+    bool FindH262VideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
 public:
-    void FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
-    void FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen);
+    bool FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
+    bool FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen);
 
 
 };
