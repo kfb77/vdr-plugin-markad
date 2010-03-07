@@ -11,7 +11,7 @@
 #if APIVERSNUM > 10711
 cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *Timer)
         :
-        cReceiver(Timer->Channel()->GetChannelID(), -1),
+        cReceiver(NULL, -1),
         cThread("markad"),
         buffer(MEGATS(3)), running(false) // 3MB Buffer
 #else
@@ -25,6 +25,11 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
 {
     if ((!Filename) || (!Timer)) return;
 
+#if APIVERSNUM > 10711
+    AddPid(Timer->Channel()->VPid());
+    AddPid(Timer->Channel()->Dpid(0));
+#endif
+
     recvnumber=RecvNumber;
     filename=strdup(Filename);
 
@@ -34,9 +39,6 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
     memset(&macontext,0,sizeof(macontext));
     macontext.General.VPid.Num=Timer->Channel()->Vpid();
 
-#if APIVERSNUM == 10700
-#error "VDR-1.7.0 is not supported"
-#endif
 #if APIVERSNUM > 10700
     switch Timer->Channel()->Vtype()
     {
@@ -52,7 +54,11 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
         break;
     }
 #else
+#if APIVERSNUM < 10700
     macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+#else
+#error "VDR-1.7.0 is not supported"
+#endif
 #endif
 
     macontext.General.DPid.Num=Timer->Channel()->Dpid(0); // ... better solution?
