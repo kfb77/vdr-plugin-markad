@@ -26,7 +26,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
     if ((!Filename) || (!Timer)) return;
 
 #if APIVERSNUM > 10711
-    AddPid(Timer->Channel()->VPid());
+    AddPid(Timer->Channel()->Vpid());
     AddPid(Timer->Channel()->Dpid(0));
 #endif
 
@@ -40,7 +40,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
     macontext.General.VPid.Num=Timer->Channel()->Vpid();
 
 #if APIVERSNUM > 10700
-    switch Timer->Channel()->Vtype()
+    switch (Timer->Channel()->Vtype())
     {
     case 0x2:
         macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
