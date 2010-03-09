@@ -12,19 +12,21 @@
 #include <vdr/tools.h> // needed for (d/e/i)syslog
 
 #include <time.h>
-
-#if 1
-#include <stdio.h>
-#endif
-
 #include <math.h>
-
 #include "global.h"
+
+#define LOGO_MAXHEIGHT 140
+#define LOGO_MAXWIDTH  288
+
+#define LOGO_DEFHEIGHT 100
+#define LOGO_DEFWIDTH  192
+
+#define LOGO_MAXCOUNT 3
 
 class cMarkAdLogo
 {
 private:
-#define MAXFRAMES 25
+    int recvnumber;
 
     enum
     {
@@ -34,43 +36,48 @@ private:
         BOTTOM_RIGHT
     };
 
-    int LOGOHEIGHT; // max. 100
-    int LOGOWIDTH; // max. 288
-
-    struct area
+    enum
     {
-        uchar plane[28800];
-        bool init;
-        int blackpixel;
-//        int cntfound;
-    } area[4];
+        ERROR=-3,
+        UNINITIALIZED=-2,
+        NOLOGO=-1,
+        NOCHANGE=0,
+        LOGO=1
+    };
 
-    int savedlastiframe;
-    int framecnt;
+    int LOGOHEIGHT; // max. 140
+    int LOGOWIDTH; // 192-288
 
-    int logostart;
+#define MAXPIXEL LOGO_MAXWIDTH*LOGO_MAXHEIGHT
 
+    struct areaT
+    {
+        uchar source[MAXPIXEL]; // original grayscale picture
+        uchar sobel[MAXPIXEL];  // monochrome picture with edges (after sobel)
+        uchar mask[MAXPIXEL];   // monochrome mask of logo
+        uchar result[MAXPIXEL]; // result of sobel + mask
+        int rpixel;  // black pixel in result
+        int mpixel;  // black pixel in mask
+        int status;
+        int lastiframe;
+        int counter;
+        int corner;
+        MarkAdAspectRatio aspectratio;
+        bool valid;
+    } area;
+
+    int G[5][5];
     int GX[3][3];
     int GY[3][3];
 
-    int counter;
-
-    int logostate;
     MarkAdContext *macontext;
-    void CheckCorner(int corner);
-    void CheckCorners(int lastiframe);
-    void RestartLogoDetection();
-    bool LogoVisible();
-
-    /*
-        void ResetLogoDetection();
-        bool LogoFound();
-    */
-    void SaveLogo(int corner, int lastiframe);
+    int Detect(int lastiframe, int *logoiframe); // ret 1 = logo, 0 = unknown, -1 = no logo
+    int Load(char *file);
+    void Save(int lastiframe, uchar *picture);
 public:
     cMarkAdLogo(int RecvNumber, MarkAdContext *maContext);
     ~cMarkAdLogo();
-    int Process(int LastIFrame);
+    int Process(int LastIFrame, int *LogoIFrame);
 };
 
 class cMarkAdBlackBordersHoriz

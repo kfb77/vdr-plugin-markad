@@ -162,8 +162,10 @@ unsigned Descriptor_Length:
     void SaveFrame(int Frame);
     char *IndexToHMSF(int Index);
     void AddMark(MarkAdMark *Mark);
+
     bool CheckPATPMT(const char *Directory);
     bool CheckTS(const char *Directory);
+    bool LoadInfo(const char *Directory);
     bool ProcessFile(const char *Directory, int Number);
 
 public:

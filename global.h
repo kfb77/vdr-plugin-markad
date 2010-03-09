@@ -49,8 +49,18 @@ typedef struct MarkAdPid
 
 typedef struct MarkAdContext
 {
+    char *LogoDir; // Logo Directory, default /var/lib/markad
+
+    struct StandAlone
+    {
+        int LogoExtraction;
+        int LogoWidth;
+        int LogoHeight;
+    } StandAlone;
+
     struct General
     {
+        char *ChannelID;
         MarkAdPid VPid;
         MarkAdPid APid;
         MarkAdPid DPid;

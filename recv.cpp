@@ -37,6 +37,7 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
     buffer.SetTimeouts(0, 10);
 
     memset(&macontext,0,sizeof(macontext));
+    macontext.StandAlone.LogoExtraction=-1; // we are not standalone ;)
     macontext.General.VPid.Num=Timer->Channel()->Vpid();
 
 #if APIVERSNUM > 10700

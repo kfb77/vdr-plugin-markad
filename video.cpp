@@ -11,8 +11,10 @@
 cMarkAdLogo::cMarkAdLogo(int RecvNumber, MarkAdContext *maContext)
 {
     macontext=maContext;
+    recvnumber=RecvNumber;
 
     // 3x3 GX Sobel mask
+
     GX[0][0] = -1;
     GX[0][1] =  0;
     GX[0][2] =  1;
@@ -36,61 +38,92 @@ cMarkAdLogo::cMarkAdLogo(int RecvNumber, MarkAdContext *maContext)
 
     memset(&area,0,sizeof(area));
 
-    area[TOP_LEFT].init=true;
-    area[TOP_RIGHT].init=true;
-    area[BOTTOM_LEFT].init=true;
-    area[BOTTOM_RIGHT].init=true;
+    LOGOHEIGHT=LOGO_DEFHEIGHT;
+    LOGOWIDTH=LOGO_DEFWIDTH;
 
-    LOGOHEIGHT=100;
-    LOGOWIDTH=192;
-
-    framecnt=0;
-    savedlastiframe=-1;
-    logostart=-1;
-    logostate=-1;
-    counter=0;
+    area.status=UNINITIALIZED;
 }
 
 cMarkAdLogo::~cMarkAdLogo()
 {
 }
 
-void cMarkAdLogo::SaveLogo(int corner, int lastiframe)
+int cMarkAdLogo::Load(char *file)
 {
-    if (!macontext) return;
-    if (!macontext->Video.Info.Width) return;
-
+    // Load mask
     FILE *pFile;
-    char szFilename[32];
+    area.valid=false;
+    area.corner=-1;
+    pFile=fopen(file, "rb");
+    if (!pFile) return -1;
 
-    // Open file
-    sprintf(szFilename, "%iframe%06d.pgm", corner,lastiframe);
-    pFile=fopen(szFilename, "wb");
-    if (pFile==NULL)
-        return;
+    fscanf(pFile, "P5\n#C%i\n%d %d\n255\n#", &area.corner,&LOGOWIDTH,&LOGOHEIGHT);
 
-    // Write header
-    fprintf(pFile, "P5\n%d %d\n255\n", LOGOWIDTH,LOGOHEIGHT);
+    if ((LOGOWIDTH<=0) || (LOGOHEIGHT<=0) || (LOGOWIDTH>LOGO_MAXWIDTH) || (LOGOHEIGHT>LOGO_MAXHEIGHT) ||
+            (area.corner<TOP_LEFT) || (area.corner>BOTTOM_RIGHT))
+    {
+        fclose(pFile);
+        return -2;
+    }
 
-    // Write pixel data
-    fwrite(area[corner].plane,1,LOGOWIDTH*LOGOHEIGHT,pFile);
-    // Close file
+    fread(&area.mask,1,LOGOWIDTH*LOGOHEIGHT,pFile);
+
+    for (int i=0; i<LOGOWIDTH*LOGOHEIGHT; i++)
+    {
+        if (!area.mask[i]) area.mpixel++;
+    }
+
     fclose(pFile);
+    area.valid=true;
+    return 0;
 }
 
-void cMarkAdLogo::CheckCorner(int corner)
+
+
+void cMarkAdLogo::Save(int lastiframe, uchar *picture)
 {
     if (!macontext) return;
-    if (!macontext->Video.Info.Width) return;
-    if (!macontext->Video.Info.Height) return;
-    if (!macontext->Video.Data.Valid) return;
 
-    if (corner>BOTTOM_RIGHT) return;
-    if (corner<TOP_LEFT) return;
+
+    char *buf=NULL;
+    if (asprintf(&buf,"%s/%06d-%s-A%i:%i.pgm","/tmp/",lastiframe,
+                 macontext->General.ChannelID,
+                 area.aspectratio.Num,area.aspectratio.Den)!=-1)
+    {
+        // Open file
+        FILE *pFile=fopen(buf, "wb");
+        if (pFile==NULL)
+        {
+            free(buf);
+            return;
+        }
+
+        // Write header
+        fprintf(pFile, "P5\n#C%i\n%d %d\n255\n", area.corner, LOGOWIDTH,LOGOHEIGHT);
+
+        // Write pixel data
+        fwrite(picture,1,LOGOWIDTH*LOGOHEIGHT,pFile);
+        // Close file
+        fclose(pFile);
+        free(buf);
+    }
+}
+
+int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
+{
+    // Detection is made with Sobel-Operator
+
+    if (!macontext) return 0;
+    if (!macontext->Video.Info.Width) return 0;
+    if (!macontext->Video.Info.Height) return 0;
+    if (!macontext->Video.Data.Valid) return 0;
+
+    if (area.corner>BOTTOM_RIGHT) return 0;
+    if (area.corner<TOP_LEFT) return 0;
 
     int xstart,xend,ystart,yend;
 
-    switch (corner)
+    switch (area.corner)
     {
     case TOP_LEFT:
         xstart=0;
@@ -117,199 +150,230 @@ void cMarkAdLogo::CheckCorner(int corner)
         yend=macontext->Video.Info.Height;
         break;
     default:
-        return;
+        return 0;
     }
 
-    int SUM;
-    int sumX,sumY;
-    area[corner].blackpixel=0;
+    long SUMA=0;
     for (int Y=ystart; Y<=yend-1; Y++)
     {
         for (int X=xstart; X<=xend-1; X++)
         {
-            sumX=0;
-            sumY=0;
-
-            // image boundaries
-            if (Y<(ystart+15) || Y>(yend-15))
-                SUM=0;
-            else if (X<(xstart+15) || X>(xend-15))
-                SUM=0;
-            // convolution starts here
-            else
-            {
-                // X Gradient approximation
-                for (int I=-1; I<=1; I++)
-                {
-                    for (int J=-1; J<=1; J++)
-                    {
-                        sumX=sumX+ (int) ((*(macontext->Video.Data.Plane[0]+X+I+
-                                             (Y+J)*macontext->Video.Info.Width))*GX[I+1][J+1]);
-                    }
-                }
-
-                // Y Gradient approximation
-                for (int I=-1; I<=1; I++)
-                {
-                    for (int J=-1; J<=1; J++)
-                    {
-                        sumY=sumY+ (int) ((*(macontext->Video.Data.Plane[0]+X+I+
-                                             (Y+J)*macontext->Video.Info.Width))*GY[I+1][J+1]);
-                    }
-                }
-
-                // Gradient Magnitude approximation
-                SUM = abs(sumX) + abs(sumY);
-            }
-
-            if (SUM>=127) SUM=255;
-            if (SUM<127) SUM=0;
-
-            int val = 255-(uchar) SUM;
-
-            if (area[corner].init)
-            {
-                area[corner].plane[(X-xstart)+(Y-ystart)*LOGOWIDTH]=val;
-            }
-            else
-            {
-                if (area[corner].plane[(X-xstart)+(Y-ystart)*LOGOWIDTH]!=val)
-                {
-                    area[corner].plane[(X-xstart)+(Y-ystart)*LOGOWIDTH]=255;
-                }
-            }
-
-            if (area[corner].plane[(X-xstart)+(Y-ystart)*LOGOWIDTH]!=255)
-                area[corner].blackpixel++;
+            area.source[(X-xstart)+(Y-ystart)*LOGOWIDTH]=macontext->Video.Data.Plane[0][X+(Y*macontext->Video.Info.Width)];
+            SUMA+=area.source[(X-xstart)+(Y-ystart)*LOGOWIDTH];
         }
-
     }
-    area[corner].init=false;
-    if (area[corner].blackpixel<100) area[corner].blackpixel=0;
-}
-
-void cMarkAdLogo::CheckCorners(int lastiframe)
-{
-    for (int i=TOP_LEFT; i<=BOTTOM_RIGHT; i++)
+    SUMA/=(LOGOWIDTH*LOGOHEIGHT);
+#if 0
+    if (SUMA>=100)
     {
-        CheckCorner(i);
-//        printf("%i ",area[i].blackpixel);
-//        SaveLogo(i,lastiframe);
-    }
-//    printf("\n");
-}
 
-void cMarkAdLogo::RestartLogoDetection()
-{
-    for (int i=TOP_LEFT; i<=BOTTOM_RIGHT; i++)
-    {
-        area[i].init=true;
-//        area[i].cntfound=1;
-    }
-    framecnt=0;
-    counter++;
-}
-
-bool cMarkAdLogo::LogoVisible()
-{
-    int sum=0;
-    for (int i=TOP_LEFT; i<=BOTTOM_RIGHT; i++)
-    {
-        sum+=area[i].blackpixel;
-    }
-    return (sum!=0);
-}
-
-/*
-void cMarkAdLogo::ResetLogoDetection()
-{
-    for (int i=TOP_LEFT; i<=BOTTOM_RIGHT; i++)
-    {
-        area[i].init=true;
-        area[i].cntfound=0;
-    }
-    framecnt=0;
-    counter=0;
-}
-
-bool cMarkAdLogo::LogoFound()
-{
-    for (int i=TOP_LEFT; i<=BOTTOM_RIGHT; i++)
-    {
-        printf("%i ",area[i].cntfound);
-    }
-    printf("\n");
-    return false;
-}
-*/
-
-int cMarkAdLogo::Process(int LastIFrame)
-{
-    if (!macontext) return 0;
-    if (!macontext->Video.Info.Width) return 0;
-    if (!macontext->Video.Data.Valid) return 0;
-
-    if ((macontext->Video.Info.Width>720) && (LOGOWIDTH==192))
-    {
-        LOGOWIDTH=288;
-    }
-
-    int ret=0;
-    CheckCorners(LastIFrame);
-//    if (framecnt>=250) abort();
-    /*
-        if (framecnt>=MAXFRAMES)
+        int avg=255-(int) SUMA;
+        printf("SUMA =%li, avg=%i\n", SUMA,avg);
+        SUMA=0;
+        for (int Y=ystart; Y<=yend-1; Y++)
         {
-            if (logostate==-1)
+            for (int X=xstart; X<=xend-1; X++)
             {
-                if (LogoVisible())
+                int val=macontext->Video.Data.Plane[0][X+(Y*macontext->Video.Info.Width)];
+                val=(val - avg);
+                if (val<0) val=0;
+                area.source[(X-xstart)+(Y-ystart)*LOGOWIDTH]=val;
+                SUMA+=val;
+            }
+        }
+        SUMA/=(LOGOWIDTH*LOGOHEIGHT);
+        printf("SUMA now =%li\n", SUMA);
+    }
+#endif
+
+    int ret=NOCHANGE;
+
+    if (SUMA<100)
+    {
+
+        int SUM;
+        int sumX,sumY;
+        area.rpixel=0;
+        for (int Y=ystart; Y<=yend-1; Y++)
+        {
+            for (int X=xstart; X<=xend-1; X++)
+            {
+                sumX=0;
+                sumY=0;
+
+                // image boundaries
+                if (Y<(ystart+15) || Y>(yend-15))
+                    SUM=0;
+                else if (X<(xstart+15) || X>(xend-15))
+                    SUM=0;
+                // convolution starts here
+                else
                 {
-                    logostate=1;
+                    // X Gradient approximation
+                    for (int I=-1; I<=1; I++)
+                    {
+                        for (int J=-1; J<=1; J++)
+                        {
+                            sumX=sumX+ (int) ((*(macontext->Video.Data.Plane[0]+X+I+
+                                                 (Y+J)*macontext->Video.Info.Width))*GX[I+1][J+1]);
+                        }
+                    }
+
+                    // Y Gradient approximation
+                    for (int I=-1; I<=1; I++)
+                    {
+                        for (int J=-1; J<=1; J++)
+                        {
+                            sumY=sumY+ (int) ((*(macontext->Video.Data.Plane[0]+X+I+
+                                                 (Y+J)*macontext->Video.Info.Width))*GY[I+1][J+1]);
+                        }
+                    }
+
+                    // Gradient Magnitude approximation
+                    SUM = abs(sumX) + abs(sumY);
+                }
+
+                if (SUM>=127) SUM=255;
+                if (SUM<127) SUM=0;
+
+                int val = 255-(uchar) SUM;
+
+                area.sobel[(X-xstart)+(Y-ystart)*LOGOWIDTH]=val;
+
+                area.result[(X-xstart)+(Y-ystart)*LOGOWIDTH]=(area.mask[(X-xstart)+(Y-ystart)*LOGOWIDTH] + val) & 255;
+
+                if (!area.result[(X-xstart)+(Y-ystart)*LOGOWIDTH]) area.rpixel++;
+
+            }
+        }
+        if (macontext->StandAlone.LogoExtraction==-1)
+        {
+            if (area.status==UNINITIALIZED)
+            {
+                // Initialize
+                if (area.rpixel>(area.mpixel*0.4))
+                {
+                    area.status=LOGO;
                 }
                 else
                 {
-                    logostate=0;
+                    area.status=NOLOGO;
                 }
-                printf("Initial logo state %i\n",logostate);
-    abort();
             }
-            else
+
+            if (area.rpixel>=(area.mpixel*0.4))
             {
-                if (!LogoVisible() && logostate==1)
+                if (area.status==NOLOGO)
                 {
-                    if (logostart==-1) logostart=LastIFrame;
-                    RestartLogoDetection();
-                    printf("%i\n",counter);
-                    if (counter>=2)
+                    if (area.counter>LOGO_MAXCOUNT)
                     {
-                        printf("%i Logo gone\n",logostart);
-                        logostart=-1;
-                        counter=0;
-                        logostate=0;
-                        ret=-1;
+                        area.status=ret=LOGO;
+                        *logoiframe=area.lastiframe;
+                        area.counter=0;
+                    }
+                    else
+                    {
+                        if (!area.counter) area.lastiframe=lastiframe;
+                        area.counter++;
                     }
                 }
-                if (LogoVisible() && logostate==0)
+                else
                 {
-                    if (logostart==-1) logostart=LastIFrame;
-                    RestartLogoDetection();
-                    printf("%i\n",counter);
-                    if (counter>=2)
+                    area.counter=0;
+                }
+            }
+
+            if (area.rpixel<(area.mpixel*0.4))
+            {
+                if  (area.status==LOGO)
+                {
+                    if (area.counter>LOGO_MAXCOUNT)
                     {
-                        printf("%i Logo start\n",logostart);
-                        logostart=-1;
-                        counter=0;
-                        logostate=1;
-                        ret=1;
+                        area.status=ret=NOLOGO;
+                        *logoiframe=area.lastiframe;
+                        area.counter=0;
                     }
+                    else
+                    {
+                        if (!area.counter) area.lastiframe=lastiframe;
+                        area.counter++;
+                    }
+                }
+                else
+                {
+                    area.counter=0;
                 }
             }
         }
-    */
-    if (savedlastiframe!=-1) framecnt+=(LastIFrame-savedlastiframe);
-    savedlastiframe=LastIFrame;
+        else
+        {
+            Save(lastiframe,area.sobel);
+        }
+    }
+    else
+    {
+        if (area.status==LOGO) area.counter=0;
+    }
 
     return ret;
+}
+
+int cMarkAdLogo::Process(int LastIFrame, int *LogoIFrame)
+{
+    if (!macontext) return ERROR;
+    if (!macontext->Video.Data.Valid) return ERROR;
+    if (!macontext->Video.Info.Width) return ERROR;
+    if (!macontext->LogoDir) return ERROR;
+    if (!macontext->General.ChannelID) return ERROR;
+
+    if (macontext->StandAlone.LogoExtraction==-1)
+    {
+
+        if ((area.aspectratio.Num!=macontext->Video.Info.AspectRatio.Num) ||
+                (area.aspectratio.Den!=macontext->Video.Info.AspectRatio.Den))
+        {
+            area.valid=false;  // just to be sure!
+            char *buf=NULL;
+            if (asprintf(&buf,"%s/%s-A%i:%i.pgm",macontext->LogoDir,macontext->General.ChannelID,
+                         macontext->Video.Info.AspectRatio.Num,macontext->Video.Info.AspectRatio.Den)!=-1)
+            {
+                int ret=Load(buf);
+                switch (ret)
+                {
+                case -1:
+                    esyslog("markad [%i]: failed to open %s",recvnumber,buf);
+
+                    break;
+
+                case -2:
+                    esyslog("markad [%i]: format error in %s",recvnumber,buf);
+                    break;
+                }
+                free(buf);
+            }
+            area.aspectratio.Num=macontext->Video.Info.AspectRatio.Num;
+            area.aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
+        }
+    }
+    else
+    {
+        area.aspectratio.Num=macontext->Video.Info.AspectRatio.Num;
+        area.aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
+        area.corner=macontext->StandAlone.LogoExtraction;
+        if (macontext->StandAlone.LogoWidth!=-1)
+        {
+            LOGOWIDTH=macontext->StandAlone.LogoWidth;
+        }
+        if (macontext->StandAlone.LogoHeight!=-1)
+        {
+            LOGOHEIGHT=macontext->StandAlone.LogoHeight;
+        }
+        area.valid=true;
+    }
+
+    if (!area.valid) return ERROR;
+
+    return Detect(LastIFrame,LogoIFrame);
 }
 
 cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(int RecvNumber, MarkAdContext *maContext)
@@ -483,13 +547,14 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
     ResetMark();
     if (!LastIFrame) return NULL;
 
-    int lret=logo->Process(LastIFrame);
-    if (lret!=0)
+    int logoiframe;
+    int lret=logo->Process(LastIFrame,&logoiframe);
+    if ((lret>=-1) && (lret!=0))
     {
         char *buf=NULL;
         if (lret>0)
         {
-            if (asprintf(&buf,"detected logo start (%i)",LastIFrame)!=-1)
+            if (asprintf(&buf,"detected logo start (%i)",logoiframe)!=-1)
             {
                 isyslog("markad [%i]: %s",recvnumber,buf);
                 AddMark(LastIFrame,buf);
@@ -498,7 +563,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         }
         else
         {
-            if (asprintf(&buf,"detected logo stop (%i)",LastIFrame)!=-1)
+            if (asprintf(&buf,"detected logo stop (%i)",logoiframe)!=-1)
             {
                 isyslog("markad [%i]: %s",recvnumber,buf);
                 AddMark(LastIFrame,buf);

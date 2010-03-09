@@ -11,6 +11,10 @@
 cMarkAdStandalone *cmasta=NULL;
 int SysLogLevel=2;
 char markFileName[1024]="";
+char logoDirectory[1024]="";
+int logoExtraction=-1;
+int logoWidth=-1;
+int logoHeight=-1;
 
 void syslog_with_tid(int priority, const char *format, ...)
 {
@@ -252,6 +256,41 @@ void cMarkAdStandalone::Process(const char *Directory)
     }
 }
 
+bool cMarkAdStandalone::LoadInfo(const char *Directory)
+{
+    char *buf;
+    if (isTS)
+    {
+        if (asprintf(&buf,"%s/info",Directory)==-1) return false;
+    }
+    else
+    {
+        if (asprintf(&buf,"%s/info.vdr",Directory)==-1) return false;
+    }
+
+    FILE *f;
+    f=fopen(buf,"r");
+    if (!f)
+    {
+        free(buf);
+        return false;
+    }
+
+    int result=fscanf(f,"%*c %as %*s",&macontext.General.ChannelID);
+    fclose(f);
+    free(buf);
+    if (result==0 || result==EOF)
+    {
+        macontext.General.ChannelID=NULL;
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+
+}
+
 bool cMarkAdStandalone::CheckTS(const char *Directory)
 {
     MaxFiles=0;
@@ -405,6 +444,11 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
     noticeVDR_AC3=false;
 
     memset(&macontext,0,sizeof(macontext));
+    macontext.LogoDir=logoDirectory;
+    macontext.StandAlone.LogoExtraction=logoExtraction;
+    macontext.StandAlone.LogoWidth=logoWidth;
+    macontext.StandAlone.LogoHeight=logoHeight;
+
     macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
     macontext.General.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
 
@@ -480,6 +524,11 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
 
     if (!abort)
     {
+        if (!LoadInfo(Directory))
+        {
+            esyslog("markad [%i]: failed loading info - logo detection impossible",recvnumber);
+        }
+
         decoder = new cMarkAdDecoder(recvnumber,macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,
                                      macontext.General.APid.Num!=0,macontext.General.DPid.Num!=0);
         video = new cMarkAdVideo(recvnumber,&macontext);
@@ -499,6 +548,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
 
 cMarkAdStandalone::~cMarkAdStandalone()
 {
+    if (macontext.General.ChannelID) free(macontext.General.ChannelID);
     if (video_demux) delete video_demux;
     if (ac3_demux) delete ac3_demux;
     if (mp2_demux) delete mp2_demux;
@@ -527,13 +577,21 @@ int usage()
            "-b              --background\n"
            "                  markad runs as a background-process\n"
            "                  this will be automatically set if called with \"after\"\n"
-           "-p,             --priority\n"
+           "-l              --logocachedir\n"
+           "                  directory where logos stored, default /var/lib/markad\n"
+           "-p,             --priority level=<priority>\n"
            "                  priority-level of markad when running in background\n"
-           "                  [19...-19] default 19\n"
+           "                  <19...-19> default 19\n"
            "-v,             --verbose\n"
            "                  increments loglevel by one, can be given multiple times\n"
            "-B              --backupmarks\n"
            "                  make a backup of the existing marks\n"
+           "-L              --extractlogo=<direction>[,width[,height]]\n"
+           "                  extracts logo to /tmp as pgm files (must be renamed)\n"
+           "                  <direction>  0 = top left,    1 = top right\n"
+           "                               2 = bottom left, 3 = bottom right\n"
+           "                  [width] range from 50 to %i, default 192\n"
+           "                  [height] range from 20 to %i, default 100\n"
            "-O,             --OSD\n"
            "                  markad sends an OSD-Message for start and end\n"
            "-V              --version\n"
@@ -547,7 +605,7 @@ int usage()
            "edited                       markad exits immediately if called with \"edited\"\n"
            "nice                         runs markad with nice(19)\n"
            "\n<record>                     is the name of the directory where the recording\n"
-           "                             is stored\n\n"
+           "                             is stored\n\n",LOGO_MAXWIDTH,LOGO_MAXHEIGHT
           );
     return -1;
 }
@@ -573,6 +631,10 @@ int main(int argc, char *argv[])
     bool bAfter=false,bBefore=false,bEdited=false,bFork=false,bNice=false,bImmediateCall=false;
     int niceLevel = 19;
     char *recDir=NULL;
+    char *tok,*str;
+    int ntok;
+
+    strcpy(logoDirectory,"/var/lib/markad");
 
     while (1)
     {
@@ -582,6 +644,7 @@ int main(int argc, char *argv[])
             {"statisticfile",1,0,'s'
             },
             {"logocachedir", 1, 0, 'l'},
+            {"extractlogo", 1, 0, 'L'},
             {"verbose", 0, 0, 'v'},
             {"background", 0, 0, 'b'},
             {"priority",1,0,'p'},
@@ -605,7 +668,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "s:l:vbp:cjoaOSBCV",
+        c = getopt_long  (argc, argv, "s:l:vbp:cjoaOSBCVL:",
                           long_options, &option_index);
         if (c == -1)
             break;
@@ -645,8 +708,54 @@ int main(int argc, char *argv[])
             // --overlap
             break;
 
-        case 's':
         case 'l':
+            strncpy(logoDirectory,optarg,1024);
+            logoDirectory[1023]=0;
+            break;
+
+        case 'L':
+            str=optarg;
+            ntok=0;
+            while (tok=strtok(str,","))
+            {
+                switch (ntok)
+                {
+                case 0:
+                    logoExtraction=atoi(tok);
+                    if ((logoExtraction<0) || (logoExtraction>3))
+                    {
+                        fprintf(stderr, "markad: invalid extractlogo value: %s\n", tok);
+                        return 2;
+                    }
+                    break;
+
+                case 1:
+                    logoWidth=atoi(tok);
+                    if ((logoWidth<50) || (logoWidth>LOGO_MAXWIDTH))
+                    {
+                        fprintf(stderr, "markad: invalid width value: %s\n", tok);
+                        return 2;
+                    }
+                    break;
+
+                case 2:
+                    logoHeight=atoi(tok);
+                    if ((logoHeight<20) || (logoHeight>LOGO_MAXHEIGHT))
+                    {
+                        fprintf(stderr, "markad: invalid height value: %s\n", tok);
+                        return 2;
+                    }
+                    break;
+
+                default:
+                    break;
+                }
+                str=NULL;
+                ntok++;
+            }
+            break;
+
+        case 's':
         case 'c':
         case 'j':
         case 'a':
