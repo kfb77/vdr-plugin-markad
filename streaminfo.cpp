@@ -8,6 +8,11 @@
 
 #include "streaminfo.h"
 
+cMarkAdStreamInfo::cMarkAdStreamInfo()
+{
+    memset(&H264,0,sizeof(H264));
+}
+
 bool cMarkAdStreamInfo::FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen)
 {
     if ((!maContext) || (!espkt)) return false;
@@ -114,33 +119,9 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
 {
     if ((!maContext) || (!pkt) || (!len)) return false;
 
-    if ((pkt[4] & 0x1F)==NAL_AUD)
-    {
+    int nalu=pkt[4] & 0x1F;
 
-        switch (pkt[5] >> 5)
-        {
-        case 0:
-        case 3:
-        case 5: // I_FRAME
-            maContext->Video.Info.Pict_Type=MA_I_TYPE;
-            break;
-        case 1:
-        case 4:
-        case 6: // P_FRAME;
-            maContext->Video.Info.Pict_Type=MA_P_TYPE;
-            break;
-        case 2:
-        case 7:  // B_FRAME;
-            maContext->Video.Info.Pict_Type=MA_B_TYPE;
-            break;
-        default: // NO_PICTURE;
-            return false;
-            break;
-        }
-        return true;
-    }
-
-    if ((pkt[4] & 0x1F)==NAL_SPS)
+    if (nalu==NAL_SPS)
     {
         uint8_t nal_data[len];
         int nal_len = nalUnescape(nal_data, pkt + 5, len - 5);
@@ -152,7 +133,6 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         uint32_t height=0;
         uint32_t aspect_ratio_idc=0;
         double frame_rate=0;
-        bool frame_mbs_only_flag=false;
 
         profile_idc = bs.getU8();                 // profile_idc
         bs.skipBits(8);                           // constraint_setN_flags and reserved_zero_Nbits
@@ -163,7 +143,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 (profile_idc==44) || (profile_idc==83) || (profile_idc==86))
         {
             if (bs.getUeGolomb() == 3)             // chroma_format_idc
-                bs.skipBit();                       // residual_colour_transform_flag
+                bs.skipBit();                      // separate_colour_plane_flag
             bs.skipUeGolomb();                     // bit_depth_luma_minus8
             bs.skipUeGolomb();                     // bit_depth_chroma_minus8
             bs.skipBit();                          // qpprime_y_zero_transform_bypass_flag
@@ -184,8 +164,8 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 }
             }
         }
-        bs.skipUeGolomb();                        // log2_max_frame_num_minus4
-        pic_order_cnt_type = bs.getUeGolomb();    // pic_order_cnt_type
+        H264.log2_max_frame_num=bs.getUeGolomb()+4;                         // log2_max_frame_num_minus4
+        pic_order_cnt_type = bs.getUeGolomb();     // pic_order_cnt_type
         if (pic_order_cnt_type == 0)
             bs.skipUeGolomb();                     // log2_max_pic_order_cnt_lsb_minus4
         else if (pic_order_cnt_type == 1)
@@ -201,10 +181,10 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         bs.skipBit();                             // gaps_in_frame_num_value_allowed_flag
         width  = bs.getUeGolomb() + 1;            // pic_width_in_mbs_minus1
         height = bs.getUeGolomb() + 1;            // pic_height_in_mbs_minus1
-        frame_mbs_only_flag = bs.getBit();        // frame_mbs_only_flag
+        H264.frame_mbs_only_flag = bs.getBit();        // frame_mbs_only_flag
         width  *= 16;
-        height *= 16 * (frame_mbs_only_flag ? 1 : 2);
-        if (!frame_mbs_only_flag)
+        height *= 16 * (H264.frame_mbs_only_flag ? 1 : 2);
+        if (!H264.frame_mbs_only_flag)
             bs.skipBit();                         // mb_adaptive_frame_field_flag
         bs.skipBit();                             // direct_8x8_inference_flag
         if (bs.getBit())                          // frame_cropping_flag
@@ -215,7 +195,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
             crop_top    = bs.getUeGolomb();        // frame_crop_top_offset
             crop_bottom = bs.getUeGolomb();        // frame_crop_bottom_offset
             width -= 2 * (crop_left + crop_right);
-            if (frame_mbs_only_flag)
+            if (H264.frame_mbs_only_flag)
                 height -= 2 * (crop_top + crop_bottom);
             else
                 height -= 4 * (crop_top + crop_bottom);
@@ -414,6 +394,67 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
             }
         }
     }
+
+    if ((nalu==NAL_SLICE) || (nalu==NAL_IDR_SLICE))
+    {
+        uint8_t nal_data[len];
+        int nal_len = nalUnescape(nal_data, pkt + 5, len - 5);
+        cBitStream bs(nal_data, nal_len);
+
+        bs.skipUeGolomb(); // first_mb_in_slice
+        int slice_type=bs.getUeGolomb();
+        bs.skipUeGolomb(); // pic_parameter_set_id
+        if (H264.separate_colour_plane_flag)
+        {
+            bs.skipBits(2); // colour_plane_id
+        }
+        bs.skipBits(H264.log2_max_frame_num); // frame_num
+        if (!H264.frame_mbs_only_flag)
+        {
+            bool field_pic_flag=bs.getBit();
+            if (field_pic_flag)
+            {
+                bool bottom_field_flag=bs.getBit();
+                if (bottom_field_flag) return false;
+            }
+        }
+
+        switch (slice_type)
+        {
+        case 0:
+        case 5:
+            slice_type=MA_P_TYPE;
+            break;
+
+        case 1:
+        case 6:
+            slice_type=MA_B_TYPE;
+            break;
+
+        case 2:
+        case 7:
+            slice_type=MA_I_TYPE;
+            break;
+
+        case 3:
+        case 8:
+            slice_type=MA_SP_TYPE;
+            break;
+
+        case 4:
+        case 9:
+            slice_type=MA_SI_TYPE;
+            break;
+
+        default:
+            break;
+        }
+        maContext->Video.Info.Pict_Type=slice_type;
+
+        return true;
+    }
+
+
     return false;
 }
 

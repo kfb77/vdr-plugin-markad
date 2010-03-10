@@ -39,7 +39,14 @@ cMarkAdLogo::cMarkAdLogo(int RecvNumber, MarkAdContext *maContext)
     memset(&area,0,sizeof(area));
 
     LOGOHEIGHT=LOGO_DEFHEIGHT;
-    LOGOWIDTH=LOGO_DEFWIDTH;
+    if (maContext->General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
+    {
+        LOGOWIDTH=LOGO_MAXWIDTH;
+    }
+    else
+    {
+        LOGOWIDTH=LOGO_DEFWIDTH;
+    }
 
     area.status=UNINITIALIZED;
 }
@@ -285,7 +292,7 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
 
             if (area.rpixel<(area.mpixel*0.4))
             {
-                if  (area.status==LOGO)
+                if (area.status==LOGO)
                 {
                     if (area.counter>LOGO_MAXCOUNT)
                     {
@@ -304,17 +311,13 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
                     area.counter=0;
                 }
             }
+            // Save(lastiframe,area.sobel); // TODO: JUST FOR DEBUGGING!
         }
         else
         {
             Save(lastiframe,area.sobel);
         }
     }
-    else
-    {
-        if (area.status==LOGO) area.counter=0;
-    }
-
     return ret;
 }
 
@@ -557,7 +560,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
             if (asprintf(&buf,"detected logo start (%i)",logoiframe)!=-1)
             {
                 isyslog("markad [%i]: %s",recvnumber,buf);
-                AddMark(LastIFrame,buf);
+                AddMark(logoiframe,buf);
                 free(buf);
             }
         }
@@ -566,7 +569,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
             if (asprintf(&buf,"detected logo stop (%i)",logoiframe)!=-1)
             {
                 isyslog("markad [%i]: %s",recvnumber,buf);
-                AddMark(LastIFrame,buf);
+                AddMark(logoiframe,buf);
                 free(buf);
             }
         }

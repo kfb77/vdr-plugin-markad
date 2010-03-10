@@ -342,8 +342,10 @@ bool cMarkAdDecoder::SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Vide
     }
     maContext->Video.Info.Height=Video_Context->height;
     maContext->Video.Info.Width=Video_Context->width;
-
-    maContext->Video.Info.Pict_Type=Video_Context->coded_frame->pict_type;
+    if (Video_Context->codec_id!=CODEC_ID_H264)
+    {
+        maContext->Video.Info.Pict_Type=Video_Context->coded_frame->pict_type;
+    }
 
     if (DAR)
     {

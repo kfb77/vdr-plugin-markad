@@ -15,8 +15,8 @@
 #include <math.h>
 #include "global.h"
 
-#define LOGO_MAXHEIGHT 140
-#define LOGO_MAXWIDTH  288
+#define LOGO_MAXHEIGHT 170
+#define LOGO_MAXWIDTH  480
 
 #define LOGO_DEFHEIGHT 100
 #define LOGO_DEFWIDTH  192

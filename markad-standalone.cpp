@@ -71,10 +71,10 @@ void cMarkAdStandalone::SaveFrame(int frame)
     if (!macontext.Video.Data.Valid) return;
 
     FILE *pFile;
-    char szFilename[32];
+    char szFilename[256];
 
     // Open file
-    sprintf(szFilename, "frame%06d.pgm", frame);
+    sprintf(szFilename, "/tmp/frame%06d.pgm", frame);
     pFile=fopen(szFilename, "wb");
     if (pFile==NULL)
         return;
@@ -137,18 +137,28 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                 {
                     if (pkt)
                     {
+                        if (streaminfo->FindVideoInfos(&macontext,pkt,pktlen))
+                        {
+                            //printf("%05i( %s )\n",framecnt,(macontext.Video.Info.Pict_Type==MA_I_TYPE) ? "I" : "-");
+                            framecnt++;
+                        }
+
                         if (decoder->DecodeVideo(&macontext,pkt,pktlen))
                         {
                             if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                             {
-                                lastiframe=framecnt-1;
+                                if (macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
+                                {
+                                    lastiframe=framecnt-1;
+                                }
+                                else
+                                {
+                                    lastiframe=framecnt-2;
+                                }
+                                // SaveFrame(lastiframe);  // TODO: JUST FOR DEBUGGING!
                                 mark=video->Process(lastiframe);
                                 AddMark(mark);
                             }
-                        }
-                        if (streaminfo->FindVideoInfos(&macontext,pkt,pktlen))
-                        {
-                            framecnt++;
                         }
                     }
                     tspkt+=len;
@@ -485,7 +495,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
     {
         if (isTS)
         {
-            dsyslog("markad [%i]: using %s-video (0x%04x)",recvnumber,macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262",
+            dsyslog("markad [%i]: using %s-video (0x%04x)",recvnumber,
+                    macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262",
                     macontext.General.VPid.Num);
         }
         else
@@ -590,8 +601,9 @@ int usage()
            "                  extracts logo to /tmp as pgm files (must be renamed)\n"
            "                  <direction>  0 = top left,    1 = top right\n"
            "                               2 = bottom left, 3 = bottom right\n"
-           "                  [width] range from 50 to %i, default 192\n"
-           "                  [height] range from 20 to %i, default 100\n"
+           "                  [width] range from 50 to %3i, default %3i (SD)\n"
+           "                                                default %3i (HD)\n"
+           "                  [height] range from 20 to %3i, default %3i\n"
            "-O,             --OSD\n"
            "                  markad sends an OSD-Message for start and end\n"
            "-V              --version\n"
@@ -605,7 +617,8 @@ int usage()
            "edited                       markad exits immediately if called with \"edited\"\n"
            "nice                         runs markad with nice(19)\n"
            "\n<record>                     is the name of the directory where the recording\n"
-           "                             is stored\n\n",LOGO_MAXWIDTH,LOGO_MAXHEIGHT
+           "                             is stored\n\n",LOGO_MAXWIDTH,LOGO_DEFWIDTH,288,
+           LOGO_MAXHEIGHT,LOGO_DEFHEIGHT
           );
     return -1;
 }
