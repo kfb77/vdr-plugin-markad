@@ -170,11 +170,11 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool useMP2, bool h
             else
             {
 
-                dsyslog("markad [%i]: using codec %s",recvnumber,video_codec->long_name);
+                isyslog("markad [%i]: using codec %s",recvnumber,video_codec->long_name);
 
                 if (video_context->hwaccel)
                 {
-                    dsyslog("markad [%i]: using hwaccel %s",recvnumber,video_context->hwaccel->name);
+                    isyslog("markad [%i]: using hwaccel %s",recvnumber,video_context->hwaccel->name);
                 }
 
                 video_frame = avcodec_alloc_frame();

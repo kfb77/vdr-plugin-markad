@@ -69,6 +69,11 @@ typedef struct MarkAdContext
 
     struct Video
     {
+        struct Options
+        {
+            bool IgnoreAspectRatio;
+        } Options;
+
         struct Info
         {
             int Width;  // width of pic

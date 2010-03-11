@@ -17,6 +17,9 @@ int logoWidth=-1;
 int logoHeight=-1;
 bool bDecodeVideo=true;
 bool bDecodeAudio=true;
+bool bBackupMarks=false;
+bool bIgnoreAudioInfo=false;
+bool bIgnoreVideoInfo=false;
 
 void syslog_with_tid(int priority, const char *format, ...)
 {
@@ -317,19 +320,74 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
         return false;
     }
 
-    int result=fscanf(f,"%*c %as %*s",&macontext.General.ChannelID);
+    char *line=NULL;
+    size_t length;
+    while (getline(&line,&length,f)!=-1)
+    {
+        if (line[0]=='C')
+        {
+            int result=sscanf(line,"%*c %as %*s",&macontext.General.ChannelID);
+            if (result==0 || result==EOF) macontext.General.ChannelID=NULL;
+            if ((bIgnoreAudioInfo) && (bIgnoreVideoInfo)) break;
+        }
+        if (line[0]=='X')
+        {
+            int stream=0,type=0;
+            char descr[256]="";
+            int result=sscanf(line,"%*c %i %i %250c",&stream,&type,(char *) &descr);
+            if ((result!=0) && (result!=EOF))
+            {
+                if ((stream==1) && (!bIgnoreVideoInfo))
+                {
+                    if ((type==1) || (type==5))
+                    {
+                        // we have 4:3 SD, ads are today (in Germany) in 16:9
+                        // so disable video decoding
+                        if (bDecodeVideo)
+                        {
+                            bDecodeVideo=false;
+                            isyslog("markad [%i]: broadcasts aspectratio is 4:3, disabling video decoding",recvnumber);
+                        }
+                    }
+                    else
+                    {
+                        // we dont have 4:3, so ignore AspectRatio-Changes
+                        macontext.Video.Options.IgnoreAspectRatio=true;
+                        isyslog("markad [%i]: broadcasts aspectratio is not 4:3, disabling aspect ratio",recvnumber);
+
+                    }
+                }
+
+                if ((stream==2) && (!bIgnoreAudioInfo))
+                {
+                    if (type==5)
+                    {
+                        // ok, here we have a problem: 5 means DolbyDigital 2.0 and DolbyDigital 5.1!
+                        bool bSet=true;
+                        if (strchr(descr,'2')) bSet=false; // that is really weak!
+                        if ((bSet) && (bDecodeVideo))
+                        {
+                            bDecodeVideo=false;
+                            macontext.Video.Options.IgnoreAspectRatio=true;
+                            isyslog("markad [%i]: broadcast with DolbyDigital, disabling video decoding",recvnumber);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (line) free(line);
+
     fclose(f);
     free(buf);
-    if (result==0 || result==EOF)
+    if (!macontext.General.ChannelID)
     {
-        macontext.General.ChannelID=NULL;
         return false;
     }
     else
     {
         return true;
     }
-
 }
 
 bool cMarkAdStandalone::CheckTS(const char *Directory)
@@ -493,6 +551,25 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
     macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
     macontext.General.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
 
+    isyslog("markad [%i]: starting v%s",recvnumber,VERSION);
+
+    if (!bDecodeAudio)
+    {
+        isyslog("markad [%i]: audio decoding disabled by user",recvnumber);
+    }
+    if (!bDecodeVideo)
+    {
+        isyslog("markad [%i]: video decoding disabled by user",recvnumber);
+    }
+    if (bIgnoreAudioInfo)
+    {
+        isyslog("markad [%i]: audio info usage disabled by user",recvnumber);
+    }
+    if (bIgnoreVideoInfo)
+    {
+        isyslog("markad [%i]: video info usage disabled by user",recvnumber);
+    }
+
     if (!CheckTS(Directory))
     {
         video_demux=NULL;
@@ -623,6 +700,10 @@ int usage()
            "-d              --disable=<option>\n"
            "                  <option>   1 = disable video  2 = disable audio\n"
            "                             3 = disable video and audio\n"
+           "-i              --ignoreinfo=<info>\n"
+           "                  ignores hints from info(.vdr) file\n"
+           "                  <info>     1 = ignore audio info 2 = ignore video info\n"
+           "                             3 = ignore video and audio info\n"
            "-l              --logocachedir\n"
            "                  directory where logos stored, default /var/lib/markad\n"
            "-p,             --priority level=<priority>\n"
@@ -689,35 +770,39 @@ int main(int argc, char *argv[])
         int option_index = 0;
         static struct option long_options[] =
         {
-            {"statisticfile",1,0,'s'
+            {"ac3",0,0,'a'
             },
-            {"disable", 1, 0, 'd'},
-            {"logocachedir", 1, 0, 'l'},
-            {"extractlogo", 1, 0, 'L'},
-            {"verbose", 0, 0, 'v'},
             {"background", 0, 0, 'b'},
-            {"priority",1,0,'p'},
             {"comments", 0, 0, 'c'},
+            {"disable", 1, 0, 'd'},
+            {"ignoreinfo", 1, 0, 'i' },
             {"jumplogo",0,0,'j'},
+            {"logocachedir", 1, 0, 'l'},
+            {"nelonen",0,0,'n'},
             {"overlap",0,0,'o' },
-            {"ac3",0,0,'a' },
-            {"OSD",0,0,'O' },
-            {"savelogo", 0, 0, 'S'},
+            {"priority",1,0,'p'},
+            {"statisticfile",1,0,'s'},
+            {"verbose", 0, 0, 'v'},
+
+            {"asd",0,0,6},
+            {"loglevel",1,0,2},
+            {"markfile",1,0,1},
+            {"nopid",0,0,5},
+            {"online",2,0,4},
+            {"pass3only",0,0,7},
+            {"testmode",0,0,3},
+
             {"backupmarks", 0, 0, 'B'},
             {"scenechangedetection", 0, 0, 'C'},
+            {"extractlogo", 1, 0, 'L'},
+            {"OSD",0,0,'O' },
+            {"savelogo", 0, 0, 'S'},
             {"version", 0, 0, 'V'},
-            {"nelonen",0,0,'n'},
-            {"markfile",1,0,1},
-            {"loglevel",1,0,2},
-            {"testmode",0,0,3},
-            {"online",2,0,4},
-            {"nopid",0,0,5},
-            {"asd",0,0,6},
-            {"pass3only",0,0,7},
+
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "s:l:vbp:cjoaOSBCVL:d:",
+        c = getopt_long  (argc, argv, "abcd:i:jl:nop:s:vBCLO:SV",
                           long_options, &option_index);
         if (c == -1)
             break;
@@ -725,12 +810,21 @@ int main(int argc, char *argv[])
         switch (c)
         {
 
-        case 'v':
-            SysLogLevel++;
-            if (SysLogLevel>10) SysLogLevel=10;
+        case 'a':
+            // --ac3
+            break;
+
+        case 'b':
+            // --background
+            bFork = true;
+            break;
+
+        case 'c':
+            // --comments
             break;
 
         case 'd':
+            // --disable
             switch (atoi(optarg))
             {
             case 1:
@@ -750,11 +844,46 @@ int main(int argc, char *argv[])
             }
             break;
 
-        case 'b':
-            bFork = true;
+        case 'i':
+            // --ignoreinfo
+            switch (atoi(optarg))
+            {
+            case 1:
+                bIgnoreAudioInfo=true;
+                break;
+            case 2:
+                bIgnoreVideoInfo=true;
+                break;
+            case 3:
+                bIgnoreVideoInfo=true;
+                bIgnoreAudioInfo=true;
+                break;
+            default:
+                fprintf(stderr, "markad: invalid ignoreinfo option: %s\n", optarg);
+                return 2;
+                break;
+            }
+            break;
+
+        case 'j':
+            // --jumplogo
+            break;
+
+        case 'l':
+            strncpy(logoDirectory,optarg,1024);
+            logoDirectory[1023]=0;
+            break;
+
+        case 'n':
+            // --nelonen
+            break;
+
+        case 'o':
+            // --overlap
             break;
 
         case 'p':
+            // --priority
             if (isnumber(optarg) || *optarg=='-')
                 niceLevel = atoi(optarg);
             else
@@ -765,24 +894,27 @@ int main(int argc, char *argv[])
             bNice = true;
             break;
 
+        case 's':
+            // --statisticfile
+            break;
+
+        case 'v':
+            // --verbose
+            SysLogLevel++;
+            if (SysLogLevel>10) SysLogLevel=10;
+            break;
+
         case 'B':
-            // backupmarks
+            // --backupmarks
+            bBackupMarks=true;
             break;
 
-        case 'O':
-            // --OSD
-            break;
-
-        case 'o':
-            // --overlap
-            break;
-
-        case 'l':
-            strncpy(logoDirectory,optarg,1024);
-            logoDirectory[1023]=0;
+        case 'C':
+            // --scenechangedetection
             break;
 
         case 'L':
+            // --extractlogo
             str=optarg;
             ntok=0;
             while (tok=strtok(str,","))
@@ -824,13 +956,12 @@ int main(int argc, char *argv[])
             }
             break;
 
-        case 's':
-        case 'c':
-        case 'j':
-        case 'a':
+        case 'O':
+            // --OSD
+            break;
+
         case 'S':
-        case 'n':
-        case 'C':
+            // --savelogo
             break;
 
         case 'V':

@@ -606,22 +606,24 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         }
     }
 
-    if (AspectRatioChange(&macontext->Video.Info.AspectRatio,&aspectratio))
+    if (!macontext->Video.Options.IgnoreAspectRatio)
     {
-        char *buf=NULL;
-        if (asprintf(&buf,"aspect ratio change from %i:%i to %i:%i (%i)",
-                     aspectratio.Num,aspectratio.Den,
-                     macontext->Video.Info.AspectRatio.Num,
-                     macontext->Video.Info.AspectRatio.Den,LastIFrame)!=-1)
+        if (AspectRatioChange(&macontext->Video.Info.AspectRatio,&aspectratio))
         {
-            isyslog("markad [%i]: %s",recvnumber, buf);
-            AddMark(LastIFrame,buf);
-            free(buf);
+            char *buf=NULL;
+            if (asprintf(&buf,"aspect ratio change from %i:%i to %i:%i (%i)",
+                         aspectratio.Num,aspectratio.Den,
+                         macontext->Video.Info.AspectRatio.Num,
+                         macontext->Video.Info.AspectRatio.Den,LastIFrame)!=-1)
+            {
+                isyslog("markad [%i]: %s",recvnumber, buf);
+                AddMark(LastIFrame,buf);
+                free(buf);
+            }
         }
+
+        aspectratio.Num=macontext->Video.Info.AspectRatio.Num;
+        aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
     }
-
-    aspectratio.Num=macontext->Video.Info.AspectRatio.Num;
-    aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
-
     return &mark;
 }
