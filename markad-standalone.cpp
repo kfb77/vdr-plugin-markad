@@ -15,6 +15,8 @@ char logoDirectory[1024]="";
 int logoExtraction=-1;
 int logoWidth=-1;
 int logoHeight=-1;
+bool bDecodeVideo=true;
+bool bDecodeAudio=true;
 
 void syslog_with_tid(int priority, const char *format, ...)
 {
@@ -80,10 +82,12 @@ void cMarkAdStandalone::SaveFrame(int frame)
         return;
 
     // Write header
-    fprintf(pFile, "P5\n%d %d\n255\n", macontext.Video.Info.Width,macontext.Video.Info.Height);
+    fprintf(pFile, "P5\n%d %d\n255\n", macontext.Video.Data.PlaneLinesize[0],
+            macontext.Video.Info.Height);
 
     // Write pixel data
-    fwrite(macontext.Video.Data.Plane[0],1,macontext.Video.Info.Width*macontext.Video.Info.Height,pFile);
+    fwrite(macontext.Video.Data.Plane[0],1,
+           macontext.Video.Data.PlaneLinesize[0]*macontext.Video.Info.Height,pFile);
     // Close file
     fclose(pFile);
 }
@@ -118,7 +122,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
         if (abort) break;
         MarkAdMark *mark=NULL;
 
-        if ((video_demux) && (video) && (decoder) && (streaminfo))
+        if ((video_demux) && (video) && (streaminfo))
         {
             uchar *pkt;
             int pktlen;
@@ -143,11 +147,13 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                             framecnt++;
                         }
 
-                        if (decoder->DecodeVideo(&macontext,pkt,pktlen))
+                        bool dRes=true;
+                        if ((decoder) && (bDecodeVideo)) dRes=decoder->DecodeVideo(&macontext,pkt,pktlen);
+                        if (dRes)
                         {
                             if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                             {
-                                if (macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
+                                if ((macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) || (!bDecodeVideo))
                                 {
                                     lastiframe=framecnt-1;
                                 }
@@ -155,7 +161,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                                 {
                                     lastiframe=framecnt-2;
                                 }
-                                // SaveFrame(lastiframe);  // TODO: JUST FOR DEBUGGING!
+                                //SaveFrame(lastiframe);  // TODO: JUST FOR DEBUGGING!
                                 mark=video->Process(lastiframe);
                                 AddMark(mark);
                             }
@@ -208,7 +214,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
             }
         }
 
-        if ((mp2_demux) && (decoder) && (audio))
+        if ((mp2_demux) && (decoder) && (audio) && (bDecodeAudio))
         {
             uchar *pkt;
             int pktlen;
@@ -252,6 +258,12 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
 void cMarkAdStandalone::Process(const char *Directory)
 {
     if (abort) return;
+
+    struct timeval tv1,tv2;
+    struct timezone tz;
+
+    gettimeofday(&tv1,&tz);
+
     for (int i=1; i<=MaxFiles; i++)
     {
         if (abort) break;
@@ -263,6 +275,25 @@ void cMarkAdStandalone::Process(const char *Directory)
     if (abort)
     {
         isyslog("markad [%i]: aborted",recvnumber);
+    }
+    else
+    {
+        gettimeofday(&tv2,&tz);
+        long sec,usec;
+        sec=tv2.tv_sec-tv1.tv_sec;
+        usec=tv2.tv_usec-tv1.tv_usec;
+        if (usec<0)
+        {
+            usec+=1000000;
+            sec--;
+        }
+        double etime,ftime=0,ptime=0;
+        etime=sec+((double) usec/1000000);
+        if (etime>0) ftime=framecnt/etime;
+        if (macontext.Video.Info.FramesPerSecond>0)
+            ptime=ftime/macontext.Video.Info.FramesPerSecond;
+        isyslog("markad [%i]: elapsed time %.2fs, %i frames, %.1f fps, %.1f pps",recvnumber,
+                etime,framecnt,ftime,ptime);
     }
 }
 
@@ -485,6 +516,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
     }
     else
     {
+        macontext.General.APid.Num=-1;
         macontext.General.DPid.Num=-1;
         macontext.General.VPid.Num=-1;
         macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
@@ -588,6 +620,9 @@ int usage()
            "-b              --background\n"
            "                  markad runs as a background-process\n"
            "                  this will be automatically set if called with \"after\"\n"
+           "-d              --disable=<option>\n"
+           "                  <option>   1 = disable video  2 = disable audio\n"
+           "                             3 = disable video and audio\n"
            "-l              --logocachedir\n"
            "                  directory where logos stored, default /var/lib/markad\n"
            "-p,             --priority level=<priority>\n"
@@ -608,8 +643,8 @@ int usage()
            "                  markad sends an OSD-Message for start and end\n"
            "-V              --version\n"
            "                  print version-info and exit\n"
-           "--markfile=<markfilename>\n"
-           "  set a different markfile-name\n"
+           "                --markfile=<markfilename>\n"
+           "                  set a different markfile-name\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
            "after                        markad starts to analyze the recording\n"
@@ -656,6 +691,7 @@ int main(int argc, char *argv[])
         {
             {"statisticfile",1,0,'s'
             },
+            {"disable", 1, 0, 'd'},
             {"logocachedir", 1, 0, 'l'},
             {"extractlogo", 1, 0, 'L'},
             {"verbose", 0, 0, 'v'},
@@ -681,7 +717,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "s:l:vbp:cjoaOSBCVL:",
+        c = getopt_long  (argc, argv, "s:l:vbp:cjoaOSBCVL:d:",
                           long_options, &option_index);
         if (c == -1)
             break;
@@ -692,6 +728,26 @@ int main(int argc, char *argv[])
         case 'v':
             SysLogLevel++;
             if (SysLogLevel>10) SysLogLevel=10;
+            break;
+
+        case 'd':
+            switch (atoi(optarg))
+            {
+            case 1:
+                bDecodeVideo=false;
+                break;
+            case 2:
+                bDecodeAudio=false;
+                break;
+            case 3:
+                bDecodeVideo=false;
+                bDecodeAudio=false;
+                break;
+            default:
+                fprintf(stderr, "markad: invalid disable option: %s\n", optarg);
+                return 2;
+                break;
+            }
             break;
 
         case 'b':

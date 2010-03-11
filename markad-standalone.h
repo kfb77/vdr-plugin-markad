@@ -17,6 +17,7 @@
 #include <getopt.h>
 #include <signal.h>
 #include <ctype.h>
+#include <sys/time.h>
 
 #include "demux.h"
 #include "global.h"

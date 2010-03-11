@@ -56,6 +56,7 @@ typedef struct MarkAdContext
         int LogoExtraction;
         int LogoWidth;
         int LogoHeight;
+        MarkAdAspectRatio AspectRatioHint;
     } StandAlone;
 
     struct General
@@ -75,6 +76,7 @@ typedef struct MarkAdContext
             int Pict_Type; // picture type (I,P,B,S,SI,SP,BI)
             MarkAdAspectRatio AspectRatio;
             double FramesPerSecond;
+            bool Interlaced;
         } Info;
 
         struct Data
@@ -90,6 +92,7 @@ typedef struct MarkAdContext
         struct Info
         {
             int Channels; // number of audio channels
+            int SampleRate;
         } Info;
         struct Data
         {

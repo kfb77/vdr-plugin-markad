@@ -7,7 +7,7 @@
  */
 
 #include "streaminfo.h"
-
+#include <stdio.h>
 cMarkAdStreamInfo::cMarkAdStreamInfo()
 {
     memset(&H264,0,sizeof(H264));
@@ -236,8 +236,10 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 num_units_in_tick = bs.getU32();    // num_units_in_tick
                 time_scale        = bs.getU32();    // time_scale
                 if (num_units_in_tick > 0)
+                {
                     frame_rate = time_scale / (2*num_units_in_tick);
-
+                    if (H264.frame_mbs_only_flag) frame_rate/=2;
+                }
                 //bs.skipBit();                       // fixed_frame_rate_flag
             }
             /*
@@ -409,8 +411,11 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
             bs.skipBits(2); // colour_plane_id
         }
         bs.skipBits(H264.log2_max_frame_num); // frame_num
+
+        maContext->Video.Info.Interlaced=false;
         if (!H264.frame_mbs_only_flag)
         {
+            maContext->Video.Info.Interlaced=true;
             bool field_pic_flag=bs.getBit();
             if (field_pic_flag)
             {
@@ -611,87 +616,6 @@ unsigned TemporalReferenceL:
     }
     return false;
 }
-
-/*
-// taken from ffmpeg
-int cMarkAdStreamInfo::nalUnescape(uint8_t *dst, const uint8_t *src, int length)
-{
-    int i;
-
-#if HAVE_FAST_UNALIGNED
-# if HAVE_FAST_64BIT
-#   define RS 7
-    for (i=0; i+1<length; i+=9)
-    {
-        if (!((~*(const uint64_t*)(src+i) & (*(const uint64_t*)(src+i) - 0x0100010001000101ULL)) & 0x8000800080008080ULL))
-# else
-#   define RS 3
-    for (i=0; i+1<length; i+=5)
-    {
-        if (!((~*(const uint32_t*)(src+i) & (*(const uint32_t*)(src+i) - 0x01000101U)) & 0x80008080U))
-# endif
-            continue;
-        if (i>0 && !src[i]) i--;
-        while (src[i]) i++;
-#else
-#   define RS 0
-    for (i=0; i+1<length; i+=2)
-    {
-        if (src[i]) continue;
-        if (i>0 && src[i-1]==0) i--;
-#endif
-        if (i+2<length && src[i+1]==0 && src[i+2]<=3)
-        {
-            if (src[i+2]!=3)
-            {
-                // startcode, so we must be past the end
-                length=i;
-            }
-            break;
-        }
-        i-= RS;
-    }
-
-    memcpy(dst,src,i);
-
-    if (i>=length-1) //no escaped 0
-    {
-        return length;
-    }
-
-    int si,di;
-    si=di=i;
-    while (si+2<length)
-    {
-        //remove escapes (very rare 1:2^22)
-        if (src[si+2]>3)
-        {
-            dst[di++]= src[si++];
-            dst[di++]= src[si++];
-        }
-        else if (src[si]==0 && src[si+1]==0)
-        {
-            if (src[si+2]==3) //escape
-            {
-                dst[di++]= 0;
-                dst[di++]= 0;
-                si+=3;
-                continue;
-            }
-            else //next start code
-                goto nsc;
-        }
-
-        dst[di++]= src[si++];
-    }
-    while (si<length)
-        dst[di++]= src[si++];
-nsc:
-
-    return di;
-}
-*/
-
 
 // taken from femon
 int cMarkAdStreamInfo::nalUnescape(uint8_t *dst, const uint8_t *src, int len)

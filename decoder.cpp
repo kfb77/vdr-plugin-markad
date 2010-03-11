@@ -126,8 +126,6 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool useMP2, bool h
             if (video_codec->capabilities & CODEC_CAP_TRUNCATED)
                 video_context->flags|=CODEC_FLAG_TRUNCATED; // we do not send complete frames
 
-            video_context->flags|=CODEC_FLAG_EMU_EDGE; // now linesize should be the same as width
-
             video_context->flags|=CODEC_FLAG_GRAY; // only decode grayscale
             video_context->flags2|=CODEC_FLAG2_FAST; // really?
 
@@ -137,11 +135,11 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool useMP2, bool h
             {
                 video_context->flags2|=CODEC_FLAG2_CHUNKS; // needed for H264!
                 video_context->skip_loop_filter=AVDISCARD_ALL; // skip deblocking
-                video_context->skip_frame=AVDISCARD_NONREF; // P/I-frames
+                av_log_set_level(AV_LOG_FATAL); // H264 decoder is very chatty
             }
             else
             {
-                video_context->skip_frame=AVDISCARD_NONKEY; // I-frames
+                video_context->skip_frame=AVDISCARD_NONKEY; // just I-frames
             }
 
             int ret=avcodec_open(video_context, video_codec);
@@ -171,6 +169,14 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool useMP2, bool h
             }
             else
             {
+
+                dsyslog("markad [%i]: using codec %s",recvnumber,video_codec->long_name);
+
+                if (video_context->hwaccel)
+                {
+                    dsyslog("markad [%i]: using hwaccel %s",recvnumber,video_context->hwaccel->name);
+                }
+
                 video_frame = avcodec_alloc_frame();
                 if (!video_frame)
                 {
@@ -224,7 +230,6 @@ cMarkAdDecoder::~cMarkAdDecoder()
         av_free(mp2_context);
     }
     if (audiobuf) free(audiobuf);
-    SetVideoInfos(NULL,NULL,NULL,NULL);
 }
 
 bool cMarkAdDecoder::DecodeMP2(MarkAdContext *maContext, uchar *espkt, int eslen)
@@ -260,7 +265,7 @@ bool cMarkAdDecoder::DecodeMP2(MarkAdContext *maContext, uchar *espkt, int eslen
         if (audiobufsize>0)
         {
             memcpy(audiobuf,Taudiobuf,audiobufsize);
-            SetAudioInfos(maContext,ac3_context);
+            SetAudioInfos(maContext,mp2_context);
             ret=true;
             avpkt.size-=len;
             avpkt.data+=len;
@@ -273,6 +278,7 @@ bool cMarkAdDecoder::SetAudioInfos(MarkAdContext *maContext, AVCodecContext *Aud
 {
     if ((!maContext) || (!Audio_Context)) return false;
 
+    maContext->Audio.Info.SampleRate = Audio_Context->sample_rate;
     maContext->Audio.Info.Channels = Audio_Context->channels;
     maContext->Audio.Data.SampleBuf=audiobuf;
     maContext->Audio.Data.SampleBufLen=audiobufsize;
@@ -328,7 +334,7 @@ void cMarkAdDecoder::PAR2DAR(AVRational a, AVRational *erg)
               video_context->height*a.den,1024*1024);
 }
 
-bool cMarkAdDecoder::SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Video_Context, AVFrame *Video_Frame, AVRational *DAR)
+bool cMarkAdDecoder::SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Video_Context, AVFrame *Video_Frame)
 {
     if ((!maContext) || (!Video_Context) || (!Video_Frame)) return false;
     maContext->Video.Data.Valid=false;
@@ -347,11 +353,11 @@ bool cMarkAdDecoder::SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Vide
         maContext->Video.Info.Pict_Type=Video_Context->coded_frame->pict_type;
     }
 
-    if (DAR)
-    {
-        maContext->Video.Info.AspectRatio.Num=DAR->num;
-        maContext->Video.Info.AspectRatio.Den=DAR->den;
-    }
+    AVRational dar;
+    PAR2DAR(Video_Context->sample_aspect_ratio,&dar);
+
+    maContext->Video.Info.AspectRatio.Num=dar.num;
+    maContext->Video.Info.AspectRatio.Den=dar.den;
 
     maContext->Video.Data.Valid=true;
     return true;
@@ -360,6 +366,21 @@ bool cMarkAdDecoder::SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Vide
 bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
 {
     if (!video_context) return false;
+
+    if ((video_context->codec_id==CODEC_ID_H264) && (!video_context->skip_frame))
+    {
+        if (maContext->Video.Info.Pict_Type)
+        {
+            if (maContext->Video.Info.Interlaced)
+            {
+                video_context->skip_frame=AVDISCARD_BIDIR; // just P/I-frames
+            }
+            else
+            {
+                video_context->skip_frame=AVDISCARD_NONKEY; // just I-frames
+            }
+        }
+    }
 
     AVPacket avpkt;
 #if LIBAVCODEC_VERSION_INT >= ((52<<16)+(25<<8)+0)
@@ -399,9 +420,7 @@ bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
         {
             if (last_qscale_table!=video_frame->qscale_table)
             {
-                AVRational dar;
-                PAR2DAR(video_context->sample_aspect_ratio,&dar);
-                if (SetVideoInfos(maContext,video_context,video_frame,&dar)) ret=true;
+                if (SetVideoInfos(maContext,video_context,video_frame)) ret=true;
                 last_qscale_table=video_frame->qscale_table;
             }
         }

@@ -165,10 +165,12 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
     {
         for (int X=xstart; X<=xend-1; X++)
         {
-            area.source[(X-xstart)+(Y-ystart)*LOGOWIDTH]=macontext->Video.Data.Plane[0][X+(Y*macontext->Video.Info.Width)];
+            area.source[(X-xstart)+(Y-ystart)*LOGOWIDTH]=
+                macontext->Video.Data.Plane[0][X+(Y*macontext->Video.Data.PlaneLinesize[0])];
             SUMA+=area.source[(X-xstart)+(Y-ystart)*LOGOWIDTH];
         }
     }
+
     SUMA/=(LOGOWIDTH*LOGOHEIGHT);
 #if 0
     if (SUMA>=100)
@@ -222,7 +224,8 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
                         for (int J=-1; J<=1; J++)
                         {
                             sumX=sumX+ (int) ((*(macontext->Video.Data.Plane[0]+X+I+
-                                                 (Y+J)*macontext->Video.Info.Width))*GX[I+1][J+1]);
+                                                 (Y+J)*macontext->Video.Data.PlaneLinesize[0]))
+                                              *GX[I+1][J+1]);
                         }
                     }
 
@@ -232,7 +235,8 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
                         for (int J=-1; J<=1; J++)
                         {
                             sumY=sumY+ (int) ((*(macontext->Video.Data.Plane[0]+X+I+
-                                                 (Y+J)*macontext->Video.Info.Width))*GY[I+1][J+1]);
+                                                 (Y+J)*macontext->Video.Data.PlaneLinesize[0]))*
+                                              GY[I+1][J+1]);
                         }
                     }
 
@@ -247,7 +251,8 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
 
                 area.sobel[(X-xstart)+(Y-ystart)*LOGOWIDTH]=val;
 
-                area.result[(X-xstart)+(Y-ystart)*LOGOWIDTH]=(area.mask[(X-xstart)+(Y-ystart)*LOGOWIDTH] + val) & 255;
+                area.result[(X-xstart)+(Y-ystart)*LOGOWIDTH]=
+                    (area.mask[(X-xstart)+(Y-ystart)*LOGOWIDTH] + val) & 255;
 
                 if (!area.result[(X-xstart)+(Y-ystart)*LOGOWIDTH]) area.rpixel++;
 

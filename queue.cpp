@@ -205,7 +205,7 @@ int cMarkAdPaketQueue::FindAudioHeader(int Start, int *FrameSize, int *HeaderSiz
         scanner|=buffer[i];
     }
     if (i==inptr) return -1;
-    i-=2;
+    if (AC3) i-=2;
 
     if (AC3)
     {

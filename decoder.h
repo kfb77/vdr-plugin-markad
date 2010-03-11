@@ -56,7 +56,7 @@ private:
 
     void PAR2DAR(AVRational a, AVRational *erg);
     bool SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Video_Context,
-                       AVFrame *Video_Frame, AVRational *DAR);
+                       AVFrame *Video_Frame);
 public:
     bool DecodeVideo(MarkAdContext *maContext, uchar *pkt, int plen);
     bool DecodeMP2(MarkAdContext *maContext, uchar *espkt, int eslen);
