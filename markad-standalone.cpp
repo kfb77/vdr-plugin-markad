@@ -548,6 +548,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
     macontext.StandAlone.LogoWidth=logoWidth;
     macontext.StandAlone.LogoHeight=logoHeight;
 
+    if (logoExtraction!=-1)
+    {
+        // just to be sure extraction works
+        bDecodeVideo=true;
+        bIgnoreAudioInfo=true;
+        bIgnoreVideoInfo=true;
+    }
+
     macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
     macontext.General.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
 
@@ -802,7 +810,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "abcd:i:jl:nop:s:vBCLO:SV",
+        c = getopt_long  (argc, argv, "abcd:i:jl:nop:s:vBCL:O:SV",
                           long_options, &option_index);
         if (c == -1)
             break;
