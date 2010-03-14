@@ -425,6 +425,37 @@ bool cMarkAdStandalone::CheckTS(const char *Directory)
     return true;
 }
 
+bool cMarkAdStandalone::CheckVDRHD(const char *Directory)
+{
+    char *buf;
+    if (asprintf(&buf,"%s/001.vdr",Directory)==-1) return false;
+
+    int fd=open(buf,O_RDONLY);
+    free(buf);
+    if (fd==-1) return false;
+
+    uchar pes_buf[32];
+    if (read(fd,pes_buf,sizeof(pes_buf))!=sizeof(pes_buf))
+    {
+        close(fd);
+        return false;
+    }
+    close(fd);
+
+    if ((pes_buf[0]==0) && (pes_buf[1]==0) && (pes_buf[2]==1) && ((pes_buf[3] & 0xF0)==0xE0))
+    {
+        int payloadstart=9+pes_buf[8];
+        if (payloadstart>23) return false;
+        uchar *start=&pes_buf[payloadstart];
+        if ((start[0]==0) && (start[1]==0) && (start[2]==1) && (start[5]==0) && (start[6]==0)
+                && (start[7]==0) && (start[8]==1))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool cMarkAdStandalone::CheckPATPMT(const char *Directory)
 {
     char *buf;
@@ -604,7 +635,16 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
         macontext.General.APid.Num=-1;
         macontext.General.DPid.Num=-1;
         macontext.General.VPid.Num=-1;
-        macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+
+        if (CheckVDRHD(Directory))
+        {
+            macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
+        }
+        else
+        {
+            macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+        }
+
         if (!markFileName[0]) strcpy(markFileName,"marks.vdr");
     }
 

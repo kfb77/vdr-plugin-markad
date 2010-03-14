@@ -164,6 +164,7 @@ unsigned Descriptor_Length:
     char *IndexToHMSF(int Index);
     void AddMark(MarkAdMark *Mark);
 
+    bool CheckVDRHD(const char *Directory);
     bool CheckPATPMT(const char *Directory);
     bool CheckTS(const char *Directory);
     bool LoadInfo(const char *Directory);

@@ -58,7 +58,9 @@ cMarkAdReceiver::cMarkAdReceiver(int RecvNumber, const char *Filename, cTimer *T
 #if APIVERSNUM < 10700
     macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
 #else
-#error "VDR-1.7.0 is not supported"
+#error "VDR-1.7.0 is still unsupported"
+#error "in plugin version, please use"
+#error "standalone version: make markad"
 #endif
 #endif
 

@@ -52,7 +52,17 @@ void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt
 
     if ((Pid.Type==MARKAD_PIDTYPE_VIDEO_H262) || (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264))
     {
-        if (!pes2videoes) pes2videoes=new cMarkAdPES2ES(recvnumber,"PES2ES video",65536);
+        if (!pes2videoes)
+        {
+            if (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264)
+            {
+                pes2videoes=new cMarkAdPES2ES(recvnumber,"PES2H264ES video",393216);
+            }
+            else
+            {
+                pes2videoes=new cMarkAdPES2ES(recvnumber,"PES2ES video",65536);
+            }
+        }
         if (!pes2videoes) return;
         pes2videoes->Process(Pid,pkt,pktlen,Pkt,PktLen);
     }

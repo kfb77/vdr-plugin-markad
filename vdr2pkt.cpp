@@ -15,7 +15,7 @@ cMarkAdVDR2Pkt::cMarkAdVDR2Pkt(int RecvNumber, const char *QueueName, int QueueS
 
 cMarkAdVDR2Pkt::~cMarkAdVDR2Pkt()
 {
-if (queue) delete queue;
+    if (queue) delete queue;
 }
 
 void cMarkAdVDR2Pkt::Process(MarkAdPid Pid, uchar *VDRData, int VDRSize, uchar **PktData, int *PktSize)

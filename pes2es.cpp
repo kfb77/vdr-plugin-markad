@@ -55,9 +55,12 @@ void cMarkAdPES2ES::Process(MarkAdPid Pid, uchar *PESData, int PESSize, uchar **
         switch (Pid.Type)
         {
         case MARKAD_PIDTYPE_VIDEO_H262:
-        case MARKAD_PIDTYPE_VIDEO_H264:
             if ((peshdr->StreamID & 0xF0)!=0xE0) return;
             type=MA_PACKET_PKT;
+            break;
+        case MARKAD_PIDTYPE_VIDEO_H264:
+            if ((peshdr->StreamID & 0xF0)!=0xE0) return;
+            type=MA_PACKET_H264;
             break;
         case MARKAD_PIDTYPE_AUDIO_AC3:
             if (peshdr->StreamID!=0xBD) return;
