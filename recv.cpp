@@ -3,7 +3,6 @@
  *
  * See the README file for copyright information and how to reach the author.
  *
- * $Id$
  */
 
 #include "recv.h"
@@ -346,8 +345,8 @@ void cMarkAdReceiver::Action()
                 }
                 if (t.Elapsed()>100)
                 {
-                    isyslog("markad [%i]: 100ms exceeded -> %Lims",
-                            recvnumber,t.Elapsed());
+                    isyslog("markad [%i]: 100ms exceeded -> %llums",
+                            recvnumber,(unsigned long long) t.Elapsed());
                 }
             }
 
