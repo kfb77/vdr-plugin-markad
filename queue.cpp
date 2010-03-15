@@ -74,7 +74,7 @@ bool cMarkAdPaketQueue::Put(uchar *Data, int Size)
     memcpy(&buffer[inptr],Data,Size);
     inptr+=Size;
 
-    int npercent=((double) inptr/(double) maxqueue)*100;
+    int npercent=(int) ((double) inptr/(double) maxqueue)*100;
 
     if ((npercent>90) && (name) && (npercent!=percent))
     {

@@ -129,7 +129,7 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, in
 
     uchar *in=NULL;
     int inlen=0;
-    int retval;
+    int retval=0;
 
     if (!pause)
     {

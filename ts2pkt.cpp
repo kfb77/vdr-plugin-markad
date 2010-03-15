@@ -122,7 +122,7 @@ void cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, uchar **Pk
 
         if ((counter!=-1) && (((counter+1) & 0xF)!=tshdr->Counter))
         {
-            if (counter==tshdr->Counter)
+            if (counter==(int) tshdr->Counter)
             {
                 // duplicate paket -> just ignore
                 return;
