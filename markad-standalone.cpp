@@ -3,23 +3,12 @@
  *
  * See the README file for copyright information and how to reach the author.
  *
- * $Id$
  */
 
 #include "markad-standalone.h"
 
 cMarkAdStandalone *cmasta=NULL;
 int SysLogLevel=2;
-char markFileName[1024]="";
-char logoDirectory[1024]="";
-int logoExtraction=-1;
-int logoWidth=-1;
-int logoHeight=-1;
-bool bDecodeVideo=true;
-bool bDecodeAudio=true;
-bool bBackupMarks=false;
-bool bIgnoreAudioInfo=false;
-bool bIgnoreVideoInfo=false;
 
 void syslog_with_tid(int priority, const char *format, ...)
 {
@@ -38,35 +27,53 @@ void syslog_with_tid(int priority, const char *format, ...)
 #endif
 }
 
-char *cMarkAdStandalone::IndexToHMSF(int Index)
+void cMarkAdStandalone::AddStartMark()
 {
-    if (macontext.Video.Info.FramesPerSecond==0.0) return NULL;
-    char *buf;
-    double Seconds;
-    int f = int(modf((Index+0.5)/macontext.Video.Info.FramesPerSecond,&Seconds)*
-                macontext.Video.Info.FramesPerSecond+1);
-    int s = int(Seconds);
-    int m = s / 60 % 60;
-    int h = s / 3600;
-    s %= 60;
-    if (asprintf(&buf,"%d:%02d:%02d.%02d",h,m,s,f)==-1) return NULL;
-    return buf;
+    if (!marks.Count())
+    {
+        char *buf;
+        if (asprintf(&buf,"start of recording (0)")!=-1)
+        {
+            marks.Add(0,buf);
+            isyslog("markad [%i]: %s",recvnumber,buf);
+            free(buf);
+        }
+    }
+    else
+    {
+        marksAligned=true;
+    }
 }
 
 void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 {
     if (!Mark) return;
+    if (Mark->Position<1) return;
 
-    if (Mark->Comment)
+    marks.Add(Mark->Position,Mark->Comment);
+
+    if (!marksAligned)
     {
-        char *buf=IndexToHMSF(Mark->Position);
-        if (buf)
+        clMark *prevmark=marks.GetPrev(Mark->Position);
+        if (!prevmark) return;
+        if (prevmark->position==0) return;
+
+        int MAXPOSDIFF = (int) (macontext.Video.Info.FramesPerSecond*60*13); // = 13 min
+
+        if (abs(Mark->Position-prevmark->position)>MAXPOSDIFF)
         {
-            fprintf(stderr,"%s %s\n",buf,Mark->Comment);
-            free(buf);
+            clMark *firstmark=marks.Get(0);
+            if (firstmark)
+            {
+                marks.Del(firstmark);
+                marksAligned=true;
+            }
+        }
+        else
+        {
+            marksAligned=true;
         }
     }
-// TODO: Implement creating marks/marks.vdr!
 
 }
 
@@ -117,7 +124,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     free(fbuf);
     if (f==-1) return false;
 
-    int dataread,lastiframe=0;
+    int dataread;
     dsyslog("markad [%i]: processing file %05i",recvnumber,Number);
 
     while ((dataread=read(f,data,datalen))>0)
@@ -146,7 +153,18 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                     {
                         if (streaminfo->FindVideoInfos(&macontext,pkt,pktlen))
                         {
-                            //printf("%05i( %s )\n",framecnt,(macontext.Video.Info.Pict_Type==MA_I_TYPE) ? "I" : "-");
+                            if (!framecnt)
+                            {
+                                if (!marks.Load(Directory,macontext.Video.Info.FramesPerSecond,isTS))
+                                {
+                                    AddStartMark();
+                                }
+                                else
+                                {
+                                    marksAligned=true;
+                                }
+                            }
+                            //printf("%05i( %c )\n",framecnt,frametypes[macontext.Video.Info.Pict_Type]);
                             framecnt++;
                         }
 
@@ -281,6 +299,21 @@ void cMarkAdStandalone::Process(const char *Directory)
     }
     else
     {
+        if (lastiframe)
+        {
+            MarkAdMark tempmark;
+            tempmark.Position=lastiframe;
+            char *buf;
+
+            if (asprintf(&buf,"stop of recording (%i)",lastiframe)!=-1)
+            {
+                tempmark.Comment=buf;
+                AddMark(&tempmark);
+                isyslog("markad [%i]: %s",recvnumber,buf);
+                free(buf);
+            }
+        }
+
         gettimeofday(&tv2,&tz);
         long sec,usec;
         sec=tv2.tv_sec-tv1.tv_sec;
@@ -290,6 +323,17 @@ void cMarkAdStandalone::Process(const char *Directory)
             usec+=1000000;
             sec--;
         }
+
+        bool bIndexError;
+        if (marks.Save(Directory,macontext.Video.Info.FramesPerSecond,isTS,bBackupMarks,&bIndexError))
+        {
+            if (bIndexError)
+            {
+                esyslog("markad [%i]: index doesn't match marks%s",recvnumber,
+                        isTS ? ", please report this" : ", please run genindex");
+            }
+        }
+
         double etime,ftime=0,ptime=0;
         etime=sec+((double) usec/1000000);
         if (etime>0) ftime=framecnt/etime;
@@ -297,6 +341,7 @@ void cMarkAdStandalone::Process(const char *Directory)
             ptime=ftime/macontext.Video.Info.FramesPerSecond;
         isyslog("markad [%i]: elapsed time %.2fs, %i frames, %.1f fps, %.1f pps",recvnumber,
                 etime,framecnt,ftime,ptime);
+
     }
 }
 
@@ -565,8 +610,13 @@ bool cMarkAdStandalone::CheckPATPMT(const char *Directory)
     return true;
 }
 
-cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
+cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, int LogoExtraction,
+                                     int LogoWidth, int LogoHeight, bool DecodeVideo,
+                                     bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
+                                     const char *LogoDir, const char *MarkFileName)
 {
+    const char frametypes[8]={'?','I','P','B','D','S','s','b'};
+
     recvnumber=255;
     abort=false;
 
@@ -574,12 +624,19 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
     noticeVDR_AC3=false;
 
     memset(&macontext,0,sizeof(macontext));
-    macontext.LogoDir=logoDirectory;
-    macontext.StandAlone.LogoExtraction=logoExtraction;
-    macontext.StandAlone.LogoWidth=logoWidth;
-    macontext.StandAlone.LogoHeight=logoHeight;
+    macontext.LogoDir=(char *) LogoDir;
+    macontext.StandAlone.LogoExtraction=LogoExtraction;
+    macontext.StandAlone.LogoWidth=LogoWidth;
+    macontext.StandAlone.LogoHeight=LogoHeight;
 
-    if (logoExtraction!=-1)
+    bDecodeVideo=DecodeVideo;
+    bDecodeAudio=DecodeAudio;
+    bIgnoreAudioInfo=IgnoreAudioInfo;
+    bIgnoreVideoInfo=IgnoreVideoInfo;
+
+    bBackupMarks=BackupMarks;
+
+    if (LogoExtraction!=-1)
     {
         // just to be sure extraction works
         bDecodeVideo=true;
@@ -628,7 +685,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
             abort=true;
         }
         macontext.General.APid.Num=0;
-        if (!markFileName[0]) strcpy(markFileName,"marks");
     }
     else
     {
@@ -644,14 +700,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
         {
             macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
         }
-
-        if (!markFileName[0]) strcpy(markFileName,"marks.vdr");
     }
 
     if (!LoadInfo(Directory))
     {
         if (bDecodeVideo) esyslog("markad [%i]: failed loading info - logo detection impossible",recvnumber);
     }
+
+    if (MarkFileName[0]) marks.SetFileName(MarkFileName);
 
     if (macontext.General.VPid.Num)
     {
@@ -711,7 +767,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
         streaminfo=NULL;
     }
 
+    marksAligned=false;
     framecnt=0;
+    lastiframe=0;
 }
 
 cMarkAdStandalone::~cMarkAdStandalone()
@@ -760,7 +818,7 @@ int usage()
            "-v,             --verbose\n"
            "                  increments loglevel by one, can be given multiple times\n"
            "-B              --backupmarks\n"
-           "                  make a backup of the existing marks\n"
+           "                  make a backup of existing marks\n"
            "-L              --extractlogo=<direction>[,width[,height]]\n"
            "                  extracts logo to /tmp as pgm files (must be renamed)\n"
            "                  <direction>  0 = top left,    1 = top right\n"
@@ -810,6 +868,16 @@ int main(int argc, char *argv[])
     char *recDir=NULL;
     char *tok,*str;
     int ntok;
+    int logoExtraction=-1;
+    int logoWidth=-1;
+    int logoHeight=-1;
+    bool bBackupMarks=false;
+    char markFileName[1024]="";
+    char logoDirectory[1024]="";
+    bool bDecodeVideo=true;
+    bool bDecodeAudio=true;
+    bool bIgnoreAudioInfo=false;
+    bool bIgnoreVideoInfo=false;
 
     strcpy(logoDirectory,"/var/lib/markad");
 
@@ -1212,7 +1280,9 @@ int main(int argc, char *argv[])
             return -1;
         }
 
-        cmasta = new cMarkAdStandalone(recDir);
+        cmasta = new cMarkAdStandalone(recDir,bBackupMarks, logoExtraction, logoWidth, logoHeight,
+                                       bDecodeVideo,bDecodeAudio,bIgnoreVideoInfo,bIgnoreAudioInfo,
+                                       logoDirectory,markFileName);
         if (!cmasta) return -1;
 
         // ignore some signals

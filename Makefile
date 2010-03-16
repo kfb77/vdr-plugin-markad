@@ -55,7 +55,7 @@ LIBS-CMD += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS))
 
 ### The object files (add further files here):
 
-OBJS-CMD = markad-standalone.o decoder.o 
+OBJS-CMD = markad-standalone.o decoder.o marks.o 
 OBJS-COMMON = streaminfo.o video.o audio.o demux.o queue.o vdr2pkt.o ts2pkt.o pes2es.o
 OBJS = $(PLUGIN).o recv.o status.o $(OBJS-COMMON)
 

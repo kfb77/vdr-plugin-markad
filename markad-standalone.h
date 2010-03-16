@@ -25,6 +25,7 @@
 #include "audio.h"
 #include "streaminfo.h"
 #include "version.h"
+#include "marks.h"
 
 class cMarkAdStandalone
 {
@@ -140,6 +141,8 @@ unsigned Descriptor_Length:
         8;
     };
 
+    static const char frametypes[8];
+
     cMarkAdDemux *video_demux;
     cMarkAdDemux *ac3_demux;
     cMarkAdDemux *mp2_demux;
@@ -153,14 +156,25 @@ unsigned Descriptor_Length:
 
     bool isTS;
     int MaxFiles;
+    int lastiframe;
     int framecnt;
     bool abort;
 
     bool noticeVDR_MP2;
     bool noticeVDR_AC3;
 
+    bool bDecodeVideo;
+    bool bDecodeAudio;
+    bool bIgnoreAudioInfo;
+    bool bIgnoreVideoInfo;
+
     void SaveFrame(int Frame);
+
+    bool marksAligned;
+    bool bBackupMarks;
+    clMarks marks;
     char *IndexToHMSF(int Index);
+    void AddStartMark();
     void AddMark(MarkAdMark *Mark);
 
     bool CheckVDRHD(const char *Directory);
@@ -175,7 +189,11 @@ public:
         abort=true;
     }
     void Process(const char *Directory);
-    cMarkAdStandalone(const char *Directory);
+    cMarkAdStandalone(const char *Directory, bool BackupMarks, int LogoExtraction,
+                      int LogoWidth, int LogoHeight, bool DecodeVideo,
+                      bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
+                      const char *LogoDir, const char *MarkFileName);
+
     ~cMarkAdStandalone();
 };
 
