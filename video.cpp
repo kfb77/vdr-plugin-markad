@@ -3,7 +3,6 @@
  *
  * See the README file for copyright information and how to reach the author.
  *
- * $Id$
  */
 
 #include "video.h"
@@ -93,7 +92,7 @@ void cMarkAdLogo::Save(int lastiframe, uchar *picture)
 
 
     char *buf=NULL;
-    if (asprintf(&buf,"%s/%06d-%s-A%i:%i.pgm","/tmp/",lastiframe,
+    if (asprintf(&buf,"%s/%06d-%s-A%i_%i.pgm","/tmp/",lastiframe,
                  macontext->General.ChannelID,
                  area.aspectratio.Num,area.aspectratio.Den)!=-1)
     {
@@ -260,6 +259,8 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
         }
         if (macontext->StandAlone.LogoExtraction==-1)
         {
+            //printf("%i %i %i %i\n",lastiframe,area.rpixel,area.mpixel,(area.rpixel<(area.mpixel*0.01)));
+
             if (area.status==UNINITIALIZED)
             {
                 // Initialize
@@ -277,7 +278,7 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
             {
                 if (area.status==NOLOGO)
                 {
-                    if (area.counter>LOGO_MAXCOUNT)
+                    if (area.counter>=LOGO_MAXCOUNT)
                     {
                         area.status=ret=LOGO;
                         *logoiframe=area.lastiframe;
@@ -299,7 +300,12 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
             {
                 if (area.status==LOGO)
                 {
-                    if (area.counter>LOGO_MAXCOUNT)
+                    if ((area.counter==LOGO_MINCOUNT) && (area.rpixel<(area.mpixel*0.01)))
+                    {
+                        area.counter=LOGO_MAXCOUNT;
+                    }
+
+                    if (area.counter>=LOGO_MAXCOUNT)
                     {
                         area.status=ret=NOLOGO;
                         *logoiframe=area.lastiframe;
@@ -316,7 +322,7 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
                     area.counter=0;
                 }
             }
-            // Save(lastiframe,area.sobel); // TODO: JUST FOR DEBUGGING!
+            //Save(lastiframe,area.sobel); // TODO: JUST FOR DEBUGGING!
         }
         else
         {
@@ -342,7 +348,7 @@ int cMarkAdLogo::Process(int LastIFrame, int *LogoIFrame)
         {
             area.valid=false;  // just to be sure!
             char *buf=NULL;
-            if (asprintf(&buf,"%s/%s-A%i:%i.pgm",macontext->LogoDir,macontext->General.ChannelID,
+            if (asprintf(&buf,"%s/%s-A%i_%i.pgm",macontext->LogoDir,macontext->General.ChannelID,
                          macontext->Video.Info.AspectRatio.Num,macontext->Video.Info.AspectRatio.Den)!=-1)
             {
                 int ret=Load(buf);

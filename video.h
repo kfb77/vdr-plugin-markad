@@ -3,7 +3,6 @@
  *
  * See the README file for copyright information and how to reach the author.
  *
- * $Id$
  */
 
 #ifndef __video_h_
@@ -22,6 +21,7 @@
 #define LOGO_DEFWIDTH  192
 
 #define LOGO_MAXCOUNT 3
+#define LOGO_MINCOUNT 1
 
 class cMarkAdLogo
 {

@@ -328,6 +328,13 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
         {
             int result=sscanf(line,"%*c %as %*s",&macontext.General.ChannelID);
             if (result==0 || result==EOF) macontext.General.ChannelID=NULL;
+            if (macontext.General.ChannelID)
+            {
+                for (int i=0; i<(int) strlen(macontext.General.ChannelID); i++)
+                {
+                    if (macontext.General.ChannelID[i]=='.') macontext.General.ChannelID[i]='_';
+                }
+            }
             if ((bIgnoreAudioInfo) && (bIgnoreVideoInfo)) break;
         }
         if (line[0]=='X')
