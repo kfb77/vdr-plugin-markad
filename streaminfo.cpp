@@ -409,7 +409,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         {
             bs.skipBits(2); // colour_plane_id
         }
-        bs.skipBits(H264.log2_max_frame_num); // frame_num
+        int frame_num=bs.getBits(H264.log2_max_frame_num); // frame_num
 
         maContext->Video.Info.Interlaced=false;
         if (!H264.frame_mbs_only_flag)
@@ -455,10 +455,12 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         }
         maContext->Video.Info.Pict_Type=slice_type;
 
-        return true;
+        if (frame_num!=H264.frame_num)
+        {
+            H264.frame_num=frame_num;
+            return true;
+        }
     }
-
-
     return false;
 }
 

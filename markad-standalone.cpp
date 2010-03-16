@@ -156,13 +156,13 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                         {
                             if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                             {
-                                if ((macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) || (!bDecodeVideo))
+                                if (!isTS)
                                 {
-                                    lastiframe=framecnt-1;
+                                    lastiframe=framecnt-2;
                                 }
                                 else
                                 {
-                                    lastiframe=framecnt-2;
+                                    lastiframe=framecnt-1;
                                 }
                                 //SaveFrame(lastiframe);  // TODO: JUST FOR DEBUGGING!
                                 mark=video->Process(lastiframe);
@@ -346,22 +346,11 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
             {
                 if ((stream==1) && (!bIgnoreVideoInfo))
                 {
-                    if ((type==1) || (type==5))
-                    {
-                        // we have 4:3 SD, ads are today (in Germany) in 16:9
-                        // so disable video decoding
-                        if (bDecodeVideo)
-                        {
-                            bDecodeVideo=false;
-                            isyslog("markad [%i]: broadcasts aspectratio is 4:3, disabling video decoding",recvnumber);
-                        }
-                    }
-                    else
+                    if ((type!=1) && (type!=5))
                     {
                         // we dont have 4:3, so ignore AspectRatio-Changes
                         macontext.Video.Options.IgnoreAspectRatio=true;
                         isyslog("markad [%i]: broadcasts aspectratio is not 4:3, disabling aspect ratio",recvnumber);
-
                     }
                 }
 
@@ -369,15 +358,19 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
                 {
                     if (type==5)
                     {
-                        // ok, here we have a problem: 5 means DolbyDigital 2.0 and DolbyDigital 5.1!
-                        bool bSet=true;
-                        if (strchr(descr,'2')) bSet=false; // that is really weak!
-                        if ((bSet) && (bDecodeVideo))
+                        // if we have DolbyDigital 2.0 disable AC3
+                        if (strchr(descr,'2'))
+                        {
+                            macontext.General.DPid.Num=0;
+                            isyslog("markad [%i]: broadcast with DolbyDigital2.0, disabling AC3 decoding",recvnumber);
+                        }
+                        // if we have DolbyDigital 5.1 disable video decoding
+                        if (strchr(descr,'5'))
                         {
                             bDecodeVideo=false;
-                            macontext.Video.Options.IgnoreAspectRatio=true;
-                            isyslog("markad [%i]: broadcast with DolbyDigital, disabling video decoding",recvnumber);
+                            isyslog("markad [%i]: broadcast with DolbyDigital5.1, disabling video decoding",recvnumber);
                         }
+
                     }
                 }
             }
@@ -655,6 +648,11 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
         if (!markFileName[0]) strcpy(markFileName,"marks.vdr");
     }
 
+    if (!LoadInfo(Directory))
+    {
+        if (bDecodeVideo) esyslog("markad [%i]: failed loading info - logo detection impossible",recvnumber);
+    }
+
     if (macontext.General.VPid.Num)
     {
         if (isTS)
@@ -699,11 +697,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory)
 
     if (!abort)
     {
-        if (!LoadInfo(Directory))
-        {
-            esyslog("markad [%i]: failed loading info - logo detection impossible",recvnumber);
-        }
-
         decoder = new cMarkAdDecoder(recvnumber,macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,
                                      macontext.General.APid.Num!=0,macontext.General.DPid.Num!=0);
         video = new cMarkAdVideo(recvnumber,&macontext);
