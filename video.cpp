@@ -171,6 +171,7 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
     }
 
     SUMA/=(LOGOWIDTH*LOGOHEIGHT);
+#if 0
     if (SUMA>=100)
     {
         int maxval=(int) SUMA;
@@ -189,6 +190,7 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
         }
         SUMA/=(LOGOWIDTH*LOGOHEIGHT);
     }
+#endif
     int ret=NOCHANGE;
 
     if (SUMA<100)
@@ -295,11 +297,6 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
             {
                 if (area.status==LOGO)
                 {
-                    if ((area.counter==LOGO_MINCOUNT) && (area.rpixel<(area.mpixel*0.01)))
-                    {
-                        area.counter=LOGO_MAXCOUNT;
-                    }
-
                     if (area.counter>=LOGO_MAXCOUNT)
                     {
                         area.status=ret=NOLOGO;

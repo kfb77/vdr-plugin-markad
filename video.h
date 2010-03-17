@@ -21,7 +21,6 @@
 #define LOGO_DEFWIDTH  192
 
 #define LOGO_MAXCOUNT 3
-#define LOGO_MINCOUNT 1
 
 class cMarkAdLogo
 {
