@@ -1,5 +1,9 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
+2010-03-16: Version 0.0.6
+
+- Added creation of mark files
+
 2010-03-06: Version 0.0.5
 
 - Updated H264 handling

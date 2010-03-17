@@ -173,7 +173,6 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
     SUMA/=(LOGOWIDTH*LOGOHEIGHT);
     if (SUMA>=100)
     {
-
         int maxval=(int) SUMA;
         SUMA=0;
         for (int Y=ystart; Y<=yend-1; Y++)
