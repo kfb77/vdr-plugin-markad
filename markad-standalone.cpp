@@ -166,22 +166,18 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                             }
                             //printf("%05i( %c )\n",framecnt,frametypes[macontext.Video.Info.Pict_Type]);
                             framecnt++;
+                            if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
+                            {
+                                lastiframe=framecnt-1;
+                            }
                         }
 
                         bool dRes=true;
                         if ((decoder) && (bDecodeVideo)) dRes=decoder->DecodeVideo(&macontext,pkt,pktlen);
                         if (dRes)
                         {
-                            if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
+                            if ((framecnt-lastiframe)<=3)
                             {
-                                if (!isTS)
-                                {
-                                    lastiframe=framecnt-2;
-                                }
-                                else
-                                {
-                                    lastiframe=framecnt-1;
-                                }
                                 //SaveFrame(lastiframe);  // TODO: JUST FOR DEBUGGING!
                                 mark=video->Process(lastiframe);
                                 AddMark(mark);
@@ -610,12 +606,13 @@ bool cMarkAdStandalone::CheckPATPMT(const char *Directory)
     return true;
 }
 
+const char cMarkAdStandalone::frametypes[8]={'?','I','P','B','D','S','s','b'};
+
 cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, int LogoExtraction,
                                      int LogoWidth, int LogoHeight, bool DecodeVideo,
                                      bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
                                      const char *LogoDir, const char *MarkFileName)
 {
-    const char frametypes[8]={'?','I','P','B','D','S','s','b'};
 
     recvnumber=255;
     abort=false;
@@ -704,7 +701,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
     if (!LoadInfo(Directory))
     {
-        if (bDecodeVideo) esyslog("markad [%i]: failed loading info - logo detection impossible",recvnumber);
+        if (bDecodeVideo) esyslog("markad [%i]: failed loading info - logo detection disabled",recvnumber);
     }
 
     if (MarkFileName[0]) marks.SetFileName(MarkFileName);

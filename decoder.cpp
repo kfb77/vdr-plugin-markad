@@ -347,10 +347,6 @@ bool cMarkAdDecoder::SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Vide
     }
     maContext->Video.Info.Height=Video_Context->height;
     maContext->Video.Info.Width=Video_Context->width;
-    if (Video_Context->codec_id!=CODEC_ID_H264)
-    {
-        maContext->Video.Info.Pict_Type=Video_Context->coded_frame->pict_type;
-    }
 
     AVRational dar;
     PAR2DAR(Video_Context->sample_aspect_ratio,&dar);

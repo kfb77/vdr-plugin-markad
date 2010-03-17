@@ -6,7 +6,7 @@
  */
 
 #include "streaminfo.h"
-#include <stdio.h>
+
 cMarkAdStreamInfo::cMarkAdStreamInfo()
 {
     memset(&H264,0,sizeof(H264));
@@ -409,18 +409,19 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         {
             bs.skipBits(2); // colour_plane_id
         }
-        int frame_num=bs.getBits(H264.log2_max_frame_num); // frame_num
+        bs.skipBits(H264.log2_max_frame_num); // frame_num
 
         maContext->Video.Info.Interlaced=false;
         if (!H264.frame_mbs_only_flag)
         {
             maContext->Video.Info.Interlaced=true;
-            bool field_pic_flag=bs.getBit();
-            if (field_pic_flag)
-            {
-                bool bottom_field_flag=bs.getBit();
-                if (bottom_field_flag) return false;
-            }
+            /*
+               bool field_pic_flag=bs.getBit();
+               if (field_pic_flag)
+               {
+                  bool bottom_field_flag=bs.getBit();
+               }
+            */
         }
 
         switch (slice_type)
@@ -454,12 +455,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
             break;
         }
         maContext->Video.Info.Pict_Type=slice_type;
-
-        if (frame_num!=H264.frame_num)
-        {
-            H264.frame_num=frame_num;
-            return true;
-        }
+        return true;
     }
     return false;
 }
