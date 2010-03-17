@@ -171,29 +171,25 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
     }
 
     SUMA/=(LOGOWIDTH*LOGOHEIGHT);
-#if 0
     if (SUMA>=100)
     {
 
-        int avg=255-(int) SUMA;
-        printf("SUMA =%li, avg=%i\n", SUMA,avg);
+        int maxval=(int) SUMA;
         SUMA=0;
         for (int Y=ystart; Y<=yend-1; Y++)
         {
             for (int X=xstart; X<=xend-1; X++)
             {
-                int val=macontext->Video.Data.Plane[0][X+(Y*macontext->Video.Info.Width)];
-                val=(val - avg);
+                int val=macontext->Video.Data.Plane[0][X+(Y*macontext->Video.Data.PlaneLinesize[0])];
+                val=(int) (((double) val- (double) maxval/1.4)*1.4);
+                if (val>maxval) val=maxval;
                 if (val<0) val=0;
                 area.source[(X-xstart)+(Y-ystart)*LOGOWIDTH]=val;
                 SUMA+=val;
             }
         }
         SUMA/=(LOGOWIDTH*LOGOHEIGHT);
-        printf("SUMA now =%li\n", SUMA);
     }
-#endif
-
     int ret=NOCHANGE;
 
     if (SUMA<100)
