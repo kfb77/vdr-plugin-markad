@@ -10,6 +10,7 @@
 cMarkAdStreamInfo::cMarkAdStreamInfo()
 {
     memset(&H264,0,sizeof(H264));
+    H264.frame_num=-1;
 }
 
 bool cMarkAdStreamInfo::FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen)
@@ -119,6 +120,14 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
     if ((!maContext) || (!pkt) || (!len)) return false;
 
     int nalu=pkt[4] & 0x1F;
+
+    if (nalu==NAL_AUD)
+    {
+        if (pkt[5]==0x10)
+        {
+            H264.primary_pic_typeI=true;
+        }
+    }
 
     if (nalu==NAL_SPS)
     {
@@ -409,7 +418,8 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         {
             bs.skipBits(2); // colour_plane_id
         }
-        bs.skipBits(H264.log2_max_frame_num); // frame_num
+        int frame_num=bs.getBits(H264.log2_max_frame_num); // frame_num
+        if (H264.frame_num==-1) H264.frame_num=frame_num;
 
         maContext->Video.Info.Interlaced=false;
         if (!H264.frame_mbs_only_flag)
@@ -454,7 +464,26 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         default:
             break;
         }
+
         maContext->Video.Info.Pict_Type=slice_type;
+
+        if (!maContext->Video.Info.Interlaced)
+        {
+            if (frame_num!=H264.frame_num)
+            {
+                if (H264.primary_pic_typeI)
+                {
+                    maContext->Video.Info.Pict_Type=MA_I_TYPE;
+                    H264.primary_pic_typeI=false;
+                }
+                H264.frame_num=frame_num;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
         return true;
     }
     return false;
