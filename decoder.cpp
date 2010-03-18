@@ -41,7 +41,7 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
                 mp2_context->thread_count=cpucount;
                 if (avcodec_open(mp2_context, mp2_codec) < 0)
                 {
-                    esyslog("could not open codec 0x%05x",mp2_codecid);
+                    esyslog("could not open codec for MP2");
                     av_free(mp2_context);
                     mp2_context=NULL;
                 }
@@ -53,7 +53,7 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
         }
         else
         {
-            esyslog("codec 0x%05x not found",mp2_codecid);
+            esyslog("codec for MP2 not found");
             mp2_context=NULL;
         }
     }
@@ -74,7 +74,7 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
                 ac3_context->thread_count=cpucount;
                 if (avcodec_open(ac3_context, ac3_codec) < 0)
                 {
-                    esyslog("could not open codec 0x%05x",ac3_codecid);
+                    esyslog("could not open codec for AC3");
                     av_free(ac3_context);
                     ac3_context=NULL;
                 }
@@ -86,7 +86,7 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
         }
         else
         {
-            esyslog("codec 0x%05x not found",ac3_codecid);
+            esyslog("codec for AC3 not found");
             ac3_context=NULL;
         }
     }
@@ -161,13 +161,26 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
             }
             if (ret < 0)
             {
-                esyslog("could not open codec 0x%05x",video_codecid);
+                switch (video_codecid)
+                {
+                case CODEC_ID_H264:
+                    esyslog("could not open codec for H264");
+                    break;
+                case CODEC_ID_MPEG2VIDEO_XVMC:
+                    esyslog("could not open codec MPEG2 (XVMC)");
+                    break;
+                case CODEC_ID_MPEG2VIDEO:
+                    esyslog("could not open codec MPEG2");
+                    break;
+                default:
+                    esyslog("could not open video codec");
+                    break;
+                }
                 av_free(video_context);
                 video_context=NULL;
             }
             else
             {
-
                 isyslog("using codec %s",video_codec->long_name);
 
                 if (video_context->hwaccel)
@@ -192,7 +205,21 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
     }
     else
     {
-        esyslog("codec 0x%05x not found",video_codecid);
+        switch (video_codecid)
+        {
+        case CODEC_ID_H264:
+            esyslog("codec for H264 not found");
+            break;
+        case CODEC_ID_MPEG2VIDEO_XVMC:
+            esyslog("codec for MPEG2 (XVMC) not found");
+            break;
+        case CODEC_ID_MPEG2VIDEO:
+            esyslog("codec for MPEG2 not found");
+            break;
+        default:
+            esyslog("video codec not found");
+            break;
+        }
         video_context=NULL;
     }
 
