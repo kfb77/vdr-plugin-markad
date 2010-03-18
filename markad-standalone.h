@@ -168,6 +168,11 @@ unsigned Descriptor_Length:
     bool bIgnoreAudioInfo;
     bool bIgnoreVideoInfo;
 
+    void CheckIndex();
+    char *indexFile;
+    int sleepcnt;
+    int lastmaxframes;
+
     void SaveFrame(int Frame);
 
     bool marksAligned;
@@ -176,6 +181,7 @@ unsigned Descriptor_Length:
     char *IndexToHMSF(int Index);
     void AddStartMark();
     void AddMark(MarkAdMark *Mark);
+    void RateMarks();
 
     bool CheckVDRHD(const char *Directory);
     bool CheckPATPMT(const char *Directory);

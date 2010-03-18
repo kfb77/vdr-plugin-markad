@@ -7,24 +7,28 @@
 
 #include "markad-standalone.h"
 
+bool SYSLOG=false;
 cMarkAdStandalone *cmasta=NULL;
 int SysLogLevel=2;
 
 void syslog_with_tid(int priority, const char *format, ...)
 {
     va_list ap;
-#ifdef SYSLOG
-    char fmt[255];
-    snprintf(fmt, sizeof(fmt), "[%d] %s", getpid(), format);
-    va_start(ap, format);
-    vsyslog(priority, fmt, ap);
-    va_end(ap);
-#else
-    va_start(ap, format);
-    vprintf(format,ap);
-    va_end(ap);
-    printf("\n");
-#endif
+    if (SYSLOG)
+    {
+        char fmt[255];
+        snprintf(fmt, sizeof(fmt), "[%d] %s", getpid(), format);
+        va_start(ap, format);
+        vsyslog(priority, fmt, ap);
+        va_end(ap);
+    }
+    else
+    {
+        va_start(ap, format);
+        vprintf(format,ap);
+        va_end(ap);
+        printf("\n");
+    }
 }
 
 void cMarkAdStandalone::AddStartMark()
@@ -77,6 +81,10 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 
 }
 
+void cMarkAdStandalone::RateMarks()
+{
+}
+
 void cMarkAdStandalone::SaveFrame(int frame)
 {
     if (!macontext.Video.Info.Width) return;
@@ -102,6 +110,53 @@ void cMarkAdStandalone::SaveFrame(int frame)
     fclose(pFile);
 }
 
+void cMarkAdStandalone::CheckIndex()
+{
+    // Here we check the indexfile
+    // if we have an index we check if the
+    // index is more advanced than our framecounter
+    // if not we wait. if we wait too much,
+    // we discard this check
+
+#define WAITTIME 10
+
+    if (!indexFile) return;
+    if (sleepcnt>=2) return; // we already slept too much
+
+    bool notenough=true;
+    do
+    {
+        struct stat statbuf;
+        if (stat(indexFile,&statbuf)==-1) return;
+
+        int maxframes=statbuf.st_size/8;
+        if (lastmaxframes==maxframes) return; // no new frames still last call!
+
+        if (maxframes<(framecnt+200))
+        {
+            // now we sleep and hopefully the index will grow
+            dsyslog("markad [%i]: we are too fast, waiting %i secs",recvnumber,WAITTIME);
+            sleep(WAITTIME);
+            if (errno==EINTR) return;
+            sleepcnt++;
+            if (sleepcnt>=2)
+            {
+                esyslog("markad [%i]: no new data after %i seconds, skipping wait!",
+                        recvnumber,sleepcnt*WAITTIME);
+                notenough=false; // something went wrong?
+            }
+        }
+        else
+        {
+            sleepcnt=0;
+            notenough=false;
+        }
+        lastmaxframes=maxframes;
+    }
+    while (notenough);
+
+}
+
 bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
 {
     if (!Directory) return false;
@@ -123,6 +178,9 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     int f=open(fbuf,O_RDONLY);
     free(fbuf);
     if (f==-1) return false;
+
+    CheckIndex();
+    if (abort) return false;
 
     int dataread;
     dsyslog("markad [%i]: processing file %05i",recvnumber,Number);
@@ -155,6 +213,11 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                         {
                             if (!framecnt)
                             {
+                                if (macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
+                                {
+                                    isyslog("markad [%i]: HDTV %i%c",recvnumber,
+                                            macontext.Video.Info.Height,macontext.Video.Info.Interlaced ? 'i' : 'p');
+                                }
                                 if (!marks.Load(Directory,macontext.Video.Info.FramesPerSecond,isTS))
                                 {
                                     AddStartMark();
@@ -266,7 +329,12 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                 }
             }
         }
-
+        CheckIndex();
+        if (abort)
+        {
+            if (f!=-1) close(f);
+            return false;
+        }
     }
     close(f);
     return true;
@@ -620,6 +688,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     noticeVDR_MP2=false;
     noticeVDR_AC3=false;
 
+    sleepcnt=0;
+    lastmaxframes=0;
+
     memset(&macontext,0,sizeof(macontext));
     macontext.LogoDir=(char *) LogoDir;
     macontext.StandAlone.LogoExtraction=LogoExtraction;
@@ -682,6 +753,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
             abort=true;
         }
         macontext.General.APid.Num=0;
+        if (asprintf(&indexFile,"%s/index",Directory)==-1) indexFile=NULL;
     }
     else
     {
@@ -697,6 +769,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         {
             macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
         }
+        if (asprintf(&indexFile,"%s/index.vdr",Directory)==-1) indexFile=NULL;
     }
 
     if (!LoadInfo(Directory))
@@ -772,6 +845,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 cMarkAdStandalone::~cMarkAdStandalone()
 {
     if (macontext.General.ChannelID) free(macontext.General.ChannelID);
+    if (indexFile) free(indexFile);
+
     if (video_demux) delete video_demux;
     if (ac3_demux) delete ac3_demux;
     if (mp2_demux) delete mp2_demux;
@@ -929,7 +1004,7 @@ int main(int argc, char *argv[])
 
         case 'b':
             // --background
-            bFork = true;
+            bFork = SYSLOG = true;
             break;
 
         case 'c':
@@ -1129,7 +1204,7 @@ int main(int argc, char *argv[])
         {
             if (strcmp(argv[optind], "after" ) == 0 )
             {
-                bAfter = bFork = bNice = true;
+                bAfter = bFork = bNice = SYSLOG = true;
             }
             else if (strcmp(argv[optind], "before" ) == 0 )
             {
