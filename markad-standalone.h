@@ -167,7 +167,7 @@ unsigned Descriptor_Length:
     bool bIgnoreAudioInfo;
     bool bIgnoreVideoInfo;
 
-    void CheckIndex();
+    void CheckIndex(bool NoLastFrameCheck);
     char *indexFile;
     int sleepcnt;
     int lastmaxframes;

@@ -112,7 +112,7 @@ void cMarkAdStandalone::SaveFrame(int frame)
     fclose(pFile);
 }
 
-void cMarkAdStandalone::CheckIndex()
+void cMarkAdStandalone::CheckIndex(bool NoLastFrameCheck)
 {
     // Here we check the indexfile
     // if we have an index we check if the
@@ -132,7 +132,10 @@ void cMarkAdStandalone::CheckIndex()
         if (stat(indexFile,&statbuf)==-1) return;
 
         int maxframes=statbuf.st_size/8;
-        if (lastmaxframes==maxframes) return; // no new frames still last call!
+        if (NoLastFrameCheck)
+        {
+            if (lastmaxframes==maxframes) return; // no new frames still last call!
+        }
 
         if (maxframes<(framecnt+200))
         {
@@ -181,7 +184,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     free(fbuf);
     if (f==-1) return false;
 
-    CheckIndex();
+    CheckIndex(true);
     if (abort) return false;
 
     int dataread;
@@ -331,7 +334,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                 }
             }
         }
-        CheckIndex();
+        CheckIndex(false);
         if (abort)
         {
             if (f!=-1) close(f);
