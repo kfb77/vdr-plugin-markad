@@ -70,7 +70,7 @@ unsigned Length:
     int type;
     void Reset();
 public:
-    cMarkAdPES2ES(int RecvNumber, const char *QueueName="PES2ES", int QueueSize=32768);
+    cMarkAdPES2ES(const char *QueueName="PES2ES", int QueueSize=32768);
     ~cMarkAdPES2ES();
     void Process(MarkAdPid Pid, uchar *PESData, int PESSize, uchar **ESData, int *ESSize);
 };

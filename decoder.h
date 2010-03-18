@@ -40,7 +40,6 @@ extern "C"
 class cMarkAdDecoder
 {
 private:
-    int recvnumber;
     int16_t *audiobuf;
     int audiobufsize;
 
@@ -60,7 +59,7 @@ public:
     bool DecodeVideo(MarkAdContext *maContext, uchar *pkt, int plen);
     bool DecodeMP2(MarkAdContext *maContext, uchar *espkt, int eslen);
     bool DecodeAC3(MarkAdContext *maContext, uchar *espkt, int eslen);
-    cMarkAdDecoder(int recvnumber, bool useH264, bool useMP2, bool hasAC3);
+    cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3);
     ~cMarkAdDecoder();
 };
 

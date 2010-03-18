@@ -24,8 +24,10 @@ void syslog_with_tid(int priority, const char *format, ...)
     }
     else
     {
+        char fmt[255];
+        snprintf(fmt, sizeof(fmt), "markad: [%d] %s", getpid(), format);
         va_start(ap, format);
-        vprintf(format,ap);
+        vprintf(fmt,ap);
         va_end(ap);
         printf("\n");
     }
@@ -39,7 +41,7 @@ void cMarkAdStandalone::AddStartMark()
         if (asprintf(&buf,"start of recording (0)")!=-1)
         {
             marks.Add(0,buf);
-            isyslog("markad [%i]: %s",recvnumber,buf);
+            isyslog(buf);
             free(buf);
         }
     }
@@ -135,14 +137,14 @@ void cMarkAdStandalone::CheckIndex()
         if (maxframes<(framecnt+200))
         {
             // now we sleep and hopefully the index will grow
-            dsyslog("markad [%i]: we are too fast, waiting %i secs",recvnumber,WAITTIME);
+            dsyslog("we are too fast, waiting %i secs",WAITTIME);
             sleep(WAITTIME);
             if (errno==EINTR) return;
             sleepcnt++;
             if (sleepcnt>=2)
             {
-                esyslog("markad [%i]: no new data after %i seconds, skipping wait!",
-                        recvnumber,sleepcnt*WAITTIME);
+                esyslog("no new data after %i seconds, skipping wait!",
+                        sleepcnt*WAITTIME);
                 notenough=false; // something went wrong?
             }
         }
@@ -183,7 +185,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     if (abort) return false;
 
     int dataread;
-    dsyslog("markad [%i]: processing file %05i",recvnumber,Number);
+    dsyslog("processing file %05i",Number);
 
     while ((dataread=read(f,data,datalen))>0)
     {
@@ -215,7 +217,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                             {
                                 if (macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
                                 {
-                                    isyslog("markad [%i]: HDTV %i%c",recvnumber,
+                                    isyslog("HDTV %i%c",
                                             macontext.Video.Info.Height,macontext.Video.Info.Interlaced ? 'i' : 'p');
                                 }
                                 if (!marks.Load(Directory,macontext.Video.Info.FramesPerSecond,isTS))
@@ -276,7 +278,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                         {
                             if ((!isTS) && (!noticeVDR_AC3))
                             {
-                                dsyslog("markad [%i]: found AC3",recvnumber);
+                                dsyslog("found AC3");
                                 if (mp2_demux)
                                 {
                                     delete mp2_demux;
@@ -317,7 +319,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                         {
                             if ((!isTS) && (!noticeVDR_MP2))
                             {
-                                dsyslog("markad [%i]: found MP2",recvnumber);
+                                dsyslog("found MP2");
                                 noticeVDR_MP2=true;
                             }
                             mark=audio->Process(lastiframe);
@@ -359,7 +361,7 @@ void cMarkAdStandalone::Process(const char *Directory)
     }
     if (abort)
     {
-        isyslog("markad [%i]: aborted",recvnumber);
+        isyslog("aborted");
     }
     else
     {
@@ -373,7 +375,7 @@ void cMarkAdStandalone::Process(const char *Directory)
             {
                 tempmark.Comment=buf;
                 AddMark(&tempmark);
-                isyslog("markad [%i]: %s",recvnumber,buf);
+                isyslog(buf);
                 free(buf);
             }
         }
@@ -393,7 +395,7 @@ void cMarkAdStandalone::Process(const char *Directory)
         {
             if (bIndexError)
             {
-                esyslog("markad [%i]: index doesn't match marks%s",recvnumber,
+                esyslog("index doesn't match marks%s",
                         isTS ? ", please report this" : ", please run genindex");
             }
         }
@@ -403,7 +405,7 @@ void cMarkAdStandalone::Process(const char *Directory)
         if (etime>0) ftime=framecnt/etime;
         if (macontext.Video.Info.FramesPerSecond>0)
             ptime=ftime/macontext.Video.Info.FramesPerSecond;
-        isyslog("markad [%i]: elapsed time %.2fs, %i frames, %.1f fps, %.1f pps",recvnumber,
+        isyslog("elapsed time %.2fs, %i frames, %.1f fps, %.1f pps",
                 etime,framecnt,ftime,ptime);
 
     }
@@ -459,7 +461,7 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
                     {
                         // we dont have 4:3, so ignore AspectRatio-Changes
                         macontext.Video.Options.IgnoreAspectRatio=true;
-                        isyslog("markad [%i]: broadcasts aspectratio is not 4:3, disabling aspect ratio",recvnumber);
+                        isyslog("broadcasts aspectratio is not 4:3, disabling aspect ratio");
                     }
                 }
 
@@ -471,13 +473,13 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
                         if (strchr(descr,'2'))
                         {
                             macontext.General.DPid.Num=0;
-                            isyslog("markad [%i]: broadcast with DolbyDigital2.0, disabling AC3 decoding",recvnumber);
+                            isyslog("broadcast with DolbyDigital2.0, disabling AC3 decoding");
                         }
                         // if we have DolbyDigital 5.1 disable video decoding
                         if (strchr(descr,'5'))
                         {
                             bDecodeVideo=false;
-                            isyslog("markad [%i]: broadcast with DolbyDigital5.1, disabling video decoding",recvnumber);
+                            isyslog("broadcast with DolbyDigital5.1, disabling video decoding");
                         }
 
                     }
@@ -679,10 +681,9 @@ const char cMarkAdStandalone::frametypes[8]={'?','I','P','B','D','S','s','b'};
 cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, int LogoExtraction,
                                      int LogoWidth, int LogoHeight, bool DecodeVideo,
                                      bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
-                                     const char *LogoDir, const char *MarkFileName)
+                                     const char *LogoDir, const char *MarkFileName, bool ASD)
 {
 
-    recvnumber=255;
     abort=false;
 
     noticeVDR_MP2=false;
@@ -696,6 +697,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     macontext.StandAlone.LogoExtraction=LogoExtraction;
     macontext.StandAlone.LogoWidth=LogoWidth;
     macontext.StandAlone.LogoHeight=LogoHeight;
+    macontext.Audio.Options.AudioSilenceDetection=ASD;
 
     bDecodeVideo=DecodeVideo;
     bDecodeAudio=DecodeAudio;
@@ -715,23 +717,23 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
     macontext.General.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
 
-    isyslog("markad [%i]: starting v%s",recvnumber,VERSION);
+    isyslog("starting v%s",VERSION);
 
     if (!bDecodeAudio)
     {
-        isyslog("markad [%i]: audio decoding disabled by user",recvnumber);
+        isyslog("audio decoding disabled by user");
     }
     if (!bDecodeVideo)
     {
-        isyslog("markad [%i]: video decoding disabled by user",recvnumber);
+        isyslog("video decoding disabled by user");
     }
     if (bIgnoreAudioInfo)
     {
-        isyslog("markad [%i]: audio info usage disabled by user",recvnumber);
+        isyslog("audio info usage disabled by user");
     }
     if (bIgnoreVideoInfo)
     {
-        isyslog("markad [%i]: video info usage disabled by user",recvnumber);
+        isyslog("video info usage disabled by user");
     }
 
     if (!CheckTS(Directory))
@@ -749,7 +751,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     {
         if (!CheckPATPMT(Directory))
         {
-            esyslog("markad [%i]: no PAT/PMT found -> nothing to process",recvnumber);
+            esyslog("no PAT/PMT found -> nothing to process");
             abort=true;
         }
         macontext.General.APid.Num=0;
@@ -774,7 +776,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
     if (!LoadInfo(Directory))
     {
-        if (bDecodeVideo) esyslog("markad [%i]: failed loading info - logo detection disabled",recvnumber);
+        if (bDecodeVideo) esyslog("failed loading info - logo detection disabled");
     }
 
     if (MarkFileName[0]) marks.SetFileName(MarkFileName);
@@ -783,16 +785,16 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     {
         if (isTS)
         {
-            dsyslog("markad [%i]: using %s-video (0x%04x)",recvnumber,
+            dsyslog("using %s-video (0x%04x)",
                     macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262",
                     macontext.General.VPid.Num);
         }
         else
         {
-            dsyslog("markad [%i]: using %s-video",
-                    recvnumber,macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262");
+            dsyslog("using %s-video",
+                    macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262");
         }
-        video_demux = new cMarkAdDemux(recvnumber);
+        video_demux = new cMarkAdDemux();
     }
     else
     {
@@ -802,8 +804,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     if (macontext.General.APid.Num)
     {
         if (macontext.General.APid.Num!=-1)
-            dsyslog("markad [%i]: using MP2 (0x%04x)",recvnumber,macontext.General.APid.Num);
-        mp2_demux = new cMarkAdDemux(recvnumber);
+            dsyslog("using MP2 (0x%04x)",macontext.General.APid.Num);
+        mp2_demux = new cMarkAdDemux();
     }
     else
     {
@@ -813,8 +815,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     if (macontext.General.DPid.Num)
     {
         if (macontext.General.DPid.Num!=-1)
-            dsyslog("markad [%i]: using AC3 (0x%04x)",recvnumber,macontext.General.DPid.Num);
-        ac3_demux = new cMarkAdDemux(recvnumber);
+            dsyslog("using AC3 (0x%04x)",macontext.General.DPid.Num);
+        ac3_demux = new cMarkAdDemux();
     }
     else
     {
@@ -823,10 +825,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
     if (!abort)
     {
-        decoder = new cMarkAdDecoder(recvnumber,macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,
+        decoder = new cMarkAdDecoder(macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,
                                      macontext.General.APid.Num!=0,macontext.General.DPid.Num!=0);
-        video = new cMarkAdVideo(recvnumber,&macontext);
-        audio = new cMarkAdAudio(recvnumber,&macontext);
+        video = new cMarkAdVideo(&macontext);
+        audio = new cMarkAdAudio(&macontext);
         streaminfo = new cMarkAdStreamInfo;
     }
     else
@@ -902,6 +904,8 @@ int usage()
            "                  markad sends an OSD-Message for start and end\n"
            "-V              --version\n"
            "                  print version-info and exit\n"
+           "                --asd\n"
+           "                  enable audio silence detecion\n"
            "                --markfile=<markfilename>\n"
            "                  set a different markfile-name\n"
            "\ncmd: one of\n"
@@ -935,7 +939,9 @@ void signal_handler(int sig)
 int main(int argc, char *argv[])
 {
     int c;
-    bool bAfter=false,bBefore=false,bEdited=false,bFork=false,bNice=false,bImmediateCall=false;
+    bool bAfter=false,bBefore=false,bEdited=false;
+    bool bFork=false,bNice=false,bImmediateCall=false;
+    bool bASD=false;
     int niceLevel = 19;
     char *recDir=NULL;
     char *tok,*str;
@@ -1188,6 +1194,7 @@ int main(int argc, char *argv[])
             break;
 
         case 6: // --asd
+            bASD=true;
             break;
 
         case 7: // --pass3only
@@ -1253,13 +1260,13 @@ int main(int argc, char *argv[])
             }
             if (pid != 0)
             {
-                isyslog("markad forked to pid %d",pid);
+                isyslog("forked to pid %d",pid);
                 return 0; // initial program immediately returns
             }
         }
         if ( bFork )
         {
-            isyslog("markad (forked) pid: %d", getpid());
+            isyslog("(forked) pid %d", getpid());
             if (chdir("/")==-1)
             {
                 perror("chdir");
@@ -1354,7 +1361,7 @@ int main(int argc, char *argv[])
 
         cmasta = new cMarkAdStandalone(recDir,bBackupMarks, logoExtraction, logoWidth, logoHeight,
                                        bDecodeVideo,bDecodeAudio,bIgnoreVideoInfo,bIgnoreAudioInfo,
-                                       logoDirectory,markFileName);
+                                       logoDirectory,markFileName,bASD);
         if (!cmasta) return -1;
 
         // ignore some signals

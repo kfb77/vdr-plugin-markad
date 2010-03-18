@@ -25,7 +25,6 @@
 class cMarkAdLogo
 {
 private:
-    int recvnumber;
 
     enum
     {
@@ -74,7 +73,7 @@ private:
     int Load(char *file);
     void Save(int lastiframe, uchar *picture);
 public:
-    cMarkAdLogo(int RecvNumber, MarkAdContext *maContext);
+    cMarkAdLogo(MarkAdContext *maContext);
     ~cMarkAdLogo();
     int Process(int LastIFrame, int *LogoIFrame);
 };
@@ -88,14 +87,13 @@ private:
     void SaveFrame(int LastIFrame);
     MarkAdContext *macontext;
 public:
-    cMarkAdBlackBordersHoriz(int RecvNumber, MarkAdContext *maContext);
+    cMarkAdBlackBordersHoriz(MarkAdContext *maContext);
     int Process(int LastIFrame,int *BorderIFrame);
 };
 
 class cMarkAdVideo
 {
 private:
-    int recvnumber;
     MarkAdContext *macontext;
     MarkAdMark mark;
 
@@ -109,7 +107,7 @@ private:
     void SetTimerMarks(int LastIFrame);
 
 public:
-    cMarkAdVideo(int RecvNumber,MarkAdContext *maContext);
+    cMarkAdVideo(MarkAdContext *maContext);
     ~cMarkAdVideo();
     MarkAdMark *Process(int LastIFrame);
 };

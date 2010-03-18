@@ -7,10 +7,9 @@
 
 #include "video.h"
 
-cMarkAdLogo::cMarkAdLogo(int RecvNumber, MarkAdContext *maContext)
+cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
 {
     macontext=maContext;
-    recvnumber=RecvNumber;
 
     // 3x3 GX Sobel mask
 
@@ -347,12 +346,12 @@ int cMarkAdLogo::Process(int LastIFrame, int *LogoIFrame)
                 switch (ret)
                 {
                 case -1:
-                    esyslog("markad [%i]: failed to open %s",recvnumber,buf);
+                    esyslog("failed to open %s",buf);
 
                     break;
 
                 case -2:
-                    esyslog("markad [%i]: format error in %s",recvnumber,buf);
+                    esyslog("format error in %s",buf);
                     break;
                 }
                 free(buf);
@@ -382,7 +381,7 @@ int cMarkAdLogo::Process(int LastIFrame, int *LogoIFrame)
     return Detect(LastIFrame,LogoIFrame);
 }
 
-cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(int RecvNumber, MarkAdContext *maContext)
+cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(MarkAdContext *maContext)
 {
     macontext=maContext;
 
@@ -486,18 +485,17 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
 }
 
 
-cMarkAdVideo::cMarkAdVideo(int RecvNumber,MarkAdContext *maContext)
+cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext)
 {
     macontext=maContext;
-    recvnumber=RecvNumber;
 
     aspectratio.Num=0;
     aspectratio.Den=0;
     mark.Comment=NULL;
     mark.Position=0;
 
-    hborder=new cMarkAdBlackBordersHoriz(RecvNumber,maContext);
-    logo = new cMarkAdLogo(RecvNumber,maContext);
+    hborder=new cMarkAdBlackBordersHoriz(maContext);
+    logo = new cMarkAdLogo(maContext);
 }
 
 cMarkAdVideo::~cMarkAdVideo()
@@ -562,7 +560,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         {
             if (asprintf(&buf,"detected logo start (%i)",logoiframe)!=-1)
             {
-                isyslog("markad [%i]: %s",recvnumber,buf);
+                isyslog(buf);
                 AddMark(logoiframe,buf);
                 free(buf);
             }
@@ -571,7 +569,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         {
             if (asprintf(&buf,"detected logo stop (%i)",logoiframe)!=-1)
             {
-                isyslog("markad [%i]: %s",recvnumber,buf);
+                isyslog(buf);
                 AddMark(logoiframe,buf);
                 free(buf);
             }
@@ -587,7 +585,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         char *buf=NULL;
         if (asprintf(&buf,"detected start of horiz. borders (%i)",borderiframe)!=-1)
         {
-            isyslog("markad [%i]: %s",recvnumber,buf);
+            isyslog(buf);
             AddMark(borderiframe,buf);
             free(buf);
         }
@@ -598,7 +596,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         char *buf=NULL;
         if (asprintf(&buf,"detected stop of horiz. borders (%i)",borderiframe)!=-1)
         {
-            isyslog("markad [%i]: %s",recvnumber,buf);
+            isyslog(buf);
             AddMark(borderiframe,buf);
             free(buf);
         }
@@ -614,7 +612,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
                          macontext->Video.Info.AspectRatio.Num,
                          macontext->Video.Info.AspectRatio.Den,LastIFrame)!=-1)
             {
-                isyslog("markad [%i]: %s",recvnumber, buf);
+                isyslog(buf);
                 AddMark(LastIFrame,buf);
                 free(buf);
             }

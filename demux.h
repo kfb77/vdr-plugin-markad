@@ -42,7 +42,7 @@ private:
     void ProcessTS(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);
     void ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);
 public:
-    cMarkAdDemux(int RecvNumber);
+    cMarkAdDemux();
     ~cMarkAdDemux();
     int Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);
 };

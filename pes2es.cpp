@@ -7,9 +7,9 @@
 
 #include "pes2es.h"
 
-cMarkAdPES2ES::cMarkAdPES2ES(int RecvNumber, const char *QueueName, int QueueSize)
+cMarkAdPES2ES::cMarkAdPES2ES(const char *QueueName, int QueueSize)
 {
-    queue = new cMarkAdPaketQueue(RecvNumber,QueueName,QueueSize);
+    queue = new cMarkAdPaketQueue(QueueName,QueueSize);
     type=0;
 }
 

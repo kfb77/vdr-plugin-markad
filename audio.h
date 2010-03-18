@@ -3,7 +3,6 @@
  *
  * See the README file for copyright information and how to reach the author.
  *
- * $Id$
  */
 
 #ifndef __audio_h_
@@ -13,22 +12,37 @@
 #include <netinet/in.h> // for htonl
 
 #include "global.h"
+#if 0
+#include "audio_gain_analysis.h"
+#endif
 
 class cMarkAdAudio
 {
 private:
     int lastiframe;
-    int recvnumber;
     MarkAdContext *macontext;
 
     MarkAdMark mark;
     void ResetMark();
     bool AddMark(int Position, const char *Comment);
 
+#define CUT_VAL 10
+#define MIN_LOWVALS 3
+    bool SilenceDetection();
+    int lastiframe_silence;
+
+#if 0
+#define ANALYZEFRAMES 1
+    int lastiframe_gain;
+    double lastgain;
+    cMarkAdAudioGainAnalysis audiogain;
+    bool AnalyzeGain();
+#endif
+
     int channels;
     bool ChannelChange(int a, int b);
 public:
-    cMarkAdAudio(int RecvNumber,MarkAdContext *maContext);
+    cMarkAdAudio(MarkAdContext *maContext);
     ~cMarkAdAudio();
     MarkAdMark *Process(int LastIFrame);
 };

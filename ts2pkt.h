@@ -101,7 +101,6 @@ unsigned Length:
     };
 #pragma pack()
 
-    int recvnumber;
     int counter;
     bool sync;
 
@@ -116,7 +115,7 @@ unsigned Length:
 #define MA_ERR_NEG 6
     void Reset(int ErrIndex=MA_ERR_STARTUP);
 public:
-    cMarkAdTS2Pkt(int RecvNumber, const char *QueueName="TS2Pkt", int QueueSize=32768);
+    cMarkAdTS2Pkt(const char *QueueName="TS2Pkt", int QueueSize=32768);
     ~cMarkAdTS2Pkt();
     void Process(MarkAdPid Pid,uchar *TSData, int TSSize, uchar **PktData, int *PktSize);
     bool InjectVideoPES(uchar *PESData, int PESSize);

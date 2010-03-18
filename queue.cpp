@@ -7,9 +7,8 @@
 
 #include "queue.h"
 
-cMarkAdPaketQueue::cMarkAdPaketQueue(int RecvNumber, const char *Name, int Size)
+cMarkAdPaketQueue::cMarkAdPaketQueue(const char *Name, int Size)
 {
-    recvnumber=RecvNumber;
     inptr=0;
     outptr=0;
     memset(&pktinfo,0,sizeof(pktinfo));
@@ -66,7 +65,7 @@ bool cMarkAdPaketQueue::Put(uchar *Data, int Size)
 
     if (((inptr+Size)>maxqueue) && (name))
     {
-        esyslog("markad [%i]: buffer %s full",recvnumber,name);
+        esyslog("buffer %s full",name);
         inptr=outptr=0;
     }
 
@@ -77,7 +76,7 @@ bool cMarkAdPaketQueue::Put(uchar *Data, int Size)
 
     if ((npercent>90) && (name) && (npercent!=percent))
     {
-        dsyslog("markad [%i]: buffer %s usage: %3i%%",recvnumber,
+        dsyslog("buffer %s usage: %3i%%",
                 name,npercent);
         percent=npercent;
     }

@@ -7,9 +7,8 @@
 
 #include "decoder.h"
 
-cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool useMP2, bool hasAC3)
+cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
 {
-    recvnumber=RecvNumber;
     avcodec_init();
     avcodec_register_all();
 
@@ -27,7 +26,7 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool useMP2, bool h
         cpucount=CPU_COUNT(&cpumask);
     }
 
-    isyslog("markad [%i]: using libavcodec.so.%s with %i threads",recvnumber,
+    isyslog("using libavcodec.so.%s with %i threads",
             AV_STRINGIFY(LIBAVCODEC_VERSION),cpucount);
 
     if (useMP2)
@@ -42,19 +41,19 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool useMP2, bool h
                 mp2_context->thread_count=cpucount;
                 if (avcodec_open(mp2_context, mp2_codec) < 0)
                 {
-                    esyslog("markad [%i]: could not open codec 0x%05x",recvnumber,mp2_codecid);
+                    esyslog("could not open codec 0x%05x",mp2_codecid);
                     av_free(mp2_context);
                     mp2_context=NULL;
                 }
             }
             else
             {
-                esyslog("markad [%i]: could not allocate mp2 context",recvnumber);
+                esyslog("could not allocate mp2 context");
             }
         }
         else
         {
-            esyslog("markad [%i]: codec 0x%05x not found",recvnumber,mp2_codecid);
+            esyslog("codec 0x%05x not found",mp2_codecid);
             mp2_context=NULL;
         }
     }
@@ -75,19 +74,19 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool useMP2, bool h
                 ac3_context->thread_count=cpucount;
                 if (avcodec_open(ac3_context, ac3_codec) < 0)
                 {
-                    esyslog("markad [%i]: could not open codec 0x%05x",recvnumber,ac3_codecid);
+                    esyslog("could not open codec 0x%05x",ac3_codecid);
                     av_free(ac3_context);
                     ac3_context=NULL;
                 }
             }
             else
             {
-                esyslog("markad [%i]: could not allocate ac3 context",recvnumber);
+                esyslog("could not allocate ac3 context");
             }
         }
         else
         {
-            esyslog("markad [%i]: codec 0x%05x not found",recvnumber,ac3_codecid);
+            esyslog("codec 0x%05x not found",ac3_codecid);
             ac3_context=NULL;
         }
     }
@@ -162,24 +161,24 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool useMP2, bool h
             }
             if (ret < 0)
             {
-                esyslog("markad [%i]: could not open codec 0x%05x",recvnumber,video_codecid);
+                esyslog("could not open codec 0x%05x",video_codecid);
                 av_free(video_context);
                 video_context=NULL;
             }
             else
             {
 
-                isyslog("markad [%i]: using codec %s",recvnumber,video_codec->long_name);
+                isyslog("using codec %s",video_codec->long_name);
 
                 if (video_context->hwaccel)
                 {
-                    isyslog("markad [%i]: using hwaccel %s",recvnumber,video_context->hwaccel->name);
+                    isyslog("using hwaccel %s",video_context->hwaccel->name);
                 }
 
                 video_frame = avcodec_alloc_frame();
                 if (!video_frame)
                 {
-                    esyslog("markad [%i]: could not allocate frame",recvnumber);
+                    esyslog("could not allocate frame");
                     avcodec_close(video_context);
                     av_free(video_context);
                     video_context=NULL;
@@ -188,12 +187,12 @@ cMarkAdDecoder::cMarkAdDecoder(int RecvNumber, bool useH264, bool useMP2, bool h
         }
         else
         {
-            esyslog("markad [%i]: could not allocate video context",recvnumber);
+            esyslog("could not allocate video context");
         }
     }
     else
     {
-        esyslog("markad [%i]: codec 0x%05x not found",recvnumber,video_codecid);
+        esyslog("codec 0x%05x not found",video_codecid);
         video_context=NULL;
     }
 
@@ -258,7 +257,7 @@ bool cMarkAdDecoder::DecodeMP2(MarkAdContext *maContext, uchar *espkt, int eslen
 #endif
         if (len<0)
         {
-            esyslog("markad [%i]: error decoding mp2",recvnumber);
+            esyslog("error decoding mp2");
             break;
         }
         if (audiobufsize>0)
@@ -312,7 +311,7 @@ bool cMarkAdDecoder::DecodeAC3(MarkAdContext *maContext, uchar *espkt, int eslen
 #endif
         if (len<0)
         {
-            esyslog("markad [%i]: error decoding ac3",recvnumber);
+            esyslog("error decoding ac3");
             break;
         }
         if (audiobufsize>0)
@@ -403,7 +402,7 @@ bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
 #endif
         if (len<0)
         {
-            esyslog("markad [%i]: error decoding video",recvnumber);
+            esyslog("error decoding video");
             break;
         }
         else

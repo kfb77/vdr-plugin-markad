@@ -7,10 +7,9 @@
 
 #include "ts2pkt.h"
 
-cMarkAdTS2Pkt::cMarkAdTS2Pkt(int RecvNumber, const char *QueueName, int QueueSize)
+cMarkAdTS2Pkt::cMarkAdTS2Pkt(const char *QueueName, int QueueSize)
 {
-    recvnumber=RecvNumber;
-    queue=new cMarkAdPaketQueue(RecvNumber,QueueName,QueueSize);
+    queue=new cMarkAdPaketQueue(QueueName,QueueSize);
     Reset();
 }
 
@@ -25,22 +24,22 @@ void cMarkAdTS2Pkt::Reset(int ErrIndex)
     switch (ErrIndex)
     {
     case MA_ERR_TSSIZE:
-        dsyslog("markad [%i]: inbuf not 188 bytes",recvnumber);
+        dsyslog("inbuf not 188 bytes");
         break;
     case MA_ERR_NOSYNC:
-        dsyslog("markad [%i]: found no sync",recvnumber);
+        dsyslog("found no sync");
         break;
     case MA_ERR_SEQ:
-        dsyslog("markad [%i]: sequence error",recvnumber);
+        dsyslog("sequence error");
         break;
     case MA_ERR_AFC:
-        dsyslog("markad [%i]: wrong AFC value",recvnumber);
+        dsyslog("wrong AFC value");
         break;
     case MA_ERR_TOBIG:
-        dsyslog("markad [%i]: buflen > 188 bytes",recvnumber);
+        dsyslog("buflen > 188 bytes");
         break;
     case MA_ERR_NEG:
-        dsyslog("markad [%i]: buflen negative",recvnumber);
+        dsyslog("buflen negative");
         break;
     }
     counter=-1;

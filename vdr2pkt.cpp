@@ -7,9 +7,9 @@
 
 #include "vdr2pkt.h"
 
-cMarkAdVDR2Pkt::cMarkAdVDR2Pkt(int RecvNumber, const char *QueueName, int QueueSize)
+cMarkAdVDR2Pkt::cMarkAdVDR2Pkt(const char *QueueName, int QueueSize)
 {
-    queue = new cMarkAdPaketQueue(RecvNumber,QueueName,QueueSize);
+    queue = new cMarkAdPaketQueue(QueueName,QueueSize);
 }
 
 cMarkAdVDR2Pkt::~cMarkAdVDR2Pkt()

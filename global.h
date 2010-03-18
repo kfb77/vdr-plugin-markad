@@ -54,7 +54,7 @@ typedef struct MarkAdContext
         int LogoExtraction;
         int LogoWidth;
         int LogoHeight;
-        MarkAdAspectRatio AspectRatioHint;
+        bool ASD;
     } StandAlone;
 
     struct General
@@ -92,6 +92,11 @@ typedef struct MarkAdContext
 
     struct Audio
     {
+        struct Options
+        {
+            bool AudioSilenceDetection;
+        } Options;
+
         struct Info
         {
             int Channels; // number of audio channels

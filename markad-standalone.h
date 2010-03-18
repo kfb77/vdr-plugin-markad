@@ -152,7 +152,6 @@ unsigned Descriptor_Length:
     cMarkAdStreamInfo *streaminfo;
 
     MarkAdContext macontext;
-    int recvnumber;
 
     bool isTS;
     int MaxFiles;
@@ -198,7 +197,7 @@ public:
     cMarkAdStandalone(const char *Directory, bool BackupMarks, int LogoExtraction,
                       int LogoWidth, int LogoHeight, bool DecodeVideo,
                       bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
-                      const char *LogoDir, const char *MarkFileName);
+                      const char *LogoDir, const char *MarkFileName, bool ASD);
 
     ~cMarkAdStandalone();
 };

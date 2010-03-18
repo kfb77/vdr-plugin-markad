@@ -104,7 +104,6 @@ unsigned Length:
 
 private:
     char *name;
-    int recvnumber;
     struct pktinfo
     {
         int pkthdr;
@@ -126,7 +125,7 @@ private:
     int FindPktHeader(int Start, int *StreamSize,int *SyncSize, bool LongStartCode);
     int FindAudioHeader(int Start, int *FrameSize, int *SyncSize, bool AC3);
 public:
-    cMarkAdPaketQueue(int RecvNumber, const char *Name, int Size=32768);
+    cMarkAdPaketQueue(const char *Name, int Size=32768);
     ~cMarkAdPaketQueue();
     int Length()
     {

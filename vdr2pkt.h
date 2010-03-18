@@ -20,7 +20,7 @@ class cMarkAdVDR2Pkt
 private:
     cMarkAdPaketQueue *queue;
 public:
-    cMarkAdVDR2Pkt(int RecvNumber, const char *QueueName="VDR2PKT", int QueueSize=32768);
+    cMarkAdVDR2Pkt(const char *QueueName="VDR2PKT", int QueueSize=32768);
     ~cMarkAdVDR2Pkt();
     void Process(MarkAdPid Pid,uchar *VDRData, int VDRSize, uchar **PktData, int *PktSize);
 };

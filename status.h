@@ -8,15 +8,11 @@
 #define __status_h_
 
 #include <vdr/status.h>
-#include "recv.h"
 
 // --- cStatusMarkAd
 class cStatusMarkAd : public cStatus
 {
 private:
-    cMarkAdReceiver *recv[MAXDEVICES*MAXRECEIVERS];
-    int FindReceiver(const char *FileName);
-    int GetFreeReceiver();
 protected:
     virtual void Recording(const cDevice *Device, const char *Name, const char *FileName, bool On);
 public:

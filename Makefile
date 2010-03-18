@@ -55,9 +55,8 @@ LIBS-CMD += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS))
 
 ### The object files (add further files here):
 
-OBJS-CMD = markad-standalone.o decoder.o marks.o 
-OBJS-COMMON = streaminfo.o video.o audio.o demux.o queue.o vdr2pkt.o ts2pkt.o pes2es.o
-OBJS = $(PLUGIN).o recv.o status.o $(OBJS-COMMON)
+OBJS-CMD = markad-standalone.o decoder.o marks.o streaminfo.o video.o audio.o demux.o queue.o vdr2pkt.o ts2pkt.o pes2es.o 
+OBJS = $(PLUGIN).o status.o 
 
 ### The main target:
 
@@ -109,8 +108,8 @@ libvdr-$(PLUGIN).so: $(OBJS)
 	$(CXX) $(CXXFLAGS) -shared $(OBJS) $(LIBS) -o $@
 	@cp --remove-destination $@ $(LIBDIR)/$@.$(APIVERSION)
 
-$(PLUGIN): $(OBJS-COMMON) $(OBJS-CMD)
-	$(CXX) $(CXXFLAGS) $(OBJS-COMMON) $(OBJS-CMD) $(LIBS-CMD) -o $@
+$(PLUGIN): $(OBJS-CMD)
+	$(CXX) $(CXXFLAGS) $(OBJS-CMD) $(LIBS-CMD) -o $@
 
 dist: clean
 	@-rm -rf $(TMPDIR)/$(ARCHIVE)
