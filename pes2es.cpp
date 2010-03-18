@@ -1,5 +1,5 @@
 /*
- * pes2es.cpp: A plugin for the Video Disk Recorder
+ * pes2es.cpp: A program for the Video Disk Recorder
  *
  * See the README file for copyright information and how to reach the author.
  *

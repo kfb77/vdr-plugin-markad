@@ -1,5 +1,5 @@
 /*
- * version.h: A plugin for the Video Disk Recorder
+ * version.h: A plugin/program for the Video Disk Recorder
  *
  * See the README file for copyright information and how to reach the author.
  *

@@ -1,5 +1,5 @@
 /*
- * vdr2pkt.h: A plugin for the Video Disk Recorder
+ * vdr2pkt.h: A program for the Video Disk Recorder
  *
  * See the README file for copyright information and how to reach the author.
  *
