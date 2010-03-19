@@ -34,7 +34,6 @@ private:
     {
         bool primary_pic_typeI;
         bool separate_colour_plane_flag;
-        bool frame_mbs_only_flag;
         int log2_max_frame_num;
         int frame_num;
     } H264;

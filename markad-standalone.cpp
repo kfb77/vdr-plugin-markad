@@ -167,6 +167,9 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     if (!Directory) return false;
     if (!Number) return false;
 
+    CheckIndex(true);
+    if (abort) return false;
+
     int datalen=385024;
     uchar data[datalen];
 
@@ -183,9 +186,6 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     int f=open(fbuf,O_RDONLY);
     free(fbuf);
     if (f==-1) return false;
-
-    CheckIndex(true);
-    if (abort) return false;
 
     int dataread;
     dsyslog("processing file %05i",Number);
@@ -218,11 +218,9 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                         {
                             if (!framecnt)
                             {
-                                if (macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
-                                {
-                                    isyslog("HDTV %i%c",
-                                            macontext.Video.Info.Height,macontext.Video.Info.Interlaced ? 'i' : 'p');
-                                }
+                                isyslog("%s %i%c",(macontext.Video.Info.Height>576) ? "HDTV" : "SDTV",
+                                        macontext.Video.Info.Height,
+                                        macontext.Video.Info.Interlaced ? 'i' : 'p');
                                 if (!marks.Load(Directory,macontext.Video.Info.FramesPerSecond,isTS))
                                 {
                                     AddStartMark();
@@ -757,12 +755,18 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
             esyslog("no PAT/PMT found -> nothing to process");
             abort=true;
         }
-        macontext.General.APid.Num=0;
+        if (!macontext.Audio.Options.AudioSilenceDetection)
+        {
+            macontext.General.APid.Num=0;
+        }
         if (asprintf(&indexFile,"%s/index",Directory)==-1) indexFile=NULL;
     }
     else
     {
-        macontext.General.APid.Num=-1;
+        if (macontext.Audio.Options.AudioSilenceDetection)
+        {
+            macontext.General.APid.Num=-1;
+        }
         macontext.General.DPid.Num=-1;
         macontext.General.VPid.Num=-1;
 

@@ -189,10 +189,10 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         bs.skipBit();                             // gaps_in_frame_num_value_allowed_flag
         width  = bs.getUeGolomb() + 1;            // pic_width_in_mbs_minus1
         height = bs.getUeGolomb() + 1;            // pic_height_in_mbs_minus1
-        H264.frame_mbs_only_flag = bs.getBit();        // frame_mbs_only_flag
+        bool frame_mbs_only_flag = bs.getBit();        // frame_mbs_only_flag
         width  *= 16;
-        height *= 16 * (H264.frame_mbs_only_flag ? 1 : 2);
-        if (!H264.frame_mbs_only_flag)
+        height *= 16 * (frame_mbs_only_flag ? 1 : 2);
+        if (!frame_mbs_only_flag)
             bs.skipBit();                         // mb_adaptive_frame_field_flag
         bs.skipBit();                             // direct_8x8_inference_flag
         if (bs.getBit())                          // frame_cropping_flag
@@ -203,7 +203,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
             crop_top    = bs.getUeGolomb();        // frame_crop_top_offset
             crop_bottom = bs.getUeGolomb();        // frame_crop_bottom_offset
             width -= 2 * (crop_left + crop_right);
-            if (H264.frame_mbs_only_flag)
+            if (frame_mbs_only_flag)
                 height -= 2 * (crop_top + crop_bottom);
             else
                 height -= 4 * (crop_top + crop_bottom);
@@ -246,7 +246,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 if (num_units_in_tick > 0)
                 {
                     frame_rate = time_scale / (2*num_units_in_tick);
-                    if (H264.frame_mbs_only_flag) frame_rate/=2;
+                    if (frame_mbs_only_flag) frame_rate/=2;
                 }
                 //bs.skipBit();                       // fixed_frame_rate_flag
             }
@@ -307,6 +307,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         if  ((bs.getIndex() / 8)>0)
         {
             // set values
+            maContext->Video.Info.Interlaced=!frame_mbs_only_flag;
             maContext->Video.Info.FramesPerSecond=frame_rate;
             maContext->Video.Info.Width=width;
             maContext->Video.Info.Height=height;
@@ -421,19 +422,16 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         int frame_num=bs.getBits(H264.log2_max_frame_num); // frame_num
         if (H264.frame_num==-1) H264.frame_num=frame_num;
 
-        maContext->Video.Info.Interlaced=false;
-        if (!H264.frame_mbs_only_flag)
-        {
-            maContext->Video.Info.Interlaced=true;
-            /*
-               bool field_pic_flag=bs.getBit();
-               if (field_pic_flag)
-               {
-                  bool bottom_field_flag=bs.getBit();
-               }
-            */
-        }
-
+        /*
+                if (maContext->Video.Info.Interlaced)
+                {
+                    bool field_pic_flag=bs.getBit();
+                    if (field_pic_flag)
+                    {
+                        bool bottom_field_flag=bs.getBit();
+                    }
+                }
+        */
         switch (slice_type)
         {
         case 0:
@@ -547,6 +545,41 @@ unsigned TemporalReferenceL:
         8;
     };
 
+    struct H262_SequenceExt
+    {
+unsigned Sync1:
+        8;
+unsigned Sync2:
+        8;
+unsigned Sync3:
+        8;
+unsigned Sync4:
+        8;
+unsigned Profile:
+        4;
+unsigned StartCode:
+        4;
+unsigned WidthExtH:
+        1;
+unsigned Chroma:
+        2;
+unsigned Progressive:
+        1;
+unsigned Level:
+        4;
+unsigned BitRateExtH:
+        5;
+unsigned HightExt:
+        2;
+unsigned WidthExtL:
+        1;
+unsigned Marker:
+        1;
+unsigned BitRateExtL:
+        7;
+    };
+
+    struct H262_SequenceExt *seqext = (struct H262_SequenceExt *) pkt;
     struct H262_SequenceHdr *seqhdr = (struct H262_SequenceHdr *) pkt;
     struct H262_PictureHdr *pichdr = (struct H262_PictureHdr *) pkt;
 
@@ -573,6 +606,11 @@ unsigned TemporalReferenceL:
             break;
         }
         return true;
+    }
+
+    if (seqext->Sync1==0 && seqext->Sync2==0 && seqext->Sync3==1 && seqext->Sync4==0xb5)
+    {
+        maContext->Video.Info.Interlaced=!seqext->Progressive;
     }
 
     if (seqhdr->Sync1==0 && seqhdr->Sync2==0 && seqhdr->Sync3==1 && seqhdr->Sync4==0xb3)
