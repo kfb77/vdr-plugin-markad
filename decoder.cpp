@@ -26,8 +26,20 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
         cpucount=CPU_COUNT(&cpumask);
     }
 
-    isyslog("using libavcodec.so.%s with %i threads",
-            AV_STRINGIFY(LIBAVCODEC_VERSION),cpucount);
+    int ver = avcodec_version();
+    char libver[256];
+    snprintf(libver,sizeof(libver),"%i.%i.%i",ver >> 16 & 0xFF,ver >> 8 & 0xFF,ver & 0xFF);
+    isyslog("using libavcodec.so.%s with %i threads",libver,cpucount);
+
+    if (ver!=LIBAVCODEC_VERSION_INT)
+    {
+        esyslog("libavcodec header version %s",AV_STRINGIFY(LIBAVCODEC_VERSION));
+        esyslog("header and library mismatch, decoding disabled");
+        video_context=NULL;
+        ac3_context=NULL;
+        mp2_context=NULL;
+        audiobuf=NULL;
+    }
 
     if (useMP2)
     {
@@ -39,6 +51,8 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
             if (mp2_context)
             {
                 mp2_context->thread_count=cpucount;
+                mp2_context->codec_id = mp2_codecid;
+                mp2_context->codec_type = CODEC_TYPE_AUDIO;
                 if (avcodec_open(mp2_context, mp2_codec) < 0)
                 {
                     esyslog("could not open codec for MP2");
@@ -72,6 +86,8 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
             if (ac3_context)
             {
                 ac3_context->thread_count=cpucount;
+                ac3_context->codec_id = ac3_codecid;
+                ac3_context->codec_type = CODEC_TYPE_AUDIO;
                 if (avcodec_open(ac3_context, ac3_codec) < 0)
                 {
                     esyslog("could not open codec for AC3");
@@ -140,6 +156,8 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
                 video_context->skip_frame=AVDISCARD_NONKEY; // just I-frames
             }
 
+            video_context->codec_id = video_codecid;
+            video_context->codec_type = CODEC_TYPE_VIDEO;
             int ret=avcodec_open(video_context, video_codec);
             if ((ret < 0) && (video_codecid==CODEC_ID_MPEG2VIDEO_XVMC))
             {
