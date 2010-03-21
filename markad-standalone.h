@@ -17,6 +17,7 @@
 #include <signal.h>
 #include <ctype.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 
 #include "demux.h"
 #include "global.h"
@@ -158,6 +159,7 @@ unsigned Descriptor_Length:
     int lastiframe;
     int framecnt;
     bool abort;
+    int waittime;
 
     bool noticeVDR_MP2;
     bool noticeVDR_AC3;
@@ -167,10 +169,9 @@ unsigned Descriptor_Length:
     bool bIgnoreAudioInfo;
     bool bIgnoreVideoInfo;
 
-    void CheckIndex(bool NoLastFrameCheck);
+    void CheckIndex();
     char *indexFile;
     int sleepcnt;
-    int lastmaxframes;
 
     void SaveFrame(int Frame);
 

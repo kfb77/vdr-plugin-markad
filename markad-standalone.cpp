@@ -30,6 +30,7 @@ void syslog_with_tid(int priority, const char *format, ...)
         vprintf(fmt,ap);
         va_end(ap);
         printf("\n");
+        fflush(stdout);
     }
 }
 
@@ -112,7 +113,7 @@ void cMarkAdStandalone::SaveFrame(int frame)
     fclose(pFile);
 }
 
-void cMarkAdStandalone::CheckIndex(bool NoLastFrameCheck)
+void cMarkAdStandalone::CheckIndex()
 {
     // Here we check the indexfile
     // if we have an index we check if the
@@ -132,16 +133,11 @@ void cMarkAdStandalone::CheckIndex(bool NoLastFrameCheck)
         if (stat(indexFile,&statbuf)==-1) return;
 
         int maxframes=statbuf.st_size/8;
-        if (NoLastFrameCheck)
-        {
-            if (lastmaxframes==maxframes) return; // no new frames still last call!
-        }
-
         if (maxframes<(framecnt+200))
         {
-            // now we sleep and hopefully the index will grow
-            dsyslog("we are too fast, waiting %i secs",WAITTIME);
-            sleep(WAITTIME);
+            if ((difftime(time(NULL),statbuf.st_mtime))>120) return; // "old" file
+            sleep(WAITTIME); // now we sleep and hopefully the index will grow
+            waittime+=WAITTIME;
             if (errno==EINTR) return;
             sleepcnt++;
             if (sleepcnt>=2)
@@ -156,10 +152,8 @@ void cMarkAdStandalone::CheckIndex(bool NoLastFrameCheck)
             sleepcnt=0;
             notenough=false;
         }
-        lastmaxframes=maxframes;
     }
     while (notenough);
-
 }
 
 bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
@@ -167,7 +161,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     if (!Directory) return false;
     if (!Number) return false;
 
-    CheckIndex(true);
+    CheckIndex();
     if (abort) return false;
 
     int datalen=385024;
@@ -332,7 +326,8 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                 }
             }
         }
-        CheckIndex(false);
+
+        CheckIndex();
         if (abort)
         {
             if (f!=-1) close(f);
@@ -402,7 +397,7 @@ void cMarkAdStandalone::Process(const char *Directory)
         }
 
         double etime,ftime=0,ptime=0;
-        etime=sec+((double) usec/1000000);
+        etime=sec+((double) usec/1000000)-waittime;
         if (etime>0) ftime=framecnt/etime;
         if (macontext.Video.Info.FramesPerSecond>0)
             ptime=ftime/macontext.Video.Info.FramesPerSecond;
@@ -691,7 +686,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     noticeVDR_AC3=false;
 
     sleepcnt=0;
-    lastmaxframes=0;
+    waittime=0;
 
     memset(&macontext,0,sizeof(macontext));
     macontext.LogoDir=(char *) LogoDir;
@@ -895,7 +890,7 @@ int usage()
            "                  directory where logos stored, default /var/lib/markad\n"
            "-p,             --priority level=<priority>\n"
            "                  priority-level of markad when running in background\n"
-           "                  <19...-19> default 19\n"
+           "                  <-20...19> default 19\n"
            "-v,             --verbose\n"
            "                  increments loglevel by one, can be given multiple times\n"
            "-B              --backupmarks\n"
@@ -1336,19 +1331,9 @@ int main(int argc, char *argv[])
         // should we renice ?
         if ( bNice )
         {
-            int niceErr = nice(niceLevel);
-            int oldErrno = errno;
-            if ( errno == EPERM || errno == EACCES )
+            if (setpriority(PRIO_PROCESS,0,niceLevel)==-1)
             {
-                esyslog("ERROR: nice %d: no super-user rights",niceLevel);
-                errno = oldErrno;
-                fprintf(stderr, "nice %d: no super-user rights\n",niceLevel);
-            }
-            else if ( niceErr != niceLevel )
-            {
-                esyslog("nice ERROR(%d,%d): %m",niceLevel,niceErr);
-                errno = oldErrno;
-                fprintf(stderr, "%d %d %m\n",niceErr,errno);
+                esyslog("failed to set nice to %d",niceLevel);
             }
         }
 
