@@ -39,6 +39,7 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
         ac3_context=NULL;
         mp2_context=NULL;
         audiobuf=NULL;
+        return;
     }
 
     if (useMP2)
