@@ -102,7 +102,7 @@ private:
     cMarkAdLogo *logo;
 
     void ResetMark();
-    bool AddMark(int Position, const char *Comment);
+    bool AddMark(int Type, int Position, const char *Comment);
     bool AspectRatioChange(MarkAdAspectRatio *a, MarkAdAspectRatio *b);
     void SetTimerMarks(int LastIFrame);
 

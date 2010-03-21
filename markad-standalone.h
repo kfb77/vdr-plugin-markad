@@ -169,7 +169,7 @@ unsigned Descriptor_Length:
     bool bIgnoreAudioInfo;
     bool bIgnoreVideoInfo;
 
-    void CheckIndex();
+    void CheckIndex(const char *Directory);
     char *indexFile;
     int sleepcnt;
 

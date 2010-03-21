@@ -22,8 +22,16 @@ typedef unsigned char uchar;
 #define MA_SP_TYPE 6
 #define MA_BI_TYPE 7
 
+#define MT_COMMON        0x10
+#define MT_ASPECTCHANGE  0x20
+#define MT_CHANNELCHANGE 0x30
+#define MT_LOGOCHANGE    0x40
+#define MT_BORDERCHANGE  0x50
+#define MT_SILENCECHANGE 0x60
+
 typedef struct MarkAdMark
 {
+    int Type;
     int Position;
     char *Comment;
 } MarkAdMark;

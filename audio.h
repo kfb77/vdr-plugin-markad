@@ -24,7 +24,7 @@ private:
 
     MarkAdMark mark;
     void ResetMark();
-    bool AddMark(int Position, const char *Comment);
+    bool AddMark(int Type, int Position, const char *Comment);
 
 #define CUT_VAL 10
 #define MIN_LOWVALS 3

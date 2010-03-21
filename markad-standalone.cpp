@@ -36,29 +36,34 @@ void syslog_with_tid(int priority, const char *format, ...)
 
 void cMarkAdStandalone::AddStartMark()
 {
-    if (!marks.Count())
+    char *buf;
+    if (asprintf(&buf,"start of recording (0)")!=-1)
     {
-        char *buf;
-        if (asprintf(&buf,"start of recording (0)")!=-1)
-        {
-            marks.Add(0,buf);
-            isyslog(buf);
-            free(buf);
-        }
-    }
-    else
-    {
-        marksAligned=true;
+        marks.Add(MT_COMMON,0,buf);
+        isyslog(buf);
+        free(buf);
     }
 }
 
 void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 {
     if (!Mark) return;
-    if (Mark->Position<1) return;
+    if (!Mark->Type) return;
 
-    marks.Add(Mark->Position,Mark->Comment);
+    if (((Mark->Type==MT_CHANNELCHANGE) || (Mark->Type==MT_CHANNELCHANGE)) &&
+            (Mark->Position>25000) && (bDecodeVideo))
+    {
+        isyslog("%s change detected. video decoding disabled",
+                Mark->Type==MT_CHANNELCHANGE ? "audio channel" : "aspectratio");
+        bDecodeVideo=false;
+        macontext.Video.Data.Valid=false;
+        marks.Del(MT_LOGOCHANGE);
+        marks.Del(MT_BORDERCHANGE);
+    }
 
+    marks.Add(Mark->Type,Mark->Position,Mark->Comment);
+
+#if 0
     if (!marksAligned)
     {
         clMark *prevmark=marks.GetPrev(Mark->Position);
@@ -81,7 +86,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             marksAligned=true;
         }
     }
-
+#endif
 }
 
 void cMarkAdStandalone::RateMarks()
@@ -113,7 +118,7 @@ void cMarkAdStandalone::SaveFrame(int frame)
     fclose(pFile);
 }
 
-void cMarkAdStandalone::CheckIndex()
+void cMarkAdStandalone::CheckIndex(const char *Directory)
 {
     // Here we check the indexfile
     // if we have an index we check if the
@@ -135,7 +140,8 @@ void cMarkAdStandalone::CheckIndex()
         int maxframes=statbuf.st_size/8;
         if (maxframes<(framecnt+200))
         {
-            if ((difftime(time(NULL),statbuf.st_mtime))>120) return; // "old" file
+            if ((difftime(time(NULL),statbuf.st_mtime))>=10) return; // "old" file
+            marks.Save(Directory,macontext.Video.Info.FramesPerSecond,isTS);
             sleep(WAITTIME); // now we sleep and hopefully the index will grow
             waittime+=WAITTIME;
             if (errno==EINTR) return;
@@ -161,7 +167,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     if (!Directory) return false;
     if (!Number) return false;
 
-    CheckIndex();
+    CheckIndex(Directory);
     if (abort) return false;
 
     int datalen=385024;
@@ -215,14 +221,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                                 isyslog("%s %i%c",(macontext.Video.Info.Height>576) ? "HDTV" : "SDTV",
                                         macontext.Video.Info.Height,
                                         macontext.Video.Info.Interlaced ? 'i' : 'p');
-                                if (!marks.Load(Directory,macontext.Video.Info.FramesPerSecond,isTS))
-                                {
-                                    AddStartMark();
-                                }
-                                else
-                                {
-                                    marksAligned=true;
-                                }
+                                AddStartMark();
                             }
                             //printf("%05i( %c )\n",framecnt,frametypes[macontext.Video.Info.Pict_Type]);
                             framecnt++;
@@ -327,7 +326,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
             }
         }
 
-        CheckIndex();
+        CheckIndex(Directory);
         if (abort)
         {
             if (f!=-1) close(f);
@@ -346,6 +345,8 @@ void cMarkAdStandalone::Process(const char *Directory)
     struct timezone tz;
 
     gettimeofday(&tv1,&tz);
+
+    if (bBackupMarks) marks.Backup(Directory,isTS);
 
     for (int i=1; i<=MaxFiles; i++)
     {
@@ -386,13 +387,16 @@ void cMarkAdStandalone::Process(const char *Directory)
             sec--;
         }
 
-        bool bIndexError;
-        if (marks.Save(Directory,macontext.Video.Info.FramesPerSecond,isTS,bBackupMarks,&bIndexError))
+        if (marks.Save(Directory,macontext.Video.Info.FramesPerSecond,isTS))
         {
-            if (bIndexError)
+            bool bIndexError;
+            if (marks.CheckIndex(Directory,isTS,&bIndexError))
             {
-                esyslog("index doesn't match marks%s",
-                        isTS ? ", please report this" : ", please run genindex");
+                if (bIndexError)
+                {
+                    esyslog("index doesn't match marks%s",
+                            isTS ? ", please report this" : ", please run genindex");
+                }
             }
         }
 
@@ -401,7 +405,7 @@ void cMarkAdStandalone::Process(const char *Directory)
         if (etime>0) ftime=framecnt/etime;
         if (macontext.Video.Info.FramesPerSecond>0)
             ptime=ftime/macontext.Video.Info.FramesPerSecond;
-        isyslog("elapsed time %.2fs, %i frames, %.1f fps, %.1f pps",
+        isyslog("processed time %.2fs, %i frames, %.1f fps, %.1f pps",
                 etime,framecnt,ftime,ptime);
 
     }
@@ -841,7 +845,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         streaminfo=NULL;
     }
 
-    marksAligned=false;
     framecnt=0;
     lastiframe=0;
 }

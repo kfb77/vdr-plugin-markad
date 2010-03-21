@@ -278,6 +278,7 @@ cMarkAdDecoder::~cMarkAdDecoder()
 bool cMarkAdDecoder::DecodeMP2(MarkAdContext *maContext, uchar *espkt, int eslen)
 {
     if (!mp2_context) return false;
+    maContext->Audio.Data.Valid=false;
     AVPacket avpkt;
 #if LIBAVCODEC_VERSION_INT >= ((52<<16)+(25<<8)+0)
     av_init_packet(&avpkt);
@@ -332,6 +333,7 @@ bool cMarkAdDecoder::SetAudioInfos(MarkAdContext *maContext, AVCodecContext *Aud
 bool cMarkAdDecoder::DecodeAC3(MarkAdContext *maContext, uchar *espkt, int eslen)
 {
     if (!ac3_context) return false;
+    maContext->Audio.Data.Valid=false;
     AVPacket avpkt;
 #if LIBAVCODEC_VERSION_INT >= ((52<<16)+(25<<8)+0)
     av_init_packet(&avpkt);
@@ -380,13 +382,13 @@ void cMarkAdDecoder::PAR2DAR(AVRational a, AVRational *erg)
 bool cMarkAdDecoder::SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Video_Context, AVFrame *Video_Frame)
 {
     if ((!maContext) || (!Video_Context) || (!Video_Frame)) return false;
-    maContext->Video.Data.Valid=false;
     for (int i=0; i<4; i++)
     {
         if (Video_Frame->data[i])
         {
             maContext->Video.Data.Plane[i]=Video_Frame->data[i];
             maContext->Video.Data.PlaneLinesize[i]=Video_Frame->linesize[i];
+            maContext->Video.Data.Valid=true;
         }
     }
     maContext->Video.Info.Height=Video_Context->height;
@@ -398,13 +400,13 @@ bool cMarkAdDecoder::SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Vide
     maContext->Video.Info.AspectRatio.Num=dar.num;
     maContext->Video.Info.AspectRatio.Den=dar.den;
 
-    maContext->Video.Data.Valid=true;
     return true;
 }
 
 bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
 {
     if (!video_context) return false;
+    maContext->Video.Data.Valid=false;
 
     if ((video_context->codec_id==CODEC_ID_H264) && (!video_context->skip_frame))
     {

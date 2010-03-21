@@ -23,9 +23,10 @@ private:
     clMark *next;
     clMark *prev;
 public:
+    int type;
     int position;
     char *comment;
-    clMark(int Position = 0, const char *Comment = NULL);
+    clMark(int Type=0, int Position = 0, const char *Comment = NULL);
     ~clMark();
     clMark *Next()
     {
@@ -76,19 +77,20 @@ uint16_t number:
     char filename[1024];
     clMark *first;
     char *IndexToHMSF(int Index, double FramesPerSecond);
-    bool CheckIndex(int FileDescriptor, int Index, bool isTS);
     int count;
+    int savedcount;
 public:
+    clMarks()
+    {
+        strcpy(filename,"marks");
+        first=NULL;
+        savedcount=0;
+    }
     ~clMarks();
     int Count()
     {
         return count;
     }
-    clMarks()
-    {
-        strcpy(filename,"marks");
-        first=NULL;
-    };
     void SetFileName(const char *FileName)
     {
         if (FileName)
@@ -97,13 +99,15 @@ public:
             filename[sizeof(filename)-1]=0;
         }
     }
-    clMark *Add(int Position, const char *Comment = NULL);
+    clMark *Add(int Type, int Position, const char *Comment = NULL);
     void Del(clMark *Mark);
+    void Del(int Type);
     clMark *Get(int Position);
     clMark *GetPrev(int Position);
     clMark *GetNext(int Position);
-    bool Load(const char *Directory, double FrameRate, bool isTS);
-    bool Save(const char *Directory, double FrameRate, bool isTS, bool Backup, bool *IndexError);
+    bool Backup(const char *Directory, bool isTS);
+    bool Save(const char *Directory, double FrameRate, bool isTS);
+    bool CheckIndex(const char *Directory, bool isTS, bool *IndexError);
 };
 
 #endif

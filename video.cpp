@@ -493,6 +493,7 @@ cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext)
     aspectratio.Den=0;
     mark.Comment=NULL;
     mark.Position=0;
+    mark.Type=0;
 
     hborder=new cMarkAdBlackBordersHoriz(maContext);
     logo = new cMarkAdLogo(maContext);
@@ -510,9 +511,10 @@ void cMarkAdVideo::ResetMark()
     if (mark.Comment) free(mark.Comment);
     mark.Comment=NULL;
     mark.Position=0;
+    mark.Type=0;
 }
 
-bool cMarkAdVideo::AddMark(int Position, const char *Comment)
+bool cMarkAdVideo::AddMark(int Type, int Position, const char *Comment)
 {
     if (!Comment) return false;
     if (mark.Comment)
@@ -533,6 +535,7 @@ bool cMarkAdVideo::AddMark(int Position, const char *Comment)
         mark.Comment=strdup(Comment);
     }
     mark.Position=Position;
+    mark.Type=Type;
     return true;
 }
 
@@ -561,7 +564,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
             if (asprintf(&buf,"detected logo start (%i)",logoiframe)!=-1)
             {
                 isyslog(buf);
-                AddMark(logoiframe,buf);
+                AddMark(MT_LOGOCHANGE,logoiframe,buf);
                 free(buf);
             }
         }
@@ -570,7 +573,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
             if (asprintf(&buf,"detected logo stop (%i)",logoiframe)!=-1)
             {
                 isyslog(buf);
-                AddMark(logoiframe,buf);
+                AddMark(MT_LOGOCHANGE,logoiframe,buf);
                 free(buf);
             }
         }
@@ -586,7 +589,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         if (asprintf(&buf,"detected start of horiz. borders (%i)",borderiframe)!=-1)
         {
             isyslog(buf);
-            AddMark(borderiframe,buf);
+            AddMark(MT_BORDERCHANGE,borderiframe,buf);
             free(buf);
         }
     }
@@ -597,7 +600,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         if (asprintf(&buf,"detected stop of horiz. borders (%i)",borderiframe)!=-1)
         {
             isyslog(buf);
-            AddMark(borderiframe,buf);
+            AddMark(MT_BORDERCHANGE,borderiframe,buf);
             free(buf);
         }
     }
@@ -613,7 +616,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
                          macontext->Video.Info.AspectRatio.Den,LastIFrame)!=-1)
             {
                 isyslog(buf);
-                AddMark(LastIFrame,buf);
+                AddMark(MT_ASPECTCHANGE,LastIFrame,buf);
                 free(buf);
             }
         }

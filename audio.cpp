@@ -13,6 +13,7 @@ cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext)
     macontext=maContext;
     mark.Comment=NULL;
     mark.Position=0;
+    mark.Type=0;
     channels=0;
 #if 0
     lastiframe_gain=-ANALYZEFRAMES;
@@ -30,9 +31,10 @@ void cMarkAdAudio::ResetMark()
     if (mark.Comment) free(mark.Comment);
     mark.Comment=NULL;
     mark.Position=0;
+    mark.Type=0;
 }
 
-bool cMarkAdAudio::AddMark(int Position, const char *Comment)
+bool cMarkAdAudio::AddMark(int Type, int Position, const char *Comment)
 {
     if (!Comment) return false;
     if (mark.Comment)
@@ -53,6 +55,7 @@ bool cMarkAdAudio::AddMark(int Position, const char *Comment)
         mark.Comment=strdup(Comment);
     }
     mark.Position=Position;
+    mark.Type=Type;
     return true;
 }
 
@@ -152,7 +155,7 @@ MarkAdMark *cMarkAdAudio::Process(int LastIFrame)
             if (asprintf(&buf,"audio channel silence detecion (%i)",lastiframe)!=-1)
             {
                 isyslog(buf);
-                AddMark(lastiframe,buf);
+                AddMark(MT_SILENCECHANGE,lastiframe,buf);
                 free(buf);
             }
         }
@@ -165,7 +168,7 @@ MarkAdMark *cMarkAdAudio::Process(int LastIFrame)
                      macontext->Audio.Info.Channels,lastiframe)!=-1)
         {
             isyslog(buf);
-            AddMark(lastiframe,buf);
+            AddMark(MT_CHANNELCHANGE,lastiframe,buf);
             free(buf);
         }
     }
