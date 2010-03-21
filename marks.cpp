@@ -213,11 +213,10 @@ char *clMarks::IndexToHMSF(int Index, double FramesPerSecond)
 bool clMarks::CheckIndex(const char *Directory, bool isTS, bool *IndexError)
 {
     if (!IndexError) return false;
-    if (!first)
-    {
-        *IndexError=false;
-        return true;
-    }
+    *IndexError=false;
+
+    if (!first) return true;
+
     char *ipath=NULL;
     if (asprintf(&ipath,"%s/index%s",Directory,isTS ? "" : ".vdr")==-1) return false;
 
@@ -229,20 +228,44 @@ bool clMarks::CheckIndex(const char *Directory, bool isTS, bool *IndexError)
     while (mark)
     {
         if (isTS)
-        { 
+        {
             off_t offset = mark->position * sizeof(struct tIndexTS);
-            if (lseek(fd,offset,SEEK_SET)!=offset) return true;
+            if (lseek(fd,offset,SEEK_SET)!=offset)
+            {
+                *IndexError=true;
+                break;
+            }
             struct tIndexTS IndexTS;
-            if (read(fd,&IndexTS,sizeof(IndexTS))!=sizeof(IndexTS)) return true;
-            if (IndexTS.independent) return false;
+            if (read(fd,&IndexTS,sizeof(IndexTS))!=sizeof(IndexTS))
+            {
+                *IndexError=true;
+                break;
+            }
+            if (!IndexTS.independent)
+            {
+                *IndexError=true;
+                break;
+            }
         }
         else
         {
             off_t offset = mark->position * sizeof(struct tIndexVDR);
-            if (lseek(fd,offset,SEEK_SET)!=offset) return true;
+            if (lseek(fd,offset,SEEK_SET)!=offset)
+            {
+                *IndexError=true;
+                break;
+            }
             struct tIndexVDR IndexVDR;
-            if (read(fd,&IndexVDR,sizeof(IndexVDR))!=sizeof(IndexVDR)) return true;
-            if (IndexVDR.type==1) return false;
+            if (read(fd,&IndexVDR,sizeof(IndexVDR))!=sizeof(IndexVDR))
+            {
+                *IndexError=true;
+                break;
+            }
+            if (IndexVDR.type!=1)
+            {
+                *IndexError=true;
+                break;
+            }
         }
         mark=mark->Next();
     }

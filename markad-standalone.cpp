@@ -365,6 +365,7 @@ void cMarkAdStandalone::Process(const char *Directory)
         if (lastiframe)
         {
             MarkAdMark tempmark;
+            tempmark.Type=MT_COMMON;
             tempmark.Position=lastiframe;
             char *buf;
 
@@ -389,7 +390,7 @@ void cMarkAdStandalone::Process(const char *Directory)
 
         if (marks.Save(Directory,macontext.Video.Info.FramesPerSecond,isTS))
         {
-            bool bIndexError;
+            bool bIndexError=false;
             if (marks.CheckIndex(Directory,isTS,&bIndexError))
             {
                 if (bIndexError)
