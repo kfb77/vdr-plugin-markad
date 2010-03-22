@@ -11,29 +11,25 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
 {
     if (!Device) return; // just to be safe
     if (!FileName) return; // we cannot operate without a filename
+    if (!bindir) return; // we cannot operate without bindir
+    if (!logodir) return; // we dont want to operate without logodir
 
     if (On)
     {
-        if (!Name) return; // we cannot operate without name ;)
-
-        cTimer *timer=NULL;
-
-        for (cTimer *Timer = Timers.First(); Timer; Timer=Timers.Next(Timer))
-        {
-            if (Timer->Recording() && (!strcmp(Timer->File(),Name)))
-            {
-                timer=Timer;
-                break;
-            }
-        }
-
-        if (!timer) return;
-
-        // TODO: Start the standalone version ;)
+        // Start the standalone version
+        cString cmd = cString::sprintf("\"%s\"/markad --online=2 -l \"%s\" before \"%s\"",bindir,
+                                       logodir,FileName);
+        SystemExec(cmd);
     }
     else
     {
         // TODO: Start second pass?
     }
 
+}
+
+cStatusMarkAd::cStatusMarkAd(const char *BinDir, const char *LogoDir)
+{
+    bindir=BinDir;
+    logodir=LogoDir;
 }

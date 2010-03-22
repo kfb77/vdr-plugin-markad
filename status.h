@@ -13,9 +13,12 @@
 class cStatusMarkAd : public cStatus
 {
 private:
+    const char *bindir;
+    const char *logodir;
 protected:
     virtual void Recording(const cDevice *Device, const char *Name, const char *FileName, bool On);
 public:
+    cStatusMarkAd(const char *BinDir,const char *LogoDir);
 };
 
 #endif
