@@ -85,6 +85,7 @@ public:
         strcpy(filename,"marks");
         first=NULL;
         savedcount=0;
+        count=0;
     }
     ~clMarks();
     int Count()
