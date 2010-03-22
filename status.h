@@ -16,7 +16,6 @@ private:
 protected:
     virtual void Recording(const cDevice *Device, const char *Name, const char *FileName, bool On);
 public:
-    cStatusMarkAd();
 };
 
 #endif

@@ -50,7 +50,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     if (!Mark) return;
     if (!Mark->Type) return;
 
-    if (((Mark->Type==MT_CHANNELCHANGE) || (Mark->Type==MT_CHANNELCHANGE)) &&
+    if (((Mark->Type==MT_CHANNELCHANGE) || (Mark->Type==MT_ASPECTCHANGE)) &&
             (Mark->Position>25000) && (bDecodeVideo))
     {
         isyslog("%s change detected. video decoding disabled",
@@ -62,7 +62,10 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     }
 
     marks.Add(Mark->Type,Mark->Position,Mark->Comment);
+}
 
+void cMarkAdStandalone::RateMarks()
+{
 #if 0
     if (!marksAligned)
     {
@@ -87,10 +90,6 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         }
     }
 #endif
-}
-
-void cMarkAdStandalone::RateMarks()
-{
 }
 
 void cMarkAdStandalone::SaveFrame(int frame)
