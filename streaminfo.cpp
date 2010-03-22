@@ -52,7 +52,7 @@ unsigned AcMod:
         if (ac3hdr->FrameSizeIndex>=38) return false; // reserved
 
         maContext->Audio.Info.Channels=0;
-        int lfe_bitmask = 0x0;
+        unsigned int lfe_bitmask = 0x0;
 
         switch (ac3hdr->AcMod)
         {
