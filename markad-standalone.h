@@ -143,6 +143,7 @@ unsigned Descriptor_Length:
     };
 
     static const char frametypes[8];
+    const char *directory;
 
     cMarkAdDemux *video_demux;
     cMarkAdDemux *ac3_demux;
@@ -153,6 +154,10 @@ unsigned Descriptor_Length:
     cMarkAdStreamInfo *streaminfo;
 
     MarkAdContext macontext;
+
+    bool CreatePidfile(const char *Directory);
+    void RemovePidfile(const char *Directory);
+    bool duplicate; // are we a dup?
 
     bool isTS;
     int MaxFiles;
@@ -198,7 +203,8 @@ public:
     cMarkAdStandalone(const char *Directory, bool BackupMarks, int LogoExtraction,
                       int LogoWidth, int LogoHeight, bool DecodeVideo,
                       bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
-                      const char *LogoDir, const char *MarkFileName, bool ASD);
+                      const char *LogoDir, const char *MarkFileName, bool ASD,
+                      bool noPid);
 
     ~cMarkAdStandalone();
 };

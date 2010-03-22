@@ -676,14 +676,77 @@ bool cMarkAdStandalone::CheckPATPMT(const char *Directory)
     return true;
 }
 
+bool cMarkAdStandalone::CreatePidfile(const char *Directory)
+{
+    char *buf;
+    if (asprintf(&buf,"%s/markad.pid",Directory)==-1) return false;
+
+    // check for other running markad process
+    FILE *oldpid=fopen(buf,"r");
+    if (oldpid)
+    {
+        // found old pidfile, check if it's still running
+        long pid;
+        if (fscanf(oldpid,"%li\n",&pid)==1)
+        {
+            char procname[256]="";
+            snprintf(procname,sizeof(procname),"/proc/%li",pid);
+            struct stat statbuf;
+            if (stat(procname,&statbuf)!=-1)
+            {
+                // found another, running markad
+                isyslog("another instance is running on this recording");
+                abort=duplicate=true;
+            }
+        }
+        fclose(oldpid);
+    }
+    if (duplicate) return false;
+
+    FILE *pidfile=fopen(buf,"w+");
+
+    if (getuid()==0 || geteuid()!=0)
+    {
+        // if we are root, set fileowner to owner of 001.vdr/00001.ts file
+        char *spath=NULL;
+        if (asprintf(&spath,"%s/%s",Directory,isTS ? "00001.ts" : "001.vdr")!=-1)
+        {
+            struct stat statbuf;
+            if (!stat(spath,&statbuf))
+            {
+                chown(buf,statbuf.st_uid, statbuf.st_gid);
+            }
+            free(spath);
+        }
+    }
+
+    free(buf);
+    if (!pidfile) return false;
+    fprintf(pidfile,"%li\n",(long) getpid());
+    fflush(pidfile);
+    fclose(pidfile);
+    return true;
+}
+
+void cMarkAdStandalone::RemovePidfile(const char *Directory)
+{
+    char *buf;
+    if (asprintf(&buf,"%s/markad.pid",Directory)!=-1)
+    {
+        unlink(buf);
+        free(buf);
+    }
+}
+
 const char cMarkAdStandalone::frametypes[8]={'?','I','P','B','D','S','s','b'};
 
 cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, int LogoExtraction,
                                      int LogoWidth, int LogoHeight, bool DecodeVideo,
                                      bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
-                                     const char *LogoDir, const char *MarkFileName, bool ASD)
+                                     const char *LogoDir, const char *MarkFileName, bool ASD,
+                                     bool noPid)
 {
-
+    directory=Directory;
     abort=false;
 
     noticeVDR_MP2=false;
@@ -691,6 +754,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
     sleepcnt=0;
     waittime=0;
+    duplicate=false;
 
     memset(&macontext,0,sizeof(macontext));
     macontext.LogoDir=(char *) LogoDir;
@@ -718,6 +782,22 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     macontext.General.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
 
     isyslog("starting v%s",VERSION);
+    isyslog("on %s",Directory);
+
+    if (!noPid)
+    {
+        CreatePidfile(Directory);
+        if (abort)
+        {
+            video_demux=NULL;
+            ac3_demux=NULL;
+            mp2_demux=NULL;
+            decoder=NULL;
+            video=NULL;
+            audio=NULL;
+            return;
+        }
+    }
 
     if (!bDecodeAudio)
     {
@@ -861,6 +941,8 @@ cMarkAdStandalone::~cMarkAdStandalone()
     if (video) delete video;
     if (audio) delete audio;
     if (streaminfo) delete streaminfo;
+
+    if ((directory) && (!duplicate)) RemovePidfile(directory);
 }
 
 bool isnumber(const char *s)
@@ -902,8 +984,8 @@ int usage()
            "                  extracts logo to /tmp as pgm files (must be renamed)\n"
            "                  <direction>  0 = top left,    1 = top right\n"
            "                               2 = bottom left, 3 = bottom right\n"
-           "                  [width] range from 50 to %3i, default %3i (SD)\n"
-           "                                                default %3i (HD)\n"
+           "                  [width]  range from 50 to %3i, default %3i (SD)\n"
+           "                                                 default %3i (HD)\n"
            "                  [height] range from 20 to %3i, default %3i\n"
            "-O,             --OSD\n"
            "                  markad sends an OSD-Message for start and end\n"
@@ -928,7 +1010,7 @@ int usage()
            "nice                         runs markad with nice(19)\n"
            "\n<record>                     is the name of the directory where the recording\n"
            "                             is stored\n\n",
-           LOGO_MAXWIDTH,LOGO_DEFWIDTH,288,
+           LOGO_MAXWIDTH,LOGO_DEFWIDTH,LOGO_DEFHDWIDTH,
            LOGO_MAXHEIGHT,LOGO_DEFHEIGHT
           );
     return -1;
@@ -962,7 +1044,7 @@ int main(int argc, char *argv[])
     int logoExtraction=-1;
     int logoWidth=-1;
     int logoHeight=-1;
-    bool bBackupMarks=false;
+    bool bBackupMarks=false,bNoPid=false;
     char markFileName[1024]="";
     char logoDirectory[1024]="";
     bool bDecodeVideo=true;
@@ -1211,6 +1293,7 @@ int main(int argc, char *argv[])
             break;
 
         case 5: // --nopid
+            bNoPid=true;
             break;
 
         case 6: // --asd
@@ -1378,7 +1461,7 @@ int main(int argc, char *argv[])
 
         cmasta = new cMarkAdStandalone(recDir,bBackupMarks, logoExtraction, logoWidth, logoHeight,
                                        bDecodeVideo,bDecodeAudio,bIgnoreVideoInfo,bIgnoreAudioInfo,
-                                       logoDirectory,markFileName,bASD);
+                                       logoDirectory,markFileName,bASD,bNoPid);
         if (!cmasta) return -1;
 
         // ignore some signals
