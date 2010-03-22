@@ -914,6 +914,13 @@ int usage()
            "                  enable audio silence detecion\n"
            "                --markfile=<markfilename>\n"
            "                  set a different markfile-name\n"
+           "                --online[=1|2] (default is 1)\n"
+           "                  start markad immediately when called with \"before\" as cmd\n"
+           "                  if online is 1, markad starts online for live-recordings\n"
+           "                  only, online=2 starts markad online for every recording\n"
+           "                  live-recordings are identified by having a '@' in the\n"
+           "                  filename so the entry 'Mark instant recording' in the menu\n"
+           "                  'Setup - Recording' of the vdr should be set to 'yes'\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
            "after                        markad starts to analyze the recording\n"
@@ -921,7 +928,8 @@ int usage()
            "edited                       markad exits immediately if called with \"edited\"\n"
            "nice                         runs markad with nice(19)\n"
            "\n<record>                     is the name of the directory where the recording\n"
-           "                             is stored\n\n",LOGO_MAXWIDTH,LOGO_DEFWIDTH,288,
+           "                             is stored\n\n",
+           LOGO_MAXWIDTH,LOGO_DEFWIDTH,288,
            LOGO_MAXHEIGHT,LOGO_DEFHEIGHT
           );
     return -1;
@@ -962,6 +970,7 @@ int main(int argc, char *argv[])
     bool bDecodeAudio=true;
     bool bIgnoreAudioInfo=false;
     bool bIgnoreVideoInfo=false;
+    int online=1;
 
     strcpy(logoDirectory,"/var/lib/markad");
 
@@ -1194,6 +1203,12 @@ int main(int argc, char *argv[])
             break;
 
         case 4: // --online
+            online=atoi(optarg);
+            if ((online!=1) && (online!=2))
+            {
+                fprintf(stderr, "markad: invalid online value: %s\n", optarg);
+                return 2;
+            }
             break;
 
         case 5: // --nopid
@@ -1221,7 +1236,7 @@ int main(int argc, char *argv[])
             }
             else if (strcmp(argv[optind], "before" ) == 0 )
             {
-                bBefore = true;
+                bBefore = bFork = bNice = SYSLOG = true;
             }
             else if (strcmp(argv[optind], "edited" ) == 0 )
             {
@@ -1245,12 +1260,17 @@ int main(int argc, char *argv[])
     }
 
     // do nothing if called from vdr before/after the video is cutted
-    if (bBefore) return 0;
+    if ((bAfter) && (online)) return 0;
+    if (bBefore)
+    {
+        if (!online) return 0;
+        if ((online==1) && (!strchr(recDir,'@'))) return 0;
+    }
     if (bEdited) return 0;
 
     // we can run, if one of bImmediateCall, bAfter, bBefore or bNice is true
     // and recDir is given
-    if ( (bImmediateCall || bAfter || bNice) && recDir )
+    if ( (bImmediateCall || bBefore || bAfter || bNice) && recDir )
     {
         // if bFork is given go in background
         if ( bFork )
@@ -1340,6 +1360,8 @@ int main(int argc, char *argv[])
                 esyslog("failed to set nice to %d",niceLevel);
             }
         }
+
+        if (bBefore) sleep(10);
 
         // now do the work...
         struct stat statbuf;
