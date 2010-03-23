@@ -169,7 +169,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     CheckIndex(Directory);
     if (abort) return false;
 
-    int datalen=385024;
+    const int datalen=385024;
     uchar data[datalen];
 
     char *fbuf;
@@ -784,21 +784,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     isyslog("starting v%s",VERSION);
     isyslog("on %s",Directory);
 
-    if (!noPid)
-    {
-        CreatePidfile(Directory);
-        if (abort)
-        {
-            video_demux=NULL;
-            ac3_demux=NULL;
-            mp2_demux=NULL;
-            decoder=NULL;
-            video=NULL;
-            audio=NULL;
-            return;
-        }
-    }
-
     if (!bDecodeAudio)
     {
         isyslog("audio decoding disabled by user");
@@ -825,6 +810,21 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         video=NULL;
         audio=NULL;
         return;
+    }
+
+    if (!noPid)
+    {
+        CreatePidfile(Directory);
+        if (abort)
+        {
+            video_demux=NULL;
+            ac3_demux=NULL;
+            mp2_demux=NULL;
+            decoder=NULL;
+            video=NULL;
+            audio=NULL;
+            return;
+        }
     }
 
     if (isTS)
@@ -1362,8 +1362,9 @@ int main(int argc, char *argv[])
             pid_t pid = fork();
             if (pid < 0)
             {
-                fprintf(stderr, "%m\n");
-                esyslog("fork ERROR: %m");
+                char *err=strerror(errno);
+                fprintf(stderr, "%s\n",err);
+                esyslog("fork ERROR: %s",err);
                 return 2;
             }
             if (pid != 0)

@@ -15,8 +15,6 @@ cMarkAdStreamInfo::cMarkAdStreamInfo()
 
 bool cMarkAdStreamInfo::FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen)
 {
-    if ((!maContext) || (!espkt)) return false;
-
 #pragma pack(1)
     struct AC3HDR
     {
@@ -42,6 +40,8 @@ unsigned AcMod:
         3;
     };
 #pragma pack()
+    if ((!maContext) || (!espkt)) return false;
+    if (eslen<(int) sizeof(struct AC3HDR)) return false;
 
     struct AC3HDR *ac3hdr = (struct AC3HDR *) espkt;
 
@@ -131,7 +131,8 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
 
     if (nalu==NAL_SPS)
     {
-        uint8_t nal_data[len];
+        uint8_t *nal_data=(uint8_t*) alloca(len);
+        if (!nal_data) return false;
         int nal_len = nalUnescape(nal_data, pkt + 5, len - 5);
         cBitStream bs(nal_data, nal_len);
 
@@ -166,7 +167,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                         {
                             if (next)
                                 next = (last + bs.getSeGolomb()) & 0xff;
-                            last = next ?: last;
+                            last = next ? next : last;
                         }
                     }
                 }
@@ -408,7 +409,8 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
 
     if ((nalu==NAL_SLICE) || (nalu==NAL_IDR_SLICE))
     {
-        uint8_t nal_data[len];
+        uint8_t *nal_data=(uint8_t*) alloca(len);
+        if (!nal_data) return false;
         int nal_len = nalUnescape(nal_data, pkt + 5, len - 5);
         cBitStream bs(nal_data, nal_len);
 

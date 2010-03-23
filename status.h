@@ -9,6 +9,8 @@
 
 #include <vdr/status.h>
 
+#define UNUSED(v) UNUSED_ ## v __attribute__((unused))
+
 // --- cStatusMarkAd
 class cStatusMarkAd : public cStatus
 {

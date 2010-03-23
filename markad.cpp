@@ -44,7 +44,7 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
         { "bindir",      required_argument, NULL, 'b'
         },
         { "logocachedir",      required_argument, NULL, 'l'},
-        { NULL }
+        { NULL, 0, NULL, 0 }
     };
 
     int c;
@@ -144,13 +144,13 @@ cMenuSetupPage *cPluginMarkAd::SetupMenu(void)
     return NULL;
 }
 
-bool cPluginMarkAd::SetupParse(const char *Name, const char *Value)
+bool cPluginMarkAd::SetupParse(const char *UNUSED(Name), const char *UNUSED(Value))
 {
     // Parse your own setup parameters and store their values.
     return false;
 }
 
-bool cPluginMarkAd::Service(const char *Id, void *Data)
+bool cPluginMarkAd::Service(const char *UNUSED(Id), void *UNUSED(Data))
 {
     // Handle custom service requests from other plugins
     return false;
@@ -162,10 +162,12 @@ const char **cPluginMarkAd::SVDRPHelpPages(void)
     return NULL;
 }
 
-cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int &ReplyCode)
+cString cPluginMarkAd::SVDRPCommand(const char *UNUSED(Command), const char *UNUSED(Option),
+                                    int &UNUSED(ReplyCode))
 {
     // Process SVDRP commands this plugin implements
     return NULL;
 }
 
-VDRPLUGINCREATOR(cPluginMarkAd); // Don't touch this!
+
+VDRPLUGINCREATOR(cPluginMarkAd) // Don't touch this!

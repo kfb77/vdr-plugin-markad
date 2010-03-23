@@ -7,7 +7,7 @@
 
 #include "status.h"
 
-void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const char *FileName, bool On)
+void cStatusMarkAd::Recording(const cDevice *Device, const char *UNUSED(Name), const char *FileName, bool On)
 {
     if (!Device) return; // just to be safe
     if (!FileName) return; // we cannot operate without a filename

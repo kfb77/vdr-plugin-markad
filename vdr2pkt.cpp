@@ -20,6 +20,9 @@ cMarkAdVDR2Pkt::~cMarkAdVDR2Pkt()
 void cMarkAdVDR2Pkt::Process(MarkAdPid Pid, uchar *VDRData, int VDRSize, uchar **PktData, int *PktSize)
 {
     if ((!PktData) || (!PktSize) || (!queue)) return;
+    if ((Pid.Type!=MARKAD_PIDTYPE_VIDEO_H262) &&
+            (Pid.Type!=MARKAD_PIDTYPE_VIDEO_H264)) return;
+
     *PktData=NULL;
     *PktSize=0;
 

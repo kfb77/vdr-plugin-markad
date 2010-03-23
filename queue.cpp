@@ -33,7 +33,8 @@ bool cMarkAdPaketQueue::Inject(uchar *Data, int Size)
     if (!buffer) return false;
     if (outptr>Size)
     {
-        uchar temp[Size+1];
+        uchar *temp=(uchar *) alloca(Size+1);
+        if (!temp) return false;
         memcpy(temp,Data,Size);
         outptr-=Size;
         memcpy(&buffer[outptr],temp,Size);
@@ -42,12 +43,13 @@ bool cMarkAdPaketQueue::Inject(uchar *Data, int Size)
     else
     {
         int oldSize=Length();
-        uchar tempold[oldSize+1];
+        uchar *tempold=(uchar *) alloca(oldSize+1);
+        if (!tempold) return false;
+        uchar *temp=(uchar *) alloca(Size+1);
+        if (!temp) return false;
+
         memcpy(tempold,&buffer[outptr],oldSize);
-
-        uchar temp[Size+1];
         memcpy(temp,Data,Size);
-
         memcpy(buffer,temp,Size);
         memcpy(buffer+Size,tempold,oldSize);
 
@@ -72,7 +74,7 @@ bool cMarkAdPaketQueue::Put(uchar *Data, int Size)
     memcpy(&buffer[inptr],Data,Size);
     inptr+=Size;
 
-    int npercent=(int) ((double) inptr/(double) maxqueue)*100;
+    int npercent=(int) ((inptr*100)/maxqueue);
 
     if ((npercent>90) && (name) && (npercent!=percent))
     {
