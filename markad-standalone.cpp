@@ -770,14 +770,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
     bBackupMarks=BackupMarks;
 
-    if (LogoExtraction!=-1)
-    {
-        // just to be sure extraction works
-        bDecodeVideo=true;
-        bIgnoreAudioInfo=true;
-        bIgnoreVideoInfo=true;
-    }
-
     macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
     macontext.General.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
 
@@ -799,6 +791,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     if (bIgnoreVideoInfo)
     {
         isyslog("video info usage disabled by user");
+    }
+
+    if (LogoExtraction!=-1)
+    {
+        // just to be sure extraction works
+        bDecodeVideo=true;
+        bIgnoreAudioInfo=true;
+        bIgnoreVideoInfo=true;
     }
 
     if (!CheckTS(Directory))
@@ -862,7 +862,11 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
     if (!LoadInfo(Directory))
     {
-        if (bDecodeVideo) esyslog("failed loading info - logo detection disabled");
+        if (bDecodeVideo)
+        {
+            esyslog("failed loading info - logo %s disabled",
+                    (LogoExtraction!=-1) ? "extraction" : "detection");
+        }
     }
 
     if (MarkFileName[0]) marks.SetFileName(MarkFileName);
