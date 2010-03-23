@@ -127,11 +127,10 @@ clMark *clMarks::GetPrev(int Position)
 clMark *clMarks::GetNext(int Position)
 {
     if (!first) return NULL; // no elements yet
-
     clMark *mark=first;
     while (mark)
     {
-        if (Position>=mark->position) break;
+        if (mark->position>=Position) break;
         mark=mark->Next();
     }
     return mark->Next();
