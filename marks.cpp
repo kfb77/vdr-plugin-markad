@@ -42,6 +42,22 @@ clMarks::~clMarks()
 
 }
 
+int clMarks::Count(int Type)
+{
+    if (Type==0xFF) return count;
+
+    if (!first) return 0;
+
+    int ret=0;
+    clMark *mark=first;
+    while (mark)
+    {
+        if (mark->type==Type) ret++;
+        mark=mark->Next();
+    }
+    return ret;
+}
+
 void clMarks::Del(int Type)
 {
     if (!first) return; // no elements yet
@@ -115,7 +131,7 @@ clMark *clMarks::GetNext(int Position)
     clMark *mark=first;
     while (mark)
     {
-        if (Position>mark->position) break;
+        if (Position>=mark->position) break;
         mark=mark->Next();
     }
     return mark->Next();

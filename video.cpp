@@ -564,7 +564,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
             if (asprintf(&buf,"detected logo start (%i)",logoiframe)!=-1)
             {
                 isyslog(buf);
-                AddMark(MT_LOGOCHANGE,logoiframe,buf);
+                AddMark(MT_LOGOSTART,logoiframe,buf);
                 free(buf);
             }
         }
@@ -573,7 +573,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
             if (asprintf(&buf,"detected logo stop (%i)",logoiframe)!=-1)
             {
                 isyslog(buf);
-                AddMark(MT_LOGOCHANGE,logoiframe,buf);
+                AddMark(MT_LOGOSTOP,logoiframe,buf);
                 free(buf);
             }
         }
@@ -589,7 +589,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         if (asprintf(&buf,"detected start of horiz. borders (%i)",borderiframe)!=-1)
         {
             isyslog(buf);
-            AddMark(MT_BORDERCHANGE,borderiframe,buf);
+            AddMark(MT_BORDERSTART,borderiframe,buf);
             free(buf);
         }
     }
@@ -600,7 +600,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         if (asprintf(&buf,"detected stop of horiz. borders (%i)",borderiframe)!=-1)
         {
             isyslog(buf);
-            AddMark(MT_BORDERCHANGE,borderiframe,buf);
+            AddMark(MT_BORDERSTOP,borderiframe,buf);
             free(buf);
         }
     }

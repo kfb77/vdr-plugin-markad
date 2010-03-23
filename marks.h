@@ -88,10 +88,7 @@ public:
         count=0;
     }
     ~clMarks();
-    int Count()
-    {
-        return count;
-    }
+    int Count(int Type=0xFF);
     void SetFileName(const char *FileName)
     {
         if (FileName)

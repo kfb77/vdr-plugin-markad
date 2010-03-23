@@ -168,7 +168,14 @@ MarkAdMark *cMarkAdAudio::Process(int LastIFrame)
                      macontext->Audio.Info.Channels,lastiframe)!=-1)
         {
             isyslog(buf);
-            AddMark(MT_CHANNELCHANGE,lastiframe,buf);
+            if (macontext->Audio.Info.Channels>2)
+            {
+                AddMark(MT_CHANNELSTART,lastiframe,buf);
+            }
+            else
+            {
+                AddMark(MT_CHANNELSTOP,lastiframe,buf);
+            }
             free(buf);
         }
     }

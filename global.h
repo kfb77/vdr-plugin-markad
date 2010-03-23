@@ -25,9 +25,14 @@ typedef unsigned char uchar;
 #define MT_COMMON        0x10
 #define MT_ASPECTCHANGE  0x20
 #define MT_CHANNELCHANGE 0x30
-#define MT_LOGOCHANGE    0x40
-#define MT_BORDERCHANGE  0x50
+#define MT_CHANNELSTART  0x30
+#define MT_CHANNELSTOP   0x31
+#define MT_LOGOSTART     0x40
+#define MT_LOGOSTOP      0x41
+#define MT_BORDERSTART   0x50
+#define MT_BORDERSTOP    0x51
 #define MT_SILENCECHANGE 0x60
+#define MT_ALL           0xFF
 
 typedef struct MarkAdMark
 {
