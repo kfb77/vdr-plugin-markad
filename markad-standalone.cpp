@@ -394,8 +394,15 @@ void cMarkAdStandalone::Process(const char *Directory)
             {
                 if (bIndexError)
                 {
-                    esyslog("index doesn't match marks%s",
-                            isTS ? ", please report this" : ", please run genindex");
+                    if ((macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) && (!isTS))
+                    {
+                        esyslog("index doesn't match marks, sorry you're lost");
+                    }
+                    else
+                    {
+                        esyslog("index doesn't match marks%s",
+                                isTS ? ", please recreate it" : ", please run genindex");
+                    }
                 }
             }
         }
@@ -437,8 +444,14 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
     {
         if (line[0]=='C')
         {
-            int result=sscanf(line,"%*c %as %*s",&macontext.General.ChannelID);
-            if (result==0 || result==EOF) macontext.General.ChannelID=NULL;
+            int ntok=0;
+            char *str=line,*tok;
+            while ((tok=strtok(str," ")))
+            {
+                if (ntok==1) macontext.General.ChannelID=strdup(tok);
+                ntok++;
+                str=NULL;
+            }
             if (macontext.General.ChannelID)
             {
                 for (int i=0; i<(int) strlen(macontext.General.ChannelID); i++)
