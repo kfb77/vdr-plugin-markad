@@ -62,6 +62,14 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             }
         }
 
+        if (Mark->Type==MT_CHANNELCHANGE)
+        {
+            if ((marks.Count(MT_CHANNELSTART)+marks.Count(MT_CHANNELSTOP))<3)
+            {
+                TurnOff=false;
+            }
+        }
+
         if (TurnOff)
         {
             isyslog("%s change detected. video decoding disabled",
