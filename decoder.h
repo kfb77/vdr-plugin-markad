@@ -30,6 +30,10 @@ extern "C"
 {
 #include <libavcodec/avcodec.h>
 
+#if LIBAVCODEC_VERSION_INT < ((52<<16)+(0<<8)+0)
+#warning H264 parsing may be broken, better use libavcodec52
+#endif
+
 #if LIBAVCODEC_VERSION_INT < ((52<<16)+(23<<8)+0)
 #include <libavformat/avformat.h>
 #endif

@@ -42,6 +42,11 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
         return;
     }
 
+    if (((ver >> 16)<52) && (useH264))
+    {
+        esyslog("dont report bugs about H264, use libavcodec >= 52 instead!");
+    }
+
     if (useMP2)
     {
         CodecID mp2_codecid=CODEC_ID_MP2;
@@ -202,10 +207,12 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
             {
                 isyslog("using codec %s",video_codec->long_name);
 
+#if LIBAVCODEC_VERSION_INT >= ((52<<16)+(22<<8)+2)
                 if (video_context->hwaccel)
                 {
                     isyslog("using hwaccel %s",video_context->hwaccel->name);
                 }
+#endif
 
                 video_frame = avcodec_alloc_frame();
                 if (!video_frame)

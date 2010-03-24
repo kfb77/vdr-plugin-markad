@@ -119,7 +119,7 @@ private:
     int inptr;
     int outptr;
 
-    unsigned long scanner;
+    uint32_t scanner;
     int scannerstart;
 
     int FindPktHeader(int Start, int *StreamSize,int *SyncSize, bool LongStartCode);
