@@ -123,6 +123,8 @@ void cPluginMarkAd::MainThreadHook(void)
 cString cPluginMarkAd::Active(void)
 {
     // Return a message string if shutdown should be postponed
+    if (statusMonitor->MarkAdRunning())
+        return tr("markad still running");
     return NULL;
 }
 

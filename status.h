@@ -15,12 +15,16 @@
 class cStatusMarkAd : public cStatus
 {
 private:
+    char *recs[MAXDEVICES*MAXRECEIVERS];
     const char *bindir;
     const char *logodir;
+    void Add(const char *FileName);
 protected:
     virtual void Recording(const cDevice *Device, const char *Name, const char *FileName, bool On);
 public:
     cStatusMarkAd(const char *BinDir,const char *LogoDir);
+    ~cStatusMarkAd();
+    bool MarkAdRunning(void);
 };
 
 #endif

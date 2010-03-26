@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2009-08-27 21:50+0200\n"
+"POT-Creation-Date: 2010-03-26 16:28+0100\n"
 "PO-Revision-Date: 2009-11-14 18:06+0100\n"
 "Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
 "Language-Team:  <vdr@linuxtv.org>\n"
@@ -15,6 +15,8 @@ msgstr ""
 "X-Poedit-Country: ITALY\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
+msgid "markad still running"
+msgstr ""
+
 msgid "Mark advertisements"
 msgstr "Segna i marcatori della pubblicità"
-

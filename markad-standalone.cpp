@@ -177,11 +177,10 @@ void cMarkAdStandalone::SaveFrame(int frame)
 
 void cMarkAdStandalone::CheckIndex(const char *Directory)
 {
-    // Here we check the indexfile
-    // if we have an index we check if the
-    // index is more advanced than our framecounter
-    // if not we wait. if we wait too much,
-    // we discard this check
+    // Here we check if the index is more
+    // advanced than our framecounter.
+    // If not we wait. If we wait too much,
+    // we discard this check...
 
 #define WAITTIME 10
 
@@ -436,7 +435,8 @@ void cMarkAdStandalone::Process(const char *Directory)
         }
 
         gettimeofday(&tv2,&tz);
-        long sec,usec;
+        time_t sec;
+        suseconds_t usec;
         sec=tv2.tv_sec-tv1.tv_sec;
         usec=tv2.tv_usec-tv1.tv_usec;
         if (usec<0)
@@ -757,11 +757,11 @@ bool cMarkAdStandalone::CreatePidfile(const char *Directory)
     if (oldpid)
     {
         // found old pidfile, check if it's still running
-        long pid;
-        if (fscanf(oldpid,"%li\n",&pid)==1)
+        int pid;
+        if (fscanf(oldpid,"%i\n",&pid)==1)
         {
             char procname[256]="";
-            snprintf(procname,sizeof(procname),"/proc/%li",pid);
+            snprintf(procname,sizeof(procname),"/proc/%i",pid);
             struct stat statbuf;
             if (stat(procname,&statbuf)!=-1)
             {
@@ -793,7 +793,7 @@ bool cMarkAdStandalone::CreatePidfile(const char *Directory)
 
     free(buf);
     if (!pidfile) return false;
-    fprintf(pidfile,"%li\n",(long) getpid());
+    fprintf(pidfile,"%i\n",(int) getpid());
     fflush(pidfile);
     fclose(pidfile);
     return true;
