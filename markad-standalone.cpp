@@ -45,6 +45,47 @@ void cMarkAdStandalone::AddStartMark()
     }
 }
 
+bool cMarkAdStandalone::CheckFirstMark()
+{
+    if (marksAligned) return true;
+
+    // Check the second mark
+    clMark *second=marks.GetNext(0);
+    if (!second) return false;
+
+    if ((second->type==MT_LOGOSTART) || (second->type==MT_BORDERSTART) ||
+            (second->type==MT_CHANNELSTART))
+    {
+        clMark *first=marks.Get(0);
+        if (first) marks.Del(first);
+        marksAligned=true;
+    }
+
+    if ((second->type==MT_LOGOSTOP) || (second->type==MT_BORDERSTOP) ||
+            (second->type==MT_CHANNELSTOP))
+    {
+        marksAligned=true;
+    }
+
+    // If we have an aspectchange, check the next aspectchange mark
+    // and the difference between
+    if ((second->type==MT_ASPECTCHANGE) && (macontext.Video.Info.FramesPerSecond>0))
+    {
+        clMark *next=marks.GetNext(second->position,MT_ASPECTCHANGE);
+        if (next)
+        {
+            int MAXPOSDIFF=(int) (macontext.Video.Info.FramesPerSecond*60*13);
+            if ((next->position-second->position)>MAXPOSDIFF)
+            {
+                clMark *first=marks.Get(0);
+                if (first) marks.Del(first);
+                marksAligned=true;
+            }
+        }
+    }
+    return marksAligned;
+}
+
 void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 {
     if (!Mark) return;
@@ -83,34 +124,30 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             marks.Del(MT_BORDERSTOP);
         }
     }
+    CheckFirstMark();
     marks.Add(Mark->Type,Mark->Position,Mark->Comment);
 }
 
 void cMarkAdStandalone::RateMarks()
 {
-    if (marks.Count()<=3) return; // only three marks? -> nothing to rate
-
-    // First check if we have only aspectmarks and no logomarks/audiomarks
-    int logomarks=marks.Count(MT_LOGOSTART) + marks.Count(MT_LOGOSTOP);
-    int audiomarks=marks.Count(MT_CHANNELSTART) +  marks.Count(MT_CHANNELSTOP);
-
-    if ((logomarks) || (audiomarks))
+    if (marks.Count()>3)
     {
-        // If we have logomarks get rid of all aspectmarks
-        marks.Del(MT_ASPECTCHANGE);
+        int logomarks=marks.Count(MT_LOGOSTART) + marks.Count(MT_LOGOSTOP);
+        int audiomarks=marks.Count(MT_CHANNELSTART) +  marks.Count(MT_CHANNELSTOP);
+
+        // If we have logomarks or audiomarks get rid of the aspect changes,
+        // cause if we have a recording with (>=3) aspect changes the
+        // logomarks were already deleted in AddMark
+        if ((logomarks) || (audiomarks))
+        {
+            marks.Del(MT_ASPECTCHANGE);
+        }
     }
 
-    // Check the third mark
-    clMark *second=marks.GetNext(0);
-    if (!second) return; // failure
-    clMark *third=marks.GetNext(second->position);
-    if (!third) return; // failure
-    int MAXPOSDIFF=(int) (macontext.Video.Info.FramesPerSecond*60*13);
-    if ((third->position-second->position)>MAXPOSDIFF)
-    {
-        clMark *first=marks.Get(0);
-        if (first) marks.Del(first);
-    }
+    // Check the first mark again
+    CheckFirstMark();
+
+    // TODO: more checks
 }
 
 void cMarkAdStandalone::SaveFrame(int frame)
@@ -789,6 +826,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     sleepcnt=0;
     waittime=0;
     duplicate=false;
+    marksAligned=false;
 
     memset(&macontext,0,sizeof(macontext));
     macontext.LogoDir=(char *) LogoDir;
@@ -954,6 +992,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         video = new cMarkAdVideo(&macontext);
         audio = new cMarkAdAudio(&macontext);
         streaminfo = new cMarkAdStreamInfo;
+        dsyslog("channel %s",macontext.General.ChannelID);
     }
     else
     {

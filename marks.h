@@ -101,8 +101,8 @@ public:
     void Del(clMark *Mark);
     void Del(int Type);
     clMark *Get(int Position);
-    clMark *GetPrev(int Position);
-    clMark *GetNext(int Position);
+    clMark *GetPrev(int Position,int Type=0xFF);
+    clMark *GetNext(int Position,int Type=0xFF);
     bool Backup(const char *Directory, bool isTS);
     bool Save(const char *Directory, double FrameRate, bool isTS);
     bool CheckIndex(const char *Directory, bool isTS, bool *IndexError);

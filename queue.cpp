@@ -31,6 +31,8 @@ cMarkAdPaketQueue::~cMarkAdPaketQueue()
 bool cMarkAdPaketQueue::Inject(uchar *Data, int Size)
 {
     if (!buffer) return false;
+    isyslog("inject was called, please report this");
+
     if (outptr>Size)
     {
         uchar *temp=(uchar *) alloca(Size+1);

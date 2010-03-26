@@ -62,7 +62,14 @@ int cMarkAdLogo::Load(char *file)
     pFile=fopen(file, "rb");
     if (!pFile) return -1;
 
-    fscanf(pFile, "P5\n#C%i\n%d %d\n255\n#", &area.corner,&LOGOWIDTH,&LOGOHEIGHT);
+    fscanf(pFile, "P5\n#C%i %i\n%d %d\n255\n#", &area.corner,&area.mpixel,&LOGOWIDTH,&LOGOHEIGHT);
+
+    if (LOGOHEIGHT==255)
+    {
+        LOGOHEIGHT=LOGOWIDTH;
+        LOGOWIDTH=area.mpixel;
+        area.mpixel=0;
+    }
 
     if ((LOGOWIDTH<=0) || (LOGOHEIGHT<=0) || (LOGOWIDTH>LOGO_MAXWIDTH) || (LOGOHEIGHT>LOGO_MAXHEIGHT) ||
             (area.corner<TOP_LEFT) || (area.corner>BOTTOM_RIGHT))
@@ -73,9 +80,12 @@ int cMarkAdLogo::Load(char *file)
 
     fread(&area.mask,1,LOGOWIDTH*LOGOHEIGHT,pFile);
 
-    for (int i=0; i<LOGOWIDTH*LOGOHEIGHT; i++)
+    if (!area.mpixel)
     {
-        if (!area.mask[i]) area.mpixel++;
+        for (int i=0; i<LOGOWIDTH*LOGOHEIGHT; i++)
+        {
+            if (!area.mask[i]) area.mpixel++;
+        }
     }
 
     fclose(pFile);
@@ -158,14 +168,14 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
         return 0;
     }
 
-    long SUMA=0;
+    int SUMA=0;
     for (int Y=ystart; Y<=yend-1; Y++)
     {
         for (int X=xstart; X<=xend-1; X++)
         {
-            area.source[(X-xstart)+(Y-ystart)*LOGOWIDTH]=
-                macontext->Video.Data.Plane[0][X+(Y*macontext->Video.Data.PlaneLinesize[0])];
-            SUMA+=area.source[(X-xstart)+(Y-ystart)*LOGOWIDTH];
+            int val=macontext->Video.Data.Plane[0][X+(Y*macontext->Video.Data.PlaneLinesize[0])];
+            area.source[(X-xstart)+(Y-ystart)*LOGOWIDTH]=val;
+            SUMA+=val;
         }
     }
 
@@ -255,12 +265,10 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
         }
         if (macontext->StandAlone.LogoExtraction==-1)
         {
-            //printf("%i %i %i %i\n",lastiframe,area.rpixel,area.mpixel,(area.rpixel<(area.mpixel*0.01)));
-
             if (area.status==UNINITIALIZED)
             {
                 // Initialize
-                if (area.rpixel>(area.mpixel*0.4))
+                if (area.rpixel>(area.mpixel*LOGO_VMARK))
                 {
                     area.status=LOGO;
                 }
@@ -270,11 +278,11 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
                 }
             }
 
-            if (area.rpixel>=(area.mpixel*0.4))
+            if (area.rpixel>=(area.mpixel*LOGO_VMARK))
             {
                 if (area.status==NOLOGO)
                 {
-                    if (area.counter>=LOGO_MAXCOUNT)
+                    if (area.counter>=LOGO_VMAXCOUNT)
                     {
                         area.status=ret=LOGO;
                         *logoiframe=area.lastiframe;
@@ -292,11 +300,11 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
                 }
             }
 
-            if (area.rpixel<(area.mpixel*0.4))
+            if (area.rpixel<(area.mpixel*LOGO_IMARK))
             {
                 if (area.status==LOGO)
                 {
-                    if (area.counter>=LOGO_MAXCOUNT)
+                    if (area.counter>=LOGO_IMAXCOUNT)
                     {
                         area.status=ret=NOLOGO;
                         *logoiframe=area.lastiframe;
@@ -313,6 +321,15 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
                     area.counter=0;
                 }
             }
+
+            if ((area.rpixel<(area.mpixel*LOGO_VMARK)) && (area.rpixel>(area.mpixel*LOGO_IMARK)))
+            {
+                area.counter=0;
+            }
+
+            //printf("%5i %3i %4i %4i %i %i %i\n",lastiframe,SUMA,area.rpixel,area.mpixel,
+            //       (area.rpixel>=(area.mpixel*LOGO_VMARK)),(area.rpixel<(area.mpixel*LOGO_IMARK)),
+            //       area.counter  );
             //Save(lastiframe,area.sobel); // TODO: JUST FOR DEBUGGING!
         }
         else
@@ -423,7 +440,6 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
 #define BRIGHTNESS 20
     if (!macontext) return 0;
     if (!macontext->Video.Data.Valid) return 0;
-    if (macontext->Video.Data.PlaneLinesize[0]!=macontext->Video.Info.Width) return 0;
 
     *BorderIFrame=borderiframe;
 
@@ -431,15 +447,15 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
     bool ftop=true,fbottom=true;
 
     // "fast" method
-    for (x=(macontext->Video.Info.Height-CHECKHEIGHT)*macontext->Video.Info.Width;
-            x<macontext->Video.Info.Height*macontext->Video.Info.Width; x++)
+    for (x=(macontext->Video.Info.Height-CHECKHEIGHT)*macontext->Video.Data.PlaneLinesize[0];
+            x<macontext->Video.Info.Height*macontext->Video.Data.PlaneLinesize[0]; x++)
     {
         if (macontext->Video.Data.Plane[0][x]>BRIGHTNESS) fbottom=false;
     }
 
     if (fbottom)
     {
-        for (x=0; x<(macontext->Video.Info.Width*CHECKHEIGHT); x++)
+        for (x=0; x<(macontext->Video.Data.PlaneLinesize[0]*CHECKHEIGHT); x++)
         {
             if (macontext->Video.Data.Plane[0][x]>BRIGHTNESS) ftop=false;
         }

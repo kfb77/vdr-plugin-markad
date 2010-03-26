@@ -184,6 +184,7 @@ unsigned Descriptor_Length:
     bool bBackupMarks;
     clMarks marks;
     char *IndexToHMSF(int Index);
+    bool CheckFirstMark();
     void AddStartMark();
     void AddMark(MarkAdMark *Mark);
     void RateMarks();

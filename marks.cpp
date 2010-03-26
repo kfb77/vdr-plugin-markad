@@ -111,26 +111,40 @@ clMark *clMarks::Get(int Position)
     return mark;
 }
 
-clMark *clMarks::GetPrev(int Position)
+clMark *clMarks::GetPrev(int Position, int Type)
 {
     if (!first) return NULL; // no elements yet
 
     clMark *mark=first;
     while (mark)
     {
-        if (mark->position>=Position) break;
+        if (Type==0xFF)
+        {
+            if (mark->position>=Position) break;
+        }
+        else
+        {
+            if ((mark->position>=Position) && (mark->type==Type)) break;
+        }
         mark=mark->Next();
     }
     return mark->Prev();
 }
 
-clMark *clMarks::GetNext(int Position)
+clMark *clMarks::GetNext(int Position, int Type)
 {
     if (!first) return NULL; // no elements yet
     clMark *mark=first;
     while (mark)
     {
-        if (mark->position>=Position) break;
+        if (Type==0xFF)
+        {
+            if (mark->position>=Position) break;
+        }
+        else
+        {
+            if ((mark->position>=Position) && (mark->type==Type)) break;
+        }
         mark=mark->Next();
     }
     return mark->Next();

@@ -21,7 +21,10 @@
 #define LOGO_DEFWIDTH    192
 #define LOGO_DEFHDWIDTH  288
 
-#define LOGO_MAXCOUNT 3
+#define LOGO_VMAXCOUNT 3  // count of IFrames for detection of "logo invisible"
+#define LOGO_IMAXCOUNT 5  // count of IFrames for detection of "logo invisible"
+#define LOGO_VMARK 0.8    // percantage of pixels for visible
+#define LOGO_IMARK 0.15   // percentage of pixels for invisible
 
 class cMarkAdLogo
 {
