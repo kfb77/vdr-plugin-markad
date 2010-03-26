@@ -9,6 +9,7 @@
 #define __queue_h_
 
 #include <vdr/tools.h> // needed for (d/e/i)syslog
+#include "debug.h"
 
 #ifndef uchar
 typedef unsigned char uchar;
@@ -113,6 +114,7 @@ private:
     } pktinfo;
 
     int percent;
+    int mpercent;
 
     uchar *buffer;
     int maxqueue;

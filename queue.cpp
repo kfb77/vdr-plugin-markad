@@ -14,17 +14,29 @@ cMarkAdPaketQueue::cMarkAdPaketQueue(const char *Name, int Size)
     memset(&pktinfo,0,sizeof(pktinfo));
     pktinfo.pkthdr=-1;
     maxqueue=Size;
-    name=strdup(Name);
+    if (Name)
+    {
+        name=strdup(Name);
+    }
+    else
+    {
+        name=NULL;
+    }
     buffer=(uchar *) malloc(Size+1);
     if (!buffer) maxqueue=0;
     scanner=0xFFFFFFFF;
     scannerstart=-1;
     percent=-1;
+    mpercent=0;
 }
 
 cMarkAdPaketQueue::~cMarkAdPaketQueue()
 {
-    if (name) free(name);
+    if (name)
+    {
+        tsyslog("buffer usage: %-15s %3i%%",name,mpercent);
+        free(name);
+    }
     if (buffer) free(buffer);
 }
 
@@ -67,16 +79,25 @@ bool cMarkAdPaketQueue::Put(uchar *Data, int Size)
     if (!buffer) return false;
     if ((inptr) && (inptr==outptr)) inptr=outptr=0;
 
-    if (((inptr+Size)>maxqueue) && (name))
+    if ((inptr+Size)>maxqueue)
     {
-        esyslog("buffer %s full",name);
-        inptr=outptr=0;
+        if (name)
+        {
+            esyslog("buffer %s full",name);
+        }
+        else
+        {
+            esyslog("buffer full");
+        }
+        Clear();
+        return false;
     }
 
     memcpy(&buffer[inptr],Data,Size);
     inptr+=Size;
 
     int npercent=(int) ((inptr*100)/maxqueue);
+    if (npercent>mpercent) mpercent=npercent;
 
     if ((npercent>90) && (name) && (npercent!=percent))
     {

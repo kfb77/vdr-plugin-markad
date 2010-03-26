@@ -15,7 +15,7 @@ cMarkAdDemux::cMarkAdDemux()
     pes2videoes=NULL;
     pause=false;
     pause_retval=0;
-    queue = new cMarkAdPaketQueue("Demux",376);
+    queue = new cMarkAdPaketQueue(NULL,376);
 }
 
 cMarkAdDemux::~cMarkAdDemux()
@@ -36,7 +36,17 @@ void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt
     uchar *pkt;
     int pktlen;
 
-    if (!vdr2pkt) vdr2pkt= new cMarkAdVDR2Pkt();
+    if (!vdr2pkt)
+    {
+        if ((Pid.Type==MARKAD_PIDTYPE_AUDIO_AC3) || (Pid.Type==MARKAD_PIDTYPE_AUDIO_MP2))
+        {
+            vdr2pkt= new cMarkAdVDR2Pkt("VDR2PKT audio");
+        }
+        else
+        {
+            vdr2pkt= new cMarkAdVDR2Pkt("VDR2PKT video");
+        }
+    }
     if (!vdr2pkt) return;
 
     vdr2pkt->Process(Pid,Data,Count,&pkt,&pktlen);
@@ -81,7 +91,7 @@ void cMarkAdDemux::ProcessTS(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt,
     {
         if (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264)
         {
-            ts2pkt=new cMarkAdTS2Pkt("TS2H264",393216);
+            ts2pkt=new cMarkAdTS2Pkt("TS2H264",819200);
         }
         else
         {
