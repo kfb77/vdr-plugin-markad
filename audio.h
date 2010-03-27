@@ -8,10 +8,18 @@
 #ifndef __audio_h_
 #define __audio_h_
 
-#include <vdr/tools.h> // needed for (d/e/i)syslog
 #include <netinet/in.h> // for htonl
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "global.h"
+
+extern "C"
+{
+#include "debug.h"
+}
+
 #if 0
 #include "audio_gain_analysis.h"
 #endif
