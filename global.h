@@ -62,21 +62,22 @@ typedef struct MarkAdContext
 {
     char *LogoDir; // Logo Directory, default /var/lib/markad
 
-    struct StandAlone
+    struct Options
     {
         int LogoExtraction;
         int LogoWidth;
         int LogoHeight;
         bool ASD;
-    } StandAlone;
+    } Options;
 
-    struct General
+    struct Info
     {
+        int Length; // in Minutes
         char *ChannelID;
         MarkAdPid VPid;
         MarkAdPid APid;
         MarkAdPid DPid;
-    } General;
+    } Info;
 
     struct Video
     {

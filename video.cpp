@@ -37,7 +37,7 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
     memset(&area,0,sizeof(area));
 
     LOGOHEIGHT=LOGO_DEFHEIGHT;
-    if (maContext->General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
+    if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
     {
         LOGOWIDTH=LOGO_DEFHDWIDTH;
     }
@@ -102,7 +102,7 @@ void cMarkAdLogo::Save(int lastiframe, uchar *picture)
 
     char *buf=NULL;
     if (asprintf(&buf,"%s/%06d-%s-A%i_%i.pgm","/tmp/",lastiframe,
-                 macontext->General.ChannelID,
+                 macontext->Info.ChannelID,
                  area.aspectratio.Num,area.aspectratio.Den)!=-1)
     {
         // Open file
@@ -263,7 +263,7 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
 
             }
         }
-        if (macontext->StandAlone.LogoExtraction==-1)
+        if (macontext->Options.LogoExtraction==-1)
         {
             if (area.status==UNINITIALIZED)
             {
@@ -346,9 +346,9 @@ int cMarkAdLogo::Process(int LastIFrame, int *LogoIFrame)
     if (!macontext->Video.Data.Valid) return ERROR;
     if (!macontext->Video.Info.Width) return ERROR;
     if (!macontext->LogoDir) return ERROR;
-    if (!macontext->General.ChannelID) return ERROR;
+    if (!macontext->Info.ChannelID) return ERROR;
 
-    if (macontext->StandAlone.LogoExtraction==-1)
+    if (macontext->Options.LogoExtraction==-1)
     {
 
         if ((area.aspectratio.Num!=macontext->Video.Info.AspectRatio.Num) ||
@@ -356,7 +356,7 @@ int cMarkAdLogo::Process(int LastIFrame, int *LogoIFrame)
         {
             area.valid=false;  // just to be sure!
             char *buf=NULL;
-            if (asprintf(&buf,"%s/%s-A%i_%i.pgm",macontext->LogoDir,macontext->General.ChannelID,
+            if (asprintf(&buf,"%s/%s-A%i_%i.pgm",macontext->LogoDir,macontext->Info.ChannelID,
                          macontext->Video.Info.AspectRatio.Num,macontext->Video.Info.AspectRatio.Den)!=-1)
             {
                 int ret=Load(buf);
@@ -381,14 +381,14 @@ int cMarkAdLogo::Process(int LastIFrame, int *LogoIFrame)
     {
         area.aspectratio.Num=macontext->Video.Info.AspectRatio.Num;
         area.aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
-        area.corner=macontext->StandAlone.LogoExtraction;
-        if (macontext->StandAlone.LogoWidth!=-1)
+        area.corner=macontext->Options.LogoExtraction;
+        if (macontext->Options.LogoWidth!=-1)
         {
-            LOGOWIDTH=macontext->StandAlone.LogoWidth;
+            LOGOWIDTH=macontext->Options.LogoWidth;
         }
-        if (macontext->StandAlone.LogoHeight!=-1)
+        if (macontext->Options.LogoHeight!=-1)
         {
-            LOGOHEIGHT=macontext->StandAlone.LogoHeight;
+            LOGOHEIGHT=macontext->Options.LogoHeight;
         }
         area.valid=true;
     }

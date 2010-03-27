@@ -125,22 +125,37 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         }
     }
     CheckFirstMark();
-    marks.Add(Mark->Type,Mark->Position,Mark->Comment);
+    clMark *old=marks.Get(Mark->Position);
+    if (old)
+    {
+        // Aspect- / Channelchange wins over Logo/Border
+        if (((old->type & 0xF0)!=MT_ASPECTCHANGE) && ((old->type & 0xF0)!=MT_CHANNELCHANGE))
+        {
+            marks.Add(Mark->Type,Mark->Position,Mark->Comment);
+        }
+    }
+    else
+    {
+        marks.Add(Mark->Type,Mark->Position,Mark->Comment);
+    }
 }
 
 void cMarkAdStandalone::RateMarks()
 {
-    if (marks.Count()>3)
+    if (macontext.Info.Length)
     {
-        int logomarks=marks.Count(MT_LOGOSTART) + marks.Count(MT_LOGOSTOP);
-        int audiomarks=marks.Count(MT_CHANNELSTART) +  marks.Count(MT_CHANNELSTOP);
-
-        // If we have logomarks or audiomarks get rid of the aspect changes,
-        // cause if we have a recording with (>=3) aspect changes the
-        // logomarks were already deleted in AddMark
-        if ((logomarks) || (audiomarks))
+        if ((marks.Count()>3) && (macontext.Info.Length>30))
         {
-            marks.Del(MT_ASPECTCHANGE);
+            int logomarks=marks.Count(MT_LOGOSTART) + marks.Count(MT_LOGOSTOP);
+            int audiomarks=marks.Count(MT_CHANNELSTART) +  marks.Count(MT_CHANNELSTOP);
+
+            // If we have logomarks or audiomarks get rid of the aspect changes,
+            // cause if we have a recording with (>=3) aspect changes the
+            // logomarks were already deleted in AddMark
+            if ((logomarks) || (audiomarks))
+            {
+                marks.Del(MT_ASPECTCHANGE);
+            }
         }
     }
 
@@ -261,7 +276,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
 
             while (tslen>0)
             {
-                int len=video_demux->Process(macontext.General.VPid,tspkt,tslen,&pkt,&pktlen);
+                int len=video_demux->Process(macontext.Info.VPid,tspkt,tslen,&pkt,&pktlen);
                 if (len<0)
                 {
                     break;
@@ -315,7 +330,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
 
             while (tslen>0)
             {
-                int len=ac3_demux->Process(macontext.General.DPid,tspkt,tslen,&pkt,&pktlen);
+                int len=ac3_demux->Process(macontext.Info.DPid,tspkt,tslen,&pkt,&pktlen);
                 if (len<0)
                 {
                     break;
@@ -356,7 +371,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
 
             while (tslen>0)
             {
-                int len=mp2_demux->Process(macontext.General.APid,tspkt,tslen,&pkt,&pktlen);
+                int len=mp2_demux->Process(macontext.Info.APid,tspkt,tslen,&pkt,&pktlen);
                 if (len<0)
                 {
                     break;
@@ -452,7 +467,7 @@ void cMarkAdStandalone::Process(const char *Directory)
             {
                 if (bIndexError)
                 {
-                    if ((macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) && (!isTS))
+                    if ((macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) && (!isTS))
                     {
                         esyslog("index doesn't match marks, sorry you're lost");
                     }
@@ -506,16 +521,28 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
             char *str=line,*tok;
             while ((tok=strtok(str," ")))
             {
-                if (ntok==1) macontext.General.ChannelID=strdup(tok);
+                if (ntok==1) macontext.Info.ChannelID=strdup(tok);
                 ntok++;
                 str=NULL;
             }
-            if (macontext.General.ChannelID)
+            if (macontext.Info.ChannelID)
             {
-                for (int i=0; i<(int) strlen(macontext.General.ChannelID); i++)
+                for (int i=0; i<(int) strlen(macontext.Info.ChannelID); i++)
                 {
-                    if (macontext.General.ChannelID[i]=='.') macontext.General.ChannelID[i]='_';
+                    if (macontext.Info.ChannelID[i]=='.') macontext.Info.ChannelID[i]='_';
                 }
+            }
+        }
+        if (line[0]=='E')
+        {
+            int result=sscanf(line,"%*c %*i %*i %i %*i %*x",&macontext.Info.Length);
+            if (result==1)
+            {
+                macontext.Info.Length/=60;
+            }
+            else
+            {
+                macontext.Info.Length=0;
             }
             if ((bIgnoreAudioInfo) && (bIgnoreVideoInfo)) break;
         }
@@ -543,7 +570,7 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
                         // if we have DolbyDigital 2.0 disable AC3
                         if (strchr(descr,'2'))
                         {
-                            macontext.General.DPid.Num=0;
+                            macontext.Info.DPid.Num=0;
                             isyslog("broadcast with DolbyDigital2.0, disabling AC3 decoding");
                         }
                         // if we have DolbyDigital 5.1 disable video decoding
@@ -562,7 +589,7 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
 
     fclose(f);
     free(buf);
-    if (!macontext.General.ChannelID)
+    if (!macontext.Info.ChannelID)
     {
         return false;
     }
@@ -716,28 +743,28 @@ bool cMarkAdStandalone::CheckPATPMT(const char *Directory)
         {
         case 0x1:
         case 0x2:
-            macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+            macontext.Info.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
             // just use the first pid
-            if (!macontext.General.VPid.Num) macontext.General.VPid.Num=pid;
+            if (!macontext.Info.VPid.Num) macontext.Info.VPid.Num=pid;
             break;
 
         case 0x3:
         case 0x4:
             // just use the first pid
-            if (!macontext.General.APid.Num) macontext.General.APid.Num=pid;
+            if (!macontext.Info.APid.Num) macontext.Info.APid.Num=pid;
             break;
 
         case 0x6:
             if (es)
             {
-                if (es->Descriptor_Tag==0x6A) macontext.General.DPid.Num=pid;
+                if (es->Descriptor_Tag==0x6A) macontext.Info.DPid.Num=pid;
             }
             break;
 
         case 0x1b:
-            macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
+            macontext.Info.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
             // just use the first pid
-            if (!macontext.General.VPid.Num) macontext.General.VPid.Num=pid;
+            if (!macontext.Info.VPid.Num) macontext.Info.VPid.Num=pid;
             break;
         }
 
@@ -830,9 +857,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
     memset(&macontext,0,sizeof(macontext));
     macontext.LogoDir=(char *) LogoDir;
-    macontext.StandAlone.LogoExtraction=LogoExtraction;
-    macontext.StandAlone.LogoWidth=LogoWidth;
-    macontext.StandAlone.LogoHeight=LogoHeight;
+    macontext.Options.LogoExtraction=LogoExtraction;
+    macontext.Options.LogoWidth=LogoWidth;
+    macontext.Options.LogoHeight=LogoHeight;
     macontext.Audio.Options.AudioSilenceDetection=ASD;
 
     bDecodeVideo=DecodeVideo;
@@ -842,8 +869,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
     bBackupMarks=BackupMarks;
 
-    macontext.General.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
-    macontext.General.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
+    macontext.Info.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
+    macontext.Info.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
 
     isyslog("starting v%s",VERSION);
     isyslog("on %s",Directory);
@@ -908,7 +935,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         }
         if (!macontext.Audio.Options.AudioSilenceDetection)
         {
-            macontext.General.APid.Num=0;
+            macontext.Info.APid.Num=0;
         }
         if (asprintf(&indexFile,"%s/index",Directory)==-1) indexFile=NULL;
     }
@@ -916,18 +943,18 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     {
         if (macontext.Audio.Options.AudioSilenceDetection)
         {
-            macontext.General.APid.Num=-1;
+            macontext.Info.APid.Num=-1;
         }
-        macontext.General.DPid.Num=-1;
-        macontext.General.VPid.Num=-1;
+        macontext.Info.DPid.Num=-1;
+        macontext.Info.VPid.Num=-1;
 
         if (CheckVDRHD(Directory))
         {
-            macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
+            macontext.Info.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
         }
         else
         {
-            macontext.General.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+            macontext.Info.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
         }
         if (asprintf(&indexFile,"%s/index.vdr",Directory)==-1) indexFile=NULL;
     }
@@ -943,18 +970,18 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
     if (MarkFileName[0]) marks.SetFileName(MarkFileName);
 
-    if (macontext.General.VPid.Num)
+    if (macontext.Info.VPid.Num)
     {
         if (isTS)
         {
             dsyslog("using %s-video (0x%04x)",
-                    macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262",
-                    macontext.General.VPid.Num);
+                    macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262",
+                    macontext.Info.VPid.Num);
         }
         else
         {
             dsyslog("using %s-video",
-                    macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262");
+                    macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262");
         }
         video_demux = new cMarkAdDemux();
     }
@@ -963,10 +990,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         video_demux=NULL;
     }
 
-    if (macontext.General.APid.Num)
+    if (macontext.Info.APid.Num)
     {
-        if (macontext.General.APid.Num!=-1)
-            dsyslog("using MP2 (0x%04x)",macontext.General.APid.Num);
+        if (macontext.Info.APid.Num!=-1)
+            dsyslog("using MP2 (0x%04x)",macontext.Info.APid.Num);
         mp2_demux = new cMarkAdDemux();
     }
     else
@@ -974,10 +1001,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         mp2_demux=NULL;
     }
 
-    if (macontext.General.DPid.Num)
+    if (macontext.Info.DPid.Num)
     {
-        if (macontext.General.DPid.Num!=-1)
-            dsyslog("using AC3 (0x%04x)",macontext.General.DPid.Num);
+        if (macontext.Info.DPid.Num!=-1)
+            dsyslog("using AC3 (0x%04x)",macontext.Info.DPid.Num);
         ac3_demux = new cMarkAdDemux();
     }
     else
@@ -987,12 +1014,13 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
     if (!abort)
     {
-        decoder = new cMarkAdDecoder(macontext.General.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,
-                                     macontext.General.APid.Num!=0,macontext.General.DPid.Num!=0);
+        decoder = new cMarkAdDecoder(macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,
+                                     macontext.Info.APid.Num!=0,macontext.Info.DPid.Num!=0);
         video = new cMarkAdVideo(&macontext);
         audio = new cMarkAdAudio(&macontext);
         streaminfo = new cMarkAdStreamInfo;
-        dsyslog("channel %s",macontext.General.ChannelID);
+        if (macontext.Info.ChannelID)
+            dsyslog("channel %s",macontext.Info.ChannelID);
     }
     else
     {
@@ -1008,7 +1036,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
 cMarkAdStandalone::~cMarkAdStandalone()
 {
-    if (macontext.General.ChannelID) free(macontext.General.ChannelID);
+    if (macontext.Info.ChannelID) free(macontext.Info.ChannelID);
     if (indexFile) free(indexFile);
 
     if (video_demux) delete video_demux;

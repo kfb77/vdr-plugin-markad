@@ -101,9 +101,9 @@ unsigned AcMod:
 bool cMarkAdStreamInfo::FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len)
 {
     if ((!maContext) || (!pkt) || (!len)) return false;
-    if (!maContext->General.VPid.Type) return false;
+    if (!maContext->Info.VPid.Type) return false;
 
-    switch (maContext->General.VPid.Type)
+    switch (maContext->Info.VPid.Type)
     {
     case MARKAD_PIDTYPE_VIDEO_H264:
         return FindH264VideoInfos(maContext, pkt, len);
