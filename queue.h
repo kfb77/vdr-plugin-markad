@@ -8,14 +8,18 @@
 #ifndef __queue_h_
 #define __queue_h_
 
-#include <vdr/tools.h> // needed for (d/e/i)syslog
-#include "debug.h"
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
 
 #ifndef uchar
 typedef unsigned char uchar;
 #endif
 
-#include <string.h>
+extern "C"
+{
+#include "debug.h"
+}
 
 class cMarkAdPaketQueue
 {

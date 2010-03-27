@@ -8,11 +8,17 @@
 #ifndef __video_h_
 #define __video_h_
 
-#include <vdr/tools.h> // needed for (d/e/i)syslog
-
 #include <time.h>
 #include <math.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "global.h"
+
+extern "C"
+{
+#include "debug.h"
+}
 
 #define LOGO_MAXHEIGHT   170
 #define LOGO_MAXWIDTH    480

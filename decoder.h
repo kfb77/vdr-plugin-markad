@@ -10,7 +10,6 @@
 
 #define __STDC_CONSTANT_MACROS
 
-#include <vdr/tools.h> // needed for (d/e/i)syslog
 #include <stdint.h>
 #include <sched.h>
 
@@ -37,6 +36,7 @@ extern "C"
 #if LIBAVCODEC_VERSION_INT < ((52<<16)+(23<<8)+0)
 #include <libavformat/avformat.h>
 #endif
+#include "debug.h"
 }
 
 #include "global.h"

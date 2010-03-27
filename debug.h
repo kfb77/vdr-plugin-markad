@@ -12,6 +12,12 @@
 #define LOG_ERR 3
 #endif
 
-#define tsyslog(fmt,...) void( (SysLogLevel > 3) ? syslog_with_tid(LOG_ERR, fmt, __VA_ARGS__) : void() )
+extern int SysLogLevel;
+extern void syslog_with_tid(int priority, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
+
+#define esyslog(a...) void( (SysLogLevel > 0) ? syslog_with_tid(LOG_ERR, a) : void() )
+#define isyslog(a...) void( (SysLogLevel > 1) ? syslog_with_tid(LOG_ERR, a) : void() )
+#define dsyslog(a...) void( (SysLogLevel > 2) ? syslog_with_tid(LOG_ERR, a) : void() )
+#define tsyslog(a...) void( (SysLogLevel > 3) ? syslog_with_tid(LOG_ERR, a) : void() )
 
 #endif

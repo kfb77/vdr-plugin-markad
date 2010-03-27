@@ -8,7 +8,10 @@
 #ifndef __ts2pkt_h_
 #define __ts2pkt_h_
 
-#include <vdr/tools.h> // needed for (d/e/i)syslog
+extern "C"
+{
+#include "debug.h"
+}
 
 #ifndef TS_SIZE
 #define TS_SIZE 188
