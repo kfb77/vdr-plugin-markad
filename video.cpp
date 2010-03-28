@@ -402,99 +402,107 @@ cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(MarkAdContext *maContext)
 {
     macontext=maContext;
 
-    borderstatus=false;
+    borderstatus=UNINITIALIZED;
     borderiframe=-1;
-    borderstarttime=0;
-}
-
-void cMarkAdBlackBordersHoriz::SaveFrame(int LastIFrame)
-{
-    if (!macontext) return;
-    if (!macontext->Video.Data.Valid) return;
-
-    if (macontext->Video.Data.PlaneLinesize[0]!=macontext->Video.Info.Width) return;
-
-    FILE *pFile;
-    char szFilename[32];
-
-    // Open file
-    sprintf(szFilename, "frame%06d.pgm", LastIFrame);
-    pFile=fopen(szFilename, "wb");
-    if (pFile==NULL)
-        return;
-
-    // Write header
-    fprintf(pFile, "P5\n%d %d\n255\n", macontext->Video.Info.Width,
-            macontext->Video.Info.Width);
-
-    // Write pixel data
-    fwrite(macontext->Video.Data.Plane[0],1,macontext->Video.Info.Width*
-           macontext->Video.Info.Height,pFile);
-    // Close file
-    fclose(pFile);
 }
 
 int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
 {
 #define CHECKHEIGHT 20
 #define BRIGHTNESS 20
+#define OFFSET 5
     if (!macontext) return 0;
     if (!macontext->Video.Data.Valid) return 0;
+    if (macontext->Video.Info.FramesPerSecond==0) return 0;
+    *BorderIFrame=0;
 
-    *BorderIFrame=borderiframe;
+    int height=macontext->Video.Info.Height-OFFSET;
 
-    int x;
+    int start=(height-CHECKHEIGHT)*macontext->Video.Data.PlaneLinesize[0];
+    int end=height*macontext->Video.Data.PlaneLinesize[0];
     bool ftop=true,fbottom=true;
+    int val=0,cnt=0,xz=0;
 
-    // "fast" method
-    for (x=(macontext->Video.Info.Height-CHECKHEIGHT)*macontext->Video.Data.PlaneLinesize[0];
-            x<macontext->Video.Info.Height*macontext->Video.Data.PlaneLinesize[0]; x++)
+    for (int x=start; x<end; x++)
     {
-        if (macontext->Video.Data.Plane[0][x]>BRIGHTNESS) fbottom=false;
+        if (xz<macontext->Video.Info.Width)
+        {
+            val+=macontext->Video.Data.Plane[0][x];
+            macontext->Video.Data.Plane[0][x]=255;
+
+            cnt++;
+        }
+        xz++;
+        if (xz>=macontext->Video.Data.PlaneLinesize[0]) xz=0;
     }
+    val/=cnt;
+    if (val>BRIGHTNESS) fbottom=false;
 
     if (fbottom)
     {
-        for (x=0; x<(macontext->Video.Data.PlaneLinesize[0]*CHECKHEIGHT); x++)
+        start=OFFSET*macontext->Video.Data.PlaneLinesize[0];
+        end=macontext->Video.Data.PlaneLinesize[0]*(CHECKHEIGHT+OFFSET);
+        val=0;
+        cnt=0;
+        xz=0;
+        for (int x=start; x<end; x++)
         {
-            if (macontext->Video.Data.Plane[0][x]>BRIGHTNESS) ftop=false;
+            if (xz<macontext->Video.Info.Width)
+            {
+                val+=macontext->Video.Data.Plane[0][x];
+                macontext->Video.Data.Plane[0][x]=255;
+
+                cnt++;
+            }
+            xz++;
+            if (xz>=macontext->Video.Data.PlaneLinesize[0]) xz=0;
         }
+        val/=cnt;
+        if (val>BRIGHTNESS) ftop=false;
     }
 
     if ((fbottom) && (ftop))
     {
-        if (!borderstatus)
+        if (borderiframe==-1)
         {
-            if (!borderstarttime)
+            borderiframe=LastIFrame;
+        }
+        else
+        {
+            if (LastIFrame>(borderiframe+macontext->Video.Info.FramesPerSecond*60))
             {
-                borderiframe=LastIFrame;
-                borderstarttime=time(NULL);
-                borderstatus=false;
-            }
-            else
-            {
-                if ((time(NULL)>(borderstarttime+20)))
+                if (borderstatus==UNINITIALIZED)
                 {
-                    borderstatus=true;
-                    return 1; // detected black border
+                    borderstatus=BORDER;
+                }
+                if (borderstatus==NOBORDER)
+                {
+                    *BorderIFrame=borderiframe;
+                    borderstatus=BORDER;
+                    return 1; // detected start of black border
                 }
             }
         }
     }
     else
     {
-        if (borderstatus)
+        if (borderiframe!=-1)
         {
-            borderiframe=LastIFrame;
-            borderstarttime=0;
-            borderstatus=false;
-            return -1;
+            if (borderstatus==BORDER)
+            {
+                *BorderIFrame=LastIFrame;
+                borderstatus=NOBORDER;
+                borderiframe=-1;
+                return -1; // detected stop of black border
+            }
+            else
+            {
+                borderiframe=-1;
+            }
         }
         else
         {
             borderiframe=-1;
-            borderstarttime=0;
-            return 0;
         }
     }
     return 0;
@@ -570,31 +578,33 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
     ResetMark();
     if (!LastIFrame) return NULL;
 
-    int logoiframe;
-    int lret=logo->Process(LastIFrame,&logoiframe);
-    if ((lret>=-1) && (lret!=0))
+    if (!macontext->Video.Options.IgnoreLogoDetection)
     {
-        char *buf=NULL;
-        if (lret>0)
+        int logoiframe;
+        int lret=logo->Process(LastIFrame,&logoiframe);
+        if ((lret>=-1) && (lret!=0))
         {
-            if (asprintf(&buf,"detected logo start (%i)",logoiframe)!=-1)
+            char *buf=NULL;
+            if (lret>0)
             {
-                isyslog(buf);
-                AddMark(MT_LOGOSTART,logoiframe,buf);
-                free(buf);
+                if (asprintf(&buf,"detected logo start (%i)",logoiframe)!=-1)
+                {
+                    isyslog(buf);
+                    AddMark(MT_LOGOSTART,logoiframe,buf);
+                    free(buf);
+                }
             }
-        }
-        else
-        {
-            if (asprintf(&buf,"detected logo stop (%i)",logoiframe)!=-1)
+            else
             {
-                isyslog(buf);
-                AddMark(MT_LOGOSTOP,logoiframe,buf);
-                free(buf);
+                if (asprintf(&buf,"detected logo stop (%i)",logoiframe)!=-1)
+                {
+                    isyslog(buf);
+                    AddMark(MT_LOGOSTOP,logoiframe,buf);
+                    free(buf);
+                }
             }
         }
     }
-
 
     int borderiframe;
     int hret=hborder->Process(LastIFrame,&borderiframe);

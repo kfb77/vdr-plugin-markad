@@ -91,6 +91,15 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     if (!Mark) return;
     if (!Mark->Type) return;
 
+    if (((Mark->Type & 0xF0)==MT_BORDERCHANGE) && (Mark->Position>25000) &&
+            (!macontext.Video.Options.IgnoreLogoDetection))
+    {
+        isyslog("border change detected. logo detection disabled");
+        macontext.Video.Options.IgnoreLogoDetection=true;
+        marks.Del(MT_LOGOSTART);
+        marks.Del(MT_LOGOSTOP);
+    }
+
     if ((((Mark->Type & 0xF0)==MT_CHANNELCHANGE) || (Mark->Type==MT_ASPECTCHANGE)) &&
             (Mark->Position>25000) && (bDecodeVideo))
     {
@@ -113,7 +122,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 
         if (TurnOff)
         {
-            isyslog("%s change detected. video decoding disabled",
+            isyslog("%s change detected. logo/border detection disabled",
                     Mark->Type==MT_ASPECTCHANGE ? "aspectratio" : "audio channel");
 
             bDecodeVideo=false;
@@ -308,9 +317,9 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                         {
                             if ((framecnt-lastiframe)<=3)
                             {
-                                //SaveFrame(lastiframe);  // TODO: JUST FOR DEBUGGING!
                                 mark=video->Process(lastiframe);
                                 AddMark(mark);
+                                //SaveFrame(lastiframe);  // TODO: JUST FOR DEBUGGING!
                             }
                         }
                     }

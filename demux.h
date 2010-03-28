@@ -22,14 +22,9 @@
 #include "ts2pkt.h"
 #include "pes2es.h"
 
-#if 1
-#include <unistd.h>
-#endif
-
 class cMarkAdDemux
 {
 private:
-    int recvnumber;
     cMarkAdVDR2Pkt *vdr2pkt;
     cMarkAdTS2Pkt *ts2pkt;
     cMarkAdPES2ES *pes2audioes;
