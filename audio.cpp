@@ -154,7 +154,6 @@ MarkAdMark *cMarkAdAudio::Process(int LastIFrame)
             char *buf=NULL;
             if (asprintf(&buf,"audio channel silence detecion (%i)",lastiframe)!=-1)
             {
-                isyslog(buf);
                 AddMark(MT_SILENCECHANGE,lastiframe,buf);
                 free(buf);
             }
@@ -167,7 +166,6 @@ MarkAdMark *cMarkAdAudio::Process(int LastIFrame)
         if (asprintf(&buf,"audio channel change from %i to %i (%i)", channels,
                      macontext->Audio.Info.Channels,lastiframe)!=-1)
         {
-            isyslog(buf);
             if (macontext->Audio.Info.Channels>2)
             {
                 AddMark(MT_CHANNELSTART,lastiframe,buf);

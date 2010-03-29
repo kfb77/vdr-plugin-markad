@@ -75,7 +75,7 @@ uint16_t number:
     };
 
     char filename[1024];
-    clMark *first;
+    clMark *first,*last;
     char *IndexToHMSF(int Index, double FramesPerSecond);
     int count;
     int savedcount;
@@ -83,7 +83,7 @@ public:
     clMarks()
     {
         strcpy(filename,"marks");
-        first=NULL;
+        first=last=NULL;
         savedcount=0;
         count=0;
     }
@@ -103,6 +103,14 @@ public:
     clMark *Get(int Position);
     clMark *GetPrev(int Position,int Type=0xFF);
     clMark *GetNext(int Position,int Type=0xFF);
+    clMark *GetFirst()
+    {
+        return first;
+    }
+    clMark *GetLast()
+    {
+        return last;
+    }
     bool Backup(const char *Directory, bool isTS);
     bool Save(const char *Directory, double FrameRate, bool isTS);
     bool CheckIndex(const char *Directory, bool isTS, bool *IndexError);

@@ -91,6 +91,39 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     if (!Mark) return;
     if (!Mark->Type) return;
 
+    if (Mark->Type==MT_LOGOSTART)
+    {
+        // check if last mark is an aspectratio change
+        clMark *prev=marks.GetLast();
+        if ((prev) && (prev->type==MT_ASPECTCHANGE))
+        {
+            if ((Mark->Position-prev->position)<20)
+            {
+                if (Mark->Comment) isyslog(Mark->Comment);
+                isyslog("aspectratio change in low distance, moving mark (%i->%i)",Mark->Position,prev->position);
+                marks.Add(MT_MOVED,prev->position,Mark->Comment);
+                return;
+            }
+        }
+    }
+
+    if (((Mark->Type & 0xF0)==MT_LOGOCHANGE) && (macontext.Video.Info.FramesPerSecond>0))
+    {
+        // check if the distance to the last mark is large enough!
+        clMark *prev=marks.GetLast();
+        if ((prev) && ((prev->type & 0xF0)==MT_LOGOCHANGE))
+        {
+            int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*60*2);
+            if ((Mark->Position-prev->position)<MINMARKDIFF)
+            {
+                if (Mark->Comment) isyslog(Mark->Comment);
+                isyslog("logo distance too short, deleting (%i,%i)",prev->position,Mark->Position);
+                marks.Del(prev);
+                return;
+            }
+        }
+    }
+
     if (((Mark->Type & 0xF0)==MT_BORDERCHANGE) && (Mark->Position>25000) &&
             (!macontext.Video.Options.IgnoreLogoDetection))
     {
@@ -140,11 +173,13 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         // Aspect- / Channelchange wins over Logo/Border
         if (((old->type & 0xF0)!=MT_ASPECTCHANGE) && ((old->type & 0xF0)!=MT_CHANNELCHANGE))
         {
+            if (Mark->Comment) isyslog(Mark->Comment);
             marks.Add(Mark->Type,Mark->Position,Mark->Comment);
         }
     }
     else
     {
+        if (Mark->Comment) isyslog(Mark->Comment);
         marks.Add(Mark->Type,Mark->Position,Mark->Comment);
     }
 }
@@ -307,7 +342,8 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                             framecnt++;
                             if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                             {
-                                lastiframe=framecnt-1;
+                                lastiframe=iframe;
+                                iframe=framecnt-1;
                             }
                         }
 
@@ -315,7 +351,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                         if ((decoder) && (bDecodeVideo)) dRes=decoder->DecodeVideo(&macontext,pkt,pktlen);
                         if (dRes)
                         {
-                            if ((framecnt-lastiframe)<=3)
+                            if ((framecnt-iframe)<=3)
                             {
                                 mark=video->Process(lastiframe);
                                 AddMark(mark);
@@ -453,7 +489,6 @@ void cMarkAdStandalone::Process(const char *Directory)
             {
                 tempmark.Comment=buf;
                 AddMark(&tempmark);
-                isyslog(buf);
                 free(buf);
             }
         }
@@ -1041,6 +1076,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
     framecnt=0;
     lastiframe=0;
+    iframe=0;
 }
 
 cMarkAdStandalone::~cMarkAdStandalone()

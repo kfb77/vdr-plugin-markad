@@ -202,7 +202,7 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
 #endif
     int ret=NOCHANGE;
 
-    if (SUMA<100)
+    if ((SUMA<100) || ((area.status==LOGO) && (SUMA<180)))
     {
 
         int SUM;
@@ -296,6 +296,7 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
                 }
                 else
                 {
+                    area.lastiframe=lastiframe;
                     area.counter=0;
                 }
             }
@@ -312,7 +313,6 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
                     }
                     else
                     {
-                        if (!area.counter) area.lastiframe=lastiframe;
                         area.counter++;
                     }
                 }
@@ -327,10 +327,12 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
                 area.counter=0;
             }
 
-            //printf("%5i %3i %4i %4i %i %i %i\n",lastiframe,SUMA,area.rpixel,area.mpixel,
-            //       (area.rpixel>=(area.mpixel*LOGO_VMARK)),(area.rpixel<(area.mpixel*LOGO_IMARK)),
-            //       area.counter  );
-            //Save(lastiframe,area.sobel); // TODO: JUST FOR DEBUGGING!
+#if 0
+            printf("%5i %3i %4i %4i %i %i %i\n",lastiframe,SUMA,area.rpixel,area.mpixel,
+                   (area.rpixel>=(area.mpixel*LOGO_VMARK)),(area.rpixel<(area.mpixel*LOGO_IMARK)),
+                   area.counter  );
+            Save(lastiframe,area.sobel); // TODO: JUST FOR DEBUGGING!
+#endif
         }
         else
         {
@@ -428,8 +430,6 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
         if (xz<macontext->Video.Info.Width)
         {
             val+=macontext->Video.Data.Plane[0][x];
-            macontext->Video.Data.Plane[0][x]=255;
-
             cnt++;
         }
         xz++;
@@ -450,8 +450,6 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
             if (xz<macontext->Video.Info.Width)
             {
                 val+=macontext->Video.Data.Plane[0][x];
-                macontext->Video.Data.Plane[0][x]=255;
-
                 cnt++;
             }
             xz++;
@@ -469,18 +467,28 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
         }
         else
         {
-            if (LastIFrame>(borderiframe+macontext->Video.Info.FramesPerSecond*60))
+#define MINSECS 60
+            switch (borderstatus)
             {
-                if (borderstatus==UNINITIALIZED)
+            case UNINITIALIZED:
+                if (LastIFrame>(borderiframe+macontext->Video.Info.FramesPerSecond*MINSECS))
                 {
                     borderstatus=BORDER;
                 }
-                if (borderstatus==NOBORDER)
+                break;
+
+            case NOBORDER:
+                if (LastIFrame>(borderiframe+macontext->Video.Info.FramesPerSecond*MINSECS))
                 {
                     *BorderIFrame=borderiframe;
                     borderstatus=BORDER;
                     return 1; // detected start of black border
                 }
+                break;
+
+            case BORDER:
+                borderiframe=LastIFrame;
+                break;
             }
         }
     }
@@ -490,7 +498,7 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
         {
             if (borderstatus==BORDER)
             {
-                *BorderIFrame=LastIFrame;
+                *BorderIFrame=borderiframe;
                 borderstatus=NOBORDER;
                 borderiframe=-1;
                 return -1; // detected stop of black border
@@ -589,7 +597,6 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
             {
                 if (asprintf(&buf,"detected logo start (%i)",logoiframe)!=-1)
                 {
-                    isyslog(buf);
                     AddMark(MT_LOGOSTART,logoiframe,buf);
                     free(buf);
                 }
@@ -598,7 +605,6 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
             {
                 if (asprintf(&buf,"detected logo stop (%i)",logoiframe)!=-1)
                 {
-                    isyslog(buf);
                     AddMark(MT_LOGOSTOP,logoiframe,buf);
                     free(buf);
                 }
@@ -614,7 +620,6 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         char *buf=NULL;
         if (asprintf(&buf,"detected start of horiz. borders (%i)",borderiframe)!=-1)
         {
-            isyslog(buf);
             AddMark(MT_BORDERSTART,borderiframe,buf);
             free(buf);
         }
@@ -625,7 +630,6 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
         char *buf=NULL;
         if (asprintf(&buf,"detected stop of horiz. borders (%i)",borderiframe)!=-1)
         {
-            isyslog(buf);
             AddMark(MT_BORDERSTOP,borderiframe,buf);
             free(buf);
         }
@@ -641,7 +645,6 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
                          macontext->Video.Info.AspectRatio.Num,
                          macontext->Video.Info.AspectRatio.Den,LastIFrame)!=-1)
             {
-                isyslog(buf);
                 AddMark(MT_ASPECTCHANGE,LastIFrame,buf);
                 free(buf);
             }

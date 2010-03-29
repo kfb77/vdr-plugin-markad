@@ -162,6 +162,7 @@ unsigned Descriptor_Length:
     bool isTS;
     int MaxFiles;
     int lastiframe;
+    int iframe;
     int framecnt;
     bool abort;
     int waittime;

@@ -30,7 +30,7 @@ extern "C"
 
 #define LOGO_VMAXCOUNT 3  // count of IFrames for detection of "logo invisible"
 #define LOGO_IMAXCOUNT 5  // count of IFrames for detection of "logo invisible"
-#define LOGO_VMARK 0.8    // percantage of pixels for visible
+#define LOGO_VMARK 0.5    // percantage of pixels for visible
 #define LOGO_IMARK 0.15   // percentage of pixels for invisible
 
 class cMarkAdLogo

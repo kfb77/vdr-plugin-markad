@@ -128,7 +128,8 @@ clMark *clMarks::GetPrev(int Position, int Type)
         }
         mark=mark->Next();
     }
-    return mark->Prev();
+    if (mark) return mark->Prev();
+    return last;
 }
 
 clMark *clMarks::GetNext(int Position, int Type)
@@ -160,6 +161,7 @@ clMark *clMarks::Add(int Type, int Position,const char *Comment)
             free(newmark->comment);
             newmark->comment=strdup(Comment);
         }
+        newmark->type=Type;
         return newmark;
     }
 
@@ -169,7 +171,7 @@ clMark *clMarks::Add(int Type, int Position,const char *Comment)
     if (!first)
     {
         //first element
-        first=newmark;
+        first=last=newmark;
         count++;
         return newmark;
     }
@@ -185,6 +187,7 @@ clMark *clMarks::Add(int Type, int Position,const char *Comment)
                     // add as last element
                     newmark->Set(mark,NULL);
                     mark->SetNext(newmark);
+                    last=newmark;
                     break;
                 }
                 else
@@ -210,7 +213,7 @@ clMark *clMarks::Add(int Type, int Position,const char *Comment)
             {
                 if ((Position>mark->position) && (Position<mark->Next()->position))
                 {
-                    // add after mark
+                    // add between two marks
                     newmark->Set(mark,mark->Next());
                     mark->SetNext(newmark);
                     break;
