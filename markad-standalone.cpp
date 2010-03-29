@@ -100,7 +100,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             if ((Mark->Position-prev->position)<20)
             {
                 if (Mark->Comment) isyslog(Mark->Comment);
-                isyslog("aspectratio change in low distance, moving mark (%i->%i)",Mark->Position,prev->position);
+                isyslog("aspectratio change in short distance, moving mark (%i->%i)",Mark->Position,prev->position);
                 marks.Add(MT_MOVED,prev->position,Mark->Comment);
                 return;
             }

@@ -18,7 +18,7 @@ VERSION = $(shell grep 'static const char \*VERSION *=' version.h | awk '{ print
 ### The C++ compiler and options:
 
 CXX      ?= g++
-CXXFLAGS ?= -fPIC -g -O2 -Wall -Woverloaded-virtual -Wno-parentheses
+CXXFLAGS ?= -fPIC -g -O2 -Wall -Wextra -Woverloaded-virtual -Wno-parentheses
 PKG-CONFIG ?= pkg-config
 
 ### The directory environment:
@@ -115,7 +115,7 @@ dist: clean
 	@-rm -rf $(TMPDIR)/$(ARCHIVE)
 	@mkdir $(TMPDIR)/$(ARCHIVE)
 	@cp -a *.cpp *.h $(TMPDIR)/$(ARCHIVE)
-	@cp -a po COPYING HISTORY README Makefile $(TMPDIR)/$(ARCHIVE)
+	@cp -a logos po COPYING HISTORY README Makefile $(TMPDIR)/$(ARCHIVE)
 	@tar czf $(PACKAGE).tgz -C $(TMPDIR) --exclude debian --exclude CVS --exclude .svn --exclude markad.kdevelop --exclude markad.kdevelop.filelist --exclude markad.kdevelop.pcs --exclude markad.kdevses --exclude Doxyfile --exclude test $(ARCHIVE)
 	@-rm -rf $(TMPDIR)/$(ARCHIVE)
 	@echo Distribution package created as $(PACKAGE).tgz
