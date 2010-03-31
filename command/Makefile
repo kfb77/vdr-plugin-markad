@@ -65,19 +65,19 @@ $(I18Npot): $(wildcard *.cpp *.h)
 	msgmerge -U --no-wrap --no-location --backup=none -q $@ $<
 	@touch $@
 
-$(I18Nmsgs): $(LOCALEDIR)/%/LC_MESSAGES/vdr-$(PLUGIN).mo: $(PODIR)/%.mo
+$(I18Nmsgs): $(LOCALEDIR)/%/LC_MESSAGES/markad.mo: $(PODIR)/%.mo
 	@mkdir -p $(dir $@)
 	cp $< $@
 
 .PHONY: i18n
-i18n: $(I18Nmsgs) $(I18Npot)
+i18n: $(I18Npot)
 
 ### Targets:
 
 markad: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) -o $@
 
-install: markad 
+install: markad $(I18Nmsgs) 
 	@cp --remove-destination markad $(DESTDIR)/usr/bin/markad
 	@strip $(DESTDIR)/usr/bin/markad
 	@mkdir -p $(DESTDIR)/var/lib/markad
