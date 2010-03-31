@@ -16,8 +16,11 @@
 #include <getopt.h>
 #include <signal.h>
 #include <ctype.h>
+#include <netdb.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <pthread.h>
+#include <poll.h>
 
 #include "demux.h"
 #include "global.h"
@@ -27,6 +30,23 @@
 #include "streaminfo.h"
 #include "version.h"
 #include "marks.h"
+
+#define trNOOP(s) (s)
+
+class cOSDMessage
+{
+private:
+    const char *host;
+    int port;
+    char *msg;
+    pthread_t tid;
+    static void *send(void *osd);
+    bool readreply(int fd);
+public:
+    int Send(const char *format, ...);
+    cOSDMessage(const char *Host, int Port);
+    ~cOSDMessage();
+};
 
 class cMarkAdStandalone
 {
@@ -152,8 +172,11 @@ unsigned Descriptor_Length:
     cMarkAdVideo *video;
     cMarkAdAudio *audio;
     cMarkAdStreamInfo *streaminfo;
+    cOSDMessage *osd;
 
     MarkAdContext macontext;
+
+    char title[80],*ptitle;
 
     bool CreatePidfile(const char *Directory);
     void RemovePidfile(const char *Directory);
@@ -195,7 +218,6 @@ unsigned Descriptor_Length:
     bool CheckTS(const char *Directory);
     bool LoadInfo(const char *Directory);
     bool ProcessFile(const char *Directory, int Number);
-
 public:
     void SetAbort()
     {
@@ -206,7 +228,7 @@ public:
                       int LogoWidth, int LogoHeight, bool DecodeVideo,
                       bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
                       const char *LogoDir, const char *MarkFileName, bool ASD,
-                      bool noPid);
+                      bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort);
 
     ~cMarkAdStandalone();
 };

@@ -34,6 +34,104 @@ void syslog_with_tid(int priority, const char *format, ...)
     }
 }
 
+cOSDMessage::cOSDMessage(const char *Host, int Port)
+{
+    tid=0;
+    msg=NULL;
+    host=strdup(Host);
+    port=Port;
+}
+
+cOSDMessage::~cOSDMessage()
+{
+    if (tid) pthread_join(tid,NULL);
+    if (msg) free(msg);
+    if (host) free((void*) host);
+}
+
+bool cOSDMessage::readreply(int fd)
+{
+    usleep(400000);
+    char c=' ';
+    do
+    {
+        struct pollfd fds;
+        fds.fd=fd;
+        fds.events=POLLIN;
+        fds.revents=0;
+        int ret=poll(&fds,1,600);
+
+        if (ret<=0) return false;
+        if (fds.revents!=POLLIN) return false;
+        if (read(fd,&c,1)<0) return false;
+    }
+    while (c!='\n');
+    return true;
+}
+
+void *cOSDMessage::send(void *posd)
+{
+    cOSDMessage *osd=(cOSDMessage *) posd;
+
+    struct hostent *host=gethostbyname(osd->host);
+    if (!host)
+    {
+        osd->tid=0;
+        return NULL;
+    }
+
+    struct sockaddr_in name;
+    name.sin_family = AF_INET;
+    name.sin_port = htons(osd->port);
+    memcpy(&name.sin_addr.s_addr,host->h_addr,sizeof(host->h_addr));
+    uint size = sizeof(name);
+
+    int sock;
+    sock=socket(PF_INET, SOCK_STREAM, 0);
+    if (sock<0) return NULL;
+
+    if (connect(sock, (struct sockaddr *)&name,size)!=0)
+    {
+        close(sock);
+        return NULL;
+    }
+
+    if (!osd->readreply(sock))
+    {
+        close(sock);
+        return NULL;
+    }
+
+    write(sock,"MESG ",5);
+    write(sock,osd->msg,strlen(osd->msg));
+    write(sock,"\r\n",2);
+
+    if (!osd->readreply(sock))
+    {
+        close(sock);
+        return NULL;
+    }
+
+    write(sock,"QUIT\r\n",6);
+
+    osd->readreply(sock);
+    close(sock);
+    return NULL;
+}
+
+int cOSDMessage::Send(const char *format, ...)
+{
+    if (tid) pthread_join(tid,NULL);
+    if (msg) free(msg);
+    va_list ap;
+    va_start(ap, format);
+    if (vasprintf(&msg,format,ap)==-1) return -1;
+    va_end(ap);
+
+    if (pthread_create(&tid,NULL,(void *(*) (void *))&send, (void *) this)!=0) return -1;
+    return 0;
+}
+
 void cMarkAdStandalone::AddStartMark()
 {
     char *buf;
@@ -472,11 +570,8 @@ void cMarkAdStandalone::Process(const char *Directory)
             break;
         }
     }
-    if (abort)
-    {
-        isyslog("aborted");
-    }
-    else
+
+    if (!abort)
     {
         if (lastiframe)
         {
@@ -587,6 +682,21 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
             else
             {
                 macontext.Info.Length=0;
+            }
+        }
+        if (line[0]=='T')
+        {
+            int result=sscanf(line,"%*c %79c",title);
+            if ((result==0) || (result==EOF))
+            {
+                title[0]=0;
+            }
+            else
+            {
+                char *lf=strchr(title,10);
+                if (lf) *lf=0;
+                char *cr=strchr(title,13);
+                if (cr) *cr=0;
             }
             if ((bIgnoreAudioInfo) && (bIgnoreVideoInfo)) break;
         }
@@ -886,7 +996,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
                                      int LogoWidth, int LogoHeight, bool DecodeVideo,
                                      bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
                                      const char *LogoDir, const char *MarkFileName, bool ASD,
-                                     bool noPid)
+                                     bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort)
 {
     directory=Directory;
     abort=false;
@@ -898,6 +1008,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     waittime=0;
     duplicate=false;
     marksAligned=false;
+    title[0]=0;
 
     memset(&macontext,0,sizeof(macontext));
     macontext.LogoDir=(char *) LogoDir;
@@ -952,6 +1063,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         decoder=NULL;
         video=NULL;
         audio=NULL;
+        osd=NULL;
         return;
     }
 
@@ -966,6 +1078,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
             decoder=NULL;
             video=NULL;
             audio=NULL;
+            osd=NULL;
             return;
         }
     }
@@ -1010,6 +1123,25 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
             esyslog("failed loading info - logo %s disabled",
                     (LogoExtraction!=-1) ? "extraction" : "detection");
         }
+    }
+
+    if (title[0])
+    {
+        ptitle=title;
+    }
+    else
+    {
+        ptitle=(char *) Directory;
+    }
+
+    if (OSD)
+    {
+        osd= new cOSDMessage(SVDRPHost,SVDRPPort);
+        if (osd) osd->Send("%s %s",trNOOP("starting markad for"),ptitle);
+    }
+    else
+    {
+        osd=NULL;
     }
 
     if (MarkFileName[0]) marks.SetFileName(MarkFileName);
@@ -1081,6 +1213,18 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
 cMarkAdStandalone::~cMarkAdStandalone()
 {
+    if (osd)
+    {
+        if (abort)
+        {
+            osd->Send("%s %s",trNOOP("markad aborted for"),ptitle);
+        }
+        else
+        {
+            osd->Send("%s %s",trNOOP("markad finished for"),ptitle);
+        }
+    }
+
     if (macontext.Info.ChannelID) free(macontext.Info.ChannelID);
     if (indexFile) free(indexFile);
 
@@ -1091,6 +1235,7 @@ cMarkAdStandalone::~cMarkAdStandalone()
     if (video) delete video;
     if (audio) delete audio;
     if (streaminfo) delete streaminfo;
+    if (osd) delete osd;
 
     if ((directory) && (!duplicate)) RemovePidfile(directory);
 }
@@ -1168,16 +1313,22 @@ int usage()
 
 void signal_handler(int sig)
 {
-    if (sig==SIGUSR1)
+    switch (sig)
     {
-        // TODO: what we are supposed to do?
-    }
-    else
-    {
-        if (cmasta)
-        {
-            cmasta->SetAbort();
-        }
+    case SIGABRT:
+        esyslog("aborted by signal");
+        if (cmasta) cmasta->SetAbort();
+        break;
+    case SIGSEGV:
+        esyslog("segmentation fault");
+        break;
+    case SIGTERM:
+    case SIGINT:
+        esyslog("aborted by user");
+        if (cmasta) cmasta->SetAbort();
+        break;
+    default:
+        break;
     }
 }
 
@@ -1194,9 +1345,11 @@ int main(int argc, char *argv[])
     int logoExtraction=-1;
     int logoWidth=-1;
     int logoHeight=-1;
-    bool bBackupMarks=false,bNoPid=false;
+    bool bBackupMarks=false,bNoPid=false,bOSD=false;
     char markFileName[1024]="";
     char logoDirectory[1024]="";
+    char svdrphost[1024]="127.0.0.1";
+    int svdrpport=2001;
     bool bDecodeVideo=true;
     bool bDecodeAudio=true;
     bool bIgnoreAudioInfo=false;
@@ -1230,6 +1383,8 @@ int main(int argc, char *argv[])
             {"nopid",0,0,5},
             {"online",2,0,4},
             {"pass3only",0,0,7},
+            {"svdrphost",1,0,8},
+            {"svdrpport",1,0,9},
             {"testmode",0,0,3},
 
             {"backupmarks", 0, 0, 'B'},
@@ -1242,7 +1397,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "abcd:i:jl:nop:s:vBCL:O:SV",
+        c = getopt_long  (argc, argv, "abcd:i:jl:nop:s:vBCL:OSV",
                           long_options, &option_index);
         if (c == -1)
             break;
@@ -1310,8 +1465,8 @@ int main(int argc, char *argv[])
             break;
 
         case 'l':
-            strncpy(logoDirectory,optarg,1024);
-            logoDirectory[1023]=0;
+            strncpy(logoDirectory,optarg,sizeof(logoDirectory));
+            logoDirectory[sizeof(logoDirectory)-1]=0;
             break;
 
         case 'n':
@@ -1398,6 +1553,7 @@ int main(int argc, char *argv[])
 
         case 'O':
             // --OSD
+            bOSD=true;
             break;
 
         case 'S':
@@ -1420,8 +1576,8 @@ int main(int argc, char *argv[])
             break;
 
         case 1: // --markfile
-            strncpy(markFileName,optarg,1024);
-            markFileName[1023]=0;
+            strncpy(markFileName,optarg,sizeof(markFileName));
+            markFileName[sizeof(markFileName)-1]=0;
             break;
 
         case 2: // --loglevel
@@ -1451,6 +1607,23 @@ int main(int argc, char *argv[])
             break;
 
         case 7: // --pass3only
+            break;
+
+        case 8: // --svdrphost
+            strncpy(svdrphost,optarg,sizeof(svdrphost));
+            svdrphost[sizeof(svdrphost)-1]=0;
+            break;
+
+        case 9: // --svdrpport
+            if (isnumber(optarg) && atoi(optarg) > 0 && atoi(optarg) < 65536)
+            {
+                svdrpport=atoi(optarg);
+            }
+            else
+            {
+                fprintf(stderr, "markad: invalid svdrpport value: %s\n", optarg);
+                return 2;
+            }
             break;
 
         default:
@@ -1612,7 +1785,8 @@ int main(int argc, char *argv[])
 
         cmasta = new cMarkAdStandalone(recDir,bBackupMarks, logoExtraction, logoWidth, logoHeight,
                                        bDecodeVideo,bDecodeAudio,bIgnoreVideoInfo,bIgnoreAudioInfo,
-                                       logoDirectory,markFileName,bASD,bNoPid);
+                                       logoDirectory,markFileName,bASD,bNoPid,bOSD,svdrphost,
+                                       svdrpport);
         if (!cmasta) return -1;
 
         // ignore some signals
@@ -1621,6 +1795,8 @@ int main(int argc, char *argv[])
         // catch some signals
         signal(SIGINT, signal_handler);
         signal(SIGTERM, signal_handler);
+        signal(SIGSEGV, signal_handler);
+        signal(SIGABRT, signal_handler);
         signal(SIGUSR1, signal_handler);
 
         cmasta->Process(recDir);

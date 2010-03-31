@@ -92,6 +92,7 @@ void clMarks::Del(clMark *Mark)
         {
             // we are the last
             Mark->Prev()->SetNext(NULL);
+            last=Mark->Prev();
         }
     }
     delete Mark;
