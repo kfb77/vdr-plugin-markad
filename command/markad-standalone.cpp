@@ -1315,10 +1315,23 @@ int usage()
     return -1;
 }
 
-void signal_handler(int sig)
+static void signal_handler(int sig)
 {
     switch (sig)
     {
+    case SIGTSTP:
+        isyslog("paused by signal");
+        sigset_t mask;
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGTSTP);
+        sigprocmask(SIG_UNBLOCK, &mask, NULL);
+        signal(SIGTSTP,SIG_DFL);
+        kill(getpid(),SIGTSTP);
+        signal(SIGTSTP,signal_handler);
+        break;
+    case SIGCONT:
+        isyslog("continued by signal");
+        break;
     case SIGABRT:
         esyslog("aborted by signal");
         if (cmasta) cmasta->SetAbort();
@@ -1802,6 +1815,9 @@ int main(int argc, char *argv[])
         signal(SIGSEGV, signal_handler);
         signal(SIGABRT, signal_handler);
         signal(SIGUSR1, signal_handler);
+        signal(SIGTSTP, signal_handler);
+        signal(SIGCONT, signal_handler);
+
 
         cmasta->Process(recDir);
         delete cmasta;
