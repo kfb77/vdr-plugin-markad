@@ -17,6 +17,10 @@ cPluginMarkAd::cPluginMarkAd(void)
     statusMonitor=NULL;
     bindir=strdup(DEF_BINDIR);
     logodir=strdup(DEF_LOGODIR);
+
+    setup.ProcessDuring=true;
+    setup.whileRecording=true;
+    setup.whilePlaying=true;
 }
 
 cPluginMarkAd::~cPluginMarkAd()
@@ -95,7 +99,7 @@ bool cPluginMarkAd::Initialize(void)
 bool cPluginMarkAd::Start(void)
 {
     // Start any background activities the plugin shall perform.
-    statusMonitor = new cStatusMarkAd(bindir,logodir);
+    statusMonitor = new cStatusMarkAd(bindir,logodir,&setup);
     return true;
 }
 
@@ -107,11 +111,6 @@ void cPluginMarkAd::Stop(void)
 void cPluginMarkAd::Housekeeping(void)
 {
     // Perform any cleanup or other regular tasks.
-}
-
-const char *cPluginMarkAd::MainMenuEntry(void)
-{
-    return NULL;
 }
 
 void cPluginMarkAd::MainThreadHook(void)
@@ -137,19 +136,23 @@ time_t cPluginMarkAd::WakeupTime(void)
 cOsdObject *cPluginMarkAd::MainMenuAction(void)
 {
     // Perform the action when selected from the main VDR menu.
-    return NULL;
+    return new cMenuMarkAd(statusMonitor);
 }
 
 cMenuSetupPage *cPluginMarkAd::SetupMenu(void)
 {
-    // Return a setup menu in case the plugin supports one.
-    return NULL;
+    // Return the setup menu
+    return new cSetupMarkAd(&setup);
 }
 
-bool cPluginMarkAd::SetupParse(const char *UNUSED(Name), const char *UNUSED(Value))
+bool cPluginMarkAd::SetupParse(const char *Name, const char *Value)
 {
-    // Parse your own setup parameters and store their values.
-    return false;
+    // Parse setup parameters and store their values.
+    if (!strcasecmp(Name,"Execution")) setup.ProcessDuring=atoi(Value);
+    else if (!strcasecmp(Name,"whileRecording")) setup.whileRecording=atoi(Value);
+    else if (!strcasecmp(Name,"whilePlaying")) setup.whilePlaying=atoi(Value);
+    else return false;
+    return true;
 }
 
 bool cPluginMarkAd::Service(const char *UNUSED(Id), void *UNUSED(Data))

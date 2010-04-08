@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2010-03-26 16:28+0100\n"
+"POT-Creation-Date: 2010-04-08 11:24+0200\n"
 "PO-Revision-Date: 2009-11-14 18:06+0100\n"
 "Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
 "Language-Team:  <vdr@linuxtv.org>\n"
@@ -16,6 +16,54 @@ msgstr ""
 "X-Poedit-SourceCharset: utf-8\n"
 
 msgid "markad still running"
+msgstr ""
+
+msgid "running"
+msgstr ""
+
+msgid "sleeping"
+msgstr ""
+
+msgid "inactive"
+msgstr ""
+
+msgid "zombie"
+msgstr ""
+
+msgid "stopped"
+msgstr ""
+
+msgid "unknown"
+msgstr ""
+
+msgid "markad status"
+msgstr ""
+
+msgid "Recording\t Status"
+msgstr ""
+
+msgid "no running markad found"
+msgstr ""
+
+msgid "Pause"
+msgstr ""
+
+msgid "Continue"
+msgstr ""
+
+msgid "after"
+msgstr ""
+
+msgid "during"
+msgstr ""
+
+msgid "execution"
+msgstr ""
+
+msgid "while recording"
+msgstr ""
+
+msgid "while playing"
 msgstr ""
 
 msgid "Mark advertisements"

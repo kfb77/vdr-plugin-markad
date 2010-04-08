@@ -13,12 +13,15 @@
 
 #include "version.h"
 #include "status.h"
+#include "menu.h"
+#include "setup.h"
 
 #define DEF_BINDIR "/usr/bin"
 #define DEF_LOGODIR "/var/lib/markad"
 
 extern const char *VERSION;
 static const char *DESCRIPTION    = trNOOP("Mark advertisements");
+static const char *MAINMENUENTRY  = trNOOP("markad status");
 
 class cPluginMarkAd : public cPlugin
 {
@@ -27,6 +30,7 @@ private:
     cStatusMarkAd *statusMonitor;
     char *bindir;
     char *logodir;
+    struct setup setup;
 public:
     cPluginMarkAd(void);
     virtual ~cPluginMarkAd();
@@ -47,7 +51,10 @@ public:
     virtual void MainThreadHook(void);
     virtual cString Active(void);
     virtual time_t WakeupTime(void);
-    virtual const char *MainMenuEntry(void);
+    virtual const char *MainMenuEntry(void)
+    {
+        return tr(MAINMENUENTRY);
+    }
     virtual cOsdObject *MainMenuAction(void);
     virtual cMenuSetupPage *SetupMenu(void);
     virtual bool SetupParse(const char *Name, const char *Value);

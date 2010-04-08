@@ -996,7 +996,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
                                      int LogoWidth, int LogoHeight, bool DecodeVideo,
                                      bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
                                      const char *LogoDir, const char *MarkFileName, bool ASD,
-                                     bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort)
+                                     bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort,
+                                     bool Before)
 {
     directory=Directory;
     abort=false;
@@ -1055,18 +1056,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         bIgnoreVideoInfo=true;
     }
 
-    if (!CheckTS(Directory))
-    {
-        video_demux=NULL;
-        ac3_demux=NULL;
-        mp2_demux=NULL;
-        decoder=NULL;
-        video=NULL;
-        audio=NULL;
-        osd=NULL;
-        return;
-    }
-
     if (!noPid)
     {
         CreatePidfile(Directory);
@@ -1081,6 +1070,20 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
             osd=NULL;
             return;
         }
+    }
+
+    if (Before) sleep(10);
+
+    if (!CheckTS(Directory))
+    {
+        video_demux=NULL;
+        ac3_demux=NULL;
+        mp2_demux=NULL;
+        decoder=NULL;
+        video=NULL;
+        audio=NULL;
+        osd=NULL;
+        return;
     }
 
     if (isTS)
@@ -1321,13 +1324,7 @@ static void signal_handler(int sig)
     {
     case SIGTSTP:
         isyslog("paused by signal");
-        sigset_t mask;
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGTSTP);
-        sigprocmask(SIG_UNBLOCK, &mask, NULL);
-        signal(SIGTSTP,SIG_DFL);
-        kill(getpid(),SIGTSTP);
-        signal(SIGTSTP,signal_handler);
+        kill(getpid(),SIGSTOP);
         break;
     case SIGCONT:
         isyslog("continued by signal");
@@ -1709,13 +1706,13 @@ int main(int argc, char *argv[])
             }
             if (pid != 0)
             {
-                isyslog("forked to pid %d",pid);
+                tsyslog("forked to pid %d",pid);
                 return 0; // initial program immediately returns
             }
         }
         if ( bFork )
         {
-            isyslog("(forked) pid %d", getpid());
+            tsyslog("(forked) pid %d", getpid());
             if (chdir("/")==-1)
             {
                 perror("chdir");
@@ -1784,8 +1781,6 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (bBefore) sleep(10);
-
         // now do the work...
         struct stat statbuf;
         if (stat(recDir,&statbuf)==-1)
@@ -1800,12 +1795,6 @@ int main(int argc, char *argv[])
             return -1;
         }
 
-        cmasta = new cMarkAdStandalone(recDir,bBackupMarks, logoExtraction, logoWidth, logoHeight,
-                                       bDecodeVideo,bDecodeAudio,bIgnoreVideoInfo,bIgnoreAudioInfo,
-                                       logoDirectory,markFileName,bASD,bNoPid,bOSD,svdrphost,
-                                       svdrpport);
-        if (!cmasta) return -1;
-
         // ignore some signals
         signal(SIGHUP, SIG_IGN);
 
@@ -1818,6 +1807,11 @@ int main(int argc, char *argv[])
         signal(SIGTSTP, signal_handler);
         signal(SIGCONT, signal_handler);
 
+        cmasta = new cMarkAdStandalone(recDir,bBackupMarks, logoExtraction, logoWidth, logoHeight,
+                                       bDecodeVideo,bDecodeAudio,bIgnoreVideoInfo,bIgnoreAudioInfo,
+                                       logoDirectory,markFileName,bASD,bNoPid,bOSD,svdrphost,
+                                       svdrpport,bBefore);
+        if (!cmasta) return -1;
 
         cmasta->Process(recDir);
         delete cmasta;

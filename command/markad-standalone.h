@@ -228,7 +228,8 @@ public:
                       int LogoWidth, int LogoHeight, bool DecodeVideo,
                       bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
                       const char *LogoDir, const char *MarkFileName, bool ASD,
-                      bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort);
+                      bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort,
+                      bool Before);
 
     ~cMarkAdStandalone();
 };

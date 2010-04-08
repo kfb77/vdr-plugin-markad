@@ -17,7 +17,7 @@ VERSION = $(shell grep 'static const char \*VERSION *=' ../version.h | awk '{ pr
 ### The C++ compiler and options:
 
 CXX      ?= g++
-CXXFLAGS ?= -fPIC -g -O2 -Wall -Wextra -Woverloaded-virtual -Wno-parentheses
+CXXFLAGS ?= -fPIC -g -O2 -pedantic -Wall -Wextra -Woverloaded-virtual -Wno-parentheses
 
 ### The directory environment:
 
@@ -48,7 +48,7 @@ DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
 
 ### The object files (add further files here):
 
-OBJS = $(PLUGIN).o status.o 
+OBJS = $(PLUGIN).o status.o menu.o setup.o 
 
 ### The main target:
 
