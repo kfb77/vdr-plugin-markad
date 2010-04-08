@@ -1,6 +1,8 @@
 #
 # Makefile for a Video Disk Recorder plugin + program
 #
+# dont remove the next line, its needed for the VDR Makefile
+# $(LIBDIR)/$@.$(APIVERSION)
 
 DIRS = command plugin
 

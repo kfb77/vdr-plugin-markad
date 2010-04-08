@@ -64,7 +64,7 @@ void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt
         {
             if (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264)
             {
-                pes2videoes=new cMarkAdPES2ES("PES2H264ES video",393216);
+                pes2videoes=new cMarkAdPES2ES("PES2H264ES video",425984);
             }
             else
             {
