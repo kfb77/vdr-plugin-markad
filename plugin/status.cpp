@@ -20,7 +20,7 @@ cStatusMarkAd::~cStatusMarkAd()
 {
     for (int i=0; i<(MAXDEVICES*MAXRECEIVERS); i++)
     {
-        Remove(i);
+        Remove(i,true);
     }
 }
 
@@ -54,7 +54,7 @@ bool cStatusMarkAd::Replaying()
 void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSED(Name),
                               const char *UNUSED(FileName), bool On)
 {
-    if (setup->whilePlaying) return;
+    if (setup->whileReplaying) return;
     if (On)
     {
         Pause(NULL);
@@ -63,6 +63,52 @@ void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSE
     {
         if (!Recording()) Continue(NULL);
     }
+}
+
+bool cStatusMarkAd::Start(const char *FileName, const char *Name, bool Direct)
+{
+    if ((Direct) && (Get(FileName)!=-1)) return false;
+
+    cString cmd = cString::sprintf("\"%s\"/markad %s %s %s -l \"%s\" %s \"%s\"",bindir,
+                                   setup->Verbose ? "-v" : "", setup->BackupMarks ? "-B" : "",
+                                   setup->OSDMessage ? "-O" : "",
+                                   logodir,Direct ? "after" : "--online=2 before", FileName);
+    dsyslog("executing %s",*cmd);
+    if (SystemExec(cmd)!=-1)
+    {
+        usleep(200000);
+        int pos=Add(FileName,Name);
+        if (getPid(pos) && getStatus(pos))
+        {
+            if (!setup->ProcessDuring)
+            {
+                if (!Direct)
+                {
+                    if (!setup->whileRecording)
+                    {
+                        Pause(NULL);
+                    }
+                    else
+                    {
+                        Pause(FileName);
+                    }
+                }
+                else
+                {
+                    if (!setup->whileRecording && Recording())
+                    {
+                        Pause(FileName);
+                    }
+                    if (!setup->whileReplaying && Replaying())
+                    {
+                        Pause(FileName);
+                    }
+                }
+            }
+            return true;
+        }
+    }
+    return false;
 }
 
 void cStatusMarkAd::Recording(const cDevice *UNUSED(Device), const char *Name,
@@ -75,27 +121,7 @@ void cStatusMarkAd::Recording(const cDevice *UNUSED(Device), const char *Name,
     if (On)
     {
         // Start markad with recording
-        cString cmd = cString::sprintf("\"%s\"/markad --online=2 -l \"%s\" before \"%s\"",bindir,
-                                       logodir,FileName);
-        if (SystemExec(cmd)!=-1)
-        {
-            usleep(200000);
-            int pos=Add(FileName,Name);
-            if (getPid(pos) && getStatus(pos))
-            {
-                if (!setup->ProcessDuring)
-                {
-                    if (!setup->whileRecording)
-                    {
-                        Pause(NULL);
-                    }
-                    else
-                    {
-                        Pause(FileName);
-                    }
-                }
-            }
-        }
+        Start(FileName,Name);
     }
     else
     {
@@ -103,7 +129,7 @@ void cStatusMarkAd::Recording(const cDevice *UNUSED(Device), const char *Name,
         {
             if (!setup->whileRecording)
             {
-                if (!setup->whilePlaying)
+                if (!setup->whileReplaying)
                 {
                     if (!Recording() && !Replaying()) Continue(NULL);
                 }
@@ -209,11 +235,19 @@ bool cStatusMarkAd::MarkAdRunning()
     return (tmpRecs!=NULL);
 }
 
-void cStatusMarkAd::Remove(int Position)
+int cStatusMarkAd::Get(const char *FileName)
+{
+    for (int i=0; i<(MAXDEVICES*MAXRECEIVERS); i++)
+    {
+        if ((recs[i].FileName) && (!strcmp(recs[i].FileName,FileName))) return i;
+    }
+    return -1;
+}
+
+void cStatusMarkAd::Remove(int Position, bool Kill)
 {
     if (recs[Position].FileName)
     {
-        dsyslog("markad: removing %s at position %i",recs[Position].FileName,Position);
         free(recs[Position].FileName);
         recs[Position].FileName=NULL;
     }
@@ -221,6 +255,25 @@ void cStatusMarkAd::Remove(int Position)
     {
         free(recs[Position].Name);
         recs[Position].Name=NULL;
+    }
+
+    if ((Kill) && (recs[Position].Pid))
+    {
+        if (getStatus(Position))
+        {
+            if ((recs[Position].Status=='R') || (recs[Position].Status=='S'))
+            {
+                kill(recs[Position].Pid,SIGTERM);
+            }
+            else
+            {
+                kill(recs[Position].Pid,SIGKILL);
+            }
+        }
+        else
+        {
+            kill(recs[Position].Pid,SIGKILL);
+        }
     }
     recs[Position].Status=0;
     recs[Position].Pid=0;
@@ -232,9 +285,15 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name)
     {
         if (!recs[i].FileName)
         {
-            dsyslog("markad: adding %s at position %i",FileName,i);
             recs[i].FileName=strdup(FileName);
-            recs[i].Name=strdup(Name);
+            if (Name)
+            {
+                recs[i].Name=strdup(Name);
+            }
+            else
+            {
+                Name=NULL;
+            }
             recs[i].Status=0;
             recs[i].Pid=0;
             return i;
@@ -249,14 +308,15 @@ void cStatusMarkAd::Pause(const char *FileName)
     {
         if (FileName)
         {
-            if ((recs[i].FileName) && (!strcmp(recs[i].FileName,FileName)) && (recs[i].Pid))
+            if ((recs[i].FileName) && (!strcmp(recs[i].FileName,FileName)) &&
+                    (recs[i].Pid) && (!recs[i].ChangedbyUser))
             {
                 kill(recs[i].Pid,SIGTSTP);
             }
         }
         else
         {
-            if (recs[i].Pid)
+            if ((recs[i].Pid) && (!recs[i].ChangedbyUser))
             {
                 kill(recs[i].Pid,SIGTSTP);
             }
@@ -270,14 +330,15 @@ void cStatusMarkAd::Continue(const char *FileName)
     {
         if (FileName)
         {
-            if ((recs[i].FileName) && (!strcmp(recs[i].FileName,FileName)) && (recs[i].Pid))
+            if ((recs[i].FileName) && (!strcmp(recs[i].FileName,FileName)) &&
+                    (recs[i].Pid) && (!recs[i].ChangedbyUser) )
             {
                 kill(recs[i].Pid,SIGCONT);
             }
         }
         else
         {
-            if (recs[i].Pid)
+            if ((recs[i].Pid) && (!recs[i].ChangedbyUser))
             {
                 kill(recs[i].Pid,SIGCONT);
             }

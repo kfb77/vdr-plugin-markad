@@ -14,7 +14,10 @@ struct setup
 {
     bool ProcessDuring;
     bool whileRecording;
-    bool whilePlaying;
+    bool whileReplaying;
+    bool OSDMessage;
+    bool BackupMarks;
+    bool Verbose;
 };
 
 class cSetupMarkAd : public cMenuSetupPage
@@ -24,7 +27,10 @@ private:
     struct setup *setup;
     int processduring;
     int whilerecording;
-    int whileplaying;
+    int whilereplaying;
+    int osdmsg;
+    int backupmarks;
+    int verbose;
     void write(void);
 protected:
     virtual void Store(void);

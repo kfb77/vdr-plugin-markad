@@ -36,7 +36,7 @@ cOsdMarkAd::cOsdMarkAd(struct recs *Entry)
     }
 
     char *buf=NULL;
-    if (asprintf(&buf,"%s\t %s",entry->Name,status)!=-1)
+    if (asprintf(&buf,"%s\t %s",entry->Name ? entry->Name : entry->FileName,status)!=-1)
     {
         SetText(buf,true);
         free(buf);
@@ -44,7 +44,7 @@ cOsdMarkAd::cOsdMarkAd(struct recs *Entry)
     else
     {
         // fallback
-        SetText(entry->Name,true);
+        SetText(entry->Name ? entry->Name : entry->FileName,true);
     }
 }
 
@@ -93,14 +93,14 @@ bool cMenuMarkAd::write()
     do
     {
         status->GetNextActive(&Entry);
-        if ((Entry) && (Entry->Name))
+        if (Entry)
         {
             if (!header)
             {
                 header=true;
                 Add(new cOsdItem(tr("Recording\t Status"),osUnknown,false));
             }
-            Add(new cOsdMarkAd(Entry),first);
+            Add(new cOsdMarkAd(Entry));
             first=false;
         }
     }
@@ -154,10 +154,11 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key)
         if ((osd) && (osd->Selectable()))
         {
             struct recs *entry=osd->GetEntry();
-            if ((entry) && (entry->Pid))
+            if ((entry) && (entry->Pid) && (entry->Status!='T'))
             {
                 dsyslog("sending TSTP to %i",entry->Pid);
                 kill(entry->Pid,SIGTSTP);
+                entry->ChangedbyUser=true;
                 SetHelp(NULL,tr("Continue"));
             }
         }
@@ -172,6 +173,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key)
             {
                 dsyslog("sending CONT to %i",entry->Pid);
                 kill(entry->Pid,SIGCONT);
+                entry->ChangedbyUser=true;
                 SetHelp(tr("Pause"),NULL);
             }
         }

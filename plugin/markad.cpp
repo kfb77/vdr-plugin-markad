@@ -20,7 +20,10 @@ cPluginMarkAd::cPluginMarkAd(void)
 
     setup.ProcessDuring=true;
     setup.whileRecording=true;
-    setup.whilePlaying=true;
+    setup.whileReplaying=true;
+    setup.OSDMessage=false;
+    setup.BackupMarks=false;
+    setup.Verbose=false;
 }
 
 cPluginMarkAd::~cPluginMarkAd()
@@ -150,7 +153,10 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value)
     // Parse setup parameters and store their values.
     if (!strcasecmp(Name,"Execution")) setup.ProcessDuring=atoi(Value);
     else if (!strcasecmp(Name,"whileRecording")) setup.whileRecording=atoi(Value);
-    else if (!strcasecmp(Name,"whilePlaying")) setup.whilePlaying=atoi(Value);
+    else if (!strcasecmp(Name,"whileReplaying")) setup.whileReplaying=atoi(Value);
+    else if (!strcasecmp(Name,"OSDMessage")) setup.OSDMessage=atoi(Value);
+    else if (!strcasecmp(Name,"BackupMarks")) setup.BackupMarks=atoi(Value);
+    else if (!strcasecmp(Name,"Verbose")) setup.Verbose=atoi(Value);
     else return false;
     return true;
 }
@@ -163,16 +169,93 @@ bool cPluginMarkAd::Service(const char *UNUSED(Id), void *UNUSED(Data))
 
 const char **cPluginMarkAd::SVDRPHelpPages(void)
 {
-    // Return help text for SVDRP commands this plugin implements
-    return NULL;
+    // Return help text for SVDRP
+    static const char *HelpPage[] =
+    {
+        "MARK <filename>\n"
+        "     Start markad for the recording with the given filename.",
+        NULL
+    };
+    return HelpPage;
 }
 
-cString cPluginMarkAd::SVDRPCommand(const char *UNUSED(Command), const char *UNUSED(Option),
-                                    int &UNUSED(ReplyCode))
+bool cPluginMarkAd::ReadTitle(const char *Directory)
 {
-    // Process SVDRP commands this plugin implements
-    return NULL;
+    memset(&title,0,sizeof(title));
+    char *buf;
+#if VDRVERSNUM > 10700
+    if (asprintf(&buf,"%s/info",Directory)==-1) return false;
+#else
+    if (asprintf(&buf,"%s/info.vdr",Directory)==-1) return false;
+#endif
+
+    FILE *f;
+    f=fopen(buf,"r");
+    free(buf);
+    if (!f)
+    {
+#if VDRVERSNUM > 10700
+        if (asprintf(&buf,"%s/info.vdr",Directory)==-1) return false;
+#else
+        if (asprintf(&buf,"%s/info",Directory)==-1) return false;
+#endif
+        f=fopen(buf,"r");
+        free(buf);
+        if (!f) return false;
+    }
+
+    char *line=NULL;
+    size_t length;
+    while (getline(&line,&length,f)!=-1)
+    {
+        if (line[0]=='T')
+        {
+            int result=sscanf(line,"%*c %79c",title);
+            if ((result==0) || (result==EOF))
+            {
+                title[0]=0;
+            }
+            else
+            {
+                char *lf=strchr(title,10);
+                if (lf) *lf=0;
+                char *cr=strchr(title,13);
+                if (cr) *cr=0;
+            }
+        }
+    }
+    if (line) free(line);
+
+    fclose(f);
+    return (title[0]!=0);
 }
 
+cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int &ReplyCode)
+{
+    // Process SVDRP command
+    if (!strcasecmp(Command,"MARK"))
+    {
+        if (Option)
+        {
+            char *Title=NULL;
+            if (ReadTitle(Option)) Title=(char *) &title;
+            if (statusMonitor->Start(Option,Title,true))
+            {
+                return cString::sprintf("Started markad for %s",Option);
+            }
+            else
+            {
+                ReplyCode=451;
+                return cString::sprintf("Failed to start markad for %s",Option);
+            }
+        }
+        else
+        {
+            ReplyCode=501;
+            return cString::sprintf("Missing filename");
+        }
+    }
+    return NULL;
+}
 
 VDRPLUGINCREATOR(cPluginMarkAd) // Don't touch this!

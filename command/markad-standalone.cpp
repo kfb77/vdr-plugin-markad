@@ -644,11 +644,8 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
 
     FILE *f;
     f=fopen(buf,"r");
-    if (!f)
-    {
-        free(buf);
-        return false;
-    }
+    free(buf);
+    if (!f) return false;
 
     char *line=NULL;
     size_t length;
@@ -742,7 +739,6 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
     if (line) free(line);
 
     fclose(f);
-    free(buf);
     if (!macontext.Info.ChannelID)
     {
         return false;
@@ -1368,7 +1364,7 @@ int main(int argc, char *argv[])
     bool bDecodeAudio=true;
     bool bIgnoreAudioInfo=false;
     bool bIgnoreVideoInfo=false;
-    int online=1;
+    int online=0;
 
     strcpy(logoDirectory,"/var/lib/markad");
 
@@ -1655,6 +1651,7 @@ int main(int argc, char *argv[])
             }
             else if (strcmp(argv[optind], "before" ) == 0 )
             {
+                if (!online) online=1;
                 bBefore = bFork = bNice = SYSLOG = true;
             }
             else if (strcmp(argv[optind], "edited" ) == 0 )

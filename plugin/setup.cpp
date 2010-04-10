@@ -11,9 +11,12 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
 {
     setup=Setup;
 
-    processduring=(int) setup->ProcessDuring;
+    processduring=setup->ProcessDuring;
     whilerecording=setup->whileRecording;
-    whileplaying=setup->whilePlaying;
+    whilereplaying=setup->whileReplaying;
+    osdmsg=setup->OSDMessage;
+    backupmarks=setup->BackupMarks;
+    verbose=setup->Verbose;
 
     processTexts[0]=tr("after");
     processTexts[1]=tr("during");
@@ -28,9 +31,12 @@ void cSetupMarkAd::write(void)
     Add(new cMenuEditStraItem(tr("execution"),&processduring,2,processTexts));
     if (!processduring)
     {
-        Add(new cMenuEditBoolItem(tr("while recording"),&whilerecording));
-        Add(new cMenuEditBoolItem(tr("while playing"),&whileplaying));
+        Add(new cMenuEditBoolItem(tr("  during another recording"),&whilerecording));
+        Add(new cMenuEditBoolItem(tr("  while replaying"),&whilereplaying));
     }
+    Add(new cMenuEditBoolItem(tr("OSD message"),&osdmsg));
+    Add(new cMenuEditBoolItem(tr("backup marks"),&backupmarks));
+    Add(new cMenuEditBoolItem(tr("verbose logging"),&verbose));
     Display();
 }
 
@@ -61,9 +67,15 @@ void cSetupMarkAd::Store(void)
 {
     SetupStore("Execution",processduring);
     SetupStore("whileRecording",whilerecording);
-    SetupStore("whilePlaying",whileplaying);
+    SetupStore("whileReplaying",whilereplaying);
+    SetupStore("BackupMarks",backupmarks);
+    SetupStore("OSDMessage",osdmsg);
+    SetupStore("Verbose",verbose);
 
     setup->ProcessDuring=(bool) processduring;
     setup->whileRecording=(bool) whilerecording;
-    setup->whilePlaying=(bool) whileplaying;
+    setup->whileReplaying=(bool) whilereplaying;
+    setup->OSDMessage=(bool) osdmsg;
+    setup->BackupMarks=(bool) backupmarks;
+    setup->Verbose=(bool) verbose;
 }

@@ -31,6 +31,8 @@ private:
     char *bindir;
     char *logodir;
     struct setup setup;
+    char title[80];
+    bool ReadTitle(const char *Directory);
 public:
     cPluginMarkAd(void);
     virtual ~cPluginMarkAd();

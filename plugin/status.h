@@ -19,6 +19,7 @@ struct recs
     char *FileName;
     pid_t Pid;
     char Status;
+    bool ChangedbyUser;
 };
 
 // --- cStatusMarkAd
@@ -37,8 +38,9 @@ private:
     bool getStatus(int Position);
     int Recording();
     bool Replaying();
+    int Get(const char *FileName);
     int Add(const char *FileName, const char *Name);
-    void Remove(int Position);
+    void Remove(int Position, bool Kill=false);
     void Pause(const char *FileName);
     void Continue(const char *FileName);
 protected:
@@ -53,6 +55,7 @@ public:
         actpos=0;
     }
     bool GetNextActive(struct recs **RecEntry);
+    bool Start(const char *FileName, const char *Name, bool Direct=false);
 };
 
 #endif

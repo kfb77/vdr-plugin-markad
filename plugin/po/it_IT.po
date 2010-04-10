@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2010-04-08 11:24+0200\n"
+"POT-Creation-Date: 2010-04-10 13:35+0200\n"
 "PO-Revision-Date: 2009-11-14 18:06+0100\n"
 "Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
 "Language-Team:  <vdr@linuxtv.org>\n"
@@ -60,10 +60,19 @@ msgstr ""
 msgid "execution"
 msgstr ""
 
-msgid "while recording"
+msgid "  during another recording"
 msgstr ""
 
-msgid "while playing"
+msgid "  while replaying"
+msgstr ""
+
+msgid "OSD message"
+msgstr ""
+
+msgid "backup marks"
+msgstr ""
+
+msgid "verbose logging"
 msgstr ""
 
 msgid "Mark advertisements"
