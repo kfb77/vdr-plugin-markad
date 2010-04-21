@@ -19,6 +19,7 @@
 #include <netdb.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/wait.h>
 #include <pthread.h>
 #include <poll.h>
 
@@ -188,6 +189,7 @@ unsigned Descriptor_Length:
     int iframe;
     int framecnt;
     bool abort;
+    bool fastexit;
     int waittime;
 
     bool noticeVDR_MP2;
@@ -197,6 +199,9 @@ unsigned Descriptor_Length:
     bool bDecodeAudio;
     bool bIgnoreAudioInfo;
     bool bIgnoreVideoInfo;
+    bool bGenIndex;
+    int tStart;
+    int tStop;
 
     void CheckIndex(const char *Directory);
     char *indexFile;
@@ -217,6 +222,7 @@ unsigned Descriptor_Length:
     bool CheckPATPMT(const char *Directory);
     bool CheckTS(const char *Directory);
     bool LoadInfo(const char *Directory);
+    bool RegenerateVDRIndex(const char *Directory);
     bool ProcessFile(const char *Directory, int Number);
 public:
     void SetAbort()
@@ -229,7 +235,7 @@ public:
                       bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
                       const char *LogoDir, const char *MarkFileName, bool ASD,
                       bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort,
-                      bool Before);
+                      bool Before, bool GenIndex, bool Start, bool Stop);
 
     ~cMarkAdStandalone();
 };
