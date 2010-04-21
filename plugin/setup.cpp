@@ -17,6 +17,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     osdmsg=setup->OSDMessage;
     backupmarks=setup->BackupMarks;
     verbose=setup->Verbose;
+    genindex=setup->GenIndex;
 
     processTexts[0]=tr("after");
     processTexts[1]=tr("during");
@@ -34,6 +35,9 @@ void cSetupMarkAd::write(void)
         Add(new cMenuEditBoolItem(tr("  during another recording"),&whilerecording));
         Add(new cMenuEditBoolItem(tr("  while replaying"),&whilereplaying));
     }
+
+    Add(new cMenuEditBoolItem(tr("repair index, if broken"),&genindex));
+
     Add(new cMenuEditBoolItem(tr("OSD message"),&osdmsg));
     Add(new cMenuEditBoolItem(tr("backup marks"),&backupmarks));
     Add(new cMenuEditBoolItem(tr("verbose logging"),&verbose));
@@ -69,6 +73,7 @@ void cSetupMarkAd::Store(void)
     SetupStore("whileRecording",whilerecording);
     SetupStore("whileReplaying",whilereplaying);
     SetupStore("BackupMarks",backupmarks);
+    SetupStore("GenIndex",genindex);
     SetupStore("OSDMessage",osdmsg);
     SetupStore("Verbose",verbose);
 
@@ -76,6 +81,7 @@ void cSetupMarkAd::Store(void)
     setup->whileRecording=(bool) whilerecording;
     setup->whileReplaying=(bool) whilereplaying;
     setup->OSDMessage=(bool) osdmsg;
+    setup->GenIndex=(bool) genindex;
     setup->BackupMarks=(bool) backupmarks;
     setup->Verbose=(bool) verbose;
 }

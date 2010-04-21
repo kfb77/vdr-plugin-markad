@@ -53,13 +53,17 @@ cMarkAdLogo::~cMarkAdLogo()
 {
 }
 
-int cMarkAdLogo::Load(char *file)
+int cMarkAdLogo::Load(char *directory, char *file)
 {
+    char *path;
+    if (asprintf(&path,"%s/%s.pgm",directory,file)==-1) return -3;
+
     // Load mask
     FILE *pFile;
     area.valid=false;
     area.corner=-1;
-    pFile=fopen(file, "rb");
+    pFile=fopen(path, "rb");
+    free(path);
     if (!pFile) return -1;
 
     fscanf(pFile, "P5\n#C%i %i\n%d %d\n255\n#", &area.corner,&area.mpixel,&LOGOWIDTH,&LOGOHEIGHT);
@@ -358,19 +362,20 @@ int cMarkAdLogo::Process(int LastIFrame, int *LogoIFrame)
         {
             area.valid=false;  // just to be sure!
             char *buf=NULL;
-            if (asprintf(&buf,"%s/%s-A%i_%i.pgm",macontext->LogoDir,macontext->Info.ChannelID,
+            if (asprintf(&buf,"%s-A%i_%i",macontext->Info.ChannelID,
                          macontext->Video.Info.AspectRatio.Num,macontext->Video.Info.AspectRatio.Den)!=-1)
             {
-                int ret=Load(buf);
+                int ret=Load(macontext->LogoDir,buf);
                 switch (ret)
                 {
                 case -1:
-                    esyslog("failed to open %s",buf);
-
+                    isyslog("no logo for %s",buf);
                     break;
-
                 case -2:
                     esyslog("format error in %s",buf);
+                    break;
+                case -3:
+                    esyslog("cannot load %s",buf);
                     break;
                 }
                 free(buf);
@@ -467,7 +472,7 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
         }
         else
         {
-#define MINSECS 60
+#define MINSECS 420
             switch (borderstatus)
             {
             case UNINITIALIZED:
@@ -645,7 +650,22 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
                          macontext->Video.Info.AspectRatio.Num,
                          macontext->Video.Info.AspectRatio.Den,LastIFrame)!=-1)
             {
-                AddMark(MT_ASPECTCHANGE,LastIFrame,buf);
+                if ((macontext->Info.AspectRatio.Num) && (macontext->Info.AspectRatio.Den))
+                {
+                    if ((macontext->Video.Info.AspectRatio.Num==macontext->Info.AspectRatio.Num) &&
+                            (macontext->Video.Info.AspectRatio.Num==macontext->Info.AspectRatio.Num))
+                    {
+                        AddMark(MT_ASPECTSTART,LastIFrame,buf);
+                    }
+                    else
+                    {
+                        AddMark(MT_ASPECTSTOP,LastIFrame,buf);
+                    }
+                }
+                else
+                {
+                    AddMark(MT_ASPECTCHANGE,LastIFrame,buf);
+                }
                 free(buf);
             }
         }

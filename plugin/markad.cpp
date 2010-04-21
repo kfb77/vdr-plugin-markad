@@ -21,6 +21,7 @@ cPluginMarkAd::cPluginMarkAd(void)
     setup.ProcessDuring=true;
     setup.whileRecording=true;
     setup.whileReplaying=true;
+    setup.GenIndex=true;
     setup.OSDMessage=false;
     setup.BackupMarks=false;
     setup.Verbose=false;
@@ -96,6 +97,17 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
 bool cPluginMarkAd::Initialize(void)
 {
     // Initialize any background activities the plugin shall perform.
+    char *path;
+    if (asprintf(&path,"%s/markad",bindir)==-1) return false;
+    struct stat statbuf;
+    if (stat(path,&statbuf)==-1)
+    {
+        esyslog("markad: cannot find %s, please install",path);
+        free(path);
+        return false;
+    }
+    free(path);
+
     return true;
 }
 

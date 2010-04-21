@@ -81,7 +81,7 @@ private:
 
     MarkAdContext *macontext;
     int Detect(int lastiframe, int *logoiframe); // ret 1 = logo, 0 = unknown, -1 = no logo
-    int Load(char *file);
+    int Load(char *directory, char *file);
     void Save(int lastiframe, uchar *picture);
 public:
     cMarkAdLogo(MarkAdContext *maContext);

@@ -32,14 +32,7 @@ clMark::~clMark()
 
 clMarks::~clMarks()
 {
-    clMark *next,*mark=first;
-    while (mark)
-    {
-        next=mark->Next();
-        Del(mark);
-        mark=next;
-    }
-
+    Clear();
 }
 
 int clMarks::Count(int Type)
@@ -69,6 +62,19 @@ void clMarks::Del(int Type)
         if (mark->type==Type) Del(mark);
         mark=next;
     }
+}
+
+void clMarks::Clear()
+{
+    clMark *next,*mark=first;
+    while (mark)
+    {
+        next=mark->Next();
+        Del(mark);
+        mark=next;
+    }
+    first=NULL;
+    last=NULL;
 }
 
 void clMarks::Del(clMark *Mark)

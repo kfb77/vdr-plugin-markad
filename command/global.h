@@ -25,6 +25,8 @@ typedef unsigned char uchar;
 #define MT_COMMON        0x10
 
 #define MT_ASPECTCHANGE  0x20
+#define MT_ASPECTSTART   0x21
+#define MT_ASPECTSTOP    0x22
 
 #define MT_CHANNELCHANGE 0x30
 #define MT_CHANNELSTART  0x30
@@ -83,6 +85,7 @@ typedef struct MarkAdContext
     {
         int Length; // in Minutes
         char *ChannelID;
+        MarkAdAspectRatio AspectRatio;
         MarkAdPid VPid;
         MarkAdPid APid;
         MarkAdPid DPid;

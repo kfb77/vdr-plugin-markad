@@ -98,6 +98,7 @@ public:
         }
     }
     clMark *Add(int Type, int Position, const char *Comment = NULL);
+    void Clear();
     void Del(clMark *Mark);
     void Del(int Type);
     clMark *Get(int Position);

@@ -18,6 +18,7 @@ struct setup
     bool OSDMessage;
     bool BackupMarks;
     bool Verbose;
+    bool GenIndex;
 };
 
 class cSetupMarkAd : public cMenuSetupPage
@@ -31,6 +32,7 @@ private:
     int osdmsg;
     int backupmarks;
     int verbose;
+    int genindex;
     void write(void);
 protected:
     virtual void Store(void);
