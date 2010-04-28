@@ -19,6 +19,7 @@ struct setup
     bool BackupMarks;
     bool Verbose;
     bool GenIndex;
+    bool NoMargins;
 };
 
 class cSetupMarkAd : public cMenuSetupPage
@@ -33,6 +34,7 @@ private:
     int backupmarks;
     int verbose;
     int genindex;
+    int nomargins;
     void write(void);
 protected:
     virtual void Store(void);

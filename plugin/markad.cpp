@@ -25,6 +25,7 @@ cPluginMarkAd::cPluginMarkAd(void)
     setup.OSDMessage=false;
     setup.BackupMarks=false;
     setup.Verbose=false;
+    setup.NoMargins=false;
 }
 
 cPluginMarkAd::~cPluginMarkAd()
@@ -115,7 +116,7 @@ bool cPluginMarkAd::Start(void)
 {
     // Start any background activities the plugin shall perform.
     statusMonitor = new cStatusMarkAd(bindir,logodir,&setup);
-    return true;
+    return (statusMonitor!=NULL);
 }
 
 void cPluginMarkAd::Stop(void)
@@ -169,6 +170,7 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value)
     else if (!strcasecmp(Name,"OSDMessage")) setup.OSDMessage=atoi(Value);
     else if (!strcasecmp(Name,"BackupMarks")) setup.BackupMarks=atoi(Value);
     else if (!strcasecmp(Name,"Verbose")) setup.Verbose=atoi(Value);
+    else if (!strcasecmp(Name,"IgnoreMargins")) setup.NoMargins=atoi(Value);
     else return false;
     return true;
 }

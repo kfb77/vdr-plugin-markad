@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2010-04-18 15:58+0200\n"
+"POT-Creation-Date: 2010-04-26 13:57+0200\n"
 "PO-Revision-Date: 2009-08-27 14:18+0200\n"
 "Last-Translator: Jochen Dolze <vdr@dolze.de>\n"
 "Language-Team: <vdr@linuxtv.org>\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 msgid "markad still running"
-msgstr "MarkAd läuft noch"
+msgstr "markad läuft noch"
 
 msgid "running"
 msgstr "aktiv"
@@ -34,13 +34,13 @@ msgid "unknown"
 msgstr "unbekannt"
 
 msgid "markad status"
-msgstr "MarkAd Status"
+msgstr "markad Status"
 
 msgid "Recording\t Status"
 msgstr "Aufnahme\t Status"
 
 msgid "no running markad found"
-msgstr "Kein aktives MarkAd gefunden"
+msgstr "Kein aktives markad gefunden"
 
 msgid "Pause"
 msgstr "Pause"
@@ -65,6 +65,9 @@ msgstr "  während einer Wiedergabe"
 
 msgid "repair index, if broken"
 msgstr "Kaputte Indexdatei reparieren"
+
+msgid "ignore timer margins"
+msgstr "Timer Vor-/Nachlauf ignorieren"
 
 msgid "OSD message"
 msgstr "OSD Meldung"

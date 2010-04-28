@@ -18,6 +18,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     backupmarks=setup->BackupMarks;
     verbose=setup->Verbose;
     genindex=setup->GenIndex;
+    nomargins=setup->NoMargins;
 
     processTexts[0]=tr("after");
     processTexts[1]=tr("during");
@@ -37,6 +38,7 @@ void cSetupMarkAd::write(void)
     }
 
     Add(new cMenuEditBoolItem(tr("repair index, if broken"),&genindex));
+    Add(new cMenuEditBoolItem(tr("ignore timer margins"),&nomargins));
 
     Add(new cMenuEditBoolItem(tr("OSD message"),&osdmsg));
     Add(new cMenuEditBoolItem(tr("backup marks"),&backupmarks));
@@ -72,6 +74,7 @@ void cSetupMarkAd::Store(void)
     SetupStore("Execution",processduring);
     SetupStore("whileRecording",whilerecording);
     SetupStore("whileReplaying",whilereplaying);
+    SetupStore("IgnoreMargins",nomargins);
     SetupStore("BackupMarks",backupmarks);
     SetupStore("GenIndex",genindex);
     SetupStore("OSDMessage",osdmsg);
@@ -84,4 +87,5 @@ void cSetupMarkAd::Store(void)
     setup->GenIndex=(bool) genindex;
     setup->BackupMarks=(bool) backupmarks;
     setup->Verbose=(bool) verbose;
+    setup->NoMargins=(bool) nomargins;
 }

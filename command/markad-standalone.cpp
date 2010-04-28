@@ -142,13 +142,15 @@ void cMarkAdStandalone::AddStartMark()
         free(buf);
     }
 
-    if (tStop)
+    if (tStart)
     {
-        int tmp=tStart+macontext.Info.Length;
-        tStop=tmp*macontext.Video.Info.FramesPerSecond;
+        if ((tStop) && (macontext.Info.Length))
+        {
+            iStop=-((tStart+macontext.Info.Length)*macontext.Video.Info.FramesPerSecond);
+        }
+        iStart=-(tStart*macontext.Video.Info.FramesPerSecond);
+        dsyslog("iStart=%i iStop=%i",iStart,iStop);
     }
-    if (tStart) tStart*=macontext.Video.Info.FramesPerSecond;
-    dsyslog("tStart=%i tStop=%i",tStart,tStop);
 }
 
 bool cMarkAdStandalone::CheckFirstMark()
@@ -199,6 +201,8 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     if (!Mark) return;
     if (!Mark->Type) return;
 
+    bool loggedAlready=false;
+
     if (Mark->Type==MT_LOGOSTART)
     {
         // check if last mark is an aspectratio change
@@ -226,7 +230,6 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             {
                 if (Mark->Comment) isyslog(Mark->Comment);
                 isyslog("audiochannel change in short distance, using this mark (%i->%i)",Mark->Position,prev->position);
-                //marks.Add(MT_MOVED,prev->position,Mark->Comment);
                 return;
             }
         }
@@ -256,6 +259,11 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         if (((Mark->Type & 0xF0)==MT_BORDERCHANGE) && (Mark->Position>MINPOS) &&
                 (!macontext.Video.Options.IgnoreLogoDetection))
         {
+            if (Mark->Comment)
+            {
+                isyslog(Mark->Comment);
+                loggedAlready=true;
+            }
             isyslog("border change detected. logo detection disabled");
             macontext.Video.Options.IgnoreLogoDetection=true;
             marks.Del(MT_LOGOSTART);
@@ -285,6 +293,11 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 
             if (TurnOff)
             {
+                if (Mark->Comment)
+                {
+                    isyslog(Mark->Comment);
+                    loggedAlready=true;
+                }
                 isyslog("%s change detected. logo/border detection disabled",
                         (Mark->Type & 0xF0)==MT_ASPECTCHANGE ? "aspectratio" : "audio channel");
 
@@ -299,25 +312,36 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     }
     CheckFirstMark();
 
-    if (tStart)
+    if (iStart>0)
     {
-        if (abs(Mark->Position-tStart)<200*(macontext.Video.Info.FramesPerSecond))
+        if (abs(Mark->Position-iStart)<200*(macontext.Video.Info.FramesPerSecond))
         {
             if ((Mark->Type==MT_ASPECTSTART) || (Mark->Type==MT_LOGOSTART) ||
                     (Mark->Type==MT_CHANNELSTART) || (Mark->Type==MT_ASPECTCHANGE))
             {
+                if (Mark->Comment)
+                {
+                    isyslog(Mark->Comment);
+                    loggedAlready=true;
+                }
                 isyslog("assuming start of broadcast (%i)",Mark->Position);
                 marks.Clear(); // clear all other marks till now
-                tStart=0;
+                marksAligned=true;
+                iStart=0;
             }
         }
     }
 
-    if ((tStop) && (Mark->Position>tStop))
+    if ((iStop>0) && (Mark->Position>tStop))
     {
+        if (Mark->Comment)
+        {
+            isyslog(Mark->Comment);
+            loggedAlready=true;
+        }
         isyslog("assuming stop of broadcast (%i)",Mark->Position);
         fastexit=true;
-        tStop=0;
+        iStop=0;
     }
 
     clMark *old=marks.Get(Mark->Position);
@@ -326,13 +350,13 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         // Aspect- / Channelchange wins over Logo/Border
         if (((old->type & 0xF0)!=MT_ASPECTCHANGE) && ((old->type & 0xF0)!=MT_CHANNELCHANGE))
         {
-            if (Mark->Comment) isyslog(Mark->Comment);
+            if ((Mark->Comment) && (!loggedAlready)) isyslog(Mark->Comment);
             marks.Add(Mark->Type,Mark->Position,Mark->Comment);
         }
     }
     else
     {
-        if (Mark->Comment) isyslog(Mark->Comment);
+        if ((Mark->Comment) && (!loggedAlready)) isyslog(Mark->Comment);
         marks.Add(Mark->Type,Mark->Position,Mark->Comment);
     }
 }
@@ -498,6 +522,14 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                             if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                             {
                                 lastiframe=iframe;
+                                if ((iStart<0) && (lastiframe>-iStart))
+                                {
+                                    iStart=lastiframe;
+                                }
+                                if ((iStop<0) && (lastiframe>-iStop))
+                                {
+                                    iStop=lastiframe;
+                                }
                                 iframe=framecnt-1;
                             }
                         }
@@ -639,25 +671,58 @@ void cMarkAdStandalone::Process(const char *Directory)
     {
         if ((lastiframe) && (!fastexit))
         {
+            bool set=true;
             char *buf;
-#if 0
-            if ((marks.Count()<=1) && (tStart))
+            if ((marks.Count()<=1) && (iStart>0))
             {
-                if (asprintf(&buf,"start of broadcast (%i)",tStart)!=-1)
+                if (marks.Count()==1)
                 {
+                    clMark *mark=marks.GetFirst();
+                    if (mark)
+                    {
+                        if (mark->position==0)
+                        {
+                            marks.Clear();
+                        }
+                        else
+                        {
+                            set=false;
+                        }
+                    }
+                }
+
+                if (set)
+                {
+                    if (asprintf(&buf,"assumed start of broadcast (%i)",iStart)!=-1)
+                    {
+                        isyslog(buf);
+                        marks.Add(MT_COMMON,iStart,buf);
+                        free(buf);
+                    }
+                    if (iStop>0)
+                    {
+                        if (asprintf(&buf,"assumed stop of broadcast (%i)",iStart)!=-1)
+                        {
+                            isyslog(buf);
+                            marks.Add(MT_COMMON,iStart,buf);
+                            free(buf);
+                        }
+                    }
                 }
             }
-#endif
-
-            MarkAdMark tempmark;
-            tempmark.Type=MT_COMMON;
-            tempmark.Position=lastiframe;
-
-            if (asprintf(&buf,"stop of recording (%i)",lastiframe)!=-1)
+            else
             {
-                tempmark.Comment=buf;
-                AddMark(&tempmark);
-                free(buf);
+
+                MarkAdMark tempmark;
+                tempmark.Type=MT_COMMON;
+                tempmark.Position=lastiframe;
+
+                if (asprintf(&buf,"stop of recording (%i)",lastiframe)!=-1)
+                {
+                    tempmark.Comment=buf;
+                    AddMark(&tempmark);
+                    free(buf);
+                }
             }
         }
 
@@ -671,7 +736,7 @@ void cMarkAdStandalone::Process(const char *Directory)
             usec+=1000000;
             sec--;
         }
-        RateMarks();
+        //RateMarks();
         if (marks.Save(Directory,macontext.Video.Info.FramesPerSecond,isTS))
         {
             bool bIndexError=false;
@@ -781,7 +846,8 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
                 if (cr) *cr=0;
             }
         }
-        if ((line[0]=='@') && (start) && (macontext.Info.Length) && (!tStart) && (!tStop))
+        if ((line[0]=='@') && (start) && (macontext.Info.Length) &&
+                (!tStart) && (!tStop) && (!bIgnoreTimerInfo))
         {
             int ntok=0;
             char *str=line,*tok;
@@ -1128,7 +1194,7 @@ bool cMarkAdStandalone::RegenerateVDRIndex(const char *Directory)
 
 bool cMarkAdStandalone::CreatePidfile(const char *Directory)
 {
-    char *buf;
+    char *buf=NULL;
     if (asprintf(&buf,"%s/markad.pid",Directory)==-1) return false;
 
     // check for other running markad process
@@ -1157,16 +1223,11 @@ bool cMarkAdStandalone::CreatePidfile(const char *Directory)
 
     if (getuid()==0 || geteuid()!=0)
     {
-        // if we are root, set fileowner to owner of 001.vdr/00001.ts file
-        char *spath=NULL;
-        if (asprintf(&spath,"%s/%s",Directory,isTS ? "00001.ts" : "001.vdr")!=-1)
+        // if we are root, set fileowner to owner of directory
+        struct stat statbuf;
+        if (!stat(Directory,&statbuf))
         {
-            struct stat statbuf;
-            if (!stat(spath,&statbuf))
-            {
-                chown(buf,statbuf.st_uid, statbuf.st_gid);
-            }
-            free(spath);
+            chown(buf,statbuf.st_uid, statbuf.st_gid);
         }
     }
 
@@ -1192,11 +1253,12 @@ const char cMarkAdStandalone::frametypes[8]={'?','I','P','B','D','S','s','b'};
 
 cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, int LogoExtraction,
                                      int LogoWidth, int LogoHeight, bool DecodeVideo,
-                                     bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
+                                     bool DecodeAudio, int IgnoreInfo,
                                      const char *LogoDir, const char *MarkFileName, bool ASD,
                                      bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort,
-                                     bool Before, bool GenIndex, bool Start, bool Stop)
+                                     bool Before, bool GenIndex, int Start, int Stop)
 {
+    setlocale(LC_MESSAGES, "");
     directory=Directory;
     abort=false;
     fastexit=false;
@@ -1219,12 +1281,41 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
     bDecodeVideo=DecodeVideo;
     bDecodeAudio=DecodeAudio;
-    bIgnoreAudioInfo=IgnoreAudioInfo;
-    bIgnoreVideoInfo=IgnoreVideoInfo;
     bGenIndex=GenIndex;
     bBackupMarks=BackupMarks;
     tStart=Start;
     tStop=Stop;
+    iStart=0;
+    iStop=0;
+
+    if ((IgnoreInfo & IGNORE_VIDEOINFO)==IGNORE_VIDEOINFO)
+    {
+        bIgnoreVideoInfo=true;
+    }
+    else
+    {
+        bIgnoreVideoInfo=false;
+    }
+
+    if ((IgnoreInfo & IGNORE_AUDIOINFO)==IGNORE_AUDIOINFO)
+    {
+        bIgnoreAudioInfo=true;
+    }
+    else
+    {
+        bIgnoreAudioInfo=false;
+    }
+
+    if ((IgnoreInfo & IGNORE_TIMERINFO)==IGNORE_TIMERINFO)
+    {
+        bIgnoreTimerInfo=true;
+        tStart=0;
+        tStop=0;
+    }
+    else
+    {
+        bIgnoreTimerInfo=false;
+    }
 
     macontext.Info.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
     macontext.Info.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
@@ -1247,6 +1338,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     if (bIgnoreVideoInfo)
     {
         isyslog("video info usage disabled by user");
+    }
+    if (bIgnoreTimerInfo)
+    {
+        isyslog("timer info usage disabled by user");
     }
 
     if (LogoExtraction!=-1)
@@ -1324,10 +1419,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     {
         if (bDecodeVideo)
         {
-            esyslog("failed loading info - logo %s and pre-/post-timer disabled",
-                    (LogoExtraction!=-1) ? "extraction" : "detection");
+            esyslog("failed loading info - logo %s%sdisabled",
+                    (LogoExtraction!=-1) ? "extraction" : "detection",
+                    tStop ? " and post-timer " : " ");
         }
-        tStart=0;
         tStop=0;
     }
 
@@ -1346,7 +1441,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     if (OSD)
     {
         osd= new cOSDMessage(SVDRPHost,SVDRPPort);
-        if (osd) osd->Send("%s %s",trNOOP("starting markad for"),ptitle);
+        if (osd) osd->Send("%s %s",tr("starting markad for"),ptitle);
     }
     else
     {
@@ -1426,11 +1521,11 @@ cMarkAdStandalone::~cMarkAdStandalone()
     {
         if (abort)
         {
-            osd->Send("%s %s",trNOOP("markad aborted for"),ptitle);
+            osd->Send("%s %s",tr("markad aborted for"),ptitle);
         }
         else
         {
-            osd->Send("%s %s",trNOOP("markad finished for"),ptitle);
+            osd->Send("%s %s",tr("markad finished for"),ptitle);
         }
     }
 
@@ -1473,14 +1568,16 @@ int usage()
            "                             3 = disable video and audio\n"
            "-i              --ignoreinfo=<info>\n"
            "                  ignores hints from info(.vdr) file\n"
-           "                  <info>     1 = ignore audio info 2 = ignore video info\n"
-           "                             3 = ignore video and audio info\n"
+           "                  <info> 1 = ignore audio info 2 = ignore video info\n"
+           "                         4 = ignore timer info\n"
+           "                         (options can be added together, e.g. 5 = ignore\n"
+           "                          audio and timer info)\n"
            "-l              --logocachedir\n"
            "                  directory where logos stored, default /var/lib/markad\n"
-           "-p,             --priority level=<priority>\n"
+           "-p              --priority level=<priority>\n"
            "                  priority-level of markad when running in background\n"
            "                  <-20...19> default 19\n"
-           "-v,             --verbose\n"
+           "-v              --verbose\n"
            "                  increments loglevel by one, can be given multiple times\n"
            "-B              --backupmarks\n"
            "                  make a backup of existing marks\n"
@@ -1493,16 +1590,12 @@ int usage()
            "                  [width]  range from 50 to %3i, default %3i (SD)\n"
            "                                                 default %3i (HD)\n"
            "                  [height] range from 20 to %3i, default %3i\n"
-           "-O,             --OSD\n"
+           "-O              --OSD\n"
            "                  markad sends an OSD-Message for start and end\n"
            "-V              --version\n"
            "                  print version-info and exit\n"
            "                --asd\n"
            "                  enable audio silence detecion\n"
-           "                --bstart=<seconds>\n"
-           "                  margin at start\n"
-           "                --bstop=<seconds>\n"
-           "                  margin at stop\n"
            "                --markfile=<markfilename>\n"
            "                  set a different markfile-name\n"
            "                --online[=1|2] (default is 1)\n"
@@ -1516,6 +1609,10 @@ int usage()
            "                  ip/hostname of a remote VDR for OSD messages\n"
            "                --svdrpport=<port> (default is 2001)\n"
            "                  port of a remote VDR for OSD messages\n"
+           "                --tstart=<seconds>\n"
+           "                  margin at start\n"
+           "                --tstop=<seconds>\n"
+           "                  margin at stop\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
            "after                        markad starts to analyze the recording\n"
@@ -1532,6 +1629,10 @@ int usage()
 
 static void signal_handler(int sig)
 {
+    void *trace[32];
+    char **messages = (char **)NULL;
+    int i, trace_size = 0;
+
     switch (sig)
     {
     case SIGTSTP:
@@ -1547,6 +1648,15 @@ static void signal_handler(int sig)
         break;
     case SIGSEGV:
         esyslog("segmentation fault");
+
+        trace_size = backtrace(trace, 32);
+        messages = backtrace_symbols(trace, trace_size);
+        esyslog("[bt] Execution path:");
+        for (i=0; i<trace_size; ++i)
+        {
+            esyslog("[bt] %s\n", messages[i]);
+        }
+        _exit(1);
         break;
     case SIGTERM:
     case SIGINT:
@@ -1578,8 +1688,7 @@ int main(int argc, char *argv[])
     int svdrpport=2001;
     bool bDecodeVideo=true;
     bool bDecodeAudio=true;
-    bool bIgnoreAudioInfo=false;
-    bool bIgnoreVideoInfo=false;
+    int  ignoreInfo=0;
     bool bGenIndex=false;
     int tstart=0;
     int tstop=0;
@@ -1673,22 +1782,11 @@ int main(int argc, char *argv[])
 
         case 'i':
             // --ignoreinfo
-            switch (atoi(optarg))
+            ignoreInfo=atoi(optarg);
+            if ((ignoreInfo<0) || (ignoreInfo>255))
             {
-            case 1:
-                bIgnoreAudioInfo=true;
-                break;
-            case 2:
-                bIgnoreVideoInfo=true;
-                break;
-            case 3:
-                bIgnoreVideoInfo=true;
-                bIgnoreAudioInfo=true;
-                break;
-            default:
                 fprintf(stderr, "markad: invalid ignoreinfo option: %s\n", optarg);
                 return 2;
-                break;
             }
             break;
 
@@ -1862,26 +1960,26 @@ int main(int argc, char *argv[])
             }
             break;
 
-        case 10: // --bstart
+        case 10: // --tstart
             if (isnumber(optarg) && atoi(optarg) > 0)
             {
                 tstart=atoi(optarg);
             }
             else
             {
-                fprintf(stderr, "markad: invalid bstart value: %s\n", optarg);
+                fprintf(stderr, "markad: invalid tstart value: %s\n", optarg);
                 return 2;
             }
             break;
 
-        case 11: // --bstop
+        case 11: // --tstop
             if (isnumber(optarg) && atoi(optarg) > 0)
             {
                 tstop=atoi(optarg);
             }
             else
             {
-                fprintf(stderr, "markad: invalid bstop value: %s\n", optarg);
+                fprintf(stderr, "markad: invalid tstop value: %s\n", optarg);
                 return 2;
             }
             break;
@@ -1925,7 +2023,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    // do nothing if called from vdr before/after the video is cutted
+// do nothing if called from vdr before/after the video is cutted
     if ((bAfter) && (online)) return 0;
     if (bBefore)
     {
@@ -1934,8 +2032,8 @@ int main(int argc, char *argv[])
     }
     if (bEdited) return 0;
 
-    // we can run, if one of bImmediateCall, bAfter, bBefore or bNice is true
-    // and recDir is given
+// we can run, if one of bImmediateCall, bAfter, bBefore or bNice is true
+// and recDir is given
     if ( (bImmediateCall || bBefore || bAfter || bNice) && recDir )
     {
         // if bFork is given go in background
@@ -2055,7 +2153,7 @@ int main(int argc, char *argv[])
         signal(SIGCONT, signal_handler);
 
         cmasta = new cMarkAdStandalone(recDir,bBackupMarks, logoExtraction, logoWidth, logoHeight,
-                                       bDecodeVideo,bDecodeAudio,bIgnoreVideoInfo,bIgnoreAudioInfo,
+                                       bDecodeVideo,bDecodeAudio,ignoreInfo,
                                        logoDirectory,markFileName,bASD,bNoPid,bOSD,svdrphost,
                                        svdrpport,bBefore,bGenIndex,tstart,tstop);
         if (!cmasta) return -1;

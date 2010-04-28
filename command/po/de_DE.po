@@ -16,7 +16,7 @@ msgid "starting markad for"
 msgstr "Starte markad für"
 
 msgid "markad aborted for"
-msgstr "Markad abgebrochen bei"
+msgstr "markad abgebrochen bei"
 
 msgid "markad finished for"
-msgstr "Markad beendet für"
+msgstr "markad beendet für"

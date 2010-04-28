@@ -22,6 +22,9 @@
 #include <sys/wait.h>
 #include <pthread.h>
 #include <poll.h>
+#include <locale.h>
+#include <libintl.h>
+#include <execinfo.h>
 
 #include "demux.h"
 #include "global.h"
@@ -32,7 +35,11 @@
 #include "version.h"
 #include "marks.h"
 
-#define trNOOP(s) (s)
+#define tr(s) dgettext("markad",s)
+
+#define IGNORE_VIDEOINFO 1
+#define IGNORE_AUDIOINFO 2
+#define IGNORE_TIMERINFO 4
 
 class cOSDMessage
 {
@@ -199,9 +206,12 @@ unsigned Descriptor_Length:
     bool bDecodeAudio;
     bool bIgnoreAudioInfo;
     bool bIgnoreVideoInfo;
+    bool bIgnoreTimerInfo;
     bool bGenIndex;
-    int tStart;
-    int tStop;
+    int tStart; // pretimer in seconds
+    int tStop;  // posttimer in seconds
+    int iStart; // pretimer as index value
+    int iStop;  // posttimer as index value
 
     void CheckIndex(const char *Directory);
     char *indexFile;
@@ -232,10 +242,10 @@ public:
     void Process(const char *Directory);
     cMarkAdStandalone(const char *Directory, bool BackupMarks, int LogoExtraction,
                       int LogoWidth, int LogoHeight, bool DecodeVideo,
-                      bool DecodeAudio, bool IgnoreVideoInfo, bool IgnoreAudioInfo,
+                      bool DecodeAudio, int IgnoreInfo,
                       const char *LogoDir, const char *MarkFileName, bool ASD,
                       bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort,
-                      bool Before, bool GenIndex, bool Start, bool Stop);
+                      bool Before, bool GenIndex, int Start, int Stop);
 
     ~cMarkAdStandalone();
 };
