@@ -9,7 +9,7 @@ VERSION = $(shell grep 'static const char \*VERSION *=' ../version.h | awk '{ pr
 ### The C++ compiler and options:
 
 CXX      ?= g++
-CXXFLAGS ?= -g -O2 -Wall -Wextra -Woverloaded-virtual -Wno-parentheses
+CXXFLAGS ?= -g -rdynamic -O2 -Wall -Wextra -Woverloaded-virtual -Wno-parentheses
 PKG-CONFIG ?= pkg-config
 
 ### Includes and Defines (add further entries here):

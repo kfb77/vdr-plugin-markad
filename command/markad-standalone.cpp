@@ -153,6 +153,37 @@ void cMarkAdStandalone::AddStartMark()
     }
 }
 
+void cMarkAdStandalone::CheckStartStop(int lastiframe)
+{
+    MarkAdMark mark;
+    char *buf;
+
+    if ((iStart<0) && (lastiframe>-iStart))
+    {
+        iStart=lastiframe;
+        if (asprintf(&buf,"assumed start of broadcast (%i)",iStart)!=-1)
+        {
+            mark.Type=MT_COMMONSTART;
+            mark.Position=iStart;
+            mark.Comment=buf;
+            AddMark(&mark);
+            free(buf);
+        }
+    }
+    if ((iStop<0) && (lastiframe>-iStop))
+    {
+        iStop=lastiframe;
+        if (asprintf(&buf,"assumed stop of broadcast (%i)",iStop)!=-1)
+        {
+            mark.Type=MT_COMMONSTOP;
+            mark.Position=iStop;
+            mark.Comment=buf;
+            AddMark(&mark);
+            free(buf);
+        }
+    }
+}
+
 bool cMarkAdStandalone::CheckFirstMark()
 {
     if (marksAligned) return true;
@@ -161,19 +192,14 @@ bool cMarkAdStandalone::CheckFirstMark()
     clMark *second=marks.GetNext(0);
     if (!second) return false;
 
-    if ((second->type==MT_LOGOSTART) || (second->type==MT_BORDERSTART) ||
-            (second->type==MT_CHANNELSTART) || (second->type==MT_ASPECTSTART))
+    if ((second->type & 0xF)==MT_START)
     {
         clMark *first=marks.Get(0);
         if (first) marks.Del(first);
         marksAligned=true;
     }
 
-    if ((second->type==MT_LOGOSTOP) || (second->type==MT_BORDERSTOP) ||
-            (second->type==MT_CHANNELSTOP) || (second->type==MT_ASPECTSTOP))
-    {
-        marksAligned=true;
-    }
+    if ((second->type & 0xF)==MT_STOP) marksAligned=true;
 
     // If we have an aspectchange, check the next aspectchange mark
     // and the difference between
@@ -200,22 +226,101 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 {
     if (!Mark) return;
     if (!Mark->Type) return;
+    if (!macontext.Video.Info.FramesPerSecond) return;
 
     bool loggedAlready=false;
+
+    if ((iStart>0) || (iStop>0))
+    {
+        clMark *last=NULL;
+        int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*180);
+        if ((iStart>0) && (abs(Mark->Position-iStart)<=MINMARKDIFF) && ((Mark->Type & 0x0F)==MT_START))
+        {
+            last=marks.GetPrev(Mark->Position,MT_START,0xF);
+            if (!last) last=marks.GetPrev(Mark->Position,MT_ASPECTCHANGE);
+            if ((last) && (abs(last->position-iStart)>MINMARKDIFF)) last=NULL;
+        }
+
+        if ((iStop>0) && (abs(Mark->Position-iStop)<=MINMARKDIFF) && ((Mark->Type & 0x0F)==MT_STOP))
+        {
+            last=marks.GetPrev(Mark->Position,MT_STOP,0xF);
+            if (!last) last=marks.GetPrev(Mark->Position,MT_ASPECTCHANGE);
+            if ((last) && (abs(last->position-iStop)>MINMARKDIFF)) last=NULL;
+        }
+
+        if (last)
+        {
+            if (Mark->Comment) isyslog(Mark->Comment);
+            marksAligned=true;
+
+            if ((last->type & 0xF)==MT_START)
+            {
+                iStart=0;
+            }
+            else
+            {
+                iStop=0;
+                fastexit=true;
+            }
+
+            if ((last->type==MT_COMMONSTART) || (last->type==MT_COMMONSTOP))
+            {
+                isyslog("using this mark instead of assumed %s mark in \"short\" distance (%i->%i)",
+                        (last->type==MT_COMMONSTART) ? "start" : "stop",
+                        Mark->Position,last->position);
+
+                marks.Clear();
+                loggedAlready=true;
+            }
+            else
+            {
+                if (last->type==MT_ASPECTCHANGE)
+                {
+                    isyslog("aspectratio change in \"short\" distance, deleting this mark (%i)",
+                            Mark->Position);
+                }
+                else
+                {
+                    isyslog("%s mark in \"short\" distance, deleting this mark (%i)",
+                            ((last->type & 0xF)==MT_START) ? "start" : "stop",
+                            Mark->Position);
+                }
+
+                if ((last->type & 0xF)==MT_START) marks.Clear(last->position);
+                return;
+            }
+        }
+    }
 
     if (Mark->Type==MT_LOGOSTART)
     {
         // check if last mark is an aspectratio change
         clMark *prev=marks.GetLast();
-        if ((prev) && ((prev->type & 0xF0)==MT_ASPECTCHANGE))
+        if (prev)
         {
-            int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*5);
-            if ((Mark->Position-prev->position)<MINMARKDIFF)
+            if ((prev->type & 0xF0)==MT_ASPECTCHANGE)
             {
-                if (Mark->Comment) isyslog(Mark->Comment);
-                isyslog("aspectratio change in short distance, using this mark (%i->%i)",Mark->Position,prev->position);
-                return;
+                int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*5);
+                if ((Mark->Position-prev->position)<MINMARKDIFF)
+                {
+                    if (Mark->Comment) isyslog(Mark->Comment);
+                    isyslog("aspectratio change in short distance, using this mark (%i->%i)",Mark->Position,prev->position);
+                    return;
+                }
             }
+
+            if ((prev->type & 0xF0)==MT_CHANNELSTART)
+            {
+                int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*5);
+                if ((Mark->Position-prev->position)<MINMARKDIFF)
+                {
+                    if (Mark->Comment) isyslog(Mark->Comment);
+                    isyslog("audiochannel change in short distance, using this mark (%i->%i)",Mark->Position,prev->position);
+                    return;
+                }
+            }
+
+
         }
     }
 
@@ -255,7 +360,6 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     if (macontext.Info.Length>0)
     {
         int MINPOS=(int) ((macontext.Video.Info.FramesPerSecond*macontext.Info.Length)/5);
-        if (!MINPOS) MINPOS=25000; // fallback
         if (((Mark->Type & 0xF0)==MT_BORDERCHANGE) && (Mark->Position>MINPOS) &&
                 (!macontext.Video.Options.IgnoreLogoDetection))
         {
@@ -270,79 +374,28 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             marks.Del(MT_LOGOSTOP);
         }
 
+        MINPOS=(int) ((macontext.Video.Info.FramesPerSecond*macontext.Info.Length)/3);
         if ((((Mark->Type & 0xF0)==MT_CHANNELCHANGE) || ((Mark->Type & 0xF0)==MT_ASPECTCHANGE)) &&
                 (Mark->Position>MINPOS) && (bDecodeVideo))
         {
-            bool TurnOff=true;
-            if ((Mark->Type & 0xF0)==MT_ASPECTCHANGE)
-            {
-                if ((marks.Count(MT_ASPECTCHANGE)+marks.Count(MT_ASPECTSTART)+
-                        marks.Count(MT_ASPECTSTOP))    <3)
-                {
-                    TurnOff=false;
-                }
-            }
 
-            if ((Mark->Type & 0xF0)==MT_CHANNELCHANGE)
+            if (Mark->Comment)
             {
-                if ((marks.Count(MT_CHANNELSTART)+marks.Count(MT_CHANNELSTOP))<3)
-                {
-                    TurnOff=false;
-                }
+                isyslog(Mark->Comment);
+                loggedAlready=true;
             }
+            isyslog("%s change detected. logo/border detection disabled",
+                    (Mark->Type & 0xF0)==MT_ASPECTCHANGE ? "aspectratio" : "audio channel");
 
-            if (TurnOff)
-            {
-                if (Mark->Comment)
-                {
-                    isyslog(Mark->Comment);
-                    loggedAlready=true;
-                }
-                isyslog("%s change detected. logo/border detection disabled",
-                        (Mark->Type & 0xF0)==MT_ASPECTCHANGE ? "aspectratio" : "audio channel");
-
-                bDecodeVideo=false;
-                macontext.Video.Data.Valid=false;
-                marks.Del(MT_LOGOSTART);
-                marks.Del(MT_LOGOSTOP);
-                marks.Del(MT_BORDERSTART);
-                marks.Del(MT_BORDERSTOP);
-            }
+            bDecodeVideo=false;
+            macontext.Video.Data.Valid=false;
+            marks.Del(MT_LOGOSTART);
+            marks.Del(MT_LOGOSTOP);
+            marks.Del(MT_BORDERSTART);
+            marks.Del(MT_BORDERSTOP);
         }
     }
     CheckFirstMark();
-
-    if (iStart>0)
-    {
-        if (abs(Mark->Position-iStart)<200*(macontext.Video.Info.FramesPerSecond))
-        {
-            if ((Mark->Type==MT_ASPECTSTART) || (Mark->Type==MT_LOGOSTART) ||
-                    (Mark->Type==MT_CHANNELSTART) || (Mark->Type==MT_ASPECTCHANGE))
-            {
-                if (Mark->Comment)
-                {
-                    isyslog(Mark->Comment);
-                    loggedAlready=true;
-                }
-                isyslog("assuming start of broadcast (%i)",Mark->Position);
-                marks.Clear(); // clear all other marks till now
-                marksAligned=true;
-                iStart=0;
-            }
-        }
-    }
-
-    if ((iStop>0) && (Mark->Position>tStop))
-    {
-        if (Mark->Comment)
-        {
-            isyslog(Mark->Comment);
-            loggedAlready=true;
-        }
-        isyslog("assuming stop of broadcast (%i)",Mark->Position);
-        fastexit=true;
-        iStop=0;
-    }
 
     clMark *old=marks.Get(Mark->Position);
     if (old)
@@ -359,33 +412,6 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         if ((Mark->Comment) && (!loggedAlready)) isyslog(Mark->Comment);
         marks.Add(Mark->Type,Mark->Position,Mark->Comment);
     }
-}
-
-void cMarkAdStandalone::RateMarks()
-{
-    if (macontext.Info.Length)
-    {
-        if ((marks.Count()>3) && (macontext.Info.Length>1800))
-        {
-            int logomarks=marks.Count(MT_LOGOSTART) + marks.Count(MT_LOGOSTOP);
-            int audiomarks=marks.Count(MT_CHANNELSTART) +  marks.Count(MT_CHANNELSTOP);
-
-            // If we have logomarks or audiomarks get rid of the aspect changes,
-            // cause if we have a recording with (>=3) aspect changes the
-            // logomarks were already deleted in AddMark
-            if ((logomarks) || (audiomarks))
-            {
-                marks.Del(MT_ASPECTCHANGE);
-                marks.Del(MT_ASPECTSTART);
-                marks.Del(MT_ASPECTSTOP);
-            }
-        }
-    }
-
-    // Check the first mark again
-    CheckFirstMark();
-
-    // TODO: more checks
 }
 
 void cMarkAdStandalone::SaveFrame(int frame)
@@ -522,14 +548,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                             if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                             {
                                 lastiframe=iframe;
-                                if ((iStart<0) && (lastiframe>-iStart))
-                                {
-                                    iStart=lastiframe;
-                                }
-                                if ((iStop<0) && (lastiframe>-iStop))
-                                {
-                                    iStop=lastiframe;
-                                }
+                                CheckStartStop(lastiframe);
                                 iframe=framecnt-1;
                             }
                         }
@@ -669,60 +688,18 @@ void cMarkAdStandalone::Process(const char *Directory)
 
     if (!abort)
     {
-        if ((lastiframe) && (!fastexit))
+        if ((lastiframe) && (!fastexit) && (iStop<0))
         {
-            bool set=true;
             char *buf;
-            if ((marks.Count()<=1) && (iStart>0))
+            MarkAdMark tempmark;
+            tempmark.Type=MT_COMMON;
+            tempmark.Position=lastiframe;
+
+            if (asprintf(&buf,"stop of recording (%i)",lastiframe)!=-1)
             {
-                if (marks.Count()==1)
-                {
-                    clMark *mark=marks.GetFirst();
-                    if (mark)
-                    {
-                        if (mark->position==0)
-                        {
-                            marks.Clear();
-                        }
-                        else
-                        {
-                            set=false;
-                        }
-                    }
-                }
-
-                if (set)
-                {
-                    if (asprintf(&buf,"assumed start of broadcast (%i)",iStart)!=-1)
-                    {
-                        isyslog(buf);
-                        marks.Add(MT_COMMON,iStart,buf);
-                        free(buf);
-                    }
-                    if (iStop>0)
-                    {
-                        if (asprintf(&buf,"assumed stop of broadcast (%i)",iStart)!=-1)
-                        {
-                            isyslog(buf);
-                            marks.Add(MT_COMMON,iStart,buf);
-                            free(buf);
-                        }
-                    }
-                }
-            }
-            else
-            {
-
-                MarkAdMark tempmark;
-                tempmark.Type=MT_COMMON;
-                tempmark.Position=lastiframe;
-
-                if (asprintf(&buf,"stop of recording (%i)",lastiframe)!=-1)
-                {
-                    tempmark.Comment=buf;
-                    AddMark(&tempmark);
-                    free(buf);
-                }
+                tempmark.Comment=buf;
+                AddMark(&tempmark);
+                free(buf);
             }
         }
 
@@ -1133,7 +1110,13 @@ bool cMarkAdStandalone::RegenerateVDRIndex(const char *Directory)
             struct stat statbuf;
             if (stat(tmp,&statbuf)!=0) return false;
             unlink(tmp);
-            if (statbuf.st_size!=0) return false;
+            if (statbuf.st_size!=0)
+            {
+                if (asprintf(&oldfile,"%s/index.vdr.generated",Directory)==-1) return false;
+                unlink(oldfile);
+                free(oldfile);
+                return false;
+            }
         }
 
         // rename index.vdr.generated -> index.vdr
@@ -1564,11 +1547,11 @@ int usage()
            "                  markad runs as a background-process\n"
            "                  this will be automatically set if called with \"after\"\n"
            "-d              --disable=<option>\n"
-           "                  <option>   1 = disable video  2 = disable audio\n"
-           "                             3 = disable video and audio\n"
+           "                  <option>   1 = disable video decoding, 2 = disable audio\n"
+           "                             decoding, 3 = disable video and audio decoding\n"
            "-i              --ignoreinfo=<info>\n"
            "                  ignores hints from info(.vdr) file\n"
-           "                  <info> 1 = ignore audio info 2 = ignore video info\n"
+           "                  <info> 1 = ignore audio info, 2 = ignore video info,\n"
            "                         4 = ignore timer info\n"
            "                         (options can be added together, e.g. 5 = ignore\n"
            "                          audio and timer info)\n"
@@ -2039,7 +2022,6 @@ int main(int argc, char *argv[])
         // if bFork is given go in background
         if ( bFork )
         {
-            (void)umask((mode_t)0011);
             //close_files();
             pid_t pid = fork();
             if (pid < 0)
@@ -2112,6 +2094,8 @@ int main(int argc, char *argv[])
                 (void)close(f);
             }
         }
+
+        (void)umask((mode_t)0022);
 
         int MaxPossibleFileDescriptors = getdtablesize();
         for (int i = STDERR_FILENO + 1; i < MaxPossibleFileDescriptors; i++)

@@ -80,6 +80,7 @@ cMenuMarkAd::cMenuMarkAd(cStatusMarkAd *Status):cOsdMenu(tr("markad status"),15)
     {
         SetHelpText(NULL);
     }
+    lastpos=0;
 }
 
 
@@ -87,7 +88,7 @@ bool cMenuMarkAd::write()
 {
     Clear();
 
-    bool header=false,first=true;
+    bool header=false;
     struct recs *Entry=NULL;
     status->ResetActPos();
     do
@@ -100,8 +101,12 @@ bool cMenuMarkAd::write()
                 header=true;
                 Add(new cOsdItem(tr("Recording\t Status"),osUnknown,false));
             }
-            Add(new cOsdMarkAd(Entry));
-            first=false;
+            cOsdMarkAd *osd = new cOsdMarkAd(Entry);
+            if (osd)
+            {
+                Add(osd);
+                if (osd->Index()==lastpos) SetCurrent(osd);
+            }
         }
     }
     while (Entry);
@@ -109,6 +114,7 @@ bool cMenuMarkAd::write()
     if (!header)
     {
         Add(new cOsdItem(tr("no running markad found"),osUnknown,false),true);
+        lastpos=NULL;
     }
     Display();
     return header;
@@ -185,6 +191,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key)
         if ((osd) && (osd->Selectable()))
         {
             SetHelpText(osd->GetEntry());
+            lastpos=Current();
         }
         break;
 
@@ -194,6 +201,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key)
         if ((osd) && (osd->Selectable()))
         {
             SetHelpText(osd->GetEntry());
+            lastpos=Current();
         }
         break;
 

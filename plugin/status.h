@@ -55,7 +55,8 @@ public:
         actpos=0;
     }
     bool GetNextActive(struct recs **RecEntry);
-    bool Start(const char *FileName, const char *Name, bool Direct=false);
+    bool Start(const char *FileName, const char *Name, const bool Direct=false,
+               const int tStart=0, const int tStop=0);
 };
 
 #endif

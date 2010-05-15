@@ -65,16 +65,34 @@ void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSE
     }
 }
 
-bool cStatusMarkAd::Start(const char *FileName, const char *Name, bool Direct)
+bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Direct,
+                          const int tStart, const int tStop)
 {
     if ((Direct) && (Get(FileName)!=-1)) return false;
 
-    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s -l \"%s\" %s \"%s\"",bindir,
+    char sstart[20]="";
+    char sstop[20]="";
+
+    if (tStart>0)
+    {
+        snprintf(sstart,sizeof(sstart)," --tstart %i ",tStart);
+        sstart[19]=0;
+    }
+
+    if (tStop>0)
+    {
+        snprintf(sstop,sizeof(sstop)," --tstop %i ",tStop);
+        sstop[19]=0;
+    }
+
+    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",bindir,
                                    setup->Verbose ? " -v " : "",
                                    setup->BackupMarks ? " -B " : "",
                                    setup->GenIndex ? " -G " : "",
                                    setup->OSDMessage ? " -O " : "",
                                    setup->NoMargins ? " -i 4 " : "",
+                                   (tStart>0) ? sstart : "",
+                                   (tStop>0) ? sstop : "",
                                    logodir,Direct ? "-O after" : "--online=2 before", FileName);
     dsyslog("markad: executing %s",*cmd);
     if (SystemExec(cmd)!=-1)
@@ -121,10 +139,31 @@ void cStatusMarkAd::Recording(const cDevice *UNUSED(Device), const char *Name,
     if (!bindir) return; // we cannot operate without bindir
     if (!logodir) return; // we dont want to operate without logodir
 
+    int tstart=0;
+    int tstop=0;
+    if ((Name) && (!setup->NoMargins) && (!strchr(Name,'@')))
+    {
+        for (cTimer *Timer = Timers.First(); Timer; Timer=Timers.Next(Timer))
+        {
+            if (Timer->Recording() && (!strcmp(Timer->File(),Name)))
+            {
+                if (Timer->Event())
+                {
+                    if (Timer->Event()->StartTime()>time(NULL))
+                    {
+                        tstart=Timer->Event()->StartTime()-Timer->StartTime();
+                    }
+                    tstop=Timer->StopTime()-Timer->Event()->EndTime();
+                }
+                break;
+            }
+        }
+    }
+
     if (On)
     {
         // Start markad with recording
-        Start(FileName,Name);
+        Start(FileName,Name,false,tstart,tstop);
     }
     else
     {

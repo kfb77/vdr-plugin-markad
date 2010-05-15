@@ -31,6 +31,7 @@ private:
     void SetHelpText(struct recs *Entry);
     bool write();
     time_t last;
+    int lastpos;
 public:
     cMenuMarkAd(cStatusMarkAd *Status);
     eOSState ProcessKey(eKeys Key);

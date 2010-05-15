@@ -98,12 +98,12 @@ public:
         }
     }
     clMark *Add(int Type, int Position, const char *Comment = NULL);
-    void Clear();
+    void Clear(int Before=0x7FFFFFFF);
     void Del(clMark *Mark);
     void Del(int Type);
     clMark *Get(int Position);
-    clMark *GetPrev(int Position,int Type=0xFF);
-    clMark *GetNext(int Position,int Type=0xFF);
+    clMark *GetPrev(int Position,int Type=0xFF, int Mask=0xFF);
+    clMark *GetNext(int Position,int Type=0xFF, int Mask=0xFF);
     clMark *GetFirst()
     {
         return first;

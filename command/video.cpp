@@ -472,7 +472,8 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
         }
         else
         {
-#define MINSECS 420
+#define MINSECS 90 
+//420
             switch (borderstatus)
             {
             case UNINITIALIZED:
@@ -516,6 +517,7 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
         else
         {
             borderiframe=-1;
+            borderstatus=NOBORDER;
         }
     }
     return 0;
@@ -623,7 +625,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
     if ((hret>0) && (borderiframe))
     {
         char *buf=NULL;
-        if (asprintf(&buf,"detected start of horiz. borders (%i)",borderiframe)!=-1)
+        if (asprintf(&buf,"detected start of horiz. borders (%i [%i])",borderiframe,LastIFrame)!=-1)
         {
             AddMark(MT_BORDERSTART,borderiframe,buf);
             free(buf);
@@ -633,7 +635,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
     if ((hret<0) && (borderiframe))
     {
         char *buf=NULL;
-        if (asprintf(&buf,"detected stop of horiz. borders (%i)",borderiframe)!=-1)
+        if (asprintf(&buf,"detected stop of horiz. borders (%i [%i])",borderiframe,LastIFrame)!=-1)
         {
             AddMark(MT_BORDERSTOP,borderiframe,buf);
             free(buf);

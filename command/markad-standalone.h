@@ -224,6 +224,7 @@ unsigned Descriptor_Length:
     clMarks marks;
     char *IndexToHMSF(int Index);
     bool CheckFirstMark();
+    void CheckStartStop(int lastiframe);
     void AddStartMark();
     void AddMark(MarkAdMark *Mark);
     void RateMarks();

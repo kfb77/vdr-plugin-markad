@@ -64,17 +64,23 @@ void clMarks::Del(int Type)
     }
 }
 
-void clMarks::Clear()
+void clMarks::Clear(int Before)
 {
     clMark *next,*mark=first;
     while (mark)
     {
         next=mark->Next();
-        Del(mark);
+        if (mark->position<Before)
+        {
+            Del(mark);
+        }
         mark=next;
     }
-    first=NULL;
-    last=NULL;
+    if (Before==0x7FFFFFFF)
+    {
+        first=NULL;
+        last=NULL;
+    }
 }
 
 void clMarks::Del(clMark *Mark)
@@ -85,6 +91,14 @@ void clMarks::Del(clMark *Mark)
     {
         // we are the first mark
         first=Mark->Next();
+        if (first)
+        {
+            first->SetPrev(NULL);
+        }
+        else
+        {
+            last=NULL;
+        }
     }
     else
     {
@@ -118,28 +132,35 @@ clMark *clMarks::Get(int Position)
     return mark;
 }
 
-clMark *clMarks::GetPrev(int Position, int Type)
+clMark *clMarks::GetPrev(int Position, int Type, int Mask)
 {
     if (!first) return NULL; // no elements yet
 
+    // first advance
     clMark *mark=first;
     while (mark)
     {
-        if (Type==0xFF)
-        {
-            if (mark->position>=Position) break;
-        }
-        else
-        {
-            if ((mark->position>=Position) && (mark->type==Type)) break;
-        }
+        if (mark->position>=Position) break;
         mark=mark->Next();
     }
-    if (mark) return mark->Prev();
-    return last;
+    if (Type==0xFF)
+    {
+        if (mark) return mark->Prev();
+        return last;
+    }
+    else
+    {
+        if (!mark) mark=last;
+        while (mark)
+        {
+            if ((mark->type & Mask)==Type) break;
+            mark=mark->Prev();
+        }
+        return mark;
+    }
 }
 
-clMark *clMarks::GetNext(int Position, int Type)
+clMark *clMarks::GetNext(int Position, int Type, int Mask)
 {
     if (!first) return NULL; // no elements yet
     clMark *mark=first;
@@ -151,11 +172,12 @@ clMark *clMarks::GetNext(int Position, int Type)
         }
         else
         {
-            if ((mark->position>=Position) && (mark->type==Type)) break;
+            if ((mark->position>=Position) && ((mark->type & Mask)==Type)) break;
         }
         mark=mark->Next();
     }
-    return mark->Next();
+    if (mark) return mark->Next();
+    return NULL;
 }
 
 clMark *clMarks::Add(int Type, int Position,const char *Comment)
