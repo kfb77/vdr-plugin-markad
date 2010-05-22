@@ -1,5 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
+2010-05-22: Version 0.0.7
+
+- Various bugfixes
+- First official release
+
 2010-03-16: Version 0.0.6
 
 - Added creation of mark files
