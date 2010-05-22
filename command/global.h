@@ -89,7 +89,7 @@ typedef struct MarkAdContext
 
     struct Info
     {
-        int Length; // in Minutes
+        int Length; // in seconds
         char *ChannelID;
         MarkAdAspectRatio AspectRatio;
         MarkAdPid VPid;

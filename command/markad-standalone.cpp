@@ -142,15 +142,12 @@ void cMarkAdStandalone::AddStartMark()
         free(buf);
     }
 
-    if (tStart)
+    if ((tStop) && (macontext.Info.Length))
     {
-        if ((tStop) && (macontext.Info.Length))
-        {
-            iStop=-((tStart+macontext.Info.Length)*macontext.Video.Info.FramesPerSecond);
-        }
-        iStart=-(tStart*macontext.Video.Info.FramesPerSecond);
-        dsyslog("iStart=%i iStop=%i",iStart,iStop);
+        iStop=-((tStart+macontext.Info.Length)*macontext.Video.Info.FramesPerSecond);
     }
+    iStart=-(tStart*macontext.Video.Info.FramesPerSecond);
+    dsyslog("iStart=%i iStop=%i",iStart,iStop);
 }
 
 void cMarkAdStandalone::CheckStartStop(int lastiframe)
@@ -241,7 +238,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             if ((last) && (abs(last->position-iStart)>MINMARKDIFF)) last=NULL;
         }
 
-        if ((iStop>0) && (abs(Mark->Position-iStop)<=MINMARKDIFF) && ((Mark->Type & 0x0F)==MT_STOP))
+        if ((iStop>0) && (abs(Mark->Position-iStop)<=(2*MINMARKDIFF)) && ((Mark->Type & 0x0F)==MT_STOP))
         {
             last=marks.GetPrev(Mark->Position,MT_STOP,0xF);
             if (!last) last=marks.GetPrev(Mark->Position,MT_ASPECTCHANGE);
@@ -253,23 +250,27 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             if (Mark->Comment) isyslog(Mark->Comment);
             marksAligned=true;
 
-            if ((last->type & 0xF)==MT_START)
-            {
-                iStart=0;
-            }
-            else
-            {
-                iStop=0;
-                fastexit=true;
-            }
-
             if ((last->type==MT_COMMONSTART) || (last->type==MT_COMMONSTOP))
             {
                 isyslog("using this mark instead of assumed %s mark in \"short\" distance (%i->%i)",
                         (last->type==MT_COMMONSTART) ? "start" : "stop",
                         Mark->Position,last->position);
 
-                marks.Clear();
+                switch (Mark->Type & 0xF)
+                {
+                case MT_START:
+                    marks.Clear();
+                    iStart=0;
+                    break;
+                case MT_STOP:
+                    marks.Del(last);
+                    iStop=0;
+                    fastexit=true;
+                    break;
+                default:
+                    esyslog("please report this! *1");
+                    break;
+                }
                 loggedAlready=true;
             }
             else
@@ -285,8 +286,22 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                             ((last->type & 0xF)==MT_START) ? "start" : "stop",
                             Mark->Position);
                 }
+                switch (Mark->Type & 0xF)
+                {
+                case MT_START:
+                    marks.Clear(last->position);
+                    iStart=0;
+                    break;
+                case MT_STOP:
+                    iStop=0;
+                    fastexit=true;
+                    break;
+                default:
+                    esyslog("please report this! *2");
+                    break;
+                }
 
-                if ((last->type & 0xF)==MT_START) marks.Clear(last->position);
+                if ((Mark->Type & 0xF)==MT_START) marks.Clear(last->position);
                 return;
             }
         }
@@ -304,29 +319,27 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 if ((Mark->Position-prev->position)<MINMARKDIFF)
                 {
                     if (Mark->Comment) isyslog(Mark->Comment);
-                    isyslog("aspectratio change in short distance, using this mark (%i->%i)",Mark->Position,prev->position);
+                    isyslog("aspectratio change in short distance, deleting this mark (%i)",Mark->Position);
                     return;
                 }
             }
 
-            if ((prev->type & 0xF0)==MT_CHANNELSTART)
+            if (prev->type==MT_CHANNELSTART)
             {
                 int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*5);
                 if ((Mark->Position-prev->position)<MINMARKDIFF)
                 {
                     if (Mark->Comment) isyslog(Mark->Comment);
-                    isyslog("audiochannel change in short distance, using this mark (%i->%i)",Mark->Position,prev->position);
+                    isyslog("audiochannel change in short distance, deleting this mark (%i)",Mark->Position);
                     return;
                 }
             }
-
-
         }
     }
 
     if (Mark->Type==MT_LOGOSTOP)
     {
-        // check if last mark is an aspectratio change
+        // check if last mark is an audiochannel stop
         clMark *prev=marks.GetLast();
         if ((prev) && (prev->type==MT_CHANNELSTOP))
         {
@@ -368,15 +381,16 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 isyslog(Mark->Comment);
                 loggedAlready=true;
             }
-            isyslog("border change detected. logo detection disabled");
+            isyslog("border changes detected. logo detection disabled");
             macontext.Video.Options.IgnoreLogoDetection=true;
             marks.Del(MT_LOGOSTART);
             marks.Del(MT_LOGOSTOP);
         }
 
         MINPOS=(int) ((macontext.Video.Info.FramesPerSecond*macontext.Info.Length)/3);
+        int MAXPOS=(int) ((macontext.Video.Info.FramesPerSecond*macontext.Info.Length)*2/3);
         if ((((Mark->Type & 0xF0)==MT_CHANNELCHANGE) || ((Mark->Type & 0xF0)==MT_ASPECTCHANGE)) &&
-                (Mark->Position>MINPOS) && (bDecodeVideo))
+                (Mark->Position>MINPOS) && (Mark->Position<MAXPOS) && (bDecodeVideo))
         {
 
             if (Mark->Comment)
@@ -384,8 +398,31 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 isyslog(Mark->Comment);
                 loggedAlready=true;
             }
-            isyslog("%s change detected. logo/border detection disabled",
+            isyslog("%s changes detected. logo/border detection disabled",
                     (Mark->Type & 0xF0)==MT_ASPECTCHANGE ? "aspectratio" : "audio channel");
+
+            if ((!macontext.Info.AspectRatio.Num) && ((Mark->Type & 0xF0)==MT_ASPECTCHANGE))
+            {
+                isyslog("assuming broadcast aspectratio is 4:3");
+                macontext.Info.AspectRatio.Num=4;
+                macontext.Info.AspectRatio.Den=3;
+                reprocess=true;
+            }
+
+            if ((bDecodeVideo) && ((Mark->Type & 0xF0)==MT_CHANNELCHANGE))
+            {
+                isyslog("assuming broadcast with DolbyDigital5.1");
+                if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262)
+                {
+                    if (!macontext.Info.AspectRatio.Num)
+                    {
+                        macontext.Info.AspectRatio.Num=16;
+                        macontext.Info.AspectRatio.Den=9;
+                        macontext.Video.Options.IgnoreAspectRatio=true;
+                    }
+                }
+                reprocess=true;
+            }
 
             bDecodeVideo=false;
             macontext.Video.Data.Valid=false;
@@ -648,7 +685,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
             }
         }
 
-        if (fastexit)
+        if ((fastexit) || (reprocess))
         {
             if (f!=-1) close(f);
             return true;
@@ -663,6 +700,18 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     }
     close(f);
     return true;
+}
+
+void cMarkAdStandalone::Reset()
+{
+    reprocess=false;
+    framecnt=0;
+    lastiframe=0;
+    iframe=0;
+    iStart=0;
+    iStop=0;
+    marksAligned=false;
+    marks.Clear();
 }
 
 void cMarkAdStandalone::Process(const char *Directory)
@@ -684,6 +733,12 @@ void cMarkAdStandalone::Process(const char *Directory)
             break;
         }
         if (fastexit) break;
+        if (reprocess)
+        {
+            isyslog("restarting from scratch");
+            i=0;
+            Reset();
+        }
     }
 
     if (!abort)
@@ -713,7 +768,6 @@ void cMarkAdStandalone::Process(const char *Directory)
             usec+=1000000;
             sec--;
         }
-        //RateMarks();
         if (marks.Save(Directory,macontext.Video.Info.FramesPerSecond,isTS))
         {
             bool bIndexError=false;
@@ -776,7 +830,20 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
     free(buf);
     if (!f) return false;
 
+    // UGLY HACK -->
+    struct stat statbuf;
+    if (asprintf(&buf,"%s/..",Directory)==-1) return false;
+    if (stat(buf,&statbuf)==-1)
+    {
+        free(buf);
+        return false;
+    }
+    free(buf);
+    time_t rStart=statbuf.st_ctime;
+    // UGLY HACK <--
+
     long start=0;
+    int bStop=0;
     char *line=NULL;
     size_t length;
     while (getline(&line,&length,f)!=-1)
@@ -823,23 +890,31 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
                 if (cr) *cr=0;
             }
         }
-        if ((line[0]=='@') && (start) && (macontext.Info.Length) &&
+        if ((line[0]=='@') && (rStart) && (start) && (macontext.Info.Length) &&
                 (!tStart) && (!tStop) && (!bIgnoreTimerInfo))
         {
             int ntok=0;
             char *str=line,*tok;
             while ((tok=strtok(str,">")))
             {
-                if (strstr(tok,"</start"))
-                {
-                    tStart=start-atol(tok);
-                }
                 if (strstr(tok,"</stop"))
                 {
                     tStop=atol(tok)-start-macontext.Info.Length;
                 }
+                if (strstr(tok,"</bstop"))
+                {
+                    bStop=atol(tok);
+                }
                 ntok++;
                 str=NULL;
+            }
+            if ((!tStop) && (bStop)) tStop=bStop;
+
+            tStart=start-rStart;
+            if (tStart<0)
+            {
+                macontext.Info.Length+=tStart;
+                tStart=0;
             }
         }
         if (line[0]=='X')
@@ -853,16 +928,12 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
                 {
                     if ((type!=1) && (type!=5))
                     {
-#if 0
-                        // we dont have 4:3, so ignore AspectRatio-Changes
-                        macontext.Video.Options.IgnoreAspectRatio=true;
-                        isyslog("broadcasts aspectratio is not 4:3, disabling aspect ratio");
-#endif
                         macontext.Info.AspectRatio.Num=16;
                         macontext.Info.AspectRatio.Den=9;
                     }
                     else
                     {
+                        isyslog("broadcast aspectratio 4:3 (from info)");
                         macontext.Info.AspectRatio.Num=4;
                         macontext.Info.AspectRatio.Den=3;
                     }
@@ -882,7 +953,14 @@ bool cMarkAdStandalone::LoadInfo(const char *Directory)
                         if (strchr(descr,'5'))
                         {
                             bDecodeVideo=false;
+                            macontext.Video.Options.IgnoreAspectRatio=true;
                             isyslog("broadcast with DolbyDigital5.1, disabling video decoding");
+                            if ((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3))
+                            {
+                                isyslog("wrong aspect ratio in info, changing to 16:9");
+                                macontext.Info.AspectRatio.Num=16;
+                                macontext.Info.AspectRatio.Den=9;
+                            }
                         }
 
                     }
@@ -1245,6 +1323,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     directory=Directory;
     abort=false;
     fastexit=false;
+    reprocess=false;
 
     noticeVDR_MP2=false;
     noticeVDR_AC3=false;
@@ -1411,6 +1490,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
 
     if (tStart) isyslog("pre-timer  %is",tStart);
     if (tStop) isyslog("post-timer %is",tStop);
+    if (macontext.Info.Length) isyslog("broadcast length %is",macontext.Info.Length);
 
     if (title[0])
     {

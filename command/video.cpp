@@ -472,8 +472,7 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
         }
         else
         {
-#define MINSECS 90 
-//420
+#define MINSECS 240
             switch (borderstatus)
             {
             case UNINITIALIZED:
@@ -655,7 +654,7 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
                 if ((macontext->Info.AspectRatio.Num) && (macontext->Info.AspectRatio.Den))
                 {
                     if ((macontext->Video.Info.AspectRatio.Num==macontext->Info.AspectRatio.Num) &&
-                            (macontext->Video.Info.AspectRatio.Num==macontext->Info.AspectRatio.Num))
+                            (macontext->Video.Info.AspectRatio.Den==macontext->Info.AspectRatio.Den))
                     {
                         AddMark(MT_ASPECTSTART,LastIFrame,buf);
                     }

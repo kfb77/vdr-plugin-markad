@@ -197,6 +197,7 @@ unsigned Descriptor_Length:
     int framecnt;
     bool abort;
     bool fastexit;
+    bool reprocess;
     int waittime;
 
     bool noticeVDR_MP2;
@@ -227,7 +228,7 @@ unsigned Descriptor_Length:
     void CheckStartStop(int lastiframe);
     void AddStartMark();
     void AddMark(MarkAdMark *Mark);
-    void RateMarks();
+    void Reset();
 
     bool CheckVDRHD(const char *Directory);
     bool CheckPATPMT(const char *Directory);
