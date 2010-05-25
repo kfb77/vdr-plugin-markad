@@ -53,16 +53,13 @@ cMenuMarkAd::cMenuMarkAd(cStatusMarkAd *Status):cOsdMenu(tr("markad status"),15)
     status=Status;
     last=time(NULL);
 
-    int width;
+    int width=0;
     cSkinDisplayMenu *disp=DisplayMenu();
     if (disp)
     {
         width=disp->GetTextAreaWidth();
     }
-    else
-    {
-        width=Setup.OSDWidth;
-    }
+    if (!width) width=Setup.OSDWidth;
 
     int AvgCharWidth = Setup.FontOsdSize * 3 / 5; // see skins.c
     int tab=(width-10*AvgCharWidth)/AvgCharWidth;
