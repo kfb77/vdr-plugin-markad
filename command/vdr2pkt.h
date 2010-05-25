@@ -22,6 +22,7 @@ private:
 public:
     cMarkAdVDR2Pkt(const char *QueueName="VDR2PKT", int QueueSize=32768);
     ~cMarkAdVDR2Pkt();
+    void Clear();
     void Process(MarkAdPid Pid,uchar *VDRData, int VDRSize, uchar **PktData, int *PktSize);
 };
 

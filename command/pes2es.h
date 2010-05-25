@@ -68,10 +68,10 @@ unsigned Length:
 
     cMarkAdPaketQueue *queue;
     int type;
-    void Reset();
 public:
     cMarkAdPES2ES(const char *QueueName="PES2ES", int QueueSize=32768);
     ~cMarkAdPES2ES();
+    void Clear();
     void Process(MarkAdPid Pid, uchar *PESData, int PESSize, uchar **ESData, int *ESSize);
 };
 

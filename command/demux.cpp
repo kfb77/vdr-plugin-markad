@@ -27,6 +27,15 @@ cMarkAdDemux::~cMarkAdDemux()
     if (queue) delete queue;
 }
 
+void cMarkAdDemux::Clear()
+{
+    if (ts2pkt) ts2pkt->Clear();
+    if (vdr2pkt) vdr2pkt->Clear();
+    if (pes2audioes) pes2audioes->Clear();
+    if (pes2videoes) pes2videoes->Clear();
+    if (queue) queue->Clear();
+}
+
 void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen)
 {
     if ((!Pkt) || (!PktLen)) return;

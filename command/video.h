@@ -85,8 +85,8 @@ private:
     void Save(int lastiframe, uchar *picture);
 public:
     cMarkAdLogo(MarkAdContext *maContext);
-    ~cMarkAdLogo();
     int Process(int LastIFrame, int *LogoIFrame);
+    void Clear();
 };
 
 class cMarkAdBlackBordersHoriz
@@ -107,6 +107,7 @@ private:
 public:
     cMarkAdBlackBordersHoriz(MarkAdContext *maContext);
     int Process(int LastIFrame,int *BorderIFrame);
+    void Clear();
 };
 
 class cMarkAdVideo
@@ -128,6 +129,7 @@ public:
     cMarkAdVideo(MarkAdContext *maContext);
     ~cMarkAdVideo();
     MarkAdMark *Process(int LastIFrame);
+    void Clear();
 };
 
 #endif

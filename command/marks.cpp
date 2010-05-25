@@ -32,7 +32,7 @@ clMark::~clMark()
 
 clMarks::~clMarks()
 {
-    Clear();
+    DelAll();
 }
 
 int clMarks::Count(int Type)
@@ -64,24 +64,49 @@ void clMarks::Del(int Type)
     }
 }
 
-void clMarks::Clear(int Before)
+void clMarks::DelTill(int Position, bool FromStart)
 {
     clMark *next,*mark=first;
+    if (!FromStart)
+    {
+        while (mark)
+        {
+            if (mark->position>Position) break;
+            mark=mark->Next();
+        }
+    }
+
     while (mark)
     {
         next=mark->Next();
-        if (mark->position<Before)
+        if (FromStart)
+        {
+            if (mark->position<Position)
+            {
+                Del(mark);
+            }
+        }
+        else
         {
             Del(mark);
         }
         mark=next;
     }
-    if (Before==0x7FFFFFFF)
-    {
-        first=NULL;
-        last=NULL;
-    }
 }
+
+void clMarks::DelAll()
+{
+    clMark *next,*mark=first;
+    while (mark)
+    {
+        next=mark->Next();
+        Del(mark);
+        mark=next;
+    }
+    first=NULL;
+    last=NULL;
+}
+
 
 void clMarks::Del(clMark *Mark)
 {

@@ -9,6 +9,11 @@
 
 cMarkAdStreamInfo::cMarkAdStreamInfo()
 {
+    Clear();
+}
+
+void cMarkAdStreamInfo::Clear()
+{
     memset(&H264,0,sizeof(H264));
     H264.frame_num=-1;
 }
@@ -487,16 +492,6 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         return true;
     }
     return false;
-}
-
-const uint8_t *cMarkAdStreamInfo::nextStartCode(const uint8_t *start, const uint8_t *end)
-{
-    for (end -= 4; start < end; ++start)
-    {
-        if ((start[0] == 0x00) && (start[1] == 0x00) && (start[2] == 0x00) && (start[3] == 0x01))
-            return start;
-    }
-    return (end + 4);
 }
 
 bool cMarkAdStreamInfo::FindH262VideoInfos(MarkAdContext *maContext, uchar *pkt, int len)

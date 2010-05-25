@@ -34,8 +34,6 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
     GY[2][1] = -2;
     GY[2][2] = -1;
 
-    memset(&area,0,sizeof(area));
-
     LOGOHEIGHT=LOGO_DEFHEIGHT;
     if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
     {
@@ -46,11 +44,13 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
         LOGOWIDTH=LOGO_DEFWIDTH;
     }
 
-    area.status=UNINITIALIZED;
+    Clear();
 }
 
-cMarkAdLogo::~cMarkAdLogo()
+void cMarkAdLogo::Clear()
 {
+    memset(&area,0,sizeof(area));
+    area.status=UNINITIALIZED;
 }
 
 int cMarkAdLogo::Load(char *directory, char *file)
@@ -409,6 +409,11 @@ cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(MarkAdContext *maContext)
 {
     macontext=maContext;
 
+    Clear();
+}
+
+void cMarkAdBlackBordersHoriz::Clear()
+{
     borderstatus=UNINITIALIZED;
     borderiframe=-1;
 }
@@ -527,14 +532,13 @@ cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext)
 {
     macontext=maContext;
 
-    aspectratio.Num=0;
-    aspectratio.Den=0;
     mark.Comment=NULL;
     mark.Position=0;
     mark.Type=0;
 
     hborder=new cMarkAdBlackBordersHoriz(maContext);
     logo = new cMarkAdLogo(maContext);
+    Clear();
 }
 
 cMarkAdVideo::~cMarkAdVideo()
@@ -542,6 +546,14 @@ cMarkAdVideo::~cMarkAdVideo()
     ResetMark();
     if (hborder) delete hborder;
     if (logo) delete logo;
+}
+
+void cMarkAdVideo::Clear()
+{
+    aspectratio.Num=0;
+    aspectratio.Den=0;
+    if (hborder) hborder->Clear();
+    if (logo) logo->Clear();
 }
 
 void cMarkAdVideo::ResetMark()

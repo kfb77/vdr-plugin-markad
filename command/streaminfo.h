@@ -40,11 +40,11 @@ private:
     } H264;
 
     int nalUnescape(uint8_t *dst, const uint8_t *src, int len);
-    const uint8_t *nextStartCode(const uint8_t *start, const uint8_t *end);
     bool FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
     bool FindH262VideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
 public:
     cMarkAdStreamInfo();
+    void Clear();
     bool FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
     bool FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen);
 };

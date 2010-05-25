@@ -18,9 +18,9 @@ cMarkAdPES2ES::~cMarkAdPES2ES()
     if (queue) delete queue;
 }
 
-void cMarkAdPES2ES::Reset()
+void cMarkAdPES2ES::Clear()
 {
-    queue->Clear();
+    if (queue) queue->Clear();
 }
 
 void cMarkAdPES2ES::Process(MarkAdPid Pid, uchar *PESData, int PESSize, uchar **ESData, int *ESSize)
@@ -36,7 +36,7 @@ void cMarkAdPES2ES::Process(MarkAdPid Pid, uchar *PESData, int PESSize, uchar **
         // first check some simple things
         if ((peshdr->Sync1!=0) && (peshdr->Sync2!=0) && (peshdr->Sync3!=1))
         {
-            Reset();
+            Clear();
             return;
         }
 
@@ -47,7 +47,7 @@ void cMarkAdPES2ES::Process(MarkAdPid Pid, uchar *PESData, int PESSize, uchar **
         if (Length!=PESSize)
         {
             if ((peshdr->StreamID & 0xF0)==0xE0) return;
-            Reset();
+            Clear();
             return;
         }
 
@@ -70,7 +70,7 @@ void cMarkAdPES2ES::Process(MarkAdPid Pid, uchar *PESData, int PESSize, uchar **
             type=MA_PACKET_MP2;
             break;
         default:
-            Reset();
+            Clear();
             return;
         }
 

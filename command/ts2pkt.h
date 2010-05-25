@@ -120,6 +120,7 @@ unsigned Length:
 public:
     cMarkAdTS2Pkt(const char *QueueName="TS2Pkt", int QueueSize=32768);
     ~cMarkAdTS2Pkt();
+    void Clear();
     void Process(MarkAdPid Pid,uchar *TSData, int TSSize, uchar **PktData, int *PktSize);
     bool InjectVideoPES(uchar *PESData, int PESSize);
 };

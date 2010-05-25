@@ -53,6 +53,7 @@ public:
     cMarkAdAudio(MarkAdContext *maContext);
     ~cMarkAdAudio();
     MarkAdMark *Process(int LastIFrame);
+    void Clear();
 };
 
 

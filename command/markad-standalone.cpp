@@ -260,7 +260,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 switch (Mark->Type & 0xF)
                 {
                 case MT_START:
-                    marks.Clear();
+                    marks.DelAll();
                     iStart=0;
                     break;
                 case MT_STOP:
@@ -278,22 +278,23 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             {
                 if (last->type==MT_ASPECTCHANGE)
                 {
-                    isyslog("aspectratio change in \"short\" distance, deleting this mark (%i)",
-                            Mark->Position);
+                    isyslog("aspectratio change in \"short\" distance, using this mark instead (%i->%i)",
+                            last->position,Mark->Position);
                 }
                 else
                 {
-                    isyslog("%s mark in \"short\" distance, deleting this mark (%i)",
+                    isyslog("%s mark in \"short\" distance, using this mark instead (%i->%i)",
                             ((last->type & 0xF)==MT_START) ? "start" : "stop",
-                            Mark->Position);
+                            last->position,Mark->Position);
                 }
                 switch (Mark->Type & 0xF)
                 {
                 case MT_START:
-                    marks.Clear(last->position);
+                    marks.DelTill(last->position);
                     iStart=0;
                     break;
                 case MT_STOP:
+                    marks.DelTill(last->position,false);
                     iStop=0;
                     fastexit=true;
                     break;
@@ -301,8 +302,6 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                     esyslog("please report this! *2");
                     break;
                 }
-
-                if ((Mark->Type & 0xF)==MT_START) marks.Clear(last->position);
                 return;
             }
         }
@@ -472,7 +471,7 @@ void cMarkAdStandalone::SaveFrame(int frame)
 
     // Write pixel data
     if (fwrite(macontext.Video.Data.Plane[0],1,
-           macontext.Video.Data.PlaneLinesize[0]*macontext.Video.Info.Height,pFile)) {};
+               macontext.Video.Data.PlaneLinesize[0]*macontext.Video.Info.Height,pFile)) {};
     // Close file
     fclose(pFile);
 }
@@ -572,6 +571,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                 {
                     if (pkt)
                     {
+                        bool dRes=false;
                         if (streaminfo->FindVideoInfos(&macontext,pkt,pktlen))
                         {
                             if (!framecnt)
@@ -588,10 +588,10 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                                 lastiframe=iframe;
                                 CheckStartStop(lastiframe);
                                 iframe=framecnt-1;
+                                dRes=true;
                             }
                         }
 
-                        bool dRes=true;
                         if ((decoder) && (bDecodeVideo)) dRes=decoder->DecodeVideo(&macontext,pkt,pktlen);
                         if (dRes)
                         {
@@ -712,7 +712,17 @@ void cMarkAdStandalone::Reset()
     iStart=0;
     iStop=0;
     marksAligned=false;
-    marks.Clear();
+    marks.DelAll();
+
+    memset(&macontext.Video.Info,0,sizeof(macontext.Video.Info));
+    memset(&macontext.Audio.Info,0,sizeof(macontext.Audio.Info));
+
+    if (streaminfo) streaminfo->Clear();
+    if (video_demux) video_demux->Clear();
+    if (ac3_demux) ac3_demux->Clear();
+    if (mp2_demux) mp2_demux->Clear();
+    if (video) video->Clear();
+    if (audio) audio->Clear();
 }
 
 void cMarkAdStandalone::Process(const char *Directory)

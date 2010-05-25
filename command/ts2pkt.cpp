@@ -18,6 +18,11 @@ cMarkAdTS2Pkt::~cMarkAdTS2Pkt()
     if (queue) delete queue;
 }
 
+void cMarkAdTS2Pkt::Clear()
+{
+    Reset();
+}
+
 void cMarkAdTS2Pkt::Reset(int ErrIndex)
 {
     sync=false;

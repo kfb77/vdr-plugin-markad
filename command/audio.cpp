@@ -14,11 +14,7 @@ cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext)
     mark.Comment=NULL;
     mark.Position=0;
     mark.Type=0;
-    channels=0;
-#if 0
-    lastiframe_gain=-ANALYZEFRAMES;
-#endif
-    lastiframe_silence=-1;
+    Clear();
 }
 
 cMarkAdAudio::~cMarkAdAudio()
@@ -130,6 +126,15 @@ bool cMarkAdAudio::AnalyzeGain()
     return true;
 }
 #endif
+
+void cMarkAdAudio::Clear()
+{
+    channels=0;
+#if 0
+    lastiframe_gain=-ANALYZEFRAMES;
+#endif
+    lastiframe_silence=-1;
+}
 
 bool cMarkAdAudio::ChannelChange(int a, int b)
 {

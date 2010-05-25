@@ -17,6 +17,11 @@ cMarkAdVDR2Pkt::~cMarkAdVDR2Pkt()
     if (queue) delete queue;
 }
 
+void cMarkAdVDR2Pkt::Clear()
+{
+    if (queue) queue->Clear();
+}
+
 void cMarkAdVDR2Pkt::Process(MarkAdPid Pid, uchar *VDRData, int VDRSize, uchar **PktData, int *PktSize)
 {
     if ((!PktData) || (!PktSize) || (!queue)) return;

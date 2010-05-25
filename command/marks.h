@@ -98,7 +98,8 @@ public:
         }
     }
     clMark *Add(int Type, int Position, const char *Comment = NULL);
-    void Clear(int Before=0x7FFFFFFF);
+    void DelTill(int Position,bool FromStart=true);
+    void DelAll();
     void Del(clMark *Mark);
     void Del(int Type);
     clMark *Get(int Position);
