@@ -12,6 +12,9 @@
 
 #include <stdint.h>
 #include <sched.h>
+#include <sys/types.h>
+#include <string.h>
+#include <cstdlib>
 
 #ifndef DECLARE_ALIGNED
 #define DECLARE_ALIGNED(n,t,v) t v __attribute__ ((aligned (n)))

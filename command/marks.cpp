@@ -392,7 +392,7 @@ bool clMarks::Save(const char *Directory, double FrameRate, bool isTS)
             struct stat statbuf;
             if (!stat(spath,&statbuf))
             {
-                chown(fpath,statbuf.st_uid, statbuf.st_gid);
+                if (chown(fpath,statbuf.st_uid, statbuf.st_gid)) {};
             }
             free(spath);
         }

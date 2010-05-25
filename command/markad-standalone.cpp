@@ -102,9 +102,10 @@ void *cOSDMessage::send(void *posd)
         return NULL;
     }
 
-    write(sock,"MESG ",5);
-    write(sock,osd->msg,strlen(osd->msg));
-    write(sock,"\r\n",2);
+    ssize_t ret;
+    ret=write(sock,"MESG ",5);
+    ret=write(sock,osd->msg,strlen(osd->msg));
+    ret=write(sock,"\r\n",2);
 
     if (!osd->readreply(sock))
     {
@@ -112,7 +113,7 @@ void *cOSDMessage::send(void *posd)
         return NULL;
     }
 
-    write(sock,"QUIT\r\n",6);
+    ret=write(sock,"QUIT\r\n",6);
 
     osd->readreply(sock);
     close(sock);
@@ -470,8 +471,8 @@ void cMarkAdStandalone::SaveFrame(int frame)
             macontext.Video.Info.Height);
 
     // Write pixel data
-    fwrite(macontext.Video.Data.Plane[0],1,
-           macontext.Video.Data.PlaneLinesize[0]*macontext.Video.Info.Height,pFile);
+    if (fwrite(macontext.Video.Data.Plane[0],1,
+           macontext.Video.Data.PlaneLinesize[0]*macontext.Video.Info.Height,pFile)) {};
     // Close file
     fclose(pFile);
 }
@@ -1227,7 +1228,7 @@ bool cMarkAdStandalone::RegenerateVDRIndex(const char *Directory)
                 struct stat statbuf;
                 if (!stat(spath,&statbuf))
                 {
-                    chown(newpath,statbuf.st_uid, statbuf.st_gid);
+                    if (chown(newpath,statbuf.st_uid, statbuf.st_gid)) {};
                 }
                 free(spath);
             }
@@ -1288,7 +1289,7 @@ bool cMarkAdStandalone::CreatePidfile(const char *Directory)
         struct stat statbuf;
         if (!stat(Directory,&statbuf))
         {
-            chown(buf,statbuf.st_uid, statbuf.st_gid);
+            if (chown(buf,statbuf.st_uid, statbuf.st_gid)) {};
         }
     }
 

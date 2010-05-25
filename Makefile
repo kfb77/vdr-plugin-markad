@@ -24,11 +24,13 @@ dist:
 	@mkdir $(TMPDIR)/$(ARCHIVE)/plugin
 	@mkdir $(TMPDIR)/$(ARCHIVE)/plugin/po
 	@mkdir $(TMPDIR)/$(ARCHIVE)/command
+	@mkdir $(TMPDIR)/$(ARCHIVE)/command/po
 	@mkdir $(TMPDIR)/$(ARCHIVE)/command/logos
 	@cp -a plugin/*.cpp plugin/*.h plugin/Makefile $(TMPDIR)/$(ARCHIVE)/plugin
 	@cp -a plugin/po/*.po $(TMPDIR)/$(ARCHIVE)/plugin/po
 	@cp -a command/*.cpp command/*.h command/Makefile $(TMPDIR)/$(ARCHIVE)/command 
 	@cp -a command/logos/*.pgm $(TMPDIR)/$(ARCHIVE)/command/logos
+	@cp -a command/po/*.po $(TMPDIR)/$(ARCHIVE)/command/po
 	@cp -a *.h COPYING HISTORY README INSTALL Makefile $(TMPDIR)/$(ARCHIVE)
 	@tar czf $(PACKAGE).tgz -C $(TMPDIR) $(ARCHIVE)
 	@-rm -rf $(TMPDIR)/$(ARCHIVE)

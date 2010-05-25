@@ -66,7 +66,7 @@ int cMarkAdLogo::Load(char *directory, char *file)
     free(path);
     if (!pFile) return -1;
 
-    fscanf(pFile, "P5\n#C%i %i\n%d %d\n255\n#", &area.corner,&area.mpixel,&LOGOWIDTH,&LOGOHEIGHT);
+    if (fscanf(pFile, "P5\n#C%i %i\n%d %d\n255\n#", &area.corner,&area.mpixel,&LOGOWIDTH,&LOGOHEIGHT)) {};
 
     if (LOGOHEIGHT==255)
     {
@@ -82,7 +82,7 @@ int cMarkAdLogo::Load(char *directory, char *file)
         return -2;
     }
 
-    fread(&area.mask,1,LOGOWIDTH*LOGOHEIGHT,pFile);
+    if (fread(&area.mask,1,LOGOWIDTH*LOGOHEIGHT,pFile)!=(size_t) (LOGOWIDTH*LOGOHEIGHT)) return -2;
 
     if (!area.mpixel)
     {
@@ -121,7 +121,7 @@ void cMarkAdLogo::Save(int lastiframe, uchar *picture)
         fprintf(pFile, "P5\n#C%i\n%d %d\n255\n", area.corner, LOGOWIDTH,LOGOHEIGHT);
 
         // Write pixel data
-        fwrite(picture,1,LOGOWIDTH*LOGOHEIGHT,pFile);
+        if (fwrite(picture,1,LOGOWIDTH*LOGOHEIGHT,pFile)) {};
         // Close file
         fclose(pFile);
         free(buf);
