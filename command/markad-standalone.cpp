@@ -139,7 +139,7 @@ void cMarkAdStandalone::AddStartMark()
     if (asprintf(&buf,"start of recording (0)")!=-1)
     {
         marks.Add(MT_COMMON,0,buf);
-        isyslog(buf);
+        isyslog("%s",buf);
         free(buf);
     }
 
@@ -248,7 +248,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 
         if (last)
         {
-            if (Mark->Comment) isyslog(Mark->Comment);
+            if (Mark->Comment) isyslog("%s",Mark->Comment);
             marksAligned=true;
 
             if ((last->type==MT_COMMONSTART) || (last->type==MT_COMMONSTOP))
@@ -319,7 +319,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*5);
                 if ((Mark->Position-prev->position)<MINMARKDIFF)
                 {
-                    if (Mark->Comment) isyslog(Mark->Comment);
+                    if (Mark->Comment) isyslog("%s",Mark->Comment);
                     isyslog("aspectratio change in short distance, deleting this mark (%i)",Mark->Position);
                     return;
                 }
@@ -330,7 +330,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*5);
                 if ((Mark->Position-prev->position)<MINMARKDIFF)
                 {
-                    if (Mark->Comment) isyslog(Mark->Comment);
+                    if (Mark->Comment) isyslog("%s",Mark->Comment);
                     isyslog("audiochannel change in short distance, deleting this mark (%i)",Mark->Position);
                     return;
                 }
@@ -347,7 +347,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*15);
             if ((Mark->Position-prev->position)<MINMARKDIFF)
             {
-                if (Mark->Comment) isyslog(Mark->Comment);
+                if (Mark->Comment) isyslog("%s",Mark->Comment);
                 isyslog("audiochannel change in short distance, using this mark (%i->%i)",Mark->Position,prev->position);
                 return;
             }
@@ -363,7 +363,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*80);
             if ((Mark->Position-prev->position)<MINMARKDIFF)
             {
-                if (Mark->Comment) isyslog(Mark->Comment);
+                if (Mark->Comment) isyslog("%s",Mark->Comment);
                 isyslog("logo distance too short, deleting (%i,%i)",prev->position,Mark->Position);
                 marks.Del(prev);
                 return;
@@ -379,7 +379,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         {
             if (Mark->Comment)
             {
-                isyslog(Mark->Comment);
+                isyslog("%s",Mark->Comment);
                 loggedAlready=true;
             }
             isyslog("border changes detected. logo detection disabled");
@@ -396,7 +396,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 
             if (Mark->Comment)
             {
-                isyslog(Mark->Comment);
+                isyslog("%s",Mark->Comment);
                 loggedAlready=true;
             }
             isyslog("%s changes detected. logo/border detection disabled",
@@ -441,13 +441,13 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         // Aspect- / Channelchange wins over Logo/Border
         if (((old->type & 0xF0)!=MT_ASPECTCHANGE) && ((old->type & 0xF0)!=MT_CHANNELCHANGE))
         {
-            if ((Mark->Comment) && (!loggedAlready)) isyslog(Mark->Comment);
+            if ((Mark->Comment) && (!loggedAlready)) isyslog("%s",Mark->Comment);
             marks.Add(Mark->Type,Mark->Position,Mark->Comment);
         }
     }
     else
     {
-        if ((Mark->Comment) && (!loggedAlready)) isyslog(Mark->Comment);
+        if ((Mark->Comment) && (!loggedAlready)) isyslog("%s",Mark->Comment);
         marks.Add(Mark->Type,Mark->Position,Mark->Comment);
     }
 }
