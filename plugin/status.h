@@ -7,7 +7,6 @@
 #ifndef __status_h_
 #define __status_h_
 
-#include <signal.h>
 #include <vdr/status.h>
 #include "setup.h"
 
@@ -55,8 +54,7 @@ public:
         actpos=0;
     }
     bool GetNextActive(struct recs **RecEntry);
-    bool Start(const char *FileName, const char *Name, const bool Direct=false,
-               const int tStart=0, const int tStop=0);
+    bool Start(const char *FileName, const char *Name, const bool Direct=false);
 };
 
 #endif

@@ -8,31 +8,11 @@
 #ifndef __markad_standalone_h_
 #define __markad_standalone_h_
 
-#include <syslog.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <signal.h>
-#include <ctype.h>
-#include <netdb.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
-#include <pthread.h>
-#include <poll.h>
-#include <locale.h>
-#include <libintl.h>
-#include <execinfo.h>
-
 #include "demux.h"
-#include "global.h"
 #include "decoder.h"
 #include "video.h"
 #include "audio.h"
 #include "streaminfo.h"
-#include "version.h"
 #include "marks.h"
 
 #define tr(s) dgettext("markad",s)
@@ -210,9 +190,16 @@ unsigned Descriptor_Length:
     bool bIgnoreTimerInfo;
     bool bGenIndex;
     int tStart; // pretimer in seconds
-    int tStop;  // posttimer in seconds
     int iStart; // pretimer as index value
     int iStop;  // posttimer as index value
+
+    bool setAudio51;  // set audio to 5.1 in info
+    bool setAudio20;  // set audio to 2.0 in info
+    bool setVideo43;  // set video to 4:3 in info
+    bool setVideo169; // set video to 16:9 in info
+
+    int chkLEFT;
+    int chkRIGHT;
 
     void CheckIndex(const char *Directory);
     char *indexFile;
@@ -220,12 +207,15 @@ unsigned Descriptor_Length:
 
     void SaveFrame(int Frame);
 
+    bool aspectChecked;
     bool marksAligned;
     bool bBackupMarks;
     clMarks marks;
     char *IndexToHMSF(int Index);
-    bool CheckFirstMark();
+    void CheckFirstMark();
+    void CheckLastMark();
     void CheckStartStop(int lastiframe);
+    void CheckInfoAspectRatio();
     void AddStartMark();
     void AddMark(MarkAdMark *Mark);
     void Reset();
@@ -234,6 +224,7 @@ unsigned Descriptor_Length:
     bool CheckPATPMT(const char *Directory);
     bool CheckTS(const char *Directory);
     bool LoadInfo(const char *Directory);
+    bool SaveInfo(const char *Directory);
     bool RegenerateVDRIndex(const char *Directory);
     bool ProcessFile(const char *Directory, int Number);
 public:
@@ -247,7 +238,7 @@ public:
                       bool DecodeAudio, int IgnoreInfo,
                       const char *LogoDir, const char *MarkFileName, bool ASD,
                       bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort,
-                      bool Before, bool GenIndex, int Start, int Stop);
+                      bool Before, bool GenIndex);
 
     ~cMarkAdStandalone();
 };
