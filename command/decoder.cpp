@@ -5,6 +5,22 @@
  *
  */
 
+#define __STDC_CONSTANT_MACROS
+
+#include <stdint.h>
+#include <sched.h>
+#include <sys/types.h>
+#include <string.h>
+#include <cstdlib>
+
+#ifndef DECLARE_ALIGNED
+#define DECLARE_ALIGNED(n,t,v) t v __attribute__ ((aligned (n)))
+#endif
+
+#ifndef CPU_COUNT
+#define CPU_COUNT(i) 1 // very crude ;)
+#endif
+
 #include "decoder.h"
 
 cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)

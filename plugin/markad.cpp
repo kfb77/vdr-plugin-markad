@@ -5,9 +5,14 @@
  *
  */
 
+#include <unistd.h>
+#include <getopt.h>
 #include <vdr/plugin.h>
 
 #include "markad.h"
+
+#define DEF_BINDIR "/usr/bin"
+#define DEF_LOGODIR "/var/lib/markad"
 
 cPluginMarkAd::cPluginMarkAd(void)
 {

@@ -5,6 +5,10 @@
  *
  */
 
+#include <inttypes.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "pes2es.h"
 
 cMarkAdPES2ES::cMarkAdPES2ES(const char *QueueName, int QueueSize)

@@ -8,7 +8,6 @@
 #define __setup_h_
 
 #include <vdr/menuitems.h>
-#include "status.h"
 
 struct setup
 {

@@ -5,6 +5,14 @@
  *
  */
 
+#include <stdlib.h>
+#include <string.h>
+
+extern "C"
+{
+#include "debug.h"
+}
+
 #include "queue.h"
 
 cMarkAdPaketQueue::cMarkAdPaketQueue(const char *Name, int Size)

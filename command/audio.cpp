@@ -6,6 +6,11 @@
  * $Id$
  */
 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "audio.h"
 
 cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext)

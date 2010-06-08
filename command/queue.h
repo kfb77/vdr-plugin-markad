@@ -8,18 +8,11 @@
 #ifndef __queue_h_
 #define __queue_h_
 
-#include <stdlib.h>
 #include <stdint.h>
-#include <string.h>
 
 #ifndef uchar
 typedef unsigned char uchar;
 #endif
-
-extern "C"
-{
-#include "debug.h"
-}
 
 class cMarkAdPaketQueue
 {

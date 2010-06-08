@@ -8,11 +8,6 @@
 #ifndef __ts2pkt_h_
 #define __ts2pkt_h_
 
-extern "C"
-{
-#include "debug.h"
-}
-
 #ifndef TS_SIZE
 #define TS_SIZE 188
 #endif
@@ -20,9 +15,6 @@ extern "C"
 #ifndef uchar
 typedef unsigned char uchar;
 #endif
-
-#include <stdlib.h>
-#include <string.h>
 
 #include "global.h"
 #include "queue.h"

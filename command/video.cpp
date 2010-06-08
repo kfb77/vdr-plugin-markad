@@ -5,6 +5,17 @@
  *
  */
 
+#include <time.h>
+#include <math.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+extern "C"
+{
+#include "debug.h"
+}
+
 #include "video.h"
 
 cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)

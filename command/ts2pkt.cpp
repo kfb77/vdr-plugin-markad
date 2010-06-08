@@ -5,6 +5,14 @@
  *
  */
 
+#include <stdlib.h>
+#include <string.h>
+
+extern "C"
+{
+#include "debug.h"
+}
+
 #include "ts2pkt.h"
 
 cMarkAdTS2Pkt::cMarkAdTS2Pkt(const char *QueueName, int QueueSize)

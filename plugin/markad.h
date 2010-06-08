@@ -8,16 +8,10 @@
 #ifndef __markad_h_
 #define __markad_h_
 
-#include <unistd.h>
-#include <getopt.h>
-
 #include "version.h"
 #include "status.h"
 #include "menu.h"
 #include "setup.h"
-
-#define DEF_BINDIR "/usr/bin"
-#define DEF_LOGODIR "/var/lib/markad"
 
 extern const char *VERSION;
 static const char *DESCRIPTION    = trNOOP("Mark advertisements");

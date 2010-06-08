@@ -5,6 +5,10 @@
  *
  */
 
+#include <signal.h>
+#include <vdr/menu.h>
+#include <vdr/font.h>
+
 #include "menu.h"
 
 cOsdMarkAd::cOsdMarkAd(struct recs *Entry)

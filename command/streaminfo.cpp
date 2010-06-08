@@ -4,6 +4,9 @@
  * See the README file for copyright information and how to reach the author.
  *
  */
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "streaminfo.h"
 

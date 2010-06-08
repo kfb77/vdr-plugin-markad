@@ -7,9 +7,6 @@
 #ifndef __menu_h_
 #define __menu_h_
 
-#include <signal.h>
-#include <vdr/menu.h>
-#include <vdr/font.h>
 #include "status.h"
 
 class cOsdMarkAd : public cOsdItem

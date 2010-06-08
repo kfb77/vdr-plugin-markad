@@ -8,18 +8,7 @@
 #ifndef __video_h_
 #define __video_h_
 
-#include <time.h>
-#include <math.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
 #include "global.h"
-
-extern "C"
-{
-#include "debug.h"
-}
 
 #define LOGO_MAXHEIGHT   170
 #define LOGO_MAXWIDTH    480
@@ -28,7 +17,7 @@ extern "C"
 #define LOGO_DEFWIDTH    192
 #define LOGO_DEFHDWIDTH  288
 
-#define LOGO_VMAXCOUNT 3  // count of IFrames for detection of "logo invisible"
+#define LOGO_VMAXCOUNT 3  // count of IFrames for detection of "logo visible"
 #define LOGO_IMAXCOUNT 5  // count of IFrames for detection of "logo invisible"
 #define LOGO_VMARK 0.5    // percantage of pixels for visible
 #define LOGO_IMARK 0.15   // percentage of pixels for invisible

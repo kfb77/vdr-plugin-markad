@@ -5,7 +5,18 @@
  *
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <math.h>
+#include <string.h>
+#include <stdint.h>
+#include <fcntl.h>
+
 #include "marks.h"
+
 
 clMark::clMark(int Type, int Position, const char *Comment)
 {

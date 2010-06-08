@@ -8,10 +8,6 @@
 #ifndef __streaminfo_h_
 #define __streaminfo_h_
 
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-
 #include "global.h"
 
 class cMarkAdStreamInfo

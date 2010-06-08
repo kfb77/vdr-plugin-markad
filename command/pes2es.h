@@ -12,10 +12,6 @@
 typedef unsigned char uchar;
 #endif
 
-#include <inttypes.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "global.h"
 #include "queue.h"
 
