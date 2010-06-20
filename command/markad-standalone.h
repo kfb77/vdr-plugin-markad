@@ -216,6 +216,7 @@ unsigned Descriptor_Length:
     void CheckLastMark();
     void CheckStartStop(int lastiframe);
     void CheckInfoAspectRatio();
+    void CheckLogoMarks();
     void AddStartMark();
     void AddMark(MarkAdMark *Mark);
     void Reset();

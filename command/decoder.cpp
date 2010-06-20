@@ -5,8 +5,6 @@
  *
  */
 
-#define __STDC_CONSTANT_MACROS
-
 #include <stdint.h>
 #include <sched.h>
 #include <sys/types.h>

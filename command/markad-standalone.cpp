@@ -210,6 +210,31 @@ void cMarkAdStandalone::CheckStartStop(int lastiframe)
     }
 }
 
+void cMarkAdStandalone::CheckLogoMarks()
+{
+    clMark *mark=marks.GetFirst();
+    while (mark)
+    {
+        if ((mark->type==MT_LOGOSTOP) && mark->Next() && mark->Next()->type==MT_LOGOSTART)
+        {
+            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*35);
+            if (abs(mark->Next()->position-mark->position)<=MARKDIFF)
+            {
+                double distance=(mark->Next()->position-mark->position)/
+                                macontext.Video.Info.FramesPerSecond;
+                isyslog("logo distance too short (%.1fs), deleting (%i,%i)",distance,
+                        mark->position,mark->Next()->position);
+                clMark *tmp=mark;
+                mark=mark->Next()->Next();
+                marks.Del(tmp->Next());
+                marks.Del(tmp);
+                continue;
+            }
+        }
+        mark=mark->Next();
+    }
+}
+
 void cMarkAdStandalone::CheckLastMark()
 {
     clMark *last=marks.GetLast();
@@ -358,11 +383,22 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     {
         clMark *last=NULL;
         int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*180);
-        if ((iStart>0) && (abs(Mark->Position-iStart)<=MINMARKDIFF) && ((Mark->Type & 0x0F)==MT_START))
+        if (iStart>0)
         {
-            last=marks.GetPrev(Mark->Position,MT_START,0xF);
-            if (!last) last=marks.GetPrev(Mark->Position,MT_ASPECTCHANGE);
-            if ((last) && (abs(last->position-iStart)>MINMARKDIFF)) last=NULL;
+            if (abs(Mark->Position-iStart)<=MINMARKDIFF)
+            {
+                if ((Mark->Type & 0x0F)==MT_START)
+                {
+                    last=marks.GetPrev(Mark->Position,MT_START,0xF);
+                    if (!last) last=marks.GetPrev(Mark->Position,MT_ASPECTCHANGE);
+                    if ((last) && (abs(last->position-iStart)>MINMARKDIFF)) last=NULL;
+                }
+            }
+            else
+            {
+                marks.DelTill(iStart);
+                iStart=0;
+            }
         }
 
         if (iStop>0)
@@ -714,7 +750,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                             {
                                 lastiframe=iframe;
                                 CheckStartStop(lastiframe);
-    				if (lastiframe>chkLEFT) CheckInfoAspectRatio();
+                                if (lastiframe>chkLEFT) CheckInfoAspectRatio();
 
                                 iframe=framecnt-1;
                                 dRes=true;
@@ -910,6 +946,7 @@ void cMarkAdStandalone::Process(const char *Directory)
         }
 
         CheckLastMark();
+        CheckLogoMarks();
 
         gettimeofday(&tv2,&tz);
         time_t sec;
