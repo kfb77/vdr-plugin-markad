@@ -10,7 +10,11 @@
 #include <vdr/status.h>
 #include "setup.h"
 
+#if __GNUC__ > 3 
 #define UNUSED(v) UNUSED_ ## v __attribute__((unused))
+#else
+#define UNUSED(x) x
+#endif
 
 struct recs
 {

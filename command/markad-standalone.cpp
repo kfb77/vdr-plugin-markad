@@ -1027,12 +1027,12 @@ bool cMarkAdStandalone::SaveInfo(const char *Directory)
 
     FILE *r,*w;
     r=fopen(src,"r");
-    free(src);
 
     w=fopen(dst,"w+");
 
     if ((!r) || (!w))
     {
+        free(src);
         free(dst);
         return false;
     }
@@ -1125,19 +1125,19 @@ bool cMarkAdStandalone::SaveInfo(const char *Directory)
 
     if ((setVideo43) && (!setVideo43_done) && (!err))
     {
-        if (fprintf(w,"%s","X 1 01 deu 4:3\n")<=0) err=true;
+        if (fprintf(w,"%s","X 1 01 und 4:3\n")<=0) err=true;
     }
     if ((setVideo169) && (!setVideo169_done) && (!err))
     {
-        if (fprintf(w,"%s","X 1 03 deu 16:9\n")<=0) err=true;
+        if (fprintf(w,"%s","X 1 03 und 16:9\n")<=0) err=true;
     }
     if ((setAudio20) && (!setAudio20_done) && (!err))
     {
-        if (fprintf(w,"%s","X 2 05 deu Dolby Digital 2.0\n")<=0) err=true;
+        if (fprintf(w,"%s","X 2 05 und Dolby Digital 2.0\n")<=0) err=true;
     }
     if ((setAudio51) && (!setAudio51_done) && (!err))
     {
-        if (fprintf(w,"%s","X 2 05 deu Dolby Digital 5.1\n")<=0) err=true;
+        if (fprintf(w,"%s","X 2 05 und Dolby Digital 5.1\n")<=0) err=true;
     }
     if (line) if (fprintf(w,"%s",line)<=0) err=true;
     if (line) free(line);
@@ -1147,6 +1147,27 @@ bool cMarkAdStandalone::SaveInfo(const char *Directory)
     {
         unlink(dst);
     }
+    else
+    {
+        if (rename(dst,src)==-1) err=true;
+    }
+
+    if ((getuid()==0 || geteuid()!=0) && (!err))
+    {
+        // if we are root, set fileowner to owner of 001.vdr/00001.ts file
+        char *spath=NULL;
+        if (asprintf(&spath,"%s/%s",Directory,isTS ? "00001.ts" : "001.vdr")!=-1)
+        {
+            struct stat statbuf;
+            if (!stat(spath,&statbuf))
+            {
+                if (chown(src,statbuf.st_uid, statbuf.st_gid)) {};
+            }
+            free(spath);
+        }
+    }
+
+    free(src);
     free(dst);
     return (err==false);
 }
