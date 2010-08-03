@@ -70,6 +70,7 @@ uint16_t number:
     char *IndexToHMSF(int Index, double FramesPerSecond);
     int count;
     int savedcount;
+    int indexfd;
 public:
     clMarks()
     {
@@ -77,6 +78,7 @@ public:
         first=last=NULL;
         savedcount=0;
         count=0;
+        indexfd=-1;
     }
     ~clMarks();
     int Count(int Type=0xFF);
@@ -107,6 +109,9 @@ public:
     bool Backup(const char *Directory, bool isTS);
     bool Save(const char *Directory, double FrameRate, bool isTS);
     bool CheckIndex(const char *Directory, bool isTS, bool *IndexError);
+    void WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
+                    int FrameType, int Number);
+    void CloseIndex(const char *Directory, bool isTS);
 };
 
 #endif

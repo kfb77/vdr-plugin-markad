@@ -710,6 +710,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     int dataread;
     dsyslog("processing file %05i",Number);
 
+    uint64_t base=0;
     while ((dataread=read(f,data,datalen))>0)
     {
         if (abort) break;
@@ -737,15 +738,19 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                         bool dRes=false;
                         if (streaminfo->FindVideoInfos(&macontext,pkt,pktlen))
                         {
+                            uint64_t offset=base+(dataread-tslen);
                             if (!framecnt)
                             {
                                 isyslog("%s %i%c",(macontext.Video.Info.Height>576) ? "HDTV" : "SDTV",
                                         macontext.Video.Info.Height,
                                         macontext.Video.Info.Interlaced ? 'i' : 'p');
                                 AddStartMark();
+                                offset=0;
                             }
-                            //printf("%05i( %c )\n",framecnt,frametypes[macontext.Video.Info.Pict_Type]);
+                            if (bGenIndex) marks.WriteIndex(Directory,isTS,offset,
+                                             macontext.Video.Info.Pict_Type,Number);
                             framecnt++;
+
                             if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                             {
                                 lastiframe=iframe;
@@ -863,6 +868,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
             if (f!=-1) close(f);
             return false;
         }
+        base+=dataread;
     }
     close(f);
     return true;
@@ -960,6 +966,7 @@ void cMarkAdStandalone::Process(const char *Directory)
         }
         if (marks.Save(Directory,macontext.Video.Info.FramesPerSecond,isTS))
         {
+            marks.CloseIndex(Directory,isTS);
             bool bIndexError=false;
             if (marks.CheckIndex(Directory,isTS,&bIndexError))
             {
@@ -971,9 +978,9 @@ void cMarkAdStandalone::Process(const char *Directory)
                     }
                     else
                     {
-                        if ((!isTS) && (bGenIndex))
+                        if (bGenIndex)
                         {
-                            if (RegenerateVDRIndex(Directory))
+                            if (RegenerateIndex())
                             {
                                 isyslog("recreated index");
                             }
@@ -985,7 +992,8 @@ void cMarkAdStandalone::Process(const char *Directory)
                         else
                         {
                             esyslog("index doesn't match marks%s",
-                                    isTS ? ", please recreate it" : ", please run genindex");
+                                    isTS ? ", sorry you're lost" :
+                                    ", please run genindex");
                         }
                     }
                 }
@@ -1526,101 +1534,31 @@ bool cMarkAdStandalone::CheckPATPMT(const char *Directory)
     return true;
 }
 
-bool cMarkAdStandalone::RegenerateVDRIndex(const char *Directory)
+bool cMarkAdStandalone::RegenerateIndex()
 {
-    if (!Directory) return false;
-    pid_t pid;
+    if (!directory) return false;
+    // rename index[.vdr].generated -> index[.vdr]
+    char *oldpath,*newpath;
+    if (asprintf(&oldpath,"%s/index%s.generated",directory,
+                 isTS ? "" : ".vdr")==-1) return false;
+    if (asprintf(&newpath,"%s/index%s",directory,isTS ? "" : ".vdr")==-1)
+    {
+        free(oldpath);
+        return false;
+    }
 
-    char *oldfile;
-    if (asprintf(&oldfile,"%s/index.vdr.generated",Directory)==-1) return false;
-    if (unlink(oldfile)==-1)
+    if (rename(oldpath,newpath)!=0)
     {
         if (errno!=ENOENT)
         {
-            free(oldfile);
-            return false;
-        }
-    }
-    free(oldfile);
-
-    if ((pid = fork()) < 0) return false;
-    if (pid > 0)   // parent process
-    {
-        int status = 0;
-        if (waitpid(pid, &status, 0) < 0) return false;
-
-        if (!status)
-        {
-            // check stdout/stderr-file for messages
-            char tmp[256];
-            snprintf(tmp,sizeof(tmp),"/tmp/%i",pid);
-            tmp[255]=0;
-            struct stat statbuf;
-            if (stat(tmp,&statbuf)!=0) return false;
-            unlink(tmp);
-            if (statbuf.st_size!=0)
-            {
-                if (asprintf(&oldfile,"%s/index.vdr.generated",Directory)==-1) return false;
-                unlink(oldfile);
-                free(oldfile);
-                return false;
-            }
-        }
-
-        // rename index.vdr.generated -> index.vdr
-        char *oldpath,*newpath;
-        if (asprintf(&oldpath,"%s/index.vdr.generated",Directory)==-1) return false;
-
-        if (asprintf(&newpath,"%s/index.vdr",Directory)==-1)
-        {
             free(oldpath);
+            free(newpath);
             return false;
         }
-
-        if (rename(oldpath,newpath)!=0)
-        {
-            if (errno!=ENOENT)
-            {
-                free(oldpath);
-                free(newpath);
-                return false;
-            }
-        }
-        free(oldpath);
-
-        if (getuid()==0 || geteuid()!=0)
-        {
-            // if we are root, set fileowner to owner of 001.vdr/00001.ts file
-            char *spath=NULL;
-            if (asprintf(&spath,"%s/%s",Directory,isTS ? "00001.ts" : "001.vdr")!=-1)
-            {
-                struct stat statbuf;
-                if (!stat(spath,&statbuf))
-                {
-                    if (chown(newpath,statbuf.st_uid, statbuf.st_gid)) {};
-                }
-                free(spath);
-            }
-        }
-        free(newpath);
-
-        return (status==0);
     }
-    else   // child process
-    {
-        int MaxPossibleFileDescriptors = getdtablesize();
-        for (int i = STDERR_FILENO + 1; i < MaxPossibleFileDescriptors; i++)
-            close(i); //close all dup'ed filedescriptors
-
-        if (chdir(Directory)!=0) return 2;
-
-        char *cmd;
-        if (asprintf(&cmd,"genindex -q >& /tmp/%i",(int) getpid())==-1) return 2;
-        int ret=execl("/bin/sh", "sh", "-c", cmd, NULL);
-        free(cmd);
-        if (ret) ret=2;
-        _exit(ret);
-    }
+    free(oldpath);
+    free(newpath);
+    return true;
 }
 
 bool cMarkAdStandalone::CreatePidfile(const char *Directory)

@@ -44,6 +44,7 @@ clMark::~clMark()
 clMarks::~clMarks()
 {
     DelAll();
+    if (indexfd!=-1) close(indexfd);
 }
 
 int clMarks::Count(int Type)
@@ -305,6 +306,60 @@ char *clMarks::IndexToHMSF(int Index, double FramesPerSecond)
     s %= 60;
     if (asprintf(&buf,"%d:%02d:%02d.%02d",h,m,s,f)==-1) return NULL;
     return buf;
+}
+
+void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
+                         int FrameType, int Number)
+{
+    if (indexfd==-1)
+    {
+        char *ipath=NULL;
+        if (asprintf(&ipath,"%s/index%s.generated",Directory,isTS ? "" : ".vdr")==-1) return;
+        indexfd=open(ipath,O_WRONLY|O_CREAT|O_TRUNC,0644);
+        free(ipath);
+        if (indexfd==-1) return;
+    }
+    if (isTS)
+    {
+        struct tIndexTS IndexTS;
+        IndexTS.offset=Offset;
+        IndexTS.reserved=0;
+        IndexTS.independent=(FrameType==1);
+        IndexTS.number=(uint16_t) Number;
+        write(indexfd,&IndexTS,sizeof(IndexTS));
+    }
+    else
+    {
+        struct tIndexVDR IndexVDR;
+        IndexVDR.offset=(int) Offset;
+        IndexVDR.type=(unsigned char) FrameType;
+        IndexVDR.number=(unsigned char) Number;
+        IndexVDR.reserved=0;
+        write(indexfd,&IndexVDR,sizeof(IndexVDR));
+    }
+}
+
+void clMarks::CloseIndex(const char *Directory, bool isTS)
+{
+    if (indexfd!=-1)
+    {
+        if (getuid()==0 || geteuid()!=0)
+        {
+            // if we are root, set fileowner to owner of 001.vdr/00001.ts file
+            char *spath=NULL;
+            if (asprintf(&spath,"%s/%s",Directory,isTS ? "00001.ts" : "001.vdr")!=-1)
+            {
+                struct stat statbuf;
+                if (!stat(spath,&statbuf))
+                {
+                    if (fchown(indexfd,statbuf.st_uid, statbuf.st_gid)) {};
+                }
+                free(spath);
+            }
+        }
+        close(indexfd);
+    }
+    indexfd=-1;
 }
 
 bool clMarks::CheckIndex(const char *Directory, bool isTS, bool *IndexError)

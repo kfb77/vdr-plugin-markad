@@ -226,7 +226,7 @@ unsigned Descriptor_Length:
     bool CheckTS(const char *Directory);
     bool LoadInfo(const char *Directory);
     bool SaveInfo(const char *Directory);
-    bool RegenerateVDRIndex(const char *Directory);
+    bool RegenerateIndex();
     bool ProcessFile(const char *Directory, int Number);
 public:
     void SetAbort()
