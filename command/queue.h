@@ -140,6 +140,7 @@ public:
     bool Inject(uchar *Data, int Size);
     bool Put(uchar *Data, int Size);
     uchar *Get(int *Size);
+    uchar *Peek(int Size);
 
 #define MA_PACKET_PKT		0x10 // 0x00 0x00 0x01 (PES / H262)
 #define MA_PACKET_H264		0x11 // 0x00 0x00 0x00 0x01 (H264)

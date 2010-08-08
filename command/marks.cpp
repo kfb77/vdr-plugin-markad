@@ -308,6 +308,15 @@ char *clMarks::IndexToHMSF(int Index, double FramesPerSecond)
     return buf;
 }
 
+void clMarks::RemoveGeneratedIndex(const char *Directory, bool isTS)
+{
+    char *ipath=NULL;
+    if (asprintf(&ipath,"%s/index%s.generated",Directory,isTS ? "" : ".vdr")==-1) return;
+    unlink(ipath);
+    free(ipath);
+    return;
+}
+
 void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
                          int FrameType, int Number)
 {
@@ -318,6 +327,7 @@ void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
         indexfd=open(ipath,O_WRONLY|O_CREAT|O_TRUNC,0644);
         free(ipath);
         if (indexfd==-1) return;
+        Offset=0;
     }
     if (isTS)
     {
@@ -326,7 +336,7 @@ void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
         IndexTS.reserved=0;
         IndexTS.independent=(FrameType==1);
         IndexTS.number=(uint16_t) Number;
-        write(indexfd,&IndexTS,sizeof(IndexTS));
+        if (write(indexfd,&IndexTS,sizeof(IndexTS))!=sizeof(IndexTS)) return;
     }
     else
     {
@@ -335,30 +345,30 @@ void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
         IndexVDR.type=(unsigned char) FrameType;
         IndexVDR.number=(unsigned char) Number;
         IndexVDR.reserved=0;
-        write(indexfd,&IndexVDR,sizeof(IndexVDR));
+        if (write(indexfd,&IndexVDR,sizeof(IndexVDR))!=sizeof(IndexVDR)) return;
     }
+    return;
 }
 
 void clMarks::CloseIndex(const char *Directory, bool isTS)
 {
-    if (indexfd!=-1)
+    if (indexfd==-1) return;
+
+    if (getuid()==0 || geteuid()!=0)
     {
-        if (getuid()==0 || geteuid()!=0)
+        // if we are root, set fileowner to owner of 001.vdr/00001.ts file
+        char *spath=NULL;
+        if (asprintf(&spath,"%s/%s",Directory,isTS ? "00001.ts" : "001.vdr")!=-1)
         {
-            // if we are root, set fileowner to owner of 001.vdr/00001.ts file
-            char *spath=NULL;
-            if (asprintf(&spath,"%s/%s",Directory,isTS ? "00001.ts" : "001.vdr")!=-1)
+            struct stat statbuf;
+            if (!stat(spath,&statbuf))
             {
-                struct stat statbuf;
-                if (!stat(spath,&statbuf))
-                {
-                    if (fchown(indexfd,statbuf.st_uid, statbuf.st_gid)) {};
-                }
-                free(spath);
+                if (fchown(indexfd,statbuf.st_uid, statbuf.st_gid)) {};
             }
+            free(spath);
         }
-        close(indexfd);
     }
+    close(indexfd);
     indexfd=-1;
 }
 

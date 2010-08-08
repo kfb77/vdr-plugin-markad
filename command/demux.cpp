@@ -10,18 +10,18 @@
 cMarkAdDemux::cMarkAdDemux()
 {
     ts2pkt=NULL;
-    vdr2pkt=NULL;
     pes2audioes=NULL;
     pes2videoes=NULL;
     pause=false;
     pause_retval=0;
-    queue = new cMarkAdPaketQueue(NULL,376);
+    min_needed=0;
+    skip=0;
+    queue = new cMarkAdPaketQueue(NULL,2176);
 }
 
 cMarkAdDemux::~cMarkAdDemux()
 {
     if (ts2pkt) delete ts2pkt;
-    if (vdr2pkt) delete vdr2pkt;
     if (pes2audioes) delete pes2audioes;
     if (pes2videoes) delete pes2videoes;
     if (queue) delete queue;
@@ -30,7 +30,6 @@ cMarkAdDemux::~cMarkAdDemux()
 void cMarkAdDemux::Clear()
 {
     if (ts2pkt) ts2pkt->Clear();
-    if (vdr2pkt) vdr2pkt->Clear();
     if (pes2audioes) pes2audioes->Clear();
     if (pes2videoes) pes2videoes->Clear();
     if (queue) queue->Clear();
@@ -42,29 +41,11 @@ void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt
     *Pkt=NULL;
     *PktLen=0;
 
-    uchar *pkt;
-    int pktlen;
-
-    if (!vdr2pkt)
-    {
-        if ((Pid.Type==MARKAD_PIDTYPE_AUDIO_AC3) || (Pid.Type==MARKAD_PIDTYPE_AUDIO_MP2))
-        {
-            vdr2pkt= new cMarkAdVDR2Pkt("VDR2PKT audio");
-        }
-        else
-        {
-            vdr2pkt= new cMarkAdVDR2Pkt("VDR2PKT video");
-        }
-    }
-    if (!vdr2pkt) return;
-
-    vdr2pkt->Process(Pid,Data,Count,&pkt,&pktlen);
-
     if ((Pid.Type==MARKAD_PIDTYPE_AUDIO_AC3) || (Pid.Type==MARKAD_PIDTYPE_AUDIO_MP2))
     {
         if (!pes2audioes) pes2audioes=new cMarkAdPES2ES("PES2ES audio");
         if (!pes2audioes) return;
-        pes2audioes->Process(Pid,pkt,pktlen,Pkt,PktLen);
+        pes2audioes->Process(Pid,Data,Count,Pkt,PktLen);
     }
 
     if ((Pid.Type==MARKAD_PIDTYPE_VIDEO_H262) || (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264))
@@ -81,7 +62,7 @@ void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt
             }
         }
         if (!pes2videoes) return;
-        pes2videoes->Process(Pid,pkt,pktlen,Pkt,PktLen);
+        pes2videoes->Process(Pid,Data,Count,Pkt,PktLen);
     }
 
     return;
@@ -137,7 +118,51 @@ void cMarkAdDemux::ProcessTS(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt,
     return;
 }
 
-int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen)
+int cMarkAdDemux::GetMinNeeded(MarkAdPid Pid, uchar *Data, int Count, bool *Offcnt)
+{
+    if (Pid.Num>=0) return TS_SIZE;
+
+    uchar *qData=queue->Peek(6);
+    if (!qData)
+    {
+        int len=6-queue->Length();
+        int cnt=(Count>len) ? len : Count;
+        queue->Put(Data,cnt);
+        return -cnt;
+    }
+
+    int stream=qData[3] & 0xF0;
+
+    if ((qData[0]==0) && (qData[1]==0) && (qData[2]==1) && (stream>0xBC))
+    {
+        int needed=qData[4]*256+qData[5];
+
+        if (((Pid.Type==MARKAD_PIDTYPE_VIDEO_H262) ||
+                (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264)) && (stream!=0xE0))
+        {
+            // ignore 6 header bytes from queue->Put above
+            queue->Clear();
+            if (Offcnt) *Offcnt=true;
+            return -needed;
+        }
+        if (((Pid.Type==MARKAD_PIDTYPE_AUDIO_AC3) ||
+                (Pid.Type==MARKAD_PIDTYPE_AUDIO_MP2)) && (stream!=0xC0))
+        {
+            // ignore 6 header bytes from queue->Put above
+            queue->Clear();
+            if (Offcnt) *Offcnt=true;
+            return -needed;
+        }
+
+        return needed+6;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen, bool *Offcnt)
 {
     if ((!Data) && (!Count) && (!Pkt) || (!PktLen)) return -1;
 
@@ -148,11 +173,39 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, in
     int inlen=0;
     int retval=0;
 
+    if (Offcnt) *Offcnt=false;
+
     if (!pause)
     {
-        int min_needed=TS_SIZE;
+        if (!min_needed)
+        {
+            if (skip)
+            {
+                int t_skip=skip;
+                skip=0;
+                if (Offcnt) *Offcnt=true;
+                return t_skip;
+            }
+
+            int t_min_needed=GetMinNeeded(Pid,Data,Count,Offcnt);
+            if (t_min_needed==0)
+            {
+                return -1;
+            }
+            if (t_min_needed<0)
+            {
+                if (-t_min_needed>Count)
+                {
+                    skip=-t_min_needed-Count;
+                    return Count;
+                }
+                return -t_min_needed;
+            }
+            min_needed=t_min_needed;
+        }
 
         int needed=min_needed-queue->Length();
+
         if (Count>needed)
         {
             queue->Put(Data,needed);
@@ -163,10 +216,13 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, in
             queue->Put(Data,Count);
             retval=Count;
         }
-        if (queue->Length()<min_needed) return Count;
-
-        inlen=TS_SIZE;
+        if (queue->Length()<min_needed)
+        {
+            return Count;
+        }
+        inlen=min_needed;
         in=queue->Get(&inlen);
+        min_needed=0;
     }
 
     if (Pid.Num>=0)
@@ -195,5 +251,6 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, in
         pause=false;
     }
 
+    if (Offcnt) *Offcnt=true;
     return retval;
 }

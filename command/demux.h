@@ -18,14 +18,12 @@
 
 #include "global.h"
 #include "queue.h"
-#include "vdr2pkt.h"
 #include "ts2pkt.h"
 #include "pes2es.h"
 
 class cMarkAdDemux
 {
 private:
-    cMarkAdVDR2Pkt *vdr2pkt;
     cMarkAdTS2Pkt *ts2pkt;
     cMarkAdPES2ES *pes2audioes;
     cMarkAdPES2ES *pes2videoes;
@@ -33,14 +31,17 @@ private:
 
     bool pause;
     int pause_retval;
+    int min_needed;
+    int skip;
 
+    int GetMinNeeded(MarkAdPid Pid, uchar *Data, int Count, bool *Offcnt);
     void ProcessTS(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);
     void ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);
 public:
     cMarkAdDemux();
     ~cMarkAdDemux();
     void Clear();
-    int Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);
+    int Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen, bool *Offcnt);
 };
 
 #endif

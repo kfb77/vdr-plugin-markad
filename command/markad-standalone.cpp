@@ -710,7 +710,8 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
     int dataread;
     dsyslog("processing file %05i",Number);
 
-    uint64_t base=0;
+    uint64_t offset=0;
+    int offset_add=0;
     while ((dataread=read(f,data,datalen))>0)
     {
         if (abort) break;
@@ -720,15 +721,17 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
         {
             uchar *pkt;
             int pktlen;
+            bool offcnt=false;
 
             uchar *tspkt = data;
             int tslen = dataread;
 
             while (tslen>0)
             {
-                int len=video_demux->Process(macontext.Info.VPid,tspkt,tslen,&pkt,&pktlen);
+                int len=video_demux->Process(macontext.Info.VPid,tspkt,tslen,&pkt,&pktlen,&offcnt);
                 if (len<0)
                 {
+                    esyslog("Error demuxing video");
                     break;
                 }
                 else
@@ -738,17 +741,18 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                         bool dRes=false;
                         if (streaminfo->FindVideoInfos(&macontext,pkt,pktlen))
                         {
-                            uint64_t offset=base+(dataread-tslen);
                             if (!framecnt)
                             {
                                 isyslog("%s %i%c",(macontext.Video.Info.Height>576) ? "HDTV" : "SDTV",
                                         macontext.Video.Info.Height,
                                         macontext.Video.Info.Interlaced ? 'i' : 'p');
                                 AddStartMark();
-                                offset=0;
                             }
-                            if (bGenIndex) marks.WriteIndex(Directory,isTS,offset,
-                                             macontext.Video.Info.Pict_Type,Number);
+                            if (bGenIndex)
+                            {
+                                marks.WriteIndex(Directory,isTS,offset,
+                                                 macontext.Video.Info.Pict_Type,Number);
+                            }
                             framecnt++;
 
                             if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
@@ -775,6 +779,16 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                     }
                     tspkt+=len;
                     tslen-=len;
+                    if (!offcnt)
+                    {
+                        offset_add+=len;
+                    }
+                    else
+                    {
+                        offset+=offset_add;
+                        offset+=len;
+                        offset_add=0;
+                    }
                 }
             }
         }
@@ -789,9 +803,10 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
 
             while (tslen>0)
             {
-                int len=ac3_demux->Process(macontext.Info.DPid,tspkt,tslen,&pkt,&pktlen);
+                int len=ac3_demux->Process(macontext.Info.DPid,tspkt,tslen,&pkt,&pktlen,NULL);
                 if (len<0)
                 {
+                    esyslog("Error demuxing ac3-audio");
                     break;
                 }
                 else
@@ -830,9 +845,10 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
 
             while (tslen>0)
             {
-                int len=mp2_demux->Process(macontext.Info.APid,tspkt,tslen,&pkt,&pktlen);
+                int len=mp2_demux->Process(macontext.Info.APid,tspkt,tslen,&pkt,&pktlen,NULL);
                 if (len<0)
                 {
+                    esyslog("Error demuxing mp2-audio");
                     break;
                 }
                 else
@@ -868,7 +884,6 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
             if (f!=-1) close(f);
             return false;
         }
-        base+=dataread;
     }
     close(f);
     return true;
@@ -964,41 +979,37 @@ void cMarkAdStandalone::Process(const char *Directory)
             usec+=1000000;
             sec--;
         }
+        marks.CloseIndex(Directory,isTS);
         if (marks.Save(Directory,macontext.Video.Info.FramesPerSecond,isTS))
         {
-            marks.CloseIndex(Directory,isTS);
             bool bIndexError=false;
             if (marks.CheckIndex(Directory,isTS,&bIndexError))
             {
                 if (bIndexError)
                 {
-                    if ((macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) && (!isTS))
+                    if (bGenIndex)
                     {
-                        esyslog("index doesn't match marks, sorry you're lost");
-                    }
-                    else
-                    {
-                        if (bGenIndex)
+                        if (RegenerateIndex())
                         {
-                            if (RegenerateIndex())
-                            {
-                                isyslog("recreated index");
-                            }
-                            else
-                            {
-                                esyslog("failed to recreate index");
-                            }
+                            isyslog("recreated index");
                         }
                         else
                         {
-                            esyslog("index doesn't match marks%s",
-                                    isTS ? ", sorry you're lost" :
-                                    ", please run genindex");
+                            esyslog("failed to recreate index");
                         }
+                    }
+                    else
+                    {
+                        esyslog("index doesn't match marks%s",
+                                ((isTS) || ((macontext.Info.VPid.Type==
+                                             MARKAD_PIDTYPE_VIDEO_H264) && (!isTS))) ?
+                                ", sorry you're lost" :
+                                ", please run genindex");
                     }
                 }
             }
         }
+        if (bGenIndex) marks.RemoveGeneratedIndex(Directory,isTS);
 
         SaveInfo(Directory);
 

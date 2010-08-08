@@ -131,6 +131,15 @@ uchar *cMarkAdPaketQueue::Get(int *Size)
     return ret;
 }
 
+uchar *cMarkAdPaketQueue::Peek(int Size)
+{
+    if (!buffer) return NULL;
+    if (!Size) return NULL;
+    if (Length()<Size) return NULL;
+    uchar *ret=&buffer[outptr];
+    return ret;
+}
+
 int cMarkAdPaketQueue::FindPktHeader(int Start, int *StreamSize,int *HeaderSize, bool LongStartCode)
 {
     if ((!StreamSize) || (!HeaderSize)) return -1;

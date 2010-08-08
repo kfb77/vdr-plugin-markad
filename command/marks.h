@@ -112,6 +112,7 @@ public:
     void WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
                     int FrameType, int Number);
     void CloseIndex(const char *Directory, bool isTS);
+    void RemoveGeneratedIndex(const char *Directory,bool isTS);
 };
 
 #endif
