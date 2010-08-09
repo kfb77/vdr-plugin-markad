@@ -33,6 +33,10 @@ void cMarkAdDemux::Clear()
     if (pes2audioes) pes2audioes->Clear();
     if (pes2videoes) pes2videoes->Clear();
     if (queue) queue->Clear();
+    pause=false;
+    pause_retval=0;
+    min_needed=0;
+    skip=0;
 }
 
 void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen)
@@ -145,15 +149,20 @@ int cMarkAdDemux::GetMinNeeded(MarkAdPid Pid, uchar *Data, int Count, bool *Offc
             if (Offcnt) *Offcnt=true;
             return -needed;
         }
-        if (((Pid.Type==MARKAD_PIDTYPE_AUDIO_AC3) ||
-                (Pid.Type==MARKAD_PIDTYPE_AUDIO_MP2)) && (stream!=0xC0))
+        if ((Pid.Type==MARKAD_PIDTYPE_AUDIO_MP2) && (stream!=0xC0))
         {
             // ignore 6 header bytes from queue->Put above
             queue->Clear();
             if (Offcnt) *Offcnt=true;
             return -needed;
         }
-
+        if ((Pid.Type==MARKAD_PIDTYPE_AUDIO_AC3) && (stream!=0xBD))
+        {
+            // ignore 6 header bytes from queue->Put above
+            queue->Clear();
+            if (Offcnt) *Offcnt=true;
+            return -needed;
+        }
         return needed+6;
     }
     else

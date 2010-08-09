@@ -419,7 +419,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             }
             else
             {
-                fastexit=true;
+                if (!bGenIndex) fastexit=true;
                 return;
             }
         }
@@ -443,7 +443,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 case MT_STOP:
                     marks.Del(last);
                     iStop=0;
-                    fastexit=true;
+                    if (!bGenIndex) fastexit=true;
                     break;
                 default:
                     esyslog("please report this! *1");
@@ -473,7 +473,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 case MT_STOP:
                     marks.DelTill(last->position,false);
                     iStop=0;
-                    fastexit=true;
+                    if (!bGenIndex) fastexit=true;
                     break;
                 default:
                     esyslog("please report this! *2");
@@ -902,6 +902,7 @@ void cMarkAdStandalone::Reset()
 
     marksAligned=false;
     marks.DelAll();
+    marks.CloseIndex(directory,isTS);
 
     memset(&macontext.Video.Info,0,sizeof(macontext.Video.Info));
     memset(&macontext.Audio.Info,0,sizeof(macontext.Audio.Info));
@@ -983,12 +984,13 @@ void cMarkAdStandalone::Process(const char *Directory)
         if (marks.Save(Directory,macontext.Video.Info.FramesPerSecond,isTS))
         {
             bool bIndexError=false;
-            if (marks.CheckIndex(Directory,isTS,&bIndexError))
+            if (marks.CheckIndex(Directory,isTS,bGenIndex ? framecnt : 0,&bIndexError))
             {
                 if (bIndexError)
                 {
                     if (bGenIndex)
                     {
+                        isyslog("index contains errors");
                         if (RegenerateIndex())
                         {
                             isyslog("recreated index");

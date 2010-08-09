@@ -372,7 +372,7 @@ void clMarks::CloseIndex(const char *Directory, bool isTS)
     indexfd=-1;
 }
 
-bool clMarks::CheckIndex(const char *Directory, bool isTS, bool *IndexError)
+bool clMarks::CheckIndex(const char *Directory, bool isTS, int FrameCnt, bool *IndexError)
 {
     if (!IndexError) return false;
     *IndexError=false;
@@ -384,7 +384,34 @@ bool clMarks::CheckIndex(const char *Directory, bool isTS, bool *IndexError)
 
     int fd=open(ipath,O_RDONLY);
     free(ipath);
-    if (fd==-1) return false;
+    if (fd==-1)
+    {
+        *IndexError=true;
+        return true;
+    }
+
+    if (FrameCnt)
+    {
+        struct stat statbuf;
+        if (fstat(fd,&statbuf)!=-1)
+        {
+            int framecnt;
+            if (isTS)
+            {
+                framecnt=statbuf.st_size/sizeof(struct tIndexTS);
+            }
+            else
+            {
+                framecnt=statbuf.st_size/sizeof(struct tIndexVDR);
+            }
+            if (framecnt!=FrameCnt)
+            {
+                *IndexError=true;
+                close(fd);
+                return true;
+            }
+        }
+    }
 
     clMark *mark=first;
     while (mark)
@@ -431,7 +458,7 @@ bool clMarks::CheckIndex(const char *Directory, bool isTS, bool *IndexError)
         }
         mark=mark->Next();
     }
-
+    close(fd);
     return true;
 }
 
