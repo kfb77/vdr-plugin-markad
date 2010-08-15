@@ -12,9 +12,7 @@
 #define TS_SIZE 188
 #endif
 
-#ifndef VDR_SIZE
-#define VDR_SIZE 2048
-#endif
+#define PESHDRSIZE 6
 
 #include "global.h"
 #include "queue.h"

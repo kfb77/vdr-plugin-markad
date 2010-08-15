@@ -126,30 +126,30 @@ int cMarkAdDemux::GetMinNeeded(MarkAdPid Pid, uchar *Data, int Count, bool *Offc
 {
     if (Pid.Num>=0) return TS_SIZE;
 
-    uchar *qData=queue->Peek(6);
+    uchar *qData=queue->Peek(PESHDRSIZE);
     if (!qData)
     {
-        int len=6-queue->Length();
+        int len=PESHDRSIZE-queue->Length();
         int cnt=(Count>len) ? len : Count;
         queue->Put(Data,cnt);
         return -cnt;
     }
 
-    int stream=qData[3] & 0xF0;
+    int stream=qData[3];
 
     if ((qData[0]==0) && (qData[1]==0) && (qData[2]==1) && (stream>0xBC))
     {
         int needed=qData[4]*256+qData[5];
 
         if (((Pid.Type==MARKAD_PIDTYPE_VIDEO_H262) ||
-                (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264)) && (stream!=0xE0))
+                (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264)) && ((stream & 0xF0)!=0xE0))
         {
             // ignore 6 header bytes from queue->Put above
             queue->Clear();
             if (Offcnt) *Offcnt=true;
             return -needed;
         }
-        if ((Pid.Type==MARKAD_PIDTYPE_AUDIO_MP2) && (stream!=0xC0))
+        if ((Pid.Type==MARKAD_PIDTYPE_AUDIO_MP2) && ((stream & 0xF0)!=0xC0))
         {
             // ignore 6 header bytes from queue->Put above
             queue->Clear();
@@ -163,7 +163,7 @@ int cMarkAdDemux::GetMinNeeded(MarkAdPid Pid, uchar *Data, int Count, bool *Offc
             if (Offcnt) *Offcnt=true;
             return -needed;
         }
-        return needed+6;
+        return needed+PESHDRSIZE;
     }
     else
     {

@@ -731,7 +731,8 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                 int len=video_demux->Process(macontext.Info.VPid,tspkt,tslen,&pkt,&pktlen,&offcnt);
                 if (len<0)
                 {
-                    esyslog("Error demuxing video");
+                    esyslog("error demuxing video");
+                    abort=true;
                     break;
                 }
                 else
@@ -806,7 +807,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                 int len=ac3_demux->Process(macontext.Info.DPid,tspkt,tslen,&pkt,&pktlen,NULL);
                 if (len<0)
                 {
-                    esyslog("Error demuxing ac3-audio");
+                    esyslog("error demuxing ac3-audio");
                     break;
                 }
                 else
@@ -848,7 +849,7 @@ bool cMarkAdStandalone::ProcessFile(const char *Directory, int Number)
                 int len=mp2_demux->Process(macontext.Info.APid,tspkt,tslen,&pkt,&pktlen,NULL);
                 if (len<0)
                 {
-                    esyslog("Error demuxing mp2-audio");
+                    esyslog("error demuxing mp2-audio");
                     break;
                 }
                 else
@@ -1059,6 +1060,7 @@ bool cMarkAdStandalone::SaveInfo(const char *Directory)
     }
 
     char *line=NULL;
+    char *lline=NULL;
     size_t length=0;
 
     bool setVideo43_done=false;
@@ -1117,16 +1119,10 @@ bool cMarkAdStandalone::SaveInfo(const char *Directory)
                     else
                     {
                         if (fprintf(w,"%s",line)<=0) err=true;
-                        free(line);
-                        line=NULL;
-                        length=0;
                     }
                     break;
                 default:
                     if (fprintf(w,"%s",line)<=0) err=true;
-                    free(line);
-                    line=NULL;
-                    length=0;
                     break;
                 }
             }
@@ -1136,13 +1132,22 @@ bool cMarkAdStandalone::SaveInfo(const char *Directory)
             if (line[0]!='@')
             {
                 if (fprintf(w,"%s",line)<=0) err=true;
-                free(line);
-                line=NULL;
-                length=0;
+            }
+            else
+            {
+                if (lline)
+                {
+                    free(lline);
+                    err=true;
+                    esyslog("multiple @lines in info file, please report this!");
+                }
+                lline=strdup(line);
             }
         }
         if (err) break;
     }
+    if (line) free(line);
+    line=lline;
 
     if ((setVideo43) && (!setVideo43_done) && (!err))
     {
@@ -1160,8 +1165,11 @@ bool cMarkAdStandalone::SaveInfo(const char *Directory)
     {
         if (fprintf(w,"%s","X 2 05 und Dolby Digital 5.1\n")<=0) err=true;
     }
-    if (line) if (fprintf(w,"%s",line)<=0) err=true;
-    if (line) free(line);
+    if (line)
+    {
+        if (fprintf(w,"%s",line)<=0) err=true;
+        free(line);
+    }
     fclose(w);
     fclose(r);
     if (err)
@@ -1599,7 +1607,11 @@ bool cMarkAdStandalone::CreatePidfile(const char *Directory)
         }
         fclose(oldpid);
     }
-    if (duplicate) return false;
+    if (duplicate)
+    {
+        free(buf);
+        return false;
+    }
 
     FILE *pidfile=fopen(buf,"w+");
 
@@ -1645,6 +1657,16 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     abort=false;
     fastexit=false;
     reprocess=false;
+
+    indexFile=NULL;
+    streaminfo=NULL;
+    video_demux=NULL;
+    ac3_demux=NULL;
+    mp2_demux=NULL;
+    decoder=NULL;
+    video=NULL;
+    audio=NULL;
+    osd=NULL;
 
     setAudio51=false;
     setAudio20=false;
@@ -1739,32 +1761,12 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     if (!noPid)
     {
         CreatePidfile(Directory);
-        if (abort)
-        {
-            video_demux=NULL;
-            ac3_demux=NULL;
-            mp2_demux=NULL;
-            decoder=NULL;
-            video=NULL;
-            audio=NULL;
-            osd=NULL;
-            return;
-        }
+        if (abort) return;
     }
 
     if (Before) sleep(10);
 
-    if (!CheckTS(Directory))
-    {
-        video_demux=NULL;
-        ac3_demux=NULL;
-        mp2_demux=NULL;
-        decoder=NULL;
-        video=NULL;
-        audio=NULL;
-        osd=NULL;
-        return;
-    }
+    if (!CheckTS(Directory)) return;
 
     if (isTS)
     {
@@ -1886,13 +1888,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         if (macontext.Info.ChannelID)
             dsyslog("channel %s",macontext.Info.ChannelID);
     }
-    else
-    {
-        decoder=NULL;
-        video=NULL;
-        audio=NULL;
-        streaminfo=NULL;
-    }
 
     framecnt=0;
     lastiframe=0;
@@ -1968,7 +1963,7 @@ int usage()
            "-B              --backupmarks\n"
            "                  make a backup of existing marks\n"
            "-G              --genindex\n"
-           "                  run genindex on broken index file\n"
+           "                  regenerate broken index file\n"
            "-L              --extractlogo=<direction>[,width[,height]]\n"
            "                  extracts logo to /tmp as pgm files (must be renamed)\n"
            "                  <direction>  0 = top left,    1 = top right\n"
