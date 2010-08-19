@@ -372,10 +372,10 @@ void clMarks::CloseIndex(const char *Directory, bool isTS)
     indexfd=-1;
 }
 
-bool clMarks::CheckIndex(const char *Directory, bool isTS, int FrameCnt, bool *IndexError)
+bool clMarks::CheckIndex(const char *Directory, bool isTS, int FrameCnt, int *IndexError)
 {
     if (!IndexError) return false;
-    *IndexError=false;
+    *IndexError=0;
 
     if (!first) return true;
 
@@ -386,7 +386,7 @@ bool clMarks::CheckIndex(const char *Directory, bool isTS, int FrameCnt, bool *I
     free(ipath);
     if (fd==-1)
     {
-        *IndexError=true;
+        *IndexError=IERR_NOTFOUND;
         return true;
     }
 
@@ -406,7 +406,7 @@ bool clMarks::CheckIndex(const char *Directory, bool isTS, int FrameCnt, bool *I
             }
             if (framecnt!=FrameCnt)
             {
-                *IndexError=true;
+                *IndexError=IERR_TOOSHORT;
                 close(fd);
                 return true;
             }
@@ -421,18 +421,18 @@ bool clMarks::CheckIndex(const char *Directory, bool isTS, int FrameCnt, bool *I
             off_t offset = mark->position * sizeof(struct tIndexTS);
             if (lseek(fd,offset,SEEK_SET)!=offset)
             {
-                *IndexError=true;
+                *IndexError=IERR_SEEK;
                 break;
             }
             struct tIndexTS IndexTS;
             if (read(fd,&IndexTS,sizeof(IndexTS))!=sizeof(IndexTS))
             {
-                *IndexError=true;
+                *IndexError=IERR_READ;
                 break;
             }
             if (!IndexTS.independent)
             {
-                *IndexError=true;
+                *IndexError=IERR_FRAME;
                 break;
             }
         }
@@ -441,18 +441,18 @@ bool clMarks::CheckIndex(const char *Directory, bool isTS, int FrameCnt, bool *I
             off_t offset = mark->position * sizeof(struct tIndexVDR);
             if (lseek(fd,offset,SEEK_SET)!=offset)
             {
-                *IndexError=true;
+                *IndexError=IERR_SEEK;
                 break;
             }
             struct tIndexVDR IndexVDR;
             if (read(fd,&IndexVDR,sizeof(IndexVDR))!=sizeof(IndexVDR))
             {
-                *IndexError=true;
+                *IndexError=IERR_READ;
                 break;
             }
             if (IndexVDR.type!=1)
             {
-                *IndexError=true;
+                *IndexError=IERR_FRAME;
                 break;
             }
         }

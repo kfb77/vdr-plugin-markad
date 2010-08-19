@@ -237,6 +237,7 @@ void cMarkAdStandalone::CheckLogoMarks()
 
 void cMarkAdStandalone::CheckLastMark()
 {
+    if (marks.Count()<=2) return; // just two marks -> do nothing
     clMark *last=marks.GetLast();
     if (!last) return;
 
@@ -984,14 +985,27 @@ void cMarkAdStandalone::Process(const char *Directory)
         marks.CloseIndex(Directory,isTS);
         if (marks.Save(Directory,macontext.Video.Info.FramesPerSecond,isTS))
         {
-            bool bIndexError=false;
-            if (marks.CheckIndex(Directory,isTS,bGenIndex ? framecnt : 0,&bIndexError))
+            int iIndexError=false;
+            if (marks.CheckIndex(Directory,isTS,bGenIndex ? framecnt : 0,&iIndexError))
             {
-                if (bIndexError)
+                if (iIndexError)
                 {
                     if (bGenIndex)
                     {
-                        isyslog("index contains errors");
+                        switch (iIndexError)
+                        {
+                        case IERR_NOTFOUND:
+                            isyslog("no index found");
+
+                            break;
+                        case IERR_TOOSHORT:
+                            isyslog("index too short");
+
+                            break;
+                        default:
+                            isyslog("index contains errors");
+                            break;
+                        }
                         if (RegenerateIndex())
                         {
                             isyslog("recreated index");

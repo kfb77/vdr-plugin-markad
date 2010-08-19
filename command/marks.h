@@ -108,7 +108,12 @@ public:
     }
     bool Backup(const char *Directory, bool isTS);
     bool Save(const char *Directory, double FrameRate, bool isTS);
-    bool CheckIndex(const char *Directory, bool isTS, int FrameCnt, bool *IndexError);
+#define IERR_NOTFOUND 1
+#define IERR_TOOSHORT 2
+#define IERR_SEEK 3
+#define IERR_READ 4
+#define IERR_FRAME 5
+    bool CheckIndex(const char *Directory, bool isTS, int FrameCnt, int *IndexError);
     void WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
                     int FrameType, int Number);
     void CloseIndex(const char *Directory, bool isTS);
