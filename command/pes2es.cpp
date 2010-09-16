@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include "pes2es.h"
-
+#include <stdio.h>
 cMarkAdPES2ES::cMarkAdPES2ES(const char *QueueName, int QueueSize)
 {
     queue = new cMarkAdPaketQueue(QueueName,QueueSize);
@@ -27,11 +27,9 @@ void cMarkAdPES2ES::Clear()
     if (queue) queue->Clear();
 }
 
-void cMarkAdPES2ES::Process(MarkAdPid Pid, uchar *PESData, int PESSize, uchar **ESData, int *ESSize)
+void cMarkAdPES2ES::Process(MarkAdPid Pid, uchar *PESData, int PESSize, MarkAdPacket *ESPkt)
 {
-    if ((!ESData) || (!ESSize) || (!queue)) return;
-    *ESData=NULL;
-    *ESSize=0;
+    if (!ESPkt) return;
 
     if (PESData)
     {
@@ -90,6 +88,20 @@ void cMarkAdPES2ES::Process(MarkAdPid Pid, uchar *PESData, int PESSize, uchar **
                      peshdropt->Length;
             buf=&PESData[bpos];
             buflen=PESSize-bpos;
+            if (peshdropt->PTSDTS>1)
+            {
+                struct PESHDROPTPTS *peshdroptpts=(struct PESHDROPTPTS *) &PESData[sizeof(struct PESHDR)+
+                                                              sizeof(struct PESHDROPT)];
+
+                if (peshdroptpts->Marker1 && peshdroptpts->Marker2 && peshdroptpts->Marker3)
+        {
+                    unsigned int pts=0;
+                    pts|=((peshdroptpts->PTS29_15_H<<7|peshdroptpts->PTS29_15_L)<<15);
+                    pts|=(peshdroptpts->PTS14_0_H<<7|peshdroptpts->PTS14_0_L);
+                    pts|=(peshdroptpts->PTS32_30<<30);
+                    ESPkt->Timestamp=pts;
+                }
+            }
         }
         else
         {
@@ -99,6 +111,6 @@ void cMarkAdPES2ES::Process(MarkAdPid Pid, uchar *PESData, int PESSize, uchar **
         }
         queue->Put(buf,buflen);
     }
-    if (type) *ESData=queue->GetPacket(ESSize,type);
+    if (type) ESPkt->Data=queue->GetPacket(&ESPkt->Length,type);
     return;
 }

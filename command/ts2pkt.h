@@ -48,8 +48,28 @@ unsigned TSC:
     {
 unsigned Len:
         8;
-unsigned Flags:
-        8;
+unsigned Discontinuity_indicator:
+        1;
+unsigned Random_access_indicator:
+        1;
+unsigned Elementary_stream_priority_indicator:
+        1;
+unsigned PCR_flag:
+        1;
+unsigned OPCR_flag:
+        1;
+unsigned Splicing_point_flag:
+        1;
+unsigned Transport_private_data_flag:
+        1;
+unsigned Adaption_field_extension_flag:
+        1;
+uint64_t PCR_base:
+        33;
+unsigned reserved:
+        6;
+unsigned PCR_ext:
+        9;
     };
 
     struct PESHDR
@@ -108,12 +128,12 @@ unsigned Length:
 #define MA_ERR_AFC 4
 #define MA_ERR_TOBIG 5
 #define MA_ERR_NEG 6
-    void Reset(int ErrIndex=MA_ERR_STARTUP);
+    bool Reset(int ErrIndex=MA_ERR_STARTUP);
 public:
     cMarkAdTS2Pkt(const char *QueueName="TS2Pkt", int QueueSize=32768);
     ~cMarkAdTS2Pkt();
     void Clear();
-    void Process(MarkAdPid Pid,uchar *TSData, int TSSize, uchar **PktData, int *PktSize);
+    bool Process(MarkAdPid Pid,uchar *TSData, int TSSize, MarkAdPacket *Pkt);
     bool InjectVideoPES(uchar *PESData, int PESSize);
 };
 

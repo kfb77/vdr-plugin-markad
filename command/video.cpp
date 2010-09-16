@@ -110,13 +110,13 @@ int cMarkAdLogo::Load(char *directory, char *file)
 
 
 
-void cMarkAdLogo::Save(int lastiframe, uchar *picture)
+void cMarkAdLogo::Save(int framenumber, uchar *picture)
 {
     if (!macontext) return;
 
 
     char *buf=NULL;
-    if (asprintf(&buf,"%s/%06d-%s-A%i_%i.pgm","/tmp/",lastiframe,
+    if (asprintf(&buf,"%s/%06d-%s-A%i_%i.pgm","/tmp/",framenumber,
                  macontext->Info.ChannelID,
                  area.aspectratio.Num,area.aspectratio.Den)!=-1)
     {
@@ -139,7 +139,7 @@ void cMarkAdLogo::Save(int lastiframe, uchar *picture)
     }
 }
 
-int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
+int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
 {
     // Detection is made with Sobel-Operator
 
@@ -300,18 +300,18 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
                     if (area.counter>=LOGO_VMAXCOUNT)
                     {
                         area.status=ret=LOGO;
-                        *logoiframe=area.lastiframe;
+                        *logoframenumber=area.framenumber;
                         area.counter=0;
                     }
                     else
                     {
-                        if (!area.counter) area.lastiframe=lastiframe;
+                        if (!area.counter) area.framenumber=framenumber;
                         area.counter++;
                     }
                 }
                 else
                 {
-                    area.lastiframe=lastiframe;
+                    area.framenumber=framenumber;
                     area.counter=0;
                 }
             }
@@ -323,7 +323,7 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
                     if (area.counter>=LOGO_IMAXCOUNT)
                     {
                         area.status=ret=NOLOGO;
-                        *logoiframe=area.lastiframe;
+                        *logoframenumber=area.framenumber;
                         area.counter=0;
                     }
                     else
@@ -343,21 +343,21 @@ int cMarkAdLogo::Detect(int lastiframe, int *logoiframe)
             }
 
 #if 0
-            printf("%5i %3i %4i %4i %i %i %i\n",lastiframe,SUMA,area.rpixel,area.mpixel,
+            printf("%5i %3i %4i %4i %i %i %i\n",framenumber,SUMA,area.rpixel,area.mpixel,
                    (area.rpixel>=(area.mpixel*LOGO_VMARK)),(area.rpixel<(area.mpixel*LOGO_IMARK)),
                    area.counter  );
-            Save(lastiframe,area.sobel); // TODO: JUST FOR DEBUGGING!
+            Save(framenumber,area.sobel); // TODO: JUST FOR DEBUGGING!
 #endif
         }
         else
         {
-            Save(lastiframe,area.sobel);
+            Save(framenumber,area.sobel);
         }
     }
     return ret;
 }
 
-int cMarkAdLogo::Process(int LastIFrame, int *LogoIFrame)
+int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
 {
     if (!macontext) return ERROR;
     if (!macontext->Video.Data.Valid) return ERROR;
@@ -413,7 +413,7 @@ int cMarkAdLogo::Process(int LastIFrame, int *LogoIFrame)
 
     if (!area.valid) return ERROR;
 
-    return Detect(LastIFrame,LogoIFrame);
+    return Detect(FrameNumber,LogoFrameNumber);
 }
 
 cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(MarkAdContext *maContext)
@@ -426,10 +426,10 @@ cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(MarkAdContext *maContext)
 void cMarkAdBlackBordersHoriz::Clear()
 {
     borderstatus=UNINITIALIZED;
-    borderiframe=-1;
+    borderframenumber=-1;
 }
 
-int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
+int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame)
 {
 #define CHECKHEIGHT 20
 #define BRIGHTNESS 20
@@ -482,9 +482,9 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
 
     if ((fbottom) && (ftop))
     {
-        if (borderiframe==-1)
+        if (borderframenumber==-1)
         {
-            borderiframe=LastIFrame;
+            borderframenumber=FrameNumber;
         }
         else
         {
@@ -492,52 +492,227 @@ int cMarkAdBlackBordersHoriz::Process(int LastIFrame, int *BorderIFrame)
             switch (borderstatus)
             {
             case UNINITIALIZED:
-                if (LastIFrame>(borderiframe+macontext->Video.Info.FramesPerSecond*MINSECS))
+                if (FrameNumber>(borderframenumber+macontext->Video.Info.FramesPerSecond*MINSECS))
                 {
                     borderstatus=BORDER;
                 }
                 break;
 
             case NOBORDER:
-                if (LastIFrame>(borderiframe+macontext->Video.Info.FramesPerSecond*MINSECS))
+                if (FrameNumber>(borderframenumber+macontext->Video.Info.FramesPerSecond*MINSECS))
                 {
-                    *BorderIFrame=borderiframe;
+                    *BorderIFrame=borderframenumber;
                     borderstatus=BORDER;
                     return 1; // detected start of black border
                 }
                 break;
 
             case BORDER:
-                borderiframe=LastIFrame;
+                borderframenumber=FrameNumber;
                 break;
             }
         }
     }
     else
     {
-        if (borderiframe!=-1)
+        if (borderframenumber!=-1)
         {
             if (borderstatus==BORDER)
             {
-                *BorderIFrame=borderiframe;
+                *BorderIFrame=borderframenumber;
                 borderstatus=NOBORDER;
-                borderiframe=-1;
+                borderframenumber=-1;
                 return -1; // detected stop of black border
             }
             else
             {
-                borderiframe=-1;
+                borderframenumber=-1;
             }
         }
         else
         {
-            borderiframe=-1;
+            borderframenumber=-1;
             borderstatus=NOBORDER;
         }
     }
     return 0;
 }
 
+cMarkAdOverlap::cMarkAdOverlap(MarkAdContext *maContext)
+{
+    macontext=maContext;
+
+    histbuf[BEFORE]=NULL;
+    histbuf[AFTER]=NULL;
+    result.CommentBefore=NULL;
+    result.CommentAfter=NULL;
+    Clear();
+}
+
+cMarkAdOverlap::~cMarkAdOverlap()
+{
+    Clear();
+}
+
+void cMarkAdOverlap::Clear()
+{
+    histcnt[BEFORE]=0;
+    histcnt[AFTER]=0;
+    histframes[BEFORE]=0;
+    histframes[AFTER]=0;
+    if (histbuf[BEFORE])
+    {
+        delete[] histbuf[BEFORE];
+        histbuf[BEFORE]=NULL;
+    }
+    if (histbuf[AFTER])
+    {
+        delete[] histbuf[AFTER];
+        histbuf[AFTER]=NULL;
+    }
+    if (result.CommentBefore) free(result.CommentBefore);
+    if (result.CommentAfter) free(result.CommentAfter);
+    memset(&result,0,sizeof(result));
+    similarCutOff=0;
+    similarMaxCnt=0;
+
+    lastframenumber=-1;
+}
+
+void cMarkAdOverlap::getHistogram(simpleHistogram &dest)
+{
+    memset(dest,0,sizeof(simpleHistogram));
+    for (int Y=0; Y<macontext->Video.Info.Height;Y++)
+    {
+        for (int X=0; X<macontext->Video.Info.Width;X++)
+        {
+            uchar val=macontext->Video.Data.Plane[0][X+(Y*macontext->Video.Data.PlaneLinesize[0])];
+            dest[val]++;
+        }
+    }
+}
+
+bool cMarkAdOverlap::areSimilar(simpleHistogram &hist1, simpleHistogram &hist2)
+{
+    int similar=0;
+    for (int i=0; i<256; i++)
+    {
+        similar+=abs(hist1[i]-hist2[i]);
+    }
+    if (similar<similarCutOff) return true;
+    return false;
+}
+
+MarkAdPos *cMarkAdOverlap::Detect()
+{
+    int start=0,simcnt=0;
+    int tmpA=0,tmpB=0;
+    if (result.FrameNumberBefore==-1) return NULL;
+    result.FrameNumberBefore=-1;
+    for (int B=0; B<histcnt[BEFORE]; B++)
+    {
+        for (int A=start; A<histcnt[AFTER]; A++)
+        {
+            bool simil=areSimilar(histbuf[BEFORE][B].histogram,histbuf[AFTER][A].histogram);
+            if (simil)
+            {
+                tmpA=A;
+                tmpB=B;
+                start=A+1;
+                simcnt++;
+                break;
+            }
+            else
+            {
+                //if (simcnt) printf("%i %i %i\n",simcnt,histbuf[BEFORE][B].framenumber,histbuf[AFTER][A].framenumber);
+
+                if (simcnt>similarMaxCnt)
+                {
+                    result.FrameNumberBefore=histbuf[BEFORE][tmpB].framenumber;
+                    result.FrameNumberAfter=histbuf[AFTER][tmpA].framenumber;
+                }
+                else
+                {
+                    start=0;
+                }
+                simcnt=0;
+            }
+        }
+    }
+    if (result.FrameNumberBefore==-1)
+    {
+        if (simcnt>similarMaxCnt)
+        {
+            result.FrameNumberBefore=histbuf[BEFORE][tmpB].framenumber;
+            result.FrameNumberAfter=histbuf[AFTER][tmpA].framenumber;
+        }
+        else
+        {
+            return NULL;
+        }
+    }
+
+    if (asprintf(&result.CommentBefore,"detected overlap before (%i)",result.FrameNumberBefore)==-1)
+    {
+        result.CommentBefore=NULL;
+    }
+    if (asprintf(&result.CommentAfter,"detected overlap after (%i)",result.FrameNumberAfter)==-1)
+    {
+        result.CommentAfter=NULL;
+    }
+    return &result;
+}
+
+MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd)
+{
+    if ((lastframenumber>0) && (!similarMaxCnt))
+    {
+        similarCutOff=50000;
+        similarMaxCnt=4;
+    }
+
+    if (BeforeAd)
+    {
+        if ((histframes[BEFORE]) && (histcnt[BEFORE]>=histframes[BEFORE]))
+        {
+            if (result.FrameNumberBefore)
+            {
+                Clear();
+            }
+            else
+            {
+                return NULL;
+            }
+        }
+        if (!histbuf[BEFORE])
+        {
+            histframes[BEFORE]=Frames;
+            histbuf[BEFORE]=new histbuffer[Frames+1];
+        }
+        getHistogram(histbuf[BEFORE][histcnt[BEFORE]].histogram);
+        histbuf[BEFORE][histcnt[BEFORE]].framenumber=FrameNumber;
+        histcnt[BEFORE]++;
+    }
+    else
+    {
+        if (!histbuf[AFTER])
+        {
+            histframes[AFTER]=Frames;
+            histbuf[AFTER]=new histbuffer[Frames+1];
+        }
+
+        if (histcnt[AFTER]>=histframes[AFTER]-1)
+        {
+            if (result.FrameNumberBefore) return NULL;
+            return Detect();
+        }
+        getHistogram(histbuf[AFTER][histcnt[AFTER]].histogram);
+        histbuf[AFTER][histcnt[AFTER]].framenumber=FrameNumber;
+        histcnt[AFTER]++;
+    }
+    lastframenumber=FrameNumber;
+    return NULL;
+}
 
 cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext)
 {
@@ -549,6 +724,7 @@ cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext)
 
     hborder=new cMarkAdBlackBordersHoriz(maContext);
     logo = new cMarkAdLogo(maContext);
+    overlap = NULL;
     Clear();
 }
 
@@ -557,6 +733,7 @@ cMarkAdVideo::~cMarkAdVideo()
     ResetMark();
     if (hborder) delete hborder;
     if (logo) delete logo;
+    if (overlap) delete overlap;
 }
 
 void cMarkAdVideo::Clear()
@@ -610,56 +787,68 @@ bool cMarkAdVideo::AspectRatioChange(MarkAdAspectRatio *a, MarkAdAspectRatio *b)
 
 }
 
-MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
+MarkAdPos *cMarkAdVideo::Process2ndPass(int FrameNumber, int Frames, bool BeforeAd)
 {
+    if (!FrameNumber) return NULL;
+    if (!overlap) overlap=new cMarkAdOverlap(macontext);
+    if (!overlap) return NULL;
+
+    return overlap->Process(FrameNumber, Frames, BeforeAd);
+}
+
+MarkAdMark *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
+{
+    if ((!FrameNumber) && (!FrameNumberNext)) return NULL;
+
     ResetMark();
-    if (!LastIFrame) return NULL;
 
     if (!macontext->Video.Options.IgnoreLogoDetection)
     {
-        int logoiframe;
-        int lret=logo->Process(LastIFrame,&logoiframe);
+        int logoframenumber;
+        int lret=logo->Process(FrameNumber,&logoframenumber);
         if ((lret>=-1) && (lret!=0))
         {
             char *buf=NULL;
             if (lret>0)
             {
-                if (asprintf(&buf,"detected logo start (%i)",logoiframe)!=-1)
+                if (asprintf(&buf,"detected logo start (%i)",logoframenumber)!=-1)
                 {
-                    AddMark(MT_LOGOSTART,logoiframe,buf);
+                    AddMark(MT_LOGOSTART,logoframenumber,buf);
                     free(buf);
                 }
             }
             else
             {
-                if (asprintf(&buf,"detected logo stop (%i)",logoiframe)!=-1)
+                if (asprintf(&buf,"detected logo stop (%i)",logoframenumber)!=-1)
                 {
-                    AddMark(MT_LOGOSTOP,logoiframe,buf);
+                    AddMark(MT_LOGOSTOP,logoframenumber,buf);
                     free(buf);
                 }
             }
         }
     }
 
-    int borderiframe;
-    int hret=hborder->Process(LastIFrame,&borderiframe);
+    int borderframenumber;
+    int hret=hborder->Process(FrameNumber,&borderframenumber);
 
-    if ((hret>0) && (borderiframe))
+    if ((hret>0) && (borderframenumber))
     {
         char *buf=NULL;
-        if (asprintf(&buf,"detected start of horiz. borders (%i [%i])",borderiframe,LastIFrame)!=-1)
+        if (asprintf(&buf,"detected start of horiz. borders (%i [%i])",
+                     borderframenumber,FrameNumber)!=-1)
         {
-            AddMark(MT_BORDERSTART,borderiframe,buf);
+            AddMark(MT_BORDERSTART,borderframenumber,buf);
             free(buf);
         }
     }
 
-    if ((hret<0) && (borderiframe))
+    if ((hret<0) && (borderframenumber))
     {
         char *buf=NULL;
-        if (asprintf(&buf,"detected stop of horiz. borders (%i [%i])",borderiframe,LastIFrame)!=-1)
+        if (asprintf(&buf,"detected stop of horiz. borders (%i [%i])",
+                     borderframenumber,FrameNumber)!=-1)
         {
-            AddMark(MT_BORDERSTOP,borderiframe,buf);
+            AddMark(MT_BORDERSTOP,borderframenumber,buf);
             free(buf);
         }
     }
@@ -668,34 +857,47 @@ MarkAdMark *cMarkAdVideo::Process(int LastIFrame)
     {
         if (AspectRatioChange(&macontext->Video.Info.AspectRatio,&aspectratio))
         {
-            char *buf=NULL;
-            if (asprintf(&buf,"aspect ratio change from %i:%i to %i:%i (%i)",
-                         aspectratio.Num,aspectratio.Den,
-                         macontext->Video.Info.AspectRatio.Num,
-                         macontext->Video.Info.AspectRatio.Den,LastIFrame)!=-1)
+            char *buf=(char *) calloc(1,256);
+            snprintf(buf,255,"aspect ratio change from %i:%i to %i:%i (",
+                     aspectratio.Num,aspectratio.Den,
+                     macontext->Video.Info.AspectRatio.Num,
+                     macontext->Video.Info.AspectRatio.Den);
+
+            if ((macontext->Info.AspectRatio.Num) && (macontext->Info.AspectRatio.Den))
             {
-                if ((macontext->Info.AspectRatio.Num) && (macontext->Info.AspectRatio.Den))
+                if ((macontext->Video.Info.AspectRatio.Num==macontext->Info.AspectRatio.Num) &&
+                        (macontext->Video.Info.AspectRatio.Den==macontext->Info.AspectRatio.Den))
                 {
-                    if ((macontext->Video.Info.AspectRatio.Num==macontext->Info.AspectRatio.Num) &&
-                            (macontext->Video.Info.AspectRatio.Den==macontext->Info.AspectRatio.Den))
-                    {
-                        AddMark(MT_ASPECTSTART,LastIFrame,buf);
-                    }
-                    else
-                    {
-                        AddMark(MT_ASPECTSTOP,LastIFrame,buf);
-                    }
+                    char nbuf[20];
+                    snprintf(nbuf,sizeof(nbuf),"%i)",FrameNumberNext);
+                    nbuf[19]=0;
+                    strcat(buf,nbuf);
+                    AddMark(MT_ASPECTSTART,FrameNumberNext,buf);
                 }
                 else
                 {
-                    AddMark(MT_ASPECTCHANGE,LastIFrame,buf);
+                    char nbuf[20];
+                    snprintf(nbuf,sizeof(nbuf),"%i)",framelast);
+                    nbuf[19]=0;
+                    strcat(buf,nbuf);
+                    AddMark(MT_ASPECTSTOP,framelast,buf);
                 }
-                free(buf);
             }
+            else
+            {
+                char nbuf[20];
+                snprintf(nbuf,sizeof(nbuf),"%i)",FrameNumber);
+                nbuf[19]=0;
+                strcat(buf,nbuf);
+
+                AddMark(MT_ASPECTCHANGE,FrameNumber,buf);
+            }
+            free(buf);
         }
 
         aspectratio.Num=macontext->Video.Info.AspectRatio.Num;
         aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
     }
+    framelast=FrameNumberNext;
     return &mark;
 }

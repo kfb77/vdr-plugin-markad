@@ -10,39 +10,38 @@
 
 #include "global.h"
 
-#if 0
 #include "audio_gain_analysis.h"
-#endif
 
 class cMarkAdAudio
 {
 private:
-    int lastiframe;
+    //int framenumber;
     MarkAdContext *macontext;
 
     MarkAdMark mark;
     void ResetMark();
     bool AddMark(int Type, int Position, const char *Comment);
 
-#define CUT_VAL 10
-#define MIN_LOWVALS 3
-    bool SilenceDetection();
-    int lastiframe_silence;
+#define CUT_VAL 4
+#define MIN_LOWVALS 25
+    bool SilenceDetection(int FrameNumber);
+    int lastframe_silence;
 
-#if 0
-#define ANALYZEFRAMES 1
-    int lastiframe_gain;
+    int lastframe_gain;
     double lastgain;
     cMarkAdAudioGainAnalysis audiogain;
-    bool AnalyzeGain();
-#endif
+    bool AnalyzeGain(int FrameNumber);
 
     int channels;
     bool ChannelChange(int a, int b);
+    int framelast;
+
+    MarkAdPos result;
 public:
     cMarkAdAudio(MarkAdContext *maContext);
     ~cMarkAdAudio();
-    MarkAdMark *Process(int LastIFrame);
+    MarkAdMark *Process(int FrameNumber, int FrameNumberBefore);
+    MarkAdPos *Process2ndPass(int FrameNumber);
     void Clear();
 };
 

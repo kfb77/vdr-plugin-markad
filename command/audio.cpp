@@ -11,6 +11,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern "C"
+{
+#include "debug.h"
+}
+
 #include "audio.h"
 
 cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext)
@@ -19,11 +24,14 @@ cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext)
     mark.Comment=NULL;
     mark.Position=0;
     mark.Type=0;
+    result.CommentBefore=NULL;
+    result.CommentAfter=NULL;
     Clear();
 }
 
 cMarkAdAudio::~cMarkAdAudio()
 {
+    Clear();
     ResetMark();
 }
 
@@ -60,11 +68,18 @@ bool cMarkAdAudio::AddMark(int Type, int Position, const char *Comment)
     return true;
 }
 
-bool cMarkAdAudio::SilenceDetection()
+bool cMarkAdAudio::SilenceDetection(int FrameNumber)
 {
+    // function taken from noad
+    if (!FrameNumber) return false;
     if (!macontext->Audio.Data.Valid) return false;
-    if (lastiframe_silence==lastiframe) return false; // we already detected silence for this frame
-
+    if (lastframe_silence==FrameNumber) return false; // we already detected silence for this frame
+    if (lastframe_silence==-1)
+    {
+        // ignore first detection
+        lastframe_silence=FrameNumber;
+        return false;
+    }
     int samples=macontext->Audio.Data.SampleBufLen/
                 sizeof(*macontext->Audio.Data.SampleBuf)/
                 macontext->Audio.Info.Channels;
@@ -81,20 +96,23 @@ bool cMarkAdAudio::SilenceDetection()
             lowvalcount++;
             if (lowvalcount>MIN_LOWVALS)
             {
-                lastiframe_silence=lastiframe;
-                return true;
+                lastframe_silence=FrameNumber;
             }
         }
         else
         {
+            if (lastframe_silence==FrameNumber)
+            {
+//                isyslog("Silentium @%i (%i)!",FrameNumber,lowvalcount);
+                return true;
+            }
             lowvalcount=0;
         }
     }
     return false;
 }
 
-#if 0
-bool cMarkAdAudio::AnalyzeGain()
+bool cMarkAdAudio::AnalyzeGain(int FrameNumber)
 {
     if (!macontext->Audio.Data.Valid) return false;
 
@@ -111,34 +129,37 @@ bool cMarkAdAudio::AnalyzeGain()
         right[i]=macontext->Audio.Data.SampleBuf[1+(i*2)];
     }
 
-    if ((lastiframe-lastiframe_gain)>ANALYZEFRAMES)
+    if (FrameNumber!=lastframe_gain)
     {
-        if (lastiframe_gain>0)
+        if ((lastframe_gain>0) && (audiogain.AnalyzedSamples()>=(3*samples)))
         {
-            double dgain,gain = audiogain.GetGain();
-            dgain=gain-lastgain;
-            printf("%05i %+.2f db %+.2f db\n",lastiframe_gain,gain,lastgain);
-            lastgain=gain;
+            double gain = audiogain.GetGain();
+            printf("%05i %+.2f db\n",lastframe_gain,gain);
         }
         audiogain.Init(macontext->Audio.Info.SampleRate);
-        lastiframe_gain=lastiframe;
-    }
-    if (audiogain.AnalyzeSamples(left,right,samples,2)!=GAIN_ANALYSIS_OK)
-    {
-        lastiframe_gain=-ANALYZEFRAMES;
+        lastframe_gain=-1;
     }
 
+    if (audiogain.AnalyzeSamples(left,right,samples,2)!=GAIN_ANALYSIS_OK)
+    {
+        lastframe_gain=-1;
+        return false;
+    }
+    else
+    {
+        lastframe_gain=FrameNumber;
+    }
     return true;
 }
-#endif
 
 void cMarkAdAudio::Clear()
 {
     channels=0;
-#if 0
-    lastiframe_gain=-ANALYZEFRAMES;
-#endif
-    lastiframe_silence=-1;
+    lastframe_gain=-1;
+    lastframe_silence=-1;
+    if (result.CommentBefore) free(result.CommentBefore);
+    if (result.CommentAfter) free(result.CommentAfter);
+    memset(&result,0,sizeof(result));
 }
 
 bool cMarkAdAudio::ChannelChange(int a, int b)
@@ -148,47 +169,51 @@ bool cMarkAdAudio::ChannelChange(int a, int b)
     return false;
 }
 
-MarkAdMark *cMarkAdAudio::Process(int LastIFrame)
+MarkAdPos *cMarkAdAudio::Process2ndPass(int FrameNumber)
 {
-    ResetMark();
-    if (!LastIFrame) return NULL;
-    lastiframe=LastIFrame;
+    if (!FrameNumber) return NULL;
 
-#if 0
-    AnalyzeGain();
-#endif
-    if (macontext->Audio.Options.AudioSilenceDetection)
+    if (SilenceDetection(FrameNumber))
     {
-        if (SilenceDetection())
+        if (result.CommentBefore) free(result.CommentBefore);
+        if (asprintf(&result.CommentBefore,"audio silence detection (%i)",FrameNumber)==-1)
         {
-            char *buf=NULL;
-            if (asprintf(&buf,"audio channel silence detecion (%i)",lastiframe)!=-1)
-            {
-                AddMark(MT_SILENCECHANGE,lastiframe,buf);
-                free(buf);
-            }
+            result.CommentBefore=NULL;
         }
+        result.FrameNumberBefore=FrameNumber;
+        return &result;
     }
+
+    return NULL;
+}
+
+MarkAdMark *cMarkAdAudio::Process(int FrameNumber, int FrameNumberNext)
+{
+    if ((!FrameNumber) || (!FrameNumberNext)) return NULL;
+    ResetMark();
 
     if (ChannelChange(macontext->Audio.Info.Channels,channels))
     {
         char *buf=NULL;
         if (asprintf(&buf,"audio channel change from %i to %i (%i)", channels,
-                     macontext->Audio.Info.Channels,lastiframe)!=-1)
+                     macontext->Audio.Info.Channels,
+                     (macontext->Audio.Info.Channels>2) ? FrameNumberNext :
+                     framelast)!=-1)
         {
             if (macontext->Audio.Info.Channels>2)
             {
-                AddMark(MT_CHANNELSTART,lastiframe,buf);
+                AddMark(MT_CHANNELSTART,FrameNumberNext,buf);
             }
             else
             {
-                AddMark(MT_CHANNELSTOP,lastiframe,buf);
+                AddMark(MT_CHANNELSTOP,framelast,buf);
             }
             free(buf);
         }
     }
 
     channels=macontext->Audio.Info.Channels;
+    framelast=FrameNumberNext;
     return &mark;
 }
 

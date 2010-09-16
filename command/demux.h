@@ -14,13 +14,13 @@
 
 #define PESHDRSIZE 6
 
-#include "global.h"
 #include "queue.h"
 #include "ts2pkt.h"
 #include "pes2es.h"
 
 class cMarkAdDemux
 {
+
 private:
     cMarkAdTS2Pkt *ts2pkt;
     cMarkAdPES2ES *pes2audioes;
@@ -32,14 +32,15 @@ private:
     int min_needed;
     int skip;
 
+    void GetVideoPTS(uchar *Data, int Count, unsigned int *Timestamp);
     int GetMinNeeded(MarkAdPid Pid, uchar *Data, int Count, bool *Offcnt);
-    void ProcessTS(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);
-    void ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen);
+    void ProcessTS(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *pkt);
+    void ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *pkt);
 public:
     cMarkAdDemux();
     ~cMarkAdDemux();
     void Clear();
-    int Process(MarkAdPid Pid, uchar *Data, int Count, uchar **Pkt, int *PktLen, bool *Offcnt);
+    int Process(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *pkt);
 };
 
 #endif

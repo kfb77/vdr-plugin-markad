@@ -17,8 +17,7 @@ cMarkAdStreamInfo::cMarkAdStreamInfo()
 
 void cMarkAdStreamInfo::Clear()
 {
-    memset(&H264,0,sizeof(H264));
-    H264.frame_num=-1;
+    H264skiptoggle=false;
 }
 
 bool cMarkAdStreamInfo::FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen)
@@ -131,10 +130,29 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
 
     if (nalu==NAL_AUD)
     {
+        if (!maContext->Video.Info.Width) return false;
         if (pkt[5]==0x10)
         {
-            H264.primary_pic_typeI=true;
+            maContext->Video.Info.Pict_Type=MA_I_TYPE;
         }
+        else
+        {
+            maContext->Video.Info.Pict_Type=0;
+        }
+        if (!maContext->Video.Info.Interlaced)
+        {
+            // this is very crude, drop every second "frame"
+            if (H264skiptoggle)
+            {
+                H264skiptoggle=false;
+                return false;
+            }
+            else
+            {
+                H264skiptoggle=true;
+            }
+        }
+        return true;
     }
 
     if (nalu==NAL_SPS)
@@ -181,7 +199,8 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 }
             }
         }
-        H264.log2_max_frame_num=bs.getUeGolomb()+4;                         // log2_max_frame_num_minus4
+        // H264.log2_max_frame_num=bs.getUeGolomb()+4;
+        bs.skipUeGolomb(); // log2_max_frame_num_minus4
         pic_order_cnt_type = bs.getUeGolomb();     // pic_order_cnt_type
         if (pic_order_cnt_type == 0)
             bs.skipUeGolomb();                     // log2_max_pic_order_cnt_lsb_minus4
@@ -257,60 +276,60 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                     frame_rate = time_scale / (2*num_units_in_tick);
                     if (frame_mbs_only_flag) frame_rate/=2;
                 }
-                //bs.skipBit();                       // fixed_frame_rate_flag
+                bs.skipBit();                       // fixed_frame_rate_flag
             }
-            /*
-                        int nal_hrd_parameters_present_flag = bs.getBit(); // nal_hrd_parameters_present_flag
-                        if (nal_hrd_parameters_present_flag)
-                        {
-                            int cpb_cnt_minus1;
-                            cpb_cnt_minus1 = bs.getUeGolomb();  // cpb_cnt_minus1
-                            bs.skipBits(4);                     // bit_rate_scale
-                            bs.skipBits(4);                     // cpb_size_scale
-                            for (int i = 0; i <= cpb_cnt_minus1; i++)
-                            {
-                                bs.skipUeGolomb();              // bit_rate_value_minus1[i]
-                                bs.skipUeGolomb();              // cpb_size_value_minus1[i]
-                                bs.skipBit();                   // cbr_flag[i]
-                            }
-                            bs.skipBits(5);                     // initial_cpb_removal_delay_length_minus1
-                            bs.skipBits(5);                     // cpb_removal_delay_length_minus1
-                            bs.skipBits(5);                     // dpb_output_delay_length_minus1
-                            bs.skipBits(5);                     // time_offset_length
-                        }
-                        int vlc_hrd_parameters_present_flag = bs.getBit(); // vlc_hrd_parameters_present_flag
-                        if (vlc_hrd_parameters_present_flag)
-                        {
-                            int cpb_cnt_minus1;
-                            cpb_cnt_minus1 = bs.getUeGolomb(); // cpb_cnt_minus1
-                            bs.skipBits(4);                    // bit_rate_scale
-                            bs.skipBits(4);                    // cpb_size_scale
-                            for (int i = 0; i <= cpb_cnt_minus1; i++)
-                            {
-                                bs.skipUeGolomb();             // bit_rate_value_minus1[i]
-                                bs.skipUeGolomb();             // cpb_size_value_minus1[i]
-                                bs.skipBit();                  // cbr_flag[i]
-                            }
-                            bs.skipBits(5);                    // initial_cpb_removal_delay_length_minus1
-                            bs.skipBits(5);                    // cpb_removal_delay_length_minus1
-                            bs.skipBits(5);                    // dpb_output_delay_length_minus1
-                            bs.skipBits(5);                    // time_offset_length
-                        }
-                        cpb_dpb_delays_present_flag = (nal_hrd_parameters_present_flag | vlc_hrd_parameters_present_flag);
-                        if (cpb_dpb_delays_present_flag)
-                            bs.skipBit();                       // low_delay_hrd_flag
-                        bs.skipBit();                           // pic_struct_present_flag
-                        if (bs.getBit())                       // bitstream_restriction_flag
-                        {
-                            bs.skipBit();                       // motion_vectors_over_pic_boundaries_flag
-                            bs.skipUeGolomb();                  // max_bytes_per_pic_denom
-                            bs.skipUeGolomb();                  // max_bits_per_mb_denom
-                            bs.skipUeGolomb();                  // log2_max_mv_length_horizontal
-                            bs.skipUeGolomb();                  // log2_max_mv_length_vertical
-                            bs.skipUeGolomb();                  // num_reorder_frames
-                            bs.skipUeGolomb();                  // max_dec_frame_buffering
-                        }
-            */
+#if 0
+            int nal_hrd_parameters_present_flag = bs.getBit(); // nal_hrd_parameters_present_flag
+            if (nal_hrd_parameters_present_flag)
+            {
+                int cpb_cnt_minus1;
+                cpb_cnt_minus1 = bs.getUeGolomb();  // cpb_cnt_minus1
+                bs.skipBits(4);                     // bit_rate_scale
+                bs.skipBits(4);                     // cpb_size_scale
+                for (int i = 0; i <= cpb_cnt_minus1; i++)
+                {
+                    bs.skipUeGolomb();              // bit_rate_value_minus1[i]
+                    bs.skipUeGolomb();              // cpb_size_value_minus1[i]
+                    bs.skipBit();                   // cbr_flag[i]
+                }
+                bs.skipBits(5);                     // initial_cpb_removal_delay_length_minus1
+                bs.skipBits(5);                     // cpb_removal_delay_length_minus1
+                bs.skipBits(5);                     // dpb_output_delay_length_minus1
+                bs.skipBits(5);                     // time_offset_length
+            }
+            int vlc_hrd_parameters_present_flag = bs.getBit(); // vlc_hrd_parameters_present_flag
+            if (vlc_hrd_parameters_present_flag)
+            {
+                int cpb_cnt_minus1;
+                cpb_cnt_minus1 = bs.getUeGolomb(); // cpb_cnt_minus1
+                bs.skipBits(4);                    // bit_rate_scale
+                bs.skipBits(4);                    // cpb_size_scale
+                for (int i = 0; i <= cpb_cnt_minus1; i++)
+                {
+                    bs.skipUeGolomb();             // bit_rate_value_minus1[i]
+                    bs.skipUeGolomb();             // cpb_size_value_minus1[i]
+                    bs.skipBit();                  // cbr_flag[i]
+                }
+                bs.skipBits(5);                    // initial_cpb_removal_delay_length_minus1
+                bs.skipBits(5);                    // cpb_removal_delay_length_minus1
+                bs.skipBits(5);                    // dpb_output_delay_length_minus1
+                bs.skipBits(5);                    // time_offset_length
+            }
+            cpb_dpb_delays_present_flag = (nal_hrd_parameters_present_flag | vlc_hrd_parameters_present_flag);
+            if (cpb_dpb_delays_present_flag)
+                bs.skipBit();                       // low_delay_hrd_flag
+            bs.skipBit();                           // pic_struct_present_flag
+            if (bs.getBit())                       // bitstream_restriction_flag
+            {
+                bs.skipBit();                       // motion_vectors_over_pic_boundaries_flag
+                bs.skipUeGolomb();                  // max_bytes_per_pic_denom
+                bs.skipUeGolomb();                  // max_bits_per_mb_denom
+                bs.skipUeGolomb();                  // log2_max_mv_length_horizontal
+                bs.skipUeGolomb();                  // log2_max_mv_length_vertical
+                bs.skipUeGolomb();                  // num_reorder_frames
+                bs.skipUeGolomb();                  // max_dec_frame_buffering
+            }
+#endif
         }
 
         if  ((bs.getIndex() / 8)>0)
@@ -413,86 +432,6 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 break;
             }
         }
-    }
-
-    if ((nalu==NAL_SLICE) || (nalu==NAL_IDR_SLICE))
-    {
-        uint8_t *nal_data=(uint8_t*) alloca(len);
-        if (!nal_data) return false;
-        int nal_len = nalUnescape(nal_data, pkt + 5, len - 5);
-        cBitStream bs(nal_data, nal_len);
-
-        bs.skipUeGolomb(); // first_mb_in_slice
-        int slice_type=bs.getUeGolomb();
-        bs.skipUeGolomb(); // pic_parameter_set_id
-        if (H264.separate_colour_plane_flag)
-        {
-            bs.skipBits(2); // colour_plane_id
-        }
-        int frame_num=bs.getBits(H264.log2_max_frame_num); // frame_num
-        if (H264.frame_num==-1) H264.frame_num=frame_num;
-
-        /*
-                if (maContext->Video.Info.Interlaced)
-                {
-                    bool field_pic_flag=bs.getBit();
-                    if (field_pic_flag)
-                    {
-                        bool bottom_field_flag=bs.getBit();
-                    }
-                }
-        */
-        switch (slice_type)
-        {
-        case 0:
-        case 5:
-            slice_type=MA_P_TYPE;
-            break;
-
-        case 1:
-        case 6:
-            slice_type=MA_B_TYPE;
-            break;
-
-        case 2:
-        case 7:
-            slice_type=MA_I_TYPE;
-            break;
-
-        case 3:
-        case 8:
-            slice_type=MA_SP_TYPE;
-            break;
-
-        case 4:
-        case 9:
-            slice_type=MA_SI_TYPE;
-            break;
-
-        default:
-            break;
-        }
-
-        maContext->Video.Info.Pict_Type=slice_type;
-
-        if (!maContext->Video.Info.Interlaced)
-        {
-            if (frame_num!=H264.frame_num)
-            {
-                if (H264.primary_pic_typeI)
-                {
-                    maContext->Video.Info.Pict_Type=MA_I_TYPE;
-                    H264.primary_pic_typeI=false;
-                }
-                H264.frame_num=frame_num;
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        return true;
     }
     return false;
 }

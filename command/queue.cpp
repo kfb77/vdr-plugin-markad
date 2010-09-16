@@ -361,32 +361,19 @@ uchar *cMarkAdPaketQueue::GetPacket(int *Size, int Type)
     *Size=0;
     if (Length()<4) return NULL;
 
-    if ((Type==MA_PACKET_H264) && (pktinfo.pktsyncsize>5) && (pktinfo.pkthdr!=-1))
-    {
-        // ignore PES paket
-        pktinfo.pkthdr=-1;
-        outptr+=pktinfo.pktsyncsize;
-    }
-
     if (pktinfo.pkthdr==-1)
     {
         scanner=0xFFFFFFFF;
         switch (Type)
         {
         case MA_PACKET_AC3:
-            pktinfo.pkthdr=FindAudioHeader(0,&pktinfo.streamsize,&pktinfo.pktsyncsize, true);
+            pktinfo.pkthdr=FindAudioHeader(0,&pktinfo.streamsize,&pktinfo.pktsyncsize,true);
             break;
         case MA_PACKET_MP2:
-            pktinfo.pkthdr=FindAudioHeader(0,&pktinfo.streamsize,&pktinfo.pktsyncsize, false);
+            pktinfo.pkthdr=FindAudioHeader(0,&pktinfo.streamsize,&pktinfo.pktsyncsize,false);
             break;
         case MA_PACKET_H264:
             pktinfo.pkthdr=FindPktHeader(0,&pktinfo.streamsize,&pktinfo.pktsyncsize,true);
-            if (pktinfo.pktsyncsize>5)
-            {
-                // ignore PES paket
-                pktinfo.pkthdr=-1;
-                outptr+=pktinfo.pktsyncsize;
-            }
             break;
         default:
             pktinfo.pkthdr=FindPktHeader(0,&pktinfo.streamsize,&pktinfo.pktsyncsize,false);
@@ -418,16 +405,16 @@ uchar *cMarkAdPaketQueue::GetPacket(int *Size, int Type)
     switch (Type)
     {
     case MA_PACKET_AC3:
-        pkthdr=FindAudioHeader(scannerstart,&streamsize,&pktsyncsize, true);
+        pkthdr=FindAudioHeader(scannerstart,&streamsize,&pktsyncsize,true);
         break;
     case MA_PACKET_MP2:
-        pkthdr=FindAudioHeader(scannerstart,&streamsize,&pktsyncsize, false);
+        pkthdr=FindAudioHeader(scannerstart,&streamsize,&pktsyncsize,false);
         break;
     case MA_PACKET_H264:
-        pkthdr=FindPktHeader(scannerstart,&streamsize,&pktsyncsize, true);
+        pkthdr=FindPktHeader(scannerstart,&streamsize,&pktsyncsize,true);
         break;
     default:
-        pkthdr=FindPktHeader(scannerstart,&streamsize,&pktsyncsize, false);
+        pkthdr=FindPktHeader(scannerstart,&streamsize,&pktsyncsize,false);
         break;
     }
 

@@ -14,6 +14,14 @@
 typedef unsigned char uchar;
 #endif
 
+typedef struct MarkAdPacket
+{
+    uchar *Data;
+    int Length;
+    unsigned int Timestamp;
+    bool Offcnt;
+} MarkAdPacket;
+
 class cMarkAdPaketQueue
 {
     struct MP2HDR

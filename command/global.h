@@ -51,6 +51,14 @@ typedef unsigned char uchar;
 #define MT_MOVED         0xE0
 #define MT_ALL           0xFF
 
+typedef struct MarkAdPos
+{
+    int FrameNumberBefore;
+    int FrameNumberAfter;
+    char *CommentBefore;
+    char *CommentAfter;
+} MarkAdPos;
+
 typedef struct MarkAdMark
 {
     char Type;

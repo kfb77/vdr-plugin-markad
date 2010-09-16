@@ -22,6 +22,39 @@
 #define LOGO_VMARK 0.5    // percantage of pixels for visible
 #define LOGO_IMARK 0.15   // percentage of pixels for invisible
 
+class cMarkAdOverlap
+{
+private:
+#define BEFORE 0
+#define AFTER 1
+    MarkAdContext *macontext;
+    typedef int simpleHistogram[256];
+
+    typedef struct
+    {
+        int framenumber;
+        simpleHistogram histogram;
+    } histbuffer;
+    histbuffer *histbuf[2];
+    int histcnt[2];
+    int histframes[2];
+
+    int lastframenumber;
+
+    MarkAdPos result;
+
+    int similarCutOff;
+    int similarMaxCnt;
+    bool areSimilar(simpleHistogram &hist1, simpleHistogram &hist2);
+    void getHistogram(simpleHistogram &dest);
+    MarkAdPos *Detect();
+    void Clear();
+public:
+    cMarkAdOverlap(MarkAdContext *maContext);
+    ~cMarkAdOverlap();
+    MarkAdPos *Process(int FrameNumber, int Frames, bool BeforeAd);
+};
+
 class cMarkAdLogo
 {
 private:
@@ -57,7 +90,7 @@ private:
         int rpixel;             // black pixel in result
         int mpixel;             // black pixel in mask
         int status;             // status = LOGO on, off, uninitialized
-        int lastiframe;         // start/stop frame
+        int framenumber;        // start/stop frame
         int counter;            // how many logo on, offs detected?
         int corner;             // which corner
         MarkAdAspectRatio aspectratio; // aspectratio
@@ -69,12 +102,12 @@ private:
     int GY[3][3];
 
     MarkAdContext *macontext;
-    int Detect(int lastiframe, int *logoiframe); // ret 1 = logo, 0 = unknown, -1 = no logo
+    int Detect(int framenumber, int *logoframenumber); // ret 1 = logo, 0 = unknown, -1 = no logo
     int Load(char *directory, char *file);
-    void Save(int lastiframe, uchar *picture);
+    void Save(int framenumber, uchar *picture);
 public:
     cMarkAdLogo(MarkAdContext *maContext);
-    int Process(int LastIFrame, int *LogoIFrame);
+    int Process(int FrameNumber, int *LogoFrameNumber);
     void Clear();
 };
 
@@ -91,11 +124,11 @@ private:
     };
 
     int borderstatus;
-    int borderiframe;
+    int borderframenumber;
     MarkAdContext *macontext;
 public:
     cMarkAdBlackBordersHoriz(MarkAdContext *maContext);
-    int Process(int LastIFrame,int *BorderIFrame);
+    int Process(int FrameNumber,int *BorderFrameNumber);
     void Clear();
 };
 
@@ -108,16 +141,19 @@ private:
     MarkAdAspectRatio aspectratio;
     cMarkAdBlackBordersHoriz *hborder;
     cMarkAdLogo *logo;
+    cMarkAdOverlap *overlap;
 
     void ResetMark();
     bool AddMark(int Type, int Position, const char *Comment);
     bool AspectRatioChange(MarkAdAspectRatio *a, MarkAdAspectRatio *b);
-    void SetTimerMarks(int LastIFrame);
+
+    int framelast;
 
 public:
     cMarkAdVideo(MarkAdContext *maContext);
     ~cMarkAdVideo();
-    MarkAdMark *Process(int LastIFrame);
+    MarkAdPos *Process2ndPass(int FrameNumber, int Frames, bool BeforeAd);
+    MarkAdMark *Process(int FrameNumber, int FrameNumberNext);
     void Clear();
 };
 

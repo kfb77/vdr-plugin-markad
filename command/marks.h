@@ -107,13 +107,16 @@ public:
         return last;
     }
     bool Backup(const char *Directory, bool isTS);
-    bool Save(const char *Directory, double FrameRate, bool isTS);
+    bool Load(const char *Directory, double FrameRate, bool isTS);
+    bool Save(const char *Directory, double FrameRate, bool isTS, bool Force=false);
 #define IERR_NOTFOUND 1
 #define IERR_TOOSHORT 2
 #define IERR_SEEK 3
 #define IERR_READ 4
 #define IERR_FRAME 5
     bool CheckIndex(const char *Directory, bool isTS, int FrameCnt, int *IndexError);
+    bool ReadIndex(const char *Directory, bool isTS, int FrameNumber, int Range, int *Number,
+                   off_t *Offset, int *Frame, int *iFrames);
     void WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
                     int FrameType, int Number);
     void CloseIndex(const char *Directory, bool isTS);

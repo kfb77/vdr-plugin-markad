@@ -282,7 +282,19 @@ clMark *clMarks::Add(int Type, int Position,const char *Comment)
                     // add between two marks
                     newmark->Set(mark,mark->Next());
                     mark->SetNext(newmark);
+                    newmark->Next()->SetPrev(newmark);
                     break;
+                }
+                else
+                {
+                    if ((Position<mark->position) && (mark==first))
+                    {
+                        // add as first mark
+                        first=newmark;
+                        mark->SetPrev(newmark);
+                        newmark->SetNext(mark);
+                        break;
+                    }
                 }
             }
             mark=mark->Next();
@@ -317,6 +329,111 @@ void clMarks::RemoveGeneratedIndex(const char *Directory, bool isTS)
     return;
 }
 
+bool clMarks::ReadIndex(const char *Directory, bool isTS, int FrameNumber, int Range, int *Number,
+                        off_t *Offset,  int *Frame, int *iFrames)
+{
+    if (!Offset) return false;
+    if (!Number) return false;
+    if (!Frame) return false;
+    if (!iFrames) return false;
+    *Offset=0;
+    *Number=0;
+    *Frame=0;
+    *iFrames=0;
+
+    char *ipath=NULL;
+    if (asprintf(&ipath,"%s/index%s",Directory,isTS ? "" : ".vdr")==-1) return false;
+    int ifd=open(ipath,O_RDONLY);
+    free(ipath);
+    if (ifd==-1) return false;
+
+    if (isTS)
+    {
+        struct tIndexTS IndexTS;
+        off_t pos=FrameNumber*sizeof(IndexTS);
+        if (lseek(ifd,pos,SEEK_SET)!=pos)
+        {
+            close(ifd);
+            return false;
+        }
+        do
+        {
+            if (read(ifd,&IndexTS,sizeof(IndexTS))!=sizeof(IndexTS))
+            {
+                close(ifd);
+                return false;
+            }
+            if (IndexTS.independent)
+            {
+                *Offset=IndexTS.offset;
+                *Number=IndexTS.number;
+                pos=lseek(ifd,0,SEEK_CUR);
+                *Frame=(int) (pos/sizeof(IndexTS))-1;
+            }
+        }
+        while (!IndexTS.independent);
+
+        int cnt=0;
+        do
+        {
+            if (read(ifd,&IndexTS,sizeof(IndexTS))!=sizeof(IndexTS))
+            {
+                close(ifd);
+                if (!*iFrames) return false;
+                (*iFrames)-=2; // just to be safe
+                return true;
+            }
+            if (IndexTS.independent) (*iFrames)++;
+            cnt++;
+        }
+        while (cnt<Range);
+    }
+    else
+    {
+        struct tIndexVDR IndexVDR;
+        off_t pos=FrameNumber*sizeof(IndexVDR);
+        if (lseek(ifd,pos,SEEK_SET)!=pos)
+        {
+            close(ifd);
+            return false;
+        }
+        do
+        {
+            if (read(ifd,&IndexVDR,sizeof(IndexVDR))!=sizeof(IndexVDR))
+            {
+                close(ifd);
+                return false;
+            }
+            if (IndexVDR.type==1)
+            {
+                *Offset=IndexVDR.offset;
+                *Number=IndexVDR.number;
+                pos=lseek(ifd,0,SEEK_CUR);
+                *Frame=(int) (pos/sizeof(IndexVDR))-1;
+            }
+        }
+        while (IndexVDR.type!=1);
+
+        int cnt=0;
+        do
+        {
+            if (read(ifd,&IndexVDR,sizeof(IndexVDR))!=sizeof(IndexVDR))
+            {
+                close(ifd);
+                if (!*iFrames) return false;
+                (*iFrames)-=2; // just to be safe
+                return true;
+            }
+            if (IndexVDR.type==1) (*iFrames)++;
+            cnt++;
+        }
+        while (cnt<Range);
+    }
+    close(ifd);
+    if (!*iFrames) return false;
+    return true;
+}
+
 void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
                          int FrameType, int Number)
 {
@@ -328,6 +445,7 @@ void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
         free(ipath);
         if (indexfd==-1) return;
         Offset=0;
+        FrameType=1;
     }
     if (isTS)
     {
@@ -481,10 +599,55 @@ bool clMarks::Backup(const char *Directory, bool isTS)
     return (ret==0);
 }
 
-bool clMarks::Save(const char *Directory, double FrameRate, bool isTS)
+bool clMarks::Load(const char *Directory, double FrameRate, bool isTS)
+{
+    char *fpath=NULL;
+    if (asprintf(&fpath,"%s/%s%s",Directory,filename,isTS ? "" : ".vdr")==-1) return false;
+
+    FILE *mf;
+    mf=fopen(fpath,"r+");
+    free(fpath);
+    if (!mf) return false;
+
+    char *line=NULL;
+    size_t length;
+    int h, m, s, f;
+
+    while (getline(&line,&length,mf)!=-1)
+    {
+        char descr[256]="";
+        f=1;
+        int n=sscanf(line,"%d:%d:%d.%d %80c",&h,&m,&s,&f,(char *) &descr);
+        if (n==1)
+        {
+            Add(0,h);
+        }
+        if (n>=3)
+        {
+            int pos=int(round((h*3600+m*60+s)*FrameRate))+f-1;
+            if (n<=4)
+            {
+                Add(0,pos);
+            }
+            else
+            {
+                char *lf=strchr(descr,10);
+                if (lf) *lf=0;
+                char *cr=strchr(descr,13);
+                if (cr) *cr=0;
+                Add(0,pos,descr);
+            }
+        }
+    }
+    if (line) free(line);
+    fclose(mf);
+    return true;
+}
+
+bool clMarks::Save(const char *Directory, double FrameRate, bool isTS, bool Force)
 {
     if (!first) return false;
-    if (savedcount==count) return false;
+    if ((savedcount==count) && (!Force)) return false;
 
     char *fpath=NULL;
     if (asprintf(&fpath,"%s/%s%s",Directory,filename,isTS ? "" : ".vdr")==-1) return false;

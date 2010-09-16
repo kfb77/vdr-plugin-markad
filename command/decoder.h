@@ -31,25 +31,30 @@ extern "C"
 class cMarkAdDecoder
 {
 private:
+    bool skipframes;
     int16_t *audiobuf;
     int audiobufsize;
 
+    AVCodec *video_codec;
     AVCodecContext *ac3_context;
     AVCodecContext *mp2_context;
     AVCodecContext *video_context;
     AVFrame *video_frame;
 
     int8_t *last_qscale_table;
+    int initial_coded_picture;
+    static int our_get_buffer(struct AVCodecContext *c, AVFrame *pic);
+    static void our_release_buffer(struct AVCodecContext *c, AVFrame *pic);
 
     bool SetAudioInfos(MarkAdContext *maContext, AVCodecContext *Audio_Context);
 
-    void PAR2DAR(AVRational a, AVRational *erg);
     bool SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Video_Context,
                        AVFrame *Video_Frame);
 public:
     bool DecodeVideo(MarkAdContext *maContext, uchar *pkt, int plen);
     bool DecodeMP2(MarkAdContext *maContext, uchar *espkt, int eslen);
     bool DecodeAC3(MarkAdContext *maContext, uchar *espkt, int eslen);
+    bool Clear();
     cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3);
     ~cMarkAdDecoder();
 };

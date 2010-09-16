@@ -23,18 +23,12 @@ private:
         NAL_PPS	      = 0x08, // Picture Parameter Set
         NAL_AUD       = 0x09, // Access Unit Delimiter
         NAL_END_SEQ   = 0x0A, // End of Sequence
+        NAL_FILLER    = 0x0C, // Filler data
         NAL_SPS_EXT   = 0x0D, // Sequence Parameter Set Extension
         NAL_AUX_SLICE = 0x19  // Auxilary Slice
     };
 
-    struct H264
-    {
-        bool primary_pic_typeI;
-        bool separate_colour_plane_flag;
-        int log2_max_frame_num;
-        int frame_num;
-    } H264;
-
+    bool H264skiptoggle;
     int nalUnescape(uint8_t *dst, const uint8_t *src, int len);
     bool FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
     bool FindH262VideoInfos(MarkAdContext *maContext, uchar *pkt, int len);

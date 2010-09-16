@@ -166,22 +166,33 @@ unsigned Descriptor_Length:
 
     char title[80],*ptitle;
 
-    bool CreatePidfile(const char *Directory);
-    void RemovePidfile(const char *Directory);
+    bool CreatePidfile();
+    void RemovePidfile();
     bool duplicate; // are we a dup?
 
     bool isTS;
     int MaxFiles;
+
     int lastiframe;
     int iframe;
+
+    unsigned int iframetime;
+    unsigned int lastiframetime;
+    unsigned int audiotime;
+
     int framecnt;
+    int framecnt2; // 2nd pass
+
     bool abort;
     bool fastexit;
     bool reprocess;
     int waittime;
+    struct timeval tv1,tv2;
+    struct timezone tz;
 
     bool noticeVDR_MP2;
     bool noticeVDR_AC3;
+    bool noticeHEADER;
 
     bool bDecodeVideo;
     bool bDecodeAudio;
@@ -198,10 +209,12 @@ unsigned Descriptor_Length:
     bool setVideo43;  // set video to 4:3 in info
     bool setVideo169; // set video to 16:9 in info
 
+    int nextPictType;
+
     int chkLEFT;
     int chkRIGHT;
 
-    void CheckIndex(const char *Directory);
+    void CheckIndex();
     char *indexFile;
     int sleepcnt;
 
@@ -219,25 +232,31 @@ unsigned Descriptor_Length:
     void CheckLogoMarks();
     void AddStartMark();
     void AddMark(MarkAdMark *Mark);
-    void Reset();
+    bool Reset(bool FirstPass=true);
+    void ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos);
 
-    bool CheckVDRHD(const char *Directory);
-    bool CheckPATPMT(const char *Directory);
-    bool CheckTS(const char *Directory);
-    bool LoadInfo(const char *Directory);
-    bool SaveInfo(const char *Directory);
+    bool CheckVDRHD();
+    bool CheckPATPMT();
+    bool CheckTS();
+    bool LoadInfo();
+    bool SaveInfo();
     bool RegenerateIndex();
-    bool ProcessFile(const char *Directory, int Number);
+    bool ProcessFile2ndPass(clMark **Mark1, clMark **Mark2, int Number, off_t Offset, int Frame, int Frames);
+    bool ProcessFile(int Number);
+
+    char *Timestamp2HMS(unsigned int Timestamp);
+
 public:
     void SetAbort()
     {
         abort=true;
     }
-    void Process(const char *Directory);
+    void Process2ndPass();
+    void Process();
     cMarkAdStandalone(const char *Directory, bool BackupMarks, int LogoExtraction,
                       int LogoWidth, int LogoHeight, bool DecodeVideo,
                       bool DecodeAudio, int IgnoreInfo,
-                      const char *LogoDir, const char *MarkFileName, bool ASD,
+                      const char *LogoDir, const char *MarkFileName,
                       bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort,
                       bool Before, bool GenIndex);
 

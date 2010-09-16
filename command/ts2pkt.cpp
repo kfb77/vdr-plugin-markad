@@ -31,7 +31,7 @@ void cMarkAdTS2Pkt::Clear()
     Reset();
 }
 
-void cMarkAdTS2Pkt::Reset(int ErrIndex)
+bool cMarkAdTS2Pkt::Reset(int ErrIndex)
 {
     sync=false;
     switch (ErrIndex)
@@ -57,6 +57,7 @@ void cMarkAdTS2Pkt::Reset(int ErrIndex)
     }
     counter=-1;
     if (queue) queue->Clear();
+    return false;
 }
 
 bool cMarkAdTS2Pkt::InjectVideoPES(uchar *PESData, int PESSize)
@@ -96,25 +97,23 @@ bool cMarkAdTS2Pkt::InjectVideoPES(uchar *PESData, int PESSize)
     return true;
 }
 
-void cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, uchar **PktData, int *PktSize)
+bool cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, MarkAdPacket *Pkt)
 {
-    if ((!PktData) || (!PktSize) || (!queue)) return;
-    *PktData=NULL;
-    *PktSize=0;
+    if ((!Pkt) || (!queue)) return false;
+
+    bool ret=true;
 
     if (TSData)
     {
         if (TSSize!=TS_SIZE)
         {
-            Reset(MA_ERR_TSSIZE);
-            return; // we need a full packet
+            return Reset(MA_ERR_TSSIZE);  // we need a full packet
         }
 
         // check TS packet sync
         if (TSData[0]!=0x47)
         {
-            Reset(MA_ERR_NOSYNC);
-            return;
+            return Reset(MA_ERR_NOSYNC); // no sync
         }
 
         struct TSHDR *tshdr = (struct TSHDR *) TSData;
@@ -122,38 +121,36 @@ void cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, uchar **Pk
         int pid = (tshdr->PidH << 8) | tshdr->PidL;
         if (Pid.Num!=pid)
         {
-            return; // not for us
-        }
-
-        if (tshdr->PayloadStart) sync=true;
-        if (!sync)
-        {
-            return; // not synced
+            return true; // not for us, but this is ok
         }
 
         if ((counter!=-1) && (((counter+1) & 0xF)!=tshdr->Counter))
         {
             if (counter==(int) tshdr->Counter)
             {
-                // duplicate paket -> just ignore
-                return;
+                return true; // duplicate paket -> just ignore
             }
             // sequence error
-            Reset(MA_ERR_SEQ);
-            return;
+            ret=Reset(MA_ERR_SEQ);
+            if (!tshdr->PayloadStart) return ret;
         }
         counter=tshdr->Counter;
 
+        if (tshdr->PayloadStart) sync=true;
+        if (!sync)
+        {
+            return false; // not synced
+        }
+
         if ((tshdr->AFC<=0) || (tshdr->AFC>3))
         {
-            Reset(MA_ERR_AFC);
-            return;
+            return Reset(MA_ERR_AFC);
         }
 
         // we just ignore the infos in the adaption field (e.g. OPCR/PCR)
         if ((tshdr->AFC!=1) && (tshdr->AFC!=3))
         {
-            return;
+            return true;
         }
 
         int buflen=TS_SIZE+1;
@@ -178,30 +175,29 @@ void cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, uchar **Pk
         if (buflen>TS_SIZE)
         {
             // size to large
-            Reset(MA_ERR_TOBIG);
-            return;
+            return Reset(MA_ERR_TOBIG);
         }
         if (buflen<0)
         {
             // error in size
-            Reset(MA_ERR_NEG);
-            return;
+            return Reset(MA_ERR_NEG);
         }
         if (buflen==0)
         {
             // no data?
-            return;
+            return false;
         }
 
         queue->Put(buf,buflen);
     }
+    if (!ret) return ret;
     if (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264)
     {
-        *PktData=queue->GetPacket(PktSize,MA_PACKET_H264);
+        Pkt->Data=queue->GetPacket(&Pkt->Length,MA_PACKET_H264);
     }
     else
     {
-        *PktData=queue->GetPacket(PktSize,MA_PACKET_PKT);
+        Pkt->Data=queue->GetPacket(&Pkt->Length,MA_PACKET_PKT);
     }
-    return;
+    return ret;
 }
