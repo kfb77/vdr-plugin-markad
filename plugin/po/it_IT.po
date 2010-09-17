@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2010-04-26 13:57+0200\n"
-"PO-Revision-Date: 2009-11-14 18:06+0100\n"
+"POT-Creation-Date: 2010-09-17 18:09+0200\n"
+"PO-Revision-Date: 2010-08-09 20:05+0100\n"
 "Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
 "Language-Team:  <vdr@linuxtv.org>\n"
 "MIME-Version: 1.0\n"
@@ -16,70 +16,73 @@ msgstr ""
 "X-Poedit-SourceCharset: utf-8\n"
 
 msgid "markad still running"
-msgstr ""
-
-msgid "running"
-msgstr ""
-
-msgid "sleeping"
-msgstr ""
-
-msgid "inactive"
-msgstr ""
-
-msgid "zombie"
-msgstr ""
-
-msgid "stopped"
-msgstr ""
-
-msgid "unknown"
-msgstr ""
+msgstr "Marcatore ancora in esecuzione"
 
 msgid "markad status"
-msgstr ""
+msgstr "Stato marcatori"
+
+msgid "running"
+msgstr "in esecuzione"
+
+msgid "sleeping"
+msgstr "sospeso"
+
+msgid "inactive"
+msgstr "non attivo"
+
+msgid "zombie"
+msgstr "terminato"
+
+msgid "stopped"
+msgstr "fermo"
+
+msgid "unknown"
+msgstr "sconosciuto"
 
 msgid "Recording\t Status"
-msgstr ""
+msgstr "Registrazioni\t Stato"
 
 msgid "no running markad found"
-msgstr ""
+msgstr "Nessun marcatore in esec. trovato"
 
 msgid "Pause"
-msgstr ""
+msgstr "Pausa"
 
 msgid "Continue"
-msgstr ""
+msgstr "Continua"
 
 msgid "after"
-msgstr ""
+msgstr "dopo"
 
 msgid "during"
-msgstr ""
+msgstr "durante"
 
 msgid "execution"
-msgstr ""
+msgstr "Esecuzione"
 
 msgid "  during another recording"
-msgstr ""
+msgstr "  durante un'altra registrazione"
 
 msgid "  while replaying"
-msgstr ""
+msgstr "  durante la riproduzione"
 
 msgid "repair index, if broken"
-msgstr ""
+msgstr "Ripara indice, se errato"
 
 msgid "ignore timer margins"
-msgstr ""
+msgstr "Ignora margini timer"
 
 msgid "OSD message"
-msgstr ""
+msgstr "Messaggio OSD"
 
 msgid "backup marks"
-msgstr ""
+msgstr "Salva marcatori"
 
 msgid "verbose logging"
+msgstr "Log dettagliato"
+
+msgid "Hide Mainmenu entry"
 msgstr ""
 
 msgid "Mark advertisements"
-msgstr "Segna i marcatori della pubblicità"
+msgstr "Segna i marcatori della pubblicitá"

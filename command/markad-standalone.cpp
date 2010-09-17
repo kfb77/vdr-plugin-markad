@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <ctype.h>
 #include <netdb.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/wait.h>

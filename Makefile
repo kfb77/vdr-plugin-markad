@@ -13,10 +13,10 @@ ARCHIVE = markad-$(VERSION)
 PACKAGE = vdr-$(ARCHIVE)
 
 all:
-	for i in $(DIRS); do make -C $$i; done
+	for i in $(DIRS); do $(MAKE) -C $$i; done
 
 install:
-	for i in $(DIRS); do make -C $$i install; done
+	for i in $(DIRS); do $(MAKE) -C $$i install; done
 
 dist:	 
 	@-rm -rf $(TMPDIR)/$(ARCHIVE)

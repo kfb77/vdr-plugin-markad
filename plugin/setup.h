@@ -19,6 +19,7 @@ struct setup
     bool Verbose;
     bool GenIndex;
     bool NoMargins;
+    bool HideMainMenuEntry;
 };
 
 class cSetupMarkAd : public cMenuSetupPage
@@ -34,6 +35,7 @@ private:
     int verbose;
     int genindex;
     int nomargins;
+    int hidemainmenuentry;
     void write(void);
 protected:
     virtual void Store(void);

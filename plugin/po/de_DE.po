@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2010-04-26 13:57+0200\n"
+"POT-Creation-Date: 2010-09-17 18:00+0200\n"
 "PO-Revision-Date: 2009-08-27 14:18+0200\n"
 "Last-Translator: Jochen Dolze <vdr@dolze.de>\n"
 "Language-Team: <vdr@linuxtv.org>\n"
@@ -14,6 +14,9 @@ msgstr ""
 
 msgid "markad still running"
 msgstr "markad läuft noch"
+
+msgid "markad status"
+msgstr "markad Status"
 
 msgid "running"
 msgstr "aktiv"
@@ -32,9 +35,6 @@ msgstr "angehalten"
 
 msgid "unknown"
 msgstr "unbekannt"
-
-msgid "markad status"
-msgstr "markad Status"
 
 msgid "Recording\t Status"
 msgstr "Aufnahme\t Status"
@@ -77,6 +77,9 @@ msgstr "alte Marken sichern"
 
 msgid "verbose logging"
 msgstr "ausführliches Logging"
+
+msgid "Hide Mainmenu entry"
+msgstr "Hauptmenüeintrag verstecken"
 
 msgid "Mark advertisements"
 msgstr "Markiere Werbung"

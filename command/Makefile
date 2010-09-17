@@ -11,18 +11,19 @@ VERSION = $(shell grep 'static const char \*VERSION *=' ../version.h | awk '{ pr
 CXX      ?= g++
 CXXFLAGS ?= -g -rdynamic -O2 -Wall -Wextra -Woverloaded-virtual -Wno-parentheses
 PKG-CONFIG ?= pkg-config
+STRIP ?= strip
 
 ### Includes and Defines (add further entries here):
 
-PKG-LIBS += libavcodec
-PKG-INCLUDES += libavcodec
+PKG-LIBS += libavcodec libavutil
+PKG-INCLUDES += libavcodec libavutil
 
 DEFINES += -D_GNU_SOURCE 
 DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
 DEFINES += -D__STDC_CONSTANT_MACROS
 
 INCLUDES += $(shell $(PKG-CONFIG) --cflags $(PKG-INCLUDES))
-LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS))
+LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
 
 INCLUDES += -I..
 
@@ -79,8 +80,9 @@ markad: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) -o $@
 
 install: markad $(I18Nmsgs) 
+	@mkdir -p $(DESTDIR)/usr/bin
 	@cp --remove-destination markad $(DESTDIR)/usr/bin/markad
-	@strip $(DESTDIR)/usr/bin/markad
+	@$(STRIP) $(DESTDIR)/usr/bin/markad
 	@mkdir -p $(DESTDIR)/var/lib/markad
 	@cp logos/* $(DESTDIR)/var/lib/markad
 	@echo markad installed

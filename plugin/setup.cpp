@@ -19,6 +19,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     verbose=setup->Verbose;
     genindex=setup->GenIndex;
     nomargins=setup->NoMargins;
+hidemainmenuentry=setup->HideMainMenuEntry;
 
     processTexts[0]=tr("after");
     processTexts[1]=tr("during");
@@ -43,6 +44,8 @@ void cSetupMarkAd::write(void)
     Add(new cMenuEditBoolItem(tr("OSD message"),&osdmsg));
     Add(new cMenuEditBoolItem(tr("backup marks"),&backupmarks));
     Add(new cMenuEditBoolItem(tr("verbose logging"),&verbose));
+    Add(new cMenuEditBoolItem(tr("Hide Mainmenu entry"),&hidemainmenuentry)); 
+
     Display();
 }
 
@@ -79,6 +82,7 @@ void cSetupMarkAd::Store(void)
     SetupStore("GenIndex",genindex);
     SetupStore("OSDMessage",osdmsg);
     SetupStore("Verbose",verbose);
+    SetupStore("HideMainMenuEntry",hidemainmenuentry);
 
     setup->ProcessDuring=(bool) processduring;
     setup->whileRecording=(bool) whilerecording;
@@ -88,4 +92,5 @@ void cSetupMarkAd::Store(void)
     setup->BackupMarks=(bool) backupmarks;
     setup->Verbose=(bool) verbose;
     setup->NoMargins=(bool) nomargins;
+    setup->HideMainMenuEntry=(bool) hidemainmenuentry;
 }
