@@ -59,6 +59,4 @@ public:
     ~cMarkAdDecoder();
 };
 
-
-
 #endif

@@ -21,6 +21,75 @@
 
 #include "decoder.h"
 
+#if LIBAVCODEC_VERSION_INT < ((52<<16)+(65<<8)+0)
+int avcodec_copy_context(AVCodecContext *dest, const AVCodecContext *src)
+{
+    if (dest->codec)   // check that the dest context is uninitialized
+    {
+        av_log(dest, AV_LOG_ERROR,
+               "Tried to copy AVCodecContext %p into already-initialized %p\n",
+               src, dest);
+        return AVERROR(EINVAL);
+    }
+    memcpy(dest, src, sizeof(*dest));
+
+    /* set values specific to opened codecs back to their default state */
+    dest->priv_data       = NULL;
+    dest->codec           = NULL;
+    dest->palctrl         = NULL;
+    dest->slice_offset    = NULL;
+    dest->internal_buffer = NULL;
+    dest->hwaccel         = NULL;
+    dest->execute         = NULL;
+    dest->execute2        = NULL;
+    dest->reget_buffer    = NULL;
+    dest->thread_opaque   = NULL;
+
+    /* reallocate values that should be allocated separately */
+
+    dest->rc_eq           = NULL;
+    dest->extradata       = NULL;
+    dest->intra_matrix    = NULL;
+    dest->inter_matrix    = NULL;
+    dest->rc_override     = NULL;
+
+    if (src->rc_eq)
+    {
+        dest->rc_eq = av_strdup(src->rc_eq);
+        if (!dest->rc_eq)
+            return AVERROR(ENOMEM);
+    }
+
+#define alloc_and_copy_or_fail(obj, type, size, pad) \
+     if (src->obj && size > 0) { \
+        dest->obj =  (type *) av_malloc(size + pad); \
+        if (!dest->obj) \
+            goto fail; \
+        memcpy(dest->obj, src->obj, size); \
+        if (pad) \
+            memset(((uint8_t *) dest->obj) + size, 0, pad); \
+    }
+
+    alloc_and_copy_or_fail(extradata, uint8_t, src->extradata_size,
+                           FF_INPUT_BUFFER_PADDING_SIZE);
+    alloc_and_copy_or_fail(intra_matrix, uint16_t, 64 * sizeof(int16_t), 0);
+    alloc_and_copy_or_fail(inter_matrix, uint16_t, 64 * sizeof(int16_t), 0);
+    alloc_and_copy_or_fail(rc_override,  RcOverride, src->rc_override_count * sizeof(*src->rc_override), 0);
+
+#undef alloc_and_copy_or_fail
+
+    return 0;
+
+fail:
+    av_freep(&dest->rc_override);
+    av_freep(&dest->intra_matrix);
+    av_freep(&dest->inter_matrix);
+    av_freep(&dest->extradata);
+    av_freep(&dest->rc_eq);
+    return AVERROR(ENOMEM);
+}
+#endif
+
 cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
 {
     avcodec_init();
@@ -157,8 +226,6 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
         video_context = avcodec_alloc_context();
         if (video_context)
         {
-            video_context->get_buffer=our_get_buffer;
-            video_context->release_buffer=our_release_buffer;
             video_context->thread_count=cpucount;
             if (video_codec->capabilities & CODEC_CAP_TRUNCATED)
                 video_context->flags|=CODEC_FLAG_TRUNCATED; // we do not send complete frames
@@ -325,17 +392,6 @@ bool cMarkAdDecoder::Clear()
     if (ac3_context) avcodec_flush_buffers(ac3_context);
     if (mp2_context) avcodec_flush_buffers(mp2_context);
     return ret;
-}
-
-int cMarkAdDecoder::our_get_buffer(struct AVCodecContext *c, AVFrame *pic)
-{
-    int ret=avcodec_default_get_buffer(c,pic);
-    return ret;
-}
-
-void cMarkAdDecoder::our_release_buffer(struct AVCodecContext *c, AVFrame *pic)
-{
-    avcodec_default_release_buffer(c, pic);
 }
 
 bool cMarkAdDecoder::SetAudioInfos(MarkAdContext *maContext, AVCodecContext *Audio_Context)
