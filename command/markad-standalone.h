@@ -162,6 +162,8 @@ unsigned Descriptor_Length:
     cMarkAdStreamInfo *streaminfo;
     cOSDMessage *osd;
 
+    MarkAdPacket vpkt,apkt;
+
     MarkAdContext macontext;
 
     char title[80],*ptitle;

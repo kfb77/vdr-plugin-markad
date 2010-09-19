@@ -209,7 +209,9 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *P
 
     if (!pause)
     {
-        memset(Pkt,0,sizeof(MarkAdPacket));
+        Pkt->Data=NULL;
+        Pkt->Length=0;
+        Pkt->Offcnt=false;
 
         if (!min_needed)
         {

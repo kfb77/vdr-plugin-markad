@@ -942,13 +942,14 @@ void cMarkAdStandalone::Process2ndPass()
         marks.Load(directory,macontext.Video.Info.FramesPerSecond,isTS);
     }
 
-    isyslog("2nd pass");
-
+    bool infoheader=false;
     clMark *p1=NULL,*p2=NULL;
 
     p1=marks.GetFirst();
     if (p1->position>0)
     {
+        isyslog("2nd pass");
+        infoheader=true;
         off_t offset;
         int number,frame,iframes;
         int frange=macontext.Video.Info.FramesPerSecond*120;
@@ -966,6 +967,11 @@ void cMarkAdStandalone::Process2ndPass()
 
     while ((p1) && (p2))
     {
+        if (!infoheader)
+        {
+            isyslog("2nd pass");
+            infoheader=true;
+        }
         off_t offset;
         int number,frame,iframes;
         int frange=macontext.Video.Info.FramesPerSecond*120; // 40s + 80s
@@ -1044,14 +1050,12 @@ bool cMarkAdStandalone::ProcessFile(int Number)
 
         if ((video_demux) && (video) && (streaminfo))
         {
-            MarkAdPacket pkt;
-
             uchar *tspkt = data;
             int tslen = dataread;
 
             while (tslen>0)
             {
-                int len=video_demux->Process(macontext.Info.VPid,tspkt,tslen,&pkt);
+                int len=video_demux->Process(macontext.Info.VPid,tspkt,tslen,&vpkt);
                 if (len<0)
                 {
                     esyslog("error demuxing video");
@@ -1060,10 +1064,10 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                 }
                 else
                 {
-                    if (pkt.Data)
+                    if (vpkt.Data)
                     {
                         bool dRes=false;
-                        if (streaminfo->FindVideoInfos(&macontext,pkt.Data,pkt.Length))
+                        if (streaminfo->FindVideoInfos(&macontext,vpkt.Data,vpkt.Length))
                         {
                             if ((macontext.Video.Info.Height) && (!noticeHEADER))
                             {
@@ -1099,7 +1103,6 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                 CheckStartStop(lastiframe);
                                 if (lastiframe>chkLEFT) CheckInfoAspectRatio();
 
-
                                 if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
                                 {
                                     iframe=framecnt;
@@ -1108,12 +1111,13 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                 {
                                     iframe=framecnt-1;
                                 }
-                                iframetime=pkt.Timestamp;
+                                iframetime=vpkt.Timestamp;
                                 dRes=true;
                             }
                         }
 
-                        if ((decoder) && (bDecodeVideo)) dRes=decoder->DecodeVideo(&macontext,pkt.Data,pkt.Length);
+                        if ((decoder) && (bDecodeVideo))
+                            dRes=decoder->DecodeVideo(&macontext,vpkt.Data,vpkt.Length);
                         if (dRes)
                         {
                             if ((framecnt-iframe)<=3)
@@ -1128,7 +1132,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                     }
                     tspkt+=len;
                     tslen-=len;
-                    if (!pkt.Offcnt)
+                    if (!vpkt.Offcnt)
                     {
                         offset_add+=len;
                     }
@@ -1144,14 +1148,12 @@ bool cMarkAdStandalone::ProcessFile(int Number)
 
         if ((ac3_demux) && (streaminfo) && (audio))
         {
-            MarkAdPacket pkt;
-
             uchar *tspkt = data;
             int tslen = dataread;
 
             while (tslen>0)
             {
-                int len=ac3_demux->Process(macontext.Info.DPid,tspkt,tslen,&pkt);
+                int len=ac3_demux->Process(macontext.Info.DPid,tspkt,tslen,&apkt);
                 if (len<0)
                 {
                     esyslog("error demuxing ac3-audio");
@@ -1159,16 +1161,16 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                 }
                 else
                 {
-                    if (pkt.Data)
+                    if (apkt.Data)
                     {
-                        if (streaminfo->FindAC3AudioInfos(&macontext,pkt.Data,pkt.Length))
+                        if (streaminfo->FindAC3AudioInfos(&macontext,apkt.Data,apkt.Length))
                         {
                             if ((!isTS) && (!noticeVDR_AC3))
                             {
                                 dsyslog("found AC3");
                                 noticeVDR_AC3=true;
                             }
-                            if (pkt.Timestamp) audiotime=pkt.Timestamp;
+                            if (apkt.Timestamp) audiotime=apkt.Timestamp;
 
                             if (abs(audiotime-lastiframetime)<20000)
                             {
@@ -1214,6 +1216,9 @@ bool cMarkAdStandalone::Reset(bool FirstPass)
     audiotime=0;
 
     fastexit=false;
+
+    memset(&vpkt,0,sizeof(vpkt));
+    memset(&apkt,0,sizeof(apkt));
 
     iStart=0;
     iStop=0;
@@ -1969,6 +1974,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     audio=NULL;
     osd=NULL;
 
+    memset(&vpkt,0,sizeof(vpkt));
+    memset(&apkt,0,sizeof(apkt));
+
     setAudio51=false;
     setAudio20=false;
     setVideo43=false;
@@ -2107,8 +2115,20 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         }
     }
 
-    if (tStart) isyslog("pre-timer %is",tStart);
-    if (macontext.Info.Length) isyslog("broadcast length %ih %im",macontext.Info.Length/3600,macontext.Info.Length/60);
+    if (tStart) isyslog("pre-timer %im",tStart/60);
+    if (macontext.Info.Length)
+    {
+        int h=macontext.Info.Length/3600;
+        int m=macontext.Info.Length-(h*3600);
+        if (m)
+        {
+            isyslog("broadcast length %ih %im",h,m);
+        }
+        else
+        {
+            isyslog("broadcast length %ih",h);
+        }
+    }
 
     if (title[0])
     {
