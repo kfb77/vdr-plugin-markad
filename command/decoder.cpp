@@ -41,7 +41,9 @@ int avcodec_copy_context(AVCodecContext *dest, const AVCodecContext *src)
     dest->internal_buffer = NULL;
     dest->hwaccel         = NULL;
     dest->execute         = NULL;
+#if LIBAVCODEC_VERSION_INT >= ((52<<16)+(37<<8)+0)
     dest->execute2        = NULL;
+#endif
     dest->reget_buffer    = NULL;
     dest->thread_opaque   = NULL;
 
