@@ -2257,7 +2257,7 @@ bool isnumber(const char *s)
     return true;
 }
 
-int usage()
+int usage(int svdrpport)
 {
     // nothing done, give the user some help
     printf("Usage: markad [options] cmd <record>\n"
@@ -2309,7 +2309,7 @@ int usage()
            "                  process only second pass, fine adjustment or marks\n"
            "                --svdrphost=<ip/hostname> (default is 127.0.0.1)\n"
            "                  ip/hostname of a remote VDR for OSD messages\n"
-           "                --svdrpport=<port> (default is 2001)\n"
+           "                --svdrpport=<port> (default is %i)\n"
            "                  port of a remote VDR for OSD messages\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
@@ -2320,7 +2320,7 @@ int usage()
            "\n<record>                     is the name of the directory where the recording\n"
            "                             is stored\n\n",
            LOGO_MAXWIDTH,LOGO_DEFWIDTH,LOGO_DEFHDWIDTH,
-           LOGO_MAXHEIGHT,LOGO_DEFHEIGHT
+           LOGO_MAXHEIGHT,LOGO_DEFHEIGHT,svdrpport
           );
     return -1;
 }
@@ -2382,7 +2382,7 @@ int main(int argc, char *argv[])
     char markFileName[1024]="";
     char logoDirectory[1024]="";
     char svdrphost[1024]="127.0.0.1";
-    int svdrpport=2001;
+    int svdrpport;
     bool bDecodeVideo=true;
     bool bDecodeAudio=true;
     int  ignoreInfo=0;
@@ -2391,6 +2391,16 @@ int main(int argc, char *argv[])
     int online=0;
 
     strcpy(logoDirectory,"/var/lib/markad");
+
+    struct servent *serv=getservbyname("svdrp","tcp");
+    if (serv)
+    {
+        svdrpport=htons(serv->s_port);
+    }
+    else
+    {
+        svdrpport=2001;
+    }
 
     while (1)
     {
@@ -2845,5 +2855,5 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    return usage();
+    return usage(svdrpport);
 }
