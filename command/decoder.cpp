@@ -128,6 +128,10 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
         return;
     }
 
+#if LIBAVCODEC_VERSION_INT >= ((52<<16)+(41<<8)+0)
+    tsyslog("libavcodec config: %s",avcodec_configuration());
+#endif
+
     if (((ver >> 16)<52) && (useH264))
     {
         esyslog("dont report bugs about H264, use libavcodec >= 52 instead!");

@@ -757,7 +757,6 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
     {
         if (abort) return false;
 
-        //const int datalen=8272;
         const int datalen=319976;
         uchar data[datalen];
 
@@ -799,14 +798,12 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
 
             if ((video_demux) && (video) && (decoder) && (streaminfo))
             {
-                MarkAdPacket pkt;
-
                 uchar *tspkt = data;
                 int tslen = dataread;
 
                 while (tslen>0)
                 {
-                    int len=video_demux->Process(macontext.Info.VPid,tspkt,tslen,&pkt);
+                    int len=video_demux->Process(macontext.Info.VPid,tspkt,tslen,&vpkt);
                     if (len<0)
                     {
                         esyslog("error demuxing video");
@@ -815,10 +812,10 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
                     }
                     else
                     {
-                        if (pkt.Data)
+                        if (vpkt.Data)
                         {
                             bool dRes=false;
-                            if (streaminfo->FindVideoInfos(&macontext,pkt.Data,pkt.Length))
+                            if (streaminfo->FindVideoInfos(&macontext,vpkt.Data,vpkt.Length))
                             {
                                 actframe++;
                                 framecnt2++;
@@ -835,11 +832,11 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
                                     {
                                         iframe=actframe-1;
                                     }
-                                    iframetime=pkt.Timestamp;
+                                    iframetime=vpkt.Timestamp;
                                     dRes=true;
                                 }
                             }
-                            if (pn>1) dRes=decoder->DecodeVideo(&macontext,pkt.Data,pkt.Length);
+                            if (pn>1) dRes=decoder->DecodeVideo(&macontext,vpkt.Data,vpkt.Length);
                             if (dRes)
                             {
                                 if ((actframe-iframe)<=3)
@@ -859,7 +856,7 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
                         }
                         tspkt+=len;
                         tslen-=len;
-                        if (!pkt.Offcnt)
+                        if (!vpkt.Offcnt)
                         {
                             offset_add+=len;
                         }
@@ -875,14 +872,12 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
 
             if ((mp2_demux) && (audio) && (pn!=3))
             {
-                MarkAdPacket pkt;
-
                 uchar *tspkt = data;
                 int tslen = dataread;
 
                 while (tslen>0)
                 {
-                    int len=mp2_demux->Process(macontext.Info.APid,tspkt,tslen,&pkt);
+                    int len=mp2_demux->Process(macontext.Info.APid,tspkt,tslen,&apkt);
                     if (len<0)
                     {
                         esyslog("error demuxing mp2-audio");
@@ -890,13 +885,13 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
                     }
                     else
                     {
-                        if (pkt.Data)
+                        if (apkt.Data)
                         {
-                            if (pkt.Timestamp) audiotime=pkt.Timestamp;
+                            if (apkt.Timestamp) audiotime=apkt.Timestamp;
 
-                            if (abs(audiotime-lastiframetime)<20000)
+                            if (abs(audiotime-lastiframetime)<DELTATIME)
                             {
-                                if (decoder->DecodeMP2(&macontext,pkt.Data,pkt.Length))
+                                if (decoder->DecodeMP2(&macontext,apkt.Data,apkt.Length))
                                 {
                                     pos=audio->Process2ndPass(iframe);
                                     if (pos) ChangeMarks(Mark1,NULL,pos);
@@ -1172,7 +1167,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                             }
                             if (apkt.Timestamp) audiotime=apkt.Timestamp;
 
-                            if (abs(audiotime-lastiframetime)<20000)
+                            if (abs(audiotime-lastiframetime)<DELTATIME)
                             {
                                 //printf("AC3 %5i %s %x\n",lastiframe,Timestamp2HMS(audiotime),audiotime);
                                 mark=audio->Process(lastiframe,iframe);

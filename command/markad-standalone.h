@@ -21,6 +21,8 @@
 #define IGNORE_AUDIOINFO 2
 #define IGNORE_TIMERINFO 4
 
+#define DELTATIME 20000 /* equals to 222ms (base is 90kHz PTS) */
+
 class cOSDMessage
 {
 private:
