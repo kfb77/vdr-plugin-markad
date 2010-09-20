@@ -2111,19 +2111,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     }
 
     if (tStart) isyslog("pre-timer %im",tStart/60);
-    if (macontext.Info.Length)
-    {
-        int h=macontext.Info.Length/3600;
-        int m=macontext.Info.Length-(h*3600);
-        if (m)
-        {
-            isyslog("broadcast length %ih %im",h,m);
-        }
-        else
-        {
-            isyslog("broadcast length %ih",h);
-        }
-    }
+    if (macontext.Info.Length) isyslog("broadcast length %im",macontext.Info.Length/60);
 
     if (title[0])
     {
