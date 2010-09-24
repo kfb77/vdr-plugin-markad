@@ -119,7 +119,7 @@ private:
     } pktinfo;
 
     int percent;
-    int mpercent;
+    int mpercent; // max percentage use
 
     uchar *buffer;
     int maxqueue;

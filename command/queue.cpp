@@ -97,6 +97,7 @@ bool cMarkAdPaketQueue::Put(uchar *Data, int Size)
         {
             esyslog("buffer full");
         }
+        mpercent=100;
         Clear();
         return false;
     }

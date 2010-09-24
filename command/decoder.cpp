@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <sched.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <string.h>
 #include <cstdlib>
@@ -39,7 +40,9 @@ int avcodec_copy_context(AVCodecContext *dest, const AVCodecContext *src)
     dest->palctrl         = NULL;
     dest->slice_offset    = NULL;
     dest->internal_buffer = NULL;
+#if LIBAVCODEC_VERSION_INT >= ((52<<16)+(18<<8)+0)
     dest->hwaccel         = NULL;
+#endif
     dest->execute         = NULL;
 #if LIBAVCODEC_VERSION_INT >= ((52<<16)+(37<<8)+0)
     dest->execute2        = NULL;
@@ -240,10 +243,11 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
 
             video_context->skip_idct=AVDISCARD_ALL;
 
+            av_log_set_level(AV_LOG_FATAL); // silence decoder output
+
             if (video_codecid==CODEC_ID_H264)
             {
                 video_context->flags2|=CODEC_FLAG2_CHUNKS; // needed for H264!
-                av_log_set_level(AV_LOG_FATAL); // H264 decoder is very chatty
             }
             else
             {
@@ -292,7 +296,11 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
             }
             else
             {
+#if LIBAVCODEC_VERSION_INT < ((51<<16)+(55<<8)+0)
+                isyslog("using codec %s",video_codec->name);
+#else
                 isyslog("using codec %s",video_codec->long_name);
+#endif
 
 #if LIBAVCODEC_VERSION_INT >= ((52<<16)+(22<<8)+2)
                 if (video_context->hwaccel)

@@ -41,37 +41,6 @@ void cMarkAdDemux::Clear()
     skip=0;
 }
 
-void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *Pkt)
-{
-    if (!Pkt) return;
-
-    if ((Pid.Type==MARKAD_PIDTYPE_AUDIO_AC3) || (Pid.Type==MARKAD_PIDTYPE_AUDIO_MP2))
-    {
-        if (!pes2audioes) pes2audioes=new cMarkAdPES2ES("PES2ES audio");
-        if (!pes2audioes) return;
-        pes2audioes->Process(Pid,Data,Count,Pkt);
-    }
-
-    if ((Pid.Type==MARKAD_PIDTYPE_VIDEO_H262) || (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264))
-    {
-        if (!pes2videoes)
-        {
-            if (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264)
-            {
-                pes2videoes=new cMarkAdPES2ES("PES2H264ES video",425984);
-            }
-            else
-            {
-                pes2videoes=new cMarkAdPES2ES("PES2ES video",65536);
-            }
-        }
-        if (!pes2videoes) return;
-        pes2videoes->Process(Pid,Data,Count,Pkt);
-    }
-
-    return;
-}
-
 void cMarkAdDemux::GetVideoPTS(uchar *Data, int Count, unsigned int *Timestamp)
 {
     if (!Data) return;
@@ -102,6 +71,38 @@ void cMarkAdDemux::GetVideoPTS(uchar *Data, int Count, unsigned int *Timestamp)
     return;
 }
 
+void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *Pkt)
+{
+    if (!Pkt) return;
+
+    if ((Pid.Type==MARKAD_PIDTYPE_AUDIO_AC3) || (Pid.Type==MARKAD_PIDTYPE_AUDIO_MP2))
+    {
+        if (!pes2audioes) pes2audioes=new cMarkAdPES2ES((Pid.Type==MARKAD_PIDTYPE_AUDIO_AC3) ?
+                    "PES2ES AC3" : "PES2ES MP2");
+        if (!pes2audioes) return;
+        pes2audioes->Process(Pid,Data,Count,Pkt);
+    }
+
+    if ((Pid.Type==MARKAD_PIDTYPE_VIDEO_H262) || (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264))
+    {
+        if (!pes2videoes)
+        {
+            if (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264)
+            {
+                pes2videoes=new cMarkAdPES2ES("PES2H264ES",425984);
+            }
+            else
+            {
+                pes2videoes=new cMarkAdPES2ES("PES2H262ES",65536);
+            }
+        }
+        if (!pes2videoes) return;
+        pes2videoes->Process(Pid,Data,Count,Pkt);
+    }
+
+    return;
+}
+
 void cMarkAdDemux::ProcessTS(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *Pkt)
 {
     if (!Pkt) return;
@@ -111,13 +112,23 @@ void cMarkAdDemux::ProcessTS(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket
 
     if (!ts2pkt)
     {
-        if (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264)
+        switch (Pid.Type)
         {
+        case MARKAD_PIDTYPE_VIDEO_H264:
             ts2pkt=new cMarkAdTS2Pkt("TS2H264",819200);
-        }
-        else
-        {
-            ts2pkt=new cMarkAdTS2Pkt("TS2PKT",262144);
+            break;
+
+        case MARKAD_PIDTYPE_VIDEO_H262:
+            ts2pkt=new cMarkAdTS2Pkt("TS2H262",262144);
+            break;
+
+        case MARKAD_PIDTYPE_AUDIO_AC3:
+            ts2pkt=new cMarkAdTS2Pkt("TS2PES AC3",32768);
+            break;
+
+        case MARKAD_PIDTYPE_AUDIO_MP2:
+            ts2pkt=new cMarkAdTS2Pkt("TS2PES MP2",16384);
+            break;
         }
     }
     if (!ts2pkt) return;
@@ -130,7 +141,8 @@ void cMarkAdDemux::ProcessTS(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket
 
     if ((Pid.Type==MARKAD_PIDTYPE_AUDIO_AC3) || (Pid.Type==MARKAD_PIDTYPE_AUDIO_MP2))
     {
-        if (!pes2audioes) pes2audioes=new cMarkAdPES2ES("PES2ES audio");
+        if (!pes2audioes) pes2audioes=new cMarkAdPES2ES((Pid.Type==MARKAD_PIDTYPE_AUDIO_AC3) ?
+                    "PES2ES AC3" : "PES2ES MP2");
         if (!pes2audioes) return;
         pes2audioes->Process(Pid,pkt.Data,pkt.Length,Pkt);
     }

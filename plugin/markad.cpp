@@ -7,6 +7,10 @@
 
 #include <unistd.h>
 #include <getopt.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
 #include <vdr/plugin.h>
 
 #include "markad.h"

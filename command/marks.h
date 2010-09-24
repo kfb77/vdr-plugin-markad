@@ -8,6 +8,8 @@
 #ifndef __marks_h_
 #define __marks_h_
 
+#include <string.h>
+
 class clMark
 {
 private:

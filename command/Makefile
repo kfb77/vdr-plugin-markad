@@ -2,6 +2,9 @@
 # Makefile for a Video Disk Recorder addon
 #
 
+# use this, if you use libavcodec51
+#WITH_OLD_FFMPEG_HEADERS=1
+
 ### The version number of this plugin (taken from the main source file):
 
 VERSION = $(shell grep 'static const char \*VERSION *=' ../version.h | awk '{ print $$6 }' | sed -e 's/[";]//g')
@@ -21,6 +24,11 @@ PKG-INCLUDES += libavcodec libavutil
 DEFINES += -D_GNU_SOURCE 
 DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
 DEFINES += -D__STDC_CONSTANT_MACROS
+
+ifdef WITH_OLD_FFMPEG_HEADERS
+	DEFINES += -DUSE_OLD_FFMPEG_HEADERS
+endif
+
 
 INCLUDES += $(shell $(PKG-CONFIG) --cflags $(PKG-INCLUDES))
 LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
