@@ -1952,7 +1952,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
                                      bool DecodeAudio, int IgnoreInfo,
                                      const char *LogoDir, const char *MarkFileName,
                                      bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort,
-                                     bool Before, bool GenIndex)
+                                     bool Before, bool GenIndex, int Threads)
 {
     setlocale(LC_MESSAGES, "");
     directory=Directory;
@@ -2180,7 +2180,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     if (!abort)
     {
         decoder = new cMarkAdDecoder(macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,
-                                     macontext.Info.APid.Num!=0,macontext.Info.DPid.Num!=0);
+                                     macontext.Info.APid.Num!=0,macontext.Info.DPid.Num!=0,Threads);
         video = new cMarkAdVideo(&macontext);
         audio = new cMarkAdAudio(&macontext);
         streaminfo = new cMarkAdStreamInfo;
@@ -2298,6 +2298,9 @@ int usage(int svdrpport)
            "                  [height] range from 20 to %3i, default %3i\n"
            "-O              --OSD\n"
            "                  markad sends an OSD-Message for start and end\n"
+           "-T              --threads=<number>\n"
+           "                  number of threads used for decoding, max. 16\n"
+           "                  (default is the number of cpus)\n"
            "-V              --version\n"
            "                  print version-info and exit\n"
            "                --markfile=<markfilename>\n"
@@ -2393,6 +2396,7 @@ int main(int argc, char *argv[])
     bool bGenIndex=false;
     bool bPass2Only=false;
     int online=0;
+    int threads=-1;
 
     strcpy(logoDirectory,"/var/lib/markad");
 
@@ -2445,12 +2449,13 @@ int main(int argc, char *argv[])
             {"extractlogo", 1, 0, 'L'},
             {"OSD",0,0,'O' },
             {"savelogo", 0, 0, 'S'},
+            {"threads", 1, 0, 'T'},
             {"version", 0, 0, 'V'},
 
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "abcd:i:jl:nop:s:vBCGL:OSV",
+        c = getopt_long  (argc, argv, "abcd:i:jl:nop:s:vBCGL:OST:V",
                           long_options, &option_index);
         if (c == -1)
             break;
@@ -2604,6 +2609,13 @@ int main(int argc, char *argv[])
 
         case 'S':
             // --savelogo
+            break;
+
+        case 'T':
+            // --threads
+            threads=atoi(optarg);
+            if (threads<1) threads=1;
+            if (threads>16) threads=16;
             break;
 
         case 'V':
@@ -2850,7 +2862,7 @@ int main(int argc, char *argv[])
         cmasta = new cMarkAdStandalone(recDir,bBackupMarks, logoExtraction, logoWidth, logoHeight,
                                        bDecodeVideo,bDecodeAudio,ignoreInfo,
                                        logoDirectory,markFileName,bNoPid,bOSD,svdrphost,
-                                       svdrpport,bBefore,bGenIndex);
+                                       svdrpport,bBefore,bGenIndex,threads);
         if (!cmasta) return -1;
 
         if (!bPass2Only) cmasta->Process();

@@ -262,7 +262,7 @@ public:
                       bool DecodeAudio, int IgnoreInfo,
                       const char *LogoDir, const char *MarkFileName,
                       bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort,
-                      bool Before, bool GenIndex);
+                      bool Before, bool GenIndex, int Threads);
 
     ~cMarkAdStandalone();
 };

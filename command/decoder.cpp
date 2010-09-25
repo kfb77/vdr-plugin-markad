@@ -95,7 +95,7 @@ fail:
 }
 #endif
 
-cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
+cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3, int Threads)
 {
     avcodec_init();
     avcodec_register_all();
@@ -115,10 +115,19 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
         cpucount=CPU_COUNT(&cpumask);
     }
 
+    if (Threads==-1)
+    {
+        threadcount=cpucount;
+    }
+    else
+    {
+        threadcount=Threads;
+    }
+
     int ver = avcodec_version();
     char libver[256];
     snprintf(libver,sizeof(libver),"%i.%i.%i",ver >> 16 & 0xFF,ver >> 8 & 0xFF,ver & 0xFF);
-    isyslog("using libavcodec.so.%s with %i threads",libver,cpucount);
+    isyslog("using libavcodec.so.%s with %i threads",libver,threadcount);
 
     if (ver!=LIBAVCODEC_VERSION_INT)
     {
@@ -149,7 +158,6 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
             mp2_context = avcodec_alloc_context();
             if (mp2_context)
             {
-                mp2_context->thread_count=cpucount;
                 mp2_context->codec_id = mp2_codecid;
                 mp2_context->codec_type = CODEC_TYPE_AUDIO;
                 if (avcodec_open(mp2_context, mp2_codec) < 0)
@@ -158,6 +166,7 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
                     av_free(mp2_context);
                     mp2_context=NULL;
                 }
+                avcodec_thread_init(mp2_context,threadcount);
             }
             else
             {
@@ -184,7 +193,6 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
             ac3_context = avcodec_alloc_context();
             if (ac3_context)
             {
-                ac3_context->thread_count=cpucount;
                 ac3_context->codec_id = ac3_codecid;
                 ac3_context->codec_type = CODEC_TYPE_AUDIO;
                 if (avcodec_open(ac3_context, ac3_codec) < 0)
@@ -193,6 +201,7 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
                     av_free(ac3_context);
                     ac3_context=NULL;
                 }
+                avcodec_thread_init(ac3_context,threadcount);
             }
             else
             {
@@ -235,12 +244,10 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
         video_context = avcodec_alloc_context();
         if (video_context)
         {
-            video_context->thread_count=cpucount;
             if (video_codec->capabilities & CODEC_CAP_TRUNCATED)
                 video_context->flags|=CODEC_FLAG_TRUNCATED; // we do not send complete frames
 
             video_context->flags2|=CODEC_FLAG2_FAST; // really?
-
             video_context->skip_idct=AVDISCARD_ALL;
 
             av_log_set_level(AV_LOG_FATAL); // silence decoder output
@@ -317,6 +324,10 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
                     av_free(video_context);
                     video_context=NULL;
                 }
+                else
+                {
+                    avcodec_thread_init(video_context,threadcount);
+                }
             }
         }
         else
@@ -352,7 +363,6 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3)
     {
         audiobuf=NULL;
     }
-    initial_coded_picture=-1;
 }
 
 cMarkAdDecoder::~cMarkAdDecoder()
@@ -360,6 +370,7 @@ cMarkAdDecoder::~cMarkAdDecoder()
     Clear();
     if (video_context)
     {
+        if (video_context->thread_opaque) avcodec_thread_free(video_context);
         avcodec_close(video_context);
         av_free(video_context);
         av_free(video_frame);
@@ -367,12 +378,14 @@ cMarkAdDecoder::~cMarkAdDecoder()
 
     if (ac3_context)
     {
+        if (ac3_context->thread_opaque) avcodec_thread_free(ac3_context);
         avcodec_close(ac3_context);
         av_free(ac3_context);
     }
 
     if (mp2_context)
     {
+        if (mp2_context->thread_opaque) avcodec_thread_free(mp2_context);
         avcodec_close(mp2_context);
         av_free(mp2_context);
     }
@@ -384,6 +397,7 @@ bool cMarkAdDecoder::Clear()
     bool ret=true;
     if (video_context)
     {
+        if (video_context->thread_opaque) avcodec_thread_free(video_context);
         avcodec_flush_buffers(video_context);
         AVCodecContext *dest;
         dest=avcodec_alloc_context();
@@ -402,6 +416,7 @@ bool cMarkAdDecoder::Clear()
             video_context=dest;
             if (avcodec_open(video_context,video_codec)<0) ret=false;
         }
+        avcodec_thread_init(video_context,threadcount);
     }
     if (ac3_context) avcodec_flush_buffers(ac3_context);
     if (mp2_context) avcodec_flush_buffers(mp2_context);
