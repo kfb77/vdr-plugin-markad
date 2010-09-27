@@ -191,6 +191,25 @@ void cMarkAdStandalone::CheckStartStop(int lastiframe)
         iStart=lastiframe;
         if (asprintf(&buf,"assumed start of broadcast (%i)",iStart)!=-1)
         {
+            /* if the last mark is an aspectratio change start mark,
+              then use this mark if the distance is below 5 Minutes */
+            clMark *last=marks.GetLast();
+            if (last)
+            {
+                int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*300);
+                if (iStart-last->position<=MINMARKDIFF)
+                {
+                    isyslog(buf);
+                    isyslog("using mark in \"long\" distance instead of assumed start mark (%i->%i)",
+                            last->position,iStart);
+                    // calculate new stop position based on new start
+                    iStop=-(last->position+(macontext.Info.Length*macontext.Video.Info.FramesPerSecond));
+                    iStart=0;
+                    free(buf);
+                    return;
+                }
+            }
+
             mark.Type=MT_COMMONSTART;
             mark.Position=iStart;
             mark.Comment=buf;
@@ -219,7 +238,7 @@ void cMarkAdStandalone::CheckLogoMarks()
     {
         if ((mark->type==MT_LOGOSTOP) && mark->Next() && mark->Next()->type==MT_LOGOSTART)
         {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*35);
+            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*55);
             if (abs(mark->Next()->position-mark->position)<=MARKDIFF)
             {
                 double distance=(mark->Next()->position-mark->position)/
@@ -407,6 +426,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             }
             else
             {
+                dsyslog("no other start mark found, removing marks till now (%i)",iStart);
                 marks.DelTill(iStart);
                 iStart=0;
             }
@@ -493,6 +513,23 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                     break;
                 }
                 return;
+            }
+        }
+    }
+
+    if (Mark->Type==MT_ASPECTSTOP)
+    {
+        // check if last mark is an stop mark in short distance
+        clMark *prev=marks.GetLast();
+        if ((prev) && ((prev->type & 0xF)==MT_STOP))
+        {
+            int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*15);
+            if ((Mark->Position-prev->position)<MINMARKDIFF)
+            {
+                if (Mark->Comment) isyslog("%s",Mark->Comment);
+                isyslog("double stop mark in short distance, deleting this mark (%i)",prev->position);
+                marks.Del(prev);
+                loggedAlready=true;
             }
         }
     }
