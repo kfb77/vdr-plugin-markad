@@ -191,10 +191,10 @@ void cMarkAdStandalone::CheckStartStop(int lastiframe)
         iStart=lastiframe;
         if (asprintf(&buf,"assumed start of broadcast (%i)",iStart)!=-1)
         {
-            /* if the last mark is an aspectratio change start mark,
+            /* if the last mark is an aspectratio-/channel-/borderchange mark,
               then use this mark if the distance is below 5 Minutes */
-            clMark *last=marks.GetLast();
-            if (last)
+            clMark *last=marks.GetPrev(iStart,MT_START,0xF);
+            if ((last) && (last->type!=MT_LOGOSTART))
             {
                 int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*300);
                 if (iStart-last->position<=MINMARKDIFF)
@@ -205,6 +205,8 @@ void cMarkAdStandalone::CheckStartStop(int lastiframe)
                     // calculate new stop position based on new start
                     iStop=-(last->position+(macontext.Info.Length*macontext.Video.Info.FramesPerSecond));
                     iStart=0;
+                    // delete all marks till now
+                    marks.DelTill(last->position);
                     free(buf);
                     return;
                 }
