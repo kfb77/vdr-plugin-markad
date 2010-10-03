@@ -83,18 +83,21 @@ private:
 
     struct areaT
     {
-        uchar source[MAXPIXEL]; // original grayscale picture
-        uchar sobel[MAXPIXEL];  // monochrome picture with edges (after sobel)
-        uchar mask[MAXPIXEL];   // monochrome mask of logo
-        uchar result[MAXPIXEL]; // result of sobel + mask
-        int rpixel;             // black pixel in result
-        int mpixel;             // black pixel in mask
-        int status;             // status = LOGO on, off, uninitialized
-        int framenumber;        // start/stop frame
-        int counter;            // how many logo on, offs detected?
-        int corner;             // which corner
+#ifdef VDRDEBUG
+        uchar source[4][MAXPIXEL]; // original picture
+#endif
+        uchar sobel[4][MAXPIXEL];  // monochrome picture with edges (after sobel)
+        uchar mask[4][MAXPIXEL];   // monochrome mask of logo
+        uchar result[4][MAXPIXEL]; // result of sobel + mask
+        int rpixel[4];             // black pixel in result
+        int mpixel[4];             // black pixel in mask
+        int status;                // status = LOGO on, off, uninitialized
+        int framenumber;           // start/stop frame
+        int counter;               // how many logo on, offs detected?
+        int corner;                // which corner
+        int intensity;             // intensity (higher -> brighter)
         MarkAdAspectRatio aspectratio; // aspectratio
-        bool valid;             // logo mask valid?
+        bool valid[4];             // logo mask valid?
     } area;
 
     int G[5][5];
@@ -102,9 +105,11 @@ private:
     int GY[3][3];
 
     MarkAdContext *macontext;
+    bool pixfmt_info;
+    int SobelPlane(int plane); // do sobel operation on plane
     int Detect(int framenumber, int *logoframenumber); // ret 1 = logo, 0 = unknown, -1 = no logo
-    int Load(char *directory, char *file);
-    void Save(int framenumber, uchar *picture);
+    int Load(char *directory, char *file, int plane);
+    void Save(int framenumber, uchar picture[4][MAXPIXEL], int plane);
 public:
     cMarkAdLogo(MarkAdContext *maContext);
     int Process(int FrameNumber, int *LogoFrameNumber);

@@ -218,7 +218,8 @@ unsigned Descriptor_Length:
     int chkLEFT;
     int chkRIGHT;
 
-    void CheckIndex();
+    void CheckBroadcastLength();
+    bool CheckIndexGrowing();
     char *indexFile;
     int sleepcnt;
 
@@ -229,6 +230,7 @@ unsigned Descriptor_Length:
     bool bBackupMarks;
     clMarks marks;
     char *IndexToHMSF(int Index);
+    void CalculateStopPosition(int startframe);
     void CheckFirstMark();
     void CheckLastMark();
     void CheckStartStop(int lastiframe);

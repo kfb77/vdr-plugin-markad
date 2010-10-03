@@ -96,7 +96,8 @@ public:
     void DelTill(int Position,bool FromStart=true);
     void DelAll();
     void Del(clMark *Mark);
-    void Del(int Type);
+    void Del(unsigned char Type);
+    void Del(int Position);
     clMark *Get(int Position);
     clMark *GetPrev(int Position,int Type=0xFF, int Mask=0xFF);
     clMark *GetNext(int Position,int Type=0xFF, int Mask=0xFF);
@@ -116,7 +117,7 @@ public:
 #define IERR_SEEK 3
 #define IERR_READ 4
 #define IERR_FRAME 5
-    bool CheckIndex(const char *Directory, bool isTS, int FrameCnt, int *IndexError);
+    bool CheckIndex(const char *Directory, bool isTS, int *FrameCnt, int *IndexError);
     bool ReadIndex(const char *Directory, bool isTS, int FrameNumber, int Range, int *Number,
                    off_t *Offset, int *Frame, int *iFrames);
     void WriteIndex(const char *Directory, bool isTS, uint64_t Offset,

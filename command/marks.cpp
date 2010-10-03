@@ -63,7 +63,24 @@ int clMarks::Count(int Type)
     return ret;
 }
 
-void clMarks::Del(int Type)
+void clMarks::Del(int Position)
+{
+    if (!first) return; // no elements yet
+
+    clMark *next,*mark=first;
+    while (mark)
+    {
+        next=mark->Next();
+        if (mark->position==Position)
+        {
+            Del(mark);
+            return;
+        }
+        mark=next;
+    }
+}
+
+void clMarks::Del(unsigned char Type)
 {
     if (!first) return; // no elements yet
 
@@ -490,7 +507,7 @@ void clMarks::CloseIndex(const char *Directory, bool isTS)
     indexfd=-1;
 }
 
-bool clMarks::CheckIndex(const char *Directory, bool isTS, int FrameCnt, int *IndexError)
+bool clMarks::CheckIndex(const char *Directory, bool isTS, int *FrameCnt, int *IndexError)
 {
     if (!IndexError) return false;
     *IndexError=0;
@@ -508,7 +525,7 @@ bool clMarks::CheckIndex(const char *Directory, bool isTS, int FrameCnt, int *In
         return true;
     }
 
-    if (FrameCnt)
+    if ((FrameCnt) && (*FrameCnt))
     {
         struct stat statbuf;
         if (fstat(fd,&statbuf)!=-1)
@@ -522,8 +539,9 @@ bool clMarks::CheckIndex(const char *Directory, bool isTS, int FrameCnt, int *In
             {
                 framecnt=statbuf.st_size/sizeof(struct tIndexVDR);
             }
-            if (framecnt!=FrameCnt)
+            if (framecnt!=*FrameCnt)
             {
+                *FrameCnt=framecnt;
                 *IndexError=IERR_TOOSHORT;
                 close(fd);
                 return true;

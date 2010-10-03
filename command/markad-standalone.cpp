@@ -155,6 +155,15 @@ int cOSDMessage::Send(const char *format, ...)
     return 0;
 }
 
+void cMarkAdStandalone::CalculateStopPosition(int startframe)
+{
+    int len_in_frames=macontext.Info.Length*macontext.Video.Info.FramesPerSecond;
+    iStop=-(startframe+len_in_frames);
+    chkLEFT=startframe+180;
+    chkRIGHT=startframe+(len_in_frames*2/3);
+    dsyslog("new stop position (%i)",-iStop);
+}
+
 void cMarkAdStandalone::AddStartMark()
 {
     char *buf;
@@ -172,11 +181,8 @@ void cMarkAdStandalone::AddStartMark()
 
         if (tStart)
         {
-            iStop=-((tStart+macontext.Info.Length)*macontext.Video.Info.FramesPerSecond);
             iStart=-(tStart*macontext.Video.Info.FramesPerSecond);
-
-            chkLEFT=(tStart+180)*macontext.Video.Info.FramesPerSecond;
-            chkRIGHT=(tStart+(macontext.Info.Length*2/3))*macontext.Video.Info.FramesPerSecond;
+            CalculateStopPosition(-iStart);
         }
     }
 }
@@ -196,14 +202,14 @@ void cMarkAdStandalone::CheckStartStop(int lastiframe)
             clMark *last=marks.GetPrev(iStart,MT_START,0xF);
             if ((last) && (last->type!=MT_LOGOSTART))
             {
-                int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*300);
+                int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*360);
                 if (iStart-last->position<=MINMARKDIFF)
                 {
                     isyslog(buf);
                     isyslog("using mark in \"long\" distance instead of assumed start mark (%i->%i)",
                             last->position,iStart);
                     // calculate new stop position based on new start
-                    iStop=-(last->position+(macontext.Info.Length*macontext.Video.Info.FramesPerSecond));
+                    CalculateStopPosition(last->position);
                     iStart=0;
                     // delete all marks till now
                     marks.DelTill(last->position);
@@ -428,8 +434,28 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             }
             else
             {
-                dsyslog("no other start mark found, removing marks till now (%i)",iStart);
-                marks.DelTill(iStart);
+                int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*360);
+                last=marks.GetPrev(iStart);
+                if ((last) && (abs(last->position-iStart)>MINMARKDIFF)) last=NULL;
+                if ((last) && (last->type==MT_LOGOSTART))
+                {
+                    isyslog("using mark in \"long\" distance instead of assumed start mark (%i->%i)",
+                            last->position,iStart);
+                    // calculate new stop position based on new start
+                    CalculateStopPosition(last->position);
+                    // delete all marks till now
+                    marks.DelTill(last->position);
+                    // delete assumed start mark
+                    marks.Del(iStart);
+                    last=NULL;
+                }
+                else
+                {
+                    dsyslog("no other start mark found, removing marks till now (%i)",iStart);
+                    // calculate new stop position based on new start
+                    CalculateStopPosition(iStart);
+                    marks.DelTill(iStart);
+                }
                 iStart=0;
             }
         }
@@ -472,7 +498,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 case MT_START:
                     marks.DelAll();
                     // calculate new stop position based on new start
-                    iStop=-(Mark->Position+(macontext.Info.Length*macontext.Video.Info.FramesPerSecond));
+                    CalculateStopPosition(Mark->Position);
                     iStart=0;
                     break;
                 case MT_STOP:
@@ -503,6 +529,8 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 {
                 case MT_START:
                     marks.DelTill(last->position);
+                    // calculate new stop position based on new start
+                    CalculateStopPosition(last->position);
                     iStart=0;
                     break;
                 case MT_STOP:
@@ -609,8 +637,8 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             }
             isyslog("border changes detected. logo detection disabled");
             macontext.Video.Options.IgnoreLogoDetection=true;
-            marks.Del(MT_LOGOSTART);
-            marks.Del(MT_LOGOSTOP);
+            marks.Del((uchar) MT_LOGOSTART);
+            marks.Del((uchar) MT_LOGOSTOP);
         }
 
         if ((((Mark->Type & 0xF0)==MT_CHANNELCHANGE) || ((Mark->Type & 0xF0)==MT_ASPECTCHANGE)) &&
@@ -654,10 +682,10 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 
             bDecodeVideo=false;
             macontext.Video.Data.Valid=false;
-            marks.Del(MT_LOGOSTART);
-            marks.Del(MT_LOGOSTOP);
-            marks.Del(MT_BORDERSTART);
-            marks.Del(MT_BORDERSTOP);
+            marks.Del((uchar) MT_LOGOSTART);
+            marks.Del((uchar) MT_LOGOSTOP);
+            marks.Del((uchar) MT_BORDERSTART);
+            marks.Del((uchar) MT_BORDERSTOP);
         }
     }
     if (Mark->Position>chkLEFT) CheckFirstMark();
@@ -691,7 +719,20 @@ void cMarkAdStandalone::SaveFrame(int frame)
     fclose(pFile);
 }
 
-void cMarkAdStandalone::CheckIndex()
+void cMarkAdStandalone::CheckBroadcastLength()
+{
+    if (macontext.Info.Length) return;
+    if (!macontext.Video.Info.FramesPerSecond) return;
+    /* get broadcastlength from length of indexFile */
+    int tframecnt=1;
+    int iIndexError;
+    marks.CheckIndex(directory,isTS,&tframecnt,&iIndexError);
+    macontext.Info.Length=tframecnt/macontext.Video.Info.FramesPerSecond;
+    isyslog("got broadcast length of %im from index",macontext.Info.Length/60);
+    reprocess=true;
+}
+
+bool cMarkAdStandalone::CheckIndexGrowing()
 {
     // Here we check if the index is more
     // advanced than our framecounter.
@@ -700,23 +741,23 @@ void cMarkAdStandalone::CheckIndex()
 
 #define WAITTIME 10
 
-    if (!indexFile) return;
-    if (sleepcnt>=2) return; // we already slept too much
+    if (!indexFile) return false;
+    if (sleepcnt>=2) return false; // we already slept too much
 
     bool notenough=true;
     do
     {
         struct stat statbuf;
-        if (stat(indexFile,&statbuf)==-1) return;
+        if (stat(indexFile,&statbuf)==-1) return false;
 
         int maxframes=statbuf.st_size/8;
         if (maxframes<(framecnt+200))
         {
-            if ((difftime(time(NULL),statbuf.st_mtime))>=10) return; // "old" file
+            if ((difftime(time(NULL),statbuf.st_mtime))>=10) return false; // "old" file
             marks.Save(directory,macontext.Video.Info.FramesPerSecond,isTS);
             sleep(WAITTIME); // now we sleep and hopefully the index will grow
             waittime+=WAITTIME;
-            if (errno==EINTR) return;
+            if (errno==EINTR) return false;
             sleepcnt++;
             if (sleepcnt>=2)
             {
@@ -732,6 +773,8 @@ void cMarkAdStandalone::CheckIndex()
         }
     }
     while (notenough);
+    if (!sleepcnt) return true;
+    else return false;
 }
 
 void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos)
@@ -1052,7 +1095,8 @@ bool cMarkAdStandalone::ProcessFile(int Number)
     if (!directory) return false;
     if (!Number) return false;
 
-    CheckIndex();
+    if (!CheckIndexGrowing()) CheckBroadcastLength();
+
     if (abort) return false;
 
     //const int datalen=8272;
@@ -1227,7 +1271,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
             return true;
         }
 
-        CheckIndex();
+        if (!CheckIndexGrowing()) CheckBroadcastLength();
         if (abort)
         {
             if (f!=-1) close(f);
@@ -1331,7 +1375,8 @@ void cMarkAdStandalone::Process()
         if (marks.Save(directory,macontext.Video.Info.FramesPerSecond,isTS))
         {
             int iIndexError=false;
-            if (marks.CheckIndex(directory,isTS,bGenIndex ? framecnt : 0,&iIndexError))
+            int tframecnt=bGenIndex ? framecnt : 0;
+            if (marks.CheckIndex(directory,isTS,&tframecnt,&iIndexError))
             {
                 if (iIndexError)
                 {
@@ -1371,14 +1416,13 @@ void cMarkAdStandalone::Process()
         }
         if (bGenIndex) marks.RemoveGeneratedIndex(directory,isTS);
 
-        if ((!bIgnoreAudioInfo) && (!bIgnoreVideoInfo)) SaveInfo();
+        if ((!bIgnoreAudioInfo) && (!bIgnoreVideoInfo) && (macontext.Info.Length)) SaveInfo();
     }
 }
 
 bool cMarkAdStandalone::SaveInfo()
 {
     if ((!setVideo43) && (!setVideo169) && (!setAudio20) && (!setAudio51)) return true;
-
     char *src,*dst;
     if (asprintf(&src,"%s/info%s",directory,isTS ? "" : ".vdr")==-1) return false;
 
@@ -1587,19 +1631,19 @@ bool cMarkAdStandalone::LoadInfo()
     {
         if (line[0]=='C')
         {
-            int ntok=0;
-            char *str=line,*tok;
-            while ((tok=strtok(str," ")))
+            char channelname[256]="";
+            int result=sscanf(line,"%*c %*s %250c",(char *) &channelname);
+            if (result==1)
             {
-                if (ntok==1) macontext.Info.ChannelID=strdup(tok);
-                ntok++;
-                str=NULL;
-            }
-            if (macontext.Info.ChannelID)
-            {
-                for (int i=0; i<(int) strlen(macontext.Info.ChannelID); i++)
+                macontext.Info.ChannelName=strdup(channelname);
+                char *lf=strchr(macontext.Info.ChannelName,10);
+                if (lf) *lf=0;
+                char *cr=strchr(macontext.Info.ChannelName,13);
+                if (cr) *cr=0;
+                for (int i=0; i<(int) strlen(macontext.Info.ChannelName); i++)
                 {
-                    if (macontext.Info.ChannelID[i]=='.') macontext.Info.ChannelID[i]='_';
+                    if (macontext.Info.ChannelName[i]==' ') macontext.Info.ChannelName[i]='_';
+                    if (macontext.Info.ChannelName[i]=='.') macontext.Info.ChannelName[i]='_';
                 }
             }
         }
@@ -1691,13 +1735,14 @@ bool cMarkAdStandalone::LoadInfo()
         }
     }
     if (line) free(line);
+    fclose(f);
 
     if ((macontext.Info.Length) && (!bIgnoreTimerInfo) && (start) && (rStart))
     {
         tStart=start-rStart;
         if (tStart<0)
         {
-            isyslog("broadcast start truncated by %ih %im",-tStart/3600,-tStart/60);
+            isyslog("broadcast start truncated by %im, length will be corrected",-tStart/60);
             macontext.Info.Length+=tStart;
             tStart=0;
         }
@@ -1707,8 +1752,9 @@ bool cMarkAdStandalone::LoadInfo()
         tStart=0;
     }
 
-    fclose(f);
-    if (!macontext.Info.ChannelID)
+    if (!macontext.Info.Length) esyslog("cannot read broadcast length from info, marks can be wrong!");
+
+    if (!macontext.Info.ChannelName)
     {
         return false;
     }
@@ -2116,7 +2162,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     {
         if (!CheckPATPMT())
         {
-            esyslog("no PAT/PMT found -> nothing to process");
+            esyslog("no PAT/PMT found -> cannot process");
             abort=true;
             return;
         }
@@ -2223,8 +2269,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         video = new cMarkAdVideo(&macontext);
         audio = new cMarkAdAudio(&macontext);
         streaminfo = new cMarkAdStreamInfo;
-        if (macontext.Info.ChannelID)
-            dsyslog("channel %s",macontext.Info.ChannelID);
+        if (macontext.Info.ChannelName)
+            dsyslog("channel %s",macontext.Info.ChannelName);
     }
 
     framecnt=0;
@@ -2274,7 +2320,7 @@ cMarkAdStandalone::~cMarkAdStandalone()
         }
     }
 
-    if (macontext.Info.ChannelID) free(macontext.Info.ChannelID);
+    if (macontext.Info.ChannelName) free(macontext.Info.ChannelName);
     if (indexFile) free(indexFile);
 
     if (video_demux) delete video_demux;

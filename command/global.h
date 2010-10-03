@@ -98,7 +98,7 @@ typedef struct MarkAdContext
     struct Info
     {
         int Length; // in seconds
-        char *ChannelID;
+        char *ChannelName;
         MarkAdAspectRatio AspectRatio;
         MarkAdPid VPid;
         MarkAdPid APid;
@@ -118,6 +118,7 @@ typedef struct MarkAdContext
             int Width;  // width of pic
             int Height; // height of pic
             int Pict_Type; // picture type (I,P,B,S,SI,SP,BI)
+            int Pix_Fmt; // Pixel format (see libavutil/pixfmt.h)
             MarkAdAspectRatio AspectRatio;
             double FramesPerSecond;
             bool Interlaced;

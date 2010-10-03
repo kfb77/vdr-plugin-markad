@@ -55,6 +55,7 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
         LOGOWIDTH=LOGO_DEFWIDTH;
     }
 
+    pixfmt_info=false;
     Clear();
 }
 
@@ -64,92 +65,115 @@ void cMarkAdLogo::Clear()
     area.status=UNINITIALIZED;
 }
 
-int cMarkAdLogo::Load(char *directory, char *file)
+int cMarkAdLogo::Load(char *directory, char *file, int plane)
 {
+    if ((plane<0) || (plane>3)) return -3;
+
     char *path;
-    if (asprintf(&path,"%s/%s.pgm",directory,file)==-1) return -3;
+    if (asprintf(&path,"%s/%s-P%i.pgm",directory,file,plane)==-1) return -3;
 
     // Load mask
     FILE *pFile;
-    area.valid=false;
-    area.corner=-1;
+    area.valid[plane]=false;
     pFile=fopen(path, "rb");
     free(path);
-    if (!pFile) return -1;
-
-    if (fscanf(pFile, "P5\n#C%i %i\n%d %d\n255\n#", &area.corner,&area.mpixel,&LOGOWIDTH,&LOGOHEIGHT)) {};
-
-    if (LOGOHEIGHT==255)
+    if (!pFile)
     {
-        LOGOHEIGHT=LOGOWIDTH;
-        LOGOWIDTH=area.mpixel;
-        area.mpixel=0;
+        if (plane>0) return 0; // only report for plane0
+        return -1;
     }
 
-    if ((LOGOWIDTH<=0) || (LOGOHEIGHT<=0) || (LOGOWIDTH>LOGO_MAXWIDTH) || (LOGOHEIGHT>LOGO_MAXHEIGHT) ||
+    int width,height;
+    if (fscanf(pFile, "P5\n#C%i %i\n%d %d\n255\n#", &area.corner,&area.mpixel[plane],&width,&height)!=4)
+    {
+        fclose(pFile);
+        return -2;
+    }
+
+    if (height==255)
+    {
+        height=width;
+        width=area.mpixel[plane];
+        area.mpixel[plane]=0;
+    }
+
+    if ((width<=0) || (height<=0) || (width>LOGO_MAXWIDTH) || (height>LOGO_MAXHEIGHT) ||
             (area.corner<TOP_LEFT) || (area.corner>BOTTOM_RIGHT))
     {
         fclose(pFile);
         return -2;
     }
 
-    if (fread(&area.mask,1,LOGOWIDTH*LOGOHEIGHT,pFile)!=(size_t) (LOGOWIDTH*LOGOHEIGHT)) return -2;
+    if (fread(&area.mask[plane],1,width*height,pFile)!=(size_t) (width*height)) return -2;
 
-    if (!area.mpixel)
+    if (!area.mpixel[plane])
     {
-        for (int i=0; i<LOGOWIDTH*LOGOHEIGHT; i++)
+        for (int i=0; i<width*height; i++)
         {
-            if (!area.mask[i]) area.mpixel++;
+            if (!area.mask[plane][i]) area.mpixel[plane]++;
         }
     }
 
+    if (!plane)
+    {
+        // plane 0 is the largest -> use this values
+        LOGOWIDTH=width;
+        LOGOHEIGHT=height;
+    }
+
     fclose(pFile);
-    area.valid=true;
+    area.valid[plane]=true;
     return 0;
 }
 
 
 
-void cMarkAdLogo::Save(int framenumber, uchar *picture)
+void cMarkAdLogo::Save(int framenumber, uchar picture[4][MAXPIXEL], int plane)
 {
     if (!macontext) return;
-
+    if ((plane<0) || (plane>3)) return;
+    if (!macontext->Info.ChannelName) return;
+    if (!macontext->Video.Info.Width) return;
+    if (!macontext->Video.Info.Height) return;
+    if (!macontext->Video.Data.Valid) return;
+    if (!macontext->Video.Data.PlaneLinesize[plane]) return;
 
     char *buf=NULL;
-    if (asprintf(&buf,"%s/%06d-%s-A%i_%i.pgm","/tmp/",framenumber,
-                 macontext->Info.ChannelID,
-                 area.aspectratio.Num,area.aspectratio.Den)!=-1)
+    if (asprintf(&buf,"%s/%06d-%s-A%i_%i-P%i.pgm","/tmp/",framenumber,
+                 macontext->Info.ChannelName,
+                 area.aspectratio.Num,area.aspectratio.Den,plane)==-1) return;
+
+    // Open file
+    FILE *pFile=fopen(buf, "wb");
+    if (pFile==NULL)
     {
-        // Open file
-        FILE *pFile=fopen(buf, "wb");
-        if (pFile==NULL)
-        {
-            free(buf);
-            return;
-        }
-
-        // Write header
-        fprintf(pFile, "P5\n#C%i\n%d %d\n255\n", area.corner, LOGOWIDTH,LOGOHEIGHT);
-
-        // Write pixel data
-        if (fwrite(picture,1,LOGOWIDTH*LOGOHEIGHT,pFile)) {};
-        // Close file
-        fclose(pFile);
         free(buf);
+        return;
     }
+
+    int width=LOGOWIDTH;
+    int height=LOGOHEIGHT;
+
+    if (plane>0)
+    {
+        width/=2;
+        height/=2;
+    }
+
+    // Write header
+    fprintf(pFile, "P5\n#C%i\n%d %d\n255\n", area.corner,width,height);
+
+    // Write pixel data
+    if (fwrite(picture[plane],1,width*height,pFile)) {};
+    // Close file
+    fclose(pFile);
+    free(buf);
 }
 
-int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
+int cMarkAdLogo::SobelPlane(int plane)
 {
-    // Detection is made with Sobel-Operator
-
-    if (!macontext) return 0;
-    if (!macontext->Video.Info.Width) return 0;
-    if (!macontext->Video.Info.Height) return 0;
-    if (!macontext->Video.Data.Valid) return 0;
-
-    if (area.corner>BOTTOM_RIGHT) return 0;
-    if (area.corner<TOP_LEFT) return 0;
+    if ((plane<0) || (plane>3)) return 0;
+    if (!macontext->Video.Data.PlaneLinesize[plane]) return 0;
 
     int xstart,xend,ystart,yend;
 
@@ -183,176 +207,195 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
         return 0;
     }
 
-    int SUMA=0;
+    if (macontext->Video.Info.Pix_Fmt!=0)
+    {
+        if (!pixfmt_info)
+        {
+            esyslog("unknown pix_fmt %i, please report!",macontext->Video.Info.Pix_Fmt);
+            pixfmt_info=true;
+        }
+        return 0;
+    }
+
+    int boundary=15;
+    int cutval=127;
+    int width=LOGOWIDTH;
+
+    if (plane>0)
+    {
+        xstart/=2;
+        xend/=2;
+        ystart/=2;
+        yend/=2;
+        boundary/=2;
+        cutval/=2;
+        width/=2;
+    }
+
+    int SUM;
+    int sumX,sumY;
+    area.rpixel[plane]=0;
+    if (!plane) area.intensity=0;
     for (int Y=ystart; Y<=yend-1; Y++)
     {
         for (int X=xstart; X<=xend-1; X++)
         {
-            int val=macontext->Video.Data.Plane[0][X+(Y*macontext->Video.Data.PlaneLinesize[0])];
-            area.source[(X-xstart)+(Y-ystart)*LOGOWIDTH]=val;
-            SUMA+=val;
+            if (!plane)
+            {
+                area.intensity+=macontext->Video.Data.Plane[plane][X+(Y*macontext->Video.Data.PlaneLinesize[plane])];
+            }
+            sumX=0;
+            sumY=0;
+
+            // image boundaries
+            if (Y<(ystart+boundary) || Y>(yend-boundary))
+                SUM=0;
+            else if (X<(xstart+boundary) || X>(xend-boundary))
+                SUM=0;
+            // convolution starts here
+            else
+            {
+                // X Gradient approximation
+                for (int I=-1; I<=1; I++)
+                {
+                    for (int J=-1; J<=1; J++)
+                    {
+                        sumX=sumX+ (int) ((*(macontext->Video.Data.Plane[plane]+X+I+
+                                             (Y+J)*macontext->Video.Data.PlaneLinesize[plane]))
+                                          *GX[I+1][J+1]);
+                    }
+                }
+
+                // Y Gradient approximation
+                for (int I=-1; I<=1; I++)
+                {
+                    for (int J=-1; J<=1; J++)
+                    {
+                        sumY=sumY+ (int) ((*(macontext->Video.Data.Plane[plane]+X+I+
+                                             (Y+J)*macontext->Video.Data.PlaneLinesize[plane]))*
+                                          GY[I+1][J+1]);
+                    }
+                }
+
+                // Gradient Magnitude approximation
+                SUM = abs(sumX) + abs(sumY);
+            }
+
+            if (SUM>=cutval) SUM=255;
+            if (SUM<cutval) SUM=0;
+
+            int val = 255-(uchar) SUM;
+
+            area.sobel[plane][(X-xstart)+(Y-ystart)*width]=val;
+
+            area.result[plane][(X-xstart)+(Y-ystart)*width]=
+                (area.mask[plane][(X-xstart)+(Y-ystart)*width] + val) & 255;
+
+            if (!area.result[plane][(X-xstart)+(Y-ystart)*width]) area.rpixel[plane]++;
+#ifdef VDRDEBUG
+            val=macontext->Video.Data.Plane[plane][X+(Y*macontext->Video.Data.PlaneLinesize[plane])];
+            area.source[plane][(X-xstart)+(Y-ystart)*width]=val;
+#endif
+
         }
     }
+    if (!plane) area.intensity/=(LOGOHEIGHT*width);
 
-    SUMA/=(LOGOWIDTH*LOGOHEIGHT);
-#if 0
-    if (SUMA>=100)
+    return 1;
+}
+
+int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
+{
+    bool extract=(macontext->Options.LogoExtraction!=-1);
+
+    int rpixel=0,mpixel=0;
+    int processed=0;
+    for (int plane=0; plane<4; plane++)
     {
-        int maxval=(int) SUMA;
-        SUMA=0;
-        for (int Y=ystart; Y<=yend-1; Y++)
+        if ((area.valid[plane]) || (extract))
         {
-            for (int X=xstart; X<=xend-1; X++)
-            {
-                int val=macontext->Video.Data.Plane[0][X+(Y*macontext->Video.Data.PlaneLinesize[0])];
-                val=(int) (((double) val- (double) maxval/1.4)*1.4);
-                if (val>maxval) val=maxval;
-                if (val<0) val=0;
-                area.source[(X-xstart)+(Y-ystart)*LOGOWIDTH]=val;
-                SUMA+=val;
-            }
+            if (SobelPlane(plane)) processed++;
         }
-        SUMA/=(LOGOWIDTH*LOGOHEIGHT);
-    }
-#endif
-    int ret=NOCHANGE;
-
-    if ((SUMA<100) || ((area.status==LOGO) && (SUMA<180)))
-    {
-
-        int SUM;
-        int sumX,sumY;
-        area.rpixel=0;
-        for (int Y=ystart; Y<=yend-1; Y++)
+        if (extract)
         {
-            for (int X=xstart; X<=xend-1; X++)
-            {
-                sumX=0;
-                sumY=0;
-
-                // image boundaries
-                if (Y<(ystart+15) || Y>(yend-15))
-                    SUM=0;
-                else if (X<(xstart+15) || X>(xend-15))
-                    SUM=0;
-                // convolution starts here
-                else
-                {
-                    // X Gradient approximation
-                    for (int I=-1; I<=1; I++)
-                    {
-                        for (int J=-1; J<=1; J++)
-                        {
-                            sumX=sumX+ (int) ((*(macontext->Video.Data.Plane[0]+X+I+
-                                                 (Y+J)*macontext->Video.Data.PlaneLinesize[0]))
-                                              *GX[I+1][J+1]);
-                        }
-                    }
-
-                    // Y Gradient approximation
-                    for (int I=-1; I<=1; I++)
-                    {
-                        for (int J=-1; J<=1; J++)
-                        {
-                            sumY=sumY+ (int) ((*(macontext->Video.Data.Plane[0]+X+I+
-                                                 (Y+J)*macontext->Video.Data.PlaneLinesize[0]))*
-                                              GY[I+1][J+1]);
-                        }
-                    }
-
-                    // Gradient Magnitude approximation
-                    SUM = abs(sumX) + abs(sumY);
-                }
-
-                if (SUM>=127) SUM=255;
-                if (SUM<127) SUM=0;
-
-                int val = 255-(uchar) SUM;
-
-                area.sobel[(X-xstart)+(Y-ystart)*LOGOWIDTH]=val;
-
-                area.result[(X-xstart)+(Y-ystart)*LOGOWIDTH]=
-                    (area.mask[(X-xstart)+(Y-ystart)*LOGOWIDTH] + val) & 255;
-
-                if (!area.result[(X-xstart)+(Y-ystart)*LOGOWIDTH]) area.rpixel++;
-
-            }
-        }
-        if (macontext->Options.LogoExtraction==-1)
-        {
-            if (area.status==UNINITIALIZED)
-            {
-                // Initialize
-                if (area.rpixel>(area.mpixel*LOGO_VMARK))
-                {
-                    area.status=LOGO;
-                }
-                else
-                {
-                    area.status=NOLOGO;
-                }
-            }
-
-            if (area.rpixel>=(area.mpixel*LOGO_VMARK))
-            {
-                if (area.status==NOLOGO)
-                {
-                    if (area.counter>=LOGO_VMAXCOUNT)
-                    {
-                        area.status=ret=LOGO;
-                        *logoframenumber=area.framenumber;
-                        area.counter=0;
-                    }
-                    else
-                    {
-                        if (!area.counter) area.framenumber=framenumber;
-                        area.counter++;
-                    }
-                }
-                else
-                {
-                    area.framenumber=framenumber;
-                    area.counter=0;
-                }
-            }
-
-            if (area.rpixel<(area.mpixel*LOGO_IMARK))
-            {
-                if (area.status==LOGO)
-                {
-                    if (area.counter>=LOGO_IMAXCOUNT)
-                    {
-                        area.status=ret=NOLOGO;
-                        *logoframenumber=area.framenumber;
-                        area.counter=0;
-                    }
-                    else
-                    {
-                        area.counter++;
-                    }
-                }
-                else
-                {
-                    area.counter=0;
-                }
-            }
-
-            if ((area.rpixel<(area.mpixel*LOGO_VMARK)) && (area.rpixel>(area.mpixel*LOGO_IMARK)))
-            {
-                area.counter=0;
-            }
-
-#if 0
-            printf("%5i %3i %4i %4i %i %i %i\n",framenumber,SUMA,area.rpixel,area.mpixel,
-                   (area.rpixel>=(area.mpixel*LOGO_VMARK)),(area.rpixel<(area.mpixel*LOGO_IMARK)),
-                   area.counter  );
-            Save(framenumber,area.sobel); // TODO: JUST FOR DEBUGGING!
-#endif
+            Save(framenumber,area.sobel,plane);
         }
         else
         {
-            Save(framenumber,area.sobel);
+            rpixel+=area.rpixel[plane];
+            mpixel+=area.mpixel[plane];
         }
+    }
+    if (extract) return NOCHANGE;
+    if (!processed) return ERROR;
+
+    if (processed==1)
+    {
+        if ((area.intensity>100) || (area.status!=LOGO) &&
+                (area.intensity>180))  return NOCHANGE;
+    }
+
+    int ret=NOCHANGE;
+    if (area.status==UNINITIALIZED)
+    {
+        // Initialize
+        if (rpixel>(mpixel*LOGO_VMARK))
+        {
+            area.status=LOGO;
+        }
+        else
+        {
+            area.status=NOLOGO;
+        }
+    }
+
+    if (rpixel>=(mpixel*LOGO_VMARK))
+    {
+        if (area.status==NOLOGO)
+        {
+            if (area.counter>=LOGO_VMAXCOUNT)
+            {
+                area.status=ret=LOGO;
+                *logoframenumber=area.framenumber;
+                area.counter=0;
+            }
+            else
+            {
+                if (!area.counter) area.framenumber=framenumber;
+                area.counter++;
+            }
+        }
+        else
+        {
+            area.framenumber=framenumber;
+            area.counter=0;
+        }
+    }
+
+    if (rpixel<(mpixel*LOGO_IMARK))
+    {
+        if (area.status==LOGO)
+        {
+            if (area.counter>=LOGO_IMAXCOUNT)
+            {
+                area.status=ret=NOLOGO;
+                *logoframenumber=area.framenumber;
+                area.counter=0;
+            }
+            else
+            {
+                area.counter++;
+            }
+        }
+        else
+        {
+            area.counter=0;
+        }
+    }
+
+    if ((rpixel<(mpixel*LOGO_VMARK)) && (rpixel>(mpixel*LOGO_IMARK)))
+    {
+        area.counter=0;
     }
     return ret;
 }
@@ -362,32 +405,35 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
     if (!macontext) return ERROR;
     if (!macontext->Video.Data.Valid) return ERROR;
     if (!macontext->Video.Info.Width) return ERROR;
+    if (!macontext->Video.Info.Height) return ERROR;
     if (!macontext->LogoDir) return ERROR;
-    if (!macontext->Info.ChannelID) return ERROR;
+    if (!macontext->Info.ChannelName) return ERROR;
 
     if (macontext->Options.LogoExtraction==-1)
     {
-
         if ((area.aspectratio.Num!=macontext->Video.Info.AspectRatio.Num) ||
                 (area.aspectratio.Den!=macontext->Video.Info.AspectRatio.Den))
         {
-            area.valid=false;  // just to be sure!
             char *buf=NULL;
-            if (asprintf(&buf,"%s-A%i_%i",macontext->Info.ChannelID,
+            if (asprintf(&buf,"%s-A%i_%i",macontext->Info.ChannelName,
                          macontext->Video.Info.AspectRatio.Num,macontext->Video.Info.AspectRatio.Den)!=-1)
             {
-                int ret=Load(macontext->LogoDir,buf);
-                switch (ret)
+                area.corner=-1;
+                for (int plane=0; plane<4; plane++)
                 {
-                case -1:
-                    isyslog("no logo for %s",buf);
-                    break;
-                case -2:
-                    esyslog("format error in %s",buf);
-                    break;
-                case -3:
-                    esyslog("cannot load %s",buf);
-                    break;
+                    int ret=Load(macontext->LogoDir,buf,plane);
+                    switch (ret)
+                    {
+                    case -1:
+                        isyslog("no logo for %s",buf);
+                        break;
+                    case -2:
+                        esyslog("format error in %s",buf);
+                        break;
+                    case -3:
+                        esyslog("cannot load %s",buf);
+                        break;
+                    }
                 }
                 free(buf);
             }
@@ -408,10 +454,9 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
         {
             LOGOHEIGHT=macontext->Options.LogoHeight;
         }
-        area.valid=true;
     }
 
-    if (!area.valid) return ERROR;
+    //if (!area.valid) return ERROR;
 
     return Detect(FrameNumber,LogoFrameNumber);
 }

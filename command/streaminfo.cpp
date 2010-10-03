@@ -168,6 +168,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         uint32_t height=0;
         uint32_t aspect_ratio_idc=0;
         double frame_rate=0;
+        int sar_width=1,sar_height=1;
 
         profile_idc = bs.getU8();                 // profile_idc
         bs.skipBits(8);                           // constraint_setN_flags and reserved_zero_Nbits
@@ -244,8 +245,8 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 aspect_ratio_idc = bs.getU8();      // aspect_ratio_idc
                 if (aspect_ratio_idc == 255)        // extended sar
                 {
-                    bs.skipBits(16);                 // sar_width
-                    bs.skipBits(16);                 // sar_height
+                    sar_width=bs.getBits(16);                 // sar_width
+                    sar_height=bs.getBits(16);                 // sar_height
                 }
             }
             if (bs.getBit())                       // overscan_info_present_flag
@@ -343,6 +344,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
             switch (aspect_ratio_idc)
             {
             case 1:
+                // square pixel
                 maContext->Video.Info.AspectRatio.Num=1;
                 maContext->Video.Info.AspectRatio.Den=1;
 
@@ -429,6 +431,11 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
             case 16:
                 maContext->Video.Info.AspectRatio.Num=2;
                 maContext->Video.Info.AspectRatio.Den=1;
+                break;
+            case 255:
+                // extended SAR
+                maContext->Video.Info.AspectRatio.Num=sar_width;
+                maContext->Video.Info.AspectRatio.Den=sar_height;
                 break;
             }
         }

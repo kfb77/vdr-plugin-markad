@@ -531,6 +531,7 @@ bool cMarkAdDecoder::SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Vide
     }
     maContext->Video.Info.Height=Video_Context->height;
     maContext->Video.Info.Width=Video_Context->width;
+    maContext->Video.Info.Pix_Fmt=Video_Context->pix_fmt;
     return true;
 }
 
