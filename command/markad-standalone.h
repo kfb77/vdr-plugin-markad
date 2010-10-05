@@ -206,7 +206,9 @@ unsigned Descriptor_Length:
     bool bGenIndex;
     int tStart; // pretimer in seconds
     int iStart; // pretimer as index value
+    int iStartCheck; // check position for iStart
     int iStop;  // posttimer as index value
+    int iStopCheck; // check position for iStop
 
     bool setAudio51;  // set audio to 5.1 in info
     bool setAudio20;  // set audio to 2.0 in info
@@ -216,6 +218,7 @@ unsigned Descriptor_Length:
     int nextPictType;
 
     int chkLEFT;
+    int chkLEFT2;
     int chkRIGHT;
 
     void CheckBroadcastLength();
@@ -233,7 +236,7 @@ unsigned Descriptor_Length:
     void CalculateStopPosition(int startframe);
     void CheckFirstMark();
     void CheckLastMark();
-    void CheckStartStop(int lastiframe);
+    void CheckStartStop(int frame, bool checkend=false);
     void CheckInfoAspectRatio();
     void CheckLogoMarks();
     void AddStartMark();

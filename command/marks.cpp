@@ -205,6 +205,7 @@ clMark *clMarks::GetPrev(int Position, int Type, int Mask)
     else
     {
         if (!mark) mark=last;
+        else mark=mark->Prev();
         while (mark)
         {
             if ((mark->type & Mask)==Type) break;
@@ -222,15 +223,15 @@ clMark *clMarks::GetNext(int Position, int Type, int Mask)
     {
         if (Type==0xFF)
         {
-            if (mark->position>=Position) break;
+            if (mark->position>Position) break;
         }
         else
         {
-            if ((mark->position>=Position) && ((mark->type & Mask)==Type)) break;
+            if ((mark->position>Position) && ((mark->type & Mask)==Type)) break;
         }
         mark=mark->Next();
     }
-    if (mark) return mark->Next();
+    if (mark) return mark;
     return NULL;
 }
 
