@@ -103,7 +103,6 @@ bool cMarkAdAudio::SilenceDetection(int FrameNumber)
         {
             if (lastframe_silence==FrameNumber)
             {
-//                isyslog("Silentium @%i (%i)!",FrameNumber,lowvalcount);
                 return true;
             }
             lowvalcount=0;
@@ -172,7 +171,7 @@ bool cMarkAdAudio::ChannelChange(int a, int b)
 MarkAdPos *cMarkAdAudio::Process2ndPass(int FrameNumber)
 {
     if (!FrameNumber) return NULL;
-
+#if 0
     if (SilenceDetection(FrameNumber))
     {
         if (result.CommentBefore) free(result.CommentBefore);
@@ -183,7 +182,7 @@ MarkAdPos *cMarkAdAudio::Process2ndPass(int FrameNumber)
         result.FrameNumberBefore=FrameNumber;
         return &result;
     }
-
+#endif
     return NULL;
 }
 

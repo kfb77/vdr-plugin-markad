@@ -278,6 +278,12 @@ void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
             marks.Del(iStop);
             marks.DelTill(newpos,false);
         }
+        else
+        {
+            marks.DelTill(iStop,false);
+        }
+        bDecodeVideo=false;
+        gotendmark=true;
         iStop=0;
         iStopCheck=0;
     }
@@ -493,6 +499,7 @@ void cMarkAdStandalone::CheckInfoAspectRatio()
 
 void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 {
+    if (gotendmark) return;
     if (!Mark) return;
     if (!Mark->Type) return;
     if (!macontext.Video.Info.FramesPerSecond) return;
@@ -983,7 +990,9 @@ void cMarkAdStandalone::Process2ndPass()
     bool infoheader=false;
     clMark *p1=NULL,*p2=NULL;
 
+#if 0
     p1=marks.GetFirst();
+    if (!p1) return;
     if (p1->position>0)
     {
         isyslog("2nd pass");
@@ -997,8 +1006,11 @@ void cMarkAdStandalone::Process2ndPass()
             ProcessFile2ndPass(&p1,&p1,number,offset,frame,iframes);
         }
     }
-
+#endif
     if (marks.Count()<4) return; // here we cannot do much
+
+    p1=marks.GetFirst();
+    if (!p1) return;
 
     p1=p1->Next();
     if (p1) p2=p1->Next();
@@ -1225,7 +1237,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
             }
         }
 
-        if ((fastexit) || (reprocess))
+        if (((gotendmark) && (!bGenIndex)) || (reprocess))
         {
             if (f!=-1) close(f);
             return true;
@@ -1254,7 +1266,7 @@ bool cMarkAdStandalone::Reset(bool FirstPass)
     iframetime=0;
     audiotime=0;
 
-    fastexit=false;
+    gotendmark=false;
 
     memset(&vpkt,0,sizeof(vpkt));
     memset(&apkt,0,sizeof(apkt));
@@ -1287,20 +1299,40 @@ bool cMarkAdStandalone::Reset(bool FirstPass)
     return ret;
 }
 
-void cMarkAdStandalone::Process()
+bool cMarkAdStandalone::CheckDolbyDigital51()
 {
-    if (abort) return;
+    if (!macontext.Audio.Info.DolbyDigital51) return false;
+    if (abort) return false;
 
-    if (bBackupMarks) marks.Backup(directory,isTS);
+    // Assumption: last mark must be MT_CHANNELSTOP and the position must be
+    // beyond the half of the broadcast length (or?)
+    clMark *mark=marks.GetLast();
+    if (!mark) return false; // no last mark? there is a problem!
 
+    mark=marks.GetPrev(mark->position,MT_CHANNELSTART);
+    if (mark)
+    {
+        if (mark->position>chkLEFT) return false;
+    }
+
+    reprocess=true;
+    macontext.Audio.Info.DolbyDigital51=false;
+    bDecodeVideo=true;
+    setAudio20=true;
+    setAudio51=false;
+    isyslog("%s DolbyDigital5.1 marks found", mark ? "not enough" : "no");
+    isyslog("restarting from scratch");
+    Reset();
+    return true;
+}
+
+void cMarkAdStandalone::ProcessFile()
+{
     for (int i=1; i<=MaxFiles; i++)
     {
         if (abort) break;
-        if (!ProcessFile(i))
-        {
-            break;
-        }
-        if (fastexit) break;
+        if (!ProcessFile(i)) break;
+        if ((gotendmark) && (!bGenIndex)) break;
         if (reprocess)
         {
             isyslog("restarting from scratch");
@@ -1311,12 +1343,11 @@ void cMarkAdStandalone::Process()
 
     if (!abort)
     {
-
         if (lastiframe)
         {
             CheckStartStop(lastiframe,true);
 
-            if ((!fastexit) && ((iStop<0) || (!tStart)))
+            if ((!gotendmark) && ((iStop<0) || (!tStart)))
             {
                 char *buf;
                 MarkAdMark tempmark;
@@ -1334,7 +1365,20 @@ void cMarkAdStandalone::Process()
 
         CheckLastMark();
         CheckLogoMarks();
+    }
+}
 
+void cMarkAdStandalone::Process()
+{
+    if (abort) return;
+
+    if (bBackupMarks) marks.Backup(directory,isTS);
+
+    ProcessFile();
+    if (CheckDolbyDigital51()) ProcessFile();
+
+    if (!abort)
+    {
         marks.CloseIndex(directory,isTS);
         if (marks.Save(directory,macontext.Video.Info.FramesPerSecond,isTS))
         {
@@ -1588,6 +1632,7 @@ bool cMarkAdStandalone::LoadInfo()
         rStart=mktime(&t);
     }
 
+    bool tbDecodeVideo=bDecodeVideo;
     long start=0;
     char *line=NULL;
     size_t length;
@@ -1674,6 +1719,7 @@ bool cMarkAdStandalone::LoadInfo()
                             {
                                 bDecodeVideo=false;
                                 macontext.Video.Options.IgnoreAspectRatio=true;
+                                macontext.Audio.Info.DolbyDigital51=true;
                                 isyslog("broadcast with DolbyDigital5.1, disabling video decoding");
                                 if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262)
                                 {
@@ -1721,7 +1767,9 @@ bool cMarkAdStandalone::LoadInfo()
         esyslog("cannot read broadcast length from info, marks can be wrong!");
         macontext.Info.AspectRatio.Num=0;
         macontext.Info.AspectRatio.Den=0;
-        bDecodeVideo=true;
+        bIgnoreAudioInfo=true;
+        bIgnoreVideoInfo=true;
+        bDecodeVideo=tbDecodeVideo;
         macontext.Video.Options.IgnoreAspectRatio=false;
     }
 
@@ -2013,7 +2061,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     setlocale(LC_MESSAGES, "");
     directory=Directory;
     abort=false;
-    fastexit=false;
+    gotendmark=false;
     reprocess=false;
 
     indexFile=NULL;

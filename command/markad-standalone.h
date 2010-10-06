@@ -190,7 +190,7 @@ unsigned Descriptor_Length:
     int framecnt2; // 2nd pass
 
     bool abort;
-    bool fastexit;
+    bool gotendmark;
     bool reprocess;
     int waittime;
     struct timeval tv1,tv2;
@@ -238,6 +238,7 @@ unsigned Descriptor_Length:
     void CalculateStopPosition(int startframe, int delta);
     void CheckFirstMark();
     void CheckLastMark();
+    bool CheckDolbyDigital51();
     void CheckStartStop(int frame, bool checkend=false);
     void CheckInfoAspectRatio();
     void CheckLogoMarks();
@@ -256,7 +257,7 @@ unsigned Descriptor_Length:
     bool ProcessFile(int Number);
 
     char *Timestamp2HMS(unsigned int Timestamp);
-
+    void ProcessFile();
 public:
     void SetAbort()
     {
