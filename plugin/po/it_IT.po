@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2010-09-17 18:09+0200\n"
+"POT-Creation-Date: 2010-10-06 14:53+0200\n"
 "PO-Revision-Date: 2010-08-09 20:05+0100\n"
 "Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
 "Language-Team:  <vdr@linuxtv.org>\n"
@@ -71,6 +71,9 @@ msgstr "Ripara indice, se errato"
 
 msgid "ignore timer margins"
 msgstr "Ignora margini timer"
+
+msgid "detect overlaps"
+msgstr ""
 
 msgid "OSD message"
 msgstr "Messaggio OSD"

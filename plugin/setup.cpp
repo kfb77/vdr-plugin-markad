@@ -19,7 +19,8 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     verbose=setup->Verbose;
     genindex=setup->GenIndex;
     nomargins=setup->NoMargins;
-hidemainmenuentry=setup->HideMainMenuEntry;
+    hidemainmenuentry=setup->HideMainMenuEntry;
+    secondpass=setup->SecondPass;
 
     processTexts[0]=tr("after");
     processTexts[1]=tr("during");
@@ -40,11 +41,12 @@ void cSetupMarkAd::write(void)
 
     Add(new cMenuEditBoolItem(tr("repair index, if broken"),&genindex));
     Add(new cMenuEditBoolItem(tr("ignore timer margins"),&nomargins));
+    Add(new cMenuEditBoolItem(tr("detect overlaps"),&secondpass));
 
     Add(new cMenuEditBoolItem(tr("OSD message"),&osdmsg));
     Add(new cMenuEditBoolItem(tr("backup marks"),&backupmarks));
     Add(new cMenuEditBoolItem(tr("verbose logging"),&verbose));
-    Add(new cMenuEditBoolItem(tr("Hide Mainmenu entry"),&hidemainmenuentry)); 
+    Add(new cMenuEditBoolItem(tr("Hide Mainmenu entry"),&hidemainmenuentry));
 
     Display();
 }
@@ -80,6 +82,7 @@ void cSetupMarkAd::Store(void)
     SetupStore("IgnoreMargins",nomargins);
     SetupStore("BackupMarks",backupmarks);
     SetupStore("GenIndex",genindex);
+    SetupStore("SecondPass",secondpass);
     SetupStore("OSDMessage",osdmsg);
     SetupStore("Verbose",verbose);
     SetupStore("HideMainMenuEntry",hidemainmenuentry);
@@ -89,6 +92,7 @@ void cSetupMarkAd::Store(void)
     setup->whileReplaying=(bool) whilereplaying;
     setup->OSDMessage=(bool) osdmsg;
     setup->GenIndex=(bool) genindex;
+    setup->SecondPass=(bool) secondpass;
     setup->BackupMarks=(bool) backupmarks;
     setup->Verbose=(bool) verbose;
     setup->NoMargins=(bool) nomargins;

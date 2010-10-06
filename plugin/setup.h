@@ -19,6 +19,7 @@ struct setup
     bool Verbose;
     bool GenIndex;
     bool NoMargins;
+    bool SecondPass;
     bool HideMainMenuEntry;
 };
 
@@ -35,6 +36,7 @@ private:
     int verbose;
     int genindex;
     int nomargins;
+    int secondpass;
     int hidemainmenuentry;
     void write(void);
 protected:

@@ -155,12 +155,11 @@ int cOSDMessage::Send(const char *format, ...)
     return 0;
 }
 
-void cMarkAdStandalone::CalculateStopPosition(int startframe)
+void cMarkAdStandalone::CalculateStopPosition(int startframe, int delta)
 {
     int len_in_frames=macontext.Info.Length*macontext.Video.Info.FramesPerSecond;
     iStop=-(startframe+len_in_frames);
-    chkLEFT=startframe;
-    chkLEFT2=startframe+(macontext.Video.Info.FramesPerSecond*361);
+    chkLEFT=startframe+delta+macontext.Video.Info.FramesPerSecond;
     chkRIGHT=startframe+(len_in_frames*2/3);
 }
 
@@ -177,13 +176,12 @@ void cMarkAdStandalone::AddStartMark()
     if (macontext.Info.Length)
     {
         chkLEFT=(int) ((macontext.Video.Info.FramesPerSecond*macontext.Info.Length)/3);
-        chkLEFT2=chkLEFT;
         chkRIGHT=(int) ((macontext.Video.Info.FramesPerSecond*macontext.Info.Length)*2/3);
 
         if (tStart)
         {
             iStart=-(tStart*macontext.Video.Info.FramesPerSecond);
-            CalculateStopPosition(-iStart);
+            CalculateStopPosition(-iStart,macontext.Video.Info.FramesPerSecond*MAXRANGE);
         }
     }
 }
@@ -199,20 +197,20 @@ void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
         clMark *before_iStart=marks.GetPrev(iStart,MT_START,0xF);
         clMark *after_iStart=marks.GetNext(iStart,MT_START,0xF);
 
-        int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*360);
+        int MAXMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*MAXRANGE);
         int newpos=0;
-        int delta_before=MINMARKDIFF;
-        int delta_after=MINMARKDIFF;
+        int delta_before=MAXMARKDIFF;
+        int delta_after=MAXMARKDIFF;
 
         if (before_iStart)
         {
             delta_before=abs(iStart-before_iStart->position);
-            if (delta_before>MINMARKDIFF) delta_before=MINMARKDIFF;
+            if (delta_before>MAXMARKDIFF) delta_before=MAXMARKDIFF;
         }
         if (after_iStart)
         {
             delta_after=abs(after_iStart->position-iStart);
-            if (delta_after>MINMARKDIFF) delta_after=MINMARKDIFF;
+            if (delta_after>MAXMARKDIFF) delta_after=MAXMARKDIFF;
         }
 
         if (delta_before>delta_after)
@@ -233,7 +231,7 @@ void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
                     newpos,iStart);
             marks.Del(iStart);
             marks.DelTill(newpos);
-            CalculateStopPosition(newpos);
+            CalculateStopPosition(newpos,frame-newpos);
         }
         iStart=0;
         iStartCheck=0;
@@ -245,20 +243,20 @@ void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
         clMark *before_iStop=marks.GetPrev(iStop,MT_STOP,0xF);
         clMark *after_iStop=marks.GetNext(iStop,MT_STOP,0xF);
 
-        int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*360);
+        int MAXMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*MAXRANGE);
         int newpos=0;
-        int delta_before=MINMARKDIFF;
-        int delta_after=MINMARKDIFF;
+        int delta_before=MAXMARKDIFF;
+        int delta_after=MAXMARKDIFF;
 
         if (before_iStop)
         {
             delta_before=abs(iStop-before_iStop->position);
-            if (delta_before>MINMARKDIFF) delta_before=MINMARKDIFF;
+            if (delta_before>MAXMARKDIFF) delta_before=MAXMARKDIFF;
         }
         if (after_iStop)
         {
             delta_after=abs(after_iStop->position-iStop);
-            if (delta_after>MINMARKDIFF) delta_after=MINMARKDIFF;
+            if (delta_after>MAXMARKDIFF) delta_after=MAXMARKDIFF;
         }
 
         if (delta_before>delta_after)
@@ -295,8 +293,15 @@ void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
             AddMark(&mark);
             free(buf);
         }
-        iStartCheck=iStart+(int) (macontext.Video.Info.FramesPerSecond*360);
-        CalculateStopPosition(iStart);
+        int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*MAXRANGE);
+        clMark *before_iStart=marks.GetPrev(iStart,MT_START,0xF);
+        if (before_iStart)
+        {
+            int tmpdiff=abs(iStart-before_iStart->position);
+            if (tmpdiff<MARKDIFF) MARKDIFF=tmpdiff;
+        }
+        iStartCheck=iStart+MARKDIFF;
+        CalculateStopPosition(iStart,MARKDIFF);
     }
     if ((iStop<0) && (lastiframe>-iStop))
     {
@@ -309,7 +314,15 @@ void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
             AddMark(&mark);
             free(buf);
         }
-        iStopCheck=iStop+(int) (macontext.Video.Info.FramesPerSecond*360);
+
+        int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*MAXRANGE);
+        clMark *before_iStop=marks.GetPrev(iStart,MT_STOP,0xF);
+        if (before_iStop)
+        {
+            int tmpdiff=abs(iStop-before_iStop->position);
+            if (tmpdiff<MARKDIFF) MARKDIFF=tmpdiff;
+        }
+        iStopCheck=iStop+MARKDIFF;
     }
 }
 
@@ -590,27 +603,15 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         if ((((Mark->Type & 0xF0)==MT_CHANNELCHANGE) || ((Mark->Type & 0xF0)==MT_ASPECTCHANGE)) &&
                 (Mark->Position>chkLEFT) && (Mark->Position<chkRIGHT) && (bDecodeVideo))
         {
-
             if (Mark->Comment)
             {
                 isyslog("%s",Mark->Comment);
                 loggedAlready=true;
             }
-            isyslog("%s changes detected. logo/border detection disabled",
-                    (Mark->Type & 0xF0)==MT_ASPECTCHANGE ? "aspectratio" : "audio channel");
 
-            if ((!macontext.Info.AspectRatio.Num) && ((Mark->Type & 0xF0)==MT_ASPECTCHANGE))
+            if ((Mark->Type & 0xF0)==MT_CHANNELCHANGE)
             {
-                isyslog("assuming broadcast aspectratio is 4:3");
-                macontext.Info.AspectRatio.Num=4;
-                macontext.Info.AspectRatio.Den=3;
-                reprocess=true;
-                setVideo43=true;
-            }
-
-            if ((bDecodeVideo) && ((Mark->Type & 0xF0)==MT_CHANNELCHANGE))
-            {
-                isyslog("assuming broadcast with DolbyDigital5.1");
+                isyslog("audio channel changes detected. logo/border detection disabled");
                 if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262)
                 {
                     if (!macontext.Info.AspectRatio.Num)
@@ -625,6 +626,19 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 setAudio20=false;
                 reprocess=true;
             }
+            else
+            {
+                isyslog("aspectratio changes detected. logo/border detection disabled");
+
+                if ((!macontext.Info.AspectRatio.Num) && ((Mark->Type & 0xF0)==MT_ASPECTCHANGE))
+                {
+                    isyslog("assuming broadcast aspectratio is 4:3");
+                    macontext.Info.AspectRatio.Num=4;
+                    macontext.Info.AspectRatio.Den=3;
+                    reprocess=true;
+                    setVideo43=true;
+                }
+            }
 
             bDecodeVideo=false;
             macontext.Video.Data.Valid=false;
@@ -634,7 +648,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             marks.Del((uchar) MT_BORDERSTOP);
         }
     }
-    if (Mark->Position>chkLEFT2) CheckFirstMark();
+    if (Mark->Position>chkLEFT) CheckFirstMark();
 
     if ((Mark->Comment) && (!loggedAlready)) isyslog("%s",Mark->Comment);
     marks.Add(Mark->Type,Mark->Position,Mark->Comment);
@@ -1126,7 +1140,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                 lastiframe=iframe;
                                 lastiframetime=iframetime;
                                 CheckStartStop(lastiframe);
-                                if (lastiframe>chkLEFT2) CheckInfoAspectRatio();
+                                if (lastiframe>chkLEFT) CheckInfoAspectRatio();
 
                                 if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
                                 {
@@ -1246,7 +1260,7 @@ bool cMarkAdStandalone::Reset(bool FirstPass)
     memset(&apkt,0,sizeof(apkt));
 
     iStart=iStartCheck=iStop=iStopCheck=0;
-    chkLEFT=chkLEFT2=chkRIGHT=0;
+    chkLEFT=chkRIGHT=0;
 
     if (FirstPass)
     {
@@ -2237,7 +2251,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     lastiframetime=0;
     iframetime=0;
     audiotime=0;
-    chkLEFT=chkLEFT2=chkRIGHT=0;
+    chkLEFT=chkRIGHT=0;
     gettimeofday(&tv1,&tz);
 }
 
@@ -2353,8 +2367,10 @@ int usage(int svdrpport)
            "                  live-recordings are identified by having a '@' in the\n"
            "                  filename so the entry 'Mark instant recording' in the menu\n"
            "                  'Setup - Recording' of the vdr should be set to 'yes'\n"
+           "                --pass1only\n"
+           "                  process only first pass, setting of marks\n"
            "                --pass2only\n"
-           "                  process only second pass, fine adjustment or marks\n"
+           "                  process only second pass, fine adjustment of marks\n"
            "                --svdrphost=<ip/hostname> (default is 127.0.0.1)\n"
            "                  ip/hostname of a remote VDR for OSD messages\n"
            "                --svdrpport=<port> (default is %i)\n"
@@ -2436,6 +2452,7 @@ int main(int argc, char *argv[])
     int  ignoreInfo=0;
     bool bGenIndex=false;
     bool bPass2Only=false;
+    bool bPass1Only=false;
     int online=0;
     int threads=-1;
 
@@ -2475,14 +2492,12 @@ int main(int argc, char *argv[])
             {"markfile",1,0,1},
             {"nopid",0,0,5},
             {"online",2,0,4},
+            {"pass1only",0,0,11},
             {"pass2only",0,0,10},
             {"pass3only",0,0,7},
             {"svdrphost",1,0,8},
             {"svdrpport",1,0,9},
             {"testmode",0,0,3},
-            {"vpid",1,0,11},
-            {"apid",1,0,12},
-            {"dpid",1,0,13},
 
             {"backupmarks", 0, 0, 'B'},
             {"scenechangedetection", 0, 0, 'C'},
@@ -2726,7 +2741,22 @@ int main(int argc, char *argv[])
 
         case 10: // --pass2only
             bPass2Only=true;
+            if (bPass1Only)
+            {
+                fprintf(stderr, "markad: you cannot use --pass2only with --pass1only\n");
+                return 2;
+            }
             break;
+
+        case 11: // --pass1only
+            bPass1Only=true;
+            if (bPass2Only)
+            {
+                fprintf(stderr, "markad: you cannot use --pass1only with --pass2only\n");
+                return 2;
+            }
+            break;
+
 
         default:
             printf ("? getopt returned character code 0%o ? (option_index %d)\n", c,option_index);
@@ -2907,7 +2937,7 @@ int main(int argc, char *argv[])
         if (!cmasta) return -1;
 
         if (!bPass2Only) cmasta->Process();
-        cmasta->Process2ndPass();
+        if (!bPass1Only) cmasta->Process2ndPass();
         delete cmasta;
         return 0;
     }

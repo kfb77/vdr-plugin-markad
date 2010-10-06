@@ -23,6 +23,8 @@
 
 #define DELTATIME 20000 /* equals to 222ms (base is 90kHz PTS) */
 
+#define MAXRANGE 360 /* range to search for start/stop marks in [s] */
+
 class cOSDMessage
 {
 private:
@@ -233,7 +235,7 @@ unsigned Descriptor_Length:
     bool bBackupMarks;
     clMarks marks;
     char *IndexToHMSF(int Index);
-    void CalculateStopPosition(int startframe);
+    void CalculateStopPosition(int startframe, int delta);
     void CheckFirstMark();
     void CheckLastMark();
     void CheckStartStop(int frame, bool checkend=false);
