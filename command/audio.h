@@ -22,11 +22,6 @@ private:
     void ResetMark();
     bool AddMark(int Type, int Position, const char *Comment);
 
-#define CUT_VAL 4
-#define MIN_LOWVALS 25
-    bool SilenceDetection(int FrameNumber);
-    int lastframe_silence;
-
     int lastframe_gain;
     double lastgain;
     cMarkAdAudioGainAnalysis audiogain;

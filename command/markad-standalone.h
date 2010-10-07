@@ -23,7 +23,7 @@
 
 #define DELTATIME 20000 /* equals to 222ms (base is 90kHz PTS) */
 
-#define MAXRANGE 360 /* range to search for start/stop marks in [s] */
+#define MAXRANGE 420 /* range to search for start/stop marks in seconds */
 
 class cOSDMessage
 {
@@ -220,7 +220,6 @@ unsigned Descriptor_Length:
     int nextPictType;
 
     int chkLEFT;
-    int chkLEFT2;
     int chkRIGHT;
 
     void CheckBroadcastLength();

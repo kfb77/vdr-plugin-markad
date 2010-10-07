@@ -68,49 +68,6 @@ bool cMarkAdAudio::AddMark(int Type, int Position, const char *Comment)
     return true;
 }
 
-bool cMarkAdAudio::SilenceDetection(int FrameNumber)
-{
-    // function taken from noad
-    if (!FrameNumber) return false;
-    if (!macontext->Audio.Data.Valid) return false;
-    if (lastframe_silence==FrameNumber) return false; // we already detected silence for this frame
-    if (lastframe_silence==-1)
-    {
-        // ignore first detection
-        lastframe_silence=FrameNumber;
-        return false;
-    }
-    int samples=macontext->Audio.Data.SampleBufLen/
-                sizeof(*macontext->Audio.Data.SampleBuf)/
-                macontext->Audio.Info.Channels;
-
-    short left,right;
-    int lowvalcount=0;
-    for (int i=0; i<samples; i++)
-    {
-        left=macontext->Audio.Data.SampleBuf[0+(i*2)];
-        right=macontext->Audio.Data.SampleBuf[1+(i*2)];
-
-        if ((abs(left)+abs(right))<CUT_VAL)
-        {
-            lowvalcount++;
-            if (lowvalcount>MIN_LOWVALS)
-            {
-                lastframe_silence=FrameNumber;
-            }
-        }
-        else
-        {
-            if (lastframe_silence==FrameNumber)
-            {
-                return true;
-            }
-            lowvalcount=0;
-        }
-    }
-    return false;
-}
-
 bool cMarkAdAudio::AnalyzeGain(int FrameNumber)
 {
     if (!macontext->Audio.Data.Valid) return false;
@@ -155,7 +112,6 @@ void cMarkAdAudio::Clear()
 {
     channels=0;
     lastframe_gain=-1;
-    lastframe_silence=-1;
     if (result.CommentBefore) free(result.CommentBefore);
     if (result.CommentAfter) free(result.CommentAfter);
     memset(&result,0,sizeof(result));
@@ -172,7 +128,7 @@ MarkAdPos *cMarkAdAudio::Process2ndPass(int FrameNumber)
 {
     if (!FrameNumber) return NULL;
 #if 0
-    if (SilenceDetection(FrameNumber))
+    if (AnalyzeGain(FrameNumber))
     {
         if (result.CommentBefore) free(result.CommentBefore);
         if (asprintf(&result.CommentBefore,"audio silence detection (%i)",FrameNumber)==-1)

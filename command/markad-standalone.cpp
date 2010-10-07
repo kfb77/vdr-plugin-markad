@@ -157,10 +157,23 @@ int cOSDMessage::Send(const char *format, ...)
 
 void cMarkAdStandalone::CalculateStopPosition(int startframe, int delta)
 {
-    int len_in_frames=macontext.Info.Length*macontext.Video.Info.FramesPerSecond;
-    iStop=-(startframe+len_in_frames);
-    chkLEFT=startframe+delta+macontext.Video.Info.FramesPerSecond;
-    chkRIGHT=startframe+(len_in_frames*2/3);
+    chkLEFT=0xFFFFFFF;
+    chkRIGHT=0xFFFFFFF;
+    if (!macontext.Info.Length) return;
+    if (!macontext.Video.Info.FramesPerSecond) return;
+
+    if (startframe)
+    {
+        int len_in_frames=macontext.Info.Length*macontext.Video.Info.FramesPerSecond;
+        iStop=-(startframe+len_in_frames);
+        chkLEFT=startframe+delta+macontext.Video.Info.FramesPerSecond;
+        chkRIGHT=startframe+(len_in_frames*2/3);
+    }
+    else
+    {
+        chkLEFT=(int) ((macontext.Video.Info.FramesPerSecond*macontext.Info.Length)/3);
+        chkRIGHT=(int) ((macontext.Video.Info.FramesPerSecond*macontext.Info.Length)*2/3);
+    }
 }
 
 void cMarkAdStandalone::AddStartMark()
@@ -168,22 +181,16 @@ void cMarkAdStandalone::AddStartMark()
     char *buf;
     if (asprintf(&buf,"start of recording (0)")!=-1)
     {
-        marks.Add(MT_COMMON,0,buf);
+        marks.Add(MT_COMMONSTART,0,buf);
         isyslog("%s",buf);
         free(buf);
     }
 
-    if (macontext.Info.Length)
+    if (tStart)
     {
-        chkLEFT=(int) ((macontext.Video.Info.FramesPerSecond*macontext.Info.Length)/3);
-        chkRIGHT=(int) ((macontext.Video.Info.FramesPerSecond*macontext.Info.Length)*2/3);
-
-        if (tStart)
-        {
-            iStart=-(tStart*macontext.Video.Info.FramesPerSecond);
-            CalculateStopPosition(-iStart,macontext.Video.Info.FramesPerSecond*MAXRANGE);
-        }
+        iStart=-(tStart*macontext.Video.Info.FramesPerSecond);
     }
+    CalculateStopPosition(-iStart,macontext.Video.Info.FramesPerSecond*MAXRANGE);
 }
 
 void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
@@ -293,7 +300,7 @@ void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
         iStart=frame;
         if (asprintf(&buf,"assumed start of broadcast (%i)",iStart)!=-1)
         {
-            mark.Type=MT_COMMONSTART;
+            mark.Type=MT_ASSUMEDSTART;
             mark.Position=iStart;
             mark.Comment=buf;
             AddMark(&mark);
@@ -314,7 +321,7 @@ void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
         iStop=frame;
         if (asprintf(&buf,"assumed stop of broadcast (%i)",iStop)!=-1)
         {
-            mark.Type=MT_COMMONSTOP;
+            mark.Type=MT_ASSUMEDSTOP;
             mark.Position=iStop;
             mark.Comment=buf;
             AddMark(&mark);
@@ -450,6 +457,12 @@ void cMarkAdStandalone::CheckInfoAspectRatio()
 {
     if (aspectChecked) return;
 
+    if (bIgnoreVideoInfo)
+    {
+        aspectChecked=true;
+        return;
+    }
+
     dsyslog("checking aspectratio");
 
     bool aSet=false;
@@ -519,8 +532,8 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         clMark *prev=marks.GetLast();
         if ((prev) && ((prev->type & 0xF)==MT_STOP))
         {
-            int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*15);
-            if ((Mark->Position-prev->position)<MINMARKDIFF)
+            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*15);
+            if ((Mark->Position-prev->position)<MARKDIFF)
             {
                 if (Mark->Comment) isyslog("%s",Mark->Comment);
                 isyslog("double stop mark in short distance, deleting this mark (%i)",prev->position);
@@ -536,8 +549,8 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         clMark *prev=marks.GetLast();
         if ((prev) && (prev->type==MT_CHANNELSTOP))
         {
-            int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*15);
-            if ((Mark->Position-prev->position)<MINMARKDIFF)
+            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*15);
+            if ((Mark->Position-prev->position)<MARKDIFF)
             {
                 if (Mark->Comment) isyslog("%s",Mark->Comment);
                 isyslog("audiochannel change in short distance, using this mark (%i->%i)",Mark->Position,prev->position);
@@ -548,8 +561,8 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         prev=marks.GetPrev(Mark->Position,MT_LOGOSTART);
         if (prev)
         {
-            int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*240);
-            if ((Mark->Position-prev->position)<MINMARKDIFF)
+            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*240);
+            if ((Mark->Position-prev->position)<MARKDIFF)
             {
                 if (Mark->Comment) isyslog("%s",Mark->Comment);
                 double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
@@ -569,8 +582,8 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         {
             if ((prev->type & 0xF0)==MT_ASPECTCHANGE)
             {
-                int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*5);
-                if ((Mark->Position-prev->position)<MINMARKDIFF)
+                int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*5);
+                if ((Mark->Position-prev->position)<MARKDIFF)
                 {
                     if (Mark->Comment) isyslog("%s",Mark->Comment);
                     isyslog("aspectratio change in short distance, deleting this mark (%i)",Mark->Position);
@@ -580,8 +593,8 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 
             if (prev->type==MT_CHANNELSTART)
             {
-                int MINMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*5);
-                if ((Mark->Position-prev->position)<MINMARKDIFF)
+                int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*5);
+                if ((Mark->Position-prev->position)<MARKDIFF)
                 {
                     if (Mark->Comment) isyslog("%s",Mark->Comment);
                     isyslog("audiochannel change in short distance, deleting this mark (%i)",Mark->Position);
@@ -754,7 +767,7 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
     if ((*Mark1)->position!=NewPos->FrameNumberBefore)
     {
         marks.Del(*Mark1);
-        *Mark1=marks.Add(MT_COMMON,NewPos->FrameNumberBefore,NewPos->CommentBefore);
+        *Mark1=marks.Add(MT_MOVED,NewPos->FrameNumberBefore,NewPos->CommentBefore);
         save=true;
     }
     if (NewPos->CommentBefore) isyslog("%s",NewPos->CommentBefore);
@@ -762,7 +775,7 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
     if (Mark2 && (*Mark2) && (*Mark2)->position!=NewPos->FrameNumberAfter)
     {
         marks.Del(*Mark2);
-        *Mark2=marks.Add(MT_COMMON,NewPos->FrameNumberAfter,NewPos->CommentAfter);
+        *Mark2=marks.Add(MT_MOVED,NewPos->FrameNumberAfter,NewPos->CommentAfter);
         if (NewPos->CommentAfter) isyslog("%s",NewPos->CommentAfter);
         save=true;
     }
@@ -919,7 +932,7 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
                     }
                 }
             }
-
+#if 0
             if ((mp2_demux) && (audio) && (pn!=3))
             {
                 uchar *tspkt = data;
@@ -953,7 +966,7 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
                     }
                 }
             }
-
+#endif
             if (abort)
             {
                 close(f);
@@ -1351,7 +1364,7 @@ void cMarkAdStandalone::ProcessFile()
             {
                 char *buf;
                 MarkAdMark tempmark;
-                tempmark.Type=MT_COMMON;
+                tempmark.Type=MT_COMMONSTOP;
                 tempmark.Position=lastiframe;
 
                 if (asprintf(&buf,"stop of recording (%i)",lastiframe)!=-1)
@@ -1417,7 +1430,7 @@ void cMarkAdStandalone::Process()
                                 ((isTS) || ((macontext.Info.VPid.Type==
                                              MARKAD_PIDTYPE_VIDEO_H264) && (!isTS))) ?
                                 ", sorry you're lost" :
-                                ", please run genindex");
+                                ", please recreate index");
                     }
                 }
             }
