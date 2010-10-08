@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2010-10-06 14:53+0200\n"
+"POT-Creation-Date: 2010-10-08 21:30+0200\n"
 "PO-Revision-Date: 2010-08-09 20:05+0100\n"
 "Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
 "Language-Team:  <vdr@linuxtv.org>\n"
@@ -57,6 +57,15 @@ msgstr "dopo"
 msgid "during"
 msgstr "durante"
 
+msgid "high"
+msgstr ""
+
+msgid "normal"
+msgstr ""
+
+msgid "low"
+msgstr ""
+
 msgid "execution"
 msgstr "Esecuzione"
 
@@ -65,6 +74,9 @@ msgstr "  durante un'altra registrazione"
 
 msgid "  while replaying"
 msgstr "  durante la riproduzione"
+
+msgid "hdd access priority"
+msgstr ""
 
 msgid "repair index, if broken"
 msgstr "Ripara indice, se errato"

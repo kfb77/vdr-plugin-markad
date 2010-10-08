@@ -29,9 +29,30 @@
 #include "markad-standalone.h"
 #include "version.h"
 
+extern int sys_ioprio_set(int which, int who, int ioprio);
 bool SYSLOG=false;
 cMarkAdStandalone *cmasta=NULL;
 int SysLogLevel=2;
+
+static inline int ioprio_set(int which, int who, int ioprio)
+{
+#if defined(__i386__)
+#define __NR_ioprio_set		289
+#define __NR_ioprio_get		290
+#elif defined(__ppc__)
+#define __NR_ioprio_set		273
+#define __NR_ioprio_get		274
+#elif defined(__x86_64__)
+#define __NR_ioprio_set		251
+#define __NR_ioprio_get		252
+#elif defined(__ia64__)
+#define __NR_ioprio_set		1274
+#define __NR_ioprio_get		1275
+#else
+#error "Unsupported arch"
+#endif
+    return syscall(__NR_ioprio_set, which, who, ioprio);
+}
 
 void syslog_with_tid(int priority, const char *format, ...)
 {
@@ -620,7 +641,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             marks.Del((uchar) MT_LOGOSTOP);
         }
 
-        if ((((Mark->Type & 0xF0)==MT_CHANNELCHANGE) || ((Mark->Type & 0xF0)==MT_ASPECTCHANGE)) &&
+        if (((Mark->Type==MT_CHANNELSTART) || (Mark->Type==MT_ASPECTSTART)) &&
                 (Mark->Position>chkLEFT) && (Mark->Position<chkRIGHT) && (bDecodeVideo))
         {
             if (Mark->Comment)
@@ -1314,7 +1335,7 @@ bool cMarkAdStandalone::Reset(bool FirstPass)
 
 bool cMarkAdStandalone::CheckDolbyDigital51()
 {
-    if (!macontext.Audio.Info.DolbyDigital51) return false;
+    if (!ac3_demux) return false;
     if (abort) return false;
 
     // Assumption: last mark must be MT_CHANNELSTOP and the position must be
@@ -1329,12 +1350,17 @@ bool cMarkAdStandalone::CheckDolbyDigital51()
     }
 
     reprocess=true;
-    macontext.Audio.Info.DolbyDigital51=false;
     bDecodeVideo=true;
     setAudio20=true;
     setAudio51=false;
     isyslog("%s DolbyDigital5.1 marks found", mark ? "not enough" : "no");
     isyslog("restarting from scratch");
+    if (ac3_demux)
+    {
+        delete ac3_demux;
+        ac3_demux=NULL;
+        macontext.Info.DPid.Num=0;
+    }
     Reset();
     return true;
 }
@@ -1430,7 +1456,7 @@ void cMarkAdStandalone::Process()
                                 ((isTS) || ((macontext.Info.VPid.Type==
                                              MARKAD_PIDTYPE_VIDEO_H264) && (!isTS))) ?
                                 ", sorry you're lost" :
-                                ", please recreate index");
+                                ", please run genindex");
                     }
                 }
             }
@@ -1732,7 +1758,6 @@ bool cMarkAdStandalone::LoadInfo()
                             {
                                 bDecodeVideo=false;
                                 macontext.Video.Options.IgnoreAspectRatio=true;
-                                macontext.Audio.Info.DolbyDigital51=true;
                                 isyslog("broadcast with DolbyDigital5.1, disabling video decoding");
                                 if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262)
                                 {
@@ -1751,7 +1776,6 @@ bool cMarkAdStandalone::LoadInfo()
                             {
                                 setAudio20=true;
                             }
-
                     }
                 }
             }
@@ -2396,9 +2420,14 @@ int usage(int svdrpport)
            "                          audio and timer info)\n"
            "-l              --logocachedir\n"
            "                  directory where logos stored, default /var/lib/markad\n"
-           "-p              --priority level=<priority>\n"
-           "                  priority-level of markad when running in background\n"
-           "                  <-20...19> default 19\n"
+           "-p              --priority=<priority>\n"
+           "                  software priority of markad when running in background\n"
+           "                  <priority> from -20...19, default 19\n"
+           "-r              --ioprio=<class>[,<level>]\n"
+           "                  io priority of markad when running in background\n"
+           "                  <class> 1 = realtime, <level> from 0..7, default 4\n"
+           "                          2 = besteffort, <level> from 0..7, default 4\n"
+           "                          3 = idle\n"
            "-v              --verbose\n"
            "                  increments loglevel by one, can be given multiple times\n"
            "-B              --backupmarks\n"
@@ -2497,6 +2526,8 @@ int main(int argc, char *argv[])
     bool bAfter=false,bBefore=false,bEdited=false;
     bool bFork=false,bNice=false,bImmediateCall=false;
     int niceLevel = 19;
+    int ioprio_class=2;
+    int ioprio=4;
     char *recDir=NULL;
     char *tok,*str;
     int ntok;
@@ -2545,6 +2576,7 @@ int main(int argc, char *argv[])
             {"nelonen",0,0,'n'},
             {"overlap",0,0,'o' },
             {"priority",1,0,'p'},
+            {"ioprio",1,0,'r'},
             {"statisticfile",1,0,'s'},
             {"verbose", 0, 0, 'v'},
 
@@ -2572,7 +2604,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "abcd:i:jl:nop:s:vBCGL:OST:V",
+        c = getopt_long  (argc, argv, "abcd:i:jl:nop:r:s:vBCGL:OST:V",
                           long_options, &option_index);
         if (c == -1)
             break;
@@ -2650,6 +2682,30 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "markad: invalid priority level: %s\n", optarg);
                 return 2;
             }
+            bNice = true;
+            break;
+
+        case 'r':
+            // --ioprio
+            str=strchr(optarg,',');
+            if (str)
+            {
+                *str=0;
+                ioprio=atoi(str+1);
+                *str=',';
+            }
+            ioprio_class=atoi(optarg);
+            if ((ioprio_class<1) || (ioprio_class>3))
+            {
+                fprintf(stderr, "markad: invalid io-priority: %s\n", optarg);
+                return 2;
+            }
+            if ((ioprio<0) || (ioprio>7))
+            {
+                fprintf(stderr, "markad: invalid io-priority: %s\n", optarg);
+                return 2;
+            }
+            if (ioprio_class==3) ioprio=7;
             bNice = true;
             break;
 
@@ -2963,6 +3019,10 @@ int main(int argc, char *argv[])
             {
                 esyslog("failed to set nice to %d",niceLevel);
             }
+            if (ioprio_set(1,getpid(),ioprio | ioprio_class << 13)==-1)
+            {
+                esyslog("failed to set ioprio to IOPRIO_CLASS_IDLE");
+            }
         }
 
         // now do the work...
@@ -3002,6 +3062,5 @@ int main(int argc, char *argv[])
         delete cmasta;
         return 0;
     }
-
     return usage(svdrpport);
 }

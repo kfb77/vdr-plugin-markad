@@ -71,16 +71,17 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
 {
     if ((Direct) && (Get(FileName)!=-1)) return false;
 
-    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s -l \"%s\" %s \"%s\"",bindir,
+    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s -r %i -l \"%s\" %s \"%s\"",bindir,
                                    setup->Verbose ? " -v " : "",
                                    setup->BackupMarks ? " -B " : "",
                                    setup->GenIndex ? " -G " : "",
                                    setup->OSDMessage ? " -O " : "",
                                    setup->NoMargins ? " -i 4 " : "",
                                    setup->SecondPass ? "" : " --pass1only ",
+                                   setup->IOPrioClass+1,
                                    logodir,Direct ? "-O after" : "--online=2 before", FileName);
     dsyslog("markad: executing %s",*cmd);
-    if (SystemExec(cmd)!=-1)
+    if (SystemExec(cmd,true)!=-1)
     {
         usleep(200000);
         int pos=Add(FileName,Name);

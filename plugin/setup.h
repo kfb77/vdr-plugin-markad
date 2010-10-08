@@ -12,6 +12,7 @@
 struct setup
 {
     bool ProcessDuring;
+    int  IOPrioClass;
     bool whileRecording;
     bool whileReplaying;
     bool OSDMessage;
@@ -27,8 +28,10 @@ class cSetupMarkAd : public cMenuSetupPage
 {
 private:
     const char *processTexts[2];
+    const char *ioprioTexts[3];
     struct setup *setup;
     int processduring;
+    int ioprioclass;
     int whilerecording;
     int whilereplaying;
     int osdmsg;
