@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2010-10-08 21:30+0200\n"
+"POT-Creation-Date: 2010-10-10 15:33+0200\n"
 "PO-Revision-Date: 2010-08-09 20:05+0100\n"
 "Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
 "Language-Team:  <vdr@linuxtv.org>\n"
@@ -78,14 +78,17 @@ msgstr "  durante la riproduzione"
 msgid "hdd access priority"
 msgstr ""
 
-msgid "repair index, if broken"
-msgstr "Ripara indice, se errato"
+msgid "examine AC3 always"
+msgstr ""
 
 msgid "ignore timer margins"
 msgstr "Ignora margini timer"
 
 msgid "detect overlaps"
 msgstr ""
+
+msgid "repair index, if broken"
+msgstr "Ripara indice, se errato"
 
 msgid "OSD message"
 msgstr "Messaggio OSD"
@@ -96,7 +99,7 @@ msgstr "Salva marcatori"
 msgid "verbose logging"
 msgstr "Log dettagliato"
 
-msgid "Hide Mainmenu entry"
+msgid "hide mainmenu entry"
 msgstr ""
 
 msgid "Mark advertisements"

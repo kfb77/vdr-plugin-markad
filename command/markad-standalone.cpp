@@ -663,6 +663,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                         macontext.Video.Options.IgnoreAspectRatio=true;
                     }
                 }
+                macontext.Audio.Info.DolbyDigital51=true;
                 setAudio51=true;
                 setAudio20=false;
                 reprocess=true;
@@ -1168,7 +1169,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                 nextPictType=MA_I_TYPE;
                             }
 
-                            if (bGenIndex)
+                            if (macontext.Config->GenIndex)
                             {
                                 if ((macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262) ||
                                         ((macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) &&
@@ -1252,7 +1253,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                         {
                             if ((!isTS) && (!noticeVDR_AC3))
                             {
-                                dsyslog("found AC3");
+                                isyslog("found AC3%s",macontext.Config->AC3Always ? "*" : "");
                                 noticeVDR_AC3=true;
                             }
                             if (apkt.Timestamp) audiotime=apkt.Timestamp;
@@ -1271,7 +1272,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
             }
         }
 
-        if (((gotendmark) && (!bGenIndex)) || (reprocess))
+        if (((gotendmark) && (!macontext.Config->GenIndex)) || (reprocess))
         {
             if (f!=-1) close(f);
             return true;
@@ -1335,7 +1336,7 @@ bool cMarkAdStandalone::Reset(bool FirstPass)
 
 bool cMarkAdStandalone::CheckDolbyDigital51()
 {
-    if (!ac3_demux) return false;
+    if (!macontext.Audio.Info.DolbyDigital51) return false;
     if (abort) return false;
 
     // Assumption: last mark must be MT_CHANNELSTOP and the position must be
@@ -1350,12 +1351,13 @@ bool cMarkAdStandalone::CheckDolbyDigital51()
     }
 
     reprocess=true;
-    bDecodeVideo=true;
+    bDecodeVideo=macontext.Config->DecodeVideo;
     setAudio20=true;
     setAudio51=false;
+    macontext.Audio.Info.DolbyDigital51=false;
     isyslog("%s DolbyDigital5.1 marks found", mark ? "not enough" : "no");
     isyslog("restarting from scratch");
-    if (ac3_demux)
+    if ((ac3_demux) && (!macontext.Config->AC3Always))
     {
         delete ac3_demux;
         ac3_demux=NULL;
@@ -1371,7 +1373,7 @@ void cMarkAdStandalone::ProcessFile()
     {
         if (abort) break;
         if (!ProcessFile(i)) break;
-        if ((gotendmark) && (!bGenIndex)) break;
+        if ((gotendmark) && (!macontext.Config->GenIndex)) break;
         if (reprocess)
         {
             isyslog("restarting from scratch");
@@ -1411,7 +1413,7 @@ void cMarkAdStandalone::Process()
 {
     if (abort) return;
 
-    if (bBackupMarks) marks.Backup(directory,isTS);
+    if (macontext.Config->BackupMarks) marks.Backup(directory,isTS);
 
     ProcessFile();
     if (CheckDolbyDigital51()) ProcessFile();
@@ -1422,12 +1424,12 @@ void cMarkAdStandalone::Process()
         if (marks.Save(directory,macontext.Video.Info.FramesPerSecond,isTS))
         {
             int iIndexError=false;
-            int tframecnt=bGenIndex ? framecnt : 0;
+            int tframecnt=macontext.Config->GenIndex ? framecnt : 0;
             if (marks.CheckIndex(directory,isTS,&tframecnt,&iIndexError))
             {
                 if (iIndexError)
                 {
-                    if (bGenIndex)
+                    if (macontext.Config->GenIndex)
                     {
                         switch (iIndexError)
                         {
@@ -1461,7 +1463,7 @@ void cMarkAdStandalone::Process()
                 }
             }
         }
-        if (bGenIndex) marks.RemoveGeneratedIndex(directory,isTS);
+        if (macontext.Config->GenIndex) marks.RemoveGeneratedIndex(directory,isTS);
 
         if ((!bIgnoreAudioInfo) && (!bIgnoreVideoInfo) && (macontext.Info.Length)) SaveInfo();
     }
@@ -1671,7 +1673,6 @@ bool cMarkAdStandalone::LoadInfo()
         rStart=mktime(&t);
     }
 
-    bool tbDecodeVideo=bDecodeVideo;
     long start=0;
     char *line=NULL;
     size_t length;
@@ -1749,14 +1750,17 @@ bool cMarkAdStandalone::LoadInfo()
                         // if we have DolbyDigital 2.0 disable AC3
                         if (strchr(descr,'2'))
                         {
-                            macontext.Info.DPid.Num=0;
-                            isyslog("broadcast with DolbyDigital2.0, disabling AC3 decoding");
+                            isyslog("broadcast with DolbyDigital2.0%s",macontext.Config->AC3Always ?
+                                    "" : ", disabling AC3 decoding");
+
+                            if (!macontext.Config->AC3Always) macontext.Info.DPid.Num=0;
                         }
                         else
                             // if we have DolbyDigital 5.1 disable video decoding
                             if (strchr(descr,'5'))
                             {
                                 bDecodeVideo=false;
+                                macontext.Audio.Info.DolbyDigital51=true;
                                 macontext.Video.Options.IgnoreAspectRatio=true;
                                 isyslog("broadcast with DolbyDigital5.1, disabling video decoding");
                                 if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262)
@@ -1806,7 +1810,7 @@ bool cMarkAdStandalone::LoadInfo()
         macontext.Info.AspectRatio.Den=0;
         bIgnoreAudioInfo=true;
         bIgnoreVideoInfo=true;
-        bDecodeVideo=tbDecodeVideo;
+        bDecodeVideo=macontext.Config->DecodeVideo;
         macontext.Video.Options.IgnoreAspectRatio=false;
     }
 
@@ -2088,12 +2092,7 @@ void cMarkAdStandalone::RemovePidfile()
 
 const char cMarkAdStandalone::frametypes[8]={'?','I','P','B','D','S','s','b'};
 
-cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, int LogoExtraction,
-                                     int LogoWidth, int LogoHeight, bool DecodeVideo,
-                                     bool DecodeAudio, int IgnoreInfo,
-                                     const char *LogoDir, const char *MarkFileName,
-                                     bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort,
-                                     bool Before, bool GenIndex, int Threads)
+cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *config)
 {
     setlocale(LC_MESSAGES, "");
     directory=Directory;
@@ -2131,18 +2130,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     title[0]=0;
 
     memset(&macontext,0,sizeof(macontext));
-    macontext.LogoDir=(char *) LogoDir;
-    macontext.Options.LogoExtraction=LogoExtraction;
-    macontext.Options.LogoWidth=LogoWidth;
-    macontext.Options.LogoHeight=LogoHeight;
+    macontext.Config=config;
 
-    bDecodeVideo=DecodeVideo;
-    bDecodeAudio=DecodeAudio;
-    bGenIndex=GenIndex;
-    bBackupMarks=BackupMarks;
+    bDecodeVideo=config->DecodeVideo;
+    bDecodeAudio=config->DecodeAudio;
+
     tStart=iStart=iStop=iStartCheck=iStopCheck=0;
 
-    if ((IgnoreInfo & IGNORE_VIDEOINFO)==IGNORE_VIDEOINFO)
+    if ((config->ignoreInfo & IGNORE_VIDEOINFO)==IGNORE_VIDEOINFO)
     {
         bIgnoreVideoInfo=true;
     }
@@ -2151,7 +2146,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         bIgnoreVideoInfo=false;
     }
 
-    if ((IgnoreInfo & IGNORE_AUDIOINFO)==IGNORE_AUDIOINFO)
+    if ((config->ignoreInfo & IGNORE_AUDIOINFO)==IGNORE_AUDIOINFO)
     {
         bIgnoreAudioInfo=true;
     }
@@ -2160,7 +2155,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         bIgnoreAudioInfo=false;
     }
 
-    if ((IgnoreInfo & IGNORE_TIMERINFO)==IGNORE_TIMERINFO)
+    if ((config->ignoreInfo & IGNORE_TIMERINFO)==IGNORE_TIMERINFO)
     {
         bIgnoreTimerInfo=true;
     }
@@ -2196,7 +2191,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         isyslog("timer info usage disabled by user");
     }
 
-    if (LogoExtraction!=-1)
+    if (config->logoExtraction!=-1)
     {
         // just to be sure extraction works
         bDecodeVideo=true;
@@ -2204,13 +2199,13 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         bIgnoreVideoInfo=true;
     }
 
-    if (!noPid)
+    if (!config->NoPid)
     {
         CreatePidfile();
         if (abort) return;
     }
 
-    if (Before) sleep(10);
+    if (config->Before) sleep(10);
 
     if (!CheckTS()) return;
 
@@ -2246,7 +2241,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         if (bDecodeVideo)
         {
             esyslog("failed loading info - logo %s%sdisabled",
-                    (LogoExtraction!=-1) ? "extraction" : "detection",
+                    (config->logoExtraction!=-1) ? "extraction" : "detection",
                     bIgnoreTimerInfo ? " " : " and pre-/post-timer ");
             tStart=0;
         }
@@ -2264,9 +2259,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         ptitle=(char *) Directory;
     }
 
-    if (OSD)
+    if (config->OSD)
     {
-        osd= new cOSDMessage(SVDRPHost,SVDRPPort);
+        osd= new cOSDMessage(config->svdrphost,config->svdrpport);
         if (osd) osd->Send("%s %s",tr("starting markad for"),ptitle);
     }
     else
@@ -2274,7 +2269,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
         osd=NULL;
     }
 
-    if (MarkFileName[0]) marks.SetFileName(MarkFileName);
+    if (config->markFileName[0]) marks.SetFileName(config->markFileName);
 
     if (macontext.Info.VPid.Num)
     {
@@ -2310,7 +2305,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     if (macontext.Info.DPid.Num)
     {
         if (macontext.Info.DPid.Num!=-1)
-            dsyslog("using AC3 (0x%04x)",macontext.Info.DPid.Num);
+            dsyslog("using AC3 (0x%04x)%s",macontext.Info.DPid.Num,macontext.Config->AC3Always ? "*" : "");
         ac3_demux = new cMarkAdDemux();
     }
     else
@@ -2321,7 +2316,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, bool BackupMarks, in
     if (!abort)
     {
         decoder = new cMarkAdDecoder(macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,
-                                     macontext.Info.APid.Num!=0,macontext.Info.DPid.Num!=0,Threads);
+                                     macontext.Info.APid.Num!=0,macontext.Info.DPid.Num!=0,config->threads);
         video = new cMarkAdVideo(&macontext);
         audio = new cMarkAdAudio(&macontext);
         streaminfo = new cMarkAdStreamInfo;
@@ -2406,6 +2401,9 @@ int usage(int svdrpport)
     // nothing done, give the user some help
     printf("Usage: markad [options] cmd <record>\n"
            "options:\n"
+           "-a              --AC3\n"
+           "                  always search in DolbyDigital channels, even if the\n"
+           "                  broadcast isn't in DolbyDigital5.1\n"
            "-b              --background\n"
            "                  markad runs as a background-process\n"
            "                  this will be automatically set if called with \"after\"\n"
@@ -2523,7 +2521,7 @@ static void signal_handler(int sig)
 int main(int argc, char *argv[])
 {
     int c;
-    bool bAfter=false,bBefore=false,bEdited=false;
+    bool bAfter=false,bEdited=false;
     bool bFork=false,bNice=false,bImmediateCall=false;
     int niceLevel = 19;
     int ioprio_class=2;
@@ -2531,33 +2529,31 @@ int main(int argc, char *argv[])
     char *recDir=NULL;
     char *tok,*str;
     int ntok;
-    int logoExtraction=-1;
-    int logoWidth=-1;
-    int logoHeight=-1;
-    bool bBackupMarks=false,bNoPid=false,bOSD=false;
-    char markFileName[1024]="";
-    char logoDirectory[1024]="";
-    char svdrphost[1024]="127.0.0.1";
-    int svdrpport;
-    bool bDecodeVideo=true;
-    bool bDecodeAudio=true;
-    int  ignoreInfo=0;
-    bool bGenIndex=false;
+    int online=0;
     bool bPass2Only=false;
     bool bPass1Only=false;
-    int online=0;
-    int threads=-1;
 
-    strcpy(logoDirectory,"/var/lib/markad");
+    struct config config;
+    memset(&config,0,sizeof(config));
+
+    // set defaults
+    config.DecodeVideo=true;
+    config.DecodeAudio=true;
+    config.logoExtraction=-1;
+    config.logoWidth=-1;
+    config.logoHeight=-1;
+    config.threads=-1;
+    strcpy(config.svdrphost,"127.0.0.1");
+    strcpy(config.logoDirectory,"/var/lib/markad");
 
     struct servent *serv=getservbyname("svdrp","tcp");
     if (serv)
     {
-        svdrpport=htons(serv->s_port);
+        config.svdrpport=htons(serv->s_port);
     }
     else
     {
-        svdrpport=2001;
+        config.svdrpport=2001;
     }
 
     while (1)
@@ -2614,6 +2610,7 @@ int main(int argc, char *argv[])
 
         case 'a':
             // --ac3
+            config.AC3Always=true;
             break;
 
         case 'b':
@@ -2630,14 +2627,14 @@ int main(int argc, char *argv[])
             switch (atoi(optarg))
             {
             case 1:
-                bDecodeVideo=false;
+                config.DecodeVideo=false;
                 break;
             case 2:
-                bDecodeAudio=false;
+                config.DecodeAudio=false;
                 break;
             case 3:
-                bDecodeVideo=false;
-                bDecodeAudio=false;
+                config.DecodeVideo=false;
+                config.DecodeAudio=false;
                 break;
             default:
                 fprintf(stderr, "markad: invalid disable option: %s\n", optarg);
@@ -2648,8 +2645,8 @@ int main(int argc, char *argv[])
 
         case 'i':
             // --ignoreinfo
-            ignoreInfo=atoi(optarg);
-            if ((ignoreInfo<0) || (ignoreInfo>255))
+            config.ignoreInfo=atoi(optarg);
+            if ((config.ignoreInfo<0) || (config.ignoreInfo>255))
             {
                 fprintf(stderr, "markad: invalid ignoreinfo option: %s\n", optarg);
                 return 2;
@@ -2661,8 +2658,8 @@ int main(int argc, char *argv[])
             break;
 
         case 'l':
-            strncpy(logoDirectory,optarg,sizeof(logoDirectory));
-            logoDirectory[sizeof(logoDirectory)-1]=0;
+            strncpy(config.logoDirectory,optarg,sizeof(config.logoDirectory));
+            config.logoDirectory[sizeof(config.logoDirectory)-1]=0;
             break;
 
         case 'n':
@@ -2721,7 +2718,7 @@ int main(int argc, char *argv[])
 
         case 'B':
             // --backupmarks
-            bBackupMarks=true;
+            config.BackupMarks=true;
             break;
 
         case 'C':
@@ -2729,7 +2726,7 @@ int main(int argc, char *argv[])
             break;
 
         case 'G':
-            bGenIndex=true;
+            config.GenIndex=true;
             break;
 
         case 'L':
@@ -2741,8 +2738,8 @@ int main(int argc, char *argv[])
                 switch (ntok)
                 {
                 case 0:
-                    logoExtraction=atoi(tok);
-                    if ((logoExtraction<0) || (logoExtraction>3))
+                    config.logoExtraction=atoi(tok);
+                    if ((config.logoExtraction<0) || (config.logoExtraction>3))
                     {
                         fprintf(stderr, "markad: invalid extractlogo value: %s\n", tok);
                         return 2;
@@ -2750,8 +2747,8 @@ int main(int argc, char *argv[])
                     break;
 
                 case 1:
-                    logoWidth=atoi(tok);
-                    if ((logoWidth<50) || (logoWidth>LOGO_MAXWIDTH))
+                    config.logoWidth=atoi(tok);
+                    if ((config.logoWidth<50) || (config.logoWidth>LOGO_MAXWIDTH))
                     {
                         fprintf(stderr, "markad: invalid width value: %s\n", tok);
                         return 2;
@@ -2759,8 +2756,8 @@ int main(int argc, char *argv[])
                     break;
 
                 case 2:
-                    logoHeight=atoi(tok);
-                    if ((logoHeight<20) || (logoHeight>LOGO_MAXHEIGHT))
+                    config.logoHeight=atoi(tok);
+                    if ((config.logoHeight<20) || (config.logoHeight>LOGO_MAXHEIGHT))
                     {
                         fprintf(stderr, "markad: invalid height value: %s\n", tok);
                         return 2;
@@ -2777,7 +2774,7 @@ int main(int argc, char *argv[])
 
         case 'O':
             // --OSD
-            bOSD=true;
+            config.OSD=true;
             break;
 
         case 'S':
@@ -2786,9 +2783,9 @@ int main(int argc, char *argv[])
 
         case 'T':
             // --threads
-            threads=atoi(optarg);
-            if (threads<1) threads=1;
-            if (threads>16) threads=16;
+            config.threads=atoi(optarg);
+            if (config.threads<1) config.threads=1;
+            if (config.threads>16) config.threads=16;
             break;
 
         case 'V':
@@ -2807,8 +2804,8 @@ int main(int argc, char *argv[])
             break;
 
         case 1: // --markfile
-            strncpy(markFileName,optarg,sizeof(markFileName));
-            markFileName[sizeof(markFileName)-1]=0;
+            strncpy(config.markFileName,optarg,sizeof(config.markFileName));
+            config.markFileName[sizeof(config.markFileName)-1]=0;
             break;
 
         case 2: // --loglevel
@@ -2830,7 +2827,7 @@ int main(int argc, char *argv[])
             break;
 
         case 5: // --nopid
-            bNoPid=true;
+            config.NoPid=true;
             break;
 
         case 6: // --asd
@@ -2840,14 +2837,14 @@ int main(int argc, char *argv[])
             break;
 
         case 8: // --svdrphost
-            strncpy(svdrphost,optarg,sizeof(svdrphost));
-            svdrphost[sizeof(svdrphost)-1]=0;
+            strncpy(config.svdrphost,optarg,sizeof(config.svdrphost));
+            config.svdrphost[sizeof(config.svdrphost)-1]=0;
             break;
 
         case 9: // --svdrpport
             if (isnumber(optarg) && atoi(optarg) > 0 && atoi(optarg) < 65536)
             {
-                svdrpport=atoi(optarg);
+                config.svdrpport=atoi(optarg);
             }
             else
             {
@@ -2891,7 +2888,7 @@ int main(int argc, char *argv[])
             else if (strcmp(argv[optind], "before" ) == 0 )
             {
                 if (!online) online=1;
-                bBefore = bFork = bNice = SYSLOG = true;
+                config.Before = bFork = bNice = SYSLOG = true;
             }
             else if (strcmp(argv[optind], "edited" ) == 0 )
             {
@@ -2919,7 +2916,7 @@ int main(int argc, char *argv[])
 
     // do nothing if called from vdr before/after the video is cutted
     if ((bAfter) && (online)) return 0;
-    if (bBefore)
+    if (config.Before)
     {
         if (!online) return 0;
         if ((online==1) && (!strchr(recDir,'@'))) return 0;
@@ -2928,7 +2925,7 @@ int main(int argc, char *argv[])
 
     // we can run, if one of bImmediateCall, bAfter, bBefore or bNice is true
     // and recDir is given
-    if ( (bImmediateCall || bBefore || bAfter || bNice) && recDir )
+    if ( (bImmediateCall || config.Before || bAfter || bNice) && recDir )
     {
         // if bFork is given go in background
         if ( bFork )
@@ -3021,7 +3018,7 @@ int main(int argc, char *argv[])
             }
             if (ioprio_set(1,getpid(),ioprio | ioprio_class << 13)==-1)
             {
-                esyslog("failed to set ioprio to IOPRIO_CLASS_IDLE");
+                esyslog("failed to set ioprio to %i,%i",ioprio_class,ioprio);
             }
         }
 
@@ -3051,10 +3048,7 @@ int main(int argc, char *argv[])
         signal(SIGTSTP, signal_handler);
         signal(SIGCONT, signal_handler);
 
-        cmasta = new cMarkAdStandalone(recDir,bBackupMarks, logoExtraction, logoWidth, logoHeight,
-                                       bDecodeVideo,bDecodeAudio,ignoreInfo,
-                                       logoDirectory,markFileName,bNoPid,bOSD,svdrphost,
-                                       svdrpport,bBefore,bGenIndex,threads);
+        cmasta = new cMarkAdStandalone(recDir,&config);
         if (!cmasta) return -1;
 
         if (!bPass2Only) cmasta->Process();
@@ -3062,5 +3056,5 @@ int main(int argc, char *argv[])
         delete cmasta;
         return 0;
     }
-    return usage(svdrpport);
+    return usage(config.svdrpport);
 }

@@ -149,13 +149,25 @@ MarkAdMark *cMarkAdAudio::Process(int FrameNumber, int FrameNumberNext)
 
     if (ChannelChange(macontext->Audio.Info.Channels,channels))
     {
+        bool start=false;
+        if (macontext->Audio.Info.DolbyDigital51)
+        {
+            if (macontext->Audio.Info.Channels>2) start=true;
+            else start=false;
+        }
+        else
+        {
+            if (macontext->Audio.Info.Channels>2) start=false;
+            else start=true;
+        }
+
         char *buf=NULL;
         if (asprintf(&buf,"audio channel change from %i to %i (%i)", channels,
                      macontext->Audio.Info.Channels,
-                     (macontext->Audio.Info.Channels>2) ? FrameNumberNext :
+                     start ? FrameNumberNext :
                      framelast)!=-1)
         {
-            if (macontext->Audio.Info.Channels>2)
+            if (start)
             {
                 AddMark(MT_CHANNELSTART,FrameNumberNext,buf);
             }

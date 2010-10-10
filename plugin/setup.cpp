@@ -22,6 +22,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     nomargins=setup->NoMargins;
     hidemainmenuentry=setup->HideMainMenuEntry;
     secondpass=setup->SecondPass;
+    ac3always=setup->AC3Always;
 
     processTexts[0]=tr("after");
     processTexts[1]=tr("during");
@@ -44,15 +45,15 @@ void cSetupMarkAd::write(void)
     }
 
     Add(new cMenuEditStraItem(tr("hdd access priority"),&ioprioclass,3,ioprioTexts));
-
-    Add(new cMenuEditBoolItem(tr("repair index, if broken"),&genindex));
+    Add(new cMenuEditBoolItem(tr("examine AC3 always"),&ac3always));
     Add(new cMenuEditBoolItem(tr("ignore timer margins"),&nomargins));
     Add(new cMenuEditBoolItem(tr("detect overlaps"),&secondpass));
-
+    Add(new cOsdItem("",osUnknown,false));
+    Add(new cMenuEditBoolItem(tr("repair index, if broken"),&genindex));
     Add(new cMenuEditBoolItem(tr("OSD message"),&osdmsg));
     Add(new cMenuEditBoolItem(tr("backup marks"),&backupmarks));
     Add(new cMenuEditBoolItem(tr("verbose logging"),&verbose));
-    Add(new cMenuEditBoolItem(tr("Hide Mainmenu entry"),&hidemainmenuentry));
+    Add(new cMenuEditBoolItem(tr("hide mainmenu entry"),&hidemainmenuentry));
 
     Display();
 }
@@ -93,6 +94,7 @@ void cSetupMarkAd::Store(void)
     SetupStore("Verbose",verbose);
     SetupStore("HideMainMenuEntry",hidemainmenuentry);
     SetupStore("IOPrioClass",ioprioclass);
+    SetupStore("AC3Always",ac3always);
 
     setup->ProcessDuring=(bool) processduring;
     setup->whileRecording=(bool) whilerecording;
@@ -105,4 +107,5 @@ void cSetupMarkAd::Store(void)
     setup->NoMargins=(bool) nomargins;
     setup->HideMainMenuEntry=(bool) hidemainmenuentry;
     setup->IOPrioClass=ioprioclass;
+    setup->AC3Always=ac3always;
 }

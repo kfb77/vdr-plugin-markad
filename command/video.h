@@ -108,7 +108,7 @@ private:
     bool pixfmt_info;
     int SobelPlane(int plane); // do sobel operation on plane
     int Detect(int framenumber, int *logoframenumber); // ret 1 = logo, 0 = unknown, -1 = no logo
-    int Load(char *directory, char *file, int plane);
+    int Load(const char *directory, char *file, int plane);
     void Save(int framenumber, uchar picture[4][MAXPIXEL], int plane);
 public:
     cMarkAdLogo(MarkAdContext *maContext);

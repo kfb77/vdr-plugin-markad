@@ -8,6 +8,7 @@
 #ifndef __markad_standalone_h_
 #define __markad_standalone_h_
 
+#include "global.h"
 #include "demux.h"
 #include "decoder.h"
 #include "video.h"
@@ -24,6 +25,7 @@
 #define DELTATIME 20000 /* equals to 222ms (base is 90kHz PTS) */
 
 #define MAXRANGE 420 /* range to search for start/stop marks in seconds */
+
 
 class cOSDMessage
 {
@@ -205,7 +207,7 @@ unsigned Descriptor_Length:
     bool bIgnoreAudioInfo;
     bool bIgnoreVideoInfo;
     bool bIgnoreTimerInfo;
-    bool bGenIndex;
+
     int tStart; // pretimer in seconds
     int iStart; // pretimer as index value
     int iStartCheck; // check position for iStart
@@ -231,7 +233,7 @@ unsigned Descriptor_Length:
 
     bool aspectChecked;
     bool marksAligned;
-    bool bBackupMarks;
+
     clMarks marks;
     char *IndexToHMSF(int Index);
     void CalculateStopPosition(int startframe, int delta);
@@ -264,12 +266,7 @@ public:
     }
     void Process2ndPass();
     void Process();
-    cMarkAdStandalone(const char *Directory, bool BackupMarks, int LogoExtraction,
-                      int LogoWidth, int LogoHeight, bool DecodeVideo,
-                      bool DecodeAudio, int IgnoreInfo,
-                      const char *LogoDir, const char *MarkFileName,
-                      bool noPid, bool OSD, const char *SVDRPHost, int SVDRPPort,
-                      bool Before, bool GenIndex, int Threads);
+    cMarkAdStandalone(const char *Directory, const MarkAdConfig *config);
 
     ~cMarkAdStandalone();
 };

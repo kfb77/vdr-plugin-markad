@@ -55,6 +55,31 @@ typedef unsigned char uchar;
 #define MT_MOVED         0xE0
 #define MT_ALL           0xFF
 
+typedef struct config
+{
+    char logoDirectory[1024];
+    char LogoDir[1024];
+    char markFileName[1024];
+    char svdrphost[1024];
+
+    int logoExtraction;
+    int logoWidth;
+    int logoHeight;
+    int ignoreInfo;
+    int svdrpport;
+    int threads;
+
+    bool DecodeVideo;
+    bool DecodeAudio;
+    bool BackupMarks;
+
+    bool NoPid;
+    bool OSD;
+    bool Before;
+    bool GenIndex;
+    bool AC3Always;
+} MarkAdConfig;
+
 typedef struct MarkAdPos
 {
     int FrameNumberBefore;
@@ -89,15 +114,7 @@ typedef struct MarkAdPid
 
 typedef struct MarkAdContext
 {
-    char *LogoDir; // Logo Directory, default /var/lib/markad
-
-    struct Options
-    {
-        int LogoExtraction;
-        int LogoWidth;
-        int LogoHeight;
-        bool ASD;
-    } Options;
+    const MarkAdConfig *Config;
 
     struct Info
     {
@@ -138,13 +155,9 @@ typedef struct MarkAdContext
 
     struct Audio
     {
-        struct Options
-        {
-            bool AudioSilenceDetection;
-        } Options;
-
         struct Info
         {
+            bool DolbyDigital51;
             int Channels; // number of audio channels
             int SampleRate;
         } Info;

@@ -187,6 +187,7 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value)
     else if (!strcasecmp(Name,"HideMainMenuEntry")) setup.HideMainMenuEntry=atoi(Value)?true:false;
     else if (!strcasecmp(Name,"SecondPass")) setup.SecondPass=atoi(Value);
     else if (!strcasecmp(Name,"IOPrioClass")) setup.IOPrioClass=atoi(Value);
+    else if (!strcasecmp(Name,"AC3Always")) setup.AC3Always=atoi(Value);
     else return false;
     return true;
 }

@@ -65,7 +65,7 @@ void cMarkAdLogo::Clear()
     area.status=UNINITIALIZED;
 }
 
-int cMarkAdLogo::Load(char *directory, char *file, int plane)
+int cMarkAdLogo::Load(const char *directory, char *file, int plane)
 {
     if ((plane<0) || (plane>3)) return -3;
 
@@ -306,7 +306,7 @@ int cMarkAdLogo::SobelPlane(int plane)
 
 int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
 {
-    bool extract=(macontext->Options.LogoExtraction!=-1);
+    bool extract=(macontext->Config->logoExtraction!=-1);
 
     int rpixel=0,mpixel=0;
     int processed=0;
@@ -406,10 +406,10 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
     if (!macontext->Video.Data.Valid) return ERROR;
     if (!macontext->Video.Info.Width) return ERROR;
     if (!macontext->Video.Info.Height) return ERROR;
-    if (!macontext->LogoDir) return ERROR;
+    if (!macontext->Config->logoDirectory[0]) return ERROR;
     if (!macontext->Info.ChannelName) return ERROR;
 
-    if (macontext->Options.LogoExtraction==-1)
+    if (macontext->Config->logoExtraction==-1)
     {
         if ((area.aspectratio.Num!=macontext->Video.Info.AspectRatio.Num) ||
                 (area.aspectratio.Den!=macontext->Video.Info.AspectRatio.Den))
@@ -421,7 +421,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
                 area.corner=-1;
                 for (int plane=0; plane<4; plane++)
                 {
-                    int ret=Load(macontext->LogoDir,buf,plane);
+                    int ret=Load(macontext->Config->logoDirectory,buf,plane);
                     switch (ret)
                     {
                     case -1:
@@ -445,14 +445,14 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
     {
         area.aspectratio.Num=macontext->Video.Info.AspectRatio.Num;
         area.aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
-        area.corner=macontext->Options.LogoExtraction;
-        if (macontext->Options.LogoWidth!=-1)
+        area.corner=macontext->Config->logoExtraction;
+        if (macontext->Config->logoWidth!=-1)
         {
-            LOGOWIDTH=macontext->Options.LogoWidth;
+            LOGOWIDTH=macontext->Config->logoWidth;
         }
-        if (macontext->Options.LogoHeight!=-1)
+        if (macontext->Config->logoHeight!=-1)
         {
-            LOGOHEIGHT=macontext->Options.LogoHeight;
+            LOGOHEIGHT=macontext->Config->logoHeight;
         }
     }
 
