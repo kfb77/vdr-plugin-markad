@@ -83,7 +83,7 @@ public:
         indexfd=-1;
     }
     ~clMarks();
-    int Count(int Type=0xFF);
+    int Count(int Type=0xFF, int Mask=0xFF);
     void SetFileName(const char *FileName)
     {
         if (FileName)

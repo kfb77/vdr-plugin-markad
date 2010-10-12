@@ -47,7 +47,7 @@ clMarks::~clMarks()
     if (indexfd!=-1) close(indexfd);
 }
 
-int clMarks::Count(int Type)
+int clMarks::Count(int Type, int Mask)
 {
     if (Type==0xFF) return count;
 
@@ -57,7 +57,7 @@ int clMarks::Count(int Type)
     clMark *mark=first;
     while (mark)
     {
-        if (mark->type==Type) ret++;
+        if ((mark->type & Mask)==Type) ret++;
         mark=mark->Next();
     }
     return ret;

@@ -455,9 +455,6 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
             LOGOHEIGHT=macontext->Config->logoHeight;
         }
     }
-
-    //if (!area.valid) return ERROR;
-
     return Detect(FrameNumber,LogoFrameNumber);
 }
 

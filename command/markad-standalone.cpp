@@ -360,7 +360,7 @@ void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
     }
 }
 
-void cMarkAdStandalone::CheckLogoMarks()
+void cMarkAdStandalone::CheckLogoMarks(clMark *last)
 {
     clMark *mark=marks.GetFirst();
     while (mark)
@@ -382,6 +382,7 @@ void cMarkAdStandalone::CheckLogoMarks()
             }
         }
         mark=mark->Next();
+        if ((last) && (mark==last)) return;
     }
 }
 
@@ -607,7 +608,8 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 if ((Mark->Position-prev->position)<MARKDIFF)
                 {
                     if (Mark->Comment) isyslog("%s",Mark->Comment);
-                    isyslog("aspectratio change in short distance, deleting this mark (%i)",Mark->Position);
+                    isyslog("aspectratio change in short distance, deleting this mark (%i)",
+                            Mark->Position);
                     return;
                 }
             }
@@ -618,7 +620,8 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 if ((Mark->Position-prev->position)<MARKDIFF)
                 {
                     if (Mark->Comment) isyslog("%s",Mark->Comment);
-                    isyslog("audiochannel change in short distance, deleting this mark (%i)",Mark->Position);
+                    isyslog("audiochannel change in short distance, deleting this mark (%i)",
+                            Mark->Position);
                     return;
                 }
             }
@@ -627,8 +630,8 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 
     if (macontext.Info.Length>0)
     {
-        if (((Mark->Type & 0xF0)==MT_BORDERCHANGE) && (Mark->Position>chkLEFT) &&
-                (!macontext.Video.Options.IgnoreLogoDetection))
+        if ((marks.Count(MT_BORDERCHANGE,0xF0)>=3) && (Mark->Position>chkLEFT) &&
+                (Mark->Position<chkRIGHT) && (!macontext.Video.Options.IgnoreLogoDetection))
         {
             if (Mark->Comment)
             {
@@ -641,47 +644,62 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             marks.Del((uchar) MT_LOGOSTOP);
         }
 
-        if (((Mark->Type==MT_CHANNELSTART) || (Mark->Type==MT_ASPECTSTART)) &&
-                (Mark->Position>chkLEFT) && (Mark->Position<chkRIGHT) && (bDecodeVideo))
+        bool deleteLogoBorder=false;
+        if ((marks.Count(MT_CHANNELCHANGE,0xF0)>=3) && (Mark->Position>chkLEFT) &&
+                (Mark->Position<chkRIGHT) && (!macontext.Video.Options.IgnoreLogoDetection))
         {
-            if (Mark->Comment)
+            if (!loggedAlready)
             {
-                isyslog("%s",Mark->Comment);
-                loggedAlready=true;
-            }
-
-            if ((Mark->Type & 0xF0)==MT_CHANNELCHANGE)
-            {
-                isyslog("audio channel changes detected. logo/border detection disabled");
-                if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262)
+                if (Mark->Comment)
                 {
-                    if (!macontext.Info.AspectRatio.Num)
-                    {
-                        isyslog("assuming broadcast aspectratio is 16:9");
-                        macontext.Info.AspectRatio.Num=16;
-                        macontext.Info.AspectRatio.Den=9;
-                        macontext.Video.Options.IgnoreAspectRatio=true;
-                    }
+                    isyslog("%s",Mark->Comment);
+                    loggedAlready=true;
                 }
-                macontext.Audio.Info.DolbyDigital51=true;
-                setAudio51=true;
-                setAudio20=false;
+            }
+            isyslog("audio channel changes detected. logo/border detection disabled");
+            if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262)
+            {
+                if (!macontext.Info.AspectRatio.Num)
+                {
+                    isyslog("assuming broadcast aspectratio is 16:9");
+                    macontext.Info.AspectRatio.Num=16;
+                    macontext.Info.AspectRatio.Den=9;
+                    macontext.Video.Options.IgnoreAspectRatio=true;
+                }
+            }
+            macontext.Audio.Info.DolbyDigital51=true;
+            setAudio51=true;
+            setAudio20=false;
+            reprocess=true;
+            deleteLogoBorder=true;
+        }
+
+        if ((marks.Count(MT_ASPECTCHANGE,0xF0)>=3) && (Mark->Position>chkLEFT) &&
+                (Mark->Position<chkRIGHT) && (!macontext.Video.Options.IgnoreLogoDetection))
+        {
+            if (!loggedAlready)
+            {
+                if (Mark->Comment)
+                {
+                    isyslog("%s",Mark->Comment);
+                    loggedAlready=true;
+                }
+            }
+            isyslog("aspectratio changes detected. logo/border detection disabled");
+
+            if ((!macontext.Info.AspectRatio.Num) && ((Mark->Type & 0xF0)==MT_ASPECTCHANGE))
+            {
+                isyslog("assuming broadcast aspectratio is 4:3");
+                macontext.Info.AspectRatio.Num=4;
+                macontext.Info.AspectRatio.Den=3;
                 reprocess=true;
+                setVideo43=true;
             }
-            else
-            {
-                isyslog("aspectratio changes detected. logo/border detection disabled");
+            deleteLogoBorder=true;
+        }
 
-                if ((!macontext.Info.AspectRatio.Num) && ((Mark->Type & 0xF0)==MT_ASPECTCHANGE))
-                {
-                    isyslog("assuming broadcast aspectratio is 4:3");
-                    macontext.Info.AspectRatio.Num=4;
-                    macontext.Info.AspectRatio.Den=3;
-                    reprocess=true;
-                    setVideo43=true;
-                }
-            }
-
+        if (deleteLogoBorder)
+        {
             bDecodeVideo=false;
             macontext.Video.Data.Valid=false;
             marks.Del((uchar) MT_LOGOSTART);
@@ -691,6 +709,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         }
     }
     if (Mark->Position>chkLEFT) CheckFirstMark();
+    if (marksAligned) CheckLogoMarks(marks.GetLast());
 
     if ((Mark->Comment) && (!loggedAlready)) isyslog("%s",Mark->Comment);
     marks.Add(Mark->Type,Mark->Position,Mark->Comment);

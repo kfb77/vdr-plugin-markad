@@ -242,7 +242,7 @@ unsigned Descriptor_Length:
     bool CheckDolbyDigital51();
     void CheckStartStop(int frame, bool checkend=false);
     void CheckInfoAspectRatio();
-    void CheckLogoMarks();
+    void CheckLogoMarks(clMark *last=NULL);
     void AddStartMark();
     void AddMark(MarkAdMark *Mark);
     bool Reset(bool FirstPass=true);

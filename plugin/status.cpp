@@ -82,7 +82,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                                    setup->IOPrioClass+1,
                                    logodir,Direct ? "-O after" : "--online=2 before", FileName);
     dsyslog("markad: executing %s",*cmd);
-    if (SystemExec(cmd,true)!=-1)
+    if (SystemExec(cmd)!=-1)
     {
         usleep(200000);
         int pos=Add(FileName,Name);
