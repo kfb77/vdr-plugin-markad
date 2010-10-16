@@ -162,10 +162,10 @@ MarkAdMark *cMarkAdAudio::Process(int FrameNumber, int FrameNumberNext)
         }
 
         char *buf=NULL;
-        if (asprintf(&buf,"audio channel change from %i to %i (%i)", channels,
+        if (asprintf(&buf,"audio channel change from %i to %i (%i)%s", channels,
                      macontext->Audio.Info.Channels,
                      start ? FrameNumberNext :
-                     framelast)!=-1)
+                     framelast, start ? "*" : "")!=-1)
         {
             if (start)
             {

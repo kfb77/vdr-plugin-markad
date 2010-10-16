@@ -413,13 +413,11 @@ void cMarkAdStandalone::CheckFirstMark()
     clMark *second=first->Next();
     if (!second) return;
 
-    // if first and second mark is ASPECT/BORDER
-    // wait till its clear, if we use ASPECT
-    // or BORDER
-    int ft=first->type & 0xF0;
-    int st=second->type & 0xF0;
-    if (((ft==MT_BORDERCHANGE) && (st==MT_ASPECTCHANGE)) ||
-            ((st==MT_BORDERCHANGE) && (ft==MT_ASPECTCHANGE))) return;
+    if ((marks.Count(MT_BORDERCHANGE,0xF0)>0) && (marks.Count(MT_ASPECTCHANGE,0xF0)>0))
+    {
+        // wait till its clear, if we use ASPECT or BORDER
+        return;
+    }
 
     if ((second->type & 0xF)==MT_START)
     {
@@ -552,15 +550,31 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     {
         // check if last mark is an stop mark in short distance
         clMark *prev=marks.GetLast();
-        if ((prev) && ((prev->type & 0xF)==MT_STOP))
+        if (prev)
         {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*15);
-            if ((Mark->Position-prev->position)<MARKDIFF)
+            if ((prev->type & 0xF)==MT_STOP)
             {
-                if (Mark->Comment) isyslog("%s",Mark->Comment);
-                isyslog("double stop mark in short distance, deleting this mark (%i)",prev->position);
-                marks.Del(prev);
-                loggedAlready=true;
+                int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*15);
+                if ((Mark->Position-prev->position)<MARKDIFF)
+                {
+                    if (Mark->Comment) isyslog("%s",Mark->Comment);
+                    isyslog("double stop mark in short distance, deleting this mark (%i)",prev->position);
+                    marks.Del(prev);
+                    loggedAlready=true;
+                }
+            }
+            if (prev->type==MT_ASPECTSTART)
+            {
+                int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*240);
+                if ((Mark->Position-prev->position)<MARKDIFF)
+                {
+                    if (Mark->Comment) isyslog("%s",Mark->Comment);
+                    double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
+                    isyslog("logo distance too short (%.1fs), deleting (%i,%i)",distance,
+                            prev->position,Mark->Position);
+                    marks.Del(prev);
+                    return;
+                }
             }
         }
     }
@@ -701,6 +715,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         if (deleteLogoBorder)
         {
             bDecodeVideo=false;
+            macontext.Video.Options.IgnoreLogoDetection=true;
             macontext.Video.Data.Valid=false;
             marks.Del((uchar) MT_LOGOSTART);
             marks.Del((uchar) MT_LOGOSTOP);
@@ -2537,6 +2552,13 @@ static void signal_handler(int sig)
     }
 }
 
+char *recDir=NULL;
+
+void freedir(void)
+{
+    if (recDir) free(recDir);
+}
+
 int main(int argc, char *argv[])
 {
     int c;
@@ -2545,7 +2567,6 @@ int main(int argc, char *argv[])
     int niceLevel = 19;
     int ioprio_class=2;
     int ioprio=4;
-    char *recDir=NULL;
     char *tok,*str;
     int ntok;
     int online=0;
@@ -2574,6 +2595,8 @@ int main(int argc, char *argv[])
     {
         config.svdrpport=2001;
     }
+
+    atexit(freedir);
 
     while (1)
     {
@@ -2925,8 +2948,7 @@ int main(int argc, char *argv[])
             {
                 if ( strstr(argv[optind],".rec") != NULL )
                 {
-                    recDir = argv[optind];
-                    if (recDir[strlen(recDir)-1]=='/') recDir[strlen(recDir)-1]=0;
+                    recDir=realpath(argv[optind],NULL);
                 }
             }
             optind++;

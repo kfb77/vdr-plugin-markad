@@ -479,6 +479,8 @@ int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame)
     if (!macontext) return 0;
     if (!macontext->Video.Data.Valid) return 0;
     if (macontext->Video.Info.FramesPerSecond==0) return 0;
+    // Assumption: If we have 4:3, we should have aspectratio-changes!
+    if (macontext->Video.Info.AspectRatio.Num==4) return 0;
     *BorderIFrame=0;
 
     int height=macontext->Video.Info.Height-OFFSET;
@@ -911,7 +913,7 @@ MarkAdMark *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
                         (macontext->Video.Info.AspectRatio.Den==macontext->Info.AspectRatio.Den))
                 {
                     char nbuf[20];
-                    snprintf(nbuf,sizeof(nbuf),"%i)",FrameNumberNext);
+                    snprintf(nbuf,sizeof(nbuf),"%i)*",FrameNumberNext);
                     nbuf[19]=0;
                     strcat(buf,nbuf);
                     AddMark(MT_ASPECTSTART,FrameNumberNext,buf);
@@ -928,7 +930,7 @@ MarkAdMark *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
             else
             {
                 char nbuf[20];
-                snprintf(nbuf,sizeof(nbuf),"%i)",FrameNumber);
+                snprintf(nbuf,sizeof(nbuf),"%i)?",FrameNumber);
                 nbuf[19]=0;
                 strcat(buf,nbuf);
 
