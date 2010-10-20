@@ -480,7 +480,7 @@ int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame)
     if (!macontext->Video.Data.Valid) return 0;
     if (macontext->Video.Info.FramesPerSecond==0) return 0;
     // Assumption: If we have 4:3, we should have aspectratio-changes!
-    if (macontext->Video.Info.AspectRatio.Num==4) return 0;
+    //if (macontext->Video.Info.AspectRatio.Num==4) return 0;
     *BorderIFrame=0;
 
     int height=macontext->Video.Info.Height-OFFSET;
@@ -762,9 +762,7 @@ cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext)
 {
     macontext=maContext;
 
-    mark.Comment=NULL;
-    mark.Position=0;
-    mark.Type=0;
+    memset(&marks,0,sizeof(marks));
 
     hborder=new cMarkAdBlackBordersHoriz(maContext);
     logo = new cMarkAdLogo(maContext);
@@ -774,7 +772,7 @@ cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext)
 
 cMarkAdVideo::~cMarkAdVideo()
 {
-    ResetMark();
+    ResetMarks();
     if (hborder) delete hborder;
     if (logo) delete logo;
     if (overlap) delete overlap;
@@ -788,36 +786,23 @@ void cMarkAdVideo::Clear()
     if (logo) logo->Clear();
 }
 
-void cMarkAdVideo::ResetMark()
+void cMarkAdVideo::ResetMarks()
 {
-    if (mark.Comment) free(mark.Comment);
-    mark.Comment=NULL;
-    mark.Position=0;
-    mark.Type=0;
+    for (int i=0; i<marks.maxCount; i++)
+    {
+        if (marks.Number[i].Comment) free(marks.Number[i].Comment);
+    }
+    memset(&marks,0,sizeof(marks));
 }
 
 bool cMarkAdVideo::AddMark(int Type, int Position, const char *Comment)
 {
     if (!Comment) return false;
-    if (mark.Comment)
-    {
-        int oldlen=strlen(mark.Comment);
-        mark.Comment=(char *) realloc(mark.Comment,oldlen+10+strlen(Comment));
-        if (!mark.Comment)
-        {
-            mark.Position=0;
-            return false;
-        }
-        strcat(mark.Comment," [");
-        strcat(mark.Comment,Comment);
-        strcat(mark.Comment,"]");
-    }
-    else
-    {
-        mark.Comment=strdup(Comment);
-    }
-    mark.Position=Position;
-    mark.Type=Type;
+    if (marks.Count>marks.maxCount) return false;
+    marks.Number[marks.Count].Comment=strdup(Comment);
+    marks.Number[marks.Count].Position=Position;
+    marks.Number[marks.Count].Type=Type;
+    marks.Count++;
     return true;
 }
 
@@ -840,11 +825,11 @@ MarkAdPos *cMarkAdVideo::Process2ndPass(int FrameNumber, int Frames, bool Before
     return overlap->Process(FrameNumber, Frames, BeforeAd);
 }
 
-MarkAdMark *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
+MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
 {
     if ((!FrameNumber) && (!FrameNumberNext)) return NULL;
 
-    ResetMark();
+    ResetMarks();
 
     if (!macontext->Video.Options.IgnoreLogoDetection)
     {
@@ -902,6 +887,7 @@ MarkAdMark *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
         if (AspectRatioChange(&macontext->Video.Info.AspectRatio,&aspectratio))
         {
             char *buf=(char *) calloc(1,256);
+            if (!buf) return NULL;
             snprintf(buf,255,"aspect ratio change from %i:%i to %i:%i (",
                      aspectratio.Num,aspectratio.Den,
                      macontext->Video.Info.AspectRatio.Num,
@@ -943,5 +929,5 @@ MarkAdMark *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
         aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
     }
     framelast=FrameNumberNext;
-    return &mark;
+    return &marks;
 }

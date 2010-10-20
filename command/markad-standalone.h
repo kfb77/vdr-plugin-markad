@@ -208,16 +208,17 @@ unsigned Descriptor_Length:
     bool bIgnoreVideoInfo;
     bool bIgnoreTimerInfo;
 
-    int tStart; // pretimer in seconds
-    int iStart; // pretimer as index value
-    int iStartCheck; // check position for iStart
-    int iStop;  // posttimer as index value
-    int iStopCheck; // check position for iStop
+    int tStart;        // pretimer in seconds
+    int iStart;        // pretimer as index value
+    int iStartCheck;   // check position for iStart
+    int iStop;         // posttimer as index value
+    int iStopCheck;    // check position for iStop
 
-    bool setAudio51;  // set audio to 5.1 in info
-    bool setAudio20;  // set audio to 2.0 in info
-    bool setVideo43;  // set video to 4:3 in info
-    bool setVideo169; // set video to 16:9 in info
+    bool setAudio51;   // set audio to 5.1 in info
+    bool setAudio20;   // set audio to 2.0 in info
+    bool setVideo43;   // set video to 4:3 in info
+    bool setVideo43LB; // set video to 4:3 letterbox in info
+    bool setVideo169;  // set video to 16:9 in info
 
     int nextPictType;
 

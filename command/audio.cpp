@@ -149,34 +149,41 @@ MarkAdMark *cMarkAdAudio::Process(int FrameNumber, int FrameNumberNext)
 
     if (ChannelChange(macontext->Audio.Info.Channels,channels))
     {
-        bool start=false;
-        if (macontext->Audio.Info.DolbyDigital51)
-        {
-            if (macontext->Audio.Info.Channels>2) start=true;
-            else start=false;
-        }
-        else
-        {
-            if (macontext->Audio.Info.Channels>2) start=false;
-            else start=true;
-        }
+        char *buf=(char *) calloc(1,256);
+        if (!buf) return NULL;
 
-        char *buf=NULL;
-        if (asprintf(&buf,"audio channel change from %i to %i (%i)%s", channels,
-                     macontext->Audio.Info.Channels,
-                     start ? FrameNumberNext :
-                     framelast, start ? "*" : "")!=-1)
+        snprintf(buf,255,"audio channel change from %i to %i (", channels,
+                 macontext->Audio.Info.Channels);
+
+        if (macontext->Info.Channels)
         {
-            if (start)
+            if (macontext->Info.Channels==macontext->Audio.Info.Channels)
             {
+                char nbuf[20];
+                snprintf(nbuf,sizeof(nbuf),"%i)*",FrameNumberNext);
+                nbuf[19]=0;
+                strcat(buf,nbuf);
                 AddMark(MT_CHANNELSTART,FrameNumberNext,buf);
+
             }
             else
             {
+                char nbuf[20];
+                snprintf(nbuf,sizeof(nbuf),"%i)",framelast);
+                nbuf[19]=0;
+                strcat(buf,nbuf);
                 AddMark(MT_CHANNELSTOP,framelast,buf);
             }
-            free(buf);
         }
+        else
+        {
+            char nbuf[20];
+            snprintf(nbuf,sizeof(nbuf),"%i)?",FrameNumber);
+            nbuf[19]=0;
+            strcat(buf,nbuf);
+            AddMark(MT_CHANNELCHANGE,FrameNumber,buf);
+        }
+        free(buf);
     }
 
     channels=macontext->Audio.Info.Channels;

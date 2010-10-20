@@ -141,14 +141,14 @@ class cMarkAdVideo
 {
 private:
     MarkAdContext *macontext;
-    MarkAdMark mark;
+    MarkAdMarks marks;
 
     MarkAdAspectRatio aspectratio;
     cMarkAdBlackBordersHoriz *hborder;
     cMarkAdLogo *logo;
     cMarkAdOverlap *overlap;
 
-    void ResetMark();
+    void ResetMarks();
     bool AddMark(int Type, int Position, const char *Comment);
     bool AspectRatioChange(MarkAdAspectRatio *a, MarkAdAspectRatio *b);
 
@@ -158,7 +158,7 @@ public:
     cMarkAdVideo(MarkAdContext *maContext);
     ~cMarkAdVideo();
     MarkAdPos *Process2ndPass(int FrameNumber, int Frames, bool BeforeAd);
-    MarkAdMark *Process(int FrameNumber, int FrameNumberNext);
+    MarkAdMarks *Process(int FrameNumber, int FrameNumberNext);
     void Clear();
 };
 

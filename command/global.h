@@ -95,6 +95,13 @@ typedef struct MarkAdMark
     char *Comment;
 } MarkAdMark;
 
+typedef struct MarkAdMarks
+{
+    static const int maxCount=4;
+    MarkAdMark Number[maxCount];
+    int Count;
+} MarkAdMarks;
+
 typedef struct MarkAdAspectRatio
 {
     int Num;
@@ -119,6 +126,7 @@ typedef struct MarkAdContext
     struct Info
     {
         int Length; // in seconds
+        int Channels;
         char *ChannelName;
         MarkAdAspectRatio AspectRatio;
         MarkAdPid VPid;
@@ -157,7 +165,7 @@ typedef struct MarkAdContext
     {
         struct Info
         {
-            bool DolbyDigital51;
+            //bool DolbyDigital51;
             int Channels; // number of audio channels
             int SampleRate;
         } Info;
