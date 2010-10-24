@@ -384,6 +384,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
             }
             else
             {
+                if (!area.counter) area.framenumber=framenumber;
                 area.counter++;
             }
         }

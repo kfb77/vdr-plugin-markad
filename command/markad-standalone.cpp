@@ -343,12 +343,14 @@ void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
             free(buf);
         }
         int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*MAXRANGE);
+#if 0
         clMark *before_iStart=marks.GetPrev(iStart,MT_START,0xF);
         if (before_iStart)
         {
             int tmpdiff=abs(iStart-before_iStart->position);
             if (tmpdiff<MARKDIFF) MARKDIFF=tmpdiff;
         }
+#endif
         iStartCheck=iStart+MARKDIFF;
         CalculateStopPosition(iStart,MARKDIFF);
     }
@@ -453,6 +455,11 @@ void cMarkAdStandalone::CheckFirstMark()
         }
         marks.Del(first);
         marksAligned=true;
+        first=marks.GetFirst();
+        if (first)
+        {
+            CalculateStopPosition(first->position,macontext.Video.Info.FramesPerSecond*MAXRANGE);
+        }
         return;
     }
 
@@ -527,6 +534,11 @@ void cMarkAdStandalone::CheckInfoAspectRatio()
         if ((macontext.Info.AspectRatio.Num==16) &&
                 (macontext.Info.AspectRatio.Den==9))
         {
+            if (!macontext.Info.Channels)
+            {
+                macontext.Info.Channels=macontext.Audio.Info.Channels;
+                if (macontext.Info.Channels==2) setAudio20=true;
+            }
             macontext.Video.Options.IgnoreAspectRatio=true;
             setVideo169=true;
             setVideo43=false;
@@ -1169,7 +1181,6 @@ bool cMarkAdStandalone::ProcessFile(int Number)
 
     if (abort) return false;
 
-    //const int datalen=8272;
     const int datalen=319976;
     uchar data[datalen];
 
@@ -1834,7 +1845,11 @@ bool cMarkAdStandalone::LoadInfo()
                             isyslog("broadcast with DolbyDigital2.0%s",macontext.Config->AC3Always ?
                                     "" : ", disabling AC3 decoding");
 
-                            if (!macontext.Config->AC3Always) macontext.Info.DPid.Num=0;
+                            if (!macontext.Config->AC3Always)
+                            {
+                                macontext.Info.DPid.Num=0;
+                                macontext.Info.Channels=2;
+                            }
                         }
                         else
                             // if we have DolbyDigital 5.1 disable video decoding
