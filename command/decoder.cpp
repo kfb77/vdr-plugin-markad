@@ -370,7 +370,6 @@ cMarkAdDecoder::~cMarkAdDecoder()
     Clear();
     if (video_context)
     {
-        if (video_context->thread_opaque) avcodec_thread_free(video_context);
         avcodec_close(video_context);
         av_free(video_context);
         av_free(video_frame);
@@ -378,14 +377,12 @@ cMarkAdDecoder::~cMarkAdDecoder()
 
     if (ac3_context)
     {
-        if (ac3_context->thread_opaque) avcodec_thread_free(ac3_context);
         avcodec_close(ac3_context);
         av_free(ac3_context);
     }
 
     if (mp2_context)
-    {
-        if (mp2_context->thread_opaque) avcodec_thread_free(mp2_context);
+    { 
         avcodec_close(mp2_context);
         av_free(mp2_context);
     }
@@ -397,7 +394,6 @@ bool cMarkAdDecoder::Clear()
     bool ret=true;
     if (video_context)
     {
-        if (video_context->thread_opaque) avcodec_thread_free(video_context);
         avcodec_flush_buffers(video_context);
         AVCodecContext *dest;
         dest=avcodec_alloc_context();
