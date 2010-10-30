@@ -688,7 +688,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 
         bool deleteLogoBorder=false;
         if (((Mark->Type & 0xF0)==MT_CHANNELCHANGE) && (Mark->Position>chkLEFT) &&
-                (Mark->Position<chkRIGHT) && (!macontext.Video.Options.IgnoreLogoDetection))
+                (Mark->Position<chkRIGHT) && (macontext.Info.Channels!=6))
         {
             if (!loggedAlready)
             {
