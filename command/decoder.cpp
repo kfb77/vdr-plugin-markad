@@ -326,7 +326,14 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3, int Threa
                 }
                 else
                 {
-                    avcodec_thread_init(video_context,threadcount);
+                    if (threadcount>1)
+                    {
+                        if (avcodec_thread_init(video_context,threadcount)==-1)
+                        {
+                            esyslog("cannot use %i threads, falling back to single thread operation",threadcount);
+                            threadcount=1;
+                        }
+                    }
                 }
             }
         }
@@ -382,7 +389,7 @@ cMarkAdDecoder::~cMarkAdDecoder()
     }
 
     if (mp2_context)
-    { 
+    {
         avcodec_close(mp2_context);
         av_free(mp2_context);
     }
@@ -412,7 +419,18 @@ bool cMarkAdDecoder::Clear()
             video_context=dest;
             if (avcodec_open(video_context,video_codec)<0) ret=false;
         }
-        avcodec_thread_init(video_context,threadcount);
+        if (threadcount>1)
+        {
+            if (avcodec_thread_init(video_context,threadcount)==-1)
+            {
+                video_context->execute=avcodec_default_execute;
+                threadcount=1;
+            }
+        }
+        else
+        {
+            video_context->execute=avcodec_default_execute;
+        }
     }
     if (ac3_context) avcodec_flush_buffers(ac3_context);
     if (mp2_context) avcodec_flush_buffers(mp2_context);
