@@ -165,7 +165,6 @@ typedef struct MarkAdContext
     {
         struct Info
         {
-            //bool DolbyDigital51;
             int Channels; // number of audio channels
             int SampleRate;
         } Info;

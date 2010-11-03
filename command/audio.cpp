@@ -164,7 +164,6 @@ MarkAdMark *cMarkAdAudio::Process(int FrameNumber, int FrameNumberNext)
                 nbuf[19]=0;
                 strcat(buf,nbuf);
                 AddMark(MT_CHANNELSTART,FrameNumberNext,buf);
-
             }
             else
             {
@@ -187,7 +186,7 @@ MarkAdMark *cMarkAdAudio::Process(int FrameNumber, int FrameNumberNext)
     }
 
     channels=macontext->Audio.Info.Channels;
-    framelast=FrameNumberNext;
+    framelast=FrameNumber;
     return &mark;
 }
 

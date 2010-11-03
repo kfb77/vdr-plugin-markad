@@ -644,6 +644,7 @@ bool cMarkAdOverlap::areSimilar(simpleHistogram &hist1, simpleHistogram &hist2)
     {
         similar+=abs(hist1[i]-hist2[i]);
     }
+    //printf("%6i\n",similar);
     if (similar<similarCutOff) return true;
     return false;
 }
@@ -658,6 +659,7 @@ MarkAdPos *cMarkAdOverlap::Detect()
     {
         for (int A=start; A<histcnt[AFTER]; A++)
         {
+            //printf("%6i %6i ",histbuf[BEFORE][B].framenumber,histbuf[AFTER][A].framenumber);
             bool simil=areSimilar(histbuf[BEFORE][B].histogram,histbuf[AFTER][A].histogram);
             if (simil)
             {

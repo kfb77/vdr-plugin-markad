@@ -184,10 +184,6 @@ unsigned Descriptor_Length:
     int lastiframe;
     int iframe;
 
-    unsigned int iframetime;
-    unsigned int lastiframetime;
-    unsigned int audiotime;
-
     int framecnt;
     int framecnt2; // 2nd pass
 
@@ -225,6 +221,8 @@ unsigned Descriptor_Length:
     int chkLEFT;
     int chkRIGHT;
 
+    time_t GetBroadcastStartPES();
+    time_t GetBroadcastStart(time_t start, int fd);
     void CheckBroadcastLength();
     bool CheckIndexGrowing();
     char *indexFile;
@@ -242,7 +240,7 @@ unsigned Descriptor_Length:
     void CheckLastMark();
     bool CheckDolbyDigital51();
     void CheckStartStop(int frame, bool checkend=false);
-    void CheckInfoAspectRatio();
+    void CheckAspectRatio_and_AudioChannels();
     void CheckLogoMarks(clMark *last=NULL);
     void AddStartMark();
     void AddMark(MarkAdMark *Mark);
@@ -257,8 +255,6 @@ unsigned Descriptor_Length:
     bool RegenerateIndex();
     bool ProcessFile2ndPass(clMark **Mark1, clMark **Mark2, int Number, off_t Offset, int Frame, int Frames);
     bool ProcessFile(int Number);
-
-    char *Timestamp2HMS(unsigned int Timestamp);
     void ProcessFile();
 public:
     void SetAbort()

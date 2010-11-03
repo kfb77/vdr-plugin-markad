@@ -10,16 +10,6 @@
 
 #include "streaminfo.h"
 
-cMarkAdStreamInfo::cMarkAdStreamInfo()
-{
-    Clear();
-}
-
-void cMarkAdStreamInfo::Clear()
-{
-    H264skiptoggle=false;
-}
-
 bool cMarkAdStreamInfo::FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen)
 {
 #pragma pack(1)
@@ -138,19 +128,6 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         else
         {
             maContext->Video.Info.Pict_Type=0;
-        }
-        if (!maContext->Video.Info.Interlaced)
-        {
-            // this is very crude, drop every second "frame"
-            if (H264skiptoggle)
-            {
-                H264skiptoggle=false;
-                return false;
-            }
-            else
-            {
-                H264skiptoggle=true;
-            }
         }
         return true;
     }
@@ -275,7 +252,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 if (num_units_in_tick > 0)
                 {
                     frame_rate = time_scale / (2*num_units_in_tick);
-                    if (frame_mbs_only_flag) frame_rate/=2;
+                    //if (frame_mbs_only_flag) frame_rate/=2;
                 }
                 bs.skipBit();                       // fixed_frame_rate_flag
             }

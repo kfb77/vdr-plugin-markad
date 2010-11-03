@@ -28,13 +28,11 @@ private:
         NAL_AUX_SLICE = 0x19  // Auxilary Slice
     };
 
-    bool H264skiptoggle;
     int nalUnescape(uint8_t *dst, const uint8_t *src, int len);
     bool FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
     bool FindH262VideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
 public:
-    cMarkAdStreamInfo();
-    void Clear();
+    void Clear() {};
     bool FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
     bool FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen);
 };
