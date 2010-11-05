@@ -269,6 +269,7 @@ void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
             {
                 // check if we have an MT_ASPECTCHANGE in low distance
                 clMark *aspectmark=marks.GetPrev(newpos,MT_ASPECTSTART);
+                if (!aspectmark) aspectmark=marks.GetNext(newpos,MT_ASPECTSTART);
                 if (aspectmark)
                 {
                     int MAXMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*20);
@@ -517,6 +518,7 @@ void cMarkAdStandalone::CheckAspectRatio_and_AudioChannels()
         {
             isyslog("DolbyDigital5.1 audio detected. logo/border detection disabled");
             bDecodeVideo=false;
+            setAudio20=false;
             setAudio51=true;
             reprocess=true;
         }
@@ -729,7 +731,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             deleteLogoBorder=true;
         }
 
-        if ((Mark->Type==MT_ASPECTSTART) && (Mark->Position>chkLEFT) &&
+        if (((Mark->Type & 0xF0)==MT_ASPECTCHANGE) && (Mark->Position>chkLEFT) &&
                 (Mark->Position<chkRIGHT) && (!macontext.Video.Options.IgnoreLogoDetection))
         {
             if (!loggedAlready)
