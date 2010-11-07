@@ -452,19 +452,9 @@ bool clMarks::ReadIndex(const char *Directory, bool isTS, int FrameNumber, int R
     return true;
 }
 
-void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
-                         int FrameType, int Number)
+void clMarks::WriteIndex(bool isTS, uint64_t Offset, int FrameType, int Number)
 {
-    if (indexfd==-1)
-    {
-        char *ipath=NULL;
-        if (asprintf(&ipath,"%s/index%s.generated",Directory,isTS ? "" : ".vdr")==-1) return;
-        indexfd=open(ipath,O_WRONLY|O_CREAT|O_TRUNC,0644);
-        free(ipath);
-        if (indexfd==-1) return;
-        Offset=0;
-        FrameType=1;
-    }
+    if (indexfd==-1) return;
     if (isTS)
     {
         struct tIndexTS IndexTS;
@@ -483,6 +473,21 @@ void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
         IndexVDR.reserved=0;
         if (write(indexfd,&IndexVDR,sizeof(IndexVDR))!=sizeof(IndexVDR)) return;
     }
+}
+
+void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
+                         int FrameType, int Number)
+{
+    if (indexfd==-1)
+    {
+        char *ipath=NULL;
+        if (asprintf(&ipath,"%s/index%s.generated",Directory,isTS ? "" : ".vdr")==-1) return;
+        indexfd=open(ipath,O_WRONLY|O_CREAT|O_TRUNC,0644);
+        free(ipath);
+        if (indexfd==-1) return;
+        if (Offset>376) WriteIndex(isTS,0,1,Number);
+    }
+    WriteIndex(isTS,Offset,FrameType,Number);
     return;
 }
 

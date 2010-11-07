@@ -1244,18 +1244,12 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                             if (!framecnt)
                             {
                                 AddStartMark();
-                                nextPictType=MA_I_TYPE;
                             }
 
                             if (macontext.Config->GenIndex)
                             {
-                                if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262)
-                                {
-                                    nextPictType=macontext.Video.Info.Pict_Type;
-                                }
-                                marks.WriteIndex(directory,isTS,offset,nextPictType,Number);
+                                marks.WriteIndex(directory,isTS,offset,macontext.Video.Info.Pict_Type,Number);
                             }
-                            nextPictType=macontext.Video.Info.Pict_Type;
                             framecnt++;
 
                             if (macontext.Video.Info.Pict_Type==MA_I_TYPE)

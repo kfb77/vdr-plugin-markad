@@ -73,6 +73,7 @@ uint16_t number:
     int count;
     int savedcount;
     int indexfd;
+    void WriteIndex(bool isTS, uint64_t Offset,int FrameType, int Number);
 public:
     clMarks()
     {
