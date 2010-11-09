@@ -252,7 +252,6 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 if (num_units_in_tick > 0)
                 {
                     frame_rate = time_scale / (2*num_units_in_tick);
-                    //if (frame_mbs_only_flag) frame_rate/=2;
                 }
                 bs.skipBit();                       // fixed_frame_rate_flag
             }
@@ -314,7 +313,10 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         {
             // set values
             maContext->Video.Info.Interlaced=!frame_mbs_only_flag;
-            maContext->Video.Info.FramesPerSecond=frame_rate;
+            if (frame_rate!=maContext->Video.Info.FramesPerSecond)
+            {
+                maContext->Video.Info.FramesPerSecond=-frame_rate;
+            }
             maContext->Video.Info.Width=width;
             maContext->Video.Info.Height=height;
 
@@ -564,42 +566,49 @@ unsigned BitRateExtL:
             break;
         }
 
+        double fps=0;
         switch (seqhdr->FrameRateIndex)
         {
         case 1:
-            maContext->Video.Info.FramesPerSecond=24000/1001; // 23.976 fps NTSC encapsulated
+            fps=24000/1001; // 23.976 fps NTSC encapsulated
             break;
         case 2:
-            maContext->Video.Info.FramesPerSecond=24.0; // Standard international cinema film rate
+            fps=24.0; // Standard international cinema film rate
             break;
         case 3:
-            maContext->Video.Info.FramesPerSecond=25.0; // PAL (625/50) video frame rate
+            fps=25.0; // PAL (625/50) video frame rate
             break;
 
         case 4:
-            maContext->Video.Info.FramesPerSecond=30000/1001; // 29.97 NTSC video frame rate
+            fps=30000/1001; // 29.97 NTSC video frame rate
             break;
 
         case 5:
-            maContext->Video.Info.FramesPerSecond=30.0; // NTSC drop frame (525/60) video frame rate
+            fps=30.0; // NTSC drop frame (525/60) video frame rate
             break;
 
         case 6:
-            maContext->Video.Info.FramesPerSecond=50.0; // double frame rate/progressive PAL
+            fps=50.0; // double frame rate/progressive PAL
             break;
 
         case 7:
-            maContext->Video.Info.FramesPerSecond=60000/1001; // double frame rate NTSC
+            fps=60000/1001; // double frame rate NTSC
             break;
 
         case 8:
-            maContext->Video.Info.FramesPerSecond=60.0; // double frame rate drop-frame NTSC
+            fps=60.0; // double frame rate drop-frame NTSC
             break;
 
         default:
             break;
         }
-
+        if (fps)
+        {
+            if (fps!=maContext->Video.Info.FramesPerSecond)
+            {
+                maContext->Video.Info.FramesPerSecond=-fps;
+            }
+        }
     }
     return false;
 }

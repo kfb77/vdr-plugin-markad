@@ -180,10 +180,10 @@ int cOSDMessage::Send(const char *format, ...)
 
 void cMarkAdStandalone::CalculateStopPosition(int startframe, int delta)
 {
-    if (!macontext.Info.Length) return;
+    if (!length) return;
     if (!macontext.Video.Info.FramesPerSecond) return;
 
-    int len_in_frames=macontext.Info.Length*macontext.Video.Info.FramesPerSecond;
+    int len_in_frames=length*macontext.Video.Info.FramesPerSecond;
 
     if (startframe)
     {
@@ -480,12 +480,12 @@ void cMarkAdStandalone::CheckFirstMark()
 
     // If we have an aspectchange, check the next aspectchange mark
     // and the difference between
-    if ((second->type==MT_ASPECTCHANGE) && (macontext.Info.Length))
+    if ((second->type==MT_ASPECTCHANGE) && (length))
     {
         clMark *next=marks.GetNext(second->position,MT_ASPECTCHANGE);
         if (next)
         {
-            int maxlen=macontext.Info.Length*(13*60)/(90*60); // max 13 minutes ads on 90 minutes program
+            int maxlen=length*(13*60)/(90*60); // max 13 minutes ads on 90 minutes program
             if (maxlen>(13*60)) maxlen=(13*60); // maximum ad block = 13 minutes
             int MAXPOSDIFF=(int) (macontext.Video.Info.FramesPerSecond*maxlen);
             if ((next->position-second->position)>MAXPOSDIFF)
@@ -685,7 +685,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         }
     }
 
-    if (macontext.Info.Length>0)
+    if (length>0)
     {
         if ((Mark->Type==MT_BORDERSTART) && (Mark->Position>chkLEFT) &&
                 (Mark->Position<chkRIGHT) && (!macontext.Video.Options.IgnoreLogoDetection))
@@ -813,15 +813,15 @@ void cMarkAdStandalone::SaveFrame(int frame)
 
 void cMarkAdStandalone::CheckBroadcastLength()
 {
-    if (macontext.Info.Length) return;
+    if (length) return;
     if (!macontext.Video.Info.FramesPerSecond) return;
     /* get broadcastlength from length of indexFile */
     int tframecnt=1;
     int iIndexError;
     marks.CheckIndex(directory,isTS,&tframecnt,&iIndexError);
     if (iIndexError!=0) return;
-    macontext.Info.Length=tframecnt/macontext.Video.Info.FramesPerSecond;
-    isyslog("got broadcast length of %im from index",macontext.Info.Length/60);
+    length=tframecnt/macontext.Video.Info.FramesPerSecond;
+    isyslog("got broadcast length of %im from index",length/60);
     reprocess=true;
 }
 
@@ -846,7 +846,31 @@ bool cMarkAdStandalone::CheckIndexGrowing()
         int maxframes=statbuf.st_size/8;
         if (maxframes<(framecnt+200))
         {
-            if ((difftime(time(NULL),statbuf.st_mtime))>=10) return false; // "old" file
+            if ((difftime(time(NULL),statbuf.st_mtime))>=10)
+            {
+                if (length && startTime)
+                {
+                    if (time(NULL)>(startTime+(time_t) length))
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        sleepcnt=0;
+                        iwaittime_msg+=WAITTIME;
+                        iwaittime+=WAITTIME;
+                        if (iwaittime_msg>=120)
+                        {
+                            esyslog("recording interrupted %is, still waiting...",iwaittime);
+                            iwaittime_msg=0;
+                        }
+                    }
+                }
+                else
+                {
+                    return false; // "old" file
+                }
+            }
             marks.Save(directory,macontext.Video.Info.FramesPerSecond,isTS);
             sleep(WAITTIME); // now we sleep and hopefully the index will grow
             waittime+=WAITTIME;
@@ -854,13 +878,18 @@ bool cMarkAdStandalone::CheckIndexGrowing()
             sleepcnt++;
             if (sleepcnt>=2)
             {
-                esyslog("no new data after %i seconds, skipping wait!",
-                        sleepcnt*WAITTIME);
+                esyslog("no new data after %is, skipping wait!",
+                        waittime);
                 notenough=false; // something went wrong?
             }
         }
         else
         {
+            if (iwaittime)
+            {
+                esyslog("resuming after %is of interrupted recording, marks can be wrong now!",iwaittime);
+            }
+            iwaittime=iwaittime_msg=0;
             sleepcnt=0;
             notenough=false;
         }
@@ -1065,7 +1094,7 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
 
                             if (abs(audiotime-lastiframetime)<DELTATIME)
                             {
-                                if (decoder->DecodeMP2(&macontext,apkt.Data,apkt.Length))
+                                if (decoder->DecodeMP2(&macontext,apkt.Data,apkt.length))
                                 {
                                     pos=audio->Process2ndPass(iframe);
                                     if (pos) ChangeMarks(Mark1,NULL,pos);
@@ -1102,10 +1131,13 @@ void cMarkAdStandalone::Process2ndPass()
     if (abort) return;
     if (duplicate) return;
     if (!decoder) return;
+    if (!length) return;
+    if (!startTime) return;
+    if (time(NULL)<(startTime+(time_t) length)) return;
 
     if (!macontext.Video.Info.FramesPerSecond)
     {
-        // TODO: Get Framerate from info
+        isyslog("WARNING: assuming fps of 25");
         macontext.Video.Info.FramesPerSecond=25;
     }
 
@@ -1268,6 +1300,12 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                 }
                                 dRes=true;
                             }
+                        }
+                        if (macontext.Video.Info.FramesPerSecond<0)
+                        {
+                            macontext.Video.Info.FramesPerSecond*=-1;
+                            if (!setFrameRate) isyslog("framerate in info wrong, setting to %.f",macontext.Video.Info.FramesPerSecond);
+                            setFrameRate=true;
                         }
 
                         if ((decoder) && (bDecodeVideo))
@@ -1483,60 +1521,71 @@ void cMarkAdStandalone::Process()
     ProcessFile();
     if (CheckDolbyDigital51()) ProcessFile();
 
+    marks.CloseIndex(directory,isTS);
     if (!abort)
     {
-        marks.CloseIndex(directory,isTS);
         if (marks.Save(directory,macontext.Video.Info.FramesPerSecond,isTS))
         {
-            int iIndexError=false;
-            int tframecnt=macontext.Config->GenIndex ? framecnt : 0;
-            if (marks.CheckIndex(directory,isTS,&tframecnt,&iIndexError))
+            if (length && startTime)
             {
-                if (iIndexError)
+                if (time(NULL)>(startTime+(time_t) length))
                 {
-                    if (macontext.Config->GenIndex)
+                    int iIndexError=false;
+                    int tframecnt=macontext.Config->GenIndex ? framecnt : 0;
+                    if (marks.CheckIndex(directory,isTS,&tframecnt,&iIndexError))
                     {
-                        switch (iIndexError)
+                        if (iIndexError)
                         {
-                        case IERR_NOTFOUND:
-                            isyslog("no index found");
-                            break;
-                        case IERR_TOOSHORT:
-                            isyslog("index too short");
-                            break;
-                        default:
-                            isyslog("index contains errors");
-                            break;
-                        }
-                        if (RegenerateIndex())
-                        {
-                            isyslog("recreated index");
-                        }
-                        else
-                        {
-                            esyslog("failed to recreate index");
+                            if (macontext.Config->GenIndex)
+                            {
+                                switch (iIndexError)
+                                {
+                                case IERR_NOTFOUND:
+                                    isyslog("no index found");
+                                    break;
+                                case IERR_TOOSHORT:
+                                    isyslog("index too short");
+                                    break;
+                                default:
+                                    isyslog("index contains errors");
+                                    break;
+                                }
+                                if (RegenerateIndex())
+                                {
+                                    isyslog("recreated index");
+                                }
+                                else
+                                {
+                                    esyslog("failed to recreate index");
+                                }
+                            }
+                            else
+                            {
+                                esyslog("index doesn't match marks%s",
+                                        ((isTS) || ((macontext.Info.VPid.Type==
+                                                     MARKAD_PIDTYPE_VIDEO_H264) && (!isTS))) ?
+                                        ", sorry you're lost" :
+                                        ", please run genindex");
+                            }
                         }
                     }
-                    else
-                    {
-                        esyslog("index doesn't match marks%s",
-                                ((isTS) || ((macontext.Info.VPid.Type==
-                                             MARKAD_PIDTYPE_VIDEO_H264) && (!isTS))) ?
-                                ", sorry you're lost" :
-                                ", please run genindex");
-                    }
+                    if ((!bIgnoreAudioInfo) && (!bIgnoreVideoInfo)) SaveInfo();
+                }
+                else
+                {
+                    // this shouldn't be reached
+                    esyslog("ALERT: stopping before end of broadcast");
                 }
             }
         }
-        if (macontext.Config->GenIndex) marks.RemoveGeneratedIndex(directory,isTS);
-
-        if ((!bIgnoreAudioInfo) && (!bIgnoreVideoInfo) && (macontext.Info.Length)) SaveInfo();
     }
+    if (macontext.Config->GenIndex) marks.RemoveGeneratedIndex(directory,isTS);
 }
 
 bool cMarkAdStandalone::SaveInfo()
 {
-    if ((!setVideo43) && (!setVideo169) && (!setAudio20) && (!setAudio51) && (!setVideo43LB)) return true;
+    if ((!setVideo43) && (!setVideo169) && (!setAudio20) && (!setAudio51) && (!setVideo43LB) &&
+            (!setFrameRate)) return true;
     char *src,*dst;
     if (asprintf(&src,"%s/info%s",directory,isTS ? "" : ".vdr")==-1) return false;
 
@@ -1567,90 +1616,97 @@ bool cMarkAdStandalone::SaveInfo()
     bool setVideo169_done=false;
     bool setAudio20_done=false;
     bool setAudio51_done=false;
+    bool setFrameRate_done=false;
 
     char lang[4]="";
 
     bool err=false;
     while (getline(&line,&length,r)!=-1)
     {
-        if (line[0]=='X')
+        if ((line[0]=='F') && (setFrameRate))
         {
-            int stream=0,type=0;
-            char descr[256]="";
-
-            int result=sscanf(line,"%*c %i %i %3c %250c",&stream,&type,(char *) &lang, (char *) &descr);
-            if ((result!=0) && (result!=EOF))
-            {
-                switch (stream)
-                {
-                case 1:
-                    if ( (((type==1) || (type==5)) && ((setVideo169) || (setVideo43LB))) ||
-                            (((type==2) || (type==3) || (type==6) || (type==7)) &&
-                             ((setVideo43) || (setVideo43LB))))
-                    {
-                        if (setVideo43)
-                        {
-                            if (fprintf(w,"X 1 01 %s 4:3\n",lang)<=0) err=true;
-                            setVideo43_done=true;
-                        }
-                        if (setVideo43LB)
-                        {
-                            if (fprintf(w,"X 1 01 %s 4:3 LetterBox\n",lang)<=0) err=true;
-                            setVideo43LB_done=true;
-                        }
-                        if (setVideo169)
-                        {
-                            if (fprintf(w,"X 1 03 %s 16:9\n",lang)<=0) err=true;
-                            setVideo169_done=true;
-                        }
-                    }
-                    else
-                    {
-                        if (fprintf(w,"%s",line)<=0) err=true;
-                    }
-                    break;
-                case 2:
-                    if ((type==5) && ((setAudio51) || (setAudio20)))
-                    {
-                        if (setAudio51)
-                        {
-                            if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
-                            setAudio51_done=true;
-                        }
-                        if (setAudio20)
-                        {
-                            if (fprintf(w,"X 2 05 %s Dolby Digital 2.0\n",lang)<=0) err=true;
-                            setAudio20_done=true;
-                        }
-                    }
-                    else
-                    {
-                        if (fprintf(w,"%s",line)<=0) err=true;
-                    }
-                    break;
-                default:
-                    if (fprintf(w,"%s",line)<=0) err=true;
-                    break;
-                }
-            }
+            if (fprintf(w,"F %i\n",(int) macontext.Video.Info.FramesPerSecond)<=0) err=true;
+            setFrameRate_done=true;
         }
         else
-        {
-            if (line[0]!='@')
+            if (line[0]=='X')
             {
-                if (fprintf(w,"%s",line)<=0) err=true;
+                int stream=0,type=0;
+                char descr[256]="";
+
+                int result=sscanf(line,"%*c %i %i %3c %250c",&stream,&type,(char *) &lang, (char *) &descr);
+                if ((result!=0) && (result!=EOF))
+                {
+                    switch (stream)
+                    {
+                    case 1:
+                        if ( (((type==1) || (type==5)) && ((setVideo169) || (setVideo43LB))) ||
+                                (((type==2) || (type==3) || (type==6) || (type==7)) &&
+                                 ((setVideo43) || (setVideo43LB))))
+                        {
+                            if (setVideo43)
+                            {
+                                if (fprintf(w,"X 1 01 %s 4:3\n",lang)<=0) err=true;
+                                setVideo43_done=true;
+                            }
+                            if (setVideo43LB)
+                            {
+                                if (fprintf(w,"X 1 01 %s 4:3 LetterBox\n",lang)<=0) err=true;
+                                setVideo43LB_done=true;
+                            }
+                            if (setVideo169)
+                            {
+                                if (fprintf(w,"X 1 03 %s 16:9\n",lang)<=0) err=true;
+                                setVideo169_done=true;
+                            }
+                        }
+                        else
+                        {
+                            if (fprintf(w,"%s",line)<=0) err=true;
+                        }
+                        break;
+                    case 2:
+                        if ((type==5) && ((setAudio51) || (setAudio20)))
+                        {
+                            if (setAudio51)
+                            {
+                                if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
+                                setAudio51_done=true;
+                            }
+                            if (setAudio20)
+                            {
+                                if (fprintf(w,"X 2 05 %s Dolby Digital 2.0\n",lang)<=0) err=true;
+                                setAudio20_done=true;
+                            }
+                        }
+                        else
+                        {
+                            if (fprintf(w,"%s",line)<=0) err=true;
+                        }
+                        break;
+                    default:
+                        if (fprintf(w,"%s",line)<=0) err=true;
+                        break;
+                    }
+                }
             }
             else
             {
-                if (lline)
+                if (line[0]!='@')
                 {
-                    free(lline);
-                    err=true;
-                    esyslog("multiple @lines in info file, please report this!");
+                    if (fprintf(w,"%s",line)<=0) err=true;
                 }
-                lline=strdup(line);
+                else
+                {
+                    if (lline)
+                    {
+                        free(lline);
+                        err=true;
+                        esyslog("multiple @lines in info file, please report this!");
+                    }
+                    lline=strdup(line);
+                }
             }
-        }
         if (err) break;
     }
     if (line) free(line);
@@ -1677,6 +1733,10 @@ bool cMarkAdStandalone::SaveInfo()
     if ((setAudio51) && (!setAudio51_done) && (!err))
     {
         if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
+    }
+    if ((setFrameRate) && (!setFrameRate_done) && (!err))
+    {
+        if (fprintf(w,"F %i\n",(int) macontext.Video.Info.FramesPerSecond)<=0) err=true;
     }
     if (line)
     {
@@ -1803,10 +1863,10 @@ bool cMarkAdStandalone::LoadInfo()
     free(buf);
     if (!f) return false;
 
-    time_t start=0;
     char *line=NULL;
-    size_t length;
-    while (getline(&line,&length,f)!=-1)
+    size_t linelen;
+    setFrameRate=true;
+    while (getline(&line,&linelen,f)!=-1)
     {
         if (line[0]=='C')
         {
@@ -1828,11 +1888,11 @@ bool cMarkAdStandalone::LoadInfo()
         }
         if (line[0]=='E')
         {
-            int result=sscanf(line,"%*c %*i %li %i %*i %*x",&start,&macontext.Info.Length);
+            int result=sscanf(line,"%*c %*i %li %i %*i %*x",&startTime,&length);
             if (result!=2)
             {
-                start=0;
-                macontext.Info.Length=0;
+                startTime=0;
+                length=0;
             }
         }
         if (line[0]=='T')
@@ -1848,6 +1908,20 @@ bool cMarkAdStandalone::LoadInfo()
                 if (lf) *lf=0;
                 char *cr=strchr(title,13);
                 if (cr) *cr=0;
+            }
+        }
+        if (line[0]=='F')
+        {
+            int fps;
+            int result=sscanf(line,"%*c %i",&fps);
+            if ((result==0) || (result==EOF))
+            {
+                macontext.Video.Info.FramesPerSecond=0;
+            }
+            else
+            {
+                macontext.Video.Info.FramesPerSecond=fps;
+                setFrameRate=false;
             }
         }
         if (line[0]=='X')
@@ -1921,23 +1995,24 @@ bool cMarkAdStandalone::LoadInfo()
     }
     if (line) free(line);
 
-    if ((macontext.Info.Length) && (!bIgnoreTimerInfo) && (start))
+    if ((length) && (!bIgnoreTimerInfo) && (startTime))
     {
-        time_t rStart=GetBroadcastStart(start,fileno(f));
+        time_t rStart=GetBroadcastStart(startTime,fileno(f));
         if (rStart)
         {
-            if (rStart>start+macontext.Info.Length)
+            if (rStart>startTime+(time_t) length)
             {
                 rStart=GetBroadcastStartPES();
             }
 
-            tStart=(int) (start-rStart);
+            tStart=(int) (startTime-rStart);
             if (tStart<0)
             {
-                if (macontext.Info.Length+tStart>0)
+                if (length+tStart>0)
                 {
                     isyslog("broadcast start truncated by %im, length will be corrected",-tStart/60);
-                    macontext.Info.Length+=tStart;
+                    startTime=rStart;
+                    length+=tStart;
                     tStart=1;
                 }
                 else
@@ -1958,7 +2033,7 @@ bool cMarkAdStandalone::LoadInfo()
     }
     fclose(f);
 
-    if (!macontext.Info.Length)
+    if (!length)
     {
         esyslog("cannot read broadcast length from info, marks can be wrong!");
         macontext.Info.AspectRatio.Num=0;
@@ -2279,8 +2354,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     noticeVDR_AC3=false;
     noticeHEADER=false;
 
+
     sleepcnt=0;
-    waittime=0;
+    waittime=iwaittime=iwaittime_msg=0;
     duplicate=false;
     marksAligned=false;
     title[0]=0;
@@ -2404,7 +2480,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     }
 
     if (tStart>1) isyslog("pre-timer %im",tStart/60);
-    if (macontext.Info.Length) isyslog("broadcast length %im",macontext.Info.Length/60);
+    if (length) isyslog("broadcast length %im",length/60);
 
     if (title[0])
     {

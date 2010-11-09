@@ -191,6 +191,8 @@ unsigned Descriptor_Length:
     bool gotendmark;
     bool reprocess;
     int waittime;
+    int iwaittime;
+    int iwaittime_msg;
     struct timeval tv1,tv2;
     struct timezone tz;
 
@@ -204,6 +206,8 @@ unsigned Descriptor_Length:
     bool bIgnoreVideoInfo;
     bool bIgnoreTimerInfo;
 
+    time_t startTime;  // StartTime of broadcast
+    int length;	       // Length in seconds
     int tStart;        // pretimer in seconds
     int iStart;        // pretimer as index value
     int iStartCheck;   // check position for iStart
@@ -215,6 +219,7 @@ unsigned Descriptor_Length:
     bool setVideo43;   // set video to 4:3 in info
     bool setVideo43LB; // set video to 4:3 letterbox in info
     bool setVideo169;  // set video to 16:9 in info
+    bool setFrameRate; // set framerate in info
 
     int chkLEFT;
     int chkRIGHT;

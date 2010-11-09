@@ -125,7 +125,6 @@ typedef struct MarkAdContext
 
     struct Info
     {
-        int Length; // in seconds
         int Channels;
         char *ChannelName;
         MarkAdAspectRatio AspectRatio;
