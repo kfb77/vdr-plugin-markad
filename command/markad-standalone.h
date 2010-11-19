@@ -192,7 +192,6 @@ unsigned Descriptor_Length:
     bool reprocess;
     int waittime;
     int iwaittime;
-    int iwaittime_msg;
     struct timeval tv1,tv2;
     struct timezone tz;
 

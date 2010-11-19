@@ -832,7 +832,7 @@ bool cMarkAdStandalone::CheckIndexGrowing()
     // If not we wait. If we wait too much,
     // we discard this check...
 
-#define WAITTIME 10
+#define WAITTIME 15
 
     if (!indexFile) return false;
     if (sleepcnt>=2) return false; // we already slept too much
@@ -846,29 +846,26 @@ bool cMarkAdStandalone::CheckIndexGrowing()
         int maxframes=statbuf.st_size/8;
         if (maxframes<(framecnt+200))
         {
-            if ((difftime(time(NULL),statbuf.st_mtime))>=10)
+            if ((difftime(time(NULL),statbuf.st_mtime))>=WAITTIME)
             {
                 if (length && startTime)
                 {
                     if (time(NULL)>(startTime+(time_t) length))
                     {
+                        // "old" recording
                         return false;
                     }
                     else
                     {
                         sleepcnt=0;
-                        iwaittime_msg+=WAITTIME;
+                        if (!iwaittime) esyslog("recording interrupted, waiting for continuation...");
                         iwaittime+=WAITTIME;
-                        if (iwaittime_msg>=120)
-                        {
-                            esyslog("recording interrupted %is, still waiting...",iwaittime);
-                            iwaittime_msg=0;
-                        }
                     }
                 }
                 else
                 {
-                    return false; // "old" file
+                    // "old" recording
+                    return false;
                 }
             }
             marks.Save(directory,macontext.Video.Info.FramesPerSecond,isTS);
@@ -889,7 +886,7 @@ bool cMarkAdStandalone::CheckIndexGrowing()
             {
                 esyslog("resuming after %is of interrupted recording, marks can be wrong now!",iwaittime);
             }
-            iwaittime=iwaittime_msg=0;
+            iwaittime=0;
             sleepcnt=0;
             notenough=false;
         }
@@ -2356,7 +2353,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
 
     sleepcnt=0;
-    waittime=iwaittime=iwaittime_msg=0;
+    waittime=iwaittime=0;
     duplicate=false;
     marksAligned=false;
     title[0]=0;
