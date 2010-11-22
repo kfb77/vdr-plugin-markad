@@ -136,7 +136,10 @@ bool cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, MarkAdPack
         }
         counter=tshdr->Counter;
 
-        if (tshdr->PayloadStart) sync=true;
+        if (tshdr->PayloadStart)
+        {
+            sync=true;
+        }
         if (!sync)
         {
             return false; // not synced
@@ -188,6 +191,21 @@ bool cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, MarkAdPack
             return false;
         }
 
+        if (tshdr->PayloadStart)
+        {
+            if ((buf[0]!=0) && (buf[1]!=0))
+            {
+                sync=false;
+                if (buflen<7) return false;
+                // add a pseudo padding stream
+                buf[0]=0;
+                buf[1]=0;
+                buf[2]=1;
+                buf[3]=0xbe;
+                buf[4]=buflen-6;
+                buf[5]=0;
+            }
+        }
         queue->Put(buf,buflen);
     }
     if (!ret) return ret;

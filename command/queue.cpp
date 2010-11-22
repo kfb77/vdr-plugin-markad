@@ -163,24 +163,72 @@ int cMarkAdPaketQueue::FindPktHeader(int Start, int *StreamSize,int *HeaderSize,
         scanner|=buffer[Start++];
     }
 
+    bool found=false;
     for (i=Start; i<inptr; i++)
     {
         if (LongStartCode)
         {
-            if (scanner==1L) break;
-            if ((scanner & 0xFFFFFFF0)==0x1E0L) break;
+            if (scanner==1L)
+            {
+                found=true;
+                break;
+            }
+            if ((scanner & 0xFFFFFFF0)==0x1E0L)
+            {
+                found=true;
+                break;
+            }
         }
         else
         {
-            if ((scanner & 0x00FFFFFF)==1L) break;
+            if ((scanner & 0x00FFFFFF)==1L)
+            {
+                found=true;
+                break;
+            }
         }
         scanner<<=8;
         scanner|=buffer[i];
     }
+    if (!found)
+    {
+        if (LongStartCode)
+        {
+            if (scanner==1L)
+            {
+                found=true;
+            }
+            if ((scanner & 0xFFFFFFF0)==0x1E0L)
+            {
+                found=true;
+            }
+        }
+        else
+        {
+            if ((scanner & 0x00FFFFFF)==1L)
+            {
+                found=true;
+            }
+        }
+    }
 
-    if (i==inptr) return -1;
+    if (i==inptr)
+    {
+        if (found)
+        {
+            if (!Start)
+            {
+                scanner=0xFFFFFFFF;
+                return -1;
+            }
+        }
+        else
+        {
+            return -1;
+        }
+    }
     if (LongStartCode) i--;
-    if (buffer[i]>=0xBC)// do we have a PES packet?
+    if ((buffer[i]>=0xBC) && (!Start)) // do we have a PES packet?
     {
 #define PESHDRSIZE 6
         if ((i+PESHDRSIZE)>inptr)

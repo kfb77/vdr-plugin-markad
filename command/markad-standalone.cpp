@@ -1301,7 +1301,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                         if (macontext.Video.Info.FramesPerSecond<0)
                         {
                             macontext.Video.Info.FramesPerSecond*=-1;
-                            if (!setFrameRate) isyslog("framerate in info wrong, setting to %.f",macontext.Video.Info.FramesPerSecond);
+                            if (!setFrameRate) isyslog("framerate wrong or unset, using %.f",macontext.Video.Info.FramesPerSecond);
                             setFrameRate=true;
                         }
 
