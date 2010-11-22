@@ -198,6 +198,7 @@ unsigned Descriptor_Length:
     bool noticeVDR_MP2;
     bool noticeVDR_AC3;
     bool noticeHEADER;
+    bool noticeFILLER;
 
     bool bDecodeVideo;
     bool bDecodeAudio;
@@ -223,7 +224,6 @@ unsigned Descriptor_Length:
     int chkLEFT;
     int chkRIGHT;
 
-    time_t GetBroadcastStartPES();
     time_t GetBroadcastStart(time_t start, int fd);
     void CheckBroadcastLength();
     bool CheckIndexGrowing();
@@ -250,7 +250,8 @@ unsigned Descriptor_Length:
     void ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos);
 
     bool CheckVDRHD();
-    bool CheckPATPMT();
+    off_t SeekPATPMT();
+    bool CheckPATPMT(off_t Offset=0);
     bool CheckTS();
     bool LoadInfo();
     bool SaveInfo();

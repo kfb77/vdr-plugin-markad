@@ -207,7 +207,7 @@ int cMarkAdDemux::GetMinNeeded(MarkAdPid Pid, uchar *Data, int Count, bool *Offc
     }
     else
     {
-        return 0;
+        return -1; // skip one byte (maybe we get another header!)
     }
 }
 

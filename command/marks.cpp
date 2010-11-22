@@ -545,7 +545,7 @@ bool clMarks::CheckIndex(const char *Directory, bool isTS, int *FrameCnt, int *I
             {
                 framecnt=statbuf.st_size/sizeof(struct tIndexVDR);
             }
-            if (framecnt!=*FrameCnt)
+            if (abs(framecnt-*FrameCnt)>2000)
             {
                 *FrameCnt=framecnt;
                 *IndexError=IERR_TOOSHORT;

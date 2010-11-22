@@ -120,7 +120,6 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
 
     if (nalu==NAL_AUD)
     {
-        if (!maContext->Video.Info.Width) return false;
         if (pkt[5]==0x10)
         {
             maContext->Video.Info.Pict_Type=MA_I_TYPE;
@@ -139,18 +138,18 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         int nal_len = nalUnescape(nal_data, pkt + 5, len - 5);
         cBitStream bs(nal_data, nal_len);
 
-        int profile_idc, pic_order_cnt_type, i, j;
-
         uint32_t width=0;
         uint32_t height=0;
         uint32_t aspect_ratio_idc=0;
         double frame_rate=0;
         int sar_width=1,sar_height=1;
 
-        profile_idc = bs.getU8();                 // profile_idc
+        int profile_idc = bs.getU8();                 // profile_idc
         bs.skipBits(8);                           // constraint_setN_flags and reserved_zero_Nbits
         bs.skipBits(8);                           // level_idc
         bs.skipUeGolomb();                        // seq_parameter_set_id
+
+        int i,j;
 
         if ((profile_idc == 100) || (profile_idc == 110) || (profile_idc == 122) || (profile_idc == 244) ||
                 (profile_idc==44) || (profile_idc==83) || (profile_idc==86))
@@ -179,7 +178,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         }
         // H264.log2_max_frame_num=bs.getUeGolomb()+4;
         bs.skipUeGolomb(); // log2_max_frame_num_minus4
-        pic_order_cnt_type = bs.getUeGolomb();     // pic_order_cnt_type
+        int pic_order_cnt_type = bs.getUeGolomb();     // pic_order_cnt_type
         if (pic_order_cnt_type == 0)
             bs.skipUeGolomb();                     // log2_max_pic_order_cnt_lsb_minus4
         else if (pic_order_cnt_type == 1)
