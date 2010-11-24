@@ -214,6 +214,8 @@ unsigned Descriptor_Length:
     int iStop;         // posttimer as index value
     int iStopCheck;    // check position for iStop
 
+    int errcnt;        // Skipped bytes in stream
+
     bool setAudio51;   // set audio to 5.1 in info
     bool setAudio20;   // set audio to 2.0 in info
     bool setVideo43;   // set video to 4:3 in info
@@ -255,6 +257,7 @@ unsigned Descriptor_Length:
     bool CheckTS();
     bool LoadInfo();
     bool SaveInfo();
+    bool SetFileUID(char *File);
     bool RegenerateIndex();
     bool ProcessFile2ndPass(clMark **Mark1, clMark **Mark2, int Number, off_t Offset, int Frame, int Frames);
     bool ProcessFile(int Number);

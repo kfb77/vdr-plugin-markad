@@ -128,6 +128,7 @@ bool cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, MarkAdPack
         {
             if (counter==(int) tshdr->Counter)
             {
+                Pkt->Skipped+=TS_SIZE;
                 return true; // duplicate paket -> just ignore
             }
             // sequence error
@@ -142,6 +143,7 @@ bool cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, MarkAdPack
         }
         if (!sync)
         {
+            Pkt->Skipped+=TS_SIZE;
             return false; // not synced
         }
 
@@ -195,6 +197,7 @@ bool cMarkAdTS2Pkt::Process(MarkAdPid Pid, uchar *TSData, int TSSize, MarkAdPack
         {
             if ((buf[0]!=0) && (buf[1]!=0))
             {
+                Pkt->Skipped+=TS_SIZE;
                 sync=false;
                 if (buflen<7) return false;
                 // add a pseudo padding stream

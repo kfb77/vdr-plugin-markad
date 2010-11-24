@@ -18,7 +18,7 @@ typedef struct MarkAdPacket
 {
     uchar *Data;
     int Length;
-    unsigned int Timestamp;
+    int Skipped;
     bool Offcnt;
 } MarkAdPacket;
 

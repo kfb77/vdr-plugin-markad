@@ -33,6 +33,7 @@
 
 extern int sys_ioprio_set(int which, int who, int ioprio);
 bool SYSLOG=false;
+bool LOG2REC=false;
 cMarkAdStandalone *cmasta=NULL;
 int SysLogLevel=2;
 
@@ -59,7 +60,7 @@ static inline int ioprio_set(int which, int who, int ioprio)
 void syslog_with_tid(int priority, const char *format, ...)
 {
     va_list ap;
-    if (SYSLOG)
+    if ((SYSLOG) && (!LOG2REC))
     {
         char fmt[255];
         snprintf(fmt, sizeof(fmt), "[%d] %s", getpid(), format);
@@ -1334,6 +1335,10 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                             }
                         }
                     }
+                    if (vpkt.Skipped)
+                    {
+                        errcnt+=vpkt.Skipped;
+                    }
                     tspkt+=len;
                     tslen-=len;
                     if (!vpkt.Offcnt)
@@ -1589,6 +1594,17 @@ void cMarkAdStandalone::Process()
     if (macontext.Config->GenIndex) marks.RemoveGeneratedIndex(directory,isTS);
 }
 
+bool cMarkAdStandalone::SetFileUID(char *File)
+{
+    if (!File) return false;
+    struct stat statbuf;
+    if (!stat(directory,&statbuf))
+    {
+        if (chown(File,statbuf.st_uid, statbuf.st_gid)==-1) return false;
+    }
+    return true;
+}
+
 bool cMarkAdStandalone::SaveInfo()
 {
     if ((!setVideo43) && (!setVideo169) && (!setAudio20) && (!setAudio51) && (!setVideo43LB) &&
@@ -1772,21 +1788,7 @@ bool cMarkAdStandalone::SaveInfo()
             oldtimes.actime=statbuf_r.st_atime;
             oldtimes.modtime=statbuf_r.st_mtime;
             if (utime(src,&oldtimes)) {};
-        }
-    }
-
-    if ((getuid()==0 || geteuid()!=0) && (!err))
-    {
-        // if we are root, set fileowner to owner of 001.vdr/00001.ts file
-        char *spath=NULL;
-        if (asprintf(&spath,"%s/%s",directory,isTS ? "00001.ts" : "001.vdr")!=-1)
-        {
-            struct stat statbuf;
-            if (!stat(spath,&statbuf))
-            {
-                if (chown(src,statbuf.st_uid, statbuf.st_gid)) {};
-            }
-            free(spath);
+            SetFileUID(src);
         }
     }
 
@@ -2324,15 +2326,7 @@ bool cMarkAdStandalone::CreatePidfile()
 
     FILE *pidfile=fopen(buf,"w+");
 
-    if (getuid()==0 || geteuid()!=0)
-    {
-        // if we are root, set fileowner to owner of directory
-        struct stat statbuf;
-        if (!stat(directory,&statbuf))
-        {
-            if (chown(buf,statbuf.st_uid, statbuf.st_gid)) {};
-        }
-    }
+    SetFileUID(buf);
 
     free(buf);
     if (!pidfile) return false;
@@ -2389,6 +2383,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     noticeVDR_AC3=false;
     noticeHEADER=false;
     noticeFILLER=false;
+
+    errcnt=0;
 
     sleepcnt=0;
     waittime=iwaittime=0;
@@ -2604,6 +2600,11 @@ cMarkAdStandalone::~cMarkAdStandalone()
 {
     if ((!abort) && (!duplicate))
     {
+        if (errcnt>20)
+        {
+            isyslog("skipped %i bytes in video stream",errcnt);
+        }
+
         gettimeofday(&tv2,&tz);
         time_t sec;
         suseconds_t usec;
@@ -2706,6 +2707,8 @@ int usage(int svdrpport)
            "                  [height] range from 20 to %3i, default %3i\n"
            "-O              --OSD\n"
            "                  markad sends an OSD-Message for start and end\n"
+           "-R              --log2rec\n"
+           "                  write logfiles into recording directory\n"
            "-T              --threads=<number>\n"
            "                  number of threads used for decoding, max. 16\n"
            "                  (default is the number of cpus)\n"
@@ -2866,6 +2869,7 @@ int main(int argc, char *argv[])
             {"genindex",0, 0, 'G'},
             {"extractlogo", 1, 0, 'L'},
             {"OSD",0,0,'O' },
+            {"log2rec",0,0,'R'},
             {"savelogo", 0, 0, 'S'},
             {"threads", 1, 0, 'T'},
             {"version", 0, 0, 'V'},
@@ -2873,7 +2877,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "abcd:i:jl:nop:r:s:vBCGL:OST:V",
+        c = getopt_long  (argc, argv, "abcd:i:jl:nop:r:s:vBCGL:ORST:V",
                           long_options, &option_index);
         if (c == -1)
             break;
@@ -3050,6 +3054,11 @@ int main(int argc, char *argv[])
             config.OSD=true;
             break;
 
+        case 'R':
+            // --log2rec
+            LOG2REC=true;
+            break;
+
         case 'S':
             // --savelogo
             break;
@@ -3208,18 +3217,15 @@ int main(int argc, char *argv[])
             {
                 char *err=strerror(errno);
                 fprintf(stderr, "%s\n",err);
-                esyslog("fork ERROR: %s",err);
                 return 2;
             }
             if (pid != 0)
             {
-                tsyslog("forked to pid %d",pid);
                 return 0; // initial program immediately returns
             }
         }
         if ( bFork )
         {
-            tsyslog("(forked) pid %d", getpid());
             if (chdir("/")==-1)
             {
                 perror("chdir");
@@ -3286,11 +3292,11 @@ int main(int argc, char *argv[])
         {
             if (setpriority(PRIO_PROCESS,0,niceLevel)==-1)
             {
-                esyslog("failed to set nice to %d",niceLevel);
+                fprintf(stderr,"failed to set nice to %d",niceLevel);
             }
             if (ioprio_set(1,getpid(),ioprio | ioprio_class << 13)==-1)
             {
-                esyslog("failed to set ioprio to %i,%i",ioprio_class,ioprio);
+                fprintf(stderr,"failed to set ioprio to %i,%i",ioprio_class,ioprio);
             }
         }
 
@@ -3308,6 +3314,12 @@ int main(int argc, char *argv[])
             return -1;
         }
 
+        if (access(recDir,W_OK|R_OK)==-1)
+        {
+            fprintf(stderr,"cannot access %s\n",recDir);
+            return -1;
+        }
+
         // ignore some signals
         signal(SIGHUP, SIG_IGN);
 
@@ -3319,6 +3331,17 @@ int main(int argc, char *argv[])
         signal(SIGUSR1, signal_handler);
         signal(SIGTSTP, signal_handler);
         signal(SIGCONT, signal_handler);
+
+        if (LOG2REC)
+        {
+            char *fbuf;
+            if (asprintf(&fbuf,"%s/markad.log",recDir)!=-1)
+            {
+                if (freopen(fbuf,"w+",stdout)) {};
+                if (chown(fbuf,statbuf.st_uid, statbuf.st_gid)) {};
+                free(fbuf);
+            }
+        }
 
         cmasta = new cMarkAdStandalone(recDir,&config);
         if (!cmasta) return -1;

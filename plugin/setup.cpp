@@ -23,6 +23,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     hidemainmenuentry=setup->HideMainMenuEntry;
     secondpass=setup->SecondPass;
     ac3always=setup->AC3Always;
+    log2rec=setup->Log2Rec;
 
     processTexts[0]=tr("after");
     processTexts[1]=tr("during");
@@ -53,6 +54,7 @@ void cSetupMarkAd::write(void)
     Add(new cMenuEditBoolItem(tr("OSD message"),&osdmsg));
     Add(new cMenuEditBoolItem(tr("backup marks"),&backupmarks));
     Add(new cMenuEditBoolItem(tr("verbose logging"),&verbose));
+    Add(new cMenuEditBoolItem(tr("log to recording directory"),&log2rec));
     Add(new cMenuEditBoolItem(tr("hide mainmenu entry"),&hidemainmenuentry));
 
     Display();
@@ -95,6 +97,7 @@ void cSetupMarkAd::Store(void)
     SetupStore("HideMainMenuEntry",hidemainmenuentry);
     SetupStore("IOPrioClass",ioprioclass);
     SetupStore("AC3Always",ac3always);
+    SetupStore("Log2Rec",log2rec);
 
     setup->ProcessDuring=(bool) processduring;
     setup->whileRecording=(bool) whilerecording;
@@ -108,4 +111,5 @@ void cSetupMarkAd::Store(void)
     setup->HideMainMenuEntry=(bool) hidemainmenuentry;
     setup->IOPrioClass=ioprioclass;
     setup->AC3Always=ac3always;
+    setup->Log2Rec=log2rec;
 }

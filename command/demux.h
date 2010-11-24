@@ -32,7 +32,6 @@ private:
     int min_needed;
     int skip;
 
-    void GetVideoPTS(uchar *Data, int Count, unsigned int *Timestamp);
     int GetMinNeeded(MarkAdPid Pid, uchar *Data, int Count, bool *Offcnt);
     void ProcessTS(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *pkt);
     void ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *pkt);

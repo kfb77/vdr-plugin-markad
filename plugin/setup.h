@@ -23,6 +23,7 @@ struct setup
     bool SecondPass;
     bool AC3Always;
     bool HideMainMenuEntry;
+    bool Log2Rec;
 };
 
 class cSetupMarkAd : public cMenuSetupPage
@@ -43,6 +44,7 @@ private:
     int secondpass;
     int hidemainmenuentry;
     int ac3always;
+    int log2rec;
     void write(void);
 protected:
     virtual void Store(void);

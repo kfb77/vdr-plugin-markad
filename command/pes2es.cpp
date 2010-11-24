@@ -88,20 +88,6 @@ void cMarkAdPES2ES::Process(MarkAdPid Pid, uchar *PESData, int PESSize, MarkAdPa
                      peshdropt->Length;
             buf=&PESData[bpos];
             buflen=PESSize-bpos;
-            if (peshdropt->PTSDTS>1)
-            {
-                struct PESHDROPTPTS *peshdroptpts=(struct PESHDROPTPTS *) &PESData[sizeof(struct PESHDR)+
-                                                              sizeof(struct PESHDROPT)];
-
-                if (peshdroptpts->Marker1 && peshdroptpts->Marker2 && peshdroptpts->Marker3)
-        {
-                    unsigned int pts=0;
-                    pts|=((peshdroptpts->PTS29_15_H<<7|peshdroptpts->PTS29_15_L)<<15);
-                    pts|=(peshdroptpts->PTS14_0_H<<7|peshdroptpts->PTS14_0_L);
-                    pts|=(peshdroptpts->PTS32_30<<30);
-                    ESPkt->Timestamp=pts;
-                }
-            }
         }
         else
         {

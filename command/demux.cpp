@@ -41,36 +41,6 @@ void cMarkAdDemux::Clear()
     skip=0;
 }
 
-void cMarkAdDemux::GetVideoPTS(uchar *Data, int Count, unsigned int *Timestamp)
-{
-    if (!Data) return;
-    if (Count<=0) return;
-    if (!Timestamp) return;
-    struct PESHDR *peshdr=(struct PESHDR *) Data;
-
-    if ((peshdr->Sync1!=0) && (peshdr->Sync2!=0) && (peshdr->Sync3!=1)) return;
-    if ((peshdr->StreamID & 0xF0)!=0xE0) return;
-
-    struct PESHDROPT *peshdropt=(struct PESHDROPT *) &Data[sizeof(struct PESHDR)];
-    if (peshdropt->MarkerBits!=0x2) return;
-
-    if (peshdropt->PTSDTS<2) return;
-
-    struct PESHDROPTPTS *peshdroptpts=(struct PESHDROPTPTS *) &Data[sizeof(struct PESHDR)+
-                                                  sizeof(struct PESHDROPT)];
-
-    if (peshdroptpts->Marker1 && peshdroptpts->Marker2 &&
-            peshdroptpts->Marker3)
-{
-        unsigned int pts=0;
-        pts|=((peshdroptpts->PTS29_15_H<<7|peshdroptpts->PTS29_15_L)<<15);
-        pts|=(peshdroptpts->PTS14_0_H<<7|peshdroptpts->PTS14_0_L);
-        pts|=(peshdroptpts->PTS32_30<<30);
-        *Timestamp=pts;
-    }
-    return;
-}
-
 void cMarkAdDemux::ProcessVDR(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *Pkt)
 {
     if (!Pkt) return;
@@ -149,7 +119,6 @@ void cMarkAdDemux::ProcessTS(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket
 
     if ((Pid.Type==MARKAD_PIDTYPE_VIDEO_H262) || (Pid.Type==MARKAD_PIDTYPE_VIDEO_H264))
     {
-        GetVideoPTS(pkt.Data,pkt.Length,&Pkt->Timestamp);
         if ((pkt.Data) && ((pkt.Data[3] & 0xF0)==0xE0) && (pkt.Data[4]!=0) && (pkt.Data[5]!=0))
         {
             ts2pkt->InjectVideoPES(pkt.Data,pkt.Length);
@@ -158,6 +127,7 @@ void cMarkAdDemux::ProcessTS(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket
         }
         Pkt->Data=pkt.Data;
         Pkt->Length=pkt.Length;
+        Pkt->Skipped=pkt.Skipped;
     }
     return;
 }
@@ -207,6 +177,8 @@ int cMarkAdDemux::GetMinNeeded(MarkAdPid Pid, uchar *Data, int Count, bool *Offc
     }
     else
     {
+        queue->Clear();
+        if (Offcnt) *Offcnt=true;
         return -1; // skip one byte (maybe we get another header!)
     }
 }
@@ -223,6 +195,7 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *P
     {
         Pkt->Data=NULL;
         Pkt->Length=0;
+        Pkt->Skipped=0;
         Pkt->Offcnt=false;
 
         if (!min_needed)
@@ -247,6 +220,7 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *P
                     skip=-t_min_needed-Count;
                     return Count;
                 }
+                if (t_min_needed==-1) Pkt->Skipped++;
                 return -t_min_needed;
             }
             min_needed=t_min_needed;
