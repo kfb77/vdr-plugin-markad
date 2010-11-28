@@ -207,7 +207,7 @@ int cMarkAdLogo::SobelPlane(int plane)
         return 0;
     }
 
-    if (macontext->Video.Info.Pix_Fmt!=0)
+    if ((macontext->Video.Info.Pix_Fmt!=0) && (macontext->Video.Info.Pix_Fmt!=12))
     {
         if (!pixfmt_info)
         {
