@@ -1182,13 +1182,14 @@ void cMarkAdStandalone::Process2ndPass()
         off_t offset;
         int number,frame,iframes;
         int frange=macontext.Video.Info.FramesPerSecond*120; // 40s + 80s
+        int overlap=macontext.Video.Info.FramesPerSecond*10; // 10s
 
-        if (marks.ReadIndex(directory,isTS,p1->position-frange,frange,&number,&offset,&frame,&iframes))
+        if (marks.ReadIndex(directory,isTS,p1->position-frange,frange+overlap,&number,&offset,&frame,&iframes))
         {
             if (!ProcessFile2ndPass(&p1,NULL,number,offset,frame,iframes)) break;
 
             frange=macontext.Video.Info.FramesPerSecond*320; // 160s + 160s
-            if (marks.ReadIndex(directory,isTS,p2->position,frange,&number,&offset,&frame,&iframes))
+            if (marks.ReadIndex(directory,isTS,p2->position-overlap,frange+overlap,&number,&offset,&frame,&iframes))
             {
                 if (!ProcessFile2ndPass(&p1,&p2,number,offset,frame,iframes)) break;
             }
