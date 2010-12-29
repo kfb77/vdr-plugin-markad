@@ -352,7 +352,10 @@ void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
             AddMark(&mark);
             free(buf);
         }
-        int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*MAXRANGE);
+
+        int MARKDIFF=length/6;
+        if (MARKDIFF>MAXRANGE) MARKDIFF=MAXRANGE;
+        MARKDIFF=(int) (MARKDIFF*macontext.Video.Info.FramesPerSecond);
 #if 0
         clMark *before_iStart=marks.GetPrev(iStart,MT_START,0xF);
         if (before_iStart)
@@ -1183,6 +1186,12 @@ void cMarkAdStandalone::Process2ndPass()
         int number,frame,iframes;
         int frange=macontext.Video.Info.FramesPerSecond*120; // 40s + 80s
         int overlap=macontext.Video.Info.FramesPerSecond*10; // 10s
+
+        if (((p1->type & 0xF0)==MT_ASPECTCHANGE) || (p1->type==0))
+        {
+            dsyslog("ignoring additional overlap");
+            overlap=0;
+        }
 
         if (marks.ReadIndex(directory,isTS,p1->position-frange,frange+overlap,&number,&offset,&frame,&iframes))
         {
