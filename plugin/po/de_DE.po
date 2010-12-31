@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2010-11-24 19:57+0100\n"
+"POT-Creation-Date: 2010-12-31 16:41+0100\n"
 "PO-Revision-Date: 2009-08-27 14:18+0200\n"
 "Last-Translator: Jochen Dolze <vdr@dolze.de>\n"
 "Language-Team: <vdr@linuxtv.org>\n"
@@ -40,7 +40,7 @@ msgid "Recording\t Status"
 msgstr "Aufnahme\t Status"
 
 msgid "no running markad found"
-msgstr "Kein aktives markad gefunden"
+msgstr "kein aktives markad gefunden"
 
 msgid "Pause"
 msgstr "Pause"
@@ -72,6 +72,9 @@ msgstr "  während einer anderen Aufnahme"
 msgid "  while replaying"
 msgstr "  während einer Wiedergabe"
 
+msgid "scan only channels with logo"
+msgstr "nur Kanäle mit Logo scannen"
+
 msgid "hdd access priority"
 msgstr "HDD-Zugriffspriorität"
 
@@ -101,6 +104,15 @@ msgstr "Log ins Aufnahmeverzeichnis"
 
 msgid "hide mainmenu entry"
 msgstr "Hauptmenüeintrag verstecken"
+
+msgid "show list"
+msgstr "zeige Liste"
+
+msgid "list"
+msgstr "Liste"
+
+msgid "back"
+msgstr "zurück"
 
 msgid "Mark advertisements"
 msgstr "Markiere Werbung"

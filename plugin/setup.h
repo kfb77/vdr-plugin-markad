@@ -24,6 +24,9 @@ struct setup
     bool AC3Always;
     bool HideMainMenuEntry;
     bool Log2Rec;
+    bool LogoOnly;
+    const char *LogoDir;
+    const char *PluginName;
 };
 
 class cSetupMarkAd : public cMenuSetupPage
@@ -45,11 +48,20 @@ private:
     int hidemainmenuentry;
     int ac3always;
     int log2rec;
+    int logoonly;
     void write(void);
+    int lpos;
 protected:
     virtual void Store(void);
 public:
-    cSetupMarkAd(struct setup *setup);
+    cSetupMarkAd(struct setup *Setup);
+    eOSState ProcessKey(eKeys Key);
+};
+
+class cSetupMarkAdList : public cOsdMenu
+{
+public:
+    cSetupMarkAdList(struct setup *Setup);
     eOSState ProcessKey(eKeys Key);
 };
 

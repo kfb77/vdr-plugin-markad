@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2010-11-24 19:57+0100\n"
+"POT-Creation-Date: 2010-12-31 16:41+0100\n"
 "PO-Revision-Date: 2010-08-09 20:05+0100\n"
 "Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
 "Language-Team:  <vdr@linuxtv.org>\n"
@@ -75,6 +75,9 @@ msgstr "  durante un'altra registrazione"
 msgid "  while replaying"
 msgstr "  durante la riproduzione"
 
+msgid "scan only channels with logo"
+msgstr ""
+
 msgid "hdd access priority"
 msgstr ""
 
@@ -103,6 +106,15 @@ msgid "log to recording directory"
 msgstr ""
 
 msgid "hide mainmenu entry"
+msgstr ""
+
+msgid "show list"
+msgstr ""
+
+msgid "list"
+msgstr ""
+
+msgid "back"
 msgstr ""
 
 msgid "Mark advertisements"

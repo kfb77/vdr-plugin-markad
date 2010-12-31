@@ -71,7 +71,8 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
 {
     if ((Direct) && (Get(FileName)!=-1)) return false;
 
-    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s -r %i -l \"%s\" %s \"%s\"",bindir,
+    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s -r %i -l \"%s\" %s \"%s\"",
+                                   bindir,
                                    setup->Verbose ? " -v " : "",
                                    setup->BackupMarks ? " -B " : "",
                                    setup->GenIndex ? " -G " : "",
@@ -81,7 +82,8 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                                    setup->AC3Always ? " -a " : "",
                                    setup->Log2Rec ? " -R " : "",
                                    setup->IOPrioClass+1,
-                                   logodir,Direct ? "-O after" : "--online=2 before", FileName);
+                                   logodir,Direct ? "-O after" : "--online=2 before",
+                                   FileName);
     dsyslog("markad: executing %s",*cmd);
     if (SystemExec(cmd)!=-1)
     {
@@ -120,6 +122,68 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
     return false;
 }
 
+void cStatusMarkAd::TimerChange(const cTimer *Timer, eTimerChange Change)
+{
+    if (!Timer) return;
+    if (Change!=tcDel) return;
+    Remove(Timer->File(),true);
+}
+
+bool cStatusMarkAd::LogoExists(const char *Name)
+{
+    if (!Name) return false;
+    cTimer *timer=NULL;
+    for (cTimer *Timer = Timers.First(); Timer; Timer=Timers.Next(Timer))
+    {
+        if (Timer->Recording() && (!strcmp(Timer->File(),Name)))
+        {
+            timer=Timer;
+            break;
+        }
+    }
+    if (!timer) return false;
+
+    const cChannel *chan=timer->Channel();
+    if (!chan) return false;
+    char *cname=strdup(chan->Name());
+    if (!cname) return false;
+    for (int i=0; i<(int) strlen(cname); i++)
+    {
+        if (cname[i]==' ') cname[i]='_';
+        if (cname[i]=='.') cname[i]='_';
+        if (cname[i]=='/') cname[i]='_';
+    }
+
+    char *fname=NULL;
+    if (asprintf(&fname,"%s/%s-A16_9-P0.pgm",logodir,cname)==-1)
+    {
+        free(cname);
+        return false;
+    }
+
+    struct stat statbuf;
+    if (stat(fname,&statbuf)==-1)
+    {
+        free(fname);
+        fname=NULL;
+        if (asprintf(&fname,"%s/%s-A4_3-P0.pgm",logodir,cname)==-1)
+        {
+            free(cname);
+            return false;
+        }
+
+        if (stat(fname,&statbuf)==-1)
+        {
+            free(cname);
+            free(fname);
+            return false;
+        }
+    }
+    free(fname);
+    free(cname);
+    return true;
+}
+
 void cStatusMarkAd::Recording(const cDevice *UNUSED(Device), const char *Name,
                               const char *FileName, bool On)
 {
@@ -129,6 +193,7 @@ void cStatusMarkAd::Recording(const cDevice *UNUSED(Device), const char *Name,
 
     if (On)
     {
+        if (setup->LogoOnly && !LogoExists(Name)) return;
         // Start markad with recording
         Start(FileName,Name,false);
     }
@@ -244,27 +309,30 @@ bool cStatusMarkAd::MarkAdRunning()
     return (tmpRecs!=NULL);
 }
 
-int cStatusMarkAd::Get(const char *FileName)
+int cStatusMarkAd::Get(const char *FileName, const char *Name)
 {
     for (int i=0; i<(MAXDEVICES*MAXRECEIVERS); i++)
     {
-        if ((recs[i].FileName) && (!strcmp(recs[i].FileName,FileName))) return i;
+        if (Name && recs[i].Name && !strcmp(recs[i].Name,Name)) return i;
+        if (FileName && recs[i].FileName && !strcmp(recs[i].FileName,FileName)) return i;
     }
     return -1;
 }
 
+void cStatusMarkAd::Remove(const char *Name, bool Kill)
+{
+    if (!Name) return;
+    int pos=Get(NULL,Name);
+    if (pos==-1) return;
+    Remove(pos,Kill);
+}
+
 void cStatusMarkAd::Remove(int Position, bool Kill)
 {
-    if (recs[Position].FileName)
-    {
-        free(recs[Position].FileName);
-        recs[Position].FileName=NULL;
-    }
-    if (recs[Position].Name)
-    {
-        free(recs[Position].Name);
-        recs[Position].Name=NULL;
-    }
+    if (recs[Position].FileName) free(recs[Position].FileName);
+    recs[Position].FileName=NULL;
+    if (recs[Position].Name) free(recs[Position].Name);
+    recs[Position].Name=NULL;
 
     if ((Kill) && (recs[Position].Pid))
     {
@@ -278,10 +346,6 @@ void cStatusMarkAd::Remove(int Position, bool Kill)
             {
                 kill(recs[Position].Pid,SIGKILL);
             }
-        }
-        else
-        {
-            kill(recs[Position].Pid,SIGKILL);
         }
     }
     recs[Position].Status=0;

@@ -39,6 +39,7 @@ cPluginMarkAd::cPluginMarkAd(void)
     setup.SecondPass=true;
     setup.IOPrioClass=1;
     setup.Log2Rec=false;
+    setup.LogoOnly=false;
 }
 
 cPluginMarkAd::~cPluginMarkAd()
@@ -128,6 +129,8 @@ bool cPluginMarkAd::Initialize(void)
 bool cPluginMarkAd::Start(void)
 {
     // Start any background activities the plugin shall perform.
+    setup.PluginName=Name();
+    setup.LogoDir=logodir;
     statusMonitor = new cStatusMarkAd(bindir,logodir,&setup);
     return (statusMonitor!=NULL);
 }
@@ -190,6 +193,7 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value)
     else if (!strcasecmp(Name,"IOPrioClass")) setup.IOPrioClass=atoi(Value);
     else if (!strcasecmp(Name,"AC3Always")) setup.AC3Always=atoi(Value);
     else if (!strcasecmp(Name,"Log2Rec")) setup.Log2Rec=atoi(Value);
+    else if (!strcasecmp(Name,"LogoOnly")) setup.LogoOnly=atoi(Value);
     else return false;
     return true;
 }

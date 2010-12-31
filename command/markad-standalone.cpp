@@ -356,14 +356,6 @@ void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
         int MARKDIFF=length/6;
         if (MARKDIFF>MAXRANGE) MARKDIFF=MAXRANGE;
         MARKDIFF=(int) (MARKDIFF*macontext.Video.Info.FramesPerSecond);
-#if 0
-        clMark *before_iStart=marks.GetPrev(iStart,MT_START,0xF);
-        if (before_iStart)
-        {
-            int tmpdiff=abs(iStart-before_iStart->position);
-            if (tmpdiff<MARKDIFF) MARKDIFF=tmpdiff;
-        }
-#endif
         iStartCheck=iStart+MARKDIFF;
         CalculateStopPosition(iStart,MARKDIFF);
     }
@@ -626,6 +618,24 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         }
     }
 
+    if (Mark->Type==MT_CHANNELSTOP)
+    {
+        clMark *prev=marks.GetPrev(Mark->Position,MT_CHANNELSTART);
+        if (prev)
+        {
+            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*240);
+            if ((Mark->Position-prev->position)<MARKDIFF)
+            {
+                if (Mark->Comment) isyslog("%s",Mark->Comment);
+                double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
+                isyslog("channel distance too short (%.1fs), deleting (%i,%i)",distance,
+                        prev->position,Mark->Position);
+                marks.Del(prev);
+                return;
+            }
+        }
+    }
+
     if (Mark->Type==MT_LOGOSTOP)
     {
         // check if last mark is an audiochannel stop
@@ -839,6 +849,7 @@ bool cMarkAdStandalone::CheckIndexGrowing()
 #define WAITTIME 15
 
     if (!indexFile) return false;
+    if (macontext.Config->logoExtraction!=-1) return false;
     if (sleepcnt>=2) return false; // we already slept too much
 
     bool notenough=true;
@@ -1596,7 +1607,8 @@ void cMarkAdStandalone::Process()
                 else
                 {
                     // this shouldn't be reached
-                    esyslog("ALERT: stopping before end of broadcast");
+                    if (!macontext.Config->logoExtraction!=-1)
+                        esyslog("ALERT: stopping before end of broadcast");
                 }
             }
         }
@@ -1926,6 +1938,7 @@ bool cMarkAdStandalone::LoadInfo()
                 {
                     if (macontext.Info.ChannelName[i]==' ') macontext.Info.ChannelName[i]='_';
                     if (macontext.Info.ChannelName[i]=='.') macontext.Info.ChannelName[i]='_';
+                    if (macontext.Info.ChannelName[i]=='/') macontext.Info.ChannelName[i]='_';
                 }
             }
         }
