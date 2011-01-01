@@ -578,13 +578,6 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 
     bool loggedAlready=false;
 
-    clMark *old=marks.Get(Mark->Position);
-    if ((old) && (((old->type & 0xF0)==MT_ASPECTCHANGE) || ((old->type & 0xF0)==MT_CHANNELCHANGE)))
-    {
-        // Aspect- / Channelchange wins over Logo/Border
-        return;
-    }
-
     if (Mark->Type==MT_ASPECTSTOP)
     {
         // check if last mark is an stop mark in short distance
@@ -618,12 +611,12 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         }
     }
 
-    if (Mark->Type==MT_CHANNELSTOP)
+    if (Mark->Type==MT_CHANNELSTART)
     {
-        clMark *prev=marks.GetPrev(Mark->Position,MT_CHANNELSTART);
+        clMark *prev=marks.GetPrev(Mark->Position,MT_CHANNELSTOP);
         if (prev)
         {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*240);
+            int MARKDIFF=(int) macontext.Video.Info.FramesPerSecond;
             if ((Mark->Position-prev->position)<MARKDIFF)
             {
                 if (Mark->Comment) isyslog("%s",Mark->Comment);
@@ -634,6 +627,13 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 return;
             }
         }
+    }
+
+    clMark *old=marks.Get(Mark->Position);
+    if ((old) && (((old->type & 0xF0)==MT_ASPECTCHANGE) || ((old->type & 0xF0)==MT_CHANNELCHANGE)))
+    {
+        // Aspect- / Channelchange wins over Logo/Border
+        return;
     }
 
     if (Mark->Type==MT_LOGOSTOP)
@@ -1879,8 +1879,11 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd)
     // (and hope info.vdr has not changed after the start of the recording)
     if (fstat(fd,&statbuf)!=-1)
     {
-        isyslog("getting broadcast start from info mtime");
-        if (fabs(difftime(start,statbuf.st_mtime))<1800) return (time_t) statbuf.st_mtime;
+        if (fabs(difftime(start,statbuf.st_mtime))<1800)
+        {
+            isyslog("getting broadcast start from info mtime");
+            return (time_t) statbuf.st_mtime;
+        }
     }
 
     // fallback to the directory -> worst starttime we can use!
