@@ -242,7 +242,6 @@ unsigned Descriptor_Length:
     void CalculateStopPosition(int startframe, int delta);
     void CheckFirstMark();
     void CheckLastMark();
-    bool CheckDolbyDigital51();
     void CheckStartStop(int frame, bool checkend=false);
     void CheckAspectRatio_and_AudioChannels();
     void CheckLogoMarks(clMark *last=NULL);

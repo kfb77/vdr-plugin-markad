@@ -142,6 +142,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         uint32_t height=0;
         uint32_t aspect_ratio_idc=0;
         double frame_rate=0;
+        bool fixedframerate=false;
         int sar_width=1,sar_height=1;
 
         int profile_idc = bs.getU8();                 // profile_idc
@@ -250,9 +251,10 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 time_scale        = bs.getU32();    // time_scale
                 if (num_units_in_tick > 0)
                 {
-                    frame_rate = time_scale / (2*num_units_in_tick);
+                    frame_rate = time_scale / num_units_in_tick;
+                    if (frame_mbs_only_flag) frame_rate/=2;
                 }
-                bs.skipBit();                       // fixed_frame_rate_flag
+                fixedframerate=bs.getBit();                       // fixed_frame_rate_flag
             }
 #if 0
             int nal_hrd_parameters_present_flag = bs.getBit(); // nal_hrd_parameters_present_flag

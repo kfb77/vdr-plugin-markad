@@ -1318,15 +1318,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                 lastiframe=iframe;
                                 CheckStartStop(lastiframe);
                                 if (lastiframe>chkLEFT) CheckAspectRatio_and_AudioChannels();
-
-                                if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
-                                {
-                                    iframe=framecnt;
-                                }
-                                else
-                                {
-                                    iframe=framecnt-1;
-                                }
+                                iframe=framecnt-1;
                                 dRes=true;
                             }
                         }
@@ -1470,39 +1462,6 @@ bool cMarkAdStandalone::Reset(bool FirstPass)
     return ret;
 }
 
-bool cMarkAdStandalone::CheckDolbyDigital51()
-{
-    if (macontext.Info.Channels!=6) return false;
-    if (abort) return false;
-
-    // Assumption: last mark must be MT_CHANNELSTOP and the position must be
-    // beyond the half of the broadcast length (or?)
-    clMark *mark=marks.GetLast();
-    if (!mark) return false; // no last mark? there is a problem!
-
-    mark=marks.GetPrev(mark->position,MT_CHANNELSTART);
-    if (mark)
-    {
-        if (mark->position>chkLEFT) return false;
-    }
-
-    reprocess=true;
-    bDecodeVideo=macontext.Config->DecodeVideo;
-    setAudio20=true;
-    setAudio51=false;
-    macontext.Info.Channels=2;
-    isyslog("%s DolbyDigital5.1 marks found", mark ? "not enough" : "no");
-    isyslog("restarting from scratch");
-    if ((ac3_demux) && (!macontext.Config->AC3Always))
-    {
-        delete ac3_demux;
-        ac3_demux=NULL;
-        macontext.Info.DPid.Num=0;
-    }
-    Reset();
-    return true;
-}
-
 void cMarkAdStandalone::ProcessFile()
 {
     for (int i=1; i<=MaxFiles; i++)
@@ -1552,7 +1511,6 @@ void cMarkAdStandalone::Process()
     if (macontext.Config->BackupMarks) marks.Backup(directory,isTS);
 
     ProcessFile();
-    if (CheckDolbyDigital51()) ProcessFile();
 
     marks.CloseIndex(directory,isTS);
     if (!abort)
@@ -1607,7 +1565,7 @@ void cMarkAdStandalone::Process()
                 else
                 {
                     // this shouldn't be reached
-                    if (!macontext.Config->logoExtraction!=-1)
+                    if (macontext.Config->logoExtraction==-1)
                         esyslog("ALERT: stopping before end of broadcast");
                 }
             }
@@ -2035,14 +1993,6 @@ bool cMarkAdStandalone::LoadInfo()
                                 macontext.Info.Channels=6;
                                 macontext.Video.Options.IgnoreAspectRatio=true;
                                 isyslog("broadcast with DolbyDigital5.1, disabling video decoding");
-                                if ((macontext.Info.AspectRatio.Num==4) &&
-                                        (macontext.Info.AspectRatio.Den==3))
-                                {
-                                    isyslog("wrong aspectratio in info, changing to 16:9");
-                                    macontext.Info.AspectRatio.Num=16;
-                                    macontext.Info.AspectRatio.Den=9;
-                                    setVideo169=true;
-                                }
                             }
                             else
                             {

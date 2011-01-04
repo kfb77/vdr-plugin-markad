@@ -183,6 +183,13 @@ int cMarkAdDemux::GetMinNeeded(MarkAdPid Pid, uchar *Data, int Count, bool *Offc
     }
 }
 
+void cMarkAdDemux::VDRTSAddPATPMT2Offset(MarkAdPid Pid, uchar *Data, int Count, bool *Offcnt)
+{
+    if (Pid.Num<0) return;
+    if (Count<2) return;
+    if ((Data[0]==0x47) && (Data[1]==0x40) && ((Data[2]==0) || (Data[2]==0x84))) *Offcnt=false;
+}
+
 int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *Pkt)
 {
     if ((!Data) && (!Count) && (!Pkt)) return -1;
@@ -274,5 +281,6 @@ int cMarkAdDemux::Process(MarkAdPid Pid, uchar *Data, int Count, MarkAdPacket *P
     }
 
     Pkt->Offcnt=true;
+    VDRTSAddPATPMT2Offset(Pid, in, inlen, &Pkt->Offcnt);
     return retval;
 }
