@@ -99,7 +99,12 @@ eOSState cSetupMarkAd::ProcessKey(eKeys Key)
 
     case osUnknown:
         if ((Key==kBlue) && (Current()==lpos))
-            return AddSubMenu(new cSetupMarkAdList(setup));;
+            return AddSubMenu(new cSetupMarkAdList(setup));
+        if (Key==kOk)
+        {
+            Store();
+            state=osBack;
+        }
         break;
 
     default:
