@@ -714,7 +714,7 @@ MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd)
 {
     if ((lastframenumber>0) && (!similarMaxCnt))
     {
-        similarCutOff=50000; // lower is harder!
+        similarCutOff=60000; // lower is harder!
         similarMaxCnt=4;
     }
 

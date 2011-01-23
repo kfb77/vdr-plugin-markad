@@ -1325,8 +1325,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                         if (macontext.Video.Info.FramesPerSecond<0)
                         {
                             macontext.Video.Info.FramesPerSecond*=-1;
-                            if (!setFrameRate) isyslog("framerate wrong or unset, using %.f",macontext.Video.Info.FramesPerSecond);
-                            setFrameRate=true;
+                            isyslog("using framerate of %.f",macontext.Video.Info.FramesPerSecond);
                         }
 
                         if ((decoder) && (bDecodeVideo))
@@ -1587,8 +1586,8 @@ bool cMarkAdStandalone::SetFileUID(char *File)
 
 bool cMarkAdStandalone::SaveInfo()
 {
-    if ((!setVideo43) && (!setVideo169) && (!setAudio20) && (!setAudio51) && (!setVideo43LB) &&
-            (!setFrameRate)) return true;
+    if ((!setVideo43) && (!setVideo169) && (!setAudio20) && (!setAudio51) && (!setVideo43LB)) return true;
+
     char *src,*dst;
     if (asprintf(&src,"%s/info%s",directory,isTS ? "" : ".vdr")==-1) return false;
 
@@ -1619,7 +1618,6 @@ bool cMarkAdStandalone::SaveInfo()
     bool setVideo169_done=false;
     bool setAudio20_done=false;
     bool setAudio51_done=false;
-    bool setFrameRate_done=false;
 
     char lang[4]="";
 
@@ -1646,96 +1644,91 @@ bool cMarkAdStandalone::SaveInfo()
     bool err=false;
     while (getline(&line,&length,r)!=-1)
     {
-        if ((line[0]=='F') && (setFrameRate))
+        if (line[0]=='X')
         {
-            if (fprintf(w,"F %i\n",(int) macontext.Video.Info.FramesPerSecond)<=0) err=true;
-            setFrameRate_done=true;
-        }
-        else
-            if (line[0]=='X')
-            {
-                int stream=0,type=0;
-                char descr[256]="";
+            int stream=0,type=0;
+            char descr[256]="";
 
-                int result=sscanf(line,"%*c %i %i %3c %250c",&stream,&type,(char *) &lang, (char *) &descr);
-                if ((result!=0) && (result!=EOF))
+            int result=sscanf(line,"%*c %i %i %3c %250c",&stream,&type,(char *) &lang, (char *) &descr);
+            if ((result!=0) && (result!=EOF))
+            {
+                switch (stream)
                 {
-                    switch (stream)
+                case 1:
+                case 5:
+                    if (stream==stream_content)
                     {
-                    case 1:
-                    case 5:
-                        if (stream==stream_content)
+                        if ( (((type==1) || (type==5)) && (setVideo169)) ||
+                                (((type==3) || (type==7)) && ((setVideo43) || (setVideo43LB))))
                         {
-                            if ( (((type==1) || (type==5)) && (setVideo169)) ||
-                                    (((type==3) || (type==7)) && ((setVideo43) || (setVideo43LB))))
+                            if (setVideo43)
                             {
-                                if (setVideo43)
-                                {
-                                    if (fprintf(w,"X %i %02i %s 4:3\n",stream_content,
-                                                component_type_43+component_type_add,lang)<=0) err=true;
-                                    setVideo43_done=true;
-                                }
-                                if (setVideo43LB)
-                                {
-                                    if (fprintf(w,"X %i %02i %s 4:3 LetterBox\n",stream_content,
-                                                component_type_43+component_type_add,lang)<=0) err=true;
-                                    setVideo43LB_done=true;
-                                }
-                                if (setVideo169)
-                                {
-                                    if (fprintf(w,"X %i %02i %s 16:9\n",stream_content,
-                                                component_type_169+component_type_add,lang)<=0) err=true;
-                                    setVideo169_done=true;
-                                }
+                                if (fprintf(w,"X %i %02i %s 4:3\n",stream_content,
+                                            component_type_43+component_type_add,lang)<=0) err=true;
+                                setVideo43_done=true;
                             }
-                            else
+                            if (setVideo43LB)
                             {
-                                if (fprintf(w,"%s",line)<=0) err=true;
+                                if (fprintf(w,"X %i %02i %s 4:3 LetterBox\n",stream_content,
+                                            component_type_43+component_type_add,lang)<=0) err=true;
+				setVideo43_done=true;
+                                setVideo43LB_done=true;
                             }
-                        }
-                        break;
-                    case 2:
-                        if ((type==5) && ((setAudio51) || (setAudio20)))
-                        {
-                            if (setAudio51)
+                            if (setVideo169)
                             {
-                                if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
-                                setAudio51_done=true;
-                            }
-                            if (setAudio20)
-                            {
-                                if (fprintf(w,"X 2 05 %s Dolby Digital 2.0\n",lang)<=0) err=true;
-                                setAudio20_done=true;
+                                if (fprintf(w,"X %i %02i %s 16:9\n",stream_content,
+                                            component_type_169+component_type_add,lang)<=0) err=true;
+                                setVideo169_done=true;
                             }
                         }
                         else
                         {
                             if (fprintf(w,"%s",line)<=0) err=true;
                         }
-                        break;
-                    default:
-                        if (fprintf(w,"%s",line)<=0) err=true;
-                        break;
                     }
+                    break;
+                case 2:
+                    if ((type==5) && ((setAudio51) || (setAudio20)))
+                    {
+                        if (setAudio51)
+                        {
+                            if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
+                            setAudio51_done=true;
+                        }
+                        if (setAudio20)
+                        {
+                            if (fprintf(w,"X 2 05 %s Dolby Digital 2.0\n",lang)<=0) err=true;
+                            setAudio20_done=true;
+                        }
+                    }
+                    else
+                    {
+                        if (fprintf(w,"%s",line)<=0) err=true;
+                    }
+                    break;
+                default:
+                    if (fprintf(w,"%s",line)<=0) err=true;
+                    break;
                 }
+            }
+        }
+        else
+        {
+            if (line[0]!='@')
+            {
+                if (fprintf(w,"%s",line)<=0) err=true;
             }
             else
             {
-                if (line[0]!='@')
+                if (lline)
                 {
-                    if (fprintf(w,"%s",line)<=0) err=true;
+                    free(lline);
+                    err=true;
+                    esyslog("multiple @lines in info file, please report this!");
                 }
-                else
-                {
-                    if (lline)
-                    {
-                        free(lline);
-                        err=true;
-                        esyslog("multiple @lines in info file, please report this!");
-                    }
-                    lline=strdup(line);
-                }
+                lline=strdup(line);
             }
+        }
         if (err) break;
     }
     if (line) free(line);
@@ -1769,10 +1762,6 @@ bool cMarkAdStandalone::SaveInfo()
     if ((setAudio51) && (!setAudio51_done) && (!err))
     {
         if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
-    }
-    if ((setFrameRate) && (!setFrameRate_done) && (!err))
-    {
-        if (fprintf(w,"F %i\n",(int) macontext.Video.Info.FramesPerSecond)<=0) err=true;
     }
     if (line)
     {
@@ -1881,7 +1870,6 @@ bool cMarkAdStandalone::LoadInfo()
 
     char *line=NULL;
     size_t linelen;
-    setFrameRate=true;
     while (getline(&line,&linelen,f)!=-1)
     {
         if (line[0]=='C')
@@ -1938,12 +1926,6 @@ bool cMarkAdStandalone::LoadInfo()
             else
             {
                 macontext.Video.Info.FramesPerSecond=fps;
-                setFrameRate=false;
-                if (fps<40)
-                {
-                    // assumption
-                    macontext.Video.Info.Interlaced=true;
-                }
             }
         }
         if (line[0]=='X')

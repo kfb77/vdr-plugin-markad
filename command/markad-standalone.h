@@ -221,7 +221,6 @@ unsigned Descriptor_Length:
     bool setVideo43;   // set video to 4:3 in info
     bool setVideo43LB; // set video to 4:3 letterbox in info
     bool setVideo169;  // set video to 16:9 in info
-    bool setFrameRate; // set framerate in info
 
     int chkLEFT;
     int chkRIGHT;
