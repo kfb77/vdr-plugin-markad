@@ -10,7 +10,7 @@
 
 #include "global.h"
 
-#define LOGO_MAXHEIGHT   250
+#define LOGO_MAXHEIGHT   170
 #define LOGO_MAXWIDTH    480
 
 #define LOGO_DEFHEIGHT   100
@@ -22,11 +22,33 @@
 #define LOGO_VMARK 0.5    // percantage of pixels for visible
 #define LOGO_IMARK 0.15   // percentage of pixels for invisible
 
+enum
+{
+    LOGO_ERROR=-3,
+    LOGO_UNINITIALIZED=-2,
+    LOGO_INVISIBLE=-1,
+    LOGO_NOCHANGE=0,
+    LOGO_VISIBLE=1
+};
+
+enum
+{
+    HBORDER_ERROR=-3,
+    HBORDER_UNINITIALIZED=-2,
+    HBORDER_INVISIBLE=-1,
+    HBORDER_NOCHANGE=0,
+    HBORDER_VISIBLE=1
+};
+
+enum
+{
+    OV_BEFORE=0,
+    OV_AFTER=1
+};
+
 class cMarkAdOverlap
 {
 private:
-#define BEFORE 0
-#define AFTER 1
     MarkAdContext *macontext;
     typedef int simpleHistogram[256];
 
@@ -67,15 +89,6 @@ private:
         BOTTOM_RIGHT
     };
 
-    enum
-    {
-        ERROR=-3,
-        UNINITIALIZED=-2,
-        NOLOGO=-1,
-        NOCHANGE=0,
-        LOGO=1
-    };
-
     int LOGOHEIGHT; // max. 140
     int LOGOWIDTH; // 192-288
 
@@ -113,27 +126,31 @@ private:
 public:
     cMarkAdLogo(MarkAdContext *maContext);
     int Process(int FrameNumber, int *LogoFrameNumber);
+    int Status()
+    {
+        return area.status;
+    }
+    void SetStatusLogoInvisible()
+    {
+        if (area.status==LOGO_VISIBLE)
+            area.status=LOGO_INVISIBLE;
+    }
     void Clear();
 };
 
 class cMarkAdBlackBordersHoriz
 {
 private:
-    enum
-    {
-        ERROR=-3,
-        UNINITIALIZED=-2,
-        NOBORDER=-1,
-        NOCHANGE=0,
-        BORDER=1
-    };
-
     int borderstatus;
     int borderframenumber;
     MarkAdContext *macontext;
 public:
     cMarkAdBlackBordersHoriz(MarkAdContext *maContext);
     int Process(int FrameNumber,int *BorderFrameNumber);
+    int Status()
+    {
+        return borderstatus;
+    }
     void Clear();
 };
 
@@ -148,11 +165,12 @@ private:
     cMarkAdLogo *logo;
     cMarkAdOverlap *overlap;
 
-    void ResetMarks();
-    bool AddMark(int Type, int Position, const char *Comment);
-    bool AspectRatioChange(MarkAdAspectRatio *a, MarkAdAspectRatio *b);
+    void resetmarks();
+    bool addmark(int Type, int position, const char *comment);
+    bool aspectratiochange(MarkAdAspectRatio &a, MarkAdAspectRatio &b, bool &start);
 
     int framelast;
+    int framebeforelast;
 
 public:
     cMarkAdVideo(MarkAdContext *maContext);

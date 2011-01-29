@@ -485,7 +485,6 @@ void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
         indexfd=open(ipath,O_WRONLY|O_CREAT|O_TRUNC,0644);
         free(ipath);
         if (indexfd==-1) return;
-        if (Offset>376) WriteIndex(isTS,0,1,Number);
     }
     WriteIndex(isTS,Offset,FrameType,Number);
     return;

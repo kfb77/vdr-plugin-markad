@@ -37,7 +37,7 @@ INCLUDES += -I..
 
 ### The object files (add further files here):
 
-OBJS = markad-standalone.o decoder.o marks.o streaminfo.o video.o audio.o audio_gain_analysis.o demux.o queue.o ts2pkt.o pes2es.o 
+OBJS = markad-standalone.o decoder.o marks.o streaminfo.o video.o audio.o demux.o 
 
 ### The main target:
 

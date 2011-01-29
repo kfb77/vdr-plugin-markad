@@ -26,7 +26,6 @@
 
 #define MAXRANGE 420 /* range to search for start/stop marks in seconds */
 
-
 class cOSDMessage
 {
 private:
@@ -156,19 +155,19 @@ unsigned Descriptor_Length:
         8;
     };
 
+    enum { mSTART=0x1, mBEFORE, mAFTER };
+
     static const char frametypes[8];
     const char *directory;
 
-    cMarkAdDemux *video_demux;
-    cMarkAdDemux *ac3_demux;
-    cMarkAdDemux *mp2_demux;
+    cDemux *demux;
     cMarkAdDecoder *decoder;
     cMarkAdVideo *video;
     cMarkAdAudio *audio;
     cMarkAdStreamInfo *streaminfo;
     cOSDMessage *osd;
 
-    MarkAdPacket vpkt,apkt;
+    AvPacket pkt;
 
     MarkAdContext macontext;
 
@@ -214,7 +213,7 @@ unsigned Descriptor_Length:
     int iStop;         // posttimer as index value
     int iStopCheck;    // check position for iStop
 
-    int errcnt;        // Skipped bytes in stream
+    int skipped;       // Skipped bytes in whole file
 
     bool setAudio51;   // set audio to 5.1 in info
     bool setAudio20;   // set audio to 2.0 in info

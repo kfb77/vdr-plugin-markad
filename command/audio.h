@@ -10,22 +10,14 @@
 
 #include "global.h"
 
-#include "audio_gain_analysis.h"
-
 class cMarkAdAudio
 {
 private:
-    //int framenumber;
     MarkAdContext *macontext;
 
     MarkAdMark mark;
     void ResetMark();
     bool AddMark(int Type, int Position, const char *Comment);
-
-    int lastframe_gain;
-    double lastgain;
-    cMarkAdAudioGainAnalysis audiogain;
-    bool AnalyzeGain(int FrameNumber);
 
     int channels;
     bool ChannelChange(int a, int b);
@@ -36,9 +28,7 @@ public:
     cMarkAdAudio(MarkAdContext *maContext);
     ~cMarkAdAudio();
     MarkAdMark *Process(int FrameNumber, int FrameNumberBefore);
-    MarkAdPos *Process2ndPass(int FrameNumber);
     void Clear();
 };
-
 
 #endif

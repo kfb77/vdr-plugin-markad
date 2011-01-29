@@ -34,23 +34,21 @@ typedef unsigned char uchar;
 #define MT_ASSUMEDSTART  0x21
 #define MT_ASSUMEDSTOP   0x22
 
-#define MT_ASPECTCHANGE  0x30
-#define MT_ASPECTSTART   0x31
-#define MT_ASPECTSTOP    0x32
+#define MT_LOGOCHANGE    0x30
+#define MT_LOGOSTART     0x31
+#define MT_LOGOSTOP      0x32
 
-#define MT_CHANNELCHANGE 0x40
-#define MT_CHANNELSTART  0x41
-#define MT_CHANNELSTOP   0x42
+#define MT_BORDERCHANGE  0x40
+#define MT_BORDERSTART   0x41
+#define MT_BORDERSTOP    0x42
 
-#define MT_LOGOCHANGE    0x50
-#define MT_LOGOSTART     0x51
-#define MT_LOGOSTOP      0x52
+#define MT_ASPECTCHANGE  0x50
+#define MT_ASPECTSTART   0x51
+#define MT_ASPECTSTOP    0x52
 
-#define MT_BORDERCHANGE  0x60
-#define MT_BORDERSTART   0x61
-#define MT_BORDERSTOP    0x62
-
-#define MT_SILENCECHANGE 0x90
+#define MT_CHANNELCHANGE 0x60
+#define MT_CHANNELSTART  0x61
+#define MT_CHANNELSTOP   0x62
 
 #define MT_MOVED         0xE0
 #define MT_ALL           0xFF
@@ -125,9 +123,11 @@ typedef struct MarkAdContext
 
     struct Info
     {
-        int Channels;
-        char *ChannelName;
+
         MarkAdAspectRatio AspectRatio;
+        int Channels;
+
+        char *ChannelName;
         MarkAdPid VPid;
         MarkAdPid APid;
         MarkAdPid DPid;
