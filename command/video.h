@@ -10,7 +10,7 @@
 
 #include "global.h"
 
-#define LOGO_MAXHEIGHT   170
+#define LOGO_MAXHEIGHT   250
 #define LOGO_MAXWIDTH    480
 
 #define LOGO_DEFHEIGHT   100
