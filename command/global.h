@@ -86,11 +86,22 @@ typedef struct MarkAdPos
     char *CommentAfter;
 } MarkAdPos;
 
+typedef struct MarkAdAspectRatio
+{
+    int Num;
+    int Den;
+} MarkAdAspectRatio;
+
 typedef struct MarkAdMark
 {
     char Type;
     int Position;
-    char *Comment;
+    int ChannelsBefore;
+    int ChannelsAfter;
+    MarkAdAspectRatio AspectRatioBefore;
+    MarkAdAspectRatio AspectRatioAfter;
+    bool VerticalBorders;
+    bool Assumed;
 } MarkAdMark;
 
 typedef struct MarkAdMarks
@@ -99,12 +110,6 @@ typedef struct MarkAdMarks
     MarkAdMark Number[maxCount];
     int Count;
 } MarkAdMarks;
-
-typedef struct MarkAdAspectRatio
-{
-    int Num;
-    int Den;
-} MarkAdAspectRatio;
 
 #define MARKAD_PIDTYPE_VIDEO_H262 0x10
 #define MARKAD_PIDTYPE_VIDEO_H264 0x11

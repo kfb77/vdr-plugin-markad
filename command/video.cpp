@@ -217,8 +217,9 @@ int cMarkAdLogo::SobelPlane(int plane)
         return 0;
     }
 
-    int boundary=15;
+    int boundary=6;
     int cutval=127;
+    //int cutval=60;
     int width=LOGOWIDTH;
 
     if (plane>0)
@@ -793,18 +794,24 @@ void cMarkAdVideo::Clear()
 
 void cMarkAdVideo::resetmarks()
 {
-    for (int i=0; i<marks.maxCount; i++)
-    {
-        if (marks.Number[i].Comment) free(marks.Number[i].Comment);
-    }
     memset(&marks,0,sizeof(marks));
 }
 
-bool cMarkAdVideo::addmark(int type, int position, const char *comment)
+bool cMarkAdVideo::addmark(int type, int position, MarkAdAspectRatio *before,
+                           MarkAdAspectRatio *after, bool verticalborders)
 {
-    if (!comment) return false;
     if (marks.Count>marks.maxCount) return false;
-    marks.Number[marks.Count].Comment=strdup(comment);
+    if (before)
+    {
+        marks.Number[marks.Count].AspectRatioBefore.Num=before->Num;
+        marks.Number[marks.Count].AspectRatioBefore.Den=before->Den;
+    }
+    if (after)
+    {
+        marks.Number[marks.Count].AspectRatioAfter.Num=after->Num;
+        marks.Number[marks.Count].AspectRatioAfter.Den=after->Den;
+    }
+    marks.Number[marks.Count].VerticalBorders=verticalborders;
     marks.Number[marks.Count].Position=position;
     marks.Number[marks.Count].Type=type;
     marks.Count++;
@@ -851,22 +858,13 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
         int lret=logo->Process(FrameNumber,&logoframenumber);
         if ((lret>=-1) && (lret!=0))
         {
-            char *buf=NULL;
             if (lret>0)
             {
-                if (asprintf(&buf,"detected logo start (%i)",logoframenumber)!=-1)
-                {
-                    addmark(MT_LOGOSTART,logoframenumber,buf);
-                    free(buf);
-                }
+                addmark(MT_LOGOSTART,logoframenumber);
             }
             else
             {
-                if (asprintf(&buf,"detected logo stop (%i)",logoframenumber)!=-1)
-                {
-                    addmark(MT_LOGOSTOP,logoframenumber,buf);
-                    free(buf);
-                }
+                addmark(MT_LOGOSTOP,logoframenumber);
             }
         }
     }
@@ -876,24 +874,12 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
 
     if ((hret>0) && (borderframenumber))
     {
-        char *buf=NULL;
-        if (asprintf(&buf,"detected start of horiz. borders (%i [%i])",
-                     borderframenumber,FrameNumber)!=-1)
-        {
-            addmark(MT_BORDERSTART,borderframenumber,buf);
-            free(buf);
-        }
+        addmark(MT_BORDERSTART,borderframenumber);
     }
 
     if ((hret<0) && (borderframenumber))
     {
-        char *buf=NULL;
-        if (asprintf(&buf,"detected stop of horiz. borders (%i [%i])",
-                     borderframenumber,FrameNumber)!=-1)
-        {
-            addmark(MT_BORDERSTOP,borderframenumber,buf);
-            free(buf);
-        }
+        addmark(MT_BORDERSTOP,borderframenumber);
     }
 
     if (!macontext->Video.Options.IgnoreAspectRatio)
@@ -903,48 +889,21 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
         {
             if ((logo->Status()==LOGO_VISIBLE) && (!start))
             {
-                char *buf=NULL;
-                if (asprintf(&buf,"assuming logo stop (%i)",framebeforelast)!=-1)
-                {
-                    addmark(MT_LOGOSTOP,framebeforelast,buf);
-                    free(buf);
-                }
+                addmark(MT_LOGOSTOP,framebeforelast);
                 logo->SetStatusLogoInvisible();
-            }
-            char *buf=(char *) calloc(1,256);
-            if (!buf) return NULL;
-            if (start)
-            {
-                snprintf(buf,255,"aspect ratio %i:%i (",
-                         macontext->Video.Info.AspectRatio.Num,
-                         macontext->Video.Info.AspectRatio.Den);
-            }
-            else
-            {
-                snprintf(buf,255,"aspect ratio change from %i:%i to %i:%i (",
-                         aspectratio.Num,aspectratio.Den,
-                         macontext->Video.Info.AspectRatio.Num,
-                         macontext->Video.Info.AspectRatio.Den);
             }
 
             if ((macontext->Video.Info.AspectRatio.Num==4) &&
                     (macontext->Video.Info.AspectRatio.Den==3))
             {
-                char nbuf[20];
-                snprintf(nbuf,sizeof(nbuf),"%i)*",start ? FrameNumber : FrameNumberNext);
-                nbuf[19]=0;
-                strcat(buf,nbuf);
-                addmark(MT_ASPECTSTART,FrameNumberNext,buf);
+                addmark(MT_ASPECTSTART,start ? FrameNumber : FrameNumberNext,
+                        &aspectratio,&macontext->Video.Info.AspectRatio);
             }
             else
             {
-                char nbuf[20];
-                snprintf(nbuf,sizeof(nbuf),"%i)",framelast);
-                nbuf[19]=0;
-                strcat(buf,nbuf);
-                addmark(MT_ASPECTSTOP,framelast,buf);
+                addmark(MT_ASPECTSTOP,framelast,&aspectratio,
+                        &macontext->Video.Info.AspectRatio);
             }
-            free(buf);
         }
 
         aspectratio.Num=macontext->Video.Info.AspectRatio.Num;

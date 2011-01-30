@@ -16,14 +16,11 @@ private:
     MarkAdContext *macontext;
 
     MarkAdMark mark;
-    void ResetMark();
-    bool AddMark(int Type, int Position, const char *Comment);
-
+    void resetmark();
+    void setmark(int type, int position, int channelsbefore, int channelsafter);
     int channels;
-    bool ChannelChange(int a, int b);
+    bool channelchange(int a, int b);
     int framelast;
-
-    MarkAdPos result;
 public:
     cMarkAdAudio(MarkAdContext *maContext);
     ~cMarkAdAudio();

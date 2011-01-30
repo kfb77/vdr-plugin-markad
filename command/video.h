@@ -10,7 +10,7 @@
 
 #include "global.h"
 
-#define LOGO_MAXHEIGHT   170
+#define LOGO_MAXHEIGHT   250
 #define LOGO_MAXWIDTH    480
 
 #define LOGO_DEFHEIGHT   100
@@ -166,7 +166,8 @@ private:
     cMarkAdOverlap *overlap;
 
     void resetmarks();
-    bool addmark(int Type, int position, const char *comment);
+    bool addmark(int type, int position, MarkAdAspectRatio *before=NULL,
+                 MarkAdAspectRatio *after=NULL, bool verticalborders=false );
     bool aspectratiochange(MarkAdAspectRatio &a, MarkAdAspectRatio &b, bool &start);
 
     int framelast;

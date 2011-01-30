@@ -205,28 +205,28 @@ unsigned Descriptor_Length:
     bool bIgnoreVideoInfo;
     bool bIgnoreTimerInfo;
 
-    time_t startTime;  // StartTime of broadcast
-    int length;	       // Length in seconds
+    time_t startTime;  // starttime of broadcast
+    int length;	       // length of broadcast in seconds
     int tStart;        // pretimer in seconds
     int iStart;        // pretimer as index value
     int iStartCheck;   // check position for iStart
     int iStop;         // posttimer as index value
     int iStopCheck;    // check position for iStop
 
-    int skipped;       // Skipped bytes in whole file
-
+    int skipped;       // skipped bytes in whole file
+    bool inBroadCast;  // are we in a broadcast (or ad)?
+#if 0
     bool setAudio51;   // set audio to 5.1 in info
     bool setAudio20;   // set audio to 2.0 in info
     bool setVideo43;   // set video to 4:3 in info
     bool setVideo43LB; // set video to 4:3 letterbox in info
     bool setVideo169;  // set video to 16:9 in info
-
+#endif
     int chkLEFT;
     int chkRIGHT;
 
     time_t GetBroadcastStart(time_t start, int fd);
-    void CheckBroadcastLength();
-    bool CheckIndexGrowing();
+    void CheckIndexGrowing();
     char *indexFile;
     int sleepcnt;
 
@@ -238,12 +238,8 @@ unsigned Descriptor_Length:
     clMarks marks;
     char *IndexToHMSF(int Index);
     void CalculateStopPosition(int startframe, int delta);
-    void CheckFirstMark();
-    void CheckLastMark();
-    void CheckStartStop(int frame, bool checkend=false);
     void CheckAspectRatio_and_AudioChannels();
-    void CheckLogoMarks(clMark *last=NULL);
-    void AddStartMark();
+    void InitStartStop();
     void AddMark(MarkAdMark *Mark);
     bool Reset(bool FirstPass=true);
     void ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos);
@@ -253,7 +249,7 @@ unsigned Descriptor_Length:
     bool CheckPATPMT(off_t Offset=0);
     bool CheckTS();
     bool LoadInfo();
-    bool SaveInfo();
+    //bool SaveInfo();
     bool SetFileUID(char *File);
     bool RegenerateIndex();
     bool ProcessFile2ndPass(clMark **Mark1, clMark **Mark2, int Number, off_t Offset, int Frame, int Frames);

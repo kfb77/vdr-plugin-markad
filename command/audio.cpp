@@ -16,63 +16,37 @@
 cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext)
 {
     macontext=maContext;
-    mark.Comment=NULL;
     mark.Position=0;
     mark.Type=0;
-    result.CommentBefore=NULL;
-    result.CommentAfter=NULL;
     Clear();
 }
 
 cMarkAdAudio::~cMarkAdAudio()
 {
-    ResetMark();
+    resetmark();
     Clear();
 }
 
 void cMarkAdAudio::Clear()
 {
     channels=0;
-    if (result.CommentBefore) free(result.CommentBefore);
-    if (result.CommentAfter) free(result.CommentAfter);
-    memset(&result,0,sizeof(result));
 }
 
-void cMarkAdAudio::ResetMark()
+void cMarkAdAudio::resetmark()
 {
     if (!mark.Type) return;
-    if (mark.Comment) free(mark.Comment);
-    mark.Comment=NULL;
-    mark.Position=0;
-    mark.Type=0;
+    memset(&mark,0,sizeof(mark));
 }
 
-bool cMarkAdAudio::AddMark(int Type, int Position, const char *Comment)
+void cMarkAdAudio::setmark(int type, int position, int channelsbefore, int channelsafter)
 {
-    if (!Comment) return false;
-    if (mark.Comment)
-    {
-        int oldlen=strlen(mark.Comment);
-        mark.Comment=(char *) realloc(mark.Comment,oldlen+10+strlen(Comment));
-        if (!mark.Comment)
-        {
-            mark.Position=0;
-            return false;
-        }
-        strcat(mark.Comment," [");
-        strcat(mark.Comment,Comment);
-        strcat(mark.Comment,"]");
-    }
-    else
-    {
-        mark.Comment=strdup(Comment);
-    }
-    mark.Position=Position;
-    mark.Type=Type;
-    return true;
+    mark.ChannelsBefore=channelsbefore;
+    mark.ChannelsAfter=channelsafter;
+    mark.Position=position;
+    mark.Type=type;
 }
 
-bool cMarkAdAudio::ChannelChange(int a, int b)
+bool cMarkAdAudio::channelchange(int a, int b)
 {
     if ((a==0) || (b==0)) return false;
     if (a!=b) return true;
@@ -82,33 +56,18 @@ bool cMarkAdAudio::ChannelChange(int a, int b)
 MarkAdMark *cMarkAdAudio::Process(int FrameNumber, int FrameNumberNext)
 {
     if ((!FrameNumber) || (!FrameNumberNext)) return NULL;
-    ResetMark();
+    resetmark();
 
-    if (ChannelChange(macontext->Audio.Info.Channels,channels))
+    if (channelchange(macontext->Audio.Info.Channels,channels))
     {
-        char *buf=(char *) calloc(1,256);
-        if (!buf) return NULL;
-
-        snprintf(buf,255,"audio channel change from %i to %i (", channels,
-                 macontext->Audio.Info.Channels);
-
         if (macontext->Audio.Info.Channels>2)
         {
-            char nbuf[20];
-            snprintf(nbuf,sizeof(nbuf),"%i)*",FrameNumberNext);
-            nbuf[19]=0;
-            strcat(buf,nbuf);
-            AddMark(MT_CHANNELSTART,FrameNumberNext,buf);
+            setmark(MT_CHANNELSTART,FrameNumberNext,macontext->Audio.Info.Channels,channels);
         }
         else
         {
-            char nbuf[20];
-            snprintf(nbuf,sizeof(nbuf),"%i)",framelast);
-            nbuf[19]=0;
-            strcat(buf,nbuf);
-            AddMark(MT_CHANNELSTOP,framelast,buf);
+            setmark(MT_CHANNELSTOP,framelast,macontext->Audio.Info.Channels,channels);
         }
-        free(buf);
     }
 
     channels=macontext->Audio.Info.Channels;

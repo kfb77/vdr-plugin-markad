@@ -575,7 +575,7 @@ cTS2Pkt::~cTS2Pkt()
 {
     if (queue)
     {
-        if (skipped) esyslog("buffer skipped: %-15s %i bytes",queue->Name(),skipped);
+        if (skipped) tsyslog("buffer skipped: %-15s %i bytes",queue->Name(),skipped);
         delete queue;
     }
 }
@@ -733,7 +733,7 @@ cPES2ES::~cPES2ES()
 {
     if (queue)
     {
-        if (skipped) esyslog("buffer skipped: %-15s %i bytes",queue->Name(),skipped);
+        if (skipped) tsyslog("buffer skipped: %-15s %i bytes",queue->Name(),skipped);
         delete queue;
     }
 }
