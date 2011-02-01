@@ -30,7 +30,7 @@ cPluginMarkAd::cPluginMarkAd(void)
     setup.ProcessDuring=true;
     setup.whileRecording=true;
     setup.whileReplaying=true;
-    setup.GenIndex=true;
+    setup.GenIndex=false;
     setup.OSDMessage=false;
     setup.BackupMarks=false;
     setup.Verbose=false;
@@ -39,7 +39,7 @@ cPluginMarkAd::cPluginMarkAd(void)
     setup.SecondPass=true;
     setup.IOPrioClass=1;
     setup.Log2Rec=false;
-    setup.LogoOnly=false;
+    setup.LogoOnly=true;
 }
 
 cPluginMarkAd::~cPluginMarkAd()

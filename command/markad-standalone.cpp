@@ -26,6 +26,7 @@
 #include <execinfo.h>
 #include <mntent.h>
 #include <utime.h>
+#include <math.h>
 #include <errno.h>
 
 #include "markad-standalone.h"

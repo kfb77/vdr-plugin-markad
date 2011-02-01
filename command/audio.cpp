@@ -62,11 +62,11 @@ MarkAdMark *cMarkAdAudio::Process(int FrameNumber, int FrameNumberNext)
     {
         if (macontext->Audio.Info.Channels>2)
         {
-            setmark(MT_CHANNELSTART,FrameNumberNext,macontext->Audio.Info.Channels,channels);
+            setmark(MT_CHANNELSTART,FrameNumberNext,channels,macontext->Audio.Info.Channels);
         }
         else
         {
-            setmark(MT_CHANNELSTOP,framelast,macontext->Audio.Info.Channels,channels);
+            setmark(MT_CHANNELSTOP,framelast,channels,macontext->Audio.Info.Channels);
         }
     }
 
