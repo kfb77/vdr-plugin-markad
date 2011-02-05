@@ -82,8 +82,6 @@ typedef struct MarkAdPos
 {
     int FrameNumberBefore;
     int FrameNumberAfter;
-    char *CommentBefore;
-    char *CommentAfter;
 } MarkAdPos;
 
 typedef struct MarkAdAspectRatio

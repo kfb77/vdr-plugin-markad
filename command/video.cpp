@@ -590,8 +590,6 @@ cMarkAdOverlap::cMarkAdOverlap(MarkAdContext *maContext)
 
     histbuf[OV_BEFORE]=NULL;
     histbuf[OV_AFTER]=NULL;
-    result.CommentBefore=NULL;
-    result.CommentAfter=NULL;
     Clear();
 }
 
@@ -616,8 +614,6 @@ void cMarkAdOverlap::Clear()
         delete[] histbuf[OV_AFTER];
         histbuf[OV_AFTER]=NULL;
     }
-    if (result.CommentBefore) free(result.CommentBefore);
-    if (result.CommentAfter) free(result.CommentAfter);
     memset(&result,0,sizeof(result));
     similarCutOff=0;
     similarMaxCnt=0;
@@ -660,19 +656,22 @@ MarkAdPos *cMarkAdOverlap::Detect()
     {
         for (int A=start; A<histcnt[OV_AFTER]; A++)
         {
-            //printf("%6i %6i ",histbuf[BEFORE][B].framenumber,histbuf[AFTER][A].framenumber);
+            //printf("%6i %6i ",histbuf[OV_BEFORE][B].framenumber,histbuf[OV_AFTER][A].framenumber);
             bool simil=areSimilar(histbuf[OV_BEFORE][B].histogram,histbuf[OV_AFTER][A].histogram);
             if (simil)
             {
                 tmpA=A;
                 tmpB=B;
                 start=A+1;
-                simcnt++;
+                if (simil<(similarCutOff/2)) simcnt+=2;
+                else if (simil<(similarCutOff/4)) simcnt+=4;
+                else if (simil<(similarCutOff/6)) simcnt+=6;
+                else simcnt++;
                 break;
             }
             else
             {
-                //if (simcnt) printf("%i %i %i\n",simcnt,histbuf[BEFORE][B].framenumber,histbuf[AFTER][A].framenumber);
+                //if (simcnt) printf("simcnt=%i\n",simcnt);
 
                 if (simcnt>similarMaxCnt)
                 {
@@ -699,15 +698,6 @@ MarkAdPos *cMarkAdOverlap::Detect()
             return NULL;
         }
     }
-
-    if (asprintf(&result.CommentBefore,"detected overlap before (%i)",result.FrameNumberBefore)==-1)
-    {
-        result.CommentBefore=NULL;
-    }
-    if (asprintf(&result.CommentAfter,"detected overlap after (%i)",result.FrameNumberAfter)==-1)
-    {
-        result.CommentAfter=NULL;
-    }
     return &result;
 }
 
@@ -716,7 +706,7 @@ MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd)
     if ((lastframenumber>0) && (!similarMaxCnt))
     {
         similarCutOff=50000; // lower is harder!
-        similarMaxCnt=6;
+        similarMaxCnt=4;
     }
 
     if (BeforeAd)

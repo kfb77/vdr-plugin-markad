@@ -659,17 +659,25 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
 
     if ((*Mark1)->position!=NewPos->FrameNumberBefore)
     {
+        char *buf=NULL;
+        if (asprintf(&buf,"overlap before %i, moved to %i",(*Mark1)->position,
+                     NewPos->FrameNumberBefore)==-1) return;
+        isyslog("%s",buf);
         marks.Del(*Mark1);
-        *Mark1=marks.Add(MT_MOVED,NewPos->FrameNumberBefore,NewPos->CommentBefore);
+        *Mark1=marks.Add(MT_MOVED,NewPos->FrameNumberBefore,buf);
+        free(buf);
         save=true;
     }
-    if (NewPos->CommentBefore) isyslog("%s",NewPos->CommentBefore);
 
     if (Mark2 && (*Mark2) && (*Mark2)->position!=NewPos->FrameNumberAfter)
     {
+        char *buf=NULL;
+        if (asprintf(&buf,"overlap after %i, moved to %i",(*Mark2)->position,
+                     NewPos->FrameNumberAfter)==-1) return;
+        isyslog("%s",buf);
         marks.Del(*Mark2);
-        *Mark2=marks.Add(MT_MOVED,NewPos->FrameNumberAfter,NewPos->CommentAfter);
-        if (NewPos->CommentAfter) isyslog("%s",NewPos->CommentAfter);
+        *Mark2=marks.Add(MT_MOVED,NewPos->FrameNumberAfter,buf);
+        free(buf);
         save=true;
     }
     if (save) marks.Save(directory,macontext.Video.Info.FramesPerSecond,isTS,true);
@@ -737,7 +745,14 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
         }
         else
         {
-            dsyslog("processing file %05i %s",Number,(pn==mAFTER) ? "(after mark)" : "(before mark)");
+            if (pn==mBEFORE)
+            {
+                dsyslog("processing file %05i (before mark %i)",Number,(*Mark1)->position);
+            }
+            else
+            {
+                dsyslog("processing file %05i (after mark %i)",Number,(*Mark2)->position);
+            }
         }
 
         if (lseek(f,Offset,SEEK_SET)!=Offset)
@@ -889,6 +904,11 @@ void cMarkAdStandalone::Process2ndPass()
             {
                 if (!ProcessFile2ndPass(&p1,&p2,number,offset,frame,iframes)) break;
             }
+        }
+        else
+        {
+            esyslog("error reading index");
+            return;
         }
 
         p1=p2->Next();
