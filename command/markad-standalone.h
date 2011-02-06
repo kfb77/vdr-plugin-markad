@@ -188,7 +188,6 @@ unsigned Descriptor_Length:
 
     bool abort;
     bool gotendmark;
-    bool reprocess;
     int waittime;
     int iwaittime;
     struct timeval tv1,tv2;
@@ -208,10 +207,7 @@ unsigned Descriptor_Length:
     time_t startTime;  // starttime of broadcast
     int length;	       // length of broadcast in seconds
     int tStart;        // pretimer in seconds
-    int iStart;        // pretimer as index value
-    int iStartCheck;   // check position for iStart
-    int iStop;         // posttimer as index value
-    int iStopCheck;    // check position for iStop
+    int iStart;        // pretimer in frames
 
     int skipped;       // skipped bytes in whole file
     bool inBroadCast;  // are we in a broadcast (or ad)?
@@ -222,6 +218,9 @@ unsigned Descriptor_Length:
     bool setVideo43LB; // set video to 4:3 letterbox in info
     bool setVideo169;  // set video to 16:9 in info
 #endif
+
+    void CheckStart();
+    void CalculateCheckPositions(int startframe, int delta);
     int chkLEFT;
     int chkRIGHT;
 
@@ -232,14 +231,8 @@ unsigned Descriptor_Length:
 
     void SaveFrame(int Frame);
 
-    bool aspectChecked;
-    bool marksAligned;
-
     clMarks marks;
     char *IndexToHMSF(int Index);
-    void CalculateStopPosition(int startframe, int delta);
-    void CheckAspectRatio_and_AudioChannels();
-    void InitStartStop();
     void AddMark(MarkAdMark *Mark);
     bool Reset(bool FirstPass=true);
     void ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos);
