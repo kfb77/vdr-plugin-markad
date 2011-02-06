@@ -180,206 +180,50 @@ int cOSDMessage::Send(const char *format, ...)
     return 0;
 }
 
-void cMarkAdStandalone::InitStartStop()
-{
-    if (!macontext.Video.Info.FramesPerSecond) return;
-    if (tStart)
-    {
-        iStart=-(tStart*macontext.Video.Info.FramesPerSecond);
-    }
-    CalculateStopPosition(-iStart,macontext.Video.Info.FramesPerSecond*MAXRANGE);
-    if (tStart==1)
-    {
-        tStart=iStart=0;
-    }
-}
-
-void cMarkAdStandalone::CalculateStopPosition(int startframe, int delta)
+void cMarkAdStandalone::CalculateCheckPositions(int startframe, int delta)
 {
     if (!length) return;
+    if (!startframe) return;
     if (!macontext.Video.Info.FramesPerSecond) return;
 
-    int len_in_frames=length*macontext.Video.Info.FramesPerSecond;
-
-    if (startframe)
-    {
-        iStop=-(startframe+len_in_frames);
-        chkLEFT=startframe+delta+macontext.Video.Info.FramesPerSecond;
-        chkRIGHT=startframe+(len_in_frames*2/3);
-    }
-    else
-    {
-        chkLEFT=(int) (len_in_frames*2/5);
-        chkRIGHT=(int) (len_in_frames*2/3);
-    }
+    iStart=-startframe;
+    chkLEFT=startframe+delta+macontext.Video.Info.FramesPerSecond;
+    chkRIGHT=startframe+(length*macontext.Video.Info.FramesPerSecond);
 }
 
-#if 0
-void cMarkAdStandalone::CheckStartStop(int frame, bool checkend)
+void cMarkAdStandalone::CheckStart()
 {
-    MarkAdMark mark;
-    char *buf;
+    dsyslog("checking start");
+    clMark *begin=NULL;
 
-    if ((iStartCheck>0) && (frame>=iStartCheck))
+    if ((macontext.Info.Channels) && (macontext.Info.Channels!=macontext.Audio.Info.Channels))
     {
-        // check if we have a start mark which is near iStart
-        clMark *before_iStart=marks.GetPrev(iStart,MT_START,0xF);
-        clMark *after_iStart=marks.GetNext(iStart,MT_START,0xF);
-
-        int MAXMARKDIFF=MAXRANGE*macontext.Video.Info.FramesPerSecond;
-        int type=0;
-        int newpos=0;
-        int delta_before=MAXMARKDIFF;
-        int delta_after=MAXMARKDIFF;
-
-        if (before_iStart)
+        char as[20];
+        switch (macontext.Info.Channels)
         {
-            delta_before=abs(iStart-before_iStart->position);
-            if (delta_before>MAXMARKDIFF) delta_before=MAXMARKDIFF;
+        case 1:
+            strcpy(as,"mono");
+        case 2:
+            strcpy(as,"stereo");
+        case 6:
+            strcpy(as,"dd5.1");
+        default:
+            strcpy(as,"??");
         }
-        if (after_iStart)
+        char ad[20];
+        switch (macontext.Info.Channels)
         {
-            delta_after=abs(after_iStart->position-iStart);
-            if (delta_after>MAXMARKDIFF) delta_after=MAXMARKDIFF;
+        case 1:
+            strcpy(ad,"mono");
+        case 2:
+            strcpy(ad,"stereo");
+        case 6:
+            strcpy(ad,"dd5.1");
+        default:
+            strcpy(ad,"??");
         }
-
-        if (delta_before>delta_after)
-        {
-            // use after_iStart
-            newpos=after_iStart->position;
-            type=after_iStart->type;
-        }
-
-        if (delta_before<delta_after)
-        {
-            // use before_iStart
-            newpos=before_iStart->position;
-            type=before_iStart->type;
-        }
-
-        if (newpos)
-        {
-            if (type==MT_BORDERSTART)
-            {
-                // check if we have an MT_ASPECTCHANGE in low distance
-                clMark *aspectmark=marks.GetPrev(newpos,MT_ASPECTSTART);
-                if (!aspectmark) aspectmark=marks.GetNext(newpos,MT_ASPECTSTART);
-                if (aspectmark)
-                {
-                    int MAXMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*20);
-                    if (abs(newpos-aspectmark->position)<=MAXMARKDIFF)
-                    {
-                        newpos=aspectmark->position;
-                    }
-                }
-            }
-            isyslog("using this mark instead of assumed start mark (%i->%i)",
-                    newpos,iStart);
-            marks.Del(iStart);
-            marks.DelTill(newpos);
-            CalculateStopPosition(newpos,frame-newpos);
-        }
-        iStart=0;
-        iStartCheck=0;
+        isyslog("audio description in info (%s) wrong, we have %s",as,ad);
     }
-
-    if ((iStopCheck>0) && ((frame>=iStopCheck) || (checkend)))
-    {
-        // check if we have a stop mark which is near iStop
-        clMark *before_iStop=marks.GetPrev(iStop,MT_STOP,0xF);
-        clMark *after_iStop=marks.GetNext(iStop,MT_STOP,0xF);
-
-        int MAXMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*MAXRANGE);
-        int newpos=0;
-        int delta_before=MAXMARKDIFF;
-        int delta_after=MAXMARKDIFF;
-
-        if (before_iStop)
-        {
-            delta_before=abs(iStop-before_iStop->position);
-            if (delta_before>MAXMARKDIFF) delta_before=MAXMARKDIFF;
-        }
-        if (after_iStop)
-        {
-            delta_after=abs(after_iStop->position-iStop);
-            if (delta_after>MAXMARKDIFF) delta_after=MAXMARKDIFF;
-        }
-
-        if (delta_before>delta_after)
-        {
-            // use after_iStop
-            newpos=after_iStop->position;
-        }
-
-        if (delta_before<delta_after)
-        {
-            // use before_iStop
-            newpos=before_iStop->position;
-        }
-
-        if (newpos)
-        {
-            isyslog("using this mark instead of assumed stop mark (%i->%i)",
-                    newpos,iStop);
-            marks.Del(iStop);
-            marks.DelTill(newpos,false);
-        }
-        else
-        {
-            marks.DelTill(iStop,false);
-        }
-        bDecodeVideo=false;
-        gotendmark=true;
-        iStop=0;
-        iStopCheck=0;
-    }
-
-    if ((iStart<0) && (frame>-iStart))
-    {
-        iStart=frame;
-        if (asprintf(&buf,"assumed start of broadcast (%i)",iStart)!=-1)
-        {
-            mark.Type=MT_ASSUMEDSTART;
-            mark.Position=iStart;
-            mark.Comment=buf;
-            AddMark(&mark);
-            free(buf);
-        }
-        int MAXMARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*MAXRANGE);
-        iStartCheck=iStart+MAXMARKDIFF;
-        int CHECKPOINT=(int) ((length*macontext.Video.Info.FramesPerSecond)/18);
-        if (CHECKPOINT>MAXMARKDIFF) CHECKPOINT=MAXMARKDIFF;
-        CalculateStopPosition(iStart,CHECKPOINT);
-    }
-    if ((iStop<0) && (lastiframe>-iStop))
-    {
-        iStop=frame;
-        if (asprintf(&buf,"assumed stop of broadcast (%i)",iStop)!=-1)
-        {
-            mark.Type=MT_ASSUMEDSTOP;
-            mark.Position=iStop;
-            mark.Comment=buf;
-            AddMark(&mark);
-            free(buf);
-        }
-
-        int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*MAXRANGE);
-        clMark *before_iStop=marks.GetPrev(iStart,MT_STOP,0xF);
-        if (before_iStop)
-        {
-            int tmpdiff=abs(iStop-before_iStop->position);
-            if (tmpdiff<MARKDIFF) MARKDIFF=tmpdiff;
-        }
-        iStopCheck=iStop+MARKDIFF;
-    }
-}
-#endif
-
-void cMarkAdStandalone::CheckAspectRatio_and_AudioChannels()
-{
-    if (aspectChecked) return;
-
-    dsyslog("checking aspectratio and audio channels");
 
     macontext.Info.Channels=macontext.Audio.Info.Channels;
     if (macontext.Info.Channels==6)
@@ -388,13 +232,33 @@ void cMarkAdStandalone::CheckAspectRatio_and_AudioChannels()
         bDecodeVideo=false;
         marks.Del(MT_ASPECTSTART);
         marks.Del(MT_ASPECTSTOP);
-        // start mark must be first MT_CHANNELSTART
-        clMark *begin=marks.GetNext(1,MT_CHANNELSTART);
-        if (begin)
+        // start mark must be around istart
+        begin=marks.GetAround(iStart,MT_CHANNELSTART);
+    }
+    else
+    {
+        if (macontext.Info.DPid.Num)
         {
-            marks.DelTill(begin->position);
-            CalculateStopPosition(begin->position,0);
+            isyslog("broadcast with DolbyDigital2.0%s",macontext.Config->AC3Always ?
+                    "" : ", disabling AC3 decoding");
+
+            if (!macontext.Config->AC3Always)
+            {
+                macontext.Info.DPid.Num=0;
+                demux->DisableDPid();
+            }
         }
+    }
+
+    if ((macontext.Info.AspectRatio.Num) && ((macontext.Info.AspectRatio.Num!=
+            macontext.Video.Info.AspectRatio.Num) || (macontext.Info.AspectRatio.Den!=
+                    macontext.Video.Info.AspectRatio.Den)))
+    {
+        isyslog("video aspect description in info (%i:%i) wrong, we have %i:%i",
+                macontext.Info.AspectRatio.Num,
+                macontext.Info.AspectRatio.Den,
+                macontext.Video.Info.AspectRatio.Num,
+                macontext.Video.Info.AspectRatio.Den);
     }
 
     macontext.Info.AspectRatio.Num=macontext.Video.Info.AspectRatio.Num;
@@ -413,13 +277,8 @@ void cMarkAdStandalone::CheckAspectRatio_and_AudioChannels()
         bDecodeVideo=false;
         marks.Del(MT_CHANNELSTART);
         marks.Del(MT_CHANNELSTOP);
-        // start mark must be first MT_ASPECTSTART
-        clMark *begin=marks.GetNext(1,MT_ASPECTSTART);
-        if (begin)
-        {
-            marks.DelTill(begin->position);
-            CalculateStopPosition(begin->position,0);
-        }
+        // start mark must be around iStart
+        begin=marks.GetAround(iStart,MT_ASPECTSTART);
     }
 
     if (!bDecodeVideo)
@@ -430,7 +289,28 @@ void cMarkAdStandalone::CheckAspectRatio_and_AudioChannels()
         marks.Del(MT_BORDERSTOP);
     }
 
-    aspectChecked=true;
+    if (!begin)
+    {
+        begin=marks.GetAround(iStart,MT_START,0x0F);
+    }
+    if (begin)
+    {
+        marks.DelTill(begin->position);
+        CalculateCheckPositions(begin->position,0);
+        isyslog("using mark on position %i as start mark",begin->position);
+    }
+    else
+    {
+        //fallback, shouldn't be reached
+        MarkAdMark mark;
+        memset(&mark,0,sizeof(mark));
+        mark.Position=iStart;
+        mark.Type=MT_ASSUMEDSTART;
+        AddMark(&mark);
+        marks.DelTill(iStart);
+        CalculateCheckPositions(iStart,0);
+    }
+    iStart=0;
     return;
 }
 
@@ -442,6 +322,9 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     char *comment=NULL;
     switch (Mark->Type)
     {
+    case MT_ASSUMEDSTART:
+        if (asprintf(&comment,"assuming start (%i)",Mark->Position)==-1) comment=NULL;
+        break;
     case MT_LOGOSTART:
         if (asprintf(&comment,"detected logo start (%i)*",Mark->Position)==-1) comment=NULL;
         break;
@@ -981,7 +864,11 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                     noticeHEADER=true;
                                 }
 
-                                if (!framecnt) InitStartStop();
+                                if (!framecnt)
+                                {
+                                    CalculateCheckPositions(tStart*macontext.Video.Info.FramesPerSecond,
+                                                            macontext.Video.Info.FramesPerSecond*MAXRANGE);
+                                }
 
                                 if (macontext.Config->GenIndex)
                                 {
@@ -992,8 +879,14 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                 if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                                 {
                                     lastiframe=iframe;
-                                    //CheckStartStop(lastiframe);
-                                    if ((iStart) && (lastiframe>chkLEFT)) CheckAspectRatio_and_AudioChannels();
+                                    if (iStart<0)
+                                    {
+                                        if (lastiframe>-iStart) iStart=lastiframe;
+                                    }
+                                    if (iStart>0)
+                                    {
+                                        if ((inBroadCast) && (lastiframe>chkLEFT)) CheckStart();
+                                    }
                                     iframe=framecnt-1;
                                     dRes=true;
                                 }
@@ -1049,7 +942,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                 }
             }
         }
-        if (((gotendmark) && (!macontext.Config->GenIndex)) || (reprocess))
+        if ((gotendmark) && (!macontext.Config->GenIndex))
         {
             if (f!=-1) close(f);
             return true;
@@ -1069,7 +962,6 @@ bool cMarkAdStandalone::ProcessFile(int Number)
 bool cMarkAdStandalone::Reset(bool FirstPass)
 {
     bool ret=true;
-    reprocess=false;
     if (FirstPass) framecnt=0;
     lastiframe=0;
     iframe=0;
@@ -1078,13 +970,11 @@ bool cMarkAdStandalone::Reset(bool FirstPass)
 
     memset(&pkt,0,sizeof(pkt));
 
-    iStart=iStartCheck=iStop=iStopCheck=0;
     chkLEFT=INT_MAX;
     chkRIGHT=INT_MIN;
 
     if (FirstPass)
     {
-        marksAligned=false;
         marks.DelAll();
         marks.CloseIndex(directory,isTS);
     }
@@ -1112,19 +1002,13 @@ void cMarkAdStandalone::ProcessFile()
         if (abort) break;
         if (!ProcessFile(i)) break;
         if ((gotendmark) && (!macontext.Config->GenIndex)) break;
-        if (reprocess)
-        {
-            isyslog("restarting from scratch");
-            i=0;
-            Reset();
-        }
     }
 
     if (!abort)
     {
         if (lastiframe)
         {
-            if ((inBroadCast) && (!gotendmark) && ((iStop<0) || (!tStart)))
+            if ((inBroadCast) && (!gotendmark) && (!tStart))
             {
                 MarkAdMark tempmark;
                 tempmark.Type=MT_COMMONSTOP;
@@ -1533,7 +1417,6 @@ bool cMarkAdStandalone::LoadInfo()
                 startTime=0;
                 length=0;
             }
-            dsyslog("startTime=%s",ctime(&startTime));
         }
         if (line[0]=='T')
         {
@@ -1583,6 +1466,10 @@ bool cMarkAdStandalone::LoadInfo()
                         isyslog("broadcast aspectratio 4:3 (from info)");
                         macontext.Info.AspectRatio.Num=4;
                         macontext.Info.AspectRatio.Den=3;
+                        if (strchr(descr,'?'))
+                        {
+                            bDecodeVideo=false;
+                        }
                     }
                 }
 
@@ -1968,7 +1855,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     directory=Directory;
     abort=false;
     gotendmark=false;
-    reprocess=false;
 
     indexFile=NULL;
     streaminfo=NULL;
@@ -1986,7 +1872,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     setVideo43LB=false;
     setVideo169=false;
 #endif
-    aspectChecked=false;
 
     noticeVDR_MP2=false;
     noticeVDR_AC3=false;
@@ -1998,7 +1883,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     sleepcnt=0;
     waittime=iwaittime=0;
     duplicate=false;
-    marksAligned=false;
     title[0]=0;
 
     memset(&macontext,0,sizeof(macontext));
@@ -2007,7 +1891,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     bDecodeVideo=config->DecodeVideo;
     bDecodeAudio=config->DecodeAudio;
 
-    tStart=iStart=iStop=iStartCheck=iStopCheck=0;
+    tStart=iStart=0;
 
     if ((config->ignoreInfo & IGNORE_VIDEOINFO)==IGNORE_VIDEOINFO)
     {
@@ -2116,7 +2000,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
             esyslog("failed loading info - logo %s%sdisabled",
                     (config->logoExtraction!=-1) ? "extraction" : "detection",
                     bIgnoreTimerInfo ? " " : " and pre-/post-timer ");
-            tStart=0;
+            tStart=iStart=0;
         }
     }
 

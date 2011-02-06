@@ -316,6 +316,7 @@ private:
 public:
     cDemux(int VPid, int DPid, int APid, bool H264=false, bool VDRCount=false);
     ~cDemux();
+    void DisableDPid();
     void Clear();
     int Skipped();
     void NewFile();

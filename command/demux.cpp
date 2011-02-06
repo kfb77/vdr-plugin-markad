@@ -837,9 +837,9 @@ bool cPES2ES::Process(uchar *PESData, int PESSize, AvPacket *ESPkt)
 
 cDemux::cDemux(int VPid, int DPid, int APid, bool H264, bool VDRCount)
 {
-    vpid=(VPid!=0) ? VPid : -1;
-    dpid=(DPid!=0) ? DPid : -1;
-    apid=(APid!=0) ? APid : -1;
+    vpid=VPid;
+    dpid=DPid;
+    apid=APid;
     TS=false;
     if ((vpid>0) || (dpid>0) || (apid>0)) TS=true;
     pes2videoes=NULL;
@@ -1038,10 +1038,10 @@ bool cDemux::needmoredata()
             if (pes2videoes) return pes2videoes->NeedMoreData();
             break;
         case 0xC0:
-            if (pes2audioes_mp2) return pes2audioes_mp2->NeedMoreData();
+            if ((pes2audioes_mp2) && (apid)) return pes2audioes_mp2->NeedMoreData();
             break;
         case 0xBD:
-            if (pes2audioes_ac3) return pes2audioes_ac3->NeedMoreData();
+            if ((pes2audioes_ac3) && (dpid)) return pes2audioes_ac3->NeedMoreData();
             break;
         }
     }
@@ -1102,6 +1102,16 @@ void cDemux::NewFile()
     from_oldfile=queue->Length();
 }
 
+void cDemux::DisableDPid()
+{
+    if (pes2audioes_ac3) delete pes2audioes_ac3;
+    if (ts2pkt_dpid) delete ts2pkt_dpid;
+    pes2audioes_ac3=NULL;
+    ts2pkt_dpid=NULL;
+    dpid=0;
+    stream_or_pid=0;
+}
+
 int cDemux::Process(uchar *Data, int Count, AvPacket *pkt)
 {
     if (!pkt) return -1;
@@ -1143,12 +1153,26 @@ int cDemux::Process(uchar *Data, int Count, AvPacket *pkt)
             if (!pes2videoes->Process(bpkt,bplen,pkt)) return -1;
             break;
         case 0xC0:
-            if (!pes2audioes_mp2) pes2audioes_mp2=new cPES2ES(PACKET_MP2,"PES2MP2",16384);
-            if (!pes2audioes_mp2->Process(bpkt,bplen,pkt)) return -1;
+            if (apid)
+            {
+                if (!pes2audioes_mp2) pes2audioes_mp2=new cPES2ES(PACKET_MP2,"PES2MP2",16384);
+                if (!pes2audioes_mp2->Process(bpkt,bplen,pkt)) return -1;
+            }
+            else
+            {
+                stream_or_pid=0;
+            }
             break;
         case 0xBD:
-            if (!pes2audioes_ac3) pes2audioes_ac3=new cPES2ES(PACKET_AC3,"PES2AC3");
-            if (!pes2audioes_ac3->Process(bpkt,bplen,pkt)) return -1;
+            if (dpid)
+            {
+                if (!pes2audioes_ac3) pes2audioes_ac3=new cPES2ES(PACKET_AC3,"PES2AC3");
+                if (!pes2audioes_ac3->Process(bpkt,bplen,pkt)) return -1;
+            }
+            else
+            {
+                stream_or_pid=0;
+            }
             break;
         default:
             stream_or_pid=0;
