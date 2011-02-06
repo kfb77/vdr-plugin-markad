@@ -809,6 +809,14 @@ bool cPES2ES::Process(uchar *PESData, int PESSize, AvPacket *ESPkt)
             buf=&PESData[bpos];
             buflen=PESSize-bpos;
         }
+        if ((ptype==PACKET_AC3) && (buflen>6))
+        {
+            if ((buf[4]==0x0B) && (buf[5]==0x77))
+            {
+                buf+=4;
+                buflen-=4;
+            }
+        }
         queue->Put(buf,buflen);
     }
     ESPkt->Data=queue->GetPacket(&ESPkt->Length,ptype);
