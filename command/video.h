@@ -176,7 +176,7 @@ private:
 public:
     cMarkAdVideo(MarkAdContext *maContext);
     ~cMarkAdVideo();
-    MarkAdPos *Process2ndPass(int FrameNumber, int Frames, bool BeforeAd);
+    MarkAdPos *ProcessOverlap(int FrameNumber, int Frames, bool BeforeAd);
     MarkAdMarks *Process(int FrameNumber, int FrameNumberNext);
     void Clear();
 };

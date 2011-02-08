@@ -691,7 +691,7 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
                             {
                                 if ((actframe-iframe)<=3)
                                 {
-                                    if (pn>mSTART) pos=video->Process2ndPass(lastiframe,Frames,(pn==mBEFORE));
+                                    if (pn>mSTART) pos=video->ProcessOverlap(lastiframe,Frames,(pn==mBEFORE));
                                     //SaveFrame(lastiframe);
                                     framecounter++;
                                 }

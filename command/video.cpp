@@ -675,8 +675,12 @@ MarkAdPos *cMarkAdOverlap::Detect()
 
                 if (simcnt>similarMaxCnt)
                 {
-                    result.FrameNumberBefore=histbuf[OV_BEFORE][tmpB].framenumber;
-                    result.FrameNumberAfter=histbuf[OV_AFTER][tmpA].framenumber;
+                    if ((histbuf[OV_BEFORE][tmpB].framenumber>result.FrameNumberBefore) &&
+                            (histbuf[OV_AFTER][tmpA].framenumber>result.FrameNumberAfter))
+                    {
+                        result.FrameNumberBefore=histbuf[OV_BEFORE][tmpB].framenumber;
+                        result.FrameNumberAfter=histbuf[OV_AFTER][tmpA].framenumber;
+                    }
                 }
                 else
                 {
@@ -827,7 +831,7 @@ bool cMarkAdVideo::aspectratiochange(MarkAdAspectRatio &a, MarkAdAspectRatio &b,
 
 }
 
-MarkAdPos *cMarkAdVideo::Process2ndPass(int FrameNumber, int Frames, bool BeforeAd)
+MarkAdPos *cMarkAdVideo::ProcessOverlap(int FrameNumber, int Frames, bool BeforeAd)
 {
     if (!FrameNumber) return NULL;
     if (!overlap) overlap=new cMarkAdOverlap(macontext);
