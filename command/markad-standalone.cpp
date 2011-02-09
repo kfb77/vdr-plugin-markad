@@ -1226,6 +1226,10 @@ bool cMarkAdStandalone::SaveInfo()
                             if (fprintf(w,"%s",line)<=0) err=true;
                         }
                     }
+                    else
+                    {
+                        if (fprintf(w,"%s",line)<=0) err=true;
+                    }
                     break;
                 case 2:
                     if (type==5)
@@ -1244,6 +1248,10 @@ bool cMarkAdStandalone::SaveInfo()
                         {
                             if (fprintf(w,"%s",line)<=0) err=true;
                         }
+                    }
+                    else
+                    {
+                        if (fprintf(w,"%s",line)<=0) err=true;
                     }
                     break;
                 default:
