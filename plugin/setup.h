@@ -22,6 +22,7 @@ struct setup
     bool NoMargins;
     bool SecondPass;
     bool AC3Always;
+    bool SaveInfo;
     bool HideMainMenuEntry;
     bool Log2Rec;
     bool LogoOnly;
@@ -49,6 +50,7 @@ private:
     int ac3always;
     int log2rec;
     int logoonly;
+    int saveinfo;
     void write(void);
     int lpos;
 protected:

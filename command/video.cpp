@@ -792,7 +792,7 @@ void cMarkAdVideo::resetmarks()
 }
 
 bool cMarkAdVideo::addmark(int type, int position, MarkAdAspectRatio *before,
-                           MarkAdAspectRatio *after, bool verticalborders)
+                           MarkAdAspectRatio *after)
 {
     if (marks.Count>marks.maxCount) return false;
     if (before)
@@ -805,7 +805,6 @@ bool cMarkAdVideo::addmark(int type, int position, MarkAdAspectRatio *before,
         marks.Number[marks.Count].AspectRatioAfter.Num=after->Num;
         marks.Number[marks.Count].AspectRatioAfter.Den=after->Den;
     }
-    marks.Number[marks.Count].VerticalBorders=verticalborders;
     marks.Number[marks.Count].Position=position;
     marks.Number[marks.Count].Type=type;
     marks.Count++;
@@ -863,17 +862,17 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
         }
     }
 
-    int borderframenumber;
-    int hret=hborder->Process(FrameNumber,&borderframenumber);
+    int hborderframenumber;
+    int hret=hborder->Process(FrameNumber,&hborderframenumber);
 
-    if ((hret>0) && (borderframenumber))
+    if ((hret>0) && (hborderframenumber))
     {
-        addmark(MT_BORDERSTART,borderframenumber);
+        addmark(MT_HBORDERSTART,hborderframenumber);
     }
 
-    if ((hret<0) && (borderframenumber))
+    if ((hret<0) && (hborderframenumber))
     {
-        addmark(MT_BORDERSTOP,borderframenumber);
+        addmark(MT_HBORDERSTOP,hborderframenumber);
     }
 
     if (!macontext->Video.Options.IgnoreAspectRatio)

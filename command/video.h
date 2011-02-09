@@ -167,7 +167,7 @@ private:
 
     void resetmarks();
     bool addmark(int type, int position, MarkAdAspectRatio *before=NULL,
-                 MarkAdAspectRatio *after=NULL, bool verticalborders=false );
+                 MarkAdAspectRatio *after=NULL);
     bool aspectratiochange(MarkAdAspectRatio &a, MarkAdAspectRatio &b, bool &start);
 
     int framelast;

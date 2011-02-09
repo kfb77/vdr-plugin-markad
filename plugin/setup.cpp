@@ -25,6 +25,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     ac3always=setup->AC3Always;
     log2rec=setup->Log2Rec;
     logoonly=setup->LogoOnly;
+    saveinfo=setup->SaveInfo;
 
     processTexts[0]=tr("after");
     processTexts[1]=tr("during");
@@ -53,11 +54,11 @@ void cSetupMarkAd::write(void)
     Add(new cMenuEditBoolItem(tr("scan only channels with logo"),&logoonly),true);
     lpos=Current();
     Add(new cMenuEditStraItem(tr("hdd access priority"),&ioprioclass,3,ioprioTexts));
-    Add(new cMenuEditBoolItem(tr("examine AC3 always"),&ac3always));
+    Add(new cMenuEditBoolItem(tr("examine AC3"),&ac3always,tr("when needed"),tr("always")));
     Add(new cMenuEditBoolItem(tr("ignore timer margins"),&nomargins));
     Add(new cMenuEditBoolItem(tr("detect overlaps"),&secondpass));
-    Add(new cOsdItem("",osUnknown,false));
     Add(new cMenuEditBoolItem(tr("repair index, if broken"),&genindex));
+    Add(new cMenuEditBoolItem(tr("correct info file"),&saveinfo));
     Add(new cMenuEditBoolItem(tr("OSD message"),&osdmsg));
     Add(new cMenuEditBoolItem(tr("backup marks"),&backupmarks));
     Add(new cMenuEditBoolItem(tr("verbose logging"),&verbose));
@@ -129,6 +130,7 @@ void cSetupMarkAd::Store(void)
     SetupStore("AC3Always",ac3always);
     SetupStore("Log2Rec",log2rec);
     SetupStore("LogoOnly",logoonly);
+    SetupStore("SaveInfo",saveinfo);
 
     setup->ProcessDuring=(bool) processduring;
     setup->whileRecording=(bool) whilerecording;
@@ -144,6 +146,7 @@ void cSetupMarkAd::Store(void)
     setup->AC3Always=ac3always;
     setup->Log2Rec=log2rec;
     setup->LogoOnly=logoonly;
+    setup->SaveInfo=saveinfo;
 }
 
 #define CHNUMWIDTH (numdigits(Channels.MaxNumber())+1)

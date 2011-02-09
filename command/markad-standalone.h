@@ -24,7 +24,7 @@
 
 #define DELTATIME 20000 /* equals to 222ms (base is 90kHz PTS) */
 
-#define MAXRANGE 420 /* range to search for start/stop marks in seconds */
+#define MAXRANGE 120 /* range to search for start/stop marks in seconds */
 
 class cOSDMessage
 {
@@ -207,7 +207,14 @@ unsigned Descriptor_Length:
     time_t startTime;  // starttime of broadcast
     int length;	       // length of broadcast in seconds
     int tStart;        // pretimer in seconds
-    int iStart;        // pretimer in frames
+    int iStart;        // pretimer in frames (negative if unset)
+    int iStop;         // endposition in frames (negative if unset)
+
+    void CheckStop();
+    void CheckStart();
+    void CalculateCheckPositions(int startframe);
+    int chkSTART;
+    int chkSTOP;
 
     int skipped;       // skipped bytes in whole file
     bool inBroadCast;  // are we in a broadcast (or ad)?
@@ -218,11 +225,6 @@ unsigned Descriptor_Length:
     bool setVideo43LB; // set video to 4:3 letterbox in info
     bool setVideo169;  // set video to 16:9 in info
 #endif
-
-    void CheckStart();
-    void CalculateCheckPositions(int startframe, int delta);
-    int chkLEFT;
-    int chkRIGHT;
 
     time_t GetBroadcastStart(time_t start, int fd);
     void CheckIndexGrowing();
@@ -242,7 +244,7 @@ unsigned Descriptor_Length:
     bool CheckPATPMT(off_t Offset=0);
     bool CheckTS();
     bool LoadInfo();
-    //bool SaveInfo();
+    bool SaveInfo();
     bool SetFileUID(char *File);
     bool RegenerateIndex();
     bool ProcessFile2ndPass(clMark **Mark1, clMark **Mark2, int Number, off_t Offset, int Frame, int Frames);

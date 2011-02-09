@@ -180,15 +180,43 @@ int cOSDMessage::Send(const char *format, ...)
     return 0;
 }
 
-void cMarkAdStandalone::CalculateCheckPositions(int startframe, int delta)
+void cMarkAdStandalone::CalculateCheckPositions(int startframe)
 {
     if (!length) return;
     if (!startframe) return;
     if (!macontext.Video.Info.FramesPerSecond) return;
 
+    int delta=macontext.Video.Info.FramesPerSecond*MAXRANGE;
+    int len_in_frames=macontext.Video.Info.FramesPerSecond*length;
+
     iStart=-startframe;
-    chkLEFT=startframe+delta+macontext.Video.Info.FramesPerSecond;
-    chkRIGHT=startframe+(length*macontext.Video.Info.FramesPerSecond);
+    iStop=-(startframe+len_in_frames);
+    chkSTART=-iStart+delta;
+    chkSTOP=-iStop+delta;
+}
+
+void cMarkAdStandalone::CheckStop()
+{
+    dsyslog("checking stop");
+    clMark *end=marks.GetAround(iStop,MT_STOP,0x0F);
+
+    if (end)
+    {
+        marks.DelTill(end->position,false);
+        isyslog("using mark on position %i as stop mark",end->position);
+    }
+    else
+    {
+        //fallback, shouldn't be reached
+        MarkAdMark mark;
+        memset(&mark,0,sizeof(mark));
+        mark.Position=iStart;
+        mark.Type=MT_ASSUMEDSTOP;
+        AddMark(&mark);
+        marks.DelTill(iStop,false);
+    }
+    iStop=0;
+    gotendmark=true;
 }
 
 void cMarkAdStandalone::CheckStart()
@@ -239,7 +267,8 @@ void cMarkAdStandalone::CheckStart()
     {
         if (macontext.Info.DPid.Num)
         {
-            isyslog("broadcast with DolbyDigital2.0%s",macontext.Config->AC3Always ?
+            isyslog("broadcast with %i audio channels%s",macontext.Info.Channels,
+                    macontext.Config->AC3Always ?
                     "" : ", disabling AC3 decoding");
 
             if (!macontext.Config->AC3Always)
@@ -285,8 +314,10 @@ void cMarkAdStandalone::CheckStart()
     {
         marks.Del(MT_LOGOSTART);
         marks.Del(MT_LOGOSTOP);
-        marks.Del(MT_BORDERSTART);
-        marks.Del(MT_BORDERSTOP);
+        marks.Del(MT_HBORDERSTART);
+        marks.Del(MT_HBORDERSTOP);
+        marks.Del(MT_VBORDERSTART);
+        marks.Del(MT_VBORDERSTOP);
     }
 
     if (!begin)
@@ -296,7 +327,7 @@ void cMarkAdStandalone::CheckStart()
     if (begin)
     {
         marks.DelTill(begin->position);
-        CalculateCheckPositions(begin->position,0);
+        CalculateCheckPositions(begin->position);
         isyslog("using mark on position %i as start mark",begin->position);
     }
     else
@@ -308,7 +339,7 @@ void cMarkAdStandalone::CheckStart()
         mark.Type=MT_ASSUMEDSTART;
         AddMark(&mark);
         marks.DelTill(iStart);
-        CalculateCheckPositions(iStart,0);
+        CalculateCheckPositions(iStart);
     }
     iStart=0;
     return;
@@ -325,20 +356,29 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     case MT_ASSUMEDSTART:
         if (asprintf(&comment,"assuming start (%i)",Mark->Position)==-1) comment=NULL;
         break;
+    case MT_ASSUMEDSTOP:
+        if (asprintf(&comment,"assuming stop (%i)",Mark->Position)==-1) comment=NULL;
+        break;
     case MT_LOGOSTART:
         if (asprintf(&comment,"detected logo start (%i)*",Mark->Position)==-1) comment=NULL;
         break;
     case MT_LOGOSTOP:
         if (asprintf(&comment,"detected logo stop (%i)",Mark->Position)==-1) comment=NULL;
         break;
-    case MT_BORDERSTART:
-        if (asprintf(&comment,"detected start of %s borders (%i)*",
-                     Mark->VerticalBorders ? "vert." : "horiz.",
+    case MT_HBORDERSTART:
+        if (asprintf(&comment,"detected start of horiz. borders (%i)*",
                      Mark->Position)==-1) comment=NULL;
         break;
-    case MT_BORDERSTOP:
-        if (asprintf(&comment,"detected stop of %s borders (%i)",
-                     Mark->VerticalBorders ? "vert." : "horiz.",
+    case MT_HBORDERSTOP:
+        if (asprintf(&comment,"detected stop of horiz. borders (%i)",
+                     Mark->Position)==-1) comment=NULL;
+        break;
+    case MT_VBORDERSTART:
+        if (asprintf(&comment,"detected start of vert. borders (%i)*",
+                     Mark->Position)==-1) comment=NULL;
+        break;
+    case MT_VBORDERSTOP:
+        if (asprintf(&comment,"detected stop of vert. borders (%i)",
                      Mark->Position)==-1) comment=NULL;
         break;
     case MT_ASPECTSTART:
@@ -866,8 +906,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
 
                                 if (!framecnt)
                                 {
-                                    CalculateCheckPositions(tStart*macontext.Video.Info.FramesPerSecond,
-                                                            macontext.Video.Info.FramesPerSecond*MAXRANGE);
+                                    CalculateCheckPositions(tStart*macontext.Video.Info.FramesPerSecond);
                                 }
 
                                 if (macontext.Config->GenIndex)
@@ -879,13 +918,15 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                 if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                                 {
                                     lastiframe=iframe;
-                                    if (iStart<0)
-                                    {
-                                        if (lastiframe>-iStart) iStart=lastiframe;
-                                    }
+                                    if ((iStart<0) && (lastiframe>-iStart)) iStart=lastiframe;
+                                    if ((iStop<0) && (lastiframe>-iStop)) iStop=lastiframe;
                                     if (iStart>0)
                                     {
-                                        if ((inBroadCast) && (lastiframe>chkLEFT)) CheckStart();
+                                        if ((inBroadCast) && (lastiframe>chkSTART)) CheckStart();
+                                    }
+                                    if (iStop>0)
+                                    {
+                                        if (lastiframe>chkSTOP) CheckStop();
                                     }
                                     iframe=framecnt-1;
                                     dRes=true;
@@ -970,8 +1011,7 @@ bool cMarkAdStandalone::Reset(bool FirstPass)
 
     memset(&pkt,0,sizeof(pkt));
 
-    chkLEFT=INT_MAX;
-    chkRIGHT=INT_MIN;
+    chkSTART=chkSTOP=INT_MAX;
 
     if (FirstPass)
     {
@@ -1008,10 +1048,10 @@ void cMarkAdStandalone::ProcessFile()
     {
         if (lastiframe)
         {
-            if ((inBroadCast) && (!gotendmark) && (!tStart))
+            if ((inBroadCast) && (!gotendmark))
             {
                 MarkAdMark tempmark;
-                tempmark.Type=MT_COMMONSTOP;
+                tempmark.Type=MT_ASSUMEDSTOP;
                 tempmark.Position=lastiframe;
                 AddMark(&tempmark);
             }
@@ -1076,7 +1116,7 @@ void cMarkAdStandalone::Process()
                             }
                         }
                     }
-                    //SaveInfo();
+                    if (macontext.Config->SaveInfo) SaveInfo();
                 }
                 else
                 {
@@ -1101,11 +1141,9 @@ bool cMarkAdStandalone::SetFileUID(char *File)
     return true;
 }
 
-#if 0
 bool cMarkAdStandalone::SaveInfo()
 {
-    if ((!setVideo43) && (!setVideo169) && (!setAudio20) && (!setAudio51) && (!setVideo43LB)) return true;
-
+    isyslog("writing info file");
     char *src,*dst;
     if (asprintf(&src,"%s/info%s",directory,isTS ? "" : ".vdr")==-1) return false;
 
@@ -1117,7 +1155,6 @@ bool cMarkAdStandalone::SaveInfo()
 
     FILE *r,*w;
     r=fopen(src,"r");
-
     w=fopen(dst,"w+");
 
     if ((!r) || (!w))
@@ -1130,12 +1167,6 @@ bool cMarkAdStandalone::SaveInfo()
     char *line=NULL;
     char *lline=NULL;
     size_t length=0;
-
-    bool setVideo43LB_done=false;
-    bool setVideo43_done=false;
-    bool setVideo169_done=false;
-    bool setAudio20_done=false;
-    bool setAudio51_done=false;
 
     char lang[4]="";
 
@@ -1176,27 +1207,19 @@ bool cMarkAdStandalone::SaveInfo()
                 case 5:
                     if (stream==stream_content)
                     {
-                        if ( (((type==1) || (type==5)) && (setVideo169)) ||
-                                (((type==3) || (type==7)) && ((setVideo43) || (setVideo43LB))))
+                        if ((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3))
                         {
-                            if (setVideo43)
-                            {
-                                if (fprintf(w,"X %i %02i %s 4:3\n",stream_content,
-                                            component_type_43+component_type_add,lang)<=0) err=true;
-                                setVideo43_done=true;
-                            }
-                            if (setVideo43LB)
-                            {
-                                if (fprintf(w,"X %i %02i %s 4:3 LetterBox\n",stream_content,
-                                            component_type_43+component_type_add,lang)<=0) err=true;
-                                setVideo43LB_done=true;
-                            }
-                            if (setVideo169)
-                            {
-                                if (fprintf(w,"X %i %02i %s 16:9\n",stream_content,
-                                            component_type_169+component_type_add,lang)<=0) err=true;
-                                setVideo169_done=true;
-                            }
+                            if (fprintf(w,"X %i %02i %s 4:3\n",stream_content,
+                                        component_type_43+component_type_add,lang)<=0) err=true;
+                            macontext.Info.AspectRatio.Num=0;
+                            macontext.Info.AspectRatio.Den=0;
+                        }
+                        else if ((macontext.Info.AspectRatio.Num==16) && (macontext.Info.AspectRatio.Den==9))
+                        {
+                            if (fprintf(w,"X %i %02i %s 16:9\n",stream_content,
+                                        component_type_169+component_type_add,lang)<=0) err=true;
+                            macontext.Info.AspectRatio.Num=0;
+                            macontext.Info.AspectRatio.Den=0;
                         }
                         else
                         {
@@ -1205,22 +1228,22 @@ bool cMarkAdStandalone::SaveInfo()
                     }
                     break;
                 case 2:
-                    if ((type==5) && ((setAudio51) || (setAudio20)))
+                    if (type==5)
                     {
-                        if (setAudio51)
+                        if (macontext.Info.Channels==6)
                         {
                             if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
-                            setAudio51_done=true;
+                            macontext.Info.Channels=0;
                         }
-                        if (setAudio20)
+                        else if (macontext.Info.Channels==2)
                         {
                             if (fprintf(w,"X 2 05 %s Dolby Digital 2.0\n",lang)<=0) err=true;
-                            setAudio20_done=true;
+                            macontext.Info.Channels=0;
                         }
-                    }
-                    else
-                    {
-                        if (fprintf(w,"%s",line)<=0) err=true;
+                        else
+                        {
+                            if (fprintf(w,"%s",line)<=0) err=true;
+                        }
                     }
                     break;
                 default:
@@ -1255,28 +1278,23 @@ bool cMarkAdStandalone::SaveInfo()
 
     if (stream_content)
     {
-        if ((setVideo43LB) && (!setVideo43LB_done) && (!err))
-        {
-            if (fprintf(w,"X %i %02i %s 4:3 LetterBox\n",stream_content,
-                        component_type_43+component_type_add,lang)<=0) err=true;
-        }
-        if ((setVideo43) && (!setVideo43_done) && (!err))
+        if ((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3) && (!err))
         {
             if (fprintf(w,"X %i %02i %s 4:3\n",stream_content,
                         component_type_43+component_type_add,lang)<=0) err=true;
         }
-        if ((setVideo169) && (!setVideo169_done) && (!err))
+        if ((macontext.Info.AspectRatio.Num==16) && (macontext.Info.AspectRatio.Den==9) && (!err))
         {
             if (fprintf(w,"X %i %02i %s 16:9\n",stream_content,
                         component_type_169+component_type_add,lang)<=0) err=true;
         }
     }
 
-    if ((setAudio20) && (!setAudio20_done) && (!err))
+    if ((macontext.Info.Channels==2) && (!err))
     {
         if (fprintf(w,"X 2 05 %s Dolby Digital 2.0\n",lang)<=0) err=true;
     }
-    if ((setAudio51) && (!setAudio51_done) && (!err))
+    if ((macontext.Info.Channels==6) && (!err))
     {
         if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
     }
@@ -1315,7 +1333,6 @@ bool cMarkAdStandalone::SaveInfo()
     free(dst);
     return (err==false);
 }
-#endif
 
 time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd)
 {
@@ -1891,7 +1908,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     bDecodeVideo=config->DecodeVideo;
     bDecodeAudio=config->DecodeAudio;
 
-    tStart=iStart=0;
+    tStart=iStart=iStop=0;
 
     if ((config->ignoreInfo & IGNORE_VIDEOINFO)==IGNORE_VIDEOINFO)
     {
@@ -2000,7 +2017,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
             esyslog("failed loading info - logo %s%sdisabled",
                     (config->logoExtraction!=-1) ? "extraction" : "detection",
                     bIgnoreTimerInfo ? " " : " and pre-/post-timer ");
-            tStart=iStart=0;
+            tStart=iStart=iStop=0;
         }
     }
 
@@ -2069,15 +2086,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         audio = new cMarkAdAudio(&macontext);
         streaminfo = new cMarkAdStreamInfo;
         if (macontext.Info.ChannelName)
-            dsyslog("channel %s",macontext.Info.ChannelName);
+            isyslog("channel %s",macontext.Info.ChannelName);
     }
 
     framecnt=0;
     framecnt2=0;
     lastiframe=0;
     iframe=0;
-    chkLEFT=INT_MAX;
-    chkRIGHT=INT_MIN;
+    chkSTART=chkSTOP=INT_MAX;
     gettimeofday(&tv1,&tz);
 }
 
@@ -2181,6 +2197,8 @@ int usage(int svdrpport)
            "                  make a backup of existing marks\n"
            "-G              --genindex\n"
            "                  regenerate broken index file\n"
+           "-I              --saveinfo\n"
+           "                  correct information in info file\n"
            "-L              --extractlogo=<direction>[,width[,height]]\n"
            "                  extracts logo to /tmp as pgm files (must be renamed)\n"
            "                  <direction>  0 = top left,    1 = top right\n"
@@ -2296,6 +2314,7 @@ int main(int argc, char *argv[])
     // set defaults
     config.DecodeVideo=true;
     config.DecodeAudio=true;
+    config.SaveInfo=false;
     config.logoExtraction=-1;
     config.logoWidth=-1;
     config.logoHeight=-1;
@@ -2350,6 +2369,7 @@ int main(int argc, char *argv[])
             {"backupmarks", 0, 0, 'B'},
             {"scenechangedetection", 0, 0, 'C'},
             {"genindex",0, 0, 'G'},
+            {"saveinfo",0, 0, 'I'},
             {"extractlogo", 1, 0, 'L'},
             {"OSD",0,0,'O' },
             {"log2rec",0,0,'R'},
@@ -2360,7 +2380,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "abcd:i:jl:nop:r:s:vBCGL:ORST:V",
+        c = getopt_long  (argc, argv, "abcd:i:jl:nop:r:s:vBCGIL:ORST:V",
                           long_options, &option_index);
         if (c == -1)
             break;
@@ -2487,6 +2507,10 @@ int main(int argc, char *argv[])
 
         case 'G':
             config.GenIndex=true;
+            break;
+
+        case 'I':
+            config.SaveInfo=true;
             break;
 
         case 'L':
