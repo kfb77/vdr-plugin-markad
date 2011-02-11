@@ -837,11 +837,19 @@ bool cPES2ES::Process(uchar *PESData, int PESSize, AvPacket *ESPkt)
 
 cDemux::cDemux(int VPid, int DPid, int APid, bool H264, bool VDRCount)
 {
+    TS=false;
+    if ((VPid>0) || (DPid>0) || (APid>0)) TS=true;
+
     vpid=VPid;
     dpid=DPid;
     apid=APid;
-    TS=false;
-    if ((vpid>0) || (dpid>0) || (apid>0)) TS=true;
+    if (TS)
+    {
+        if (!vpid) vpid=-1;
+        if (!dpid) dpid=-1;
+        if (!apid) apid=-1;
+    }
+
     pes2videoes=NULL;
     pes2audioes_mp2=NULL;
     pes2audioes_ac3=NULL;
