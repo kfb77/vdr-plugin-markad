@@ -732,7 +732,6 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
                                 if ((actframe-iframe)<=3)
                                 {
                                     if (pn>mSTART) pos=video->ProcessOverlap(lastiframe,Frames,(pn==mBEFORE));
-                                    //SaveFrame(lastiframe);
                                     framecounter++;
                                 }
                                 if ((pos) && (pn==mAFTER))
@@ -1322,6 +1321,7 @@ bool cMarkAdStandalone::SaveInfo()
     }
     else
     {
+#if 0
         if (rename(dst,src)==-1)
         {
             err=true;
@@ -1335,6 +1335,7 @@ bool cMarkAdStandalone::SaveInfo()
             if (utime(src,&oldtimes)) {};
             SetFileUID(src);
         }
+#endif
     }
 
     free(src);
@@ -2174,9 +2175,6 @@ int usage(int svdrpport)
     // nothing done, give the user some help
     printf("Usage: markad [options] cmd <record>\n"
            "options:\n"
-           "-a              --AC3\n"
-           "                  always search in DolbyDigital channels, even if the\n"
-           "                  broadcast isn't in DolbyDigital5.1\n"
            "-b              --background\n"
            "                  markad runs as a background-process\n"
            "                  this will be automatically set if called with \"after\"\n"
@@ -2213,7 +2211,8 @@ int usage(int svdrpport)
            "                               2 = bottom left, 3 = bottom right\n"
            "                  [width]  range from 50 to %3i, default %3i (SD)\n"
            "                                                 default %3i (HD)\n"
-           "                  [height] range from 20 to %3i, default %3i\n"
+           "                  [height] range from 20 to %3i, default %3i (SD)\n"
+           "                                                 default %3i (HD)\n"
            "-O              --OSD\n"
            "                  markad sends an OSD-Message for start and end\n"
            "-R              --log2rec\n"
@@ -2249,7 +2248,7 @@ int usage(int svdrpport)
            "\n<record>                     is the name of the directory where the recording\n"
            "                             is stored\n\n",
            LOGO_MAXWIDTH,LOGO_DEFWIDTH,LOGO_DEFHDWIDTH,
-           LOGO_MAXHEIGHT,LOGO_DEFHEIGHT,svdrpport
+           LOGO_MAXHEIGHT,LOGO_DEFHEIGHT,LOGO_DEFHDHEIGHT,svdrpport
           );
     return -1;
 }

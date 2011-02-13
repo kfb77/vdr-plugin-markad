@@ -22,7 +22,6 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     nomargins=setup->NoMargins;
     hidemainmenuentry=setup->HideMainMenuEntry;
     secondpass=setup->SecondPass;
-    ac3always=setup->AC3Always;
     log2rec=setup->Log2Rec;
     logoonly=setup->LogoOnly;
     saveinfo=setup->SaveInfo;
@@ -54,7 +53,6 @@ void cSetupMarkAd::write(void)
     Add(new cMenuEditBoolItem(tr("scan only channels with logo"),&logoonly),true);
     lpos=Current();
     Add(new cMenuEditStraItem(tr("hdd access priority"),&ioprioclass,3,ioprioTexts));
-    Add(new cMenuEditBoolItem(tr("examine AC3"),&ac3always,tr("when needed"),tr("always")));
     Add(new cMenuEditBoolItem(tr("ignore timer margins"),&nomargins));
     Add(new cMenuEditBoolItem(tr("detect overlaps"),&secondpass));
     Add(new cMenuEditBoolItem(tr("repair index, if broken"),&genindex));
@@ -127,7 +125,6 @@ void cSetupMarkAd::Store(void)
     SetupStore("Verbose",verbose);
     SetupStore("HideMainMenuEntry",hidemainmenuentry);
     SetupStore("IOPrioClass",ioprioclass);
-    SetupStore("AC3Always",ac3always);
     SetupStore("Log2Rec",log2rec);
     SetupStore("LogoOnly",logoonly);
     SetupStore("SaveInfo",saveinfo);
@@ -143,7 +140,6 @@ void cSetupMarkAd::Store(void)
     setup->NoMargins=(bool) nomargins;
     setup->HideMainMenuEntry=(bool) hidemainmenuentry;
     setup->IOPrioClass=ioprioclass;
-    setup->AC3Always=ac3always;
     setup->Log2Rec=log2rec;
     setup->LogoOnly=logoonly;
     setup->SaveInfo=saveinfo;

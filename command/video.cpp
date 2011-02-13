@@ -45,13 +45,14 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
     GY[2][1] = -2;
     GY[2][2] = -1;
 
-    LOGOHEIGHT=LOGO_DEFHEIGHT;
     if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
     {
+        LOGOHEIGHT=LOGO_DEFHDHEIGHT;
         LOGOWIDTH=LOGO_DEFHDWIDTH;
     }
     else
     {
+        LOGOHEIGHT=LOGO_DEFHEIGHT;
         LOGOWIDTH=LOGO_DEFWIDTH;
     }
 

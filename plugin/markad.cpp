@@ -40,7 +40,6 @@ cPluginMarkAd::cPluginMarkAd(void)
     setup.IOPrioClass=1;
     setup.Log2Rec=false;
     setup.LogoOnly=true;
-    setup.AC3Always=false;
     setup.SaveInfo=false;
 }
 
@@ -193,7 +192,6 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value)
     else if (!strcasecmp(Name,"HideMainMenuEntry")) setup.HideMainMenuEntry=atoi(Value)?true:false;
     else if (!strcasecmp(Name,"SecondPass")) setup.SecondPass=atoi(Value);
     else if (!strcasecmp(Name,"IOPrioClass")) setup.IOPrioClass=atoi(Value);
-    else if (!strcasecmp(Name,"AC3Always")) setup.AC3Always=atoi(Value);
     else if (!strcasecmp(Name,"Log2Rec")) setup.Log2Rec=atoi(Value);
     else if (!strcasecmp(Name,"LogoOnly")) setup.LogoOnly=atoi(Value);
     else if (!strcasecmp(Name,"SaveInfo")) setup.SaveInfo=atoi(Value);

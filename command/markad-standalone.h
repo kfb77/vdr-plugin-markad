@@ -218,13 +218,6 @@ unsigned Descriptor_Length:
 
     int skipped;       // skipped bytes in whole file
     bool inBroadCast;  // are we in a broadcast (or ad)?
-#if 0
-    bool setAudio51;   // set audio to 5.1 in info
-    bool setAudio20;   // set audio to 2.0 in info
-    bool setVideo43;   // set video to 4:3 in info
-    bool setVideo43LB; // set video to 4:3 letterbox in info
-    bool setVideo169;  // set video to 16:9 in info
-#endif
 
     time_t GetBroadcastStart(time_t start, int fd);
     void CheckIndexGrowing();

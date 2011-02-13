@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2011-02-09 21:30+0100\n"
+"POT-Creation-Date: 2011-02-13 13:20+0100\n"
 "PO-Revision-Date: 2009-08-27 14:18+0200\n"
 "Last-Translator: Jochen Dolze <vdr@dolze.de>\n"
 "Language-Team: <vdr@linuxtv.org>\n"
@@ -78,15 +78,6 @@ msgstr "nur Kanäle mit Logo scannen"
 msgid "hdd access priority"
 msgstr "HDD-Zugriffspriorität"
 
-msgid "examine AC3"
-msgstr "AC3 untersuchen"
-
-msgid "when needed"
-msgstr "wenn nötig"
-
-msgid "always"
-msgstr "immer"
-
 msgid "ignore timer margins"
 msgstr "Timer Vor-/Nachlauf ignorieren"
 
@@ -125,3 +116,4 @@ msgstr "zurück"
 
 msgid "Mark advertisements"
 msgstr "Markiere Werbung"
+
