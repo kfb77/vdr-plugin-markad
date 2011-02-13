@@ -4,118 +4,119 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2011-02-13 11:14+0100\n"
-"PO-Revision-Date: 2010-08-09 20:05+0100\n"
-"Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
+"POT-Creation-Date: 2011-02-13 12:29+0100\n"
+"PO-Revision-Date: 2011-02-12 11:30+0100\n"
+"Last-Translator: Javier Bradineras <jbradi@hotmail.com>\n"
 "Language-Team:  <vdr@linuxtv.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Poedit-Language: Italian\n"
-"X-Poedit-Country: ITALY\n"
+"X-Poedit-Language: Spanish\n"
+"X-Poedit-Country: SPAIN\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
 msgid "markad still running"
-msgstr "Marcatore ancora in esecuzione"
+msgstr "Markad todavía ejecutándose"
 
 msgid "markad status"
-msgstr "Stato marcatori"
+msgstr "Estado de markad"
 
 msgid "running"
-msgstr "in esecuzione"
+msgstr "Ejecutándose"
 
 msgid "sleeping"
-msgstr "sospeso"
+msgstr "En suspensión"
 
 msgid "inactive"
-msgstr "non attivo"
+msgstr "Inactivo"
 
 msgid "zombie"
-msgstr "terminato"
+msgstr "Terminado"
 
 msgid "stopped"
-msgstr "fermo"
+msgstr "Detenido"
 
 msgid "unknown"
-msgstr "sconosciuto"
+msgstr "Desconocido"
 
 msgid "Recording\t Status"
-msgstr "Registrazioni\t Stato"
+msgstr "Grabación\t Estado"
 
 msgid "no running markad found"
-msgstr "Nessun marcatore in esec. trovato"
+msgstr "Ningún markad en ejecución"
 
 msgid "Pause"
 msgstr "Pausa"
 
 msgid "Continue"
-msgstr "Continua"
+msgstr "Continuar"
 
 msgid "after"
-msgstr "dopo"
+msgstr "Después"
 
 msgid "during"
-msgstr "durante"
+msgstr "Durante"
 
 msgid "high"
-msgstr ""
+msgstr "Alta"
 
 msgid "normal"
-msgstr ""
+msgstr "Normal"
 
 msgid "low"
-msgstr ""
+msgstr "Baja"
 
 msgid "execution"
-msgstr "Esecuzione"
+msgstr "Ejecución"
 
 msgid "  during another recording"
-msgstr "  durante un'altra registrazione"
+msgstr "  Durante otra grabación"
 
 msgid "  while replaying"
-msgstr "  durante la riproduzione"
+msgstr "  Durante la reproducción"
 
 msgid "scan only channels with logo"
-msgstr ""
+msgstr "Escanea únicamente canales con logo"
 
 msgid "hdd access priority"
-msgstr ""
+msgstr "Prioridad de acceso al disco duro"
 
 msgid "ignore timer margins"
-msgstr "Ignora margini timer"
+msgstr "Ignora márgenes de tiempo"
 
 msgid "detect overlaps"
-msgstr ""
+msgstr "Detectar solapamientos"
 
 msgid "repair index, if broken"
-msgstr "Ripara indice, se errato"
+msgstr "Repara índice si está estropeado"
 
 msgid "correct info file"
-msgstr ""
+msgstr "Corrige fichero de información"
 
 msgid "OSD message"
-msgstr "Messaggio OSD"
+msgstr "Mensaje OSD"
 
 msgid "backup marks"
-msgstr "Salva marcatori"
+msgstr "Hacer copia de seguridad de las marcas"
 
 msgid "verbose logging"
-msgstr "Log dettagliato"
+msgstr "Log detallado"
 
 msgid "log to recording directory"
-msgstr ""
+msgstr "Log en el directorio de grabación"
 
 msgid "hide mainmenu entry"
-msgstr ""
+msgstr "Ocultar en menú principal"
 
 msgid "show list"
-msgstr ""
+msgstr "Mostrar lista"
 
 msgid "list"
-msgstr ""
+msgstr "Lista"
 
 msgid "back"
-msgstr ""
+msgstr "Atrás"
 
 msgid "Mark advertisements"
-msgstr "Segna i marcatori della pubblicitá"
+msgstr "Marca anuncios"
+

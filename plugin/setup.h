@@ -21,7 +21,7 @@ struct setup
     bool GenIndex;
     bool NoMargins;
     bool SecondPass;
-    bool AC3Always;
+    bool SaveInfo;
     bool HideMainMenuEntry;
     bool Log2Rec;
     bool LogoOnly;
@@ -46,7 +46,7 @@ private:
     int nomargins;
     int secondpass;
     int hidemainmenuentry;
-    int ac3always;
+    int saveinfo;
     int log2rec;
     int logoonly;
     void write(void);

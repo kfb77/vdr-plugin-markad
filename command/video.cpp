@@ -45,14 +45,15 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
     GY[2][1] = -2;
     GY[2][2] = -1;
 
-    LOGOHEIGHT=LOGO_DEFHEIGHT;
     if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
     {
         LOGOWIDTH=LOGO_DEFHDWIDTH;
+        LOGOHEIGHT=LOGO_DEFHDHEIGHT;
     }
     else
     {
         LOGOWIDTH=LOGO_DEFWIDTH;
+        LOGOHEIGHT=LOGO_DEFHEIGHT;
     }
 
     pixfmt_info=false;
@@ -666,7 +667,10 @@ MarkAdPos *cMarkAdOverlap::Detect()
                 tmpA=A;
                 tmpB=B;
                 start=A+1;
-                simcnt++;
+                if (simil<(similarCutOff/2)) simcnt+=2;
+                else if (simil<(similarCutOff/4)) simcnt+=4;
+                else if (simil<(similarCutOff/6)) simcnt+=6;
+                else simcnt++;
                 break;
             }
             else
@@ -675,8 +679,12 @@ MarkAdPos *cMarkAdOverlap::Detect()
 
                 if (simcnt>similarMaxCnt)
                 {
-                    result.FrameNumberBefore=histbuf[BEFORE][tmpB].framenumber;
-                    result.FrameNumberAfter=histbuf[AFTER][tmpA].framenumber;
+                    if ((histbuf[BEFORE][tmpB].framenumber>result.FrameNumberBefore) &&
+                            (histbuf[AFTER][tmpA].framenumber>result.FrameNumberAfter))
+                    {
+                        result.FrameNumberBefore=histbuf[BEFORE][tmpB].framenumber;
+                        result.FrameNumberAfter=histbuf[AFTER][tmpA].framenumber;
+                    }
                 }
                 else
                 {

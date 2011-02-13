@@ -1322,11 +1322,6 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                 dRes=true;
                             }
                         }
-                        if (macontext.Video.Info.FramesPerSecond<0)
-                        {
-                            macontext.Video.Info.FramesPerSecond*=-1;
-                            isyslog("using framerate of %.f",macontext.Video.Info.FramesPerSecond);
-                        }
 
                         if ((decoder) && (bDecodeVideo))
                             dRes=decoder->DecodeVideo(&macontext,vpkt.Data,vpkt.Length);
@@ -1388,7 +1383,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                         {
                             if ((!isTS) && (!noticeVDR_AC3))
                             {
-                                isyslog("found AC3%s",macontext.Config->AC3Always ? "*" : "");
+                                isyslog("found AC3");
                                 noticeVDR_AC3=true;
                             }
                             MarkAdMark *amark;
@@ -1559,7 +1554,7 @@ void cMarkAdStandalone::Process()
                             }
                         }
                     }
-                    SaveInfo();
+                    if (macontext.Config->SaveInfo) SaveInfo();
                 }
                 else
                 {
@@ -1671,7 +1666,7 @@ bool cMarkAdStandalone::SaveInfo()
                             {
                                 if (fprintf(w,"X %i %02i %s 4:3 LetterBox\n",stream_content,
                                             component_type_43+component_type_add,lang)<=0) err=true;
-				setVideo43_done=true;
+                                setVideo43_done=true;
                                 setVideo43LB_done=true;
                             }
                             if (setVideo169)
@@ -1958,14 +1953,9 @@ bool cMarkAdStandalone::LoadInfo()
                         // if we have DolbyDigital 2.0 disable AC3
                         if (strchr(descr,'2'))
                         {
-                            isyslog("broadcast with DolbyDigital2.0%s",macontext.Config->AC3Always ?
-                                    "" : ", disabling AC3 decoding");
-
-                            if (!macontext.Config->AC3Always)
-                            {
-                                macontext.Info.DPid.Num=0;
-                                macontext.Info.Channels=2;
-                            }
+                            isyslog("broadcast with DolbyDigital2.0, disabling AC3 decoding");
+                            macontext.Info.DPid.Num=0;
+                            macontext.Info.Channels=2;
                         }
                         else
                             // if we have DolbyDigital 5.1 disable video decoding
@@ -1975,10 +1965,6 @@ bool cMarkAdStandalone::LoadInfo()
                                 macontext.Info.Channels=6;
                                 macontext.Video.Options.IgnoreAspectRatio=true;
                                 isyslog("broadcast with DolbyDigital5.1, disabling video decoding");
-                            }
-                            else
-                            {
-                                setAudio20=true;
                             }
                     }
                 }
@@ -2549,7 +2535,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     if (macontext.Info.DPid.Num)
     {
         if (macontext.Info.DPid.Num!=-1)
-            dsyslog("using AC3 (0x%04x)%s",macontext.Info.DPid.Num,macontext.Config->AC3Always ? "*" : "");
+            dsyslog("using AC3 (0x%04x)",macontext.Info.DPid.Num);
         ac3_demux = new cMarkAdDemux();
     }
     else
@@ -2648,9 +2634,6 @@ int usage(int svdrpport)
     // nothing done, give the user some help
     printf("Usage: markad [options] cmd <record>\n"
            "options:\n"
-           "-a              --AC3\n"
-           "                  always search in DolbyDigital channels, even if the\n"
-           "                  broadcast isn't in DolbyDigital5.1\n"
            "-b              --background\n"
            "                  markad runs as a background-process\n"
            "                  this will be automatically set if called with \"after\"\n"
@@ -2679,13 +2662,16 @@ int usage(int svdrpport)
            "                  make a backup of existing marks\n"
            "-G              --genindex\n"
            "                  regenerate broken index file\n"
+           "-I              --saveinfo\n"
+           "                  correct information in info file\n"
            "-L              --extractlogo=<direction>[,width[,height]]\n"
            "                  extracts logo to /tmp as pgm files (must be renamed)\n"
            "                  <direction>  0 = top left,    1 = top right\n"
            "                               2 = bottom left, 3 = bottom right\n"
            "                  [width]  range from 50 to %3i, default %3i (SD)\n"
            "                                                 default %3i (HD)\n"
-           "                  [height] range from 20 to %3i, default %3i\n"
+           "                  [height] range from 20 to %3i, default %3i (SD)\n"
+           "                                                 default %3i (HD)\n"
            "-O              --OSD\n"
            "                  markad sends an OSD-Message for start and end\n"
            "-R              --log2rec\n"
@@ -2721,7 +2707,7 @@ int usage(int svdrpport)
            "\n<record>                     is the name of the directory where the recording\n"
            "                             is stored\n\n",
            LOGO_MAXWIDTH,LOGO_DEFWIDTH,LOGO_DEFHDWIDTH,
-           LOGO_MAXHEIGHT,LOGO_DEFHEIGHT,svdrpport
+           LOGO_MAXHEIGHT,LOGO_DEFHEIGHT,LOGO_DEFHDHEIGHT,svdrpport
           );
     return -1;
 }
@@ -2848,6 +2834,7 @@ int main(int argc, char *argv[])
             {"backupmarks", 0, 0, 'B'},
             {"scenechangedetection", 0, 0, 'C'},
             {"genindex",0, 0, 'G'},
+            {"saveinfo",0,0,'I'},
             {"extractlogo", 1, 0, 'L'},
             {"OSD",0,0,'O' },
             {"log2rec",0,0,'R'},
@@ -2868,7 +2855,6 @@ int main(int argc, char *argv[])
 
         case 'a':
             // --ac3
-            config.AC3Always=true;
             break;
 
         case 'b':
@@ -2985,6 +2971,10 @@ int main(int argc, char *argv[])
 
         case 'G':
             config.GenIndex=true;
+            break;
+
+        case 'I':
+            config.SaveInfo=true;
             break;
 
         case 'L':

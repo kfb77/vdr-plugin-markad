@@ -22,7 +22,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     nomargins=setup->NoMargins;
     hidemainmenuentry=setup->HideMainMenuEntry;
     secondpass=setup->SecondPass;
-    ac3always=setup->AC3Always;
+    saveinfo=setup->SaveInfo;
     log2rec=setup->Log2Rec;
     logoonly=setup->LogoOnly;
 
@@ -53,11 +53,10 @@ void cSetupMarkAd::write(void)
     Add(new cMenuEditBoolItem(tr("scan only channels with logo"),&logoonly),true);
     lpos=Current();
     Add(new cMenuEditStraItem(tr("hdd access priority"),&ioprioclass,3,ioprioTexts));
-    Add(new cMenuEditBoolItem(tr("examine AC3 always"),&ac3always));
     Add(new cMenuEditBoolItem(tr("ignore timer margins"),&nomargins));
     Add(new cMenuEditBoolItem(tr("detect overlaps"),&secondpass));
-    Add(new cOsdItem("",osUnknown,false));
     Add(new cMenuEditBoolItem(tr("repair index, if broken"),&genindex));
+    Add(new cMenuEditBoolItem(tr("correct info file"),&saveinfo));
     Add(new cMenuEditBoolItem(tr("OSD message"),&osdmsg));
     Add(new cMenuEditBoolItem(tr("backup marks"),&backupmarks));
     Add(new cMenuEditBoolItem(tr("verbose logging"),&verbose));
@@ -126,7 +125,7 @@ void cSetupMarkAd::Store(void)
     SetupStore("Verbose",verbose);
     SetupStore("HideMainMenuEntry",hidemainmenuentry);
     SetupStore("IOPrioClass",ioprioclass);
-    SetupStore("AC3Always",ac3always);
+    SetupStore("SaveInfo",saveinfo);
     SetupStore("Log2Rec",log2rec);
     SetupStore("LogoOnly",logoonly);
 
@@ -140,10 +139,10 @@ void cSetupMarkAd::Store(void)
     setup->Verbose=(bool) verbose;
     setup->NoMargins=(bool) nomargins;
     setup->HideMainMenuEntry=(bool) hidemainmenuentry;
+    setup->SaveInfo=(bool) saveinfo;
+    setup->Log2Rec=(bool) log2rec;
+    setup->LogoOnly=(bool) logoonly;
     setup->IOPrioClass=ioprioclass;
-    setup->AC3Always=ac3always;
-    setup->Log2Rec=log2rec;
-    setup->LogoOnly=logoonly;
 }
 
 #define CHNUMWIDTH (numdigits(Channels.MaxNumber())+1)

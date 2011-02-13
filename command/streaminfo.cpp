@@ -314,10 +314,6 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         {
             // set values
             maContext->Video.Info.Interlaced=!frame_mbs_only_flag;
-            if (frame_rate!=maContext->Video.Info.FramesPerSecond)
-            {
-                maContext->Video.Info.FramesPerSecond=-frame_rate;
-            }
             maContext->Video.Info.Width=width;
             maContext->Video.Info.Height=height;
 

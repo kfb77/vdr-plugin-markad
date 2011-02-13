@@ -79,7 +79,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                                    setup->OSDMessage ? " -O " : "",
                                    setup->NoMargins ? " -i 4 " : "",
                                    setup->SecondPass ? "" : " --pass1only ",
-                                   setup->AC3Always ? " -a " : "",
+                                   setup->SaveInfo ? " -I " : "",
                                    setup->Log2Rec ? " -R " : "",
                                    setup->IOPrioClass+1,
                                    logodir,Direct ? "-O after" : "--online=2 before",
