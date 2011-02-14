@@ -192,13 +192,14 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe)
     iStart=-startframe;
     iStop=-(startframe+len_in_frames);
     chkSTART=-iStart+delta;
-    chkSTOP=-iStop+delta;
+    chkSTOP=-iStop+(3*delta);
 }
 
 void cMarkAdStandalone::CheckStop()
 {
     dsyslog("checking stop");
-    clMark *end=marks.GetAround(iStop,MT_STOP,0x0F);
+    int delta=(chkSTOP-iStop)+macontext.Video.Info.FramesPerSecond*(MAXRANGE+60);
+    clMark *end=marks.GetAround(delta,iStop,MT_STOP,0x0F);
 
     if (end)
     {
@@ -210,7 +211,7 @@ void cMarkAdStandalone::CheckStop()
         //fallback, shouldn't be reached
         MarkAdMark mark;
         memset(&mark,0,sizeof(mark));
-        mark.Position=iStart;
+        mark.Position=iStop;
         mark.Type=MT_ASSUMEDSTOP;
         AddMark(&mark);
         marks.DelTill(iStop,false);
@@ -256,26 +257,23 @@ void cMarkAdStandalone::CheckStart()
     macontext.Info.Channels=macontext.Audio.Info.Channels;
     if (macontext.Info.Channels==6)
     {
-        isyslog("DolbyDigital5.1 audio detected. logo/border detection disabled");
+        isyslog("DolbyDigital5.1 audio detected. logo/border/aspect detection disabled");
         bDecodeVideo=false;
+        macontext.Video.Options.IgnoreAspectRatio=true;
+        macontext.Video.Options.IgnoreLogoDetection=true;
         marks.Del(MT_ASPECTSTART);
         marks.Del(MT_ASPECTSTOP);
         // start mark must be around istart
-        begin=marks.GetAround(iStart,MT_CHANNELSTART);
+        begin=marks.GetAround(INT_MAX,iStart,MT_CHANNELSTART);
     }
     else
     {
         if (macontext.Info.DPid.Num)
         {
-            isyslog("broadcast with %i audio channels%s",macontext.Info.Channels,
-                    macontext.Config->AC3Always ?
-                    "" : ", disabling AC3 decoding");
-
-            if (!macontext.Config->AC3Always)
-            {
-                macontext.Info.DPid.Num=0;
-                demux->DisableDPid();
-            }
+            if (macontext.Info.Channels)
+                isyslog("broadcast with %i audio channels, disabling AC3 decoding",macontext.Info.Channels);
+            macontext.Info.DPid.Num=0;
+            demux->DisableDPid();
         }
     }
 
@@ -304,14 +302,16 @@ void cMarkAdStandalone::CheckStart()
             (macontext.Video.Info.AspectRatio.Den==3))
     {
         bDecodeVideo=false;
+        macontext.Video.Options.IgnoreLogoDetection=true;
         marks.Del(MT_CHANNELSTART);
         marks.Del(MT_CHANNELSTOP);
         // start mark must be around iStart
-        begin=marks.GetAround(iStart,MT_ASPECTSTART);
+        begin=marks.GetAround(macontext.Video.Info.FramesPerSecond*(MAXRANGE*4),iStart,MT_ASPECTSTART);
     }
 
     if (!bDecodeVideo)
     {
+        macontext.Video.Data.Valid=false;
         marks.Del(MT_LOGOSTART);
         marks.Del(MT_LOGOSTOP);
         marks.Del(MT_HBORDERSTART);
@@ -322,7 +322,7 @@ void cMarkAdStandalone::CheckStart()
 
     if (!begin)
     {
-        begin=marks.GetAround(iStart,MT_START,0x0F);
+        begin=marks.GetAround(macontext.Video.Info.FramesPerSecond*(MAXRANGE*2),iStart,MT_START,0x0F);
     }
     if (begin)
     {
@@ -349,6 +349,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 {
     if (!Mark) return;
     if (!Mark->Type) return;
+    if (gotendmark) return;
 
     char *comment=NULL;
     switch (Mark->Type)
@@ -931,11 +932,6 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                     dRes=true;
                                 }
                             }
-                            if (macontext.Video.Info.FramesPerSecond<0)
-                            {
-                                macontext.Video.Info.FramesPerSecond*=-1;
-                                isyslog("using framerate of %.f",macontext.Video.Info.FramesPerSecond);
-                            }
 
                             if ((decoder) && (bDecodeVideo))
                                 dRes=decoder->DecodeVideo(&macontext,pkt.Data,pkt.Length);
@@ -962,7 +958,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                             {
                                 if ((!isTS) && (!noticeVDR_AC3))
                                 {
-                                    isyslog("found AC3%s",macontext.Config->AC3Always ? "*" : "");
+                                    isyslog("found AC3");
                                     noticeVDR_AC3=true;
                                 }
                                 if ((framecnt-iframe)<=3)
@@ -1506,14 +1502,10 @@ bool cMarkAdStandalone::LoadInfo()
                         // if we have DolbyDigital 2.0 disable AC3
                         if (strchr(descr,'2'))
                         {
-                            isyslog("broadcast with DolbyDigital2.0%s",macontext.Config->AC3Always ?
-                                    "" : ", disabling AC3 decoding");
+                            isyslog("broadcast with DolbyDigital2.0, disabling AC3 decoding");
 
-                            if (!macontext.Config->AC3Always)
-                            {
-                                macontext.Info.DPid.Num=0;
-                                macontext.Info.Channels=2;
-                            }
+                            macontext.Info.DPid.Num=0;
+                            macontext.Info.Channels=2;
                         }
                         // if we have DolbyDigital 5.1 disable video decoding
                         if (strchr(descr,'5'))
@@ -2084,7 +2076,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     if (macontext.Info.DPid.Num)
     {
         if (macontext.Info.DPid.Num!=-1)
-            dsyslog("found AC3 (0x%04x)%s",macontext.Info.DPid.Num,macontext.Config->AC3Always ? "*" : "");
+            dsyslog("found AC3 (0x%04x)",macontext.Info.DPid.Num);
     }
 
     if (!abort)
@@ -2397,7 +2389,6 @@ int main(int argc, char *argv[])
 
         case 'a':
             // --ac3
-            config.AC3Always=true;
             break;
 
         case 'b':

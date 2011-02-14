@@ -406,7 +406,11 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
 int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
 {
     if (!macontext) return LOGO_ERROR;
-    if (!macontext->Video.Data.Valid) return LOGO_ERROR;
+    if (!macontext->Video.Data.Valid)
+    {
+        area.status=LOGO_UNINITIALIZED;
+        return LOGO_ERROR;
+    }
     if (!macontext->Video.Info.Width) return LOGO_ERROR;
     if (!macontext->Video.Info.Height) return LOGO_ERROR;
     if (!macontext->Config->logoDirectory[0]) return LOGO_ERROR;
@@ -861,6 +865,10 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
                 addmark(MT_LOGOSTOP,logoframenumber);
             }
         }
+    }
+    else
+    {
+        logo->SetStatusUninitialized();
     }
 
     int hborderframenumber;

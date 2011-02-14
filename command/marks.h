@@ -100,7 +100,7 @@ public:
     void Del(unsigned char Type);
     void Del(int Position);
     clMark *Get(int Position);
-    clMark *GetAround(int Position, int Type=0xFF, int Mask=0xFF);
+    clMark *GetAround(int Frames, int Position, int Type=0xFF, int Mask=0xFF);
     clMark *GetPrev(int Position,int Type=0xFF, int Mask=0xFF);
     clMark *GetNext(int Position,int Type=0xFF, int Mask=0xFF);
     clMark *GetFirst()

@@ -1116,7 +1116,14 @@ void cDemux::DisableDPid()
     if (ts2pkt_dpid) delete ts2pkt_dpid;
     pes2audioes_ac3=NULL;
     ts2pkt_dpid=NULL;
-    dpid=0;
+    if (TS)
+    {
+        dpid=-1;
+    }
+    else
+    {
+        dpid=0;
+    }
     stream_or_pid=0;
 }
 

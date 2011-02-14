@@ -1,5 +1,13 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
+2011-02-13: Version 0.0.9
+
+- Removed "scan AC3 always" option, added "correct info file"
+- New default options: repair index=off, corect info file=off
+- markad now rely to the F framerate parameter (no internal correction)
+- Improved overlap handling
+- Added some logos
+
 2011-01-23: Version 0.0.8
 
 - Improved HD handling

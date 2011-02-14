@@ -136,6 +136,11 @@ public:
         if (area.status==LOGO_VISIBLE)
             area.status=LOGO_INVISIBLE;
     }
+    void SetStatusUninitialized()
+    {
+        if (area.status!=LOGO_UNINITIALIZED)
+            area.status=LOGO_UNINITIALIZED;
+    }
     void Clear();
 };
 
