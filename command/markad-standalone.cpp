@@ -225,31 +225,40 @@ void cMarkAdStandalone::CheckStart()
     dsyslog("checking start");
     clMark *begin=NULL;
 
-    if ((macontext.Info.Channels) && (macontext.Info.Channels!=macontext.Audio.Info.Channels))
+    if ((macontext.Info.Channels) && (macontext.Audio.Info.Channels) &&
+            (macontext.Info.Channels!=macontext.Audio.Info.Channels))
     {
         char as[20];
         switch (macontext.Info.Channels)
         {
         case 1:
             strcpy(as,"mono");
+            break;
         case 2:
             strcpy(as,"stereo");
+            break;
         case 6:
             strcpy(as,"dd5.1");
+            break;
         default:
             strcpy(as,"??");
+            break;
         }
         char ad[20];
-        switch (macontext.Info.Channels)
+        switch (macontext.Audio.Info.Channels)
         {
         case 1:
             strcpy(ad,"mono");
+            break;
         case 2:
             strcpy(ad,"stereo");
+            break;
         case 6:
             strcpy(ad,"dd5.1");
+            break;
         default:
             strcpy(ad,"??");
+            break;
         }
         isyslog("audio description in info (%s) wrong, we have %s",as,ad);
     }
@@ -281,11 +290,9 @@ void cMarkAdStandalone::CheckStart()
             macontext.Video.Info.AspectRatio.Num) || (macontext.Info.AspectRatio.Den!=
                     macontext.Video.Info.AspectRatio.Den)))
     {
-        isyslog("video aspect description in info (%i:%i) wrong, we have %i:%i",
+        isyslog("video aspect description in info (%i:%i) wrong",
                 macontext.Info.AspectRatio.Num,
-                macontext.Info.AspectRatio.Den,
-                macontext.Video.Info.AspectRatio.Num,
-                macontext.Video.Info.AspectRatio.Den);
+                macontext.Info.AspectRatio.Den);
     }
 
     macontext.Info.AspectRatio.Num=macontext.Video.Info.AspectRatio.Num;
@@ -1317,7 +1324,6 @@ bool cMarkAdStandalone::SaveInfo()
     }
     else
     {
-#if 0
         if (rename(dst,src)==-1)
         {
             err=true;
@@ -1331,7 +1337,6 @@ bool cMarkAdStandalone::SaveInfo()
             if (utime(src,&oldtimes)) {};
             SetFileUID(src);
         }
-#endif
     }
 
     free(src);
@@ -1475,7 +1480,7 @@ bool cMarkAdStandalone::LoadInfo()
             int result=sscanf(line,"%*c %i %i %250c",&stream,&type,(char *) &descr);
             if ((result!=0) && (result!=EOF))
             {
-                if (((stream==1) || (stream==5)) && (!bIgnoreVideoInfo))
+                if ((stream==1) || (stream==5))
                 {
                     if ((type!=1) && (type!=5) && (type!=9) && (type!=13))
                     {
@@ -1488,32 +1493,24 @@ bool cMarkAdStandalone::LoadInfo()
                         isyslog("broadcast aspectratio 4:3 (from info)");
                         macontext.Info.AspectRatio.Num=4;
                         macontext.Info.AspectRatio.Den=3;
-                        if (strchr(descr,'?'))
-                        {
-                            bDecodeVideo=false;
-                        }
                     }
                 }
 
-                if ((stream==2) && (!bIgnoreAudioInfo))
+                if (stream==2)
                 {
                     if (type==5)
                     {
                         // if we have DolbyDigital 2.0 disable AC3
                         if (strchr(descr,'2'))
                         {
-                            isyslog("broadcast with DolbyDigital2.0, disabling AC3 decoding");
-
-                            macontext.Info.DPid.Num=0;
+                            isyslog("broadcast with DolbyDigital2.0 (from info)");
                             macontext.Info.Channels=2;
                         }
                         // if we have DolbyDigital 5.1 disable video decoding
                         if (strchr(descr,'5'))
                         {
-                            bDecodeVideo=false;
+                            isyslog("broadcast with DolbyDigital5.1 (from info)");
                             macontext.Info.Channels=6;
-                            macontext.Video.Options.IgnoreAspectRatio=true;
-                            isyslog("broadcast with DolbyDigital5.1, disabling video decoding");
                         }
                     }
                 }
@@ -1560,8 +1557,6 @@ bool cMarkAdStandalone::LoadInfo()
         esyslog("cannot read broadcast length from info, marks can be wrong!");
         macontext.Info.AspectRatio.Num=0;
         macontext.Info.AspectRatio.Den=0;
-        bIgnoreAudioInfo=true;
-        bIgnoreVideoInfo=true;
         bDecodeVideo=macontext.Config->DecodeVideo;
         macontext.Video.Options.IgnoreAspectRatio=false;
     }
@@ -1680,7 +1675,11 @@ bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
     free(buf);
     if (fd==-1) return false;
 
-    if (lseek(fd,Offset,SEEK_SET)==(off_t)-1) return false;
+    if (lseek(fd,Offset,SEEK_SET)==(off_t)-1)
+    {
+        close(fd);
+        return false;
+    }
 
     uchar patpmt_buf[564];
     uchar *patpmt;
@@ -1883,13 +1882,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     osd=NULL;
 
     memset(&pkt,0,sizeof(pkt));
-#if 0
-    setAudio51=false;
-    setAudio20=false;
-    setVideo43=false;
-    setVideo43LB=false;
-    setVideo169=false;
-#endif
 
     noticeVDR_MP2=false;
     noticeVDR_AC3=false;
@@ -1910,24 +1902,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     bDecodeAudio=config->DecodeAudio;
 
     tStart=iStart=iStop=0;
-
-    if ((config->ignoreInfo & IGNORE_VIDEOINFO)==IGNORE_VIDEOINFO)
-    {
-        bIgnoreVideoInfo=true;
-    }
-    else
-    {
-        bIgnoreVideoInfo=false;
-    }
-
-    if ((config->ignoreInfo & IGNORE_AUDIOINFO)==IGNORE_AUDIOINFO)
-    {
-        bIgnoreAudioInfo=true;
-    }
-    else
-    {
-        bIgnoreAudioInfo=false;
-    }
 
     if ((config->ignoreInfo & IGNORE_TIMERINFO)==IGNORE_TIMERINFO)
     {
@@ -1952,14 +1926,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     {
         isyslog("video decoding disabled by user");
     }
-    if (bIgnoreAudioInfo)
-    {
-        isyslog("audio info usage disabled by user");
-    }
-    if (bIgnoreVideoInfo)
-    {
-        isyslog("video info usage disabled by user");
-    }
     if (bIgnoreTimerInfo)
     {
         isyslog("timer info usage disabled by user");
@@ -1969,8 +1935,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     {
         // just to be sure extraction works
         bDecodeVideo=true;
-        bIgnoreAudioInfo=true;
-        bIgnoreVideoInfo=true;
     }
 
     if (!config->NoPid)
@@ -2175,10 +2139,7 @@ int usage(int svdrpport)
            "                             decoding, 3 = disable video and audio decoding\n"
            "-i              --ignoreinfo=<info>\n"
            "                  ignores hints from info(.vdr) file\n"
-           "                  <info> 1 = ignore audio info, 2 = ignore video info,\n"
-           "                         4 = ignore timer info\n"
-           "                         (options can be added together, e.g. 5 = ignore\n"
-           "                          audio and timer info)\n"
+           "                  <info> 4 = ignore timer info\n"
            "-l              --logocachedir\n"
            "                  directory where logos stored, default /var/lib/markad\n"
            "-p              --priority=<priority>\n"
@@ -2424,7 +2385,7 @@ int main(int argc, char *argv[])
         case 'i':
             // --ignoreinfo
             config.ignoreInfo=atoi(optarg);
-            if ((config.ignoreInfo<0) || (config.ignoreInfo>255))
+            if ((config.ignoreInfo<1) || (config.ignoreInfo>255))
             {
                 fprintf(stderr, "markad: invalid ignoreinfo option: %s\n", optarg);
                 return 2;
@@ -2605,7 +2566,14 @@ int main(int argc, char *argv[])
             break;
 
         case 4: // --online
-            online=atoi(optarg);
+            if (optarg)
+            {
+                online=atoi(optarg);
+            }
+            else
+            {
+                online=1;
+            }
             if ((online!=1) && (online!=2))
             {
                 fprintf(stderr, "markad: invalid online value: %s\n", optarg);

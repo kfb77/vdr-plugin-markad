@@ -105,7 +105,11 @@ int cMarkAdLogo::Load(const char *directory, char *file, int plane)
         return -2;
     }
 
-    if (fread(&area.mask[plane],1,width*height,pFile)!=(size_t) (width*height)) return -2;
+    if (fread(&area.mask[plane],1,width*height,pFile)!=(size_t) (width*height))
+    {
+        fclose(pFile);
+        return -2;
+    }
 
     if (!area.mpixel[plane])
     {

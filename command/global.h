@@ -74,7 +74,6 @@ typedef struct config
     bool OSD;
     bool Before;
     bool GenIndex;
-    bool AC3Always;
     bool SaveInfo;
 } MarkAdConfig;
 
