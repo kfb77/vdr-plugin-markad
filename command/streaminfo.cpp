@@ -603,7 +603,7 @@ unsigned BitRateExtL:
         {
             if (fps!=maContext->Video.Info.FramesPerSecond)
             {
-                maContext->Video.Info.FramesPerSecond=-fps;
+                maContext->Video.Info.FramesPerSecond=fps;
             }
         }
     }
