@@ -27,6 +27,7 @@
 #include <mntent.h>
 #include <utime.h>
 #include <math.h>
+#include <limits.h>
 #include <errno.h>
 
 #include "markad-standalone.h"
@@ -198,7 +199,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe)
 void cMarkAdStandalone::CheckStop()
 {
     dsyslog("checking stop");
-    int delta=(chkSTOP-iStop)+macontext.Video.Info.FramesPerSecond*(MAXRANGE+60);
+    int delta=macontext.Video.Info.FramesPerSecond*MAXRANGE;
     clMark *end=marks.GetAround(delta,iStop,MT_STOP,0x0F);
 
     if (end)
@@ -453,6 +454,23 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     clMark *prev=marks.GetLast();
     if (prev)
     {
+        if ((Mark->Type==MT_LOGOSTART) && (!iStart))
+        {
+            if (prev->type==MT_LOGOSTOP)
+            {
+                int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*30);
+                if ((Mark->Position-prev->position)<MARKDIFF)
+                {
+                    double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
+                    isyslog("mark distance too short (%.1fs), deleting %i,%i",distance,
+                            prev->position,Mark->Position);
+                    if ((prev->type & 0x0F)==MT_START) inBroadCast=false;
+                    marks.Del(prev);
+                    return;
+                }
+            }
+        }
+
         if ((prev->type & 0x0F)==(Mark->Type & 0x0F))
         {
             int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*30);
@@ -2175,8 +2193,13 @@ int usage(int svdrpport)
            "                  (default is the number of cpus)\n"
            "-V              --version\n"
            "                  print version-info and exit\n"
+           "                --loglevel=<level>\n"
+           "                  sets loglevel to the specified value\n"
+           "                  <level> 1=error 2=info 3=debug 4=trace\n"
            "                --markfile=<markfilename>\n"
            "                  set a different markfile-name\n"
+           "                --nopid\n"
+           "                  disables creation of markad.pid file in recdir\n"
            "                --online[=1|2] (default is 1)\n"
            "                  start markad immediately when called with \"before\" as cmd\n"
            "                  if online is 1, markad starts online for live-recordings\n"
