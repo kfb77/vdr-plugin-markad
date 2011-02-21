@@ -71,7 +71,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
 {
     if ((Direct) && (Get(FileName)!=-1)) return false;
 
-    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s -r %i -l \"%s\" %s \"%s\"",
+    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->Verbose ? " -v " : "",
                                    setup->BackupMarks ? " -B " : "",
@@ -81,7 +81,6 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                                    setup->NoMargins ? " -i 4 " : "",
                                    setup->SecondPass ? "" : " --pass1only ",
                                    setup->Log2Rec ? " -R " : "",
-                                   setup->IOPrioClass+1,
                                    logodir,Direct ? "-O after" : "--online=2 before",
                                    FileName);
     dsyslog("markad: executing %s",*cmd);
@@ -125,8 +124,9 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
 void cStatusMarkAd::TimerChange(const cTimer *Timer, eTimerChange Change)
 {
     if (!Timer) return;
+    isyslog("markad: timer changed to %i now=%li StopTime()=%li",Change,time(NULL),Timer->StopTime());
     if (Change!=tcDel) return;
-    if (time(NULL)>=Timer->Stop()) return; // don't react on normal VDR timer deletion after recording
+    if (time(NULL)>=Timer->StopTime()) return; // don't react on normal VDR timer deletion after recording
     Remove(Timer->File(),true);
 }
 

@@ -2167,7 +2167,7 @@ int usage(int svdrpport)
            "                  io priority of markad when running in background\n"
            "                  <class> 1 = realtime, <level> from 0..7, default 4\n"
            "                          2 = besteffort, <level> from 0..7, default 4\n"
-           "                          3 = idle\n"
+           "                          3 = idle (default)\n"
            "-v              --verbose\n"
            "                  increments loglevel by one, can be given multiple times\n"
            "-B              --backupmarks\n"
@@ -2283,8 +2283,8 @@ int main(int argc, char *argv[])
     bool bAfter=false,bEdited=false;
     bool bFork=false,bNice=false,bImmediateCall=false;
     int niceLevel = 19;
-    int ioprio_class=2;
-    int ioprio=4;
+    int ioprio_class=3;
+    int ioprio=7;
     char *tok,*str;
     int ntok;
     int online=0;

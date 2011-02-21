@@ -12,7 +12,6 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     setup=Setup;
 
     processduring=setup->ProcessDuring;
-    ioprioclass=setup->IOPrioClass;
     whilerecording=setup->whileRecording;
     whilereplaying=setup->whileReplaying;
     osdmsg=setup->OSDMessage;
@@ -28,10 +27,6 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
 
     processTexts[0]=tr("after");
     processTexts[1]=tr("during");
-
-    ioprioTexts[0]=tr("high");
-    ioprioTexts[1]=tr("normal");
-    ioprioTexts[2]=tr("low");
 
     lpos=0;
 
@@ -52,7 +47,6 @@ void cSetupMarkAd::write(void)
     }
     Add(new cMenuEditBoolItem(tr("scan only channels with logo"),&logoonly),true);
     lpos=Current();
-    Add(new cMenuEditStraItem(tr("hdd access priority"),&ioprioclass,3,ioprioTexts));
     Add(new cMenuEditBoolItem(tr("ignore timer margins"),&nomargins));
     Add(new cMenuEditBoolItem(tr("detect overlaps"),&secondpass));
     Add(new cMenuEditBoolItem(tr("repair index, if broken"),&genindex));
@@ -124,7 +118,6 @@ void cSetupMarkAd::Store(void)
     SetupStore("OSDMessage",osdmsg);
     SetupStore("Verbose",verbose);
     SetupStore("HideMainMenuEntry",hidemainmenuentry);
-    SetupStore("IOPrioClass",ioprioclass);
     SetupStore("Log2Rec",log2rec);
     SetupStore("LogoOnly",logoonly);
     SetupStore("SaveInfo",saveinfo);
@@ -139,7 +132,6 @@ void cSetupMarkAd::Store(void)
     setup->Verbose=(bool) verbose;
     setup->NoMargins=(bool) nomargins;
     setup->HideMainMenuEntry=(bool) hidemainmenuentry;
-    setup->IOPrioClass=ioprioclass;
     setup->Log2Rec=log2rec;
     setup->LogoOnly=logoonly;
     setup->SaveInfo=saveinfo;
