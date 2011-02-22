@@ -70,11 +70,9 @@ void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSE
 bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Direct)
 {
     if ((Direct) && (Get(FileName)!=-1)) return false;
-
-    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
+    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->Verbose ? " -v " : "",
-                                   setup->BackupMarks ? " -B " : "",
                                    setup->SaveInfo ? " -I " : "",
                                    setup->GenIndex ? " -G " : "",
                                    setup->OSDMessage ? " -O " : "",
@@ -124,7 +122,6 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
 void cStatusMarkAd::TimerChange(const cTimer *Timer, eTimerChange Change)
 {
     if (!Timer) return;
-    isyslog("markad: timer changed to %i now=%li StopTime()=%li",Change,time(NULL),Timer->StopTime());
     if (Change!=tcDel) return;
     if (time(NULL)>=Timer->StopTime()) return; // don't react on normal VDR timer deletion after recording
     Remove(Timer->File(),true);
@@ -283,7 +280,7 @@ bool cStatusMarkAd::GetNextActive(struct recs **RecEntry)
     if (!RecEntry) return false;
     *RecEntry=NULL;
 
-    if (actpos>=(MAXDEVICES*MAXRECEIVERS)) return true;
+    if (actpos>=(MAXDEVICES*MAXRECEIVERS)) return false;
 
     do
     {
@@ -292,14 +289,21 @@ bool cStatusMarkAd::GetNextActive(struct recs **RecEntry)
             if (getStatus(actpos))
             {
                 *RecEntry=&recs[actpos++];
-                break;
+                return true;
             }
         }
         actpos++;
     }
     while (actpos<(MAXDEVICES*MAXRECEIVERS));
 
-    return true;
+    return false;
+}
+
+void cStatusMarkAd::Check()
+{
+    struct recs *tmpRecs=NULL;
+    ResetActPos();
+    while (GetNextActive(&tmpRecs)) ;
 }
 
 bool cStatusMarkAd::MarkAdRunning()

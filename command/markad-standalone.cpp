@@ -1368,22 +1368,35 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd)
     struct mntent *ent;
     struct stat statbuf;
     FILE *mounts=setmntent(_PATH_MOUNTED,"r");
+    int mlen=0;
+    int oldmlen=0;
+    bool useatime=false;
     while ((ent=getmntent(mounts))!=NULL)
     {
         if (strstr(directory,ent->mnt_dir))
         {
-            if (strstr(ent->mnt_opts,"noatime"))
+            mlen=strlen(ent->mnt_dir);
+            if (mlen>oldmlen)
             {
-                if (stat(directory,&statbuf)!=-1)
+                if (strstr(ent->mnt_opts,"noatime"))
                 {
-                    endmntent(mounts);
-                    isyslog("getting broadcast start from directory atime");
-                    return statbuf.st_atime;
+                    useatime=true;
+                }
+                else
+                {
+                    useatime=false;
                 }
             }
+            oldmlen=mlen;
         }
     }
     endmntent(mounts);
+
+    if ((useatime) && (stat(directory,&statbuf)!=-1))
+    {
+        isyslog("getting broadcast start from directory atime");
+        return statbuf.st_atime;
+    }
 
     // try to get from mtime
     // (and hope info.vdr has not changed after the start of the recording)

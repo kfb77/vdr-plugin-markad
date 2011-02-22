@@ -60,6 +60,7 @@ public:
     {
         actpos=0;
     }
+    void Check(void);
     bool GetNextActive(struct recs **RecEntry);
     bool Start(const char *FileName, const char *Name, const bool Direct=false);
 };

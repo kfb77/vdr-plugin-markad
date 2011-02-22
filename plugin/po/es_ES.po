@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2011-02-21 22:13+0100\n"
+"POT-Creation-Date: 2011-02-22 21:59+0100\n"
 "PO-Revision-Date: 2011-02-12 11:30+0100\n"
 "Last-Translator: Javier Bradineras <jbradi@hotmail.com>\n"
 "Language-Team:  <vdr@linuxtv.org>\n"
@@ -83,9 +83,6 @@ msgstr "Corrige fichero de información"
 
 msgid "OSD message"
 msgstr "Mensaje OSD"
-
-msgid "backup marks"
-msgstr "Hacer copia de seguridad de las marcas"
 
 msgid "verbose logging"
 msgstr "Log detallado"

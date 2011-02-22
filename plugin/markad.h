@@ -25,6 +25,7 @@ private:
     char *logodir;
     struct setup setup;
     char title[80];
+    time_t lastcheck;
     bool ReadTitle(const char *Directory);
 public:
     cPluginMarkAd(void);

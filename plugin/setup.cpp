@@ -15,7 +15,6 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     whilerecording=setup->whileRecording;
     whilereplaying=setup->whileReplaying;
     osdmsg=setup->OSDMessage;
-    backupmarks=setup->BackupMarks;
     verbose=setup->Verbose;
     genindex=setup->GenIndex;
     nomargins=setup->NoMargins;
@@ -52,7 +51,6 @@ void cSetupMarkAd::write(void)
     Add(new cMenuEditBoolItem(tr("repair index, if broken"),&genindex));
     Add(new cMenuEditBoolItem(tr("correct info file"),&saveinfo));
     Add(new cMenuEditBoolItem(tr("OSD message"),&osdmsg));
-    Add(new cMenuEditBoolItem(tr("backup marks"),&backupmarks));
     Add(new cMenuEditBoolItem(tr("verbose logging"),&verbose));
     Add(new cMenuEditBoolItem(tr("log to recording directory"),&log2rec));
     Add(new cMenuEditBoolItem(tr("hide mainmenu entry"),&hidemainmenuentry));
@@ -112,7 +110,6 @@ void cSetupMarkAd::Store(void)
     SetupStore("whileRecording",whilerecording);
     SetupStore("whileReplaying",whilereplaying);
     SetupStore("IgnoreMargins",nomargins);
-    SetupStore("BackupMarks",backupmarks);
     SetupStore("GenIndex",genindex);
     SetupStore("SecondPass",secondpass);
     SetupStore("OSDMessage",osdmsg);
@@ -128,7 +125,6 @@ void cSetupMarkAd::Store(void)
     setup->OSDMessage=(bool) osdmsg;
     setup->GenIndex=(bool) genindex;
     setup->SecondPass=(bool) secondpass;
-    setup->BackupMarks=(bool) backupmarks;
     setup->Verbose=(bool) verbose;
     setup->NoMargins=(bool) nomargins;
     setup->HideMainMenuEntry=(bool) hidemainmenuentry;

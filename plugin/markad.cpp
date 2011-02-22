@@ -32,7 +32,6 @@ cPluginMarkAd::cPluginMarkAd(void)
     setup.whileReplaying=true;
     setup.GenIndex=false;
     setup.OSDMessage=false;
-    setup.BackupMarks=false;
     setup.Verbose=false;
     setup.NoMargins=false;
     setup.HideMainMenuEntry=false;
@@ -129,6 +128,7 @@ bool cPluginMarkAd::Initialize(void)
 bool cPluginMarkAd::Start(void)
 {
     // Start any background activities the plugin shall perform.
+    lastcheck=0;
     setup.PluginName=Name();
     setup.LogoDir=logodir;
     statusMonitor = new cStatusMarkAd(bindir,logodir,&setup);
@@ -149,6 +149,12 @@ void cPluginMarkAd::MainThreadHook(void)
 {
     // Perform actions in the context of the main program thread.
     // WARNING: Use with great care - see PLUGINS.html!
+    time_t now=time(NULL);
+    if (now>(lastcheck+5))
+    {
+        statusMonitor->Check();
+        lastcheck=now;
+    }
 }
 
 cString cPluginMarkAd::Active(void)
@@ -184,7 +190,6 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value)
     else if (!strcasecmp(Name,"whileRecording")) setup.whileRecording=atoi(Value);
     else if (!strcasecmp(Name,"whileReplaying")) setup.whileReplaying=atoi(Value);
     else if (!strcasecmp(Name,"OSDMessage")) setup.OSDMessage=atoi(Value);
-    else if (!strcasecmp(Name,"BackupMarks")) setup.BackupMarks=atoi(Value);
     else if (!strcasecmp(Name,"GenIndex")) setup.GenIndex=atoi(Value);
     else if (!strcasecmp(Name,"Verbose")) setup.Verbose=atoi(Value);
     else if (!strcasecmp(Name,"IgnoreMargins")) setup.NoMargins=atoi(Value);

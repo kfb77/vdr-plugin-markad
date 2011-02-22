@@ -15,7 +15,6 @@ struct setup
     bool whileRecording;
     bool whileReplaying;
     bool OSDMessage;
-    bool BackupMarks;
     bool Verbose;
     bool GenIndex;
     bool NoMargins;
@@ -37,7 +36,6 @@ private:
     int whilerecording;
     int whilereplaying;
     int osdmsg;
-    int backupmarks;
     int verbose;
     int genindex;
     int nomargins;
