@@ -23,10 +23,12 @@ dist:
 	@mkdir $(TMPDIR)/$(ARCHIVE)
 	@mkdir $(TMPDIR)/$(ARCHIVE)/plugin
 	@mkdir $(TMPDIR)/$(ARCHIVE)/plugin/po
+	@mkdir $(TMPDIR)/$(ARCHIVE)/plugin/dist
 	@mkdir $(TMPDIR)/$(ARCHIVE)/command
 	@mkdir $(TMPDIR)/$(ARCHIVE)/command/po
 	@mkdir $(TMPDIR)/$(ARCHIVE)/command/logos
 	@cp -a plugin/*.cpp plugin/*.h plugin/Makefile $(TMPDIR)/$(ARCHIVE)/plugin
+	@cp -a plugin/dist/* $(TMPDIR)/$(ARCHIVE)/plugin/dist
 	@cp -a plugin/po/*.po $(TMPDIR)/$(ARCHIVE)/plugin/po
 	@cp -a command/*.cpp command/*.h command/Makefile $(TMPDIR)/$(ARCHIVE)/command 
 	@cp -a command/logos/*.pgm $(TMPDIR)/$(ARCHIVE)/command/logos

@@ -1,5 +1,13 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
+2011-02-23: Version 0.1.0
+
+- New demuxer
+- New mark handling
+- Removed "Backupmarks" option
+- Added more logos
+- Fixed some bugs reported from users
+
 2011-02-13: Version 0.0.9
 
 - Removed "scan AC3 always" option, added "correct info file"
