@@ -49,6 +49,8 @@ typedef unsigned char uchar;
 #define MT_CHANNELSTART   0x61
 #define MT_CHANNELSTOP    0x62
 
+#define MT_RECORDINGSTART 0xD1
+#define MT_RECORDINGSTOP  0xD2
 #define MT_MOVED          0xE0
 #define MT_ALL            0xFF
 
@@ -91,7 +93,7 @@ typedef struct MarkAdAspectRatio
 
 typedef struct MarkAdMark
 {
-    char Type;
+    int Type;
     int Position;
     int ChannelsBefore;
     int ChannelsAfter;
@@ -139,6 +141,7 @@ typedef struct MarkAdContext
         {
             bool IgnoreAspectRatio;
             bool IgnoreLogoDetection;
+            bool WeakMarksOk;
         } Options;
 
         struct Info

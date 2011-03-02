@@ -159,21 +159,13 @@ int cPaketQueue::findpktheader(int start, int *streamsize,int *headersize, bool 
             }
         }
     }
-
     if (i==inptr)
     {
         if (found)
         {
-            if (!start)
-            {
-                scanner=0xFFFFFFFF;
-                return -1;
-            }
+            scanner=0xFFFFFFFF;
         }
-        else
-        {
-            return -1;
-        }
+        return -1; // we need more bytes!
     }
     if (longstartcode) i--;
     if (buffer[i]>=0xBC) // do we have a PES packet?

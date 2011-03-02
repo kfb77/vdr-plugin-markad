@@ -29,6 +29,7 @@
 #include <math.h>
 #include <limits.h>
 #include <errno.h>
+#include <dirent.h>
 
 #include "markad-standalone.h"
 #include "version.h"
@@ -421,6 +422,12 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                      Mark->ChannelsBefore,Mark->ChannelsAfter,
                      Mark->Position)==-1) comment=NULL;
         break;
+    case MT_RECORDINGSTART:
+        if (asprintf(&comment,"start of recording (%i)",Mark->Position)==-1) comment=NULL;
+        break;
+    case MT_RECORDINGSTOP:
+        if (asprintf(&comment,"stop of recording (%i)",Mark->Position)==-1) comment=NULL;
+        break;
     }
 
     if (comment) isyslog("%s",comment);
@@ -446,6 +453,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                         prev->position,Mark->Position);
                 if ((prev->type & 0x0F)==MT_START) inBroadCast=false;
                 marks.Del(prev);
+                if (comment) free(comment);
                 return;
             }
         }
@@ -466,6 +474,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                             prev->position,Mark->Position);
                     if ((prev->type & 0x0F)==MT_START) inBroadCast=false;
                     marks.Del(prev);
+                    if (comment) free(comment);
                     return;
                 }
             }
@@ -481,6 +490,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 {
                     isyslog("previous mark (%i) stronger than actual mark, deleting %i",
                             prev->position, Mark->Position);
+                    if (comment) free(comment);
                     return;
                 }
                 else
@@ -492,15 +502,23 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         }
     }
 
-    if ((Mark->Type & 0x0F)==MT_START)
+    if (!macontext.Video.Options.WeakMarksOk)
     {
-        inBroadCast=true;
+        if ((Mark->Type & 0x0F)==MT_START)
+        {
+            inBroadCast=true;
+        }
+        else
+        {
+            inBroadCast=false;
+        }
     }
     else
     {
-        inBroadCast=false;
+        inBroadCast=true;
     }
     marks.Add(Mark->Type,Mark->Position,comment);
+    if (comment) free(comment);
 }
 
 void cMarkAdStandalone::SaveFrame(int frame)
@@ -1071,7 +1089,7 @@ void cMarkAdStandalone::ProcessFile()
             if ((inBroadCast) && (!gotendmark))
             {
                 MarkAdMark tempmark;
-                tempmark.Type=MT_ASSUMEDSTOP;
+                tempmark.Type=MT_RECORDINGSTOP;
                 tempmark.Position=lastiframe;
                 AddMark(&tempmark);
             }
@@ -1432,6 +1450,30 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd)
         }
     }
     return (time_t) 0;
+}
+
+bool cMarkAdStandalone::CheckLogo()
+{
+    if (!macontext.Config) return false;
+    if (!macontext.Config->logoDirectory) return false;
+    if (!macontext.Info.ChannelName) return false;
+    int len=strlen(macontext.Info.ChannelName);
+    if (!len) return false;
+
+    DIR *dir=opendir(macontext.Config->logoDirectory);
+    if (!dir) return false;
+
+    struct dirent *dirent;
+    while ((dirent=readdir(dir)))
+    {
+        if (!strncmp(dirent->d_name,macontext.Info.ChannelName,len))
+        {
+            closedir(dir);
+            return true;
+        }
+    }
+    closedir(dir);
+    return false;
 }
 
 bool cMarkAdStandalone::LoadInfo()
@@ -1903,6 +1945,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     directory=Directory;
     abort=false;
     gotendmark=false;
+    inBroadCast=false;
 
     indexFile=NULL;
     streaminfo=NULL;
@@ -2014,7 +2057,23 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
                     (config->logoExtraction!=-1) ? "extraction" : "detection",
                     bIgnoreTimerInfo ? " " : " and pre-/post-timer ");
             tStart=iStart=iStop=0;
+            macontext.Video.Options.IgnoreLogoDetection=true;
+            macontext.Video.Options.WeakMarksOk=true;
         }
+    }
+    else
+    {
+        if (!CheckLogo())
+        {
+            isyslog("no logo found, logo detection disabled");
+            macontext.Video.Options.IgnoreLogoDetection=true;
+            macontext.Video.Options.WeakMarksOk=true;
+        }
+    }
+
+    if (macontext.Video.Options.WeakMarksOk)
+    {
+        isyslog("marks can/will be weak!");
     }
 
     if (tStart>1) isyslog("pre-timer %im",tStart/60);

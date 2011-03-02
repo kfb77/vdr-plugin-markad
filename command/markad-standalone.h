@@ -234,6 +234,7 @@ unsigned Descriptor_Length:
     off_t SeekPATPMT();
     bool CheckPATPMT(off_t Offset=0);
     bool CheckTS();
+    bool CheckLogo();
     bool LoadInfo();
     bool SaveInfo();
     bool SetFileUID(char *File);

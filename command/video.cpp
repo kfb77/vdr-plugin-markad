@@ -313,9 +313,10 @@ int cMarkAdLogo::SobelPlane(int plane)
 int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
 {
     bool extract=(macontext->Config->logoExtraction!=-1);
-
     int rpixel=0,mpixel=0;
     int processed=0;
+    *logoframenumber=-1;
+
     for (int plane=0; plane<4; plane++)
     {
         if ((area.valid[plane]) || (extract))
@@ -353,6 +354,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
         {
             area.status=LOGO_INVISIBLE;
         }
+        *logoframenumber=area.framenumber;
     }
 
     if (rpixel>=(mpixel*LOGO_VMARK))
@@ -858,7 +860,7 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
     {
         int logoframenumber;
         int lret=logo->Process(FrameNumber,&logoframenumber);
-        if ((lret>=-1) && (lret!=0))
+        if ((lret>=-1) && (lret!=0) && (logoframenumber!=-1))
         {
             if (lret>0)
             {
