@@ -207,6 +207,7 @@ unsigned Descriptor_Length:
     int tStart;        // pretimer in seconds
     int iStart;        // pretimer in frames (negative if unset)
     int iStop;         // endposition in frames (negative if unset)
+    bool iStopinBroadCast; // in broadcast @ iStop position?
 
     void CheckStop();
     void CheckStart();

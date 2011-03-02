@@ -210,12 +210,19 @@ void cMarkAdStandalone::CheckStop()
     }
     else
     {
-        //fallback, shouldn't be reached
-        MarkAdMark mark;
-        memset(&mark,0,sizeof(mark));
-        mark.Position=iStop;
-        mark.Type=MT_ASSUMEDSTOP;
-        AddMark(&mark);
+        //fallback
+        if (iStopinBroadCast)
+        {
+            MarkAdMark mark;
+            memset(&mark,0,sizeof(mark));
+            mark.Position=iStop;
+            mark.Type=MT_ASSUMEDSTOP;
+            AddMark(&mark);
+        }
+        else
+        {
+            isyslog("removing marks from position %i",iStop);
+        }
         marks.DelTill(iStop,false);
     }
     iStop=0;
@@ -341,13 +348,13 @@ void cMarkAdStandalone::CheckStart()
     }
     else
     {
-        //fallback, shouldn't be reached
+        //fallback
+        marks.DelTill(chkSTART);
         MarkAdMark mark;
         memset(&mark,0,sizeof(mark));
         mark.Position=iStart;
         mark.Type=MT_ASSUMEDSTART;
         AddMark(&mark);
-        marks.DelTill(iStart);
         CalculateCheckPositions(iStart);
     }
     iStart=0;
@@ -962,7 +969,11 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                 {
                                     lastiframe=iframe;
                                     if ((iStart<0) && (lastiframe>-iStart)) iStart=lastiframe;
-                                    if ((iStop<0) && (lastiframe>-iStop)) iStop=lastiframe;
+                                    if ((iStop<0) && (lastiframe>-iStop))
+                                    {
+                                        iStop=lastiframe;
+                                        iStopinBroadCast=inBroadCast;
+                                    }
                                     if (iStart>0)
                                     {
                                         if ((inBroadCast) && (lastiframe>chkSTART)) CheckStart();
@@ -1084,15 +1095,13 @@ void cMarkAdStandalone::ProcessFile()
 
     if (!abort)
     {
-        if (lastiframe)
+        if (iStop>0) CheckStop(); // no stopmark till now?
+        if ((inBroadCast) && (!gotendmark) && (lastiframe))
         {
-            if ((inBroadCast) && (!gotendmark))
-            {
-                MarkAdMark tempmark;
-                tempmark.Type=MT_RECORDINGSTOP;
-                tempmark.Position=lastiframe;
-                AddMark(&tempmark);
-            }
+            MarkAdMark tempmark;
+            tempmark.Type=MT_RECORDINGSTOP;
+            tempmark.Position=lastiframe;
+            AddMark(&tempmark);
         }
     }
     skipped=demux->Skipped();
@@ -1946,6 +1955,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     abort=false;
     gotendmark=false;
     inBroadCast=false;
+    iStopinBroadCast=false;
 
     indexFile=NULL;
     streaminfo=NULL;
