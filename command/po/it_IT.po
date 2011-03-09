@@ -1,0 +1,26 @@
+# This file is distributed under the same license as the markad package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: markad\n"
+"Report-Msgid-Bugs-To: <see README>\n"
+"POT-Creation-Date: 2010-05-27 15:32+0200\n"
+"PO-Revision-Date: 2011-03-05 15:55+0100\n"
+"Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
+"Language-Team:  <vdr@linuxtv.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Italian\n"
+"X-Poedit-Country: ITALY\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+msgid "starting markad for"
+msgstr "avvio markad per"
+
+msgid "markad aborted for"
+msgstr "markad annullato per"
+
+msgid "markad finished for"
+msgstr "markad completato per"
+

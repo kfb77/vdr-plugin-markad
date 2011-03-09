@@ -221,7 +221,7 @@ void cMarkAdStandalone::CheckStop()
         }
         else
         {
-            isyslog("removing marks from position %i",iStop);
+            isyslog("removing marks from position %i, if any",iStop);
         }
         marks.DelTill(iStop,false);
     }
@@ -469,7 +469,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     clMark *prev=marks.GetLast();
     if (prev)
     {
-        if ((Mark->Type==MT_LOGOSTART) && (!iStart))
+        if ((Mark->Type==MT_LOGOSTART) && (!iStart) && (Mark->Position<abs(iStop)))
         {
             if (prev->type==MT_LOGOSTOP)
             {
@@ -2014,7 +2014,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     {
         isyslog("timer info usage disabled by user");
     }
-
     if (config->logoExtraction!=-1)
     {
         // just to be sure extraction works
@@ -2073,7 +2072,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     }
     else
     {
-        if (!CheckLogo())
+        if (!CheckLogo() && (config->logoExtraction==-1))
         {
             isyslog("no logo found, logo detection disabled");
             macontext.Video.Options.IgnoreLogoDetection=true;

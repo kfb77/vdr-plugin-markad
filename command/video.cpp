@@ -223,8 +223,8 @@ int cMarkAdLogo::SobelPlane(int plane)
     }
 
     int boundary=6;
-    int cutval=127;
-    //int cutval=60;
+    //int cutval=127;
+    int cutval=32;
     int width=LOGOWIDTH;
 
     if (plane>0)
@@ -335,13 +335,13 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
     }
     if (extract) return LOGO_NOCHANGE;
     if (!processed) return LOGO_ERROR;
-
+#if 0
     if (processed==1)
     {
         if ((area.intensity>100) || (area.status!=LOGO_VISIBLE) &&
                 (area.intensity>180))  return LOGO_NOCHANGE;
     }
-
+#endif
     int ret=LOGO_NOCHANGE;
     if (area.status==LOGO_UNINITIALIZED)
     {
