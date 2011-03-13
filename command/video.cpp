@@ -110,6 +110,7 @@ int cMarkAdLogo::Load(const char *directory, char *file, int plane)
         fclose(pFile);
         return -2;
     }
+    fclose(pFile);
 
     if (!area.mpixel[plane])
     {
@@ -126,7 +127,6 @@ int cMarkAdLogo::Load(const char *directory, char *file, int plane)
         LOGOHEIGHT=height;
     }
 
-    fclose(pFile);
     area.valid[plane]=true;
     return 0;
 }
@@ -316,6 +316,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
     int rpixel=0,mpixel=0;
     int processed=0;
     *logoframenumber=-1;
+    if (area.corner==-1) return LOGO_NOCHANGE;
 
     for (int plane=0; plane<4; plane++)
     {
@@ -354,7 +355,8 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
         {
             area.status=LOGO_INVISIBLE;
         }
-        *logoframenumber=area.framenumber;
+        area.framenumber=framenumber;
+        *logoframenumber=framenumber;
     }
 
     if (rpixel>=(mpixel*LOGO_VMARK))
@@ -856,27 +858,6 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
 
     resetmarks();
 
-    if (!macontext->Video.Options.IgnoreLogoDetection)
-    {
-        int logoframenumber;
-        int lret=logo->Process(FrameNumber,&logoframenumber);
-        if ((lret>=-1) && (lret!=0) && (logoframenumber!=-1))
-        {
-            if (lret>0)
-            {
-                addmark(MT_LOGOSTART,logoframenumber);
-            }
-            else
-            {
-                addmark(MT_LOGOSTOP,logoframenumber);
-            }
-        }
-    }
-    else
-    {
-        logo->SetStatusUninitialized();
-    }
-
     int hborderframenumber;
     int hret=hborder->Process(FrameNumber,&hborderframenumber);
 
@@ -917,6 +898,28 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
         aspectratio.Num=macontext->Video.Info.AspectRatio.Num;
         aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
     }
+
+    if (!macontext->Video.Options.IgnoreLogoDetection)
+    {
+        int logoframenumber;
+        int lret=logo->Process(FrameNumber,&logoframenumber);
+        if ((lret>=-1) && (lret!=0) && (logoframenumber!=-1))
+        {
+            if (lret>0)
+            {
+                addmark(MT_LOGOSTART,logoframenumber);
+            }
+            else
+            {
+                addmark(MT_LOGOSTOP,logoframenumber);
+            }
+        }
+    }
+    else
+    {
+        logo->SetStatusUninitialized();
+    }
+
     framelast=FrameNumberNext;
     framebeforelast=FrameNumber;
     if (marks.Count)

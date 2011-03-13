@@ -974,14 +974,6 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                         iStop=lastiframe;
                                         iStopinBroadCast=inBroadCast;
                                     }
-                                    if (iStart>0)
-                                    {
-                                        if ((inBroadCast) && (lastiframe>chkSTART)) CheckStart();
-                                    }
-                                    if (iStop>0)
-                                    {
-                                        if (lastiframe>chkSTOP) CheckStop();
-                                    }
                                     iframe=framecnt-1;
                                     dRes=true;
                                 }
@@ -1002,6 +994,15 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                         }
                                     }
                                     //SaveFrame(lastiframe);  // TODO: JUST FOR DEBUGGING!
+
+                                    if (iStart>0)
+                                    {
+                                        if ((inBroadCast) && (lastiframe>chkSTART)) CheckStart();
+                                    }
+                                    if (iStop>0)
+                                    {
+                                        if (lastiframe>chkSTOP) CheckStop();
+                                    }
                                 }
                             }
                         }
