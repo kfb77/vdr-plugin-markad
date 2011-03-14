@@ -352,7 +352,19 @@ int cPaketQueue::findaudioheader(int start, int *framesize, int *headersize, boo
     }
 }
 
-int cPaketQueue::FindPesHeader(int Start)
+int cPaketQueue::FindTSHeader(int Start)
+{
+    int start=outptr+Start;
+    int i=0;
+    for (i=start; i<inptr; i++)
+    {
+        if (buffer[i]==0x47) break;
+    }
+    if (i==inptr) return -1;
+    return i;
+}
+
+int cPaketQueue::FindPESHeader(int Start)
 {
     int start=outptr+Start;
     int ssize,hsize;
@@ -580,6 +592,7 @@ void cTS2Pkt::Clear()
     noticeFILLER=false;
     noticeSEQUENCE=false;
     noticeSTREAM=false;
+    noticeTSERR=false;
     if (queue) queue->Clear();
 }
 
@@ -636,6 +649,12 @@ bool cTS2Pkt::Process(uchar *TSData, int TSSize, AvPacket *Pkt)
         if ((tshdr->AFC!=1) && (tshdr->AFC!=3))
         {
             return true;
+        }
+
+        if ((tshdr->TError) && (!noticeTSERR))
+        {
+            noticeTSERR=true;
+            isyslog("stream error bit set");
         }
 
         int buflen=TS_SIZE+1;
@@ -912,13 +931,14 @@ bool cDemux::isvideopes(uchar *data, int count)
 
 int cDemux::checkts(uchar *data, int count, int &pid)
 {
+    pid=-1;
     if (count<(int) sizeof(struct TSHDR)) return -1;
     if (data[0]!=0x47) return 1;
 
     struct TSHDR *tshdr = (struct TSHDR *) data;
+    pid = (tshdr->PidH << 8) | tshdr->PidL;
     if ((tshdr->AFC<=0) || (tshdr->AFC>3)) return 1;
 
-    pid = (tshdr->PidH << 8) | tshdr->PidL;
     return 0;
 }
 
@@ -952,19 +972,19 @@ int cDemux::fillqueue(uchar *data, int count, int &stream_or_pid, int &packetsiz
             skipped++;
             stream_or_pid=0;
             packetsize=1;
-            return 0;
+            return 0; // no useable data found, try next byte!
         }
     }
     else
     {
-        int error_skipbytes=checkts(qData,PEEKBUF,stream_or_pid);
-        if (error_skipbytes==-1) return -1;
-        if (error_skipbytes)
+        int ret=checkts(qData,PEEKBUF,stream_or_pid);
+        if (ret==-1) return -1;
+        if (ret)
         {
-            skipped+=error_skipbytes;
+            skipped++;
             stream_or_pid=0;
             packetsize=1;
-            return error_skipbytes; // no useable data found, try next!
+            return 0; // no useable data found, try next byte!
         }
         packetsize=TS_SIZE;
     }
@@ -989,8 +1009,8 @@ int cDemux::fillqueue(uchar *data, int count, int &stream_or_pid, int &packetsiz
             int start=packetsize;
             if ((qData[start]!=0) || (qData[start+1]!=0) || (qData[start+2]!=1) || (qData[start+3]<0xBC))
             {
-                int start=queue->FindPesHeader(1);
-                if (start)
+                int start=queue->FindPESHeader(1);
+                if (start>0)
                 {
                     // broken PES in queue, skip it
                     packetsize=start;
@@ -1000,7 +1020,8 @@ int cDemux::fillqueue(uchar *data, int count, int &stream_or_pid, int &packetsiz
                 }
                 else
                 {
-                    return -1;
+                    // try to use the first packet
+                    return 0;
                 }
             }
         }
@@ -1019,7 +1040,21 @@ int cDemux::fillqueue(uchar *data, int count, int &stream_or_pid, int &packetsiz
             }
             if (ret)
             {
-                return -1;
+                if (pid!=-1) return 0; // next packet is broken!
+                int start=queue->FindTSHeader(1);
+                if (start>0)
+                {
+                    // broken TS in queue, skip it
+                    packetsize=start;
+                    skipped+=start;
+                    stream_or_pid=0;
+                    return 0;
+                }
+                else
+                {
+                    // try to use the first packet
+                    return 0;
+                }
             }
         }
     }

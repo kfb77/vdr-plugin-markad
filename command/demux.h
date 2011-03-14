@@ -207,7 +207,8 @@ public:
             return ((scannerstart==inptr) || (scannerstart==outptr));
         }
     }
-    int FindPesHeader(int Start);
+    int FindPESHeader(int Start);
+    int FindTSHeader(int Start);
 };
 
 // ----------------------------------------------------------------------------
@@ -225,6 +226,7 @@ private:
     bool noticeFILLER;
     bool noticeSEQUENCE;
     bool noticeSTREAM;
+    bool noticeTSERR;
 public:
     cTS2Pkt(int Pid, const char *QueueName="TS2Pkt", int QueueSize=32768, bool H264=false);
     ~cTS2Pkt();

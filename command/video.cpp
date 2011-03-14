@@ -223,8 +223,8 @@ int cMarkAdLogo::SobelPlane(int plane)
     }
 
     int boundary=6;
-    //int cutval=127;
-    int cutval=32;
+    int cutval=127;
+    //int cutval=32;
     int width=LOGOWIDTH;
 
     if (plane>0)

@@ -103,6 +103,10 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3, int Threa
     last_qscale_table=NULL;
     skipframes=true;
 
+    noticeERRVID=false;
+    noticeERRMP2=false;
+    noticeERRAC3=false;
+
     cpu_set_t cpumask;
     uint len = sizeof(cpumask);
     int cpucount;
@@ -476,7 +480,11 @@ bool cMarkAdDecoder::DecodeMP2(MarkAdContext *maContext, uchar *espkt, int eslen
 #endif
         if (len<0)
         {
-            esyslog("error decoding mp2");
+            if (!noticeERRMP2)
+            {
+                esyslog("error decoding mp2");
+                noticeERRMP2=true;
+            }
             break;
         }
         if (audiobufsize>0)
@@ -517,7 +525,11 @@ bool cMarkAdDecoder::DecodeAC3(MarkAdContext *maContext, uchar *espkt, int eslen
 #endif
         if (len<0)
         {
-            esyslog("error decoding ac3");
+            if (!noticeERRAC3)
+            {
+                esyslog("error decoding ac3");
+                noticeERRAC3=true;
+            }
             break;
         }
         if (audiobufsize>0)
@@ -603,7 +615,11 @@ bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
 #endif
         if (len<0)
         {
-            esyslog("error decoding video");
+            if (!noticeERRVID)
+            {
+                esyslog("error decoding video");
+                noticeERRVID=true;
+            }
             break;
         }
         else
