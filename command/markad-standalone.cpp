@@ -458,7 +458,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance too short (%.1fs), deleting %i,%i",distance,
                         prev->position,Mark->Position);
-                if ((prev->type & 0x0F)==MT_START) inBroadCast=false;
+                if (((prev->type & 0x0F)==MT_START) && (!macontext.Video.Options.WeakMarksOk)) inBroadCast=false;
                 marks.Del(prev);
                 if (comment) free(comment);
                 return;
@@ -479,7 +479,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                     double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
                     isyslog("mark distance too short (%.1fs), deleting %i,%i",distance,
                             prev->position,Mark->Position);
-                    if ((prev->type & 0x0F)==MT_START) inBroadCast=false;
+                    if (((prev->type & 0x0F)==MT_START) && (!macontext.Video.Options.WeakMarksOk)) inBroadCast=false;
                     marks.Del(prev);
                     if (comment) free(comment);
                     return;
@@ -519,10 +519,6 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         {
             inBroadCast=false;
         }
-    }
-    else
-    {
-        inBroadCast=true;
     }
     marks.Add(Mark->Type,Mark->Position,comment);
     if (comment) free(comment);
@@ -2084,6 +2080,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     if (macontext.Video.Options.WeakMarksOk)
     {
         isyslog("marks can/will be weak!");
+        inBroadCast=true;
     }
 
     if (tStart>1) isyslog("pre-timer %im",tStart/60);

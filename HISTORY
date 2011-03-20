@@ -1,5 +1,13 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
+2011-03-20: Version 0.1.1
+
+- Fixed bug in handling ts files ("demux error")
+- Fixed output of marks on channels without logos
+- Added finnish logos and translation from Rolf Ahrensberg
+- Added spanish translation from Javier Bradineras
+- Added more informations in markad logfile
+
 2011-02-23: Version 0.1.0
 
 - New demuxer
