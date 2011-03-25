@@ -193,7 +193,7 @@ unsigned Descriptor_Length:
     struct timeval tv1,tv2;
     struct timezone tz;
 
-    bool noticeVDR_MP2;
+    bool noticeVDR_VID;
     bool noticeVDR_AC3;
     bool noticeHEADER;
     bool noticeFILLER;

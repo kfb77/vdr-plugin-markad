@@ -27,6 +27,7 @@ typedef struct AvPacket
     uchar *Data;
     int Length;
     int Type;
+    int Stream;
 } AvPacket;
 
 struct TSHDR
@@ -188,7 +189,9 @@ public:
     void Clear();
     int Skipped()
     {
-        return skipped;
+        int temp=skipped;
+        skipped=0;
+        return temp;
     }
     bool Put(uchar *Data, int Size);
     uchar *Get(int *Size);
@@ -215,6 +218,17 @@ public:
 
 class cTS2Pkt
 {
+    enum
+    {
+        ERR_INIT=0,
+        ERR_SEQUENCE,
+        ERR_PAYLOAD,
+        ERR_HDRBIT,
+        ERR_AFCLEN,
+        ERR_DUPLICATE,
+        ERR_SYNC
+    };
+
 private:
     cPaketQueue *queue;
     int counter;
@@ -222,15 +236,13 @@ private:
     bool firstsync;
     int skipped;
     int pid;
+    int lasterror;
     bool h264;
     bool noticeFILLER;
-    bool noticeSEQUENCE;
-    bool noticeSTREAM;
-    bool noticeTSERR;
 public:
     cTS2Pkt(int Pid, const char *QueueName="TS2Pkt", int QueueSize=32768, bool H264=false);
     ~cTS2Pkt();
-    void Clear();
+    void Clear(AvPacket *Pkt=NULL);
     int Skipped()
     {
         return skipped;
@@ -257,10 +269,19 @@ public:
 
 class cPES2ES
 {
+    enum
+    {
+        ERR_INIT,
+        ERR_LENGTH,
+        ERR_PADDING
+    };
+
 private:
     cPaketQueue *queue;
     int skipped;
     int ptype;
+    int stream;
+    int lasterror;
     bool h264;
 public:
     cPES2ES(int PacketType, const char *QueueName="PES2ES", int QueueSize=32768);
@@ -288,10 +309,18 @@ public:
 
 class cDemux
 {
+    enum
+    {
+        ERR_INIT=0,
+        ERR_JUNK,
+        ERR_BROKEN
+    };
+
 private:
     int vpid,dpid,apid;
     int stream_or_pid;
     int skipped;
+    int lasterror;
     bool h264;
     bool TS;
     uint64_t offset;

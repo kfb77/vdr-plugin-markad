@@ -942,6 +942,14 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                             {
                                 if ((macontext.Video.Info.Height) && (!noticeHEADER))
                                 {
+                                    if ((!isTS) && (!noticeVDR_VID))
+                                    {
+                                        isyslog("found %s-video (0x%02X)",
+                                                macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262",
+                                                pkt.Stream);
+                                        noticeVDR_VID=true;
+                                    }
+
                                     isyslog("%s %ix%i%c%0.f",(macontext.Video.Info.Height>576) ? "HDTV" : "SDTV",
                                             macontext.Video.Info.Width,
                                             macontext.Video.Info.Height,
@@ -1009,7 +1017,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                             {
                                 if ((!isTS) && (!noticeVDR_AC3))
                                 {
-                                    isyslog("found AC3");
+                                    isyslog("found AC3 (0x%02X)",pkt.Stream);
                                     noticeVDR_AC3=true;
                                 }
                                 if ((framecnt-iframe)<=3)
@@ -1210,7 +1218,7 @@ bool cMarkAdStandalone::SaveInfo()
 
     char *line=NULL;
     char *lline=NULL;
-    size_t length=0;
+    size_t len=0;
 
     char lang[4]="";
 
@@ -1235,7 +1243,7 @@ bool cMarkAdStandalone::SaveInfo()
     }
 
     bool err=false;
-    while (getline(&line,&length,r)!=-1)
+    while (getline(&line,&len,r)!=-1)
     {
         if (line[0]=='X')
         {
@@ -1964,12 +1972,13 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
     memset(&pkt,0,sizeof(pkt));
 
-    noticeVDR_MP2=false;
+    noticeVDR_VID=false;
     noticeVDR_AC3=false;
     noticeHEADER=false;
     noticeFILLER=false;
 
     skipped=0;
+    length=0;
 
     sleepcnt=0;
     waittime=iwaittime=0;
@@ -2111,14 +2120,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     {
         if (isTS)
         {
-            dsyslog("found %s-video (0x%04x)",
+            isyslog("found %s-video (0x%04x)",
                     macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262",
                     macontext.Info.VPid.Num);
-        }
-        else
-        {
-            dsyslog("found %s-video",
-                    macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262");
         }
         demux=new cDemux(macontext.Info.VPid.Num,macontext.Info.DPid.Num,macontext.Info.APid.Num,
                          macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,true);
@@ -2131,13 +2135,13 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     if (macontext.Info.APid.Num)
     {
         if (macontext.Info.APid.Num!=-1)
-            dsyslog("found MP2 (0x%04x)",macontext.Info.APid.Num);
+            isyslog("found MP2 (0x%04x)",macontext.Info.APid.Num);
     }
 
     if (macontext.Info.DPid.Num)
     {
         if (macontext.Info.DPid.Num!=-1)
-            dsyslog("found AC3 (0x%04x)",macontext.Info.DPid.Num);
+            isyslog("found AC3 (0x%04x)",macontext.Info.DPid.Num);
     }
 
     if (!abort)

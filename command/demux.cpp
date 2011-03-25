@@ -34,16 +34,18 @@ cPaketQueue::cPaketQueue(const char *Name, int Size)
     memset(&pktinfo,0,sizeof(pktinfo));
     percent=-1;
     mpercent=0;
+    inptr=outptr=0;
+    skipped=0;
     Clear();
 }
 
 void cPaketQueue::Clear()
 {
+    skipped+=(inptr-outptr);
     inptr=outptr=0;
     pktinfo.pkthdr=-1;
     scanner=0xFFFFFFFF;
     scannerstart=-1;
-    skipped=0;
 }
 
 cPaketQueue::~cPaketQueue()
@@ -451,7 +453,6 @@ uchar *cPaketQueue::GetPacket(int *Size, int Type)
     *Size=0;
     if (Length()<4) return NULL;
 
-    skipped=0;
     if (pktinfo.pkthdr==-1)
     {
         scanner=0xFFFFFFFF;
@@ -480,7 +481,7 @@ uchar *cPaketQueue::GetPacket(int *Size, int Type)
         {
             if (pktinfo.pkthdr!=outptr)
             {
-                skipped=pktinfo.pkthdr-outptr;
+                skipped+=(pktinfo.pkthdr-outptr);
             }
         }
         scannerstart=pktinfo.pkthdr+pktinfo.pktsyncsize;
@@ -584,21 +585,29 @@ cTS2Pkt::~cTS2Pkt()
     }
 }
 
-void cTS2Pkt::Clear()
+void cTS2Pkt::Clear(AvPacket *Pkt)
 {
+    if (!Pkt)
+    {
+        skipped=0;
+        noticeFILLER=false;
+        lasterror=ERR_INIT;
+    }
+    else
+    {
+        Pkt->Length=0;
+        Pkt->Type=0;
+        Pkt->Stream=0;
+    }
     sync=false;
     counter=-1;
-    skipped=0;
-    noticeFILLER=false;
-    noticeSEQUENCE=false;
-    noticeSTREAM=false;
-    noticeTSERR=false;
     if (queue) queue->Clear();
 }
 
 bool cTS2Pkt::Process(uchar *TSData, int TSSize, AvPacket *Pkt)
 {
     if (!Pkt) return false;
+    if (!queue) return false;
     if (TSData)
     {
         if (TSSize!=TS_SIZE) return false;
@@ -615,23 +624,30 @@ bool cTS2Pkt::Process(uchar *TSData, int TSSize, AvPacket *Pkt)
         {
             if (counter==(int) tshdr->Counter)
             {
+                if (lasterror!=ERR_DUPLICATE)
+                {
+                    lasterror=ERR_DUPLICATE;
+                    esyslog("duplicate packet, skipping (0x%04x)",pid);
+                }
+                Pkt->Length=0;
+                Pkt->Type=0;
+                Pkt->Stream=0;
                 skipped+=TS_SIZE;
-                return true; // duplicate paket -> just ignore
+                return true; // duplicate packet -> just ignore
             }
             // sequence error
-            if (!noticeSEQUENCE)
+            if (lasterror!=ERR_SEQUENCE)
             {
-                noticeSEQUENCE=true;
-                isyslog("sequence error");
+                lasterror=ERR_SEQUENCE;
+                esyslog("sequence error (0x%04x)",pid);
             }
-            if (queue)
+            Clear(Pkt);
+            skipped+=queue->Skipped();
+            if (!tshdr->PayloadStart)
             {
-                skipped+=queue->Length();
-                queue->Clear();
+                skipped+=TS_SIZE;
+                return true;
             }
-            counter=-1;
-            sync=false;
-            if (!tshdr->PayloadStart) return true;
         }
         counter=tshdr->Counter;
 
@@ -641,20 +657,33 @@ bool cTS2Pkt::Process(uchar *TSData, int TSSize, AvPacket *Pkt)
         }
         if (!sync)
         {
-            if (firstsync) skipped+=TS_SIZE; // only count skipped bytes after first sync
+            Clear(Pkt);
+            if (firstsync)
+            {
+                if (lasterror==ERR_INIT)
+                {
+                    lasterror=ERR_SYNC;
+                    esyslog("out of sync (0x%04x)",pid);
+                }
+                skipped+=TS_SIZE; // only count skipped bytes after first sync
+                skipped+=queue->Skipped();
+            }
             return true; // not synced
         }
 
         // we just ignore the infos in the adaption field (e.g. OPCR/PCR)
         if ((tshdr->AFC!=1) && (tshdr->AFC!=3))
         {
+            Pkt->Length=0;
+            Pkt->Type=0;
+            Pkt->Stream=0;
             return true;
         }
 
-        if ((tshdr->TError) && (!noticeTSERR))
+        if ((tshdr->TError) && (lasterror!=ERR_HDRBIT))
         {
-            noticeTSERR=true;
-            isyslog("stream error bit set");
+            lasterror=ERR_HDRBIT;
+            esyslog("stream error bit set (0x%04x)",pid);
         }
 
         int buflen=TS_SIZE+1;
@@ -671,7 +700,18 @@ bool cTS2Pkt::Process(uchar *TSData, int TSSize, AvPacket *Pkt)
         {
             // adaption field + payload
             int alen=TSData[4]+1;
-            if (alen>(TS_SIZE-(int) sizeof(struct TSHDR))) alen=TS_SIZE-(int) sizeof(struct TSHDR);
+            if (alen>(TS_SIZE-(int) sizeof(struct TSHDR)))
+            {
+                if (lasterror!=ERR_AFCLEN)
+                {
+                    lasterror=ERR_AFCLEN;
+                    esyslog("afc length error (0x%04x)",pid);
+                }
+                Clear(Pkt);
+                skipped+=queue->Skipped();
+                skipped+=TS_SIZE;
+                return true;
+            }
             buflen=TS_SIZE-(sizeof(struct TSHDR)+alen);
             buf=&TSData[sizeof(struct TSHDR)+alen];
         }
@@ -686,21 +726,15 @@ bool cTS2Pkt::Process(uchar *TSData, int TSSize, AvPacket *Pkt)
         {
             if ((buf[0]!=0) && (buf[1]!=0))
             {
-                if (!noticeSTREAM)
+                if (lasterror!=ERR_PAYLOAD)
                 {
-                    isyslog("stream error");
-                    noticeSTREAM=true;
+                    lasterror=ERR_PAYLOAD;
+                    esyslog("payload start error (0x%04x)",pid);
                 }
+                Clear(Pkt);
+                skipped+=queue->Skipped();
                 skipped+=TS_SIZE;
-                sync=false;
-                if (buflen<7) return false;
-                // add a pseudo padding stream
-                buf[0]=0;
-                buf[1]=0;
-                buf[2]=1;
-                buf[3]=0xbe;
-                buf[4]=0;
-                buf[5]=buflen-6;
+                return true;
             }
         }
         queue->Put(buf,buflen);
@@ -710,24 +744,28 @@ bool cTS2Pkt::Process(uchar *TSData, int TSSize, AvPacket *Pkt)
     if (Pkt->Data)
     {
         Pkt->Type=h264 ? PACKET_H264 : PACKET_H262;
+        Pkt->Stream=pid;
         if ((h264) && ((Pkt->Data[4] & 0x1F)==0x0C))
         {
             if (!noticeFILLER)
             {
-                isyslog("H264 video stream with filler nalu");
+                isyslog("H264 video stream with filler nalu (0x%04x)",pid);
                 noticeFILLER=true;
             }
             skipped+=Pkt->Length; // thats not accurate!
             Pkt->Data=NULL;
             Pkt->Length=0;
             Pkt->Type=0;
+            Pkt->Stream=0;
         }
     }
     else
     {
         Pkt->Length=0;
         Pkt->Type=0;
+        Pkt->Stream=0;
     }
+    skipped+=queue->Skipped();
     return true;
 }
 
@@ -751,7 +789,9 @@ cPES2ES::~cPES2ES()
 
 void cPES2ES::Clear()
 {
+    stream=0;
     skipped=0;
+    lasterror=0;
     if (queue) queue->Clear();
 }
 
@@ -772,6 +812,11 @@ bool cPES2ES::Process(uchar *PESData, int PESSize, AvPacket *ESPkt)
             Length+=sizeof(PESHDR);
             if (Length!=PESSize)
             {
+                if (lasterror!=ERR_LENGTH)
+                {
+                    esyslog("length mismatch (0x%02X)",peshdr->StreamID);
+                    lasterror=ERR_LENGTH;
+                }
                 skipped+=Length;
                 return true;
             }
@@ -779,7 +824,13 @@ bool cPES2ES::Process(uchar *PESData, int PESSize, AvPacket *ESPkt)
 
         if (peshdr->StreamID==0xBE)
         {
+            if (lasterror!=ERR_PADDING)
+            {
+                esyslog("found padding stream (0x%02X)",peshdr->StreamID);
+                lasterror=ERR_PADDING;
+            }
             queue->Clear();
+            skipped+=queue->Skipped();
             return true;
         }
 
@@ -800,7 +851,7 @@ bool cPES2ES::Process(uchar *PESData, int PESSize, AvPacket *ESPkt)
         default:
             break;
         }
-
+        stream=peshdr->StreamID;
         struct PESHDROPT *peshdropt=(struct PESHDROPT *) &PESData[sizeof(struct PESHDR)];
 
         uchar *buf;
@@ -834,11 +885,13 @@ bool cPES2ES::Process(uchar *PESData, int PESSize, AvPacket *ESPkt)
     if (ESPkt->Data)
     {
         ESPkt->Type=ptype;
+        ESPkt->Stream=stream;
     }
     else
     {
         ESPkt->Type=0;
         ESPkt->Length=0;
+        ESPkt->Stream=0;
     }
     skipped+=queue->Skipped();
     return true;
@@ -917,6 +970,7 @@ void cDemux::Clear()
     last_bplen=0;
     from_oldfile=0;
     stream_or_pid=0;
+    lasterror=ERR_INIT;
 }
 
 bool cDemux::isvideopes(uchar *data, int count)
@@ -969,6 +1023,11 @@ int cDemux::fillqueue(uchar *data, int count, int &stream_or_pid, int &packetsiz
         }
         else
         {
+            if (lasterror!=ERR_JUNK)
+            {
+                esyslog("unusable data, skipping");
+                lasterror=ERR_JUNK;
+            }
             skipped++;
             stream_or_pid=0;
             packetsize=1;
@@ -981,6 +1040,11 @@ int cDemux::fillqueue(uchar *data, int count, int &stream_or_pid, int &packetsiz
         if (ret==-1) return -1;
         if (ret)
         {
+            if (lasterror!=ERR_JUNK)
+            {
+                esyslog("unusable data, skipping");
+                lasterror=ERR_JUNK;
+            }
             skipped++;
             stream_or_pid=0;
             packetsize=1;
@@ -1002,7 +1066,7 @@ int cDemux::fillqueue(uchar *data, int count, int &stream_or_pid, int &packetsiz
     }
     if (!TS)
     {
-        // check length of PES-paket
+        // check length of PES-packet
         qData=queue->Peek(packetsize+PEEKBUF);
         if (qData)
         {
@@ -1013,6 +1077,11 @@ int cDemux::fillqueue(uchar *data, int count, int &stream_or_pid, int &packetsiz
                 if (start>0)
                 {
                     // broken PES in queue, skip it
+                    if (lasterror!=ERR_BROKEN)
+                    {
+                        esyslog("broken PES in queue, skipping");
+                        lasterror=ERR_BROKEN;
+                    }
                     packetsize=start;
                     skipped+=start;
                     stream_or_pid=0;
@@ -1045,6 +1114,11 @@ int cDemux::fillqueue(uchar *data, int count, int &stream_or_pid, int &packetsiz
                 if (start>0)
                 {
                     // broken TS in queue, skip it
+                    if (lasterror!=ERR_BROKEN)
+                    {
+                        esyslog("broken TS in queue, skipping");
+                        lasterror=ERR_BROKEN;
+                    }
                     packetsize=start;
                     skipped+=start;
                     stream_or_pid=0;
@@ -1259,7 +1333,7 @@ int cDemux::Process(uchar *Data, int Count, AvPacket *pkt)
         }
         else if (stream_or_pid==dpid)
         {
-            AvPacket tpkt={NULL,0,0};
+            AvPacket tpkt={NULL,0,0,0};
             if (!ts2pkt_dpid) ts2pkt_dpid=new cTS2Pkt(dpid,"TS2PES AC3");
             if (!ts2pkt_dpid->Process(bpkt,bplen,&tpkt)) return -1;
             if (!pes2audioes_ac3) pes2audioes_ac3=new cPES2ES(PACKET_AC3,"PES2AC3");
@@ -1267,7 +1341,7 @@ int cDemux::Process(uchar *Data, int Count, AvPacket *pkt)
         }
         else if (stream_or_pid==apid)
         {
-            AvPacket tpkt={NULL,0,0};
+            AvPacket tpkt={NULL,0,0,0};
             if (!ts2pkt_apid) ts2pkt_apid=new cTS2Pkt(apid,"TS2PES MP2",16384);
             if (!ts2pkt_apid->Process(bpkt,bplen,&tpkt)) return -1;
             if (!pes2audioes_mp2) pes2audioes_mp2=new cPES2ES(PACKET_MP2,"PES2MP2",16384);
