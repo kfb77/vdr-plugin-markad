@@ -8,6 +8,6 @@
 #ifndef __version_h_
 #define __version_h_
 
-static const char *VERSION        = "0.1.2pre";
+static const char *VERSION        = "0.1.2";
 
 #endif

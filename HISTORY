@@ -1,5 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
+2010-04-03: Version 0.1.2
+
+- Fixed another bug in handling ts files ("demux error")
+- Limited logo extraction to 1000 frames
+- Added more finnish logos
+- Added czech translation
+
 2011-03-20: Version 0.1.1
 
 - Fixed bug in handling ts files ("demux error")

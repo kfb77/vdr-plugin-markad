@@ -361,10 +361,35 @@ void cMarkAdStandalone::CheckStart()
     return;
 }
 
+void cMarkAdStandalone::CheckLogoMarks()
+{
+    clMark *mark=marks.GetFirst();
+    while (mark)
+    {
+        if ((mark->type==MT_LOGOSTOP) && mark->Next() && mark->Next()->type==MT_LOGOSTART)
+        {
+            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*30);
+            if (abs(mark->Next()->position-mark->position)<=MARKDIFF)
+            {
+                double distance=(mark->Next()->position-mark->position)/macontext.Video.Info.FramesPerSecond;
+                isyslog("mark distance too short (%.1fs), deleting %i,%i",distance,
+                        mark->position,mark->Next()->position);
+                clMark *tmp=mark;
+                mark=mark->Next()->Next();
+                marks.Del(tmp->Next());
+                marks.Del(tmp);
+                continue;
+            }
+        }
+        mark=mark->Next();
+    }
+}
+
 void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 {
     if (!Mark) return;
     if (!Mark->Type) return;
+    if ((macontext.Config) && (macontext.Config->logoExtraction!=-1)) return;
     if (gotendmark) return;
 
     char *comment=NULL;
@@ -439,7 +464,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 
     if (comment) isyslog("%s",comment);
 
-    if ((Mark->Type & 0x0F)==MT_STOP)
+    if (((Mark->Type & 0x0F)==MT_STOP) && (!iStart) && (Mark->Position<abs(iStop)))
     {
         clMark *prev=marks.GetPrev(Mark->Position,(Mark->Type & 0xF0)|MT_START);
         if (prev)
@@ -458,7 +483,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                 double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance too short (%.1fs), deleting %i,%i",distance,
                         prev->position,Mark->Position);
-                if (((prev->type & 0x0F)==MT_START) && (!macontext.Video.Options.WeakMarksOk)) inBroadCast=false;
+                if (!macontext.Video.Options.WeakMarksOk) inBroadCast=false;
                 marks.Del(prev);
                 if (comment) free(comment);
                 return;
@@ -469,24 +494,6 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     clMark *prev=marks.GetLast();
     if (prev)
     {
-        if ((Mark->Type==MT_LOGOSTART) && (!iStart) && (Mark->Position<abs(iStop)))
-        {
-            if (prev->type==MT_LOGOSTOP)
-            {
-                int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*30);
-                if ((Mark->Position-prev->position)<MARKDIFF)
-                {
-                    double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
-                    isyslog("mark distance too short (%.1fs), deleting %i,%i",distance,
-                            prev->position,Mark->Position);
-                    if (((prev->type & 0x0F)==MT_START) && (!macontext.Video.Options.WeakMarksOk)) inBroadCast=false;
-                    marks.Del(prev);
-                    if (comment) free(comment);
-                    return;
-                }
-            }
-        }
-
         if ((prev->type & 0x0F)==(Mark->Type & 0x0F))
         {
             int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*30);
@@ -968,6 +975,13 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                     marks.WriteIndex(directory,isTS,demux->Offset(),macontext.Video.Info.Pict_Type,Number);
                                 }
                                 framecnt++;
+                                if ((macontext.Config->logoExtraction!=-1) && (framecnt>=1000))
+                                {
+                                    isyslog("finished logo extraction");
+                                    abort=true;
+                                    if (f!=-1) close(f);
+                                    return true;
+                                }
 
                                 if (macontext.Video.Info.Pict_Type==MA_I_TYPE)
                                 {
@@ -1100,6 +1114,7 @@ void cMarkAdStandalone::ProcessFile()
 
     if (!abort)
     {
+        CheckLogoMarks();
         if (iStop>0) CheckStop(); // no stopmark till now?
         if ((inBroadCast) && (!gotendmark) && (lastiframe))
         {

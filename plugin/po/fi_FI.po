@@ -1,0 +1,105 @@
+# This file is distributed under the same license as the markad package.
+# Rolf Ahrenberg, 2011
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vdr\n"
+"Report-Msgid-Bugs-To: <see README>\n"
+"POT-Creation-Date: 2011-03-21 22:32+0100\n"
+"PO-Revision-Date: 2011-02-27 02:27+0200\n"
+"Last-Translator: Rolf Ahrenberg\n"
+"Language-Team: Finnish <vdr@linuxtv.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: fi\n"
+
+msgid "markad still running"
+msgstr "Mainosten merkintä yhä aktiivinen"
+
+msgid "markad status"
+msgstr "Mainosten merkintä"
+
+msgid "running"
+msgstr "aktiivinen"
+
+msgid "sleeping"
+msgstr "nukkumassa"
+
+msgid "inactive"
+msgstr "ei aktiivinen"
+
+msgid "zombie"
+msgstr "zombie"
+
+msgid "stopped"
+msgstr "pysäytetty"
+
+msgid "unknown"
+msgstr "tuntematon"
+
+msgid "Recording\t Status"
+msgstr "Tallenne\t Status"
+
+msgid "no running markad found"
+msgstr "ei aktiivisia tehtäviä"
+
+msgid "Pause"
+msgstr "Pysäytä"
+
+msgid "Continue"
+msgstr "Jatka"
+
+msgid "after"
+msgstr "jälkeen"
+
+msgid "during"
+msgstr "aikana"
+
+msgid "execution"
+msgstr "Suorita tehtävä tallennuksen"
+
+msgid "  during another recording"
+msgstr "  toisen tallennuksen aikana"
+
+msgid "  while replaying"
+msgstr "  tallenteen toiston aikana"
+
+msgid "scan only channels with logo"
+msgstr "Käytä vain logollisilla kanavilla"
+
+msgid "ignore timer margins"
+msgstr "Älä huomioi ajastinmarginaaleja"
+
+msgid "detect overlaps"
+msgstr "Tunnista päällekkäisyydet"
+
+msgid "repair index, if broken"
+msgstr "Luo rikkinäinen index-tiedosto uudestaan"
+
+msgid "correct info file"
+msgstr "Korjaa info-tiedosto"
+
+msgid "OSD message"
+msgstr "Käytä kuvaruutuviestejä"
+
+msgid "verbose logging"
+msgstr "Käytä laajennettua lokikirjoitusta"
+
+msgid "log to recording directory"
+msgstr "Kirjoita lokitiedosto tallennehakemistoon"
+
+msgid "hide mainmenu entry"
+msgstr "Piilota valita päävalikosta"
+
+msgid "show list"
+msgstr "Näytä lista"
+
+msgid "list"
+msgstr "Lista"
+
+msgid "back"
+msgstr "Takaisin"
+
+msgid "Mark advertisements"
+msgstr "Merkitse mainokset automaattisesti"
