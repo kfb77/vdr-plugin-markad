@@ -21,6 +21,8 @@ typedef unsigned char uchar;
 #define PACKET_AUDIO 0x20
 #define PACKET_AC3   0x20
 #define PACKET_MP2   0x21
+#define PACKET_TS    0x30
+#define PACKET_PES   0x40
 
 typedef struct AvPacket
 {
@@ -327,6 +329,8 @@ private:
     int from_oldfile;
     int last_bplen;
 
+    bool raw;
+
     bool vdrcount;
     int vdroffset;
     bool vdraddpatpmt(uchar *data, int count);
@@ -345,10 +349,14 @@ private:
     bool isvideopes(uchar *data, int count);
     int fillqueue(uchar *data, int count, int &stream_or_pid, int &packetsize, int &readout);
 public:
-    cDemux(int VPid, int DPid, int APid, bool H264=false, bool VDRCount=false);
+    cDemux(int VPid, int DPid, int APid, bool H264=false, bool VDRCount=false, bool RAW=false);
     ~cDemux();
     void DisableDPid();
     void Clear();
+    bool Empty()
+    {
+        return queue ? (queue->Length()==0) : true;
+    }
     int Skipped();
     void NewFile();
     uint64_t Offset()

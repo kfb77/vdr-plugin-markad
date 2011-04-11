@@ -170,7 +170,7 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup)
                             }
                             if (!strcmp(name,cname))
                             {
-                                Add(new cOsdItem(cString::sprintf("%i\t%s",channel->Number(),channel->Name())));
+                                Add(new cSetupMarkAdListItem(cString::sprintf("%i\t%s",channel->Number(),channel->Name())));
                                 free(cname);
                                 break;
                             }
@@ -183,7 +183,24 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup)
             }
         }
     }
+    Sort();
     closedir(dir);
+}
+
+int cSetupMarkAdListItem::Compare(const cListObject &ListObject) const
+{
+    const cSetupMarkAdListItem *la=(cSetupMarkAdListItem *) &ListObject;
+    const char *t1=strchr(Text(),'\t');
+    const char *t2=strchr(la->Text(),'\t');
+    if ((t1) && (t2))
+    {
+        return strcasecmp(t1,t2);
+    }
+    else
+    {
+        return 0;
+    }
+
 }
 
 eOSState cSetupMarkAdList::ProcessKey (eKeys Key)

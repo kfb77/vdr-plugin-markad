@@ -899,8 +899,9 @@ bool cPES2ES::Process(uchar *PESData, int PESSize, AvPacket *ESPkt)
 
 // ----------------------------------------------------------------------------
 
-cDemux::cDemux(int VPid, int DPid, int APid, bool H264, bool VDRCount)
+cDemux::cDemux(int VPid, int DPid, int APid, bool H264, bool VDRCount, bool RAW)
 {
+    raw=RAW;
     TS=false;
     if ((VPid>0) || (DPid>0) || (APid>0)) TS=true;
 
@@ -1235,7 +1236,25 @@ int cDemux::Process(uchar *Data, int Count, AvPacket *pkt)
     pkt->Length=0;
 
     bool add=needmoredata();
-
+    if ((raw) && (!Data) && (!Count))
+    {
+        uchar Dummy[6];
+        if (TS)
+        {
+        }
+        else
+        {
+            Dummy[0]=0;
+            Dummy[1]=0;
+            Dummy[2]=1;
+            Dummy[3]=0xbd;
+            Dummy[4]=0;
+            Dummy[5]=0;
+        }
+        Data=Dummy;
+        Count=6;
+        add=true; // last packet!
+    }
     int bplen=0,readout=0;
     uchar *bpkt=NULL;
     if (add)
@@ -1247,7 +1266,27 @@ int cDemux::Process(uchar *Data, int Count, AvPacket *pkt)
         bpkt=queue->Get(&bplen);
         if (!bpkt) return -1;
         last_bplen=bplen;
-        if (vdrcount) vdraddpatpmt(bpkt,bplen);
+        if ((vdrcount) && (TS)) vdraddpatpmt(bpkt,bplen);
+    }
+
+    if (raw)
+    {
+        if (bpkt)
+        {
+            pkt->Data=bpkt;
+            pkt->Length=bplen;
+            pkt->Stream=stream_or_pid;
+            if (TS)
+            {
+                pkt->Type=PACKET_TS;
+            }
+            else
+            {
+                pkt->Type=PACKET_PES;
+            }
+        }
+        stream_or_pid=0;
+        return add ? readout : 0;
     }
 
     if (!TS)
