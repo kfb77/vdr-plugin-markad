@@ -1929,7 +1929,7 @@ bool cMarkAdStandalone::CreatePidfile()
             if (stat(procname,&statbuf)!=-1)
             {
                 // found another, running markad
-                isyslog("another instance is running on this recording");
+                fprintf(stderr,"another instance is running on %s",directory);
                 abort=duplicate=true;
             }
         }
@@ -2020,6 +2020,23 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     macontext.Info.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
     macontext.Info.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
 
+    if (!config->NoPid)
+    {
+        CreatePidfile();
+        if (abort) return;
+    }
+
+    if (LOG2REC)
+    {
+        char *fbuf;
+        if (asprintf(&fbuf,"%s/markad.log",directory)!=-1)
+        {
+            if (freopen(fbuf,"w+",stdout)) {};
+            SetFileUID(fbuf);
+            free(fbuf);
+        }
+    }
+
     isyslog("starting v%s",VERSION);
     isyslog("on %s",Directory);
 
@@ -2041,13 +2058,13 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         bDecodeVideo=true;
     }
 
-    if (!config->NoPid)
-    {
-        CreatePidfile();
-        if (abort) return;
-    }
-
     if (config->Before) sleep(10);
+
+    if (strstr(directory,"/@"))
+    {
+        isyslog("live-recording, disabling pre-/post timer");
+        bIgnoreTimerInfo=true;
+    }
 
     if (!CheckTS()) return;
 
@@ -2206,7 +2223,7 @@ cMarkAdStandalone::~cMarkAdStandalone()
                 etime,framecnt,framecnt2,ftime,ptime);
     }
 
-    if (osd)
+    if ((osd) && (!duplicate))
     {
         if (abort)
         {
@@ -2925,17 +2942,6 @@ int main(int argc, char *argv[])
         signal(SIGUSR1, signal_handler);
         signal(SIGTSTP, signal_handler);
         signal(SIGCONT, signal_handler);
-
-        if (LOG2REC)
-        {
-            char *fbuf;
-            if (asprintf(&fbuf,"%s/markad.log",recDir)!=-1)
-            {
-                if (freopen(fbuf,"w+",stdout)) {};
-                if (chown(fbuf,statbuf.st_uid, statbuf.st_gid)) {};
-                free(fbuf);
-            }
-        }
 
         cmasta = new cMarkAdStandalone(recDir,&config);
         if (!cmasta) return -1;
