@@ -34,7 +34,6 @@
 #include "markad-standalone.h"
 #include "version.h"
 
-extern int sys_ioprio_set(int which, int who, int ioprio);
 bool SYSLOG=false;
 bool LOG2REC=false;
 cMarkAdStandalone *cmasta=NULL;
@@ -55,7 +54,7 @@ static inline int ioprio_set(int which, int who, int ioprio)
 #define __NR_ioprio_set		1274
 #define __NR_ioprio_get		1275
 #else
-#error "Unsupported arch"
+    return 0; // just do nothing
 #endif
     return syscall(__NR_ioprio_set, which, who, ioprio);
 }
