@@ -33,8 +33,6 @@ endif
 INCLUDES += $(shell $(PKG-CONFIG) --cflags $(PKG-INCLUDES))
 LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
 
-INCLUDES += -I..
-
 ### The object files (add further files here):
 
 OBJS = markad-standalone.o decoder.o marks.o streaminfo.o video.o audio.o demux.o 

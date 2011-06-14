@@ -45,7 +45,6 @@ PACKAGE = vdr-$(ARCHIVE)
 ### Includes and Defines (add further entries here):
 
 INCLUDES += -I$(VDRDIR)/include
-INCLUDES += -I..
 
 DEFINES += -D_GNU_SOURCE -DPLUGIN_NAME_I18N='"$(PLUGIN)"'
 DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
