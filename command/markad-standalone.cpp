@@ -1123,7 +1123,7 @@ void cMarkAdStandalone::ProcessFile()
             AddMark(&tempmark);
         }
     }
-    skipped=demux->Skipped();
+    if (demux) skipped=demux->Skipped();
 }
 
 void cMarkAdStandalone::Process()
@@ -1934,6 +1934,11 @@ bool cMarkAdStandalone::CreatePidfile()
         }
         fclose(oldpid);
     }
+    else
+    {
+        // fopen above sets the error to 2, reset it here!
+        errno=0;
+    }
     if (duplicate)
     {
         free(buf);
@@ -2036,7 +2041,17 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         }
     }
 
-    isyslog("starting v%s",VERSION);
+    long lb;
+    errno=0;
+    lb=sysconf(_SC_LONG_BIT);
+    if (errno==0)
+    {
+        isyslog("starting v%s (%libit)",VERSION,lb);
+    }
+    else
+    {
+        isyslog("starting v%s",VERSION);
+    }
     isyslog("on %s",Directory);
 
     if (!bDecodeAudio)
@@ -2065,7 +2080,11 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         bIgnoreTimerInfo=true;
     }
 
-    if (!CheckTS()) return;
+    if (!CheckTS()) {
+	esyslog("no files found");
+	abort=true;
+	return;
+    }
 
     if (isTS)
     {
