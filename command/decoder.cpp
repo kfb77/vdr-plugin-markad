@@ -20,6 +20,18 @@
 #define CPU_COUNT(i) 1 // very crude ;)
 #endif
 
+#ifndef AVMEDIA_TYPE_AUDIO
+#define AVMEDIA_TYPE_AUDIO CODEC_TYPE_AUDIO
+#endif
+
+#ifndef AVMEDIA_TYPE_VIDEO
+#define AVMEDIA_TYPE_VIDEO CODEC_TYPE_VIDEO
+#endif
+
+#ifndef AVMEDIA_TYPE_UNKNOWN
+#define AVMEDIA_TYPE_UNKNOWN CODEC_TYPE_UNKNOWN
+#endif
+
 #include "decoder.h"
 
 #if LIBAVCODEC_VERSION_INT < ((52<<16)+(65<<8)+0)
@@ -136,12 +148,7 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3, int Threa
     if (ver!=LIBAVCODEC_VERSION_INT)
     {
         esyslog("libavcodec header version %s",AV_STRINGIFY(LIBAVCODEC_VERSION));
-        esyslog("header and library mismatch, decoding disabled");
-        video_context=NULL;
-        ac3_context=NULL;
-        mp2_context=NULL;
-        audiobuf=NULL;
-        return;
+        esyslog("header and library mismatch, dont report decoder-bugs!");
     }
 
 #if LIBAVCODEC_VERSION_INT >= ((52<<16)+(41<<8)+0)
@@ -163,7 +170,7 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3, int Threa
             if (mp2_context)
             {
                 mp2_context->codec_id = mp2_codecid;
-                mp2_context->codec_type = CODEC_TYPE_AUDIO;
+                mp2_context->codec_type = AVMEDIA_TYPE_AUDIO;
                 if (avcodec_open(mp2_context, mp2_codec) < 0)
                 {
                     esyslog("could not open codec for MP2");
@@ -198,7 +205,7 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3, int Threa
             if (ac3_context)
             {
                 ac3_context->codec_id = ac3_codecid;
-                ac3_context->codec_type = CODEC_TYPE_AUDIO;
+                ac3_context->codec_type = AVMEDIA_TYPE_AUDIO;
                 if (avcodec_open(ac3_context, ac3_codec) < 0)
                 {
                     esyslog("could not open codec for AC3");
@@ -265,7 +272,7 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3, int Threa
                 video_context->skip_frame=AVDISCARD_NONKEY; // just I-frames
             }
             video_context->codec_id = video_codecid;
-            video_context->codec_type = CODEC_TYPE_VIDEO;
+            video_context->codec_type = AVMEDIA_TYPE_VIDEO;
             int ret=avcodec_open(video_context, video_codec);
             if ((ret < 0) && (video_codecid==CODEC_ID_MPEG2VIDEO_XVMC))
             {
@@ -274,7 +281,7 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3, int Threa
                 video_codec=avcodec_find_decoder(video_codecid);
                 if (video_codec)
                 {
-                    video_context->codec_type=CODEC_TYPE_UNKNOWN;
+                    video_context->codec_type=AVMEDIA_TYPE_UNKNOWN;
                     video_context->codec_id=CODEC_ID_NONE;
                     video_context->codec_tag=0;
                     memset(video_context->codec_name,0,sizeof(video_context->codec_name));
