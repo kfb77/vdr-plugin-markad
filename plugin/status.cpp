@@ -81,9 +81,9 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                                    setup->Log2Rec ? " -R " : "",
                                    logodir,Direct ? "-O after" : "--online=2 before",
                                    FileName);
-    dsyslog("markad: executing %s",*cmd);
     if (SystemExec(cmd)!=-1)
     {
+        dsyslog("markad: executing %s",*cmd);
         usleep(200000);
         int pos=Add(FileName,Name);
         if (getPid(pos) && getStatus(pos))
@@ -113,8 +113,10 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                     }
                 }
             }
-            return true;
+        } else {
+            isyslog("markad: cannot find running process");
         }
+        return true;
     }
     return false;
 }
@@ -193,7 +195,9 @@ void cStatusMarkAd::Recording(const cDevice *UNUSED(Device), const char *Name,
     {
         if (setup->LogoOnly && !LogoExists(Name)) return;
         // Start markad with recording
-        Start(FileName,Name,false);
+        if (!Start(FileName,Name,false)) {
+            esyslog("markad: failed starting on %s",FileName);
+        }
     }
     else
     {
@@ -355,6 +359,7 @@ void cStatusMarkAd::Remove(int Position, bool Kill)
     }
     recs[Position].Status=0;
     recs[Position].Pid=0;
+    recs[Position].ChangedbyUser=false;
 }
 
 int cStatusMarkAd::Add(const char *FileName, const char *Name)
@@ -370,10 +375,11 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name)
             }
             else
             {
-                Name=NULL;
+                recs[i].Name=NULL;
             }
             recs[i].Status=0;
             recs[i].Pid=0;
+            recs[i].ChangedbyUser=false;
             return i;
         }
     }
