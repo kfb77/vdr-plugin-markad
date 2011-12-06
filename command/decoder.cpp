@@ -20,6 +20,8 @@
 #define CPU_COUNT(i) 1 // very crude ;)
 #endif
 
+#include "decoder.h"
+
 #ifndef AVMEDIA_TYPE_AUDIO
 #define AVMEDIA_TYPE_AUDIO CODEC_TYPE_AUDIO
 #endif
