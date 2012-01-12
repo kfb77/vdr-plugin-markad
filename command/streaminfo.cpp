@@ -252,9 +252,16 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 if (num_units_in_tick > 0)
                 {
                     frame_rate = time_scale / num_units_in_tick;
-                    if (frame_mbs_only_flag) frame_rate/=2;
+                    if (frame_mbs_only_flag) {
+                        frame_rate/=2;
+                    } else {
+                        if (pic_order_cnt_type!=2) frame_rate/=2;
+                    }
                 }
                 fixedframerate=bs.getBit();                       // fixed_frame_rate_flag
+                if ((fixedframerate==1) && (frame_rate!=0)) {
+                    maContext->Video.Info.FramesPerSecond=frame_rate;
+                }
             }
 #if 0
             int nal_hrd_parameters_present_flag = bs.getBit(); // nal_hrd_parameters_present_flag
