@@ -94,15 +94,15 @@ $(I18Nmsgs): $(LOCALEDIR)/%/LC_MESSAGES/vdr-$(PLUGIN).mo: $(PODIR)/%.mo
 	cp $< $@
 
 .PHONY: i18n
-i18n: $(I18Nmsgs) $(I18Npot)
+i18n: $(I18Npot)
 
 ### Targets:
 
-install:
+install: all $(I18Nmsgs)
+	cp --remove-destination libvdr-$(PLUGIN).so $(LIBDIR)/libvdr-$(PLUGIN).so.$(APIVERSION)
 
 libvdr-$(PLUGIN).so: $(OBJS)
 	$(CXX) $(CXXFLAGS) -shared $(OBJS) $(LIBS) -o $@
-	@cp --remove-destination $@ $(LIBDIR)/$@.$(APIVERSION)
 
 clean:
 	@-rm -f $(OBJS) $(DEPFILE) *.so *.so.* *.tgz core* *~ $(PODIR)/*.mo $(PODIR)/*.pot
