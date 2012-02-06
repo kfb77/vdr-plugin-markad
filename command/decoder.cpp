@@ -22,19 +22,11 @@
 
 #include "decoder.h"
 
-#ifndef AVMEDIA_TYPE_AUDIO
+#if LIBAVUTIL_VERSION_INT < ((50<<16)+(14<<8)+0)
 #define AVMEDIA_TYPE_AUDIO CODEC_TYPE_AUDIO
-#endif
-
-#ifndef AVMEDIA_TYPE_VIDEO
 #define AVMEDIA_TYPE_VIDEO CODEC_TYPE_VIDEO
-#endif
-
-#ifndef AVMEDIA_TYPE_UNKNOWN
 #define AVMEDIA_TYPE_UNKNOWN CODEC_TYPE_UNKNOWN
 #endif
-
-#include "decoder.h"
 
 #if LIBAVCODEC_VERSION_INT < ((52<<16)+(65<<8)+0)
 int avcodec_copy_context(AVCodecContext *dest, const AVCodecContext *src)
