@@ -2307,7 +2307,7 @@ int usage(int svdrpport)
            "-B              --backupmarks\n"
            "                  make a backup of existing marks\n"
            "-G              --genindex\n"
-           "                  regenerate broken index file\n"
+           "                  regenerate index file\n"
            "-I              --saveinfo\n"
            "                  correct information in info file\n"
            "-L              --extractlogo=<direction>[,width[,height]]\n"
