@@ -1754,7 +1754,8 @@ off_t cMarkAdStandalone::SeekPATPMT()
             close(fd);
             return (off_t) -1;
         }
-        if ((peek_buf[0]==0x47) && (peek_buf[1]==0x40) && (peek_buf[2]==00))
+
+        if ((peek_buf[0]==0x47) && ((peek_buf[1] & 0x5F)==0x40) && (peek_buf[2]==00))
         {
             off_t ret=lseek(fd,0,SEEK_CUR);
             close(fd);
@@ -2081,9 +2082,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     }
 
     if (!CheckTS()) {
-	esyslog("no files found");
-	abort=true;
-	return;
+        esyslog("no files found");
+        abort=true;
+        return;
     }
 
     if (isTS)
