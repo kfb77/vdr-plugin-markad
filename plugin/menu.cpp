@@ -116,7 +116,7 @@ bool cMenuMarkAd::write()
     if (!header)
     {
         Add(new cOsdItem(tr("no running markad found"),osUnknown,false),true);
-        lastpos=NULL;
+        lastpos=0;
     }
     Display();
     return header;

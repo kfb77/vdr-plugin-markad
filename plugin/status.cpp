@@ -141,7 +141,10 @@ bool cStatusMarkAd::LogoExists(const char *Name)
             break;
         }
     }
-    if (!timer) return false;
+    if (!timer) {
+        esyslog("markad: cannot find internal recording structure for %s",Name);
+        return false;
+    }
 
     const cChannel *chan=timer->Channel();
     if (!chan) return false;
@@ -193,7 +196,10 @@ void cStatusMarkAd::Recording(const cDevice *UNUSED(Device), const char *Name,
 
     if (On)
     {
-        if (setup->LogoOnly && !LogoExists(Name)) return;
+        if (setup->LogoOnly && !LogoExists(Name)) {
+            dsyslog("markad: no logo found for %s",Name);
+            return;
+        }
         // Start markad with recording
         if (!Start(FileName,Name,false)) {
             esyslog("markad: failed starting on %s",FileName);

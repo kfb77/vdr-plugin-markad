@@ -1,6 +1,6 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
-2010-04-03: Version 0.1.2
+2011-04-03: Version 0.1.2
 
 - Fixed another bug in handling ts files ("demux error")
 - Limited logo extraction to 1000 frames
@@ -26,7 +26,7 @@ VDR Plugin 'markad' Revision History
 2011-02-13: Version 0.0.9
 
 - Removed "scan AC3 always" option, added "correct info file"
-- New default options: repair index=off, corect info file=off
+- New default options: repair index=off, correct info file=off
 - markad now rely to the F framerate parameter (no internal correction)
 - Improved overlap handling
 - Added some logos
@@ -54,7 +54,7 @@ VDR Plugin 'markad' Revision History
 
 2009-09-17: Version 0.0.3
 
-- Changed name from noad to markad
+- Changed name to markad
 - Added H264 SPS processor from femon
 - Ignore duplicate TS-packets
 - Added standalone version (still not working)
