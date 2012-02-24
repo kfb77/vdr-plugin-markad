@@ -12,6 +12,8 @@
 #include <string.h>
 #include <cstdlib>
 
+#include "decoder.h"
+
 #ifndef DECLARE_ALIGNED
 #define DECLARE_ALIGNED(n,t,v) t v __attribute__ ((aligned (n)))
 #endif
@@ -19,8 +21,6 @@
 #ifndef CPU_COUNT
 #define CPU_COUNT(i) 1 // very crude ;)
 #endif
-
-#include "decoder.h"
 
 #if LIBAVUTIL_VERSION_INT < ((50<<16)+(14<<8)+0)
 #define AVMEDIA_TYPE_AUDIO CODEC_TYPE_AUDIO
@@ -195,7 +195,11 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, int Threads)
             }
             video_context->codec_id = video_codecid;
             video_context->codec_type = AVMEDIA_TYPE_VIDEO;
+#if LIBAVCODEC_VERSION_INT >= ((53<<16)+(5<<8)+0)
+            int ret=avcodec_open2(video_context, video_codec, NULL);
+#else
             int ret=avcodec_open(video_context, video_codec);
+#endif
             if ((ret < 0) && (video_codecid==CODEC_ID_MPEG2VIDEO_XVMC))
             {
                 // fallback to MPEG2VIDEO
@@ -207,7 +211,12 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, int Threads)
                     video_context->codec_id=CODEC_ID_NONE;
                     video_context->codec_tag=0;
                     memset(video_context->codec_name,0,sizeof(video_context->codec_name));
+#if LIBAVCODEC_VERSION_INT >= ((53<<16)+(5<<8)+0)
+                    video_context->thread_count=threadcount;
+                    ret=avcodec_open2(video_context, video_codec, NULL);
+#else
                     ret=avcodec_open(video_context, video_codec);
+#endif
                 }
                 else
                 {
@@ -257,17 +266,17 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, int Threads)
                     av_free(video_context);
                     video_context=NULL;
                 }
-                else
+
+#if LIBAVCODEC_VERSION_INT < ((53<<16)+(5<<8)+0)
+                if ((threadcount>1) && (video_context))
                 {
-                    if (threadcount>1)
+                    if (avcodec_thread_init(video_context,threadcount)==-1)
                     {
-                        if (avcodec_thread_init(video_context,threadcount)==-1)
-                        {
-                            esyslog("cannot use %i threads, falling back to single thread operation",threadcount);
-                            threadcount=1;
-                        }
+                        esyslog("cannot use %i threads, falling back to single thread operation",threadcount);
+                        threadcount=1;
                     }
                 }
+#endif
             }
         }
         else
@@ -328,8 +337,14 @@ bool cMarkAdDecoder::Clear()
         if (ret)
         {
             video_context=dest;
+#if LIBAVCODEC_VERSION_INT >= ((53<<16)+(5<<8)+0)
+            video_context->thread_count=threadcount;
+            if (avcodec_open2(video_context,video_codec,NULL)<0) ret=false;
+#else
             if (avcodec_open(video_context,video_codec)<0) ret=false;
+#endif
         }
+#if LIBAVCODEC_VERSION_INT < ((53<<16)+(5<<8)+0)
         if (threadcount>1)
         {
             if (avcodec_thread_init(video_context,threadcount)==-1)
@@ -342,6 +357,7 @@ bool cMarkAdDecoder::Clear()
         {
             video_context->execute=avcodec_default_execute;
         }
+#endif
     }
     return ret;
 }
