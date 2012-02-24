@@ -974,7 +974,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                     marks.WriteIndex(directory,isTS,demux->Offset(),macontext.Video.Info.Pict_Type,Number);
                                 }
                                 framecnt++;
-                                if ((macontext.Config->logoExtraction!=-1) && (framecnt>=1000))
+                                if ((macontext.Config->logoExtraction!=-1) && (framecnt>=256))
                                 {
                                     isyslog("finished logo extraction");
                                     abort=true;
@@ -2197,8 +2197,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
     if (!abort)
     {
-        decoder = new cMarkAdDecoder(macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,
-                                     macontext.Info.APid.Num!=0,macontext.Info.DPid.Num!=0,config->threads);
+        decoder = new cMarkAdDecoder(macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,config->threads);
         video = new cMarkAdVideo(&macontext);
         audio = new cMarkAdAudio(&macontext);
         streaminfo = new cMarkAdStreamInfo;

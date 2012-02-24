@@ -101,7 +101,7 @@ fail:
 }
 #endif
 
-cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3, int Threads)
+cMarkAdDecoder::cMarkAdDecoder(bool useH264, int Threads)
 {
     avcodec_init();
     avcodec_register_all();
@@ -110,8 +110,6 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3, int Threa
     skipframes=true;
 
     noticeERRVID=false;
-    noticeERRMP2=false;
-    noticeERRAC3=false;
 
     cpu_set_t cpumask;
     uint len = sizeof(cpumask);
@@ -152,76 +150,6 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3, int Threa
     if (((ver >> 16)<52) && (useH264))
     {
         esyslog("dont report bugs about H264, use libavcodec >= 52 instead!");
-    }
-
-    if (useMP2)
-    {
-        CodecID mp2_codecid=CODEC_ID_MP2;
-        AVCodec *mp2_codec= avcodec_find_decoder(mp2_codecid);
-        if (mp2_codec)
-        {
-            mp2_context = avcodec_alloc_context();
-            if (mp2_context)
-            {
-                mp2_context->codec_id = mp2_codecid;
-                mp2_context->codec_type = AVMEDIA_TYPE_AUDIO;
-                if (avcodec_open(mp2_context, mp2_codec) < 0)
-                {
-                    esyslog("could not open codec for MP2");
-                    av_free(mp2_context);
-                    mp2_context=NULL;
-                }
-                avcodec_thread_init(mp2_context,threadcount);
-            }
-            else
-            {
-                esyslog("could not allocate mp2 context");
-            }
-        }
-        else
-        {
-            esyslog("codec for MP2 not found");
-            mp2_context=NULL;
-        }
-    }
-    else
-    {
-        mp2_context=NULL;
-    }
-
-    if (hasAC3)
-    {
-        CodecID ac3_codecid=CODEC_ID_AC3;
-        AVCodec *ac3_codec= avcodec_find_decoder(ac3_codecid);
-        if (ac3_codec)
-        {
-            ac3_context = avcodec_alloc_context();
-            if (ac3_context)
-            {
-                ac3_context->codec_id = ac3_codecid;
-                ac3_context->codec_type = AVMEDIA_TYPE_AUDIO;
-                if (avcodec_open(ac3_context, ac3_codec) < 0)
-                {
-                    esyslog("could not open codec for AC3");
-                    av_free(ac3_context);
-                    ac3_context=NULL;
-                }
-                avcodec_thread_init(ac3_context,threadcount);
-            }
-            else
-            {
-                esyslog("could not allocate ac3 context");
-            }
-        }
-        else
-        {
-            esyslog("codec for AC3 not found");
-            ac3_context=NULL;
-        }
-    }
-    else
-    {
-        ac3_context=NULL;
     }
 
     video_codec=NULL;
@@ -366,15 +294,6 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, bool useMP2, bool hasAC3, int Threa
         }
         video_context=NULL;
     }
-
-    if ((ac3_context) || (mp2_context))
-    {
-        audiobuf=(int16_t*) malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
-    }
-    else
-    {
-        audiobuf=NULL;
-    }
 }
 
 cMarkAdDecoder::~cMarkAdDecoder()
@@ -386,19 +305,6 @@ cMarkAdDecoder::~cMarkAdDecoder()
         av_free(video_context);
         av_free(video_frame);
     }
-
-    if (ac3_context)
-    {
-        avcodec_close(ac3_context);
-        av_free(ac3_context);
-    }
-
-    if (mp2_context)
-    {
-        avcodec_close(mp2_context);
-        av_free(mp2_context);
-    }
-    if (audiobuf) free(audiobuf);
 }
 
 bool cMarkAdDecoder::Clear()
@@ -435,110 +341,6 @@ bool cMarkAdDecoder::Clear()
         else
         {
             video_context->execute=avcodec_default_execute;
-        }
-    }
-    if (ac3_context) avcodec_flush_buffers(ac3_context);
-    if (mp2_context) avcodec_flush_buffers(mp2_context);
-    return ret;
-}
-
-bool cMarkAdDecoder::SetAudioInfos(MarkAdContext *maContext, AVCodecContext *Audio_Context)
-{
-    if ((!maContext) || (!Audio_Context)) return false;
-
-    maContext->Audio.Info.SampleRate = Audio_Context->sample_rate;
-    maContext->Audio.Info.Channels = Audio_Context->channels;
-    maContext->Audio.Data.SampleBuf=audiobuf;
-    maContext->Audio.Data.SampleBufLen=audiobufsize;
-    maContext->Audio.Data.Valid=true;
-    return true;
-}
-
-bool cMarkAdDecoder::DecodeMP2(MarkAdContext *maContext, uchar *espkt, int eslen)
-{
-    if (!mp2_context) return false;
-    maContext->Audio.Data.Valid=false;
-    AVPacket avpkt;
-#if LIBAVCODEC_VERSION_INT >= ((52<<16)+(25<<8)+0)
-    av_init_packet(&avpkt);
-#else
-    memset(&avpkt,0,sizeof(avpkt));
-    avpkt.pts = avpkt.dts = AV_NOPTS_VALUE;
-    avpkt.pos = -1;
-#endif
-    avpkt.data=espkt;
-    avpkt.size=eslen;
-
-    audiobufsize=AVCODEC_MAX_AUDIO_FRAME_SIZE;
-    int ret=false;
-    while (avpkt.size>0)
-    {
-#if LIBAVCODEC_VERSION_INT < ((52<<16)+(25<<8)+0)
-        int len=avcodec_decode_audio2(mp2_context,audiobuf,&audiobufsize,
-                                      avpkt.data,avpkt.size);
-#else
-        int len=avcodec_decode_audio3(mp2_context,audiobuf,&audiobufsize,&avpkt);
-#endif
-        if (len<0)
-        {
-            if (!noticeERRMP2)
-            {
-                esyslog("error decoding mp2");
-                noticeERRMP2=true;
-            }
-            break;
-        }
-        if (audiobufsize>0)
-        {
-            SetAudioInfos(maContext,mp2_context);
-            ret=true;
-            avpkt.size-=len;
-            avpkt.data+=len;
-        }
-    }
-    return ret;
-}
-
-bool cMarkAdDecoder::DecodeAC3(MarkAdContext *maContext, uchar *espkt, int eslen)
-{
-    if (!ac3_context) return false;
-    maContext->Audio.Data.Valid=false;
-    AVPacket avpkt;
-#if LIBAVCODEC_VERSION_INT >= ((52<<16)+(25<<8)+0)
-    av_init_packet(&avpkt);
-#else
-    memset(&avpkt,0,sizeof(avpkt));
-    avpkt.pts = avpkt.dts = AV_NOPTS_VALUE;
-    avpkt.pos = -1;
-#endif
-    avpkt.data=espkt;
-    avpkt.size=eslen;
-
-    int ret=false;
-    while (avpkt.size>0)
-    {
-        audiobufsize=AVCODEC_MAX_AUDIO_FRAME_SIZE;
-#if LIBAVCODEC_VERSION_INT < ((52<<16)+(25<<8)+0)
-        int len=avcodec_decode_audio2(ac3_context,audiobuf,&audiobufsize,
-                                      avpkt.data,avpkt.size);
-#else
-        int len=avcodec_decode_audio3(ac3_context,audiobuf,&audiobufsize,&avpkt);
-#endif
-        if (len<0)
-        {
-            if (!noticeERRAC3)
-            {
-                esyslog("error decoding ac3");
-                noticeERRAC3=true;
-            }
-            break;
-        }
-        if (audiobufsize>0)
-        {
-            SetAudioInfos(maContext,ac3_context);
-            ret=true;
-            avpkt.size-=len;
-            avpkt.data+=len;
         }
     }
     return ret;
