@@ -48,7 +48,7 @@ void cSetupMarkAd::write(void)
     lpos=Current();
     Add(new cMenuEditBoolItem(tr("ignore timer margins"),&nomargins));
     Add(new cMenuEditBoolItem(tr("detect overlaps"),&secondpass));
-    Add(new cMenuEditBoolItem(tr("repair index, if broken"),&genindex));
+    Add(new cMenuEditBoolItem(tr("recreate index"),&genindex));
     Add(new cMenuEditBoolItem(tr("correct info file"),&saveinfo));
     Add(new cMenuEditBoolItem(tr("OSD message"),&osdmsg));
     Add(new cMenuEditBoolItem(tr("verbose logging"),&verbose));
