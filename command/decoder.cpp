@@ -103,7 +103,9 @@ fail:
 
 cMarkAdDecoder::cMarkAdDecoder(bool useH264, int Threads)
 {
+#if LIBAVCODEC_VERSION_INT < ((53<<16)+(7<<8)+1)  
     avcodec_init();
+#endif
     avcodec_register_all();
 
     last_qscale_table=NULL;
