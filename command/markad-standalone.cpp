@@ -72,8 +72,13 @@ void syslog_with_tid(int priority, const char *format, ...)
     }
     else
     {
+        char buf[255]={0};
+        const time_t now=time(NULL);
+        if (ctime_r(&now,buf)) {
+            buf[strlen(buf)-6]=0;
+        }
         char fmt[255];
-        snprintf(fmt, sizeof(fmt), "markad: [%d] %s", getpid(), format);
+        snprintf(fmt, sizeof(fmt), "%s%s [%d] %s", LOG2REC ? "":"markad: ",buf, getpid(), format);
         va_start(ap, format);
         vprintf(fmt,ap);
         va_end(ap);
@@ -1749,10 +1754,22 @@ off_t cMarkAdStandalone::SeekPATPMT()
     uchar peek_buf[188];
     for (int i=0; i<5000; i++)
     {
-        if (read(fd,peek_buf,sizeof(peek_buf))!=sizeof(peek_buf))
-        {
+        int ret=read(fd,peek_buf,sizeof(peek_buf));
+        if (!ret) {
             close(fd);
-            return (off_t) -1;
+            return (off_t) -2;
+        }
+        if (ret!=sizeof(peek_buf)) {
+            close(fd);
+            return (off_t) -2;
+        }
+        if (ret<0) {
+            if (errno!=EINTR) {
+                close(fd);
+                return (off_t) -3;
+            } else {
+                sleep(3);
+            }
         }
 
         if ((peek_buf[0]==0x47) && ((peek_buf[1] & 0x5F)==0x40) && (peek_buf[2]==00))
@@ -1769,7 +1786,7 @@ off_t cMarkAdStandalone::SeekPATPMT()
 
 bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
 {
-    if (Offset==(off_t) -1) return false;
+    if (Offset<(off_t) 0) return false;
     char *buf;
     if (asprintf(&buf,"%s/00001.ts",directory)==-1) return false;
 
@@ -2089,9 +2106,20 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
     if (isTS)
     {
-        if (!CheckPATPMT(SeekPATPMT()))
+        off_t pos;
+        int sc=0;
+        do {
+            pos=SeekPATPMT();
+            if (pos==(off_t) -2) {
+                sleep(10);
+                sc++;
+                if (sc>6) break;
+            }
+        } while (pos==(off_t) -2);
+
+        if (!CheckPATPMT(pos))
         {
-            esyslog("no PAT/PMT found -> cannot process");
+            esyslog("no PAT/PMT found (%i) -> cannot process",(int) pos);
             abort=true;
             return;
         }
@@ -2825,13 +2853,9 @@ int main(int argc, char *argv[])
     }
 
     // do nothing if called from vdr before/after the video is cutted
-    if ((bAfter) && (online)) return 0;
-    if (config.Before)
-    {
-        if (!online) return 0;
-        if ((online==1) && (!strchr(recDir,'@'))) return 0;
-    }
     if (bEdited) return 0;
+    if ((bAfter) && (online)) return 0;
+    if ((config.Before) && (online==1) && (!strchr(recDir,'@'))) return 0;
 
     // we can run, if one of bImmediateCall, bAfter, bBefore or bNice is true
     // and recDir is given
