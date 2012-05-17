@@ -239,7 +239,7 @@ bool cStatusMarkAd::getStatus(int Position)
     if (fstat)
     {
         // found a running markad
-        ret=fscanf(fstat,"%*d %*s %c",&recs[Position].Status);
+        ret=fscanf(fstat,"%*10d %*255s %c",&recs[Position].Status);
         fclose(fstat);
     }
     else
@@ -268,7 +268,7 @@ bool cStatusMarkAd::getPid(int Position)
     {
         free(buf);
         int pid;
-        ret=fscanf(fpid,"%i\n",&pid);
+        ret=fscanf(fpid,"%10i\n",&pid);
         if (ret==1) recs[Position].Pid=pid;
         fclose(fpid);
     }

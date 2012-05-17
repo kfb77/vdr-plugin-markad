@@ -67,13 +67,16 @@ void cPaketQueue::Resize(int NewSize, const char *NewName)
     }
     if (inptr<NewSize)
     {
-        buffer=(uchar *) realloc(buffer,NewSize+8);
-        if (buffer)
+        uchar *tmp=(uchar *) realloc(buffer,NewSize+8);
+        if (tmp)
         {
+            buffer=tmp;    
             maxqueue=NewSize;
         }
         else
         {
+            free(buffer);
+            buffer=NULL;
             maxqueue=0;
             Clear();
         }

@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2012-02-25 15:48+0100\n"
+"POT-Creation-Date: 2012-05-17 12:42+0200\n"
 "PO-Revision-Date: 2009-08-27 14:18+0200\n"
 "Last-Translator: Jochen Dolze <vdr@dolze.de>\n"
 "Language-Team: German <vdr@linuxtv.org>\n"
@@ -67,6 +67,9 @@ msgstr "  während einer Wiedergabe"
 msgid "scan only channels with logo"
 msgstr "nur Kanäle mit Logo scannen"
 
+msgid "deferred shutdown"
+msgstr "Herunterfahren verzögern?"
+
 msgid "ignore timer margins"
 msgstr "Timer Vor-/Nachlauf ignorieren"
 
@@ -102,4 +105,3 @@ msgstr "zurück"
 
 msgid "Mark advertisements"
 msgstr "Markiere Werbung"
-

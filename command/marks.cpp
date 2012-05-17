@@ -663,7 +663,7 @@ bool clMarks::Load(const char *Directory, double FrameRate, bool isTS)
     {
         char descr[256]="";
         f=1;
-        int n=sscanf(line,"%d:%d:%d.%d %80c",&h,&m,&s,&f,(char *) &descr);
+        int n=sscanf(line,"%3d:%02d:%02d.%02d %80c",&h,&m,&s,&f,(char *) &descr);
         if (n==1)
         {
             Add(0,h);

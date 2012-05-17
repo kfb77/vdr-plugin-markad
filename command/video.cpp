@@ -23,7 +23,6 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
     macontext=maContext;
 
     // 3x3 GX Sobel mask
-
     GX[0][0] = -1;
     GX[0][1] =  0;
     GX[0][2] =  1;
@@ -85,7 +84,7 @@ int cMarkAdLogo::Load(const char *directory, char *file, int plane)
     }
 
     int width,height;
-    if (fscanf(pFile, "P5\n#C%i %i\n%d %d\n255\n#", &area.corner,&area.mpixel[plane],&width,&height)!=4)
+    if (fscanf(pFile, "P5\n#C%1i %3i\n%3d %3d\n255\n#", &area.corner,&area.mpixel[plane],&width,&height)!=4)
     {
         fclose(pFile);
         return -2;

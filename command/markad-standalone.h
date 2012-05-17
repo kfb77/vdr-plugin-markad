@@ -245,15 +245,14 @@ unsigned Descriptor_Length:
     bool ProcessFile(int Number);
     void ProcessFile();
 public:
+    cMarkAdStandalone(const char *Directory, const MarkAdConfig *config);
+    ~cMarkAdStandalone();
     void SetAbort()
     {
         abort=true;
     }
     void Process2ndPass();
     void Process();
-    cMarkAdStandalone(const char *Directory, const MarkAdConfig *config);
-
-    ~cMarkAdStandalone();
 };
 
 #endif

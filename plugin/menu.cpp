@@ -72,7 +72,7 @@ cMenuMarkAd::cMenuMarkAd(cStatusMarkAd *Status):cOsdMenu(tr("markad status"),15)
 
     if (write())
     {
-        cOsdMarkAd *osd=(cOsdMarkAd *) Get(Current());
+        cOsdMarkAd *osd=static_cast<cOsdMarkAd *>(Get(Current()));
         if ((osd) && (osd->Selectable()))
         {
             SetHelpText(osd->GetEntry());
@@ -158,7 +158,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key)
     switch (Key)
     {
     case kRed:
-        osd=(cOsdMarkAd *) Get(Current());
+        osd=static_cast<cOsdMarkAd *>(Get(Current()));
         if ((osd) && (osd->Selectable()))
         {
             struct recs *entry=osd->GetEntry();
@@ -173,7 +173,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key)
         break;
 
     case kGreen:
-        osd=(cOsdMarkAd *) Get(Current());
+        osd=static_cast<cOsdMarkAd *>(Get(Current()));
         if ((osd) && (osd->Selectable()))
         {
             struct recs *entry=osd->GetEntry();
@@ -189,7 +189,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key)
 
     case kUp:
         CursorUp();
-        osd=(cOsdMarkAd *) Get(Current());
+        osd=static_cast<cOsdMarkAd *>(Get(Current()));
         if ((osd) && (osd->Selectable()))
         {
             SetHelpText(osd->GetEntry());
@@ -199,7 +199,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key)
 
     case kDown:
         CursorDown();
-        osd=(cOsdMarkAd *) Get(Current());
+        osd=static_cast<cOsdMarkAd *>(Get(Current()));
         if ((osd) && (osd->Selectable()))
         {
             SetHelpText(osd->GetEntry());
@@ -216,7 +216,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key)
         {
             if (write())
             {
-                cOsdMarkAd *osd=(cOsdMarkAd *) Get(Current());
+                cOsdMarkAd *osd=static_cast<cOsdMarkAd *>(Get(Current()));
                 if ((osd) && (osd->Selectable()))
                 {
                     SetHelpText(osd->GetEntry());

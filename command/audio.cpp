@@ -29,6 +29,7 @@ cMarkAdAudio::~cMarkAdAudio()
 
 void cMarkAdAudio::Clear()
 {
+    framelast=0;
     channels=0;
 }
 

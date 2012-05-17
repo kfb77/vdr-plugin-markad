@@ -26,6 +26,7 @@ cPluginMarkAd::cPluginMarkAd(void)
     statusMonitor=NULL;
     bindir=strdup(DEF_BINDIR);
     logodir=strdup(DEF_LOGODIR);
+    title[0]=0;
 
     setup.ProcessDuring=true;
     setup.whileRecording=true;
@@ -39,6 +40,7 @@ cPluginMarkAd::cPluginMarkAd(void)
     setup.Log2Rec=false;
     setup.LogoOnly=true;
     setup.SaveInfo=false;
+    setup.DeferredShutdown=true;
 }
 
 cPluginMarkAd::~cPluginMarkAd()
@@ -160,7 +162,7 @@ void cPluginMarkAd::MainThreadHook(void)
 cString cPluginMarkAd::Active(void)
 {
     // Return a message string if shutdown should be postponed
-    if (statusMonitor->MarkAdRunning())
+    if (statusMonitor->MarkAdRunning() && (setup.DeferredShutdown))
         return tr("markad still running");
     return NULL;
 }

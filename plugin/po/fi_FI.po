@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2012-02-25 15:48+0100\n"
+"POT-Creation-Date: 2012-05-17 12:42+0200\n"
 "PO-Revision-Date: 2011-02-27 02:27+0200\n"
 "Last-Translator: Rolf Ahrenberg\n"
 "Language-Team: Finnish <vdr@linuxtv.org>\n"
@@ -68,6 +68,9 @@ msgstr "  tallenteen toiston aikana"
 msgid "scan only channels with logo"
 msgstr "Käytä vain logollisilla kanavilla"
 
+msgid "deferred shutdown"
+msgstr ""
+
 msgid "ignore timer margins"
 msgstr "Älä huomioi ajastinmarginaaleja"
 
@@ -103,4 +106,3 @@ msgstr "Takaisin"
 
 msgid "Mark advertisements"
 msgstr "Merkitse mainokset automaattisesti"
-

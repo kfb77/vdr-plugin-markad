@@ -114,7 +114,6 @@ private:
         bool valid[4];             // logo mask valid?
     } area;
 
-    int G[5][5];
     int GX[3][3];
     int GY[3][3];
 

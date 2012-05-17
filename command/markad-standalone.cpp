@@ -43,20 +43,21 @@ static inline int ioprio_set(int which, int who, int ioprio)
 {
 #if defined(__i386__)
 #define __NR_ioprio_set		289
-#define __NR_ioprio_get		290
 #elif defined(__ppc__)
 #define __NR_ioprio_set		273
-#define __NR_ioprio_get		274
 #elif defined(__x86_64__)
 #define __NR_ioprio_set		251
-#define __NR_ioprio_get		252
 #elif defined(__ia64__)
 #define __NR_ioprio_set		1274
-#define __NR_ioprio_get		1275
 #else
-    return 0; // just do nothing
+#define __NR_ioprio_set		0
 #endif
-    return syscall(__NR_ioprio_set, which, who, ioprio);
+    if (__NR_ioprio_set)
+    {
+       return syscall(__NR_ioprio_set, which, who, ioprio);
+    } else {
+       return 0; // just do nothing
+    }
 }
 
 void syslog_with_tid(int priority, const char *format, ...)
@@ -124,7 +125,7 @@ bool cOSDMessage::readreply(int fd)
 
 void *cOSDMessage::send(void *posd)
 {
-    cOSDMessage *osd=(cOSDMessage *) posd;
+    cOSDMessage *osd=static_cast<cOSDMessage *>(posd);
 
     struct hostent *host=gethostbyname(osd->host);
     if (!host)
@@ -157,10 +158,10 @@ void *cOSDMessage::send(void *posd)
 
     ssize_t ret;
     ret=write(sock,"MESG ",5);
-    ret=write(sock,osd->msg,strlen(osd->msg));
-    ret=write(sock,"\r\n",2);
+    if (ret!=(ssize_t)-1) ret=write(sock,osd->msg,strlen(osd->msg));
+    if (ret!=(ssize_t)-1) ret=write(sock,"\r\n",2);
 
-    if (!osd->readreply(sock))
+    if (!osd->readreply(sock) || (ret==(ssize_t)-1))
     {
         close(sock);
         return NULL;
@@ -168,7 +169,7 @@ void *cOSDMessage::send(void *posd)
 
     ret=write(sock,"QUIT\r\n",6);
 
-    osd->readreply(sock);
+    if (ret!=(ssize_t)-1) osd->readreply(sock);
     close(sock);
     return NULL;
 }
@@ -1269,7 +1270,7 @@ bool cMarkAdStandalone::SaveInfo()
             int stream=0,type=0;
             char descr[256]="";
 
-            int result=sscanf(line,"%*c %i %i %3c %250c",&stream,&type,(char *) &lang, (char *) &descr);
+            int result=sscanf(line,"%*c %3i %3i %3c %250c",&stream,&type,(char *) &lang, (char *) &descr);
             if ((result!=0) && (result!=EOF))
             {
                 switch (stream)
@@ -1526,7 +1527,7 @@ bool cMarkAdStandalone::LoadInfo()
         if (line[0]=='C')
         {
             char channelname[256]="";
-            int result=sscanf(line,"%*c %*s %250c",(char *) &channelname);
+            int result=sscanf(line,"%*c %*80s %250c",(char *) &channelname);
             if (result==1)
             {
                 macontext.Info.ChannelName=strdup(channelname);
@@ -1544,7 +1545,7 @@ bool cMarkAdStandalone::LoadInfo()
         }
         if (line[0]=='E')
         {
-            int result=sscanf(line,"%*c %*i %li %i %*i %*x",&startTime,&length);
+            int result=sscanf(line,"%*c %*10i %20li %6i %*2x %*2x",&startTime,&length);
             if (result!=2)
             {
                 startTime=0;
@@ -1569,7 +1570,7 @@ bool cMarkAdStandalone::LoadInfo()
         if (line[0]=='F')
         {
             int fps;
-            int result=sscanf(line,"%*c %i",&fps);
+            int result=sscanf(line,"%*c %3i",&fps);
             if ((result==0) || (result==EOF))
             {
                 macontext.Video.Info.FramesPerSecond=0;
@@ -1583,7 +1584,7 @@ bool cMarkAdStandalone::LoadInfo()
         {
             int stream=0,type=0;
             char descr[256]="";
-            int result=sscanf(line,"%*c %i %i %250c",&stream,&type,(char *) &descr);
+            int result=sscanf(line,"%*c %3i %3i %250c",&stream,&type,(char *) &descr);
             if ((result!=0) && (result!=EOF))
             {
                 if ((stream==1) || (stream==5))
@@ -1938,7 +1939,7 @@ bool cMarkAdStandalone::CreatePidfile()
     {
         // found old pidfile, check if it's still running
         int pid;
-        if (fscanf(oldpid,"%i\n",&pid)==1)
+        if (fscanf(oldpid,"%10i\n",&pid)==1)
         {
             char procname[256]="";
             snprintf(procname,sizeof(procname),"/proc/%i",pid);

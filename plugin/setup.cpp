@@ -23,6 +23,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     log2rec=setup->Log2Rec;
     logoonly=setup->LogoOnly;
     saveinfo=setup->SaveInfo;
+    deferredshutdown=setup->DeferredShutdown;
 
     processTexts[0]=tr("after");
     processTexts[1]=tr("during");
@@ -46,6 +47,7 @@ void cSetupMarkAd::write(void)
     }
     Add(new cMenuEditBoolItem(tr("scan only channels with logo"),&logoonly),true);
     lpos=Current();
+    Add(new cMenuEditBoolItem(tr("deferred shutdown"),&deferredshutdown));
     Add(new cMenuEditBoolItem(tr("ignore timer margins"),&nomargins));
     Add(new cMenuEditBoolItem(tr("detect overlaps"),&secondpass));
     Add(new cMenuEditBoolItem(tr("recreate index"),&genindex));
@@ -118,6 +120,7 @@ void cSetupMarkAd::Store(void)
     SetupStore("Log2Rec",log2rec);
     SetupStore("LogoOnly",logoonly);
     SetupStore("SaveInfo",saveinfo);
+    SetupStore("DeferredShutdown",deferredshutdown);
 
     setup->ProcessDuring=(bool) processduring;
     setup->whileRecording=(bool) whilerecording;
@@ -128,6 +131,7 @@ void cSetupMarkAd::Store(void)
     setup->Verbose=(bool) verbose;
     setup->NoMargins=(bool) nomargins;
     setup->HideMainMenuEntry=(bool) hidemainmenuentry;
+    setup->DeferredShutdown=(bool) deferredshutdown;
     setup->Log2Rec=log2rec;
     setup->LogoOnly=logoonly;
     setup->SaveInfo=saveinfo;
@@ -200,7 +204,6 @@ int cSetupMarkAdListItem::Compare(const cListObject &ListObject) const
     {
         return 0;
     }
-
 }
 
 eOSState cSetupMarkAdList::ProcessKey (eKeys Key)

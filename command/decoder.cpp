@@ -115,12 +115,8 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, int Threads)
 
     cpu_set_t cpumask;
     uint len = sizeof(cpumask);
-    int cpucount;
-    if (sched_getaffinity(0,len,&cpumask)<0)
-    {
-        cpucount=1;
-    }
-    else
+    int cpucount=1;
+    if (sched_getaffinity(0,len,&cpumask)>=0)
     {
         cpucount=CPU_COUNT(&cpumask);
     }

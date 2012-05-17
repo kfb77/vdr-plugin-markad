@@ -23,6 +23,7 @@ struct setup
     bool HideMainMenuEntry;
     bool Log2Rec;
     bool LogoOnly;
+    bool DeferredShutdown;
     const char *LogoDir;
     const char *PluginName;
 };
@@ -44,6 +45,7 @@ private:
     int log2rec;
     int logoonly;
     int saveinfo;
+    int deferredshutdown;
     void write(void);
     int lpos;
 protected:
