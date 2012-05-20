@@ -15,3 +15,13 @@ See the file COPYING for more information.
 Description:
 
 MarkAd marks advertisements in VDR recordings.
+
+
+Command line options:
+   A few settings are given on the command line rather than in the setup menu.
+   Available options:
+
+     -b DIR,   --bindir=DIR        use DIR as location for markad executable
+                                   (default: /usr/bin)
+     -l DIR    --logocachedir=DIR  use DIR as location for markad logos
+                                   (default: /var/lib/markad)
