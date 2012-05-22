@@ -54,9 +54,9 @@ static inline int ioprio_set(int which, int who, int ioprio)
 #endif
     if (__NR_ioprio_set)
     {
-       return syscall(__NR_ioprio_set, which, who, ioprio);
+        return syscall(__NR_ioprio_set, which, who, ioprio);
     } else {
-       return 0; // just do nothing
+        return 0; // just do nothing
     }
 }
 
@@ -1217,7 +1217,11 @@ bool cMarkAdStandalone::SaveInfo()
 {
     isyslog("writing info file");
     char *src,*dst;
-    if (asprintf(&src,"%s/info%s",directory,isTS ? "" : ".vdr")==-1) return false;
+    if (isREEL) {
+        if (asprintf(&src,"%s/info.txt",directory)==-1) return false;
+    } else {
+        if (asprintf(&src,"%s/info%s",directory,isTS ? "" : ".vdr")==-1) return false;
+    }
 
     if (asprintf(&dst,"%s/info.bak",directory)==-1)
     {
@@ -1518,7 +1522,14 @@ bool cMarkAdStandalone::LoadInfo()
     FILE *f;
     f=fopen(buf,"r");
     free(buf);
-    if (!f) return false;
+    if (!f) {
+        // second try for reel vdr
+        if (asprintf(&buf,"%s/info.txt",directory)==-1) return false;
+        f=fopen(buf,"r");
+        free(buf);
+        if (!f) return false;
+        isREEL=true;
+    }
 
     char *line=NULL;
     size_t linelen;
@@ -1999,6 +2010,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     gotendmark=false;
     inBroadCast=false;
     iStopinBroadCast=false;
+    isREEL=false;
 
     indexFile=NULL;
     streaminfo=NULL;

@@ -178,6 +178,7 @@ unsigned Descriptor_Length:
     bool duplicate; // are we a dup?
 
     bool isTS;
+    bool isREEL;
     int MaxFiles;
 
     int lastiframe;
