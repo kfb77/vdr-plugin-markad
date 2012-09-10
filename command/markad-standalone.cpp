@@ -982,7 +982,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
                                 framecnt++;
                                 if ((macontext.Config->logoExtraction!=-1) && (framecnt>=256))
                                 {
-                                    isyslog("finished logo extraction");
+                                    isyslog("finished logo extraction, please check /tmp for pgm files");
                                     abort=true;
                                     if (f!=-1) close(f);
                                     return true;
@@ -1482,7 +1482,7 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd)
                 t.tm_mon--;
                 t.tm_sec=0;
                 t.tm_isdst=-1;
-                isyslog("getting broadcast start from directory");
+                isyslog("getting broadcast start from directory (can be wrong)");
                 return mktime(&t);
             }
         }
@@ -2430,7 +2430,7 @@ static void signal_handler(int sig)
         esyslog("[bt] Execution path:");
         for (i=0; i<trace_size; ++i)
         {
-            esyslog("[bt] %s\n", messages[i]);
+            esyslog("[bt] %s", messages[i]);
         }
         _exit(1);
         break;

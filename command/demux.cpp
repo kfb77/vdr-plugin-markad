@@ -630,7 +630,7 @@ bool cTS2Pkt::Process(uchar *TSData, int TSSize, AvPacket *Pkt)
                 if (lasterror!=ERR_DUPLICATE)
                 {
                     lasterror=ERR_DUPLICATE;
-                    esyslog("duplicate packet, skipping (0x%04x)",pid);
+                    dsyslog("duplicate packet, skipping (0x%04x)",pid);
                 }
                 Pkt->Length=0;
                 Pkt->Type=0;
@@ -642,7 +642,7 @@ bool cTS2Pkt::Process(uchar *TSData, int TSSize, AvPacket *Pkt)
             if (lasterror!=ERR_SEQUENCE)
             {
                 lasterror=ERR_SEQUENCE;
-                esyslog("sequence error (0x%04x)",pid);
+                esyslog("sequence error %i->%i (0x%04x)",counter,tshdr->Counter,pid);
             }
             Clear(Pkt);
             skipped+=queue->Skipped();

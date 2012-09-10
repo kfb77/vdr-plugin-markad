@@ -135,14 +135,14 @@ bool cStatusMarkAd::LogoExists(const char *Name)
     cTimer *timer=NULL;
     for (cTimer *Timer = Timers.First(); Timer; Timer=Timers.Next(Timer))
     {
-        if (Timer->Recording() && (!strcmp(Timer->File(),Name)))
+        if (Timer->Recording() && (!strcmp(Timer->ToDescr(),Name)))
         {
             timer=Timer;
             break;
         }
     }
     if (!timer) {
-        esyslog("markad: cannot find internal recording structure for %s",Name);
+        esyslog("markad: cannot find timer for '%s'",Name);
         return false;
     }
 
