@@ -243,6 +243,7 @@ bool cPluginMarkAd::ReadTitle(const char *Directory)
     FILE *f;
     f=fopen(buf,"r");
     free(buf);
+    buf=NULL;
     if (!f)
     {
 #if VDRVERSNUM > 10700

@@ -1231,10 +1231,17 @@ bool cMarkAdStandalone::SaveInfo()
 
     FILE *r,*w;
     r=fopen(src,"r");
-    w=fopen(dst,"w+");
-
-    if ((!r) || (!w))
+    if (!r)
     {
+        free(src);
+        free(dst);
+        return false;
+    }
+
+    w=fopen(dst,"w+");
+    if (!w)
+    {
+        fclose(r);
         free(src);
         free(dst);
         return false;
@@ -1522,6 +1529,7 @@ bool cMarkAdStandalone::LoadInfo()
     FILE *f;
     f=fopen(buf,"r");
     free(buf);
+    buf=NULL;
     if (!f) {
         // second try for reel vdr
         if (asprintf(&buf,"%s/info.txt",directory)==-1) return false;
@@ -1705,6 +1713,7 @@ bool cMarkAdStandalone::CheckTS()
             return false;
         }
         free(buf);
+        buf=NULL;
         if (asprintf(&buf,"%s/001.vdr",directory)==-1) return false;
         if (stat(buf,&statbuf)==-1)
         {

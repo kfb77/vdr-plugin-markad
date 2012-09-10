@@ -183,7 +183,6 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
         uint32_t width=0;
         uint32_t height=0;
         uint32_t aspect_ratio_idc=0;
-        bool fixedframerate=false;
         int sar_width=1,sar_height=1;
 
         int profile_idc = bs.getU8();                 // profile_idc
@@ -299,6 +298,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                         if (pic_order_cnt_type!=2) frame_rate/=2;
                     }
                 }
+                bool fixedframerate=false;
                 fixedframerate=bs.getBit();                       // fixed_frame_rate_flag
                 if ((fixedframerate==1) && (frame_rate!=0)) {
                     maContext->Video.Info.FramesPerSecond=frame_rate;
