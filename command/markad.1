@@ -1,0 +1,131 @@
+.\" ** The above line should force tbl to be a preprocessor **
+.\" Man page for markad
+.\" 
+.\" Copyright (C) 2012 Jochen Dolze
+.\" 
+.\" You may distribute under the terms of the GNU General Public
+.\" License as specified in the file COPYING that comes with the
+.\" vdr distribution.
+.\" 
+.\" $Id: markad.1 1.0 2012/05/25 22:33:34 martinkg Exp $
+.\" 
+.TH "markad" "1" "25 May 2012" "0.1.4" "A program for the Video Disk Recorder"
+.SH "NAME"
+MarkAd \- marks advertisements in VDR recordings.
+.SH "SYNOPSIS"
+.B markad
+[options]
+.SH "DESCRIPTION"
+.B MarkAd
+marks advertisements in VDR recordings.
+.SH "OPTIONS"
+.TP 
+Usage: markad [options] cmd <record>
+.TP     
+.BI \-b\ ,\ \-\-background
+\fImarkad\fR runs as a background\-process
+this will be automatically set if called with "after"
+.TP 
+.BI \-d\ ,\ \-\-disable= <option>
+<option>   1 = disable video decoding, 2 = disable audio decoding,
+                3 = disable video and audio decoding
+.TP 
+.BI \-i\ ,\ \-\-ignoreinfo= <info>
+ignores hints from info(.vdr) file
+<info> 4 = ignore timer info
+.TP 
+.BI \-l\ ,\ \-\-logocachedir
+directory where logos stored, default \fI/var/lib/markad\fR
+.TP 
+.BI \-p\ ,\ \-\-priority= <priority>
+software priority of markad when running in background
+<priority> from \-20...19, default 19
+.TP 
+.BI \-r\ ,\ \-\-ioprio= <class>[,<level>]
+io priority of markad when running in background
+<class> 1 = realtime, <level> from 0..7, default 4
+             2 = besteffort, <level> from 0..7, default 4
+             3 = idle (default)
+.TP 
+.BI \-v\ ,\ \-\-verbose
+increments loglevel by one, can be given multiple times
+.TP 
+.BI \-B\ ,\ \-\-backupmarks
+make a backup of existing marks
+.TP 
+.BI \-G\ ,\ \-\-genindex
+regenerate index file
+.TP 
+.BI \-I\ ,\ \-\-saveinfo
+correct information in info file
+.TP 
+.BI \-L\ ,\ \-\-extractlogo= <direction>[,width[,height]]
+extracts logo to /tmp as pgm files (must be renamed)
+<direction>  0 = top left,    1 = top right
+                  2 = bottom left, 3 = bottom right
+                  [width]  range from 50 to 480, default 192 (SD)
+                                                              default 288 (HD)
+                  [height] range from 20 to 250, default 100 (SD)
+                                                              default 180 (HD)
+.TP 
+.BI \-O\ ,\ \-\-OSD
+markad sends an OSD\-Message for start and end
+.TP 
+.BI \-R\ ,\ \-\-log2rec
+write logfiles into recording directory
+.TP 
+.BI \-T\ ,\ \-\-threads= <number>
+number of threads used for decoding, max. 16
+(default is the number of cpus)
+.TP 
+.BI \-V\ ,\ \-\-version
+print version\-info and exit
+.TP 
+.BI \-\-loglevel= <level>
+sets loglevel to the specified value
+<level> 1=error 2=info 3=debug 4=trace
+.TP 
+.BI \-\-markfile= <markfilename>
+set a different markfile\-name
+.TP 
+.BI \-\-nopid
+disables creation of \fImarkad.pid\fR file in recdir
+.TP 
+\fB\-\-online[=1|2] ( default is 1 )
+start markad immediately when called with "before" as cmd
+if online is 1, markad starts online for live\-recordings
+only, online=2 starts markad online for every recording
+live\-recordings are identified by having a '@' in the
+filename so the entry 'Mark instant recording' in the menu
+'Setup \- Recording' of the vdr should be set to 'yes'
+.TP 
+.BI \-\-pass1only
+process only first pass, setting of marks
+.TP 
+.BI \-\-pass2only
+process only second pass, fine adjustment of marks
+.TP 
+.BI \-\-svdrphost= \fR<ip/hostname>\fR " ( default is 127.0.0.1 ) "
+ip/hostname of a remote VDR for OSD messages
+.TP 
+.BI \-\-svdrpport= \fR<port>\fR  "  ( default is 6419 ) "
+port of a remote VDR for OSD messages
+
+ cmd: one of
+ \-                            dummy\-parameter if called directly
+ after                       markad starts to analyze the recording
+ before                    markad exits immediately if called with "before
+ edited                     markad exits immediately if called with "edited"
+ nice                        runs markad with nice(19)
+ <record>                 is the name of the directory where the recording
+                               is stored
+.SH "AUTHOR"
+Written by Jochen Dolze <vdr@dolze.de>
+.SH "REPORTING BUGS"
+Report bugs to http://projects.vdr\-developer.org/projects/plg\-markad/issues
+.SH "COPYRIGHT"
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+See the file COPYING for more information.

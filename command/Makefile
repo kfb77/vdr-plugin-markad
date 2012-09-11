@@ -85,7 +85,13 @@ i18n: $(I18Npot)
 markad: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) -o $@
 
-install: markad $(I18Nmsgs) 
+
+MANDIR	= $(DESTDIR)/usr/share/man
+install-doc:
+	@mkdir -p $(MANDIR)/man1
+	@gzip -c markad.1 > $(MANDIR)/man1/markad.1.gz
+
+install: install-doc markad $(I18Nmsgs)
 	@mkdir -p $(DESTDIR)/usr/bin
 	@cp --remove-destination markad $(DESTDIR)/usr/bin/markad
 	@$(STRIP) $(DESTDIR)/usr/bin/markad
