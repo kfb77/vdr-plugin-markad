@@ -1562,7 +1562,7 @@ bool cMarkAdStandalone::LoadInfo()
                 }
             }
         }
-        if (line[0]=='E')
+        if ((line[0]=='E') && (!bLiveRecording))
         {
             int result=sscanf(line,"%*c %*10i %20li %6i %*2x %*2x",&startTime,&length);
             if (result!=2)
@@ -1599,7 +1599,7 @@ bool cMarkAdStandalone::LoadInfo()
                 macontext.Video.Info.FramesPerSecond=fps;
             }
         }
-        if (line[0]=='X')
+        if ((line[0]=='X') && (!bLiveRecording))
         {
             int stream=0,type=0;
             char descr[256]="";
@@ -1678,7 +1678,7 @@ bool cMarkAdStandalone::LoadInfo()
     }
     fclose(f);
 
-    if (!length)
+    if ((!length) && (!bLiveRecording))
     {
         esyslog("cannot read broadcast length from info, marks can be wrong!");
         macontext.Info.AspectRatio.Num=0;
@@ -2118,6 +2118,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     {
         isyslog("live-recording, disabling pre-/post timer");
         bIgnoreTimerInfo=true;
+        bLiveRecording=true;
+    } else {
+        bLiveRecording=false;
     }
 
     if (!CheckTS()) {

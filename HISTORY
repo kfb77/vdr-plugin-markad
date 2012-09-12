@@ -1,5 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
+2012-09-14: Version 0.1.4
+
+- Improved PATPMT seeker
+- ReelVDR support (info.txt)
+- Added manual page (contributed by marco)
+- Fixed "internal structures" bug
+
 2012-03-01: Version 0.1.3
 
 - Changed H264 stream frame/field processing

@@ -202,6 +202,7 @@ unsigned Descriptor_Length:
     bool bDecodeVideo;
     bool bDecodeAudio;
     bool bIgnoreTimerInfo;
+    bool bLiveRecording;
 
     time_t startTime;  // starttime of broadcast
     int length;	       // length of broadcast in seconds
