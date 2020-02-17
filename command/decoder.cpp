@@ -122,7 +122,9 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, int Threads)
 #if LIBAVCODEC_VERSION_INT < ((53<<16)+(7<<8)+1)
     avcodec_init();
 #endif
+#if LIBAVCODEC_VERSION_INT < ((58<<16)+(35<<8)+100)
     avcodec_register_all();
+#endif
 
     last_qscale_table=NULL;
     skipframes=true;
@@ -383,7 +385,28 @@ bool cMarkAdDecoder::Clear()
 #endif
         if (dest)
         {
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
+            AVCodecParameters *par = avcodec_parameters_alloc();
+            int rc = avcodec_parameters_from_context(par,video_context);
+            if ( rc < 0 ) {
+                 esyslog("ERROR (%s,%d): avcodec_parameters_from_context() failed rc=%d", __FILE__, __LINE__, rc);
+                 ret = false;
+            }
+            else {
+                rc = avcodec_parameters_to_context(dest,par);
+                 if ( rc < 0) {
+                     esyslog("ERROR (%s,%d): avcodec_parameters_to_context() failed rc=%d", __FILE__, __LINE__, rc);
+                     ret = false;
+                }
+            }
+            avcodec_parameters_free(&par);
+            dest->skip_frame=video_context->skip_frame;
+            dest->flags=video_context->flags;
+            dest->flags2=video_context->flags2;
+            dest->skip_idct=video_context->skip_idct;
+#else
             if (avcodec_copy_context(dest,video_context)!=0) ret=false;
+#endif
         }
         else
         {
@@ -475,11 +498,27 @@ bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
     while (avpkt.size>0)
     {
 #if LIBAVCODEC_VERSION_INT < ((52<<16)+(25<<8)+0)
-        len=avcodec_decode_video(video_context,video_frame,&video_frame_ready,
-                                 avpkt.data,avpkt.size);
+        len=avcodec_decode_video(video_context,video_frame,&video_frame_ready,avpkt.data,avpkt.size);
+#elif LIBAVCODEC_VERSION_INT < ((57<<16)+(107<<8)+100)
+        len=avcodec_decode_video2(video_context,video_frame,&video_frame_ready,&avpkt);
 #else
-        len=avcodec_decode_video2(video_context,video_frame,&video_frame_ready,
-                                  &avpkt);
+        len=avcodec_send_packet(video_context,&avpkt);
+        if (len  < 0) {
+            if (len == AVERROR(EAGAIN)) dsyslog("avcodec_send_packet error EAGAIN");
+            if (len == AVERROR(ENOMEM)) dsyslog("avcodec_send_packet error ENOMEM");
+            if (len == AVERROR(EINVAL)) dsyslog("avcodec_send_packet error EINVAL");
+            if (len != AVERROR_INVALIDDATA) {  // this is normal at the start of the file
+                esyslog("avcodec_send_packet failed with rc=%i",len);
+            }
+        }
+        len = avcodec_receive_frame(video_context,video_frame);
+        if (len < 0) {
+            if (len == AVERROR(EINVAL)) dsyslog("avcodec_receive_frame error EINVAL");
+            if (len == AVERROR(EAGAIN)) len=0;
+        }
+        else {
+            video_frame_ready = true;
+        }
 #endif
         if (len<0)
         {
