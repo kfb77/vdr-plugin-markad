@@ -4,14 +4,37 @@
 # dont remove the next line, its needed for the VDR Makefile
 # $(LIBDIR)/$@.$(APIVERSION)
 
+### The version number of this plugin (taken from the main source file):
+
+VERSION = $(shell grep 'static const char \*VERSION *=' version.h | awk '{ print $$6 }' | sed -e 's/[";]//g')
+GITTAG  = $(shell git describe --always 2>/dev/null)
+$(shell GITVERSION=`git rev-parse --short HEAD 2> /dev/null`; if [ "$$GITVERSION" ]; then sed "s/\";/ ($$GITVERSION)\";/" version.dist > version.h; else cp version.dist version.h; fi)
+
+### The directory environment:
+
+# Use package data if installed...otherwise assume we're under the VDR source directory:
+PKGCFG = $(if $(VDRDIR),$(shell pkg-config --variable=$(1) $(VDRDIR)/vdr.pc),$(shell PKG_CONFIG_PATH="$$PKG_CONFIG_PATH:../../.." pkg-config --variable=$(1) vdr))
+LIBDIR = $(call PKGCFG,libdir)
+LOCDIR = $(call PKGCFG,locdir)
+PLGCFG = $(call PKGCFG,plgcfg)
+CFGDIR = $(call PKGCFG,configdir)
+#
+TMPDIR ?= /tmp
 DIRS = command plugin
 
-$(shell GITVERSION=`git rev-parse --short HEAD 2> /dev/null`; if [ "$$GITVERSION" ]; then sed "s/\";/ ($$GITVERSION)\";/" version.dist > version.h; else cp version.dist version.h; fi)
-VERSION = $(shell grep 'static const char \*VERSION *=' version.h | awk '{ print $$6 }' | sed -e 's/[";]//g')
+### The compiler options:
+export CFLAGS   = $(call PKGCFG,cflags)
+export CXXFLAGS = $(call PKGCFG,cxxflags)
 
-TMPDIR = /tmp
 ARCHIVE = markad-$(VERSION)
 PACKAGE = vdr-$(ARCHIVE)
+
+### The version number of VDR's plugin API:
+APIVERSION = $(call PKGCFG,apiversion)
+
+### Allow user defined options to overwrite defaults:
+-include $(PLGCFG)
+
 
 all:
 	for i in $(DIRS); do $(MAKE) -C $$i; done

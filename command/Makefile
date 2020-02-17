@@ -10,15 +10,23 @@
 $(shell GITVERSION=`git rev-parse --short HEAD 2> /dev/null`; if [ "$$GITVERSION" ]; then sed "s/\";/ ($$GITVERSION)\";/" ../version.dist > ../version.h; else cp ../version.dist ../version.h; fi)
 VERSION = $(shell grep 'static const char \*VERSION *=' ../version.h | awk '{ print $$6 }' | sed -e 's/[";]//g')
 
-### The C++ compiler and options:
+# Use package data if installed...otherwise assume we're under the VDR source directory:
+PKGCFG = $(if $(VDRDIR),$(shell pkg-config --variable=$(1) $(VDRDIR)/vdr.pc),$(shell PKG_CONFIG_PATH="$$PKG_CONFIG_PATH:../../../.." pkg-config --variable=$(1) vdr))
+LIBDIR = $(call PKGCFG,libdir)
+LOCDIR = $(call PKGCFG,locdir)
+PLGCFG = $(call PKGCFG,plgcfg)
+CFGDIR = $(call PKGCFG,configdir)
 
+### The C++ compiler and options:
 CXX      ?= g++
-CXXFLAGS ?= -g -rdynamic -O3 -funroll-loops -Wall -Wextra -Woverloaded-virtual -Wno-parentheses
+export CXXFLAGS ?= $(call PKGCFG,cxxflags)
+export CXXFLAGS ?= -g -rdynamic -O3 -funroll-loops -Wall -Wextra -Woverloaded-virtual -Wno-parentheses
+export CXXFLAGS += -std=c++11  # to prevent a lot of compiler warnings with Ubuntu 14.04
+#
 PKG-CONFIG ?= pkg-config
 STRIP ?= strip
 
 ### Includes and Defines (add further entries here):
-
 PKG-LIBS += libavcodec libavutil
 PKG-INCLUDES += libavcodec libavutil
 
@@ -36,7 +44,7 @@ LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
 
 ### The object files (add further files here):
 
-OBJS = markad-standalone.o decoder.o marks.o streaminfo.o video.o audio.o demux.o 
+OBJS = markad-standalone.o decoder.o marks.o streaminfo.o video.o audio.o demux.o
 
 ### The main target:
 
@@ -59,9 +67,9 @@ $(DEPFILE): Makefile
 ### Internationalization (I18N):
 
 PODIR     = po
-LOCALEDIR = $(DESTDIR)/usr/share/locale
+LOCALEDIR = /usr/share/locale
 I18Npo    = $(wildcard $(PODIR)/*.po)
-I18Nmsgs  = $(addprefix $(LOCALEDIR)/, $(addsuffix /LC_MESSAGES/markad.mo, $(notdir $(foreach file, $(I18Npo), $(basename $(file))))))
+I18Nmsgs  = $(addprefix  $(DESTDIR)$(LOCALEDIR)/, $(addsuffix /LC_MESSAGES/markad.mo, $(notdir $(foreach file, $(I18Npo), $(basename $(file))))))
 I18Npot   = $(PODIR)/markad.pot
 
 %.mo: %.po
@@ -74,9 +82,8 @@ $(I18Npot): $(wildcard *.cpp *.h)
 	msgmerge -U --no-wrap --no-location --backup=none -q $@ $<
 	@touch $@
 
-$(I18Nmsgs): $(LOCALEDIR)/%/LC_MESSAGES/markad.mo: $(PODIR)/%.mo
-	@mkdir -p $(dir $@)
-	cp $< $@
+$(I18Nmsgs): $(DESTDIR)$(LOCALEDIR)/%/LC_MESSAGES/markad.mo: $(PODIR)/%.mo
+	install -D -m644 $< $@
 
 .PHONY: i18n
 i18n: $(I18Npot)
@@ -94,10 +101,9 @@ install-doc:
 
 install: install-doc markad $(I18Nmsgs)
 	@mkdir -p $(DESTDIR)/usr/bin
-	@cp --remove-destination markad $(DESTDIR)/usr/bin/markad
-	@$(STRIP) $(DESTDIR)/usr/bin/markad
+	install -D markad $(DESTDIR)/usr/bin/markad
 	@mkdir -p $(DESTDIR)/var/lib/markad
-	@cp -u logos/* $(DESTDIR)/var/lib/markad
+	install -D logos/* $(DESTDIR)/var/lib/markad
 	@echo markad installed
 
 clean:
