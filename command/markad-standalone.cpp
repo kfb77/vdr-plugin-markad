@@ -73,11 +73,12 @@ void syslog_with_tid(int priority, const char *format, ...)
     }
     else
     {
-        char buf[255]={0};
+        char buf[27]={0};
         const time_t now=time(NULL);
         if (ctime_r(&now,buf)) {
             buf[strlen(buf)-6]=0;
         }
+	else dsyslog("ctime_r failed");
         char fmt[255];
         snprintf(fmt, sizeof(fmt), "%s%s [%d] %s", LOG2REC ? "":"markad: ",buf, getpid(), format);
         va_start(ap, format);

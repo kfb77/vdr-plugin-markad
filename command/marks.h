@@ -89,8 +89,9 @@ public:
     {
         if (FileName)
         {
-            strncpy(filename,FileName,sizeof(filename)-1);
+            strncpy(filename,FileName,sizeof(filename));
             filename[sizeof(filename)-1]=0;
+
         }
     }
     clMark *Add(int Type, int Position, const char *Comment = NULL);
