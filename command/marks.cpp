@@ -16,6 +16,11 @@
 #include <fcntl.h>
 
 #include "marks.h"
+#include "decoder.h"
+extern "C"
+{
+#include "debug.h"
+}
 
 clMark::clMark(int Type, int Position, const char *Comment)
 {
@@ -191,7 +196,12 @@ clMark *clMarks::GetAround(int Frames, int Position, int Type, int Mask)
     clMark *m2=GetNext(Position,Type,Mask);
 
     if (!m1 && !m2) return NULL;
-    if (!m1 && m2) return m2;
+
+    if (!m1 && m2) {
+        if (abs(Position-m2->position)>Frames) return NULL;
+        else return m2;
+    }
+
     if (m1 && !m2)
     {
         if (abs(Position-m1->position)>Frames) return NULL;
@@ -200,10 +210,12 @@ clMark *clMarks::GetAround(int Frames, int Position, int Type, int Mask)
 
     if (abs(m1->position-Position)>abs(m2->position-Position))
     {
-        return m2;
+        if (abs(Position-m2->position)>Frames) return NULL;
+        else return m2;
     }
     else
     {
+        if (abs(Position-m1->position)>Frames) return NULL;
         return m1;
     }
 }
@@ -259,15 +271,19 @@ clMark *clMarks::GetNext(int Position, int Type, int Mask)
 
 clMark *clMarks::Add(int Type, int Position,const char *Comment)
 {
+
     clMark *newmark;
     if ((newmark=Get(Position)))
     {
-        if ((newmark->comment) && (Comment))
-        {
-            free(newmark->comment);
-            newmark->comment=strdup(Comment);
+        dsyslog("duplicate mark on position %i type 0x%X and type 0x%x", Position, Type, newmark->type);
+        if (Type > newmark->type){   // keep the stronger mark
+            if ((newmark->comment) && (Comment))
+            {
+                free(newmark->comment);
+                newmark->comment=strdup(Comment);
+            }
+            newmark->type=Type;
         }
-        newmark->type=Type;
         return newmark;
     }
 
@@ -346,12 +362,19 @@ clMark *clMarks::Add(int Type, int Position,const char *Comment)
     return NULL;
 }
 
-char *clMarks::IndexToHMSF(int Index, double FramesPerSecond)
+char *clMarks::IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cDecoder)
 {
+    double FramesPerSecond=maContext->Video.Info.FramesPerSecond;
     if (FramesPerSecond==0.0) return NULL;
     char *buf=NULL;
     double Seconds;
-    int f = int(modf((Index+0.5)/FramesPerSecond,&Seconds)*FramesPerSecond+1);
+    int f=0;
+    if (maContext->Config->use_cDecoder && (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) && ptr_cDecoder) {
+        f = int(modf(float(ptr_cDecoder->GetTimeFromIFrame(Index))/100,&Seconds)*100);
+    }
+    else {
+        f = int(modf((Index+0.5)/FramesPerSecond,&Seconds)*FramesPerSecond+1);
+    }
     int s = int(Seconds);
     int m = s / 60 % 60;
     int h = s / 3600;
@@ -689,7 +712,7 @@ bool clMarks::Load(const char *Directory, double FrameRate, bool isTS)
     return true;
 }
 
-bool clMarks::Save(const char *Directory, double FrameRate, bool isTS, bool Force)
+bool clMarks::Save(const char *Directory, MarkAdContext *maContext, cDecoder *ptr_cDecoder, bool isTS, bool Force)
 {
     if (!first) return false;
     if ((savedcount==count) && (!Force)) return false;
@@ -709,7 +732,7 @@ bool clMarks::Save(const char *Directory, double FrameRate, bool isTS, bool Forc
     clMark *mark=first;
     while (mark)
     {
-        char *buf=IndexToHMSF(mark->position,FrameRate);
+        char *buf=IndexToHMSF(mark->position,maContext,ptr_cDecoder);
         if (buf)
         {
             fprintf(mf,"%s %s\n",buf,mark->comment ? mark->comment : "");

@@ -34,6 +34,13 @@ enum
 
 enum
 {
+    BLACKSCREEN_UNINITIALIZED=-2,
+    BLACKSCREEN_INVISIBLE=-1,
+    BLACKSCREEN_VISIBLE=1
+};
+
+enum
+{
     HBORDER_UNINITIALIZED=-2,
     HBORDER_INVISIBLE=-1,
     HBORDER_VISIBLE=1
@@ -150,6 +157,17 @@ public:
     void Clear();
 };
 
+class cMarkAdBlackScreen
+{
+private:
+    int blackScreenstatus;
+    MarkAdContext *macontext;
+public:
+    cMarkAdBlackScreen(MarkAdContext *maContext);
+    int Process(int FrameNumber,int *BlackFrameNumber);
+    void Clear();
+};
+
 class cMarkAdBlackBordersHoriz
 {
 private:
@@ -197,6 +215,7 @@ private:
     MarkAdMarks marks;
 
     MarkAdAspectRatio aspectratio;
+    cMarkAdBlackScreen *blackScreen;
     cMarkAdBlackBordersHoriz *hborder;
     cMarkAdBlackBordersVert *vborder;
     cMarkAdLogo *logo;

@@ -9,6 +9,8 @@
 #define __marks_h_
 
 #include <string.h>
+#include "global.h"
+#include "decoder_new.h"
 
 class clMark
 {
@@ -69,7 +71,7 @@ uint16_t number:
 
     char filename[1024];
     clMark *first,*last;
-    char *IndexToHMSF(int Index, double FramesPerSecond);
+    char *IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cDecoder);
     int count;
     int savedcount;
     int indexfd;
@@ -114,7 +116,7 @@ public:
     }
     bool Backup(const char *Directory, bool isTS);
     bool Load(const char *Directory, double FrameRate, bool isTS);
-    bool Save(const char *Directory, double FrameRate, bool isTS, bool Force=false);
+    bool Save(const char *Directory, MarkAdContext *maContext, cDecoder *ptr_cDecoder, bool isTS, bool Force=false);
 #define IERR_NOTFOUND 1
 #define IERR_TOOSHORT 2
 #define IERR_SEEK 3

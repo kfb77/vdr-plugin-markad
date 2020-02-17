@@ -14,6 +14,8 @@
 #include <cstdlib>
 
 #include "decoder.h"
+#include "debug.h"
+
 
 #ifndef DECLARE_ALIGNED
 #define DECLARE_ALIGNED(n,t,v) t v __attribute__ ((aligned (n)))
@@ -544,3 +546,4 @@ bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
     if (ret) addPkt=false;
     return ret;
 }
+

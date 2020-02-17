@@ -27,6 +27,10 @@ TMPDIR ?= /tmp
 
 export CFLAGS   = $(call PKGCFG,cflags)
 export CXXFLAGS = $(call PKGCFG,cxxflags)
+CXXVERION=$(shell $(CXX) -dumpversion)
+ifeq ($(CXXVERION),4.8)
+export CXXFLAGS += -std=c++11   # to prevent a lot of compiler warnings with Ubuntu 14.04
+endif
 
 ### The version number of VDR's plugin API:
 

@@ -29,25 +29,29 @@ typedef unsigned char uchar;
 #define MT_ASSUMEDSTART   (unsigned char) 0x11
 #define MT_ASSUMEDSTOP    (unsigned char) 0x12
 
-#define MT_LOGOCHANGE     (unsigned char) 0x20
-#define MT_LOGOSTART      (unsigned char) 0x21
-#define MT_LOGOSTOP       (unsigned char) 0x22
+#define MT_BLACKCHANGE    (unsigned char) 0x20
+#define MT_NOBLACKSTART   (unsigned char) 0x21
+#define MT_NOBLACKSTOP    (unsigned char) 0x22
 
-#define MT_HBORDERCHANGE  (unsigned char) 0x30
-#define MT_HBORDERSTART   (unsigned char) 0x31
-#define MT_HBORDERSTOP    (unsigned char) 0x32
+#define MT_LOGOCHANGE     (unsigned char) 0x30
+#define MT_LOGOSTART      (unsigned char) 0x31
+#define MT_LOGOSTOP       (unsigned char) 0x32
 
-#define MT_VBORDERCHANGE  (unsigned char) 0x40
-#define MT_VBORDERSTART   (unsigned char) 0x41
-#define MT_VBORDERSTOP    (unsigned char) 0x42
+#define MT_HBORDERCHANGE  (unsigned char) 0x40
+#define MT_HBORDERSTART   (unsigned char) 0x41
+#define MT_HBORDERSTOP    (unsigned char) 0x42
 
-#define MT_ASPECTCHANGE   (unsigned char) 0x50
-#define MT_ASPECTSTART    (unsigned char) 0x51
-#define MT_ASPECTSTOP     (unsigned char) 0x52
+#define MT_VBORDERCHANGE  (unsigned char) 0x50
+#define MT_VBORDERSTART   (unsigned char) 0x51
+#define MT_VBORDERSTOP    (unsigned char) 0x52
 
-#define MT_CHANNELCHANGE  (unsigned char) 0x60
-#define MT_CHANNELSTART   (unsigned char) 0x61
-#define MT_CHANNELSTOP    (unsigned char) 0x62
+#define MT_ASPECTCHANGE   (unsigned char) 0x60
+#define MT_ASPECTSTART    (unsigned char) 0x61
+#define MT_ASPECTSTOP     (unsigned char) 0x62
+
+#define MT_CHANNELCHANGE  (unsigned char) 0x70
+#define MT_CHANNELSTART   (unsigned char) 0x71
+#define MT_CHANNELSTOP    (unsigned char) 0x72
 
 #define MT_RECORDINGSTART (unsigned char) 0xD1
 #define MT_RECORDINGSTOP  (unsigned char) 0xD2
@@ -68,6 +72,9 @@ typedef struct config
     int svdrpport;
     int threads;
     int astopoffs;
+    int posttimer;
+    bool use_cDecoder=false;
+    const char *recDir;
 
     bool DecodeVideo;
     bool DecodeAudio;
@@ -88,16 +95,16 @@ typedef struct MarkAdPos
 
 typedef struct MarkAdAspectRatio
 {
-    int Num;
-    int Den;
+    int Num=0;
+    int Den=0;
 } MarkAdAspectRatio;
 
 typedef struct MarkAdMark
 {
-    int Type;
-    int Position;
-    int ChannelsBefore;
-    int ChannelsAfter;
+    int Type=0;
+    int Position=0;
+    int ChannelsBefore=0;
+    int ChannelsAfter=0;
     MarkAdAspectRatio AspectRatioBefore;
     MarkAdAspectRatio AspectRatioAfter;
 } MarkAdMark;
@@ -116,12 +123,13 @@ typedef struct MarkAdMarks
 
 typedef struct MarkAdPid
 {
-    int Num;
-    int Type;
+    int Num=0;
+    int Type=0;
 } MarkAdPid;
 
 typedef struct MarkAdContext
 {
+//    cDecoder *ptr_cDecoder;
     const MarkAdConfig *Config;
 
     struct Info
@@ -141,6 +149,7 @@ typedef struct MarkAdContext
         struct Options
         {
             bool IgnoreAspectRatio;
+            bool IgnoreBlackScreenDetection=false;
             bool IgnoreLogoDetection;
             bool WeakMarksOk;
         } Options;
@@ -153,7 +162,7 @@ typedef struct MarkAdContext
             int Pix_Fmt; // Pixel format (see libavutil/pixfmt.h)
             MarkAdAspectRatio AspectRatio;
             double FramesPerSecond;
-            bool Interlaced;
+            bool Interlaced=false;
         } Info;
 
         struct Data

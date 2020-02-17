@@ -25,6 +25,9 @@ struct setup
     bool LogoOnly;
     bool DeferredShutdown;
     const char *LogoDir;
+    char *LogLevel=NULL;
+    char *aStopOffs=NULL;
+    bool cDecoder=false;
     const char *PluginName;
 };
 

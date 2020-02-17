@@ -49,11 +49,12 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
         LOGOHEIGHT=LOGO_DEFHDHEIGHT;
         LOGOWIDTH=LOGO_DEFHDWIDTH;
     }
-    else
+    else if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262)
     {
         LOGOHEIGHT=LOGO_DEFHEIGHT;
         LOGOWIDTH=LOGO_DEFWIDTH;
     }
+    else dsyslog("cMarkAdLogo::cMarkAdLogo maContext->Info.VPid.Type %i not valid", maContext->Info.VPid.Type);
 
     pixfmt_info=false;
     Clear();
@@ -61,12 +62,14 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
 
 void cMarkAdLogo::Clear()
 {
-    memset(&area,0,sizeof(area));
+    area={};
+//    memset(&area,0,sizeof(area));
     area.status=LOGO_UNINITIALIZED;
 }
 
 int cMarkAdLogo::Load(const char *directory, char *file, int plane)
 {
+    if (plane==0) dsyslog("cMarkAdLogo::Load load logo file name %s", file);
     if ((plane<0) || (plane>3)) return -3;
 
     char *path;
@@ -136,6 +139,7 @@ int cMarkAdLogo::Load(const char *directory, char *file, int plane)
 
 void cMarkAdLogo::Save(int framenumber, uchar picture[4][MAXPIXEL], int plane)
 {
+
     if (!macontext) return;
     if ((plane<0) || (plane>3)) return;
     if (!macontext->Info.ChannelName) return;
@@ -338,13 +342,14 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
     if (extract) return LOGO_NOCHANGE;
     if (!processed) return LOGO_ERROR;
 
-    //tsyslog("rp=%5i mp=%5i mpV=%5.f mpI=%5.f i=%3i s=%i",rpixel,mpixel,(mpixel*LOGO_VMARK),(mpixel*LOGO_IMARK),area.intensity,area.status);
+//    tsyslog("frame (%6i) rp=%5i mp=%5i mpV=%5.f mpI=%5.f i=%3i s=%i",framenumber, rpixel,mpixel,(mpixel*LOGO_VMARK),(mpixel*LOGO_IMARK),area.intensity,area.status);
 
     if (processed==1)
     {
         // if we only have one plane we are "vulnerable"
         // to very bright pictures, so ignore them...
-        if (area.intensity>180) return LOGO_NOCHANGE;
+//        if (area.intensity>180) return LOGO_NOCHANGE;
+        if (area.intensity>150) return LOGO_NOCHANGE;
     }
 
     int ret=LOGO_NOCHANGE;
@@ -421,15 +426,27 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
     if (!macontext->Video.Data.Valid)
     {
         area.status=LOGO_UNINITIALIZED;
+        dsyslog("video data not valid");
         return LOGO_ERROR;
     }
-    if (!macontext->Video.Info.Width) return LOGO_ERROR;
-    if (!macontext->Video.Info.Height) return LOGO_ERROR;
-    if (!macontext->Config->logoDirectory[0]) return LOGO_ERROR;
-    if (!macontext->Info.ChannelName) return LOGO_ERROR;
-
+    if (!macontext->Video.Info.Width) {
+        dsyslog("video width info missing");
+        return LOGO_ERROR;
+    }
+    if (!macontext->Video.Info.Height) {
+        dsyslog("video high info missing");
+        return LOGO_ERROR;
+    }
+    if (!macontext->Config->logoDirectory[0]) { 
+        dsyslog("logoDirectory missing");
+        return LOGO_ERROR;
+    }
+    if (!macontext->Info.ChannelName) {
+        dsyslog("ChannelName missing");
+        return LOGO_ERROR;
+    }
     if (macontext->Config->logoExtraction==-1)
-    {
+    { 
         if ((area.aspectratio.Num!=macontext->Video.Info.AspectRatio.Num) ||
                 (area.aspectratio.Den!=macontext->Video.Info.AspectRatio.Den))
         {
@@ -477,6 +494,68 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
     return Detect(FrameNumber,LogoFrameNumber);
 }
 
+cMarkAdBlackScreen::cMarkAdBlackScreen(MarkAdContext *maContext)
+{
+    macontext=maContext;
+    Clear();
+}
+
+void cMarkAdBlackScreen::Clear()
+{
+    blackScreenstatus=BLACKSCREEN_UNINITIALIZED;
+}
+
+int cMarkAdBlackScreen::Process(int FrameNumber, int *BlackIFrame)
+{ 
+#define BLACKNESS 20
+    if (!macontext) return 0;
+    if (!macontext->Video.Data.Valid) return 0;
+    if (macontext->Video.Info.FramesPerSecond==0) return 0;
+    *BlackIFrame=0;
+    if (!macontext->Video.Info.Height) { 
+        dsyslog("cMarkAdBlackScreen::Process() missing macontext->Video.Info.Height");
+        return 0;
+    }
+    int height=macontext->Video.Info.Height;
+
+    if (!macontext->Video.Info.Width) {
+        dsyslog("cMarkAdBlackScreen::Process() missing macontext->Video.Info.Width");
+        return 0;
+    }
+    int width=macontext->Video.Info.Width;
+
+    int end=height*width;
+    int cnt=0;
+    int val=0;
+    if (!macontext->Video.Data.Plane[0]) {
+        dsyslog("cMarkAdBlackScreen::Process() Video.Data.Plane[0] missing");
+        return 0;
+    }
+
+    for (int x=0; x<end; x++)
+    {
+        val+=macontext->Video.Data.Plane[0][x];
+        cnt++;
+    }
+    val/=cnt;
+    if (val<BLACKNESS) {
+        if (blackScreenstatus!=BLACKSCREEN_VISIBLE) {
+            *BlackIFrame=FrameNumber;
+            blackScreenstatus=BLACKSCREEN_VISIBLE;
+            return -1; // detected start of black screen
+        }
+    }
+    else {
+        if (blackScreenstatus!=BLACKSCREEN_INVISIBLE)
+        {
+            *BlackIFrame=FrameNumber;
+            blackScreenstatus=BLACKSCREEN_INVISIBLE;
+            return 1; // detected stop of black screen
+        } 
+    }
+    return 0;
+}
+
 cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(MarkAdContext *maContext)
 {
     macontext=maContext;
@@ -500,9 +579,16 @@ int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame)
     // Assumption: If we have 4:3, we should have aspectratio-changes!
     //if (macontext->Video.Info.AspectRatio.Num==4) return 0; // seems not to be true in all countries?
     *BorderIFrame=0;
-
+    if (!macontext->Video.Info.Height) {
+        dsyslog("cMarkAdBlackBordersHoriz::Process() video hight missing");
+        return 0;
+    }
     int height=macontext->Video.Info.Height-VOFFSET;
 
+    if (!macontext->Video.Data.PlaneLinesize[0]) {
+        dsyslog("cMarkAdBlackBordersHoriz::Process() Video.Data.PlaneLinesize[0] not initalized");
+        return 0;
+    }
     int start=(height-CHECKHEIGHT)*macontext->Video.Data.PlaneLinesize[0];
     int end=height*macontext->Video.Data.PlaneLinesize[0];
     bool ftop=true,fbottom=true;
@@ -597,6 +683,10 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame)
     bool fleft=true,fright=true;
     int val=0,cnt=0;
 
+    if(!macontext->Video.Data.PlaneLinesize[0]) {
+        dsyslog("Video.Data.PlaneLinesize[0] missing");
+        return 0;
+    }
     int end=macontext->Video.Data.PlaneLinesize[0]*(macontext->Video.Info.Height-VOFFSET_);
     int i=VOFFSET_*macontext->Video.Data.PlaneLinesize[0];
     while (i<end) {
@@ -712,7 +802,11 @@ bool cMarkAdOverlap::areSimilar(simpleHistogram &hist1, simpleHistogram &hist2)
         similar+=abs(hist1[i]-hist2[i]);
     }
     //printf("%6i\n",similar);
-    if (similar<similarCutOff) return true;
+    if (similar<similarCutOff) {
+//       dsyslog("---areSimilar() similarCutOff %8i",similarCutOff);
+//       dsyslog("---areSimilar() similar       %8i",similar);
+       return true;
+    }
     return false;
 }
 
@@ -730,6 +824,7 @@ MarkAdPos *cMarkAdOverlap::Detect()
             bool simil=areSimilar(histbuf[OV_BEFORE][B].histogram,histbuf[OV_AFTER][A].histogram);
             if (simil)
             {
+//                dsyslog("---cMarkAdOverlap::Detect() similar frames (%6i) (%6i) ",histbuf[OV_BEFORE][B].framenumber,histbuf[OV_AFTER][A].framenumber);
                 tmpA=A;
                 tmpB=B;
                 start=A+1;
@@ -741,8 +836,7 @@ MarkAdPos *cMarkAdOverlap::Detect()
             }
             else
             {
-                //if (simcnt) printf("simcnt=%i\n",simcnt);
-
+//                if (simcnt) dsyslog("---simcnt=%i",simcnt);
                 if (simcnt>similarMaxCnt)
                 {
                     if ((histbuf[OV_BEFORE][tmpB].framenumber>result.FrameNumberBefore) &&
@@ -777,11 +871,20 @@ MarkAdPos *cMarkAdOverlap::Detect()
 
 MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd, bool H264)
 {
+//    dsyslog("---cMarkAdOverlap::Process FrameNumber %i", FrameNumber);
+//    dsyslog("---cMarkAdOverlap::Process Frames %i", Frames);
+//    dsyslog("---cMarkAdOverlap::Process BeforeAd %i", BeforeAd);
+//    dsyslog("---cMarkAdOverlap::Process H264 %i", H264);
+//    dsyslog("---cMarkAdOverlap::Process lastframenumber %i", lastframenumber);
+//    dsyslog("---cMarkAdOverlap::Process histcnt[OV_BEFORE] %i", histcnt[OV_BEFORE]);
+//    dsyslog("---cMarkAdOverlap::Process histcnt[OV_AFTER] %i", histcnt[OV_AFTER]);
     if ((lastframenumber>0) && (!similarMaxCnt))
     {
         similarCutOff=50000; // lower is harder!
-        if (H264) similarCutOff*=6;
-        similarMaxCnt=4;
+//        if (H264) similarCutOff*=6;
+        if (H264) similarCutOff*=4;       // reduce false similar detection in H.264 streams
+//        similarMaxCnt=4;
+        similarMaxCnt=10;
     }
 
     if (BeforeAd)
@@ -830,9 +933,8 @@ MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd, b
 cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext)
 {
     macontext=maContext;
-
-    memset(&marks,0,sizeof(marks));
-
+    marks={};
+    blackScreen=new cMarkAdBlackScreen(maContext);
     hborder=new cMarkAdBlackBordersHoriz(maContext);
     vborder=new cMarkAdBlackBordersVert(maContext);
     logo = new cMarkAdLogo(maContext);
@@ -843,6 +945,7 @@ cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext)
 cMarkAdVideo::~cMarkAdVideo()
 {
     resetmarks();
+    if (blackScreen) delete blackScreen;
     if (hborder) delete hborder;
     if (vborder) delete vborder;
     if (logo) delete logo;
@@ -855,6 +958,7 @@ void cMarkAdVideo::Clear()
     aspectratio.Den=0;
     framelast=0;
     framebeforelast=0;
+    if (blackScreen) blackScreen->Clear();
     if (hborder) hborder->Clear();
     if (vborder) vborder->Clear();
     if (logo) logo->Clear();
@@ -862,7 +966,8 @@ void cMarkAdVideo::Clear()
 
 void cMarkAdVideo::resetmarks()
 {
-    memset(&marks,0,sizeof(marks));
+    marks={};
+//    memset(&marks,0,sizeof(marks));
 }
 
 bool cMarkAdVideo::addmark(int type, int position, MarkAdAspectRatio *before,
@@ -906,6 +1011,7 @@ bool cMarkAdVideo::aspectratiochange(MarkAdAspectRatio &a, MarkAdAspectRatio &b,
 
 MarkAdPos *cMarkAdVideo::ProcessOverlap(int FrameNumber, int Frames, bool BeforeAd, bool H264)
 {
+
     if (!FrameNumber) return NULL;
     if (!overlap) overlap=new cMarkAdOverlap(macontext);
     if (!overlap) return NULL;
@@ -918,15 +1024,25 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
     if ((!FrameNumber) && (!FrameNumberNext)) return NULL;
 
     resetmarks();
+    if (!macontext->Video.Options.IgnoreBlackScreenDetection) {
+        int blackScreenframenumber=0;
+        int blackret=blackScreen->Process(FrameNumber,&blackScreenframenumber);
+        if (blackret>0) 
+        { 
+            addmark(MT_NOBLACKSTART,blackScreenframenumber);
+        }
+        else if (blackret<0)
+        {
+            addmark(MT_NOBLACKSTOP,blackScreenframenumber);
+        }
+    }
 
     int hborderframenumber;
     int hret=hborder->Process(FrameNumber,&hborderframenumber);
-
     if ((hret>0) && (hborderframenumber!=-1))
     {
         addmark(MT_HBORDERSTART,hborderframenumber);
     }
-
     if ((hret<0) && (hborderframenumber!=-1))
     {
         addmark(MT_HBORDERSTOP,hborderframenumber);
@@ -934,12 +1050,10 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
 
     int vborderframenumber;
     int vret=vborder->Process(FrameNumber,&vborderframenumber);
-
     if ((vret>0) && (vborderframenumber!=-1))
     {
         addmark(MT_VBORDERSTART,vborderframenumber);
     }
-
     if ((vret<0) && (vborderframenumber!=-1))
     {
         addmark(MT_VBORDERSTOP,vborderframenumber);
@@ -967,17 +1081,22 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
                 addmark(MT_HBORDERSTOP,framebeforelast);
                 hborder->SetStatusBorderInvisible();
             }
-
-            if ((macontext->Video.Info.AspectRatio.Num==4) &&
-                    (macontext->Video.Info.AspectRatio.Den==3))
-            {
-                addmark(MT_ASPECTSTART,start ? FrameNumber : FrameNumberNext,
-                        &aspectratio,&macontext->Video.Info.AspectRatio);
+            if (((macontext->Info.AspectRatio.Num == 4) && (macontext->Info.AspectRatio.Den == 3)) || 
+                ((macontext->Info.AspectRatio.Num == 0) && (macontext->Info.AspectRatio.Den == 0))) {
+                if ((macontext->Video.Info.AspectRatio.Num==4) && (macontext->Video.Info.AspectRatio.Den==3)) {
+                    addmark(MT_ASPECTSTART,start ? FrameNumber : FrameNumberNext,&aspectratio,&macontext->Video.Info.AspectRatio);
+                }
+                else {
+                    addmark(MT_ASPECTSTOP,framelast,&aspectratio,&macontext->Video.Info.AspectRatio);
+                }
             }
-            else
-            {
-                addmark(MT_ASPECTSTOP,framelast,&aspectratio,
-                        &macontext->Video.Info.AspectRatio);
+            else {
+                if ((macontext->Video.Info.AspectRatio.Num==16) && (macontext->Video.Info.AspectRatio.Den==9)) {
+                    addmark(MT_ASPECTSTART,start ? FrameNumber : FrameNumberNext,&aspectratio,&macontext->Video.Info.AspectRatio);
+                }
+                else {
+                    addmark(MT_ASPECTSTOP,framelast,&aspectratio,&macontext->Video.Info.AspectRatio);
+                }
             }
         }
 

@@ -54,10 +54,15 @@ cPluginMarkAd::~cPluginMarkAd()
 const char *cPluginMarkAd::CommandLineHelp(void)
 {
     // Return a string that describes all known command line options.
-    return "  -b DIR,   --bindir=DIR        use DIR as location for markad executable\n"
-           "                                (default: /usr/bin)\n"
-           "  -l DIR    --logocachedir=DIR  use DIR as location for markad logos\n"
-           "                                (default: /var/lib/markad)\n";
+    return "  -b DIR,   --bindir=DIR         use DIR as location for markad executable\n"
+           "                                 (default: /usr/bin)\n"
+           "  -l DIR    --logocachedir=DIR   use DIR as location for markad logos\n"
+           "                                 (default: /var/lib/markad)\n"
+           "            --loglevel=<level>   sets loglevel to the specified value\n"
+           "                                 <level> 1=error 2=info 3=debug 4=trace\n"
+           "            --astopoffs=<value>  (default is 100)\n"
+           "                                  assumed stop offset in seconds range from 0 to 240\n"
+           "            --cDecoder            use new cDecoder class)\n";
 }
 
 bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
@@ -65,9 +70,11 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
     // Command line argument processing
     static struct option long_options[] =
     {
-        { "bindir",      required_argument, NULL, 'b'
-        },
-        { "logocachedir",      required_argument, NULL, 'l'},
+        { "bindir",       required_argument, NULL, 'b'},
+        { "logocachedir", required_argument, NULL, 'l'},
+        { "loglevel",     required_argument, NULL, '1'},
+        { "astopoffs",    required_argument, NULL, '2'},
+        { "cDecoder",      no_argument,       NULL, '3'},
         { NULL, 0, NULL, 0 }
     };
 
@@ -103,6 +110,15 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
                 return false;
             }
             break;
+        case '1':
+            loglevel=atoi(optarg);
+            break;
+        case '2':
+            astopoffs=atoi(optarg);
+            break;
+        case '3':
+            cDecoder=true;
+            break;
         default:
             return false;
         }
@@ -132,6 +148,13 @@ bool cPluginMarkAd::Start(void)
     // Start any background activities the plugin shall perform.
     lastcheck=0;
     setup.PluginName=Name();
+    if (loglevel) 
+        if(! asprintf(&setup.LogLevel," --loglevel=%i ",loglevel))
+            esyslog("markad: asprintf ouf of memory");
+    if (astopoffs>=0)
+        if(! asprintf(&setup.aStopOffs," --astopoffs=%i ",astopoffs))
+            esyslog("markad: asprintf ouf of memory");
+    setup.cDecoder=cDecoder;
     setup.LogoDir=logodir;
     statusMonitor = new cStatusMarkAd(bindir,logodir,&setup);
     return (statusMonitor!=NULL);

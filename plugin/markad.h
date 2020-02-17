@@ -23,6 +23,9 @@ private:
     cStatusMarkAd *statusMonitor;
     char *bindir;
     char *logodir;
+    int loglevel=0;
+    int astopoffs=-1;
+    bool cDecoder=false;
     struct setup setup;
     char title[80];
     time_t lastcheck;

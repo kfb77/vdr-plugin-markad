@@ -648,6 +648,7 @@ bool cTS2Pkt::Process(uchar *TSData, int TSSize, AvPacket *Pkt)
                 esyslog("sequence error %i->%i (0x%04x)",counter,tshdr->Counter,pid);
             }
             Clear(Pkt);
+//	    dsyslog("---queue->Skipped() %i", queue->Skipped());
             skipped+=queue->Skipped();
             if (!tshdr->PayloadStart)
             {

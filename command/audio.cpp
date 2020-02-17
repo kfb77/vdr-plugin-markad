@@ -36,7 +36,7 @@ void cMarkAdAudio::Clear()
 void cMarkAdAudio::resetmark()
 {
     if (!mark.Type) return;
-    memset(&mark,0,sizeof(mark));
+    mark={};
 }
 
 void cMarkAdAudio::setmark(int type, int position, int channelsbefore, int channelsafter)

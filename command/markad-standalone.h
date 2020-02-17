@@ -210,8 +210,10 @@ unsigned Descriptor_Length:
     int tStart;        // pretimer in seconds
     int iStart;        // pretimer in frames (negative if unset)
     int iStop;         // endposition in frames (negative if unset)
+    int iStartA;       // assumed startposition in frames
     int iStopA;        // assumed endposition in frames (negative if unset)
-    bool iStopinBroadCast; // in broadcast @ iStop position?
+    bool ignoreHborder=false; // ignore horizontal borders, if there are none at the start of the recording
+    bool iStopinBroadCast;    // in broadcast @ iStop position?
 
     void CheckStop();
     void CheckStart();
@@ -246,8 +248,10 @@ unsigned Descriptor_Length:
     bool SetFileUID(char *File);
     bool RegenerateIndex();
     bool ProcessFile2ndPass(clMark **Mark1, clMark **Mark2, int Number, off_t Offset, int Frame, int Frames);
+    bool ProcessMark2ndPass(clMark **Mark1, clMark **Mark2);
     bool ProcessFile(int Number);
     void ProcessFile();
+    void ProcessFrame(cDecoder *ptr_cDecoder);
 public:
     cMarkAdStandalone(const char *Directory, const MarkAdConfig *config);
     ~cMarkAdStandalone();

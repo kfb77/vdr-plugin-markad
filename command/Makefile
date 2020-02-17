@@ -21,14 +21,17 @@ CFGDIR = $(call PKGCFG,configdir)
 CXX      ?= g++
 export CXXFLAGS ?= $(call PKGCFG,cxxflags)
 export CXXFLAGS ?= -g -rdynamic -O3 -funroll-loops -Wall -Wextra -Woverloaded-virtual -Wno-parentheses
-export CXXFLAGS += -std=c++11  # to prevent a lot of compiler warnings with Ubuntu 14.04
+CXXVERION=$(shell $(CXX) -dumpversion)
+ifeq ($(CXXVERION),4.8)
+export CXXFLAGS += -std=c++11   # to prevent a lot of compiler warnings with Ubuntu 14.04
+endif
 #
 PKG-CONFIG ?= pkg-config
 STRIP ?= strip
 
 ### Includes and Defines (add further entries here):
-PKG-LIBS += libavcodec libavutil
-PKG-INCLUDES += libavcodec libavutil
+PKG-LIBS += libavcodec libavutil libavformat
+PKG-INCLUDES += libavcodec libavutil libavformat
 
 DEFINES += -D_GNU_SOURCE 
 DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
@@ -44,7 +47,7 @@ LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
 
 ### The object files (add further files here):
 
-OBJS = markad-standalone.o decoder.o marks.o streaminfo.o video.o audio.o demux.o
+OBJS = markad-standalone.o decoder.o marks.o streaminfo.o video.o audio.o demux.o decoder_new.o
 
 ### The main target:
 
