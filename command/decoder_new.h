@@ -8,7 +8,7 @@ extern "C"{
 #include <libavutil/file.h>
 }
 
-#define CDECODERVERSION 63
+#define CDECODERVERSION 100
 #define MAXEAGAINERRORS 10
 
 class cDecoder
