@@ -21,9 +21,9 @@ CFGDIR = $(call PKGCFG,configdir)
 CXX      ?= g++
 export CXXFLAGS ?= $(call PKGCFG,cxxflags)
 export CXXFLAGS ?= -g -rdynamic -O3 -funroll-loops -Wall -Wextra -Woverloaded-virtual -Wno-parentheses
-CXXVERION=$(shell $(CXX) -dumpversion)
-ifeq ($(CXXVERION),4.8)
-export CXXFLAGS += -std=c++11   # to prevent a lot of compiler warnings with Ubuntu 14.04
+CXXVERION=$(shell $(CXX) -dumpversion | cut -d"." -f1)
+ifeq ($(CXXVERION),4)
+export CXXFLAGS += -std=c++11   # to prevent a lot of compiler warnings with g++ V4
 endif
 #
 PKG-CONFIG ?= pkg-config
