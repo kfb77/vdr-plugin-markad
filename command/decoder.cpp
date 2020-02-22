@@ -255,7 +255,8 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, int Threads)
                     video_context->codec_type=AVMEDIA_TYPE_UNKNOWN;
                     video_context->codec_id=AV_CODEC_ID_NONE;
                     video_context->codec_tag=0;
-    #if LIBAVCODEC_VERSION_INT < ((56<<16)+(26<<8)+100)
+//    #if (LIBAVCODEC_VERSION_MAJOR < 57)
+    #if LIBAVCODEC_VERSION_INT < ((56<<16)+(1<<8)+0)
                     memset(video_context->codec_name,0,sizeof(video_context->codec_name));
     #endif
     #if LIBAVCODEC_VERSION_INT >= ((53<<16)+(5<<8)+0)
