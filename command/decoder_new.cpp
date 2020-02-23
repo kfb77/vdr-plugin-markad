@@ -240,6 +240,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
 #else
             avFrame->height=avctx->streams[avpkt.stream_index]->codec->height;
             avFrame->width=avctx->streams[avpkt.stream_index]->codec->width;
+            avFrame->format=codecCtx->pix_fmt;
 #endif
             int rc=av_frame_get_buffer(avFrame,32);
             if (rc != 0) {
