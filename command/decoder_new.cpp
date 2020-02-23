@@ -188,7 +188,13 @@ bool cDecoder::GetNextFrame() {
                  iFrameCount++;
                  if ((iFrameInfoVector.empty()) || (framenumber > iFrameInfoVector.back().iFrameNumber)) {
                      if (avpkt.pts != AV_NOPTS_VALUE) {   // store a iframe number pts index
+#if LIBAVCODEC_VERSION_INT <= ((56<<16)+(1<<8)+0)    // Rasbian Jessie
+                         int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
+                         if ( tmp_pts < 0 ) { tmp_pts += 0x1ffffffff; }   // Respbian Jessie can overflow this value
+                         pts_time_ms=tmp_pts*av_q2d(avctx->streams[avpkt.stream_index]->time_base)*100;
+#else
                          pts_time_ms=(avpkt.pts - avctx->streams[avpkt.stream_index]->start_time)*av_q2d(avctx->streams[avpkt.stream_index]->time_base)*100;
+#endif
                          iFrameInfo newFrameInfo;
                          newFrameInfo.fileNumber=fileNumber;
                          newFrameInfo.iFrameNumber=framenumber;
