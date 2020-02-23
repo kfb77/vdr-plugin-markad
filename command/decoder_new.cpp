@@ -300,6 +300,10 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                 esyslog("cDecoder::GetFrameInfo(): avcodec_decode_video2 decode of frame (%li) failed with return code %i", framenumber, rc);
                 return false;
             }
+            if ( !video_frame_ready ) {
+                stateEAGAIN=true;
+                return false;
+            }
 #endif
             stateEAGAIN=false;
 
