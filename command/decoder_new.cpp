@@ -155,7 +155,7 @@ int cDecoder::GetVideoRealFrameRate() {
             if ( st->codec->time_base.den * (int64_t) st->time_base.num <= st->codec->time_base.num * st->codec->ticks_per_frame * (int64_t) st->time_base.den) {
                 r_frame_rate.num = st->codec->time_base.den;
                 r_frame_rate.den = st->codec->time_base.num * st->codec->ticks_per_frame;
-            } 
+            }
             else {
                 r_frame_rate.num = st->time_base.den;
                 r_frame_rate.den = st->time_base.num;
@@ -219,7 +219,7 @@ bool cDecoder::SeekToFrame(long int iFrame) {
         return false;
     }
     while (framenumber < iFrame) {
-        if (!this->GetNextFrame()) 
+        if (!this->GetNextFrame())
             if (!this->DecodeDir(recordingDir)) {
                 dsyslog("cDecoder::SeekFrame(): failed for frame (%li) at frame (%li)", iFrame, framenumber);
                 return false;
@@ -259,19 +259,19 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
             rc=avcodec_send_packet(codecCtx,&avpkt);
             if (rc  < 0) {
                 switch (rc) {
-                    case AVERROR(EAGAIN): 
+                    case AVERROR(EAGAIN):
                         dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_send_packet error EAGAIN at frame %li", framenumber);
                         break;
-                    case AVERROR(ENOMEM): 
+                    case AVERROR(ENOMEM):
                         dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_send_packet error ENOMEM at frame %li", framenumber);
                         break;
-                    case AVERROR(EINVAL): 
+                    case AVERROR(EINVAL):
                         dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_send_packet error EINVAL at frame %li", framenumber);
                         break;
                     case AVERROR_INVALIDDATA:
                         dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_send_packet error AVERROR_INVALIDDATA at frame %li", framenumber); // this could happen on the start of a recording
                         break;
-                    default: 
+                    default:
                         dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_send_packet failed with rc=%i at frame %li",rc,framenumber);
                         break;
                 }
@@ -280,14 +280,14 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
             rc = avcodec_receive_frame(codecCtx,avFrame);
             if (rc < 0) {
                 switch (rc) {
-                    case AVERROR(EAGAIN): 
-                        tsyslog("TRACE: cDecoder::GetFrameInfo(): avcodec_receive_frame error EAGAIN at frame %li", framenumber); 
+                    case AVERROR(EAGAIN):
+                        tsyslog("TRACE: cDecoder::GetFrameInfo(): avcodec_receive_frame error EAGAIN at frame %li", framenumber);
                         stateEAGAIN=true;
                         break;
-                    case AVERROR(EINVAL): 
+                    case AVERROR(EINVAL):
                         dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_receive_frame error EINVAL at frame %li", framenumber);
                         break;
-                    default: 
+                    default:
                         dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_receive_frame: decode of frame (%li) failed with return code %i", framenumber, rc);
                         break;
                 }
@@ -353,15 +353,15 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
 //                                   sample_aspect_ratio_num =4;
 //                                   sample_aspect_ratio_den =3;
                                }
-                          else esyslog("cDecoder::GetFrameInfo(): unknown aspect ratio (%i:%i) at frame (%li)", 
+                          else esyslog("cDecoder::GetFrameInfo(): unknown aspect ratio (%i:%i) at frame (%li)",
                                                                                sample_aspect_ratio_num, sample_aspect_ratio_den, framenumber);
             }
             if ((maContext->Video.Info.AspectRatio.Num != sample_aspect_ratio_num) ||
                ( maContext->Video.Info.AspectRatio.Den != sample_aspect_ratio_den)) {
                 if (msgGetFrameInfo) dsyslog("cDecoder::GetFrameInfo(): aspect ratio changed from (%i:%i) to (%i:%i) at frame %li",
-                                                                                                        maContext->Video.Info.AspectRatio.Num, 
-                                                                                                        maContext->Video.Info.AspectRatio.Den, 
-                                                                                                        sample_aspect_ratio_num, 
+                                                                                                        maContext->Video.Info.AspectRatio.Num,
+                                                                                                        maContext->Video.Info.AspectRatio.Den,
+                                                                                                        sample_aspect_ratio_num,
                                                                                                         sample_aspect_ratio_den,
                                                                                                         framenumber);
                 maContext->Video.Info.AspectRatio.Num=sample_aspect_ratio_num;
@@ -376,14 +376,14 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
         if (isAudioAC3Frame()) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
             if (maContext->Audio.Info.Channels != avctx->streams[avpkt.stream_index]->codecpar->channels) {
-                dsyslog("cDecoder::GetFrameInfo(): audio channels changed from %i to %i at frame (%li)", maContext->Audio.Info.Channels, 
-                                                                                                        avctx->streams[avpkt.stream_index]->codecpar->channels, 
+                dsyslog("cDecoder::GetFrameInfo(): audio channels changed from %i to %i at frame (%li)", maContext->Audio.Info.Channels,
+                                                                                                        avctx->streams[avpkt.stream_index]->codecpar->channels,
                                                                                                         framenumber);
                 maContext->Audio.Info.Channels = avctx->streams[avpkt.stream_index]->codecpar->channels;
 #else
             if (maContext->Audio.Info.Channels != avctx->streams[avpkt.stream_index]->codec->channels) {
-                dsyslog("cDecoder::GetFrameInfo(): audio channels changed from %i to %i at frame (%li)", maContext->Audio.Info.Channels, 
-                                                                                                        avctx->streams[avpkt.stream_index]->codec->channels, 
+                dsyslog("cDecoder::GetFrameInfo(): audio channels changed from %i to %i at frame (%li)", maContext->Audio.Info.Channels,
+                                                                                                        avctx->streams[avpkt.stream_index]->codec->channels,
                                                                                                         framenumber);
                 maContext->Audio.Info.Channels = avctx->streams[avpkt.stream_index]->codec->channels;
 #endif
