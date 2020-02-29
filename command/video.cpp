@@ -69,7 +69,7 @@ void cMarkAdLogo::Clear()
 
 int cMarkAdLogo::Load(const char *directory, char *file, int plane)
 {
-    if (plane==0) dsyslog("cMarkAdLogo::Load load logo file name %s", file);
+    if (plane==0) dsyslog("cMarkAdLogo::Load logo file %s", file);
     if ((plane<0) || (plane>3)) return -3;
 
     char *path;
