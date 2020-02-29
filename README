@@ -26,7 +26,9 @@ Command line options:
      -l DIR    --logocachedir=DIR  use DIR as location for markad logos
                                    (default: /var/lib/markad)
 
-if you want to use the new decoder this are the recommended plugin default settings. This parameters will pass through to the markad command:
+
+
+if you want to use the new decoder by kfb77 these are the recommended plugin default settings. This parameters will pass through to the markad command:
 
 assume stop of the recording at the end of the EPG time. If end marks are to early, try to add some seconds
 --astopoffs=0
