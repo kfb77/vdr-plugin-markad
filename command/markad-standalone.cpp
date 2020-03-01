@@ -3092,7 +3092,7 @@ int usage(int svdrpport)
            "                --posttimer=<value> (default is 600)\n"
            "                  additional recording after timer end in seconds range from 0 to 1200\n"
            "                --cDecoder\n"
-           "                  use new cDecoder class, be carefull this is still experimental\n"
+           "                  use new cDecoder class for decoding\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
            "after                        markad starts to analyze the recording\n"
