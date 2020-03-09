@@ -14,3 +14,30 @@ The simplest way to compile this package is:
   4. If you're running VDR >= 1.7.15, please check if you have an
      entry in /etc/services:
      svdrp	6419/tcp	# svdrp (vdr)
+
+
+Installation with the decoder patch
+===================================
+
+Prerequisite: libavcodec-dev libavformat-dev git
+e.g. for Ubuntu: sudo apt-get install libavcodec-dev libavformat-dev git
+
+download latest patch file from https://www.vdr-portal.de/forum/index.php?thread/133203-markad-%C3%BCberarbeiteter-decoder/
+
+Clone vdr-plugin-markad and apply patch:
+cd /usr/src
+git clone https://projects.vdr-developer.org/git/vdr-plugin-markad.git
+patch -d vdr-plugin-markad -p1 < <path and filename from your downloaded patch> 
+
+build and install plugin:
+cd vdr-plugin-markad
+make all
+make install
+
+See README for recommended plugin default settings.
+If you have any problems post here: https://www.vdr-portal.de/forum/index.php?thread/133203-markad-%C3%BCberarbeiteter-decoder/
+
+To report bugs please execute markad with the following command line parameters:
+markad --loglevel=3 --astopoffs=0 --cDecoder --log2rec nice <path to recording>
+Post the files markad.log, markad und info from the recording directory.
+

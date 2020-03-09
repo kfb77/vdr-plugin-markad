@@ -28,7 +28,7 @@ Command line options:
 
 
 
-if you want to use the new decoder by kfb77 these are the recommended plugin default settings. This parameters will pass through to the markad command:
+If you use the decoder patch these are the recommended plugin default settings. This parameters will pass through to the markad command:
 
 assume stop of the recording at the end of the EPG time. If end marks are to early, try to add some seconds
 --astopoffs=0
@@ -41,3 +41,4 @@ put these lines into your markad plugin configuration, usually stored in /etc/vd
 [markad]
 --astopoffs=0
 --cDecoder
+
