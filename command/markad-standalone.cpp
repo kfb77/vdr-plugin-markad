@@ -61,6 +61,27 @@ static inline int ioprio_set(int which, int who, int ioprio)
     }
 }
 
+static inline int ioprio_get(int which, int who) {
+#if defined(__i386__)
+#define __NR_ioprio_get		290
+#elif defined(__ppc__)
+#define __NR_ioprio_get		274
+#elif defined(__x86_64__)
+#define __NR_ioprio_get		252
+#elif defined(__ia64__)
+#define __NR_ioprio_get		1275
+#else
+#define __NR_ioprio_get		0
+#endif
+    if (__NR_ioprio_get) {
+        return syscall(__NR_ioprio_get, which, who);
+    }
+    else {
+        return 0; // just do nothing
+    }
+
+}
+
 void syslog_with_tid(int priority, const char *format, ...)
 {
     va_list ap;
@@ -3703,13 +3724,24 @@ int main(int argc, char *argv[])
         {
             if (setpriority(PRIO_PROCESS,0,niceLevel)==-1)
             {
-                fprintf(stderr,"failed to set nice to %d",niceLevel);
+                fprintf(stderr,"failed to set nice to %d\n",niceLevel);
             }
             if (ioprio_set(1,getpid(),ioprio | ioprio_class << 13)==-1)
             {
-                fprintf(stderr,"failed to set ioprio to %i,%i",ioprio_class,ioprio);
+                fprintf(stderr,"failed to set ioprio to %i,%i\n",ioprio_class,ioprio);
             }
         }
+        // store the real values, maybe set by calling nice
+        errno = 0;
+        int PrioProcess = getpriority(PRIO_PROCESS,0);
+        if ( errno ) {  // use errno because -1 is a valid return value
+            fprintf(stderr,"failed to get nice value\n");
+        }
+        int IOPrio = ioprio_get(1,getpid());
+        if (! IOPrio) {
+            fprintf(stderr,"failed to get ioprio\n");
+        }
+	IOPrio = IOPrio >> 13;
 
         // now do the work...
         struct stat statbuf;
@@ -3747,6 +3779,8 @@ int main(int argc, char *argv[])
         if (!cmasta) return -1;
 
         isyslog("parameter --loglevel is set to %i", SysLogLevel);
+        dsyslog("process nice level %i",PrioProcess);
+        dsyslog("IO priority class %i",IOPrio);
         dsyslog("parameter --logocachedir is set to %s",config.logoDirectory);
         dsyslog("parameter --threads is set to %i", config.threads);
         dsyslog("parameter --astopoffs is set to %i",config.astopoffs);
