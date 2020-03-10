@@ -468,9 +468,7 @@ void cMarkAdStandalone::CheckStart()
                  (macontext.Video.Info.AspectRatio.Den==3)) ?
                 ". logo/border detection disabled" : "");
 
-        if ((macontext.Video.Info.AspectRatio.Num==4) &&
-                (macontext.Video.Info.AspectRatio.Den==3))
-        {
+        if ((macontext.Video.Info.AspectRatio.Num==4) && (macontext.Video.Info.AspectRatio.Den==3)) {
             bDecodeVideo=false;
             if (macontext.Info.Channels==6) {
                 macontext.Video.Options.IgnoreAspectRatio=false;
@@ -501,7 +499,18 @@ void cMarkAdStandalone::CheckStart()
                     dsyslog("using mark at position (%i) as start mark", begin2->position);
                     begin=begin2;
                 }
-           }
+            }
+        }
+        else { // recording is 16:9 but maybe we can get a MT_ASPECTSTART mark if previous recording was 4:3
+            begin=marks.GetAround(delta*3,iStartA,MT_ASPECTSTART);
+            if (begin) {
+                dsyslog("use MT_ASPECTSTART found at (%i) because previous recording was 4:3",begin->position);
+                clMark *begin2=marks.GetAround(delta*4,iStartA+delta,MT_LOGOSTART);  // do not use this mark if there is a later logo start mark
+                if (begin2 && begin2->position >  begin->position) {
+                    dsyslog("found later MT_LOGOSTART, do not use MT_ASPECTSTART");
+                    begin=NULL;
+                }
+            }
         }
     }
 
