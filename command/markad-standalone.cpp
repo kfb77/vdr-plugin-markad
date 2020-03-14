@@ -273,8 +273,10 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe)
 
 void cMarkAdStandalone::CheckStop()
 {
+    dsyslog("......................................");
     dsyslog("checking stop (%i)", lastiframe);
 
+//  only for debugging
     clMark *mark=marks.GetFirst();
     while (mark) {
         dsyslog("mark at position %i type 0x%X", mark->position, mark->type);
@@ -374,6 +376,7 @@ void cMarkAdStandalone::CheckStop()
 
 void cMarkAdStandalone::CheckStart()
 {
+    dsyslog("......................................");
     dsyslog("checking start (%i)", lastiframe);
 
 //  only for debugging
@@ -698,9 +701,23 @@ void cMarkAdStandalone::CheckStart()
 
 void cMarkAdStandalone::CheckLogoMarks()            // cleanup marks that make no sense
 {
+    dsyslog("......................................");
     isyslog("cleanup marks");
+    //  only for debugging
     clMark *mark=marks.GetFirst();
     while (mark) {
+        dsyslog("mark at position %i type 0x%X", mark->position, mark->type);
+        mark=mark->Next();
+    }
+    mark=marks.GetFirst();
+    while (mark) {
+        if (((mark->type & 0x0F) == MT_STOP) && (mark == marks.GetFirst())){
+            dsyslog("Start with STOP mark, delete first mark");
+	    clMark *tmp=mark;
+            mark=mark->Next();
+            marks.Del(tmp);
+            continue;
+        }
         if (((mark->type & 0x0F)==MT_START) && (mark->Next()) && ((mark->Next()->type & 0x0F)==MT_START)) {  // two start marks, delete second
             dsyslog("start mark (%i) folowed by start mark (%i) delete second", mark->position, mark->Next()->position);
             marks.Del(mark->Next());
@@ -1388,7 +1405,6 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
     }
     return false;
 }
-
 
 void cMarkAdStandalone::Process2ndPass()
 {
