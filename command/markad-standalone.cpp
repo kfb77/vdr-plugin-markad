@@ -262,8 +262,8 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe)
 
     iStartA=abs(iStart);
     iStopA =startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->astopoffs - 30);
+    chkSTART=iStartA + macontext.Video.Info.FramesPerSecond * 2*MAXRANGE;   
     chkSTOP=startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->posttimer);
-    chkSTART=abs(iStart) + macontext.Video.Info.FramesPerSecond * 3*MAXRANGE;
 
     dsyslog("assumed start frame %i", iStartA);
     dsyslog("assumed stop frame %i", iStopA);
