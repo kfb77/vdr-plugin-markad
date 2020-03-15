@@ -1439,7 +1439,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
             dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetNextFrame failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
             return false;
         }
-        if (!ptr_cDecoder->isVideoStream()) continue;
+        if (!ptr_cDecoder->isVideoPacket()) continue;
         if (!ptr_cDecoder->GetFrameInfo(&macontext)) {
             if (ptr_cDecoder->isVideoIFrame())
                 tsyslog("TRACE: cMarkAdStandalone::ProcessMark2ndPass() before mark GetFrameInfo failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
@@ -1472,7 +1472,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
             dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetNextFrame failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
             return false;
         }
-        if (!ptr_cDecoder->isVideoStream()) continue;
+        if (!ptr_cDecoder->isVideoPacket()) continue;
         if (!ptr_cDecoder->GetFrameInfo(&macontext)) {
             if (ptr_cDecoder->isVideoIFrame())
                 tsyslog("TRACE: cMarkAdStandalone::ProcessMark2ndPass() after mark GetFrameInfo failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
@@ -1525,14 +1525,8 @@ void cMarkAdStandalone::MarkadCut() {
         esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
         return;
     }
-    ptr_cDecoder->Reset();
-    AVFormatContext *avctxIn = ptr_cDecoder->GetAVFormatContext();
-    if (! avctxIn) {
-        esyslog("failed to get input video context");
-        return;
-    }
-    ptr_cEncoder = new cEncoder();
-    if ( ! ptr_cEncoder->OpenFile(directory,avctxIn)) {
+    ptr_cEncoder = new cEncoder(macontext.Config->ac3ReEncode);
+    if ( ! ptr_cEncoder->OpenFile(directory,ptr_cDecoder)) {
         esyslog("failed to open output file");
         return;
     }
@@ -1561,8 +1555,7 @@ void cMarkAdStandalone::MarkadCut() {
             }
 //            dsyslog("--- Framenumber %ld", ptr_cDecoder->GetFrameNumber());
             if ( ! ptr_cEncoder->WritePacket(pkt, ptr_cDecoder) ) {
-                esyslog("failed to write packet to output stream");
-                return;
+                isyslog("failed to write frame %ld to output stream", ptr_cDecoder->GetFrameNumber());
             }
             if (abort) {
                 ptr_cDecoder->~cDecoder();
@@ -1576,8 +1569,8 @@ void cMarkAdStandalone::MarkadCut() {
         dsyslog("failed to close output file");
         return;
     }
+    dsyslog("end MarkadCut() at frame %ld", ptr_cDecoder->GetFrameNumber());
     ptr_cEncoder->~cEncoder();
-    dsyslog("end MarkadCut()");
 }
 
 
@@ -1914,7 +1907,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder)
     }
 
     if (ptr_cDecoder->GetFrameInfo(&macontext)) {
-        if (ptr_cDecoder->isVideoStream()) {
+        if (ptr_cDecoder->isVideoPacket()) {
             if (ptr_cDecoder->isInterlacedVideo() && !macontext.Video.Info.Interlaced && (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) &&
                                                      (ptr_cDecoder->GetVideoFramesPerSecond()==25) && (ptr_cDecoder->GetVideoRealFrameRate()==50)) {
                 dsyslog("change internal frame rate to handle H.264 interlaced video");
@@ -3339,6 +3332,9 @@ int usage(int svdrpport)
            "                --cut\n"
            "                  cut vidio based on marks and write it in the recording directory\n"
            "                  requires --cDecoder\n"
+           "                --ac3reencode\n"
+           "                  re-encode AC3 stream to fix low audio level of cutted video on same devices\n"
+           "                  requires --cDecoder and --cut\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
            "after                        markad starts to analyze the recording\n"
@@ -3465,6 +3461,7 @@ int main(int argc, char *argv[])
             {"posttimer",1,0,13},
             {"cDecoder",0,0,14},
             {"cut",0,0,15},
+            {"ac3reencode",0,0,16},
             {"loglevel",1,0,2},
             {"markfile",1,0,1},
             {"nopid",0,0,5},
@@ -3810,6 +3807,10 @@ int main(int argc, char *argv[])
             config.MarkadCut=true;
             break;
 
+        case 16: // --ac3reencode
+            config.ac3ReEncode=true;
+            break;
+
         default:
             printf ("? getopt returned character code 0%o ? (option_index %d)\n", c,option_index);
         }
@@ -4010,6 +4011,10 @@ int main(int argc, char *argv[])
         if (config.MarkadCut) {
             dsyslog("parameter --cut is set");
             if (!config.use_cDecoder) esyslog("--cDecoder is not set, ignoring --cut");
+        }
+        if (config.ac3ReEncode) {
+            dsyslog("parameter --ac3reencode is set");
+            if (!config.MarkadCut) esyslog("--cut is not set, ignoring --ac3reencode");
         }
         if (config.Before) dsyslog("parameter Before is set");
 

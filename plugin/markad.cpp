@@ -64,7 +64,10 @@ const char *cPluginMarkAd::CommandLineHelp(void)
            "                                  assumed stop offset in seconds range from 0 to 240\n"
            "            --cDecoder            use alternative Decoder class)\n"
            "            --cut                 cut video based on marks and store it in the recording directory)\n"
-	   "                                  requires --cDecoder\n";
+	   "                                  requires --cDecoder\n"
+           "            --ac3reencode         re-encode AC3 stream to fix low audio level of cutted video on same devices\n"
+           "                                  requires --cDecoder and --cut\n";
+
 }
 
 bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
@@ -78,6 +81,7 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
         { "astopoffs",    required_argument, NULL, '2'},
         { "cDecoder",     no_argument,       NULL, '3'},
         { "cut",          no_argument,       NULL, '4'},
+        { "ac3reencode",  no_argument,       NULL, '5'},
         { NULL, 0, NULL, 0 }
     };
 
@@ -125,6 +129,9 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
         case '4':
             MarkadCut=true;
             break;
+        case '5':
+            ac3ReEncode=true;
+            break;
         default:
             return false;
         }
@@ -162,6 +169,7 @@ bool cPluginMarkAd::Start(void)
             esyslog("markad: asprintf ouf of memory");
     setup.cDecoder=cDecoder;
     setup.MarkadCut=MarkadCut;
+    setup.ac3ReEncode=ac3ReEncode;
     setup.LogoDir=logodir;
     statusMonitor = new cStatusMarkAd(bindir,logodir,&setup);
     return (statusMonitor!=NULL);

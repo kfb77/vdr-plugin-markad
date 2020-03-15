@@ -9,6 +9,17 @@ extern "C"{
 }
 
 
+#if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)   // error codes from AC3 parser
+#define AAC_AC3_PARSE_ERROR_SYNC         -0x1030c0a
+#define AAC_AC3_PARSE_ERROR_BSID         -0x2030c0a
+#define AAC_AC3_PARSE_ERROR_SAMPLE_RATE  -0x3030c0a
+#define AAC_AC3_PARSE_ERROR_FRAME_SIZE   -0x4030c0a
+#define AAC_AC3_PARSE_ERROR_FRAME_TYPE   -0x5030c0a
+#define AAC_AC3_PARSE_ERROR_CRC          -0x6030c0a
+#define AAC_AC3_PARSE_ERROR_CHANNEL_CFG  -0x7030c0a
+#endif
+
+
 // libavcodec versions of some distributions
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)    Ubuntu 20.04
 // #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   Ubuntu 18.04
@@ -25,6 +36,7 @@ class cDecoder
         bool DecodeDir(const char * recDir);
         void Reset();
         AVFormatContext *GetAVFormatContext();
+        AVCodecContext **GetAVCodecContext();
         bool DecodeFile(const char * filename);
         int GetVideoHeight();
         int GetVideoWidth();
@@ -33,11 +45,14 @@ class cDecoder
         bool GetNextFrame();
         AVPacket *GetPacket();
         bool SeekToFrame(long int iFrame);
+        AVFrame *DecodePacket(AVFormatContext *avctx, AVPacket *avpkt);
         bool GetFrameInfo(MarkAdContext *maContext);
-        bool isVideoStream();
+        bool isVideoStream(int streamIndex);
+        bool isVideoPacket();
         bool isVideoIFrame();
-        bool isAudioStream();
         bool isAudioAC3Stream();
+        bool isAudioStream(int streamIndex);
+        bool isAudioPacket();
         long int GetFrameNumber();
         long int GetIFrameCount();
         bool isInterlacedVideo();
@@ -51,8 +66,7 @@ class cDecoder
         AVFormatContext *avctx = NULL;
         AVPacket avpkt;
         AVCodec *codec;
-        AVCodecContext *codecCtx;
-        AVFrame *avFrame = NULL;
+        AVCodecContext **codecCtxArray = NULL;
         long int framenumber=-1;
         long int iFrameCount=0;
         int64_t pts_time_ms_LastFile=0;

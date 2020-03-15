@@ -75,6 +75,7 @@ typedef struct config
     int posttimer;
     bool use_cDecoder=false;
     bool MarkadCut=false;
+    bool ac3ReEncode=false;
     const char *recDir;
 
     bool DecodeVideo;

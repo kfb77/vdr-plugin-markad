@@ -27,6 +27,7 @@ private:
     int astopoffs=-1;
     bool cDecoder=false;
     bool MarkadCut=false;
+    bool ac3ReEncode=false;
     struct setup setup;
     char title[80];
     time_t lastcheck;

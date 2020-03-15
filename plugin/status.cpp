@@ -72,7 +72,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
 {
     if ((Direct) && (Get(FileName)!=-1)) return false;
 
-    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
+    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->Verbose ? " -v " : "",
                                    setup->SaveInfo ? " -I " : "",
@@ -89,6 +89,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                                    setup->aStopOffs ? setup->aStopOffs : "",
                                    setup->cDecoder ? " --cDecoder " : "",
                                    setup->MarkadCut ? " --cut " : "",
+                                   setup->ac3ReEncode ? " --ac3reencode " : "",
                                    logodir,
                                    Direct ? "-O after" : "--online=2 before",
                                    FileName);

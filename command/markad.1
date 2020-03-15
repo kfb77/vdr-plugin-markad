@@ -121,6 +121,12 @@ use alternative cDecoder class for decoding
 .BI \-\-cut
 cut video based on marks and store it in the recording directory
  requires \-\-cDecoder
+ there are no splits of the target file, make sure your filesystem can handle big files
+.TP
+.BI \-\-ac3reencode
+re-encode AC3 stream to fix low audio level of cutted video on same devices
+ requires --cDecoder and --cut
+ use it only if you really need it, it is very CPU consuming
 .TP 
 .BI \-\-svdrpport= \fR<port>\fR  "  ( default is 6419 ) "
 port of a remote VDR for OSD messages

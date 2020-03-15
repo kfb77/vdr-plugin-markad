@@ -29,6 +29,7 @@ struct setup
     char *aStopOffs=NULL;
     bool cDecoder=false;
     bool MarkadCut=false;
+    bool ac3ReEncode=false;
     const char *PluginName;
 };
 
