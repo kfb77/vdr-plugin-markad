@@ -298,7 +298,7 @@ void cMarkAdStandalone::CheckStop()
             end=marks.GetAround(3*delta,iStopA,MT_HBORDERSTOP);         // try MT_HBORDERSTOP
             if (!end) {
                 dsyslog("no MT_HBORDERSTOP mark found");
-                end=marks.GetAround(3*delta,iStopA+delta,MT_LOGOSTOP);        // try MT_LOGOSTOP
+                end=marks.GetAround(3*delta,iStopA+2*delta,MT_LOGOSTOP);        // try MT_LOGOSTOP
                 if (!end) {
                     dsyslog("no MT_LOGOSTOP mark found");
                     end=marks.GetAround(3*delta,iStopA,MT_STOP,0x0F);    // try any type of stop mark
