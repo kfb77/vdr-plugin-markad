@@ -57,9 +57,9 @@ bool cDecoder::DecodeFile(const char * filename) {
     for (unsigned int i=0; i<avctx->nb_streams; i++) {
         if (isVideoStream()) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
-            codec=avcodec_find_decoder(avctx->streams[avpkt.stream_index]->codecpar->codec_id);
+            codec=avcodec_find_decoder(avctx->streams[i]->codecpar->codec_id);
 #else
-            codec=avcodec_find_decoder(avctx->streams[avpkt.stream_index]->codec->codec_id);
+            codec=avcodec_find_decoder(avctx->streams[i]->codec->codec_id);
 #endif
             if (!codec) {
                 esyslog("cDecoder::DecodeFile(): could nit find decoder for stream");
@@ -72,9 +72,9 @@ bool cDecoder::DecodeFile(const char * filename) {
                 return(false);
             }
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
-            if (avcodec_parameters_to_context(codecCtx,avctx->streams[avpkt.stream_index]->codecpar) < 0) {
+            if (avcodec_parameters_to_context(codecCtx,avctx->streams[i]->codecpar) < 0) {
 #else
-            if (avcodec_copy_context(codecCtx,avctx->streams[avpkt.stream_index]->codec) < 0) {
+            if (avcodec_copy_context(codecCtx,avctx->streams[i]->codec) < 0) {
 #endif
                 esyslog("cDecoder::DecodeFile(): avcodec_parameters_to_context failed");
                 return(false);
