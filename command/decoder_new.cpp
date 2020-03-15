@@ -260,19 +260,19 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
             if (rc  < 0) {
                 switch (rc) {
                     case AVERROR(EAGAIN):
-                        dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_send_packet error EAGAIN at frame %li", framenumber);
+                        dsyslog("cDecoder::GetFrameInfo(): avcodec_send_packet error EAGAIN at frame %li", framenumber);
                         break;
                     case AVERROR(ENOMEM):
-                        dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_send_packet error ENOMEM at frame %li", framenumber);
+                        dsyslog("cDecoder::GetFrameInfo(): avcodec_send_packet error ENOMEM at frame %li", framenumber);
                         break;
                     case AVERROR(EINVAL):
-                        dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_send_packet error EINVAL at frame %li", framenumber);
+                        dsyslog("cDecoder::GetFrameInfo(): avcodec_send_packet error EINVAL at frame %li", framenumber);
                         break;
                     case AVERROR_INVALIDDATA:
-                        dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_send_packet error AVERROR_INVALIDDATA at frame %li", framenumber); // this could happen on the start of a recording
+                        dsyslog("cDecoder::GetFrameInfo(): avcodec_send_packet error AVERROR_INVALIDDATA at frame %li", framenumber); // this could happen on the start of a recording
                         break;
                     default:
-                        dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_send_packet failed with rc=%i at frame %li",rc,framenumber);
+                        dsyslog("cDecoder::GetFrameInfo(): avcodec_send_packet failed with rc=%i at frame %li",rc,framenumber);
                         break;
                 }
                 return false;
@@ -281,14 +281,14 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
             if (rc < 0) {
                 switch (rc) {
                     case AVERROR(EAGAIN):
-                        tsyslog("TRACE: cDecoder::GetFrameInfo(): avcodec_receive_frame error EAGAIN at frame %li", framenumber);
+                        tsyslog("cDecoder::GetFrameInfo(): avcodec_receive_frame error EAGAIN at frame %li", framenumber);
                         stateEAGAIN=true;
                         break;
                     case AVERROR(EINVAL):
-                        dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_receive_frame error EINVAL at frame %li", framenumber);
+                        dsyslog("cDecoder::GetFrameInfo(): avcodec_receive_frame error EINVAL at frame %li", framenumber);
                         break;
                     default:
-                        dsyslog("DEBUG: cDecoder::GetFrameInfo(): avcodec_receive_frame: decode of frame (%li) failed with return code %i", framenumber, rc);
+                        dsyslog("cDecoder::GetFrameInfo(): avcodec_receive_frame: decode of frame (%li) failed with return code %i", framenumber, rc);
                         break;
                 }
                 return false;
