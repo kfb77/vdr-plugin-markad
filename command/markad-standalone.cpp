@@ -695,6 +695,14 @@ void cMarkAdStandalone::CheckStart()
         AddMark(&mark);
         CalculateCheckPositions(iStart);
     }
+
+    //  only for debugging
+    mark=marks.GetFirst();
+    while (mark) {
+        dsyslog("mark at position %i type 0x%X", mark->position, mark->type);
+        mark=mark->Next();
+    }
+    dsyslog("......................................");
     iStart=0;
     return;
 }
@@ -765,7 +773,8 @@ void cMarkAdStandalone::CheckLogoMarks()            // cleanup marks that make n
                 clMark *tmp=mark;
                 mark=mark->Next()->Next();
                 marks.Del(tmp->Next());
-                if (marks.GetFirst()->position!=tmp->position) marks.Del(tmp);  // do not delete start mark
+                if (marks.GetFirst()->position == tmp->position) mark=marks.GetFirst(); // do not delete start mark, restart check from first mark
+		else marks.Del(tmp); 
                 continue;
             }
         }
