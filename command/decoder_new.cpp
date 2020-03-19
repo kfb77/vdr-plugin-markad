@@ -373,16 +373,18 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
     }
 
     if (isAudioStream()) {
-        if (isAudioAC3Frame()) {
+        if (isAudioAC3Stream()) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
             if (maContext->Audio.Info.Channels != avctx->streams[avpkt.stream_index]->codecpar->channels) {
-                dsyslog("cDecoder::GetFrameInfo(): audio channels changed from %i to %i at frame (%li)", maContext->Audio.Info.Channels,
+                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %i changed from %i to %i at frame (%li)", avpkt.stream_index,
+				                                                                        maContext->Audio.Info.Channels,
                                                                                                         avctx->streams[avpkt.stream_index]->codecpar->channels,
                                                                                                         framenumber);
                 maContext->Audio.Info.Channels = avctx->streams[avpkt.stream_index]->codecpar->channels;
 #else
             if (maContext->Audio.Info.Channels != avctx->streams[avpkt.stream_index]->codec->channels) {
-                dsyslog("cDecoder::GetFrameInfo(): audio channels changed from %i to %i at frame (%li)", maContext->Audio.Info.Channels,
+                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %i changed from %i to %i at frame (%li)", avpkt.stream_index,
+				                                                                        maContext->Audio.Info.Channels,
                                                                                                         avctx->streams[avpkt.stream_index]->codec->channels,
                                                                                                         framenumber);
                 maContext->Audio.Info.Channels = avctx->streams[avpkt.stream_index]->codec->channels;
@@ -414,10 +416,12 @@ bool cDecoder::isAudioStream() {
     return false;
 }
 
-bool cDecoder::isAudioAC3Frame() {
+bool cDecoder::isAudioAC3Stream() {
     if (!avctx) return false;
 #define AUDIOFORMATAC3 8
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
+#if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
+    if (avctx->streams[avpkt.stream_index]->codecpar->codec_id == AV_CODEC_ID_AC3 ) return true;
+#elif LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
     if (avctx->streams[avpkt.stream_index]->codecpar->format == AUDIOFORMATAC3) return true;
 #else
     if (avctx->streams[avpkt.stream_index]->codec->sample_fmt == AUDIOFORMATAC3) return true;

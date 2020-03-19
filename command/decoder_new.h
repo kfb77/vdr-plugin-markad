@@ -29,7 +29,7 @@ class cDecoder
         bool isVideoStream();
         bool isVideoIFrame();
         bool isAudioStream();
-        bool isAudioAC3Frame();
+        bool isAudioAC3Stream();
         long int GetFrameNumber();
         long int GetIFrameCount();
         bool isInterlacedVideo();

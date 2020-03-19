@@ -1794,7 +1794,7 @@ void cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder)
                 if (lastiframe>chkSTOP) CheckStop();
             }
         }
-        if(ptr_cDecoder->isAudioAC3Frame()) {
+        if(ptr_cDecoder->isAudioAC3Stream()) {
              MarkAdMark *amark=audio->Process(lastiframe,iframe);
             if (amark) AddMark(amark);
         }
