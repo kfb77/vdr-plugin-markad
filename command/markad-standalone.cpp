@@ -87,6 +87,7 @@ void syslog_with_tid(int priority, const char *format, ...)
     va_list ap;
     if ((SYSLOG) && (!LOG2REC))
     {
+        priority=LOG_ERR;
         char fmt[255];
         snprintf(fmt, sizeof(fmt), "[%d] %s", getpid(), format);
         va_start(ap, format);
@@ -102,7 +103,15 @@ void syslog_with_tid(int priority, const char *format, ...)
         }
         else dsyslog("ctime_r failed");
         char fmt[255];
-        snprintf(fmt, sizeof(fmt), "%s%s [%d] %s", LOG2REC ? "":"markad: ",buf, getpid(), format);
+        char prioText[10];
+        switch (priority) {
+            case LOG_ERR:   strcpy(prioText,"ERROR:"); break;
+            case LOG_INFO : strcpy(prioText,"INFO: "); break;
+            case LOG_DEBUG: strcpy(prioText,"DEBUG:"); break;
+            case LOG_TRACE: strcpy(prioText,"TRACE:"); break;
+            default:        strcpy(prioText,"?????:"); break;
+        }
+        snprintf(fmt, sizeof(fmt), "%s%s [%d] %s %s", LOG2REC ? "":"markad: ",buf, getpid(), prioText, format);
         va_start(ap, format);
         vprintf(fmt,ap);
         va_end(ap);
@@ -270,7 +279,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe)
 
     iStartA=abs(iStart);
     iStopA =startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->astopoffs - 30);
-    chkSTART=iStartA + macontext.Video.Info.FramesPerSecond * 2*MAXRANGE;   
+    chkSTART=iStartA + macontext.Video.Info.FramesPerSecond * 2*MAXRANGE;
     chkSTOP=startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->posttimer);
 
     dsyslog("assumed start frame %i", iStartA);
@@ -729,7 +738,7 @@ void cMarkAdStandalone::CheckLogoMarks()            // cleanup marks that make n
     while (mark) {
         if (((mark->type & 0x0F) == MT_STOP) && (mark == marks.GetFirst())){
             dsyslog("Start with STOP mark, delete first mark");
-	    clMark *tmp=mark;
+            clMark *tmp=mark;
             mark=mark->Next();
             marks.Del(tmp);
             continue;
@@ -782,7 +791,7 @@ void cMarkAdStandalone::CheckLogoMarks()            // cleanup marks that make n
                 mark=mark->Next()->Next();
                 marks.Del(tmp->Next());
                 if (marks.GetFirst()->position == tmp->position) mark=marks.GetFirst(); // do not delete start mark, restart check from first mark
-		else marks.Del(tmp); 
+                else marks.Del(tmp);
                 continue;
             }
         }
@@ -3775,7 +3784,7 @@ int main(int argc, char *argv[])
         if (! IOPrio) {
             fprintf(stderr,"failed to get ioprio\n");
         }
-	IOPrio = IOPrio >> 13;
+        IOPrio = IOPrio >> 13;
 
         // now do the work...
         struct stat statbuf;
