@@ -251,10 +251,18 @@ int cOSDMessage::Send(const char *format, ...)
 
 void cMarkAdStandalone::CalculateCheckPositions(int startframe)
 {
-    if (!length) return;
-    if (!startframe) return;
-    if (!macontext.Video.Info.FramesPerSecond) return;
-
+    if (!length) {
+        esyslog("length of recording not found");
+        return;
+    }
+    if (!startframe) {
+        esyslog("start frame of recording not found");
+        return;
+    }
+    if (!macontext.Video.Info.FramesPerSecond) {
+        esyslog("video frame rate of recording not found");
+        return;
+    }
     isyslog("startframe %i", startframe);
 
     iStart=-startframe;
@@ -1008,6 +1016,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     }
     marks.Add(Mark->Type,Mark->Position,comment);
     if (comment) free(comment);
+    dsyslog("status inBroadCast %i", inBroadCast);
 }
 
 void cMarkAdStandalone::SaveFrame(int frame)
@@ -2398,8 +2407,8 @@ bool cMarkAdStandalone::LoadInfo()
                 }
                 else
                 {
-                    esyslog("cannot determine broadcast start, disabling start/stop detection");
-                    tStart=0;
+                    esyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
+                    tStart=120;
                 }
             }
         }
