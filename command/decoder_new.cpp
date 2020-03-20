@@ -174,7 +174,7 @@ int cDecoder::GetVideoRealFrameRate() {
 
 bool cDecoder::GetNextFrame() {
     if (!avctx) return false;
-    long int pts_time_ms=0;
+    int64_t pts_time_ms=0;
     iFrameData.Valid=false;
     av_packet_unref(&avpkt);
     if (av_read_frame(avctx, &avpkt) == 0 ) {
@@ -208,7 +208,7 @@ bool cDecoder::GetNextFrame() {
         return true;
     }
     pts_time_ms_LastFile += iFrameInfoVector.back().pts_time_ms;
-    dsyslog("cDecoder::GetNextFrame(): start time next file %li",pts_time_ms_LastFile);
+    dsyslog("cDecoder::GetNextFrame(): start time next file %" PRId64,pts_time_ms_LastFile);
     return false;
 }
 
@@ -476,21 +476,21 @@ long int cDecoder::GetIFrameBefore(long int iFrame) {
 
 
 long int cDecoder::GetTimeFromIFrame(long int iFrame) {
-    long int before_pts=0;
+    int64_t before_pts=0;
     long int before_iFrame=0;
     if (iFrameInfoVector.empty()) esyslog("cDecoder::GetTimeFromIFrame(): iFrame Index not initialized");
     for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
         if (iFrame == iInfo->iFrameNumber) {
-            dsyslog("cDecoder::GetTimeFromIFrame(): iFrame (%li) time is %lims", iFrame, iInfo->pts_time_ms);
+            dsyslog("cDecoder::GetTimeFromIFrame(): iFrame (%li) time is %" PRId64" ms", iFrame, iInfo->pts_time_ms);
             return iInfo->pts_time_ms;
         }
         if (iInfo->iFrameNumber > iFrame) {
             if (abs(iFrame - before_iFrame) < abs(iFrame - iInfo->iFrameNumber)) {
-                esyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame before (%li) %lims",iFrame,before_iFrame,before_pts);
+                esyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame before (%li) %" PRId64 "ms",iFrame,before_iFrame,before_pts);
                 return before_pts;
             }
             else {
-                dsyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame after (%li) %lims",iFrame,iInfo->iFrameNumber,iInfo->pts_time_ms);
+                dsyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame after (%li) %" PRId64 "ms",iFrame,iInfo->iFrameNumber,iInfo->pts_time_ms);
                 return iInfo->pts_time_ms;
             }
         }

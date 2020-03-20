@@ -47,12 +47,12 @@ class cDecoder
         AVFrame *avFrame = NULL;
         long int framenumber=-1;
         long int iFrameCount=0;
-        long int pts_time_ms_LastFile=0;
+        int64_t pts_time_ms_LastFile=0;
         struct iFrameInfo
         {
             int fileNumber=0;
             long int iFrameNumber=0;
-            long int pts_time_ms=0;
+            int64_t pts_time_ms=0;
         };
         std::vector<iFrameInfo> iFrameInfoVector;
         struct structFrameData {
