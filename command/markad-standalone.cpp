@@ -43,40 +43,46 @@ int SysLogLevel=2;
 static inline int ioprio_set(int which, int who, int ioprio)
 {
 #if defined(__i386__)
-#define __NR_ioprio_set		289
+#define __NR_ioprio_set         289
 #elif defined(__ppc__)
-#define __NR_ioprio_set		273
+#define __NR_ioprio_set         273
 #elif defined(__x86_64__)
-#define __NR_ioprio_set		251
+#define __NR_ioprio_set         251
+#elif defined(__arm__)
+#define __NR_ioprio_set         314 
 #elif defined(__ia64__)
-#define __NR_ioprio_set		1274
+#define __NR_ioprio_set        1274
 #else
-#define __NR_ioprio_set		0
+#define __NR_ioprio_set           0
 #endif
     if (__NR_ioprio_set)
     {
         return syscall(__NR_ioprio_set, which, who, ioprio);
     } else {
+        fprintf(stderr,"set io prio not supported on this system\n");
         return 0; // just do nothing
     }
 }
 
 static inline int ioprio_get(int which, int who) {
 #if defined(__i386__)
-#define __NR_ioprio_get		290
+#define __NR_ioprio_get         290
 #elif defined(__ppc__)
-#define __NR_ioprio_get		274
+#define __NR_ioprio_get         274
 #elif defined(__x86_64__)
-#define __NR_ioprio_get		252
+#define __NR_ioprio_get         252
+#elif defined(__arm__)
+#define __NR_ioprio_get         315
 #elif defined(__ia64__)
-#define __NR_ioprio_get		1275
+#define __NR_ioprio_get        1275
 #else
-#define __NR_ioprio_get		0
+#define __NR_ioprio_get           0
 #endif
     if (__NR_ioprio_get) {
         return syscall(__NR_ioprio_get, which, who);
     }
     else {
+        fprintf(stderr,"get io prio not supported on this system\n");
         return 0; // just do nothing
     }
 
@@ -360,7 +366,7 @@ void cMarkAdStandalone::CheckStop()
 
         char *timeText = marks.IndexToHMSF(end->position,&macontext, ptr_cDecoder);
         if (timeText) {
-	    isyslog("using mark on position (%i) type 0x%X at %s as stop mark",end->position,  end->type, timeText);
+            isyslog("using mark on position (%i) type 0x%X at %s as stop mark",end->position,  end->type, timeText);
             free(timeText);
         }
         marks.DelTill(end->position,false);
