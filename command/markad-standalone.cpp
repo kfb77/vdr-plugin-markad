@@ -272,7 +272,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe)
         esyslog("video frame rate of recording not found");
         return;
     }
-    isyslog("startframe %i", startframe);
+    dsyslog("startframe %i", startframe);
 
     iStart=-startframe;
     iStop = -(startframe + macontext.Video.Info.FramesPerSecond * length) ;
@@ -284,19 +284,23 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe)
 
     dsyslog("assumed start frame %i", iStartA);
     dsyslog("assumed stop frame %i", iStopA);
-    isyslog("chkSTART set to %i",chkSTART);
-    isyslog("chkSTOP set to %i", chkSTOP);
+    dsyslog("chkSTART set to %i",chkSTART);
+    dsyslog("chkSTOP set to %i", chkSTOP);
 }
 
 void cMarkAdStandalone::CheckStop()
 {
-    dsyslog("......................................");
+    dsyslog("-------------------------------------------------------");
     dsyslog("checking stop (%i)", lastiframe);
 
 //  only for debugging
     clMark *mark=marks.GetFirst();
     while (mark) {
-        dsyslog("mark at position %i type 0x%X", mark->position, mark->type);
+        char *timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
+        if (timeText) {
+            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, timeText);
+            free(timeText);
+        }
         mark=mark->Next();
     }
 
@@ -354,7 +358,11 @@ void cMarkAdStandalone::CheckStop()
            }
         }
 
-        isyslog("using mark on position %i as stop mark",end->position);
+        char *timeText = marks.IndexToHMSF(end->position,&macontext, ptr_cDecoder);
+        if (timeText) {
+	    isyslog("using mark on position (%i) type 0x%X at %s as stop mark",end->position,  end->type, timeText);
+            free(timeText);
+        }
         marks.DelTill(end->position,false);
 
         if ( end->position < iStopA - 3*delta ) {    // last found stop mark to early, adding STOP mark at the end
@@ -393,13 +401,17 @@ void cMarkAdStandalone::CheckStop()
 
 void cMarkAdStandalone::CheckStart()
 {
-    dsyslog("......................................");
+    dsyslog("-------------------------------------------------------");
     dsyslog("checking start (%i)", lastiframe);
 
 //  only for debugging
     clMark *mark=marks.GetFirst();
     while (mark) {
-        dsyslog("mark at position %i type 0x%X", mark->position, mark->type);
+        char *timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
+        if (timeText) {
+            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, timeText);
+            free(timeText);
+        }
         mark=mark->Next();
     }
 
@@ -592,7 +604,11 @@ void cMarkAdStandalone::CheckStart()
             dsyslog("no logo start mark found");
         }
         else {
-            dsyslog("logo start mark found at (%i)", lStart->position);
+            char *timeText = marks.IndexToHMSF(lStart->position,&macontext, ptr_cDecoder);
+            if (timeText) {
+                dsyslog("logo start mark found on position (%i) at %s", lStart->position, timeText);
+                free(timeText);
+            }
             clMark *lStop=marks.GetAround(delta,lStart->position,MT_LOGOSTOP);
             if ( (lStop) && (lStop->position > lStart->position)) {
                 isyslog("logo STOP (%i) after logo START (%i) found, this is the end of the previous recording, delete marks",lStop->position,lStart->position);
@@ -663,7 +679,12 @@ void cMarkAdStandalone::CheckStart()
     {
         marks.DelTill(begin->position);    // delete all marks till start mark
         CalculateCheckPositions(begin->position);
-        isyslog("using mark on position %i as start mark",begin->position);
+        char *timeText = marks.IndexToHMSF(begin->position,&macontext, ptr_cDecoder);
+        if (timeText) {
+            isyslog("using mark on position %i type 0x%X at %s as start mark", begin->position, begin->type, timeText);
+            free(timeText);
+        }
+
 
         if ((begin->type==MT_VBORDERSTART) || (begin->type==MT_HBORDERSTART)) {
             isyslog("%s borders, logo detection disabled",(begin->type==MT_HBORDERSTART) ? "horizontal" : "vertical");
@@ -716,22 +737,30 @@ void cMarkAdStandalone::CheckStart()
     //  only for debugging
     mark=marks.GetFirst();
     while (mark) {
-        dsyslog("mark at position %i type 0x%X", mark->position, mark->type);
+        char *timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
+        if (timeText) {
+            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, timeText);
+            free(timeText);
+        }
         mark=mark->Next();
     }
-    dsyslog("......................................");
+    dsyslog("-------------------------------------------------------");
     iStart=0;
     return;
 }
 
 void cMarkAdStandalone::CheckLogoMarks()            // cleanup marks that make no sense
 {
-    dsyslog("......................................");
+    dsyslog("-------------------------------------------------------");
     isyslog("cleanup marks");
     //  only for debugging
     clMark *mark=marks.GetFirst();
     while (mark) {
-        dsyslog("mark at position %i type 0x%X", mark->position, mark->type);
+        char *timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
+        if (timeText) {
+            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, timeText);
+            free(timeText);
+        }
         mark=mark->Next();
     }
     mark=marks.GetFirst();

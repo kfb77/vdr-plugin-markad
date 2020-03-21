@@ -71,7 +71,6 @@ uint16_t number:
 
     char filename[1024];
     clMark *first,*last;
-    char *IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cDecoder);
     int count;
     int savedcount;
     int indexfd;
@@ -97,6 +96,7 @@ public:
         }
     }
     clMark *Add(int Type, int Position, const char *Comment = NULL);
+    char *IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cDecoder);
     void DelTill(int Position,bool FromStart=true);
     void DelAll();
     void Del(clMark *Mark);

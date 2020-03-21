@@ -481,12 +481,12 @@ long int cDecoder::GetTimeFromIFrame(long int iFrame) {
     if (iFrameInfoVector.empty()) esyslog("cDecoder::GetTimeFromIFrame(): iFrame Index not initialized");
     for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
         if (iFrame == iInfo->iFrameNumber) {
-            dsyslog("cDecoder::GetTimeFromIFrame(): iFrame (%li) time is %" PRId64" ms", iFrame, iInfo->pts_time_ms);
+            tsyslog("cDecoder::GetTimeFromIFrame(): iFrame (%li) time is %" PRId64" ms", iFrame, iInfo->pts_time_ms);
             return iInfo->pts_time_ms;
         }
         if (iInfo->iFrameNumber > iFrame) {
             if (abs(iFrame - before_iFrame) < abs(iFrame - iInfo->iFrameNumber)) {
-                esyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame before (%li) %" PRId64 "ms",iFrame,before_iFrame,before_pts);
+                dsyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame before (%li) %" PRId64 "ms",iFrame,before_iFrame,before_pts);
                 return before_pts;
             }
             else {
@@ -499,6 +499,6 @@ long int cDecoder::GetTimeFromIFrame(long int iFrame) {
             before_pts=iInfo->pts_time_ms;
         }
     }
-    esyslog("cDecoder::GetTimeFromIFrame(): could not find time for frame %li",iFrame);
+    dsyslog("cDecoder::GetTimeFromIFrame(): could not find time for frame %li",iFrame);
     return 0;
 }
