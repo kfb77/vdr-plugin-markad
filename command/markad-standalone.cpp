@@ -49,7 +49,7 @@ static inline int ioprio_set(int which, int who, int ioprio)
 #elif defined(__x86_64__)
 #define __NR_ioprio_set         251
 #elif defined(__arm__)
-#define __NR_ioprio_set         314 
+#define __NR_ioprio_set         314
 #elif defined(__ia64__)
 #define __NR_ioprio_set        1274
 #else
@@ -886,27 +886,23 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         if (asprintf(&comment,"detected logo stop (%i)",Mark->Position)==-1) comment=NULL;
         break;
     case MT_HBORDERSTART:
-        if (asprintf(&comment,"detected start of horiz. borders (%i)*",
-                     Mark->Position)==-1) comment=NULL;
+        if (asprintf(&comment,"detected start of horiz. borders (%i)*",Mark->Position)==-1) comment=NULL;
         break;
     case MT_HBORDERSTOP:
-        if (asprintf(&comment,"detected stop of horiz. borders (%i)",
-                     Mark->Position)==-1) comment=NULL;
+        if (asprintf(&comment,"detected stop of horiz. borders (%i)", Mark->Position)==-1) comment=NULL;
         break;
     case MT_VBORDERSTART:
-        if (asprintf(&comment,"detected start of vert. borders (%i)*",
-                     Mark->Position)==-1) comment=NULL;
+        if (asprintf(&comment,"detected start of vert. borders (%i)*", Mark->Position)==-1) comment=NULL;
         break;
     case MT_VBORDERSTOP:
-        if (asprintf(&comment,"detected stop of vert. borders (%i)",
-                     Mark->Position)==-1) comment=NULL;
+        if (asprintf(&comment,"detected stop of vert. borders (%i)", Mark->Position)==-1) comment=NULL;
         break;
     case MT_ASPECTSTART:
         if (!Mark->AspectRatioBefore.Num)
         {
-            if (asprintf(&comment,"aspectratio start with %i:%i (%i)*",
-                         Mark->AspectRatioAfter.Num,Mark->AspectRatioAfter.Den,
-                         Mark->Position)==-1) comment=NULL;
+            if (asprintf(&comment,"aspectratio start with %i:%i (%i)*", Mark->AspectRatioAfter.Num,
+                                                                        Mark->AspectRatioAfter.Den,
+                                                                        Mark->Position)==-1) comment=NULL;
         }
         else
         {
@@ -940,7 +936,9 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         break;
     }
 
-    if (comment) isyslog("%s",comment);
+    char *timeText = marks.IndexToHMSF(Mark->Position,&macontext, ptr_cDecoder);
+    if (comment) isyslog("%s at %s",comment, timeText);
+    free(timeText);
 
     clMark *prev=marks.GetLast();
     if (prev) {
@@ -1195,24 +1193,32 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
     if ((*Mark1)->position!=NewPos->FrameNumberBefore)
     {
         char *buf=NULL;
-        if (asprintf(&buf,"overlap before %i, moved to %i",(*Mark1)->position,
-                     NewPos->FrameNumberBefore)==-1) return;
+        char *timeTextBefore = marks.IndexToHMSF((*Mark1)->position,&macontext, ptr_cDecoder);
+        char *timeTextNewPos = marks.IndexToHMSF(NewPos->FrameNumberBefore,&macontext, ptr_cDecoder);
+        if (asprintf(&buf,"overlap before %i at %s, moved to %i at %s",(*Mark1)->position, timeTextBefore,
+                     NewPos->FrameNumberBefore, timeTextNewPos)==-1) return;
         isyslog("%s",buf);
         marks.Del(*Mark1);
         *Mark1=marks.Add(MT_MOVED,NewPos->FrameNumberBefore,buf);
         free(buf);
+	free(timeTextBefore);
+	free(timeTextNewPos);
         save=true;
     }
 
     if (Mark2 && (*Mark2) && (*Mark2)->position!=NewPos->FrameNumberAfter)
     {
         char *buf=NULL;
-        if (asprintf(&buf,"overlap after %i, moved to %i",(*Mark2)->position,
-                     NewPos->FrameNumberAfter)==-1) return;
+        char *timeTextBefore = marks.IndexToHMSF((*Mark1)->position,&macontext, ptr_cDecoder);
+        char *timeTextNewPos = marks.IndexToHMSF(NewPos->FrameNumberBefore,&macontext, ptr_cDecoder);
+        if (asprintf(&buf,"overlap after %i at %s, moved to %i at %s",(*Mark2)->position, timeTextBefore,
+                     NewPos->FrameNumberAfter, timeTextNewPos)==-1) return;
         isyslog("%s",buf);
         marks.Del(*Mark2);
         *Mark2=marks.Add(MT_MOVED,NewPos->FrameNumberAfter,buf);
         free(buf);
+	free(timeTextBefore);
+	free(timeTextNewPos);
         save=true;
     }
     if (save) marks.Save(directory,&macontext,ptr_cDecoder,isTS,true);

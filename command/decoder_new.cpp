@@ -44,7 +44,7 @@ bool cDecoder::DecodeFile(const char * filename) {
     av_register_all();
 #endif
     if (avformat_open_input(&avctx, filename, NULL, NULL) == 0) {
-        if (msgDecodeFile) isyslog("cDecoder::DecodeFile(): decode file %s",filename);
+        if (msgDecodeFile) dsyslog("cDecoder::DecodeFile(): decode file %s",filename);
     }
     else {
         if (fileNumber <= 1) esyslog("cDecoder::DecodeFile(): Could not open source file %s", filename);
@@ -65,7 +65,7 @@ bool cDecoder::DecodeFile(const char * filename) {
                 esyslog("cDecoder::DecodeFile(): could nit find decoder for stream");
                 return(false);
             }
-            if (msgDecodeFile) isyslog("cDecoder::DecodeFile(): using decoder %s for stream %i",codec->long_name,i);
+            if (msgDecodeFile) dsyslog("cDecoder::DecodeFile(): using decoder %s for stream %i",codec->long_name,i);
             codecCtx=avcodec_alloc_context3(codec);
             if (!codecCtx) {
                 esyslog("cDecoder::DecodeFile(): avcodec_alloc_context3 failed");
@@ -308,7 +308,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
             stateEAGAIN=false;
 
             if (avFrame->interlaced_frame != interlaced_frame) {
-                isyslog("found %s video format",(avFrame->interlaced_frame) ? "interlaced" : "non interlaced");
+                dsyslog("cDecoder::GetFrameInfo(): found %s video format",(avFrame->interlaced_frame) ? "interlaced" : "non interlaced");
                 interlaced_frame=avFrame->interlaced_frame;
             }
             for (int i=0; i<4; i++) {
