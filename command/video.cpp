@@ -63,7 +63,6 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
 void cMarkAdLogo::Clear()
 {
     area={};
-//    memset(&area,0,sizeof(area));
     area.status=LOGO_UNINITIALIZED;
 }
 
@@ -437,7 +436,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
         dsyslog("video high info missing");
         return LOGO_ERROR;
     }
-    if (!macontext->Config->logoDirectory[0]) { 
+    if (!macontext->Config->logoDirectory[0]) {
         dsyslog("logoDirectory missing");
         return LOGO_ERROR;
     }
@@ -446,7 +445,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
         return LOGO_ERROR;
     }
     if (macontext->Config->logoExtraction==-1)
-    { 
+    {
         if ((area.aspectratio.Num!=macontext->Video.Info.AspectRatio.Num) ||
                 (area.aspectratio.Den!=macontext->Video.Info.AspectRatio.Den))
         {
@@ -506,13 +505,13 @@ void cMarkAdBlackScreen::Clear()
 }
 
 int cMarkAdBlackScreen::Process(int FrameNumber, int *BlackIFrame)
-{ 
+{
 #define BLACKNESS 20
     if (!macontext) return 0;
     if (!macontext->Video.Data.Valid) return 0;
     if (macontext->Video.Info.FramesPerSecond==0) return 0;
     *BlackIFrame=0;
-    if (!macontext->Video.Info.Height) { 
+    if (!macontext->Video.Info.Height) {
         dsyslog("cMarkAdBlackScreen::Process() missing macontext->Video.Info.Height");
         return 0;
     }
@@ -551,7 +550,7 @@ int cMarkAdBlackScreen::Process(int FrameNumber, int *BlackIFrame)
             *BlackIFrame=FrameNumber;
             blackScreenstatus=BLACKSCREEN_INVISIBLE;
             return 1; // detected stop of black screen
-        } 
+        }
     }
     return 0;
 }
@@ -1027,8 +1026,8 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
     if (!macontext->Video.Options.IgnoreBlackScreenDetection) {
         int blackScreenframenumber=0;
         int blackret=blackScreen->Process(FrameNumber,&blackScreenframenumber);
-        if (blackret>0) 
-        { 
+        if (blackret>0)
+        {
             addmark(MT_NOBLACKSTART,blackScreenframenumber);
         }
         else if (blackret<0)
@@ -1081,7 +1080,7 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
                 addmark(MT_HBORDERSTOP,framebeforelast);
                 hborder->SetStatusBorderInvisible();
             }
-            if (((macontext->Info.AspectRatio.Num == 4) && (macontext->Info.AspectRatio.Den == 3)) || 
+            if (((macontext->Info.AspectRatio.Num == 4) && (macontext->Info.AspectRatio.Den == 3)) ||
                 ((macontext->Info.AspectRatio.Num == 0) && (macontext->Info.AspectRatio.Den == 0))) {
                 if ((macontext->Video.Info.AspectRatio.Num==4) && (macontext->Video.Info.AspectRatio.Den==3)) {
                     addmark(MT_ASPECTSTART,start ? FrameNumber : FrameNumberNext,&aspectratio,&macontext->Video.Info.AspectRatio);

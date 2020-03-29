@@ -346,8 +346,9 @@ void cMarkAdStandalone::CheckStop()
         while (mark) {
             if ((mark->position >= iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE) &&   // there could be a valid black screen start mark
                               (mark->position < end->position) &&
-                              (mark->type < (end->type & 0xF0))) {  // do not delete a start mark of the sane type
-                dsyslog("found stronger mark delete mark (%i)", mark->position);
+                             ((mark->type & 0x0F) == MT_STOP)) {     // do not delete start marks
+ //                             (mark->type < (end->type & 0xF0))) {  // do not delete a start mark of the same type
+                dsyslog("found stronger end mark delete mark (%i)", mark->position);
                 clMark *tmp=mark;
                 mark=mark->Next();
                 marks.Del(tmp);
@@ -1058,7 +1059,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     }
     marks.Add(Mark->Type,Mark->Position,comment);
     if (comment) free(comment);
-    dsyslog("status inBroadCast %i", inBroadCast);
+    tsyslog("status inBroadCast %i", inBroadCast);
 }
 
 void cMarkAdStandalone::SaveFrame(int frame)
@@ -1201,8 +1202,8 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
         marks.Del(*Mark1);
         *Mark1=marks.Add(MT_MOVED,NewPos->FrameNumberBefore,buf);
         free(buf);
-	free(timeTextBefore);
-	free(timeTextNewPos);
+        free(timeTextBefore);
+        free(timeTextNewPos);
         save=true;
     }
 
@@ -1217,8 +1218,8 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
         marks.Del(*Mark2);
         *Mark2=marks.Add(MT_MOVED,NewPos->FrameNumberAfter,buf);
         free(buf);
-	free(timeTextBefore);
-	free(timeTextNewPos);
+        free(timeTextBefore);
+        free(timeTextNewPos);
         save=true;
     }
     if (save) marks.Save(directory,&macontext,ptr_cDecoder,isTS,true);
