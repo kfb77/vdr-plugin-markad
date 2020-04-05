@@ -1,0 +1,16 @@
+version.h
+
+command/markad
+command/.dependencies
+command/*.o
+command/*~
+command/po/*.pot
+command/po/*.mo
+
+plugin/.dependencies
+plugin/*.o
+plugin/*.so
+plugin/*~
+plugin/po/*.pot
+plugin/po/*.mo
+
