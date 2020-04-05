@@ -1,0 +1,113 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: markad\n"
+"Report-Msgid-Bugs-To: <see README>\n"
+"POT-Creation-Date: 2013-04-01 12:17+0200\n"
+"PO-Revision-Date: 2011-03-01 20:26+0100\n"
+"Last-Translator: milan hrala <hrala.milan@gmail.com>\n"
+"Language-Team: milan hrala <grala.milan@gmail.com>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "markad still running"
+msgstr "Detekcia reklamy stále beží"
+
+msgid "markad status"
+msgstr "Stav detekcie reklamy"
+
+msgid "running"
+msgstr "spustené"
+
+msgid "sleeping"
+msgstr "spí"
+
+msgid "inactive"
+msgstr "nečinné"
+
+msgid "zombie"
+msgstr "zombi"
+
+msgid "stopped"
+msgstr "zastavené"
+
+msgid "unknown"
+msgstr "neznáme"
+
+msgid "Recording\t Status"
+msgstr "Stavy nahrávania"
+
+msgid "no running markad found"
+msgstr "Nie je spustené žiadne snímanie reklamy"
+
+msgid "Pause"
+msgstr "Prerušiť"
+
+msgid "Continue"
+msgstr "Pokračovať"
+
+msgid "after"
+msgstr "po"
+
+msgid "during"
+msgstr "priebežne"
+
+msgid "never"
+msgstr ""
+
+msgid "execution"
+msgstr "vykonávať"
+
+msgid "  during another recording"
+msgstr "  počas iného nahrávania"
+
+msgid "  while replaying"
+msgstr "  keď sa prehráva"
+
+msgid "scan only channels with logo"
+msgstr "Snímať kanály iba s logom"
+
+msgid "deferred shutdown"
+msgstr ""
+
+msgid "ignore timer margins"
+msgstr "Ignorovať okraje plánu"
+
+msgid "detect overlaps"
+msgstr "rozoznávanie presahov"
+
+msgid "recreate index"
+msgstr ""
+
+msgid "correct info file"
+msgstr "správne informácie súboru"
+
+msgid "OSD message"
+msgstr "OSD správa"
+
+msgid "verbose logging"
+msgstr "mnohoslovné logovanie"
+
+msgid "log to recording directory"
+msgstr "logovať do adresára nahrávky"
+
+msgid "hide mainmenu entry"
+msgstr "schovať v hlavnom menu"
+
+msgid "show list"
+msgstr "Zoznam"
+
+msgid "list"
+msgstr "zoznam"
+
+msgid "back"
+msgstr "späť"
+
+msgid "Mark advertisements"
+msgstr "Značkovač reklamy"

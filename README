@@ -1,0 +1,27 @@
+This is a "plugin" for the Video Disk Recorder (VDR).
+
+Written by:                  Jochen Dolze <vdr@dolze.de>
+
+Project's homepage:          http://projects.vdr-developer.org/projects/show/plg-markad
+
+Latest version available at: http://projects.vdr-developer.org/projects/plg-markad/files
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+See the file COPYING for more information.
+
+Description:
+
+MarkAd marks advertisements in VDR recordings.
+
+
+Command line options:
+   A few settings are given on the command line rather than in the setup menu.
+   Available options:
+
+     -b DIR,   --bindir=DIR        use DIR as location for markad executable
+                                   (default: /usr/bin)
+     -l DIR    --logocachedir=DIR  use DIR as location for markad logos
+                                   (default: /var/lib/markad)

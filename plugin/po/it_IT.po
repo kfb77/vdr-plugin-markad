@@ -1,0 +1,113 @@
+# This file is distributed under the same license as the markad package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vdr\n"
+"Report-Msgid-Bugs-To: <see README>\n"
+"POT-Creation-Date: 2013-04-01 12:17+0200\n"
+"PO-Revision-Date: 2011-07-10 00:56+0100\n"
+"Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
+"Language-Team: Italian <vdr@linuxtv.org>\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Italian\n"
+"X-Poedit-Country: ITALY\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+msgid "markad still running"
+msgstr "Marcatore ancora in esecuzione"
+
+msgid "markad status"
+msgstr "Stato marcatori"
+
+msgid "running"
+msgstr "in esecuzione"
+
+msgid "sleeping"
+msgstr "sospeso"
+
+msgid "inactive"
+msgstr "non attivo"
+
+msgid "zombie"
+msgstr "terminato"
+
+msgid "stopped"
+msgstr "fermo"
+
+msgid "unknown"
+msgstr "sconosciuto"
+
+msgid "Recording\t Status"
+msgstr "Registrazioni\t Stato"
+
+msgid "no running markad found"
+msgstr "Nessun marcatore in esec. trovato"
+
+msgid "Pause"
+msgstr "Pausa"
+
+msgid "Continue"
+msgstr "Continua"
+
+msgid "after"
+msgstr "dopo"
+
+msgid "during"
+msgstr "durante"
+
+msgid "never"
+msgstr ""
+
+msgid "execution"
+msgstr "Esecuzione"
+
+msgid "  during another recording"
+msgstr "  durante un'altra registrazione"
+
+msgid "  while replaying"
+msgstr "  durante la riproduzione"
+
+msgid "scan only channels with logo"
+msgstr "Scansione solo canali con loghi"
+
+msgid "deferred shutdown"
+msgstr ""
+
+msgid "ignore timer margins"
+msgstr "Ignora margini timer"
+
+msgid "detect overlaps"
+msgstr "Rileva sovrapposizioni"
+
+msgid "recreate index"
+msgstr ""
+
+msgid "correct info file"
+msgstr "File info corretto"
+
+msgid "OSD message"
+msgstr "Messaggio OSD"
+
+msgid "verbose logging"
+msgstr "Log dettagliato"
+
+msgid "log to recording directory"
+msgstr "Log nella directory di registrazione"
+
+msgid "hide mainmenu entry"
+msgstr "Nascondi voce menu principale"
+
+msgid "show list"
+msgstr "Mostra elenco"
+
+msgid "list"
+msgstr "Elenco"
+
+msgid "back"
+msgstr "Indietro"
+
+msgid "Mark advertisements"
+msgstr "Segna i marcatori della pubblicità"
