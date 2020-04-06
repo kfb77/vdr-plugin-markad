@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2020-04-12:  Version 2.0.0
+- beta version of the new features:
+- add feature cut video based on marks
+- add feature AC3 reencode
+- add feature auto logo extraction
+
 2020-04-18: Version 1.0.5
 - some minor bug fixes and optimizations, see git
 

@@ -62,7 +62,9 @@ const char *cPluginMarkAd::CommandLineHelp(void)
            "                                 <level> 1=error 2=info 3=debug 4=trace\n"
            "            --astopoffs=<value>  (default is 100)\n"
            "                                  assumed stop offset in seconds range from 0 to 240\n"
-           "            --cDecoder            use new cDecoder class)\n";
+           "            --cDecoder            use alternative Decoder class)\n"
+           "            --cut                 cut video based on marks and store it in the recording directory)\n"
+	   "                                  requires --cDecoder\n";
 }
 
 bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
@@ -74,7 +76,8 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
         { "logocachedir", required_argument, NULL, 'l'},
         { "loglevel",     required_argument, NULL, '1'},
         { "astopoffs",    required_argument, NULL, '2'},
-        { "cDecoder",      no_argument,       NULL, '3'},
+        { "cDecoder",     no_argument,       NULL, '3'},
+        { "cut",          no_argument,       NULL, '4'},
         { NULL, 0, NULL, 0 }
     };
 
@@ -119,6 +122,9 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
         case '3':
             cDecoder=true;
             break;
+        case '4':
+            MarkadCut=true;
+            break;
         default:
             return false;
         }
@@ -148,13 +154,14 @@ bool cPluginMarkAd::Start(void)
     // Start any background activities the plugin shall perform.
     lastcheck=0;
     setup.PluginName=Name();
-    if (loglevel) 
+    if (loglevel)
         if(! asprintf(&setup.LogLevel," --loglevel=%i ",loglevel))
             esyslog("markad: asprintf ouf of memory");
     if (astopoffs>=0)
         if(! asprintf(&setup.aStopOffs," --astopoffs=%i ",astopoffs))
             esyslog("markad: asprintf ouf of memory");
     setup.cDecoder=cDecoder;
+    setup.MarkadCut=MarkadCut;
     setup.LogoDir=logodir;
     statusMonitor = new cStatusMarkAd(bindir,logodir,&setup);
     return (statusMonitor!=NULL);

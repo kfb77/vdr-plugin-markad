@@ -8,6 +8,15 @@ extern "C"{
 #include <libavutil/file.h>
 }
 
+
+// libavcodec versions of some distributions
+// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)    Ubuntu 20.04
+// #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   Ubuntu 18.04
+// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(57<<8)+100)    Ubuntu 14.04
+// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(26<<8)+100)    Debian Jessie
+// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(1<<8)+0)       Rasbian Jessie
+
+
 class cDecoder
 {
     public:
@@ -15,12 +24,14 @@ class cDecoder
         ~cDecoder();
         bool DecodeDir(const char * recDir);
         void Reset();
+        AVFormatContext *GetAVFormatContext();
         bool DecodeFile(const char * filename);
         int GetVideoHeight();
         int GetVideoWidth();
         int GetVideoFramesPerSecond();
         int GetVideoRealFrameRate();
         bool GetNextFrame();
+        AVPacket *GetPacket();
         bool SeekToFrame(long int iFrame);
         bool GetFrameInfo(MarkAdContext *maContext);
         bool isVideoStream();

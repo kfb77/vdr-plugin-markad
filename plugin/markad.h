@@ -26,6 +26,7 @@ private:
     int loglevel=0;
     int astopoffs=-1;
     bool cDecoder=false;
+    bool MarkadCut=false;
     struct setup setup;
     char title[80];
     time_t lastcheck;

@@ -10,18 +10,24 @@ cDecoder::cDecoder() {
     codecCtx = NULL;
 }
 
+
 cDecoder::~cDecoder() {
     av_packet_unref(&avpkt);
     avcodec_free_context(&codecCtx);
+    dsyslog("cDecoder::~cDecoder(): close avformat context");
     avformat_close_input(&avctx);
+    free(recordingDir);
 }
+
 
 bool cDecoder::DecodeDir(const char * recDir) {
     if (!recDir) return false;
     char *filename;
-    if (asprintf(&recordingDir,"%s",recDir)==-1) {
-        esyslog("cDecoder::DecodeDir(): failed to allocate string, out of memory?");
-        return false;
+    if ( ! recordingDir ) {
+        if (asprintf(&recordingDir,"%s",recDir)==-1) {
+            esyslog("cDecoder::DecodeDir(): failed to allocate string, out of memory?");
+            return false;
+        }
     }
     fileNumber++;
     if (asprintf(&filename,"%s/%05i.ts",recDir,fileNumber)==-1) {
@@ -29,7 +35,9 @@ bool cDecoder::DecodeDir(const char * recDir) {
         return false;
     }
     return this->DecodeFile(filename);
+    free(filename);
 }
+
 
 void cDecoder::Reset(){
     fileNumber=0;
@@ -37,14 +45,22 @@ void cDecoder::Reset(){
     msgGetFrameInfo=false;
 }
 
+
+AVFormatContext *cDecoder::GetAVFormatContext() {
+    return avctx;
+}
+
+
 bool cDecoder::DecodeFile(const char * filename) {
+    AVFormatContext *avctxNextFile = NULL;
     if (!filename) return false;
-    if (avctx) avformat_close_input(&avctx);
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(35<<8)+100)
     av_register_all();
 #endif
-    if (avformat_open_input(&avctx, filename, NULL, NULL) == 0) {
-        if (msgDecodeFile) dsyslog("cDecoder::DecodeFile(): decode file %s",filename);
+    if (avformat_open_input(&avctxNextFile, filename, NULL, NULL) == 0) {
+        dsyslog("cDecoder::DecodeFile(): decode file %s",filename);
+        if (avctx) avformat_close_input(&avctx);
+        avctx = avctxNextFile;
     }
     else {
         if (fileNumber <= 1) esyslog("cDecoder::DecodeFile(): Could not open source file %s", filename);
@@ -90,6 +106,7 @@ bool cDecoder::DecodeFile(const char * filename) {
     return(true);
 }
 
+
 int cDecoder::GetVideoHeight() {
     if (!avctx) return 0;
     for (unsigned int i=0; i<avctx->nb_streams; i++) {
@@ -105,6 +122,7 @@ int cDecoder::GetVideoHeight() {
     esyslog("cDecoder::GetVideoHeight(): failed");
     return 0;
 }
+
 
 int cDecoder::GetVideoWidth() {
     if (!avctx) return 0;
@@ -137,6 +155,7 @@ int cDecoder::GetVideoFramesPerSecond() {
     esyslog("cDecoder::GetVideoFramesPerSecond(): could not find average frame rate");
     return 0;
 }
+
 
 int cDecoder::GetVideoRealFrameRate() {
     if (!avctx) return 0;
@@ -212,6 +231,11 @@ bool cDecoder::GetNextFrame() {
     return false;
 }
 
+AVPacket *cDecoder::GetPacket() {
+    return(&avpkt);
+}
+
+
 bool cDecoder::SeekToFrame(long int iFrame) {
     if (!avctx) return false;
     if (framenumber > iFrame) {
@@ -227,6 +251,7 @@ bool cDecoder::SeekToFrame(long int iFrame) {
     }
     return true;
 }
+
 
 bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
     if (!avctx) return false;
@@ -377,14 +402,14 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
             if (maContext->Audio.Info.Channels != avctx->streams[avpkt.stream_index]->codecpar->channels) {
                 dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %i changed from %i to %i at frame (%li)", avpkt.stream_index,
-				                                                                        maContext->Audio.Info.Channels,
+                                                                                                        maContext->Audio.Info.Channels,
                                                                                                         avctx->streams[avpkt.stream_index]->codecpar->channels,
                                                                                                         framenumber);
                 maContext->Audio.Info.Channels = avctx->streams[avpkt.stream_index]->codecpar->channels;
 #else
             if (maContext->Audio.Info.Channels != avctx->streams[avpkt.stream_index]->codec->channels) {
                 dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %i changed from %i to %i at frame (%li)", avpkt.stream_index,
-				                                                                        maContext->Audio.Info.Channels,
+                                                                                                        maContext->Audio.Info.Channels,
                                                                                                         avctx->streams[avpkt.stream_index]->codec->channels,
                                                                                                         framenumber);
                 maContext->Audio.Info.Channels = avctx->streams[avpkt.stream_index]->codec->channels;
@@ -396,6 +421,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
     return false;
 }
 
+
 bool cDecoder::isVideoStream() {
     if (!avctx) return false;
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
@@ -405,6 +431,7 @@ bool cDecoder::isVideoStream() {
 #endif
     return false;
 }
+
 
 bool cDecoder::isAudioStream() {
     if (!avctx) return false;
@@ -429,6 +456,7 @@ bool cDecoder::isAudioAC3Stream() {
     return false;
 }
 
+
 bool cDecoder::isVideoIFrame() {
     if (!avctx) return false;
     if (!isVideoStream()) return false;
@@ -441,14 +469,17 @@ long int cDecoder::GetFrameNumber(){
     return framenumber;
 }
 
+
 long int cDecoder::GetIFrameCount(){
     return iFrameCount;
 }
+
 
 bool cDecoder::isInterlacedVideo(){
     if (interlaced_frame > 0) return true;
     return false;
 }
+
 
 long int cDecoder::GetIFrameRangeCount(long int beginFrame, long int endFrame) {
     int counter=0;
@@ -461,6 +492,7 @@ long int cDecoder::GetIFrameRangeCount(long int beginFrame, long int endFrame) {
     dsyslog("cDecoder::GetIFrameCount(): failed beginFrame (%li) endFrame (%li) last frame in index list (%li)", beginFrame, endFrame, iFrameInfoVector.back().iFrameNumber);
     return(0);
 }
+
 
 long int cDecoder::GetIFrameBefore(long int iFrame) {
     long int before_iFrame=0;

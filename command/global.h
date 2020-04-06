@@ -74,6 +74,7 @@ typedef struct config
     int astopoffs;
     int posttimer;
     bool use_cDecoder=false;
+    bool MarkadCut=false;
     const char *recDir;
 
     bool DecodeVideo;

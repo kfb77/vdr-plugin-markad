@@ -15,6 +15,7 @@
 #include "audio.h"
 #include "streaminfo.h"
 #include "marks.h"
+#include "encoder_new.h"
 
 #define trcs(c) bind_textdomain_codeset("markad",c)
 #define tr(s) dgettext("markad",s)
@@ -250,7 +251,7 @@ unsigned Descriptor_Length:
     bool ProcessMark2ndPass(clMark **Mark1, clMark **Mark2);
     bool ProcessFile(int Number);
     void ProcessFile();
-    void ProcessFrame(cDecoder *ptr_cDecoder);
+    bool ProcessFrame(cDecoder *ptr_cDecoder);
 public:
     cMarkAdStandalone(const char *Directory, const MarkAdConfig *config);
     ~cMarkAdStandalone();
@@ -258,8 +259,9 @@ public:
     {
         abort=true;
     }
-    void Process2ndPass();
     void Process();
+    void Process2ndPass();
+    void MarkadCut();
 };
 
 #endif

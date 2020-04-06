@@ -28,6 +28,7 @@ struct setup
     char *LogLevel=NULL;
     char *aStopOffs=NULL;
     bool cDecoder=false;
+    bool MarkadCut=false;
     const char *PluginName;
 };
 

@@ -72,7 +72,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
 {
     if ((Direct) && (Get(FileName)!=-1)) return false;
 
-    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
+    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->Verbose ? " -v " : "",
                                    setup->SaveInfo ? " -I " : "",
@@ -85,11 +85,12 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                                    setup->NoMargins ? " -i 4 " : "",
                                    setup->SecondPass ? "" : " --pass1only ",
                                    setup->Log2Rec ? " -R " : "",
-				   setup->LogLevel ? setup->LogLevel : "",
-				   setup->aStopOffs ? setup->aStopOffs : "",
-				   setup->cDecoder ? " --cDecoder " : "",
+                                   setup->LogLevel ? setup->LogLevel : "",
+                                   setup->aStopOffs ? setup->aStopOffs : "",
+                                   setup->cDecoder ? " --cDecoder " : "",
+                                   setup->MarkadCut ? " --cut " : "",
                                    logodir,
-				   Direct ? "-O after" : "--online=2 before",
+                                   Direct ? "-O after" : "--online=2 before",
                                    FileName);
     usleep(1000000); // wait 1 second
     if (SystemExec(cmd)!=-1)
@@ -162,7 +163,7 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName)
                     timer=Timer;
                     break;
                 }
-	        else esyslog("markad: recording start is later than timer start, ignoring");
+                else esyslog("markad: recording start is later than timer start, ignoring");
 #else
             if (Timer->Recording() && Device->IsTunedToTransponder(Timer->Channel()) &&
                     (difftime(time(NULL),Timer->StartTime())<60))
@@ -309,7 +310,7 @@ bool cStatusMarkAd::getPid(int Position)
     usleep(500*1000);   // wait 500ms to give markad time to create pid file
     FILE *fpid=fopen(buf,"r");
     if (fpid)
-    {  
+    {
         free(buf);
         int pid;
         ret=fscanf(fpid,"%10i\n",&pid);
@@ -318,7 +319,7 @@ bool cStatusMarkAd::getPid(int Position)
     }
     else
     {
-	esyslog("markad: failed to open pid file %s with errno %i", buf, errno);
+        esyslog("markad: failed to open pid file %s with errno %i", buf, errno);
         if (errno==ENOENT)
         {
             // no such file or directory -> markad done or crashed

@@ -1491,6 +1491,96 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
     return false;
 }
 
+void cMarkAdStandalone::MarkadCut() {
+    cEncoder* ptr_cEncoder = NULL;
+    if (abort) return;
+    if (!ptr_cDecoder) {
+        isyslog("video cut function only supported with --cDecoder");
+        return;
+    }
+    dsyslog("-------------------------------------------------------");
+    dsyslog("start MarkadCut()");
+    if (marks.Count()<2) {
+        isyslog("need at least 2 marks to cut Video");
+        return; // we cannot do much without marks
+    }
+    dsyslog("final marks are:");
+    //  only for debugging
+    clMark *mark=marks.GetFirst();
+    while (mark) {
+        char *timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
+        if (timeText) {
+            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, timeText);
+            free(timeText);
+        }
+        mark=mark->Next();
+    }
+    clMark *StartMark= marks.GetFirst();
+    if (((StartMark->type & 0x0F) != 1) && (StartMark->type != MT_MOVED)) {
+        esyslog("got invalid start mark at (%i) type 0x%X", StartMark->position, StartMark->type);
+        return;
+    }
+    clMark *StopMark = StartMark->Next();
+    if (((StopMark->type & 0x0F) != 2) && (StopMark->type != MT_MOVED)) {
+        esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
+        return;
+    }
+    ptr_cDecoder->Reset();
+    AVFormatContext *avctxIn = ptr_cDecoder->GetAVFormatContext();
+    if (! avctxIn) {
+        esyslog("failed to get input video context");
+        return;
+    }
+    ptr_cEncoder = new cEncoder();
+    if ( ! ptr_cEncoder->OpenFile(directory,avctxIn)) {
+        esyslog("failed to open output file");
+        return;
+    }
+    while(ptr_cDecoder->DecodeDir(directory)) {
+        while(ptr_cDecoder->GetNextFrame()) {
+            if  (ptr_cDecoder->GetFrameNumber() < StartMark->position) ptr_cDecoder->SeekToFrame(StartMark->position);
+            if  (ptr_cDecoder->GetFrameNumber() > StopMark->position) {
+                if (StopMark->Next() && StopMark->Next()->Next()) {
+                    StartMark = StopMark->Next();
+                    if (((StartMark->type & 0x0F) != 1) && (StartMark->type != MT_MOVED)) {
+                        esyslog("got invalid start mark at (%i) type 0x%X", StartMark->position, StartMark->type);
+                        return;
+                    }
+                    StopMark = StartMark->Next();
+                    if (((StopMark->type & 0x0F) != 2) && (StopMark->type != MT_MOVED)) {
+                        esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
+                        return;
+                    }
+                }
+                else break;
+            }
+            AVPacket *pkt=ptr_cDecoder->GetPacket();
+            if ( !pkt ) {
+                esyslog("failed to get packet from input stream");
+                return;
+            }
+//            dsyslog("--- Framenumber %ld", ptr_cDecoder->GetFrameNumber());
+            if ( ! ptr_cEncoder->WritePacket(pkt, ptr_cDecoder) ) {
+                esyslog("failed to write packet to output stream");
+                return;
+            }
+            if (abort) {
+                ptr_cDecoder->~cDecoder();
+                ptr_cEncoder->CloseFile();
+                ptr_cEncoder->~cEncoder();
+                return;
+            }
+        }
+    }
+     if ( ! ptr_cEncoder->CloseFile()) {
+        dsyslog("failed to close output file");
+        return;
+    }
+    ptr_cEncoder->~cEncoder();
+    dsyslog("end MarkadCut()");
+}
+
+
 void cMarkAdStandalone::Process2ndPass()
 {
     if (abort) return;
@@ -1499,6 +1589,9 @@ void cMarkAdStandalone::Process2ndPass()
     if (!length) return;
     if (!startTime) return;
     if (time(NULL)<(startTime+(time_t) length)) return;
+
+    dsyslog("-------------------------------------------------------");
+    dsyslog("start 2ndPass");
 
     if (!macontext.Video.Info.FramesPerSecond)
     {
@@ -1514,7 +1607,10 @@ void cMarkAdStandalone::Process2ndPass()
     bool infoheader=false;
     clMark *p1=NULL,*p2=NULL;
 
-    if (marks.Count()<4) return; // we cannot do much without marks
+    if (marks.Count()<4) {
+        dsyslog("only %i marks, abort 2nd pass", marks.Count());
+        return; // we cannot do much without marks
+    }
     p1=marks.GetFirst();
     if (!p1) return;
 
@@ -1571,6 +1667,7 @@ void cMarkAdStandalone::Process2ndPass()
             p2=NULL;
         }
     }
+    dsyslog("end 2ndPass");
 }
 
 
@@ -1809,7 +1906,7 @@ bool cMarkAdStandalone::Reset(bool FirstPass)
     return ret;
 }
 
-void cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder)
+bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder)
 {
     if ((macontext.Config->logoExtraction!=-1) && (ptr_cDecoder->GetIFrameCount()>=512)) {    // extract logo
         isyslog("finished logo extraction, please check /tmp for pgm files");
@@ -1838,11 +1935,11 @@ void cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder)
 
             if (!video) {
                 esyslog("cMarkAdStandalone::ProcessFrame() video not initialized");
-                return;
+                return(false);
             }
             if (!macontext.Video.Data.Valid) {
                 isyslog("cMarkAdStandalone::ProcessFrame faild to get video data of frame (%li)", ptr_cDecoder->GetFrameNumber());
-                return;
+                return(false);
             }
 
             if ((lastiframe>iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE) &&
@@ -1867,7 +1964,10 @@ void cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder)
                 if ((inBroadCast) && (lastiframe>chkSTART)) CheckStart();
             }
             if ((iStop>0) && (iStopA>0)) {
-                if (lastiframe>chkSTOP) CheckStop();
+                if (lastiframe>chkSTOP) {
+                    CheckStop();
+                    return(false);
+                }
             }
         }
         if(ptr_cDecoder->isAudioAC3Stream()) {
@@ -1875,10 +1975,12 @@ void cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder)
             if (amark) AddMark(amark);
         }
     }
+    return(true);
 }
 
 void cMarkAdStandalone::ProcessFile()
 {
+    dsyslog("start processing files");
     if (macontext.Config->use_cDecoder) {
         ptr_cDecoder = new cDecoder();
         CheckIndexGrowing();
@@ -1911,7 +2013,7 @@ void cMarkAdStandalone::ProcessFile()
 		    }
                     break;
                 }
-                cMarkAdStandalone::ProcessFrame(ptr_cDecoder);
+                if (! cMarkAdStandalone::ProcessFrame(ptr_cDecoder)) break;
                 CheckIndexGrowing();
             }
         }
@@ -1940,6 +2042,7 @@ void cMarkAdStandalone::ProcessFile()
         }
     }
     if ( !macontext.Config->use_cDecoder && demux) skipped=demux->Skipped();
+    dsyslog("end processing files");
 }
 
 void cMarkAdStandalone::Process()
@@ -3233,6 +3336,9 @@ int usage(int svdrpport)
            "                  additional recording after timer end in seconds range from 0 to 1200\n"
            "                --cDecoder\n"
            "                  use alternative cDecoder class for decoding\n"
+           "                --cut\n"
+           "                  cut vidio based on marks and write it in the recording directory\n"
+           "                  requires --cDecoder\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
            "after                        markad starts to analyze the recording\n"
@@ -3358,6 +3464,7 @@ int main(int argc, char *argv[])
             {"astopoffs",1,0,12},
             {"posttimer",1,0,13},
             {"cDecoder",0,0,14},
+            {"cut",0,0,15},
             {"loglevel",1,0,2},
             {"markfile",1,0,1},
             {"nopid",0,0,5},
@@ -3699,6 +3806,10 @@ int main(int argc, char *argv[])
             config.use_cDecoder=true;
             break;
 
+        case 15: // --cut
+            config.MarkadCut=true;
+            break;
+
         default:
             printf ("? getopt returned character code 0%o ? (option_index %d)\n", c,option_index);
         }
@@ -3896,10 +4007,15 @@ int main(int argc, char *argv[])
         dsyslog("parameter --astopoffs is set to %i",config.astopoffs);
         if (LOG2REC) dsyslog("parameter --log2rec is set");
         if (config.use_cDecoder) dsyslog("parameter --cDecoder is set");
+        if (config.MarkadCut) {
+            dsyslog("parameter --cut is set");
+            if (!config.use_cDecoder) esyslog("--cDecoder is not set, ignoring --cut");
+        }
         if (config.Before) dsyslog("parameter Before is set");
 
         if (!bPass2Only) cmasta->Process();
         if (!bPass1Only) cmasta->Process2ndPass();
+        if (config.MarkadCut) cmasta->MarkadCut();
         delete cmasta;
         return 0;
     }
