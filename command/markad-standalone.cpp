@@ -1864,7 +1864,6 @@ void cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder)
 void cMarkAdStandalone::ProcessFile()
 {
     if (macontext.Config->use_cDecoder) {
-        dsyslog("use cDecoder class V%i.%02i", (int)(CDECODERVERSION/100), CDECODERVERSION-(int)(CDECODERVERSION/100)*100);
         ptr_cDecoder = new cDecoder();
         CheckIndexGrowing();
         while(ptr_cDecoder->DecodeDir(directory)) {
