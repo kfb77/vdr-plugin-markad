@@ -151,6 +151,8 @@ typedef struct MarkAdContext
             bool IgnoreAspectRatio;
             bool IgnoreBlackScreenDetection=false;
             bool IgnoreLogoDetection;
+            bool ignoreHborder=false; // ignore horizontal borders detection if there is none at the start of the recording
+                                      // later horizontal borders could be part of an ad
             bool WeakMarksOk;
         } Options;
 

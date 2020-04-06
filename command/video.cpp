@@ -1035,16 +1035,17 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
             addmark(MT_NOBLACKSTOP,blackScreenframenumber);
         }
     }
-
-    int hborderframenumber;
-    int hret=hborder->Process(FrameNumber,&hborderframenumber);
-    if ((hret>0) && (hborderframenumber!=-1))
-    {
-        addmark(MT_HBORDERSTART,hborderframenumber);
-    }
-    if ((hret<0) && (hborderframenumber!=-1))
-    {
-        addmark(MT_HBORDERSTOP,hborderframenumber);
+    if (!macontext->Video.Options.ignoreHborder) {
+        int hborderframenumber;
+        int hret=hborder->Process(FrameNumber,&hborderframenumber);
+        if ((hret>0) && (hborderframenumber!=-1))
+        {
+            addmark(MT_HBORDERSTART,hborderframenumber);
+        }
+        if ((hret<0) && (hborderframenumber!=-1))
+        {
+            addmark(MT_HBORDERSTOP,hborderframenumber);
+        }
     }
 
     int vborderframenumber;

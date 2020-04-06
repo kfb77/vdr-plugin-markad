@@ -309,13 +309,8 @@ void cMarkAdStandalone::CheckStop()
         }
         mark=mark->Next();
     }
-
     int delta=macontext.Video.Info.FramesPerSecond*MAXRANGE;
-    if (ignoreHborder) {
-        dsyslog("delete all border marks");
-        marks.Del(MT_HBORDERSTART);
-        marks.Del(MT_HBORDERSTOP);
-    }
+
     clMark *end=marks.GetAround(3*delta,iStopA,MT_CHANNELSTOP);      // try if we can get a good stop mark, start with MT_ASPECTSTOP
     if (!end) {
         dsyslog("no MT_CHANNELSTOP mark found");
@@ -588,7 +583,7 @@ void cMarkAdStandalone::CheckStart()
         clMark *bStart=marks.GetAround(iStartA+delta,iStartA+delta,MT_HBORDERSTART);
         if (!bStart) {
             dsyslog("no horizontal border at start found, ignore horizontal border detection");
-            ignoreHborder=true;
+            macontext.Video.Options.ignoreHborder=true;
         }
         else {
             dsyslog("horizontal border start found at (%i)", bStart->position);

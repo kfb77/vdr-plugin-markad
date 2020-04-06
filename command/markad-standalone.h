@@ -206,13 +206,12 @@ unsigned Descriptor_Length:
     bool bLiveRecording;
 
     time_t startTime;  // starttime of broadcast
-    int length;	       // length of broadcast in seconds
+    int length;        // length of broadcast in seconds
     int tStart;        // pretimer in seconds
     int iStart;        // pretimer in frames (negative if unset)
     int iStop;         // endposition in frames (negative if unset)
     int iStartA;       // assumed startposition in frames
     int iStopA;        // assumed endposition in frames (negative if unset)
-    bool ignoreHborder=false; // ignore horizontal borders, if there are none at the start of the recording
     bool iStopinBroadCast;    // in broadcast @ iStop position?
 
     void CheckStop();
