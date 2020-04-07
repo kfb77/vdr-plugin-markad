@@ -611,16 +611,7 @@ void cMarkAdStandalone::CheckStart()
                 dsyslog("logo start mark found on position (%i) at %s", lStart->position, timeText);
                 free(timeText);
             }
-            clMark *lStop=marks.GetAround(delta,lStart->position,MT_LOGOSTOP);
-            if ( (lStop) && (lStop->position > lStart->position)) {
-                isyslog("logo STOP (%i) after logo START (%i) found, this is the end of the previous recording, delete marks",lStop->position,lStart->position);
-                marks.Del(lStart);
-                marks.Del(lStop);
-
-            }
-            else {
-                begin=lStart;   // found valid logo start mark
-            }
+            begin=lStart;   // found valid logo start mark
         }
     }
 
