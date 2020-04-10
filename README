@@ -21,21 +21,20 @@ Command line options:
    A few settings are given on the command line rather than in the setup menu.
    Available options:
 
-     -b DIR,   --bindir=DIR        use DIR as location for markad executable
-                                   (default: /usr/bin)
-     -l DIR    --logocachedir=DIR  use DIR as location for markad logos
-                                   (default: /var/lib/markad)
+     -b DIR,   --bindir=DIR         use DIR as location for markad executable
+                                    (default: /usr/bin)
+     -l DIR    --logocachedir=DIR   use DIR as location for markad logos
+                                    (default: /var/lib/markad)
+
+               --astopoffs=SECONDS  assume stop of the recording SECONDS after the end of the EPG time. 
+                                    default is 100 s
+                                    If end marks are to early, try to add some seconds
+
+               --cDecoder           use the alternative decoder
 
 
-If you use the alternative decoder these are the recommended plugin default settings. This parameters will pass through to the markad command:
-
-assume stop of the recording at the end of the EPG time. If end marks are to early, try to add some seconds
---astopoffs=0
-
-use the new decoder code
---cDecoder
-
-put these lines into your markad plugin configuration, usually stored in /etc/vdr/conf.d:
+If you use the alternative decoder these are the recommended plugin default settings. This parameters will pass through to the markad command.
+Put these lines into your markad plugin configuration, usually stored in /etc/vdr/conf.d:
 
 [markad]
 --astopoffs=0
