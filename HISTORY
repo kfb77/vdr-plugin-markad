@@ -1,5 +1,20 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
+
+2020-04-07: Version 1.0.3
+- some minor bug fixes, see git
+
+2020-03-21: Version 1.0.2
+- fix audio channel detection for Ubunti 20.04
+- some minor bug fixes, see git
+
+2020-03-16: Version 1.0.1
+- fix Debian and Rasbian compile problems
+- some minor bug fixes, see git
+
+2020-02-20: Version 1.0.0
+- introduce alternative decoder
+
 2012-09-14: Version 0.1.4
 
 - Improved PATPMT seeker
