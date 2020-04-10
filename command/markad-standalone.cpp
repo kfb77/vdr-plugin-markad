@@ -499,31 +499,29 @@ void cMarkAdStandalone::CheckStart()
             }
         }
     }
-    if ((macontext.Info.AspectRatio.Num) && ((macontext.Info.AspectRatio.Num!=
-            macontext.Video.Info.AspectRatio.Num) || (macontext.Info.AspectRatio.Den!=
-                    macontext.Video.Info.AspectRatio.Den)))
+
+    clMark *aStart=marks.GetAround(chkSTART,chkSTART,MT_ASPECTSTART);   // check if ascpect ratio changed in start part
+    clMark *aStop=marks.GetAround(chkSTART,chkSTART,MT_ASPECTSTOP);
+    bool earlyAspectChange=false;
+    if (aStart && aStop && (aStop->position > aStart->position)) {
+        dsyslog("found very early aspect ratio change at (%i) and (%i)", aStart->position,  aStop->position);
+        earlyAspectChange=true;
+    }
+    if ((macontext.Info.AspectRatio.Num) && (! earlyAspectChange) &&
+       ((macontext.Info.AspectRatio.Num!= macontext.Video.Info.AspectRatio.Num) || (macontext.Info.AspectRatio.Den!= macontext.Video.Info.AspectRatio.Den)))
     {
-        isyslog("video aspect description in info (%i:%i) wrong",
-                macontext.Info.AspectRatio.Num,
-                macontext.Info.AspectRatio.Den);
+        isyslog("video aspect description in info (%i:%i) wrong", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
+        macontext.Info.AspectRatio.Num=macontext.Video.Info.AspectRatio.Num;
+        macontext.Info.AspectRatio.Den=macontext.Video.Info.AspectRatio.Den;
     }
 
-    macontext.Info.AspectRatio.Num=macontext.Video.Info.AspectRatio.Num;
-    macontext.Info.AspectRatio.Den=macontext.Video.Info.AspectRatio.Den;
-
     if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) {
-        isyslog("aspectratio of %i:%i detected",
-                macontext.Video.Info.AspectRatio.Num,
-                macontext.Video.Info.AspectRatio.Den);
-    } else {
-        isyslog("aspectratio of %i:%i detected%s",
-                macontext.Video.Info.AspectRatio.Num,
-                macontext.Video.Info.AspectRatio.Den,
-                ((macontext.Video.Info.AspectRatio.Num==4) &&
-                 (macontext.Video.Info.AspectRatio.Den==3)) ?
-                ". logo/border detection disabled" : "");
-
-        if ((macontext.Video.Info.AspectRatio.Num==4) && (macontext.Video.Info.AspectRatio.Den==3)) {
+        isyslog("HD Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
+    } 
+    else {
+        isyslog("SD Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
+        if (((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3))) {
+            isyslog("logo/border detection disabled");
             bDecodeVideo=false;
             if (macontext.Info.Channels==6) {
                 macontext.Video.Options.IgnoreAspectRatio=false;
