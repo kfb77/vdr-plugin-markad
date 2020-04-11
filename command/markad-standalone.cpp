@@ -399,6 +399,18 @@ void cMarkAdStandalone::CheckStop()
     }
     iStop=iStopA=0;
     gotendmark=true;
+
+//  only for debugging
+    mark=marks.GetFirst();
+    while (mark) {
+        char *timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
+        if (timeText) {
+            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, timeText);
+            free(timeText);
+        }
+        mark=mark->Next();
+    }
+    dsyslog("-------------------------------------------------------");
 }
 
 void cMarkAdStandalone::CheckStart()
@@ -517,7 +529,7 @@ void cMarkAdStandalone::CheckStart()
 
     if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) {
         isyslog("HD Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
-    } 
+    }
     else {
         isyslog("SD Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
         if (((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3))) {
@@ -780,9 +792,9 @@ void cMarkAdStandalone::CheckLogoMarks()            // cleanup marks that make n
             int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*4);
             if (abs(mark->Next()->position-mark->position)<=MARKDIFF) {
                 double distance=(mark->Next()->position-mark->position)/macontext.Video.Info.FramesPerSecond;
-                isyslog("mark distance between STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
+                isyslog("mark distance of black screen between STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
                 clMark *tmp=mark;
-                mark=mark->Next()->Next();
+                mark=marks.GetFirst();    // restart check from start
                 marks.Del(tmp->Next());
                 marks.Del(tmp);
                 continue;
@@ -822,9 +834,9 @@ void cMarkAdStandalone::CheckLogoMarks()            // cleanup marks that make n
             if (abs(mark->Next()->position-mark->position)<=MARKDIFF)
             {
                 double distance=(mark->Next()->position-mark->position)/macontext.Video.Info.FramesPerSecond;
-                isyslog("mark distance between STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
+                isyslog("mark distance between logo STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
                 clMark *tmp=mark;
-                mark=mark->Next()->Next();
+                mark=marks.GetFirst();    // restart check from start
                 marks.Del(tmp->Next());
                 marks.Del(tmp);
                 continue;
