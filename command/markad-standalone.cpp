@@ -527,8 +527,8 @@ void cMarkAdStandalone::CheckStart()
         macontext.Info.AspectRatio.Num=macontext.Video.Info.AspectRatio.Num;
         macontext.Info.AspectRatio.Den=macontext.Video.Info.AspectRatio.Den;
     }
-    if (!macontext.Info.AspectRatio.Num && !macontext.Video.Info.AspectRatio.Den) {
-        isyslog("no video aspect description in info found");
+    if ((macontext.Info.AspectRatio.Num == 0) || (macontext.Video.Info.AspectRatio.Den == 0)) {
+        isyslog("no video aspect ratio found in info file");
         macontext.Info.AspectRatio.Num=macontext.Video.Info.AspectRatio.Num;
         macontext.Info.AspectRatio.Den=macontext.Video.Info.AspectRatio.Den;
     }
