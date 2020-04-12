@@ -519,10 +519,16 @@ void cMarkAdStandalone::CheckStart()
         dsyslog("found very early aspect ratio change at (%i) and (%i)", aStart->position,  aStop->position);
         earlyAspectChange=true;
     }
+
     if ((macontext.Info.AspectRatio.Num) && (! earlyAspectChange) &&
        ((macontext.Info.AspectRatio.Num!= macontext.Video.Info.AspectRatio.Num) || (macontext.Info.AspectRatio.Den!= macontext.Video.Info.AspectRatio.Den)))
     {
         isyslog("video aspect description in info (%i:%i) wrong", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
+        macontext.Info.AspectRatio.Num=macontext.Video.Info.AspectRatio.Num;
+        macontext.Info.AspectRatio.Den=macontext.Video.Info.AspectRatio.Den;
+    }
+    if (!macontext.Info.AspectRatio.Num && !macontext.Video.Info.AspectRatio.Den) {
+        isyslog("no video aspect description in info found");
         macontext.Info.AspectRatio.Num=macontext.Video.Info.AspectRatio.Num;
         macontext.Info.AspectRatio.Den=macontext.Video.Info.AspectRatio.Den;
     }
