@@ -696,7 +696,7 @@ void cMarkAdStandalone::CheckStart()
 
 
         if ((begin->type==MT_VBORDERSTART) || (begin->type==MT_HBORDERSTART)) {
-            isyslog("%s borders, logo detection disabled",(begin->type==MT_HBORDERSTART) ? "horizontal" : "vertical");
+            isyslog("found %s borders, logo detection disabled",(begin->type==MT_HBORDERSTART) ? "horizontal" : "vertical");
             macontext.Video.Options.IgnoreLogoDetection=true;
             marks.Del(MT_LOGOSTART);
             marks.Del(MT_LOGOSTOP);
