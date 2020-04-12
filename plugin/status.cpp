@@ -72,7 +72,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
 {
     if ((Direct) && (Get(FileName)!=-1)) return false;
 
-    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
+    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->Verbose ? " -v " : "",
                                    setup->SaveInfo ? " -I " : "",
@@ -90,6 +90,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                                    setup->cDecoder ? " --cDecoder " : "",
                                    setup->MarkadCut ? " --cut " : "",
                                    setup->ac3ReEncode ? " --ac3reencode " : "",
+                                   setup->autoLogo ? setup->autoLogo : "",
                                    logodir,
                                    Direct ? "-O after" : "--online=2 before",
                                    FileName);
@@ -241,10 +242,10 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name,
 
     if (On)
     {
-        if (setup->LogoOnly && !LogoExists(Device,FileName)) {
-            dsyslog("markad: no logo found for %s",Name);
-            return;
-        }
+//        if (setup->LogoOnly && !LogoExists(Device,FileName)) {   // from v2.0.0 we will find the logo in the recording
+//            dsyslog("markad: +++ no logo found for %s",Name);
+//            return;
+//         }
         // Start markad with recording
         if (!Start(FileName,Name,false)) {
             esyslog("markad: failed starting on %s",FileName);

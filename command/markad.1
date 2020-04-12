@@ -21,7 +21,7 @@ marks advertisements in VDR recordings.
 .SH "OPTIONS"
 .TP 
 Usage: markad [options] cmd <record>
-.TP     
+.TP 
 .BI \-b\ ,\ \-\-background
 \fImarkad\fR runs as a background\-process
 this will be automatically set if called with "after"
@@ -36,6 +36,14 @@ ignores hints from info(.vdr) file
 .TP 
 .BI \-l\ ,\ \-\-logocachedir
 directory where logos stored, default \fI/var/lib/markad\fR
+ if there is no suitable logo file found, markad will try to find the logo in the video and store the result in the recording directory
+.TP 
+.BI \-\-autologo= <option>
+<option>   0 = disable, only use logos from logo cache directory (default)
+           1 = enable, find logo from recording and store it in the recording directory
+               memory usage optimized operation mode, but runs slow
+           2 = enable, find logo from recording and store it in the recording directory
+               speed optimized operation mode, but needs a lot of memonry, use it only > 1 GB memory
 .TP 
 .BI \-p\ ,\ \-\-priority= <priority>
 software priority of markad when running in background
@@ -112,7 +120,7 @@ ip/hostname of a remote VDR for OSD messages
 assumed stop offset in seconds range from 0 to 240
 .TP
 .BI \-\-posttimer= \fR<value>\fR " ( default is 600 ) "
- additional recording time in seconds after epg timer end 
+ additional recording time in seconds after epg timer end
  range from 0 to 1200
 .TP
 .BI \-\-cDecoder

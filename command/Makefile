@@ -47,7 +47,7 @@ LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
 
 ### The object files (add further files here):
 
-OBJS = markad-standalone.o decoder.o marks.o streaminfo.o video.o audio.o demux.o decoder_new.o encoder_new.o
+OBJS = markad-standalone.o decoder.o marks.o streaminfo.o video.o audio.o demux.o decoder_new.o encoder_new.o logo.o
 
 ### The main target:
 

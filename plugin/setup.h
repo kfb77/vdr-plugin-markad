@@ -30,6 +30,7 @@ struct setup
     bool cDecoder=false;
     bool MarkadCut=false;
     bool ac3ReEncode=false;
+    char *autoLogo=NULL;
     const char *PluginName;
 };
 
@@ -73,5 +74,4 @@ public:
     cSetupMarkAdListItem(const char *Text, eOSState State=osUnknown,bool Selectable=true):cOsdItem(Text,State,Selectable) { }
     virtual int Compare(const cListObject &ListObject) const;
 };
-
 #endif

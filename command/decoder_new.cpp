@@ -1,3 +1,10 @@
+/*
+ * decoder_new.cpp: A program for the Video Disk Recorder
+ *
+ * See the README file for copyright information and how to reach the author.
+ *
+ */
+
 #include "decoder_new.h"
 extern "C"{
 #include "debug.h"
@@ -254,6 +261,7 @@ bool cDecoder::SeekToFrame(long int iFrame) {
         dsyslog("cDecoder::SeekToFrame(): could not seek backward");
         return false;
     }
+    dsyslog("cDecoder::SeekToFrame(): start");
     while (framenumber < iFrame) {
         if (!this->GetNextFrame())
             if (!this->DecodeDir(recordingDir)) {
@@ -261,6 +269,7 @@ bool cDecoder::SeekToFrame(long int iFrame) {
                 return false;
         }
     }
+    dsyslog("cDecoder::SeekToFrame(): successful");
     return true;
 }
 
@@ -290,7 +299,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
         avFrame->channel_layout=avctx->streams[avpkt->stream_index]->codecpar->channel_layout;
         avFrame->format=avctx->streams[avpkt->stream_index]->codecpar->format;
         avFrame->sample_rate=avctx->streams[avpkt->stream_index]->codecpar->sample_rate;
-#elif LIBAVCODEC_VERSION_INT >= ((56<<16)+(26<<8)+100) 
+#elif LIBAVCODEC_VERSION_INT >= ((56<<16)+(26<<8)+100)
         avFrame->nb_samples=av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codec->channel_layout);
         avFrame->channel_layout=avctx->streams[avpkt->stream_index]->codec->channel_layout;
         avFrame->format=codecCtxArray[avpkt->stream_index]->sample_fmt;

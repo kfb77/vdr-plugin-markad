@@ -17,6 +17,7 @@ extern "C"
 }
 
 #include "video.h"
+#include "logo.h"
 
 cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
 {
@@ -66,9 +67,13 @@ void cMarkAdLogo::Clear()
     area.status=LOGO_UNINITIALIZED;
 }
 
+areaT * cMarkAdLogo::GetArea() {
+   return(&area);
+}
+
 int cMarkAdLogo::Load(const char *directory, char *file, int plane)
 {
-    if (plane==0) dsyslog("cMarkAdLogo::Load logo file %s", file);
+    if (plane==0) dsyslog("cMarkAdLogo::Load() load logo file %s", file);
     if ((plane<0) || (plane>3)) return -3;
 
     char *path;
@@ -316,7 +321,9 @@ int cMarkAdLogo::SobelPlane(int plane)
 
 int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
 {
+    bool onlyFillArea = ( *logoframenumber < 0 );
     bool extract=(macontext->Config->logoExtraction!=-1);
+    if (*logoframenumber == -2) extract = true;
     int rpixel=0,mpixel=0;
     int processed=0;
     *logoframenumber=-1;
@@ -324,7 +331,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
 
     for (int plane=0; plane<4; plane++)
     {
-        if ((area.valid[plane]) || (extract))
+        if ((area.valid[plane]) || (extract) || (onlyFillArea))
         {
             if (SobelPlane(plane)) processed++;
         }
@@ -338,7 +345,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
             mpixel+=area.mpixel[plane];
         }
     }
-    if (extract) return LOGO_NOCHANGE;
+    if (extract || onlyFillArea) return LOGO_NOCHANGE;
     if (!processed) return LOGO_ERROR;
 
 //    tsyslog("frame (%6i) rp=%5i mp=%5i mpV=%5.f mpI=%5.f i=%3i s=%i",framenumber, rpixel,mpixel,(mpixel*LOGO_VMARK),(mpixel*LOGO_IMARK),area.intensity,area.status);
@@ -422,45 +429,67 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
 int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
 {
     if (!macontext) return LOGO_ERROR;
-    if (!macontext->Video.Data.Valid)
-    {
+    if (!macontext->Video.Data.Valid) {
         area.status=LOGO_UNINITIALIZED;
-        dsyslog("video data not valid");
+        dsyslog("cMarkAdLogo::Process(): video data not valid");
         return LOGO_ERROR;
     }
     if (!macontext->Video.Info.Width) {
-        dsyslog("video width info missing");
+        dsyslog("cMarkAdLogo::Process(): video width info missing");
         return LOGO_ERROR;
     }
     if (!macontext->Video.Info.Height) {
-        dsyslog("video high info missing");
+        dsyslog("cMarkAdLogo::Process(): video high info missing");
         return LOGO_ERROR;
     }
     if (!macontext->Config->logoDirectory[0]) {
-        dsyslog("logoDirectory missing");
+        dsyslog("cMarkAdLogo::Process(): logoDirectory missing");
         return LOGO_ERROR;
     }
     if (!macontext->Info.ChannelName) {
-        dsyslog("ChannelName missing");
+        dsyslog("cMarkAdLogo::Process(): ChannelName missing");
         return LOGO_ERROR;
     }
     if (macontext->Config->logoExtraction==-1)
     {
-        if ((area.aspectratio.Num!=macontext->Video.Info.AspectRatio.Num) ||
-                (area.aspectratio.Den!=macontext->Video.Info.AspectRatio.Den))
-        {
+        if ((area.aspectratio.Num!=macontext->Video.Info.AspectRatio.Num) || (area.aspectratio.Den!=macontext->Video.Info.AspectRatio.Den)) {
+            dsyslog("cMarkAdLogo::Process(): aspect ratio changed from %i:%i to %i:%i, reload logo", area.aspectratio.Num, area.aspectratio.Den, macontext->Video.Info.AspectRatio.Num, macontext->Video.Info.AspectRatio.Den);
             char *buf=NULL;
             if (asprintf(&buf,"%s-A%i_%i",macontext->Info.ChannelName,
                          macontext->Video.Info.AspectRatio.Num,macontext->Video.Info.AspectRatio.Den)!=-1)
             {
                 area.corner=-1;
-                for (int plane=0; plane<4; plane++)
-                {
+                bool logoStatus = false;
+                for (int plane=0; plane<4; plane++) {
                     int ret=Load(macontext->Config->logoDirectory,buf,plane);
-                    switch (ret)
-                    {
+                    switch (ret) {
+                    case 0: if (plane == 0) logoStatus = true;
                     case -1:
-                        isyslog("no logo for %s",buf);
+                        if (plane==0) isyslog("no logo for %s found in logo cache directory",buf);
+                        if (macontext->Config->autoLogo > 0) {
+                            if (plane==0) isyslog("search logo for %s in recording directory",buf);
+                            if (Load(macontext->Config->recDir,buf,plane) < 0) {
+                                if (plane==0) {
+                                    isyslog("no valid logo for %s in recording directory, extract logo from recording",buf);
+                                    cExtractLogo *ptr_cExtractLogo = new cExtractLogo();
+                                    if (!ptr_cExtractLogo->SearchLogo(macontext, FrameNumber)) {  // search logo from current frame
+                                        isyslog("no logo found in recording");
+                                    }
+                                    else {
+                                        dsyslog("new logo for %s found in recording directory",buf);
+                                        logoStatus = true;
+                                    }
+                                    ptr_cExtractLogo->~cExtractLogo();
+                                }
+                                if ((Load(macontext->Config->recDir,buf,plane) < 0) && (plane==0)) isyslog("still no valid logo for %s in recording directory",buf);
+                            }
+                            else {
+                                if (plane == 0) {
+                                    logoStatus = true;
+                                    dsyslog("existing logo for %s found in recording directory",buf);
+                                }
+                            }
+                        }
                         break;
                     case -2:
                         esyslog("format error in %s",buf);
@@ -469,6 +498,11 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
                         esyslog("cannot load %s",buf);
                         break;
                     }
+                }
+                if (!logoStatus) {
+                    dsyslog("cMarkAdLogo::Process(): no valid logo found for aspect ratio %i:%i, disable logo detection", macontext->Video.Info.AspectRatio.Num, macontext->Video.Info.AspectRatio.Den);
+                    macontext->Video.Options.IgnoreLogoDetection=true;
+                    macontext->Video.Options.WeakMarksOk=true;
                 }
                 free(buf);
             }
@@ -672,9 +706,15 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame)
 #define BRIGHTNESS 20
 #define HOFFSET 50
 #define VOFFSET_ 120
-    if (!macontext) return 0;
-    if (!macontext->Video.Data.Valid) return 0;
-    if (macontext->Video.Info.FramesPerSecond==0) return 0;
+    if (!macontext) {
+        dsyslog("cMarkAdBlackBordersVert::Process(): macontext not valid");
+        return 0;
+    }
+    if (!macontext->Video.Data.Valid) return 0;  // no error, this is expected if bDecodeVideo is disabled
+    if (macontext->Video.Info.FramesPerSecond==0) {
+        dsyslog("cMarkAdBlackBordersVert::Process(): video frames per second  not valid");
+        return 0;
+    }
     // Assumption: If we have 4:3, we should have aspectratio-changes!
     //if (macontext->Video.Info.AspectRatio.Num==4) return 0; // seems not to be true in all countries?
     *BorderIFrame=0;
@@ -966,7 +1006,6 @@ void cMarkAdVideo::Clear()
 void cMarkAdVideo::resetmarks()
 {
     marks={};
-//    memset(&marks,0,sizeof(marks));
 }
 
 bool cMarkAdVideo::addmark(int type, int position, MarkAdAspectRatio *before,

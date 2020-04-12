@@ -1,3 +1,13 @@
+/*
+ * decoder_new.h: A program for the Video Disk Recorder
+ *
+ * See the README file for copyright information and how to reach the author.
+ *
+ */
+
+#ifndef __decoder_new_h_
+#define __decoder_new_h_
+
 #include <vector>
 #include "global.h"
 
@@ -8,7 +18,6 @@ extern "C"{
 #include <libavutil/file.h>
 }
 
-
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)   // error codes from AC3 parser
 #define AAC_AC3_PARSE_ERROR_SYNC         -0x1030c0a
 #define AAC_AC3_PARSE_ERROR_BSID         -0x2030c0a
@@ -18,7 +27,6 @@ extern "C"{
 #define AAC_AC3_PARSE_ERROR_CRC          -0x6030c0a
 #define AAC_AC3_PARSE_ERROR_CHANNEL_CFG  -0x7030c0a
 #endif
-
 
 // libavcodec versions of some distributions
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)    Ubuntu 20.04
@@ -61,11 +69,11 @@ class cDecoder
         long int GetTimeFromIFrame(long int iFrame);
 
     private:
-        char *recordingDir=NULL;
-        int fileNumber=0;
+        char *recordingDir = NULL;
+        int fileNumber = 0;
         AVFormatContext *avctx = NULL;
-        AVPacket avpkt;
-        AVCodec *codec;
+        AVPacket avpkt = {};
+        AVCodec *codec = NULL;
         AVCodecContext **codecCtxArray = NULL;
         long int framenumber=-1;
         long int iFrameCount=0;
@@ -79,11 +87,12 @@ class cDecoder
         std::vector<iFrameInfo> iFrameInfoVector;
         struct structFrameData {
             bool Valid=false; // flag, if true data is valid
-            uchar *Plane[4];  // picture planes (YUV420)
-            int PlaneLinesize[4]; // size int bytes of each picture plane line
+            uchar *Plane[4] = {};  // picture planes (YUV420)
+            int PlaneLinesize[4] = {}; // size int bytes of each picture plane line
         } iFrameData;
         bool msgDecodeFile=true;
         bool msgGetFrameInfo=true;
         int interlaced_frame=-1;
         bool stateEAGAIN=false;
 };
+#endif

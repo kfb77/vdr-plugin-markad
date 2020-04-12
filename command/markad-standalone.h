@@ -8,6 +8,8 @@
 #ifndef __markad_standalone_h_
 #define __markad_standalone_h_
 
+#include <sys/time.h>
+
 #include "global.h"
 #include "demux.h"
 #include "decoder.h"
@@ -225,7 +227,6 @@ unsigned Descriptor_Length:
     bool inBroadCast;  // are we in a broadcast (or ad)?
 
     time_t GetBroadcastStart(time_t start, int fd);
-    void CheckIndexGrowing();
     char *indexFile;
     int sleepcnt;
 
@@ -236,7 +237,7 @@ unsigned Descriptor_Length:
     void AddMark(MarkAdMark *Mark);
     bool Reset(bool FirstPass=true);
     void ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos);
-
+    void CheckIndexGrowing();
     bool CheckVDRHD();
     off_t SeekPATPMT();
     bool CheckPATPMT(off_t Offset=0);
@@ -263,5 +264,4 @@ public:
     void Process2ndPass();
     void MarkadCut();
 };
-
 #endif

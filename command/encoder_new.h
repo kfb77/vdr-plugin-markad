@@ -1,3 +1,10 @@
+/*
+ * encoder_new.h: A program for the Video Disk Recorder
+ *
+ * See the README file for copyright information and how to reach the author.
+ *
+ */
+
 extern "C"{
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -17,11 +24,12 @@ class cEncoder {
     private:
         bool InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, int streamIndex, AVCodecContext *avCodecCtxIn);
         bool ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, int streamIndex, AVCodecContext *avCodecCtxIn);
+
         AVFormatContext *avctxOut = NULL;
         AVCodecContext **codecCtxArrayOut = NULL;
         int64_t pts_dts_offset = 0;
         int64_t *dts = NULL;
         int64_t *dtsBefore = NULL;
-        bool stateEAGAIN=false;
-        bool ac3ReEncode;
+        bool stateEAGAIN = false;
+        bool ac3ReEncode = false;
 };

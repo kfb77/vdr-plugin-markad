@@ -33,11 +33,14 @@
 
 #include "markad-standalone.h"
 #include "version.h"
+#include "logo.h"
 
 bool SYSLOG=false;
 bool LOG2REC=false;
 cDecoder* ptr_cDecoder = NULL;
+cExtractLogo* ptr_cExtractLogo = NULL;
 cMarkAdStandalone *cmasta=NULL;
+bool restartLogoDetectionDone=false;
 int SysLogLevel=2;
 
 static inline int ioprio_set(int which, int who, int ioprio)
@@ -915,18 +918,21 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         if (asprintf(&comment,"detected stop of vert. borders (%i)", Mark->Position)==-1) comment=NULL;
         break;
     case MT_ASPECTSTART:
-        if (!Mark->AspectRatioBefore.Num)
-        {
+        if (!Mark->AspectRatioBefore.Num) {
             if (asprintf(&comment,"aspectratio start with %i:%i (%i)*", Mark->AspectRatioAfter.Num,
                                                                         Mark->AspectRatioAfter.Den,
                                                                         Mark->Position)==-1) comment=NULL;
         }
-        else
-        {
+        else {
             if (asprintf(&comment,"aspectratio change from %i:%i to %i:%i (%i)*",
                          Mark->AspectRatioBefore.Num,Mark->AspectRatioBefore.Den,
                          Mark->AspectRatioAfter.Num,Mark->AspectRatioAfter.Den,
                          Mark->Position)==-1) comment=NULL;
+            if ((macontext.Config->autoLogo > 0) &&( Mark->Position > 0) && bDecodeVideo) {
+                isyslog("logo detection reenabled, trying to find a logo from this position");
+                macontext.Video.Options.IgnoreLogoDetection=false;
+                macontext.Video.Options.WeakMarksOk=false;
+            }
         }
         break;
     case MT_ASPECTSTOP:
@@ -934,6 +940,11 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
                      Mark->AspectRatioBefore.Num,Mark->AspectRatioBefore.Den,
                      Mark->AspectRatioAfter.Num,Mark->AspectRatioAfter.Den,
                      Mark->Position)==-1) comment=NULL;
+        if ((macontext.Config->autoLogo > 0) && (Mark->Position > 0) && bDecodeVideo) {
+            isyslog("logo detection reenabled, trying to find a logo from this position");
+            macontext.Video.Options.IgnoreLogoDetection=false;
+            macontext.Video.Options.WeakMarksOk=false;
+        }
         break;
     case MT_CHANNELSTART:
         if (asprintf(&comment,"audio channel change from %i to %i (%i)*",
@@ -1112,8 +1123,13 @@ void cMarkAdStandalone::CheckIndexGrowing()
 
 #define WAITTIME 15
 
-    if (!indexFile) return;
-    if (macontext.Config->logoExtraction!=-1) return;
+    if (!indexFile) {
+        dsyslog("cMarkAdStandalone::CheckIndexGrowing(): no index file found");
+        return;
+    }
+    if (macontext.Config->logoExtraction!=-1) {
+        return;
+    }
     if (sleepcnt>=2) {
         dsyslog("slept too much");
         return; // we already slept too much
@@ -1442,7 +1458,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
         if (!ptr_cDecoder->isVideoPacket()) continue;
         if (!ptr_cDecoder->GetFrameInfo(&macontext)) {
             if (ptr_cDecoder->isVideoIFrame())
-                tsyslog("TRACE: cMarkAdStandalone::ProcessMark2ndPass() before mark GetFrameInfo failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
+                tsyslog("cMarkAdStandalone::ProcessMark2ndPass() before mark GetFrameInfo failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
             continue;
         }
         if (ptr_cDecoder->isVideoIFrame()) {
@@ -1475,7 +1491,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
         if (!ptr_cDecoder->isVideoPacket()) continue;
         if (!ptr_cDecoder->GetFrameInfo(&macontext)) {
             if (ptr_cDecoder->isVideoIFrame())
-                tsyslog("TRACE: cMarkAdStandalone::ProcessMark2ndPass() after mark GetFrameInfo failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
+                tsyslog("cMarkAdStandalone::ProcessMark2ndPass() after mark GetFrameInfo failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
             continue;
         }
         if (ptr_cDecoder->isVideoIFrame()) {
@@ -1899,8 +1915,9 @@ bool cMarkAdStandalone::Reset(bool FirstPass)
     return ret;
 }
 
-bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder)
-{
+bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
+    if (!ptr_cDecoder) return false;
+
     if ((macontext.Config->logoExtraction!=-1) && (ptr_cDecoder->GetIFrameCount()>=512)) {    // extract logo
         isyslog("finished logo extraction, please check /tmp for pgm files");
         abort=true;
@@ -1935,9 +1952,10 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder)
                 return(false);
             }
 
-            if ((lastiframe>iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE) &&
+            if ( !restartLogoDetectionDone && (lastiframe > (iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE)) &&
                                      ((macontext.Video.Options.IgnoreBlackScreenDetection) || (macontext.Video.Options.IgnoreLogoDetection))) {
                     isyslog("restart logo and black screen detection at frame (%li)",ptr_cDecoder->GetFrameNumber());
+                    restartLogoDetectionDone=true;
                     bDecodeVideo=true;
                     macontext.Video.Options.IgnoreBlackScreenDetection=false;   // use black sceen setection only to find end mark
                     if (macontext.Video.Options.IgnoreLogoDetection==true) {
@@ -2433,6 +2451,20 @@ bool cMarkAdStandalone::CheckLogo()
         }
     }
     closedir(dir);
+
+    if (macontext.Config->autoLogo > 0) {
+        isyslog("no logo found in logo directory, trying to find logo in recording");
+        ptr_cExtractLogo = new cExtractLogo();
+        if (!ptr_cExtractLogo->SearchLogo(&macontext, 0)) {  // search logo from start
+            ptr_cExtractLogo->~cExtractLogo();
+            isyslog("no logo found in recording");
+        }
+        else {
+            dsyslog("found logo in recording");
+            ptr_cExtractLogo->~cExtractLogo();
+            return(true);
+        }
+    }
     return false;
 }
 
@@ -3335,6 +3367,12 @@ int usage(int svdrpport)
            "                --ac3reencode\n"
            "                  re-encode AC3 stream to fix low audio level of cutted video on same devices\n"
            "                  requires --cDecoder and --cut\n"
+           "                --autologo=<option>\n"
+           "                  <option>   0 = disable, only use logos from logo cache directory (default)\n"
+           "                             1 = enable, find logo from recording and store it in the recording directory\n"
+           "                                 memory usage optimized operation mode, but runs slow\n"
+           "                             2 = enable, find logo from recording and store it in the recording directory\n"
+           "                                 speed optimized operation mode, but needs a lot of memonry, use it only > 1 GB memory\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
            "after                        markad starts to analyze the recording\n"
@@ -3367,6 +3405,7 @@ static void signal_handler(int sig)
     case SIGABRT:
         esyslog("aborted by signal");
         if (cmasta) cmasta->SetAbort();
+        if (ptr_cExtractLogo) ptr_cExtractLogo->SetAbort();
         break;
     case SIGSEGV:
         esyslog("segmentation fault");
@@ -3384,6 +3423,7 @@ static void signal_handler(int sig)
     case SIGINT:
         esyslog("aborted by user");
         if (cmasta) cmasta->SetAbort();
+        if (ptr_cExtractLogo) ptr_cExtractLogo->SetAbort();
         break;
     default:
         break;
@@ -3462,6 +3502,7 @@ int main(int argc, char *argv[])
             {"cDecoder",0,0,14},
             {"cut",0,0,15},
             {"ac3reencode",0,0,16},
+            {"autologo",1,0,17},
             {"loglevel",1,0,2},
             {"markfile",1,0,1},
             {"nopid",0,0,5},
@@ -3811,6 +3852,18 @@ int main(int argc, char *argv[])
             config.ac3ReEncode=true;
             break;
 
+        case 17: // --autoLogo
+            if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 2)
+            {
+                config.autoLogo=atoi(optarg);
+            }
+            else
+            {
+                fprintf(stderr, "markad: invalid autologo value: %s\n", optarg);
+                return 2;
+            }
+            break;
+
         default:
             printf ("? getopt returned character code 0%o ? (option_index %d)\n", c,option_index);
         }
@@ -4016,6 +4069,7 @@ int main(int argc, char *argv[])
             dsyslog("parameter --ac3reencode is set");
             if (!config.MarkadCut) esyslog("--cut is not set, ignoring --ac3reencode");
         }
+        dsyslog("parameter --autologo is set to %i",config.autoLogo);
         if (config.Before) dsyslog("parameter Before is set");
 
         if (!bPass2Only) cmasta->Process();
