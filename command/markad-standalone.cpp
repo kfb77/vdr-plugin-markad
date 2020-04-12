@@ -1835,7 +1835,7 @@ void cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder)
                         if (video) video->Clear();    // reset logo decoder status
                     }
             }
-
+            if (!bDecodeVideo) macontext.Video.Data.Valid=false; // make video picture invalid, we do not need them
             MarkAdMarks *vmarks=video->Process(lastiframe,iframe);
             if (vmarks) {
                 for (int i=0; i<vmarks->Count; i++) {
