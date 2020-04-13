@@ -279,9 +279,10 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe)
         return;
     }
     dsyslog("startframe %i", startframe);
+    dsyslog("use frame rate %f", macontext.Video.Info.FramesPerSecond);
 
     iStart=-startframe;
-    iStop = -(startframe + macontext.Video.Info.FramesPerSecond * length) ;
+    iStop = -(startframe + macontext.Video.Info.FramesPerSecond * length) ;   // iStop change from - to + when frames reached iStop
 
     iStartA=abs(iStart);
     iStopA =startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->astopoffs - 30);
@@ -855,11 +856,13 @@ void cMarkAdStandalone::CheckLogoMarks()            // cleanup marks that make n
             }
         }
 
-        if (((mark->type & 0x0F)==MT_START) && (!mark->Next())) {      // delete start mark at the end
-            if (marks.GetFirst()->position != mark->position) {        // do not delete start mark
-                dsyslog("deleting START mark at the end");
-                marks.Del(mark);
-                break;
+        if (!inBroadCast || gotendmark) {  // in this case we will add a stop mark at the end of the recording
+            if (((mark->type & 0x0F)==MT_START) && (!mark->Next())) {      // delete start mark at the end
+                if (marks.GetFirst()->position != mark->position) {        // do not delete start mark
+                    dsyslog("START mark at the end, deleting %i", mark->position);
+                    marks.Del(mark);
+                    break;
+                }
             }
         }
         mark=mark->Next();
@@ -1900,6 +1903,10 @@ void cMarkAdStandalone::ProcessFile()
                 cMarkAdStandalone::ProcessFrame(ptr_cDecoder);
                 CheckIndexGrowing();
             }
+        }
+        if (chkSTOP > ptr_cDecoder->GetFrameNumber()) {
+            dsyslog("recording ends unexpected at frame %ld, chkSTOP %i", ptr_cDecoder->GetFrameNumber(), chkSTOP);
+            isyslog("got end of recording before recording length from info file reached");
         }
     }
     else {
