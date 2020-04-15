@@ -8,7 +8,7 @@ VDR Plugin 'markad' Revision History
 - some minor bug fixes, see git
 
 2020-03-21: Version 1.0.2
-- fix audio channel detection for Ubunti 20.04
+- fix audio channel detection for Ubuntu 20.04
 - some minor bug fixes, see git
 
 2020-03-16: Version 1.0.1
