@@ -463,9 +463,13 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
                 for (int plane=0; plane<4; plane++) {
                     int ret=Load(macontext->Config->logoDirectory,buf,plane);
                     switch (ret) {
-                    case 0: if (plane == 0) logoStatus = true;
+                    case 0: if (plane == 0) {
+                                dsyslog("cMarkAdLogo::Process(): found logo for %s in logo cache directory",buf);
+                                logoStatus = true;
+                            }
+                            break;
                     case -1:
-                        if (plane==0) isyslog("no logo for %s found in logo cache directory",buf);
+                        if (plane == 0) dsyslog("cMarkAdLogo::Process(): no logo for %s found in logo cache directory",buf);
                         if (macontext->Config->autoLogo > 0) {
                             if (plane==0) isyslog("search logo for %s in recording directory",buf);
                             if (Load(macontext->Config->recDir,buf,plane) < 0) {
@@ -476,7 +480,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
                                         dsyslog("cMarkAdLogo::Process(): no logo found in recording");
                                     }
                                     else {
-                                        dsyslog("new logo for %s found in recording directory",buf);
+                                        dsyslog("cMarkAdLogo::Process(): new logo for %s found in recording directory",buf);
                                         logoStatus = true;
                                     }
                                     ptr_cExtractLogo->~cExtractLogo();
@@ -486,7 +490,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
                             else {
                                 if (plane == 0) {
                                     logoStatus = true;
-                                    dsyslog("existing logo for %s found in recording directory",buf);
+                                    dsyslog("cMarkAdLogo::Process(): existing logo for %s found in recording directory",buf);
                                 }
                             }
                         }
@@ -506,6 +510,8 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
                 }
                 free(buf);
             }
+            else dsyslog("cMarkAdLogo::Process(): out of memory");
+
             area.aspectratio.Num=macontext->Video.Info.AspectRatio.Num;
             area.aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
         }
