@@ -42,6 +42,7 @@ cExtractLogo* ptr_cExtractLogo = NULL;
 cMarkAdStandalone *cmasta=NULL;
 bool restartLogoDetectionDone=false;
 int SysLogLevel=2;
+bool early_abort = false;
 
 static inline int ioprio_set(int which, int who, int ioprio)
 {
@@ -3199,8 +3200,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         if (macontext.Info.DPid.Num!=-1)
             isyslog("found AC3 (0x%04x)",macontext.Info.DPid.Num);
     }
-
-    if (!abort)
+    if (!early_abort)
     {
         decoder = new cMarkAdDecoder(macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,config->threads);
         video = new cMarkAdVideo(&macontext);
@@ -3422,8 +3422,17 @@ static void signal_handler(int sig)
     case SIGTERM:
     case SIGINT:
         esyslog("aborted by user");
-        if (cmasta) cmasta->SetAbort();
-        if (ptr_cExtractLogo) ptr_cExtractLogo->SetAbort();
+        if (cmasta) {
+            cmasta->SetAbort();
+        }
+        else {   // if we got an abort during cMarkAdStandalone constructor we can not call cmasta->SetAbort()
+            early_abort = true;
+            dsyslog("recieved an early abort by user");
+        }
+        if (ptr_cExtractLogo) { // if we got an abort during cExtractLogo we can not read abort
+            dsyslog("extract logo is running");
+            ptr_cExtractLogo->SetAbort();
+        }
         break;
     default:
         break;

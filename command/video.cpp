@@ -473,7 +473,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
                                     isyslog("no valid logo for %s in recording directory, extract logo from recording",buf);
                                     cExtractLogo *ptr_cExtractLogo = new cExtractLogo();
                                     if (!ptr_cExtractLogo->SearchLogo(macontext, FrameNumber)) {  // search logo from current frame
-                                        isyslog("no logo found in recording");
+                                        dsyslog("cMarkAdLogo::Process(): no logo found in recording");
                                     }
                                     else {
                                         dsyslog("new logo for %s found in recording directory",buf);
