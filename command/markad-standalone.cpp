@@ -1882,9 +1882,12 @@ void cMarkAdStandalone::ProcessFile()
     if (macontext.Config->use_cDecoder) {
         ptr_cDecoder = new cDecoder();
         CheckIndexGrowing();
-        while(ptr_cDecoder->DecodeDir(directory)) {
+        while(ptr_cDecoder && ptr_cDecoder->DecodeDir(directory)) {
             if (abort) {
-                if (ptr_cDecoder) delete ptr_cDecoder;
+                if (ptr_cDecoder) {
+		    delete ptr_cDecoder;
+		    ptr_cDecoder = NULL;
+		}
                 break;
             }
             if(ptr_cDecoder->GetFrameNumber() < 0) {
@@ -1900,16 +1903,19 @@ void cMarkAdStandalone::ProcessFile()
 
                 CalculateCheckPositions(tStart*macontext.Video.Info.FramesPerSecond);
             }
-            while(ptr_cDecoder->GetNextFrame()) {
+            while(ptr_cDecoder && ptr_cDecoder->GetNextFrame()) {
                 if (abort) {
-                    if (ptr_cDecoder) delete ptr_cDecoder;
+                    if (ptr_cDecoder) {
+	                delete ptr_cDecoder;
+                        ptr_cDecoder = NULL;
+		    }
                     break;
                 }
                 cMarkAdStandalone::ProcessFrame(ptr_cDecoder);
                 CheckIndexGrowing();
             }
         }
-        if (chkSTOP > ptr_cDecoder->GetFrameNumber()) {
+        if (ptr_cDecoder && (chkSTOP > ptr_cDecoder->GetFrameNumber())) {
             dsyslog("recording ends unexpected at frame %ld, chkSTOP %i", ptr_cDecoder->GetFrameNumber(), chkSTOP);
             isyslog("got end of recording before recording length from info file reached");
         }
