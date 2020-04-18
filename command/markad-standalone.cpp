@@ -1884,7 +1884,7 @@ void cMarkAdStandalone::ProcessFile()
         CheckIndexGrowing();
         while(ptr_cDecoder->DecodeDir(directory)) {
             if (abort) {
-                ptr_cDecoder->~cDecoder();
+                if (ptr_cDecoder) delete ptr_cDecoder;
                 break;
             }
             if(ptr_cDecoder->GetFrameNumber() < 0) {
@@ -1902,7 +1902,7 @@ void cMarkAdStandalone::ProcessFile()
             }
             while(ptr_cDecoder->GetNextFrame()) {
                 if (abort) {
-                    ptr_cDecoder->~cDecoder();
+                    if (ptr_cDecoder) delete ptr_cDecoder;
                     break;
                 }
                 cMarkAdStandalone::ProcessFrame(ptr_cDecoder);
