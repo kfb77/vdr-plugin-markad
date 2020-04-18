@@ -606,6 +606,11 @@ void cMarkAdStandalone::CheckStart()
         if (!bStart) {
             dsyslog("no horizontal border at start found, ignore horizontal border detection");
             macontext.Video.Options.ignoreHborder=true;
+            clMark *bStop=marks.GetAround(iStartA+delta,iStartA+delta,MT_HBORDERSTOP);
+            if (bStop) {
+                dsyslog("horizontal border stop without start mark found, assume as start mark of the following recording");
+                bStop->type=MT_ASSUMEDSTART;
+            }
         }
         else {
             dsyslog("horizontal border start found at (%i)", bStart->position);
@@ -622,7 +627,7 @@ void cMarkAdStandalone::CheckStart()
         }
     }
 
-     if (!begin) {   // try logo start mark
+    if (!begin) {   // try logo start mark
         clMark *lStart=marks.GetAround(iStartA+delta,iStartA+delta,MT_LOGOSTART);
         if (!lStart) {
             dsyslog("no logo start mark found");
