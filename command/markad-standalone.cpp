@@ -1575,9 +1575,11 @@ void cMarkAdStandalone::MarkadCut() {
                 isyslog("failed to write frame %ld to output stream", ptr_cDecoder->GetFrameNumber());
             }
             if (abort) {
-                ptr_cDecoder->~cDecoder();
-                ptr_cEncoder->CloseFile();
-                ptr_cEncoder->~cEncoder();
+                if (ptr_cDecoder) delete ptr_cDecoder;
+                if (ptr_cEncoder) {
+                    ptr_cEncoder->CloseFile();
+                    delete ptr_cEncoder;
+                }
                 return;
             }
         }
@@ -1587,7 +1589,7 @@ void cMarkAdStandalone::MarkadCut() {
         return;
     }
     dsyslog("end MarkadCut() at frame %ld", ptr_cDecoder->GetFrameNumber());
-    ptr_cEncoder->~cEncoder();
+    if (ptr_cEncoder) delete ptr_cEncoder;
 }
 
 
@@ -2457,12 +2459,12 @@ bool cMarkAdStandalone::CheckLogo()
         isyslog("no logo found in logo directory, trying to find logo in recording");
         ptr_cExtractLogo = new cExtractLogo();
         if (!ptr_cExtractLogo->SearchLogo(&macontext, 0)) {  // search logo from start
-            ptr_cExtractLogo->~cExtractLogo();
+            if (ptr_cExtractLogo) delete ptr_cExtractLogo;
             isyslog("no logo found in recording");
         }
         else {
             dsyslog("found logo in recording");
-            ptr_cExtractLogo->~cExtractLogo();
+            if (ptr_cExtractLogo) delete ptr_cExtractLogo;
             return(true);
         }
     }

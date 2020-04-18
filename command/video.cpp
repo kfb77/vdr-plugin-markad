@@ -483,7 +483,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
                                         dsyslog("cMarkAdLogo::Process(): new logo for %s found in recording directory",buf);
                                         logoStatus = true;
                                     }
-                                    ptr_cExtractLogo->~cExtractLogo();
+                                    if (ptr_cExtractLogo) delete ptr_cExtractLogo;
                                 }
                                 if ((Load(macontext->Config->recDir,buf,plane) < 0) && (plane==0)) isyslog("still no valid logo for %s in recording directory",buf);
                             }
