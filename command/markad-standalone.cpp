@@ -1579,6 +1579,7 @@ void cMarkAdStandalone::MarkadCut() {
                 if (ptr_cEncoder) {
                     ptr_cEncoder->CloseFile();
                     delete ptr_cEncoder;
+                    ptr_cEncoder = NULL;
                 }
                 return;
             }
@@ -1589,7 +1590,10 @@ void cMarkAdStandalone::MarkadCut() {
         return;
     }
     dsyslog("end MarkadCut() at frame %ld", ptr_cDecoder->GetFrameNumber());
-    if (ptr_cEncoder) delete ptr_cEncoder;
+    if (ptr_cEncoder) {
+        delete ptr_cEncoder;
+        ptr_cEncoder = NULL;
+    }
 }
 
 
@@ -2001,9 +2005,9 @@ void cMarkAdStandalone::ProcessFile()
         while(ptr_cDecoder && ptr_cDecoder->DecodeDir(directory)) {
             if (abort) {
                 if (ptr_cDecoder) {
-		    delete ptr_cDecoder;
-		    ptr_cDecoder = NULL;
-		}
+                    delete ptr_cDecoder;
+                    ptr_cDecoder = NULL;
+                }
                 break;
             }
             if(ptr_cDecoder->GetFrameNumber() < 0) {
@@ -2022,9 +2026,9 @@ void cMarkAdStandalone::ProcessFile()
             while(ptr_cDecoder && ptr_cDecoder->GetNextFrame()) {
                 if (abort) {
                     if (ptr_cDecoder) {
-	                delete ptr_cDecoder;
+                        delete ptr_cDecoder;
                         ptr_cDecoder = NULL;
-		    }
+                    }
                     break;
                 }
                 if (! cMarkAdStandalone::ProcessFrame(ptr_cDecoder)) break;
@@ -2459,12 +2463,18 @@ bool cMarkAdStandalone::CheckLogo()
         isyslog("no logo found in logo directory, trying to find logo in recording");
         ptr_cExtractLogo = new cExtractLogo();
         if (!ptr_cExtractLogo->SearchLogo(&macontext, 0)) {  // search logo from start
-            if (ptr_cExtractLogo) delete ptr_cExtractLogo;
+            if (ptr_cExtractLogo) {
+                delete ptr_cExtractLogo;
+                ptr_cExtractLogo = NULL;
+            }
             isyslog("no logo found in recording");
         }
         else {
             dsyslog("found logo in recording");
-            if (ptr_cExtractLogo) delete ptr_cExtractLogo;
+            if (ptr_cExtractLogo) {
+                delete ptr_cExtractLogo;
+                ptr_cExtractLogo = NULL;
+            }
             return(true);
         }
     }
