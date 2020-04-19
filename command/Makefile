@@ -21,6 +21,12 @@ CFGDIR = $(call PKGCFG,configdir)
 CXX      ?= g++
 export CXXFLAGS ?= $(call PKGCFG,cxxflags)
 export CXXFLAGS ?= -g -rdynamic -O3 -funroll-loops -Wall -Wextra -Woverloaded-virtual -Wno-parentheses
+
+DEBUG = $(filter -g ,$(CXXFLAGS))   # add -rdynamic if debug -g is set
+ifneq ($(DEBUG),)
+	export CXXFLAGS += -rdynamic
+endif
+
 CXXVERION=$(shell $(CXX) -dumpversion | cut -d"." -f1)
 ifeq ($(CXXVERION),4)
 	export CXXFLAGS += -std=c++11   # to prevent a lot of compiler warnings with g++ V4
@@ -36,7 +42,7 @@ STRIP ?= strip
 PKG-LIBS += libavcodec libavutil libavformat
 PKG-INCLUDES += libavcodec libavutil libavformat
 
-DEFINES += -D_GNU_SOURCE 
+DEFINES += -D_GNU_SOURCE
 DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
 DEFINES += -D__STDC_CONSTANT_MACROS -D__USE_XOPEN_EXTENDED
 
