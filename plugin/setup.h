@@ -30,7 +30,8 @@ struct setup
     bool cDecoder=false;
     bool MarkadCut=false;
     bool ac3ReEncode=false;
-    char *autoLogo=NULL;
+    int autoLogoConf=-1;
+    int autoLogoMenue=0;
     const char *PluginName;
 };
 
@@ -38,7 +39,9 @@ class cSetupMarkAd : public cMenuSetupPage
 {
 private:
     const char *processTexts[3];
+    const char *autoLogoTexts[3];
     struct setup *setup;
+    int autologomenue;
     int processduring;
     int whilerecording;
     int whilereplaying;

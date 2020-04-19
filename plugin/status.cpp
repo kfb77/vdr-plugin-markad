@@ -72,6 +72,20 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
 {
     if ((Direct) && (Get(FileName)!=-1)) return false;
 
+    char *autoLogoOption = NULL;
+    if (setup->autoLogoConf > 0) {
+        if(! asprintf(&autoLogoOption," --autologo=%i ",setup->autoLogoConf)) {
+            esyslog("markad: asprintf ouf of memory");
+	    return(false);
+        }
+    }
+    else if (setup->autoLogoMenue > 0) {
+        if(! asprintf(&autoLogoOption," --autologo=%i ",setup->autoLogoMenue)) {
+            esyslog("markad: asprintf ouf of memory");
+	    return(false);
+        }
+    }
+
     cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->Verbose ? " -v " : "",
@@ -90,7 +104,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                                    setup->cDecoder ? " --cDecoder " : "",
                                    setup->MarkadCut ? " --cut " : "",
                                    setup->ac3ReEncode ? " --ac3reencode " : "",
-                                   setup->autoLogo ? setup->autoLogo : "",
+                                   autoLogoOption ? autoLogoOption : "",
                                    logodir,
                                    Direct ? "-O after" : "--online=2 before",
                                    FileName);

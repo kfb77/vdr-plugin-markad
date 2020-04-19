@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: markad\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
-"POT-Creation-Date: 2020-02-21 22:46+0100\n"
+"POT-Creation-Date: 2020-04-19 17:19+0200\n"
 "PO-Revision-Date: 2011-03-01 20:26+0100\n"
 "Last-Translator: milan hrala <hrala.milan@gmail.com>\n"
 "Language-Team: milan hrala <grala.milan@gmail.com>\n"
@@ -64,6 +64,15 @@ msgstr "priebežne"
 msgid "never"
 msgstr ""
 
+msgid "disable"
+msgstr ""
+
+msgid "enable for low memory systems"
+msgstr ""
+
+msgid "enable"
+msgstr ""
+
 msgid "execution"
 msgstr "vykonávať"
 
@@ -102,6 +111,9 @@ msgstr "logovať do adresára nahrávky"
 
 msgid "hide mainmenu entry"
 msgstr "schovať v hlavnom menu"
+
+msgid "extract logos from recording"
+msgstr ""
 
 msgid "show list"
 msgstr "Zoznam"

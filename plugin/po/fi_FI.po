@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
-"Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2013-04-01 12:17+0200\n"
+"Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
+"POT-Creation-Date: 2020-04-19 17:19+0200\n"
 "PO-Revision-Date: 2011-02-27 02:27+0200\n"
 "Last-Translator: Rolf Ahrenberg\n"
 "Language-Team: Finnish <vdr@linuxtv.org>\n"
@@ -19,6 +19,9 @@ msgstr "Mainosten merkintä yhä aktiivinen"
 
 msgid "markad status"
 msgstr "Mainosten merkintä"
+
+msgid "Mark advertisements"
+msgstr "Merkitse mainokset automaattisesti"
 
 msgid "running"
 msgstr "aktiivinen"
@@ -57,6 +60,15 @@ msgid "during"
 msgstr "aikana"
 
 msgid "never"
+msgstr ""
+
+msgid "disable"
+msgstr ""
+
+msgid "enable for low memory systems"
+msgstr ""
+
+msgid "enable"
 msgstr ""
 
 msgid "execution"
@@ -98,6 +110,9 @@ msgstr "Kirjoita lokitiedosto tallennehakemistoon"
 msgid "hide mainmenu entry"
 msgstr "Piilota valita päävalikosta"
 
+msgid "extract logos from recording"
+msgstr ""
+
 msgid "show list"
 msgstr "Näytä lista"
 
@@ -106,6 +121,3 @@ msgstr "Lista"
 
 msgid "back"
 msgstr "Takaisin"
-
-msgid "Mark advertisements"
-msgstr "Merkitse mainokset automaattisesti"

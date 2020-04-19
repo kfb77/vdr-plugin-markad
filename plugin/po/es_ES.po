@@ -3,8 +3,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
-"Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2013-04-01 12:17+0200\n"
+"Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
+"POT-Creation-Date: 2020-04-19 17:19+0200\n"
 "PO-Revision-Date: 2011-02-12 11:30+0100\n"
 "Last-Translator: Javier Bradineras <jbradi@hotmail.com>\n"
 "Language-Team: Spanish <vdr@linuxtv.org>\n"
@@ -21,6 +21,9 @@ msgstr "Markad todavía ejecutándose"
 
 msgid "markad status"
 msgstr "Estado de markad"
+
+msgid "Mark advertisements"
+msgstr "Marca anuncios"
 
 msgid "running"
 msgstr "Ejecutándose"
@@ -59,6 +62,15 @@ msgid "during"
 msgstr "Durante"
 
 msgid "never"
+msgstr ""
+
+msgid "disable"
+msgstr ""
+
+msgid "enable for low memory systems"
+msgstr ""
+
+msgid "enable"
 msgstr ""
 
 msgid "execution"
@@ -100,6 +112,9 @@ msgstr "Log en el directorio de grabación"
 msgid "hide mainmenu entry"
 msgstr "Ocultar en menú principal"
 
+msgid "extract logos from recording"
+msgstr ""
+
 msgid "show list"
 msgstr "Mostrar lista"
 
@@ -108,6 +123,3 @@ msgstr "Lista"
 
 msgid "back"
 msgstr "Atrás"
-
-msgid "Mark advertisements"
-msgstr "Marca anuncios"

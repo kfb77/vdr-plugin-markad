@@ -138,7 +138,7 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
             ac3ReEncode=true;
             break;
         case '6':
-            autoLogo=atoi(optarg);
+            autoLogoConf=atoi(optarg);
             break;
         default:
             return false;
@@ -178,9 +178,7 @@ bool cPluginMarkAd::Start(void)
     setup.cDecoder=cDecoder;
     setup.MarkadCut=MarkadCut;
     setup.ac3ReEncode=ac3ReEncode;
-    if (autoLogo)
-        if(! asprintf(&setup.autoLogo," --autologo=%i ",autoLogo))
-            esyslog("markad: asprintf ouf of memory");
+    setup.autoLogoConf=autoLogoConf;
     setup.LogoDir=logodir;
     statusMonitor = new cStatusMarkAd(bindir,logodir,&setup);
     return (statusMonitor!=NULL);
@@ -250,6 +248,7 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value)
     else if (!strcasecmp(Name,"LogoOnly")) setup.LogoOnly=atoi(Value);
     else if (!strcasecmp(Name,"SaveInfo")) setup.SaveInfo=atoi(Value);
     else if (!strcasecmp(Name,"DeferredShutdown")) setup.DeferredShutdown=atoi(Value);
+    else if (!strcasecmp(Name,"AutoLogoExtraction")) setup.autoLogoMenue=atoi(Value);
     else return false;
     return true;
 }

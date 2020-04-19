@@ -24,10 +24,15 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     logoonly=setup->LogoOnly;
     saveinfo=setup->SaveInfo;
     deferredshutdown=setup->DeferredShutdown;
+    autologomenue=setup->autoLogoMenue;
 
     processTexts[0]=tr("after");
     processTexts[1]=tr("during");
     processTexts[2]=tr("never");
+
+    autoLogoTexts[0]=tr("disable");
+    autoLogoTexts[1]=tr("enable for low memory systems");
+    autoLogoTexts[2]=tr("enable");
 
     lpos=0;
 
@@ -58,6 +63,7 @@ void cSetupMarkAd::write(void)
         Add(new cMenuEditBoolItem(tr("verbose logging"),&verbose));
         Add(new cMenuEditBoolItem(tr("log to recording directory"),&log2rec));
         Add(new cMenuEditBoolItem(tr("hide mainmenu entry"),&hidemainmenuentry));
+        if (setup->autoLogoConf < 0) Add(new cMenuEditStraItem(tr("extract logos from recording"),&autologomenue,3,autoLogoTexts));
 
         if (current==-1)
         {
@@ -130,6 +136,7 @@ void cSetupMarkAd::Store(void)
     SetupStore("LogoOnly",logoonly);
     SetupStore("SaveInfo",saveinfo);
     SetupStore("DeferredShutdown",deferredshutdown);
+    SetupStore("AutoLogoExtraction",autologomenue);
 
     setup->ProcessDuring=(int) processduring;
     setup->whileRecording=(bool) whilerecording;
@@ -141,6 +148,7 @@ void cSetupMarkAd::Store(void)
     setup->NoMargins=(bool) nomargins;
     setup->HideMainMenuEntry=(bool) hidemainmenuentry;
     setup->DeferredShutdown=(bool) deferredshutdown;
+    setup->autoLogoMenue=(int) autologomenue;
     setup->Log2Rec=log2rec;
     setup->LogoOnly=logoonly;
     setup->SaveInfo=saveinfo;

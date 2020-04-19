@@ -3,8 +3,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
-"Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2013-04-01 12:17+0200\n"
+"Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
+"POT-Creation-Date: 2020-04-19 17:19+0200\n"
 "PO-Revision-Date: 2009-08-27 14:18+0200\n"
 "Last-Translator: Jochen Dolze <vdr@dolze.de>\n"
 "Language-Team: German <vdr@linuxtv.org>\n"
@@ -18,6 +18,9 @@ msgstr "markad läuft noch"
 
 msgid "markad status"
 msgstr "markad Status"
+
+msgid "Mark advertisements"
+msgstr "Markiere Werbung"
 
 msgid "running"
 msgstr "aktiv"
@@ -58,6 +61,15 @@ msgstr "während"
 msgid "never"
 msgstr "nie"
 
+msgid "disable"
+msgstr "deaktivieren"
+
+msgid "enable for low memory systems"
+msgstr "aktiviert für Systeme mit wenig Speicher"
+
+msgid "enable"
+msgstr "aktiviert"
+
 msgid "execution"
 msgstr "Ausführung"
 
@@ -97,6 +109,9 @@ msgstr "Log ins Aufnahmeverzeichnis"
 msgid "hide mainmenu entry"
 msgstr "Hauptmenüeintrag verstecken"
 
+msgid "extract logos from recording"
+msgstr "extrahiere Logos aus der Aufnahme"
+
 msgid "show list"
 msgstr "zeige Liste"
 
@@ -105,6 +120,3 @@ msgstr "Liste"
 
 msgid "back"
 msgstr "zurück"
-
-msgid "Mark advertisements"
-msgstr "Markiere Werbung"
