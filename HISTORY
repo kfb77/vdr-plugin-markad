@@ -4,6 +4,7 @@ VDR Plugin 'markad' Revision History
 xxxx-xx-xx: Version 2.0.2
 - some minor bug fixes and optimizations, see git
 - make option "extract logos" available in the VDR menue
+- pay attention of --threads in cDecoder
 
 2020-04-18: Version 2.0.1
 - some minor bug fixes and optimizations, see git

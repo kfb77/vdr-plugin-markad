@@ -13,7 +13,12 @@ extern "C"{
 }
 
 
-cEncoder::cEncoder(bool ac3reencode) {
+cEncoder::cEncoder(int threads, bool ac3reencode) {
+    if (threads < 1) threads = 1;
+    if (threads > 16) threads = 16;
+    dsyslog("cEncoder::cEncoder(): init with %i threads", threads);
+    threadCount = threads;
+
     ac3ReEncode=ac3reencode;
 }
 
@@ -154,7 +159,7 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctx
     else {
         dsyslog("cEncoder::ChangeEncoderCodec():odec of stream %i not suported", streamIndex);
     }
-
+    codecCtxArrayOut[streamIndex]->thread_count = threadCount;
     if (avcodec_open2(codecCtxArrayOut[streamIndex], codec, NULL) < 0) {
         dsyslog("cEncoder::ChangeEncoderCodec(): avcodec_open2 for stream %i failed", streamIndex);
         avcodec_free_context(&codecCtxArrayOut[streamIndex]);
@@ -223,6 +228,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
         return(false);
     }
 
+    codecCtxArrayOut[streamIndex]->thread_count = threadCount;
     if (avcodec_open2(codecCtxArrayOut[streamIndex], codec, NULL) < 0) {
         dsyslog("cEncoder::InitEncoderCodec(): avcodec_open2 for stream %i failed", streamIndex);
         avcodec_free_context(&codecCtxArrayOut[streamIndex]);

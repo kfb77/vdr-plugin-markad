@@ -11,9 +11,13 @@ extern "C"{
 }
 
 
-cDecoder::cDecoder() {
+cDecoder::cDecoder(int threads) {
     av_init_packet(&avpkt);
     codec = NULL;
+    if (threads < 1) threads = 1;
+    if (threads > 16) threads = 16;
+    dsyslog("cDecoder::cDecoder(): init with %i threads", threads);
+    threadCount = threads;
 }
 
 
@@ -116,6 +120,7 @@ bool cDecoder::DecodeFile(const char * filename) {
             dsyslog("cDecoder::DecodeFile(): avcodec_parameters_to_context failed");
             return(false);
         }
+        codecCtxArray[i]->thread_count = threadCount;
         if (avcodec_open2(codecCtxArray[i], codec, NULL) < 0) {
             dsyslog("cDecoder::DecodeFile(): avcodec_open2 failed");
             return(false);

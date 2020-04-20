@@ -1542,7 +1542,7 @@ void cMarkAdStandalone::MarkadCut() {
         esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
         return;
     }
-    ptr_cEncoder = new cEncoder(macontext.Config->ac3ReEncode);
+    ptr_cEncoder = new cEncoder(macontext.Config->threads, macontext.Config->ac3ReEncode);
     if ( ! ptr_cEncoder->OpenFile(directory,ptr_cDecoder)) {
         esyslog("failed to open output file");
         return;
@@ -2000,7 +2000,7 @@ void cMarkAdStandalone::ProcessFile()
 {
     dsyslog("start processing files");
     if (macontext.Config->use_cDecoder) {
-        ptr_cDecoder = new cDecoder();
+        ptr_cDecoder = new cDecoder(macontext.Config->threads);
         CheckIndexGrowing();
         while(ptr_cDecoder && ptr_cDecoder->DecodeDir(directory)) {
             if (abort) {

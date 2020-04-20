@@ -39,7 +39,7 @@ extern "C"{
 class cDecoder
 {
     public:
-        cDecoder();
+        cDecoder(int threads);
         ~cDecoder();
         bool DecodeDir(const char * recDir);
         void Reset();
@@ -71,6 +71,7 @@ class cDecoder
     private:
         char *recordingDir = NULL;
         int fileNumber = 0;
+        int threadCount = 0;
         AVFormatContext *avctx = NULL;
         AVPacket avpkt = {};
         AVCodec *codec = NULL;

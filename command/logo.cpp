@@ -433,7 +433,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
     MarkAdContext maContextSaveState = {};
     maContextSaveState.Video = maContext->Video;     // save state of calling video context
 
-    cDecoder *ptr_cDecoder = new cDecoder();
+    cDecoder *ptr_cDecoder = new cDecoder(maContext->Config->threads);
     logo = new cMarkAdLogo(maContext);
     cMarkAdBlackBordersHoriz *hborder=new cMarkAdBlackBordersHoriz(maContext);
     cMarkAdBlackBordersVert *vborder=new cMarkAdBlackBordersVert(maContext);

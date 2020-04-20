@@ -14,7 +14,7 @@ extern "C"{
 
 class cEncoder {
     public:
-        cEncoder(bool ac3reencode);
+        cEncoder(int threadCount, bool ac3reencode);
         ~cEncoder();
         bool OpenFile(const char * directory, cDecoder *pt_cDecoder);
         bool WritePacket(AVPacket *pkt, cDecoder *ptr_cDecoder);
@@ -25,6 +25,7 @@ class cEncoder {
         bool InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, int streamIndex, AVCodecContext *avCodecCtxIn);
         bool ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, int streamIndex, AVCodecContext *avCodecCtxIn);
 
+        int threadCount = 0;
         AVFormatContext *avctxOut = NULL;
         AVCodecContext **codecCtxArrayOut = NULL;
         int64_t pts_dts_offset = 0;
