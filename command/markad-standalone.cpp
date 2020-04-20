@@ -626,8 +626,20 @@ void cMarkAdStandalone::CheckStart()
 
             }
             else {
-                begin=bStart;   // found valid horizontal border start mark
+                begin = bStart;   // found valid horizontal border start mark
             }
+        }
+    }
+
+    if (!begin) {    // try vertical border
+        clMark *vStart=marks.GetAround(iStartA+delta,iStartA+delta,MT_VBORDERSTART);
+        if (!vStart) {
+            dsyslog("no vertical border at start found, ignore vertical border detection");
+            macontext.Video.Options.ignoreVborder=true;
+        }
+        else {
+            dsyslog("vertical border start found at (%i)", vStart->position);
+            begin = vStart;
         }
     }
 

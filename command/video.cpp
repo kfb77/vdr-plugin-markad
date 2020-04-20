@@ -1086,25 +1086,23 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
     if (!macontext->Video.Options.ignoreHborder) {
         int hborderframenumber;
         int hret=hborder->Process(FrameNumber,&hborderframenumber);
-        if ((hret>0) && (hborderframenumber!=-1))
-        {
+        if ((hret>0) && (hborderframenumber!=-1)) {
             addmark(MT_HBORDERSTART,hborderframenumber);
         }
-        if ((hret<0) && (hborderframenumber!=-1))
-        {
+        if ((hret<0) && (hborderframenumber!=-1)) {
             addmark(MT_HBORDERSTOP,hborderframenumber);
         }
     }
 
-    int vborderframenumber;
-    int vret=vborder->Process(FrameNumber,&vborderframenumber);
-    if ((vret>0) && (vborderframenumber!=-1))
-    {
-        addmark(MT_VBORDERSTART,vborderframenumber);
-    }
-    if ((vret<0) && (vborderframenumber!=-1))
-    {
-        addmark(MT_VBORDERSTOP,vborderframenumber);
+    if (!macontext->Video.Options.ignoreVborder) {
+        int vborderframenumber;
+        int vret=vborder->Process(FrameNumber,&vborderframenumber);
+        if ((vret>0) && (vborderframenumber!=-1)) {
+            addmark(MT_VBORDERSTART,vborderframenumber);
+        }
+        if ((vret<0) && (vborderframenumber!=-1)) {
+            addmark(MT_VBORDERSTOP,vborderframenumber);
+        }
     }
 
     if (!macontext->Video.Options.IgnoreAspectRatio)
