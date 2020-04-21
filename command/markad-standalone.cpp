@@ -1255,8 +1255,8 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
     if (Mark2 && (*Mark2) && (*Mark2)->position!=NewPos->FrameNumberAfter)
     {
         char *buf=NULL;
-        char *timeTextBefore = marks.IndexToHMSF((*Mark1)->position,&macontext, ptr_cDecoder);
-        char *timeTextNewPos = marks.IndexToHMSF(NewPos->FrameNumberBefore,&macontext, ptr_cDecoder);
+        char *timeTextBefore = marks.IndexToHMSF((*Mark2)->position,&macontext, ptr_cDecoder);
+        char *timeTextNewPos = marks.IndexToHMSF(NewPos->FrameNumberAfter,&macontext, ptr_cDecoder);
         if (asprintf(&buf,"overlap after %i at %s, moved to %i at %s",(*Mark2)->position, timeTextBefore,
                      NewPos->FrameNumberAfter, timeTextNewPos)==-1) return;
         isyslog("%s",buf);
