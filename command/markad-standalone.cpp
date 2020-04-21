@@ -2377,7 +2377,7 @@ bool cMarkAdStandalone::SaveInfo()
 
 time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd)
 {
-    // get broadcast start from atime of directory (if the volume is mounted with noatime)
+    // get recording start from atime of directory (if the volume is mounted with noatime)
     struct mntent *ent;
     struct stat statbuf;
     FILE *mounts=setmntent(_PATH_MOUNTED,"r");
@@ -2409,7 +2409,7 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd)
     {
         if (fabs(difftime(start,statbuf.st_atime))<7200)
         {
-            isyslog("getting broadcast start from directory atime");
+            isyslog("getting recording start from directory atime");
             return statbuf.st_atime;
         }
     }
@@ -2420,7 +2420,7 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd)
     {
         if (fabs(difftime(start,statbuf.st_mtime))<7200)
         {
-            isyslog("getting broadcast start from info mtime");
+            isyslog("getting recording start from VDR info file mtime");
             return (time_t) statbuf.st_mtime;
         }
     }
@@ -2442,7 +2442,7 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd)
                 t.tm_mon--;
                 t.tm_sec=0;
                 t.tm_isdst=-1;
-                isyslog("getting broadcast start from directory (can be wrong!)");
+                isyslog("getting recording start from directory (can be wrong!)");
                 return mktime(&t);
             }
         }
@@ -2637,17 +2637,17 @@ bool cMarkAdStandalone::LoadInfo()
     if ((length) && (!bIgnoreTimerInfo) && (startTime))
     {
         time_t rStart=GetBroadcastStart(startTime, fileno(f));
-        if (rStart)
-        {
+        if (rStart) {
+            dsyslog("recording start at %s", strtok(ctime(&rStart), "\n"));
+            dsyslog("broadcast start at %s from VDR info file", strtok(ctime(&startTime), "\n"));
             tStart=(int) (startTime-rStart);
             if (tStart<0)
             {
                 if (length+tStart>0)
                 {
-//                    isyslog("broadcast start truncated by %im, length will be corrected",-tStart/60);
-                    isyslog("broadcast start may be truncated or restarted by %im ",-tStart/60);
+                    isyslog("broadcast start truncated by %im, length will be corrected",-tStart/60);
                     startTime=rStart;
-//                    length+=tStart;
+                    length+=tStart;
                     tStart=1;
                 }
                 else
