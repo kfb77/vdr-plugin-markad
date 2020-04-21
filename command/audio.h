@@ -18,7 +18,7 @@ private:
     MarkAdMark mark;
     void resetmark();
     void setmark(int type, int position, int channelsbefore, int channelsafter);
-    int channels;
+    short int channels[MAXSTREAMS] = {0};
     bool channelchange(int a, int b);
     int framelast;
 public:

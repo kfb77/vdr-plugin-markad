@@ -5,6 +5,7 @@ xxxx-xx-xx: Version 2.0.2
 - some minor bug fixes and optimizations, see git
 - make option "extract logos" available in the VDR menue
 - pay attention of --threads in cDecoder
+- fix bug for recordings with more than one AC3 stream
 
 2020-04-18: Version 2.0.1
 - some minor bug fixes and optimizations, see git
@@ -111,8 +112,8 @@ xxxx-xx-xx: Version 2.0.2
 2009-09-11: Version 0.0.2
 
 - Fixed H264 decoding
-- Added mp2 decoder 
-- Added ac3 decoder  
+- Added mp2 decoder
+- Added ac3 decoder
 
 2009-08-26: Version 0.0.1
 

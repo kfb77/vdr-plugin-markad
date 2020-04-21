@@ -34,7 +34,7 @@ private:
       int log2_max_frame_num;
       bool use_field;
     } H264;
-    
+
     int nalUnescape(uint8_t *dst, const uint8_t *src, int len);
     bool FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
     bool FindH262VideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
@@ -104,5 +104,4 @@ public:
         return (isEOF() ? NULL : data + (index / 8));
     }
 };
-
 #endif

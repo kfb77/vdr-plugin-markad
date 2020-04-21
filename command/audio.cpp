@@ -12,6 +12,9 @@
 #include <string.h>
 
 #include "audio.h"
+extern "C"{
+#include "debug.h"
+}
 
 cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext)
 {
@@ -30,7 +33,7 @@ cMarkAdAudio::~cMarkAdAudio()
 void cMarkAdAudio::Clear()
 {
     framelast=0;
-    channels=0;
+    channels[MAXSTREAMS-1] = {0};
 }
 
 void cMarkAdAudio::resetmark()
@@ -59,26 +62,23 @@ MarkAdMark *cMarkAdAudio::Process(int FrameNumber, int FrameNumberNext)
     if ((!FrameNumber) || (!FrameNumberNext)) return NULL;
     resetmark();
 
-    if (channelchange(macontext->Audio.Info.Channels,channels))
-    {
-        if (macontext->Audio.Info.Channels>2)
-        {
-            setmark(MT_CHANNELSTART,FrameNumberNext,channels,macontext->Audio.Info.Channels);
+    for (short int stream = 0; stream < MAXSTREAMS; stream++){
+        if (channelchange(macontext->Audio.Info.Channels[stream],channels[stream])) {
+            if (macontext->Audio.Info.Channels[stream]>2) {
+                setmark(MT_CHANNELSTART,FrameNumberNext,channels[stream],macontext->Audio.Info.Channels[stream]);
+            }
+            else {
+                setmark(MT_CHANNELSTOP,framelast,channels[stream],macontext->Audio.Info.Channels[stream]);
+            }
         }
-        else
-        {
-            setmark(MT_CHANNELSTOP,framelast,channels,macontext->Audio.Info.Channels);
-        }
-    }
 
-    channels=macontext->Audio.Info.Channels;
-    framelast=FrameNumber;
-    if (mark.Position)
-    {
+        channels[stream]=macontext->Audio.Info.Channels[stream];
+        framelast=FrameNumber;
+    }
+    if (mark.Position) {
         return &mark;
     }
-    else
-    {
+    else {
         return NULL;
     }
 }

@@ -9,6 +9,10 @@
 #include <stdlib.h>
 
 #include "streaminfo.h"
+extern "C"{
+#include "debug.h"
+}
+
 
 cMarkAdStreamInfo::cMarkAdStreamInfo()
 {
@@ -58,47 +62,47 @@ unsigned AcMod:
         if (ac3hdr->SampleRateIndex==3) return false; // reserved
         if (ac3hdr->FrameSizeIndex>=38) return false; // reserved
 
-        maContext->Audio.Info.Channels=0;
+        maContext->Audio.Info.Channels[0]=0;
         unsigned int lfe_bitmask = 0x0;
 
         switch (ac3hdr->AcMod)
         {
         case 0:
-            maContext->Audio.Info.Channels=2;
+            maContext->Audio.Info.Channels[0]=2;
             lfe_bitmask=0x10;
             break;
         case 1:
-            maContext->Audio.Info.Channels=1;
+            maContext->Audio.Info.Channels[0]=1;
             lfe_bitmask=0x10;
             break;
         case 2:
-            maContext->Audio.Info.Channels=2;
+            maContext->Audio.Info.Channels[0]=2;
             lfe_bitmask=0x4;
             break;
         case 3:
-            maContext->Audio.Info.Channels=3;
+            maContext->Audio.Info.Channels[0]=3;
             lfe_bitmask=0x4;
             break;
         case 4:
-            maContext->Audio.Info.Channels=3;
+            maContext->Audio.Info.Channels[0]=3;
             lfe_bitmask=0x4;
             break;
         case 5:
-            maContext->Audio.Info.Channels=4;
+            maContext->Audio.Info.Channels[0]=4;
             lfe_bitmask=0x1;
             break;
         case 6:
-            maContext->Audio.Info.Channels=4;
+            maContext->Audio.Info.Channels[0]=4;
             lfe_bitmask=0x4;
             break;
         case 7:
-            maContext->Audio.Info.Channels=5;
+            maContext->Audio.Info.Channels[0]=5;
             lfe_bitmask=0x1;
             break;
         }
 
         if ((ac3hdr->LFE_Mix_VarField & lfe_bitmask)==lfe_bitmask)
-            maContext->Audio.Info.Channels++;
+            maContext->Audio.Info.Channels[0]++;
 
         return true;
     }

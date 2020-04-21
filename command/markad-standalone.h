@@ -215,7 +215,7 @@ unsigned Descriptor_Length:
     int iStop;         // endposition in frames (negative if unset)
     int iStartA;       // assumed startposition in frames
     int iStopA;        // assumed endposition in frames (negative if unset)
-    bool iStopinBroadCast;    // in broadcast @ iStop position?
+    bool iStopinBroadCast = false;    // in broadcast @ iStop position?
 
     void CheckStop();
     void CheckStart();

@@ -14,6 +14,8 @@
 typedef unsigned char uchar;
 #endif
 
+#define MAXSTREAMS 10
+
 #define MA_I_TYPE 1
 #define MA_P_TYPE 2
 #define MA_B_TYPE 3
@@ -138,7 +140,7 @@ typedef struct MarkAdContext
     {
 
         MarkAdAspectRatio AspectRatio;
-        int Channels;
+        short int Channels[MAXSTREAMS] = {0};
 
         char *ChannelName;
         MarkAdPid VPid;
@@ -187,7 +189,7 @@ typedef struct MarkAdContext
         } Options;
         struct Info
         {
-            int Channels; // number of audio channels
+            short int Channels[MAXSTREAMS] = {0}; // number of audio channels from AC3 streams
             int SampleRate;
         } Info;
         struct Data
@@ -199,5 +201,4 @@ typedef struct MarkAdContext
     } Audio;
 
 } MarkAdContext;
-
 #endif

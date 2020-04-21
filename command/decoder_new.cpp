@@ -106,7 +106,7 @@ bool cDecoder::DecodeFile(const char * filename) {
             dsyslog("cDecoder::DecodeFile(): could nit find decoder for stream");
             return(false);
         }
-        if (msgDecodeFile) dsyslog("cDecoder::DecodeFile(): using decoder %s for stream %i",codec->long_name,i);
+        if (msgDecodeFile) dsyslog("cDecoder::DecodeFile(): using decoder for stream %i: %s",i, codec->long_name);
         codecCtxArray[i]=avcodec_alloc_context3(codec);
         if (!codecCtxArray[i]) {
             dsyslog("cDecoder::DecodeFile(): avcodec_alloc_context3 failed");
@@ -486,20 +486,24 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
 
     if (isAudioPacket()) {
         if (isAudioAC3Stream()) {
+            if (avpkt.stream_index > MAXSTREAMS) {
+                dsyslog("cDecoder::GetFrameInfo(): to much streams %i", avpkt.stream_index);
+                return(false);
+            }
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
-            if (maContext->Audio.Info.Channels != avctx->streams[avpkt.stream_index]->codecpar->channels) {
+            if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codecpar->channels) {
                 dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %i changed from %i to %i at frame (%li)", avpkt.stream_index,
-                                                                                                        maContext->Audio.Info.Channels,
+                                                                                                        maContext->Audio.Info.Channels[avpkt.stream_index],
                                                                                                         avctx->streams[avpkt.stream_index]->codecpar->channels,
                                                                                                         framenumber);
-                maContext->Audio.Info.Channels = avctx->streams[avpkt.stream_index]->codecpar->channels;
+                maContext->Audio.Info.Channels[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codecpar->channels;
 #else
-            if (maContext->Audio.Info.Channels != avctx->streams[avpkt.stream_index]->codec->channels) {
+            if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codec->channels) {
                 dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %i changed from %i to %i at frame (%li)", avpkt.stream_index,
-                                                                                                        maContext->Audio.Info.Channels,
+                                                                                                        maContext->Audio.Info.Channels[avpkt.stream_index],
                                                                                                         avctx->streams[avpkt.stream_index]->codec->channels,
                                                                                                         framenumber);
-                maContext->Audio.Info.Channels = avctx->streams[avpkt.stream_index]->codec->channels;
+                maContext->Audio.Info.Channels[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codec->channels;
 #endif
             }
         }
@@ -509,7 +513,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
 }
 
 
-bool cDecoder::isVideoStream(int streamIndex) {
+bool cDecoder::isVideoStream(short int streamIndex) {
     if (!avctx) return false;
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
     if (avctx->streams[streamIndex]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) return true;
@@ -531,7 +535,7 @@ bool cDecoder::isVideoPacket() {
 }
 
 
-bool cDecoder::isAudioStream(int streamIndex) {
+bool cDecoder::isAudioStream(short int streamIndex) {
     if (!avctx) return false;
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
     if (avctx->streams[streamIndex]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) return true;

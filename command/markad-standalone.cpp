@@ -390,16 +390,14 @@ void cMarkAdStandalone::CheckStop()
     }
     else
     {
-        dsyslog("no stop mark found");
-        //fallback
+        dsyslog("no stop mark found"); //fallback
         if (iStopinBroadCast)
         {
-            dsyslog("add stop mark at %i",iStopA+delta);
+            dsyslog("add stop mark at the last frame (%i)",lastiframe);
             MarkAdMark mark={};
-            mark.Position=iStopA+delta;
+            mark.Position=lastiframe;  // we are lost, add a end mark at the last iframe
             mark.Type=MT_ASSUMEDSTOP;
             AddMark(&mark);
-            marks.DelTill(iStopA+delta,false);
         }
         else
         {
@@ -446,82 +444,77 @@ void cMarkAdStandalone::CheckStart()
 
     macontext.Video.Options.IgnoreBlackScreenDetection=true;   // use black sceen setection only to find start mark
 
-    if ((macontext.Info.Channels) && (macontext.Audio.Info.Channels) &&
-            (macontext.Info.Channels!=macontext.Audio.Info.Channels))
-    {
-        char as[20];
-        switch (macontext.Info.Channels)
-        {
-        case 1:
-            strcpy(as,"mono");
-            break;
-        case 2:
-            strcpy(as,"stereo");
-            break;
-        case 6:
-            strcpy(as,"dd5.1");
-            break;
-        default:
-            strcpy(as,"??");
-            break;
+    for (short int stream=0; stream < MAXSTREAMS; stream++) {
+        if ((macontext.Info.Channels[stream]) && (macontext.Audio.Info.Channels[stream]) &&
+                                     (macontext.Info.Channels[stream] != macontext.Audio.Info.Channels[stream])) {
+            char as[20];
+            switch (macontext.Info.Channels[stream]) {
+                case 1:
+                    strcpy(as,"mono");
+                    break;
+                case 2:
+                    strcpy(as,"stereo");
+                    break;
+                case 6:
+                    strcpy(as,"dd5.1");
+                    break;
+                default:
+                    strcpy(as,"??");
+                    break;
+            }
+            char ad[20];
+            switch (macontext.Audio.Info.Channels[stream]) {
+                case 1:
+                    strcpy(ad,"mono");
+                    break;
+                case 2:
+                    strcpy(ad,"stereo");
+                    break;
+                case 6:
+                    strcpy(ad,"dd5.1");
+                    break;
+                default:
+                    strcpy(ad,"??");
+                break;
+            }
+            isyslog("audio description in info (%s) wrong, we have %s",as,ad);
         }
-        char ad[20];
-        switch (macontext.Audio.Info.Channels)
-        {
-        case 1:
-            strcpy(ad,"mono");
-            break;
-        case 2:
-            strcpy(ad,"stereo");
-            break;
-        case 6:
-            strcpy(ad,"dd5.1");
-            break;
-        default:
-            strcpy(ad,"??");
-            break;
-        }
-        isyslog("audio description in info (%s) wrong, we have %s",as,ad);
-    }
+        macontext.Info.Channels[stream]=macontext.Audio.Info.Channels[stream];
 
-    macontext.Info.Channels=macontext.Audio.Info.Channels;
-    if (macontext.Config->DecodeAudio) {
-        if ((macontext.Info.Channels==6) && (macontext.Audio.Options.IgnoreDolbyDetection==false))
-        {
-            isyslog("DolbyDigital5.1 audio detected. logo/border/aspect detection disabled");
-            bDecodeVideo=false;
-            macontext.Video.Options.IgnoreAspectRatio=true;
-            macontext.Video.Options.IgnoreLogoDetection=true;
-            marks.Del(MT_ASPECTSTART);
-            marks.Del(MT_ASPECTSTOP);
-            // start mark must be around iStartA
-            begin=marks.GetAround(INT_MAX,iStartA,MT_CHANNELSTART);
-            if (!begin) {          // previous recording had also 6 channels, try other marks
-                dsyslog("no audio channel start mark found, try horizontal border as start mark");
-                begin=marks.GetAround(iStartA,iStartA+1,MT_HBORDERSTART);  // ignore the start frame border, it is from the previous recording
-                if (begin) {
-                    dsyslog("found horizontal border and add this as assumed start (%i)",begin->position);
-                    MarkAdMark mark={};
-                    mark.Position=begin->position;
-                    mark.Type=MT_RECORDINGSTART;
-                    AddMark(&mark);
+        if ((macontext.Config->DecodeAudio) && (macontext.Info.Channels[stream])) {
+            if ((macontext.Info.Channels[stream]==6) && (macontext.Audio.Options.IgnoreDolbyDetection==false)) {
+                isyslog("DolbyDigital5.1 audio in stream %i detected. logo/border/aspect detection disabled", stream);
+                bDecodeVideo=false;
+                macontext.Video.Options.IgnoreAspectRatio=true;
+                macontext.Video.Options.IgnoreLogoDetection=true;
+                marks.Del(MT_ASPECTSTART);
+                marks.Del(MT_ASPECTSTOP);
+                // start mark must be around iStartA
+                begin=marks.GetAround(INT_MAX,iStartA,MT_CHANNELSTART);
+                if (!begin) {          // previous recording had also 6 channels, try other marks
+                    dsyslog("no audio channel start mark found, try horizontal border as start mark");
+                    begin=marks.GetAround(iStartA,iStartA+1,MT_HBORDERSTART);  // ignore the start frame border, it is from the previous recording
+                    if (begin) {
+                        dsyslog("found horizontal border and add this as assumed start (%i)",begin->position);
+                        MarkAdMark mark={};
+                        mark.Position=begin->position;
+                        mark.Type=MT_RECORDINGSTART;
+                        AddMark(&mark);
+                    }
+                }
+            }
+            else {
+                if (macontext.Info.DPid.Num) {
+                    if ((macontext.Info.Channels[stream]) && (macontext.Audio.Options.IgnoreDolbyDetection==false))
+                        isyslog("broadcast with %i audio channels of stream %i, disabling AC3 decoding",macontext.Info.Channels[stream], stream);
+                    if (macontext.Audio.Options.IgnoreDolbyDetection==true)
+                        isyslog("disabling AC3 decoding (from logo)");
+                    macontext.Info.DPid.Num=0;
+                    demux->DisableDPid();
                 }
             }
         }
-        else
-        {
-            if (macontext.Info.DPid.Num)
-            {
-                if ((macontext.Info.Channels) && (macontext.Audio.Options.IgnoreDolbyDetection==false))
-                    isyslog("broadcast with %i audio channels, disabling AC3 decoding",macontext.Info.Channels);
-                if (macontext.Audio.Options.IgnoreDolbyDetection==true)
-                    isyslog("disabling AC3 decoding (from logo)");
-                macontext.Info.DPid.Num=0;
-                demux->DisableDPid();
-            }
-        }
     }
-
     clMark *aStart=marks.GetAround(chkSTART,chkSTART,MT_ASPECTSTART);   // check if ascpect ratio changed in start part
     clMark *aStop=marks.GetAround(chkSTART,chkSTART,MT_ASPECTSTOP);
     bool earlyAspectChange=false;
@@ -551,10 +544,12 @@ void cMarkAdStandalone::CheckStart()
         if (((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3))) {
             isyslog("logo/border detection disabled");
             bDecodeVideo=false;
-            if (macontext.Info.Channels==6) {
-                macontext.Video.Options.IgnoreAspectRatio=false;
-                macontext.Info.DPid.Num=0;
-                demux->DisableDPid();
+            for (short int stream=0;stream<MAXSTREAMS; stream++) {
+                if (macontext.Info.Channels[stream]==6) {
+                    macontext.Video.Options.IgnoreAspectRatio=false;
+                    macontext.Info.DPid.Num=0;
+                    demux->DisableDPid();
+                }
             }
             macontext.Video.Options.IgnoreLogoDetection=true;
             marks.Del(MT_CHANNELSTART);
@@ -1856,7 +1851,7 @@ again:
 
                         if ((pkt.Type & PACKET_MASK)==PACKET_AC3)
                         {
-                            if (streaminfo->FindAC3AudioInfos(&macontext,pkt.Data,pkt.Length))
+                            if (streaminfo->FindAC3AudioInfos(&macontext, pkt.Data, pkt.Length))
                             {
                                 if ((!isTS) && (!noticeVDR_AC3))
                                 {
@@ -1921,7 +1916,7 @@ bool cMarkAdStandalone::Reset(bool FirstPass)
     macontext.Video.Info.Pict_Type=0;
     macontext.Video.Info.AspectRatio.Den=0;
     macontext.Video.Info.AspectRatio.Num=0;
-    macontext.Audio.Info.Channels=0;
+    memset(macontext.Audio.Info.Channels, 0, sizeof(macontext.Audio.Info.Channels));
 
     if (decoder)
     {
@@ -2047,10 +2042,6 @@ void cMarkAdStandalone::ProcessFile()
                 CheckIndexGrowing();
             }
         }
-        if (ptr_cDecoder && (chkSTOP > ptr_cDecoder->GetFrameNumber())) {
-            dsyslog("recording ends unexpected at frame %ld, chkSTOP %i", ptr_cDecoder->GetFrameNumber(), chkSTOP);
-            isyslog("got end of recording before recording length from info file reached");
-        }
     }
     else {
         for (int i=1; i<=MaxFiles; i++)
@@ -2062,7 +2053,20 @@ void cMarkAdStandalone::ProcessFile()
     }
 
     if (!abort) {
-        if ((iStop>0) && (iStopA>0)) CheckStop(); // no stopmark till now?
+        if (iStart !=0 ) {  // iStart will be 0 if iStart was called
+            dsyslog("recording ends unexpected before chkSTART (%d) at frame %d", chkSTART, lastiframe);
+            isyslog("got end of recording before recording length from info file reached");
+            CheckStart();
+        }
+        if (iStopA > 0) {
+            if (iStop <= 0) {  // unexpected end of recording reached
+                iStop = lastiframe;
+                iStopinBroadCast= true;
+                dsyslog("recording ends unexpected before chkSTOP (%d) at frame %d", chkSTOP, lastiframe);
+                isyslog("got end of recording before recording length from info file reached");
+            }
+            CheckStop();
+        }
         CheckLogoMarks();
         if ((inBroadCast) && (!gotendmark) && (lastiframe)) {
             MarkAdMark tempmark;
@@ -2264,15 +2268,15 @@ bool cMarkAdStandalone::SaveInfo()
                 case 2:
                     if (type==5)
                     {
-                        if (macontext.Info.Channels==6)
+                        if (macontext.Info.Channels[stream]==6)
                         {
                             if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
-                            macontext.Info.Channels=0;
+                            macontext.Info.Channels[stream]=0;
                         }
-                        else if (macontext.Info.Channels==2)
+                        else if (macontext.Info.Channels[stream]==2)
                         {
                             if (fprintf(w,"X 2 05 %s Dolby Digital 2.0\n",lang)<=0) err=true;
-                            macontext.Info.Channels=0;
+                            macontext.Info.Channels[stream]=0;
                         }
                         else
                         {
@@ -2327,14 +2331,13 @@ bool cMarkAdStandalone::SaveInfo()
                         component_type_169+component_type_add,lang)<=0) err=true;
         }
     }
-
-    if ((macontext.Info.Channels==2) && (!err))
-    {
-        if (fprintf(w,"X 2 05 %s Dolby Digital 2.0\n",lang)<=0) err=true;
-    }
-    if ((macontext.Info.Channels==6) && (!err))
-    {
-        if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
+    for (short int stream=0; stream<MAXSTREAMS; stream++) {
+        if ((macontext.Info.Channels[stream]==2) && (!err)) {
+            if (fprintf(w,"X 2 05 %s Dolby Digital 2.0\n",lang)<=0) err=true;
+        }
+        if ((macontext.Info.Channels[stream]==6) && (!err)) {
+            if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
+       }
     }
     if (line)
     {
@@ -2615,13 +2618,13 @@ bool cMarkAdStandalone::LoadInfo()
                         if (strchr(descr,'2'))
                         {
                             isyslog("broadcast with DolbyDigital2.0 (from info)");
-                            macontext.Info.Channels=2;
+                            macontext.Info.Channels[stream]=2;
                         }
                         // if we have DolbyDigital 5.1 disable video decoding
                         if (strchr(descr,'5'))
                         {
                             isyslog("broadcast with DolbyDigital5.1 (from info)");
-                            macontext.Info.Channels=6;
+                            macontext.Info.Channels[stream]=6;
                         }
                     }
                 }
