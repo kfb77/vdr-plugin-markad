@@ -2147,6 +2147,9 @@ void cMarkAdStandalone::Process()
                             esyslog("ALERT: stopping before end of broadcast");
                     }
                 }
+                else { // ptr_cDecoder
+                    if (macontext.Config->SaveInfo) SaveInfo();
+                }
             }
         }
     }
@@ -2225,24 +2228,26 @@ bool cMarkAdStandalone::SaveInfo()
     }
 
     bool err=false;
-    while (getline(&line,&len,r)!=-1)
-    {
-        if (line[0]=='X')
-        {
+    for (int i=0; i<MAXSTREAMS; i++) {
+        dsyslog("stream %i has %i channels", i, macontext.Info.Channels[i]);
+    }
+    int stream_index=0;
+    if (ptr_cDecoder) stream_index++;
+    while (getline(&line,&len,r)!=-1) {
+        dsyslog("info file line: %s", line);
+        if (line[0]=='X') {
             int stream=0,type=0;
             char descr[256]="";
 
-            int result=sscanf(line,"%*c %3i %3i %3c %250c",&stream,&type,(char *) &lang, (char *) &descr);
+            int result=sscanf(line,"%*c %3i %3X %3c %250c",&stream,&type,(char *) &lang, (char *) &descr);
             if ((result!=0) && (result!=EOF))
             {
                 switch (stream)
                 {
                 case 1:
                 case 5:
-                    if (stream==stream_content)
-                    {
-                        if ((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3))
-                        {
+                    if (stream==stream_content) {
+                        if ((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3)) {
                             if (fprintf(w,"X %i %02i %s 4:3\n",stream_content,
                                         component_type_43+component_type_add,lang)<=0) err=true;
                             macontext.Info.AspectRatio.Num=0;
@@ -2250,13 +2255,12 @@ bool cMarkAdStandalone::SaveInfo()
                         }
                         else if ((macontext.Info.AspectRatio.Num==16) && (macontext.Info.AspectRatio.Den==9))
                         {
-                            if (fprintf(w,"X %i %02i %s 16:9\n",stream_content,
+                            if (fprintf(w,"X %i %02X %s 16:9\n",stream_content,
                                         component_type_169+component_type_add,lang)<=0) err=true;
                             macontext.Info.AspectRatio.Num=0;
                             macontext.Info.AspectRatio.Den=0;
                         }
-                        else
-                        {
+                        else {
                             if (fprintf(w,"%s",line)<=0) err=true;
                         }
                     }
@@ -2266,26 +2270,28 @@ bool cMarkAdStandalone::SaveInfo()
                     }
                     break;
                 case 2:
-                    if (type==5)
-                    {
-                        if (macontext.Info.Channels[stream]==6)
-                        {
+                    if (type==5) {
+                        if (macontext.Info.Channels[stream_index]==6) {
                             if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
-                            macontext.Info.Channels[stream]=0;
+                            macontext.Info.Channels[stream_index]=0;
                         }
-                        else if (macontext.Info.Channels[stream]==2)
-                        {
+                        else if (macontext.Info.Channels[stream_index]==2) {
                             if (fprintf(w,"X 2 05 %s Dolby Digital 2.0\n",lang)<=0) err=true;
-                            macontext.Info.Channels[stream]=0;
+                            macontext.Info.Channels[stream_index]=0;
                         }
-                        else
-                        {
+                        else {
                             if (fprintf(w,"%s",line)<=0) err=true;
                         }
                     }
-                    else
-                    {
+                    else {
                         if (fprintf(w,"%s",line)<=0) err=true;
+                    }
+                    break;
+                case 4:
+                    if (type == 0x2C) {
+                        if (fprintf(w,"%s",line)<=0) err=true;
+                        macontext.Info.Channels[stream_index] = 0;
+                        stream_index++;
                     }
                     break;
                 default:
@@ -2294,16 +2300,12 @@ bool cMarkAdStandalone::SaveInfo()
                 }
             }
         }
-        else
-        {
-            if (line[0]!='@')
-            {
+        else {
+            if (line[0]!='@') {
                 if (fprintf(w,"%s",line)<=0) err=true;
             }
-            else
-            {
-                if (lline)
-                {
+            else {
+                if (lline) {
                     free(lline);
                     err=true;
                     esyslog("multiple @lines in info file, please report this!");
@@ -2332,6 +2334,7 @@ bool cMarkAdStandalone::SaveInfo()
         }
     }
     for (short int stream=0; stream<MAXSTREAMS; stream++) {
+        if (macontext.Info.Channels[stream] == 0) continue;
         if ((macontext.Info.Channels[stream]==2) && (!err)) {
             if (fprintf(w,"X 2 05 %s Dolby Digital 2.0\n",lang)<=0) err=true;
         }
