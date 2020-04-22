@@ -335,7 +335,7 @@ int cExtractLogo::DeleteBorderFrames(MarkAdContext *maContext, int from, int to)
            }
         }
    }
-   return(deleteCount);
+   return(deleteCount/4);  // 4 corner
 }
 
 
