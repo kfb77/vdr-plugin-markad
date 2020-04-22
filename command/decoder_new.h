@@ -18,6 +18,8 @@ extern "C"{
 #include <libavutil/file.h>
 }
 
+#define AVLOGLEVEL AV_LOG_ERROR
+
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)   // error codes from AC3 parser
 #define AAC_AC3_PARSE_ERROR_SYNC         -0x1030c0a
 #define AAC_AC3_PARSE_ERROR_BSID         -0x2030c0a

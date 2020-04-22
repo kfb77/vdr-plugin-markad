@@ -11,7 +11,24 @@ extern "C"{
 }
 
 
+void AVlog(void *ptr, int level, const char* fmt, va_list vl){
+    if (level <= AVLOGLEVEL) {
+        char logMsg[255] = {0};
+        int rc = 0;
+        rc = vsprintf(logMsg, fmt, vl);
+        if (!rc) {
+            dsyslog("AVlog(): Error in asprintf");
+            return;
+        }
+        dsyslog("AVlog(): %s",strtok(logMsg, "\n"));
+    }
+    return;
+}
+
+
 cDecoder::cDecoder(int threads) {
+    av_log_set_level(AVLOGLEVEL);
+    av_log_set_callback(AVlog);
     av_init_packet(&avpkt);
     codec = NULL;
     if (threads < 1) threads = 1;
