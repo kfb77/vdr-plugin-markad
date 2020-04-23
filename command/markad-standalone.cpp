@@ -882,6 +882,16 @@ void cMarkAdStandalone::CheckLogoMarks()            // cleanup marks that make n
         }
         mark=mark->Next();
     }
+    mark=marks.GetFirst();
+    while (mark) {
+        char *timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
+        if (timeText) {
+            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, timeText);
+            free(timeText);
+        }
+        mark=mark->Next();
+    }
+    dsyslog("-------------------------------------------------------");
 }
 
 void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
