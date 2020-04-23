@@ -443,8 +443,7 @@ void cMarkAdStandalone::CheckStart()
     macontext.Video.Options.IgnoreBlackScreenDetection=true;   // use black sceen setection only to find start mark
 
     for (short int stream=0; stream < MAXSTREAMS; stream++) {
-        if ((macontext.Info.Channels[stream]) && (macontext.Audio.Info.Channels[stream]) &&
-                                     (macontext.Info.Channels[stream] != macontext.Audio.Info.Channels[stream])) {
+        if ((macontext.Info.Channels[stream]) && (macontext.Audio.Info.Channels[stream]) && (macontext.Info.Channels[stream] != macontext.Audio.Info.Channels[stream])) {
             char as[20];
             switch (macontext.Info.Channels[stream]) {
                 case 1:
@@ -490,15 +489,7 @@ void cMarkAdStandalone::CheckStart()
                 // start mark must be around iStartA
                 begin=marks.GetAround(INT_MAX,iStartA,MT_CHANNELSTART);
                 if (!begin) {          // previous recording had also 6 channels, try other marks
-                    dsyslog("no audio channel start mark found, try horizontal border as start mark");
-                    begin=marks.GetAround(iStartA,iStartA+1,MT_HBORDERSTART);  // ignore the start frame border, it is from the previous recording
-                    if (begin) {
-                        dsyslog("found horizontal border and add this as assumed start (%i)",begin->position);
-                        MarkAdMark mark={};
-                        mark.Position=begin->position;
-                        mark.Type=MT_RECORDINGSTART;
-                        AddMark(&mark);
-                    }
+                    dsyslog("no audio channel start mark found");
                 }
             }
             else {
@@ -513,91 +504,84 @@ void cMarkAdStandalone::CheckStart()
             }
         }
     }
-    clMark *aStart=marks.GetAround(chkSTART,chkSTART,MT_ASPECTSTART);   // check if ascpect ratio changed in start part
-    clMark *aStop=marks.GetAround(chkSTART,chkSTART,MT_ASPECTSTOP);
-    bool earlyAspectChange=false;
-    if (aStart && aStop && (aStop->position > aStart->position)) {
-        dsyslog("found very early aspect ratio change at (%i) and (%i)", aStart->position,  aStop->position);
-        earlyAspectChange=true;
-    }
 
-    if ((macontext.Info.AspectRatio.Num) && (! earlyAspectChange) &&
-       ((macontext.Info.AspectRatio.Num!= macontext.Video.Info.AspectRatio.Num) || (macontext.Info.AspectRatio.Den!= macontext.Video.Info.AspectRatio.Den)))
-    {
-        isyslog("video aspect description in info (%i:%i) wrong", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
-        macontext.Info.AspectRatio.Num=macontext.Video.Info.AspectRatio.Num;
-        macontext.Info.AspectRatio.Den=macontext.Video.Info.AspectRatio.Den;
-    }
-    if ((macontext.Info.AspectRatio.Num == 0) || (macontext.Video.Info.AspectRatio.Den == 0)) {
-        isyslog("no video aspect ratio found in info file");
-        macontext.Info.AspectRatio.Num=macontext.Video.Info.AspectRatio.Num;
-        macontext.Info.AspectRatio.Den=macontext.Video.Info.AspectRatio.Den;
-    }
+    if (!begin) {    // try ascpect ratio mark
+        clMark *aStart=marks.GetAround(chkSTART,chkSTART,MT_ASPECTSTART);   // check if ascpect ratio changed in start part
+        clMark *aStop=marks.GetAround(chkSTART,chkSTART,MT_ASPECTSTOP);
+        bool earlyAspectChange=false;
+        if (aStart && aStop && (aStop->position > aStart->position)) {
+            dsyslog("found very early aspect ratio change at (%i) and (%i)", aStart->position,  aStop->position);
+            earlyAspectChange=true;
+        }
 
-    if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) {
-        isyslog("HD Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
-    }
-    else {
-        isyslog("SD Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
-        if (((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3))) {
-            isyslog("logo/border detection disabled");
-            bDecodeVideo=false;
-            for (short int stream=0;stream<MAXSTREAMS; stream++) {
-                if (macontext.Info.Channels[stream]==6) {
-                    macontext.Video.Options.IgnoreAspectRatio=false;
-                    macontext.Info.DPid.Num=0;
-                    demux->DisableDPid();
+        if ((macontext.Info.AspectRatio.Num) && (! earlyAspectChange) &&
+           ((macontext.Info.AspectRatio.Num!= macontext.Video.Info.AspectRatio.Num) || (macontext.Info.AspectRatio.Den!= macontext.Video.Info.AspectRatio.Den)))
+        {
+            isyslog("video aspect description in info (%i:%i) wrong", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
+            macontext.Info.AspectRatio.Num=macontext.Video.Info.AspectRatio.Num;
+            macontext.Info.AspectRatio.Den=macontext.Video.Info.AspectRatio.Den;
+        }
+        if ((macontext.Info.AspectRatio.Num == 0) || (macontext.Video.Info.AspectRatio.Den == 0)) {
+            isyslog("no video aspect ratio found in info file");
+            macontext.Info.AspectRatio.Num=macontext.Video.Info.AspectRatio.Num;
+            macontext.Info.AspectRatio.Den=macontext.Video.Info.AspectRatio.Den;
+        }
+
+        if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) {
+            isyslog("HD Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
+        }
+        else {
+            isyslog("SD Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
+            if (((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3))) {
+                isyslog("logo/border detection disabled");
+                bDecodeVideo=false;
+                for (short int stream=0;stream<MAXSTREAMS; stream++) {
+                    if (macontext.Info.Channels[stream]==6) {
+                        macontext.Video.Options.IgnoreAspectRatio=false;
+                        macontext.Info.DPid.Num=0;
+                        demux->DisableDPid();
+                    }
                 }
-            }
-            macontext.Video.Options.IgnoreLogoDetection=true;
-            marks.Del(MT_CHANNELSTART);
-            marks.Del(MT_CHANNELSTOP);
-            // start mark must be around iStartA
-            begin=marks.GetAround(macontext.Video.Info.FramesPerSecond*(MAXRANGE*4),iStartA,MT_ASPECTSTART);
-            if (begin) {
-                dsyslog("MT_ASPECTSTART found at (%i)",begin->position);
-                if (begin->position < abs(iStartA)/4) {    // this is not a valid start, try if there is better start mark
+                macontext.Video.Options.IgnoreLogoDetection=true;
+                marks.Del(MT_CHANNELSTART);
+                marks.Del(MT_CHANNELSTOP);
+                // start mark must be around iStartA
+                begin=marks.GetAround(macontext.Video.Info.FramesPerSecond*(MAXRANGE*4),iStartA,MT_ASPECTSTART);
+                if (begin) {
+                    dsyslog("MT_ASPECTSTART found at (%i)",begin->position);
+                    if (begin->position < abs(iStartA)/4) {    // this is not a valid start, try if there is better start mark
+                        clMark *begin2=marks.GetAround(iStartA,iStartA+delta,MT_START,0x0F);
+                        if (begin2) {
+                            begin2->type=MT_ASSUMEDSTART;  // most types of marks will be deleted if we do aspect ratio detecetion
+                            dsyslog("changing start position from (%i) to next start mark (%i)", begin->position, begin2->position);
+                            begin=begin2;
+                        }
+                    }
+                }
+                else {
+                    dsyslog("no MT_ASPECTSTART found");   // previous is 4:3 too, try another start mark
                     clMark *begin2=marks.GetAround(iStartA,iStartA+delta,MT_START,0x0F);
                     if (begin2) {
                         begin2->type=MT_ASSUMEDSTART;  // most types of marks will be deleted if we do aspect ratio detecetion
-                        dsyslog("changing start position from (%i) to next start mark (%i)", begin->position, begin2->position);
+                        dsyslog("using mark at position (%i) as start mark", begin2->position);
                         begin=begin2;
                     }
                 }
             }
-            else {
-                dsyslog("no MT_ASPECTSTART found");   // previous is 4:3 too, try another start mark
-                clMark *begin2=marks.GetAround(iStartA,iStartA+delta,MT_START,0x0F);
-                if (begin2) {
-                    begin2->type=MT_ASSUMEDSTART;  // most types of marks will be deleted if we do aspect ratio detecetion
-                    dsyslog("using mark at position (%i) as start mark", begin2->position);
-                    begin=begin2;
-                }
-            }
-        }
-        else { // recording is 16:9 but maybe we can get a MT_ASPECTSTART mark if previous recording was 4:3
-            begin=marks.GetAround(delta*3,iStartA,MT_ASPECTSTART);
-            if (begin) {
-                dsyslog("use MT_ASPECTSTART found at (%i) because previous recording was 4:3",begin->position);
-                clMark *begin2=marks.GetAround(delta*4,iStartA+delta,MT_LOGOSTART);  // do not use this mark if there is a later logo start mark
-                if (begin2 && begin2->position >  begin->position) {
-                    dsyslog("found later MT_LOGOSTART, do not use MT_ASPECTSTART");
-                    begin=NULL;
+            else { // recording is 16:9 but maybe we can get a MT_ASPECTSTART mark if previous recording was 4:3
+                begin=marks.GetAround(delta*3,iStartA,MT_ASPECTSTART);
+                if (begin) {
+                    dsyslog("use MT_ASPECTSTART found at (%i) because previous recording was 4:3",begin->position);
+                    clMark *begin2=marks.GetAround(delta*4,iStartA+delta,MT_LOGOSTART);  // do not use this mark if there is a later logo start mark
+                    if (begin2 && begin2->position >  begin->position) {
+                        dsyslog("found later MT_LOGOSTART, do not use MT_ASPECTSTART");
+                        begin=NULL;
+                    }
                 }
             }
         }
     }
 
-    if (!bDecodeVideo)
-    {
-        macontext.Video.Data.Valid=false;
-        marks.Del(MT_LOGOSTART);
-        marks.Del(MT_LOGOSTOP);
-        marks.Del(MT_HBORDERSTART);
-        marks.Del(MT_HBORDERSTOP);
-        marks.Del(MT_VBORDERSTART);
-        marks.Del(MT_VBORDERSTOP);
-    }
     if (!begin) {    // try horizontal border
         clMark *bStart=marks.GetAround(iStartA+delta,iStartA+delta,MT_HBORDERSTART);
         if (!bStart) {
@@ -652,8 +636,7 @@ void cMarkAdStandalone::CheckStart()
         }
     }
 
-    if (!begin)    // try anything
-    {
+    if (!begin) {    // try anything
         begin=marks.GetAround(iStartA+delta,iStartA,MT_START,0x0F);
         if (begin) {
             dsyslog("found start mark at (%i)", begin->position);
@@ -705,8 +688,18 @@ void cMarkAdStandalone::CheckStart()
             }
         }
     }
-    if (begin)
-    {
+
+/*    if (!bDecodeVideo) {
+        macontext.Video.Data.Valid=false;
+        marks.Del(MT_LOGOSTART);
+        marks.Del(MT_LOGOSTOP);
+        marks.Del(MT_HBORDERSTART);
+        marks.Del(MT_HBORDERSTOP);
+        marks.Del(MT_VBORDERSTART);
+        marks.Del(MT_VBORDERSTOP);
+    } */
+
+    if (begin) {
         marks.DelTill(begin->position);    // delete all marks till start mark
         CalculateCheckPositions(begin->position);
         char *timeText = marks.IndexToHMSF(begin->position,&macontext, ptr_cDecoder);
