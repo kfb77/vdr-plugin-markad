@@ -17,7 +17,7 @@ void AVlog(void *ptr, int level, const char* fmt, va_list vl){
         int rc = 0;
         rc = vsprintf(logMsg, fmt, vl);
         if (!rc) {
-            dsyslog("AVlog(): Error in asprintf");
+            dsyslog("AVlog(): Error in vsprintf");
             return;
         }
         dsyslog("AVlog(): %s",strtok(logMsg, "\n"));
