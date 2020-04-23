@@ -437,8 +437,6 @@ void cMarkAdStandalone::CheckStart()
         mark=mark->Next();
     }
 
-    marks.DelTill(1);    // delete initial mark at position 0, this is from the previous recordding
-
     clMark *begin=NULL;
     int delta=macontext.Video.Info.FramesPerSecond*MAXRANGE;
 
@@ -621,7 +619,8 @@ void cMarkAdStandalone::CheckStart()
 
             }
             else {
-                begin = bStart;   // found valid horizontal border start mark
+                if (bStart->position != 0)  // position 0 is a hborder previous recording
+                    begin = bStart;   // found valid horizontal border start mark
             }
         }
     }
