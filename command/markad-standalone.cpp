@@ -290,7 +290,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe)
 
     iStartA=abs(iStart);
     iStopA =startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->astopoffs - 30);
-    chkSTART=iStartA + macontext.Video.Info.FramesPerSecond * 3*MAXRANGE; // was 2*, test to fit for later broadcast start
+    chkSTART=iStartA + macontext.Video.Info.FramesPerSecond * 3*MAXRANGE; // fit for later broadcast start
     chkSTOP=startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->posttimer);
 
     dsyslog("assumed start frame %i", iStartA);
@@ -688,16 +688,6 @@ void cMarkAdStandalone::CheckStart()
             }
         }
     }
-
-/*    if (!bDecodeVideo) {
-        macontext.Video.Data.Valid=false;
-        marks.Del(MT_LOGOSTART);
-        marks.Del(MT_LOGOSTOP);
-        marks.Del(MT_HBORDERSTART);
-        marks.Del(MT_HBORDERSTOP);
-        marks.Del(MT_VBORDERSTART);
-        marks.Del(MT_VBORDERSTOP);
-    } */
 
     if (begin) {
         marks.DelTill(begin->position);    // delete all marks till start mark
