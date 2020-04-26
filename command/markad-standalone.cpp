@@ -350,14 +350,14 @@ void cMarkAdStandalone::CheckStop()
         clMark *mark=marks.GetFirst();
         while (mark) {
             if ((mark->position >= iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE) &&   // there could be a valid black screen start mark
-                              (mark->position < end->position) &&
-                             ((mark->type & 0x0F) == MT_STOP)) {     // do not delete start marks
- //                             (mark->type < (end->type & 0xF0))) {  // do not delete a start mark of the same type
-                dsyslog("found stronger end mark delete mark (%i)", mark->position);
-                clMark *tmp=mark;
-                mark=mark->Next();
-                marks.Del(tmp);
-                continue;
+                              (mark->position < end->position)) {
+                if (((mark->type & 0x0F) == MT_STOP) || ((end->type >= MT_LOGOSTOP) && (mark->type == MT_NOBLACKSTART))) { // do not delete start marks, except MT_NOBLACKSTART
+                    dsyslog("found stronger end mark delete mark (%i)", mark->position);
+                    clMark *tmp=mark;
+                    mark=mark->Next();
+                    marks.Del(tmp);
+                    continue;
+                }
             }
             mark=mark->Next();
         }
