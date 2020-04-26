@@ -388,22 +388,12 @@ void cMarkAdStandalone::CheckStop()
             }
         }
     }
-    else
-    {
-        dsyslog("no stop mark found"); //fallback
-        if (iStopinBroadCast)
-        {
-            dsyslog("add stop mark at the last frame (%i)",lastiframe);
-            MarkAdMark mark={};
-            mark.Position=lastiframe;  // we are lost, add a end mark at the last iframe
-            mark.Type=MT_ASSUMEDSTOP;
-            AddMark(&mark);
-        }
-        else
-        {
-            isyslog("removing marks from position %i, if any",iStop);
-            marks.DelTill(iStop,false);
-        }
+    else {
+        dsyslog("no stop mark found, add stop mark at the last frame (%i)",lastiframe);
+        MarkAdMark mark={};
+        mark.Position=lastiframe;  // we are lost, add a end mark at the last iframe
+        mark.Type=MT_ASSUMEDSTOP;
+        AddMark(&mark);
     }
     iStop=iStopA=0;
     gotendmark=true;
