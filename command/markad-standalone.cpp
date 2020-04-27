@@ -470,7 +470,7 @@ void cMarkAdStandalone::CheckStart()
 
         if ((macontext.Config->DecodeAudio) && (macontext.Info.Channels[stream])) {
             if ((macontext.Info.Channels[stream]==6) && (macontext.Audio.Options.IgnoreDolbyDetection==false)) {
-                isyslog("DolbyDigital5.1 audio in stream %i detected. logo/border/aspect detection disabled", stream);
+                isyslog("DolbyDigital5.1 audio whith 6 Channels in stream %i detected. logo/border/aspect detection disabled", stream);
                 bDecodeVideo=false;
                 macontext.Video.Options.IgnoreAspectRatio=true;
                 macontext.Video.Options.IgnoreLogoDetection=true;
@@ -480,6 +480,11 @@ void cMarkAdStandalone::CheckStart()
                 begin=marks.GetAround(INT_MAX,iStartA,MT_CHANNELSTART);
                 if (!begin) {          // previous recording had also 6 channels, try other marks
                     dsyslog("no audio channel start mark found");
+                }
+                else {
+                    dsyslog("audio channel start mark found at %d", begin->position);
+                    marks.Del(MT_LOGOSTART);   // we do not need the logo marks if we found a MT_CHANNELSTART
+                    marks.Del(MT_LOGOSTOP);
                 }
             }
             else {
