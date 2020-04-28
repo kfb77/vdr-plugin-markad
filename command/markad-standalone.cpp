@@ -349,15 +349,12 @@ void cMarkAdStandalone::CheckStop()
         dsyslog("found end mark at (%i)", end->position);
         clMark *mark=marks.GetFirst();
         while (mark) {
-            if ((mark->position >= iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE) &&   // there could be a valid black screen start mark
-                              (mark->position < end->position)) {
-                if (((mark->type & 0x0F) == MT_STOP) || ((end->type >= MT_LOGOSTOP) && (mark->type == MT_NOBLACKSTART))) { // do not delete start marks, except MT_NOBLACKSTART
-                    dsyslog("found stronger end mark delete mark (%i)", mark->position);
-                    clMark *tmp=mark;
-                    mark=mark->Next();
-                    marks.Del(tmp);
-                    continue;
-                }
+            if ((mark->position >= iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE) && (mark->position < end->position) && ((mark->type & 0xF0) < (end->type & 0xF0))) { // delete all weak marks
+                dsyslog("found stronger end mark delete mark (%i)", mark->position);
+                clMark *tmp=mark;
+                mark=mark->Next();
+                marks.Del(tmp);
+                continue;
             }
             mark=mark->Next();
         }
@@ -530,9 +527,9 @@ void cMarkAdStandalone::CheckStart()
             if (((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3))) {
                 isyslog("logo/border detection disabled");
                 bDecodeVideo=false;
+                macontext.Video.Options.IgnoreAspectRatio=false;
                 for (short int stream=0;stream<MAXSTREAMS; stream++) {
                     if (macontext.Info.Channels[stream]==6) {
-                        macontext.Video.Options.IgnoreAspectRatio=false;
                         macontext.Info.DPid.Num=0;
                         demux->DisableDPid();
                     }
