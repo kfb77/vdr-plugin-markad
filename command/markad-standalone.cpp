@@ -880,8 +880,6 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     if ((macontext.Config) && (macontext.Config->logoExtraction!=-1)) return;
     if (gotendmark) return;
 
-    tsyslog("cMarkAdStandalone::AddMark(): before status inBroadCast: %i", inBroadCast);
-
     char *comment=NULL;
     switch (Mark->Type)
     {
@@ -1073,17 +1071,19 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
 
     if (!macontext.Video.Options.WeakMarksOk) {
         if ((Mark->Type & 0xF0) != MT_BLACKCHANGE){ //  dont use BLACKSCEEN to detect if we are in broadcast
-            if (((Mark->Type & 0x0F)==MT_START) && ((Mark->Type & 0xF0) != MT_BLACKCHANGE)) {
-                inBroadCast=true;
-            }
-            else {
-                inBroadCast=false;
+            if (!((Mark->Type <= MT_ASPECTSTART) && (marks.GetPrev(Mark->Position,MT_CHANNELSTOP) && marks.GetPrev(Mark->Position,MT_CHANNELSTART)))) { // if there are MT_CHANNELSTOP and MT_CHANNELSTART marks, wait for MT_CHANNELSTART
+                if ((Mark->Type & 0x0F)==MT_START) {
+                    inBroadCast=true;
+                }
+                else {
+                    inBroadCast=false;
+                }
             }
         }
     }
     marks.Add(Mark->Type,Mark->Position,comment);
     if (comment) free(comment);
-    tsyslog("cMarkAdStandalone::AddMark(): after status inBroadCast: %i", inBroadCast);
+    tsyslog("cMarkAdStandalone::AddMark(): status inBroadCast: %i", inBroadCast);
 }
 
 void cMarkAdStandalone::SaveFrame(int frame)
