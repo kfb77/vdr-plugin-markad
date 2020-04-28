@@ -432,6 +432,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
 
     MarkAdContext maContextSaveState = {};
     maContextSaveState.Video = maContext->Video;     // save state of calling video context
+    maContextSaveState.Audio = maContext->Audio;     // save state of calling audio context
 
     cDecoder *ptr_cDecoder = new cDecoder(maContext->Config->threads);
     logo = new cMarkAdLogo(maContext);
@@ -640,6 +641,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
     vborder->~cMarkAdBlackBordersVert();
     logo->~cMarkAdLogo();
     maContext->Video = maContextSaveState.Video;     // restore state of calling video context
+    maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
     if (retStatus) dsyslog("cExtractLogo::SearchLogo(): finished successfully");
     else dsyslog("cExtractLogo::SearchLogo(): failed");
     dsyslog("----------------------------------------------------------------------------");
