@@ -303,6 +303,7 @@ void cMarkAdStandalone::CheckStop()
 {
     dsyslog("-------------------------------------------------------");
     dsyslog("checking stop (%i)", lastiframe);
+    dsyslog("assumed stop frame %i", iStopA);
 
 //  only for debugging
     clMark *mark=marks.GetFirst();

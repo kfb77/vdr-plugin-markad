@@ -194,27 +194,27 @@ clMark *clMarks::GetAround(int Frames, int Position, int Type, int Mask)
 {
     clMark *m1=GetPrev(Position,Type,Mask);
     clMark *m2=GetNext(Position,Type,Mask);
+    clMark *m3 = NULL;
 
     if (!m1 && !m2) return NULL;
+
+    if (m1) m3=GetNext(m1->position,Type,Mask);  // we need this if there exists a mark at exact the same position as needed
+    if (!m3 && m2) m3=GetNext(m2->position,Type,Mask);
+    if (m3 && (m3->position == Position)) return m3;
 
     if (!m1 && m2) {
         if (abs(Position-m2->position)>Frames) return NULL;
         else return m2;
     }
-
-    if (m1 && !m2)
-    {
+    if (m1 && !m2) {
         if (abs(Position-m1->position)>Frames) return NULL;
         return m1;
     }
-
-    if (abs(m1->position-Position)>abs(m2->position-Position))
-    {
+    if (abs(m1->position-Position)>abs(m2->position-Position)) {
         if (abs(Position-m2->position)>Frames) return NULL;
         else return m2;
     }
-    else
-    {
+    else {
         if (abs(Position-m1->position)>Frames) return NULL;
         return m1;
     }
