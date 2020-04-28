@@ -547,17 +547,21 @@ void cMarkAdStandalone::CheckStart()
                     if (begin->position < abs(iStartA)/4) {    // this is not a valid start, try if there is better start mark
                         clMark *begin2=marks.GetAround(iStartA,iStartA+delta,MT_START,0x0F);
                         if (begin2) {
-                            begin2->type=MT_ASSUMEDSTART;  // most types of marks will be deleted if we do aspect ratio detecetion
+//                            begin2->type=MT_ASSUMEDSTART;  // most types of marks will be deleted if we do aspect ratio detecetion
                             dsyslog("changing start position from (%i) to next start mark (%i)", begin->position, begin2->position);
                             begin=begin2;
                         }
                     }
+                    else {
+                        marks.Del(MT_LOGOSTART);  // we found MT_ASPECTSTART, we do not need LOGOSTART
+                        marks.Del(MT_LOGOSTOP);
+                   }
                 }
                 else {
                     dsyslog("no MT_ASPECTSTART found");   // previous is 4:3 too, try another start mark
                     clMark *begin2=marks.GetAround(iStartA,iStartA+delta,MT_START,0x0F);
                     if (begin2) {
-                        begin2->type=MT_ASSUMEDSTART;  // most types of marks will be deleted if we do aspect ratio detecetion
+//                        begin2->type=MT_ASSUMEDSTART;  // most types of marks will be deleted if we do aspect ratio detecetion
                         dsyslog("using mark at position (%i) as start mark", begin2->position);
                         begin=begin2;
                     }
