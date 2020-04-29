@@ -481,8 +481,10 @@ void cMarkAdStandalone::CheckStart()
                 }
                 else {
                     dsyslog("audio channel start mark found at %d", begin->position);
-                    marks.Del(MT_LOGOSTART);   // we do not need the logo marks if we found a MT_CHANNELSTART
+                    marks.Del(MT_LOGOSTART);   // we do not need the weaker marks if we found a MT_CHANNELSTART
                     marks.Del(MT_LOGOSTOP);
+                    marks.Del(MT_HBORDERSTART);
+                    marks.Del(MT_HBORDERSTOP);
                 }
             }
             else {
