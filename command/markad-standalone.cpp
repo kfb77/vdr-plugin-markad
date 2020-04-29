@@ -385,7 +385,7 @@ void cMarkAdStandalone::CheckStop()
         }
         marks.DelTill(end->position,false);
 
-        if ( end->position < iStopA - 3*delta ) {    // last found stop mark to early, adding STOP mark at the end
+        if ( end->position < iStopA - 3*delta ) {    // last found stop mark too early, adding STOP mark at the end
                                                      // this can happen by audio channel change too if the next broadcast has also 6 channels
             if ( ( lastStart) && ( lastStart->position > end->position ) ) {
                 isyslog("last STOP mark results in to short recording, set STOP at the end of the recording (%i)", lastiframe);
@@ -642,6 +642,11 @@ void cMarkAdStandalone::CheckStart()
             }
             begin=lStart;   // found valid logo start mark
         }
+    }
+
+    if (begin && (begin->position == 0)) { // we found the correct type but the mark is too early because the previous recording has same type
+        dsyslog("start mark (%i) dropped because it is too early", begin->position);
+        begin = NULL;
     }
 
     if (!begin) {    // try anything
