@@ -653,52 +653,6 @@ void cMarkAdStandalone::CheckStart()
         begin=marks.GetAround(iStartA+delta,iStartA,MT_START,0x0F);
         if (begin) {
             dsyslog("found start mark at (%i)", begin->position);
-            clMark *begin2=marks.GetAround(macontext.Video.Info.FramesPerSecond*MAXRANGE,begin->position,MT_START,0x0F);
-            if (begin2) {
-                if (begin2->type > begin->type) {
-                    if (begin2->type==MT_ASPECTSTART) {
-                        // special case, only take this mark if aspectratio is 4:3
-                        if ((macontext.Video.Info.AspectRatio.Num==4) &&
-                                (macontext.Video.Info.AspectRatio.Den==3)) {
-                            isyslog("mark on position %i stronger than mark on position %i as start mark",begin2->position,begin->position);
-                            begin=begin2;
-                        }
-                    } else {
-                        if (begin2->position > iStartA/4) {
-                            isyslog("mark on position (%i) stronger than mark on position (%i) as start mark",begin2->position,begin->position);
-                            begin=begin2;
-                        }
-                    }
-                }
-            }
-            if (begin->type == MT_NOBLACKSTART) {  // this is weak, check if there is a better logo mark
-                clMark *begin3=marks.GetAround(iStartA+delta,iStartA+delta,MT_LOGOSTART);
-                if (begin3) {
-                    if (begin3->position > iStartA/4) {
-                        isyslog("mark on position (%i) stronger than mark on position (%i) as start mark",begin3->position,begin->position);
-                        begin=begin3;
-                    }
-                }
-                else {    // if there is no logo start mark and we do not use logo detection after start, use blackscreen mark only if it is not too late
-                   if (!bDecodeVideo && (begin->position > (iStartA + macontext.Video.Info.FramesPerSecond*2*MAXRANGE))) { // we are lost, use startframe as start mark
-                       dsyslog("start of black screen too late (%i) setting start to startframe (%i)", begin->position, iStart);
-                       marks.DelTill(chkSTART);
-                       MarkAdMark mark={};
-                       mark.Position=iStart;
-                       mark.Type=MT_ASSUMEDSTART;
-                       AddMark(&mark);
-                       begin=marks.GetAround(iStartA,iStartA,MT_START,0x0F);
-                       CalculateCheckPositions(iStart);
-                   }
-                }
-            }
-            if ((begin->type == MT_LOGOSTART) && (begin->position < iStartA/4)) {    // this is not a valid start, try next start mark
-                clMark *begin4=marks.GetAround(iStartA,iStartA+delta,MT_START,0x0F);
-                if (begin4) {
-                    dsyslog("changing start position from (%i) to next start mark (%i)", begin->position, begin4->position);
-                    begin=begin4;
-                }
-            }
         }
     }
 
