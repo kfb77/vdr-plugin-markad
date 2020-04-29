@@ -475,7 +475,7 @@ void cMarkAdStandalone::CheckStart()
                 marks.Del(MT_ASPECTSTART);
                 marks.Del(MT_ASPECTSTOP);
                 // start mark must be around iStartA
-                begin=marks.GetAround(INT_MAX,iStartA,MT_CHANNELSTART);
+                begin=marks.GetAround(delta*4,iStartA,MT_CHANNELSTART);
                 if (!begin) {          // previous recording had also 6 channels, try other marks
                     dsyslog("no audio channel start mark found");
                 }
