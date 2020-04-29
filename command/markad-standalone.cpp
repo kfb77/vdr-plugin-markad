@@ -282,7 +282,17 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe)
         esyslog("video frame rate of recording not found");
         return;
     }
-    dsyslog("startframe %i", startframe);
+
+    if (startframe < 0) {   // recodring start ist too late
+        isyslog("recording started too late, set start mark to start of recording");
+        MarkAdMark mark={};
+        mark.Position=0;
+        mark.Type=MT_RECORDINGSTART;
+        AddMark(&mark);
+        startframe=macontext.Video.Info.FramesPerSecond * 6 * 60;  // give 6 minutes to get best mark type for this recording
+    }
+    else dsyslog("startframe %i", startframe);
+
     dsyslog("use frame rate %f", macontext.Video.Info.FramesPerSecond);
 
     iStart=-startframe;
@@ -413,6 +423,7 @@ void cMarkAdStandalone::CheckStart()
 {
     dsyslog("-------------------------------------------------------");
     dsyslog("checking start (%i)", lastiframe);
+    dsyslog("assumed start frame %i", iStartA);
 
 //  only for debugging
     clMark *mark=marks.GetFirst();
@@ -547,7 +558,6 @@ void cMarkAdStandalone::CheckStart()
                     if (begin->position < abs(iStartA)/4) {    // this is not a valid start, try if there is better start mark
                         clMark *begin2=marks.GetAround(iStartA,iStartA+delta,MT_START,0x0F);
                         if (begin2) {
-//                            begin2->type=MT_ASSUMEDSTART;  // most types of marks will be deleted if we do aspect ratio detecetion
                             dsyslog("changing start position from (%i) to next start mark (%i)", begin->position, begin2->position);
                             begin=begin2;
                         }
@@ -561,7 +571,6 @@ void cMarkAdStandalone::CheckStart()
                     dsyslog("no MT_ASPECTSTART found");   // previous is 4:3 too, try another start mark
                     clMark *begin2=marks.GetAround(iStartA,iStartA+delta,MT_START,0x0F);
                     if (begin2) {
-//                        begin2->type=MT_ASSUMEDSTART;  // most types of marks will be deleted if we do aspect ratio detecetion
                         dsyslog("using mark at position (%i) as start mark", begin2->position);
                         begin=begin2;
                     }
@@ -665,9 +674,9 @@ void cMarkAdStandalone::CheckStart()
                         begin=begin3;
                     }
                 }
-                else {    // if there is no logo start mark and we do not use logo detection after start, use blackscreen mark only if it is not to late
+                else {    // if there is no logo start mark and we do not use logo detection after start, use blackscreen mark only if it is not too late
                    if (!bDecodeVideo && (begin->position > (iStartA + macontext.Video.Info.FramesPerSecond*2*MAXRANGE))) { // we are lost, use startframe as start mark
-                       dsyslog("start of black screen to late (%i) setting start to startframe (%i)", begin->position, iStart);
+                       dsyslog("start of black screen too late (%i) setting start to startframe (%i)", begin->position, iStart);
                        marks.DelTill(chkSTART);
                        MarkAdMark mark={};
                        mark.Position=iStart;
@@ -686,6 +695,12 @@ void cMarkAdStandalone::CheckStart()
                 }
             }
         }
+    }
+
+    clMark *beginRec=marks.GetAround(delta,1,MT_RECORDINGSTART);  // do we have an incomplete recording ?
+    if (beginRec) {
+        dsyslog("found MT_RECORDINGSTART at %i, replace start mark", beginRec->position);
+        begin = beginRec;
     }
 
     if (begin) {
@@ -2644,7 +2659,7 @@ bool cMarkAdStandalone::LoadInfo()
                     isyslog("broadcast start truncated by %im, length will be corrected",-tStart/60);
                     startTime=rStart;
                     length+=tStart;
-                    tStart=1;
+                    tStart=-1;
                 }
                 else
                 {
