@@ -559,6 +559,14 @@ void cMarkAdStandalone::CheckStart()
                         marks.Del(MT_LOGOSTART);  // we found MT_ASPECTSTART, we do not need LOGOSTART
                         marks.Del(MT_LOGOSTOP);
                    }
+                   else { // if there is a MT_ASPECTSTOP, delete all marks after this position
+                       clMark *aStop = marks.GetNext(begin->position, MT_ASPECTSTOP);
+                       if (aStop) {
+                           dsyslog("found MT_ASPECTSTOP (%i), delete all weaker marks after", aStop->position);
+                           marks.DelWeakFrom(aStop->position, aStop->type);
+                       }
+                   }
+
                 }
                 else {
                     dsyslog("no MT_ASPECTSTART found");   // previous is 4:3 too, try another start mark

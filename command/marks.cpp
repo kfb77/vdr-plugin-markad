@@ -97,6 +97,21 @@ void clMarks::Del(unsigned char Type)
     }
 }
 
+
+void clMarks::DelWeakFrom(int position, short int type) {
+    type = type & 0xF0;
+    clMark *mark=first;
+    while (mark) {
+        if ((mark->position > position) && (mark->type < type)) {
+            clMark *tmpMark = mark->Next();
+            Del(mark);
+            mark = tmpMark;
+        }
+        else mark=mark->Next();
+    }
+}
+
+
 void clMarks::DelTill(int Position, bool FromStart)
 {
     clMark *next,*mark=first;
