@@ -946,14 +946,13 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         if (prev->position==Mark->Position) {
             if (prev->type>Mark->Type)
             {
-                isyslog("previous mark (%i) stronger than actual mark on same position, deleting %i",
-                        prev->position, Mark->Position);
+                isyslog("previous mark (%i) type 0x%X stronger than actual mark on same position, deleting (%i) type 0x%X", prev->position, prev->type, Mark->Position, Mark->Type);
                 if (comment) free(comment);
                 return;
             }
             else
             {
-                isyslog("actual mark stronger then previous mark on same position, deleting %i",prev->position);
+                isyslog("actual mark (%d) type 0x%X stronger then previous mark on same position, deleting (%i) type 0x%X",Mark->Position, Mark->Type, prev->position, prev->type);
                 marks.Del(prev);
             }
         }
@@ -969,7 +968,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             {
                 double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between STOP and START too short (%.1fs), deleting %i,%i",distance, prev->position,Mark->Position);
-                if (!macontext.Video.Options.WeakMarksOk) inBroadCast=false;
+                if (!macontext.Video.Options.WeakMarksOk) inBroadCast=true;
                 marks.Del(prev);
                 if (comment) free(comment);
                 return;
@@ -987,7 +986,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             {
                 double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between START and STOP too short (%.1fs), deleting %i,%i",distance, prev->position,Mark->Position);
-                if (!macontext.Video.Options.WeakMarksOk) inBroadCast=true;
+                if (!macontext.Video.Options.WeakMarksOk) inBroadCast=false;
                 marks.Del(prev);
                 if (comment) free(comment);
                 return;
@@ -1022,24 +1021,18 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     }
 
     prev=marks.GetLast();
-    if (prev)
-    {
-        if ((prev->type & 0x0F)==(Mark->Type & 0x0F))
-        {
+    if (prev) {
+        if ((prev->type & 0x0F)==(Mark->Type & 0x0F)) {
             int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*30);
             int diff=abs(Mark->Position-prev->position);
-            if (diff<MARKDIFF)
-            {
-                if (prev->type>Mark->Type)
-                {
-                    isyslog("previous mark (%i) stronger than actual mark, deleting %i",
-                            prev->position, Mark->Position);
+            if (diff<MARKDIFF) {
+                if (prev->type>Mark->Type) {
+                    isyslog("previous mark (%i) type 0x%X stronger than actual mark, deleting (%i) type 0x%X", prev->position, prev->type, Mark->Position, Mark->Type);
                     if (comment) free(comment);
                     return;
                 }
-                else
-                {
-                    isyslog("actual mark stronger then previous mark, deleting %i",prev->position);
+                else {
+                    isyslog("actual mark (%i) type 0x%X stronger then previous mark, deleting %i type 0x%X",Mark->Position, Mark->Type, prev->position, prev->type);
                     marks.Del(prev);
                 }
             }
