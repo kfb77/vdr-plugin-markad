@@ -552,17 +552,10 @@ void cMarkAdStandalone::CheckStart()
                 marks.Del(MT_CHANNELSTART);
                 marks.Del(MT_CHANNELSTOP);
                 // start mark must be around iStartA
-                begin=marks.GetAround(macontext.Video.Info.FramesPerSecond*(MAXRANGE*4),iStartA,MT_ASPECTSTART);
+                begin=marks.GetAround(delta*4,iStartA,MT_ASPECTSTART);
                 if (begin) {
                     dsyslog("MT_ASPECTSTART found at (%i)",begin->position);
-                    if (begin->position < abs(iStartA)/4) {    // this is not a valid start, try if there is better start mark
-                        clMark *begin2=marks.GetAround(iStartA,iStartA+delta,MT_START,0x0F);
-                        if (begin2) {
-                            dsyslog("changing start position from (%i) to next start mark (%i)", begin->position, begin2->position);
-                            begin=begin2;
-                        }
-                    }
-                    else {
+                    if (begin->position > abs(iStartA)/4) {    // this is a valid start
                         marks.Del(MT_LOGOSTART);  // we found MT_ASPECTSTART, we do not need LOGOSTART
                         marks.Del(MT_LOGOSTOP);
                    }
@@ -1883,7 +1876,7 @@ bool cMarkAdStandalone::Reset(bool FirstPass)
     }
     if (streaminfo) streaminfo->Clear();
     if (demux) demux->Clear();
-    if (video) video->Clear();
+    if (video) video->Clear(false);
     if (audio) audio->Clear();
     return ret;
 }
@@ -1934,7 +1927,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                     macontext.Video.Options.IgnoreBlackScreenDetection=false;   // use black sceen setection only to find end mark
                     if (macontext.Video.Options.IgnoreLogoDetection==true) {
                         macontext.Video.Options.IgnoreLogoDetection=false;
-                        if (video) video->Clear();    // reset logo decoder status
+                        if (video) video->Clear(true);    // reset logo decoder status
                     }
             }
             if (!bDecodeVideo) macontext.Video.Data.Valid=false; // make video picture invalid, we do not need them

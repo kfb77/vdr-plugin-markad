@@ -238,7 +238,7 @@ public:
     ~cMarkAdVideo();
     MarkAdPos *ProcessOverlap(int FrameNumber, int Frames, bool BeforeAd, bool H264);
     MarkAdMarks *Process(int FrameNumber, int FrameNumberNext);
-    void Clear();
+    void Clear(bool isRestart);
 };
 
 #endif

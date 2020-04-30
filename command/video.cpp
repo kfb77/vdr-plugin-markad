@@ -987,7 +987,7 @@ cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext)
     vborder=new cMarkAdBlackBordersVert(maContext);
     logo = new cMarkAdLogo(maContext);
     overlap = NULL;
-    Clear();
+    Clear(false);
 }
 
 cMarkAdVideo::~cMarkAdVideo()
@@ -1000,10 +1000,12 @@ cMarkAdVideo::~cMarkAdVideo()
     if (overlap) delete overlap;
 }
 
-void cMarkAdVideo::Clear()
+void cMarkAdVideo::Clear(bool isRestart)
 {
-    aspectratio.Num=0;
-    aspectratio.Den=0;
+    if (! isRestart) {
+        aspectratio.Num=0;
+        aspectratio.Den=0;
+    }
     framelast=0;
     framebeforelast=0;
     if (blackScreen) blackScreen->Clear();
