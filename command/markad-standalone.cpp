@@ -1960,7 +1960,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 }
             }
         }
-        if(ptr_cDecoder->isAudioAC3Stream()) {
+        if(ptr_cDecoder->isAudioAC3Packet()) {
              MarkAdMark *amark=audio->Process(lastiframe,iframe);
             if (amark) AddMark(amark);
         }

@@ -502,7 +502,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
     }
 
     if (isAudioPacket()) {
-        if (isAudioAC3Stream()) {
+        if (isAudioAC3Packet()) {
             if (avpkt.stream_index > MAXSTREAMS) {
                 dsyslog("cDecoder::GetFrameInfo(): to much streams %i", avpkt.stream_index);
                 return(false);
@@ -573,7 +573,7 @@ bool cDecoder::isAudioPacket() {
     return false;
 }
 
-bool cDecoder::isAudioAC3Stream() {
+bool cDecoder::isAudioAC3Packet() {
     if (!avctx) return false;
 #define AUDIOFORMATAC3 8
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
