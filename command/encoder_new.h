@@ -10,7 +10,28 @@ extern "C"{
 #include <libavformat/avformat.h>
 #include <libavformat/avio.h>
 #include <libavutil/file.h>
+#include <libavutil/opt.h>
+#include <libavfilter/avfilter.h>
+#include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
 }
+
+#define VOLUME 3dB
+
+
+class cAC3VolumeFilter {
+    public:
+        cAC3VolumeFilter();
+        ~cAC3VolumeFilter();
+        bool Init(uint64_t channel_layout, enum AVSampleFormat sample_fmt, int sample_rate);
+        bool SendFrame(AVFrame *avFrame);
+        bool GetFrame(AVFrame *avFrame);
+    private:
+        AVFilterGraph *filterGraph = NULL;
+        AVFilterContext *filterSrc = NULL;
+        AVFilterContext *filterSink = NULL;
+};
+
 
 class cEncoder {
     public:
@@ -33,4 +54,5 @@ class cEncoder {
         int64_t *dtsBefore = NULL;
         bool stateEAGAIN = false;
         bool ac3ReEncode = false;
+        cAC3VolumeFilter *ptr_cAC3VolumeFilter[MAXSTREAMS] = {NULL};
 };

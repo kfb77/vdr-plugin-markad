@@ -61,6 +61,7 @@ class cDecoder
         bool isVideoStream(short int streamIndex);
         bool isVideoPacket();
         bool isVideoIFrame();
+        bool isAudioAC3Stream(short int streamIndex);
         bool isAudioAC3Packet();
         bool isAudioStream(short int streamIndex);
         bool isAudioPacket();

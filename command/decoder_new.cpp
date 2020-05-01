@@ -283,7 +283,6 @@ bool cDecoder::SeekToFrame(long int iFrame) {
         dsyslog("cDecoder::SeekToFrame(): could not seek backward");
         return false;
     }
-    dsyslog("cDecoder::SeekToFrame(): start");
     while (framenumber < iFrame) {
         if (!this->GetNextFrame())
             if (!this->DecodeDir(recordingDir)) {
@@ -291,7 +290,6 @@ bool cDecoder::SeekToFrame(long int iFrame) {
                 return false;
         }
     }
-    dsyslog("cDecoder::SeekToFrame(): successful");
     return true;
 }
 
@@ -580,6 +578,20 @@ bool cDecoder::isAudioPacket() {
 #endif
     return false;
 }
+
+bool cDecoder::isAudioAC3Stream(short int streamIndex) {
+    if (!avctx) return false;
+#define AUDIOFORMATAC3 8
+#if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
+    if (avctx->streams[streamIndex]->codecpar->codec_id == AV_CODEC_ID_AC3 ) return true;
+#elif LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
+    if (avctx->streams[streamIndex]->codecpar->format == AUDIOFORMATAC3) return true;
+#else
+    if (avctx->streams[streamIndex]->codec->sample_fmt == AUDIOFORMATAC3) return true;
+#endif
+    return false;
+}
+
 
 bool cDecoder::isAudioAC3Packet() {
     if (!avctx) return false;

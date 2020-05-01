@@ -1,8 +1,8 @@
 Basic Installation
 ==================
 
-Prerequisite: libavcodec-dev libavformat-dev git
-e.g. for Ubuntu: sudo apt-get install libavcodec-dev libavformat-dev git
+Prerequisite: build-essential libavcodec-dev libavformat-dev libavfilter-dev git
+e.g. for Ubuntu: sudo apt-get install build-essential libavcodec-dev libavformat-dev libavfilter-dev git
 
 The simplest way to compile this package is:
 
@@ -12,7 +12,7 @@ The simplest way to compile this package is:
      documentation.
 
   3. You can remove the program binaries and object files from the
-     source code directory by typing `make clean'.  
+     source code directory by typing `make clean'.
 
   4. If you're running VDR >= 1.7.15, please check if you have an
      entry in /etc/services:

@@ -13,12 +13,149 @@ extern "C"{
 }
 
 
+cAC3VolumeFilter::cAC3VolumeFilter() {
+}
+
+
+cAC3VolumeFilter::~cAC3VolumeFilter() {
+    avfilter_graph_free(&filterGraph);
+}
+
+
+bool cAC3VolumeFilter::Init(uint64_t channel_layout, enum AVSampleFormat sample_fmt, int sample_rate){
+//    AVFilterContext *abuffer_ctx = NULL;
+    AVFilterContext *volume_ctx = NULL;
+//    AVFilterContext *abuffersink_ctx = NULL;
+    const AVFilter  *abuffer = NULL;
+    const AVFilter  *volume = NULL;
+    const AVFilter  *abuffersink = NULL;
+    char ch_layout[64] = {};
+    int err = 0;
+
+#if LIBAVCODEC_VERSION_INT < ((58<<16)+(35<<8)+100)
+    avfilter_register_all();
+#endif
+// Create a new filtergraph, which will contain all the filters
+    filterGraph = avfilter_graph_alloc();
+    if (!filterGraph) {
+        dsyslog("cAC3VolumeFilter:Init(): Unable to create filter graph %i", AVERROR(ENOMEM));
+        return(false);
+    }
+
+// Create the abuffer filter, it will be used for feeding the data into the graph
+    abuffer = avfilter_get_by_name("abuffer");
+    if (!abuffer) {
+        dsyslog("cAC3VolumeFilter::Init(): Could not find the abuffer filter");
+        return(false);
+    }
+    filterSrc = avfilter_graph_alloc_filter(filterGraph, abuffer, "src");
+    if (!filterSrc) {
+        dsyslog("cAC3VolumeFilter::Init(): Could not allocate the abuffer instance %i", AVERROR(ENOMEM));
+        return(false);
+    }
+// Set the filter options through the AVOptions API
+    av_get_channel_layout_string(ch_layout, sizeof(ch_layout), 0, (int64_t) channel_layout);
+    av_opt_set(filterSrc, "channel_layout", ch_layout, AV_OPT_SEARCH_CHILDREN);
+    av_opt_set(filterSrc, "sample_fmt", av_get_sample_fmt_name(sample_fmt), AV_OPT_SEARCH_CHILDREN);
+    av_opt_set_q(filterSrc, "time_base", (AVRational){ 1, sample_rate}, AV_OPT_SEARCH_CHILDREN);
+    av_opt_set_int(filterSrc, "sample_rate", sample_rate, AV_OPT_SEARCH_CHILDREN);
+// Now initialize the filter; we pass NULL options, since we have already set all the options above
+    err = avfilter_init_str(filterSrc, NULL);
+    if (err < 0) {
+        dsyslog("cAC3VolumeFilter::Init(): Could not initialize the abuffer filter %i", err);
+        return(false);
+    }
+
+// Create volume filter
+    volume = avfilter_get_by_name("volume");
+    if (!volume) {
+        dsyslog("cAC3VolumeFilter::Init(): Could not find the volume filter");
+        return(false);
+    }
+    volume_ctx = avfilter_graph_alloc_filter(filterGraph, volume, "volume");
+    if (!volume_ctx) {
+        dsyslog("cAC3VolumeFilter::Init(): Could not allocate the volume instance %i", AVERROR(ENOMEM));
+        return(false);
+    }
+    av_opt_set(volume_ctx, "volume", AV_STRINGIFY(VOLUME), AV_OPT_SEARCH_CHILDREN);
+    err = avfilter_init_str(volume_ctx, NULL);
+    if (err < 0) {
+        dsyslog("cAC3VolumeFilter::Init(): Could not initialize the volume filter %i", err);
+        return(false);
+    }
+
+// Finally create the abuffersink filter, it will be used to get the filtered data out of the graph
+    abuffersink = avfilter_get_by_name("abuffersink");
+    if (!abuffersink) {
+        dsyslog("cAC3VolumeFilter::Init(): Could not find the abuffersink filter");
+        return(false);
+    }
+    filterSink = avfilter_graph_alloc_filter(filterGraph, abuffersink, "sink");
+    if (!filterSink) {
+        dsyslog("cAC3VolumeFilter::Init(): Could not allocate the abuffersink instance %i", AVERROR(ENOMEM));
+        return(false);
+    }
+// This filter takes no options
+    err = avfilter_init_str(filterSink, NULL);
+    if (err < 0) {
+        dsyslog("cAC3VolumeFilter::Init(): Could not initialize the abuffersink instance %i", err);
+        return(false);
+    }
+
+// Connect the filters just form a linear chain
+    err = avfilter_link(filterSrc, 0, volume_ctx, 0);
+    if (err < 0) {
+        dsyslog("cAC3VolumeFilter::Init(): Could not link abuffer to volume %i", err);
+        return(false);
+    }
+    err = avfilter_link(volume_ctx, 0, filterSink, 0);
+    if (err < 0) {
+        dsyslog("cAC3VolumeFilter::Init(): Could not link volume to abuffersink %i", err);
+        return(false);
+    }
+
+// Configure the graph
+    err = avfilter_graph_config(filterGraph, NULL);
+    if (err < 0) {
+        dsyslog("cAC3VolumeFilter::Init(): Error configuring the filter graph %i", err);
+        return false;
+    }
+
+    dsyslog("cAC3VolumeFilter::Init(): successful with channel layout %s", ch_layout);
+    return(true);
+}
+
+
+bool cAC3VolumeFilter::SendFrame(AVFrame *avFrame) {
+    int err = 0;
+// Send the frame to the input of the filtergraph
+    err = av_buffersrc_add_frame(filterSrc, avFrame);
+    if (err < 0) {
+        dsyslog("cAC3VolumeFilter::SendFrame(): Error submitting the frame to the filtergraph %i", err);
+        return(false);
+   }
+   return(true);
+}
+
+
+bool cAC3VolumeFilter::GetFrame(AVFrame *avFrame) {
+    int err = 0;
+// Send the frame to the input of the filtergraph
+    err = av_buffersink_get_frame(filterSink, avFrame);
+    if (err < 0) {
+        dsyslog("cAC3VolumeFilter::SendFrame(): Error getting the frame from the filtergraph %i", err);
+        return(false);
+   }
+   return(true);
+}
+
+
+
 cEncoder::cEncoder(int threads, bool ac3reencode) {
     if (threads < 1) threads = 1;
     if (threads > 16) threads = 16;
     dsyslog("cEncoder::cEncoder(): init with %i threads", threads);
     threadCount = threads;
-
     ac3ReEncode=ac3reencode;
 }
 
@@ -27,7 +164,6 @@ cEncoder::~cEncoder() {
     for (unsigned int i=0; i<avctxOut->nb_streams; i++) {
         avcodec_free_context(&codecCtxArrayOut[i]);
     }
-
 }
 
 
@@ -125,7 +261,6 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
         return(false);
     }
     free(filename);
-    dsyslog("cEncoder::OpenFile(): successful");
     return(true);
 }
 
@@ -158,16 +293,33 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctx
     }
     else {
         dsyslog("cEncoder::ChangeEncoderCodec():odec of stream %i not suported", streamIndex);
+        return(false);
     }
     codecCtxArrayOut[streamIndex]->thread_count = threadCount;
     if (avcodec_open2(codecCtxArrayOut[streamIndex], codec, NULL) < 0) {
         dsyslog("cEncoder::ChangeEncoderCodec(): avcodec_open2 for stream %i failed", streamIndex);
         avcodec_free_context(&codecCtxArrayOut[streamIndex]);
         codecCtxArrayOut[streamIndex]=NULL;
+        return(false);
     }
-    else dsyslog("cEncoder::ChangeEncoderCodec(): avcodec_open2 for stream %i successful", streamIndex);
+    dsyslog("cEncoder::ChangeEncoderCodec(): avcodec_open2 for stream %i successful", streamIndex);
+
+    if (ptr_cDecoder->isAudioAC3Stream(streamIndex)) {
+        dsyslog("cEncoder::ChangeEncoderCodec(): AC3 stream found %i, re-initialize volume filter", streamIndex);
+        if (!ptr_cAC3VolumeFilter[streamIndex]) {
+            dsyslog("cEncoder::ChangeEncoderCodec(): ptr_cAC3VolumeFilter not initialized for stream %i", streamIndex);
+            return(false);
+        }
+        delete ptr_cAC3VolumeFilter[streamIndex];
+        ptr_cAC3VolumeFilter[streamIndex] = new cAC3VolumeFilter();
+        if (!ptr_cAC3VolumeFilter[streamIndex]->Init(avCodecCtxIn->channel_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate)) {
+            dsyslog("cEncoder::ChangeEncoderCodec(): ptr_cAC3VolumeFilter->Init() failed");
+            return(false);
+        }
+    }
     return(true);
 }
+
 
 bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, int streamIndex, AVCodecContext *avCodecCtxIn) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
@@ -235,6 +387,19 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
         codecCtxArrayOut[streamIndex]=NULL;
     }
     else dsyslog("cEncoder::InitEncoderCodec(): avcodec_open2 for stream %i successful", streamIndex);
+
+    if (ptr_cDecoder->isAudioAC3Stream(streamIndex)) {
+        dsyslog("cEncoder::InitEncoderCodec(): AC3 stream found %i, initialize volume filter", streamIndex);
+        if (ptr_cAC3VolumeFilter[streamIndex]) {
+            dsyslog("cEncoder::InitEncoderCodec(): ptr_cAC3VolumeFilter is not NULL for stream %i", streamIndex);
+            return(false);
+        }
+        ptr_cAC3VolumeFilter[streamIndex] = new cAC3VolumeFilter();
+        if (!ptr_cAC3VolumeFilter[streamIndex]->Init(avCodecCtxIn->channel_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate)) {
+            dsyslog("cEncoder::InitEncoderCodec(): ptr_cAC3VolumeFilter->Init() failed");
+            return(false);
+        }
+    }
     return(true);
 }
 
@@ -243,6 +408,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     int ret = 0;
     AVPacket avpktAC3;
     av_init_packet(&avpktAC3);
+    AVFrame *avFrameOut = NULL;
     avpktAC3.data = NULL;
     avpktAC3.size = 0;
 
@@ -300,7 +466,9 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
             dsyslog("cEncoder::WritePacket(): failed to get AVFormatContext at frame %ld",ptr_cDecoder->GetFrameNumber());
             return(false);
         }
-        AVFrame *avFrameOut = ptr_cDecoder->DecodePacket(avctxIn, avpktOut);
+
+// decode packet
+        avFrameOut = ptr_cDecoder->DecodePacket(avctxIn, avpktOut);
         if ( ! avFrameOut ) {
             dsyslog("cEncoder::WritePacket(): AC3 Decoder failed at frame %ld",ptr_cDecoder->GetFrameNumber());
             return(false);
@@ -318,6 +486,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
            return(false);
         }
 
+// Check if the audio strem changed channels
         if ((codecCtxArrayOut[avpktOut->stream_index]->channel_layout != codecCtxArrayIn[avpktOut->stream_index]->channel_layout) ||
             (codecCtxArrayOut[avpktOut->stream_index]->channels != codecCtxArrayIn[avpktOut->stream_index]->channels)) {
             dsyslog("cEncoder::WritePacket(): channel layout of stream %i changed at frame %ld from %" PRIu64 " to %" PRIu64, avpktOut->stream_index,
@@ -332,6 +501,22 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
                 return(false);
             }
         }
+
+// use filter to adapt AC3 volume
+        if (ptr_cDecoder->isAudioAC3Stream(avpktOut->stream_index)) {
+            if (!ptr_cAC3VolumeFilter[avpktOut->stream_index]->SendFrame(avFrameOut)) {
+                dsyslog("cEncoder::WriteFrame(): cAC3VolumeFilter SendFrame failed");
+                if (avFrameOut) av_frame_free(&avFrameOut);
+                return(false);
+            }
+            if (!ptr_cAC3VolumeFilter[avpktOut->stream_index]->GetFrame(avFrameOut)) {
+                dsyslog("cEncoder::WriteFrame(): cAC3VolumeFilter GetFrame failed");
+                if (avFrameOut) av_frame_free(&avFrameOut);
+                return(false);
+            }
+        }
+
+//encode frame
         if ( codecCtxArrayOut[avpktOut->stream_index]) {
             if ( ! this->EncodeFrame(ptr_cDecoder, codecCtxArrayOut[avpktOut->stream_index], avFrameOut, &avpktAC3 )) {
                 dsyslog("cEncoder::WritePacket(): AC3 Encoder failed of stream %i at frame %ld", avpktOut->stream_index, ptr_cDecoder->GetFrameNumber());
