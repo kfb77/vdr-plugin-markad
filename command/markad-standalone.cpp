@@ -1951,6 +1951,10 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
             }
             if ((iStop>0) && (iStopA>0)) {
                 if (lastiframe>chkSTOP) {
+                    if (iStart != 0) {
+                        dsyslog("still no chkStart called, doing it now");
+                        CheckStart();
+                    }
                     CheckStop();
                     return(false);
                 }
