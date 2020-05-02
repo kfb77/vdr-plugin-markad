@@ -645,7 +645,7 @@ void cMarkAdStandalone::CheckStart()
         }
     }
 
-    if (begin && (begin->position == 0)) { // we found the correct type but the mark is too early because the previous recording has same type
+    if (begin && ((begin->position == 0) || ((begin->type == MT_LOGOSTART) && (begin->position  < iStart/8)))) { // we found the correct type but the mark is too early because the previous recording has same type
         dsyslog("start mark (%i) dropped because it is too early", begin->position);
         begin = NULL;
     }
