@@ -466,7 +466,11 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                     }
                 }
                 else {
-                    if ((sample_aspect_ratio_num==64) && (sample_aspect_ratio_den==45)){
+                    if ((sample_aspect_ratio_num==64) && (sample_aspect_ratio_den==45)){  // // generic PAR MPEG-2 for PAL
+                        sample_aspect_ratio_num =16;
+                        sample_aspect_ratio_den = 9;
+                    }
+		    else if ((sample_aspect_ratio_num==16) && (sample_aspect_ratio_den==11)){  // // generic PAR MPEG-4 for PAL
                         sample_aspect_ratio_num =16;
                         sample_aspect_ratio_den = 9;
                     }
@@ -474,7 +478,11 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                          sample_aspect_ratio_num =16;
                          sample_aspect_ratio_den = 9;
                     }
-                    else if ((sample_aspect_ratio_num==16) && (sample_aspect_ratio_den==15)){
+                    else if ((sample_aspect_ratio_num==16) && (sample_aspect_ratio_den==15)){  // generic PAR MPEG-2 for PAL
+                        sample_aspect_ratio_num =4;
+                        sample_aspect_ratio_den =3;
+                    }
+                    else if ((sample_aspect_ratio_num==12) && (sample_aspect_ratio_den==11)){  // generic PAR MPEG-4 for PAL
                         sample_aspect_ratio_num =4;
                         sample_aspect_ratio_den =3;
                     }
