@@ -268,14 +268,13 @@ int cOSDMessage::Send(const char *format, ...)
     return 0;
 }
 
-void cMarkAdStandalone::CalculateCheckPositions(int startframe)
-{
+
+void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
+    dsyslog("-------------------------------------------------------");
+    dsyslog("CalculateCheckPositions with startframe %i",startframe);
+
     if (!length) {
         esyslog("length of recording not found");
-        return;
-    }
-    if (!startframe) {
-        esyslog("start frame of recording not found");
         return;
     }
     if (!macontext.Video.Info.FramesPerSecond) {
@@ -303,11 +302,14 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe)
     chkSTART=iStartA + macontext.Video.Info.FramesPerSecond * 3*MAXRANGE; // fit for later broadcast start
     chkSTOP=startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->posttimer);
 
+    dsyslog("length of recording %is", length);
     dsyslog("assumed start frame %i", iStartA);
     dsyslog("assumed stop frame %i", iStopA);
     dsyslog("chkSTART set to %i",chkSTART);
     dsyslog("chkSTOP set to %i", chkSTOP);
+    dsyslog("-------------------------------------------------------");
 }
+
 
 void cMarkAdStandalone::CheckStop()
 {
