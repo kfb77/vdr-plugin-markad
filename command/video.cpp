@@ -233,7 +233,6 @@ int cMarkAdLogo::SobelPlane(int plane)
 
     int boundary=6;
     int cutval=127;
-    //int cutval=32;
     int width=LOGOWIDTH;
 
     if (plane>0)
@@ -341,6 +340,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
         }
         else
         {
+//            tsyslog("plane %i area.rpixel[plane] %i area.mpixel[plane] %i", plane, area.rpixel[plane], area.mpixel[plane]);
             rpixel+=area.rpixel[plane];
             mpixel+=area.mpixel[plane];
         }
@@ -467,6 +467,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
                                 dsyslog("cMarkAdLogo::Process(): found logo for %s in logo cache directory",buf);
                                 logoStatus = true;
                             }
+                            else if (logoStatus) Load(macontext->Config->recDir,buf,plane); // we need to load the other planes
                             break;
                     case -1:
                         if (plane == 0) dsyslog("cMarkAdLogo::Process(): no logo for %s found in logo cache directory",buf);
@@ -849,7 +850,6 @@ bool cMarkAdOverlap::areSimilar(simpleHistogram &hist1, simpleHistogram &hist2)
     {
         similar+=abs(hist1[i]-hist2[i]);
     }
-    //printf("%6i\n",similar);
     if (similar<similarCutOff) {
 //       dsyslog("---areSimilar() similarCutOff %8i",similarCutOff);
 //       dsyslog("---areSimilar() similar       %8i",similar);

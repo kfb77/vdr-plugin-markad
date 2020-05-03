@@ -377,7 +377,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     if (rc < 0) {
         switch (rc) {
             case AVERROR(EAGAIN):
-                tsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EAGAIN at frame %li", framenumber);
+//                tsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EAGAIN at frame %li", framenumber);
                 stateEAGAIN=true;
                 break;
             case AVERROR(EINVAL):
@@ -470,7 +470,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                         sample_aspect_ratio_num =16;
                         sample_aspect_ratio_den = 9;
                     }
-		    else if ((sample_aspect_ratio_num==16) && (sample_aspect_ratio_den==11)){  // // generic PAR MPEG-4 for PAL
+                    else if ((sample_aspect_ratio_num==16) && (sample_aspect_ratio_den==11)){  // // generic PAR MPEG-4 for PAL
                         sample_aspect_ratio_num =16;
                         sample_aspect_ratio_den = 9;
                     }
@@ -656,7 +656,7 @@ long int cDecoder::GetTimeFromIFrame(long int iFrame) {
         }
         if (iInfo->iFrameNumber > iFrame) {
             if (abs(iFrame - before_iFrame) < abs(iFrame - iInfo->iFrameNumber)) {
-                tsyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame before (%li) %" PRId64 "ms",iFrame,before_iFrame,before_pts);
+//                tsyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame before (%li) %" PRId64 "ms",iFrame,before_iFrame,before_pts);
                 return before_pts;
             }
             else {
