@@ -633,7 +633,7 @@ void cMarkAdStandalone::CheckStart()
     }
 
     if (!begin) {   // try logo start mark
-        clMark *lStart=marks.GetAround(iStartA+delta,iStartA+delta,MT_LOGOSTART);
+        clMark *lStart=marks.GetAround(iStartA,iStartA,MT_LOGOSTART);
         if (!lStart) {
             dsyslog("no logo start mark found");
         }
