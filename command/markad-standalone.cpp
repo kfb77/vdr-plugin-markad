@@ -2611,29 +2611,28 @@ bool cMarkAdStandalone::LoadInfo()
             dsyslog("recording start at %s", strtok(ctime(&rStart), "\n"));
             dsyslog("broadcast start at %s from VDR info file", strtok(ctime(&startTime), "\n"));
             tStart=(int) (startTime-rStart);
-            if (tStart<0)
-            {
-                if (length+tStart>0)
-                {
+            if (tStart > 60*60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
+                isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", tStart);
+                tStart = 120;
+            }
+            if (tStart<0) {
+                if (length+tStart>0) {
                     isyslog("broadcast start truncated by %im, length will be corrected",-tStart/60);
                     startTime=rStart;
                     length+=tStart;
                     tStart=-1;
                 }
-                else
-                {
+                else {
                     esyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
                     tStart=120;
                 }
             }
         }
-        else
-        {
+        else {
             tStart=0;
         }
     }
-    else
-    {
+    else {
         tStart=0;
     }
     fclose(f);
