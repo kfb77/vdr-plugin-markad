@@ -287,9 +287,10 @@ int cExtractLogo::Compare(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, i
 
 bool cExtractLogo::CompareLogoPair(logoInfo *logo1, logoInfo *logo2, int logoHeight, int logoWidth) {
     int similar_0=0;
+    int similar_1_2=0;
     int black_0 = 0;
-    int black_1_2 = 0;
     int rate_0=0;
+    int rate_1_2=0;
     for (int i = 0; i < logoHeight*logoWidth; i++) {    // compare all black pixel in plane 0
         if ((logo1->sobel[0][i] == 255) && (logo2->sobel[0][i] == 255)) continue;   // ignore white pixel
         else black_0 ++;
@@ -299,14 +300,13 @@ bool cExtractLogo::CompareLogoPair(logoInfo *logo1, logoInfo *logo2, int logoHei
     }
     for (int i = 0; i < logoHeight/2*logoWidth/2; i++) {    // compare all pixel in plane 1 and 2
         for (int plane = 1; plane <= 2; plane ++) {
-            if (logo1->sobel[plane][i] == logo2->sobel[plane][i]) continue;
-            if (logo1->sobel[plane][i] == 0) black_1_2++;
+            if (logo1->sobel[plane][i] == logo2->sobel[plane][i]) similar_1_2++;
         }
     }
     if (black_0 > 100) rate_0=1000*similar_0/black_0;   // accept only if we found some pixels
     else rate_0=0;
-    rate_0 -= black_1_2;  // at the most cases we do not have planar video with colored logo, so we need no plane > 0
-    if (rate_0 > 900) return(true);
+    rate_1_2 = 1000*similar_1_2/(logoHeight*logoWidth)*2;
+    if ((rate_0 > 900) && (rate_1_2 > 990)) return(true);
     return(false);
 }
 
