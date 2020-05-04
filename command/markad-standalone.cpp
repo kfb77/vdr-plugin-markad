@@ -341,7 +341,7 @@ void cMarkAdStandalone::CheckStop()
                 end=marks.GetAround(3*delta,iStopA,MT_VBORDERSTOP);         // try MT_VBORDERSTOP
                 if (!end) {
                     dsyslog("no MT_VBORDERSTOP mark found");
-                    end=marks.GetAround(3*delta,iStopA+2*delta,MT_LOGOSTOP);        // try MT_LOGOSTOP
+                    end=marks.GetAround(3*delta,iStopA,MT_LOGOSTOP);        // try MT_LOGOSTOP
                     if (!end) {
                         dsyslog("no MT_LOGOSTOP mark found");
                         end=marks.GetAround(3*delta,iStopA,MT_STOP,0x0F);    // try any type of stop mark
@@ -984,7 +984,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         clMark *prev=marks.GetPrev(Mark->Position,MT_LOGOSTART);
         if (prev)
         {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*10);    // maybe this is only ia short logo detection failure
+            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*30);    // maybe this is only ia short logo detection failure
             if ( (Mark->Position - prev->position) < MARKDIFF )
             {
                 double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
