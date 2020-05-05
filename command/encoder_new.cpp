@@ -247,11 +247,19 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     avpktAC3.size = 0;
 
     if (! avctxOut ) {
-        dsyslog("cEncoder::WriteFrame(): got no AVFormatContext from Output file");
+        dsyslog("cEncoder::WriteFrame(): got no AVFormatContext from output file");
+        return(false);
+    }
+    if (! ptr_cDecoder ) {
+        dsyslog("cEncoder::WriteFrame(): got no ptr_cDecoder from output file");
         return(false);
     }
 
-    if ( avpktOut->pts <  avpktOut->dts ) {
+    if (avpktOut->dts == AV_NOPTS_VALUE) {
+         dsyslog("cEncoder::WritePacket: frame (%ld) got no dts value from input stream %i", ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index);
+         return(false);
+    }
+    if (avpktOut->pts <  avpktOut->dts) {
         dsyslog("cEncoder::WritePacket: pts (%" PRId64 ") smaller than dts (%" PRId64 ") in frame (%ld) of stream %d",avpktOut->pts,avpktOut->dts,ptr_cDecoder->GetFrameNumber(),avpktOut->stream_index);
         return(false);
     }
@@ -270,7 +278,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     avpktOut->dts = avpktOut->dts - pts_dts_offset;
     avpktOut->pos=-1;   // byte position in stream unknown
    if (dtsBefore[avpktOut->stream_index] >= avpktOut->dts) {  // drop non monotonically increasing dts packets
-        dsyslog("cEncoder::WritePacket: non monotonically increasing dts at frame %ld of stream %d, dts last packet %" PRId64 ", dts %" PRId64 ", offset %" PRId64, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, dtsBefore[avpktOut->stream_index], avpktOut->dts, avpktOut->dts - dtsBefore[avpktOut->stream_index]);
+        dsyslog("cEncoder::WritePacket: non monotonically increasing dts at frame (%ld) of stream %d, dts last packet %" PRId64 ", dts %" PRId64 ", offset %" PRId64, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, dtsBefore[avpktOut->stream_index], avpktOut->dts, avpktOut->dts - dtsBefore[avpktOut->stream_index]);
         return(true);
     }
 
