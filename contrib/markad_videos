@@ -1,0 +1,502 @@
+#!/usr/bin/env python3
+# this programm let markad run on a video directory to build all missing markad files
+# see markad_video -h and markad_video.conf for more informations
+
+import sys
+import os
+import signal
+import subprocess
+import fnmatch
+import argparse
+import configparser
+import getpass
+import pwd
+import grp
+import logging
+import logging.handlers
+import time
+import datetime
+import shutil
+import atexit
+import pathlib
+import filecmp
+
+
+
+def signal_handler(sig, frame):
+    log.esyslog('you pressed Ctrl+C!')
+
+    curPath.KillMarkad()
+    if curPath.root is not None:
+        try:
+            os.remove(curPath.root+"/marks")
+        except FileNotFoundError:
+            pass
+
+        try:
+            os.remove(curPath.root+"/markad.pid")
+        except FileNotFoundError:
+            pass
+    sys.exit(1)
+
+
+class PidFile:
+    def __init__(self):
+        self.pidFile = "/tmp/markad_videos.pid"
+        self.pid = os.getpid()
+
+    def WritePidFile(self):
+        f = open(self.pidFile, 'w')
+        f.write(str(self.pid))
+        f.close()
+
+    def DeletePidFile(self):
+        os.remove(self.pidFile)
+
+    def CheckPidFile(self):
+        if os.path.exists(self.pidFile):
+            log.esyslog("markad_video is running, do not start twice")
+            return(True)
+        else: return(False)
+
+
+class Log:
+    def __init__(self):
+        self.syslog = logging.getLogger(__name__)
+        self.syslog.setLevel(logging.DEBUG)
+        handler = logging.handlers.SysLogHandler(address = '/dev/log')
+        formatter = logging.Formatter('%(module)s: %(message)s')
+        handler.setFormatter(formatter)
+        self.syslog.addHandler(handler)
+
+    def esyslog(self, message):
+        if config.loglevel >= 1:
+            self.syslog.error(message)
+            print("ERROR:",message)
+
+    def isyslog(self, message):
+        if config.loglevel >= 2:
+            self.syslog.info(message)
+            if config.verbose:
+                print("INFO:",message)
+
+    def dsyslog(self, message):
+        if config.loglevel >= 3:
+            self.syslog.debug(message)
+            if config.verbose:
+                print("DEBUG:",message)
+
+    def tsyslog(self, message):
+        if config.loglevel >= 4:
+            self.syslog.trace(message)
+            if config.verbose:
+                print("TRACE:",message)
+
+
+class Config:
+    def __init__(self):  # define the default configuration
+        self.verbose = False
+        self.config = "/etc/markad_videos.conf"
+        self.path = "/srv/vdr/video"
+        self.bindir = "/usr/bin"
+        self.minfree = 0
+        self.logocachedir = "/var/lib/markad"
+        self.nice = 19
+        self.loglevel = 1
+        self.checkOnly = False
+
+        self.markad_loglevel = 1
+        self.autologo = 2
+        self.threads = 1
+        self.astopoffs = 0
+        self.log2rec=False
+        self.cDecoder=False
+        self.cut=False
+        self.ac3reencode=False
+        self.backupmarks=False
+
+        self.mirror_path = None
+        self.mirror_movies = "movies"
+        self.mirror_series = "series"
+        self.mirror_update = "/srv/vdr/video"
+
+    def ConfigFile(self):
+        if not os.path.exists(self.config):
+            log.isyslog("configfile /etc/markad_videos.conf does not exists")
+            return()
+        config = configparser.ConfigParser()
+        config.read(self.config)
+
+        try:
+            ret = config.getboolean('GLOBAL', 'verbose')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = False
+        if ret: self.verbose = ret
+
+        try:
+            ret = config.get('GLOBAL', 'path')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.path = ret
+
+        try:
+            ret = config.getint('GLOBAL', 'minfree')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.minfree = ret
+
+        try:
+            ret = config.getint('GLOBAL', 'nice')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.nice = ret
+
+        try:
+            ret = config.getint('GLOBAL', 'loglevel')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.loglevel = ret
+
+        try:
+            ret = config.getint('MARKAD', 'loglevel')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.markad_loglevel = ret
+        else: self.markad_loglevel = self.loglevel
+
+        try:
+            ret = config.get('MARKAD', 'bindir')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.bindir = ret
+
+        try:
+            ret = config.get('MARKAD', 'logocachedir')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.logocachedir = ret
+
+        try:
+            ret = config.getint('MARKAD', 'autologo')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.autologo = ret
+
+        try:
+            ret = config.getint('MARKAD', 'threads')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.threads = ret
+
+        try:
+            ret = config.getint('MARKAD', 'astopoffs')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.astopoffs = ret
+
+        try:
+            ret = config.getboolean('MARKAD', 'log2rec')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = False
+        if ret: self.log2rec = ret
+
+        try:
+            ret = config.getboolean('MARKAD', 'cDecoder')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = False
+        if ret: self.cDecoder = ret
+
+        try:
+            ret = config.getboolean('MARKAD', 'cut')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = False
+        if ret: self.cut = ret
+
+        try:
+            ret = config.getboolean('MARKAD', 'ac3reencode')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = False
+        if ret: self.ac3reencode = ret
+
+        try:
+            ret = config.get('MIRROR', 'path')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.mirror_path = ret
+
+        try:
+            ret = config.get('MIRROR', 'movies')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.mirror_movies = ret
+
+        try:
+            ret = config.get('MIRROR', 'series')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.mirror_series = ret
+
+        try:
+            ret = config.get('MIRROR', 'update')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.mirror_update = ret
+
+    def Arguments(self):
+        args = parser.parse_args()
+        if args.verbose: self.verbose = args.verbose
+        if args.path is not None: self.path = args.path
+        if args.bindir is not None: self.bindir = args.bindir
+        if args.loglevel is not None: self.loglevel = args.loglevel
+        if args.nice is not None: self.nice = args.nice
+        if args.minfree is not None: self.minfree = args.minfree
+        if args.autologo is not None: self.autologo = args.autologo
+        if args.threads is not None: self.threads = args.threads
+        if args.astopoffs is not None: self.astopoffs = args.astopoffs
+        if args.log2rec: self.log2rec = args.log2rec
+        if args.cDecoder: self.cDecoder = args.cDecoder
+        if args.cut: self.cut = args.cut
+        if args.ac3reencode: self.ac3reencode = args.ac3reencode
+        if args.backupmarks: self.backupmarks = args.backupmarks
+        if args.mirror_path is not None: self.mirror_path = args.mirror_path
+
+
+
+class CheckPath:
+    def __init__(self, root, files):
+        self.root = root
+        self.files = files
+        self.mirror_type = None
+        self.mirror_name = None
+        self.isRunning = False;
+
+        if config.mirror_path is not None:
+            log.tsyslog("get name to mirror video from "+self.root)
+            if self.root.find("/"+config.mirror_movies+"/") > 0:
+                self.mirror_type = config.mirror_movies
+                (head, tail) = os.path.split(root)
+                (head, self.mirror_name) = os.path.split(head)
+                self.mirror_name = config.mirror_path + "/" + config.mirror_movies + "/" + self.mirror_name + ".ts"
+            elif self.root.find("/"+config.mirror_series+"/") > 0:
+                self.mirror_type = config.mirror_series
+                (head, tail) = os.path.split(root)
+                (head, episode) = os.path.split(head)
+                (head, season) = os.path.split(head)
+                (head, title) = os.path.split(head)
+                if title == config.mirror_series:   # no season information
+                    title = season
+                    self.mirror_name = title + "/" + episode
+                else:
+                    season=season.replace("Staffel_","")
+                    (episodeNr,episodeText) = episode.split("._")
+                    self.mirror_name = title + "/s" + season + "e" + episodeNr + "-" + episodeText
+                self.mirror_name = config.mirror_path + "/" + config.mirror_series + "/" + self.mirror_name + ".ts"
+            else:
+                log.esyslog("no valid type of video for mirroring found in path: "+self.root)
+                return
+            log.tsyslog("type of video mirror: " + self.mirror_type)
+            log.dsyslog("video mirror file name: " + self.mirror_name)
+
+    def CheckFreeSpace(self):
+        total, used, free = shutil.disk_usage(self.root)
+        freeGB = free // (2**30)
+        if freeGB < config.minfree:
+            log.isyslog("not enough disk space: "+str(freeGB)+" GB for "+self.root)
+            return(False)
+        return(True)
+
+
+    def NeedMarks(self):
+        isMarksNotFound = True
+        isInfoFound = False
+        isIndexFound = False
+        if self.root.find(".del") > 0:
+            log.dsyslog("recording is deleted "+self.root)
+            return(False)
+        self.files.sort()
+        fileCompare = None
+        for actFile in self.files:
+            if not os.path.exists(root+"/"+actFile):
+                log.isyslog("directory was deleted "+root);
+                return(False)
+            if actFile == ".timer": continue
+            if actFile == "markad.log": continue
+            if fnmatch.fnmatch(actFile,'*.ts'): continue
+            if fnmatch.fnmatch(actFile,'*.pgm'): continue
+            if actFile == "info.epg2vdr": continue
+            if actFile == "info":
+                isInfoFound = True
+                continue
+            if actFile == "index":
+                isIndexFound = True
+                mTime = datetime.datetime.fromtimestamp(os.stat(root+"/"+actFile).st_mtime)
+                now = datetime.datetime.now()
+                difference = (now - mTime).total_seconds()
+                if difference < 60:
+                    self.isRunning = True;
+                    log.dsyslog("recording is running "+self.root)
+                    return(False)
+                continue
+            if actFile == "marks":
+                isMarksNotFound = False
+                continue
+
+            if fnmatch.fnmatch(actFile,'marks_*'):
+                if fileCompare is None: fileCompare = actFile
+                else:
+                    rc = filecmp.cmp(self.root+"/"+fileCompare, self.root+"/"+actFile)
+                    if not rc:
+                        log.isyslog("marks is different in recording: " + self.root)
+                        log.isyslog(fileCompare)
+                        log.isyslog(actFile)
+                    fileCompare = actFile
+                continue
+
+            if actFile == "markad.pid":
+                log.isyslog(" markad is running "+self.root)
+                return(False)
+            log.isyslog("unexpected file found: "+self.root+"/"+actFile)
+
+        if not isInfoFound:
+            log.esyslog("no info file found "+self.root)
+            return(False)
+        if not isIndexFound:
+            log.esyslog("no index found "+self.root)
+            return(False)
+        return(isMarksNotFound)
+
+    def ConvertPath(self, path):
+        newPath = path.replace('&','\&')
+        newPath = newPath.replace('(','\(')
+        newPath = newPath.replace(')','\)')
+        newPath = newPath.replace("'","\\'")
+        return(newPath)
+
+    def CheckMirrorDelete(self):
+        if self.mirror_name is not None and self.root.find(".del") <= 0 and not self.isRunning:
+            if not os.path.exists(self.mirror_name):
+                log.isyslog("mirror video was deleted: "+self.mirror_name)
+                delDir = self.root.replace(".rec", ".del")
+                os.rename(self.root, delDir)
+                os.system("touch "+self.ConvertPath(config.mirror_update)+"/.update")
+
+    def RunMarkad(self):
+        if not config.checkOnly:
+            cmd = '%s/markad --logocachedir=%s --loglevel=%i --autologo=%i --threads=%i --astopoffs=%i --priority=%i' % (config.bindir, config.logocachedir, config.markad_loglevel, config.autologo, config.threads, config.astopoffs, config.nice)
+            if config.log2rec: cmd = cmd + " --log2rec"
+            if config.cDecoder: cmd = cmd + " --cDecoder"
+            if config.cut: cmd = cmd + " --cut"
+            if config.ac3reencode: cmd = cmd + " --ac3reencode"
+            cmd = cmd + ' - ' + self.ConvertPath(self.root)
+            log.dsyslog("markad call: "+cmd)
+            self.process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+            self.process.wait()
+            if config.backupmarks:
+                self.BackupMarks()
+
+            if config.mirror_path is not None:
+                if self.mirror_name is not None and self.mirror_type is not None:
+                    (head, tail) = os.path.split(self.mirror_name)
+                    os.makedirs(head, exist_ok=True)
+                    cmd='cat '+self.ConvertPath(self.root)+'/00*.ts > ' + self.ConvertPath(self.mirror_name)
+                    log.dsyslog("cat call: " + cmd)
+                    os.system(cmd)
+                else:
+                    log.esyslog('no valid mirror name %s or mirror type found %s' % (self.mirror_name, self.mirror_type))
+
+    def BackupMarks(self):
+        markadVersion = subprocess.run([config.bindir+"/markad", "--version"], stdout=subprocess.PIPE)
+        wordList = markadVersion.stdout.decode('utf-8').split(" ")
+        append = wordList[1] + "-" + wordList [2]
+        append = append.replace("(","")
+        append = append.replace(")","")
+        append = append.replace(".","")
+        now = datetime.datetime.now()
+        append = now.strftime("%Y-%m-%d_%H-%M-%S") + "_V"+append
+        cmd = "cp " + self.ConvertPath(self.root) + "/marks " + self.ConvertPath(self.root) + "/marks_" + append
+        os.system(cmd)
+
+    def KillMarkad(self):
+        self.process.send_signal(signal.SIGINT)
+        log.esyslog("killed markad")
+
+
+
+# start of main program
+signal.signal(signal.SIGINT, signal_handler)
+log = Log()
+
+parser = argparse.ArgumentParser(description='run markad on all new VDR recordings')
+parser.add_argument('-v', '--verbose', dest="verbose", action='store_true', default=False, help='log to std out')
+parser.add_argument('-l', '--loglevel=', metavar="<level>", type=int, choices=range(0, 5), dest="loglevel", action="store", help='sets --loglevel to the specified value, 0=no logging 1=error 2=info 3=debug 4=trace (default 1)')
+parser.add_argument('-p', '--path=', dest="path",  metavar="<path>", action="store", help='path to the VDR recording directory (default: /srv/vdr/video)')
+parser.add_argument('--nice=', dest="nice",  metavar="<value>", choices=range(0, 20), action="store", help='set niceness of scheduling priority (default 19)')
+parser.add_argument('--minfree=', metavar="GB", type=int, dest="minfree", action="store", help='minimum free disk space in GBs for all disk consuming operations (default 0 no limit)')
+parser.add_argument('--bindir', dest="bindir",  metavar="<DIR>", action="store", help='use DIR as location for markad executable (default: /usr/bin)')
+parser.add_argument('--logocachedir', dest="logocachedir",  metavar="<directory>", action="store", help='directory where logos stored, default /var/lib/markad')
+parser.add_argument('--autologo=', metavar="<option>", type=int, choices=range(0, 3), dest="autologo", action="store", help='sets --autologo of markad to the specified value, see markad for more detailsi (default 2)')
+parser.add_argument('--threads=', metavar="<number>", type=int, choices=range(1, 17), dest="threads", action="store", help='sets --threads of markad to the specified value, see markad for more details (default 1)')
+parser.add_argument('--astopoffs=', metavar="<value>", type=int, choices=range(0, 241), dest="astopoffs", action="store", help='sets --astopoffs of markad to the specified value, see markad for more details (default 0)')
+parser.add_argument('--log2rec', dest="log2rec", action='store_true', default=False, help='sets --log2rec of markad to the specified value, see markad for more details')
+parser.add_argument('--cDecoder', dest="cDecoder", action='store_true', default=False, help='sets --cDecoder of markad to the specified value, see markad for more details')
+parser.add_argument('--cut', dest="cut", action='store_true', default=False, help='sets --cut of markad to the specified value, see markad for more details')
+parser.add_argument('--ac3reencode', dest="ac3reencode", action='store_true', default=False, help='sets --ac3reencode of markad to the specified value, see markad for more details')
+parser.add_argument('--backupmarks', dest="backupmarks", action='store_true', default=False, help='make a versioned backup of the marks file')
+parser.add_argument('--mirror_path=', dest="mirror_path",  metavar="<path>", action="store", help='path to the video mirror directory (default: None)')
+
+# get config values
+config = Config()
+config.ConfigFile()
+config.Arguments()
+
+
+#set user and group to vdr
+username = getpass.getuser()
+log.dsyslog("start as user "+username)
+if username == "root":
+    log.dsyslog("drop privileges to user vdr")
+    try:
+        vdr_uid = pwd.getpwnam("vdr").pw_uid
+    except(KeyError):
+        log.esyslog("user vdr not found")
+        exit(1)
+    try:
+        vdr_gid = grp.getgrnam("vdr").gr_gid
+    except(KeyError):
+        log.esyslog("group vdr not found")
+        exit(1)
+    os.setgroups([]) # Remove group privileges
+    # Try setting the new uid/gid
+    os.setgid(vdr_gid)
+    os.setuid(vdr_uid)
+elif username == "vdr":
+    log.dsyslog("run as vdr")
+else:
+    log.esyslog("user "+username+" invalid")
+    exit(1)
+
+# PID File
+pidFile = PidFile()
+if pidFile.CheckPidFile():
+    config.checkOnly = True
+else:
+    pidFile.WritePidFile()
+    atexit.register(pidFile.DeletePidFile)
+
+# set nice
+os.nice(config.nice)
+os.system("ionice -c 3 -p%d" % os.getpid())
+
+log.dsyslog("work on directory "+config.path)
+
+global curPath
+for root, dirs, files in sorted(os.walk(config.path)):
+    if len(dirs) == 0:
+        curPath = CheckPath(root,files)
+        if curPath.NeedMarks():
+            if not config.checkOnly: log.isyslog("marks missing: "+root)
+            if curPath.CheckFreeSpace():
+                curPath.RunMarkad()
+        else:
+            if config.mirror_path is not None:
+                curPath.CheckMirrorDelete()
