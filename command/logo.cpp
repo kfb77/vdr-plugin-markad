@@ -64,7 +64,7 @@ bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int
             for (int i = 0; i < height*width; i++) {
                 if (ptr_actLogoInfo->sobel[plane][i] == 0) black++;
             }
-            if (black < 20) {
+            if (black < 80) {
                 dsyslog("cExtractLogo::Save(): not enough pixel (%i) in plane %i", black, plane);
                 continue;
             }
