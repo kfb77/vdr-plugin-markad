@@ -2055,7 +2055,7 @@ void cMarkAdStandalone::Process()
     ProcessFile();
 
     marks.CloseIndex(directory,isTS);
-    if (!abort)
+    if (!abort && !early_abort)
     {
         if (marks.Save(directory,&macontext,ptr_cDecoder,isTS))
         {
