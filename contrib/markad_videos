@@ -100,6 +100,7 @@ class Config:
         self.path = "/srv/vdr/video"
         self.bindir = "/usr/bin"
         self.minfree = 0
+        self.backupmarks=False
         self.logocachedir = "/var/lib/markad"
         self.nice = 19
         self.loglevel = 1
@@ -113,7 +114,6 @@ class Config:
         self.cDecoder=False
         self.cut=False
         self.ac3reencode=False
-        self.backupmarks=False
 
         self.mirror_path = None
         self.mirror_movies = "movies"
@@ -150,6 +150,12 @@ class Config:
         except (configparser.NoSectionError, configparser.NoOptionError):
             ret = None
         if ret is not None: self.nice = ret
+
+        try:
+            ret = config.getboolean('GLOBAL', 'backupmarks')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = False
+        if ret: self.backupmarks = ret
 
         try:
             ret = config.getint('GLOBAL', 'loglevel')
@@ -433,6 +439,7 @@ parser.add_argument('-p', '--path=', dest="path",  metavar="<path>", action="sto
 parser.add_argument('--nice=', dest="nice",  metavar="<value>", choices=range(0, 20), action="store", help='set niceness of scheduling priority (default 19)')
 parser.add_argument('--minfree=', metavar="GB", type=int, dest="minfree", action="store", help='minimum free disk space in GBs for all disk consuming operations (default 0 no limit)')
 parser.add_argument('--bindir', dest="bindir",  metavar="<DIR>", action="store", help='use DIR as location for markad executable (default: /usr/bin)')
+parser.add_argument('--backupmarks', dest="backupmarks", action='store_true', default=False, help='make a versioned backup of the marks file')
 parser.add_argument('--logocachedir', dest="logocachedir",  metavar="<directory>", action="store", help='directory where logos stored, default /var/lib/markad')
 parser.add_argument('--autologo=', metavar="<option>", type=int, choices=range(0, 3), dest="autologo", action="store", help='sets --autologo of markad to the specified value, see markad for more detailsi (default 2)')
 parser.add_argument('--threads=', metavar="<number>", type=int, choices=range(1, 17), dest="threads", action="store", help='sets --threads of markad to the specified value, see markad for more details (default 1)')
@@ -441,7 +448,6 @@ parser.add_argument('--log2rec', dest="log2rec", action='store_true', default=Fa
 parser.add_argument('--cDecoder', dest="cDecoder", action='store_true', default=False, help='sets --cDecoder of markad to the specified value, see markad for more details')
 parser.add_argument('--cut', dest="cut", action='store_true', default=False, help='sets --cut of markad to the specified value, see markad for more details')
 parser.add_argument('--ac3reencode', dest="ac3reencode", action='store_true', default=False, help='sets --ac3reencode of markad to the specified value, see markad for more details')
-parser.add_argument('--backupmarks', dest="backupmarks", action='store_true', default=False, help='make a versioned backup of the marks file')
 parser.add_argument('--mirror_path=', dest="mirror_path",  metavar="<path>", action="store", help='path to the video mirror directory (default: None)')
 
 # get config values
