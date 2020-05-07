@@ -50,6 +50,7 @@ class cEncoder {
         AVFormatContext *avctxOut = NULL;
         AVCodecContext **codecCtxArrayOut = NULL;
         int64_t pts_dts_offset = 0;
+        int64_t ptsCut = 0;
         int64_t *dts = NULL;
         int64_t *dtsBefore = NULL;
         bool stateEAGAIN = false;

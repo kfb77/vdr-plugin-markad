@@ -442,15 +442,21 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
                 dsyslog("cEncoder::WritePacket(): dts value not valid, ignoring");
                 return(false);
             }
+            ptsCut = avpktOut->pts;
             pts_dts_offset += newOffset;
             dsyslog("cEncoder::WritePacket(): frame (%ld) stream %d new offset: %" PRId64,ptr_cDecoder->GetFrameNumber(),avpktOut->stream_index,pts_dts_offset);
         }
     }
 
+    if (avpktOut->pts < ptsCut) {  // after cut ignore audio frames with smaller PTS than video frame
+        dsyslog("cEncoder::WritePacket(): audio pts %ld smaller than video cut pts (%ld) at frame (%ld) of stream %d", avpktOut->pts, ptsCut, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index);
+        return(true);
+    }
+
     avpktOut->pts = avpktOut->pts - pts_dts_offset;
     avpktOut->dts = avpktOut->dts - pts_dts_offset;
     avpktOut->pos=-1;   // byte position in stream unknown
-   if (dtsBefore[avpktOut->stream_index] >= avpktOut->dts) {  // drop non monotonically increasing dts packets
+    if (dtsBefore[avpktOut->stream_index] >= avpktOut->dts) {  // drop non monotonically increasing dts packets
         dsyslog("cEncoder::WritePacket(): non monotonically increasing dts at frame (%ld) of stream %d, dts last packet %" PRId64 ", dts %" PRId64 ", offset %" PRId64, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, dtsBefore[avpktOut->stream_index], avpktOut->dts, avpktOut->dts - dtsBefore[avpktOut->stream_index]);
         return(true);
     }
