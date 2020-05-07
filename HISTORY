@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2020-05-01: Version 2.0.4
+- consider pixel aspect ratio for MPEG-4 PAL
+- add script to run markad on vedio directory
+- some minor bug fixes and optimizations, see git
+
 2020-05-01: Version 2.0.3
 - some minor bug fixes and optimizations, see git
 

@@ -57,3 +57,8 @@ Put these lines into your markad plugin configuration, usually stored in /etc/vd
 --astopoffs=0
 --cDecoder
 
+
+To report bugs please execute markad with the following command line parameters:
+markad --loglevel=3 --astopoffs=0 --cDecoder --log2rec nice <path to recording>
+Post the files markad.log, marks und info from the recording directory at https://www.vdr-portal.de.
+

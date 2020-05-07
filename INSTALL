@@ -25,5 +25,5 @@ If you have any problems post here: https://www.vdr-portal.de
 
 To report bugs please execute markad with the following command line parameters:
 markad --loglevel=3 --astopoffs=0 --cDecoder --log2rec nice <path to recording>
-Post the files markad.log, markad und info from the recording directory at https://www.vdr-portal.de.
+Post the files markad.log, marks und info from the recording directory at https://www.vdr-portal.de.
 
