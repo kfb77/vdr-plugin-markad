@@ -1059,10 +1059,16 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     tsyslog("cMarkAdStandalone::AddMark(): status inBroadCast: %i", inBroadCast);
 }
 
-void cMarkAdStandalone::SaveFrame(int frame)
-{
-    if (!macontext.Video.Info.Width) return;
-    if (!macontext.Video.Data.Valid) return;
+
+void cMarkAdStandalone::SaveFrame(int frame) {
+    if (!macontext.Video.Info.Width) {
+        dsyslog("cMarkAdStandalone::SaveFrame(): macontext.Video.Info.Width not set");
+        return;
+    }
+    if (!macontext.Video.Data.Valid) {
+        dsyslog("cMarkAdStandalone::SaveFrame():  macontext.Video.Data.Valid not set");
+        return;
+    }
 
     FILE *pFile;
     char szFilename[256];
@@ -1070,19 +1076,17 @@ void cMarkAdStandalone::SaveFrame(int frame)
     // Open file
     sprintf(szFilename, "/tmp/frame%06d.pgm", frame);
     pFile=fopen(szFilename, "wb");
-    if (pFile==NULL)
-        return;
+    if (pFile==NULL) return;
 
     // Write header
-    fprintf(pFile, "P5\n%d %d\n255\n", macontext.Video.Data.PlaneLinesize[0],
-            macontext.Video.Info.Height);
+    fprintf(pFile, "P5\n%d %d\n255\n", macontext.Video.Data.PlaneLinesize[0], macontext.Video.Info.Height);
 
     // Write pixel data
-    if (fwrite(macontext.Video.Data.Plane[0],1,
-               macontext.Video.Data.PlaneLinesize[0]*macontext.Video.Info.Height,pFile)) {};
+    if (fwrite(macontext.Video.Data.Plane[0],1, macontext.Video.Data.PlaneLinesize[0]*macontext.Video.Info.Height,pFile)) {};
     // Close file
     fclose(pFile);
 }
+
 
 void cMarkAdStandalone::CheckIndexGrowing()
 {
@@ -1940,6 +1944,15 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                         if (video) video->Clear(true);    // reset logo decoder status
                     }
             }
+
+// #define TESTFRAME 17487     // TODO: JUST FOR DEBUGGING!
+#ifdef TESTFRAME
+            if ((lastiframe > (TESTFRAME-100)) && (lastiframe < (TESTFRAME+100))) {
+                dsyslog("save frame (%i) to /tmp", lastiframe);
+                SaveFrame(lastiframe);
+            }
+#endif
+
             if (!bDecodeVideo) macontext.Video.Data.Valid=false; // make video picture invalid, we do not need them
             MarkAdMarks *vmarks=video->Process(lastiframe,iframe);
             if (vmarks) {
@@ -1947,7 +1960,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                     AddMark(&vmarks->Number[i]);
                 }
             }
-//            if (lastiframe == 37571) SaveFrame(lastiframe);  // TODO: JUST FOR DEBUGGING!
+
             if (iStart>0) {
                 if ((inBroadCast) && (lastiframe>chkSTART)) CheckStart();
             }

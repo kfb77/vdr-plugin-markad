@@ -279,6 +279,7 @@ AVPacket *cDecoder::GetPacket() {
 
 bool cDecoder::SeekToFrame(long int iFrame) {
     if (!avctx) return false;
+    dsyslog("cDecoder::SeekToFrame(): (%ld)", iFrame);
     if (framenumber > iFrame) {
         dsyslog("cDecoder::SeekToFrame(): could not seek backward");
         return false;
