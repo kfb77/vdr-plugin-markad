@@ -21,6 +21,8 @@ extern "C"{
 // 5. store the logo files in the recording directory for future use
 
 
+extern bool abortNow;
+
 cExtractLogo::cExtractLogo() {
 }
 
@@ -319,6 +321,7 @@ int cExtractLogo::DeleteBorderFrames(MarkAdContext *maContext, int from, int to)
     for (int corner = 0; corner <= 3; corner++) {
         if (maContext->Config->autoLogo == 1) { // use packed logos
             for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
+                if (abortNow) return(deleteCount/4);
                 if (( actLogoPacked->iFrameNumber >= from) && ( actLogoPacked->iFrameNumber <= to)) {
                     logoInfoVectorPacked[corner].erase(actLogoPacked);
                     deleteCount++;
@@ -464,7 +467,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
         bool firstFrame = true;
         MarkAdAspectRatio aspectRatio = {};
         while(ptr_cDecoder->GetNextFrame()) {
-            if (abort) return(false);
+            if (abortNow) return(false);
             if (!WaitForFrames(maContext, ptr_cDecoder)) {
                 dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");
                 iFrameCountAll=MAXREADFRAMES; // make sure we leave the loops

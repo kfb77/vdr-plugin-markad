@@ -30,6 +30,7 @@
 
 #define MAXRANGE 120 /* range to search for start/stop marks in seconds */
 
+
 class cOSDMessage
 {
 private:
@@ -191,7 +192,6 @@ unsigned Descriptor_Length:
     int framecnt;
     int framecnt2; // 2nd pass
 
-    bool abort;
     bool gotendmark;
     int waittime;
     int iwaittime;
@@ -256,10 +256,6 @@ unsigned Descriptor_Length:
 public:
     cMarkAdStandalone(const char *Directory, const MarkAdConfig *config);
     ~cMarkAdStandalone();
-    void SetAbort()
-    {
-        abort=true;
-    }
     void Process();
     void Process2ndPass();
     void MarkadCut();

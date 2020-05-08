@@ -42,7 +42,7 @@ cExtractLogo* ptr_cExtractLogo = NULL;
 cMarkAdStandalone *cmasta=NULL;
 bool restartLogoDetectionDone=false;
 int SysLogLevel=2;
-bool early_abort = false;
+bool abortNow = false;
 
 static inline int ioprio_set(int which, int who, int ioprio)
 {
@@ -1155,7 +1155,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
                 while (sleeptime>0) {
                     unsigned int ret=sleep(sleeptime); // now we sleep and hopefully the index will grow
                     if ((errno) && (ret)) {
-                        if (abort) return;
+                        if (abortNow) return;
                         esyslog("got errno %i while waiting for new data",errno);
                         if (errno!=EINTR) return;
                     }
@@ -1267,7 +1267,7 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
 
     while (framecounter<Frames)
     {
-        if (abort) return false;
+        if (abortNow) return false;
 
         const int datalen=319976;
         uchar data[datalen];
@@ -1311,7 +1311,7 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
 
         while ((dataread=read(f,data,datalen))>0)
         {
-            if (abort) break;
+            if (abortNow) break;
 
             if ((demux) && (video) && (decoder) && (streaminfo))
             {
@@ -1324,7 +1324,7 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
                     if (len<0)
                     {
                         esyslog("error demuxing file");
-                        abort=true;
+                        abortNow=true;
                         break;
                     }
                     else
@@ -1369,7 +1369,7 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
                 }
             }
 
-            if (abort)
+            if (abortNow)
             {
                 close(f);
                 return false;
@@ -1424,7 +1424,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
             return false;
     }
     while (ptr_cDecoder->GetFrameNumber() <= (*mark1)->position ) {
-        if (abort) return false;
+        if (abortNow) return false;
         if (!ptr_cDecoder->GetNextFrame()) {
             dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetNextFrame failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
             return false;
@@ -1457,7 +1457,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
             return false;
     }
     while (ptr_cDecoder->GetFrameNumber() <= fRangeEnd ) {
-        if (abort) return false;
+        if (abortNow) return false;
         if (!ptr_cDecoder->GetNextFrame()) {
             dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetNextFrame failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
             return false;
@@ -1483,7 +1483,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
 
 void cMarkAdStandalone::MarkadCut() {
     cEncoder* ptr_cEncoder = NULL;
-    if (abort) return;
+    if (abortNow) return;
     if (!ptr_cDecoder) {
         isyslog("video cut function only supported with --cDecoder");
         return;
@@ -1547,7 +1547,7 @@ void cMarkAdStandalone::MarkadCut() {
             if ( ! ptr_cEncoder->WritePacket(pkt, ptr_cDecoder) ) {
                 isyslog("failed to write frame %ld to output stream", ptr_cDecoder->GetFrameNumber());
             }
-            if (abort) {
+            if (abortNow) {
                 if (ptr_cDecoder) delete ptr_cDecoder;
                 if (ptr_cEncoder) {
                     ptr_cEncoder->CloseFile();
@@ -1572,7 +1572,7 @@ void cMarkAdStandalone::MarkadCut() {
 
 void cMarkAdStandalone::Process2ndPass()
 {
-    if (abort) return;
+    if (abortNow) return;
     if (duplicate) return;
     if (!decoder) return;
     if (!length) return;
@@ -1667,7 +1667,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
 
     CheckIndexGrowing();
 
-    if (abort) return false;
+    if (abortNow) return false;
 
     const int datalen=319976;
     uchar data[datalen];
@@ -1708,7 +1708,7 @@ bool cMarkAdStandalone::ProcessFile(int Number)
 again:
     while ((dataread=read(f,data,datalen))>0)
     {
-        if (abort) break;
+        if (abortNow) break;
         if ((demux) && (video) && (streaminfo))
         {
             uchar *tspkt = data;
@@ -1719,7 +1719,7 @@ again:
                 if (len<0)
                 {
                     esyslog("error demuxing");
-                    abort=true;
+                    abortNow=true;
                     break;
                 }
                 else
@@ -1761,7 +1761,7 @@ again:
                                 if ((macontext.Config->logoExtraction!=-1) && (framecnt>=256))
                                 {
                                     isyslog("finished logo extraction, please check /tmp for pgm files");
-                                    abort=true;
+                                    abortNow=true;
                                     if (f!=-1) close(f);
                                     return true;
                                 }
@@ -1848,7 +1848,7 @@ again:
         }
 
         CheckIndexGrowing();
-        if (abort)
+        if (abortNow)
         {
             if (f!=-1) close(f);
             return false;
@@ -1901,7 +1901,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
 
     if ((macontext.Config->logoExtraction!=-1) && (ptr_cDecoder->GetIFrameCount()>=512)) {    // extract logo
         isyslog("finished logo extraction, please check /tmp for pgm files");
-        abort=true;
+        abortNow=true;
     }
 
     if (ptr_cDecoder->GetFrameInfo(&macontext)) {
@@ -1990,7 +1990,7 @@ void cMarkAdStandalone::ProcessFile()
         ptr_cDecoder = new cDecoder(macontext.Config->threads);
         CheckIndexGrowing();
         while(ptr_cDecoder && ptr_cDecoder->DecodeDir(directory)) {
-            if (abort) {
+            if (abortNow) {
                 if (ptr_cDecoder) {
                     delete ptr_cDecoder;
                     ptr_cDecoder = NULL;
@@ -2011,7 +2011,7 @@ void cMarkAdStandalone::ProcessFile()
                 CalculateCheckPositions(tStart*macontext.Video.Info.FramesPerSecond);
             }
             while(ptr_cDecoder && ptr_cDecoder->GetNextFrame()) {
-                if (abort) {
+                if (abortNow) {
                     if (ptr_cDecoder) {
                         delete ptr_cDecoder;
                         ptr_cDecoder = NULL;
@@ -2026,13 +2026,13 @@ void cMarkAdStandalone::ProcessFile()
     else {
         for (int i=1; i<=MaxFiles; i++)
         {
-            if (abort) break;
+            if (abortNow) break;
             if (!ProcessFile(i)) break;
             if ((gotendmark) && (!macontext.Config->GenIndex)) break;
         }
     }
 
-    if (!abort) {
+    if (!abortNow) {
         if (iStart !=0 ) {  // iStart will be 0 if iStart was called
             dsyslog("recording ends unexpected before chkSTART (%d) at frame %d", chkSTART, lastiframe);
             isyslog("got end of recording before recording length from info file reached");
@@ -2061,14 +2061,14 @@ void cMarkAdStandalone::ProcessFile()
 
 void cMarkAdStandalone::Process()
 {
-    if (abort) return;
+    if (abortNow) return;
 
     if (macontext.Config->BackupMarks) marks.Backup(directory,isTS);
 
     ProcessFile();
 
     marks.CloseIndex(directory,isTS);
-    if (!abort && !early_abort)
+    if (!abortNow)
     {
         if (marks.Save(directory,&macontext,ptr_cDecoder,isTS))
         {
@@ -2940,7 +2940,7 @@ bool cMarkAdStandalone::CreatePidfile()
             {
                 // found another, running markad
                 fprintf(stderr,"another instance is running on %s",directory);
-                abort=duplicate=true;
+                abortNow=duplicate=true;
             }
         }
         fclose(oldpid);
@@ -2987,7 +2987,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 {
     setlocale(LC_MESSAGES, "");
     directory=Directory;
-    abort=false;
     gotendmark=false;
     inBroadCast=false;
     iStopinBroadCast=false;
@@ -3039,7 +3038,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     if (!config->NoPid)
     {
         CreatePidfile();
-        if (abort) return;
+        if (abortNow) return;
     }
 
     if (LOG2REC)
@@ -3097,7 +3096,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
     if (!CheckTS()) {
         esyslog("no files found");
-        abort=true;
+        abortNow=true;
         return;
     }
 
@@ -3117,7 +3116,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         if (!CheckPATPMT(pos))
         {
             esyslog("no PAT/PMT found (%i) -> cannot process",(int) pos);
-            abort=true;
+            abortNow=true;
             return;
         }
         if (asprintf(&indexFile,"%s/index",Directory)==-1) indexFile=NULL;
@@ -3222,7 +3221,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         if (macontext.Info.DPid.Num!=-1)
             isyslog("found AC3 (0x%04x)",macontext.Info.DPid.Num);
     }
-    if (!early_abort)
+    if (!abortNow)
     {
         decoder = new cMarkAdDecoder(macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,config->threads);
         video = new cMarkAdVideo(&macontext);
@@ -3244,7 +3243,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
 cMarkAdStandalone::~cMarkAdStandalone()
 {
-    if ((!abort) && (!duplicate))
+    if ((!abortNow) && (!duplicate))
     {
         if (skipped)
         {
@@ -3272,7 +3271,7 @@ cMarkAdStandalone::~cMarkAdStandalone()
 
     if ((osd) && (!duplicate))
     {
-        if (abort)
+        if (abortNow)
         {
             osd->Send("%s '%s'",tr("markad aborted for"),ptitle);
         }
@@ -3426,8 +3425,7 @@ static void signal_handler(int sig)
         break;
     case SIGABRT:
         esyslog("aborted by signal");
-        if (cmasta) cmasta->SetAbort();
-        if (ptr_cExtractLogo) ptr_cExtractLogo->SetAbort();
+        abortNow = true;;
         break;
     case SIGSEGV:
         esyslog("segmentation fault");
@@ -3444,17 +3442,7 @@ static void signal_handler(int sig)
     case SIGTERM:
     case SIGINT:
         esyslog("aborted by user");
-        if (cmasta) {
-            cmasta->SetAbort();
-        }
-        else {   // if we got an abort during cMarkAdStandalone constructor we can not call cmasta->SetAbort()
-            early_abort = true;
-            dsyslog("recieved an early abort by user");
-        }
-        if (ptr_cExtractLogo) { // if we got an abort during cExtractLogo we can not read abort
-            dsyslog("extract logo is running");
-            ptr_cExtractLogo->SetAbort();
-        }
+        abortNow = true;
         break;
     default:
         break;
