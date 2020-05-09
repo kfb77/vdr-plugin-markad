@@ -1431,7 +1431,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
         }
         if (!ptr_cDecoder->isVideoPacket()) continue;
         if (!ptr_cDecoder->GetFrameInfo(&macontext)) {
-            if (ptr_cDecoder->isVideoIFrame())
+            if (ptr_cDecoder->isVideoIFrame())  // if we have interlaced video this is expected, we have to read the next half picture
                 tsyslog("cMarkAdStandalone::ProcessMark2ndPass() before mark GetFrameInfo failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
             continue;
         }

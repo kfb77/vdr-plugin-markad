@@ -31,7 +31,7 @@ extern "C"{
 #endif
 
 // libavcodec versions of some distributions
-// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)    Ubuntu 20.04
+// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)    Ubuntu 20.04 and Debian Buster
 // #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   Ubuntu 18.04
 // #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)    Debian Stretch
 // #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(57<<8)+100)    Ubuntu 14.04

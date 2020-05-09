@@ -267,7 +267,7 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
 
 bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, int streamIndex, AVCodecContext *avCodecCtxIn) {
     avcodec_close(codecCtxArrayOut[streamIndex]);
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     AVCodec *codec=avcodec_find_encoder(avctxIn->streams[streamIndex]->codecpar->codec_id);
 #else
     AVCodec *codec=avcodec_find_encoder(avctxIn->streams[streamIndex]->codec->codec_id);
@@ -322,7 +322,7 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctx
 
 
 bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, int streamIndex, AVCodecContext *avCodecCtxIn) {
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     AVCodec *codec=avcodec_find_encoder(avctxIn->streams[streamIndex]->codecpar->codec_id);
 #else
     AVCodec *codec=avcodec_find_encoder(avctxIn->streams[streamIndex]->codec->codec_id);
@@ -344,7 +344,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
         dsyslog("cEncoder::InitEncoderCodec(): avcodec_alloc_context3 failed");
         return(false);
     }
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     if (avcodec_parameters_to_context(codecCtxArrayOut[streamIndex],avctxOut->streams[streamIndex]->codecpar) < 0)
 #else
     if (avcodec_copy_context(codecCtxArrayOut[streamIndex],avctxOut->streams[streamIndex]->codec) < 0)
@@ -370,7 +370,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
         dsyslog("cEncoder::InitEncoderCodec(): codec of stream %i not suported", streamIndex);
     }
 
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     int ret = avcodec_parameters_copy(avctxOut->streams[streamIndex]->codecpar, avctxIn->streams[streamIndex]->codecpar);
 #else
     int ret = avcodec_copy_context(avctxOut->streams[streamIndex]->codec, avctxIn->streams[streamIndex]->codec);
@@ -461,7 +461,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         return(true);
     }
 
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     if (ac3ReEncode && (avctxOut->streams[avpktOut->stream_index]->codecpar->codec_id == AV_CODEC_ID_AC3))
 #else
     if (ac3ReEncode && (avctxOut->streams[avpktOut->stream_index]->codec->codec_id == AV_CODEC_ID_AC3))
@@ -564,7 +564,7 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
         return(false);
     }
     int rc = 0;
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     rc = avcodec_send_frame(avCodecCtx,avFrameOut);
     if (rc < 0) {
         switch (rc) {

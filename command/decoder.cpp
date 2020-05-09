@@ -388,7 +388,7 @@ bool cMarkAdDecoder::Clear()
 #endif
         if (dest)
         {
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
             AVCodecParameters *par = avcodec_parameters_alloc();
             int rc = avcodec_parameters_from_context(par,video_context);
             if ( rc < 0 ) {
@@ -502,7 +502,7 @@ bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
     {
 #if LIBAVCODEC_VERSION_INT < ((52<<16)+(25<<8)+0)
         len=avcodec_decode_video(video_context,video_frame,&video_frame_ready,avpkt.data,avpkt.size);
-#elif LIBAVCODEC_VERSION_INT < ((57<<16)+(107<<8)+100)
+#elif LIBAVCODEC_VERSION_INT < ((57<<16)+(64<<8)+101)
         len=avcodec_decode_video2(video_context,video_frame,&video_frame_ready,&avpkt);
 #else
         len=avcodec_send_packet(video_context,&avpkt);
