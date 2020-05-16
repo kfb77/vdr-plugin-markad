@@ -614,8 +614,12 @@ void cMarkAdStandalone::CheckStart()
 
             }
             else {
-                if (bStart->position != 0)  // position 0 is a hborder previous recording
+                if (bStart->position != 0) {  // position 0 is a hborder previous recording
+                    dsyslog("delete VBORDER marks if any");
+                    marks.Del(MT_VBORDERSTART);
+                    marks.Del(MT_VBORDERSTOP);
                     begin = bStart;   // found valid horizontal border start mark
+                }
             }
         }
     }
