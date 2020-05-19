@@ -294,7 +294,7 @@ class CheckPath:
                     self.mirror_name = title + "/" + episode
                 else:
                     season=season.replace("Staffel_","")
-                    (episodeNr,episodeText) = episode.split("._")
+                    (episodeNr,episodeText) = episode.split("._",1)
                     self.mirror_name = title + "/s" + season + "e" + episodeNr + "-" + episodeText
                 self.mirror_name = config.mirror_path + "/" + config.mirror_series + "/" + self.mirror_name + ".ts"
             else:
