@@ -594,50 +594,81 @@ void cMarkAdStandalone::CheckStart()
     }
 
     if (!begin) {    // try horizontal border
-        clMark *bStart=marks.GetAround(iStartA+delta,iStartA+delta,MT_HBORDERSTART);
-        if (!bStart) {
+        clMark *hStart=marks.GetAround(iStartA+delta,iStartA+delta+1,MT_HBORDERSTART);
+        if (!hStart) {
             dsyslog("no horizontal border at start found, ignore horizontal border detection");
             macontext.Video.Options.ignoreHborder=true;
-            clMark *bStop=marks.GetAround(iStartA+delta,iStartA+delta,MT_HBORDERSTOP);
-            if (bStop) {
-                dsyslog("horizontal border stop without start mark found, assume as start mark of the following recording");
-                bStop->type=MT_ASSUMEDSTART;
+            clMark *hStop=marks.GetAround(iStartA+delta,iStartA+delta,MT_HBORDERSTOP);
+            if (hStop) {
+                int pos = hStop->position;
+                char *comment=NULL;
+                dsyslog("horizontal border stop without start mark found (%i), assume as start mark of the following recording", pos);
+                marks.Del(pos);
+                if (!asprintf(&comment,"assumed start from horizontal border stop (%d)", pos)) comment=NULL;
+                begin=marks.Add(MT_ASSUMEDSTART, pos, comment);
+                free(comment);
             }
         }
         else {
-            dsyslog("horizontal border start found at (%i)", bStart->position);
-            clMark *bStop=marks.GetAround(chkSTART,bStart->position+chkSTART,MT_HBORDERSTOP);  // if there is a MT_HBORDERSTOP after the MT_HBORDERSTART, MT_HBORDERSTART is not valid
-            if ( (bStop) && (bStop->position > bStart->position)) {
-                isyslog("horizontal border STOP (%i) short after horizontal border START (%i) found, this is not valid, delete marks",bStop->position,bStart->position);
-                marks.Del(bStart);
-                marks.Del(bStop);
+            dsyslog("horizontal border start found at (%i)", hStart->position);
+            clMark *hStop=marks.GetAround(chkSTART,hStart->position+chkSTART,MT_HBORDERSTOP);  // if there is a MT_HBORDERSTOP after the MT_HBORDERSTART, MT_HBORDERSTART is not valid
+            if ( (hStop) && (hStop->position > hStart->position)) {
+                isyslog("horizontal border STOP (%i) short after horizontal border START (%i) found, this is not valid, delete marks",hStop->position,hStart->position);
+                marks.Del(hStart);
+                marks.Del(hStop);
 
             }
             else {
-                if (bStart->position != 0) {  // position 0 is a hborder previous recording
+                if (hStart->position != 0) {  // position 0 is a hborder previous recording
                     dsyslog("delete VBORDER marks if any");
                     marks.Del(MT_VBORDERSTART);
                     marks.Del(MT_VBORDERSTOP);
-                    begin = bStart;   // found valid horizontal border start mark
+                    begin = hStart;   // found valid horizontal border start mark
                 }
             }
         }
     }
 
     if (!begin) {    // try vertical border
-        clMark *vStart=marks.GetAround(iStartA+delta,iStartA+delta,MT_VBORDERSTART);
+        clMark *vStart=marks.GetAround(iStartA+delta,iStartA+delta+1,MT_VBORDERSTART);
         if (!vStart) {
             dsyslog("no vertical border at start found, ignore vertical border detection");
             macontext.Video.Options.ignoreVborder=true;
+            clMark *vStop=marks.GetAround(iStartA+delta,iStartA+delta,MT_VBORDERSTOP);
+            if (vStop) {
+                int pos = vStop->position;
+                char *comment=NULL;
+                dsyslog("vertical border stop without start mark found (%i), assume as start mark of the following recording", pos);
+                marks.Del(pos);
+                if (!asprintf(&comment,"assumed start from vertical border stop (%d)", pos)) comment=NULL;
+                begin=marks.Add(MT_ASSUMEDSTART, pos, comment);
+                free(comment);
+            }
         }
         else {
             dsyslog("vertical border start found at (%i)", vStart->position);
+            clMark *vStop=marks.GetAround(chkSTART,vStart->position+chkSTART,MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP after the MT_VBORDERSTART, MT_VBORDERSTART is not valid
+            if ( (vStop) && (vStop->position > vStart->position)) {
+                isyslog("vertical border STOP (%i) short after vertical border START (%i) found, this is not valid, delete marks",vStop->position,vStart->position);
+                marks.Del(vStart);
+                marks.Del(vStop);
+
+            }
+            else {
+                if (vStart->position != 0) {  // position 0 is a vborder previous recording
+                    dsyslog("delete HBORDER marks if any");
+                    marks.Del(MT_HBORDERSTART);
+                    marks.Del(MT_HBORDERSTOP);
+                    begin = vStart;   // found valid horizontal border start mark
+                }
+            }
+
             begin = vStart;
         }
     }
 
     if (!begin) {   // try logo start mark
-        clMark *lStart=marks.GetAround(iStartA,iStartA,MT_LOGOSTART);
+        clMark *lStart=marks.GetAround(iStartA+delta,iStartA,MT_LOGOSTART);
         if (!lStart) {
             dsyslog("no logo start mark found");
         }
