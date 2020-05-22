@@ -583,7 +583,7 @@ void cMarkAdStandalone::CheckStart()
                 begin=marks.GetAround(delta*3,iStartA,MT_ASPECTSTART);
                 if (begin) {
                     dsyslog("use MT_ASPECTSTART found at (%i) because previous recording was 4:3",begin->position);
-                    clMark *begin2=marks.GetAround(delta*4,iStartA+delta,MT_LOGOSTART);  // do not use this mark if there is a later logo start mark
+                    clMark *begin2=marks.GetAround(delta*4,begin->position,MT_LOGOSTART);  // do not use this mark if there is a later logo start mark
                     if (begin2 && begin2->position >  begin->position) {
                         dsyslog("found later MT_LOGOSTART, do not use MT_ASPECTSTART");
                         begin=NULL;
