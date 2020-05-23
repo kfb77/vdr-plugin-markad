@@ -4117,11 +4117,17 @@ int main(int argc, char *argv[])
         if (config.use_cDecoder) dsyslog("parameter --cDecoder is set");
         if (config.MarkadCut) {
             dsyslog("parameter --cut is set");
-            if (!config.use_cDecoder) esyslog("--cDecoder is not set, ignoring --cut");
+            if (!config.use_cDecoder) {
+                esyslog("--cDecoder is not set, ignoring --cut");
+                config.MarkadCut = false;
+            }
         }
         if (config.ac3ReEncode) {
             dsyslog("parameter --ac3reencode is set");
-            if (!config.MarkadCut) esyslog("--cut is not set, ignoring --ac3reencode");
+            if (!config.MarkadCut) {
+                esyslog("--cut is not set, ignoring --ac3reencode");
+                config.ac3ReEncode = false;
+            }
         }
         dsyslog("parameter --autologo is set to %i",config.autoLogo);
         if (config.Before) dsyslog("parameter Before is set");
