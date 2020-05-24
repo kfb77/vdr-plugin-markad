@@ -774,7 +774,7 @@ void cMarkAdStandalone::CheckStart()
     return;
 }
 
-void cMarkAdStandalone::CheckLogoMarks()            // cleanup marks that make no sense
+void cMarkAdStandalone::CheckMarks()            // cleanup marks that make no sense
 {
     dsyslog("-------------------------------------------------------");
     isyslog("cleanup marks");
@@ -2082,7 +2082,7 @@ void cMarkAdStandalone::ProcessFile()
             }
             CheckStop();
         }
-        CheckLogoMarks();
+        CheckMarks();
         if ((inBroadCast) && (!gotendmark) && (lastiframe)) {
             MarkAdMark tempmark;
             tempmark.Type=MT_RECORDINGSTOP;
