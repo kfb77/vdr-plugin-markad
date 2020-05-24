@@ -58,12 +58,12 @@ class cDecoder
         bool SeekToFrame(long int iFrame);
         AVFrame *DecodePacket(AVFormatContext *avctx, AVPacket *avpkt);
         bool GetFrameInfo(MarkAdContext *maContext);
-        bool isVideoStream(short int streamIndex);
+        bool isVideoStream(const unsigned int streamIndex);
         bool isVideoPacket();
         bool isVideoIFrame();
-        bool isAudioAC3Stream(short int streamIndex);
+        bool isAudioAC3Stream(const unsigned int streamIndex);
         bool isAudioAC3Packet();
-        bool isAudioStream(short int streamIndex);
+        bool isAudioStream(const unsigned int streamIndex);
         bool isAudioPacket();
         long int GetFrameNumber();
         long int GetIFrameCount();
