@@ -170,6 +170,8 @@ cEncoder::~cEncoder() {
 
 
 bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
+    if (!directory) return(false);
+    if (!ptr_cDecoder) return(false);
     int ret = 0;
     char *filename;
     char *CutName;
