@@ -296,6 +296,8 @@ bool cDecoder::SeekToFrame(long int iFrame) {
 
 
 AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
+    if (!avctx) return(NULL);
+    if (!avpkt) return(NULL);
     AVFrame *avFrame = NULL;
 //    dsyslog("cDecoder::DecodePacket(); framenumber %li",framenumber);
     avFrame=av_frame_alloc();
@@ -425,7 +427,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
 
 
 bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
-    if (!avctx) return false;
+    if (!avctx) return(false);
     AVFrame *avFrame = NULL;
     iFrameData.Valid=false;
     if (isVideoPacket()) {
