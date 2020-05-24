@@ -127,6 +127,7 @@ bool cAC3VolumeFilter::Init(uint64_t channel_layout, enum AVSampleFormat sample_
 
 
 bool cAC3VolumeFilter::SendFrame(AVFrame *avFrame) {
+    if (!avFrame) return(false);
     int err = 0;
 // Send the frame to the input of the filtergraph
     err = av_buffersrc_add_frame(filterSrc, avFrame);
@@ -139,6 +140,7 @@ bool cAC3VolumeFilter::SendFrame(AVFrame *avFrame) {
 
 
 bool cAC3VolumeFilter::GetFrame(AVFrame *avFrame) {
+    if (!avFrame) return(false);
     int err = 0;
 // Send the frame to the input of the filtergraph
     err = av_buffersink_get_frame(filterSink, avFrame);
