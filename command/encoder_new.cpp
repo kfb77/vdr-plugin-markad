@@ -269,7 +269,16 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
 }
 
 
-bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, int streamIndex, AVCodecContext *avCodecCtxIn) {
+bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, const unsigned int streamIndex, AVCodecContext *avCodecCtxIn) {
+    if(!ptr_cDecoder) return(false);
+    if (!avctxIn) return(false);
+    if ((streamIndex < 0) || (streamIndex >= avctxIn->nb_streams)) {
+        dsyslog("cEncoder::ChangeEncoderCodec(): streamindex %d out of range", streamIndex);
+        return(false);
+    }
+    if (!avCodecCtxIn) return(false);
+
+
     avcodec_close(codecCtxArrayOut[streamIndex]);
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     AVCodec *codec=avcodec_find_encoder(avctxIn->streams[streamIndex]->codecpar->codec_id);
@@ -325,7 +334,7 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctx
 }
 
 
-bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, int streamIndex, AVCodecContext *avCodecCtxIn) {
+bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, const unsigned int streamIndex, AVCodecContext *avCodecCtxIn) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     AVCodec *codec=avcodec_find_encoder(avctxIn->streams[streamIndex]->codecpar->codec_id);
 #else
@@ -504,7 +513,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
             dsyslog("cEncoder::WritePacket(): number of channels of stream %i changed at frame %ld from %i to %i", avpktOut->stream_index,
                     ptr_cDecoder->GetFrameNumber(), codecCtxArrayOut[avpktOut->stream_index]->channels, codecCtxArrayIn[avpktOut->stream_index]->channels);
 
-            bool ret = ChangeEncoderCodec(ptr_cDecoder, avctxIn, avctxOut, avpktOut->stream_index, codecCtxArrayIn[avpktOut->stream_index]);
+            bool ret = ChangeEncoderCodec(ptr_cDecoder, avctxIn, avpktOut->stream_index, codecCtxArrayIn[avpktOut->stream_index]);
             if ( !ret ) {
                 dsyslog("cEncoder::WritePacket(): InitEncoderCodec failed");
                 if (avFrameOut) av_frame_free(&avFrameOut);
