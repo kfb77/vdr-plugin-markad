@@ -151,26 +151,6 @@ cMarkAdDecoder::cMarkAdDecoder(bool useH264, int Threads)
         threadcount=Threads;
     }
 
-    int ver = avcodec_version();
-    char libver[256];
-    snprintf(libver,sizeof(libver),"%i.%i.%i",ver >> 16 & 0xFF,ver >> 8 & 0xFF,ver & 0xFF);
-    isyslog("using libavcodec.so.%s with %i threads",libver,threadcount);
-
-    if (ver!=LIBAVCODEC_VERSION_INT)
-    {
-        esyslog("libavcodec header version %s",AV_STRINGIFY(LIBAVCODEC_VERSION));
-        esyslog("header and library mismatch, dont report decoder-bugs!");
-    }
-
-#if LIBAVCODEC_VERSION_INT >= ((52<<16)+(41<<8)+0)
-    tsyslog("libavcodec config: %s",avcodec_configuration());
-#endif
-
-    if (((ver >> 16)<52) && (useH264))
-    {
-        esyslog("dont report bugs about H264, use libavcodec >= 52 instead!");
-    }
-
     video_codec=NULL;
 #if LIBAVCODEC_VERSION_INT >= ((54<<16)+(51<<8)+100)
     AVCodecID video_codecid;

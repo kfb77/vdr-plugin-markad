@@ -18,6 +18,8 @@ extern "C"{
 #include <libavutil/file.h>
 }
 
+#define MINLIBAVCODECVERSION 56
+
 #define AVLOGLEVEL AV_LOG_ERROR
 
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)   // error codes from AC3 parser

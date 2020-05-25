@@ -3098,6 +3098,26 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     {
         isyslog("starting v%s",VERSION);
     }
+
+    int ver = avcodec_version();
+    char *libver = NULL;
+    if (asprintf(&libver,"%i.%i.%i",ver >> 16 & 0xFF,ver >> 8 & 0xFF,ver & 0xFF)) {
+        isyslog("using libavcodec.so.%s with %i threads",libver,config->threads);
+        if (ver!=LIBAVCODEC_VERSION_INT) {
+            esyslog("libavcodec header version %s",AV_STRINGIFY(LIBAVCODEC_VERSION));
+            esyslog("header and library mismatch, do not report decoder bugs");
+        }
+        if (config->use_cDecoder && ((ver >> 16) < MINLIBAVCODECVERSION)) esyslog("update libavcodec to at least version %d, do not report decoder bugs", MINLIBAVCODECVERSION);
+        free(libver);
+    }
+
+#if LIBAVCODEC_VERSION_INT >= ((52<<16)+(41<<8)+0)
+    tsyslog("libavcodec config: %s",avcodec_configuration());
+#endif
+    if (((ver >> 16)<52)) {
+        dsyslog("dont report bugs about H264, use libavcodec >= 52 instead!");
+    }
+
     isyslog("on %s",Directory);
 
     if (!bDecodeAudio)
@@ -3785,7 +3805,7 @@ int main(int argc, char *argv[])
             return 0;
 
         case '?':
-            printf("unknow option ?\n");
+            printf("unknown option ?\n");
             break;
 
         case 0:
