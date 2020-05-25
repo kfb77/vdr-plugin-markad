@@ -335,6 +335,15 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctx
 
 
 bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, const unsigned int streamIndex, AVCodecContext *avCodecCtxIn) {
+    if (!ptr_cDecoder) return(false);
+    if (!avctxIn) return(false);
+    if (!avctxOut) return(false);
+    if ((streamIndex < 0) || (streamIndex >= avctxIn->nb_streams)) {
+        dsyslog("cEncoder::ChangeEncoderCodec(): streamindex %d out of range", streamIndex);
+        return(false);
+    }
+    if (!avCodecCtxIn) return(false);
+
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     AVCodec *codec=avcodec_find_encoder(avctxIn->streams[streamIndex]->codecpar->codec_id);
 #else
@@ -418,6 +427,8 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
 
 
 bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
+    if (!avpktOut) return(false);
+    if (!ptr_cDecoder) return(false);
     int ret = 0;
     AVPacket avpktAC3;
     av_init_packet(&avpktAC3);
