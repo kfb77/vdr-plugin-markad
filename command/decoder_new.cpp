@@ -46,6 +46,7 @@ cDecoder::~cDecoder() {
     dsyslog("cDecoder::~cDecoder(): close avformat context");
     avformat_close_input(&avctx);
     free(recordingDir);
+    iFrameInfoVector.clear();
 }
 
 
