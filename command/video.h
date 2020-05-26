@@ -137,7 +137,7 @@ private:
     MarkAdContext *macontext;
     bool pixfmt_info;
     int SobelPlane(int plane); // do sobel operation on plane
-    int Load(const char *directory, char *file, int plane);
+    int Load(const char *directory, const char *file, const int plane);
     void Save(int framenumber, uchar picture[4][MAXPIXEL], int plane);
 public:
     cMarkAdLogo(MarkAdContext *maContext);

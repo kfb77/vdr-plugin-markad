@@ -71,9 +71,7 @@ areaT * cMarkAdLogo::GetArea() {
    return(&area);
 }
 
-int cMarkAdLogo::Load(const char *directory, char *file, int plane)
-{
-    if (plane==0) dsyslog("cMarkAdLogo::Load() load logo file %s", file);
+int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) {
     if ((plane<0) || (plane>3)) return -3;
 
     char *path;
@@ -84,9 +82,8 @@ int cMarkAdLogo::Load(const char *directory, char *file, int plane)
     area.valid[plane]=false;
     pFile=fopen(path, "rb");
     free(path);
-    if (!pFile)
-    {
-        if (plane>0) return 0; // only report for plane0
+    if (!pFile) {
+        dsyslog("cMarkAdLogo::Load(): file not found for logo %s plane %d in %s",file, plane, directory);
         return -1;
     }
 
@@ -95,6 +92,7 @@ int cMarkAdLogo::Load(const char *directory, char *file, int plane)
     if (fscanf(pFile, "P5\n#%1c%1i %4i\n%3d %3d\n255\n#", &c,&area.corner,&area.mpixel[plane],&width,&height)!=5)
     {
         fclose(pFile);
+        esyslog("format error in %s",file);
         return -2;
     }
     if (c=='D') macontext->Audio.Options.IgnoreDolbyDetection=true;
@@ -110,12 +108,14 @@ int cMarkAdLogo::Load(const char *directory, char *file, int plane)
             (area.corner<TOP_LEFT) || (area.corner>BOTTOM_RIGHT))
     {
         fclose(pFile);
+        esyslog("format error in %s",file);
         return -2;
     }
 
     if (fread(&area.mask[plane],1,width*height,pFile)!=(size_t) (width*height))
     {
         fclose(pFile);
+        esyslog("format error in %s",file);
         return -2;
     }
     fclose(pFile);
@@ -426,8 +426,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
     return ret;
 }
 
-int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
-{
+int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
     if (!macontext) return LOGO_ERROR;
     if (!macontext->Video.Data.Valid) {
         area.status=LOGO_UNINITIALIZED;
@@ -450,61 +449,47 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber)
         dsyslog("cMarkAdLogo::Process(): ChannelName missing");
         return LOGO_ERROR;
     }
-    if (macontext->Config->logoExtraction==-1)
-    {
+    if (macontext->Config->logoExtraction==-1) {
         if ((area.aspectratio.Num!=macontext->Video.Info.AspectRatio.Num) || (area.aspectratio.Den!=macontext->Video.Info.AspectRatio.Den)) {
             dsyslog("cMarkAdLogo::Process(): aspect ratio changed from %i:%i to %i:%i, reload logo", area.aspectratio.Num, area.aspectratio.Den, macontext->Video.Info.AspectRatio.Num, macontext->Video.Info.AspectRatio.Den);
             char *buf=NULL;
-            if (asprintf(&buf,"%s-A%i_%i",macontext->Info.ChannelName,
-                         macontext->Video.Info.AspectRatio.Num,macontext->Video.Info.AspectRatio.Den)!=-1)
-            {
+            if (asprintf(&buf,"%s-A%i_%i",macontext->Info.ChannelName, macontext->Video.Info.AspectRatio.Num,macontext->Video.Info.AspectRatio.Den)!=-1) {
                 area.corner=-1;
                 bool logoStatus = false;
-                for (int plane=0; plane<4; plane++) {
-                    int ret=Load(macontext->Config->logoDirectory,buf,plane);
-                    switch (ret) {
-                    case 0: if (plane == 0) {
-                                dsyslog("cMarkAdLogo::Process(): found logo for %s in logo cache directory",buf);
-                                logoStatus = true;
-                            }
-                            else if (logoStatus) Load(macontext->Config->recDir,buf,plane); // we need to load the other planes
-                            break;
-                    case -1:
-                        if (plane == 0) dsyslog("cMarkAdLogo::Process(): no logo for %s found in logo cache directory",buf);
-                        if (macontext->Config->autoLogo > 0) {
-                            if (plane==0) isyslog("search logo for %s in recording directory",buf);
-                            if (Load(macontext->Config->recDir,buf,plane) < 0) {
-                                if (plane==0) {
-                                    isyslog("no valid logo for %s in recording directory, extract logo from recording",buf);
-                                    cExtractLogo *ptr_cExtractLogo = new cExtractLogo();
-                                    if (!ptr_cExtractLogo->SearchLogo(macontext, FrameNumber)) {  // search logo from current frame
-                                        dsyslog("cMarkAdLogo::Process(): no logo found in recording");
-                                    }
-                                    else {
-                                        dsyslog("cMarkAdLogo::Process(): new logo for %s found in recording directory",buf);
-                                        logoStatus = true;
-                                    }
-                                    if (ptr_cExtractLogo) {
-                                        delete ptr_cExtractLogo;
-                                        ptr_cExtractLogo = NULL;
-                                    }
-                                }
-                                if ((Load(macontext->Config->recDir,buf,plane) < 0) && (plane==0)) isyslog("still no valid logo for %s in recording directory",buf);
-                            }
-                            else {
-                                if (plane == 0) {
-                                    logoStatus = true;
-                                    dsyslog("cMarkAdLogo::Process(): existing logo for %s found in recording directory",buf);
-                                }
-                            }
+                if (Load(macontext->Config->logoDirectory,buf,0) == 0) {   // logo cache directory
+                    isyslog("logo %s found in %s", buf, macontext->Config->logoDirectory);
+                    logoStatus = true;
+                    for (int plane=1; plane<4; plane++) {
+                        if (Load(macontext->Config->logoDirectory,buf,plane) == 0) dsyslog("logo %s for plane %i found in %s", buf, plane, macontext->Config->logoDirectory);
+                    }
+                }
+                else {
+                    if (Load(macontext->Config->recDir,buf,0) == 0) {  // recording directory
+                        isyslog("logo %s found in %s", buf, macontext->Config->recDir);
+                        logoStatus = true;
+                        for (int plane=1; plane<4; plane++) {
+                            if (Load(macontext->Config->recDir,buf,plane) == 0) dsyslog("logo %s plane %i found in %s", buf, plane, macontext->Config->recDir);
                         }
-                        break;
-                    case -2:
-                        esyslog("format error in %s",buf);
-                        break;
-                    case -3:
-                        esyslog("cannot load %s",buf);
-                        break;
+                    }
+                    else {
+                        if (macontext->Config->autoLogo > 0) {
+                            isyslog("no valid logo for %s in logo cache and recording directory, extract logo from recording",buf);
+                            cExtractLogo *ptr_cExtractLogo = new cExtractLogo();  // search logo from current frame
+                            if (!ptr_cExtractLogo->SearchLogo(macontext, FrameNumber)) dsyslog("cMarkAdLogo::Process(): no logo found in recording");
+                            else dsyslog("cMarkAdLogo::Process(): new logo for %s found in recording",buf);
+                            if (ptr_cExtractLogo) {
+                                delete ptr_cExtractLogo;
+                                ptr_cExtractLogo = NULL;
+                            }
+                            if (Load(macontext->Config->recDir,buf,0) == 0) {  // try again recording directory
+                                isyslog("logo %s found in %s", buf, macontext->Config->recDir);
+                                logoStatus = true;
+                                for (int plane=1; plane<4; plane++) {
+                                    if (Load(macontext->Config->recDir,buf,plane) == 0) dsyslog("logo %s plane %i found in %s", buf, plane, macontext->Config->recDir);
+                                }
+                            }
+                            else isyslog("still no valid logo for %s in recording directory",buf);
+                        }
                     }
                 }
                 if (!logoStatus) {
