@@ -427,6 +427,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
 bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     if (!avpktOut) return(false);
     if (!ptr_cDecoder) return(false);
+
     int ret = 0;
     AVPacket avpktAC3;
     av_init_packet(&avpktAC3);
@@ -581,10 +582,14 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
 
 
 bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, AVFrame *avFrameOut, AVPacket *avpktAC3) {
+    if (!ptr_cDecoder) return(false);
     if (!avCodecCtx) {
         dsyslog("cEncoder::EncodeFrame(): codec context not set");
         return(false);
     }
+    if (!avFrameOut) return(false);
+    if (!avpktAC3) return(false);
+
     int rc = 0;
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     rc = avcodec_send_frame(avCodecCtx,avFrameOut);
