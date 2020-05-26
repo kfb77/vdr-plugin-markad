@@ -23,7 +23,7 @@ class cAC3VolumeFilter {
     public:
         cAC3VolumeFilter();
         ~cAC3VolumeFilter();
-        bool Init(uint64_t channel_layout, enum AVSampleFormat sample_fmt, int sample_rate);
+        bool Init(const uint64_t channel_layout, const enum AVSampleFormat sample_fmt, const int sample_rate);
         bool SendFrame(AVFrame *avFrame);
         bool GetFrame(AVFrame *avFrame);
     private:
@@ -35,7 +35,7 @@ class cAC3VolumeFilter {
 
 class cEncoder {
     public:
-        cEncoder(int threadCount, bool ac3reencode);
+        cEncoder(int threadCount, const bool ac3reencode);
         ~cEncoder();
         bool OpenFile(const char * directory, cDecoder *pt_cDecoder);
         bool WritePacket(AVPacket *pkt, cDecoder *ptr_cDecoder);

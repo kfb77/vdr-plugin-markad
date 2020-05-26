@@ -94,8 +94,8 @@ class cDecoder
         std::vector<iFrameInfo> iFrameInfoVector;
         struct structFrameData {
             bool Valid=false; // flag, if true data is valid
-            uchar *Plane[4] = {};  // picture planes (YUV420)
-            int PlaneLinesize[4] = {}; // size int bytes of each picture plane line
+            uchar *Plane[PLANES] = {};  // picture planes (YUV420)
+            int PlaneLinesize[PLANES] = {}; // size int bytes of each picture plane line
         } iFrameData;
         bool msgDecodeFile=true;
         bool msgGetFrameInfo=true;

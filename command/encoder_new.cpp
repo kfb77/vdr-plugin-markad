@@ -22,10 +22,8 @@ cAC3VolumeFilter::~cAC3VolumeFilter() {
 }
 
 
-bool cAC3VolumeFilter::Init(uint64_t channel_layout, enum AVSampleFormat sample_fmt, int sample_rate){
-//    AVFilterContext *abuffer_ctx = NULL;
+bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFormat sample_fmt, const int sample_rate){
     AVFilterContext *volume_ctx = NULL;
-//    AVFilterContext *abuffersink_ctx = NULL;
     const AVFilter  *abuffer = NULL;
     const AVFilter  *volume = NULL;
     const AVFilter  *abuffersink = NULL;
@@ -153,7 +151,7 @@ bool cAC3VolumeFilter::GetFrame(AVFrame *avFrame) {
 
 
 
-cEncoder::cEncoder(int threads, bool ac3reencode) {
+cEncoder::cEncoder(int threads, const bool ac3reencode) {
     if (threads < 1) threads = 1;
     if (threads > 16) threads = 16;
     dsyslog("cEncoder::cEncoder(): init with %i threads", threads);

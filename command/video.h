@@ -66,20 +66,20 @@ enum
 
 typedef struct {
 #ifdef VDRDEBUG
-    uchar source[4][MAXPIXEL]; // original picture
+    uchar source[PLANES][MAXPIXEL]; // original picture
 #endif
-    uchar sobel[4][MAXPIXEL];  // monochrome picture with edges (after sobel)
-    uchar mask[4][MAXPIXEL];   // monochrome mask of logo
-    uchar result[4][MAXPIXEL]; // result of sobel + mask
-    int rpixel[4];             // black pixel in result
-    int mpixel[4];             // black pixel in mask
+    uchar sobel[PLANES][MAXPIXEL];  // monochrome picture with edges (after sobel)
+    uchar mask[PLANES][MAXPIXEL];   // monochrome mask of logo
+    uchar result[PLANES][MAXPIXEL]; // result of sobel + mask
+    int rpixel[PLANES];             // black pixel in result
+    int mpixel[PLANES];             // black pixel in mask
     int status;                // status = LOGO on, off, uninitialized
     int framenumber;           // start/stop frame
     int counter;               // how many logo on, offs detected?
     int corner;                // which corner
     int intensity;             // intensity (higher -> brighter)
     MarkAdAspectRatio aspectratio; // aspectratio
-    bool valid[4];             // logo mask valid?
+    bool valid[PLANES];             // logo mask valid?
 } areaT;
 
 
@@ -138,7 +138,7 @@ private:
     bool pixfmt_info;
     int SobelPlane(int plane); // do sobel operation on plane
     int Load(const char *directory, const char *file, const int plane);
-    void Save(int framenumber, uchar picture[4][MAXPIXEL], int plane);
+    void Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int plane);
 public:
     cMarkAdLogo(MarkAdContext *maContext);
     int Detect(int framenumber, int *logoframenumber); // ret 1 = logo, 0 = unknown, -1 = no logo

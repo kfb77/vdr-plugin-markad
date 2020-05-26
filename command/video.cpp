@@ -141,7 +141,7 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
 
 
 
-void cMarkAdLogo::Save(int framenumber, uchar picture[4][MAXPIXEL], int plane)
+void cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int plane)
 {
 
     if (!macontext) return;
@@ -328,7 +328,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
     *logoframenumber=-1;
     if (area.corner==-1) return LOGO_NOCHANGE;
 
-    for (int plane=0; plane<4; plane++)
+    for (int plane=0; plane < PLANES; plane++)
     {
         if ((area.valid[plane]) || (extract) || (onlyFillArea))
         {
@@ -459,7 +459,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
                 if (Load(macontext->Config->logoDirectory,buf,0) == 0) {   // logo cache directory
                     isyslog("logo %s found in %s", buf, macontext->Config->logoDirectory);
                     logoStatus = true;
-                    for (int plane=1; plane<4; plane++) {
+                    for (int plane=1; plane < PLANES; plane++) {
                         if (Load(macontext->Config->logoDirectory,buf,plane) == 0) dsyslog("logo %s for plane %i found in %s", buf, plane, macontext->Config->logoDirectory);
                     }
                 }
@@ -467,7 +467,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
                     if (Load(macontext->Config->recDir,buf,0) == 0) {  // recording directory
                         isyslog("logo %s found in %s", buf, macontext->Config->recDir);
                         logoStatus = true;
-                        for (int plane=1; plane<4; plane++) {
+                        for (int plane=1; plane < PLANES; plane++) {
                             if (Load(macontext->Config->recDir,buf,plane) == 0) dsyslog("logo %s plane %i found in %s", buf, plane, macontext->Config->recDir);
                         }
                     }
@@ -484,7 +484,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
                             if (Load(macontext->Config->recDir,buf,0) == 0) {  // try again recording directory
                                 isyslog("logo %s found in %s", buf, macontext->Config->recDir);
                                 logoStatus = true;
-                                for (int plane=1; plane<4; plane++) {
+                                for (int plane=1; plane < PLANES; plane++) {
                                     if (Load(macontext->Config->recDir,buf,plane) == 0) dsyslog("logo %s plane %i found in %s", buf, plane, macontext->Config->recDir);
                                 }
                             }

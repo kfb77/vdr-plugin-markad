@@ -439,7 +439,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                     dsyslog("found %s video format",(avFrame->interlaced_frame) ? "interlaced" : "non interlaced");
                     interlaced_frame=avFrame->interlaced_frame;
                 }
-                for (int i=0; i<4; i++) {
+                for (int i = 0; i < PLANES; i++) {
                     if (avFrame->data[i]) {
                         maContext->Video.Data.Plane[i]=avFrame->data[i];
                         maContext->Video.Data.PlaneLinesize[i]=avFrame->linesize[i];

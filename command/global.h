@@ -15,6 +15,7 @@ typedef unsigned char uchar;
 #endif
 
 #define MAXSTREAMS 10
+#define PLANES 3
 
 #define MA_I_TYPE 1
 #define MA_P_TYPE 2
@@ -176,8 +177,8 @@ typedef struct MarkAdContext
         struct Data
         {
             bool Valid; // flag, if true data is valid
-            uchar *Plane[4];  // picture planes (YUV420)
-            int PlaneLinesize[4]; // size int bytes of each picture plane line
+            uchar *Plane[PLANES];  // picture planes (YUV420)
+            int PlaneLinesize[PLANES]; // size int bytes of each picture plane line
         } Data;
     } Video;
 

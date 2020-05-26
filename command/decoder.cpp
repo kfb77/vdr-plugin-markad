@@ -428,7 +428,7 @@ bool cMarkAdDecoder::Clear()
 bool cMarkAdDecoder::SetVideoInfos(MarkAdContext *maContext,AVCodecContext *Video_Context, AVFrame *Video_Frame)
 {
     if ((!maContext) || (!Video_Context) || (!Video_Frame)) return false;
-    for (int i=0; i<4; i++)
+    for (int i=0; i < PLANES; i++)
     {
         if (Video_Frame->data[i])
         {

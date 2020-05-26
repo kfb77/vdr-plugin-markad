@@ -522,7 +522,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
                         dsyslog("cExtractLogo::SearchLogo(): faild to get video data of frame (%ld)", iFrameNumber);
                         continue;
                     }
-                    for (int corner = 0; corner <= 3; corner++) {
+                    for (int corner = 0; corner < CORNERS; corner++) {
                         int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
                                                     //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
 //                        if (corner == 1) iFrameNumberNext = -2;   // TODO only for debug
@@ -569,8 +569,8 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
     }
     if (retStatus) {
         dsyslog("cExtractLogo::SearchLogo(): got enough frames, start analyze");
-        logoInfoPacked actLogoInfoPacked[PLANES] = {};
-        logoInfo actLogoInfo[PLANES] = {};
+        logoInfoPacked actLogoInfoPacked[CORNERS] = {};
+        logoInfo actLogoInfo[CORNERS] = {};
         for (int corner = 0; corner < CORNERS; corner++) {
             if (maContext->Config->autoLogo == 1) { // use packed logos
                 actLogoInfoPacked[corner] = {};
@@ -596,7 +596,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
         int bestLogoCorner=-1;
         if (maContext->Config->autoLogo == 1) { // use packed logos
             logoInfoPacked bestLogoInfoPacked = {};
-            for (int corner = 0; corner <= 3; corner++) {  // search for the best hits of each corner
+            for (int corner = 0; corner < CORNERS; corner++) {  // search for the best hits of each corner
                 if (actLogoInfoPacked[corner].hits > bestLogoInfoPacked.hits) {
                     bestLogoInfoPacked = actLogoInfoPacked[corner];
                     bestLogoCorner=corner;

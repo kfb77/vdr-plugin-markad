@@ -13,7 +13,6 @@
 #include "decoder_new.h"
 #include "video.h"
 
-#define PLANES 4
 #define CORNERS 4
 #define MAXREADFRAMES 3000
 
