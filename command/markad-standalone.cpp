@@ -3563,7 +3563,6 @@ int main(int argc, char *argv[])
             {"logocachedir", 1, 0, 'l'},
             {"priority",1,0,'p'},
             {"ioprio",1,0,'r'},
-            {"statisticfile",1,0,'s'},
             {"verbose", 0, 0, 'v'},
 
             {"asd",0,0,6},
@@ -3598,7 +3597,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "bd:i:l:p:r:s:vBCGIL:ORST:V", long_options, &option_index);
+        c = getopt_long  (argc, argv, "bd:i:l:p:r:vBCGIL:ORST:V", long_options, &option_index);
         if (c == -1) break;
 
         switch (c) {
@@ -3665,9 +3664,6 @@ int main(int argc, char *argv[])
                 }
                 if (ioprio_class==3) ioprio=7;
                 bNice = true;
-                break;
-            case 's':
-                // --statisticfile
                 break;
             case 'v':
                 // --verbose
