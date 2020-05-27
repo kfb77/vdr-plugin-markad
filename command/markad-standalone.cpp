@@ -3557,7 +3557,6 @@ int main(int argc, char *argv[])
         int option_index = 0;
         static struct option long_options[] =
         {
-            {"ac3",0,0,'a'},
             {"background", 0, 0, 'b'},
             {"comments", 0, 0, 'c'},
             {"disable", 1, 0, 'd'},
@@ -3603,350 +3602,267 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "abcd:i:jl:nop:r:s:vBCGIL:ORST:V",
-                          long_options, &option_index);
-        if (c == -1)
-            break;
+        c = getopt_long  (argc, argv, "bcd:i:jl:nop:r:s:vBCGIL:ORST:V", long_options, &option_index);
+        if (c == -1) break;
 
-        switch (c)
-        {
-
-        case 'a':
-            // --ac3
-            break;
-
-        case 'b':
-            // --background
-            bFork = SYSLOG = true;
-            break;
-
-        case 'c':
-            // --comments
-            break;
-
-        case 'd':
-            // --disable
-            switch (atoi(optarg))
-            {
-            case 1:
-                config.DecodeVideo=false;
+        switch (c) {
+            case 'b':
+                // --background
+                bFork = SYSLOG = true;
                 break;
-            case 2:
-                config.DecodeAudio=false;
+            case 'c':
+                // --comments
                 break;
-            case 3:
-                config.DecodeVideo=false;
-                config.DecodeAudio=false;
+            case 'd':
+                // --disable
+                switch (atoi(optarg)) {
+                    case 1:
+                        config.DecodeVideo=false;
+                        break;
+                    case 2:
+                        config.DecodeAudio=false;
+                        break;
+                    case 3:
+                        config.DecodeVideo=false;
+                        config.DecodeAudio=false;
+                        break;
+                    default:
+                        fprintf(stderr, "markad: invalid disable option: %s\n", optarg);
+                         return 2;
+                         break;
+                }
+                break;
+            case 'i':
+                // --ignoreinfo
+                config.ignoreInfo=atoi(optarg);
+                if ((config.ignoreInfo<1) || (config.ignoreInfo>255)) {
+                    fprintf(stderr, "markad: invalid ignoreinfo option: %s\n", optarg);
+                    return 2;
+                }
+                break;
+            case 'j':
+                // --jumplogo
+                break;
+            case 'l':
+                strncpy(config.logoDirectory,optarg,sizeof(config.logoDirectory));
+                config.logoDirectory[sizeof(config.logoDirectory)-1]=0;
+                break;
+            case 'n':
+                // --nelonen
+                break;
+            case 'o':
+                // --overlap
+                break;
+            case 'p':
+                // --priority
+                if (isnumber(optarg) || *optarg=='-') niceLevel = atoi(optarg);
+                else {
+                    fprintf(stderr, "markad: invalid priority level: %s\n", optarg);
+                    return 2;
+                }
+                bNice = true;
+                break;
+            case 'r':
+                // --ioprio
+                str=strchr(optarg,',');
+                if (str) {
+                    *str=0;
+                    ioprio=atoi(str+1);
+                    *str=',';
+                }
+                ioprio_class=atoi(optarg);
+                if ((ioprio_class<1) || (ioprio_class>3)) {
+                    fprintf(stderr, "markad: invalid io-priority: %s\n", optarg);
+                    return 2;
+                }
+                if ((ioprio<0) || (ioprio>7)) {
+                    fprintf(stderr, "markad: invalid io-priority: %s\n", optarg);
+                    return 2;
+                }
+                if (ioprio_class==3) ioprio=7;
+                bNice = true;
+                break;
+            case 's':
+                // --statisticfile
+                break;
+            case 'v':
+                // --verbose
+                SysLogLevel++;
+                if (SysLogLevel>10) SysLogLevel=10;
+                break;
+            case 'B':
+                // --backupmarks
+                config.BackupMarks=true;
+                break;
+            case 'C':
+                // --scenechangedetection
+                break;
+            case 'G':
+                config.GenIndex=true;
+                fprintf(stderr, "markad: --genindex is depreciated and will be removed in a future version, use vdr --genindex instead\n");
+                break;
+            case 'I':
+                config.SaveInfo=true;
+                break;
+            case 'L':
+                // --extractlogo
+                str=optarg;
+                ntok=0;
+                while (true) {
+                    tok=strtok(str,",");
+                    if (!tok) break;
+                    switch (ntok) {
+                        case 0:
+                            config.logoExtraction=atoi(tok);
+                            if ((config.logoExtraction<0) || (config.logoExtraction>3)) {
+                                fprintf(stderr, "markad: invalid extractlogo value: %s\n", tok);
+                                return 2;
+                            }
+                            break;
+                        case 1:
+                            config.logoWidth=atoi(tok);
+                            if ((config.logoWidth<50) || (config.logoWidth>LOGO_MAXWIDTH)) {
+                                fprintf(stderr, "markad: invalid width value: %s\n", tok);
+                                return 2;
+                            }
+                            break;
+                        case 2:
+                            config.logoHeight=atoi(tok);
+                            if ((config.logoHeight<20) || (config.logoHeight>LOGO_MAXHEIGHT)) {
+                                fprintf(stderr, "markad: invalid height value: %s\n", tok);
+                                return 2;
+                            }
+                            break;
+                         default:
+                            break;
+                    }
+                    str=NULL;
+                    ntok++;
+                }
+                break;
+            case 'O':
+                // --OSD
+                config.OSD=true;
+                break;
+            case 'R':
+                // --log2rec
+                LOG2REC=true;
+                break;
+            case 'S':
+                // --savelogo
+                break;
+            case 'T':
+                // --threads
+                config.threads=atoi(optarg);
+                if (config.threads<1) config.threads=1;
+                if (config.threads>16) config.threads=16;
+                break;
+            case 'V':
+                printf("markad %s - marks advertisements in VDR recordings\n",VERSION);
+                return 0;
+            case '?':
+                printf("unknown option ?\n");
+                break;
+            case 0:
+                printf ("option %s", long_options[option_index].name);
+                if (optarg) printf (" with arg %s", optarg);
+                printf ("\n");
+                break;
+            case 1: // --markfile
+                strncpy(config.markFileName,optarg,sizeof(config.markFileName));
+                config.markFileName[sizeof(config.markFileName)-1]=0;
+                break;
+            case 2: // --loglevel
+                SysLogLevel=atoi(optarg);
+                if (SysLogLevel>10) SysLogLevel=10;
+                if (SysLogLevel<0) SysLogLevel=2;
+                break;
+            case 3: // --testmode
+                break;
+            case 4: // --online
+                if (optarg) {
+                    online=atoi(optarg);
+                }
+                else {
+                    online=1;
+                }
+                if ((online!=1) && (online!=2)) {
+                    fprintf(stderr, "markad: invalid online value: %s\n", optarg);
+                    return 2;
+                }
+                break;
+            case 5: // --nopid
+                config.NoPid=true;
+                break;
+            case 6: // --asd
+                break;
+            case 7: // --pass3only
+                break;
+            case 8: // --svdrphost
+                strncpy(config.svdrphost,optarg,sizeof(config.svdrphost));
+                config.svdrphost[sizeof(config.svdrphost)-1]=0;
+                break;
+            case 9: // --svdrpport
+                if (isnumber(optarg) && atoi(optarg) > 0 && atoi(optarg) < 65536) {
+                    config.svdrpport=atoi(optarg);
+                }
+                else {
+                    fprintf(stderr, "markad: invalid svdrpport value: %s\n", optarg);
+                    return 2;
+                }
+                break;
+            case 10: // --pass2only
+                bPass2Only=true;
+                if (bPass1Only) {
+                    fprintf(stderr, "markad: you cannot use --pass2only with --pass1only\n");
+                    return 2;
+                }
+                break;
+            case 11: // --pass1only
+                bPass1Only=true;
+                if (bPass2Only) {
+                    fprintf(stderr, "markad: you cannot use --pass1only with --pass2only\n");
+                    return 2;
+                }
+                break;
+            case 12: // --astopoffs
+                if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 240) {
+                    config.astopoffs=atoi(optarg);
+                }
+                else {
+                    fprintf(stderr, "markad: invalid astopoffs value: %s\n", optarg);
+                    return 2;
+                }
+                break;
+            case 13: // --posttimer
+                if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 1200) config.posttimer=atoi(optarg);
+                else {
+                    fprintf(stderr, "markad: invalid posttimer value: %s\n", optarg);
+                    return 2;
+                }
+                break;
+            case 14: // --cDecoder
+                config.use_cDecoder=true;
+                break;
+            case 15: // --cut
+                config.MarkadCut=true;
+                break;
+            case 16: // --ac3reencode
+                config.ac3ReEncode=true;
+                break;
+            case 17: // --autoLogo
+                if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 2) config.autoLogo=atoi(optarg);
+                else {
+                    fprintf(stderr, "markad: invalid autologo value: %s\n", optarg);
+                    return 2;
+                }
                 break;
             default:
-                fprintf(stderr, "markad: invalid disable option: %s\n", optarg);
-                return 2;
-                break;
-            }
-            break;
-
-        case 'i':
-            // --ignoreinfo
-            config.ignoreInfo=atoi(optarg);
-            if ((config.ignoreInfo<1) || (config.ignoreInfo>255))
-            {
-                fprintf(stderr, "markad: invalid ignoreinfo option: %s\n", optarg);
-                return 2;
-            }
-            break;
-
-        case 'j':
-            // --jumplogo
-            break;
-
-        case 'l':
-            strncpy(config.logoDirectory,optarg,sizeof(config.logoDirectory));
-            config.logoDirectory[sizeof(config.logoDirectory)-1]=0;
-            break;
-
-        case 'n':
-            // --nelonen
-            break;
-
-        case 'o':
-            // --overlap
-            break;
-
-        case 'p':
-            // --priority
-            if (isnumber(optarg) || *optarg=='-')
-                niceLevel = atoi(optarg);
-            else
-            {
-                fprintf(stderr, "markad: invalid priority level: %s\n", optarg);
-                return 2;
-            }
-            bNice = true;
-            break;
-
-        case 'r':
-            // --ioprio
-            str=strchr(optarg,',');
-            if (str)
-            {
-                *str=0;
-                ioprio=atoi(str+1);
-                *str=',';
-            }
-            ioprio_class=atoi(optarg);
-            if ((ioprio_class<1) || (ioprio_class>3))
-            {
-                fprintf(stderr, "markad: invalid io-priority: %s\n", optarg);
-                return 2;
-            }
-            if ((ioprio<0) || (ioprio>7))
-            {
-                fprintf(stderr, "markad: invalid io-priority: %s\n", optarg);
-                return 2;
-            }
-            if (ioprio_class==3) ioprio=7;
-            bNice = true;
-            break;
-
-        case 's':
-            // --statisticfile
-            break;
-
-        case 'v':
-            // --verbose
-            SysLogLevel++;
-            if (SysLogLevel>10) SysLogLevel=10;
-            break;
-
-        case 'B':
-            // --backupmarks
-            config.BackupMarks=true;
-            break;
-
-        case 'C':
-            // --scenechangedetection
-            break;
-
-        case 'G':
-            config.GenIndex=true;
-            fprintf(stderr, "markad: --genindex is depreciated and will be removed in a future version, use vdr --genindex instead\n");
-            break;
-
-        case 'I':
-            config.SaveInfo=true;
-            break;
-
-        case 'L':
-            // --extractlogo
-            str=optarg;
-            ntok=0;
-            while (true)
-            {
-                tok=strtok(str,",");
-                if (!tok) break;
-                switch (ntok)
-                {
-                case 0:
-                    config.logoExtraction=atoi(tok);
-                    if ((config.logoExtraction<0) || (config.logoExtraction>3))
-                    {
-                        fprintf(stderr, "markad: invalid extractlogo value: %s\n", tok);
-                        return 2;
-                    }
-                    break;
-
-                case 1:
-                    config.logoWidth=atoi(tok);
-                    if ((config.logoWidth<50) || (config.logoWidth>LOGO_MAXWIDTH))
-                    {
-                        fprintf(stderr, "markad: invalid width value: %s\n", tok);
-                        return 2;
-                    }
-                    break;
-
-                case 2:
-                    config.logoHeight=atoi(tok);
-                    if ((config.logoHeight<20) || (config.logoHeight>LOGO_MAXHEIGHT))
-                    {
-                        fprintf(stderr, "markad: invalid height value: %s\n", tok);
-                        return 2;
-                    }
-                    break;
-
-                default:
-                    break;
-                }
-                str=NULL;
-                ntok++;
-            }
-            break;
-
-        case 'O':
-            // --OSD
-            config.OSD=true;
-            break;
-
-        case 'R':
-            // --log2rec
-            LOG2REC=true;
-            break;
-
-        case 'S':
-            // --savelogo
-            break;
-
-        case 'T':
-            // --threads
-            config.threads=atoi(optarg);
-            if (config.threads<1) config.threads=1;
-            if (config.threads>16) config.threads=16;
-            break;
-
-        case 'V':
-            printf("markad %s - marks advertisements in VDR recordings\n",VERSION);
-            return 0;
-
-        case '?':
-            printf("unknown option ?\n");
-            break;
-
-        case 0:
-            printf ("option %s", long_options[option_index].name);
-            if (optarg)
-                printf (" with arg %s", optarg);
-            printf ("\n");
-            break;
-
-        case 1: // --markfile
-            strncpy(config.markFileName,optarg,sizeof(config.markFileName));
-            config.markFileName[sizeof(config.markFileName)-1]=0;
-            break;
-
-        case 2: // --loglevel
-            SysLogLevel=atoi(optarg);
-            if (SysLogLevel>10) SysLogLevel=10;
-            if (SysLogLevel<0) SysLogLevel=2;
-            break;
-
-        case 3: // --testmode
-            break;
-
-        case 4: // --online
-            if (optarg)
-            {
-                online=atoi(optarg);
-            }
-            else
-            {
-                online=1;
-            }
-            if ((online!=1) && (online!=2))
-            {
-                fprintf(stderr, "markad: invalid online value: %s\n", optarg);
-                return 2;
-            }
-            break;
-
-        case 5: // --nopid
-            config.NoPid=true;
-            break;
-
-        case 6: // --asd
-            break;
-
-        case 7: // --pass3only
-            break;
-
-        case 8: // --svdrphost
-            strncpy(config.svdrphost,optarg,sizeof(config.svdrphost));
-            config.svdrphost[sizeof(config.svdrphost)-1]=0;
-            break;
-
-        case 9: // --svdrpport
-            if (isnumber(optarg) && atoi(optarg) > 0 && atoi(optarg) < 65536)
-            {
-                config.svdrpport=atoi(optarg);
-            }
-            else
-            {
-                fprintf(stderr, "markad: invalid svdrpport value: %s\n", optarg);
-                return 2;
-            }
-            break;
-
-        case 10: // --pass2only
-            bPass2Only=true;
-            if (bPass1Only)
-            {
-                fprintf(stderr, "markad: you cannot use --pass2only with --pass1only\n");
-                return 2;
-            }
-            break;
-
-        case 11: // --pass1only
-            bPass1Only=true;
-            if (bPass2Only)
-            {
-                fprintf(stderr, "markad: you cannot use --pass1only with --pass2only\n");
-                return 2;
-            }
-            break;
-
-        case 12: // --astopoffs
-            if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 240)
-            {
-                config.astopoffs=atoi(optarg);
-            }
-            else
-            {
-                fprintf(stderr, "markad: invalid astopoffs value: %s\n", optarg);
-                return 2;
-            }
-            break;
-
-        case 13: // --posttimer
-            if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 1200)
-            {
-                config.posttimer=atoi(optarg);
-            }
-            else
-            {
-                fprintf(stderr, "markad: invalid posttimer value: %s\n", optarg);
-                return 2;
-            }
-            break;
-
-        case 14: // --cDecoder
-            config.use_cDecoder=true;
-            break;
-
-        case 15: // --cut
-            config.MarkadCut=true;
-            break;
-
-        case 16: // --ac3reencode
-            config.ac3ReEncode=true;
-            break;
-
-        case 17: // --autoLogo
-            if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 2)
-            {
-                config.autoLogo=atoi(optarg);
-            }
-            else
-            {
-                fprintf(stderr, "markad: invalid autologo value: %s\n", optarg);
-                return 2;
-            }
-            break;
-
-        default:
-            printf ("? getopt returned character code 0%o ? (option_index %d)\n", c,option_index);
+                printf ("? getopt returned character code 0%o ? (option_index %d)\n", c,option_index);
         }
     }
 
-    if (optind < argc)
-    {
+    if (optind < argc) {
         while (optind < argc)
         {
             if (strcmp(argv[optind], "after" ) == 0 )
