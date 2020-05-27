@@ -72,10 +72,14 @@ areaT * cMarkAdLogo::GetArea() {
 }
 
 int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) {
-    if ((plane<0) || (plane>3)) return -3;
-
+    if (!directory) return(-1);
+    if (!file) return(-1);
+    if ((plane < 0) || (plane >= PLANES)) {
+        dsyslog("cMarkAdLogo::Load(): plane %d not valid", plane);
+        return(-3);
+    }
     char *path;
-    if (asprintf(&path,"%s/%s-P%i.pgm",directory,file,plane)==-1) return -3;
+    if (asprintf(&path,"%s/%s-P%i.pgm",directory,file,plane)==-1) return(-3);
 
     // Load mask
     FILE *pFile;
@@ -83,60 +87,51 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
     pFile=fopen(path, "rb");
     free(path);
     if (!pFile) {
-        dsyslog("cMarkAdLogo::Load(): file not found for logo %s plane %d in %s",file, plane, directory);
-        return -1;
+        if (plane > 0) dsyslog("cMarkAdLogo::Load(): file not found for logo %s plane %d in %s",file, plane, directory);
+        return(-1);
     }
 
     int width,height;
     char c;
-    if (fscanf(pFile, "P5\n#%1c%1i %4i\n%3d %3d\n255\n#", &c,&area.corner,&area.mpixel[plane],&width,&height)!=5)
-    {
+    if (fscanf(pFile, "P5\n#%1c%1i %4i\n%3d %3d\n255\n#", &c,&area.corner,&area.mpixel[plane],&width,&height)!=5) {
         fclose(pFile);
         esyslog("format error in %s",file);
-        return -2;
+        return(-2);
     }
     if (c=='D') macontext->Audio.Options.IgnoreDolbyDetection=true;
 
-    if (height==255)
-    {
+    if (height==255) {
         height=width;
         width=area.mpixel[plane];
         area.mpixel[plane]=0;
     }
 
-    if ((width<=0) || (height<=0) || (width>LOGO_MAXWIDTH) || (height>LOGO_MAXHEIGHT) ||
-            (area.corner<TOP_LEFT) || (area.corner>BOTTOM_RIGHT))
-    {
+    if ((width<=0) || (height<=0) || (width>LOGO_MAXWIDTH) || (height>LOGO_MAXHEIGHT) || (area.corner<TOP_LEFT) || (area.corner>BOTTOM_RIGHT)) {
         fclose(pFile);
         esyslog("format error in %s",file);
-        return -2;
+        return(-2);
     }
 
-    if (fread(&area.mask[plane],1,width*height,pFile)!=(size_t) (width*height))
-    {
+    if (fread(&area.mask[plane],1,width*height,pFile)!=(size_t) (width*height)) {
         fclose(pFile);
         esyslog("format error in %s",file);
-        return -2;
+        return(-2);
     }
     fclose(pFile);
 
-    if (!area.mpixel[plane])
-    {
-        for (int i=0; i<width*height; i++)
-        {
+    if (!area.mpixel[plane]) {
+        for (int i=0; i<width*height; i++) {
             if (!area.mask[plane][i]) area.mpixel[plane]++;
         }
     }
 
-    if (!plane)
-    {
-        // plane 0 is the largest -> use this values
+    if (plane == 0) {   // plane 0 is the largest -> use this values
         LOGOWIDTH=width;
         LOGOHEIGHT=height;
     }
 
     area.valid[plane]=true;
-    return 0;
+    return(0);
 }
 
 

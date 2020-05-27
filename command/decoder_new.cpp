@@ -87,8 +87,8 @@ AVCodecContext **cDecoder::GetAVCodecContext() {
 
 
 bool cDecoder::DecodeFile(const char * filename) {
-    AVFormatContext *avctxNextFile = NULL;
     if (!filename) return false;
+    AVFormatContext *avctxNextFile = NULL;
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(35<<8)+100)
     av_register_all();
 #endif
