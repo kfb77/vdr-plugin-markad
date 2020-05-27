@@ -4128,8 +4128,18 @@ int main(int argc, char *argv[])
         if (!cmasta) return -1;
 
         isyslog("parameter --loglevel is set to %i", SysLogLevel);
-        dsyslog("process nice level %i",PrioProcess);
-        dsyslog("IO priority class %i",IOPrio);
+
+        if (niceLevel != 19) {
+            isyslog("parameter --priority %i",niceLevel);
+            isyslog("warning: increasing priority may affect other applications");
+        }
+        if (ioprio_class != 3) {
+            isyslog("parameter --ioprio %i",ioprio_class);
+            isyslog("warning: increasing priority may affect other applications");
+        }
+        dsyslog("markad process nice level %i",PrioProcess);
+        dsyslog("makrad IO priority class %i",IOPrio);
+
         dsyslog("parameter --logocachedir is set to %s",config.logoDirectory);
         dsyslog("parameter --threads is set to %i", config.threads);
         dsyslog("parameter --astopoffs is set to %i",config.astopoffs);
