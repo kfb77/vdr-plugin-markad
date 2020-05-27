@@ -3589,14 +3589,13 @@ int main(int argc, char *argv[])
             {"extractlogo", 1, 0, 'L'},
             {"OSD",0,0,'O' },
             {"log2rec",0,0,'R'},
-            {"savelogo", 0, 0, 'S'},
             {"threads", 1, 0, 'T'},
             {"version", 0, 0, 'V'},
 
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "bd:i:l:p:r:vBGIL:ORST:V", long_options, &option_index);
+        c = getopt_long  (argc, argv, "bd:i:l:p:r:vBGIL:ORT:V", long_options, &option_index);
         if (c == -1) break;
 
         switch (c) {
@@ -3723,9 +3722,6 @@ int main(int argc, char *argv[])
             case 'R':
                 // --log2rec
                 LOG2REC=true;
-                break;
-            case 'S':
-                // --savelogo
                 break;
             case 'T':
                 // --threads
