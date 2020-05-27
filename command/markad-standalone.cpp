@@ -3390,6 +3390,7 @@ int usage(int svdrpport)
            "                  make a backup of existing marks\n"
            "-G              --genindex\n"
            "                  regenerate index file\n"
+           "                  this functions is depreciated and will be removed in a future version, use vdr --genindex instead\n"
            "-I              --saveinfo\n"
            "                  correct information in info file\n"
            "-L              --extractlogo=<direction>[,width[,height]]\n"
@@ -3728,6 +3729,7 @@ int main(int argc, char *argv[])
 
         case 'G':
             config.GenIndex=true;
+            fprintf(stderr, "markad: --genindex is depreciated and will be removed in a future version, use vdr --genindex instead\n");
             break;
 
         case 'I':
