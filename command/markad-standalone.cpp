@@ -3561,7 +3561,6 @@ int main(int argc, char *argv[])
             {"disable", 1, 0, 'd'},
             {"ignoreinfo", 1, 0, 'i' },
             {"logocachedir", 1, 0, 'l'},
-            {"nelonen",0,0,'n'},
             {"overlap",0,0,'o' },
             {"priority",1,0,'p'},
             {"ioprio",1,0,'r'},
@@ -3600,7 +3599,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "bd:i:l:nop:r:s:vBCGIL:ORST:V", long_options, &option_index);
+        c = getopt_long  (argc, argv, "bd:i:l:op:r:s:vBCGIL:ORST:V", long_options, &option_index);
         if (c == -1) break;
 
         switch (c) {
@@ -3638,9 +3637,6 @@ int main(int argc, char *argv[])
             case 'l':
                 strncpy(config.logoDirectory,optarg,sizeof(config.logoDirectory));
                 config.logoDirectory[sizeof(config.logoDirectory)-1]=0;
-                break;
-            case 'n':
-                // --nelonen
                 break;
             case 'o':
                 // --overlap
