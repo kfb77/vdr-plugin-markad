@@ -3578,18 +3578,16 @@ int main(int argc, char *argv[])
             {"loglevel",1,0,2},
             {"online",2,0,3},
             {"nopid",0,0,4},
-            {"asd",0,0,5},
-            {"pass3only",0,0,6},
-            {"svdrphost",1,0,7},
-            {"svdrpport",1,0,8},
-            {"pass2only",0,0,9},
-            {"pass1only",0,0,10},
-            {"astopoffs",1,0,11},
-            {"posttimer",1,0,12},
-            {"cDecoder",0,0,13},
-            {"cut",0,0,14},
-            {"ac3reencode",0,0,15},
-            {"autologo",1,0,16},
+            {"svdrphost",1,0,5},
+            {"svdrpport",1,0,6},
+            {"pass2only",0,0,7},
+            {"pass1only",0,0,8},
+            {"astopoffs",1,0,9},
+            {"posttimer",1,0,10},
+            {"cDecoder",0,0,11},
+            {"cut",0,0,12},
+            {"ac3reencode",0,0,13},
+            {"autologo",1,0,14},
 
             {0, 0, 0, 0}
         };
@@ -3763,15 +3761,11 @@ int main(int argc, char *argv[])
             case 4: // --nopid
                 config.NoPid=true;
                 break;
-            case 5: // --asd
-                break;
-            case 6: // --pass3only
-                break;
-            case 7: // --svdrphost
+            case 5: // --svdrphost
                 strncpy(config.svdrphost,optarg,sizeof(config.svdrphost));
                 config.svdrphost[sizeof(config.svdrphost)-1]=0;
                 break;
-            case 8: // --svdrpport
+            case 6: // --svdrpport
                 if (isnumber(optarg) && atoi(optarg) > 0 && atoi(optarg) < 65536) {
                     config.svdrpport=atoi(optarg);
                 }
@@ -3780,21 +3774,21 @@ int main(int argc, char *argv[])
                     return 2;
                 }
                 break;
-            case 9: // --pass2only
+            case 7: // --pass2only
                 bPass2Only=true;
                 if (bPass1Only) {
                     fprintf(stderr, "markad: you cannot use --pass2only with --pass1only\n");
                     return 2;
                 }
                 break;
-            case 10: // --pass1only
+            case 8: // --pass1only
                 bPass1Only=true;
                 if (bPass2Only) {
                     fprintf(stderr, "markad: you cannot use --pass1only with --pass2only\n");
                     return 2;
                 }
                 break;
-            case 11: // --astopoffs
+            case 9: // --astopoffs
                 if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 240) {
                     config.astopoffs=atoi(optarg);
                 }
@@ -3803,23 +3797,23 @@ int main(int argc, char *argv[])
                     return 2;
                 }
                 break;
-            case 12: // --posttimer
+            case 10: // --posttimer
                 if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 1200) config.posttimer=atoi(optarg);
                 else {
                     fprintf(stderr, "markad: invalid posttimer value: %s\n", optarg);
                     return 2;
                 }
                 break;
-            case 13: // --cDecoder
+            case 11: // --cDecoder
                 config.use_cDecoder=true;
                 break;
-            case 14: // --cut
+            case 12: // --cut
                 config.MarkadCut=true;
                 break;
-            case 15: // --ac3reencode
+            case 13: // --ac3reencode
                 config.ac3ReEncode=true;
                 break;
-            case 16: // --autoLogo
+            case 14: // --autoLogo
                 if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 2) config.autoLogo=atoi(optarg);
                 else {
                     fprintf(stderr, "markad: invalid autologo value: %s\n", optarg);
