@@ -3558,7 +3558,6 @@ int main(int argc, char *argv[])
         static struct option long_options[] =
         {
             {"background", 0, 0, 'b'},
-            {"comments", 0, 0, 'c'},
             {"disable", 1, 0, 'd'},
             {"ignoreinfo", 1, 0, 'i' },
             {"jumplogo",0,0,'j'},
@@ -3602,16 +3601,13 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "bcd:i:jl:nop:r:s:vBCGIL:ORST:V", long_options, &option_index);
+        c = getopt_long  (argc, argv, "bd:i:jl:nop:r:s:vBCGIL:ORST:V", long_options, &option_index);
         if (c == -1) break;
 
         switch (c) {
             case 'b':
                 // --background
                 bFork = SYSLOG = true;
-                break;
-            case 'c':
-                // --comments
                 break;
             case 'd':
                 // --disable
