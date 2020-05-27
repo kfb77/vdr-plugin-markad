@@ -3584,7 +3584,6 @@ int main(int argc, char *argv[])
             {"testmode",0,0,3},
 
             {"backupmarks", 0, 0, 'B'},
-            {"scenechangedetection", 0, 0, 'C'},
             {"genindex",0, 0, 'G'},
             {"saveinfo",0, 0, 'I'},
             {"extractlogo", 1, 0, 'L'},
@@ -3597,7 +3596,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "bd:i:l:p:r:vBCGIL:ORST:V", long_options, &option_index);
+        c = getopt_long  (argc, argv, "bd:i:l:p:r:vBGIL:ORST:V", long_options, &option_index);
         if (c == -1) break;
 
         switch (c) {
@@ -3673,9 +3672,6 @@ int main(int argc, char *argv[])
             case 'B':
                 // --backupmarks
                 config.BackupMarks=true;
-                break;
-            case 'C':
-                // --scenechangedetection
                 break;
             case 'G':
                 config.GenIndex=true;
