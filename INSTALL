@@ -4,6 +4,10 @@ Basic Installation
 Prerequisite: build-essential libavcodec-dev libavformat-dev libavfilter-dev git
 e.g. for Ubuntu: sudo apt-get install build-essential libavcodec-dev libavformat-dev libavfilter-dev git
 
+recommended minimum version of libavcodec: 56.x.x
+
+
+
 The simplest way to compile this package is:
 
   1. Type `make' to compile the package.
