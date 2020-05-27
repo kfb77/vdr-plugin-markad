@@ -3560,7 +3560,6 @@ int main(int argc, char *argv[])
             {"background", 0, 0, 'b'},
             {"disable", 1, 0, 'd'},
             {"ignoreinfo", 1, 0, 'i' },
-            {"jumplogo",0,0,'j'},
             {"logocachedir", 1, 0, 'l'},
             {"nelonen",0,0,'n'},
             {"overlap",0,0,'o' },
@@ -3601,7 +3600,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "bd:i:jl:nop:r:s:vBCGIL:ORST:V", long_options, &option_index);
+        c = getopt_long  (argc, argv, "bd:i:l:nop:r:s:vBCGIL:ORST:V", long_options, &option_index);
         if (c == -1) break;
 
         switch (c) {
@@ -3635,9 +3634,6 @@ int main(int argc, char *argv[])
                     fprintf(stderr, "markad: invalid ignoreinfo option: %s\n", optarg);
                     return 2;
                 }
-                break;
-            case 'j':
-                // --jumplogo
                 break;
             case 'l':
                 strncpy(config.logoDirectory,optarg,sizeof(config.logoDirectory));
