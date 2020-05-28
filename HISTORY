@@ -1,7 +1,7 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
-2020-xx-xx: Version 2.1.1
+2020-05-28: Version 2.1.1
 - fix load logo plane > 0 from logo cache directory
 - declare --genindex as depreciated
 - remove some parameter without function
