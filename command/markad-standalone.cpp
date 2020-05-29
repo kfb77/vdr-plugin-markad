@@ -721,18 +721,16 @@ void cMarkAdStandalone::CheckStart()
             }
         }
     }
-    else
-    {
+    else {
         //fallback
         dsyslog("no valid start mark found, assume start time at pre recording time");
-        marks.DelTill(chkSTART);
+        marks.DelTill(iStart);
         MarkAdMark mark={};
         mark.Position=iStart;
         mark.Type=MT_ASSUMEDSTART;
         AddMark(&mark);
         CalculateCheckPositions(iStart);
     }
-
     DebugMarks();     //  only for debugging
     dsyslog("-------------------------------------------------------");
     iStart=0;
