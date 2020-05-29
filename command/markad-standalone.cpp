@@ -317,16 +317,8 @@ void cMarkAdStandalone::CheckStop()
     dsyslog("checking stop (%i)", lastiframe);
     dsyslog("assumed stop frame %i", iStopA);
 
-//  only for debugging
-    clMark *mark=marks.GetFirst();
-    while (mark) {
-        char *timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
-        if (timeText) {
-            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, timeText);
-            free(timeText);
-        }
-        mark=mark->Next();
-    }
+    DebugMarks();     //  only for debugging
+
     int delta=macontext.Video.Info.FramesPerSecond*MAXRANGE;
 
     clMark *end=marks.GetAround(3*delta,iStopA,MT_CHANNELSTOP);      // try if we can get a good stop mark, start with MT_ASPECTSTOP
@@ -408,16 +400,7 @@ void cMarkAdStandalone::CheckStop()
     iStop=iStopA=0;
     gotendmark=true;
 
-//  only for debugging
-    mark=marks.GetFirst();
-    while (mark) {
-        char *timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
-        if (timeText) {
-            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, timeText);
-            free(timeText);
-        }
-        mark=mark->Next();
-    }
+    DebugMarks();     //  only for debugging
     dsyslog("-------------------------------------------------------");
 }
 
@@ -426,17 +409,7 @@ void cMarkAdStandalone::CheckStart()
     dsyslog("-------------------------------------------------------");
     dsyslog("checking start (%i)", lastiframe);
     dsyslog("assumed start frame %i", iStartA);
-
-//  only for debugging
-    clMark *mark=marks.GetFirst();
-    while (mark) {
-        char *timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
-        if (timeText) {
-            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, timeText);
-            free(timeText);
-        }
-        mark=mark->Next();
-    }
+    DebugMarks();     //  only for debugging
 
     clMark *begin=NULL;
     int delta=macontext.Video.Info.FramesPerSecond*MAXRANGE;
@@ -760,27 +733,14 @@ void cMarkAdStandalone::CheckStart()
         CalculateCheckPositions(iStart);
     }
 
-    //  only for debugging
-    mark=marks.GetFirst();
-    while (mark) {
-        char *timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
-        if (timeText) {
-            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, timeText);
-            free(timeText);
-        }
-        mark=mark->Next();
-    }
+    DebugMarks();     //  only for debugging
     dsyslog("-------------------------------------------------------");
     iStart=0;
     return;
 }
 
-void cMarkAdStandalone::CheckMarks()            // cleanup marks that make no sense
-{
-    dsyslog("-------------------------------------------------------");
-    isyslog("cleanup marks");
-    //  only for debugging
-    clMark *mark=marks.GetFirst();
+void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
+    clMark *mark = marks.GetFirst();
     while (mark) {
         char *timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
         if (timeText) {
@@ -789,7 +749,18 @@ void cMarkAdStandalone::CheckMarks()            // cleanup marks that make no se
         }
         mark=mark->Next();
     }
-    mark=marks.GetFirst();
+}
+
+
+
+
+void cMarkAdStandalone::CheckMarks()            // cleanup marks that make no sense
+{
+    dsyslog("-------------------------------------------------------");
+    isyslog("cleanup marks");
+    DebugMarks();     //  only for debugging
+
+    clMark *mark=marks.GetFirst();
     while (mark) {
         if (((mark->type & 0x0F) == MT_STOP) && (mark == marks.GetFirst())){
             dsyslog("Start with STOP mark, delete first mark");
@@ -1531,16 +1502,8 @@ void cMarkAdStandalone::MarkadCut() {
         return; // we cannot do much without marks
     }
     dsyslog("final marks are:");
-    //  only for debugging
-    clMark *mark=marks.GetFirst();
-    while (mark) {
-        char *timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
-        if (timeText) {
-            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, timeText);
-            free(timeText);
-        }
-        mark=mark->Next();
-    }
+    DebugMarks();     //  only for debugging
+
     clMark *StartMark= marks.GetFirst();
     if (((StartMark->type & 0x0F) != 1) && (StartMark->type != MT_MOVED)) {
         esyslog("got invalid start mark at (%i) type 0x%X", StartMark->position, StartMark->type);

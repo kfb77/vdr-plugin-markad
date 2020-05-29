@@ -97,7 +97,7 @@ public:
     }
     clMark *Add(int Type, int Position, const char *Comment = NULL);
     char *IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cDecoder);
-    void DelWeakFrom(int position, short int type);
+    void DelWeakFrom(const int position, const short int type);
     void DelTill(int Position,bool FromStart=true);
     void DelAll();
     void Del(clMark *Mark);
