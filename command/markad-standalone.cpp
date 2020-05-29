@@ -1394,7 +1394,6 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
 }
 
 bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
-
     if (!mark1) return false;
     if (!*mark1) return false;
     if (!mark2) return false;
@@ -1404,12 +1403,12 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
     int fRange=0;
     MarkAdPos *ptr_MarkAdPos=NULL;
 
-    if (!Reset(false))
-    {
+    if (!Reset(false)) {
         // reset all, but marks
         esyslog("failed resetting state");
         return false;
     }
+    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): check overlap for marks at frames (%i) and (%i)", (*mark1)->position, (*mark2)->position);
 
     fRange=macontext.Video.Info.FramesPerSecond*120;     // 40s + 80s
     int fRangeBegin=(*mark1)->position-fRange;           // 120 seconds before first mark
@@ -1419,8 +1418,9 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
         dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetIFrameBefore failed for frame (%i)", fRangeBegin);
         return false;
     }
+    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): check start at frame (%i)", fRangeBegin);
     if (!ptr_cDecoder->SeekToFrame(fRangeBegin)) {
-        esyslog("cDecoder: could not seek to frame (%i)", fRangeBegin);
+        esyslog("could not seek to frame (%i)", fRangeBegin);
         return false;
     }
     iFrameCount=ptr_cDecoder->GetIFrameRangeCount(fRangeBegin, (*mark1)->position);
@@ -1453,7 +1453,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
     }
     int fRangeEnd=(*mark2)->position+fRange;         // 320 seconds after second mark
     if (!ptr_cDecoder->SeekToFrame((*mark2)->position)) {
-        esyslog("cDecoder: could not seek to frame (%i)", fRangeBegin);
+        esyslog("could not seek to frame (%i)", fRangeBegin);
         return false;
     }
     iFrameCount=ptr_cDecoder->GetIFrameRangeCount(fRangeBegin, fRangeEnd)-2;
@@ -1567,8 +1567,7 @@ void cMarkAdStandalone::MarkadCut() {
 }
 
 
-void cMarkAdStandalone::Process2ndPass()
-{
+void cMarkAdStandalone::Process2ndPass() {
     if (abortNow) return;
     if (duplicate) return;
     if (!decoder) return;
@@ -1579,14 +1578,12 @@ void cMarkAdStandalone::Process2ndPass()
     dsyslog("-------------------------------------------------------");
     dsyslog("start 2ndPass");
 
-    if (!macontext.Video.Info.FramesPerSecond)
-    {
+    if (!macontext.Video.Info.FramesPerSecond) {
         isyslog("WARNING: assuming fps of 25");
         macontext.Video.Info.FramesPerSecond=25;
     }
 
-    if (!marks.Count())
-    {
+    if (!marks.Count()) {
         marks.Load(directory,macontext.Video.Info.FramesPerSecond,isTS);
     }
 
@@ -1608,10 +1605,8 @@ void cMarkAdStandalone::Process2ndPass()
         ptr_cDecoder->DecodeDir(directory);
     }
 
-    while ((p1) && (p2))
-    {
-        if (!infoheader)
-        {
+    while ((p1) && (p2)) {
+        if (!infoheader) {
             isyslog("2nd pass");
             infoheader=true;
         }
@@ -1622,34 +1617,30 @@ void cMarkAdStandalone::Process2ndPass()
         if (frange_begin<0) frange_begin=0; // but not before beginning of broadcast
 
         if (ptr_cDecoder) {
+            dsyslog("cMarkAdStandalone::Process2ndPass(): check overlap for marks at frames (%i) and (%i)", p1->position, p2->position);
             if (!ProcessMark2ndPass(&p1,&p2)) {
-                dsyslog("cDecoder: ProcessMark2ndPass no overlap found for marks at frames (%i) and (%i)", p1->position, p2->position);
+                dsyslog("cMarkAdStandalone::Process2ndPass(): no overlap found for marks at frames (%i) and (%i)", p1->position, p2->position);
             }
         }
         else {
-            if (marks.ReadIndex(directory,isTS,frange_begin,frange,&number,&offset,&frame,&iframes))
-            {
+            if (marks.ReadIndex(directory,isTS,frange_begin,frange,&number,&offset,&frame,&iframes)) {
                 if (!ProcessFile2ndPass(&p1,NULL,number,offset,frame,iframes)) break;
 
                 frange=macontext.Video.Info.FramesPerSecond*320; // 160s + 160s
-                if (marks.ReadIndex(directory,isTS,p2->position,frange,&number,&offset,&frame,&iframes))
-                {
+                if (marks.ReadIndex(directory,isTS,p2->position,frange,&number,&offset,&frame,&iframes)) {
                     if (!ProcessFile2ndPass(&p1,&p2,number,offset,frame,iframes)) break;
                 }
             }
-            else
-            {
+            else {
                 esyslog("error reading index");
                 return;
             }
         }
         p1=p2->Next();
-        if (p1)
-        {
+        if (p1) {
             p2=p1->Next();
         }
-        else
-        {
+        else {
             p2=NULL;
         }
     }
