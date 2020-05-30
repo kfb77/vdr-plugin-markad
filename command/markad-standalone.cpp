@@ -284,7 +284,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
     if (startframe < 0) {   // recodring start ist too late
         isyslog("recording started too late, set start mark to start of recording");
         MarkAdMark mark={};
-        mark.Position=0;
+        mark.Position=1;  // do not use position 0 because this will later be deleted
         mark.Type=MT_RECORDINGSTART;
         AddMark(&mark);
         startframe=macontext.Video.Info.FramesPerSecond * 6 * 60;  // give 6 minutes to get best mark type for this recording

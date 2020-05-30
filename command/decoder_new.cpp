@@ -300,7 +300,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     if (!avctx) return NULL;
     if (!avpkt) return NULL;
     AVFrame *avFrame = NULL;
-//    dsyslog("cDecoder::DecodePacket(); framenumber %li",framenumber);
+    tsyslog("cDecoder::DecodePacket(); framenumber %li pts %ld dts %ld",framenumber, avpkt->pts, avpkt->dts);
     avFrame=av_frame_alloc();
     if (!avFrame) {
         dsyslog("cDecoder::DecodePacket(): av_frame_alloc failed");
@@ -379,7 +379,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     if (rc < 0) {
         switch (rc) {
             case AVERROR(EAGAIN):
-//                tsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EAGAIN at frame %li", framenumber);
+                tsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EAGAIN at frame %li", framenumber);
                 stateEAGAIN=true;
                 break;
             case AVERROR(EINVAL):
