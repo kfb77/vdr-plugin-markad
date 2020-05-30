@@ -291,7 +291,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
     }
     else dsyslog("startframe %i", startframe);
 
-    dsyslog("use frame rate %f", macontext.Video.Info.FramesPerSecond);
+    dsyslog("use frame rate %i", (int) macontext.Video.Info.FramesPerSecond);
 
     iStart=-startframe;
     iStop = -(startframe + macontext.Video.Info.FramesPerSecond * length) ;   // iStop change from - to + when frames reached iStop
