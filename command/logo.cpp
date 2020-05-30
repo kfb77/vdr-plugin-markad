@@ -35,7 +35,7 @@ bool cExtractLogo::isWhitePlane(logoInfo *ptr_actLogoInfo, int logoHeight, int l
     if (!ptr_actLogoInfo) return false;
     if (logoHeight < 1) return false;
     if (logoWidth < 1) return false;
-    if ((plane < 0) || (plane > 2)) return false;
+    if ((plane < 0) || (plane >= PLANES)) return false;
 
     int countBlack = 0;
     for (int i = 0; i < logoHeight * logoWidth; i++) {
@@ -55,7 +55,7 @@ bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int
     if ((corner < 0) || (corner > 3)) return false;
     if (!maContext->Info.ChannelName) return false;
 
-    for (int plane=0; plane < 3; plane++) {
+    for (int plane=0; plane < PLANES; plane++) {
         char *buf=NULL;
         int height = logoHeight;
         int width = logoWidth;
@@ -289,6 +289,9 @@ int cExtractLogo::Compare(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, i
 
 
 bool cExtractLogo::CompareLogoPair(logoInfo *logo1, logoInfo *logo2, int logoHeight, int logoWidth) {
+    if (!logo1) return false;
+    if (!logo2) return false;
+
     int similar_0=0;
     int similar_1_2=0;
     int black_0 = 0;
@@ -302,7 +305,7 @@ bool cExtractLogo::CompareLogoPair(logoInfo *logo1, logoInfo *logo2, int logoHei
         }
     }
     for (int i = 0; i < logoHeight/2*logoWidth/2; i++) {    // compare all pixel in plane 1 and 2
-        for (int plane = 1; plane <= 2; plane ++) {
+        for (int plane = 1; plane < PLANES; plane ++) {
             if (logo1->sobel[plane][i] == logo2->sobel[plane][i]) similar_1_2++;
         }
     }
@@ -315,6 +318,7 @@ bool cExtractLogo::CompareLogoPair(logoInfo *logo1, logoInfo *logo2, int logoHei
 
 
 int cExtractLogo::DeleteBorderFrames(MarkAdContext *maContext, int from, int to) {
+    if (!maContext) return false;
     if (from >= to) return 0;
     int deleteCount=0;
     dsyslog("cExtractLogo::DeleteBorderFrames(): delete border frames from %d to %d", from, to);
@@ -344,6 +348,9 @@ int cExtractLogo::DeleteBorderFrames(MarkAdContext *maContext, int from, int to)
 
 
 bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecoder) {
+    if (!maContext) return false;
+    if (!ptr_cDecoder) return false;
+
 #define WAITTIME 60
     char *indexFile = NULL;
     if (recordingFrameCount>(ptr_cDecoder->GetFrameNumber()+200)) return true; // we have already found enougt frames
