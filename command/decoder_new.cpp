@@ -20,7 +20,8 @@ void AVlog(void *ptr, int level, const char* fmt, va_list vl){
             dsyslog("AVlog(): Error in vsprintf");
             return;
         }
-        dsyslog("AVlog(): %s",strtok(logMsg, "\n"));
+        if (strcmp(logMsg, "co located POCs unavailable\n") == 0) tsyslog("AVlog(): %s",strtok(logMsg, "\n")); // this will happen with h.264 coding because of partitial decoding
+        else dsyslog("AVlog(): %s",strtok(logMsg, "\n"));
     }
     return;
 }
