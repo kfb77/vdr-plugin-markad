@@ -82,7 +82,7 @@ AVFormatContext *cDecoder::GetAVFormatContext() {
 
 
 AVCodecContext **cDecoder::GetAVCodecContext() {
-    return(codecCtxArray);
+    return codecCtxArray;
 }
 
 
@@ -99,11 +99,11 @@ bool cDecoder::DecodeFile(const char * filename) {
     }
     else {
         if (fileNumber <= 1) dsyslog("cDecoder::DecodeFile(): Could not open source file %s", filename);
-        return(false);
+        return false;
     }
     if (avformat_find_stream_info(avctx, NULL) <0) {
         dsyslog("cDecoder::DecodeFile(): Could not get stream infos %s", filename);
-        return(false);
+        return false;
     }
 
     if (codecCtxArray) {
@@ -122,13 +122,13 @@ bool cDecoder::DecodeFile(const char * filename) {
 #endif
         if (!codec) {
             dsyslog("cDecoder::DecodeFile(): could nit find decoder for stream");
-            return(false);
+            return false;
         }
         if (msgDecodeFile) dsyslog("cDecoder::DecodeFile(): using decoder for stream %i: %s",i, codec->long_name);
         codecCtxArray[i]=avcodec_alloc_context3(codec);
         if (!codecCtxArray[i]) {
             dsyslog("cDecoder::DecodeFile(): avcodec_alloc_context3 failed");
-            return(false);
+            return false;
         }
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         if (avcodec_parameters_to_context(codecCtxArray[i],avctx->streams[i]->codecpar) < 0) {
@@ -136,16 +136,16 @@ bool cDecoder::DecodeFile(const char * filename) {
         if (avcodec_copy_context(codecCtxArray[i],avctx->streams[i]->codec) < 0) {
 #endif
             dsyslog("cDecoder::DecodeFile(): avcodec_parameters_to_context failed");
-            return(false);
+            return false;
         }
         codecCtxArray[i]->thread_count = threadCount;
         if (avcodec_open2(codecCtxArray[i], codec, NULL) < 0) {
             dsyslog("cDecoder::DecodeFile(): avcodec_open2 failed");
-            return(false);
+            return false;
         }
     }
     msgDecodeFile=false;
-    return(true);
+    return true;
 }
 
 
@@ -274,7 +274,7 @@ bool cDecoder::GetNextFrame() {
 }
 
 AVPacket *cDecoder::GetPacket() {
-    return(&avpkt);
+    return &avpkt;
 }
 
 
@@ -297,14 +297,14 @@ bool cDecoder::SeekToFrame(long int iFrame) {
 
 
 AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
-    if (!avctx) return(NULL);
-    if (!avpkt) return(NULL);
+    if (!avctx) return NULL;
+    if (!avpkt) return NULL;
     AVFrame *avFrame = NULL;
 //    dsyslog("cDecoder::DecodePacket(); framenumber %li",framenumber);
     avFrame=av_frame_alloc();
     if (!avFrame) {
         dsyslog("cDecoder::DecodePacket(): av_frame_alloc failed");
-        return(NULL);
+        return NULL;
     }
     if (isVideoPacket()) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -338,13 +338,13 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     else {
         dsyslog("cDecoder::DecodePacket(): stream type not supported");
         if (avFrame) av_frame_free(&avFrame);
-        return(NULL);
+        return NULL;
     }
     int rc=av_frame_get_buffer(avFrame,32);
     if (rc != 0) {
         dsyslog("cDecoder::DecodePacket(): av_frame_get_buffer failed rc=%i", rc);
         if (avFrame) av_frame_free(&avFrame);
-        return(NULL);
+        return NULL;
     }
 
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -373,7 +373,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
                 break;
             }
         if (avFrame) av_frame_free(&avFrame);
-        return(NULL);
+        return NULL;
     }
     rc = avcodec_receive_frame(codecCtxArray[avpkt->stream_index],avFrame);
     if (rc < 0) {
@@ -390,7 +390,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
                 break;
         }
         if (avFrame) av_frame_free(&avFrame);
-        return(NULL);
+        return NULL;
     }
 #else
     int frame_ready=0;
@@ -399,7 +399,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
         if (rc < 0) {
             dsyslog("cDecoder::DecodePacket(): avcodec_decode_video2 decode of frame (%li) from stream %i failed with return code %i", framenumber, avpkt->stream_index, rc);
             if (avFrame) av_frame_free(&avFrame);
-            return(NULL);
+            return NULL;
         }
     }
     else if (isAudioPacket()) {
@@ -407,28 +407,28 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
         if (rc < 0) {
             dsyslog("cDecoder::DecodePacket(): avcodec_decode_audio4 of frame (%li) from stream %i failed with return code %i", framenumber, avpkt->stream_index, rc);
             if (avFrame) av_frame_free(&avFrame);
-            return(NULL);
+            return NULL;
         }
     }
 
     else {
        dsyslog("cDecoder::DecodePacket(): packet type of stream %i not supported", avpkt->stream_index);
        if (avFrame) av_frame_free(&avFrame);
-       return(NULL);
+       return NULL;
     }
 
     if ( !frame_ready ) {
         stateEAGAIN=true;
         if (avFrame) av_frame_free(&avFrame);
-        return(NULL);
+        return NULL;
     }
 #endif
-    return(avFrame);
+    return avFrame;
 }
 
 
 bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
-    if (!avctx) return(false);
+    if (!avctx) return false;
     AVFrame *avFrame = NULL;
     iFrameData.Valid=false;
     if (isVideoPacket()) {
@@ -453,7 +453,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                 if ((sample_aspect_ratio_num == 0) || (sample_aspect_ratio_den == 0)) {
                     dsyslog("cDecoder::GetFrameInfo(): invalid aspect ratio (%i:%i) at frame (%li)", sample_aspect_ratio_num, sample_aspect_ratio_den, framenumber);
                     if (avFrame) av_frame_free(&avFrame);
-                    return(false);
+                    return false;
                 }
                 if ((sample_aspect_ratio_num == 1) && (sample_aspect_ratio_den == 1)) {
                     if ((avFrame->width == 1280) && (avFrame->height  ==  720) ||
@@ -464,7 +464,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                     else {
                         dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio to video width %i hight %i at frame %li)",avFrame->width,avFrame->height,framenumber);
                         if (avFrame) av_frame_free(&avFrame);
-                        return(false);
+                        return false;
                     }
                 }
                 else {
@@ -515,7 +515,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
         if (isAudioAC3Packet()) {
             if (avpkt.stream_index > MAXSTREAMS) {
                 dsyslog("cDecoder::GetFrameInfo(): to much streams %i", avpkt.stream_index);
-                return(false);
+                return false;
             }
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
             if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codecpar->channels) {
@@ -544,7 +544,7 @@ bool cDecoder::isVideoStream(const unsigned int streamIndex) {
     if (!avctx) return false;
     if ((streamIndex < 0) || (streamIndex >= avctx->nb_streams)) {
         dsyslog("cDecoder::isVideoStream(): streamindex %d out of range", streamIndex);
-        return(false);
+        return false;
     }
 
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -571,7 +571,7 @@ bool cDecoder::isAudioStream(const unsigned int streamIndex) {
     if (!avctx) return false;
     if ((streamIndex < 0) || (streamIndex >= avctx->nb_streams)) {
         dsyslog("cDecoder::isAudioStream(): streamindex %d out of range", streamIndex);
-        return(false);
+        return false;
     }
 
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -594,101 +594,101 @@ bool cDecoder::isAudioPacket() {
 }
 
 bool cDecoder::isAudioAC3Stream(const unsigned int streamIndex) {
-    if (!avctx) return(false);
+    if (!avctx) return false;
     if ((streamIndex < 0) || (streamIndex >= avctx->nb_streams)) {
         dsyslog("cDecoder::isAudioAC3Stream(): streamindex %d out of range", streamIndex);
-        return(false);
+        return false;
     }
 #define AUDIOFORMATAC3 8
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
-    if (avctx->streams[streamIndex]->codecpar->codec_id == AV_CODEC_ID_AC3 ) return(true);
+    if (avctx->streams[streamIndex]->codecpar->codec_id == AV_CODEC_ID_AC3 ) return true;
 #elif LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-    if (avctx->streams[streamIndex]->codecpar->format == AUDIOFORMATAC3) return(true);
+    if (avctx->streams[streamIndex]->codecpar->format == AUDIOFORMATAC3) return true;
 #else
-    if (avctx->streams[streamIndex]->codec->sample_fmt == AUDIOFORMATAC3) return(true);
+    if (avctx->streams[streamIndex]->codec->sample_fmt == AUDIOFORMATAC3) return true;
 #endif
-    return(false);
+    return false;
 }
 
 
 bool cDecoder::isAudioAC3Packet() {
-    if (!avctx) return(false);
+    if (!avctx) return false;
 #define AUDIOFORMATAC3 8
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
-    if (avctx->streams[avpkt.stream_index]->codecpar->codec_id == AV_CODEC_ID_AC3 ) return(true);
+    if (avctx->streams[avpkt.stream_index]->codecpar->codec_id == AV_CODEC_ID_AC3 ) return true;
 #elif LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-    if (avctx->streams[avpkt.stream_index]->codecpar->format == AUDIOFORMATAC3) return(true);
+    if (avctx->streams[avpkt.stream_index]->codecpar->format == AUDIOFORMATAC3) return true;
 #else
-    if (avctx->streams[avpkt.stream_index]->codec->sample_fmt == AUDIOFORMATAC3) return(true);
+    if (avctx->streams[avpkt.stream_index]->codec->sample_fmt == AUDIOFORMATAC3) return true;
 #endif
-    return(false);
+    return false;
 }
 
 
 bool cDecoder::isVideoIFrame() {
-    if (!avctx) return(false);
-    if (!isVideoPacket()) return(false);
-    if ((avpkt.flags & AV_PKT_FLAG_KEY) != 0)  return(true);
-    return(false);
+    if (!avctx) return false;
+    if (!isVideoPacket()) return false;
+    if ((avpkt.flags & AV_PKT_FLAG_KEY) != 0)  return true;
+    return false;
 }
 
 
 long int cDecoder::GetFrameNumber(){
-    return(framenumber);
+    return framenumber;
 }
 
 
 long int cDecoder::GetIFrameCount(){
-    return(iFrameCount);
+    return iFrameCount;
 }
 
 
 bool cDecoder::isInterlacedVideo(){
-    if (interlaced_frame > 0) return(true);
-    return(false);
+    if (interlaced_frame > 0) return true;
+    return false;
 }
 
 
 long int cDecoder::GetIFrameRangeCount(long int beginFrame, long int endFrame) {
     if (iFrameInfoVector.empty()) {
         dsyslog("cDecoder::GetIFrameRangeCount(): iFrame Index not initialized");
-        return(0);
+        return 0;
     }
     int counter=0;
 
     for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
         if (iInfo->iFrameNumber >= beginFrame) {
             counter++;
-            if (iInfo->iFrameNumber >= endFrame) return(counter);
+            if (iInfo->iFrameNumber >= endFrame) return counter;
         }
     }
     dsyslog("cDecoder::GetIFrameRangeCount(): failed beginFrame (%li) endFrame (%li) last frame in index list (%li)", beginFrame, endFrame, iFrameInfoVector.back().iFrameNumber);
-    return(0);
+    return 0;
 }
 
 
 long int cDecoder::GetIFrameBefore(long int iFrame) {
     if (iFrameInfoVector.empty()) {
         dsyslog("cDecoder::GetIFrameBefore(): iFrame Index not initialized");
-        return(0);
+        return 0;
     }
     long int before_iFrame=0;
 
     for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
         if (iInfo->iFrameNumber >= iFrame) {
-            return(before_iFrame);
+            return before_iFrame;
         }
         else before_iFrame=iInfo->iFrameNumber;
     }
     dsyslog("cDecoder::GetIFrameBefore(): failed for frame (%li)", iFrame);
-    return(0);
+    return 0;
 }
 
 
 long int cDecoder::GetTimeFromIFrame(long int iFrame) {
     if (iFrameInfoVector.empty()) {
         dsyslog("cDecoder::GetTimeFromIFrame(): iFrame Index not initialized");
-        return(0);
+        return 0;
     }
     int64_t before_pts=0;
     long int before_iFrame=0;
@@ -696,16 +696,16 @@ long int cDecoder::GetTimeFromIFrame(long int iFrame) {
     for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
         if (iFrame == iInfo->iFrameNumber) {
             tsyslog("cDecoder::GetTimeFromIFrame(): iFrame (%li) time is %" PRId64" ms", iFrame, iInfo->pts_time_ms);
-            return(iInfo->pts_time_ms);
+            return iInfo->pts_time_ms;
         }
         if (iInfo->iFrameNumber > iFrame) {
             if (abs(iFrame - before_iFrame) < abs(iFrame - iInfo->iFrameNumber)) {
 //                tsyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame before (%li) %" PRId64 "ms",iFrame,before_iFrame,before_pts);
-                return(before_pts);
+                return before_pts;
             }
             else {
                 dsyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame after (%li) %" PRId64 "ms",iFrame,iInfo->iFrameNumber,iInfo->pts_time_ms);
-                return(iInfo->pts_time_ms);
+                return iInfo->pts_time_ms;
             }
         }
         else {
@@ -714,5 +714,5 @@ long int cDecoder::GetTimeFromIFrame(long int iFrame) {
         }
     }
     dsyslog("cDecoder::GetTimeFromIFrame(): could not find time for frame %li",iFrame);
-    return(0);
+    return 0;
 }

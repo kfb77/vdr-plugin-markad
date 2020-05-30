@@ -76,13 +76,13 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
     if (setup->autoLogoConf > 0) {
         if(! asprintf(&autoLogoOption," --autologo=%i ",setup->autoLogoConf)) {
             esyslog("markad: asprintf ouf of memory");
-	    return(false);
+	    return false;
         }
     }
     else if (setup->autoLogoMenue > 0) {
         if(! asprintf(&autoLogoOption," --autologo=%i ",setup->autoLogoMenue)) {
             esyslog("markad: asprintf ouf of memory");
-	    return(false);
+	    return false;
         }
     }
 

@@ -37,19 +37,19 @@ bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFo
     filterGraph = avfilter_graph_alloc();
     if (!filterGraph) {
         dsyslog("cAC3VolumeFilter:Init(): Unable to create filter graph %i", AVERROR(ENOMEM));
-        return(false);
+        return false;
     }
 
 // Create the abuffer filter, it will be used for feeding the data into the graph
     abuffer = avfilter_get_by_name("abuffer");
     if (!abuffer) {
         dsyslog("cAC3VolumeFilter::Init(): Could not find the abuffer filter");
-        return(false);
+        return false;
     }
     filterSrc = avfilter_graph_alloc_filter(filterGraph, abuffer, "src");
     if (!filterSrc) {
         dsyslog("cAC3VolumeFilter::Init(): Could not allocate the abuffer instance %i", AVERROR(ENOMEM));
-        return(false);
+        return false;
     }
 // Set the filter options through the AVOptions API
     av_get_channel_layout_string(ch_layout, sizeof(ch_layout), 0, (int64_t) channel_layout);
@@ -61,55 +61,55 @@ bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFo
     err = avfilter_init_str(filterSrc, NULL);
     if (err < 0) {
         dsyslog("cAC3VolumeFilter::Init(): Could not initialize the abuffer filter %i", err);
-        return(false);
+        return false;
     }
 
 // Create volume filter
     volume = avfilter_get_by_name("volume");
     if (!volume) {
         dsyslog("cAC3VolumeFilter::Init(): Could not find the volume filter");
-        return(false);
+        return false;
     }
     volume_ctx = avfilter_graph_alloc_filter(filterGraph, volume, "volume");
     if (!volume_ctx) {
         dsyslog("cAC3VolumeFilter::Init(): Could not allocate the volume instance %i", AVERROR(ENOMEM));
-        return(false);
+        return false;
     }
     av_opt_set(volume_ctx, "volume", AV_STRINGIFY(VOLUME), AV_OPT_SEARCH_CHILDREN);
     err = avfilter_init_str(volume_ctx, NULL);
     if (err < 0) {
         dsyslog("cAC3VolumeFilter::Init(): Could not initialize the volume filter %i", err);
-        return(false);
+        return false;
     }
 
 // Finally create the abuffersink filter, it will be used to get the filtered data out of the graph
     abuffersink = avfilter_get_by_name("abuffersink");
     if (!abuffersink) {
         dsyslog("cAC3VolumeFilter::Init(): Could not find the abuffersink filter");
-        return(false);
+        return false;
     }
     filterSink = avfilter_graph_alloc_filter(filterGraph, abuffersink, "sink");
     if (!filterSink) {
         dsyslog("cAC3VolumeFilter::Init(): Could not allocate the abuffersink instance %i", AVERROR(ENOMEM));
-        return(false);
+        return false;
     }
 // This filter takes no options
     err = avfilter_init_str(filterSink, NULL);
     if (err < 0) {
         dsyslog("cAC3VolumeFilter::Init(): Could not initialize the abuffersink instance %i", err);
-        return(false);
+        return false;
     }
 
 // Connect the filters just form a linear chain
     err = avfilter_link(filterSrc, 0, volume_ctx, 0);
     if (err < 0) {
         dsyslog("cAC3VolumeFilter::Init(): Could not link abuffer to volume %i", err);
-        return(false);
+        return false;
     }
     err = avfilter_link(volume_ctx, 0, filterSink, 0);
     if (err < 0) {
         dsyslog("cAC3VolumeFilter::Init(): Could not link volume to abuffersink %i", err);
-        return(false);
+        return false;
     }
 
 // Configure the graph
@@ -120,33 +120,33 @@ bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFo
     }
 
     dsyslog("cAC3VolumeFilter::Init(): successful with channel layout %s", ch_layout);
-    return(true);
+    return true;
 }
 
 
 bool cAC3VolumeFilter::SendFrame(AVFrame *avFrame) {
-    if (!avFrame) return(false);
+    if (!avFrame) return false;
     int err = 0;
 // Send the frame to the input of the filtergraph
     err = av_buffersrc_add_frame(filterSrc, avFrame);
     if (err < 0) {
         dsyslog("cAC3VolumeFilter::SendFrame(): Error submitting the frame to the filtergraph %i", err);
-        return(false);
+        return false;
    }
-   return(true);
+   return true;
 }
 
 
 bool cAC3VolumeFilter::GetFrame(AVFrame *avFrame) {
-    if (!avFrame) return(false);
+    if (!avFrame) return false;
     int err = 0;
 // Send the frame to the input of the filtergraph
     err = av_buffersink_get_frame(filterSink, avFrame);
     if (err < 0) {
         dsyslog("cAC3VolumeFilter::SendFrame(): Error getting the frame from the filtergraph %i", err);
-        return(false);
+        return false;
    }
-   return(true);
+   return true;
 }
 
 
@@ -168,8 +168,8 @@ cEncoder::~cEncoder() {
 
 
 bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
-    if (!directory) return(false);
-    if (!ptr_cDecoder) return(false);
+    if (!directory) return false;
+    if (!ptr_cDecoder) return false;
     int ret = 0;
     char *filename;
     char *CutName;
@@ -179,7 +179,7 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     AVFormatContext *avctxIn = ptr_cDecoder->GetAVFormatContext();
     if (! avctxIn) {
         dsyslog("cEncoder::OpenFile(): failed to get input video context");
-        return(false);
+        return false;
     }
 
     codecCtxArrayOut = (AVCodecContext **) malloc(sizeof(AVCodecContext *) * avctxIn->nb_streams);
@@ -192,19 +192,19 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
 
     if (asprintf(&buffCutName,"%s", directory)==-1) {
         dsyslog("cEncoder::OpenFile(): failed to allocate string, out of memory?");
-        return(false);
+        return false;
     }
     CutName=buffCutName;
     char *tmp = strrchr(CutName, '/');
     if (!tmp) {
         dsyslog("cEncoder::OpenFile(): faild to find last '/'");
-        return(false);
+        return false;
     }
     CutName[tmp-CutName]=0;
     tmp = strrchr(CutName, '/')+1;
     if (!tmp) {
         dsyslog("cEncoder::OpenFile(): faild to find last '/'");
-        return(false);
+        return false;
     }
     CutName=tmp;
     dsyslog("cEncoder::OpenFile(): CutName '%s'",CutName);
@@ -220,19 +220,19 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     avformat_alloc_output_context2(&avctxOut, NULL, NULL, filename);
     if (!avctxOut) {
         dsyslog("cEncoder::OpenFile(): Could not create output context");
-        return(false);
+        return false;
     }
 #else  // Raspbian Jessie
     avctxOut = avformat_alloc_context();
     if (!avctxOut) {
         dsyslog("cEncoder::OpenFile(): Could not create output context");
-        return(false);
+        return false;
     }
     snprintf(avctxOut->filename, sizeof(avctxOut->filename), "%s", filename);
     AVOutputFormat *avOutputFormat = av_guess_format(NULL, filename, NULL);
     if (!avOutputFormat) {
         dsyslog("cEncoder::OpenFile(): Could not create output format");
-        return(false);
+        return false;
     }
     avctxOut->oformat=avOutputFormat;
 #endif
@@ -241,40 +241,40 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     AVCodecContext **codecCtxArrayIn = ptr_cDecoder->GetAVCodecContext();
         if (! codecCtxArrayIn) {
             dsyslog("cEncoder::OpenFile(): failed to get input codec context");
-            return(false);
+            return false;
         }
 
     for (unsigned int i = 0; i < avctxIn->nb_streams; i++) {
             bool ret = InitEncoderCodec(ptr_cDecoder, avctxIn, avctxOut, i, codecCtxArrayIn[i]);
             if ( !ret ) {
                 dsyslog("cEncoder::OpenFile(): InitEncoderCodec failed");
-                return(false);
+                return false;
             }
     }
 
     ret = avio_open(&avctxOut->pb, filename, AVIO_FLAG_WRITE);
     if (ret < 0) {
         dsyslog("cEncoder::OpenFile(): Could not open output file '%s'", filename);
-        return(false);
+        return false;
     }
     ret = avformat_write_header(avctxOut, NULL);
     if (ret < 0) {
         dsyslog("cEncoder::OpenFile(): could not write header");
-        return(false);
+        return false;
     }
     free(filename);
-    return(true);
+    return true;
 }
 
 
 bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, const unsigned int streamIndex, AVCodecContext *avCodecCtxIn) {
-    if(!ptr_cDecoder) return(false);
-    if (!avctxIn) return(false);
+    if(!ptr_cDecoder) return false;
+    if (!avctxIn) return false;
     if ((streamIndex < 0) || (streamIndex >= avctxIn->nb_streams)) {
         dsyslog("cEncoder::ChangeEncoderCodec(): streamindex %d out of range", streamIndex);
-        return(false);
+        return false;
     }
-    if (!avCodecCtxIn) return(false);
+    if (!avCodecCtxIn) return false;
 
 
     avcodec_close(codecCtxArrayOut[streamIndex]);
@@ -285,7 +285,7 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctx
 #endif
     if (!codec) {
         dsyslog("cEncoder::ChangeEncoderCodec(): could nit find encoder for stream %i", streamIndex);
-        return(false);
+        return false;
     }
     dsyslog("cEncoder::ChangeEncoderCodec(): using decoder id %s for stream %i", codec->long_name,streamIndex);
 
@@ -304,14 +304,14 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctx
     }
     else {
         dsyslog("cEncoder::ChangeEncoderCodec():odec of stream %i not suported", streamIndex);
-        return(false);
+        return false;
     }
     codecCtxArrayOut[streamIndex]->thread_count = threadCount;
     if (avcodec_open2(codecCtxArrayOut[streamIndex], codec, NULL) < 0) {
         dsyslog("cEncoder::ChangeEncoderCodec(): avcodec_open2 for stream %i failed", streamIndex);
         avcodec_free_context(&codecCtxArrayOut[streamIndex]);
         codecCtxArrayOut[streamIndex]=NULL;
-        return(false);
+        return false;
     }
     dsyslog("cEncoder::ChangeEncoderCodec(): avcodec_open2 for stream %i successful", streamIndex);
 
@@ -319,28 +319,28 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctx
         dsyslog("cEncoder::ChangeEncoderCodec(): AC3 stream found %i, re-initialize volume filter", streamIndex);
         if (!ptr_cAC3VolumeFilter[streamIndex]) {
             dsyslog("cEncoder::ChangeEncoderCodec(): ptr_cAC3VolumeFilter not initialized for stream %i", streamIndex);
-            return(false);
+            return false;
         }
         delete ptr_cAC3VolumeFilter[streamIndex];
         ptr_cAC3VolumeFilter[streamIndex] = new cAC3VolumeFilter();
         if (!ptr_cAC3VolumeFilter[streamIndex]->Init(avCodecCtxIn->channel_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate)) {
             dsyslog("cEncoder::ChangeEncoderCodec(): ptr_cAC3VolumeFilter->Init() failed");
-            return(false);
+            return false;
         }
     }
-    return(true);
+    return true;
 }
 
 
 bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, const unsigned int streamIndex, AVCodecContext *avCodecCtxIn) {
-    if (!ptr_cDecoder) return(false);
-    if (!avctxIn) return(false);
-    if (!avctxOut) return(false);
+    if (!ptr_cDecoder) return false;
+    if (!avctxIn) return false;
+    if (!avctxOut) return false;
     if ((streamIndex < 0) || (streamIndex >= avctxIn->nb_streams)) {
         dsyslog("cEncoder::ChangeEncoderCodec(): streamindex %d out of range", streamIndex);
-        return(false);
+        return false;
     }
-    if (!avCodecCtxIn) return(false);
+    if (!avCodecCtxIn) return false;
 
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     AVCodec *codec=avcodec_find_encoder(avctxIn->streams[streamIndex]->codecpar->codec_id);
@@ -349,20 +349,20 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
 #endif
     if (!codec) {
         dsyslog("cEncoder::InitEncoderCodec(): could nit find encoder for stream %i", streamIndex);
-        return(false);
+        return false;
     }
     dsyslog("cEncoder::InitEncoderCodec(): using decoder id %s for stream %i", codec->long_name,streamIndex);
 
     AVStream *out_stream = avformat_new_stream(avctxOut, codec);
     if (!out_stream) {
         dsyslog("cEncoder::InitEncoderCodec(): Failed allocating output stream");
-        return(false);
+        return false;
     }
 
     codecCtxArrayOut[streamIndex]=avcodec_alloc_context3(codec);
     if (!codecCtxArrayOut[streamIndex]) {
         dsyslog("cEncoder::InitEncoderCodec(): avcodec_alloc_context3 failed");
-        return(false);
+        return false;
     }
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     if (avcodec_parameters_to_context(codecCtxArrayOut[streamIndex],avctxOut->streams[streamIndex]->codecpar) < 0)
@@ -371,7 +371,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
 #endif
     {
         dsyslog("cEncoder::InitEncoderCodec(): avcodec_parameters_to_context failed");
-        return(false);
+        return false;
     }
     codecCtxArrayOut[streamIndex]->time_base.num =  avCodecCtxIn->time_base.num;
     codecCtxArrayOut[streamIndex]->time_base.den = avCodecCtxIn->time_base.den;
@@ -397,7 +397,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
 #endif
     if (ret < 0) {
         dsyslog("cEncoder::InitEncoderCodec(): Failed to copy codecpar context from input to output stream");
-        return(false);
+        return false;
     }
 
     codecCtxArrayOut[streamIndex]->thread_count = threadCount;
@@ -412,21 +412,21 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
         dsyslog("cEncoder::InitEncoderCodec(): AC3 stream found %i, initialize volume filter", streamIndex);
         if (ptr_cAC3VolumeFilter[streamIndex]) {
             dsyslog("cEncoder::InitEncoderCodec(): ptr_cAC3VolumeFilter is not NULL for stream %i", streamIndex);
-            return(false);
+            return false;
         }
         ptr_cAC3VolumeFilter[streamIndex] = new cAC3VolumeFilter();
         if (!ptr_cAC3VolumeFilter[streamIndex]->Init(avCodecCtxIn->channel_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate)) {
             dsyslog("cEncoder::InitEncoderCodec(): ptr_cAC3VolumeFilter->Init() failed");
-            return(false);
+            return false;
         }
     }
-    return(true);
+    return true;
 }
 
 
 bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
-    if (!avpktOut) return(false);
-    if (!ptr_cDecoder) return(false);
+    if (!avpktOut) return false;
+    if (!ptr_cDecoder) return false;
 
     int ret = 0;
     AVPacket avpktAC3;
@@ -437,20 +437,20 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
 
     if (! avctxOut ) {
         dsyslog("cEncoder::WritePacket(): got no AVFormatContext from output file");
-        return(false);
+        return false;
     }
     if (! ptr_cDecoder ) {
         dsyslog("cEncoder::WritePacket(): got no ptr_cDecoder from output file");
-        return(false);
+        return false;
     }
 
     if (avpktOut->dts == AV_NOPTS_VALUE) {
          dsyslog("cEncoder::WritePacket(): frame (%ld) got no dts value from input stream %i", ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index);
-         return(false);
+         return false;
     }
     if (avpktOut->pts <  avpktOut->dts) {
         dsyslog("cEncoder::WritePacket(): pts (%" PRId64 ") smaller than dts (%" PRId64 ") in frame (%ld) of stream %d",avpktOut->pts,avpktOut->dts,ptr_cDecoder->GetFrameNumber(),avpktOut->stream_index);
-        return(false);
+        return false;
     }
 
     if (dts[avpktOut->stream_index] == 0) {
@@ -463,7 +463,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
             dsyslog("cEncoder::WritePacket(): frame (%ld) stream %d old offset: %" PRId64 " increase %" PRId64 " = %dmin", ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, pts_dts_offset, newOffset, newOffsetMin);
             if (newOffsetMin > 100) {
                 dsyslog("cEncoder::WritePacket(): dts value not valid, ignoring");
-                return(false);
+                return false;
             }
             ptsCut = avpktOut->pts;
             pts_dts_offset += newOffset;
@@ -473,7 +473,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
 
     if (avpktOut->pts < ptsCut) {  // after cut ignore audio frames with smaller PTS than video frame
         dsyslog("cEncoder::WritePacket(): audio pts %ld smaller than video cut pts (%ld) at frame (%ld) of stream %d", avpktOut->pts, ptsCut, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index);
-        return(true);
+        return true;
     }
 
     avpktOut->pts = avpktOut->pts - pts_dts_offset;
@@ -481,7 +481,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     avpktOut->pos=-1;   // byte position in stream unknown
     if (dtsBefore[avpktOut->stream_index] >= avpktOut->dts) {  // drop non monotonically increasing dts packets
         dsyslog("cEncoder::WritePacket(): non monotonically increasing dts at frame (%ld) of stream %d, dts last packet %" PRId64 ", dts %" PRId64 ", offset %" PRId64, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, dtsBefore[avpktOut->stream_index], avpktOut->dts, avpktOut->dts - dtsBefore[avpktOut->stream_index]);
-        return(true);
+        return true;
     }
 
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -493,26 +493,26 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         AVFormatContext *avctxIn = ptr_cDecoder->GetAVFormatContext();
         if (!avctxIn) {
             dsyslog("cEncoder::WritePacket(): failed to get AVFormatContext at frame %ld",ptr_cDecoder->GetFrameNumber());
-            return(false);
+            return false;
         }
 
 // decode packet
         avFrameOut = ptr_cDecoder->DecodePacket(avctxIn, avpktOut);
         if ( ! avFrameOut ) {
             dsyslog("cEncoder::WritePacket(): AC3 Decoder failed at frame %ld",ptr_cDecoder->GetFrameNumber());
-            return(false);
+            return false;
         }
 
         AVCodecContext **codecCtxArrayIn = ptr_cDecoder->GetAVCodecContext();
         if (! codecCtxArrayIn) {
             dsyslog("cEncoder::WritePacket(): failed to get input codec context");
             if (avFrameOut) av_frame_free(&avFrameOut);
-            return(false);
+            return false;
         }
         if (! codecCtxArrayOut[avpktOut->stream_index]) {
            dsyslog("cEncoder::WritePacket(): Codec Context not found for stream %i", avpktOut->stream_index);
            if (avFrameOut) av_frame_free(&avFrameOut);
-           return(false);
+           return false;
         }
 
 // Check if the audio strem changed channels
@@ -527,7 +527,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
             if ( !ret ) {
                 dsyslog("cEncoder::WritePacket(): InitEncoderCodec failed");
                 if (avFrameOut) av_frame_free(&avFrameOut);
-                return(false);
+                return false;
             }
         }
 
@@ -536,12 +536,12 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
             if (!ptr_cAC3VolumeFilter[avpktOut->stream_index]->SendFrame(avFrameOut)) {
                 dsyslog("cEncoder::WriteFrame(): cAC3VolumeFilter SendFrame failed");
                 if (avFrameOut) av_frame_free(&avFrameOut);
-                return(false);
+                return false;
             }
             if (!ptr_cAC3VolumeFilter[avpktOut->stream_index]->GetFrame(avFrameOut)) {
                 dsyslog("cEncoder::WriteFrame(): cAC3VolumeFilter GetFrame failed");
                 if (avFrameOut) av_frame_free(&avFrameOut);
-                return(false);
+                return false;
             }
         }
 
@@ -551,7 +551,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
                 dsyslog("cEncoder::WritePacket(): AC3 Encoder failed of stream %i at frame %ld", avpktOut->stream_index, ptr_cDecoder->GetFrameNumber());
                 av_packet_unref(&avpktAC3);
                 if (avFrameOut) av_frame_free(&avFrameOut);
-                return(false);
+                return false;
             }
             else if (avFrameOut) av_frame_free(&avFrameOut);
         }
@@ -559,7 +559,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
             dsyslog("cEncoder::WritePacket(): encoding of stream %i not supported", avpktOut->stream_index);
             av_packet_unref(&avpktAC3);
             if (avFrameOut) av_frame_free(&avFrameOut);
-            return(false);
+            return false;
         }
         // restore packets timestamps and index to fit in recording
         avpktAC3.pts=avpktOut->pts;
@@ -572,23 +572,23 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     if (ret < 0) {
         dsyslog("cEncoder::WritePacket: Error %i writing frame %ld to stream %i", ret, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index);
         av_packet_unref(&avpktAC3);
-        return(false);
+        return false;
     }
     dtsBefore[avpktOut->stream_index]=avpktOut->dts;
     dts[avpktOut->stream_index] += avpktOut->duration;
     av_packet_unref(&avpktAC3);
-    return(true);
+    return true;
 }
 
 
 bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, AVFrame *avFrameOut, AVPacket *avpktAC3) {
-    if (!ptr_cDecoder) return(false);
+    if (!ptr_cDecoder) return false;
     if (!avCodecCtx) {
         dsyslog("cEncoder::EncodeFrame(): codec context not set");
-        return(false);
+        return false;
     }
-    if (!avFrameOut) return(false);
-    if (!avpktAC3) return(false);
+    if (!avFrameOut) return false;
+    if (!avpktAC3) return false;
 
     int rc = 0;
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -622,7 +622,7 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
                 break;
         }
         if (avFrameOut) av_frame_free(&avFrameOut);
-        return(false);
+        return false;
     }
 
 #else
@@ -632,16 +632,16 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
         if (rc < 0) {
             dsyslog("cEncoder::EncodeFrame(): avcodec_encode_audio2 of frame (%li) from stream %i failed with return code %i", ptr_cDecoder->GetFrameNumber(), avpktAC3->stream_index, rc);
             if (avFrameOut) av_frame_free(&avFrameOut);
-            return(false);
+            return false;
         }
     }
     else {
        dsyslog("cEncoder::EncodeFrame(): packet type of stream %i not supported", avpktAC3->stream_index);
        if (avFrameOut) av_frame_free(&avFrameOut);
-       return(false);
+       return false;
     }
 #endif
-    return(true);
+    return true;
 }
 
 
@@ -651,12 +651,12 @@ bool cEncoder::CloseFile() {
     ret=av_write_trailer(avctxOut);
     if (ret < 0) {
         dsyslog("cEncoder::CloseFile(): could not write trailer");
-        return(false);
+        return false;
     }
     ret=avio_closep(&avctxOut->pb);
     if (ret < 0) {
         dsyslog("cEncoder::CloseFile(): could not close file");
-        return(false);
+        return false;
     }
-    return(true);
+    return true;
 }

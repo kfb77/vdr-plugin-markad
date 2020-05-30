@@ -32,28 +32,28 @@ cExtractLogo::~cExtractLogo() {
 
 
 bool cExtractLogo::isWhitePlane(logoInfo *ptr_actLogoInfo, int logoHeight, int logoWidth, int plane) {
-    if (!ptr_actLogoInfo) return(false);
-    if (logoHeight < 1) return(false);
-    if (logoWidth < 1) return(false);
-    if ((plane < 0) || (plane > 2)) return(false);
+    if (!ptr_actLogoInfo) return false;
+    if (logoHeight < 1) return false;
+    if (logoWidth < 1) return false;
+    if ((plane < 0) || (plane > 2)) return false;
 
     int countBlack = 0;
     for (int i = 0; i < logoHeight * logoWidth; i++) {
         if (ptr_actLogoInfo->sobel[plane][i] == 0) {
             countBlack++;
-            if (countBlack >= 5) return(false);   // only if there are same pixel
+            if (countBlack >= 5) return false;   // only if there are same pixel
         }
     }
-    return(true);
+    return true;
 }
 
 
 bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int logoHeight, int logoWidth, int corner) {
-    if (!maContext) return(false);
-    if (!ptr_actLogoInfo) return(false);
-    if ((logoHeight <= 0) || (logoWidth <= 0)) return(false);
-    if ((corner < 0) || (corner > 3)) return(false);
-    if (!maContext->Info.ChannelName) return(false);
+    if (!maContext) return false;
+    if (!ptr_actLogoInfo) return false;
+    if ((logoHeight <= 0) || (logoWidth <= 0)) return false;
+    if ((corner < 0) || (corner > 3)) return false;
+    if (!maContext->Info.ChannelName) return false;
 
     for (int plane=0; plane < 3; plane++) {
         char *buf=NULL;
@@ -73,7 +73,7 @@ bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int
             else dsyslog("cExtractLogo::Save(): got enough pixel (%i) in plane %i", black, plane);
         }
         if (this->isWhitePlane(ptr_actLogoInfo, height, width, plane)) continue;
-        if (asprintf(&buf,"%s/%s-A%i_%i-P%i.pgm",maContext->Config->recDir, maContext->Info.ChannelName, ptr_actLogoInfo->aspectratio.Num,ptr_actLogoInfo->aspectratio.Den,plane)==-1) return(false);
+        if (asprintf(&buf,"%s/%s-A%i_%i-P%i.pgm",maContext->Config->recDir, maContext->Info.ChannelName, ptr_actLogoInfo->aspectratio.Num,ptr_actLogoInfo->aspectratio.Den,plane)==-1) return false;
         dsyslog("cExtractLogo::Save(): store logo in %s", buf);
         // Open file
         FILE *pFile=fopen(buf, "wb");
@@ -81,7 +81,7 @@ bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int
         {
             free(buf);
             dsyslog("cExtractLogo::Save(): open file failed");
-            return(false);
+            return false;
         }
        // Write header
         fprintf(pFile, "P5\n#C%i\n%d %d\n255\n", corner, width, height);
@@ -91,21 +91,21 @@ bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int
             dsyslog("cExtractLogo::Save(): write data failed");
             fclose(pFile);
             free(buf);
-            return(false);
+            return false;
         }
         // Close file
         fclose(pFile);
         free(buf);
     }
-    return(true);
+    return true;
 }
 
 
 bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, int bestLogoCorner) {
-    if (!bestLogoInfo) return(false);
-    if (!logoHeight) return(false);
-    if (!logoWidth) return(false);
-    if ((bestLogoCorner < 0) || (bestLogoCorner > 3)) return(false);
+    if (!bestLogoInfo) return false;
+    if (!logoHeight) return false;
+    if (!logoWidth) return false;
+    if ((bestLogoCorner < 0) || (bestLogoCorner > 3)) return false;
 
 // resize plane 0
     dsyslog("cExtractLogo::Resize(): logo size before resize: %d height %d width on corner %d", *logoHeight, *logoWidth, bestLogoCorner);
@@ -219,31 +219,31 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
         }
     }
     dsyslog("cExtractLogo::Resize(): logo size after resize: %d height %d width on corner %d", *logoHeight, *logoWidth, bestLogoCorner);
-    return(true);
+    return true;
 }
 
 
 int cExtractLogo::Compare(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int logoHeight, int logoWidth, int corner) {
-    if (!maContext) return(0);
-    if (!ptr_actLogoInfo) return(0);
-    if ((logoHeight <= 0) || (logoWidth <= 0)) return(0);
-    if ((corner < 0) || (corner > 3)) return(0);
+    if (!maContext) return 0;
+    if (!ptr_actLogoInfo) return 0;
+    if ((logoHeight <= 0) || (logoWidth <= 0)) return 0;
+    if ((corner < 0) || (corner > 3)) return 0;
     if (!ptr_actLogoInfo->valid) {
         dsyslog("cExtractLogo::Compare(): invalid logo data at frame %i", ptr_actLogoInfo->iFrameNumber);
-        return(0);
+        return 0;
     }
     int hits=0;
     if (corner <= 1) { // a valid top logo should have a white top part in plane 0
         for (int i = 0 ; i < 10 * logoWidth; i++) {
             if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
-                return(0);
+                return 0;
             }
         }
     }
     else { // a valid bottom logo should have a white bottom  part in plane 0
         for (int i = (logoHeight-10) * logoWidth; i < logoHeight*logoWidth; i++) {
             if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
-                return(0);
+                return 0;
             }
         }
     }
@@ -251,7 +251,7 @@ int cExtractLogo::Compare(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, i
         for (int column = 0; column < 10; column++) {
             for (int i = column; i < logoHeight*logoWidth; i = i + logoWidth) {
                 if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
-                    return(0);
+                    return 0;
                 }
             }
         }
@@ -260,7 +260,7 @@ int cExtractLogo::Compare(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, i
         for (int column = 0; column < 10; column++) {
             for (int i = logoWidth-column; i < logoHeight*logoWidth; i = i + logoWidth) {
                 if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
-                    return(0);
+                    return 0;
                 }
             }
         }
@@ -284,7 +284,7 @@ int cExtractLogo::Compare(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, i
             }
         }
     }
-    return(hits);
+    return hits;
 }
 
 
@@ -309,19 +309,19 @@ bool cExtractLogo::CompareLogoPair(logoInfo *logo1, logoInfo *logo2, int logoHei
     if (black_0 > 100) rate_0=1000*similar_0/black_0;   // accept only if we found some pixels
     else rate_0=0;
     rate_1_2 = 1000*similar_1_2/(logoHeight*logoWidth)*2;
-    if ((rate_0 > 900) && (rate_1_2 > 990)) return(true);
-    return(false);
+    if ((rate_0 > 900) && (rate_1_2 > 990)) return true;
+    return false;
 }
 
 
 int cExtractLogo::DeleteBorderFrames(MarkAdContext *maContext, int from, int to) {
-    if (from >= to) return(0);
+    if (from >= to) return 0;
     int deleteCount=0;
     dsyslog("cExtractLogo::DeleteBorderFrames(): delete border frames from %d to %d", from, to);
     for (int corner = 0; corner <= 3; corner++) {
         if (maContext->Config->autoLogo == 1) { // use packed logos
             for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
-                if (abortNow) return(deleteCount/4);
+                if (abortNow) return deleteCount/4;
                 if (( actLogoPacked->iFrameNumber >= from) && ( actLogoPacked->iFrameNumber <= to)) {
                     logoInfoVectorPacked[corner].erase(actLogoPacked);
                     deleteCount++;
@@ -339,35 +339,35 @@ int cExtractLogo::DeleteBorderFrames(MarkAdContext *maContext, int from, int to)
            }
         }
    }
-   return(deleteCount/4);  // 4 corner
+   return deleteCount/4;  // 4 corner
 }
 
 
 bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecoder) {
 #define WAITTIME 60
     char *indexFile = NULL;
-    if (recordingFrameCount>(ptr_cDecoder->GetFrameNumber()+200)) return(true); // we have already found enougt frames
+    if (recordingFrameCount>(ptr_cDecoder->GetFrameNumber()+200)) return true; // we have already found enougt frames
 
     if (asprintf(&indexFile,"%s/index",maContext->Config->recDir)==-1) indexFile=NULL;
     if (!indexFile) {
         dsyslog("cExtractLogo::isRunningRecording(): no index file info");
-        return(false);
+        return false;
     }
     struct stat indexStatus;
     if (stat(indexFile,&indexStatus)==-1) {
         dsyslog("cExtractLogo::isRunningRecording(): failed to stat %s",indexFile);
-        return(false);
+        return false;
     }
     int maxframes=indexStatus.st_size/8;
     recordingFrameCount=maxframes;
-    if (maxframes>(ptr_cDecoder->GetFrameNumber()+200)) return(true);  // recording has enough frames
+    if (maxframes>(ptr_cDecoder->GetFrameNumber()+200)) return true;  // recording has enough frames
     if ((difftime(time(NULL),indexStatus.st_mtime))>=WAITTIME) {
         dsyslog("cExtractLogo::isRunningRecording(): index not growing at frame (%ld), old or interrupted recording", ptr_cDecoder->GetFrameNumber());
-        return(false);
+        return false;
     }
     dsyslog("cExtractLogo::WaitForFrames(): waiting for new frames at frame (%ld)", ptr_cDecoder->GetFrameNumber());
     sleep(WAITTIME); // now we sleep and hopefully the index will grow
-    return(true);
+    return true;
 }
 
 
@@ -422,9 +422,9 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
 
     if (!maContext) {
         dsyslog("cExtractLogo::SearchLogo(): maContext not valid");
-        return(false);
+        return false;
     }
-    if (startFrame < 0) return(false);
+    if (startFrame < 0) return false;
 
     cMarkAdLogo *logo = NULL;
     long int iFrameNumber = 0;
@@ -446,7 +446,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
 
     if (!WaitForFrames(maContext, ptr_cDecoder)) {
         dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");
-        return(false);
+        return false;
     }
     while(ptr_cDecoder->DecodeDir(maContext->Config->recDir)) {
         maContext->Video.Info.Height=ptr_cDecoder->GetVideoHeight();
@@ -467,7 +467,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
         bool firstFrame = true;
         MarkAdAspectRatio aspectRatio = {};
         while(ptr_cDecoder->GetNextFrame()) {
-            if (abortNow) return(false);
+            if (abortNow) return false;
             if (!WaitForFrames(maContext, ptr_cDecoder)) {
                 dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");
                 iFrameCountAll=MAXREADFRAMES; // make sure we leave the loops
@@ -649,5 +649,5 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
     if (retStatus) dsyslog("cExtractLogo::SearchLogo(): finished successfully");
     else dsyslog("cExtractLogo::SearchLogo(): failed");
     dsyslog("----------------------------------------------------------------------------");
-    return(retStatus);
+    return retStatus;
 }

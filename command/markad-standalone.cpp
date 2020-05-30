@@ -1914,11 +1914,11 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
 
             if (!video) {
                 esyslog("cMarkAdStandalone::ProcessFrame() video not initialized");
-                return(false);
+                return false;
             }
             if (!macontext.Video.Data.Valid) {
                 isyslog("cMarkAdStandalone::ProcessFrame faild to get video data of frame (%li)", ptr_cDecoder->GetFrameNumber());
-                return(false);
+                return false;
             }
 
             if ( !restartLogoDetectionDone && (lastiframe > (iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE)) &&
@@ -1959,7 +1959,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                         CheckStart();
                     }
                     CheckStop();
-                    return(false);
+                    return false;
                 }
             }
         }
@@ -1968,7 +1968,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
             if (amark) AddMark(amark);
         }
     }
-    return(true);
+    return true;
 }
 
 void cMarkAdStandalone::ProcessFile()
@@ -2454,7 +2454,7 @@ bool cMarkAdStandalone::CheckLogo()
                 if (!strncmp(dirent->d_name,macontext.Info.ChannelName,len)) {
                     closedir(dir);
                     isyslog("logo found in recording directory");
-                    return(true);
+                    return true;
                 }
             }
             closedir(dir);
@@ -2474,7 +2474,7 @@ bool cMarkAdStandalone::CheckLogo()
                 delete ptr_cExtractLogo;
                 ptr_cExtractLogo = NULL;
             }
-            return(true);
+            return true;
         }
     }
     return false;

@@ -68,18 +68,18 @@ void cMarkAdLogo::Clear()
 }
 
 areaT * cMarkAdLogo::GetArea() {
-   return(&area);
+   return &area;
 }
 
 int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) {
-    if (!directory) return(-1);
-    if (!file) return(-1);
+    if (!directory) return -1;
+    if (!file) return -1;
     if ((plane < 0) || (plane >= PLANES)) {
         dsyslog("cMarkAdLogo::Load(): plane %d not valid", plane);
-        return(-3);
+        return -3;
     }
     char *path;
-    if (asprintf(&path,"%s/%s-P%i.pgm",directory,file,plane)==-1) return(-3);
+    if (asprintf(&path,"%s/%s-P%i.pgm",directory,file,plane)==-1) return -3;
 
     // Load mask
     FILE *pFile;
@@ -88,7 +88,7 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
     free(path);
     if (!pFile) {
         if (plane > 0) dsyslog("cMarkAdLogo::Load(): file not found for logo %s plane %d in %s",file, plane, directory);
-        return(-1);
+        return -1;
     }
 
     int width,height;
@@ -96,7 +96,7 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
     if (fscanf(pFile, "P5\n#%1c%1i %4i\n%3d %3d\n255\n#", &c,&area.corner,&area.mpixel[plane],&width,&height)!=5) {
         fclose(pFile);
         esyslog("format error in %s",file);
-        return(-2);
+        return -2;
     }
     if (c=='D') macontext->Audio.Options.IgnoreDolbyDetection=true;
 
@@ -109,13 +109,13 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
     if ((width<=0) || (height<=0) || (width>LOGO_MAXWIDTH) || (height>LOGO_MAXHEIGHT) || (area.corner<TOP_LEFT) || (area.corner>BOTTOM_RIGHT)) {
         fclose(pFile);
         esyslog("format error in %s",file);
-        return(-2);
+        return -2;
     }
 
     if (fread(&area.mask[plane],1,width*height,pFile)!=(size_t) (width*height)) {
         fclose(pFile);
         esyslog("format error in %s",file);
-        return(-2);
+        return -2;
     }
     fclose(pFile);
 
@@ -131,9 +131,8 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
     }
 
     area.valid[plane]=true;
-    return(0);
+    return 0;
 }
-
 
 
 void cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int plane)
