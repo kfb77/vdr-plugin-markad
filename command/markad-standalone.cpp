@@ -270,7 +270,6 @@ int cOSDMessage::Send(const char *format, ...)
 
 
 void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
-    dsyslog("-------------------------------------------------------");
     dsyslog("CalculateCheckPositions with startframe %i",startframe);
 
     if (!length) {
@@ -307,7 +306,6 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
     dsyslog("assumed stop frame %i", iStopA);
     dsyslog("chkSTART set to %i",chkSTART);
     dsyslog("chkSTOP set to %i", chkSTOP);
-    dsyslog("-------------------------------------------------------");
 }
 
 
@@ -725,6 +723,8 @@ void cMarkAdStandalone::CheckStart()
         //fallback
         dsyslog("no valid start mark found, assume start time at pre recording time");
         marks.DelTill(iStart);
+        marks.Del(MT_NOBLACKSTART);  // delete all black screen marks
+        marks.Del(MT_NOBLACKSTOP);
         MarkAdMark mark={};
         mark.Position=iStart;
         mark.Type=MT_ASSUMEDSTART;
