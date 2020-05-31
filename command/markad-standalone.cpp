@@ -1969,9 +1969,10 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
     return true;
 }
 
-void cMarkAdStandalone::ProcessFile()
-{
-    dsyslog("start processing files");
+
+void cMarkAdStandalone::ProcessFile() {
+    LogSeparator();
+    dsyslog("cMarkAdStandalone::ProcessFile(): start processing files");
     if (macontext.Config->use_cDecoder) {
         ptr_cDecoder = new cDecoder(macontext.Config->threads);
         CheckIndexGrowing();
@@ -2041,9 +2042,10 @@ void cMarkAdStandalone::ProcessFile()
             AddMark(&tempmark);
         }
     }
-    if ( !macontext.Config->use_cDecoder && demux) skipped=demux->Skipped();
-    dsyslog("end processing files");
+    if (!macontext.Config->use_cDecoder && demux) skipped=demux->Skipped();
+    dsyslog("cMarkAdStandalone::ProcessFile(): end processing files");
 }
+
 
 void cMarkAdStandalone::Process()
 {
