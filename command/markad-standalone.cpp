@@ -2325,8 +2325,8 @@ bool cMarkAdStandalone::SaveInfo()
     return (err==false);
 }
 
-time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd)
-{
+
+time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd) {
     // get recording start from atime of directory (if the volume is mounted with noatime)
     struct mntent *ent;
     struct stat statbuf;
@@ -2334,19 +2334,14 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd)
     int mlen=0;
     int oldmlen=0;
     bool useatime=false;
-    while ((ent=getmntent(mounts))!=NULL)
-    {
-        if (strstr(directory,ent->mnt_dir))
-        {
+    while ((ent=getmntent(mounts))!=NULL) {
+        if (strstr(directory,ent->mnt_dir)) {
             mlen=strlen(ent->mnt_dir);
-            if (mlen>oldmlen)
-            {
-                if (strstr(ent->mnt_opts,"noatime"))
-                {
+            if (mlen>oldmlen) {
+                if (strstr(ent->mnt_opts,"noatime")) {
                     useatime=true;
                 }
-                else
-                {
+                else {
                     useatime=false;
                 }
             }
@@ -2355,39 +2350,31 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd)
     }
     endmntent(mounts);
 
-    if ((useatime) && (stat(directory,&statbuf)!=-1))
-    {
-        if (fabs(difftime(start,statbuf.st_atime))<7200)
-        {
-            isyslog("getting recording start from directory atime");
+    if ((useatime) && (stat(directory,&statbuf)!=-1)) {
+        if (fabs(difftime(start,statbuf.st_atime))<7200) {
+            dsyslog("cMarkAdStandalone::GetBroadcastStart(): getting recording start from directory atime");
             return statbuf.st_atime;
         }
     }
 
     // try to get from mtime
     // (and hope info.vdr has not changed after the start of the recording)
-    if (fstat(fd,&statbuf)!=-1)
-    {
-        if (fabs(difftime(start,statbuf.st_mtime))<7200)
-        {
-            isyslog("getting recording start from VDR info file mtime");
+    if (fstat(fd,&statbuf)!=-1) {
+        if (fabs(difftime(start,statbuf.st_mtime))<7200) {
+            dsyslog("cMarkAdStandalone::GetBroadcastStart(): getting recording start from VDR info file mtime");
             return (time_t) statbuf.st_mtime;
         }
     }
 
     // fallback to the directory
     const char *timestr=strrchr(directory,'/');
-    if (timestr)
-    {
+    if (timestr) {
         timestr++;
-        if (isdigit(*timestr))
-        {
+        if (isdigit(*timestr)) {
             time_t now = time(NULL);
             struct tm tm_r;
             struct tm t = *localtime_r(&now, &tm_r); // init timezone
-            if (sscanf(timestr, "%4d-%02d-%02d.%02d%*c%02d", &t.tm_year, &t.tm_mon, &t.tm_mday,
-                       &t.tm_hour, & t.tm_min)==5)
-            {
+            if (sscanf(timestr, "%4d-%02d-%02d.%02d%*c%02d", &t.tm_year, &t.tm_mon, &t.tm_mday, &t.tm_hour, & t.tm_min)==5) {
                 t.tm_year-=1900;
                 t.tm_mon--;
                 t.tm_sec=0;
