@@ -1489,13 +1489,14 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
     return false;
 }
 
+
 void cMarkAdStandalone::MarkadCut() {
-    cEncoder* ptr_cEncoder = NULL;
     if (abortNow) return;
     if (!ptr_cDecoder) {
         isyslog("video cut function only supported with --cDecoder");
         return;
     }
+    cEncoder* ptr_cEncoder = NULL;
     LogSeparator();
     dsyslog("start MarkadCut()");
     if (marks.Count()<2) {
@@ -1506,12 +1507,12 @@ void cMarkAdStandalone::MarkadCut() {
     DebugMarks();     //  only for debugging
 
     clMark *StartMark= marks.GetFirst();
-    if (((StartMark->type & 0x0F) != 1) && (StartMark->type != MT_MOVED)) {
+    if (((StartMark->type & 0x0F) != MT_START) && (StartMark->type != MT_MOVED)) {
         esyslog("got invalid start mark at (%i) type 0x%X", StartMark->position, StartMark->type);
         return;
     }
     clMark *StopMark = StartMark->Next();
-    if (((StopMark->type & 0x0F) != 2) && (StopMark->type != MT_MOVED)) {
+    if (((StopMark->type & 0x0F) != MT_STOP) && (StopMark->type != MT_MOVED)) {
         esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
         return;
     }
@@ -1526,12 +1527,12 @@ void cMarkAdStandalone::MarkadCut() {
             if  (ptr_cDecoder->GetFrameNumber() > StopMark->position) {
                 if (StopMark->Next() && StopMark->Next()->Next()) {
                     StartMark = StopMark->Next();
-                    if (((StartMark->type & 0x0F) != 1) && (StartMark->type != MT_MOVED)) {
+                    if (((StartMark->type & 0x0F) != MT_START) && (StartMark->type != MT_MOVED)) {
                         esyslog("got invalid start mark at (%i) type 0x%X", StartMark->position, StartMark->type);
                         return;
                     }
                     StopMark = StartMark->Next();
-                    if (((StopMark->type & 0x0F) != 2) && (StopMark->type != MT_MOVED)) {
+                    if (((StopMark->type & 0x0F) != MT_STOP) && (StopMark->type != MT_MOVED)) {
                         esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
                         return;
                     }
@@ -1543,9 +1544,8 @@ void cMarkAdStandalone::MarkadCut() {
                 esyslog("failed to get packet from input stream");
                 return;
             }
-//            dsyslog("--- Framenumber %ld", ptr_cDecoder->GetFrameNumber());
             if ( ! ptr_cEncoder->WritePacket(pkt, ptr_cDecoder) ) {
-                isyslog("failed to write frame %ld to output stream", ptr_cDecoder->GetFrameNumber());
+                dsyslog("cMarkAdStandalone::MarkadCut(): failed to write frame %ld to output stream", ptr_cDecoder->GetFrameNumber());
             }
             if (abortNow) {
                 if (ptr_cDecoder) delete ptr_cDecoder;
@@ -1558,7 +1558,7 @@ void cMarkAdStandalone::MarkadCut() {
             }
         }
     }
-     if ( ! ptr_cEncoder->CloseFile()) {
+    if ( ! ptr_cEncoder->CloseFile()) {
         dsyslog("failed to close output file");
         return;
     }
