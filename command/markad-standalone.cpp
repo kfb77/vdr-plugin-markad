@@ -309,9 +309,8 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
 }
 
 
-void cMarkAdStandalone::CheckStop()
-{
-    dsyslog("-------------------------------------------------------");
+void cMarkAdStandalone::CheckStop() {
+    LogSeparator();
     dsyslog("checking stop (%i)", lastiframe);
     dsyslog("assumed stop frame %i", iStopA);
 
@@ -399,12 +398,11 @@ void cMarkAdStandalone::CheckStop()
     gotendmark=true;
 
     DebugMarks();     //  only for debugging
-    dsyslog("-------------------------------------------------------");
+    LogSeparator();
 }
 
-void cMarkAdStandalone::CheckStart()
-{
-    dsyslog("-------------------------------------------------------");
+void cMarkAdStandalone::CheckStart() {
+    LogSeparator();
     dsyslog("checking start (%i)", lastiframe);
     dsyslog("assumed start frame %i", iStartA);
     DebugMarks();     //  only for debugging
@@ -732,10 +730,16 @@ void cMarkAdStandalone::CheckStart()
         CalculateCheckPositions(iStart);
     }
     DebugMarks();     //  only for debugging
-    dsyslog("-------------------------------------------------------");
+    LogSeparator();
     iStart=0;
     return;
 }
+
+
+void cMarkAdStandalone::LogSeparator() {
+    dsyslog("------------------------------------------------------------------------------------------------");
+}
+
 
 void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
     clMark *mark = marks.GetFirst();
@@ -752,9 +756,8 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
 
 
 
-void cMarkAdStandalone::CheckMarks()            // cleanup marks that make no sense
-{
-    dsyslog("-------------------------------------------------------");
+void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no sense
+    LogSeparator();
     isyslog("cleanup marks");
     DebugMarks();     //  only for debugging
 
@@ -855,7 +858,7 @@ void cMarkAdStandalone::CheckMarks()            // cleanup marks that make no se
         }
         mark=mark->Next();
     }
-    dsyslog("-------------------------------------------------------");
+    LogSeparator();
 }
 
 void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
@@ -1493,7 +1496,7 @@ void cMarkAdStandalone::MarkadCut() {
         isyslog("video cut function only supported with --cDecoder");
         return;
     }
-    dsyslog("-------------------------------------------------------");
+    LogSeparator();
     dsyslog("start MarkadCut()");
     if (marks.Count()<2) {
         isyslog("need at least 2 marks to cut Video");
@@ -1575,7 +1578,7 @@ void cMarkAdStandalone::Process2ndPass() {
     if (!startTime) return;
     if (time(NULL)<(startTime+(time_t) length)) return;
 
-    dsyslog("-------------------------------------------------------");
+    LogSeparator();
     dsyslog("start 2ndPass");
 
     if (!macontext.Video.Info.FramesPerSecond) {

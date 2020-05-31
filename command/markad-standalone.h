@@ -244,6 +244,7 @@ unsigned Descriptor_Length:
     bool CheckTS();
     bool CheckLogo();
     void CheckMarks();
+    void LogSeparator();
     void DebugMarks();
     bool LoadInfo();
     bool SaveInfo();
