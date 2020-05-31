@@ -62,16 +62,20 @@ bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int
         if (plane>0) {
             width/=2;
             height/=2;
-            int black = 0;
-            for (int i = 0; i < height*width; i++) {
-                if (ptr_actLogoInfo->sobel[plane][i] == 0) black++;
-            }
+        }
+        int black = 0;
+        for (int i = 0; i < height*width; i++) {
+            if (ptr_actLogoInfo->sobel[plane][i] == 0) black++;
+        }
+        if (plane > 0) {
             if (black < 80) {
                 dsyslog("cExtractLogo::Save(): not enough pixel (%i) in plane %i", black, plane);
                 continue;
             }
             else dsyslog("cExtractLogo::Save(): got enough pixel (%i) in plane %i", black, plane);
         }
+        else dsyslog("cExtractLogo::Save(): %i pixel in plane %i", black, plane);
+
         if (this->isWhitePlane(ptr_actLogoInfo, height, width, plane)) continue;
         if (asprintf(&buf,"%s/%s-A%i_%i-P%i.pgm",maContext->Config->recDir, maContext->Info.ChannelName, ptr_actLogoInfo->aspectratio.Num,ptr_actLogoInfo->aspectratio.Den,plane)==-1) return false;
         dsyslog("cExtractLogo::Save(): store logo in %s", buf);
