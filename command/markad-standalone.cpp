@@ -2421,24 +2421,22 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd)
     return (time_t) 0;
 }
 
-bool cMarkAdStandalone::CheckLogo()
-{
+
+bool cMarkAdStandalone::CheckLogo() {
     if (!macontext.Config) return false;
     if (!macontext.Config->logoDirectory) return false;
     if (!macontext.Info.ChannelName) return false;
     int len=strlen(macontext.Info.ChannelName);
     if (!len) return false;
 
-    dsyslog("using logo directory %s",macontext.Config->logoDirectory);
-    dsyslog("searching logo for %s",macontext.Info.ChannelName);
+    dsyslog("cMarkAdStandalone::CheckLogo(): using logo directory %s",macontext.Config->logoDirectory);
+    dsyslog("cMarkAdStandalone::CheckLogo(): searching logo for %s",macontext.Info.ChannelName);
     DIR *dir=opendir(macontext.Config->logoDirectory);
     if (!dir) return false;
 
     struct dirent *dirent;
-    while ((dirent=readdir(dir)))
-    {
-        if (!strncmp(dirent->d_name,macontext.Info.ChannelName,len))
-        {
+    while ((dirent=readdir(dir))) {
+        if (!strncmp(dirent->d_name,macontext.Info.ChannelName,len)) {
             closedir(dir);
             return true;
         }
@@ -2469,7 +2467,7 @@ bool cMarkAdStandalone::CheckLogo()
             isyslog("no logo found in recording");
         }
         else {
-            dsyslog("found logo in recording");
+            dsyslog("cMarkAdStandalone::CheckLogo(): found logo in recording");
             if (ptr_cExtractLogo) {
                 delete ptr_cExtractLogo;
                 ptr_cExtractLogo = NULL;
