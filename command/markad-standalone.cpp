@@ -2480,8 +2480,8 @@ bool cMarkAdStandalone::CheckLogo()
     return false;
 }
 
-bool cMarkAdStandalone::LoadInfo()
-{
+
+bool cMarkAdStandalone::LoadInfo() {
     char *buf;
     if (asprintf(&buf,"%s/info%s",directory,isTS ? "" : ".vdr")==-1) return false;
 
@@ -2500,100 +2500,79 @@ bool cMarkAdStandalone::LoadInfo()
 
     char *line=NULL;
     size_t linelen;
-    while (getline(&line,&linelen,f)!=-1)
-    {
-        if (line[0]=='C')
-        {
+    while (getline(&line,&linelen,f)!=-1) {
+        if (line[0]=='C') {
             char channelname[256]="";
             int result=sscanf(line,"%*c %*80s %250c",(char *) &channelname);
-            if (result==1)
-            {
+            if (result==1) {
                 macontext.Info.ChannelName=strdup(channelname);
                 char *lf=strchr(macontext.Info.ChannelName,10);
                 if (lf) *lf=0;
                 char *cr=strchr(macontext.Info.ChannelName,13);
                 if (cr) *cr=0;
-                for (int i=0; i<(int) strlen(macontext.Info.ChannelName); i++)
-                {
+                for (int i=0; i<(int) strlen(macontext.Info.ChannelName); i++) {
                     if (macontext.Info.ChannelName[i]==' ') macontext.Info.ChannelName[i]='_';
                     if (macontext.Info.ChannelName[i]=='.') macontext.Info.ChannelName[i]='_';
                     if (macontext.Info.ChannelName[i]=='/') macontext.Info.ChannelName[i]='_';
                 }
             }
         }
-        if ((line[0]=='E') && (!bLiveRecording))
-        {
+        if ((line[0]=='E') && (!bLiveRecording)) {
             int result=sscanf(line,"%*c %*10i %20li %6i %*2x %*2x",&startTime,&length);
-            if (result!=2)
-            {
+            if (result!=2) {
                 startTime=0;
                 length=0;
             }
         }
-        if (line[0]=='T')
-        {
+        if (line[0]=='T') {
             int result=sscanf(line,"%*c %79c",title);
-            if ((result==0) || (result==EOF))
-            {
+            if ((result==0) || (result==EOF)) {
                 title[0]=0;
             }
-            else
-            {
+            else {
                 char *lf=strchr(title,10);
                 if (lf) *lf=0;
                 char *cr=strchr(title,13);
                 if (cr) *cr=0;
             }
         }
-        if (line[0]=='F')
-        {
+        if (line[0]=='F') {
             int fps;
             int result=sscanf(line,"%*c %3i",&fps);
-            if ((result==0) || (result==EOF))
-            {
+            if ((result==0) || (result==EOF)) {
                 macontext.Video.Info.FramesPerSecond=0;
             }
-            else
-            {
+            else {
                 macontext.Video.Info.FramesPerSecond=fps;
             }
         }
-        if ((line[0]=='X') && (!bLiveRecording))
-        {
+        if ((line[0]=='X') && (!bLiveRecording)) {
             int stream=0,type=0;
             char descr[256]="";
             int result=sscanf(line,"%*c %3i %3i %250c",&stream,&type,(char *) &descr);
-            if ((result!=0) && (result!=EOF))
-            {
-                if ((stream==1) || (stream==5))
-                {
-                    if ((type!=1) && (type!=5) && (type!=9) && (type!=13))
-                    {
+            if ((result!=0) && (result!=EOF)) {
+                if ((stream==1) || (stream==5)) {
+                    if ((type!=1) && (type!=5) && (type!=9) && (type!=13)) {
                         isyslog("broadcast aspectratio 16:9 (from info)");
                         macontext.Info.AspectRatio.Num=16;
                         macontext.Info.AspectRatio.Den=9;
                     }
-                    else
-                    {
+                    else {
                         isyslog("broadcast aspectratio 4:3 (from info)");
                         macontext.Info.AspectRatio.Num=4;
                         macontext.Info.AspectRatio.Den=3;
                     }
                 }
 
-                if (stream==2)
-                {
-                    if (type==5)
-                    {
+                if (stream==2) {
+                    if (type==5) {
                         // if we have DolbyDigital 2.0 disable AC3
-                        if (strchr(descr,'2'))
-                        {
+                        if (strchr(descr,'2')) {
                             isyslog("broadcast with DolbyDigital2.0 (from info)");
                             macontext.Info.Channels[stream]=2;
                         }
                         // if we have DolbyDigital 5.1 disable video decoding
-                        if (strchr(descr,'5'))
-                        {
+                        if (strchr(descr,'5')) {
                             isyslog("broadcast with DolbyDigital5.1 (from info)");
                             macontext.Info.Channels[stream]=6;
                         }
@@ -2605,12 +2584,11 @@ bool cMarkAdStandalone::LoadInfo()
     if ((macontext.Info.AspectRatio.Num==0) && (macontext.Info.AspectRatio.Den==0)) isyslog("no broadcast aspectratio found in info");
     if (line) free(line);
 
-    if ((length) && (!bIgnoreTimerInfo) && (startTime))
-    {
+    if ((length) && (!bIgnoreTimerInfo) && (startTime)) {
         time_t rStart=GetBroadcastStart(startTime, fileno(f));
         if (rStart) {
-            dsyslog("recording start at %s", strtok(ctime(&rStart), "\n"));
-            dsyslog("broadcast start at %s from VDR info file", strtok(ctime(&startTime), "\n"));
+            dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
+            dsyslog("cMarkAdStandalone::LoadInfo() broadcast start at %s from VDR info file", strtok(ctime(&startTime), "\n"));
             tStart=(int) (startTime-rStart);
             if (tStart > 60*60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
                 isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", tStart);
@@ -2637,9 +2615,9 @@ bool cMarkAdStandalone::LoadInfo()
         tStart=0;
     }
     fclose(f);
+    dsyslog("cMarkAdStandalone::LoadInfo() broadcast start %is after recording start", tStart);
 
-    if ((!length) && (!bLiveRecording))
-    {
+    if ((!length) && (!bLiveRecording)) {
         esyslog("cannot read broadcast length from info, marks can be wrong!");
         macontext.Info.AspectRatio.Num=0;
         macontext.Info.AspectRatio.Den=0;
@@ -2647,15 +2625,14 @@ bool cMarkAdStandalone::LoadInfo()
         macontext.Video.Options.IgnoreAspectRatio=false;
     }
 
-    if (!macontext.Info.ChannelName)
-    {
+    if (!macontext.Info.ChannelName) {
         return false;
     }
-    else
-    {
+    else {
         return true;
     }
 }
+
 
 bool cMarkAdStandalone::CheckTS()
 {
