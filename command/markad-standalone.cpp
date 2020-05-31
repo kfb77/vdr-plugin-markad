@@ -1579,7 +1579,7 @@ void cMarkAdStandalone::Process2ndPass() {
     if (time(NULL)<(startTime+(time_t) length)) return;
 
     LogSeparator();
-    dsyslog("start 2ndPass");
+    isyslog("start 2nd pass");
 
     if (!macontext.Video.Info.FramesPerSecond) {
         isyslog("WARNING: assuming fps of 25");
@@ -1590,7 +1590,6 @@ void cMarkAdStandalone::Process2ndPass() {
         marks.Load(directory,macontext.Video.Info.FramesPerSecond,isTS);
     }
 
-    bool infoheader=false;
     clMark *p1=NULL,*p2=NULL;
 
     if (marks.Count()<4) {
@@ -1609,10 +1608,6 @@ void cMarkAdStandalone::Process2ndPass() {
     }
 
     while ((p1) && (p2)) {
-        if (!infoheader) {
-            isyslog("2nd pass");
-            infoheader=true;
-        }
         off_t offset;
         int number,frame,iframes;
         int frange=macontext.Video.Info.FramesPerSecond*120; // 40s + 80s
