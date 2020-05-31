@@ -861,91 +861,82 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     LogSeparator();
 }
 
-void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
-{
+
+void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
     if (!Mark) return;
     if (!Mark->Type) return;
     if ((macontext.Config) && (macontext.Config->logoExtraction!=-1)) return;
     if (gotendmark) return;
 
     char *comment=NULL;
-    switch (Mark->Type)
-    {
-    case MT_ASSUMEDSTART:
-        if (asprintf(&comment,"assuming start (%i)",Mark->Position)==-1) comment=NULL;
-        break;
-    case MT_ASSUMEDSTOP:
-        if (asprintf(&comment,"assuming stop (%i)",Mark->Position)==-1) comment=NULL;
-        break;
-    case MT_NOBLACKSTART:
-        if (asprintf(&comment,"detected end of black screen (%i)*",Mark->Position)==-1) comment=NULL;
-        break;
-    case MT_NOBLACKSTOP:
-        if (asprintf(&comment,"detected start of black screen (%i)",Mark->Position)==-1) comment=NULL;
-        break;
-    case MT_LOGOSTART:
-        if (asprintf(&comment,"detected logo start (%i)*",Mark->Position)==-1) comment=NULL;
-        break;
-    case MT_LOGOSTOP:
-        if (asprintf(&comment,"detected logo stop (%i)",Mark->Position)==-1) comment=NULL;
-        break;
-    case MT_HBORDERSTART:
-        if (asprintf(&comment,"detected start of horiz. borders (%i)*",Mark->Position)==-1) comment=NULL;
-        break;
-    case MT_HBORDERSTOP:
-        if (asprintf(&comment,"detected stop of horiz. borders (%i)", Mark->Position)==-1) comment=NULL;
-        break;
-    case MT_VBORDERSTART:
-        if (asprintf(&comment,"detected start of vert. borders (%i)*", Mark->Position)==-1) comment=NULL;
-        break;
-    case MT_VBORDERSTOP:
-        if (asprintf(&comment,"detected stop of vert. borders (%i)", Mark->Position)==-1) comment=NULL;
-        break;
-    case MT_ASPECTSTART:
-        if (!Mark->AspectRatioBefore.Num) {
-            if (asprintf(&comment,"aspectratio start with %i:%i (%i)*", Mark->AspectRatioAfter.Num,
-                                                                        Mark->AspectRatioAfter.Den,
-                                                                        Mark->Position)==-1) comment=NULL;
-        }
-        else {
-            if (asprintf(&comment,"aspectratio change from %i:%i to %i:%i (%i)*",
-                         Mark->AspectRatioBefore.Num,Mark->AspectRatioBefore.Den,
-                         Mark->AspectRatioAfter.Num,Mark->AspectRatioAfter.Den,
-                         Mark->Position)==-1) comment=NULL;
-            if ((macontext.Config->autoLogo > 0) &&( Mark->Position > 0) && bDecodeVideo) {
+    switch (Mark->Type) {
+        case MT_ASSUMEDSTART:
+           if (asprintf(&comment,"assuming start (%i)",Mark->Position)==-1) comment=NULL;
+           break;
+        case MT_ASSUMEDSTOP:
+            if (asprintf(&comment,"assuming stop (%i)",Mark->Position)==-1) comment=NULL;
+            break;
+        case MT_NOBLACKSTART:
+            if (asprintf(&comment,"detected end of black screen (%i)*",Mark->Position)==-1) comment=NULL;
+            break;
+        case MT_NOBLACKSTOP:
+            if (asprintf(&comment,"detected start of black screen (%i)",Mark->Position)==-1) comment=NULL;
+            break;
+        case MT_LOGOSTART:
+            if (asprintf(&comment,"detected logo start (%i)*",Mark->Position)==-1) comment=NULL;
+            break;
+        case MT_LOGOSTOP:
+            if (asprintf(&comment,"detected logo stop (%i)",Mark->Position)==-1) comment=NULL;
+            break;
+        case MT_HBORDERSTART:
+            if (asprintf(&comment,"detected start of horiz. borders (%i)*",Mark->Position)==-1) comment=NULL;
+            break;
+        case MT_HBORDERSTOP:
+            if (asprintf(&comment,"detected stop of horiz. borders (%i)", Mark->Position)==-1) comment=NULL;
+            break;
+        case MT_VBORDERSTART:
+            if (asprintf(&comment,"detected start of vert. borders (%i)*", Mark->Position)==-1) comment=NULL;
+            break;
+        case MT_VBORDERSTOP:
+            if (asprintf(&comment,"detected stop of vert. borders (%i)", Mark->Position)==-1) comment=NULL;
+            break;
+        case MT_ASPECTSTART:
+            if (!Mark->AspectRatioBefore.Num) {
+                if (asprintf(&comment,"aspectratio start with %i:%i (%i)*", Mark->AspectRatioAfter.Num, Mark->AspectRatioAfter.Den, Mark->Position)==-1) comment=NULL;
+            }
+            else {
+                if (asprintf(&comment,"aspectratio change from %i:%i to %i:%i (%i)*", Mark->AspectRatioBefore.Num,Mark->AspectRatioBefore.Den,
+                         Mark->AspectRatioAfter.Num,Mark->AspectRatioAfter.Den, Mark->Position)==-1) comment=NULL;
+                if ((macontext.Config->autoLogo > 0) &&( Mark->Position > 0) && bDecodeVideo) {
+                    isyslog("logo detection reenabled, trying to find a logo from this position");
+                    macontext.Video.Options.IgnoreLogoDetection=false;
+                    macontext.Video.Options.WeakMarksOk=false;
+                }
+            }
+            break;
+        case MT_ASPECTSTOP:
+            if (asprintf(&comment,"aspectratio change from %i:%i to %i:%i (%i)", Mark->AspectRatioBefore.Num,Mark->AspectRatioBefore.Den,
+                     Mark->AspectRatioAfter.Num,Mark->AspectRatioAfter.Den, Mark->Position)==-1) comment=NULL;
+            if ((macontext.Config->autoLogo > 0) && (Mark->Position > 0) && bDecodeVideo) {
                 isyslog("logo detection reenabled, trying to find a logo from this position");
                 macontext.Video.Options.IgnoreLogoDetection=false;
                 macontext.Video.Options.WeakMarksOk=false;
             }
-        }
-        break;
-    case MT_ASPECTSTOP:
-        if (asprintf(&comment,"aspectratio change from %i:%i to %i:%i (%i)",
-                     Mark->AspectRatioBefore.Num,Mark->AspectRatioBefore.Den,
-                     Mark->AspectRatioAfter.Num,Mark->AspectRatioAfter.Den,
-                     Mark->Position)==-1) comment=NULL;
-        if ((macontext.Config->autoLogo > 0) && (Mark->Position > 0) && bDecodeVideo) {
-            isyslog("logo detection reenabled, trying to find a logo from this position");
-            macontext.Video.Options.IgnoreLogoDetection=false;
-            macontext.Video.Options.WeakMarksOk=false;
-        }
-        break;
-    case MT_CHANNELSTART:
-        if (asprintf(&comment,"audio channel change from %i to %i (%i)*",
-                     Mark->ChannelsBefore,Mark->ChannelsAfter,
-                     Mark->Position)==-1) comment=NULL;
-        break;
-    case MT_CHANNELSTOP:
-        if (asprintf(&comment,"audio channel change from %i to %i (%i)",
-                     Mark->ChannelsBefore,Mark->ChannelsAfter,
-                     Mark->Position)==-1) comment=NULL;
-        break;
-    case MT_RECORDINGSTART:
-        if (asprintf(&comment,"start of recording (%i)",Mark->Position)==-1) comment=NULL;
-        break;
-    case MT_RECORDINGSTOP:
-        if (asprintf(&comment,"stop of recording (%i)",Mark->Position)==-1) comment=NULL;
-        break;
+            break;
+        case MT_CHANNELSTART:
+            if (asprintf(&comment,"audio channel change from %i to %i (%i)*", Mark->ChannelsBefore,Mark->ChannelsAfter, Mark->Position)==-1) comment=NULL;
+            break;
+        case MT_CHANNELSTOP:
+            if (asprintf(&comment,"audio channel change from %i to %i (%i)", Mark->ChannelsBefore,Mark->ChannelsAfter, Mark->Position)==-1) comment=NULL;
+            break;
+        case MT_RECORDINGSTART:
+            if (asprintf(&comment,"start of recording (%i)",Mark->Position)==-1) comment=NULL;
+            break;
+        case MT_RECORDINGSTOP:
+            if (asprintf(&comment,"stop of recording (%i)",Mark->Position)==-1) comment=NULL;
+            break;
+        default:
+            dsyslog("cMarkAdStandalone::AddMark(): unknown mark type 0x%X", Mark->Type);
     }
 
     char *timeText = marks.IndexToHMSF(Mark->Position,&macontext, ptr_cDecoder);
@@ -955,25 +946,21 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
     clMark *prev=marks.GetLast();
     if (prev) {
         if (prev->position==Mark->Position) {
-            if (prev->type>Mark->Type)
-            {
+            if (prev->type>Mark->Type) {
                 isyslog("previous mark (%i) type 0x%X stronger than actual mark on same position, deleting (%i) type 0x%X", prev->position, prev->type, Mark->Position, Mark->Type);
                 if (comment) free(comment);
                 return;
             }
-            else
-            {
+            else {
                 isyslog("actual mark (%d) type 0x%X stronger then previous mark on same position, deleting (%i) type 0x%X",Mark->Position, Mark->Type, prev->position, prev->type);
                 marks.Del(prev);
             }
         }
     }
 
-    if (((Mark->Type & 0x0F)==MT_START) && (!iStart) && (Mark->Position < (abs(iStopA) - 2*macontext.Video.Info.FramesPerSecond*MAXRANGE )))
-    {
+    if (((Mark->Type & 0x0F)==MT_START) && (!iStart) && (Mark->Position < (abs(iStopA) - 2*macontext.Video.Info.FramesPerSecond*MAXRANGE ))) {
         clMark *prev=marks.GetPrev(Mark->Position,(Mark->Type & 0xF0)|MT_STOP);
-        if (prev)
-        {
+        if (prev) {
             int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*10);    // maybe this is only ia short logo detection failure
             if ( (Mark->Position - prev->position) < MARKDIFF )
             {
@@ -987,11 +974,9 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         }
     }
 
-    if (Mark->Type==MT_LOGOSTOP)
-    {
+    if (Mark->Type==MT_LOGOSTOP) {
         clMark *prev=marks.GetPrev(Mark->Position,MT_LOGOSTART);
-        if (prev)
-        {
+        if (prev) {
             int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*30);    // maybe this is only ia short logo detection failure
             if ( (Mark->Position - prev->position) < MARKDIFF )
             {
@@ -1005,22 +990,17 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
         }
     }
 
-    if (((Mark->Type & 0x0F)==MT_STOP) && (!iStart) && (Mark->Position < abs(iStopA) - macontext.Video.Info.FramesPerSecond*MAXRANGE ))
-    {
+    if (((Mark->Type & 0x0F)==MT_STOP) && (!iStart) && (Mark->Position < abs(iStopA) - macontext.Video.Info.FramesPerSecond*MAXRANGE )) {
         clMark *prev=marks.GetPrev(Mark->Position,(Mark->Type & 0xF0)|MT_START);
-        if (prev)
-        {
+        if (prev) {
             int MARKDIFF;
-            if ((Mark->Type & 0xF0)==MT_LOGOCHANGE)
-            {
+            if ((Mark->Type & 0xF0)==MT_LOGOCHANGE) {
                 MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*120);
             }
-            else
-            {
+            else {
                 MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*90);
             }
-            if ((Mark->Position - prev->position) < MARKDIFF)
-            {
+            if ((Mark->Position - prev->position) < MARKDIFF) {
                 double distance=(Mark->Position - prev->position)/macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between START and STOP too short (%.1fs), deleting %i,%i",distance,prev->position,Mark->Position);
                 if (!macontext.Video.Options.WeakMarksOk) inBroadCast=false;
@@ -1049,7 +1029,10 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             }
         }
     }
+    marks.Add(Mark->Type,Mark->Position,comment);
+    if (comment) free(comment);
 
+    bool inBroadCastBefore = inBroadCast;
     if (!macontext.Video.Options.WeakMarksOk) {
         if ((Mark->Type & 0xF0) != MT_BLACKCHANGE){ //  dont use BLACKSCEEN to detect if we are in broadcast
             if (!((Mark->Type <= MT_ASPECTSTART) && (marks.GetPrev(Mark->Position,MT_CHANNELSTOP) && marks.GetPrev(Mark->Position,MT_CHANNELSTART)))) { // if there are MT_CHANNELSTOP and MT_CHANNELSTART marks, wait for MT_CHANNELSTART
@@ -1062,9 +1045,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark)
             }
         }
     }
-    marks.Add(Mark->Type,Mark->Position,comment);
-    if (comment) free(comment);
-    tsyslog("cMarkAdStandalone::AddMark(): status inBroadCast: %i", inBroadCast);
+    if (inBroadCast != inBroadCastBefore) dsyslog("cMarkAdStandalone::AddMark(): status inBroadCast changed to %i", inBroadCast);
 }
 
 
