@@ -1164,8 +1164,8 @@ void cMarkAdStandalone::CheckIndexGrowing()
     return;
 }
 
-void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos)
-{
+
+void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos) {
     if (!NewPos) return;
     if (!Mark1) return;
     if (!*Mark1) return;
@@ -1590,19 +1590,17 @@ void cMarkAdStandalone::Process2ndPass() {
     dsyslog("end 2ndPass");
 }
 
+
 #if !defined ONLY_WITH_CDECODER
-bool cMarkAdStandalone::ProcessFile(int Number)
-{
+bool cMarkAdStandalone::ProcessFile(int Number) {
     if (!directory) return false;
     if (!Number) return false;
 
     CheckIndexGrowing();
-
     if (abortNow) return false;
 
     const int datalen=319976;
     uchar data[datalen];
-
     char *fbuf;
     if (isTS) {
         if (asprintf(&fbuf,"%s/%05i.ts",directory,Number)==-1) {
@@ -2059,45 +2057,41 @@ void cMarkAdStandalone::Process() {
 #endif
 
 
-bool cMarkAdStandalone::SetFileUID(char *File)
-{
+bool cMarkAdStandalone::SetFileUID(char *File) {
     if (!File) return false;
     struct stat statbuf;
-    if (!stat(directory,&statbuf))
-    {
+    if (!stat(directory,&statbuf)) {
         if (chown(File,statbuf.st_uid, statbuf.st_gid)==-1) return false;
     }
     return true;
 }
 
-bool cMarkAdStandalone::SaveInfo()
-{
+
+bool cMarkAdStandalone::SaveInfo() {
     isyslog("writing info file");
     char *src,*dst;
     if (isREEL) {
         if (asprintf(&src,"%s/info.txt",directory)==-1) return false;
-    } else {
+    }
+    else {
         if (asprintf(&src,"%s/info%s",directory,isTS ? "" : ".vdr")==-1) return false;
     }
 
-    if (asprintf(&dst,"%s/info.bak",directory)==-1)
-    {
+    if (asprintf(&dst,"%s/info.bak",directory)==-1) {
         free(src);
         return false;
     }
 
     FILE *r,*w;
     r=fopen(src,"r");
-    if (!r)
-    {
+    if (!r) {
         free(src);
         free(dst);
         return false;
     }
 
     w=fopen(dst,"w+");
-    if (!w)
-    {
+    if (!w) {
         fclose(r);
         free(src);
         free(dst);
@@ -2119,13 +2113,11 @@ bool cMarkAdStandalone::SaveInfo()
 
     int component_type_43;
     int component_type_169;
-    if ((macontext.Video.Info.FramesPerSecond==25) || (macontext.Video.Info.FramesPerSecond==50))
-    {
+    if ((macontext.Video.Info.FramesPerSecond==25) || (macontext.Video.Info.FramesPerSecond==50)) {
         component_type_43=1;
         component_type_169=3;
     }
-    else
-    {
+    else {
         component_type_43=5;
         component_type_169=7;
     }
@@ -2143,63 +2135,57 @@ bool cMarkAdStandalone::SaveInfo()
             char descr[256]="";
 
             int result=sscanf(line,"%*c %3i %3X %3c %250c",&stream,&type,(char *) &lang, (char *) &descr);
-            if ((result!=0) && (result!=EOF))
-            {
-                switch (stream)
-                {
-                case 1:
-                case 5:
-                    if (stream==stream_content) {
-                        if ((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3)) {
-                            if (fprintf(w,"X %i %02i %s 4:3\n",stream_content,
-                                        component_type_43+component_type_add,lang)<=0) err=true;
-                            macontext.Info.AspectRatio.Num=0;
-                            macontext.Info.AspectRatio.Den=0;
-                        }
-                        else if ((macontext.Info.AspectRatio.Num==16) && (macontext.Info.AspectRatio.Den==9))
-                        {
-                            if (fprintf(w,"X %i %02X %s 16:9\n",stream_content,
-                                        component_type_169+component_type_add,lang)<=0) err=true;
-                            macontext.Info.AspectRatio.Num=0;
-                            macontext.Info.AspectRatio.Den=0;
-                        }
-                        else {
-                            if (fprintf(w,"%s",line)<=0) err=true;
-                        }
-                    }
-                    else
-                    {
-                        if (fprintf(w,"%s",line)<=0) err=true;
-                    }
-                    break;
-                case 2:
-                    if (type==5) {
-                        if (macontext.Info.Channels[stream_index]==6) {
-                            if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
-                            macontext.Info.Channels[stream_index]=0;
-                        }
-                        else if (macontext.Info.Channels[stream_index]==2) {
-                            if (fprintf(w,"X 2 05 %s Dolby Digital 2.0\n",lang)<=0) err=true;
-                            macontext.Info.Channels[stream_index]=0;
+            if ((result!=0) && (result!=EOF)) {
+                switch (stream) {
+                    case 1:
+                    case 5:
+                        if (stream==stream_content) {
+                            if ((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3)) {
+                                if (fprintf(w,"X %i %02i %s 4:3\n",stream_content, component_type_43+component_type_add,lang)<=0) err=true;
+                                macontext.Info.AspectRatio.Num=0;
+                                macontext.Info.AspectRatio.Den=0;
+                            }
+                            else if ((macontext.Info.AspectRatio.Num==16) && (macontext.Info.AspectRatio.Den==9)) {
+                                if (fprintf(w,"X %i %02X %s 16:9\n",stream_content, component_type_169+component_type_add,lang)<=0) err=true;
+                                macontext.Info.AspectRatio.Num=0;
+                                macontext.Info.AspectRatio.Den=0;
+                            }
+                            else {
+                                if (fprintf(w,"%s",line)<=0) err=true;
+                            }
                         }
                         else {
                             if (fprintf(w,"%s",line)<=0) err=true;
                         }
-                    }
-                    else {
+                        break;
+                    case 2:
+                        if (type==5) {
+                            if (macontext.Info.Channels[stream_index]==6) {
+                                if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
+                                macontext.Info.Channels[stream_index]=0;
+                            }
+                            else if (macontext.Info.Channels[stream_index]==2) {
+                                if (fprintf(w,"X 2 05 %s Dolby Digital 2.0\n",lang)<=0) err=true;
+                                macontext.Info.Channels[stream_index]=0;
+                            }
+                            else {
+                                if (fprintf(w,"%s",line)<=0) err=true;
+                            }
+                        }
+                        else {
+                            if (fprintf(w,"%s",line)<=0) err=true;
+                        }
+                        break;
+                    case 4:
+                        if (type == 0x2C) {
+                            if (fprintf(w,"%s",line)<=0) err=true;
+                            macontext.Info.Channels[stream_index] = 0;
+                            stream_index++;
+                        }
+                        break;
+                    default:
                         if (fprintf(w,"%s",line)<=0) err=true;
-                    }
-                    break;
-                case 4:
-                    if (type == 0x2C) {
-                        if (fprintf(w,"%s",line)<=0) err=true;
-                        macontext.Info.Channels[stream_index] = 0;
-                        stream_index++;
-                    }
-                    break;
-                default:
-                    if (fprintf(w,"%s",line)<=0) err=true;
-                    break;
+                        break;
                 }
             }
         }
@@ -2223,17 +2209,12 @@ bool cMarkAdStandalone::SaveInfo()
 
     if (lang[0]==0) strcpy(lang,"und");
 
-    if (stream_content)
-    {
-        if ((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3) && (!err))
-        {
-            if (fprintf(w,"X %i %02i %s 4:3\n",stream_content,
-                        component_type_43+component_type_add,lang)<=0) err=true;
+    if (stream_content) {
+        if ((macontext.Info.AspectRatio.Num==4) && (macontext.Info.AspectRatio.Den==3) && (!err)) {
+            if (fprintf(w,"X %i %02i %s 4:3\n",stream_content, component_type_43+component_type_add,lang)<=0) err=true;
         }
-        if ((macontext.Info.AspectRatio.Num==16) && (macontext.Info.AspectRatio.Den==9) && (!err))
-        {
-            if (fprintf(w,"X %i %02i %s 16:9\n",stream_content,
-                        component_type_169+component_type_add,lang)<=0) err=true;
+        if ((macontext.Info.AspectRatio.Num==16) && (macontext.Info.AspectRatio.Den==9) && (!err)) {
+            if (fprintf(w,"X %i %02i %s 16:9\n",stream_content, component_type_169+component_type_add,lang)<=0) err=true;
         }
     }
     for (short int stream=0; stream<MAXSTREAMS; stream++) {
@@ -2245,8 +2226,7 @@ bool cMarkAdStandalone::SaveInfo()
             if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n",lang)<=0) err=true;
        }
     }
-    if (line)
-    {
+    if (line) {
         if (fprintf(w,"%s",line)<=0) err=true;
         free(line);
     }
@@ -2255,18 +2235,14 @@ bool cMarkAdStandalone::SaveInfo()
     if (fstat(fileno(r),&statbuf_r)==-1) err=true;
 
     fclose(r);
-    if (err)
-    {
+    if (err) {
         unlink(dst);
     }
-    else
-    {
-        if (rename(dst,src)==-1)
-        {
+    else {
+        if (rename(dst,src)==-1) {
             err=true;
         }
-        else
-        {
+        else {
             // preserve timestamps from old file
             struct utimbuf oldtimes;
             oldtimes.actime=statbuf_r.st_atime;
@@ -2624,8 +2600,7 @@ off_t cMarkAdStandalone::SeekPATPMT()
     free(buf);
     if (fd==-1) return (off_t) -1;
     uchar peek_buf[188];
-    for (int i=0; i<5000; i++)
-    {
+    for (int i=0; i<5000; i++) {
         int ret=read(fd,peek_buf,sizeof(peek_buf));
         if (!ret) {
             close(fd);
@@ -2656,6 +2631,7 @@ off_t cMarkAdStandalone::SeekPATPMT()
     return (off_t) -1;
 }
 
+
 bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
 {
     if (Offset<(off_t) 0) return false;
@@ -2666,8 +2642,7 @@ bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
     free(buf);
     if (fd==-1) return false;
 
-    if (lseek(fd,Offset,SEEK_SET)==(off_t)-1)
-    {
+    if (lseek(fd,Offset,SEEK_SET)==(off_t)-1) {
         close(fd);
         return false;
     }
@@ -2675,16 +2650,14 @@ bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
     uchar patpmt_buf[564];
     uchar *patpmt;
 
-    if (read(fd,patpmt_buf,sizeof(patpmt_buf))!=sizeof(patpmt_buf))
-    {
+    if (read(fd,patpmt_buf,sizeof(patpmt_buf))!=sizeof(patpmt_buf)) {
         close(fd);
         return false;
     }
     close(fd);
     patpmt=patpmt_buf;
 
-    if ((patpmt[0]==0x47) && ((patpmt[1] & 0x5F)==0x40) && (patpmt[2]==0x11) &&
-            ((patpmt[3] & 0x10)==0x10)) patpmt+=188; // skip SDT
+    if ((patpmt[0]==0x47) && ((patpmt[1] & 0x5F)==0x40) && (patpmt[2]==0x11) && ((patpmt[3] & 0x10)==0x10)) patpmt+=188; // skip SDT
 
     // some checks
     if ((patpmt[0]!=0x47) || (patpmt[188]!=0x47)) return false; // no TS-Sync
@@ -2709,8 +2682,7 @@ bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
     if (pmt->reserved3!=7) return false; // is always 111
     if (pmt->reserved4!=15) return false; // is always 1111
 
-    if ((pmt->program_number_H!=pat->program_number_H) ||
-            (pmt->program_number_L!=pat->program_number_L)) return false;
+    if ((pmt->program_number_H!=pat->program_number_H) || (pmt->program_number_L!=pat->program_number_L)) return false;
 
     int desc_len=(pmt->program_info_length_H<<8)+pmt->program_info_length_L;
     if (desc_len>166) return false; // beyond patpmt buffer
@@ -2721,13 +2693,11 @@ bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
 
     int i=205+desc_len;
 
-    while (i<section_end)
-    {
+    while (i<section_end) {
         struct ES_DESCRIPTOR *es=NULL;
         struct STREAMINFO *si = (struct STREAMINFO *) &patpmt[i];
         int esinfo_len=(si->ES_info_length_H<<8)+si->ES_info_length_L;
-        if (esinfo_len)
-        {
+        if (esinfo_len) {
             es = (struct ES_DESCRIPTOR *) &patpmt[i+sizeof(struct STREAMINFO)];
         }
 
@@ -2737,42 +2707,35 @@ bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
 
         int pid=(si->PID_H<<8)+si->PID_L;
 
-        switch (si->stream_type)
-        {
-        case 0x1:
-        case 0x2:
-            macontext.Info.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
-            // just use the first pid
-            if (!macontext.Info.VPid.Num) macontext.Info.VPid.Num=pid;
-            break;
-
-        case 0x3:
-        case 0x4:
-            // just use the first pid
-            if (!macontext.Info.APid.Num) macontext.Info.APid.Num=pid;
-            break;
-
-        case 0x6:
-            if (es)
-            {
+        switch (si->stream_type) {
+            case 0x1:
+            case 0x2:
+                macontext.Info.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
+                // just use the first pid
+                if (!macontext.Info.VPid.Num) macontext.Info.VPid.Num=pid;
+                break;
+            case 0x3:
+            case 0x4: // just use the first pid
+                if (!macontext.Info.APid.Num) macontext.Info.APid.Num=pid;
+                break;
+            case 0x6:
+                if (es) {
 #if !defined ONLY_WITH_CDECODER
-                if (es->Descriptor_Tag==0x6A) macontext.Info.DPid.Num=pid;
+                    if (es->Descriptor_Tag==0x6A) macontext.Info.DPid.Num=pid;
 #endif
-            }
-            break;
-
-        case 0x1b:
-            macontext.Info.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
-            // just use the first pid
-            if (!macontext.Info.VPid.Num) macontext.Info.VPid.Num=pid;
-            break;
+                }
+                break;
+            case 0x1b:
+                macontext.Info.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
+                // just use the first pid
+                if (!macontext.Info.VPid.Num) macontext.Info.VPid.Num=pid;
+                break;
         }
-
         i+=(sizeof(struct STREAMINFO)+esinfo_len);
     }
-
     return true;
 }
+
 
 bool cMarkAdStandalone::RegenerateIndex()
 {
@@ -2801,24 +2764,20 @@ bool cMarkAdStandalone::RegenerateIndex()
     return true;
 }
 
-bool cMarkAdStandalone::CreatePidfile()
-{
+bool cMarkAdStandalone::CreatePidfile() {
     char *buf=NULL;
     if (asprintf(&buf,"%s/markad.pid",directory)==-1) return false;
 
     // check for other running markad process
     FILE *oldpid=fopen(buf,"r");
-    if (oldpid)
-    {
+    if (oldpid) {
         // found old pidfile, check if it's still running
         int pid;
-        if (fscanf(oldpid,"%10i\n",&pid)==1)
-        {
+        if (fscanf(oldpid,"%10i\n",&pid)==1) {
             char procname[256]="";
             snprintf(procname,sizeof(procname),"/proc/%i",pid);
             struct stat statbuf;
-            if (stat(procname,&statbuf)!=-1)
-            {
+            if (stat(procname,&statbuf)!=-1) {
                 // found another, running markad
                 fprintf(stderr,"another instance is running on %s",directory);
                 abortNow=duplicate=true;
@@ -2826,13 +2785,10 @@ bool cMarkAdStandalone::CreatePidfile()
         }
         fclose(oldpid);
     }
-    else
-    {
-        // fopen above sets the error to 2, reset it here!
+    else { // fopen above sets the error to 2, reset it here!
         errno=0;
     }
-    if (duplicate)
-    {
+    if (duplicate) {
         free(buf);
         return false;
     }
@@ -2849,14 +2805,13 @@ bool cMarkAdStandalone::CreatePidfile()
     return true;
 }
 
-void cMarkAdStandalone::RemovePidfile()
-{
+
+void cMarkAdStandalone::RemovePidfile() {
     if (!directory) return;
     if (duplicate) return;
 
     char *buf;
-    if (asprintf(&buf,"%s/markad.pid",directory)!=-1)
-    {
+    if (asprintf(&buf,"%s/markad.pid",directory)!=-1) {
         unlink(buf);
         free(buf);
     }
