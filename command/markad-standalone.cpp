@@ -445,24 +445,27 @@ void cMarkAdStandalone::CheckStart() {
 
         if ((macontext.Config->DecodeAudio) && (macontext.Info.Channels[stream])) {
             if ((macontext.Info.Channels[stream]==6) && (macontext.Audio.Options.IgnoreDolbyDetection==false)) {
-                isyslog("DolbyDigital5.1 audio whith 6 Channels in stream %i detected. logo/border/aspect detection disabled", stream);
-                bDecodeVideo=false;
-                macontext.Video.Options.IgnoreAspectRatio=true;
-                macontext.Video.Options.IgnoreLogoDetection=true;
-                marks.Del(MT_ASPECTSTART);
-                marks.Del(MT_ASPECTSTOP);
-                // start mark must be around iStartA
-                begin=marks.GetAround(delta*4,iStartA,MT_CHANNELSTART);
-                if (!begin) {          // previous recording had also 6 channels, try other marks
-                    dsyslog("cMarkAdStandalone::CheckStart(): no audio channel start mark found");
+                if (macontext.Audio.Info.channelChange) {
+                    isyslog("DolbyDigital5.1 audio whith 6 Channels in stream %i detected. disable logo/border/aspect detection", stream);
+                    bDecodeVideo=false;
+                    macontext.Video.Options.IgnoreAspectRatio=true;
+                    macontext.Video.Options.IgnoreLogoDetection=true;
+                    marks.Del(MT_ASPECTSTART);
+                    marks.Del(MT_ASPECTSTOP);
+                    // start mark must be around iStartA
+                    begin=marks.GetAround(delta*4,iStartA,MT_CHANNELSTART);
+                    if (!begin) {          // previous recording had also 6 channels, try other marks
+                        dsyslog("cMarkAdStandalone::CheckStart(): no audio channel start mark found");
+                    }
+                    else {
+                        dsyslog("cMarkAdStandalone::CheckStart(): audio channel start mark found at %d", begin->position);
+                        marks.Del(MT_LOGOSTART);   // we do not need the weaker marks if we found a MT_CHANNELSTART
+                        marks.Del(MT_LOGOSTOP);
+                        marks.Del(MT_HBORDERSTART);
+                        marks.Del(MT_HBORDERSTOP);
+                    }
                 }
-                else {
-                    dsyslog("cMarkAdStandalone::CheckStart(): audio channel start mark found at %d", begin->position);
-                    marks.Del(MT_LOGOSTART);   // we do not need the weaker marks if we found a MT_CHANNELSTART
-                    marks.Del(MT_LOGOSTOP);
-                    marks.Del(MT_HBORDERSTART);
-                    marks.Del(MT_HBORDERSTOP);
-                }
+                else dsyslog("cMarkAdStandalone::CheckStart(): no audio channel change found till now, do not disable logo/border/aspect detection");
             }
 #if !defined ONLY_WITH_CDECODER
             else {
@@ -915,9 +918,11 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
             }
             break;
         case MT_CHANNELSTART:
+            macontext.Audio.Info.channelChange = true;
             if (asprintf(&comment,"audio channel change from %i to %i (%i)*", Mark->ChannelsBefore,Mark->ChannelsAfter, Mark->Position)==-1) comment=NULL;
             break;
         case MT_CHANNELSTOP:
+            macontext.Audio.Info.channelChange = true;
             if (asprintf(&comment,"audio channel change from %i to %i (%i)", Mark->ChannelsBefore,Mark->ChannelsAfter, Mark->Position)==-1) comment=NULL;
             break;
         case MT_RECORDINGSTART:
