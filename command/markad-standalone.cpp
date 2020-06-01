@@ -44,8 +44,8 @@ bool restartLogoDetectionDone=false;
 int SysLogLevel=2;
 bool abortNow = false;
 
-static inline int ioprio_set(int which, int who, int ioprio)
-{
+
+static inline int ioprio_set(int which, int who, int ioprio) {
 #if defined(__i386__)
 #define __NR_ioprio_set         289
 #elif defined(__ppc__)
@@ -59,14 +59,15 @@ static inline int ioprio_set(int which, int who, int ioprio)
 #else
 #define __NR_ioprio_set           0
 #endif
-    if (__NR_ioprio_set)
-    {
+    if (__NR_ioprio_set) {
         return syscall(__NR_ioprio_set, which, who, ioprio);
-    } else {
+    }
+    else {
         fprintf(stderr,"set io prio not supported on this system\n");
         return 0; // just do nothing
     }
 }
+
 
 static inline int ioprio_get(int which, int who) {
 #if defined(__i386__)
@@ -92,11 +93,10 @@ static inline int ioprio_get(int which, int who) {
 
 }
 
-void syslog_with_tid(int priority, const char *format, ...)
-{
+
+void syslog_with_tid(int priority, const char *format, ...) {
     va_list ap;
-    if ((SYSLOG) && (!LOG2REC))
-    {
+    if ((SYSLOG) && (!LOG2REC)) {
         priority=LOG_ERR;
         char fmt[255];
         snprintf(fmt, sizeof(fmt), "[%d] %s", getpid(), format);
@@ -104,8 +104,7 @@ void syslog_with_tid(int priority, const char *format, ...)
         vsyslog(priority, fmt, ap);
         va_end(ap);
     }
-    else
-    {
+    else {
         char buf[27]={0};
         const time_t now=time(NULL);
         if (ctime_r(&now,buf)) {
@@ -130,8 +129,8 @@ void syslog_with_tid(int priority, const char *format, ...)
     }
 }
 
-cOSDMessage::cOSDMessage(const char *Host, int Port)
-{
+
+cOSDMessage::cOSDMessage(const char *Host, int Port) {
     tid=0;
     msg=NULL;
     host=strdup(Host);
@@ -139,23 +138,22 @@ cOSDMessage::cOSDMessage(const char *Host, int Port)
     send(this);
 }
 
-cOSDMessage::~cOSDMessage()
-{
+
+cOSDMessage::~cOSDMessage() {
     if (tid) pthread_join(tid,NULL);
     if (msg) free(msg);
     if (host) free((void*) host);
 }
 
-bool cOSDMessage::readreply(int fd, char **reply)
-{
+
+bool cOSDMessage::readreply(int fd, char **reply) {
     usleep(400000);
     char c=' ';
     int repsize=0;
     int msgsize=0;
     bool skip=false;
     if (reply) *reply=NULL;
-    do
-    {
+    do {
         struct pollfd fds;
         fds.fd=fd;
         fds.events=POLLIN;
@@ -174,7 +172,8 @@ bool cOSDMessage::readreply(int fd, char **reply)
                     free(*reply);
                     *reply=NULL;
                     skip=true;
-                } else {
+                }
+                else {
                     *reply=tmp;
                 }
             }
@@ -186,13 +185,12 @@ bool cOSDMessage::readreply(int fd, char **reply)
     return true;
 }
 
-void *cOSDMessage::send(void *posd)
-{
+
+void *cOSDMessage::send(void *posd) {
     cOSDMessage *osd=static_cast<cOSDMessage *>(posd);
 
     struct hostent *host=gethostbyname(osd->host);
-    if (!host)
-    {
+    if (!host) {
         osd->tid=0;
         return NULL;
     }
@@ -207,15 +205,13 @@ void *cOSDMessage::send(void *posd)
     sock=socket(PF_INET, SOCK_STREAM, 0);
     if (sock<0) return NULL;
 
-    if (connect(sock, (struct sockaddr *)&name,size)!=0)
-    {
+    if (connect(sock, (struct sockaddr *)&name,size)!=0) {
         close(sock);
         return NULL;
     }
 
     char *reply=NULL;
-    if (!osd->readreply(sock,&reply))
-    {
+    if (!osd->readreply(sock,&reply)) {
         if (reply) free(reply);
         close(sock);
         return NULL;
@@ -228,35 +224,35 @@ void *cOSDMessage::send(void *posd)
         if (ret!=(ssize_t)-1) ret=write(sock,osd->msg,strlen(osd->msg));
         if (ret!=(ssize_t)-1) ret=write(sock,"\r\n",2);
 
-        if (!osd->readreply(sock) || (ret==(ssize_t)-1))
-        {
+        if (!osd->readreply(sock) || (ret==(ssize_t)-1)) {
             close(sock);
             return NULL;
         }
-    } else {
+    }
+    else {
         if (reply) {
             char *cs=strrchr(reply,';');
             if (cs) {
                 cs+=2;
                 trcs(cs);
-            } else {
+            }
+            else {
                 trcs("UTF-8"); // just a guess
             }
             free(reply);
-        } else {
+        }
+        else {
             trcs("UTF-8"); // just a guess
         }
     }
-
     ret=write(sock,"QUIT\r\n",6);
-
     if (ret!=(ssize_t)-1) osd->readreply(sock);
     close(sock);
     return NULL;
 }
 
-int cOSDMessage::Send(const char *format, ...)
-{
+
+int cOSDMessage::Send(const char *format, ...) {
     if (tid) pthread_join(tid,NULL);
     if (msg) free(msg);
     va_list ap;
@@ -1541,7 +1537,7 @@ void cMarkAdStandalone::MarkadCut() {
         dsyslog("failed to close output file");
         return;
     }
-    dsyslog("end MarkadCut() at frame %ld", ptr_cDecoder->GetFrameNumber());
+    dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %ld", ptr_cDecoder->GetFrameNumber());
     if (ptr_cEncoder) {
         delete ptr_cEncoder;
         ptr_cEncoder = NULL;
