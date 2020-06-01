@@ -1327,6 +1327,7 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
 
 
 bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
+    if (!ptr_cDecoder) return false;
     if (!mark1) return false;
     if (!*mark1) return false;
     if (!mark2) return false;
@@ -3133,10 +3134,8 @@ cMarkAdStandalone::~cMarkAdStandalone() {
 }
 
 
-bool isnumber(const char *s)
-{
-    while (*s)
-    {
+bool isnumber(const char *s) {
+    while (*s) {
         if (!isdigit(*s))
             return false;
         s++;
@@ -3144,8 +3143,8 @@ bool isnumber(const char *s)
     return true;
 }
 
-int usage(int svdrpport)
-{
+
+int usage(int svdrpport) {
     // nothing done, give the user some help
     printf("Usage: markad [options] cmd <record>\n"
            "options:\n"
@@ -3248,56 +3247,55 @@ int usage(int svdrpport)
     return -1;
 }
 
-static void signal_handler(int sig)
-{
+
+static void signal_handler(int sig) {
     void *trace[32];
     char **messages = (char **)NULL;
     int i, trace_size = 0;
 
-    switch (sig)
-    {
-    case SIGTSTP:
-        isyslog("paused by signal");
-        kill(getpid(),SIGSTOP);
-        break;
-    case SIGCONT:
-        isyslog("continued by signal");
-        break;
-    case SIGABRT:
-        esyslog("aborted by signal");
-        abortNow = true;;
-        break;
-    case SIGSEGV:
-        esyslog("segmentation fault");
+    switch (sig) {
+        case SIGTSTP:
+            isyslog("paused by signal");
+            kill(getpid(),SIGSTOP);
+            break;
+        case SIGCONT:
+            isyslog("continued by signal");
+            break;
+        case SIGABRT:
+            esyslog("aborted by signal");
+            abortNow = true;;
+            break;
+        case SIGSEGV:
+            esyslog("segmentation fault");
 
-        trace_size = backtrace(trace, 32);
-        messages = backtrace_symbols(trace, trace_size);
-        esyslog("[bt] Execution path:");
-        for (i=0; i<trace_size; ++i)
-        {
-            esyslog("[bt] %s", messages[i]);
-        }
-        _exit(1);
-        break;
-    case SIGTERM:
-    case SIGINT:
-        esyslog("aborted by user");
-        abortNow = true;
-        break;
-    default:
-        break;
+            trace_size = backtrace(trace, 32);
+            messages = backtrace_symbols(trace, trace_size);
+            esyslog("[bt] Execution path:");
+            for (i=0; i<trace_size; ++i) {
+                esyslog("[bt] %s", messages[i]);
+            }
+            _exit(1);
+            break;
+        case SIGTERM:
+        case SIGINT:
+            esyslog("aborted by user");
+            abortNow = true;
+            break;
+        default:
+            break;
     }
 }
 
+
 char *recDir=NULL;
 
-void freedir(void)
-{
+
+void freedir(void) {
     if (recDir) free(recDir);
 }
 
-int main(int argc, char *argv[])
-{
+
+int main(int argc, char *argv[]) {
     int c;
     bool bAfter=false,bEdited=false;
     bool bFork=false,bNice=false,bImmediateCall=false;
@@ -3325,19 +3323,16 @@ int main(int argc, char *argv[])
     strcpy(config.logoDirectory,"/var/lib/markad");
 
     struct servent *serv=getservbyname("svdrp","tcp");
-    if (serv)
-    {
+    if (serv) {
         config.svdrpport=htons(serv->s_port);
     }
-    else
-    {
+    else {
         config.svdrpport=2001;
     }
 
     atexit(freedir);
 
-    while (1)
-    {
+    while (1) {
         int option_index = 0;
         static struct option long_options[] =
         {
@@ -3610,33 +3605,25 @@ int main(int argc, char *argv[])
     }
 
     if (optind < argc) {
-        while (optind < argc)
-        {
-            if (strcmp(argv[optind], "after" ) == 0 )
-            {
+        while (optind < argc) {
+            if (strcmp(argv[optind], "after" ) == 0 ) {
                 bAfter = bFork = bNice = SYSLOG = true;
             }
-            else if (strcmp(argv[optind], "before" ) == 0 )
-            {
+            else if (strcmp(argv[optind], "before" ) == 0 ) {
                 if (!online) online=1;
                 config.Before = bFork = bNice = SYSLOG = true;
             }
-            else if (strcmp(argv[optind], "edited" ) == 0 )
-            {
+            else if (strcmp(argv[optind], "edited" ) == 0 ) {
                 bEdited = true;
             }
-            else if (strcmp(argv[optind], "nice" ) == 0 )
-            {
+            else if (strcmp(argv[optind], "nice" ) == 0 ) {
                 bNice = true;
             }
-            else if (strcmp(argv[optind], "-" ) == 0 )
-            {
+            else if (strcmp(argv[optind], "-" ) == 0 ) {
                 bImmediateCall = true;
             }
-            else
-            {
-                if ( strstr(argv[optind],".rec") != NULL )
-                {
+            else {
+                if ( strstr(argv[optind],".rec") != NULL ) {
                     recDir=realpath(argv[optind],NULL);
                     config.recDir=recDir;
                 }
@@ -3652,53 +3639,42 @@ int main(int argc, char *argv[])
 
     // we can run, if one of bImmediateCall, bAfter, bBefore or bNice is true
     // and recDir is given
-    if ( (bImmediateCall || config.Before || bAfter || bNice) && recDir )
-    {
+    if ( (bImmediateCall || config.Before || bAfter || bNice) && recDir ) {
         // if bFork is given go in background
-        if ( bFork )
-        {
+        if ( bFork ) {
             //close_files();
             pid_t pid = fork();
-            if (pid < 0)
-            {
+            if (pid < 0) {
                 char *err=strerror(errno);
                 fprintf(stderr, "%s\n",err);
                 return 2;
             }
-            if (pid != 0)
-            {
+            if (pid != 0) {
                 return 0; // initial program immediately returns
             }
         }
-        if ( bFork )
-        {
-            if (chdir("/")==-1)
-            {
+        if ( bFork ) {
+            if (chdir("/")==-1) {
                 perror("chdir");
                 exit(EXIT_FAILURE);
             }
-            if (setsid() == (pid_t)(-1))
-            {
+            if (setsid() == (pid_t)(-1)) {
                 perror("setsid");
                 exit(EXIT_FAILURE);
             }
-            if (signal(SIGHUP, SIG_IGN) == SIG_ERR)
-            {
+            if (signal(SIGHUP, SIG_IGN) == SIG_ERR) {
                 perror("signal(SIGHUP, SIG_IGN)");
                 errno = 0;
             }
             int f;
 
             f = open("/dev/null", O_RDONLY);
-            if (f == -1)
-            {
+            if (f == -1) {
                 perror("/dev/null");
                 errno = 0;
             }
-            else
-            {
-                if (dup2(f, fileno(stdin)) == -1)
-                {
+            else {
+                if (dup2(f, fileno(stdin)) == -1) {
                     perror("dup2");
                     errno = 0;
                 }
@@ -3706,20 +3682,16 @@ int main(int argc, char *argv[])
             }
 
             f = open("/dev/null", O_WRONLY);
-            if (f == -1)
-            {
+            if (f == -1) {
                 perror("/dev/null");
                 errno = 0;
             }
-            else
-            {
-                if (dup2(f, fileno(stdout)) == -1)
-                {
+            else {
+                if (dup2(f, fileno(stdout)) == -1) {
                     perror("dup2");
                     errno = 0;
                 }
-                if (dup2(f, fileno(stderr)) == -1)
-                {
+                if (dup2(f, fileno(stderr)) == -1) {
                     perror("dup2");
                     errno = 0;
                 }
@@ -3734,14 +3706,11 @@ int main(int argc, char *argv[])
             close(i); //close all dup'ed filedescriptors
 
         // should we renice ?
-        if ( bNice )
-        {
-            if (setpriority(PRIO_PROCESS,0,niceLevel)==-1)
-            {
+        if ( bNice ) {
+            if (setpriority(PRIO_PROCESS,0,niceLevel)==-1) {
                 fprintf(stderr,"failed to set nice to %d\n",niceLevel);
             }
-            if (ioprio_set(1,getpid(),ioprio | ioprio_class << 13)==-1)
-            {
+            if (ioprio_set(1,getpid(),ioprio | ioprio_class << 13)==-1) {
                 fprintf(stderr,"failed to set ioprio to %i,%i\n",ioprio_class,ioprio);
             }
         }
@@ -3759,20 +3728,17 @@ int main(int argc, char *argv[])
 
         // now do the work...
         struct stat statbuf;
-        if (stat(recDir,&statbuf)==-1)
-        {
+        if (stat(recDir,&statbuf)==-1) {
             fprintf(stderr,"%s not found\n",recDir);
             return -1;
         }
 
-        if (!S_ISDIR(statbuf.st_mode))
-        {
+        if (!S_ISDIR(statbuf.st_mode)) {
             fprintf(stderr,"%s is not a directory\n",recDir);
             return -1;
         }
 
-        if (access(recDir,W_OK|R_OK)==-1)
-        {
+        if (access(recDir,W_OK|R_OK)==-1) {
             fprintf(stderr,"cannot access %s\n",recDir);
             return -1;
         }
