@@ -254,11 +254,13 @@ unsigned Descriptor_Length:
     bool ProcessMark2ndPass(clMark **Mark1, clMark **Mark2);
     bool ProcessFile(int Number);
     void ProcessFile();
+    void ProcessFile_cDecoder();
     bool ProcessFrame(cDecoder *ptr_cDecoder);
 public:
     cMarkAdStandalone(const char *Directory, const MarkAdConfig *config);
     ~cMarkAdStandalone();
     void Process();
+    void Process_cDecoder();
     void Process2ndPass();
     void MarkadCut();
 };

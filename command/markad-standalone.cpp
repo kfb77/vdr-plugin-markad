@@ -1866,13 +1866,33 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
 }
 
 
-void cMarkAdStandalone::ProcessFile() {
+void cMarkAdStandalone::ProcessFile_cDecoder() {
     LogSeparator();
-    dsyslog("cMarkAdStandalone::ProcessFile(): start processing files");
-    if (macontext.Config->use_cDecoder) {
-        ptr_cDecoder = new cDecoder(macontext.Config->threads);
-        CheckIndexGrowing();
-        while(ptr_cDecoder && ptr_cDecoder->DecodeDir(directory)) {
+    dsyslog("cMarkAdStandalone::ProcessFile_cDecoder(): start processing files");
+    ptr_cDecoder = new cDecoder(macontext.Config->threads);
+    CheckIndexGrowing();
+    while(ptr_cDecoder && ptr_cDecoder->DecodeDir(directory)) {
+        if (abortNow) {
+            if (ptr_cDecoder) {
+                delete ptr_cDecoder;
+                ptr_cDecoder = NULL;
+            }
+            break;
+        }
+        if(ptr_cDecoder->GetFrameNumber() < 0) {
+            macontext.Video.Info.Height=ptr_cDecoder->GetVideoHeight();
+            isyslog("video hight: %i", macontext.Video.Info.Height);
+
+            macontext.Video.Info.Width=ptr_cDecoder->GetVideoWidth();
+            isyslog("video width: %i", macontext.Video.Info.Width);
+
+            macontext.Video.Info.FramesPerSecond=ptr_cDecoder->GetVideoFramesPerSecond();
+            isyslog("average frame rate %i frames per second",(int) macontext.Video.Info.FramesPerSecond);
+            isyslog("real frame rate    %i frames per second",ptr_cDecoder->GetVideoRealFrameRate());
+
+            CalculateCheckPositions(tStart*macontext.Video.Info.FramesPerSecond);
+        }
+        while(ptr_cDecoder && ptr_cDecoder->GetNextFrame()) {
             if (abortNow) {
                 if (ptr_cDecoder) {
                     delete ptr_cDecoder;
@@ -1880,39 +1900,45 @@ void cMarkAdStandalone::ProcessFile() {
                 }
                 break;
             }
-            if(ptr_cDecoder->GetFrameNumber() < 0) {
-                macontext.Video.Info.Height=ptr_cDecoder->GetVideoHeight();
-                isyslog("video hight: %i", macontext.Video.Info.Height);
-
-                macontext.Video.Info.Width=ptr_cDecoder->GetVideoWidth();
-                isyslog("video width: %i", macontext.Video.Info.Width);
-
-                macontext.Video.Info.FramesPerSecond=ptr_cDecoder->GetVideoFramesPerSecond();
-                isyslog("average frame rate %i frames per second",(int) macontext.Video.Info.FramesPerSecond);
-                isyslog("real frame rate    %i frames per second",ptr_cDecoder->GetVideoRealFrameRate());
-
-                CalculateCheckPositions(tStart*macontext.Video.Info.FramesPerSecond);
-            }
-            while(ptr_cDecoder && ptr_cDecoder->GetNextFrame()) {
-                if (abortNow) {
-                    if (ptr_cDecoder) {
-                        delete ptr_cDecoder;
-                        ptr_cDecoder = NULL;
-                    }
-                    break;
-                }
-                if (! cMarkAdStandalone::ProcessFrame(ptr_cDecoder)) break;
-                CheckIndexGrowing();
-            }
+            if (! cMarkAdStandalone::ProcessFrame(ptr_cDecoder)) break;
+            CheckIndexGrowing();
         }
     }
-    else {
-        for (int i=1; i<=MaxFiles; i++)
-        {
-            if (abortNow) break;
-            if (!ProcessFile(i)) break;
-            if ((gotendmark) && (!macontext.Config->GenIndex)) break;
+
+    if (!abortNow) {
+        if (iStart !=0 ) {  // iStart will be 0 if iStart was called
+            dsyslog("cMarkAdStandalone::ProcessFile_cDecoder(): recording ends unexpected before chkSTART (%d) at frame %d", chkSTART, lastiframe);
+            isyslog("got end of recording before recording length from info file reached");
+            CheckStart();
         }
+        if (iStopA > 0) {
+            if (iStop <= 0) {  // unexpected end of recording reached
+                iStop = lastiframe;
+                iStopinBroadCast= true;
+                dsyslog("cMarkAdStandalone::ProcessFile_cDecoder(): recording ends unexpected before chkSTOP (%d) at frame %d", chkSTOP, lastiframe);
+                isyslog("got end of recording before recording length from info file reached");
+            }
+            CheckStop();
+        }
+        CheckMarks();
+        if ((inBroadCast) && (!gotendmark) && (lastiframe)) {
+            MarkAdMark tempmark;
+            tempmark.Type=MT_RECORDINGSTOP;
+            tempmark.Position=lastiframe;
+            AddMark(&tempmark);
+        }
+    }
+    dsyslog("cMarkAdStandalone::ProcessFile_cDecoder(): end processing files");
+}
+
+
+void cMarkAdStandalone::ProcessFile() {
+    LogSeparator();
+    dsyslog("cMarkAdStandalone::ProcessFile(): start processing files");
+    for (int i=1; i<=MaxFiles; i++) {
+        if (abortNow) break;
+        if (!ProcessFile(i)) break;
+        if ((gotendmark) && (!macontext.Config->GenIndex)) break;
     }
 
     if (!abortNow) {
@@ -1938,13 +1964,29 @@ void cMarkAdStandalone::ProcessFile() {
             AddMark(&tempmark);
         }
     }
-    if (!macontext.Config->use_cDecoder && demux) skipped=demux->Skipped();
+    if (demux) skipped=demux->Skipped();
     dsyslog("cMarkAdStandalone::ProcessFile(): end processing files");
 }
 
 
-void cMarkAdStandalone::Process()
-{
+void cMarkAdStandalone::Process_cDecoder() {
+    if (abortNow) return;
+
+    if (macontext.Config->BackupMarks) marks.Backup(directory,isTS);
+    ProcessFile_cDecoder();
+
+    if (!abortNow) {
+        if (marks.Save(directory,&macontext,ptr_cDecoder,isTS)) {
+            if (length && startTime)
+                    if (macontext.Config->SaveInfo) SaveInfo();
+
+        }
+    }
+    if (macontext.Config->GenIndex) marks.RemoveGeneratedIndex(directory,isTS);
+}
+
+
+void cMarkAdStandalone::Process() {
     if (abortNow) return;
 
     if (macontext.Config->BackupMarks) marks.Backup(directory,isTS);
@@ -1952,27 +1994,16 @@ void cMarkAdStandalone::Process()
     ProcessFile();
 
     marks.CloseIndex(directory,isTS);
-    if (!abortNow)
-    {
-        if (marks.Save(directory,&macontext,ptr_cDecoder,isTS))
-        {
-            if (length && startTime)
-            {
-                if (!ptr_cDecoder ){  // new decoder class does not use the vdr index file
-                                      // and does not support to create an new index file
-                                      // use vdr to create a new index
-                    if (((time(NULL)>(startTime+(time_t) length)) || (gotendmark)) && !ptr_cDecoder )
-                    {
-                        int iIndexError=false;
-                        int tframecnt=macontext.Config->GenIndex ? framecnt : 0;
-                        if (marks.CheckIndex(directory,isTS,&tframecnt,&iIndexError))
-                        {
-                            if (iIndexError)
-                            {
-                                if (macontext.Config->GenIndex)
-                                {
-                                    switch (iIndexError)
-                                    {
+    if (!abortNow) {
+        if (marks.Save(directory,&macontext,ptr_cDecoder,isTS)) {
+            if (length && startTime) {
+                if (((time(NULL)>(startTime+(time_t) length)) || (gotendmark)) && !ptr_cDecoder ) {
+                    int iIndexError=false;
+                    int tframecnt=macontext.Config->GenIndex ? framecnt : 0;
+                    if (marks.CheckIndex(directory,isTS,&tframecnt,&iIndexError)) {
+                        if (iIndexError) {
+                            if (macontext.Config->GenIndex) {
+                                switch (iIndexError) {
                                     case IERR_NOTFOUND:
                                         isyslog("no index found");
                                         break;
@@ -1981,44 +2012,32 @@ void cMarkAdStandalone::Process()
                                         break;
                                     default:
                                         isyslog("index doesn't match marks");
-                                        break;
-                                    }
-                                    if (RegenerateIndex())
-                                    {
-                                        isyslog("recreated index");
-                                    }
-                                    else
-                                    {
-                                        esyslog("failed to recreate index");
-                                    }
+                                    break;
                                 }
-                                else
-                                {
-                                    esyslog("index doesn't match marks%s",
-                                            ((isTS) || ((macontext.Info.VPid.Type==
-                                                     MARKAD_PIDTYPE_VIDEO_H264) && (!isTS))) ?
-                                            ", sorry you're lost" :
-                                            ", please run genindex");
+                                if (RegenerateIndex()) {
+                                    isyslog("recreated index");
+                                }
+                                else {
+                                    esyslog("failed to recreate index");
                                 }
                             }
+                            else {
+                                esyslog("index doesn't match marks%s", ((isTS) || ((macontext.Info.VPid.Type== MARKAD_PIDTYPE_VIDEO_H264) && (!isTS))) ?
+                                            ", sorry you're lost" : ", please run genindex");
+                            }
                         }
-                        if (macontext.Config->SaveInfo) SaveInfo();
                     }
-                    else
-                    {
-                        // this shouldn't be reached
-                        if (macontext.Config->logoExtraction==-1)
-                            esyslog("ALERT: stopping before end of broadcast");
-                    }
-                }
-                else { // ptr_cDecoder
                     if (macontext.Config->SaveInfo) SaveInfo();
+                }
+                else { // this shouldn't be reached
+                    if (macontext.Config->logoExtraction==-1) esyslog("ALERT: stopping before end of broadcast");
                 }
             }
         }
     }
     if (macontext.Config->GenIndex) marks.RemoveGeneratedIndex(directory,isTS);
 }
+
 
 bool cMarkAdStandalone::SetFileUID(char *File)
 {
@@ -3808,7 +3827,9 @@ int main(int argc, char *argv[])
         dsyslog("parameter --autologo is set to %i",config.autoLogo);
         if (config.Before) dsyslog("parameter Before is set");
 
-        if (!bPass2Only) cmasta->Process();
+        if (!bPass2Only)
+            if (config.use_cDecoder) cmasta->Process_cDecoder();
+            else cmasta->Process();
         if (!bPass1Only) cmasta->Process2ndPass();
         if (config.MarkadCut) cmasta->MarkadCut();
         delete cmasta;
