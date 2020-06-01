@@ -464,16 +464,17 @@ void cMarkAdStandalone::CheckStart() {
                     marks.Del(MT_HBORDERSTOP);
                 }
             }
+#if !defined ONLY_WITH_CDECODER
             else {
                 if (macontext.Info.DPid.Num) {
                     if ((macontext.Info.Channels[stream]) && (macontext.Audio.Options.IgnoreDolbyDetection==false))
                         isyslog("broadcast with %i audio channels of stream %i, disabling AC3 decoding",macontext.Info.Channels[stream], stream);
-                    if (macontext.Audio.Options.IgnoreDolbyDetection==true)
-                        isyslog("disabling AC3 decoding (from logo)");
+                    if (macontext.Audio.Options.IgnoreDolbyDetection==true) isyslog("disabling AC3 decoding (from logo)");
                     macontext.Info.DPid.Num=0;
                     demux->DisableDPid();
                 }
             }
+#endif
         }
     }
 
@@ -508,12 +509,14 @@ void cMarkAdStandalone::CheckStart() {
                 isyslog("logo/border detection disabled");
                 bDecodeVideo=false;
                 macontext.Video.Options.IgnoreAspectRatio=false;
+#if !defined ONLY_WITH_CDECODER
                 for (short int stream=0;stream<MAXSTREAMS; stream++) {
                     if (macontext.Info.Channels[stream]==6) {
                         macontext.Info.DPid.Num=0;
                         demux->DisableDPid();
                     }
                 }
+#endif
                 macontext.Video.Options.IgnoreLogoDetection=true;
                 marks.Del(MT_CHANNELSTART);
                 marks.Del(MT_CHANNELSTOP);
@@ -1195,6 +1198,7 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
 }
 
 
+#if !defined ONLY_WITH_CDECODER
 bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Number, off_t Offset, int Frame, int Frames) {
     if (!directory) return false;
     if (!Number) return false;
@@ -1324,6 +1328,7 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
     }
     return true;
 }
+#endif
 
 
 bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
@@ -1539,8 +1544,10 @@ void cMarkAdStandalone::Process2ndPass() {
     }
 
     while ((p1) && (p2)) {
+#if !defined ONLY_WITH_CDECODER
         off_t offset;
         int number,frame,iframes;
+#endif
         int frange=macontext.Video.Info.FramesPerSecond*120; // 40s + 80s
         int frange_begin=p1->position-frange; // 120 seconds before first mark
         if (frange_begin<0) frange_begin=0; // but not before beginning of broadcast
@@ -1551,6 +1558,7 @@ void cMarkAdStandalone::Process2ndPass() {
                 dsyslog("cMarkAdStandalone::Process2ndPass(): no overlap found for marks at frames (%i) and (%i)", p1->position, p2->position);
             }
         }
+#if !defined ONLY_WITH_CDECODER
         else {
             if (marks.ReadIndex(directory,isTS,frange_begin,frange,&number,&offset,&frame,&iframes)) {
                 if (!ProcessFile2ndPass(&p1,NULL,number,offset,frame,iframes)) break;
@@ -1565,6 +1573,7 @@ void cMarkAdStandalone::Process2ndPass() {
                 return;
             }
         }
+#endif
         p1=p2->Next();
         if (p1) {
             p2=p1->Next();
@@ -1576,7 +1585,7 @@ void cMarkAdStandalone::Process2ndPass() {
     dsyslog("end 2ndPass");
 }
 
-
+#if !defined ONLY_WITH_CDECODER
 bool cMarkAdStandalone::ProcessFile(int Number)
 {
     if (!directory) return false;
@@ -1744,6 +1753,7 @@ again:
     close(f);
     return true;
 }
+#endif
 
 
 bool cMarkAdStandalone::Reset(bool FirstPass) {
@@ -1768,11 +1778,11 @@ bool cMarkAdStandalone::Reset(bool FirstPass) {
     macontext.Video.Info.AspectRatio.Num=0;
     memset(macontext.Audio.Info.Channels, 0, sizeof(macontext.Audio.Info.Channels));
 
-    if (decoder) {
-        ret=decoder->Clear();
-    }
     if (streaminfo) streaminfo->Clear();
+#if !defined ONLY_WITH_CDECODER
+    if (decoder) ret=decoder->Clear();
     if (demux) demux->Clear();
+#endif
     if (video) video->Clear(false);
     if (audio) audio->Clear();
     return ret;
@@ -1933,6 +1943,7 @@ void cMarkAdStandalone::ProcessFile_cDecoder() {
 }
 
 
+#if !defined ONLY_WITH_CDECODER
 void cMarkAdStandalone::ProcessFile() {
     LogSeparator();
     dsyslog("cMarkAdStandalone::ProcessFile(): start processing files");
@@ -1968,6 +1979,7 @@ void cMarkAdStandalone::ProcessFile() {
     if (demux) skipped=demux->Skipped();
     dsyslog("cMarkAdStandalone::ProcessFile(): end processing files");
 }
+#endif
 
 
 void cMarkAdStandalone::Process_cDecoder() {
@@ -1987,6 +1999,7 @@ void cMarkAdStandalone::Process_cDecoder() {
 }
 
 
+#if !defined ONLY_WITH_CDECODER
 void cMarkAdStandalone::Process() {
     if (abortNow) return;
 
@@ -2038,6 +2051,7 @@ void cMarkAdStandalone::Process() {
     }
     if (macontext.Config->GenIndex) marks.RemoveGeneratedIndex(directory,isTS);
 }
+#endif
 
 
 bool cMarkAdStandalone::SetFileUID(char *File)
@@ -2736,7 +2750,9 @@ bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
         case 0x6:
             if (es)
             {
+#if !defined ONLY_WITH_CDECODER
                 if (es->Descriptor_Tag==0x6A) macontext.Info.DPid.Num=pid;
+#endif
             }
             break;
 
@@ -2855,8 +2871,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
     indexFile=NULL;
     streaminfo=NULL;
+#if !defined ONLY_WITH_CDECODER
     demux=NULL;
     decoder=NULL;
+#endif
     video=NULL;
     audio=NULL;
     osd=NULL;
@@ -2891,7 +2909,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         bIgnoreTimerInfo=false;
     }
 
+#if !defined ONLY_WITH_CDECODER
     macontext.Info.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
+#endif
     macontext.Info.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
 
     if (!config->NoPid) {
@@ -2991,7 +3011,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     }
     else {
         macontext.Info.APid.Num=-1;
+#if !defined ONLY_WITH_CDECODER
         macontext.Info.DPid.Num=-1;
+#endif
         macontext.Info.VPid.Num=-1;
 
         if (CheckVDRHD()) {
@@ -3054,7 +3076,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         if (isTS) {
             isyslog("found %s-video (0x%04x)", macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262", macontext.Info.VPid.Num);
         }
+#if !defined ONLY_WITH_CDECODER
         demux=new cDemux(macontext.Info.VPid.Num,macontext.Info.DPid.Num,macontext.Info.APid.Num, macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,true);
+#endif
     }
     else {
         demux=NULL;
@@ -3065,12 +3089,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
             isyslog("found MP2 (0x%04x)",macontext.Info.APid.Num);
     }
 
-    if (macontext.Info.DPid.Num) {
-        if (macontext.Info.DPid.Num!=-1)
-            isyslog("found AC3 (0x%04x)",macontext.Info.DPid.Num);
-    }
     if (!abortNow) {
+#if !defined ONLY_WITH_CDECODER
+        if (macontext.Info.DPid.Num) {
+            if (macontext.Info.DPid.Num!=-1)
+                isyslog("found AC3 (0x%04x)",macontext.Info.DPid.Num);
+        }
         decoder = new cMarkAdDecoder(macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,config->threads);
+#endif
         video = new cMarkAdVideo(&macontext);
         audio = new cMarkAdAudio(&macontext);
         streaminfo = new cMarkAdStreamInfo;
@@ -3123,8 +3149,10 @@ cMarkAdStandalone::~cMarkAdStandalone() {
     if (macontext.Info.ChannelName) free(macontext.Info.ChannelName);
     if (indexFile) free(indexFile);
 
+#if !defined ONLY_WITH_CDECODER
     if (demux) delete demux;
     if (decoder) delete decoder;
+#endif
     if (video) delete video;
     if (audio) delete audio;
     if (streaminfo) delete streaminfo;
@@ -3775,7 +3803,14 @@ int main(int argc, char *argv[]) {
         dsyslog("parameter --threads is set to %i", config.threads);
         dsyslog("parameter --astopoffs is set to %i",config.astopoffs);
         if (LOG2REC) dsyslog("parameter --log2rec is set");
+
+#if !defined ONLY_WITH_CDECODER
         if (config.use_cDecoder) dsyslog("parameter --cDecoder is set");
+#else
+        config.use_cDecoder = true;
+        dsyslog("force parameter --cDecoder to set because this markad is compiled without classic decoder");
+#endif
+
         if (config.MarkadCut) {
             dsyslog("parameter --cut is set");
             if (!config.use_cDecoder) {
@@ -3795,7 +3830,11 @@ int main(int argc, char *argv[]) {
 
         if (!bPass2Only)
             if (config.use_cDecoder) cmasta->Process_cDecoder();
-            else cmasta->Process();
+#if !defined ONLY_WITH_CDECODER
+            else {
+                cmasta->Process();
+            }
+#endif
         if (!bPass1Only) cmasta->Process2ndPass();
         if (config.MarkadCut) cmasta->MarkadCut();
         delete cmasta;

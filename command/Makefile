@@ -2,6 +2,9 @@
 # Makefile for a Video Disk Recorder addon
 #
 
+# use this, if you want to build with the new cDecoder class only
+ONLY_WITH_CDECODER=1
+
 # use this, if you use libavcodec51
 #WITH_OLD_FFMPEG_HEADERS=1
 
@@ -46,6 +49,7 @@ DEFINES += -D_GNU_SOURCE
 DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
 DEFINES += -D__STDC_CONSTANT_MACROS -D__USE_XOPEN_EXTENDED
 
+
 ifdef WITH_OLD_FFMPEG_HEADERS
 	DEFINES += -DUSE_OLD_FFMPEG_HEADERS
 endif
@@ -54,9 +58,15 @@ endif
 INCLUDES += $(shell $(PKG-CONFIG) --cflags $(PKG-INCLUDES))
 LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
 
-### The object files (add further files here):
 
-OBJS = markad-standalone.o decoder.o marks.o streaminfo.o video.o audio.o demux.o decoder_new.o encoder_new.o logo.o
+### The object files (add further files here):
+OBJS = markad-standalone.o marks.o streaminfo.o video.o audio.o decoder_new.o encoder_new.o logo.o
+ifdef ONLY_WITH_CDECODER
+        DEFINES += -DONLY_WITH_CDECODER
+else
+	OBJS += demux.o decoder.o
+endif
+
 
 ### The main target:
 

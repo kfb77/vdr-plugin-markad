@@ -146,7 +146,9 @@ typedef struct MarkAdContext
         char *ChannelName;
         MarkAdPid VPid;
         MarkAdPid APid;
+#if !defined ONLY_WITH_CDECODER
         MarkAdPid DPid;
+#endif
     } Info;
 
     struct Video
