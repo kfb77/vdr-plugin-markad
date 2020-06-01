@@ -6,6 +6,7 @@ e.g. for Ubuntu: sudo apt-get install build-essential libavcodec-dev libavformat
 
 recommended minimum version of libavcodec: 56.x.x
 
+If you want to build without the classic decoder uncomment the line "ONLY_WITH_CDECODER=1" in command/Makefile.
 
 
 The simplest way to compile this package is:

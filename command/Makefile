@@ -3,10 +3,10 @@
 #
 
 # use this, if you want to build with the new cDecoder class only
-ONLY_WITH_CDECODER=1
+# ONLY_WITH_CDECODER=1
 
 # use this, if you use libavcodec51
-#WITH_OLD_FFMPEG_HEADERS=1
+# WITH_OLD_FFMPEG_HEADERS=1
 
 ### The version number of this plugin (taken from the main source file):
 
