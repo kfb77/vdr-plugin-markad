@@ -918,6 +918,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
             }
             break;
         case MT_CHANNELSTART:
+            macontext.Audio.Info.channelChange = true;
             if (asprintf(&comment,"audio channel change from %i to %i (%i)*", Mark->ChannelsBefore,Mark->ChannelsAfter, Mark->Position)==-1) comment=NULL;
             break;
         case MT_CHANNELSTOP:
