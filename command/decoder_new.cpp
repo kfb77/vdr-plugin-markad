@@ -118,13 +118,17 @@ bool cDecoder::DecodeFile(const char * filename) {
     for (unsigned int i=0; i<avctx->nb_streams; i++) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         codec=avcodec_find_decoder(avctx->streams[i]->codecpar->codec_id);
-#else
-        codec=avcodec_find_decoder(avctx->streams[i]->codec->codec_id);
-#endif
         if (!codec) {
-            dsyslog("cDecoder::DecodeFile(): could not find decoder for stream %i", i);
+            dsyslog("cDecoder::DecodeFile(): could not find decoder for stream %i codec id %i", i, avctx->streams[i]->codecpar->codec_id);
             return false;
         }
+#else
+        codec=avcodec_find_decoder(avctx->streams[i]->codec->codec_id);
+        if (!codec) {
+            dsyslog("cDecoder::DecodeFile(): could not find decoder for stream %i codec id %i", i, avctx->streams[i]->codec->codec_id);
+            return false;
+        }
+#endif
         if (msgDecodeFile) dsyslog("cDecoder::DecodeFile(): using decoder for stream %i: %s",i, codec->long_name);
         codecCtxArray[i]=avcodec_alloc_context3(codec);
         if (!codecCtxArray[i]) {
