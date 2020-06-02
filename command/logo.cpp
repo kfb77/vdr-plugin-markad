@@ -369,7 +369,7 @@ bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecode
         dsyslog("cExtractLogo::isRunningRecording(): failed to stat %s",indexFile);
         return false;
     }
-    dsyslog("cExtractLogo::WaitForFrames(): index file size %ld", indexStatus.st_size);
+    dsyslog("cExtractLogo::WaitForFrames(): index file size %ld byte", indexStatus.st_size);
     int maxframes = indexStatus.st_size/8;
     recordingFrameCount = maxframes;
     if (maxframes>(ptr_cDecoder->GetFrameNumber()+200)) return true;  // recording has enough frames
@@ -489,7 +489,6 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
             if (abortNow) return false;
             if (!WaitForFrames(maContext, ptr_cDecoder)) {
                 dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");
-                iFrameCountAll=MAXREADFRAMES; // make sure we leave the loops
                 retStatus=false;
             }
             if ((ptr_cDecoder->GetFrameInfo(maContext) && retStatus)) {
@@ -561,7 +560,6 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
                             try { logoInfoVectorPacked[corner].push_back(actLogoInfoPacked); }  // this allocates a lot of memory
                             catch(std::bad_alloc &e) {
                                 dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %ld", iFrameNumber);
-                                iFrameCountAll=MAXREADFRAMES; // make sure we leave the loops
                                 retStatus=false;
                                 break;
                             }
@@ -570,21 +568,26 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
                             try { logoInfoVector[corner].push_back(actLogoInfo); }  // this allocates a lot of memory
                             catch(std::bad_alloc &e) {
                                 dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %ld", iFrameNumber);
-                                iFrameCountAll=MAXREADFRAMES; // make sure we leave the loops
                                 retStatus=false;
                                 break;
                             }
                         }
                     }
-                    if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES))  break; // finish inner loop and find best match
+                    if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES) || !retStatus)  break; // finish inner loop and find best match
                 }
             }
-            if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES))  break; // finish outer loop and find best match
+            if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES) || !retStatus)  break; // finish outer loop and find best match
         }
     }
-    if (iFrameCountValid < 1000) {
-        dsyslog("cExtractLogo::SearchLogo(): read (%i) frames and could not get enough valid frames (%i)", iFrameCountAll, iFrameCountValid);
-        retStatus=false;
+    if (!retStatus && (iFrameCountAll < MAXREADFRAMES)) {  // reached end of recording before we got 1000 valid frames
+        dsyslog("cExtractLogo::SearchLogo(): end of recording reached at frame (%ld), read (%i) iFrames and got (%i) valid iFrames, try anyway", ptr_cDecoder->GetFrameNumber(), iFrameCountAll, iFrameCountValid);
+        retStatus=true;
+    }
+    else {
+        if (iFrameCountValid < 1000) {
+            dsyslog("cExtractLogo::SearchLogo(): read (%i) frames and could not get enough valid frames (%i)", iFrameCountAll, iFrameCountValid);
+            retStatus=false;
+        }
     }
     if (retStatus) {
         dsyslog("cExtractLogo::SearchLogo(): got enough frames, start analyze");
