@@ -1784,7 +1784,9 @@ bool cMarkAdStandalone::Reset(bool FirstPass) {
 
     if (FirstPass) {
         marks.DelAll();
+#if !defined ONLY_WITH_CDECODER
         marks.CloseIndex(directory,isTS);
+#endif
     }
 
     macontext.Video.Info.Pict_Type=0;
@@ -2009,7 +2011,6 @@ void cMarkAdStandalone::Process_cDecoder() {
 
         }
     }
-    if (macontext.Config->GenIndex) marks.RemoveGeneratedIndex(directory,isTS);
 }
 
 
