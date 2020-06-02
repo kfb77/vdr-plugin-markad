@@ -429,7 +429,7 @@ void cExtractLogo::UnpackLogoInfo(logoInfo *logoInfo, logoInfoPacked *logoInfoPa
 
 bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
     dsyslog("----------------------------------------------------------------------------");
-    dsyslog("cExtractLogo::SearchLogo(): start extract logos from frame %i", startFrame);
+    dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i", startFrame);
 
     if (!maContext) {
         dsyslog("cExtractLogo::SearchLogo(): maContext not valid");

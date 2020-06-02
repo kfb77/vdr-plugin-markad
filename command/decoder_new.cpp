@@ -122,7 +122,7 @@ bool cDecoder::DecodeFile(const char * filename) {
         codec=avcodec_find_decoder(avctx->streams[i]->codec->codec_id);
 #endif
         if (!codec) {
-            dsyslog("cDecoder::DecodeFile(): could nit find decoder for stream");
+            dsyslog("cDecoder::DecodeFile(): could not find decoder for stream %i", i);
             return false;
         }
         if (msgDecodeFile) dsyslog("cDecoder::DecodeFile(): using decoder for stream %i: %s",i, codec->long_name);
