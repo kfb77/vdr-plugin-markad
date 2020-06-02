@@ -369,16 +369,17 @@ bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecode
         dsyslog("cExtractLogo::isRunningRecording(): failed to stat %s",indexFile);
         return false;
     }
-    int maxframes=indexStatus.st_size/8;
-    recordingFrameCount=maxframes;
+    dsyslog("cExtractLogo::WaitForFrames(): index file size %ld", indexStatus.st_size);
+    int maxframes = indexStatus.st_size/8;
+    recordingFrameCount = maxframes;
     if (maxframes>(ptr_cDecoder->GetFrameNumber()+200)) return true;  // recording has enough frames
     time_t now = time(NULL);
     char systemTime[50] = {0};
     char indexTime[50] = {0};
     strftime(systemTime,sizeof(systemTime),"%d-%m-%Y %H:%M:%S",localtime(&now));
     strftime(indexTime,sizeof(indexTime),"%d-%m-%Y %H:%M:%S",localtime(&indexStatus.st_mtime));
-    dsyslog("cExtractLogo::WaitForFrames(): system time %s", systemTime);
-    dsyslog("cExtractLogo::WaitForFrames(): index time  %s", indexTime);
+    dsyslog("cExtractLogo::WaitForFrames(): system time %s index time %s", systemTime, indexTime);
+    dsyslog("cExtractLogo::WaitForFrames(): need more frames at frame (%ld), frames recorded (%i)", ptr_cDecoder->GetFrameNumber(), maxframes);
     if ((difftime(now,indexStatus.st_mtime))>= 2*WAITTIME) {
         dsyslog("cExtractLogo::isRunningRecording(): index not growing at frame (%ld), old or interrupted recording", ptr_cDecoder->GetFrameNumber());
         return false;
