@@ -61,8 +61,7 @@ typedef unsigned char uchar;
 #define MT_MOVED          (unsigned char) 0xE0
 #define MT_ALL            (unsigned char) 0xFF
 
-typedef struct config
-{
+typedef struct config {
     char logoDirectory[1024];
     char LogoDir[1024];
     char markFileName[1024];
@@ -93,20 +92,17 @@ typedef struct config
     bool SaveInfo;
 } MarkAdConfig;
 
-typedef struct MarkAdPos
-{
+typedef struct MarkAdPos {
     int FrameNumberBefore;
     int FrameNumberAfter;
 } MarkAdPos;
 
-typedef struct MarkAdAspectRatio
-{
+typedef struct MarkAdAspectRatio {
     int Num=0;
     int Den=0;
 } MarkAdAspectRatio;
 
-typedef struct MarkAdMark
-{
+typedef struct MarkAdMark {
     int Type=0;
     int Position=0;
     int ChannelsBefore=0;
@@ -115,8 +111,7 @@ typedef struct MarkAdMark
     MarkAdAspectRatio AspectRatioAfter;
 } MarkAdMark;
 
-typedef struct MarkAdMarks
-{
+typedef struct MarkAdMarks {
     static const int maxCount=4;
     MarkAdMark Number[maxCount];
     int Count;
@@ -127,18 +122,15 @@ typedef struct MarkAdMarks
 #define MARKAD_PIDTYPE_AUDIO_AC3  0x20
 #define MARKAD_PIDTYPE_AUDIO_MP2  0x21
 
-typedef struct MarkAdPid
-{
+typedef struct MarkAdPid {
     int Num=0;
     int Type=0;
 } MarkAdPid;
 
-typedef struct MarkAdContext
-{
+typedef struct MarkAdContext {
     const MarkAdConfig *Config;
 
-    struct Info
-    {
+    struct Info {
 
         MarkAdAspectRatio AspectRatio;
         short int Channels[MAXSTREAMS] = {0};
@@ -151,10 +143,8 @@ typedef struct MarkAdContext
 #endif
     } Info;
 
-    struct Video
-    {
-        struct Options
-        {
+    struct Video {
+        struct Options {
             bool IgnoreAspectRatio;
             bool IgnoreBlackScreenDetection=false;
             bool IgnoreLogoDetection;
@@ -165,8 +155,7 @@ typedef struct MarkAdContext
             bool WeakMarksOk;
         } Options;
 
-        struct Info
-        {
+        struct Info {
             int Width;  // width of pic
             int Height; // height of pic
             int Pict_Type; // picture type (I,P,B,S,SI,SP,BI)
@@ -184,20 +173,16 @@ typedef struct MarkAdContext
         } Data;
     } Video;
 
-    struct Audio
-    {
-        struct Options
-        {
+    struct Audio {
+        struct Options {
             bool IgnoreDolbyDetection;
         } Options;
-        struct Info
-        {
+        struct Info {
             short int Channels[MAXSTREAMS] = {0}; // number of audio channels from AC3 streams
             int SampleRate;
             bool channelChange = false;
         } Info;
-        struct Data
-        {
+        struct Data {
             bool Valid;
             short *SampleBuf;
             int SampleBufLen;

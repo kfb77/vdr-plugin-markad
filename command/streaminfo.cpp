@@ -14,41 +14,30 @@ extern "C"{
 }
 
 
-cMarkAdStreamInfo::cMarkAdStreamInfo()
-{
+cMarkAdStreamInfo::cMarkAdStreamInfo() {
     Clear();
 }
 
-void cMarkAdStreamInfo::Clear()
-{
+
+void cMarkAdStreamInfo::Clear() {
     memset(&H264,0,sizeof(H264));
 }
 
-bool cMarkAdStreamInfo::FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen)
-{
+
+#if !defined ONLY_WITH_CDECODER
+bool cMarkAdStreamInfo::FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen) {
 #pragma pack(1)
-    struct AC3HDR
-    {
-unsigned Sync1:
-        8;
-unsigned Sync2:
-        8;
-unsigned CrcH:
-        8;
-unsigned CrcL:
-        8;
-unsigned FrameSizeIndex:
-        6;
-unsigned SampleRateIndex:
-        2;
-unsigned BsMod:
-        3;
-unsigned BsID:
-        5;
-unsigned LFE_Mix_VarField:
-        5;
-unsigned AcMod:
-        3;
+    struct AC3HDR {
+        unsigned Sync1: 8;
+        unsigned Sync2: 8;
+        unsigned CrcH: 8;
+        unsigned CrcL: 8;
+        unsigned FrameSizeIndex: 6;
+        unsigned SampleRateIndex: 2;
+        unsigned BsMod: 3;
+        unsigned BsID: 5;
+        unsigned LFE_Mix_VarField: 5;
+        unsigned AcMod: 3;
     };
 #pragma pack()
     if ((!maContext) || (!espkt)) return false;
@@ -56,8 +45,7 @@ unsigned AcMod:
 
     struct AC3HDR *ac3hdr = (struct AC3HDR *) espkt;
 
-    if ((ac3hdr->Sync1==0x0b) && (ac3hdr->Sync2==0x77))
-    {
+    if ((ac3hdr->Sync1==0x0b) && (ac3hdr->Sync2==0x77)) {
         // some extra checks
         if (ac3hdr->SampleRateIndex==3) return false; // reserved
         if (ac3hdr->FrameSizeIndex>=38) return false; // reserved
@@ -65,49 +53,48 @@ unsigned AcMod:
         maContext->Audio.Info.Channels[0]=0;
         unsigned int lfe_bitmask = 0x0;
 
-        switch (ac3hdr->AcMod)
-        {
-        case 0:
-            maContext->Audio.Info.Channels[0]=2;
-            lfe_bitmask=0x10;
-            break;
-        case 1:
-            maContext->Audio.Info.Channels[0]=1;
-            lfe_bitmask=0x10;
-            break;
-        case 2:
-            maContext->Audio.Info.Channels[0]=2;
-            lfe_bitmask=0x4;
-            break;
-        case 3:
-            maContext->Audio.Info.Channels[0]=3;
-            lfe_bitmask=0x4;
-            break;
-        case 4:
-            maContext->Audio.Info.Channels[0]=3;
-            lfe_bitmask=0x4;
-            break;
-        case 5:
-            maContext->Audio.Info.Channels[0]=4;
-            lfe_bitmask=0x1;
-            break;
-        case 6:
-            maContext->Audio.Info.Channels[0]=4;
-            lfe_bitmask=0x4;
-            break;
-        case 7:
-            maContext->Audio.Info.Channels[0]=5;
-            lfe_bitmask=0x1;
-            break;
+        switch (ac3hdr->AcMod) {
+            case 0:
+                maContext->Audio.Info.Channels[0]=2;
+                lfe_bitmask=0x10;
+                break;
+            case 1:
+                maContext->Audio.Info.Channels[0]=1;
+                lfe_bitmask=0x10;
+                break;
+            case 2:
+                maContext->Audio.Info.Channels[0]=2;
+                lfe_bitmask=0x4;
+                break;
+            case 3:
+                maContext->Audio.Info.Channels[0]=3;
+                lfe_bitmask=0x4;
+                break;
+            case 4:
+                maContext->Audio.Info.Channels[0]=3;
+                lfe_bitmask=0x4;
+                break;
+            case 5:
+                maContext->Audio.Info.Channels[0]=4;
+                lfe_bitmask=0x1;
+                break;
+            case 6:
+                maContext->Audio.Info.Channels[0]=4;
+                lfe_bitmask=0x4;
+                break;
+            case 7:
+                maContext->Audio.Info.Channels[0]=5;
+                lfe_bitmask=0x1;
+               break;
         }
 
-        if ((ac3hdr->LFE_Mix_VarField & lfe_bitmask)==lfe_bitmask)
-            maContext->Audio.Info.Channels[0]++;
-
+        if ((ac3hdr->LFE_Mix_VarField & lfe_bitmask)==lfe_bitmask) maContext->Audio.Info.Channels[0]++;
         return true;
     }
     return false;
 }
+#endif
+
 
 bool cMarkAdStreamInfo::FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len)
 {

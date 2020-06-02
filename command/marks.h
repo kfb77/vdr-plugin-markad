@@ -12,8 +12,8 @@
 #include "global.h"
 #include "decoder_new.h"
 
-class clMark
-{
+
+class clMark {
 private:
     clMark *next;
     clMark *prev;
@@ -23,50 +23,39 @@ public:
     char *comment;
     clMark(int Type=0, int Position = 0, const char *Comment = NULL);
     ~clMark();
-    clMark *Next()
-    {
+    clMark *Next() {
         return next;
     };
-    clMark *Prev()
-    {
+    clMark *Prev() {
         return prev;
     };
-    void Set(clMark *Prev, clMark *Next)
-    {
+    void Set(clMark *Prev, clMark *Next) {
         prev=Prev;
         next=Next;
     }
-    void SetNext(clMark *Next)
-    {
+    void SetNext(clMark *Next) {
         next=Next;
     }
-    void SetPrev(clMark *Prev)
-    {
+    void SetPrev(clMark *Prev) {
         prev=Prev;
     }
 };
 
-class clMarks
-{
+
+class clMarks {
 private:
-    struct tIndexVDR
-    {
+    struct tIndexVDR {
         int offset;
         unsigned char type;
         unsigned char number;
         short reserved;
     };
 
-    struct tIndexTS
-    {
-uint64_t offset:
-        40;
-int reserved:
-        7;
-int independent:
-        1;
-uint16_t number:
-        16;
+    struct tIndexTS {
+        uint64_t offset: 40;
+        int reserved: 7;
+        int independent: 1;
+        uint16_t number: 16;
     };
 
     char filename[1024];
@@ -74,10 +63,11 @@ uint16_t number:
     int count;
     int savedcount;
     int indexfd;
+#if !defined ONLY_WITH_CDECODER
     void WriteIndex(bool isTS, uint64_t Offset,int FrameType, int Number);
+#endif
 public:
-    clMarks()
-    {
+    clMarks() {
         strcpy(filename,"marks");
         first=last=NULL;
         savedcount=0;
@@ -86,10 +76,8 @@ public:
     }
     ~clMarks();
     int Count(int Type=0xFF, int Mask=0xFF);
-    void SetFileName(const char *FileName)
-    {
-        if (FileName)
-        {
+    void SetFileName(const char *FileName) {
+        if (FileName) {
             strncpy(filename,FileName,sizeof(filename));
             filename[sizeof(filename)-1]=0;
 
@@ -107,29 +95,28 @@ public:
     clMark *GetAround(int Frames, int Position, int Type=0xFF, int Mask=0xFF);
     clMark *GetPrev(int Position,int Type=0xFF, int Mask=0xFF);
     clMark *GetNext(int Position,int Type=0xFF, int Mask=0xFF);
-    clMark *GetFirst()
-    {
+    clMark *GetFirst() {
         return first;
     }
-    clMark *GetLast()
-    {
+    clMark *GetLast() {
         return last;
     }
     bool Backup(const char *Directory, bool isTS);
     bool Load(const char *Directory, double FrameRate, bool isTS);
     bool Save(const char *Directory, MarkAdContext *maContext, cDecoder *ptr_cDecoder, bool isTS, bool Force=false);
+
 #define IERR_NOTFOUND 1
 #define IERR_TOOSHORT 2
 #define IERR_SEEK 3
 #define IERR_READ 4
 #define IERR_FRAME 5
-    bool CheckIndex(const char *Directory, bool isTS, int *FrameCnt, int *IndexError);
-    bool ReadIndex(const char *Directory, bool isTS, int FrameNumber, int Range, int *Number,
-                   off_t *Offset, int *Frame, int *iFrames);
-    void WriteIndex(const char *Directory, bool isTS, uint64_t Offset,
-                    int FrameType, int Number);
-    void CloseIndex(const char *Directory, bool isTS);
-    void RemoveGeneratedIndex(const char *Directory,bool isTS);
-};
 
+#if !defined ONLY_WITH_CDECODER
+    bool ReadIndex(const char *Directory, bool isTS, int FrameNumber, int Range, int *Number, off_t *Offset, int *Frame, int *iFrames);
+    void WriteIndex(const char *Directory, bool isTS, uint64_t Offset, int FrameType, int Number);
+    void RemoveGeneratedIndex(const char *Directory,bool isTS);
+    bool CheckIndex(const char *Directory, bool isTS, int *FrameCnt, int *IndexError);
+    void CloseIndex(const char *Directory, bool isTS);
+#endif
+};
 #endif

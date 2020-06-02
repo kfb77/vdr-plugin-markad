@@ -16,49 +16,48 @@ extern "C"{
 #include "debug.h"
 }
 
-cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext)
-{
+
+cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext) {
     macontext=maContext;
     mark.Position=0;
     mark.Type=0;
     Clear();
 }
 
-cMarkAdAudio::~cMarkAdAudio()
-{
+cMarkAdAudio::~cMarkAdAudio() {
     resetmark();
     Clear();
 }
 
-void cMarkAdAudio::Clear()
-{
+
+void cMarkAdAudio::Clear() {
     framelast=0;
     channels[MAXSTREAMS-1] = {0};
 }
 
-void cMarkAdAudio::resetmark()
-{
+
+void cMarkAdAudio::resetmark() {
     if (!mark.Type) return;
     mark={};
 }
 
-void cMarkAdAudio::setmark(int type, int position, int channelsbefore, int channelsafter)
-{
+
+void cMarkAdAudio::setmark(int type, int position, int channelsbefore, int channelsafter) {
     mark.ChannelsBefore=channelsbefore;
     mark.ChannelsAfter=channelsafter;
     mark.Position=position;
     mark.Type=type;
 }
 
-bool cMarkAdAudio::channelchange(int a, int b)
-{
+
+bool cMarkAdAudio::channelchange(int a, int b) {
     if ((a==0) || (b==0)) return false;
     if (a!=b) return true;
     return false;
 }
 
-MarkAdMark *cMarkAdAudio::Process(int FrameNumber, int FrameNumberNext)
-{
+
+MarkAdMark *cMarkAdAudio::Process(int FrameNumber, int FrameNumberNext) {
     if ((!FrameNumber) || (!FrameNumberNext)) return NULL;
     resetmark();
 

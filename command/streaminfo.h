@@ -10,17 +10,15 @@
 
 #include "global.h"
 
-class cMarkAdStreamInfo
-{
+class cMarkAdStreamInfo {
 private:
     // taken from ffmpeg
-    enum
-    {
+    enum {
         NAL_SLICE     = 0x01, // Slice
         NAL_IDR_SLICE = 0x05, // IDR-Slice
         NAL_SEI       = 0x06, // Supplemental Enhancement Information
         NAL_SPS       = 0x07, // Sequence Parameter Set
-        NAL_PPS	      = 0x08, // Picture Parameter Set
+        NAL_PPS       = 0x08, // Picture Parameter Set
         NAL_AUD       = 0x09, // Access Unit Delimiter
         NAL_END_SEQ   = 0x0A, // End of Sequence
         NAL_FILLER    = 0x0C, // Filler data
@@ -28,8 +26,7 @@ private:
         NAL_AUX_SLICE = 0x19  // Auxilary Slice
     };
 
-    struct H264
-    {
+    struct H264 {
       bool separate_colour_plane_flag;
       int log2_max_frame_num;
       bool use_field;
@@ -42,12 +39,13 @@ public:
     cMarkAdStreamInfo();
     void Clear();
     bool FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
+#if !defined ONLY_WITH_CDECODER
     bool FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen);
+#endif
 };
 
 // taken from femon
-class cBitStream
-{
+class cBitStream {
 private:
     const uint8_t *data;
     int            count; // in bits
@@ -67,40 +65,31 @@ public:
     void           skipSeGolomb();
     void           byteAlign();
 
-    void           skipBit()
-    {
+    void           skipBit() {
         skipBits(1);
     }
-    uint32_t       getU8()
-    {
+    uint32_t       getU8() {
         return getBits(8);
     }
-    uint32_t       getU16()
-    {
+    uint32_t       getU16() {
         return ((getBits(8) << 8) | getBits(8));
     }
-    uint32_t       getU24()
-    {
+    uint32_t       getU24() {
         return ((getBits(8) << 16) | (getBits(8) << 8) | getBits(8));
     }
-    uint32_t       getU32()
-    {
+    uint32_t       getU32() {
         return ((getBits(8) << 24) | (getBits(8) << 16) | (getBits(8) << 8) | getBits(8));
     }
-    bool           isEOF()
-    {
+    bool           isEOF() {
         return (index >= count);
     }
-    void           reset()
-    {
+    void           reset() {
         index = 0;
     }
-    int            getIndex()
-    {
+    int            getIndex() {
         return (isEOF() ? count : index);
     }
-    const uint8_t *getData()
-    {
+    const uint8_t *getData() {
         return (isEOF() ? NULL : data + (index / 8));
     }
 };
