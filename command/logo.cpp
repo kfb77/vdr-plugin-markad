@@ -357,7 +357,7 @@ bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecode
 
 #define WAITTIME 60
     char *indexFile = NULL;
-    if (recordingFrameCount>(ptr_cDecoder->GetFrameNumber()+200)) return true; // we have already found enougt frames
+    if (recordingFrameCount > (ptr_cDecoder->GetFrameNumber()+200)) return true; // we have already found enougt frames
 
     if (asprintf(&indexFile,"%s/index",maContext->Config->recDir)==-1) indexFile=NULL;
     if (!indexFile) {
@@ -372,11 +372,11 @@ bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecode
     int maxframes=indexStatus.st_size/8;
     recordingFrameCount=maxframes;
     if (maxframes>(ptr_cDecoder->GetFrameNumber()+200)) return true;  // recording has enough frames
-    if ((difftime(time(NULL),indexStatus.st_mtime))>=WAITTIME) {
+    if ((difftime(time(NULL),indexStatus.st_mtime))>= 2*WAITTIME) {
         dsyslog("cExtractLogo::isRunningRecording(): index not growing at frame (%ld), old or interrupted recording", ptr_cDecoder->GetFrameNumber());
         return false;
     }
-    dsyslog("cExtractLogo::WaitForFrames(): waiting for new frames at frame (%ld)", ptr_cDecoder->GetFrameNumber());
+    dsyslog("cExtractLogo::WaitForFrames(): waiting for new frames at frame (%ld), frames recorded (%i)", ptr_cDecoder->GetFrameNumber(), maxframes);
     sleep(WAITTIME); // now we sleep and hopefully the index will grow
     return true;
 }
