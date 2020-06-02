@@ -284,7 +284,7 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctx
     AVCodec *codec=avcodec_find_encoder(avctxIn->streams[streamIndex]->codec->codec_id);
 #endif
     if (!codec) {
-        dsyslog("cEncoder::ChangeEncoderCodec(): could nit find encoder for stream %i", streamIndex);
+        dsyslog("cEncoder::ChangeEncoderCodec(): could not find encoder for stream %i", streamIndex);
         return false;
     }
     dsyslog("cEncoder::ChangeEncoderCodec(): using decoder id %s for stream %i", codec->long_name,streamIndex);
@@ -343,12 +343,14 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
     if (!avCodecCtxIn) return false;
 
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-    AVCodec *codec=avcodec_find_encoder(avctxIn->streams[streamIndex]->codecpar->codec_id);
+    AVCodecID codec_id = avctxIn->streams[streamIndex]->codecpar->codec_id;
+    AVCodec *codec=avcodec_find_encoder(codec_id);
 #else
-    AVCodec *codec=avcodec_find_encoder(avctxIn->streams[streamIndex]->codec->codec_id);
+    AVCodecID codec_id = avctxIn->streams[streamIndex]->codec->codec_id;
+    AVCodec *codec=avcodec_find_encoder(codec_id);
 #endif
     if (!codec) {
-        dsyslog("cEncoder::InitEncoderCodec(): could nit find encoder for stream %i", streamIndex);
+        dsyslog("cEncoder::InitEncoderCodec(): could not find encoder for stream %i codec id %i", streamIndex, codec_id);
         return false;
     }
     dsyslog("cEncoder::InitEncoderCodec(): using decoder id %s for stream %i", codec->long_name,streamIndex);
