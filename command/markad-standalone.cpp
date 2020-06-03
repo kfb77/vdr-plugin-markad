@@ -924,8 +924,10 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
         case MT_CHANNELSTOP:
             if ((Mark->Position > chkSTART) && (Mark->Position < iStopA / 2) && !macontext.Audio.Info.channelChange) {
                 dsyslog("cMarkAdStandalone::AddMark(): first audio channel change is after chkSTART, disable logo/border/aspect detection now");
-                marks.DelWeakFrom(marks.GetFirst()->position, MT_CHANNELCHANGE);
+                if (iStart == 0) marks.DelWeakFrom(marks.GetFirst()->position, MT_CHANNELCHANGE); // only if we heve selected a start mark
                 bDecodeVideo=false;
+                macontext.Video.Options.IgnoreAspectRatio=true;
+                macontext.Video.Options.IgnoreLogoDetection=true;
             }
             macontext.Audio.Info.channelChange = true;
             if (asprintf(&comment,"audio channel change from %i to %i (%i)", Mark->ChannelsBefore,Mark->ChannelsAfter, Mark->Position)==-1) comment=NULL;

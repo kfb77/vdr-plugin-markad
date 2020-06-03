@@ -424,7 +424,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
     if (!macontext) return LOGO_ERROR;
     if (!macontext->Video.Data.Valid) {
         area.status=LOGO_UNINITIALIZED;
-        dsyslog("cMarkAdLogo::Process(): video data not valid");
+        dsyslog("cMarkAdLogo::Process(): video data not valid at frame (%i)", FrameNumber);
         return LOGO_ERROR;
     }
     if (!macontext->Video.Info.Width) {
