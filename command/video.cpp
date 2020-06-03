@@ -11,16 +11,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-extern "C"
-{
+extern "C" {
 #include "debug.h"
 }
 
 #include "video.h"
 #include "logo.h"
 
-cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
-{
+cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext) {
     macontext=maContext;
 
     // 3x3 GX Sobel mask
@@ -45,13 +43,11 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
     GY[2][1] = -2;
     GY[2][2] = -1;
 
-    if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
-    {
+    if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) {
         LOGOHEIGHT=LOGO_DEFHDHEIGHT;
         LOGOWIDTH=LOGO_DEFHDWIDTH;
     }
-    else if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262)
-    {
+    else if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262) {
         LOGOHEIGHT=LOGO_DEFHEIGHT;
         LOGOWIDTH=LOGO_DEFWIDTH;
     }
@@ -61,8 +57,7 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext)
     Clear();
 }
 
-void cMarkAdLogo::Clear()
-{
+void cMarkAdLogo::Clear() {
     area={};
     area.status=LOGO_UNINITIALIZED;
 }
@@ -135,9 +130,7 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
 }
 
 
-void cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int plane)
-{
-
+void cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int plane) {
     if (!macontext) return;
     if ((plane<0) || (plane>3)) return;
     if (!macontext->Info.ChannelName) return;
@@ -147,14 +140,11 @@ void cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int pla
     if (!macontext->Video.Data.PlaneLinesize[plane]) return;
 
     char *buf=NULL;
-    if (asprintf(&buf,"%s/%06d-%s-A%i_%i-P%i.pgm","/tmp/",framenumber,
-                 macontext->Info.ChannelName,
-                 area.aspectratio.Num,area.aspectratio.Den,plane)==-1) return;
+    if (asprintf(&buf,"%s/%06d-%s-A%i_%i-P%i.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectratio.Num,area.aspectratio.Den,plane)==-1) return;
 
     // Open file
     FILE *pFile=fopen(buf, "wb");
-    if (pFile==NULL)
-    {
+    if (pFile==NULL) {
         free(buf);
         return;
     }
@@ -162,8 +152,7 @@ void cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int pla
     int width=LOGOWIDTH;
     int height=LOGOHEIGHT;
 
-    if (plane>0)
-    {
+    if (plane>0) {
         width/=2;
         height/=2;
     }
@@ -178,47 +167,44 @@ void cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int pla
     free(buf);
 }
 
-int cMarkAdLogo::SobelPlane(int plane)
-{
+
+int cMarkAdLogo::SobelPlane(int plane) {
     if ((plane<0) || (plane>3)) return 0;
     if (!macontext->Video.Data.PlaneLinesize[plane]) return 0;
 
     int xstart,xend,ystart,yend;
 
-    switch (area.corner)
-    {
-    case TOP_LEFT:
-        xstart=0;
-        xend=LOGOWIDTH;
-        ystart=0;
-        yend=LOGOHEIGHT;
-        break;
-    case TOP_RIGHT:
-        xstart=macontext->Video.Info.Width-LOGOWIDTH;
-        xend=macontext->Video.Info.Width;
-        ystart=0;
-        yend=LOGOHEIGHT;
-        break;
-    case BOTTOM_LEFT:
-        xstart=0;
-        xend=LOGOWIDTH;
-        ystart=macontext->Video.Info.Height-LOGOHEIGHT;
-        yend=macontext->Video.Info.Height;
-        break;
-    case BOTTOM_RIGHT:
-        xstart=macontext->Video.Info.Width-LOGOWIDTH;
-        xend=macontext->Video.Info.Width;
-        ystart=macontext->Video.Info.Height-LOGOHEIGHT;
-        yend=macontext->Video.Info.Height;
-        break;
-    default:
-        return 0;
+    switch (area.corner) {
+        case TOP_LEFT:
+            xstart=0;
+            xend=LOGOWIDTH;
+            ystart=0;
+            yend=LOGOHEIGHT;
+            break;
+        case TOP_RIGHT:
+            xstart=macontext->Video.Info.Width-LOGOWIDTH;
+            xend=macontext->Video.Info.Width;
+            ystart=0;
+            yend=LOGOHEIGHT;
+            break;
+        case BOTTOM_LEFT:
+            xstart=0;
+            xend=LOGOWIDTH;
+            ystart=macontext->Video.Info.Height-LOGOHEIGHT;
+            yend=macontext->Video.Info.Height;
+            break;
+        case BOTTOM_RIGHT:
+            xstart=macontext->Video.Info.Width-LOGOWIDTH;
+            xend=macontext->Video.Info.Width;
+            ystart=macontext->Video.Info.Height-LOGOHEIGHT;
+            yend=macontext->Video.Info.Height;
+            break;
+        default:
+            return 0;
     }
 
-    if ((macontext->Video.Info.Pix_Fmt!=0) && (macontext->Video.Info.Pix_Fmt!=12))
-    {
-        if (!pixfmt_info)
-        {
+    if ((macontext->Video.Info.Pix_Fmt!=0) && (macontext->Video.Info.Pix_Fmt!=12)) {
+        if (!pixfmt_info) {
             esyslog("unknown pix_fmt %i, please report!",macontext->Video.Info.Pix_Fmt);
             pixfmt_info=true;
         }
@@ -229,8 +215,7 @@ int cMarkAdLogo::SobelPlane(int plane)
     int cutval=127;
     int width=LOGOWIDTH;
 
-    if (plane>0)
-    {
+    if (plane>0) {
         xstart/=2;
         xend/=2;
         ystart/=2;
@@ -244,30 +229,22 @@ int cMarkAdLogo::SobelPlane(int plane)
     int sumX,sumY;
     area.rpixel[plane]=0;
     if (!plane) area.intensity=0;
-    for (int Y=ystart; Y<=yend-1; Y++)
-    {
-        for (int X=xstart; X<=xend-1; X++)
-        {
-            if (!plane)
-            {
+    for (int Y=ystart; Y<=yend-1; Y++) {
+        for (int X=xstart; X<=xend-1; X++) {
+            if (!plane) {
                 area.intensity+=macontext->Video.Data.Plane[plane][X+(Y*macontext->Video.Data.PlaneLinesize[plane])];
             }
             sumX=0;
             sumY=0;
 
             // image boundaries
-            if (Y<(ystart+boundary) || Y>(yend-boundary))
-                SUM=0;
-            else if (X<(xstart+boundary) || X>(xend-boundary))
-                SUM=0;
+            if (Y<(ystart+boundary) || Y>(yend-boundary)) SUM=0;
+            else if (X<(xstart+boundary) || X>(xend-boundary)) SUM=0;
             // convolution starts here
-            else
-            {
+            else {
                 // X Gradient approximation
-                for (int I=-1; I<=1; I++)
-                {
-                    for (int J=-1; J<=1; J++)
-                    {
+                for (int I=-1; I<=1; I++) {
+                    for (int J=-1; J<=1; J++) {
                         sumX=sumX+ (int) ((*(macontext->Video.Data.Plane[plane]+X+I+
                                              (Y+J)*macontext->Video.Data.PlaneLinesize[plane]))
                                           *GX[I+1][J+1]);
@@ -275,13 +252,9 @@ int cMarkAdLogo::SobelPlane(int plane)
                 }
 
                 // Y Gradient approximation
-                for (int I=-1; I<=1; I++)
-                {
-                    for (int J=-1; J<=1; J++)
-                    {
-                        sumY=sumY+ (int) ((*(macontext->Video.Data.Plane[plane]+X+I+
-                                             (Y+J)*macontext->Video.Data.PlaneLinesize[plane]))*
-                                          GY[I+1][J+1]);
+                for (int I=-1; I<=1; I++) {
+                    for (int J=-1; J<=1; J++) {
+                        sumY=sumY+ (int) ((*(macontext->Video.Data.Plane[plane]+X+I+ (Y+J)*macontext->Video.Data.PlaneLinesize[plane]))* GY[I+1][J+1]);
                     }
                 }
 
@@ -296,8 +269,7 @@ int cMarkAdLogo::SobelPlane(int plane)
 
             area.sobel[plane][(X-xstart)+(Y-ystart)*width]=val;
 
-            area.result[plane][(X-xstart)+(Y-ystart)*width]=
-                (area.mask[plane][(X-xstart)+(Y-ystart)*width] + val) & 255;
+            area.result[plane][(X-xstart)+(Y-ystart)*width] = (area.mask[plane][(X-xstart)+(Y-ystart)*width] + val) & 255;
 
             if (!area.result[plane][(X-xstart)+(Y-ystart)*width]) area.rpixel[plane]++;
 #ifdef VDRDEBUG
@@ -312,8 +284,8 @@ int cMarkAdLogo::SobelPlane(int plane)
     return 1;
 }
 
-int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
-{
+
+int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
     bool onlyFillArea = ( *logoframenumber < 0 );
     bool extract=(macontext->Config->logoExtraction!=-1);
     if (*logoframenumber == -2) extract = true;
@@ -322,18 +294,14 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
     *logoframenumber=-1;
     if (area.corner==-1) return LOGO_NOCHANGE;
 
-    for (int plane=0; plane < PLANES; plane++)
-    {
-        if ((area.valid[plane]) || (extract) || (onlyFillArea))
-        {
+    for (int plane=0; plane < PLANES; plane++) {
+        if ((area.valid[plane]) || (extract) || (onlyFillArea)) {
             if (SobelPlane(plane)) processed++;
         }
-        if (extract)
-        {
+        if (extract) {
             Save(framenumber,area.sobel,plane);
         }
-        else
-        {
+        else {
 //            tsyslog("plane %i area.rpixel[plane] %i area.mpixel[plane] %i", plane, area.rpixel[plane], area.mpixel[plane]);
             rpixel+=area.rpixel[plane];
             mpixel+=area.mpixel[plane];
@@ -344,8 +312,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
 
 //    tsyslog("frame (%6i) rp=%5i mp=%5i mpV=%5.f mpI=%5.f i=%3i s=%i",framenumber, rpixel,mpixel,(mpixel*LOGO_VMARK),(mpixel*LOGO_IMARK),area.intensity,area.status);
 
-    if (processed==1)
-    {
+    if (processed==1) {
         // if we only have one plane we are "vulnerable"
         // to very bright pictures, so ignore them...
 //        if (area.intensity>180) return LOGO_NOCHANGE;
@@ -353,72 +320,59 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber)
     }
 
     int ret=LOGO_NOCHANGE;
-    if (area.status==LOGO_UNINITIALIZED)
-    {
+    if (area.status==LOGO_UNINITIALIZED) {
         // Initialize
-        if (rpixel>=(mpixel*LOGO_VMARK))
-        {
+        if (rpixel>=(mpixel*LOGO_VMARK)) {
             area.status=ret=LOGO_VISIBLE;
         }
-        else
-        {
+        else {
             area.status=LOGO_INVISIBLE;
         }
         area.framenumber=framenumber;
         *logoframenumber=framenumber;
     }
 
-    if (rpixel>=(mpixel*LOGO_VMARK))
-    {
-        if (area.status==LOGO_INVISIBLE)
-        {
-            if (area.counter>=LOGO_VMAXCOUNT)
-            {
+    if (rpixel>=(mpixel*LOGO_VMARK)) {
+        if (area.status==LOGO_INVISIBLE) {
+            if (area.counter>=LOGO_VMAXCOUNT) {
                 area.status=ret=LOGO_VISIBLE;
                 *logoframenumber=area.framenumber;
                 area.counter=0;
             }
-            else
-            {
+            else {
                 if (!area.counter) area.framenumber=framenumber;
                 area.counter++;
             }
         }
-        else
-        {
+        else {
             area.framenumber=framenumber;
             area.counter=0;
         }
     }
 
-    if (rpixel<(mpixel*LOGO_IMARK))
-    {
-        if (area.status==LOGO_VISIBLE)
-        {
-            if (area.counter>=LOGO_IMAXCOUNT)
-            {
+    if (rpixel<(mpixel*LOGO_IMARK)) {
+        if (area.status==LOGO_VISIBLE) {
+            if (area.counter>=LOGO_IMAXCOUNT) {
                 area.status=ret=LOGO_INVISIBLE;
                 *logoframenumber=area.framenumber;
                 area.counter=0;
             }
-            else
-            {
+            else {
                 if (!area.counter) area.framenumber=framenumber;
                 area.counter++;
             }
         }
-        else
-        {
+        else {
             area.counter=0;
         }
     }
 
-    if ((rpixel<(mpixel*LOGO_VMARK)) && (rpixel>(mpixel*LOGO_IMARK)))
-    {
+    if ((rpixel<(mpixel*LOGO_VMARK)) && (rpixel>(mpixel*LOGO_IMARK))) {
         area.counter=0;
     }
     return ret;
 }
+
 
 int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
     if (!macontext) return LOGO_ERROR;
@@ -499,36 +453,33 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
             area.aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
         }
     }
-    else
-    {
+    else {
         area.aspectratio.Num=macontext->Video.Info.AspectRatio.Num;
         area.aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
         area.corner=macontext->Config->logoExtraction;
-        if (macontext->Config->logoWidth!=-1)
-        {
+        if (macontext->Config->logoWidth!=-1) {
             LOGOWIDTH=macontext->Config->logoWidth;
         }
-        if (macontext->Config->logoHeight!=-1)
-        {
+        if (macontext->Config->logoHeight!=-1) {
             LOGOHEIGHT=macontext->Config->logoHeight;
         }
     }
     return Detect(FrameNumber,LogoFrameNumber);
 }
 
-cMarkAdBlackScreen::cMarkAdBlackScreen(MarkAdContext *maContext)
-{
+
+cMarkAdBlackScreen::cMarkAdBlackScreen(MarkAdContext *maContext) {
     macontext=maContext;
     Clear();
 }
 
-void cMarkAdBlackScreen::Clear()
-{
+
+void cMarkAdBlackScreen::Clear() {
     blackScreenstatus=BLACKSCREEN_UNINITIALIZED;
 }
 
-int cMarkAdBlackScreen::Process(int FrameNumber, int *BlackIFrame)
-{
+
+int cMarkAdBlackScreen::Process(int FrameNumber, int *BlackIFrame) {
 #define BLACKNESS 20
     if (!macontext) return 0;
     if (!macontext->Video.Data.Valid) return 0;
@@ -554,8 +505,7 @@ int cMarkAdBlackScreen::Process(int FrameNumber, int *BlackIFrame)
         return 0;
     }
 
-    for (int x=0; x<end; x++)
-    {
+    for (int x=0; x<end; x++) {
         val+=macontext->Video.Data.Plane[0][x];
         cnt++;
     }
@@ -578,20 +528,20 @@ int cMarkAdBlackScreen::Process(int FrameNumber, int *BlackIFrame)
     return 0;
 }
 
-cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(MarkAdContext *maContext)
-{
+
+cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(MarkAdContext *maContext) {
     macontext=maContext;
     Clear();
 }
 
-void cMarkAdBlackBordersHoriz::Clear()
-{
+
+void cMarkAdBlackBordersHoriz::Clear() {
     borderstatus=HBORDER_UNINITIALIZED;
     borderframenumber=-1;
 }
 
-int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame)
-{
+
+int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame) {
 #define CHECKHEIGHT 20
 #define BRIGHTNESS 20
 #define VOFFSET 5
@@ -616,10 +566,8 @@ int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame)
     bool ftop=true,fbottom=true;
     int val=0,cnt=0,xz=0;
 
-    for (int x=start; x<end; x++)
-    {
-        if (xz<macontext->Video.Info.Width)
-        {
+    for (int x=start; x<end; x++) {
+        if (xz<macontext->Video.Info.Width) {
             val+=macontext->Video.Data.Plane[0][x];
             cnt++;
         }
@@ -629,17 +577,14 @@ int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame)
     val/=cnt;
     if (val>BRIGHTNESS) fbottom=false;
 
-    if (fbottom)
-    {
+    if (fbottom) {
         start=VOFFSET*macontext->Video.Data.PlaneLinesize[0];
         end=macontext->Video.Data.PlaneLinesize[0]*(CHECKHEIGHT+VOFFSET);
         val=0;
         cnt=0;
         xz=0;
-        for (int x=start; x<end; x++)
-        {
-            if (xz<macontext->Video.Info.Width)
-            {
+        for (int x=start; x<end; x++) {
+            if (xz<macontext->Video.Info.Width) {
                 val+=macontext->Video.Data.Plane[0][x];
                 cnt++;
             }
@@ -653,44 +598,45 @@ int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame)
     if ((fbottom) && (ftop)) {
         if (borderframenumber==-1) {
             borderframenumber=FrameNumber;
-        } else {
+        }
+        else {
             if (borderstatus!=HBORDER_VISIBLE) {
-                if (FrameNumber>(borderframenumber+macontext->Video.Info.FramesPerSecond*MINBORDERSECS))
-                {
+                if (FrameNumber>(borderframenumber+macontext->Video.Info.FramesPerSecond*MINBORDERSECS)) {
                     *BorderIFrame=borderframenumber;
                     borderstatus=HBORDER_VISIBLE;
                     return 1; // detected start of black border
                 }
             }
         }
-    } else {
-        if (borderstatus==HBORDER_VISIBLE)
-        {
+    }
+    else {
+        if (borderstatus==HBORDER_VISIBLE) {
             *BorderIFrame=FrameNumber;
             borderstatus=HBORDER_INVISIBLE;
             borderframenumber=-1;
             return -1; // detected stop of black border
-        } else {
+        }
+        else {
             borderframenumber=-1; // restart from scratch
         }
     }
     return 0;
 }
 
-cMarkAdBlackBordersVert::cMarkAdBlackBordersVert(MarkAdContext *maContext)
-{
+
+cMarkAdBlackBordersVert::cMarkAdBlackBordersVert(MarkAdContext *maContext) {
     macontext=maContext;
     Clear();
 }
 
-void cMarkAdBlackBordersVert::Clear()
-{
+
+void cMarkAdBlackBordersVert::Clear() {
     borderstatus=VBORDER_UNINITIALIZED;
     borderframenumber=-1;
 }
 
-int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame)
-{
+
+int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
 #define CHECKWIDTH 32
 #define BRIGHTNESS 20
 #define HOFFSET 50
@@ -718,8 +664,7 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame)
     int end=macontext->Video.Data.PlaneLinesize[0]*(macontext->Video.Info.Height-VOFFSET_);
     int i=VOFFSET_*macontext->Video.Data.PlaneLinesize[0];
     while (i<end) {
-        for (int x=0; x<CHECKWIDTH; x++)
-        {
+        for (int x=0; x<CHECKWIDTH; x++) {
             val+=macontext->Video.Data.Plane[0][HOFFSET+x+i];
             cnt++;
         }
@@ -728,14 +673,12 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame)
     val/=cnt;
     if (val>BRIGHTNESS) fleft=false;
 
-    if (fleft)
-    {
+    if (fleft) {
         val=cnt=0;
         i=VOFFSET_*macontext->Video.Data.PlaneLinesize[0];
         int w=macontext->Video.Info.Width-HOFFSET-CHECKWIDTH;
         while (i<end) {
-            for (int x=0; x<CHECKWIDTH; x++)
-            {
+            for (int x=0; x<CHECKWIDTH; x++) {
                 val+=macontext->Video.Data.Plane[0][w+x+i];
                 cnt++;
             }
@@ -748,32 +691,33 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame)
     if ((fleft) && (fright)) {
         if (borderframenumber==-1) {
             borderframenumber=FrameNumber;
-        } else {
+        }
+        else {
             if (borderstatus!=VBORDER_VISIBLE) {
-                if (FrameNumber>(borderframenumber+macontext->Video.Info.FramesPerSecond*MINBORDERSECS))
-                {
+                if (FrameNumber>(borderframenumber+macontext->Video.Info.FramesPerSecond*MINBORDERSECS)) {
                     *BorderIFrame=borderframenumber;
                     borderstatus=VBORDER_VISIBLE;
                     return 1; // detected start of black border
                 }
             }
         }
-    } else {
-        if (borderstatus==VBORDER_VISIBLE)
-        {
+    }
+    else {
+        if (borderstatus==VBORDER_VISIBLE) {
             *BorderIFrame=FrameNumber;
             borderstatus=VBORDER_INVISIBLE;
             borderframenumber=-1;
             return -1; // detected stop of black border
-        } else {
+        }
+        else {
             borderframenumber=-1; // restart from scratch
         }
     }
     return 0;
 }
 
-cMarkAdOverlap::cMarkAdOverlap(MarkAdContext *maContext)
-{
+
+cMarkAdOverlap::cMarkAdOverlap(MarkAdContext *maContext) {
     macontext=maContext;
 
     histbuf[OV_BEFORE]=NULL;
@@ -781,24 +725,22 @@ cMarkAdOverlap::cMarkAdOverlap(MarkAdContext *maContext)
     Clear();
 }
 
-cMarkAdOverlap::~cMarkAdOverlap()
-{
+
+cMarkAdOverlap::~cMarkAdOverlap() {
     Clear();
 }
 
-void cMarkAdOverlap::Clear()
-{
+
+void cMarkAdOverlap::Clear() {
     histcnt[OV_BEFORE]=0;
     histcnt[OV_AFTER]=0;
     histframes[OV_BEFORE]=0;
     histframes[OV_AFTER]=0;
-    if (histbuf[OV_BEFORE])
-    {
+    if (histbuf[OV_BEFORE]) {
         delete[] histbuf[OV_BEFORE];
         histbuf[OV_BEFORE]=NULL;
     }
-    if (histbuf[OV_AFTER])
-    {
+    if (histbuf[OV_AFTER]) {
         delete[] histbuf[OV_AFTER];
         histbuf[OV_AFTER]=NULL;
     }
@@ -809,24 +751,21 @@ void cMarkAdOverlap::Clear()
     lastframenumber=-1;
 }
 
-void cMarkAdOverlap::getHistogram(simpleHistogram &dest)
-{
+
+void cMarkAdOverlap::getHistogram(simpleHistogram &dest) {
     memset(dest,0,sizeof(simpleHistogram));
-    for (int Y=0; Y<macontext->Video.Info.Height;Y++)
-    {
-        for (int X=0; X<macontext->Video.Info.Width;X++)
-        {
+    for (int Y=0; Y<macontext->Video.Info.Height;Y++) {
+        for (int X=0; X<macontext->Video.Info.Width;X++) {
             uchar val=macontext->Video.Data.Plane[0][X+(Y*macontext->Video.Data.PlaneLinesize[0])];
             dest[val]++;
         }
     }
 }
 
-bool cMarkAdOverlap::areSimilar(simpleHistogram &hist1, simpleHistogram &hist2)
-{
+
+bool cMarkAdOverlap::areSimilar(simpleHistogram &hist1, simpleHistogram &hist2) {
     int similar=0;
-    for (int i=0; i<256; i++)
-    {
+    for (int i=0; i<256; i++) {
         similar+=abs(hist1[i]-hist2[i]);
     }
     if (similar<similarCutOff) {
@@ -837,20 +776,17 @@ bool cMarkAdOverlap::areSimilar(simpleHistogram &hist1, simpleHistogram &hist2)
     return false;
 }
 
-MarkAdPos *cMarkAdOverlap::Detect()
-{
+
+MarkAdPos *cMarkAdOverlap::Detect() {
     int start=0,simcnt=0;
     int tmpA=0,tmpB=0;
     if (result.FrameNumberBefore==-1) return NULL;
     result.FrameNumberBefore=-1;
-    for (int B=0; B<histcnt[OV_BEFORE]; B++)
-    {
-        for (int A=start; A<histcnt[OV_AFTER]; A++)
-        {
+    for (int B=0; B<histcnt[OV_BEFORE]; B++) {
+        for (int A=start; A<histcnt[OV_AFTER]; A++) {
             //printf("%6i %6i ",histbuf[OV_BEFORE][B].framenumber,histbuf[OV_AFTER][A].framenumber);
             bool simil=areSimilar(histbuf[OV_BEFORE][B].histogram,histbuf[OV_AFTER][A].histogram);
-            if (simil)
-            {
+            if (simil) {
 //                dsyslog("---cMarkAdOverlap::Detect() similar frames (%6i) (%6i) ",histbuf[OV_BEFORE][B].framenumber,histbuf[OV_AFTER][A].framenumber);
                 tmpA=A;
                 tmpB=B;
@@ -861,40 +797,33 @@ MarkAdPos *cMarkAdOverlap::Detect()
                 else simcnt++;
                 break;
             }
-            else
-            {
+            else {
 //                if (simcnt) dsyslog("---simcnt=%i",simcnt);
-                if (simcnt>similarMaxCnt)
-                {
-                    if ((histbuf[OV_BEFORE][tmpB].framenumber>result.FrameNumberBefore) &&
-                            (histbuf[OV_AFTER][tmpA].framenumber>result.FrameNumberAfter))
-                    {
+                if (simcnt>similarMaxCnt) {
+                    if ((histbuf[OV_BEFORE][tmpB].framenumber>result.FrameNumberBefore) && (histbuf[OV_AFTER][tmpA].framenumber>result.FrameNumberAfter)) {
                         result.FrameNumberBefore=histbuf[OV_BEFORE][tmpB].framenumber;
                         result.FrameNumberAfter=histbuf[OV_AFTER][tmpA].framenumber;
                     }
                 }
-                else
-                {
+                else {
                     start=0;
                 }
                 simcnt=0;
             }
         }
     }
-    if (result.FrameNumberBefore==-1)
-    {
-        if (simcnt>similarMaxCnt)
-        {
+    if (result.FrameNumberBefore==-1) {
+        if (simcnt>similarMaxCnt) {
             result.FrameNumberBefore=histbuf[OV_BEFORE][tmpB].framenumber;
             result.FrameNumberAfter=histbuf[OV_AFTER][tmpA].framenumber;
         }
-        else
-        {
+        else {
             return NULL;
         }
     }
     return &result;
 }
+
 
 MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd, bool H264)
 {
@@ -905,8 +834,7 @@ MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd, b
 //    dsyslog("---cMarkAdOverlap::Process lastframenumber %i", lastframenumber);
 //    dsyslog("---cMarkAdOverlap::Process histcnt[OV_BEFORE] %i", histcnt[OV_BEFORE]);
 //    dsyslog("---cMarkAdOverlap::Process histcnt[OV_AFTER] %i", histcnt[OV_AFTER]);
-    if ((lastframenumber>0) && (!similarMaxCnt))
-    {
+    if ((lastframenumber>0) && (!similarMaxCnt)) {
         similarCutOff=50000; // lower is harder!
 //        if (H264) similarCutOff*=6;
         if (H264) similarCutOff*=4;       // reduce false similar detection in H.264 streams
@@ -914,21 +842,16 @@ MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd, b
         similarMaxCnt=10;
     }
 
-    if (BeforeAd)
-    {
-        if ((histframes[OV_BEFORE]) && (histcnt[OV_BEFORE]>=histframes[OV_BEFORE]))
-        {
-            if (result.FrameNumberBefore)
-            {
+    if (BeforeAd) {
+        if ((histframes[OV_BEFORE]) && (histcnt[OV_BEFORE]>=histframes[OV_BEFORE])) {
+            if (result.FrameNumberBefore) {
                 Clear();
             }
-            else
-            {
+            else {
                 return NULL;
             }
         }
-        if (!histbuf[OV_BEFORE])
-        {
+        if (!histbuf[OV_BEFORE]) {
             histframes[OV_BEFORE]=Frames;
             histbuf[OV_BEFORE]=new histbuffer[Frames+1];
         }
@@ -936,16 +859,13 @@ MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd, b
         histbuf[OV_BEFORE][histcnt[OV_BEFORE]].framenumber=FrameNumber;
         histcnt[OV_BEFORE]++;
     }
-    else
-    {
-        if (!histbuf[OV_AFTER])
-        {
+    else {
+        if (!histbuf[OV_AFTER]) {
             histframes[OV_AFTER]=Frames;
             histbuf[OV_AFTER]=new histbuffer[Frames+1];
         }
 
-        if (histcnt[OV_AFTER]>=histframes[OV_AFTER]-1)
-        {
+        if (histcnt[OV_AFTER]>=histframes[OV_AFTER]-1) {
             if (result.FrameNumberBefore) return NULL;
             return Detect();
         }
@@ -957,8 +877,8 @@ MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd, b
     return NULL;
 }
 
-cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext)
-{
+
+cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext) {
     macontext=maContext;
     marks={};
     blackScreen=new cMarkAdBlackScreen(maContext);
@@ -969,8 +889,8 @@ cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext)
     Clear(false);
 }
 
-cMarkAdVideo::~cMarkAdVideo()
-{
+
+cMarkAdVideo::~cMarkAdVideo() {
     resetmarks();
     if (blackScreen) delete blackScreen;
     if (hborder) delete hborder;
@@ -979,8 +899,7 @@ cMarkAdVideo::~cMarkAdVideo()
     if (overlap) delete overlap;
 }
 
-void cMarkAdVideo::Clear(bool isRestart)
-{
+void cMarkAdVideo::Clear(bool isRestart) {
     if (! isRestart) {
         aspectratio.Num=0;
         aspectratio.Den=0;
@@ -993,22 +912,19 @@ void cMarkAdVideo::Clear(bool isRestart)
     if (logo) logo->Clear();
 }
 
-void cMarkAdVideo::resetmarks()
-{
+
+void cMarkAdVideo::resetmarks() {
     marks={};
 }
 
-bool cMarkAdVideo::addmark(int type, int position, MarkAdAspectRatio *before,
-                           MarkAdAspectRatio *after)
-{
+
+bool cMarkAdVideo::addmark(int type, int position, MarkAdAspectRatio *before, MarkAdAspectRatio *after) {
     if (marks.Count>marks.maxCount) return false;
-    if (before)
-    {
+    if (before) {
         marks.Number[marks.Count].AspectRatioBefore.Num=before->Num;
         marks.Number[marks.Count].AspectRatioBefore.Den=before->Den;
     }
-    if (after)
-    {
+    if (after) {
         marks.Number[marks.Count].AspectRatioAfter.Num=after->Num;
         marks.Number[marks.Count].AspectRatioAfter.Den=after->Den;
     }
@@ -1018,17 +934,14 @@ bool cMarkAdVideo::addmark(int type, int position, MarkAdAspectRatio *before,
     return true;
 }
 
-bool cMarkAdVideo::aspectratiochange(MarkAdAspectRatio &a, MarkAdAspectRatio &b, bool &start)
-{
+
+bool cMarkAdVideo::aspectratiochange(MarkAdAspectRatio &a, MarkAdAspectRatio &b, bool &start) {
     start=false;
-    if (a.Num==0 || a.Den==0 || b.Num==0 || b.Den==0)
-    {
-        if (((a.Num==4) || (b.Num==4)) && ((a.Den==3) || (b.Den==3)))
-        {
+    if (a.Num==0 || a.Den==0 || b.Num==0 || b.Den==0) {
+        if (((a.Num==4) || (b.Num==4)) && ((a.Den==3) || (b.Den==3))) {
             start=true;
         }
-        else
-        {
+        else {
             return false;
         }
     }
@@ -1037,8 +950,8 @@ bool cMarkAdVideo::aspectratiochange(MarkAdAspectRatio &a, MarkAdAspectRatio &b,
 
 }
 
-MarkAdPos *cMarkAdVideo::ProcessOverlap(int FrameNumber, int Frames, bool BeforeAd, bool H264)
-{
+
+MarkAdPos *cMarkAdVideo::ProcessOverlap(int FrameNumber, int Frames, bool BeforeAd, bool H264) {
 
     if (!FrameNumber) return NULL;
     if (!overlap) overlap=new cMarkAdOverlap(macontext);
@@ -1047,22 +960,20 @@ MarkAdPos *cMarkAdVideo::ProcessOverlap(int FrameNumber, int Frames, bool Before
     return overlap->Process(FrameNumber, Frames, BeforeAd, H264);
 }
 
-MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
-{
+
+MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext) {
     if ((!FrameNumber) && (!FrameNumberNext)) return NULL;
 
     resetmarks();
     if (!macontext->Video.Options.IgnoreBlackScreenDetection) {
         int blackScreenframenumber=0;
         int blackret=blackScreen->Process(FrameNumber,&blackScreenframenumber);
-        if (blackret>0)
-        {
+        if (blackret>0) {
             addmark(MT_NOBLACKSTART,blackScreenframenumber);
         }
-        else if (blackret<0)
-        {
-            addmark(MT_NOBLACKSTOP,blackScreenframenumber);
-        }
+        else if (blackret<0) {
+                 addmark(MT_NOBLACKSTOP,blackScreenframenumber);
+             }
     }
     if (!macontext->Video.Options.ignoreHborder) {
         int hborderframenumber;
@@ -1089,22 +1000,18 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
     if (!macontext->Video.Options.IgnoreAspectRatio)
     {
         bool start;
-        if (aspectratiochange(macontext->Video.Info.AspectRatio,aspectratio,start))
-        {
-            if ((logo->Status()==LOGO_VISIBLE) && (!start))
-            {
+        if (aspectratiochange(macontext->Video.Info.AspectRatio,aspectratio,start)) {
+            if ((logo->Status()==LOGO_VISIBLE) && (!start)) {
                 addmark(MT_LOGOSTOP,framebeforelast);
                 logo->SetStatusLogoInvisible();
             }
 
-            if ((vborder->Status()==VBORDER_VISIBLE) && (!start))
-            {
+            if ((vborder->Status()==VBORDER_VISIBLE) && (!start)) {
                 addmark(MT_VBORDERSTOP,framebeforelast);
                 vborder->SetStatusBorderInvisible();
             }
 
-            if ((hborder->Status()==HBORDER_VISIBLE) && (!start))
-            {
+            if ((hborder->Status()==HBORDER_VISIBLE) && (!start)) {
                 addmark(MT_HBORDERSTOP,framebeforelast);
                 hborder->SetStatusBorderInvisible();
             }
@@ -1131,35 +1038,28 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext)
         aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
     }
 
-    if (!macontext->Video.Options.IgnoreLogoDetection)
-    {
+    if (!macontext->Video.Options.IgnoreLogoDetection) {
         int logoframenumber;
         int lret=logo->Process(FrameNumber,&logoframenumber);
-        if ((lret>=-1) && (lret!=0) && (logoframenumber!=-1))
-        {
-            if (lret>0)
-            {
+        if ((lret>=-1) && (lret!=0) && (logoframenumber!=-1)) {
+            if (lret>0) {
                 addmark(MT_LOGOSTART,logoframenumber);
             }
-            else
-            {
+            else {
                 addmark(MT_LOGOSTOP,logoframenumber);
             }
         }
     }
-    else
-    {
+    else {
         logo->SetStatusUninitialized();
     }
 
     framelast=FrameNumberNext;
     framebeforelast=FrameNumber;
-    if (marks.Count)
-    {
+    if (marks.Count) {
         return &marks;
     }
-    else
-    {
+    else {
         return NULL;
     }
 }
