@@ -98,7 +98,7 @@ bool cDecoder::DecodeFile(const char * filename) {
     av_register_all();
 #endif
     if (avformat_open_input(&avctxNextFile, filename, NULL, NULL) == 0) {
-        dsyslog("cDecoder::DecodeFile(): decode file %s",filename);
+        dsyslog("cDecoder::DecodeFile(): start decode file %s",filename);
         if (avctx) avformat_close_input(&avctx);
         avctx = avctxNextFile;
     }
@@ -131,7 +131,7 @@ bool cDecoder::DecodeFile(const char * filename) {
         if (!codec) {
             if (codec_id == 100359) {  // not supported by libavcodec
                 dsyslog("cDecoder::DecodeFile(): ignore unsupported codec for stream %i", i);
-                return(true);
+                continue;
             }
             else {
                 dsyslog("cDecoder::DecodeFile(): could not find decoder for stream %i codec id %i", i, codec_id);
@@ -146,10 +146,11 @@ bool cDecoder::DecodeFile(const char * filename) {
             return false;
         }
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-        if (avcodec_parameters_to_context(codecCtxArray[i],avctx->streams[i]->codecpar) < 0) {
+        if (avcodec_parameters_to_context(codecCtxArray[i],avctx->streams[i]->codecpar) < 0)
 #else
-        if (avcodec_copy_context(codecCtxArray[i],avctx->streams[i]->codec) < 0) {
+        if (avcodec_copy_context(codecCtxArray[i],avctx->streams[i]->codec) < 0)
 #endif
+        {
             dsyslog("cDecoder::DecodeFile(): avcodec_parameters_to_context failed");
             return false;
         }
@@ -264,13 +265,9 @@ bool cDecoder::GetNextFrame() {
                  iFrameCount++;
                  if ((iFrameInfoVector.empty()) || (framenumber > iFrameInfoVector.back().iFrameNumber)) {
                      if (avpkt.pts != AV_NOPTS_VALUE) {   // store a iframe number pts index
-#if LIBAVCODEC_VERSION_INT <= ((56<<16)+(1<<8)+0)    // Rasbian Jessie
                          int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
-                         if ( tmp_pts < 0 ) { tmp_pts += 0x1ffffffff; }   // Respbian Jessie can overflow this value
+                         if ( tmp_pts < 0 ) { tmp_pts += 0x200000000; }   // libavodec restart at 0 if pts greater than 0x200000000
                          pts_time_ms=tmp_pts*av_q2d(avctx->streams[avpkt.stream_index]->time_base)*100;
-#else
-                         pts_time_ms=(avpkt.pts - avctx->streams[avpkt.stream_index]->start_time)*av_q2d(avctx->streams[avpkt.stream_index]->time_base)*100;
-#endif
                          iFrameInfo newFrameInfo;
                          newFrameInfo.fileNumber=fileNumber;
                          newFrameInfo.iFrameNumber=framenumber;
@@ -284,7 +281,7 @@ bool cDecoder::GetNextFrame() {
         return true;
     }
     pts_time_ms_LastFile += iFrameInfoVector.back().pts_time_ms;
-    dsyslog("cDecoder::GetNextFrame(): start time next file %" PRId64,pts_time_ms_LastFile);
+    dsyslog("cDecoder::GetNextFrame(): start time next file %" PRId64, pts_time_ms_LastFile);
     return false;
 }
 
