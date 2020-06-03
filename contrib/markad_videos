@@ -327,6 +327,7 @@ class CheckPath:
                 return(False)
             if actFile == ".timer": continue
             if actFile == "markad.log": continue
+            if actFile == "resume": continue
             if fnmatch.fnmatch(actFile,'*.ts'): continue
             if fnmatch.fnmatch(actFile,'*.pgm'): continue
             if actFile == "info.epg2vdr": continue
