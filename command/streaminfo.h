@@ -38,10 +38,8 @@ private:
 public:
     cMarkAdStreamInfo();
     void Clear();
-    bool FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
-#if !defined ONLY_WITH_CDECODER
     bool FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen);
-#endif
+    bool FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len);
 };
 
 // taken from femon

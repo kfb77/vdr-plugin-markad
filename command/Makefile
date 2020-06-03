@@ -60,11 +60,11 @@ LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
 
 
 ### The object files (add further files here):
-OBJS = markad-standalone.o marks.o streaminfo.o video.o audio.o decoder_new.o encoder_new.o logo.o
+OBJS = markad-standalone.o marks.o video.o audio.o decoder_new.o encoder_new.o logo.o
 ifdef ONLY_WITH_CDECODER
         DEFINES += -DONLY_WITH_CDECODER
 else
-	OBJS += demux.o decoder.o
+	OBJS += demux.o decoder.o streaminfo.o
 endif
 
 

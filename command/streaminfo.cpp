@@ -24,7 +24,6 @@ void cMarkAdStreamInfo::Clear() {
 }
 
 
-#if !defined ONLY_WITH_CDECODER
 bool cMarkAdStreamInfo::FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt, int eslen) {
 #pragma pack(1)
     struct AC3HDR {
@@ -93,7 +92,6 @@ bool cMarkAdStreamInfo::FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt
     }
     return false;
 }
-#endif
 
 
 bool cMarkAdStreamInfo::FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int len)
@@ -112,6 +110,7 @@ bool cMarkAdStreamInfo::FindVideoInfos(MarkAdContext *maContext, uchar *pkt, int
     }
     return false;
 }
+
 
 bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt, int len)
 {

@@ -1790,8 +1790,8 @@ bool cMarkAdStandalone::Reset(bool FirstPass) {
     macontext.Video.Info.AspectRatio.Num=0;
     memset(macontext.Audio.Info.Channels, 0, sizeof(macontext.Audio.Info.Channels));
 
-    if (streaminfo) streaminfo->Clear();
 #if !defined ONLY_WITH_CDECODER
+    if (streaminfo) streaminfo->Clear();
     if (decoder) ret=decoder->Clear();
     if (demux) demux->Clear();
 #endif
@@ -3064,10 +3064,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
                 isyslog("found AC3 (0x%04x)",macontext.Info.DPid.Num);
         }
         decoder = new cMarkAdDecoder(macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,config->threads);
+        streaminfo = new cMarkAdStreamInfo;
 #endif
         video = new cMarkAdVideo(&macontext);
         audio = new cMarkAdAudio(&macontext);
-        streaminfo = new cMarkAdStreamInfo;
         if (macontext.Info.ChannelName)
             isyslog("channel %s",macontext.Info.ChannelName);
         if (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264)
