@@ -10,6 +10,10 @@
 
 PLUGIN = markad
 
+# use this, if you want to debug heap memory consumption
+# DEBUGMEM=1
+
+
 ### The version number of this plugin (taken from the version header file):
 
 VERSION = $(shell grep 'static const char \*VERSION *=' version.h | awk '{ print $$6 }' | sed -e 's/[";]//g')
@@ -53,13 +57,15 @@ SOFILE = libvdr-$(PLUGIN).so
 INCLUDES +=
 
 DEFINES += -DPLUGIN_NAME_I18N='"$(PLUGIN)"'
+ifdef DEBUGMEM
+        DEFINES += -DDEBUGMEM
+endif
+
 
 ### The object files (add further files here):
-
-OBJS = $(PLUGIN).o status.o menu.o setup.o 
+OBJS = $(PLUGIN).o status.o menu.o setup.o debug.o
 
 ### The main target:
-
 all: $(SOFILE) i18n
 
 ### Implicit rules:

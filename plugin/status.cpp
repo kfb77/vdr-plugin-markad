@@ -7,6 +7,7 @@
 
 #include <signal.h>
 
+#include "debug.h"
 #include "status.h"
 
 cStatusMarkAd::cStatusMarkAd(const char *BinDir, const char *LogoDir, struct setup *Setup)
@@ -76,14 +77,16 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
     if (setup->autoLogoConf > 0) {
         if(! asprintf(&autoLogoOption," --autologo=%i ",setup->autoLogoConf)) {
             esyslog("markad: asprintf ouf of memory");
-	    return false;
+            return false;
         }
+        ALLOC(strlen(autoLogoOption), "autoLogoOption");
     }
     else if (setup->autoLogoMenue > 0) {
         if(! asprintf(&autoLogoOption," --autologo=%i ",setup->autoLogoMenue)) {
             esyslog("markad: asprintf ouf of memory");
-	    return false;
+            return false;
         }
+        ALLOC(strlen(autoLogoOption), "autoLogoOption");
     }
 
     cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
@@ -194,7 +197,10 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName)
             esyslog("markad: cannot find timer for '%s'",FileName);
         } else {
             const cChannel *chan=timer->Channel();
-            if (chan) cname=strdup(chan->Name());
+            if (chan) {
+                cname=strdup(chan->Name());
+                ALLOC(strlen(cname), "cname");
+            }
         }
 
 #if APIVERSNUM>=20301
@@ -215,30 +221,41 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName)
     char *fname=NULL;
     if (asprintf(&fname,"%s/%s-A16_9-P0.pgm",logodir,cname)==-1)
     {
+        FREE(strlen(cname), "cname");
         free(cname);
         return false;
     }
+    ALLOC(strlen(fname), "fname");
 
     struct stat statbuf;
     if (stat(fname,&statbuf)==-1)
     {
+        FREE(strlen(fname), "fname");
         free(fname);
         fname=NULL;
         if (asprintf(&fname,"%s/%s-A4_3-P0.pgm",logodir,cname)==-1)
         {
+            FREE(strlen(cname), "cname");
             free(cname);
             return false;
         }
+        ALLOC(strlen(fname), "fname");
 
         if (stat(fname,&statbuf)==-1)
         {
+            FREE(strlen(cname), "cname");
             free(cname);
+
+            FREE(strlen(fname), "fname");
             free(fname);
             return false;
         }
     }
-    free(fname);
+    FREE(strlen(cname), "cname");
     free(cname);
+
+    FREE(strlen(fname), "fname");
+    free(fname);
     return true;
 }
 
@@ -322,11 +339,13 @@ bool cStatusMarkAd::getPid(int Position)
     int ret=0;
     char *buf;
     if (asprintf(&buf,"%s/markad.pid",recs[Position].FileName)==-1) return false;
+    ALLOC(strlen(buf), "buf");
 
     usleep(500*1000);   // wait 500ms to give markad time to create pid file
     FILE *fpid=fopen(buf,"r");
     if (fpid)
     {
+        FREE(strlen(buf), "buf");
         free(buf);
         int pid;
         ret=fscanf(fpid,"%10i\n",&pid);
@@ -343,6 +362,7 @@ bool cStatusMarkAd::getPid(int Position)
             Remove(Position);
         }
         free(buf);
+        FREE(strlen(buf), "buf");
     }
     return (ret==1);
 }
@@ -411,9 +431,15 @@ void cStatusMarkAd::Remove(const char *Name, bool Kill)
 
 void cStatusMarkAd::Remove(int Position, bool Kill)
 {
-    if (recs[Position].FileName) free(recs[Position].FileName);
+    if (recs[Position].FileName) {
+        FREE(strlen(recs[Position].FileName), "recs[Position].FileName");
+        free(recs[Position].FileName);
+    }
     recs[Position].FileName=NULL;
-    if (recs[Position].Name) free(recs[Position].Name);
+    if (recs[Position].Name) {
+        FREE(strlen(recs[Position].Name), "recs[Position].Name");
+        free(recs[Position].Name);
+    }
     recs[Position].Name=NULL;
 
     if ((Kill) && (recs[Position].Pid))
@@ -444,9 +470,11 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name)
         if (!recs[i].FileName)
         {
             recs[i].FileName=strdup(FileName);
+            ALLOC(strlen(recs[i].FileName), "recs[i].FileName");
             if (Name)
             {
                 recs[i].Name=strdup(Name);
+                ALLOC(strlen(recs[i].Name), "recs[i].Name");
             }
             else
             {

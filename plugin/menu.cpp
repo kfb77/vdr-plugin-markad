@@ -10,6 +10,7 @@
 #include <vdr/font.h>
 
 #include "menu.h"
+#include "debug.h"
 
 cOsdMarkAd::cOsdMarkAd(struct recs *Entry)
 {
@@ -42,7 +43,9 @@ cOsdMarkAd::cOsdMarkAd(struct recs *Entry)
     char *buf=NULL;
     if (asprintf(&buf,"%s\t %s",entry->Name ? entry->Name : entry->FileName,status)!=-1)
     {
+        ALLOC(strlen(buf), "buf");
         SetText(buf,true);
+        FREE(strlen(buf), "buf");
         free(buf);
     }
     else

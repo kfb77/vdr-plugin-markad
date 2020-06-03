@@ -14,6 +14,7 @@
 #include <vdr/plugin.h>
 
 #include "markad.h"
+#include "debug.h"
 
 #define DEF_BINDIR "/usr/bin"
 #define DEF_LOGODIR "/var/lib/markad"
@@ -24,8 +25,13 @@ cPluginMarkAd::cPluginMarkAd(void)
     // DON'T DO ANYTHING ELSE THAT MAY HAVE SIDE EFFECTS, REQUIRE GLOBAL
     // VDR OBJECTS TO EXIST OR PRODUCE ANY OUTPUT!
     statusMonitor=NULL;
+
     bindir=strdup(DEF_BINDIR);
+    ALLOC(strlen(bindir), "bindir");
+
     logodir=strdup(DEF_LOGODIR);
+    ALLOC(strlen(logodir), "logodir");
+
     title[0]=0;
 
     setup.ProcessDuring=true;
@@ -46,9 +52,26 @@ cPluginMarkAd::cPluginMarkAd(void)
 cPluginMarkAd::~cPluginMarkAd()
 {
     // Clean up after yourself!
-    if (statusMonitor) delete statusMonitor;
-    if (bindir) free(bindir);
-    if (logodir) free(logodir);
+    if (statusMonitor) {
+        FREE(sizeof(*statusMonitor), "statusMonitor");
+        delete statusMonitor;
+    }
+    if (bindir) {
+        FREE(strlen(bindir), "bindir");
+        free(bindir);
+    }
+    if (logodir) {
+        FREE(strlen(logodir), "logodir");
+        free(logodir);
+    }
+    if (setup.aStopOffs) {
+        FREE(strlen(setup.aStopOffs), "setup.aStopOffs");
+        free(setup.aStopOffs);
+    }
+    if (setup.LogLevel) {
+        FREE(strlen(setup.LogLevel), "setup.LogLevel");
+        free(setup.LogLevel);
+    }
 }
 
 const char *cPluginMarkAd::CommandLineHelp(void)
@@ -98,8 +121,12 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
         case 'b':
             if ((access(optarg,R_OK | X_OK))!=-1)
             {
-                if (bindir) free(bindir);
+                if (bindir) {
+                    FREE(strlen(bindir), "bindir");
+                    free(bindir);
+                }
                 bindir=strdup(optarg);
+                ALLOC(strlen(bindir), "bindir");
             }
             else
             {
@@ -112,8 +139,12 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[])
         case 'l':
             if ((access(optarg,R_OK))!=-1)
             {
-                if (logodir) free(logodir);
+                if (logodir) {
+                    FREE(strlen(logodir), "logodir");
+                    free(logodir);
+                }
                 logodir=strdup(optarg);
+                ALLOC(strlen(logodir), "logodir");
             }
             else
             {
@@ -151,14 +182,21 @@ bool cPluginMarkAd::Initialize(void)
 {
     // Initialize any background activities the plugin shall perform.
     char *path;
+
     if (asprintf(&path,"%s/markad",bindir)==-1) return false;
+    ALLOC(strlen(path), "path");
+
     struct stat statbuf;
     if (stat(path,&statbuf)==-1)
     {
         esyslog("markad: cannot find %s, please install",path);
+
+        FREE(strlen(path), "path");
         free(path);
+
         return false;
     }
+    FREE(strlen(path), "path");
     free(path);
 
     return true;
@@ -169,18 +207,23 @@ bool cPluginMarkAd::Start(void)
     // Start any background activities the plugin shall perform.
     lastcheck=0;
     setup.PluginName=Name();
-    if (loglevel)
-        if(! asprintf(&setup.LogLevel," --loglevel=%i ",loglevel))
-            esyslog("markad: asprintf ouf of memory");
-    if (astopoffs>=0)
-        if(! asprintf(&setup.aStopOffs," --astopoffs=%i ",astopoffs))
-            esyslog("markad: asprintf ouf of memory");
+    if (loglevel) {
+        if(! asprintf(&setup.LogLevel," --loglevel=%i ",loglevel)) esyslog("markad: asprintf ouf of memory");
+        ALLOC(strlen(setup.LogLevel), "setup.LogLevel");
+    }
+
+    if (astopoffs>=0) {
+        if(! asprintf(&setup.aStopOffs," --astopoffs=%i ",astopoffs)) esyslog("markad: asprintf ouf of memory");
+        ALLOC(strlen(setup.aStopOffs), "setup.aStopOffs");
+    }
     setup.cDecoder=cDecoder;
     setup.MarkadCut=MarkadCut;
     setup.ac3ReEncode=ac3ReEncode;
     setup.autoLogoConf=autoLogoConf;
     setup.LogoDir=logodir;
     statusMonitor = new cStatusMarkAd(bindir,logodir,&setup);
+    ALLOC(sizeof(*statusMonitor), "statusMonitor");
+
     return (statusMonitor!=NULL);
 }
 
@@ -223,13 +266,13 @@ time_t cPluginMarkAd::WakeupTime(void)
 cOsdObject *cPluginMarkAd::MainMenuAction(void)
 {
     // Perform the action when selected from the main VDR menu.
-    return new cMenuMarkAd(statusMonitor);
+    return new cMenuMarkAd(statusMonitor);  // this should be freed from VDR after meue closed
 }
 
 cMenuSetupPage *cPluginMarkAd::SetupMenu(void)
 {
     // Return the setup menu
-    return new cSetupMarkAd(&setup);
+    return new cSetupMarkAd(&setup);   // this should be freed from VDR after meue closed
 }
 
 bool cPluginMarkAd::SetupParse(const char *Name, const char *Value)
@@ -286,22 +329,28 @@ bool cPluginMarkAd::ReadTitle(const char *Directory)
     char *buf;
 #if VDRVERSNUM > 10700
     if (asprintf(&buf,"%s/info",Directory)==-1) return false;
+    ALLOC(strlen(buf), "buf");
 #else
     if (asprintf(&buf,"%s/info.vdr",Directory)==-1) return false;
+    ALLOC(strlen(buf), "buf");
 #endif
 
     FILE *f;
     f=fopen(buf,"r");
+    FREE(strlen(buf), "buf");
     free(buf);
     buf=NULL;
     if (!f)
     {
 #if VDRVERSNUM > 10700
         if (asprintf(&buf,"%s/info.vdr",Directory)==-1) return false;
+        ALLOC(strlen(buf), "buf");
 #else
         if (asprintf(&buf,"%s/info",Directory)==-1) return false;
+        ALLOC(strlen(buf), "buf");
 #endif
         f=fopen(buf,"r");
+        FREE(strlen(buf), "buf");
         free(buf);
         if (!f) return false;
     }
@@ -326,7 +375,10 @@ bool cPluginMarkAd::ReadTitle(const char *Directory)
             }
         }
     }
-    if (line) free(line);
+    if (line) {
+        FREE(strlen(line), "line");
+        free(line);
+    }
 
     fclose(f);
     return (title[0]!=0);
