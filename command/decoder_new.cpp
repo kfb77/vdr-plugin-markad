@@ -20,7 +20,11 @@ void AVlog(void *ptr, int level, const char* fmt, va_list vl){
             dsyslog("AVlog(): Error in vsprintf");
             return;
         }
-        if (strcmp(logMsg, "co located POCs unavailable\n") == 0) tsyslog("AVlog(): %s",strtok(logMsg, "\n")); // this will happen with h.264 coding because of partitial decoding
+        if ((strcmp(logMsg, "co located POCs unavailable\n") == 0) || // this will happen with h.264 coding because of partitial decoding
+            (strcmp(logMsg, "mmco: unref short failure\n") == 0) ||
+            (strcmp(logMsg, "number of reference frames (0+5) exceeds max (4; probably corrupt input), discarding one\n") == 0)) {
+                tsyslog("AVlog(): %s",strtok(logMsg, "\n"));
+        }
         else dsyslog("AVlog(): %s",strtok(logMsg, "\n"));
     }
     return;
