@@ -69,8 +69,8 @@ void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSE
     }
 }
 
-bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Direct)
-{
+
+bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Direct) {
     if ((Direct) && (Get(FileName)!=-1)) return false;
 
     char *autoLogoOption = NULL;
@@ -81,14 +81,15 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
         }
         ALLOC(strlen(autoLogoOption), "autoLogoOption");
     }
-    else if (setup->autoLogoMenue > 0) {
-        if(! asprintf(&autoLogoOption," --autologo=%i ",setup->autoLogoMenue)) {
-            esyslog("markad: asprintf ouf of memory");
-            return false;
+    else {
+        if (setup->autoLogoMenue > 0) {
+            if(! asprintf(&autoLogoOption," --autologo=%i ",setup->autoLogoMenue)) {
+                esyslog("markad: asprintf ouf of memory");
+                return false;
+            }
+            ALLOC(strlen(autoLogoOption), "autoLogoOption");
         }
-        ALLOC(strlen(autoLogoOption), "autoLogoOption");
     }
-
     cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->Verbose ? " -v " : "",
@@ -107,46 +108,32 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                                    logodir,
                                    Direct ? "-O after" : "--online=2 before",
                                    FileName);
+    FREE(strlen(autoLogoOption), "autoLogoOption");
+    free(autoLogoOption);
+
     usleep(1000000); // wait 1 second
-    if (SystemExec(cmd)!=-1)
-    {
+    if (SystemExec(cmd)!=-1) {
         dsyslog("markad: executing %s",*cmd);
         usleep(200000);
         int pos=Add(FileName,Name);
-        if (getPid(pos) && getStatus(pos))
-        {
-            if (setup->ProcessDuring==0)
-            {
-                if (!Direct)
-                {
-                    if (!setup->whileRecording)
-                    {
-                        Pause(NULL);
-                    }
-                    else
-                    {
-                        Pause(FileName);
-                    }
+        if (getPid(pos) && getStatus(pos)) {
+            if (setup->ProcessDuring==0) {
+                if (!Direct) {
+                    if (!setup->whileRecording) Pause(NULL);
+                    else Pause(FileName);
                 }
-                else
-                {
-                    if (!setup->whileRecording && Recording())
-                    {
-                        Pause(FileName);
-                    }
-                    if (!setup->whileReplaying && Replaying())
-                    {
-                        Pause(FileName);
-                    }
+                else {
+                    if (!setup->whileRecording && Recording()) Pause(FileName);
+                    if (!setup->whileReplaying && Replaying()) Pause(FileName);
                 }
             }
-        } else {
-            isyslog("markad: cannot find running process");
         }
+        else isyslog("markad: cannot find running process");
         return true;
     }
     return false;
 }
+
 
 void cStatusMarkAd::TimerChange(const cTimer *Timer, eTimerChange Change)
 {
