@@ -27,6 +27,7 @@ clMark::clMark(int Type, int Position, const char *Comment) {
     position=Position;
     if (Comment) {
         comment=strdup(Comment);
+        ALLOC(strlen(comment), "comment");
     }
     else {
         comment=NULL;
@@ -37,7 +38,10 @@ clMark::clMark(int Type, int Position, const char *Comment) {
 
 
 clMark::~clMark() {
-    if (comment) free(comment);
+    if (comment) {
+        FREE(strlen(comment), "comment");
+        free(comment);
+    }
 }
 
 
@@ -261,8 +265,10 @@ clMark *clMarks::Add(int Type, int Position,const char *Comment) {
         if (Type > newmark->type){   // keep the stronger mark
             if ((newmark->comment) && (Comment))
             {
+                FREE(strlen(newmark->comment), "newmark->comment");
                 free(newmark->comment);
                 newmark->comment=strdup(Comment);
+                ALLOC(strlen(newmark->comment), "newmark->comment");
             }
             newmark->type=Type;
         }
@@ -336,7 +342,7 @@ clMark *clMarks::Add(int Type, int Position,const char *Comment) {
 char *clMarks::IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cDecoder) {
     double FramesPerSecond=maContext->Video.Info.FramesPerSecond;
     if (FramesPerSecond==0.0) return NULL;
-    char *buf=NULL;
+    char *indexToHMSF=NULL;
     double Seconds;
     int f=0;
     if (maContext->Config->use_cDecoder && (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) && ptr_cDecoder) {
@@ -349,8 +355,9 @@ char *clMarks::IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cD
     int m = s / 60 % 60;
     int h = s / 3600;
     s %= 60;
-    if (asprintf(&buf,"%d:%02d:%02d.%02d",h,m,s,f)==-1) return NULL;
-    return buf;
+    if (asprintf(&indexToHMSF,"%d:%02d:%02d.%02d",h,m,s,f)==-1) return NULL;   // this has to be freed in the calling function
+    ALLOC(strlen(indexToHMSF), "indexToHMSF");
+    return indexToHMSF;
 }
 
 
@@ -358,7 +365,9 @@ char *clMarks::IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cD
 void clMarks::RemoveGeneratedIndex(const char *Directory, bool isTS) {
     char *ipath=NULL;
     if (asprintf(&ipath,"%s/index%s.generated",Directory,isTS ? "" : ".vdr")==-1) return;
+    ALLOC(strlen(ipath), "ipath");
     unlink(ipath);
+    FREE(strlen(ipath), "ipath");
     free(ipath);
     return;
 }
@@ -377,7 +386,9 @@ bool clMarks::ReadIndex(const char *Directory, bool isTS, int FrameNumber, int R
 
     char *ipath=NULL;
     if (asprintf(&ipath,"%s/index%s",Directory,isTS ? "" : ".vdr")==-1) return false;
+    ALLOC(strlen(ipath), "ipath");
     int ifd=open(ipath,O_RDONLY);
+    FREE(strlen(ipath), "ipath");
     free(ipath);
     if (ifd==-1) return false;
 
@@ -480,7 +491,9 @@ void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset, int 
     if (indexfd==-1) {
         char *ipath=NULL;
         if (asprintf(&ipath,"%s/index%s.generated",Directory,isTS ? "" : ".vdr")==-1) return;
+        ALLOC(strlen(ipath), "ipath");
         indexfd=open(ipath,O_WRONLY|O_CREAT|O_TRUNC,0644);
+        FREE(strlen(ipath), "ipath");
         free(ipath);
         if (indexfd==-1) return;
     }
@@ -497,10 +510,12 @@ void clMarks::CloseIndex(const char *Directory, bool isTS) {
         // if we are root, set fileowner to owner of 001.vdr/00001.ts file
         char *spath=NULL;
         if (asprintf(&spath,"%s/%s",Directory,isTS ? "00001.ts" : "001.vdr")!=-1) {
+            ALLOC(strlen(spath), "spath");
             struct stat statbuf;
             if (!stat(spath,&statbuf)) {
                 if (fchown(indexfd,statbuf.st_uid, statbuf.st_gid)) {};
             }
+            FREE(strlen(spath), "spath");
             free(spath);
         }
     }
@@ -517,8 +532,10 @@ bool clMarks::CheckIndex(const char *Directory, bool isTS, int *FrameCnt, int *I
 
     char *ipath=NULL;
     if (asprintf(&ipath,"%s/index%s",Directory,isTS ? "" : ".vdr")==-1) return false;
+    ALLOC(strlen(ipath), "ipath");
 
     int fd=open(ipath,O_RDONLY);
+    FREE(strlen(ipath), "ipath");
     free(ipath);
     if (fd==-1) {
         *IndexError=IERR_NOTFOUND;
@@ -590,16 +607,21 @@ bool clMarks::CheckIndex(const char *Directory, bool isTS, int *FrameCnt, int *I
 bool clMarks::Backup(const char *Directory, bool isTS) {
     char *fpath=NULL;
     if (asprintf(&fpath,"%s/%s%s",Directory,filename,isTS ? "" : ".vdr")==-1) return false;
+    ALLOC(strlen(fpath), "fpath");
 
     // make backup of old marks, filename convention taken from noad
     char *bpath=NULL;
     if (asprintf(&bpath,"%s/%s0%s",Directory,filename,isTS ? "" : ".vdr")==-1) {
+        FREE(strlen(fpath), "fpath");
         free(fpath);
         return false;
     }
+    ALLOC(strlen(bpath), "bpath");
 
     int ret=rename(fpath,bpath);
+    FREE(strlen(bpath), "bpath");
     free(bpath);
+    FREE(strlen(fpath), "fpath");
     free(fpath);
     return (ret==0);
 }
@@ -608,9 +630,11 @@ bool clMarks::Backup(const char *Directory, bool isTS) {
 bool clMarks::Load(const char *Directory, double FrameRate, bool isTS) {
     char *fpath=NULL;
     if (asprintf(&fpath,"%s/%s%s",Directory,filename,isTS ? "" : ".vdr")==-1) return false;
+    ALLOC(strlen(fpath), "fpath");
 
     FILE *mf;
     mf=fopen(fpath,"r+");
+    FREE(strlen(fpath), "fpath");
     free(fpath);
     if (!mf) return false;
 
@@ -639,7 +663,10 @@ bool clMarks::Load(const char *Directory, double FrameRate, bool isTS) {
             }
         }
     }
-    if (line) free(line);
+    if (line) {
+        FREE(strlen(line), "line");
+        free(line);
+    }
     fclose(mf);
     return true;
 }
@@ -651,21 +678,24 @@ bool clMarks::Save(const char *Directory, MarkAdContext *maContext, cDecoder *pt
 
     char *fpath=NULL;
     if (asprintf(&fpath,"%s/%s%s",Directory,filename,isTS ? "" : ".vdr")==-1) return false;
+    ALLOC(strlen(fpath), "fpath");
 
     FILE *mf;
     mf=fopen(fpath,"w+");
 
     if (!mf) {
+        FREE(strlen(fpath), "fpath");
         free(fpath);
         return false;
     }
 
     clMark *mark=first;
     while (mark) {
-        char *buf=IndexToHMSF(mark->position,maContext,ptr_cDecoder);
-        if (buf) {
-            fprintf(mf,"%s %s\n",buf,mark->comment ? mark->comment : "");
-            free(buf);
+        char *indexToHMSF=IndexToHMSF(mark->position,maContext,ptr_cDecoder);
+        if (indexToHMSF) {
+            fprintf(mf,"%s %s\n",indexToHMSF,mark->comment ? mark->comment : "");
+            FREE(strlen(indexToHMSF), "indexToHMSF");
+            free(indexToHMSF);
         }
         mark=mark->Next();
     }
@@ -675,13 +705,16 @@ bool clMarks::Save(const char *Directory, MarkAdContext *maContext, cDecoder *pt
         // if we are root, set fileowner to owner of 001.vdr/00001.ts file
         char *spath=NULL;
         if (asprintf(&spath,"%s/%s",Directory,isTS ? "00001.ts" : "001.vdr")!=-1) {
+            ALLOC(strlen(spath), "spath");
             struct stat statbuf;
             if (!stat(spath,&statbuf)) {
                 if (chown(fpath,statbuf.st_uid, statbuf.st_gid)) {};
             }
+            FREE(strlen(spath), "spath");
             free(spath);
         }
     }
+    FREE(strlen(fpath), "fpath");
     free(fpath);
     savedcount=count;
     return true;

@@ -161,9 +161,21 @@ cEncoder::cEncoder(int threads, const bool ac3reencode) {
 
 
 cEncoder::~cEncoder() {
+    for (unsigned int i = 0; i < avctxOut->nb_streams; i++) {
+        if (ptr_cAC3VolumeFilter[i]) {
+            FREE(sizeof(*ptr_cAC3VolumeFilter[i]), "ptr_cAC3VolumeFilter");
+            delete ptr_cAC3VolumeFilter[i];
+        }
+    }
     for (unsigned int i=0; i<avctxOut->nb_streams; i++) {
         avcodec_free_context(&codecCtxArrayOut[i]);
     }
+    FREE(sizeof(AVCodecContext *) * avctxOut->nb_streams, "codecCtxArrayOut");
+    free(codecCtxArrayOut);
+    FREE(sizeof(int64_t) * avctxOut->nb_streams, "dts");
+    free(dts);
+    FREE(sizeof(int64_t) * avctxOut->nb_streams, "dtsBefore");
+    free(dtsBefore);
 }
 
 
@@ -171,8 +183,7 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     if (!directory) return false;
     if (!ptr_cDecoder) return false;
     int ret = 0;
-    char *filename;
-    char *CutName;
+    char *filename = NULL;
     char *buffCutName;
 
     ptr_cDecoder->Reset();
@@ -183,37 +194,53 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     }
 
     codecCtxArrayOut = (AVCodecContext **) malloc(sizeof(AVCodecContext *) * avctxIn->nb_streams);
+    ALLOC(sizeof(AVCodecContext *) * avctxIn->nb_streams, "codecCtxArrayOut");
     memset(codecCtxArrayOut, 0, sizeof(AVCodecContext *) * avctxIn->nb_streams);
 
     dts = (int64_t *) malloc(sizeof(int64_t) * avctxIn->nb_streams);
+    ALLOC(sizeof(int64_t) * avctxIn->nb_streams, "dts");
     memset(dts, 0, sizeof(int64_t) * avctxIn->nb_streams);
+
     dtsBefore = (int64_t *) malloc(sizeof(int64_t) * avctxIn->nb_streams);
+    ALLOC(sizeof(int64_t) * avctxIn->nb_streams, "dtsBefore");
     memset(dtsBefore, 0, sizeof(int64_t) * avctxIn->nb_streams);
 
     if (asprintf(&buffCutName,"%s", directory)==-1) {
         dsyslog("cEncoder::OpenFile(): failed to allocate string, out of memory?");
         return false;
     }
-    CutName=buffCutName;
-    char *tmp = strrchr(CutName, '/');
-    if (!tmp) {
+    ALLOC(strlen(buffCutName), "buffCutName");
+    char *pos = strrchr(buffCutName, '/');
+    if (!pos) {
         dsyslog("cEncoder::OpenFile(): faild to find last '/'");
         return false;
     }
-    CutName[tmp-CutName]=0;
-    tmp = strrchr(CutName, '/')+1;
-    if (!tmp) {
+    char *recPath = (char *) malloc((strlen(buffCutName) - strlen(pos) + 1) * sizeof(char));
+    ALLOC((strlen(buffCutName) - strlen(pos)) * sizeof(char), "recPath");    // without terminating 0
+    strncpy(recPath, buffCutName, strlen(buffCutName) - strlen(pos) - 1 );
+    recPath[strlen(buffCutName) - strlen(pos)] = 0;
+    FREE(strlen(buffCutName), "buffCutName");
+    pos = strrchr(recPath, '/');
+    if (!pos) {
         dsyslog("cEncoder::OpenFile(): faild to find last '/'");
         return false;
     }
-    CutName=tmp;
-    dsyslog("cEncoder::OpenFile(): CutName '%s'",CutName);
+    pos++;    // ignore first char = /
+    char *cutName = (char *) malloc((strlen(pos) + 1) * sizeof(char));
+    ALLOC(strlen(pos) * sizeof(char), "cutName");   // without terminating 0
+    strncpy(cutName, pos, strlen(pos));
+    cutName[strlen(pos)] = 0;
+    FREE(strlen(recPath), "recPath");
+    free(recPath);
+    dsyslog("cEncoder::OpenFile(): cutName '%s'",cutName);
 
-    if (asprintf(&filename,"%s/%s.ts", directory, CutName)==-1) {
+    if (asprintf(&filename,"%s/%s.ts", directory, cutName)==-1) {
         dsyslog("cEncoder::OpenFile(): failed to allocate string, out of memory?");
         return false;
     }
-    free(buffCutName);
+    ALLOC(strlen(filename), "filename");
+    FREE(strlen(cutName), "cutName");
+    free(cutName);
     dsyslog("cEncoder::OpenFile(): write to '%s'", filename);
 
 #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(26<<8)+100)
@@ -262,6 +289,7 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
         dsyslog("cEncoder::OpenFile(): could not write header");
         return false;
     }
+    FREE(strlen(filename), "filename");
     free(filename);
     return true;
 }
@@ -321,8 +349,10 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctx
             dsyslog("cEncoder::ChangeEncoderCodec(): ptr_cAC3VolumeFilter not initialized for stream %i", streamIndex);
             return false;
         }
+        FREE(sizeof(*ptr_cAC3VolumeFilter[streamIndex]), "ptr_cAC3VolumeFilter");
         delete ptr_cAC3VolumeFilter[streamIndex];
         ptr_cAC3VolumeFilter[streamIndex] = new cAC3VolumeFilter();
+        ALLOC(sizeof(*ptr_cAC3VolumeFilter[streamIndex]), "ptr_cAC3VolumeFilter");
         if (!ptr_cAC3VolumeFilter[streamIndex]->Init(avCodecCtxIn->channel_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate)) {
             dsyslog("cEncoder::ChangeEncoderCodec(): ptr_cAC3VolumeFilter->Init() failed");
             return false;
@@ -417,6 +447,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
             return false;
         }
         ptr_cAC3VolumeFilter[streamIndex] = new cAC3VolumeFilter();
+        ALLOC(sizeof(*ptr_cAC3VolumeFilter[streamIndex]), "ptr_cAC3VolumeFilter");
         if (!ptr_cAC3VolumeFilter[streamIndex]->Init(avCodecCtxIn->channel_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate)) {
             dsyslog("cEncoder::InitEncoderCodec(): ptr_cAC3VolumeFilter->Init() failed");
             return false;

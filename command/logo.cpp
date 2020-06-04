@@ -78,11 +78,13 @@ bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int
 
         if (this->isWhitePlane(ptr_actLogoInfo, height, width, plane)) continue;
         if (asprintf(&buf,"%s/%s-A%i_%i-P%i.pgm",maContext->Config->recDir, maContext->Info.ChannelName, ptr_actLogoInfo->aspectratio.Num,ptr_actLogoInfo->aspectratio.Den,plane)==-1) return false;
+        ALLOC(strlen(buf), "buf");
         dsyslog("cExtractLogo::Save(): store logo in %s", buf);
         // Open file
         FILE *pFile=fopen(buf, "wb");
         if (pFile==NULL)
         {
+            FREE(sizeof(buf), "buf");
             free(buf);
             dsyslog("cExtractLogo::Save(): open file failed");
             return false;
@@ -94,11 +96,13 @@ bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int
         if (!fwrite(ptr_actLogoInfo->sobel[plane],1,width*height,pFile)) {
             dsyslog("cExtractLogo::Save(): write data failed");
             fclose(pFile);
+            FREE(sizeof(buf), "buf");
             free(buf);
             return false;
         }
         // Close file
         fclose(pFile);
+        FREE(strlen(buf), "buf");
         free(buf);
     }
     return true;
@@ -360,15 +364,22 @@ bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecode
     if (recordingFrameCount > (ptr_cDecoder->GetFrameNumber()+200)) return true; // we have already found enougt frames
 
     if (asprintf(&indexFile,"%s/index",maContext->Config->recDir)==-1) indexFile=NULL;
+    ALLOC(strlen(indexFile), "indexFile");
     if (!indexFile) {
         dsyslog("cExtractLogo::isRunningRecording(): no index file info");
+        FREE(strlen(indexFile), "indexFile");
+        free(indexFile);
         return false;
     }
     struct stat indexStatus;
     if (stat(indexFile,&indexStatus)==-1) {
         dsyslog("cExtractLogo::isRunningRecording(): failed to stat %s",indexFile);
+        FREE(strlen(indexFile), "indexFile");
+        free(indexFile);
         return false;
     }
+    FREE(strlen(indexFile), "indexFile");
+    free(indexFile);
     dsyslog("cExtractLogo::WaitForFrames(): index file size %ld byte", indexStatus.st_size);
     int maxframes = indexStatus.st_size/8;
     recordingFrameCount = maxframes;
@@ -445,7 +456,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
     }
     if (startFrame < 0) return false;
 
-    cMarkAdLogo *logo = NULL;
+    cMarkAdLogo *ptr_Logo = NULL;
     long int iFrameNumber = 0;
     int iFrameCountValid = 0;
     int iFrameCountAll = 0;
@@ -458,10 +469,14 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
     maContextSaveState.Audio = maContext->Audio;     // save state of calling audio context
 
     cDecoder *ptr_cDecoder = new cDecoder(maContext->Config->threads);
-    logo = new cMarkAdLogo(maContext);
+    ALLOC(sizeof(*ptr_cDecoder), "ptr_cDecoder");
+    ptr_Logo = new cMarkAdLogo(maContext);
+    ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
     cMarkAdBlackBordersHoriz *hborder=new cMarkAdBlackBordersHoriz(maContext);
+    ALLOC(sizeof(*hborder), "hborder");
     cMarkAdBlackBordersVert *vborder=new cMarkAdBlackBordersVert(maContext);
-    areaT *area = logo->GetArea();
+    ALLOC(sizeof(*vborder), "vborder");
+    areaT *area = ptr_Logo->GetArea();
 
     if (!WaitForFrames(maContext, ptr_cDecoder)) {
         dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");
@@ -545,7 +560,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
                                                     //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
 //                        if (corner == 1) iFrameNumberNext = -2;   // TODO only for debug
                         area->corner=corner;
-                        logo->Detect(iFrameNumber,&iFrameNumberNext);
+                        ptr_Logo->Detect(iFrameNumber,&iFrameNumberNext);
                         logoInfo actLogoInfo = {};
                         actLogoInfo.iFrameNumber = iFrameNumber;
                         actLogoInfo.aspectratio.Den = maContext->Video.Info.AspectRatio.Den;
@@ -556,13 +571,13 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
                         if (maContext->Config->autoLogo == 1) { // use packed logos
                             logoInfoPacked actLogoInfoPacked = {};
                             PackLogoInfo(&actLogoInfo, &actLogoInfoPacked);
-
                             try { logoInfoVectorPacked[corner].push_back(actLogoInfoPacked); }  // this allocates a lot of memory
                             catch(std::bad_alloc &e) {
                                 dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %ld", iFrameNumber);
                                 retStatus=false;
                                 break;
                             }
+                            ALLOC((sizeof(logoInfoPacked)), "logoInfoVectorPacked");
                         }
                         if (maContext->Config->autoLogo == 2){  // use unpacked logos
                             try { logoInfoVector[corner].push_back(actLogoInfo); }  // this allocates a lot of memory
@@ -571,6 +586,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
                                 retStatus=false;
                                 break;
                             }
+                            ALLOC((sizeof(logoInfo)), "logoInfoVector");
                         }
                     }
                     if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES) || !retStatus)  break; // finish inner loop and find best match
@@ -636,6 +652,16 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
         }
         for (int corner = 0; corner <= 3; corner++) {  // free memory of the corners who are not selected
             if (corner == bestLogoCorner) continue;
+#ifdef DEBUGMEM
+            int size = logoInfoVector[corner].size();
+            for (int i = 0 ; i < size; i++) {
+                FREE(sizeof(logoInfo), "logoInfoVector");
+            }
+            size = logoInfoVectorPacked[corner].size();
+            for (int i = 0 ; i < size; i++) {
+                FREE(sizeof(logoInfoPacked), "logoInfoVectorPacked");
+            }
+#endif
             logoInfoVector[corner].clear();
             logoInfoVectorPacked[corner].clear();
         }
@@ -659,13 +685,27 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
         }
     }
     for (int corner = 0; corner <= 3; corner++) {  // free memory of all corners
+#ifdef DEBUGMEM
+        int size = logoInfoVector[corner].size();
+        for (int i = 0 ; i < size; i++) {
+            FREE(sizeof(logoInfo), "logoInfoVector");
+        }
+        size = logoInfoVectorPacked[corner].size();
+        for (int i = 0 ; i < size; i++) {
+            FREE(sizeof(logoInfoPacked), "logoInfoVectorPacked");
+        }
+#endif
         logoInfoVector[corner].clear();
         logoInfoVectorPacked[corner].clear();
     }
-    ptr_cDecoder->~cDecoder();
-    hborder->~cMarkAdBlackBordersHoriz();
-    vborder->~cMarkAdBlackBordersVert();
-    logo->~cMarkAdLogo();
+    FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
+    delete ptr_cDecoder;
+    FREE(sizeof(*hborder), "hborder");
+    delete hborder;
+    FREE(sizeof(*vborder), "vborder");
+    delete vborder;
+    FREE(sizeof(*ptr_Logo), "ptr_Logo");
+    delete ptr_Logo;
     maContext->Video = maContextSaveState.Video;     // restore state of calling video context
     maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
     if (retStatus) dsyslog("cExtractLogo::SearchLogo(): finished successfully");

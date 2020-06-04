@@ -5,6 +5,9 @@
 # use this, if you want to build with the new cDecoder class only
 # ONLY_WITH_CDECODER=1
 
+# use this, if you want to debug heap memory consumption
+# DEBUGMEMMARKAD=1
+
 # use this, if you use libavcodec51
 # WITH_OLD_FFMPEG_HEADERS=1
 
@@ -50,6 +53,11 @@ DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
 DEFINES += -D__STDC_CONSTANT_MACROS -D__USE_XOPEN_EXTENDED
 
 
+ifdef DEBUGMEMMARKAD
+        DEFINES += -DDEBUGMEM
+endif
+
+
 ifdef WITH_OLD_FFMPEG_HEADERS
 	DEFINES += -DUSE_OLD_FFMPEG_HEADERS
 endif
@@ -60,7 +68,7 @@ LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
 
 
 ### The object files (add further files here):
-OBJS = markad-standalone.o marks.o video.o audio.o decoder_new.o encoder_new.o logo.o
+OBJS = markad-standalone.o marks.o video.o audio.o decoder_new.o encoder_new.o logo.o debug.o
 ifdef ONLY_WITH_CDECODER
         DEFINES += -DONLY_WITH_CDECODER
 else

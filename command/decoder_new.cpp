@@ -48,9 +48,16 @@ cDecoder::~cDecoder() {
     for (unsigned int i=0; i<avctx->nb_streams; i++) {
         avcodec_free_context(&codecCtxArray[i]);
     }
+    if (codecCtxArray) {
+        FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
+        free(codecCtxArray);
+    }
     dsyslog("cDecoder::~cDecoder(): close avformat context");
     avformat_close_input(&avctx);
-    free(recordingDir);
+    if (recordingDir) {
+        FREE(strlen(recordingDir), "recordingDir");
+        free(recordingDir);
+    }
     iFrameInfoVector.clear();
 }
 
@@ -63,14 +70,18 @@ bool cDecoder::DecodeDir(const char * recDir) {
             dsyslog("cDecoder::DecodeDir(): failed to allocate string, out of memory?");
             return false;
         }
+        ALLOC(strlen(recordingDir), "recordingDir");
     }
     fileNumber++;
     if (asprintf(&filename,"%s/%05i.ts",recDir,fileNumber)==-1) {
         dsyslog("cDecoder::DecodeDir(): failed to allocate string, out of memory?");
         return false;
     }
-    return this->DecodeFile(filename);
+    ALLOC(strlen(filename), "filename");
+    bool ret = DecodeFile(filename);
+    FREE(strlen(filename), "filename");
     free(filename);
+    return ret;
 }
 
 
@@ -111,13 +122,17 @@ bool cDecoder::DecodeFile(const char * filename) {
         return false;
     }
 
-    if (codecCtxArray) {
+    if (codecCtxArray) {   // free before aloc for new file
         for (unsigned int i=0; i<avctx->nb_streams; i++) {
             avcodec_free_context(&codecCtxArray[i]);
         }
+        FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
+        free(codecCtxArray);
+        codecCtxArray = NULL;
     }
 
     codecCtxArray = (AVCodecContext **) malloc(sizeof(AVCodecContext *) * avctx->nb_streams);
+    ALLOC(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
     memset(codecCtxArray, 0, sizeof(AVCodecContext *) * avctx->nb_streams);
 
     for (unsigned int i=0; i<avctx->nb_streams; i++) {
