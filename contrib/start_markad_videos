@@ -1,0 +1,22 @@
+#!/bin/bash
+
+function ctrl_c() {
+        echo "** Trapped CTRL-C"
+        rm /run/start_markad_videos.pid
+        exit
+}
+
+trap ctrl_c INT
+
+if [ -e /run/start_markad_videos.pid ]
+then
+    echo "start_markad_videos läuft noch"
+else
+    echo $$ > /run/start_markad_videos.pid
+
+    markad_videos
+
+    rm /run/start_markad_videos.pid
+fi
+exit
+

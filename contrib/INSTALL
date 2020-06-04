@@ -1,0 +1,23 @@
+markad_videos
+
+This programm let markad run on a video directory to build all missing markad files.
+See markad_video -h and markad_video.conf for more informations.
+
+Install instruction to execute markad_video each hour:
+Requirements:
+- anacron runs on your system
+- you have a user vdr with write access to the video directory
+- execute the commands as root or with sudo ...
+
+cd <path to the contrib directory of the source code of markad>
+cp markad_videos /usr/local/bin/
+chmod a+x /usr/local/bin/markad_videos
+cp markad_videos.conf /etc
+chmod a+r /etc/markad_videos.conf
+cp start_markad_videos /etc/cron.hourly
+chown root:root /etc/cron.hourly/start_markad_videos
+chmod a+rx /etc/cron.hourly/start_markad_videos
+chmod o-w /etc/cron.hourly/start_markad_videos
+
+Edit /etc/markad_videos.conf to fit your requirements (especially path=...)
+
