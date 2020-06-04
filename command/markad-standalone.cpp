@@ -574,7 +574,7 @@ void cMarkAdStandalone::CheckStart() {
                 char *comment=NULL;
                 dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop without start mark found (%i), assume as start mark of the following recording", pos);
                 marks.Del(pos);
-                if (!asprintf(&comment,"assumed start from horizontal border stop (%d)", pos)) comment=NULL;
+                if (asprintf(&comment,"assumed start from horizontal border stop (%d)", pos) == -1) comment=NULL;
                 begin=marks.Add(MT_ASSUMEDSTART, pos, comment);
                 free(comment);
             }
@@ -610,7 +610,7 @@ void cMarkAdStandalone::CheckStart() {
                 char *comment=NULL;
                 dsyslog("cMarkAdStandalone::CheckStart(): vertical border stop without start mark found (%i), assume as start mark of the following recording", pos);
                 marks.Del(pos);
-                if (!asprintf(&comment,"assumed start from vertical border stop (%d)", pos)) comment=NULL;
+                if (asprintf(&comment,"assumed start from vertical border stop (%d)", pos) == -1) comment=NULL;
                 begin=marks.Add(MT_ASSUMEDSTART, pos, comment);
                 free(comment);
             }
@@ -2908,7 +2908,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
     int ver = avcodec_version();
     char *libver = NULL;
-    if (asprintf(&libver,"%i.%i.%i",ver >> 16 & 0xFF,ver >> 8 & 0xFF,ver & 0xFF)) {
+    if (asprintf(&libver,"%i.%i.%i",ver >> 16 & 0xFF,ver >> 8 & 0xFF,ver & 0xFF) != -1) {
         isyslog("using libavcodec.so.%s with %i threads",libver,config->threads);
         if (ver!=LIBAVCODEC_VERSION_INT) {
             esyslog("libavcodec header version %s",AV_STRINGIFY(LIBAVCODEC_VERSION));
