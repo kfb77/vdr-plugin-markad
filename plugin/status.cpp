@@ -305,8 +305,8 @@ bool cStatusMarkAd::getStatus(int Position)
     return (ret==1);
 }
 
-bool cStatusMarkAd::getPid(int Position)
-{
+
+bool cStatusMarkAd::getPid(int Position) {
     if (Position<0) return false;
     if (!recs[Position].FileName) return false;
     if (recs[Position].Pid) return true;
@@ -317,8 +317,7 @@ bool cStatusMarkAd::getPid(int Position)
 
     usleep(500*1000);   // wait 500ms to give markad time to create pid file
     FILE *fpid=fopen(buf,"r");
-    if (fpid)
-    {
+    if (fpid) {
         FREE(strlen(buf), "buf");
         free(buf);
         int pid;
@@ -326,20 +325,19 @@ bool cStatusMarkAd::getPid(int Position)
         if (ret==1) recs[Position].Pid=pid;
         fclose(fpid);
     }
-    else
-    {
+    else {
         esyslog("markad: failed to open pid file %s with errno %i", buf, errno);
-        if (errno==ENOENT)
-        {
+        if (errno==ENOENT) {
             // no such file or directory -> markad done or crashed
             // remove entry from list
             Remove(Position);
         }
-        free(buf);
         FREE(strlen(buf), "buf");
+        free(buf);
     }
     return (ret==1);
 }
+
 
 bool cStatusMarkAd::GetNextActive(struct recs **RecEntry)
 {
