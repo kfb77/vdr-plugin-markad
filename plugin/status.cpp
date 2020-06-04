@@ -175,7 +175,6 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName)
     for (cTimer *Timer = Timers.First(); Timer; Timer=Timers.Next(Timer))
 #endif
         {
-#if APIVERSNUM>=10722
             if (Timer->Recording() && const_cast<cDevice *>(Device)->IsTunedToTransponder(Timer->Channel()))
                 if (difftime(time(NULL),Timer->StartTime())<60)
                 {
@@ -183,14 +182,6 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName)
                     break;
                 }
                 else esyslog("markad: recording start is later than timer start, ignoring");
-#else
-            if (Timer->Recording() && Device->IsTunedToTransponder(Timer->Channel()) &&
-                    (difftime(time(NULL),Timer->StartTime())<60))
-            {
-                timer=Timer;
-                break;
-            }
-#endif
         }
 
         if (!timer) {
