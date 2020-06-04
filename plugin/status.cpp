@@ -94,11 +94,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                                    setup->Verbose ? " -v " : "",
                                    setup->SaveInfo ? " -I " : "",
                                    setup->GenIndex ? " -G " : "",
-#if VDRVERSNUM < 10715
-                                   setup->OSDMessage ? " -O --svdrpport=2001 " : "",
-#else
                                    setup->OSDMessage ? " -O --svdrpport=6419 " : "",
-#endif
                                    setup->NoMargins ? " -i 4 " : "",
                                    setup->SecondPass ? "" : " --pass1only ",
                                    setup->Log2Rec ? " -R " : "",

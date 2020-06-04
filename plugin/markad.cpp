@@ -327,13 +327,8 @@ bool cPluginMarkAd::ReadTitle(const char *Directory)
     usleep(1000000); // wait 1 second
     memset(&title,0,sizeof(title));
     char *buf;
-#if VDRVERSNUM > 10700
     if (asprintf(&buf,"%s/info",Directory)==-1) return false;
     ALLOC(strlen(buf), "buf");
-#else
-    if (asprintf(&buf,"%s/info.vdr",Directory)==-1) return false;
-    ALLOC(strlen(buf), "buf");
-#endif
 
     FILE *f;
     f=fopen(buf,"r");
@@ -342,13 +337,8 @@ bool cPluginMarkAd::ReadTitle(const char *Directory)
     buf=NULL;
     if (!f)
     {
-#if VDRVERSNUM > 10700
         if (asprintf(&buf,"%s/info.vdr",Directory)==-1) return false;
         ALLOC(strlen(buf), "buf");
-#else
-        if (asprintf(&buf,"%s/info",Directory)==-1) return false;
-        ALLOC(strlen(buf), "buf");
-#endif
         f=fopen(buf,"r");
         FREE(strlen(buf), "buf");
         free(buf);
