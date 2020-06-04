@@ -10,8 +10,14 @@
 #include <vdr/menuitems.h>
 
 
+#define PROCESS_AFTER 0
+#define PROCESS_DURING 1
+#define PROCESS_NEVER 2
+
+
 struct setup {
     int ProcessDuring;
+    bool useVPS;
     bool whileRecording;
     bool whileReplaying;
     bool OSDMessage;
@@ -43,6 +49,7 @@ class cSetupMarkAd : public cMenuSetupPage {
         struct setup *setup;
         int autologomenue;
         int processduring;
+        int usevps;
         int whilerecording;
         int whilereplaying;
         int osdmsg;
@@ -56,7 +63,7 @@ class cSetupMarkAd : public cMenuSetupPage {
         int saveinfo;
         int deferredshutdown;
         void write(void);
-       int lpos;
+        int lpos;
     protected:
         virtual void Store(void);
     public:

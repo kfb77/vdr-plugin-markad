@@ -416,7 +416,6 @@ void cMarkAdStandalone::CheckStart() {
 
     clMark *begin=NULL;
     int delta=macontext.Video.Info.FramesPerSecond*MAXRANGE;
-
     macontext.Video.Options.IgnoreBlackScreenDetection=true;   // use black sceen setection only to find start mark
 
     for (short int stream=0; stream < MAXSTREAMS; stream++) {
@@ -794,7 +793,7 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
 
 void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no sense
     LogSeparator();
-    isyslog("check marks");
+    dsyslog(" cMarkAdStandalone::CheckMarks(): check marks");
     DebugMarks();     //  only for debugging
 
     clMark *mark=marks.GetFirst();
@@ -884,17 +883,96 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         }
         mark=mark->Next();
     }
-    mark=marks.GetFirst();
-    while (mark) {
-        char *indexToHMSF = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
-        if (indexToHMSF) {
-            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, indexToHMSF);
-            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-            free(indexToHMSF);
+
+// if we have a VPS events, move start and stop mark to VPS event
+    if (macontext.Config->useVPS) {
+        LogSeparator();
+        dsyslog("cMarkAdStandalone::CheckMarks(): apply VPS events");
+        DebugMarks();     //  only for debugging
+        if (ptr_cDecoder) {
+            int vpsOffset=marks.LoadVPS(macontext.Config->recDir, "START:"); // VPS start mark
+            if (vpsOffset > 0) {
+                isyslog("found VPS start event at offset %ds", vpsOffset);
+                AddMarkVPS(vpsOffset, MT_START, false);
+            }
+            else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS start event found");
+
+            vpsOffset=marks.LoadVPS(macontext.Config->recDir, "PAUSE_START:");     // VPS pause start mark = stop mark
+            if (vpsOffset > 0) {
+                isyslog("found VPS pause start event at offset %ds", vpsOffset);
+                AddMarkVPS(vpsOffset, MT_STOP, true);
+            }
+            else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause start event found");
+
+            vpsOffset=marks.LoadVPS(macontext.Config->recDir, "PAUSE_STOP:");     // VPS pause stop mark = start mark
+            if (vpsOffset > 0) {
+                isyslog("found VPS pause stop event at offset %ds", vpsOffset);
+                AddMarkVPS(vpsOffset, MT_START, true);
+            }
+            else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause stop event found");
+
+            vpsOffset=marks.LoadVPS(macontext.Config->recDir, "STOP:");     // VPS stop mark
+            if (vpsOffset > 0) {
+                isyslog("found VPS stop event at offset %ds", vpsOffset);
+                AddMarkVPS(vpsOffset, MT_STOP, false);
+                marks.DelWeakFromTo(ptr_cDecoder->GetIFrameFromOffset(vpsOffset*100) - macontext.Video.Info.FramesPerSecond*MAXRANGE, INT_MAX, MT_VPSCHANGE);  // delete all marks short before and after VPS stop
+            }
+            else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS stop event found");
         }
-        mark=mark->Next();
+        else isyslog("VPS info usage requires --cDecoder");
     }
+
     LogSeparator();
+    dsyslog(" cMarkAdStandalone::CheckMarks(): final marks:");
+    DebugMarks();     //  only for debugging
+    LogSeparator();
+}
+
+
+void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool isPause) {
+    if (!ptr_cDecoder) return;
+    int delta=macontext.Video.Info.FramesPerSecond*MAXRANGE;
+    long int vpsFrame = ptr_cDecoder->GetIFrameFromOffset(offset*100);
+    clMark *mark = NULL;
+    char *comment = NULL;
+    char *timeText = NULL;
+    if (!isPause) {
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%ld)", (type == MT_START) ? "start" : "stop", vpsFrame);
+        mark =  ((type == MT_START)) ? marks.GetNext(0, MT_START, 0x0F) : marks.GetPrev(INT_MAX, MT_STOP, 0x0F);
+    }
+    else {
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%ld)", (type == MT_START) ? "pause start" : "pause stop", vpsFrame);
+        mark =  ((type == MT_START)) ? marks.GetAround(delta, vpsFrame, MT_START, 0x0F) :  marks.GetAround(delta, vpsFrame, MT_STOP, 0x0F);
+    }
+    if (!mark) {
+        if (isPause) {
+            dsyslog("cMarkAdStandalone::AddMarkVPS(): no mark found to replace with pause mark, add new mark");
+            if (asprintf(&comment,"VPS %s (%ld)%s", (type == MT_START) ? "pause start" : "pause stop", vpsFrame, (type == MT_START) ? "*" : "") == -1) comment=NULL;
+            ALLOC(strlen(comment)+1, "comment");
+            marks.Add((type == MT_START) ? MT_VPSSTART : MT_VPSSTOP, vpsFrame, comment);
+            FREE(strlen(comment)+1,"comment");
+            free(comment);
+            return;
+        }
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): found no mark found to replace");
+        return;
+    }
+    if ( (type & 0x0F) != (mark->type & 0x0F)) return;
+
+    timeText = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
+    if (timeText) {
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): mark to replace at frame (%d) type 0x%X at %s", mark->position, mark->type, timeText);
+
+        if (asprintf(&comment,"VPS %s (%ld), moved from mark (%d) type 0x%X at %s %s", (type == MT_START) ? "start" : "stop", vpsFrame, mark->position, mark->type, timeText, (type == MT_START) ? "*" : "") == -1) comment=NULL;
+        ALLOC(strlen(comment)+1, "comment");
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): delete mark on position (%d)", mark->position);
+        marks.Del(mark->position);
+        marks.Add((type == MT_START) ? MT_VPSSTART : MT_VPSSTOP, vpsFrame, comment);
+        FREE(strlen(comment)+1,"comment");
+        free(comment);
+        FREE(strlen(timeText)+1, "indexToHMSF");
+        free(timeText);
+    }
 }
 
 
@@ -3462,6 +3540,9 @@ int usage(int svdrpport) {
            "                --cDecoder\n"
            "                  use alternative cDecoder class for decoding\n"
 #endif
+           "                --vps\n"
+           "                  use markad.vps from recording directory for stat and stop mark\n"
+           "                  requires --cDecoder\n"
            "                --cut\n"
            "                  cut vidio based on marks and write it in the recording directory\n"
 #if !defined ONLY_WITH_CDECODER
@@ -3611,6 +3692,7 @@ int main(int argc, char *argv[]) {
             {"cut",0,0,12},
             {"ac3reencode",0,0,13},
             {"autologo",1,0,14},
+            {"vps",0,0,15},
 
             {0, 0, 0, 0}
         };
@@ -3845,6 +3927,9 @@ int main(int argc, char *argv[]) {
                     return 2;
                 }
                 break;
+            case 15: // --vps
+                config.useVPS=true;
+                break;
             default:
                 printf ("? getopt returned character code 0%o ? (option_index %d)\n", option,option_index);
         }
@@ -4029,7 +4114,13 @@ int main(int argc, char *argv[]) {
         config.use_cDecoder = true;
         dsyslog("force parameter --cDecoder to set because this markad is compiled without classic decoder");
 #endif
-
+        if (config.useVPS) {
+            dsyslog("parameter --vps is set");
+            if (!config.use_cDecoder) {
+                esyslog("--cDecoder is not set, ignoring --vps");
+                config.useVPS = false;
+            }
+        }
         if (config.MarkadCut) {
             dsyslog("parameter --cut is set");
             if (!config.use_cDecoder) {

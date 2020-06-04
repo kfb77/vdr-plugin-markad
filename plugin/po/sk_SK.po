@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: markad\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
-"POT-Creation-Date: 2020-04-19 17:19+0200\n"
+"POT-Creation-Date: 2020-05-24 10:34+0200\n"
 "PO-Revision-Date: 2011-03-01 20:26+0100\n"
 "Last-Translator: milan hrala <hrala.milan@gmail.com>\n"
 "Language-Team: milan hrala <grala.milan@gmail.com>\n"
@@ -75,6 +75,9 @@ msgstr ""
 
 msgid "execution"
 msgstr "vykonávať"
+
+msgid "use VPS"
+msgstr ""
 
 msgid "  during another recording"
 msgstr "  počas iného nahrávania"

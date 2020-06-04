@@ -12,6 +12,8 @@ the Free Software Foundation; either version 2 of the License, or
 (at your option) any later version.
 See the file COPYING for more information.
 
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
 Description:
 
 MarkAd marks advertisements in VDR recordings.
@@ -45,6 +47,23 @@ Command line options:
                                          speed optimized operation mode, but needs a lot of memonry, use it only > 1 GB memory
                                      If this option is set you can not configure this feature from the VDR menue
 
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+VPS and markad plugin:
+You can use VPS events to optimze your start and stop marks.
+Prerequisites:
+- Set "use VPS" to yes in the VDR plugin setup menue. If you use markad from command line, add parameter --vps.
+
+If you use epg2vdr plugin:
+- set "Store extended EPD Data to AUX (e.g. for Skins)" to yes in the VDR plugin setup menue.
+- apply the epg2vdr-add-original-VDR-EventID-to-Event-Aux-xml.patch from the patches directory to the epg2vdr plugin.
+- Be patient, the change will only take affect for new epg data. This will take some days.
+
+It will only work with channels that send a valid VPS signal (see comment in plugin/status.cpp).
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 To report bugs please execute markad with the following command line parameters:

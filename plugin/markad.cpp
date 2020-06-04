@@ -176,7 +176,6 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
 bool cPluginMarkAd::Initialize(void) {
     // Initialize any background activities the plugin shall perform.
     char *path;
-
     if (asprintf(&path,"%s/markad",bindir)==-1) return false;
     ALLOC(strlen(path)+1, "path");
 
@@ -186,12 +185,10 @@ bool cPluginMarkAd::Initialize(void) {
 
         FREE(strlen(path)+1, "path");
         free(path);
-
         return false;
     }
     FREE(strlen(path)+1, "path");
     free(path);
-
     return true;
 }
 
@@ -214,9 +211,10 @@ bool cPluginMarkAd::Start(void) {
     setup.ac3ReEncode=ac3ReEncode;
     setup.autoLogoConf=autoLogoConf;
     setup.LogoDir=logodir;
+
+    dsyslog("markad: cPluginMarkAd::Start(): create recording handler");
     statusMonitor = new cStatusMarkAd(bindir,logodir,&setup);
     ALLOC(sizeof(*statusMonitor), "statusMonitor");
-
     return (statusMonitor!=NULL);
 }
 
@@ -271,6 +269,7 @@ cMenuSetupPage *cPluginMarkAd::SetupMenu(void) {
 bool cPluginMarkAd::SetupParse(const char *Name, const char *Value) {
     // Parse setup parameters and store their values.
     if (!strcasecmp(Name,"Execution")) setup.ProcessDuring=atoi(Value);
+    else if (!strcasecmp(Name,"useVPS")) setup.useVPS=atoi(Value);
     else if (!strcasecmp(Name,"whileRecording")) setup.whileRecording=atoi(Value);
     else if (!strcasecmp(Name,"whileReplaying")) setup.whileReplaying=atoi(Value);
     else if (!strcasecmp(Name,"OSDMessage")) setup.OSDMessage=atoi(Value);

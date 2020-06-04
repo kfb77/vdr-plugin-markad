@@ -73,6 +73,7 @@ class cDecoder {
         long int GetIFrameRangeCount(long int beginFrame, long int endFrame);
         long int GetIFrameBefore(long int iFrame);
         long int GetTimeFromIFrame(long int iFrame);
+        long int GetIFrameFromOffset(int offset);
     private:
         char *recordingDir = NULL;
         int fileNumber = 0;

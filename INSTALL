@@ -1,8 +1,8 @@
 Basic Installation
 ==================
 
-Prerequisite: build-essential vdr-dev libavcodec-dev libavformat-dev libavfilter-dev git
-e.g. for Ubuntu: sudo apt-get install build-essential vdr-dev libavcodec-dev libavformat-dev libavfilter-dev git
+Prerequisite: build-essential vdr-dev libavcodec-dev libavformat-dev libavfilter-dev libtinyxml2-dev git
+e.g. for Ubuntu: sudo apt-get install vdr-dev build-essential libavcodec-dev libavformat-dev libavfilter-dev libtinyxml2-dev git
 
 recommended minimum version of libavcodec: 56.x.x
 

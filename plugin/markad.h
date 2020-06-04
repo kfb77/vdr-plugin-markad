@@ -58,5 +58,4 @@ class cPluginMarkAd : public cPlugin {
         virtual const char **SVDRPHelpPages(void);
         virtual cString SVDRPCommand(const char *Command, const char *Option, int &ReplyCode);
 };
-
 #endif

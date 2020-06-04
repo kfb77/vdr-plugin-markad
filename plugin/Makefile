@@ -10,8 +10,9 @@
 
 PLUGIN = markad
 
+
 # use this, if you want to debug heap memory consumption
-# DEBUGMEMPLUGIN=1
+DEBUGMEMPLUGIN=1
 
 
 ### The version number of this plugin (taken from the version header file):
@@ -62,11 +63,13 @@ DEFINES += -DDEBUGMEM
 $(info option DEBUGMEMPLUGIN is set)
 endif
 
-
 ### The object files (add further files here):
+
 OBJS = $(PLUGIN).o status.o menu.o setup.o debug.o
+LIBS += $(shell pkg-config --libs tinyxml2)
 
 ### The main target:
+
 all: $(SOFILE) i18n
 
 ### Implicit rules:
@@ -112,7 +115,7 @@ install-i18n: $(I18Nmsgs)
 ### Targets:
 
 $(SOFILE): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -shared $(OBJS) -o $@
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -shared $(OBJS) $(LIBS) -o $@
 
 install-lib: $(SOFILE)
 	install -D $^ $(DESTDIR)$(LIBDIR)/$^.$(APIVERSION)

@@ -56,6 +56,10 @@
 #define MT_CHANNELSTART   (unsigned char) 0x71
 #define MT_CHANNELSTOP    (unsigned char) 0x72
 
+#define MT_VPSCHANGE      (unsigned char) 0xC0
+#define MT_VPSSTART       (unsigned char) 0xC1
+#define MT_VPSSTOP        (unsigned char) 0xC2
+
 #define MT_RECORDINGSTART (unsigned char) 0xD1
 #define MT_RECORDINGSTOP  (unsigned char) 0xD2
 #define MT_MOVED          (unsigned char) 0xE0
@@ -76,6 +80,7 @@ typedef struct config {
     int astopoffs;
     int posttimer;
     bool use_cDecoder=false;
+    bool useVPS=false;
     bool MarkadCut=false;
     bool ac3ReEncode=false;
     int autoLogo=0;   // 0 = off, 1 = on, use less memory but a lot of cpu, 2 use a lot of memory but runs faster

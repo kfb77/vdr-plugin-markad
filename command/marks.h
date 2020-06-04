@@ -105,6 +105,7 @@ class clMarks {
         bool Backup(const char *Directory, bool isTS);
         bool Load(const char *Directory, double FrameRate, bool isTS);
         bool Save(const char *Directory, MarkAdContext *maContext, cDecoder *ptr_cDecoder, bool isTS, bool Force=false);
+        int LoadVPS(const char *Directory, const char *type);
 
 #define IERR_NOTFOUND 1
 #define IERR_TOOSHORT 2

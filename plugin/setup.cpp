@@ -13,6 +13,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
     setup=Setup;
 
     processduring=setup->ProcessDuring;
+    usevps=setup->useVPS;
     whilerecording=setup->whileRecording;
     whilereplaying=setup->whileReplaying;
     osdmsg=setup->OSDMessage;
@@ -27,9 +28,9 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
     deferredshutdown=setup->DeferredShutdown;
     autologomenue=setup->autoLogoMenue;
 
-    processTexts[0]=tr("after");
-    processTexts[1]=tr("during");
-    processTexts[2]=tr("never");
+    processTexts[PROCESS_AFTER]=tr("after");
+    processTexts[PROCESS_DURING]=tr("during");
+    processTexts[PROCESS_NEVER]=tr("never");
 
     autoLogoTexts[0]=tr("disable");
     autoLogoTexts[1]=tr("enable for low memory systems");
@@ -47,8 +48,10 @@ void cSetupMarkAd::write(void) {
     cMenuEditStraItem *first=new cMenuEditStraItem(tr("execution"),&processduring,3,processTexts);
     if (!first) return;
     Add(first);
-    if (processduring!=2) {
-        if (!processduring) {
+    Add(new cMenuEditBoolItem(tr("use VPS"),&usevps));
+    if (processduring < PROCESS_NEVER) {
+        if (!processduring)
+        {
             Add(new cMenuEditBoolItem(tr("  during another recording"),&whilerecording));
             Add(new cMenuEditBoolItem(tr("  while replaying"),&whilereplaying));
         }
@@ -114,6 +117,7 @@ void cSetupMarkAd::Store(void) {
         whilerecording=1;
         whilereplaying=1;
     }
+    SetupStore("useVPS",usevps);
     SetupStore("whileRecording",whilerecording);
     SetupStore("whileReplaying",whilereplaying);
     SetupStore("IgnoreMargins",nomargins);
@@ -129,6 +133,7 @@ void cSetupMarkAd::Store(void) {
     SetupStore("AutoLogoExtraction",autologomenue);
 
     setup->ProcessDuring=(int) processduring;
+    setup->useVPS=(bool) usevps;
     setup->whileRecording=(bool) whilerecording;
     setup->whileReplaying=(bool) whilereplaying;
     setup->OSDMessage=(bool) osdmsg;

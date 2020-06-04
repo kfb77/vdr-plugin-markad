@@ -833,3 +833,14 @@ long int cDecoder::GetTimeFromIFrame(long int iFrame) {
     dsyslog("cDecoder::GetTimeFromIFrame(): could not find time for frame %li",iFrame);
     return 0;
 }
+
+
+long int cDecoder::GetIFrameFromOffset(int offset_ms) {
+    if (iFrameInfoVector.empty()) dsyslog(")cDecoder::GetIFrameFromOffset: iFrame Index not initialized");
+    long int iFrameBefore = 0;
+    for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
+        if (iInfo->pts_time_ms > offset_ms) return iFrameBefore;
+        iFrameBefore = iInfo->iFrameNumber;
+    }
+    return 0;
+}

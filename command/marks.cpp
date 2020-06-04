@@ -658,6 +658,34 @@ bool clMarks::Backup(const char *Directory, bool isTS) {
 }
 
 
+int clMarks::LoadVPS(const char *Directory, const char *type) {
+    char *fpath=NULL;
+    if (asprintf(&fpath,"%s/%s",Directory,"markad.vps") ==-1) return 0;
+    FILE *mf;
+    mf=fopen(fpath,"r+");
+    if (!mf) {
+        dsyslog("clMarks::LoadVPS(): %s not found", fpath);
+        free(fpath);
+        return 0;
+    }
+    free(fpath);
+
+    char *line=NULL;
+    size_t length;
+    char typeVPS[15] = "";
+    char timeVPS[20] = "";
+    int offsetVPS = 0;
+    while (getline(&line,&length,mf)!=-1) {
+        sscanf(line,"%15s %20s %d", (char *) &typeVPS, (char *)&timeVPS, &offsetVPS);
+        if (strcmp(type,typeVPS) == 0) break;
+        offsetVPS = 0;
+    }
+    if (line) free(line);
+    fclose(mf);
+    return offsetVPS;
+}
+
+
 bool clMarks::Load(const char *Directory, double FrameRate, bool isTS) {
     char *fpath=NULL;
     if (asprintf(&fpath,"%s/%s%s",Directory,filename,isTS ? "" : ".vdr")==-1) return false;

@@ -113,6 +113,7 @@ class Config:
         self.astopoffs = 0
         self.log2rec=False
         self.cDecoder=False
+        self.vps=False
         self.cut=False
         self.ac3reencode=False
 
@@ -218,6 +219,13 @@ class Config:
         except (configparser.NoSectionError, configparser.NoOptionError):
             ret = False
         if ret: self.cDecoder = ret
+
+        try:
+            ret = config.getboolean('MARKAD', 'vps')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = False
+        if ret: self.vps = ret
+
 
         try:
             ret = config.getboolean('MARKAD', 'cut')
@@ -338,6 +346,8 @@ class CheckPath:
             if actFile == "resume": continue
             if fnmatch.fnmatch(actFile,'*.ts'): continue
             if actFile == "info.epg2vdr": continue
+            if actFile == "markad.vps": continue
+            if actFile == "vps.log": continue
             if actFile == "info":
                 isInfoFound = True
                 continue
@@ -421,6 +431,7 @@ class CheckPath:
             cmd = '%s/markad --logocachedir=%s --loglevel=%i --autologo=%i --threads=%i --astopoffs=%i --priority=%i' % (config.bindir, config.logocachedir, config.markad_loglevel, config.autologo, config.threads, config.astopoffs, config.nice)
             if config.log2rec: cmd = cmd + " --log2rec"
             if config.cDecoder: cmd = cmd + " --cDecoder"
+            if config.vps: cmd = cmd + " --vps"
             if config.cut: cmd = cmd + " --cut"
             if config.ac3reencode: cmd = cmd + " --ac3reencode"
             cmd = cmd + ' - ' + self.ConvertPath(self.root)

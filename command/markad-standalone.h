@@ -160,6 +160,7 @@ class cMarkAdStandalone {
     void SaveFrame(int Frame);
     char *IndexToHMSF(int Index);
     void AddMark(MarkAdMark *Mark);
+    void AddMarkVPS(const int offset, const int type, const bool isPause);
     bool Reset(bool FirstPass=true);
     void ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos);
     void CheckIndexGrowing();
