@@ -276,6 +276,9 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name,
                 Continue(FileName);
             }
         }
+#ifdef DEBUGMEM
+    memList();
+#endif
     }
 }
 
@@ -401,61 +404,61 @@ void cStatusMarkAd::Remove(const char *Name, bool Kill)
     Remove(pos,Kill);
 }
 
-void cStatusMarkAd::Remove(int Position, bool Kill)
+void cStatusMarkAd::Remove(int pos, bool Kill)
 {
-    if (recs[Position].FileName) {
-        FREE(strlen(recs[Position].FileName), "recs[Position].FileName");
-        free(recs[Position].FileName);
+    if (recs[pos].FileName) {
+        FREE(strlen(recs[pos].FileName), "recs[pos].FileName");
+        free(recs[pos].FileName);
     }
-    recs[Position].FileName=NULL;
-    if (recs[Position].Name) {
-        FREE(strlen(recs[Position].Name), "recs[Position].Name");
-        free(recs[Position].Name);
+    recs[pos].FileName=NULL;
+    if (recs[pos].Name) {
+        FREE(strlen(recs[pos].Name), "recs[pos].Name");
+        free(recs[pos].Name);
     }
-    recs[Position].Name=NULL;
+    recs[pos].Name=NULL;
 
-    if ((Kill) && (recs[Position].Pid))
+    if ((Kill) && (recs[pos].Pid))
     {
-        if (getStatus(Position))
+        if (getStatus(pos))
         {
-            if ((recs[Position].Status=='R') || (recs[Position].Status=='S'))
+            if ((recs[pos].Status=='R') || (recs[pos].Status=='S'))
             {
-                dsyslog("markad: terminating pid %i",recs[Position].Pid);
-                kill(recs[Position].Pid,SIGTERM);
+                dsyslog("markad: terminating pid %i",recs[pos].Pid);
+                kill(recs[pos].Pid,SIGTERM);
             }
             else
             {
-                dsyslog("markad: killing pid %i",recs[Position].Pid);
-                kill(recs[Position].Pid,SIGKILL);
+                dsyslog("markad: killing pid %i",recs[pos].Pid);
+                kill(recs[pos].Pid,SIGKILL);
             }
         }
     }
-    recs[Position].Status=0;
-    recs[Position].Pid=0;
-    recs[Position].ChangedbyUser=false;
+    recs[pos].Status=0;
+    recs[pos].Pid=0;
+    recs[pos].ChangedbyUser=false;
 }
 
 int cStatusMarkAd::Add(const char *FileName, const char *Name)
 {
-    for (int i=0; i<(MAXDEVICES*MAXRECEIVERS); i++)
+    for (int pos = 0; pos < (MAXDEVICES*MAXRECEIVERS); pos++)
     {
-        if (!recs[i].FileName)
+        if (!recs[pos].FileName)
         {
-            recs[i].FileName=strdup(FileName);
-            ALLOC(strlen(recs[i].FileName), "recs[i].FileName");
+            recs[pos].FileName=strdup(FileName);
+            ALLOC(strlen(recs[pos].FileName), "recs[pos].FileName");
             if (Name)
             {
-                recs[i].Name=strdup(Name);
-                ALLOC(strlen(recs[i].Name), "recs[i].Name");
+                recs[pos].Name=strdup(Name);
+                ALLOC(strlen(recs[pos].Name), "recs[pos].Name");
             }
             else
             {
-                recs[i].Name=NULL;
+                recs[pos].Name=NULL;
             }
-            recs[i].Status=0;
-            recs[i].Pid=0;
-            recs[i].ChangedbyUser=false;
-            return i;
+            recs[pos].Status=0;
+            recs[pos].Pid=0;
+            recs[pos].ChangedbyUser=false;
+            return pos;
         }
     }
     return -1;

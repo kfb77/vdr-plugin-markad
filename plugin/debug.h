@@ -13,6 +13,8 @@
 #define FREE(size, var) memFree(size, __LINE__, (char *) __FILE__, (char *) var)
 void memAlloc(int size, int line, char *file, char *var);
 void memFree(int size, int line, char *file, char *var);
+void memList();
+void memClear();
 #else
 #define ALLOC(size, var)
 #define FREE(size, var)

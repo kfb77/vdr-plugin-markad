@@ -72,6 +72,9 @@ cPluginMarkAd::~cPluginMarkAd() {
         FREE(strlen(setup.LogLevel), "setup.LogLevel");
         free(setup.LogLevel);
     }
+#ifdef DEBUGMEM
+    memClear();
+#endif
 }
 
 
