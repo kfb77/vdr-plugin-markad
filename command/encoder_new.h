@@ -39,7 +39,7 @@ class cEncoder {
         ~cEncoder();
         bool OpenFile(const char * directory, cDecoder *pt_cDecoder);
         bool WritePacket(AVPacket *pkt, cDecoder *ptr_cDecoder);
-        bool EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodexCtx, AVFrame *avFrameOut, AVPacket *avpktAC3);
+        bool EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodexCtx, AVFrame *avFrame, AVPacket *avpktAC3);
         bool CloseFile();
 
     private:
