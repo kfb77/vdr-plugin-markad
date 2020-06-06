@@ -42,7 +42,7 @@ all:
 install:
 	for i in $(DIRS); do $(MAKE) -C $$i install; done
 
-dist:	 
+dist:
 	@-rm -rf $(TMPDIR)/$(ARCHIVE)
 	@mkdir $(TMPDIR)/$(ARCHIVE)
 	@mkdir $(TMPDIR)/$(ARCHIVE)/plugin
@@ -54,7 +54,7 @@ dist:
 	@cp -a plugin/*.cpp plugin/*.h plugin/Makefile $(TMPDIR)/$(ARCHIVE)/plugin
 	@cp -a plugin/dist/* $(TMPDIR)/$(ARCHIVE)/plugin/dist
 	@cp -a plugin/po/*.po $(TMPDIR)/$(ARCHIVE)/plugin/po
-	@cp -a command/*.cpp command/*.h command/*.1 command/Makefile $(TMPDIR)/$(ARCHIVE)/command 
+	@cp -a command/*.cpp command/*.h command/*.1 command/Makefile $(TMPDIR)/$(ARCHIVE)/command
 	@cp -u command/logos/*.pgm $(TMPDIR)/$(ARCHIVE)/command/logos
 	@cp -a command/po/*.po $(TMPDIR)/$(ARCHIVE)/command/po
 	@cp -a *.dist *.h COPYING HISTORY README INSTALL Makefile $(TMPDIR)/$(ARCHIVE)
