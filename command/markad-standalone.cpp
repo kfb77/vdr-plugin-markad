@@ -489,6 +489,10 @@ void cMarkAdStandalone::CheckStart() {
 #endif
         }
     }
+    if ( !begin && !inBroadCast) {
+        dsyslog("cMarkAdStandalone() we are not in broadcast at frame (%d), trying to find channel start mark anyway", lastiframe);
+        begin=marks.GetAround(delta*4,iStartA,MT_CHANNELSTART);
+    }
 
     if (!begin) {    // try ascpect ratio mark
         clMark *aStart=marks.GetAround(chkSTART,chkSTART,MT_ASPECTSTART);   // check if ascpect ratio changed in start part
@@ -1090,6 +1094,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
         free(comment);
     }
 
+// set inBroadCast status
     bool inBroadCastBefore = inBroadCast;
     if (!macontext.Video.Options.WeakMarksOk) {
         if ((Mark->Type & 0xF0) != MT_BLACKCHANGE){ //  dont use BLACKSCEEN to detect if we are in broadcast
