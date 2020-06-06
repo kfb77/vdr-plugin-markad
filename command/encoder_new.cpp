@@ -210,17 +210,18 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
         return false;
     }
     ALLOC(strlen(buffCutName), "buffCutName");
-    char *pos = strrchr(buffCutName, '/');
-    if (!pos) {
+    char *datePart = strrchr(buffCutName, '/');
+    if (!datePart) {
         dsyslog("cEncoder::OpenFile(): faild to find last '/'");
         return false;
     }
-    char *recPath = (char *) malloc((strlen(buffCutName) - strlen(pos) + 1) * sizeof(char));
-    ALLOC((strlen(buffCutName) - strlen(pos)) * sizeof(char), "recPath");    // without terminating 0
-    strncpy(recPath, buffCutName, strlen(buffCutName) - strlen(pos) - 1 );
-    recPath[strlen(buffCutName) - strlen(pos)] = 0;
+    char *recPath = (char *) malloc((strlen(buffCutName) - strlen(datePart) + 1) * sizeof(char));
+    ALLOC((strlen(buffCutName) - strlen(datePart)) * sizeof(char), "recPath");    // without terminating 0
+    strncpy(recPath, buffCutName, strlen(buffCutName) - strlen(datePart));
+    recPath[strlen(buffCutName) - strlen(datePart)] = 0;
+    dsyslog("cEncoder::OpenFile(): recording path: %s", recPath);
     FREE(strlen(buffCutName), "buffCutName");
-    pos = strrchr(recPath, '/');
+    char *pos = strrchr(recPath, '/');
     if (!pos) {
         dsyslog("cEncoder::OpenFile(): faild to find last '/'");
         return false;
