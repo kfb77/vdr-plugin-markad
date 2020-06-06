@@ -55,7 +55,7 @@ void memList() {
      dsyslog("markad: debugmem unmachted alloc start ----------------------------------------------------------------");
      for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
          dsyslog("markad: debugmem unmachted alloc %7d bytes, line %4d, file %s, variable: %s", memLine->size, memLine->line, memLine->file, memLine->var);
-    }
+     }
      dsyslog("markad: debugmem unmachted alloc end ------------------------------------------------------------------");
 }
 

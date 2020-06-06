@@ -21,38 +21,34 @@ cStatusMarkAd::cStatusMarkAd(const char *BinDir, const char *LogoDir, struct set
 
 cStatusMarkAd::~cStatusMarkAd()
 {
-    for (int i=0; i<(MAXDEVICES*MAXRECEIVERS); i++)
-    {
+    for (int i=0; i<(MAXDEVICES*MAXRECEIVERS); i++) {
         Remove(i,true);
     }
 }
 
-int cStatusMarkAd::Recording()
-{
+
+int cStatusMarkAd::Recording() {
     int cnt=0;
-    for (int i=0; i<cDevice::NumDevices(); i++)
-    {
+    for (int i=0; i<cDevice::NumDevices(); i++) {
         cDevice *dev=cDevice::GetDevice(i);
-        if (dev)
-        {
+        if (dev) {
             if (dev->Receiving()) cnt++;
         }
     }
     return cnt;
 }
 
-bool cStatusMarkAd::Replaying()
-{
-    for (int i=0; i<cDevice::NumDevices(); i++)
-    {
+
+bool cStatusMarkAd::Replaying() {
+    for (int i=0; i<cDevice::NumDevices(); i++) {
         cDevice *dev=cDevice::GetDevice(i);
-        if (dev)
-        {
+        if (dev) {
             if (dev->Replaying()) return true;
         }
     }
     return false;
 }
+
 
 void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSED(Name),
                               const char *UNUSED(FileName), bool On)

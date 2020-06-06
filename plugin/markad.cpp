@@ -73,6 +73,7 @@ cPluginMarkAd::~cPluginMarkAd() {
         free(setup.LogLevel);
     }
 #ifdef DEBUGMEM
+    memList();
     memClear();
 #endif
 }
@@ -363,7 +364,7 @@ bool cPluginMarkAd::ReadTitle(const char *Directory) {
 
 cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int &ReplyCode) {
     // Process SVDRP command
-    if (!strcasecmp(Command,"MARK")) {
+    if (strcasecmp(Command,"MARK") == 0) {
         if (Option) {
             char *Title=NULL;
             if (ReadTitle(Option)) Title=(char *) &title;
@@ -380,6 +381,12 @@ cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int
             return cString::sprintf("Missing filename");
         }
     }
+#ifdef DEBUGMEM
+    if (strcasecmp(Command,"DEBUGMEM") == 0) {
+        memList();
+        return cString::sprintf("OK");
+    }
+#endif
     return NULL;
 }
 
