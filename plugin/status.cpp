@@ -140,94 +140,6 @@ void cStatusMarkAd::TimerChange(const cTimer *Timer, eTimerChange Change)
     Remove(Timer->File(),true);
 }
 
-bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName)
-{
-    if (!FileName) return false;
-    char *cname=NULL;
-#if APIVERSNUM>=20301
-    const cTimer *timer=NULL;
-    cStateKey StateKey;
-    if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
-        for (const cTimer *Timer=Timers->First(); Timer; Timer=Timers->Next(Timer))
-#else
-    cTimer *timer=NULL;
-    for (cTimer *Timer = Timers.First(); Timer; Timer=Timers.Next(Timer))
-#endif
-        {
-            if (Timer->Recording() && const_cast<cDevice *>(Device)->IsTunedToTransponder(Timer->Channel()))
-                if (difftime(time(NULL),Timer->StartTime())<60)
-                {
-                    timer=Timer;
-                    break;
-                }
-                else esyslog("markad: recording start is later than timer start, ignoring");
-        }
-
-        if (!timer) {
-            esyslog("markad: cannot find timer for '%s'",FileName);
-        } else {
-            const cChannel *chan=timer->Channel();
-            if (chan) {
-                cname=strdup(chan->Name());
-                ALLOC(strlen(cname)+1, "cname");
-            }
-        }
-
-#if APIVERSNUM>=20301
-        StateKey.Remove();
-    }
-#endif
-
-    if (!timer) return false;
-    if (!cname) return false;
-
-    for (int i=0; i<(int) strlen(cname); i++)
-    {
-        if (cname[i]==' ') cname[i]='_';
-        if (cname[i]=='.') cname[i]='_';
-        if (cname[i]=='/') cname[i]='_';
-    }
-
-    char *fname=NULL;
-    if (asprintf(&fname,"%s/%s-A16_9-P0.pgm",logodir,cname)==-1)
-    {
-        FREE(strlen(cname)+1, "cname");
-        free(cname);
-        return false;
-    }
-    ALLOC(strlen(fname)+1, "fname");
-
-    struct stat statbuf;
-    if (stat(fname,&statbuf)==-1)
-    {
-        FREE(strlen(fname)+1, "fname");
-        free(fname);
-        fname=NULL;
-        if (asprintf(&fname,"%s/%s-A4_3-P0.pgm",logodir,cname)==-1)
-        {
-            FREE(strlen(cname)+1, "cname");
-            free(cname);
-            return false;
-        }
-        ALLOC(strlen(fname)+1, "fname");
-
-        if (stat(fname,&statbuf)==-1)
-        {
-            FREE(strlen(cname)+1, "cname");
-            free(cname);
-
-            FREE(strlen(fname)+1, "fname");
-            free(fname);
-            return false;
-        }
-    }
-    FREE(strlen(cname)+1, "cname");
-    free(cname);
-
-    FREE(strlen(fname)+1, "fname");
-    free(fname);
-    return true;
-}
 
 void cStatusMarkAd::Recording(const cDevice *Device, const char *Name,
                               const char *FileName, bool On)
@@ -243,11 +155,6 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name,
 
     if (On)
     {
-//        if (setup->LogoOnly && !LogoExists(Device,FileName)) {   // from v2.0.0 we will find the logo in the recording
-//            dsyslog("markad: +++ no logo found for %s",Name);
-//            return;
-//         }
-        // Start markad with recording
         if (!Start(FileName,Name,false)) {
             esyslog("markad: failed starting on %s",FileName);
         }
