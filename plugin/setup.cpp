@@ -176,7 +176,7 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup)
         if (strstr(dirent->d_name,"-P0.pgm"))
         {
             char *name=strdup(dirent->d_name);
-            ALLOC(strlen(name), "name");
+            ALLOC(strlen(name)+1, "name");
             if (name)
             {
                 char *m=strchr(name,'-');
@@ -193,7 +193,7 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup)
                         if (channel->Name())
                         {
                             char *cname=strdup(channel->Name());
-                            ALLOC(strlen(cname), "cname");
+                            ALLOC(strlen(cname)+1, "cname");
                             if (cname)
                             {
                                 for (int i=0; i<(int) strlen(cname); i++)
@@ -205,16 +205,16 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup)
                                 if (!strcmp(name,cname))
                                 {
                                     Add(new cSetupMarkAdListItem(cString::sprintf("%i\t%s",channel->Number(),channel->Name())));
-                                    FREE(strlen(cname), "cname");
+                                    FREE(strlen(cname)+1, "cname");
                                     free(cname);
                                     break;
                                 }
-                                FREE(strlen(cname), "cname");
+                                FREE(strlen(cname)+1, "cname");
                                 free(cname);
                             }
                         }
                     }
-                    FREE(strlen(name), "name");
+                    FREE(strlen(name)+1, "name");
                     free(name);
 #if APIVERSNUM>=20301
                     StateKey.Remove();

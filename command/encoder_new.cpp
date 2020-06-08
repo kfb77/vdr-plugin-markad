@@ -219,18 +219,18 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
         dsyslog("cEncoder::OpenFile(): failed to allocate string, out of memory?");
         return false;
     }
-    ALLOC(strlen(buffCutName), "buffCutName");
+    ALLOC(strlen(buffCutName)+1, "buffCutName");
     char *datePart = strrchr(buffCutName, '/');
     if (!datePart) {
         dsyslog("cEncoder::OpenFile(): faild to find last '/'");
         return false;
     }
     char *recPath = (char *) malloc((strlen(buffCutName) - strlen(datePart) + 1) * sizeof(char));
-    ALLOC((strlen(buffCutName) - strlen(datePart)) * sizeof(char), "recPath");    // without terminating 0
+    ALLOC((strlen(buffCutName) - strlen(datePart) +1) * sizeof(char), "recPath");
     strncpy(recPath, buffCutName, strlen(buffCutName) - strlen(datePart));
     recPath[strlen(buffCutName) - strlen(datePart)] = 0;
     dsyslog("cEncoder::OpenFile(): recording path: %s", recPath);
-    FREE(strlen(buffCutName), "buffCutName");
+    FREE(strlen(buffCutName)+1, "buffCutName");
     char *pos = strrchr(recPath, '/');
     if (!pos) {
         dsyslog("cEncoder::OpenFile(): faild to find last '/'");
@@ -238,10 +238,10 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     }
     pos++;    // ignore first char = /
     char *cutName = (char *) malloc((strlen(pos) + 1) * sizeof(char));
-    ALLOC(strlen(pos) * sizeof(char), "cutName");   // without terminating 0
+    ALLOC((strlen(pos) +1) * sizeof(char), "cutName");
     strncpy(cutName, pos, strlen(pos));
     cutName[strlen(pos)] = 0;
-    FREE(strlen(recPath), "recPath");
+    FREE(strlen(recPath)+1, "recPath");
     free(recPath);
     dsyslog("cEncoder::OpenFile(): cutName '%s'",cutName);
 
@@ -249,8 +249,8 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
         dsyslog("cEncoder::OpenFile(): failed to allocate string, out of memory?");
         return false;
     }
-    ALLOC(strlen(filename), "filename");
-    FREE(strlen(cutName), "cutName");
+    ALLOC(strlen(filename)+1, "filename");
+    FREE(strlen(cutName)+1, "cutName");
     free(cutName);
     dsyslog("cEncoder::OpenFile(): write to '%s'", filename);
 
@@ -302,7 +302,7 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
         dsyslog("cEncoder::OpenFile(): could not write header");
         return false;
     }
-    FREE(strlen(filename), "filename");
+    FREE(strlen(filename)+1, "filename");
     free(filename);
     return true;
 }

@@ -27,10 +27,10 @@ cPluginMarkAd::cPluginMarkAd(void) {
     statusMonitor=NULL;
 
     bindir=strdup(DEF_BINDIR);
-    ALLOC(strlen(bindir), "bindir");
+    ALLOC(strlen(bindir)+1, "bindir");
 
     logodir=strdup(DEF_LOGODIR);
-    ALLOC(strlen(logodir), "logodir");
+    ALLOC(strlen(logodir)+1, "logodir");
 
     title[0]=0;
 
@@ -57,19 +57,19 @@ cPluginMarkAd::~cPluginMarkAd() {
         delete statusMonitor;
     }
     if (bindir) {
-        FREE(strlen(bindir), "bindir");
+        FREE(strlen(bindir)+1, "bindir");
         free(bindir);
     }
     if (logodir) {
-        FREE(strlen(logodir), "logodir");
+        FREE(strlen(logodir)+1, "logodir");
         free(logodir);
     }
     if (setup.aStopOffs) {
-        FREE(strlen(setup.aStopOffs), "setup.aStopOffs");
+        FREE(strlen(setup.aStopOffs)+1, "setup.aStopOffs");
         free(setup.aStopOffs);
     }
     if (setup.LogLevel) {
-        FREE(strlen(setup.LogLevel), "setup.LogLevel");
+        FREE(strlen(setup.LogLevel)+1, "setup.LogLevel");
         free(setup.LogLevel);
     }
 #ifdef DEBUGMEM
@@ -122,11 +122,11 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
             case 'b':
                 if ((access(optarg,R_OK | X_OK))!=-1) {
                     if (bindir) {
-                        FREE(strlen(bindir), "bindir");
+                        FREE(strlen(bindir)+1, "bindir");
                         free(bindir);
                     }
                     bindir=strdup(optarg);
-                    ALLOC(strlen(bindir), "bindir");
+                    ALLOC(strlen(bindir)+1, "bindir");
                 }
                 else {
                     fprintf(stderr,"markad: can't access bin directory: %s\n", optarg);
@@ -136,11 +136,11 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
             case 'l':
                 if ((access(optarg,R_OK))!=-1) {
                     if (logodir) {
-                        FREE(strlen(logodir), "logodir");
+                        FREE(strlen(logodir)+1, "logodir");
                         free(logodir);
                     }
                     logodir=strdup(optarg);
-                    ALLOC(strlen(logodir), "logodir");
+                    ALLOC(strlen(logodir)+1, "logodir");
                 }
                 else {
                     fprintf(stderr,"markad: can't access logo directory: %s\n", optarg);
@@ -178,18 +178,18 @@ bool cPluginMarkAd::Initialize(void) {
     char *path;
 
     if (asprintf(&path,"%s/markad",bindir)==-1) return false;
-    ALLOC(strlen(path), "path");
+    ALLOC(strlen(path)+1, "path");
 
     struct stat statbuf;
     if (stat(path,&statbuf)==-1) {
         esyslog("markad: cannot find %s, please install",path);
 
-        FREE(strlen(path), "path");
+        FREE(strlen(path)+1, "path");
         free(path);
 
         return false;
     }
-    FREE(strlen(path), "path");
+    FREE(strlen(path)+1, "path");
     free(path);
 
     return true;
@@ -202,12 +202,12 @@ bool cPluginMarkAd::Start(void) {
     setup.PluginName=Name();
     if (loglevel) {
         if(! asprintf(&setup.LogLevel," --loglevel=%i ",loglevel)) esyslog("markad: asprintf ouf of memory");
-        ALLOC(strlen(setup.LogLevel), "setup.LogLevel");
+        ALLOC(strlen(setup.LogLevel)+1, "setup.LogLevel");
     }
 
     if (astopoffs>=0) {
         if(! asprintf(&setup.aStopOffs," --astopoffs=%i ",astopoffs)) esyslog("markad: asprintf ouf of memory");
-        ALLOC(strlen(setup.aStopOffs), "setup.aStopOffs");
+        ALLOC(strlen(setup.aStopOffs)+1, "setup.aStopOffs");
     }
     setup.cDecoder=cDecoder;
     setup.MarkadCut=MarkadCut;
@@ -320,18 +320,18 @@ bool cPluginMarkAd::ReadTitle(const char *Directory) {
     memset(&title,0,sizeof(title));
     char *buf;
     if (asprintf(&buf,"%s/info",Directory)==-1) return false;
-    ALLOC(strlen(buf), "buf");
+    ALLOC(strlen(buf)+1, "buf");
 
     FILE *f;
     f=fopen(buf,"r");
-    FREE(strlen(buf), "buf");
+    FREE(strlen(buf)+1, "buf");
     free(buf);
     buf=NULL;
     if (!f) {
         if (asprintf(&buf,"%s/info.vdr",Directory)==-1) return false;
-        ALLOC(strlen(buf), "buf");
+        ALLOC(strlen(buf)+1, "buf");
         f=fopen(buf,"r");
-        FREE(strlen(buf), "buf");
+        FREE(strlen(buf)+1, "buf");
         free(buf);
         if (!f) return false;
     }
@@ -353,7 +353,7 @@ bool cPluginMarkAd::ReadTitle(const char *Directory) {
         }
     }
     if (line) {
-        FREE(strlen(line), "line");
+        FREE(strlen(line)+1, "line");
         free(line);
     }
 

@@ -134,7 +134,7 @@ cOSDMessage::cOSDMessage(const char *Host, int Port) {
     tid=0;
     msg=NULL;
     host=strdup(Host);
-    ALLOC(strlen(host), "host");
+    ALLOC(strlen(host)+1, "host");
     port=Port;
     send(this);
 }
@@ -143,11 +143,11 @@ cOSDMessage::cOSDMessage(const char *Host, int Port) {
 cOSDMessage::~cOSDMessage() {
     if (tid) pthread_join(tid,NULL);
     if (msg) {
-        FREE(strlen(msg), "msg");
+        FREE(strlen(msg)+1, "msg");
         free(msg);
     }
     if (host) {
-        FREE(strlen(host), "host");
+        FREE(strlen(host)+1, "host");
         free((void*) host);
     }
 }
@@ -265,7 +265,7 @@ int cOSDMessage::Send(const char *format, ...) {
     va_list ap;
     va_start(ap, format);
     if (vasprintf(&msg,format,ap)==-1) return -1;
-    ALLOC(strlen(msg), "msg");
+    ALLOC(strlen(msg)+1, "msg");
     va_end(ap);
 
     if (pthread_create(&tid,NULL,(void *(*) (void *))&send, (void *) this)!=0) return -1;
@@ -374,7 +374,7 @@ void cMarkAdStandalone::CheckStop() {
         char *indexToHMSF = marks.IndexToHMSF(end->position,&macontext, ptr_cDecoder);
         if (indexToHMSF) {
             isyslog("using mark on position (%i) type 0x%X at %s as stop mark",end->position,  end->type, indexToHMSF);
-            FREE(strlen(indexToHMSF), "indexToHMSF");
+            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
             free(indexToHMSF);
         }
         marks.DelTill(end->position,false);
@@ -588,9 +588,9 @@ void cMarkAdStandalone::CheckStart() {
                 dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop without start mark found (%i), assume as start mark of the following recording", pos);
                 marks.Del(pos);
                 if (asprintf(&comment,"assumed start from horizontal border stop (%d)", pos) == -1) comment=NULL;
-                ALLOC(strlen(comment), "comment");
+                ALLOC(strlen(comment)+1, "comment");
                 begin=marks.Add(MT_ASSUMEDSTART, pos, comment);
-                FREE(strlen(comment), "comment");
+                FREE(strlen(comment)+1, "comment");
                 free(comment);
             }
         }
@@ -626,9 +626,9 @@ void cMarkAdStandalone::CheckStart() {
                 dsyslog("cMarkAdStandalone::CheckStart(): vertical border stop without start mark found (%i), assume as start mark of the following recording", pos);
                 marks.Del(pos);
                 if (asprintf(&comment,"assumed start from vertical border stop (%d)", pos) == -1) comment=NULL;
-                ALLOC(strlen(comment), "comment");
+                ALLOC(strlen(comment)+1, "comment");
                 begin=marks.Add(MT_ASSUMEDSTART, pos, comment);
-                FREE(strlen(comment), "comment");
+                FREE(strlen(comment)+1, "comment");
                 free(comment);
             }
         }
@@ -663,7 +663,7 @@ void cMarkAdStandalone::CheckStart() {
             char *indexToHMSF = marks.IndexToHMSF(lStart->position,&macontext, ptr_cDecoder);
             if (indexToHMSF) {
                 dsyslog("cMarkAdStandalone::CheckStart(): logo start mark found on position (%i) at %s", lStart->position, indexToHMSF);
-                FREE(strlen(indexToHMSF), "indexToHMSF");
+                FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                 free(indexToHMSF);
             }
             begin=lStart;   // found valid logo start mark
@@ -695,7 +695,7 @@ void cMarkAdStandalone::CheckStart() {
         char *indexToHMSF = marks.IndexToHMSF(begin->position,&macontext, ptr_cDecoder);
         if (indexToHMSF) {
             isyslog("using mark on position %i type 0x%X at %s as start mark", begin->position, begin->type, indexToHMSF);
-            FREE(strlen(indexToHMSF), "indexToHMSF");
+            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
             free(indexToHMSF);
         }
 
@@ -766,7 +766,7 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
         char *indexToHMSF = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
         if (indexToHMSF) {
             dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, indexToHMSF);
-            FREE(strlen(indexToHMSF), "indexToHMSF");
+            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
             free(indexToHMSF);
         }
         mark=mark->Next();
@@ -868,7 +868,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         char *indexToHMSF = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
         if (indexToHMSF) {
             dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, indexToHMSF);
-            FREE(strlen(indexToHMSF), "indexToHMSF");
+            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
             free(indexToHMSF);
         }
         mark=mark->Next();
@@ -887,53 +887,53 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
     switch (Mark->Type) {
         case MT_ASSUMEDSTART:
             if (asprintf(&comment,"assuming start (%i)",Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_ASSUMEDSTOP:
             if (asprintf(&comment,"assuming stop (%i)",Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_NOBLACKSTART:
             if (asprintf(&comment,"detected end of black screen (%i)*",Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_NOBLACKSTOP:
             if (asprintf(&comment,"detected start of black screen (%i)",Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_LOGOSTART:
             if (asprintf(&comment,"detected logo start (%i)*",Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_LOGOSTOP:
             if (asprintf(&comment,"detected logo stop (%i)",Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_HBORDERSTART:
             if (asprintf(&comment,"detected start of horiz. borders (%i)*",Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_HBORDERSTOP:
             if (asprintf(&comment,"detected stop of horiz. borders (%i)", Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_VBORDERSTART:
             if (asprintf(&comment,"detected start of vert. borders (%i)*", Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_VBORDERSTOP:
             if (asprintf(&comment,"detected stop of vert. borders (%i)", Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_ASPECTSTART:
             if (!Mark->AspectRatioBefore.Num) {
                 if (asprintf(&comment,"aspectratio start with %i:%i (%i)*", Mark->AspectRatioAfter.Num, Mark->AspectRatioAfter.Den, Mark->Position)==-1) comment=NULL;
-                ALLOC(strlen(comment), "comment");
+                ALLOC(strlen(comment)+1, "comment");
             }
             else {
                 if (asprintf(&comment,"aspectratio change from %i:%i to %i:%i (%i)*", Mark->AspectRatioBefore.Num,Mark->AspectRatioBefore.Den,
                          Mark->AspectRatioAfter.Num,Mark->AspectRatioAfter.Den, Mark->Position)==-1) comment=NULL;
-                ALLOC(strlen(comment), "comment");
+                ALLOC(strlen(comment)+1, "comment");
                 if ((macontext.Config->autoLogo > 0) &&( Mark->Position > 0) && bDecodeVideo) {
                     isyslog("logo detection reenabled, trying to find a logo from this position");
                     macontext.Video.Options.IgnoreLogoDetection=false;
@@ -944,7 +944,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
         case MT_ASPECTSTOP:
             if (asprintf(&comment,"aspectratio change from %i:%i to %i:%i (%i)", Mark->AspectRatioBefore.Num,Mark->AspectRatioBefore.Den,
                      Mark->AspectRatioAfter.Num,Mark->AspectRatioAfter.Den, Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             if ((macontext.Config->autoLogo > 0) && (Mark->Position > 0) && bDecodeVideo) {
                 isyslog("logo detection reenabled, trying to find a logo from this position");
                 macontext.Video.Options.IgnoreLogoDetection=false;
@@ -954,7 +954,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
         case MT_CHANNELSTART:
             macontext.Audio.Info.channelChange = true;
             if (asprintf(&comment,"audio channel change from %i to %i (%i)*", Mark->ChannelsBefore,Mark->ChannelsAfter, Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_CHANNELSTOP:
             if ((Mark->Position > chkSTART) && (Mark->Position < iStopA / 2) && !macontext.Audio.Info.channelChange) {
@@ -966,15 +966,15 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
             }
             macontext.Audio.Info.channelChange = true;
             if (asprintf(&comment,"audio channel change from %i to %i (%i)", Mark->ChannelsBefore,Mark->ChannelsAfter, Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_RECORDINGSTART:
             if (asprintf(&comment,"start of recording (%i)",Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_RECORDINGSTOP:
             if (asprintf(&comment,"stop of recording (%i)",Mark->Position)==-1) comment=NULL;
-            ALLOC(strlen(comment), "comment");
+            ALLOC(strlen(comment)+1, "comment");
             break;
         default:
             dsyslog("cMarkAdStandalone::AddMark(): unknown mark type 0x%X", Mark->Type);
@@ -983,7 +983,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
     char *indexToHMSF = marks.IndexToHMSF(Mark->Position,&macontext, ptr_cDecoder);
     if (indexToHMSF) {
         if (comment) isyslog("%s at %s",comment, indexToHMSF);
-        FREE(strlen(indexToHMSF), "indexToHMSF");
+        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
 
@@ -993,7 +993,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
             if (prev->type>Mark->Type) {
                 isyslog("previous mark (%i) type 0x%X stronger than actual mark on same position, deleting (%i) type 0x%X", prev->position, prev->type, Mark->Position, Mark->Type);
                 if (comment) {
-                    FREE(strlen(comment), "comment");
+                    FREE(strlen(comment)+1, "comment");
                     free(comment);
                 }
                 return;
@@ -1016,7 +1016,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
                 if (!macontext.Video.Options.WeakMarksOk) inBroadCast=true;
                 marks.Del(prev);
                 if (comment) {
-                    FREE(strlen(comment), "comment");
+                    FREE(strlen(comment)+1, "comment");
                     free(comment);
                 }
                 return;
@@ -1035,7 +1035,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
                 if (!macontext.Video.Options.WeakMarksOk) inBroadCast=false;
                 marks.Del(prev);
                 if (comment) {
-                    FREE(strlen(comment), "comment");
+                    FREE(strlen(comment)+1, "comment");
                     free(comment);
                 }
                 return;
@@ -1059,7 +1059,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
                 if (!macontext.Video.Options.WeakMarksOk) inBroadCast=false;
                 marks.Del(prev);
                 if (comment) {
-                    FREE(strlen(comment), "comment");
+                    FREE(strlen(comment)+1, "comment");
                     free(comment);
                 }
                 return;
@@ -1076,7 +1076,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
                 if (prev->type>Mark->Type) {
                     isyslog("previous mark (%i) type 0x%X stronger than actual mark, deleting (%i) type 0x%X", prev->position, prev->type, Mark->Position, Mark->Type);
                     if (comment) {
-                        FREE(strlen(comment), "comment");
+                        FREE(strlen(comment)+1, "comment");
                         free(comment);
                     }
                     return;
@@ -1090,7 +1090,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
     }
     marks.Add(Mark->Type,Mark->Position,comment);
     if (comment) {
-        FREE(strlen(comment), "comment");
+        FREE(strlen(comment)+1, "comment");
         free(comment);
     }
 
@@ -1243,18 +1243,18 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
         char *indexToHMSFBefore = marks.IndexToHMSF((*Mark1)->position,&macontext, ptr_cDecoder);
         char *indexToHMSFNewPos = marks.IndexToHMSF(NewPos->FrameNumberBefore,&macontext, ptr_cDecoder);
         if (asprintf(&buf,"overlap before %i at %s, moved to %i at %s",(*Mark1)->position, indexToHMSFBefore, NewPos->FrameNumberBefore, indexToHMSFNewPos)==-1) return;
-        ALLOC(strlen(buf), "buf");
+        ALLOC(strlen(buf)+1, "buf");
         isyslog("%s",buf);
         marks.Del(*Mark1);
         *Mark1=marks.Add(MT_MOVED,NewPos->FrameNumberBefore,buf);
-        FREE(strlen(buf), "buf");
+        FREE(strlen(buf)+1, "buf");
         free(buf);
         if (indexToHMSFBefore) {
-            FREE(strlen(indexToHMSFBefore), "indexToHMSF");
+            FREE(strlen(indexToHMSFBefore)+1, "indexToHMSF");
             free(indexToHMSFBefore);
         }
         if (indexToHMSFNewPos) {
-            FREE(strlen(indexToHMSFNewPos), "indexToHMSF");
+            FREE(strlen(indexToHMSFNewPos)+1, "indexToHMSF");
             free(indexToHMSFNewPos);
         }
         save=true;
@@ -1266,18 +1266,18 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
         char *indexToHMSFNewPos = marks.IndexToHMSF(NewPos->FrameNumberAfter,&macontext, ptr_cDecoder);
         if (asprintf(&buf,"overlap after %i at %s, moved to %i at %s",(*Mark2)->position, indexToHMSFBefore,
                      NewPos->FrameNumberAfter, indexToHMSFNewPos)==-1) return;
-        ALLOC(strlen(buf), "buf");
+        ALLOC(strlen(buf)+1, "buf");
         isyslog("%s",buf);
         marks.Del(*Mark2);
         *Mark2=marks.Add(MT_MOVED,NewPos->FrameNumberAfter,buf);
-        FREE(strlen(buf), "buf");
+        FREE(strlen(buf)+1, "buf");
         free(buf);
         if (indexToHMSFBefore) {
-            FREE(strlen(indexToHMSFBefore), "indexToHMSF");
+            FREE(strlen(indexToHMSFBefore)+1, "indexToHMSF");
             free(indexToHMSFBefore);
         }
         if (indexToHMSFNewPos) {
-            FREE(strlen(indexToHMSFNewPos), "indexToHMSF");
+            FREE(strlen(indexToHMSFNewPos)+1, "indexToHMSF");
             free(indexToHMSFNewPos);
         }
         save=true;
@@ -1325,15 +1325,15 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Nu
         char *fbuf;
         if (isTS) {
             if (asprintf(&fbuf,"%s/%05i.ts",directory,Number)==-1) return false;
-            ALLOC(strlen(fbuf), "fbuf");
+            ALLOC(strlen(fbuf)+1, "fbuf");
         }
         else {
             if (asprintf(&fbuf,"%s/%03i.vdr",directory,Number)==-1) return false;
-            ALLOC(strlen(fbuf), "fbuf");
+            ALLOC(strlen(fbuf)+1, "fbuf");
         }
 
         int f=open(fbuf,O_RDONLY);
-        FREE(strlen(fbuf), "fbuf");
+        FREE(strlen(fbuf)+1, "fbuf");
         free(fbuf);
         if (f==-1) return false;
 
@@ -1696,7 +1696,7 @@ bool cMarkAdStandalone::ProcessFile(int Number) {
     char *fbuf;
     if (isTS) {
         if (asprintf(&fbuf,"%s/%05i.ts",directory,Number)==-1) {
-            ALLOC(strlen(fbuf), "fbuf");
+            ALLOC(strlen(fbuf)+1, "fbuf");
             esyslog("failed to allocate string, out of memory?");
             return false;
         }
@@ -1706,7 +1706,7 @@ bool cMarkAdStandalone::ProcessFile(int Number) {
             esyslog("failed to allocate string, out of memory?");
             return false;
         }
-        ALLOC(strlen(fbuf), "fbuf");
+        ALLOC(strlen(fbuf)+1, "fbuf");
     }
 
     int f=open(fbuf,O_RDONLY);
@@ -1718,7 +1718,7 @@ bool cMarkAdStandalone::ProcessFile(int Number) {
         }
         return false;
     }
-    FREE(strlen(fbuf), "fbuf");
+    FREE(strlen(fbuf)+1, "fbuf");
     free(fbuf);
 
     int dataread;
@@ -2175,13 +2175,13 @@ bool cMarkAdStandalone::SaveInfo() {
     else {
         if (asprintf(&src,"%s/info%s",directory,isTS ? "" : ".vdr")==-1) return false;
     }
-    ALLOC(strlen(src), "src");
+    ALLOC(strlen(src)+1, "src");
 
     if (asprintf(&dst,"%s/info.bak",directory)==-1) {
         free(src);
         return false;
     }
-    ALLOC(strlen(dst), "src");
+    ALLOC(strlen(dst)+1, "src");
 
     FILE *r,*w;
     r=fopen(src,"r");
@@ -2301,7 +2301,7 @@ bool cMarkAdStandalone::SaveInfo() {
                     esyslog("multiple @lines in info file, please report this!");
                 }
                 lline=strdup(line);
-                ALLOC(strlen(lline), "lline");
+                ALLOC(strlen(lline)+1, "lline");
             }
         }
         if (err) break;
@@ -2485,19 +2485,19 @@ bool cMarkAdStandalone::CheckLogo() {
 bool cMarkAdStandalone::LoadInfo() {
     char *buf;
     if (asprintf(&buf,"%s/info%s",directory,isTS ? "" : ".vdr")==-1) return false;
-    ALLOC(strlen(buf), "buf");
+    ALLOC(strlen(buf)+1, "buf");
 
     FILE *f;
     f=fopen(buf,"r");
-    FREE(strlen(buf), "buf");
+    FREE(strlen(buf)+1, "buf");
     free(buf);
     buf=NULL;
     if (!f) {
         // second try for reel vdr
         if (asprintf(&buf,"%s/info.txt",directory)==-1) return false;
-        ALLOC(strlen(buf), "buf");
+        ALLOC(strlen(buf)+1, "buf");
         f=fopen(buf,"r");
-        FREE(strlen(buf), "buf");
+        FREE(strlen(buf)+1, "buf");
         free(buf);
         if (!f) return false;
         isREEL=true;
@@ -2511,14 +2511,14 @@ bool cMarkAdStandalone::LoadInfo() {
             int result=sscanf(line,"%*c %*80s %250c",(char *) &channelname);
             if (result==1) {
                 macontext.Info.ChannelName=strdup(channelname);
-                ALLOC(strlen(macontext.Info.ChannelName), "macontext.Info.ChannelName");
+                ALLOC(strlen(macontext.Info.ChannelName)+1, "macontext.Info.ChannelName");
                 char *lf=strchr(macontext.Info.ChannelName,10);
                 if (lf) {
                    *lf = 0;
                     char *tmpName = strdup(macontext.Info.ChannelName);
-                    ALLOC(strlen(tmpName), "macontext.Info.ChannelName");
+                    ALLOC(strlen(tmpName)+1, "macontext.Info.ChannelName");
                     *lf = 10;
-                    FREE(strlen(macontext.Info.ChannelName), "macontext.Info.ChannelName");
+                    FREE(strlen(macontext.Info.ChannelName)+1, "macontext.Info.ChannelName");
                     free(macontext.Info.ChannelName);
                     macontext.Info.ChannelName = tmpName;
                 }
@@ -2526,9 +2526,9 @@ bool cMarkAdStandalone::LoadInfo() {
                 if (cr) {
                     *cr=0;
                     char *tmpName = strdup(macontext.Info.ChannelName);
-                    ALLOC(strlen(tmpName), "macontext.Info.ChannelName");
+                    ALLOC(strlen(tmpName)+1, "macontext.Info.ChannelName");
                     *lf = 13;
-                    FREE(strlen(macontext.Info.ChannelName), "macontext.Info.ChannelName");
+                    FREE(strlen(macontext.Info.ChannelName)+1, "macontext.Info.ChannelName");
                     free(macontext.Info.ChannelName);
                     macontext.Info.ChannelName = tmpName;
                 }
@@ -2663,32 +2663,32 @@ bool cMarkAdStandalone::CheckTS()
     if (!directory) return false;
     char *buf;
     if (asprintf(&buf,"%s/00001.ts",directory)==-1) return false;
-    ALLOC(strlen(buf), "buf");
+    ALLOC(strlen(buf)+1, "buf");
     struct stat statbuf;
     if (stat(buf,&statbuf)==-1) {
         if (errno!=ENOENT) {
-            FREE(strlen(buf), "buf");
+            FREE(strlen(buf)+1, "buf");
             free(buf);
             return false;
         }
-        FREE(strlen(buf), "buf");
+        FREE(strlen(buf)+1, "buf");
         free(buf);
         buf=NULL;
         if (asprintf(&buf,"%s/001.vdr",directory)==-1) return false;
-        ALLOC(strlen(buf), "buf");
+        ALLOC(strlen(buf)+1, "buf");
         if (stat(buf,&statbuf)==-1) {
-            FREE(strlen(buf), "buf");
+            FREE(strlen(buf)+1, "buf");
             free(buf);
             return false;
         }
-        FREE(strlen(buf), "buf");
+        FREE(strlen(buf)+1, "buf");
         free(buf);
         // .VDR detected
         isTS=false;
         MaxFiles=999;
         return true;
     }
-    FREE(strlen(buf), "buf");
+    FREE(strlen(buf)+1, "buf");
     free(buf);
     // .TS detected
     isTS=true;
@@ -2700,10 +2700,10 @@ bool cMarkAdStandalone::CheckTS()
 bool cMarkAdStandalone::CheckVDRHD() {
     char *buf;
     if (asprintf(&buf,"%s/001.vdr",directory)==-1) return false;
-    ALLOC(strlen(buf), "buf");
+    ALLOC(strlen(buf)+1, "buf");
 
     int fd=open(buf,O_RDONLY);
-    FREE(strlen(buf), "buf");
+    FREE(strlen(buf)+1, "buf");
     free(buf);
     if (fd==-1) return false;
 
@@ -2730,10 +2730,10 @@ off_t cMarkAdStandalone::SeekPATPMT()
 {
     char *buf;
     if (asprintf(&buf,"%s/00001.ts",directory)==-1) return (off_t) -1;
-    ALLOC(strlen(buf), "buf");
+    ALLOC(strlen(buf)+1, "buf");
 
     int fd=open(buf,O_RDONLY);
-    FREE(strlen(buf), "buf");
+    FREE(strlen(buf)+1, "buf");
     free(buf);
     if (fd==-1) return (off_t) -1;
     uchar peek_buf[188];
@@ -2774,10 +2774,10 @@ bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
     if (Offset<(off_t) 0) return false;
     char *buf;
     if (asprintf(&buf,"%s/00001.ts",directory)==-1) return false;
-    ALLOC(strlen(buf), "buf");
+    ALLOC(strlen(buf)+1, "buf");
 
     int fd=open(buf,O_RDONLY);
-    FREE(strlen(buf), "buf");
+    FREE(strlen(buf)+1, "buf");
     free(buf);
     if (fd==-1) return false;
 
@@ -2883,13 +2883,13 @@ bool cMarkAdStandalone::RegenerateIndex()
     char *oldpath,*newpath;
     if (asprintf(&oldpath,"%s/index%s.generated",directory,
                  isTS ? "" : ".vdr")==-1) return false;
-    ALLOC(strlen(oldpath), "oldpath");
+    ALLOC(strlen(oldpath)+1, "oldpath");
     if (asprintf(&newpath,"%s/index%s",directory,isTS ? "" : ".vdr")==-1)
     {
         free(oldpath);
         return false;
     }
-    ALLOC(strlen(newpath), "newpath");
+    ALLOC(strlen(newpath)+1, "newpath");
 
     if (rename(oldpath,newpath)!=0)
     {
@@ -2908,7 +2908,7 @@ bool cMarkAdStandalone::RegenerateIndex()
 bool cMarkAdStandalone::CreatePidfile() {
     char *buf=NULL;
     if (asprintf(&buf,"%s/markad.pid",directory)==-1) return false;
-    ALLOC(strlen(buf), "buf");
+    ALLOC(strlen(buf)+1, "buf");
 
     // check for other running markad process
     FILE *oldpid=fopen(buf,"r");
@@ -2931,7 +2931,7 @@ bool cMarkAdStandalone::CreatePidfile() {
         errno=0;
     }
     if (duplicate) {
-        FREE(strlen(buf), "buf");
+        FREE(strlen(buf)+1, "buf");
         free(buf);
         return false;
     }
@@ -2940,7 +2940,7 @@ bool cMarkAdStandalone::CreatePidfile() {
 
     SetFileUID(buf);
 
-    FREE(strlen(buf), "buf");
+    FREE(strlen(buf)+1, "buf");
     free(buf);
     if (!pidfile) return false;
     fprintf(pidfile,"%i\n",(int) getpid());
@@ -2956,9 +2956,9 @@ void cMarkAdStandalone::RemovePidfile() {
 
     char *buf;
     if (asprintf(&buf,"%s/markad.pid",directory)!=-1) {
-        ALLOC(strlen(buf), "buf");
+        ALLOC(strlen(buf)+1, "buf");
         unlink(buf);
-        FREE(strlen(buf), "buf");
+        FREE(strlen(buf)+1, "buf");
         free(buf);
     }
 }
@@ -3028,10 +3028,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     if (LOG2REC) {
         char *fbuf;
         if (asprintf(&fbuf,"%s/markad.log",directory)!=-1) {
-            ALLOC(strlen(fbuf), "fbuf");
+            ALLOC(strlen(fbuf)+1, "fbuf");
             if (freopen(fbuf,"w+",stdout)) {};
             SetFileUID(fbuf);
-            FREE(strlen(fbuf), "fbuf");
+            FREE(strlen(fbuf)+1, "fbuf");
             free(fbuf);
         }
     }
@@ -3049,14 +3049,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     int ver = avcodec_version();
     char *libver = NULL;
     if (asprintf(&libver,"%i.%i.%i",ver >> 16 & 0xFF,ver >> 8 & 0xFF,ver & 0xFF) != -1) {
-        ALLOC(strlen(libver), "libver");
+        ALLOC(strlen(libver)+1, "libver");
         isyslog("using libavcodec.so.%s with %i threads",libver,config->threads);
         if (ver!=LIBAVCODEC_VERSION_INT) {
             esyslog("libavcodec header version %s",AV_STRINGIFY(LIBAVCODEC_VERSION));
             esyslog("header and library mismatch, do not report decoder bugs");
         }
         if (config->use_cDecoder && ((ver >> 16) < MINLIBAVCODECVERSION)) esyslog("update libavcodec to at least version %d, do not report decoder bugs", MINLIBAVCODECVERSION);
-        FREE(strlen(libver), "libver");
+        FREE(strlen(libver)+1, "libver");
         free(libver);
     }
 
@@ -3118,7 +3118,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
             return;
         }
         if (asprintf(&indexFile,"%s/index",Directory)==-1) indexFile=NULL;
-        ALLOC(strlen(indexFile), "indexFile");
+        ALLOC(strlen(indexFile)+1, "indexFile");
     }
     else {
         macontext.Info.APid.Num=-1;
@@ -3134,7 +3134,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
             macontext.Info.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
         }
         if (asprintf(&indexFile,"%s/index.vdr",Directory)==-1) indexFile=NULL;
-        ALLOC(strlen(indexFile), "indexFile");
+        ALLOC(strlen(indexFile)+1, "indexFile");
     }
     macontext.Info.APid.Num=0; // till now we do just nothing with stereo-sound
 
@@ -3264,11 +3264,11 @@ cMarkAdStandalone::~cMarkAdStandalone() {
     }
 
     if (macontext.Info.ChannelName) {
-        FREE(strlen(macontext.Info.ChannelName), "macontext.Info.ChannelName");
+        FREE(strlen(macontext.Info.ChannelName)+1, "macontext.Info.ChannelName");
         free(macontext.Info.ChannelName);
     }
     if (indexFile) {
-        FREE(strlen(indexFile), "indexFile");
+        FREE(strlen(indexFile)+1, "indexFile");
         free(indexFile);
     }
 

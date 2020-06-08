@@ -75,7 +75,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
             esyslog("markad: asprintf ouf of memory");
             return false;
         }
-        ALLOC(strlen(autoLogoOption), "autoLogoOption");
+        ALLOC(strlen(autoLogoOption)+1, "autoLogoOption");
     }
     else {
         if (setup->autoLogoMenue > 0) {
@@ -83,7 +83,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                 esyslog("markad: asprintf ouf of memory");
                 return false;
             }
-            ALLOC(strlen(autoLogoOption), "autoLogoOption");
+            ALLOC(strlen(autoLogoOption)+1, "autoLogoOption");
         }
     }
     cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
@@ -104,7 +104,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
                                    logodir,
                                    Direct ? "-O after" : "--online=2 before",
                                    FileName);
-    FREE(strlen(autoLogoOption), "autoLogoOption");
+    FREE(strlen(autoLogoOption)+1, "autoLogoOption");
     free(autoLogoOption);
 
     usleep(1000000); // wait 1 second
@@ -169,7 +169,7 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName)
             const cChannel *chan=timer->Channel();
             if (chan) {
                 cname=strdup(chan->Name());
-                ALLOC(strlen(cname), "cname");
+                ALLOC(strlen(cname)+1, "cname");
             }
         }
 
@@ -191,40 +191,40 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName)
     char *fname=NULL;
     if (asprintf(&fname,"%s/%s-A16_9-P0.pgm",logodir,cname)==-1)
     {
-        FREE(strlen(cname), "cname");
+        FREE(strlen(cname)+1, "cname");
         free(cname);
         return false;
     }
-    ALLOC(strlen(fname), "fname");
+    ALLOC(strlen(fname)+1, "fname");
 
     struct stat statbuf;
     if (stat(fname,&statbuf)==-1)
     {
-        FREE(strlen(fname), "fname");
+        FREE(strlen(fname)+1, "fname");
         free(fname);
         fname=NULL;
         if (asprintf(&fname,"%s/%s-A4_3-P0.pgm",logodir,cname)==-1)
         {
-            FREE(strlen(cname), "cname");
+            FREE(strlen(cname)+1, "cname");
             free(cname);
             return false;
         }
-        ALLOC(strlen(fname), "fname");
+        ALLOC(strlen(fname)+1, "fname");
 
         if (stat(fname,&statbuf)==-1)
         {
-            FREE(strlen(cname), "cname");
+            FREE(strlen(cname)+1, "cname");
             free(cname);
 
-            FREE(strlen(fname), "fname");
+            FREE(strlen(fname)+1, "fname");
             free(fname);
             return false;
         }
     }
-    FREE(strlen(cname), "cname");
+    FREE(strlen(cname)+1, "cname");
     free(cname);
 
-    FREE(strlen(fname), "fname");
+    FREE(strlen(fname)+1, "fname");
     free(fname);
     return true;
 }
@@ -312,12 +312,12 @@ bool cStatusMarkAd::getPid(int Position) {
     int ret=0;
     char *buf;
     if (asprintf(&buf,"%s/markad.pid",recs[Position].FileName)==-1) return false;
-    ALLOC(strlen(buf), "buf");
+    ALLOC(strlen(buf)+1, "buf");
 
     usleep(500*1000);   // wait 500ms to give markad time to create pid file
     FILE *fpid=fopen(buf,"r");
     if (fpid) {
-        FREE(strlen(buf), "buf");
+        FREE(strlen(buf)+1, "buf");
         free(buf);
         int pid;
         ret=fscanf(fpid,"%10i\n",&pid);
@@ -331,7 +331,7 @@ bool cStatusMarkAd::getPid(int Position) {
             // remove entry from list
             Remove(Position);
         }
-        FREE(strlen(buf), "buf");
+        FREE(strlen(buf)+1, "buf");
         free(buf);
     }
     return (ret==1);
@@ -403,12 +403,12 @@ void cStatusMarkAd::Remove(const char *Name, bool Kill)
 void cStatusMarkAd::Remove(int pos, bool Kill)
 {
     if (recs[pos].FileName) {
-        FREE(strlen(recs[pos].FileName), "recs[pos].FileName");
+        FREE(strlen(recs[pos].FileName)+1, "recs[pos].FileName");
         free(recs[pos].FileName);
     }
     recs[pos].FileName=NULL;
     if (recs[pos].Name) {
-        FREE(strlen(recs[pos].Name), "recs[pos].Name");
+        FREE(strlen(recs[pos].Name)+1, "recs[pos].Name");
         free(recs[pos].Name);
     }
     recs[pos].Name=NULL;
@@ -441,11 +441,11 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name)
         if (!recs[pos].FileName)
         {
             recs[pos].FileName=strdup(FileName);
-            ALLOC(strlen(recs[pos].FileName), "recs[pos].FileName");
+            ALLOC(strlen(recs[pos].FileName)+1, "recs[pos].FileName");
             if (Name)
             {
                 recs[pos].Name=strdup(Name);
-                ALLOC(strlen(recs[pos].Name), "recs[pos].Name");
+                ALLOC(strlen(recs[pos].Name)+1, "recs[pos].Name");
             }
             else
             {

@@ -40,9 +40,9 @@ cOsdMarkAd::cOsdMarkAd(struct recs *Entry) {
 
     char *buf=NULL;
     if (asprintf(&buf,"%s\t %s",entry->Name ? entry->Name : entry->FileName,status)!=-1) {
-        ALLOC(strlen(buf), "buf");
+        ALLOC(strlen(buf)+1, "buf");
         SetText(buf,true);
-        FREE(strlen(buf), "buf");
+        FREE(strlen(buf)+1, "buf");
         free(buf);
     }
     else {

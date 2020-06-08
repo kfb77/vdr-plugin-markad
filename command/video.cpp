@@ -75,13 +75,13 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
     }
     char *path;
     if (asprintf(&path,"%s/%s-P%i.pgm",directory,file,plane)==-1) return -3;
-    ALLOC(strlen(path), "path");
+    ALLOC(strlen(path)+1, "path");
 
     // Load mask
     FILE *pFile;
     area.valid[plane]=false;
     pFile=fopen(path, "rb");
-    FREE(strlen(path), "path");
+    FREE(strlen(path)+1, "path");
     free(path);
     if (!pFile) {
         if (plane > 0) dsyslog("cMarkAdLogo::Load(): file not found for logo %s plane %d in %s",file, plane, directory);
@@ -143,12 +143,12 @@ void cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int pla
 
     char *buf=NULL;
     if (asprintf(&buf,"%s/%06d-%s-A%i_%i-P%i.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectratio.Num,area.aspectratio.Den,plane)==-1) return;
-    ALLOC(strlen(buf), "buf");
+    ALLOC(strlen(buf)+1, "buf");
 
     // Open file
     FILE *pFile=fopen(buf, "wb");
     if (pFile==NULL) {
-        FREE(strlen(buf), "buf");
+        FREE(strlen(buf)+1, "buf");
         free(buf);
         return;
     }
@@ -168,7 +168,7 @@ void cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int pla
     if (fwrite(picture[plane],1,width*height,pFile)) {};
     // Close file
     fclose(pFile);
-    FREE(strlen(buf), "buf");
+    FREE(strlen(buf)+1, "buf");
     free(buf);
 }
 
@@ -407,7 +407,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
             dsyslog("cMarkAdLogo::Process(): aspect ratio changed from %i:%i to %i:%i, reload logo", area.aspectratio.Num, area.aspectratio.Den, macontext->Video.Info.AspectRatio.Num, macontext->Video.Info.AspectRatio.Den);
             char *buf=NULL;
             if (asprintf(&buf,"%s-A%i_%i",macontext->Info.ChannelName, macontext->Video.Info.AspectRatio.Num,macontext->Video.Info.AspectRatio.Den)!=-1) {
-                ALLOC(strlen(buf), "buf");
+                ALLOC(strlen(buf)+1, "buf");
                 area.corner=-1;
                 bool logoStatus = false;
                 if (Load(macontext->Config->logoDirectory,buf,0) == 0) {   // logo cache directory
@@ -451,7 +451,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
                     macontext->Video.Options.IgnoreLogoDetection=true;
                     macontext->Video.Options.WeakMarksOk=true;
                 }
-                FREE(strlen(buf), "buf");
+                FREE(strlen(buf)+1, "buf");
                 free(buf);
             }
             else dsyslog("cMarkAdLogo::Process(): out of memory");

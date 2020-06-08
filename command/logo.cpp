@@ -78,7 +78,7 @@ bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int
 
         if (this->isWhitePlane(ptr_actLogoInfo, height, width, plane)) continue;
         if (asprintf(&buf,"%s/%s-A%i_%i-P%i.pgm",maContext->Config->recDir, maContext->Info.ChannelName, ptr_actLogoInfo->aspectratio.Num,ptr_actLogoInfo->aspectratio.Den,plane)==-1) return false;
-        ALLOC(strlen(buf), "buf");
+        ALLOC(strlen(buf)+1, "buf");
         dsyslog("cExtractLogo::Save(): store logo in %s", buf);
         // Open file
         FILE *pFile=fopen(buf, "wb");
@@ -102,7 +102,7 @@ bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int
         }
         // Close file
         fclose(pFile);
-        FREE(strlen(buf), "buf");
+        FREE(strlen(buf)+1, "buf");
         free(buf);
     }
     return true;
@@ -364,21 +364,21 @@ bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecode
     if (recordingFrameCount > (ptr_cDecoder->GetFrameNumber()+200)) return true; // we have already found enougt frames
 
     if (asprintf(&indexFile,"%s/index",maContext->Config->recDir)==-1) indexFile=NULL;
-    ALLOC(strlen(indexFile), "indexFile");
+    ALLOC(strlen(indexFile)+1, "indexFile");
     if (!indexFile) {
         dsyslog("cExtractLogo::isRunningRecording(): no index file info");
-        FREE(strlen(indexFile), "indexFile");
+        FREE(strlen(indexFile)+1, "indexFile");
         free(indexFile);
         return false;
     }
     struct stat indexStatus;
     if (stat(indexFile,&indexStatus)==-1) {
         dsyslog("cExtractLogo::isRunningRecording(): failed to stat %s",indexFile);
-        FREE(strlen(indexFile), "indexFile");
+        FREE(strlen(indexFile)+1, "indexFile");
         free(indexFile);
         return false;
     }
-    FREE(strlen(indexFile), "indexFile");
+    FREE(strlen(indexFile)+1, "indexFile");
     free(indexFile);
     dsyslog("cExtractLogo::WaitForFrames(): index file size %ld byte", indexStatus.st_size);
     int maxframes = indexStatus.st_size/8;
