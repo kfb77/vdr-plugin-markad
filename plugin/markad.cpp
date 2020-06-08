@@ -383,8 +383,7 @@ cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int
     }
 #ifdef DEBUGMEM
     if (strcasecmp(Command,"DEBUGMEM") == 0) {
-        memList();
-        return cString::sprintf("OK");
+        return memListSVDR();
     }
 #endif
     return NULL;

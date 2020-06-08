@@ -6,12 +6,11 @@
  */
 
 
+#ifdef DEBUGMEM
 #include <stdlib.h>
 #include <cstring>
 #include <vector>
 
-
-#ifdef DEBUGMEM
 #include "debug.h"
 #include <vdr/plugin.h>
 
@@ -57,6 +56,23 @@ void memList() {
          dsyslog("markad: debugmem unmachted alloc %7d bytes, line %4d, file %s, variable: %s", memLine->size, memLine->line, memLine->file, memLine->var);
      }
      dsyslog("markad: debugmem unmachted alloc end ------------------------------------------------------------------");
+}
+
+
+char *memListSVDR() {
+    char *dump = NULL;
+    for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
+        char *line = NULL;
+        char *tmp = NULL;
+        if (asprintf(&line, "markad: debugmem unmachted alloc %7d bytes, line %4d, file %s, variable: %s\n", memLine->size, memLine->line, memLine->file, memLine->var) != -1) {
+            if (asprintf(&tmp, "%s%s", (dump) ? dump : "", line) != -1) {
+                free(dump);
+                free(line);
+                dump = tmp;
+            }
+        }
+     }
+     return dump;
 }
 
 
