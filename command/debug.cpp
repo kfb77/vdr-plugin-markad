@@ -52,10 +52,11 @@ void memFree(int size, int line, char *file, char *var) {
 
 
 void memList() {
-     dsyslog("debugmem unmachted ----------------------------------------------------------------");
-     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
-         dsyslog("debugmem unmachted alloc %7d bytes, line %4d, file %s, variable: %s", memLine->size, memLine->line, memLine->file, memLine->var);
+    dsyslog("debugmem unmachted alloc start ----------------------------------------------------------------");
+    for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
+        dsyslog("debugmem unmachted alloc %7d bytes, line %4d, file %s, variable: %s", memLine->size, memLine->line, memLine->file, memLine->var);
     }
+    dsyslog("debugmem unmachted alloc end ------------------------------------------------------------------");
     memUseVector.clear();
 }
 #endif

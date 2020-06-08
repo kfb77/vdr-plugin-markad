@@ -13,19 +13,35 @@ extern "C"{
 
 void AVlog(void *ptr, int level, const char* fmt, va_list vl){
     if (level <= AVLOGLEVEL) {
-        char logMsg[255] = {0};
+        char *logMsg = NULL;
         int rc = 0;
-        rc = vsprintf(logMsg, fmt, vl);
-        if (!rc) {
-            dsyslog("AVlog(): Error in vsprintf");
+        rc = vasprintf(&logMsg, fmt, vl);
+        if (rc == -1) {
+            dsyslog("AVlog(): error in vasprintf");
             return;
         }
-        if ((strcmp(logMsg, "co located POCs unavailable\n") == 0) || // this will happen with h.264 coding because of partitial decoding
-            (strcmp(logMsg, "mmco: unref short failure\n") == 0) ||
-            (strcmp(logMsg, "number of reference frames (0+5) exceeds max (4; probably corrupt input), discarding one\n") == 0)) {
-                tsyslog("AVlog(): %s",strtok(logMsg, "\n"));
+        ALLOC(strlen(logMsg)+1, "logMsg");
+
+        if (logMsg[strlen(logMsg)-1] == '\n') {
+            FREE(strlen(logMsg)+1, "logMsg");
+            logMsg[strlen(logMsg)-1] = 0;
+            logMsg = (char *) realloc(logMsg, strlen(logMsg)+1);
+            if (!logMsg) {
+                dsyslog("AVlog(): error in realloc");
+                return;
+            }
+            ALLOC(strlen(logMsg)+1, "logMsg");
         }
-        else dsyslog("AVlog(): %s",strtok(logMsg, "\n"));
+
+        if ((strcmp(logMsg, "co located POCs unavailable") == 0) || // this will happen with h.264 coding because of partitial decoding
+            (strcmp(logMsg, "mmco: unref short failure") == 0) ||
+            (strcmp(logMsg, "number of reference frames (0+5) exceeds max (4; probably corrupt input), discarding one") == 0)) {
+                tsyslog("AVlog(): %s",logMsg);
+        }
+        else dsyslog("AVlog(): %s",logMsg);
+
+        FREE(strlen(logMsg)+1, "logMsg");
+        free(logMsg);
     }
     return;
 }
