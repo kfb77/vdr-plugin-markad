@@ -70,7 +70,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const bool Dir
     if ((Direct) && (Get(FileName)!=-1)) return false;
 
     char *autoLogoOption = NULL;
-    if (setup->autoLogoConf > 0) {
+    if (setup->autoLogoConf >= 0) {
         if(! asprintf(&autoLogoOption," --autologo=%i ",setup->autoLogoConf)) {
             esyslog("markad: asprintf ouf of memory");
             return false;
@@ -153,8 +153,16 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name,
         return; // markad deactivated
     }
 
-    if (On)
-    {
+    if (On) {
+        bool autoLogo = false;
+        if (setup->autoLogoConf >= 0) autoLogo = (setup->autoLogoConf > 0);
+        else autoLogo = (setup->autoLogoMenue > 0);
+
+        if (!autoLogo && setup->LogoOnly && !LogoExists(Device,FileName)) {   // from v2.0.0 we will find the logo in the recording
+            isyslog("markad: no logo found for %s",Name);
+            return;
+        }
+        // Start markad with recording
         if (!Start(FileName,Name,false)) {
             esyslog("markad: failed starting on %s",FileName);
         }
@@ -184,6 +192,91 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name,
 #endif
     }
 }
+
+
+bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName) {
+    if (!FileName) return false;
+    char *cname=NULL;
+#if APIVERSNUM>=20301
+    const cTimer *timer=NULL;
+    cStateKey StateKey;
+    if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
+        for (const cTimer *Timer=Timers->First(); Timer; Timer=Timers->Next(Timer))
+#else
+    cTimer *timer=NULL;
+    for (cTimer *Timer = Timers.First(); Timer; Timer=Timers.Next(Timer))
+#endif
+        {
+            if (Timer->Recording() && const_cast<cDevice *>(Device)->IsTunedToTransponder(Timer->Channel()))
+                if (difftime(time(NULL),Timer->StartTime())<60) {
+                    timer=Timer;
+                    break;
+                }
+                else esyslog("markad: recording start is later than timer start, ignoring");
+        }
+
+        if (!timer) {
+            esyslog("markad: cannot find timer for '%s'",FileName);
+        }
+        else {
+            const cChannel *chan=timer->Channel();
+            if (chan) {
+                cname=strdup(chan->Name());
+                ALLOC(strlen(cname)+1, "cname");
+            }
+        }
+
+#if APIVERSNUM>=20301
+        StateKey.Remove();
+    }
+#endif
+
+    if (!timer) return false;
+    if (!cname) return false;
+
+    for (int i=0; i<(int) strlen(cname); i++) {
+        if (cname[i]==' ') cname[i]='_';
+        if (cname[i]=='.') cname[i]='_';
+        if (cname[i]=='/') cname[i]='_';
+    }
+
+    char *fname=NULL;
+    if (asprintf(&fname,"%s/%s-A16_9-P0.pgm",logodir,cname)==-1) {
+        FREE(strlen(cname)+1, "cname");
+        free(cname);
+        return false;
+    }
+    ALLOC(strlen(fname)+1, "fname");
+
+    struct stat statbuf;
+    if (stat(fname,&statbuf)==-1) {
+        FREE(strlen(fname)+1, "fname");
+        free(fname);
+        fname=NULL;
+        if (asprintf(&fname,"%s/%s-A4_3-P0.pgm",logodir,cname)==-1) {
+            FREE(strlen(cname)+1, "cname");
+            free(cname);
+            return false;
+        }
+        ALLOC(strlen(fname)+1, "fname");
+
+        if (stat(fname,&statbuf)==-1) {
+            FREE(strlen(cname)+1, "cname");
+            free(cname);
+
+            FREE(strlen(fname)+1, "fname");
+            free(fname);
+            return false;
+        }
+    }
+    FREE(strlen(cname)+1, "cname");
+    free(cname);
+
+    FREE(strlen(fname)+1, "fname");
+    free(fname);
+    return true;
+}
+
 
 bool cStatusMarkAd::getStatus(int Position)
 {
