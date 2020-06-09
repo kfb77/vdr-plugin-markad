@@ -476,17 +476,23 @@ void cMarkAdStandalone::CheckStart() {
                 }
                 else dsyslog("cMarkAdStandalone::CheckStart(): no audio channel change found till now, do not disable logo/border/aspect detection");
             }
-#if !defined ONLY_WITH_CDECODER
             else {
+                if (macontext.Audio.Options.IgnoreDolbyDetection==true) isyslog("disabling AC3 decoding (from logo)");
+                if ((macontext.Info.Channels[stream]) && (macontext.Audio.Options.IgnoreDolbyDetection==false))
+                    isyslog("broadcast with %i audio channels of stream %i, disabling AC3 decoding, delete channel marks if any",macontext.Info.Channels[stream], stream);
+                if (inBroadCast) {  // if we have channel marks but we are now with 2 channels inBroascast, delete these
+                    marks.Del(MT_CHANNELSTART);
+                    marks.Del(MT_CHANNELSTOP);
+                    macontext.Video.Options.IgnoreAspectRatio=false;   // then we have to find other marks
+                    macontext.Video.Options.IgnoreLogoDetection=false;
+                }
+#if !defined ONLY_WITH_CDECODER
                 if (macontext.Info.DPid.Num) {
-                    if ((macontext.Info.Channels[stream]) && (macontext.Audio.Options.IgnoreDolbyDetection==false))
-                        isyslog("broadcast with %i audio channels of stream %i, disabling AC3 decoding",macontext.Info.Channels[stream], stream);
-                    if (macontext.Audio.Options.IgnoreDolbyDetection==true) isyslog("disabling AC3 decoding (from logo)");
                     macontext.Info.DPid.Num=0;
                     demux->DisableDPid();
                 }
-            }
 #endif
+            }
         }
     }
     if ( !begin && !inBroadCast) {
