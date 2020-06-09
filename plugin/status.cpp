@@ -187,9 +187,6 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name,
                 Continue(FileName);
             }
         }
-#ifdef DEBUGMEM
-    memList();
-#endif
     }
 }
 
