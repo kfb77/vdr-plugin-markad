@@ -683,7 +683,7 @@ void cMarkAdStandalone::CheckStart() {
 
     if (!begin) {    // try anything
         marks.DelTill(1);    // we do not want to have a start mark at position 0
-        begin=marks.GetAround(iStartA+delta,iStartA,MT_START,0x0F);
+        begin=marks.GetAround(iStartA+3*delta,iStartA,MT_START,0x0F);
         if (begin) {
             dsyslog("cMarkAdStandalone::CheckStart(): found start mark at (%i)", begin->position);
         }
