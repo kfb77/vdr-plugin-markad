@@ -37,10 +37,14 @@ void memFree(int size, int line, char *file, char *var) {
     dsyslog("markad: debugmem  free %5d bytes, sum %5d bytes, line %4d, file %s, variable: %s", size, memUseSum, line, file, var);
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
        if ((memLine->size == size) && (strcmp(memLine->file, file) == 0) && (strcmp(memLine->var, var) == 0)) {  // try file match
+           free(memLine->file);
+           free(memLine->var);
            memUseVector.erase(memLine);
            return;
        }
        if ((memLine->size == size) && (strcmp(memLine->var, var) == 0)) {  // try all files
+           free(memLine->file);
+           free(memLine->var);
            memUseVector.erase(memLine);
            return;
        }
@@ -77,8 +81,10 @@ char *memListSVDR() {
 
 
 void memClear() {
+    for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
+       free(memLine->file);
+       free(memLine->var);
+    }
     memUseVector.clear();
 }
-
-
 #endif

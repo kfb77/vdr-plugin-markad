@@ -38,10 +38,14 @@ void memFree(int size, int line, char *file, char *var) {
     dsyslog("debugmem  free %7d bytes, sum %7d bytes, line %4d, file %s, variable: %s", size, memUseSum, line, file, var);
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
        if ((memLine->size == size) && (strcmp(memLine->file, file) == 0) && (strcmp(memLine->var, var) == 0)) {  // try file match
+           free(memLine->file);
+           free(memLine->var);
            memUseVector.erase(memLine);
            return;
        }
        if ((memLine->size == size) && (strcmp(memLine->var, var) == 0)) {  // try all files
+           free(memLine->file);
+           free(memLine->var);
            memUseVector.erase(memLine);
            return;
        }
@@ -55,6 +59,8 @@ void memList() {
     dsyslog("debugmem unmachted alloc start ----------------------------------------------------------------");
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
         dsyslog("debugmem unmachted alloc %7d bytes, line %4d, file %s, variable: %s", memLine->size, memLine->line, memLine->file, memLine->var);
+        free(memLine->file);
+        free(memLine->var);
     }
     dsyslog("debugmem unmachted alloc end ------------------------------------------------------------------");
     memUseVector.clear();
