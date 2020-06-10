@@ -264,7 +264,10 @@ int cOSDMessage::Send(const char *format, ...) {
     if (msg) free(msg);
     va_list ap;
     va_start(ap, format);
-    if (vasprintf(&msg,format,ap)==-1) return -1;
+    if (vasprintf(&msg,format,ap)==-1) {
+        va_end(ap);
+        return -1;
+    }
     ALLOC(strlen(msg)+1, "msg");
     va_end(ap);
 
