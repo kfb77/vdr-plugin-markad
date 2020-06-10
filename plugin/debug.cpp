@@ -10,9 +10,11 @@
 #include <stdlib.h>
 #include <cstring>
 #include <vector>
+#include <pthread.h>
 
 #include "debug.h"
 #include <vdr/plugin.h>
+
 
 int memUseSum = 0;
 struct memUse {
@@ -23,27 +25,33 @@ struct memUse {
     int count = 0;
 };
 std::vector<memUse> memUseVector;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 void memAlloc(int size, int line, char *file, char *var) {
+    pthread_mutex_lock(&mutex);
     memUseSum += size;
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
         if ((memLine->size == size) && (strcmp(memLine->file, file) == 0) && (strcmp(memLine->var, var) == 0)) {
             memLine->count++;
+            pthread_mutex_unlock(&mutex);
             return;
         }
     }
     memUseVector.push_back({size, line, strdup(file), strdup(var), 1});
+    pthread_mutex_unlock(&mutex);
     return;
 }
 
 
 void memFree(int size, int line, char *file, char *var) {
+    pthread_mutex_lock(&mutex);
     memUseSum -= size;
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
         if ((memLine->size == size) && (strcmp(memLine->file, file) == 0) && (strcmp(memLine->var, var) == 0)) {  // try file match
             if (memLine->count <= 0) break;
             memLine->count--;
+            pthread_mutex_unlock(&mutex);
             return;
         }
     }
@@ -51,25 +59,30 @@ void memFree(int size, int line, char *file, char *var) {
         if ((memLine->size == size) && (strcmp(memLine->var, var) == 0)) {  // try all files
             if (memLine->count <= 0) continue;
             memLine->count--;
+            pthread_mutex_unlock(&mutex);
             return;
         }
     }
     dsyslog("markad: debugmem unmachted free %5d bytes, line %4d, file %s, variable: %s", size, line, file, var);
+    pthread_mutex_unlock(&mutex);
     return;
 }
 
 
 void memList() {
+    pthread_mutex_lock(&mutex);
     dsyslog("markad: debugmem unmachted alloc start ----------------------------------------------------------------");
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
         if (memLine->count == 0) continue;
         dsyslog("markad: debugmem unmachted alloc %6d times %7d bytes, line %4d, file %s, variable: %s", memLine->count, memLine->size, memLine->line, memLine->file, memLine->var);
     }
     dsyslog("markad: debugmem unmachted alloc end ------------------------------------------------------------------");
+    pthread_mutex_unlock(&mutex);
 }
 
 
 char *memListSVDR() {
+    pthread_mutex_lock(&mutex);
     char *dump = NULL;
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
         if (memLine->count == 0) continue;
@@ -83,15 +96,18 @@ char *memListSVDR() {
             }
         }
      }
+     pthread_mutex_unlock(&mutex);
      return dump;
 }
 
 
 void memClear() {
+    pthread_mutex_lock(&mutex);
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
        free(memLine->file);
        free(memLine->var);
     }
     memUseVector.clear();
+    pthread_mutex_unlock(&mutex);
 }
 #endif
