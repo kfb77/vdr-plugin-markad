@@ -333,22 +333,21 @@ int cExtractLogo::DeleteBorderFrames(MarkAdContext *maContext, int from, int to)
     for (int corner = 0; corner <= 3; corner++) {
         if (maContext->Config->autoLogo == 1) { // use packed logos
             for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
-                if (abortNow) return deleteCount/4;
+                if (abortNow) return 0;
                 if (( actLogoPacked->iFrameNumber >= from) && ( actLogoPacked->iFrameNumber <= to)) {
                     FREE(sizeof(*actLogoPacked), "logoInfoVectorPacked");
-                    logoInfoVectorPacked[corner].erase(actLogoPacked);
+                    logoInfoVectorPacked[corner].erase(actLogoPacked--);  // "erase" increments the iterator, "for" also does, that is 1 to much
                     deleteCount++;
-                    actLogoPacked--;  // "erase" increments the iterator, "for" also does, that is 1 to much
                 }
             }
         }
         if (maContext->Config->autoLogo == 2){  // use unpacked logos
             for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
+                if (abortNow) return 0;
                 if (( actLogo->iFrameNumber >= from) && ( actLogo->iFrameNumber <= to)) {
                     FREE(sizeof(*actLogo), "logoInfoVector");
-                    logoInfoVector[corner].erase(actLogo);
+                    logoInfoVector[corner].erase(actLogo--);    // "erase" increments the iterator, "for" also does, that is 1 to much
                     deleteCount++;
-                    actLogo--;  // "erase" increments the iterator, "for" also does, that is 1 to much
                 }
             }
         }
