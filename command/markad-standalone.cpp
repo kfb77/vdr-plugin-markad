@@ -613,6 +613,7 @@ void cMarkAdStandalone::CheckStart() {
                     marks.Del(MT_VBORDERSTART);
                     marks.Del(MT_VBORDERSTOP);
                     begin = hStart;   // found valid horizontal border start mark
+                    macontext.Video.Options.ignoreVborder = true;
                 }
             }
         }
@@ -651,6 +652,7 @@ void cMarkAdStandalone::CheckStart() {
                     marks.Del(MT_HBORDERSTART);
                     marks.Del(MT_HBORDERSTOP);
                     begin = vStart;   // found valid horizontal border start mark
+                    macontext.Video.Options.ignoreHborder = true;
                 }
             }
 
