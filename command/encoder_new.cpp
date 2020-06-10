@@ -234,6 +234,8 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     char *pos = strrchr(recPath, '/');
     if (!pos) {
         dsyslog("cEncoder::OpenFile(): faild to find last '/'");
+        FREE(strlen(recPath)+1, "recPath");
+        free(recPath);
         return false;
     }
     pos++;    // ignore first char = /
