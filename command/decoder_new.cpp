@@ -289,7 +289,6 @@ int cDecoder::GetVideoRealFrameRate() {
 
 bool cDecoder::GetNextFrame() {
     if (!avctx) return false;
-    int64_t pts_time_ms=0;
     iFrameData.Valid=false;
     av_packet_unref(&avpkt);
     if (av_read_frame(avctx, &avpkt) == 0 ) {
@@ -305,7 +304,7 @@ bool cDecoder::GetNextFrame() {
                      if (avpkt.pts != AV_NOPTS_VALUE) {   // store a iframe number pts index
                          int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
                          if ( tmp_pts < 0 ) { tmp_pts += 0x200000000; }   // libavodec restart at 0 if pts greater than 0x200000000
-                         pts_time_ms=tmp_pts*av_q2d(avctx->streams[avpkt.stream_index]->time_base)*100;
+                         int64_t pts_time_ms=tmp_pts*av_q2d(avctx->streams[avpkt.stream_index]->time_base)*100;
                          iFrameInfo newFrameInfo;
                          newFrameInfo.fileNumber=fileNumber;
                          newFrameInfo.iFrameNumber=framenumber;
