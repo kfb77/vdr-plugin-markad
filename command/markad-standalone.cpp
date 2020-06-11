@@ -3478,7 +3478,6 @@ void freedir(void) {
 
 
 int main(int argc, char *argv[]) {
-    int c;
     bool bAfter=false,bEdited=false;
     bool bFork=false,bNice=false,bImmediateCall=false;
     int niceLevel = 19;
@@ -3553,10 +3552,10 @@ int main(int argc, char *argv[]) {
             {0, 0, 0, 0}
         };
 
-        c = getopt_long  (argc, argv, "bd:i:l:p:r:vBGIL:ORT:V", long_options, &option_index);
-        if (c == -1) break;
+        int option = getopt_long  (argc, argv, "bd:i:l:p:r:vBGIL:ORT:V", long_options, &option_index);
+        if (option == -1) break;
 
-        switch (c) {
+        switch (option) {
             case 'b':
                 // --background
                 bFork = SYSLOG = true;
@@ -3782,7 +3781,7 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             default:
-                printf ("? getopt returned character code 0%o ? (option_index %d)\n", c,option_index);
+                printf ("? getopt returned character code 0%o ? (option_index %d)\n", option,option_index);
         }
     }
 
