@@ -476,23 +476,20 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
 
 
 bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
-    if (!avpktOut) return false;
-    if (!ptr_cDecoder) return false;
+    if (!avctxOut ) {
+        dsyslog("cEncoder::WritePacket(): got no AVFormatContext from output file");
+        return false;
+    }
+    if (!ptr_cDecoder ) {
+        dsyslog("cEncoder::WritePacket(): got no ptr_cDecoder from output file");
+        return false;
+    }
 
     AVPacket avpktAC3;
     av_init_packet(&avpktAC3);
     AVFrame *avFrame = NULL;
     avpktAC3.data = NULL;
     avpktAC3.size = 0;
-
-    if (! avctxOut ) {
-        dsyslog("cEncoder::WritePacket(): got no AVFormatContext from output file");
-        return false;
-    }
-    if (! ptr_cDecoder ) {
-        dsyslog("cEncoder::WritePacket(): got no ptr_cDecoder from output file");
-        return false;
-    }
 
     if (avpktOut->dts == AV_NOPTS_VALUE) {
          dsyslog("cEncoder::WritePacket(): frame (%ld) got no dts value from input stream %i", ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index);
