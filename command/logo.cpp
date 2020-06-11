@@ -364,14 +364,11 @@ bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecode
     char *indexFile = NULL;
     if (recordingFrameCount > (ptr_cDecoder->GetFrameNumber()+200)) return true; // we have already found enougt frames
 
-    if (asprintf(&indexFile,"%s/index",maContext->Config->recDir)==-1) indexFile=NULL;
-    ALLOC(strlen(indexFile)+1, "indexFile");
-    if (!indexFile) {
-        dsyslog("cExtractLogo::isRunningRecording(): no index file info");
-        FREE(strlen(indexFile)+1, "indexFile");
-        free(indexFile);
+    if (asprintf(&indexFile,"%s/index",maContext->Config->recDir)==-1) {
+        dsyslog("cExtractLogo::isRunningRecording(): out of memory in asprintf");
         return false;
     }
+    ALLOC(strlen(indexFile)+1, "indexFile");
     struct stat indexStatus;
     if (stat(indexFile,&indexStatus)==-1) {
         dsyslog("cExtractLogo::isRunningRecording(): failed to stat %s",indexFile);
