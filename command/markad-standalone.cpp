@@ -1305,7 +1305,7 @@ bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2, int N
     if (!*Mark1) return false;
 
     int pn; // process number 1=start mark, 2=before mark, 3=after mark
-    if (Mark1 && Mark2) {
+    if (Mark2) {
         if (!(*Mark1) || !(*Mark2)) return false;
         if (*Mark1==*Mark2) pn=mSTART;
         if (*Mark1!=*Mark2) pn=mAFTER;
