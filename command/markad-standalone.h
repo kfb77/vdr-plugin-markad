@@ -118,9 +118,7 @@ class cMarkAdStandalone {
     cMarkAdAudio *audio;
     cMarkAdStreamInfo *streaminfo;
     cOSDMessage *osd;
-
     AvPacket pkt;
-
     MarkAdContext macontext;
 
     char title[80],*ptitle;
@@ -155,25 +153,25 @@ class cMarkAdStandalone {
     bool bIgnoreTimerInfo;
     bool bLiveRecording;
 
-    time_t startTime;  // starttime of broadcast
-    int length;        // length of broadcast in seconds
-    int tStart;        // pretimer in seconds
-    int iStart;        // pretimer in frames (negative if unset)
-    int iStop;         // endposition in frames (negative if unset)
-    int iStartA;       // assumed startposition in frames
-    int iStopA;        // assumed endposition in frames (negative if unset)
+    time_t startTime = 0;  // starttime of broadcast
+    int length = 0;        // length of broadcast in seconds
+    int tStart = 0;        // pretimer in seconds
+    int iStart = 0;        // pretimer in frames (negative if unset)
+    int iStop = 0;         // endposition in frames (negative if unset)
+    int iStartA = 0;       // assumed startposition in frames
+    int iStopA = 0;        // assumed endposition in frames (negative if unset)
     bool iStopinBroadCast = false;    // in broadcast @ iStop position?
-    void CheckStop();
-    void CheckStart();
-    void CalculateCheckPositions(int startframe);
     int chkSTART;
     int chkSTOP;
-    int skipped;       // skipped bytes in whole file
     bool inBroadCast;  // are we in a broadcast (or ad)?
+    int skipped;       // skipped bytes in whole file
     char *indexFile;
     int sleepcnt;
     clMarks marks;
 
+    void CheckStop();
+    void CheckStart();
+    void CalculateCheckPositions(int startframe);
     time_t GetBroadcastStart(time_t start, int fd);
     void SaveFrame(int Frame);
     char *IndexToHMSF(int Index);
