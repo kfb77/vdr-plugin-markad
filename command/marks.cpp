@@ -167,6 +167,7 @@ void clMarks::Del(clMark *Mark) {
             last=Mark->Prev();
         }
     }
+    FREE(sizeof(*Mark), "mark");
     delete Mark;
     count--;
 }
@@ -265,10 +266,10 @@ clMark *clMarks::Add(int Type, int Position,const char *Comment) {
         if (Type > newmark->type){   // keep the stronger mark
             if ((newmark->comment) && (Comment))
             {
-                FREE(strlen(newmark->comment)+1, "newmark->comment");
+                FREE(strlen(newmark->comment)+1, "comment");
                 free(newmark->comment);
                 newmark->comment=strdup(Comment);
-                ALLOC(strlen(newmark->comment)+1, "newmark->comment");
+                ALLOC(strlen(newmark->comment)+1, "comment");
             }
             newmark->type=Type;
         }
@@ -277,6 +278,7 @@ clMark *clMarks::Add(int Type, int Position,const char *Comment) {
 
     newmark=new clMark(Type, Position,Comment);
     if (!newmark) return NULL;
+    ALLOC(sizeof(*newmark), "mark");
 
     if (!first) {
         //first element
