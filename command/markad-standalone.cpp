@@ -1296,7 +1296,7 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
 
 
 #if !defined ONLY_WITH_CDECODER
-bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2,int Number, off_t Offset, int Frame, int Frames) {
+bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2, int Number, off_t Offset, int Frame, int Frames) {
     if (!directory) return false;
     if (!Number) return false;
     if (!Frames) return false;

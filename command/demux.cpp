@@ -203,44 +203,38 @@ int cPaketQueue::findpktheader(int start, int *streamsize,int *headersize, bool 
     return i-3;
 }
 
+
 int cPaketQueue::findaudioheader(int start, int *framesize, int *headersize, bool ac3)
 {
     if ((!framesize) || (!headersize)) return -1;
     if (!start) start=outptr;
     if (start>=inptr) return -1;
     (*framesize)=0;
-    if (ac3)
-    {
+    if (ac3) {
         (*headersize)=2;
     }
-    else
-    {
+    else {
         (*headersize)=3;
     }
     int i;
 
-    if (scanner!=0xFFFFFFFF)
-    {
+    if (scanner!=0xFFFFFFFF) {
         scanner<<=8;
         scanner|=buffer[start++];
     }
-    else
-    {
+    else {
         scanner<<=8;
         scanner|=buffer[start++];
         scanner<<=8;
         scanner|=buffer[start++];
     }
 
-    for (i=start; i<inptr; i++)
-    {
+    for (i=start; i<inptr; i++) {
 
-        if (ac3)
-        {
+        if (ac3) {
             if ((scanner & 0x0000FFFF)==0xB77L) break;
         }
-        else
-        {
+        else {
             if ((scanner & 0x0000FFE0)==0xFFE0L) break;
         }
 
@@ -251,16 +245,13 @@ int cPaketQueue::findaudioheader(int start, int *framesize, int *headersize, boo
 
     i-=2;
 
-    if (ac3)
-    {
+    if (ac3) {
         struct AC3HDR *ac3hdr = (struct AC3HDR *) &buffer[i];
 
         if (ac3hdr->SampleRateIndex==3) return -1; // reserved
         if (ac3hdr->FrameSizeIndex>=38) return -1; // reserved
 
-        if (framesize)
-        {
-            int bitRatesAC3[3][38] =   // all values are specified as kbits/s
+        int bitRatesAC3[3][38] =   // all values are specified as kbits/s
             {
                 { 64, 64, 80, 80, 96, 96, 112, 112, 128, 128, 160, 160, 192, 192,
                     224, 224, 256, 256, 320, 320, 384, 384, 448, 448, 512, 512,
@@ -275,12 +266,10 @@ int cPaketQueue::findaudioheader(int start, int *framesize, int *headersize, boo
                   768, 960, 960, 1152, 1152, 1344, 1344, 1536, 1536, 1728, 1728, 1920,1920 }  // 32kHz
             };
 
-            *framesize=2*bitRatesAC3[ac3hdr->SampleRateIndex][ac3hdr->FrameSizeIndex];
-        }
+        *framesize=2*bitRatesAC3[ac3hdr->SampleRateIndex][ac3hdr->FrameSizeIndex];
         return i;
     }
-    else
-    {
+    else {
         struct MP2HDR *mp2hdr = (struct MP2HDR *) &buffer[i];
         if (mp2hdr->MpegID==1) return -1; // reserved
         if (mp2hdr->Layer==0) return -1; // reserved
@@ -288,37 +277,33 @@ int cPaketQueue::findaudioheader(int start, int *framesize, int *headersize, boo
         if (mp2hdr->SampleRateIndex==3) return -1; //reserved
         if (mp2hdr->Emphasis==2) return -1; // reserved
 
-        if (framesize)
-        {
-            int samplingFrequencies[3][4] =   // all values are specified in Hz
-            {
+        if (framesize) {
+            int samplingFrequencies[3][4] = {  // all values are specified in Hz
                 { 44100, 48000, 32000, -1 }, // MPEG 1
                 { 22050, 24000, 16000, -1 }, // MPEG 2
                 { 32000, 16000,  8000, -1 }  // MPEG 2.5
             };
 
 
-            int slots_per_frame[3][3] =
-            {
+            int slots_per_frame[3][3] = {
                 { 12, 144, 144 }, // MPEG 1, Layer I, II, III
                 { 12, 144,  72 },  // MPEG 2, Layer I, II, III
                 { 12, 144,  72 }  // MPEG 2.5, Layer I, II, III
             };
 
             int mpegIndex;
-            switch (mp2hdr->MpegID)
-            {
-            case 0:
-                mpegIndex=2;
-                break;
-            case 2:
-                mpegIndex=1;
-                break;
-            case 3:
-                mpegIndex=0;
-                break;
-            default:
-                mpegIndex=0; // just to get rid of compiler warnings ;)
+            switch (mp2hdr->MpegID) {
+                case 0:
+                    mpegIndex=2;
+                    break;
+                case 2:
+                    mpegIndex=1;
+                    break;
+                case 3:
+                    mpegIndex=0;
+                    break;
+                default:
+                    mpegIndex=0; // just to get rid of compiler warnings ;)
             }
             int layerIndex = 3 - mp2hdr->Layer;
 
@@ -328,8 +313,7 @@ int cPaketQueue::findaudioheader(int start, int *framesize, int *headersize, boo
 
             if (mp2hdr->BitRateIndex == 0)
                 *framesize = 0; // "free" Bitrate -> we don't support this!
-            else
-            {
+            else {
                 int bitRates[3][3][16] =   // all values are specified as kbits/s
                 {
                     {
@@ -358,6 +342,7 @@ int cPaketQueue::findaudioheader(int start, int *framesize, int *headersize, boo
         return i;
     }
 }
+
 
 int cPaketQueue::FindTSHeader(int Start)
 {
@@ -648,7 +633,6 @@ bool cTS2Pkt::Process(uchar *TSData, int TSSize, AvPacket *Pkt)
                 esyslog("sequence error %i->%i (0x%04x)",counter,tshdr->Counter,pid);
             }
             Clear(Pkt);
-//	    dsyslog("---queue->Skipped() %i", queue->Skipped());
             skipped+=queue->Skipped();
             if (!tshdr->PayloadStart)
             {

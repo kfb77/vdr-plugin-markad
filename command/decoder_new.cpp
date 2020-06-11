@@ -527,10 +527,8 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                 int sample_aspect_ratio_den = avFrame->sample_aspect_ratio.den;
                 if ((sample_aspect_ratio_num == 0) || (sample_aspect_ratio_den == 0)) {
                     dsyslog("cDecoder::GetFrameInfo(): invalid aspect ratio (%i:%i) at frame (%li)", sample_aspect_ratio_num, sample_aspect_ratio_den, framenumber);
-                    if (avFrame) {
-                        FREE(sizeof(*avFrame), "avFrame");
-                        av_frame_free(&avFrame);
-                    }
+                    FREE(sizeof(*avFrame), "avFrame");
+                    av_frame_free(&avFrame);
                     return false;
                 }
                 if ((sample_aspect_ratio_num == 1) && (sample_aspect_ratio_den == 1)) {
@@ -541,10 +539,8 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                     }
                     else {
                         dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio to video width %i hight %i at frame %li)",avFrame->width,avFrame->height,framenumber);
-                        if (avFrame) {
-                            FREE(sizeof(*avFrame), "avFrame");
-                            av_frame_free(&avFrame);
-                        }
+                        FREE(sizeof(*avFrame), "avFrame");
+                        av_frame_free(&avFrame);
                         return false;
                     }
                 }
