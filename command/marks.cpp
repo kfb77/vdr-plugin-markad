@@ -186,8 +186,8 @@ clMark *clMarks::Get(int Position) {
 
 
 clMark *clMarks::GetAround(int Frames, int Position, int Type, int Mask) {
-    clMark *m1=GetPrev(Position,Type,Mask);
-    clMark *m2=GetNext(Position,Type,Mask);
+    clMark *m1 = GetPrev(Position,Type,Mask);
+    clMark *m2 = GetNext(Position,Type,Mask);
     clMark *m3 = NULL;
 
     if (!m1 && !m2) return NULL;
@@ -197,20 +197,26 @@ clMark *clMarks::GetAround(int Frames, int Position, int Type, int Mask) {
     if (m3 && (m3->position == Position)) return m3;
 
     if (!m1 && m2) {
-        if (abs(Position-m2->position)>Frames) return NULL;
+        if (abs(Position - m2->position) > Frames) return NULL;
         else return m2;
     }
     if (m1 && !m2) {
-        if (abs(Position-m1->position)>Frames) return NULL;
+        if (abs(Position - m1->position) > Frames) return NULL;
         return m1;
     }
-    if (abs(m1->position-Position)>abs(m2->position-Position)) {
-        if (abs(Position-m2->position)>Frames) return NULL;
-        else return m2;
+    if (m1 && m2) {
+        if (abs(m1->position - Position) > abs(m2->position - Position)) {
+            if (abs(Position - m2->position) > Frames) return NULL;
+            else return m2;
+        }
+        else {
+            if (abs(Position - m1->position) > Frames) return NULL;
+            return m1;
+        }
     }
     else {
-        if (abs(Position-m1->position)>Frames) return NULL;
-        return m1;
+        dsyslog("clMarks::GetAround(): invalid marks found");
+	return NULL;
     }
 }
 
