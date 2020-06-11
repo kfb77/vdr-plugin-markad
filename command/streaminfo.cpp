@@ -728,47 +728,45 @@ void cBitStream::skipBits(uint32_t n)
     index += n;
 }
 
-uint32_t cBitStream::getUeGolomb()
-{
-    int n = 0;
 
+uint32_t cBitStream::getUeGolomb() {
+    int n = 0;
     while (!getBit() && (n < 32))
         n++;
 
     return (n ? ((1 << n) - 1) + getBits(n) : 0);
 }
 
-int32_t cBitStream::getSeGolomb()
-{
-    uint32_t r = getUeGolomb() + 1;
 
+int32_t cBitStream::getSeGolomb() {
+    uint32_t r = getUeGolomb() + 1;
     return ((r & 1) ? -(r >> 1) : (r >> 1));
 }
 
-void cBitStream::skipGolomb()
-{
-    int n = 0;
 
+void cBitStream::skipGolomb() {
+    int n = 0;
     while (!getBit() && (n < 32))
         n++;
 
     skipBits(n);
 }
 
-void cBitStream::skipUeGolomb()
-{
+
+void cBitStream::skipUeGolomb() {
     skipGolomb();
 }
 
-void cBitStream::skipSeGolomb()
-{
+
+void cBitStream::skipSeGolomb() {
     skipGolomb();
 }
 
-void cBitStream::byteAlign()
-{
+
+/*
+void cBitStream::byteAlign() {
     int n = index % 8;
-
     if (n > 0)
         skipBits(8 - n);
 }
+*/
