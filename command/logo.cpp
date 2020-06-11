@@ -457,13 +457,12 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
     }
     if (startFrame < 0) return false;
 
-    cMarkAdLogo *ptr_Logo = NULL;
     long int iFrameNumber = 0;
     int iFrameCountValid = 0;
     int iFrameCountAll = 0;
     int logoHeight = 0;
     int logoWidth = 0;
-    bool retStatus=true;
+    bool retStatus = true;
 
     MarkAdContext maContextSaveState = {};
     maContextSaveState.Video = maContext->Video;     // save state of calling video context
@@ -471,7 +470,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
 
     cDecoder *ptr_cDecoder = new cDecoder(maContext->Config->threads);
     ALLOC(sizeof(*ptr_cDecoder), "ptr_cDecoder");
-    ptr_Logo = new cMarkAdLogo(maContext);
+    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext);
     ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
     cMarkAdBlackBordersHoriz *hborder=new cMarkAdBlackBordersHoriz(maContext);
     ALLOC(sizeof(*hborder), "hborder");
