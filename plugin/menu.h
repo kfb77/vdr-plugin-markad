@@ -9,20 +9,19 @@
 
 #include "status.h"
 
-class cOsdMarkAd : public cOsdItem
-{
+
+class cOsdMarkAd : public cOsdItem {
 private:
     struct recs *entry;
 public:
-    cOsdMarkAd(struct recs *Entry);
-    struct recs *GetEntry()
-    {
+    explicit cOsdMarkAd(struct recs *Entry);
+    struct recs *GetEntry() {
         return entry;
     }
 };
 
-class cMenuMarkAd : public cOsdMenu
-{
+
+class cMenuMarkAd : public cOsdMenu {
 private:
     cStatusMarkAd *status;
     void SetHelpText(struct recs *Entry);
@@ -30,8 +29,7 @@ private:
     time_t last;
     int lastpos;
 public:
-    cMenuMarkAd(cStatusMarkAd *Status);
+    explicit cMenuMarkAd(cStatusMarkAd *Status);
     eOSState ProcessKey(eKeys Key);
 };
-
 #endif
