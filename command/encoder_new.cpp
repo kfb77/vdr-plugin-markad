@@ -313,7 +313,7 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
 bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, const unsigned int streamIndex, AVCodecContext *avCodecCtxIn) {
     if(!ptr_cDecoder) return false;
     if (!avctxIn) return false;
-    if ((streamIndex < 0) || (streamIndex >= avctxIn->nb_streams)) {
+    if (streamIndex >= avctxIn->nb_streams) {
         dsyslog("cEncoder::ChangeEncoderCodec(): streamindex %d out of range", streamIndex);
         return false;
     }
@@ -382,7 +382,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
     if (!ptr_cDecoder) return false;
     if (!avctxIn) return false;
     if (!avctxOut) return false;
-    if ((streamIndex < 0) || (streamIndex >= avctxIn->nb_streams)) {
+    if (streamIndex >= avctxIn->nb_streams) {
         dsyslog("cEncoder::ChangeEncoderCodec(): streamindex %d out of range", streamIndex);
         return false;
     }

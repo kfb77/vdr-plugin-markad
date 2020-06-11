@@ -1005,7 +1005,7 @@ int cDemux::checkts(uchar *data, int count, int &pid)
 
     struct TSHDR *tshdr = (struct TSHDR *) data;
     pid = (tshdr->PidH << 8) | tshdr->PidL;
-    if ((tshdr->AFC<=0) || (tshdr->AFC>3)) return 1;
+    if (tshdr->AFC>3) return 1;
 
     return 0;
 }

@@ -629,7 +629,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
 
 bool cDecoder::isVideoStream(const unsigned int streamIndex) {
     if (!avctx) return false;
-    if ((streamIndex < 0) || (streamIndex >= avctx->nb_streams)) {
+    if (streamIndex >= avctx->nb_streams) {
         dsyslog("cDecoder::isVideoStream(): streamindex %d out of range", streamIndex);
         return false;
     }
@@ -656,7 +656,7 @@ bool cDecoder::isVideoPacket() {
 
 bool cDecoder::isAudioStream(const unsigned int streamIndex) {
     if (!avctx) return false;
-    if ((streamIndex < 0) || (streamIndex >= avctx->nb_streams)) {
+    if (streamIndex >= avctx->nb_streams) {
         dsyslog("cDecoder::isAudioStream(): streamindex %d out of range", streamIndex);
         return false;
     }
@@ -682,7 +682,7 @@ bool cDecoder::isAudioPacket() {
 
 bool cDecoder::isAudioAC3Stream(const unsigned int streamIndex) {
     if (!avctx) return false;
-    if ((streamIndex < 0) || (streamIndex >= avctx->nb_streams)) {
+    if (streamIndex >= avctx->nb_streams) {
         dsyslog("cDecoder::isAudioAC3Stream(): streamindex %d out of range", streamIndex);
         return false;
     }
