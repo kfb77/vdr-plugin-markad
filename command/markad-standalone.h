@@ -117,39 +117,31 @@ class cMarkAdStandalone {
     cOSDMessage *osd;
     AvPacket pkt;
     MarkAdContext macontext;
-
-    char title[80],*ptitle;
-
+    char title[80];
+    char *ptitle;
     bool CreatePidfile();
     void RemovePidfile();
     bool duplicate; // are we a dup?
-
     bool isTS;
     bool isREEL;
     int MaxFiles;
-
     int lastiframe;
     int iframe;
-
     int framecnt;
     int framecnt2; // 2nd pass
-
     bool gotendmark;
     int waittime;
     int iwaittime;
     struct timeval tv1,tv2;
     struct timezone tz;
-
     bool noticeVDR_VID;
     bool noticeVDR_AC3;
     bool noticeHEADER;
     bool noticeFILLER;
-
     bool bDecodeVideo;
     bool bDecodeAudio;
     bool bIgnoreTimerInfo;
     bool bLiveRecording;
-
     time_t startTime = 0;  // starttime of broadcast
     int length = 0;        // length of broadcast in seconds
     int tStart = 0;        // pretimer in seconds
@@ -202,11 +194,78 @@ class cMarkAdStandalone {
 public:
     cMarkAdStandalone(const char *Directory, const MarkAdConfig *config);
     ~cMarkAdStandalone();
-#if !defined ONLY_WITH_CDECODER
-    void Process();
-#endif
+    cMarkAdStandalone(const cMarkAdStandalone &origin) {
+        strcpy(title,origin.title);
+        ptitle = title;
+        directory = origin.directory;
+        video = NULL;
+        audio = NULL;
+        osd = NULL;
+        duplicate = origin.duplicate,
+        isTS = origin.isTS;
+        isREEL = origin.isREEL;
+        MaxFiles = origin.MaxFiles;
+        lastiframe = origin.lastiframe;
+        iframe = origin.iframe;
+        framecnt = origin.framecnt;
+        framecnt2 = origin.framecnt2;
+        gotendmark = origin.gotendmark;
+        waittime = origin.waittime;
+        iwaittime = origin.iwaittime;
+        noticeVDR_VID = origin.noticeVDR_VID;
+        noticeVDR_AC3 = origin.noticeVDR_AC3;
+        noticeHEADER = origin.noticeHEADER;
+        noticeFILLER = origin.noticeFILLER;
+        bDecodeVideo = origin.bDecodeVideo;
+        bDecodeAudio = origin.bDecodeAudio;
+        bIgnoreTimerInfo = origin.bIgnoreTimerInfo;
+        bLiveRecording = origin.bLiveRecording;
+        chkSTART = origin.chkSTART;
+        chkSTOP = origin.chkSTOP;
+        inBroadCast = origin.inBroadCast;
+        skipped = origin.skipped;
+        indexFile = origin.indexFile;
+        sleepcnt = origin.sleepcnt;
+    };
+    cMarkAdStandalone &operator =(const cMarkAdStandalone *origin) {
+        strcpy(title,origin->title);
+        ptitle = title;
+        directory = origin->directory;
+        video = NULL;
+        audio = NULL;
+        osd = NULL;
+        duplicate = origin->duplicate,
+        isTS = origin->isTS;
+        isREEL = origin->isREEL;
+        MaxFiles = origin->MaxFiles;
+        lastiframe = origin->lastiframe;
+        iframe = origin->iframe;
+        framecnt = origin->framecnt;
+        framecnt2 = origin->framecnt2;
+        gotendmark = origin->gotendmark;
+        waittime = origin->waittime;
+        iwaittime = origin->iwaittime;
+        noticeVDR_VID = origin->noticeVDR_VID;
+        noticeVDR_AC3 = origin->noticeVDR_AC3;
+        noticeHEADER = origin->noticeHEADER;
+        noticeFILLER = origin->noticeFILLER;
+        bDecodeVideo = origin->bDecodeVideo;
+        bDecodeAudio = origin->bDecodeAudio;
+        bIgnoreTimerInfo = origin->bIgnoreTimerInfo;
+        bLiveRecording = origin->bLiveRecording;
+        chkSTART = origin->chkSTART;
+        chkSTOP = origin->chkSTOP;
+        inBroadCast = origin->inBroadCast;
+        skipped = origin->skipped;
+        indexFile = origin->indexFile;
+        sleepcnt = origin->sleepcnt;
+        return *this;
+    }
     void Process_cDecoder();
     void Process2ndPass();
     void MarkadCut();
+#if !defined ONLY_WITH_CDECODER
+    void Process();
+#endif
 };
 #endif
