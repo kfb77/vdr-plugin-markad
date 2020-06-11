@@ -35,34 +35,35 @@ struct setup
     const char *PluginName;
 };
 
-class cSetupMarkAd : public cMenuSetupPage
-{
-private:
-    const char *processTexts[3];
-    const char *autoLogoTexts[3];
-    struct setup *setup;
-    int autologomenue;
-    int processduring;
-    int whilerecording;
-    int whilereplaying;
-    int osdmsg;
-    int verbose;
-    int genindex;
-    int nomargins;
-    int secondpass;
-    int hidemainmenuentry;
-    int log2rec;
-    int logoonly;
-    int saveinfo;
-    int deferredshutdown;
-    void write(void);
-    int lpos;
-protected:
-    virtual void Store(void);
-public:
-    cSetupMarkAd(struct setup *Setup);
-    eOSState ProcessKey(eKeys Key);
+
+class cSetupMarkAd : public cMenuSetupPage {
+    private:
+        const char *processTexts[3];
+        const char *autoLogoTexts[3];
+        struct setup *setup;
+        int autologomenue;
+        int processduring;
+        int whilerecording;
+        int whilereplaying;
+        int osdmsg;
+        int verbose;
+        int genindex;
+        int nomargins;
+        int secondpass;
+        int hidemainmenuentry;
+        int log2rec;
+        int logoonly;
+        int saveinfo;
+        int deferredshutdown;
+        void write(void);
+       int lpos;
+    protected:
+        virtual void Store(void);
+    public:
+        explicit cSetupMarkAd(struct setup *Setup);
+        eOSState ProcessKey(eKeys Key);
 };
+
 
 class cSetupMarkAdList : public cOsdMenu
 {
