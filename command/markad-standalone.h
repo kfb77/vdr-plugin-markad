@@ -180,7 +180,7 @@ class cMarkAdStandalone {
     bool SaveInfo();
     bool SetFileUID(char *File);
 #if !defined ONLY_WITH_CDECODER
-    cDemux *demux;
+    cDemux *demux = NULL;
     cMarkAdDecoder *decoder;
     cMarkAdStreamInfo *streaminfo;
     bool RegenerateIndex();
@@ -226,6 +226,11 @@ public:
         skipped = origin.skipped;
         indexFile = origin.indexFile;
         sleepcnt = origin.sleepcnt;
+#if !defined ONLY_WITH_CDECODER
+        demux = NULL;
+        decoder = NULL;
+        streaminfo = NULL;
+#endif
     };
     cMarkAdStandalone &operator =(const cMarkAdStandalone *origin) {
         strcpy(title,origin->title);
@@ -259,6 +264,11 @@ public:
         skipped = origin->skipped;
         indexFile = origin->indexFile;
         sleepcnt = origin->sleepcnt;
+#if !defined ONLY_WITH_CDECODER
+        demux = NULL;
+        decoder = NULL;
+        streaminfo = NULL;
+#endif
         return *this;
     }
     void Process_cDecoder();
