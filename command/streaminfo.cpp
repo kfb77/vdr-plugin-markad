@@ -284,42 +284,37 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                     bs.skipBits(8);                  // matrix_coefficients
                 }
             }
-            if (bs.getBit())                       // chroma_loc_info_present_flag
-            {
+            if (bs.getBit()) {                      // chroma_loc_info_present_flag
                 bs.skipUeGolomb();                  // chroma_sample_loc_type_top_field
                 bs.skipUeGolomb();                  // chroma_sample_loc_type_bottom_field
             }
-            if (bs.getBit())                       // timing_info_present_flag
-            {
+            if (bs.getBit()) {                      // timing_info_present_flag
                 uint32_t num_units_in_tick, time_scale;
                 num_units_in_tick = bs.getU32();    // num_units_in_tick
                 time_scale        = bs.getU32();    // time_scale
                 double frame_rate=0;
-                if (num_units_in_tick > 0)
-                {
+                if (num_units_in_tick > 0) {
                     frame_rate = time_scale / num_units_in_tick;
                     if (frame_mbs_only_flag) {
                         frame_rate/=2;
-                    } else {
+                    }
+                    else {
                         if (pic_order_cnt_type!=2) frame_rate/=2;
                     }
                 }
-                bool fixedframerate=false;
-                fixedframerate=bs.getBit();                       // fixed_frame_rate_flag
+                bool fixedframerate = bs.getBit();                       // fixed_frame_rate_flag
                 if ((fixedframerate==1) && (frame_rate!=0)) {
                     maContext->Video.Info.FramesPerSecond=frame_rate;
                 }
             }
 #if 0
             int nal_hrd_parameters_present_flag = bs.getBit(); // nal_hrd_parameters_present_flag
-            if (nal_hrd_parameters_present_flag)
-            {
+            if (nal_hrd_parameters_present_flag) {
                 int cpb_cnt_minus1;
                 cpb_cnt_minus1 = bs.getUeGolomb();  // cpb_cnt_minus1
                 bs.skipBits(4);                     // bit_rate_scale
                 bs.skipBits(4);                     // cpb_size_scale
-                for (int i = 0; i <= cpb_cnt_minus1; i++)
-                {
+                for (int i = 0; i <= cpb_cnt_minus1; i++) {
                     bs.skipUeGolomb();              // bit_rate_value_minus1[i]
                     bs.skipUeGolomb();              // cpb_size_value_minus1[i]
                     bs.skipBit();                   // cbr_flag[i]
@@ -330,14 +325,12 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
                 bs.skipBits(5);                     // time_offset_length
             }
             int vlc_hrd_parameters_present_flag = bs.getBit(); // vlc_hrd_parameters_present_flag
-            if (vlc_hrd_parameters_present_flag)
-            {
+            if (vlc_hrd_parameters_present_flag) {
                 int cpb_cnt_minus1;
                 cpb_cnt_minus1 = bs.getUeGolomb(); // cpb_cnt_minus1
                 bs.skipBits(4);                    // bit_rate_scale
                 bs.skipBits(4);                    // cpb_size_scale
-                for (int i = 0; i <= cpb_cnt_minus1; i++)
-                {
+                for (int i = 0; i <= cpb_cnt_minus1; i++) {
                     bs.skipUeGolomb();             // bit_rate_value_minus1[i]
                     bs.skipUeGolomb();             // cpb_size_value_minus1[i]
                     bs.skipBit();                  // cbr_flag[i]
@@ -351,8 +344,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
             if (cpb_dpb_delays_present_flag)
                 bs.skipBit();                       // low_delay_hrd_flag
             bs.skipBit();                           // pic_struct_present_flag
-            if (bs.getBit())                       // bitstream_restriction_flag
-            {
+            if (bs.getBit())                       // bitstream_restriction_flag {
                 bs.skipBit();                       // motion_vectors_over_pic_boundaries_flag
                 bs.skipUeGolomb();                  // max_bytes_per_pic_denom
                 bs.skipUeGolomb();                  // max_bits_per_mb_denom
@@ -364,8 +356,7 @@ bool cMarkAdStreamInfo::FindH264VideoInfos(MarkAdContext *maContext, uchar *pkt,
 #endif
         }
 
-        if  ((bs.getIndex() / 8)>0)
-        {
+        if  ((bs.getIndex() / 8)>0) {
             // set values
             maContext->Video.Info.Interlaced=!frame_mbs_only_flag;
             maContext->Video.Info.Width=width;
