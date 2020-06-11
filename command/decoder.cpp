@@ -475,11 +475,11 @@ bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
     avpkt.size=plen;
 
     // decode video
-    int video_frame_ready=0;
-    int len,ret=false;
+    int video_frame_ready = 0;
+    bool ret = false;
 
-    while (avpkt.size>0)
-    {
+    while (avpkt.size>0) {
+        int len=0;
 #if LIBAVCODEC_VERSION_INT < ((52<<16)+(25<<8)+0)
         len=avcodec_decode_video(video_context,video_frame,&video_frame_ready,avpkt.data,avpkt.size);
 #elif LIBAVCODEC_VERSION_INT < ((57<<16)+(64<<8)+101)
@@ -503,23 +503,19 @@ bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
             video_frame_ready = true;
         }
 #endif
-        if (len<0)
-        {
-            if (!noticeERRVID)
-            {
+        if (len<0) {
+            if (!noticeERRVID) {
                 esyslog("error decoding video");
                 noticeERRVID=true;
                 addPkt=false;
             }
             break;
         }
-        else
-        {
+        else {
             avpkt.size-=len;
             avpkt.data+=len;
         }
-        if (video_frame_ready)
-        {
+        if (video_frame_ready) {
             if (SetVideoInfos(maContext,video_context,video_frame)) ret=true;
         }
         if (!len) break;
