@@ -65,12 +65,12 @@ class cSetupMarkAd : public cMenuSetupPage {
 };
 
 
-class cSetupMarkAdList : public cOsdMenu
-{
+class cSetupMarkAdList : public cOsdMenu {
 public:
-    cSetupMarkAdList(struct setup *Setup);
+    explicit cSetupMarkAdList(struct setup *Setup);
     eOSState ProcessKey(eKeys Key);
 };
+
 
 class cSetupMarkAdListItem : public cOsdItem
 {
