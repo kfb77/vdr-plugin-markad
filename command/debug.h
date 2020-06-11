@@ -22,14 +22,13 @@ extern void syslog_with_tid(int priority, const char *format, ...) __attribute__
 
 
 #ifdef DEBUGMEM
-#define ALLOC(size, var) memAlloc(size, __LINE__, (char *) __FILE__, (char *) var)
-#define FREE(size, var) memFree(size, __LINE__, (char *) __FILE__, (char *) var)
-void memAlloc(int size, int line, char *file, char *var);
-void memFree(int size, int line, char *file, char *var);
-void memList();
+    #define ALLOC(size, var) memAlloc(size, __LINE__, (char *) __FILE__, (char *) var)
+    #define FREE(size, var) memFree(size, __LINE__, (char *) __FILE__, (char *) var)
+    void memAlloc(int size, int line, char *file, char *var);
+    void memFree(int size, int line, char *file, char *var);
+    void memList();
 #else
-#define ALLOC(size, var)
-#define FREE(size, var)
+    #define ALLOC(size, var)
+    #define FREE(size, var)
 #endif
-
 #endif

@@ -11,7 +11,7 @@
 #include <time.h>
 
 #ifndef uchar
-typedef unsigned char uchar;
+    typedef unsigned char uchar;
 #endif
 
 #define MAXSTREAMS 10
@@ -131,10 +131,8 @@ typedef struct MarkAdContext {
     const MarkAdConfig *Config;
 
     struct Info {
-
         MarkAdAspectRatio AspectRatio;
         short int Channels[MAXSTREAMS] = {0};
-
         char *ChannelName;
         MarkAdPid VPid;
         MarkAdPid APid;
@@ -165,8 +163,7 @@ typedef struct MarkAdContext {
             bool Interlaced=false;
         } Info;
 
-        struct Data
-        {
+        struct Data {
             bool Valid; // flag, if true data is valid
             uchar *Plane[PLANES];  // picture planes (YUV420)
             int PlaneLinesize[PLANES]; // size int bytes of each picture plane line

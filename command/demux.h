@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 #ifndef uchar
-typedef unsigned char uchar;
+    typedef unsigned char uchar;
 #endif
 
 #define PACKET_MASK  0xF0
@@ -203,8 +203,7 @@ class cTS2Pkt {
 // ----------------------------------------------------------------------------
 
 class cPES2ES {
-    enum
-    {
+    enum {
         ERR_INIT,
         ERR_LENGTH,
         ERR_PADDING

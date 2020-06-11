@@ -12,10 +12,10 @@
 #include "global.h"
 
 extern "C"{
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libavformat/avio.h>
-#include <libavutil/file.h>
+    #include <libavcodec/avcodec.h>
+    #include <libavformat/avformat.h>
+    #include <libavformat/avio.h>
+    #include <libavutil/file.h>
 }
 
 #define MINLIBAVCODECVERSION 56
@@ -23,13 +23,13 @@ extern "C"{
 #define AVLOGLEVEL AV_LOG_ERROR
 
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)   // error codes from AC3 parser
-#define AAC_AC3_PARSE_ERROR_SYNC         -0x1030c0a
-#define AAC_AC3_PARSE_ERROR_BSID         -0x2030c0a
-#define AAC_AC3_PARSE_ERROR_SAMPLE_RATE  -0x3030c0a
-#define AAC_AC3_PARSE_ERROR_FRAME_SIZE   -0x4030c0a
-#define AAC_AC3_PARSE_ERROR_FRAME_TYPE   -0x5030c0a
-#define AAC_AC3_PARSE_ERROR_CRC          -0x6030c0a
-#define AAC_AC3_PARSE_ERROR_CHANNEL_CFG  -0x7030c0a
+    #define AAC_AC3_PARSE_ERROR_SYNC         -0x1030c0a
+    #define AAC_AC3_PARSE_ERROR_BSID         -0x2030c0a
+    #define AAC_AC3_PARSE_ERROR_SAMPLE_RATE  -0x3030c0a
+    #define AAC_AC3_PARSE_ERROR_FRAME_SIZE   -0x4030c0a
+    #define AAC_AC3_PARSE_ERROR_FRAME_TYPE   -0x5030c0a
+    #define AAC_AC3_PARSE_ERROR_CRC          -0x6030c0a
+    #define AAC_AC3_PARSE_ERROR_CHANNEL_CFG  -0x7030c0a
 #endif
 
 // libavcodec versions of some distributions
@@ -72,7 +72,6 @@ class cDecoder {
         long int GetIFrameRangeCount(long int beginFrame, long int endFrame);
         long int GetIFrameBefore(long int iFrame);
         long int GetTimeFromIFrame(long int iFrame);
-
     private:
         char *recordingDir = NULL;
         int fileNumber = 0;
