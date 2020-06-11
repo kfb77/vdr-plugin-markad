@@ -479,7 +479,6 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     if (!avpktOut) return false;
     if (!ptr_cDecoder) return false;
 
-    int ret = 0;
     AVPacket avpktAC3;
     av_init_packet(&avpktAC3);
     AVFrame *avFrame = NULL;
@@ -580,8 +579,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
             dsyslog("cEncoder::WritePacket(): number of channels of stream %i changed at frame %ld from %i to %i", avpktOut->stream_index,
                     ptr_cDecoder->GetFrameNumber(), codecCtxArrayOut[avpktOut->stream_index]->channels, codecCtxArrayIn[avpktOut->stream_index]->channels);
 
-            bool ret = ChangeEncoderCodec(ptr_cDecoder, avctxIn, avpktOut->stream_index, codecCtxArrayIn[avpktOut->stream_index]);
-            if ( !ret ) {
+            if( !ChangeEncoderCodec(ptr_cDecoder, avctxIn, avpktOut->stream_index, codecCtxArrayIn[avpktOut->stream_index])) {
                 dsyslog("cEncoder::WritePacket(): InitEncoderCodec failed");
                 if (avFrame) {
                     FREE(sizeof(*avFrame), "avFrame");
@@ -646,11 +644,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         av_write_frame(avctxOut, &avpktAC3);
     }
     else av_write_frame(avctxOut, avpktOut);
-    if (ret < 0) {
-        dsyslog("cEncoder::WritePacket: Error %i writing frame %ld to stream %i", ret, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index);
-        av_packet_unref(&avpktAC3);
-        return false;
-    }
+
     dtsBefore[avpktOut->stream_index]=avpktOut->dts;
     dts[avpktOut->stream_index] += avpktOut->duration;
     av_packet_unref(&avpktAC3);
