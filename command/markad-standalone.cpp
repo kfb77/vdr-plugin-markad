@@ -2236,13 +2236,14 @@ bool cMarkAdStandalone::SaveInfo() {
     for (int i=0; i<MAXSTREAMS; i++) {
         dsyslog("stream %i has %i channels", i, macontext.Info.Channels[i]);
     }
-    int stream_index=0;
+    unsigned int stream_index = 0;
     if (ptr_cDecoder) stream_index++;
     while (getline(&line,&len,r)!=-1) {
         dsyslog("info file line: %s", line);
         if (line[0]=='X') {
-            int stream=0,type=0;
-            char descr[256]="";
+            int stream = 0;
+            unsigned int type = 0;
+            char descr[256] = "";
 
             int result=sscanf(line,"%*c %3i %3X %3c %250c",&stream,&type,(char *) &lang, (char *) &descr);
             if ((result!=0) && (result!=EOF)) {
