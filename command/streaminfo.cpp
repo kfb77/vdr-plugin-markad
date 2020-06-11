@@ -4,6 +4,9 @@
  * See the README file for copyright information and how to reach the author.
  *
  */
+
+#if !defined ONLY_WITH_CDECODER
+
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
@@ -761,3 +764,4 @@ void cBitStream::byteAlign() {
         skipBits(8 - n);
 }
 */
+#endif

@@ -112,11 +112,8 @@ class cMarkAdStandalone {
     static const char frametypes[8];
     const char *directory;
 
-    cDemux *demux;
-    cMarkAdDecoder *decoder;
     cMarkAdVideo *video;
     cMarkAdAudio *audio;
-    cMarkAdStreamInfo *streaminfo;
     cOSDMessage *osd;
     AvPacket pkt;
     MarkAdContext macontext;
@@ -190,8 +187,11 @@ class cMarkAdStandalone {
     bool LoadInfo();
     bool SaveInfo();
     bool SetFileUID(char *File);
-    bool RegenerateIndex();
 #if !defined ONLY_WITH_CDECODER
+    cDemux *demux;
+    cMarkAdDecoder *decoder;
+    cMarkAdStreamInfo *streaminfo;
+    bool RegenerateIndex();
     bool ProcessFile2ndPass(clMark **Mark1, clMark **Mark2, int Number, off_t Offset, int Frame, int Frames);
     bool ProcessFile(int Number);
     void ProcessFile();

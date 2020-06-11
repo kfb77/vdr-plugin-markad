@@ -1615,7 +1615,9 @@ void cMarkAdStandalone::MarkadCut() {
 void cMarkAdStandalone::Process2ndPass() {
     if (abortNow) return;
     if (duplicate) return;
+#if !defined ONLY_WITH_CDECODER
     if (!decoder) return;
+#endif
     if (!length) return;
     if (!startTime) return;
     if (time(NULL)<(startTime+(time_t) length)) return;
@@ -2886,25 +2888,22 @@ bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
 }
 
 
-bool cMarkAdStandalone::RegenerateIndex()
-{
+#if !defined ONLY_WITH_CDECODER
+bool cMarkAdStandalone::RegenerateIndex() {
     if (!directory) return false;
     // rename index[.vdr].generated -> index[.vdr]
     char *oldpath,*newpath;
     if (asprintf(&oldpath,"%s/index%s.generated",directory,
                  isTS ? "" : ".vdr")==-1) return false;
     ALLOC(strlen(oldpath)+1, "oldpath");
-    if (asprintf(&newpath,"%s/index%s",directory,isTS ? "" : ".vdr")==-1)
-    {
+    if (asprintf(&newpath,"%s/index%s",directory,isTS ? "" : ".vdr")==-1) {
         free(oldpath);
         return false;
     }
     ALLOC(strlen(newpath)+1, "newpath");
 
-    if (rename(oldpath,newpath)!=0)
-    {
-        if (errno!=ENOENT)
-        {
+    if (rename(oldpath,newpath)!=0) {
+        if (errno!=ENOENT) {
             free(oldpath);
             free(newpath);
             return false;
@@ -2914,6 +2913,8 @@ bool cMarkAdStandalone::RegenerateIndex()
     free(newpath);
     return true;
 }
+#endif
+
 
 bool cMarkAdStandalone::CreatePidfile() {
     char *buf=NULL;
@@ -2986,8 +2987,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     isREEL=false;
 
     indexFile=NULL;
-    streaminfo=NULL;
 #if !defined ONLY_WITH_CDECODER
+    streaminfo=NULL;
     demux=NULL;
     decoder=NULL;
 #endif
@@ -3201,10 +3202,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 #if !defined ONLY_WITH_CDECODER
         demux=new cDemux(macontext.Info.VPid.Num,macontext.Info.DPid.Num,macontext.Info.APid.Num, macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,true);
         ALLOC(sizeof(*demux), "demux");
-#endif
     }
     else {
         demux=NULL;
+#endif
     }
 
     if (macontext.Info.APid.Num) {
@@ -3291,6 +3292,10 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         FREE(sizeof(*decoder), "decoder");
         delete decoder;
     }
+    if (streaminfo) {
+        FREE(sizeof(*streaminfo), "streaminfo");
+        delete streaminfo;
+    }
 #endif
     if (video) {
         FREE(sizeof(*video), "video");
@@ -3299,10 +3304,6 @@ cMarkAdStandalone::~cMarkAdStandalone() {
     if (audio) {
         FREE(sizeof(*audio), "audio");
         delete audio;
-    }
-    if (streaminfo) {
-        FREE(sizeof(*streaminfo), "streaminfo");
-        delete streaminfo;
     }
     if (osd) {
         FREE(sizeof(*osd), "osd");

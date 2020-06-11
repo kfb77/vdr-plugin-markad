@@ -5,6 +5,8 @@
  *
  */
 
+#if !defined ONLY_WITH_CDECODER
+
 #include <string.h>
 #include "demux.h"
 extern "C"
@@ -1385,3 +1387,4 @@ int cDemux::Process(uchar *Data, int Count, AvPacket *pkt)
     }
     return add ? readout : 0;
 }
+#endif
