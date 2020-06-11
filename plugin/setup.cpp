@@ -161,24 +161,19 @@ void cSetupMarkAd::Store(void)
 #define CHNUMWIDTH (numdigits(Channels.MaxNumber())+1)
 #endif
 
-cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup)
-        :cOsdMenu("",CHNUMWIDTH)
-{
+cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup) :cOsdMenu("",CHNUMWIDTH) {
     SetTitle(cString::sprintf("%s - %s '%s' %s",trVDR("Setup"),trVDR("Plugin"),Setup->PluginName,tr("list")));
     SetHelp(NULL,NULL,NULL,tr("back"));
 
     DIR *dir=opendir(Setup->LogoDir);
     if (!dir) return;
     struct dirent *dirent;
-    while (dirent=readdir(dir))
-    {
+    while (dirent=readdir(dir)) {
         if (dirent->d_name[0]=='.') continue;
-        if (strstr(dirent->d_name,"-P0.pgm"))
-        {
+        if (strstr(dirent->d_name,"-P0.pgm")) {
             char *name=strdup(dirent->d_name);
-            ALLOC(strlen(name)+1, "name");
-            if (name)
-            {
+            if (name) {
+                ALLOC(strlen(name)+1, "name");
                 char *m=strchr(name,'-');
                 if (m) *m=0;
 
@@ -190,20 +185,16 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup)
                 for (cChannel *channel = Channels.First(); channel; channel = Channels.Next(channel))
 #endif
                     {
-                        if (channel->Name())
-                        {
+                        if (channel->Name()) {
                             char *cname=strdup(channel->Name());
-                            ALLOC(strlen(cname)+1, "cname");
-                            if (cname)
-                            {
-                                for (int i=0; i<(int) strlen(cname); i++)
-                                {
+                            if (cname) {
+                                ALLOC(strlen(cname)+1, "cname");
+                                for (int i=0; i<(int) strlen(cname); i++) {
                                     if (cname[i]==' ') cname[i]='_';
                                     if (cname[i]=='.') cname[i]='_';
                                     if (cname[i]=='/') cname[i]='_';
                                 }
-                                if (!strcmp(name,cname))
-                                {
+                                if (!strcmp(name,cname)) {
                                     Add(new cSetupMarkAdListItem(cString::sprintf("%i\t%s",channel->Number(),channel->Name())));
                                     FREE(strlen(cname)+1, "cname");
                                     free(cname);
