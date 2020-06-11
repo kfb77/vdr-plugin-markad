@@ -23,8 +23,8 @@
 #define LOGO_VMARK 0.5    // percantage of pixels for visible
 #define LOGO_IMARK 0.15   // percentage of pixels for invisible
 
-enum
-{
+
+enum {
     LOGO_ERROR=-3,
     LOGO_UNINITIALIZED=-2,
     LOGO_INVISIBLE=-1,
@@ -32,22 +32,19 @@ enum
     LOGO_VISIBLE=1
 };
 
-enum
-{
+enum {
     BLACKSCREEN_UNINITIALIZED=-2,
     BLACKSCREEN_INVISIBLE=-1,
     BLACKSCREEN_VISIBLE=1
 };
 
-enum
-{
+enum {
     HBORDER_UNINITIALIZED=-2,
     HBORDER_INVISIBLE=-1,
     HBORDER_VISIBLE=1
 };
 
-enum
-{
+enum {
     VBORDER_UNINITIALIZED=-2,
     VBORDER_INVISIBLE=-1,
     VBORDER_VISIBLE=1
@@ -55,8 +52,7 @@ enum
 
 #define MINBORDERSECS 60
 
-enum
-{
+enum {
     OV_BEFORE=0,
     OV_AFTER=1
 };
@@ -83,162 +79,138 @@ typedef struct {
 } areaT;
 
 
-class cMarkAdOverlap
-{
-private:
-    MarkAdContext *macontext;
-    typedef int simpleHistogram[256];
+class cMarkAdOverlap {
+    private:
+        MarkAdContext *macontext;
+        typedef int simpleHistogram[256];
+        typedef struct {
+            int framenumber;
+            simpleHistogram histogram;
+        } histbuffer;
+        histbuffer *histbuf[2];
+        int histcnt[2];
+        int histframes[2];
 
-    typedef struct
-    {
-        int framenumber;
-        simpleHistogram histogram;
-    } histbuffer;
-    histbuffer *histbuf[2];
-    int histcnt[2];
-    int histframes[2];
-
-    int lastframenumber;
-
-    MarkAdPos result;
-
-    int similarCutOff;
-    int similarMaxCnt;
-    bool areSimilar(simpleHistogram &hist1, simpleHistogram &hist2);
-    void getHistogram(simpleHistogram &dest);
-    MarkAdPos *Detect();
-    void Clear();
-public:
-    cMarkAdOverlap(MarkAdContext *maContext);
-    ~cMarkAdOverlap();
-    MarkAdPos *Process(int FrameNumber, int Frames, bool BeforeAd, bool H264);
+        int lastframenumber;
+        MarkAdPos result;
+        int similarCutOff;
+        int similarMaxCnt;
+        bool areSimilar(simpleHistogram &hist1, simpleHistogram &hist2);
+        void getHistogram(simpleHistogram &dest);
+        MarkAdPos *Detect();
+        void Clear();
+    public:
+        explicit cMarkAdOverlap(MarkAdContext *maContext);
+        ~cMarkAdOverlap();
+        MarkAdPos *Process(int FrameNumber, int Frames, bool BeforeAd, bool H264);
 };
 
-class cMarkAdLogo
-{
-private:
 
-    enum
-    {
-        TOP_LEFT,
-        TOP_RIGHT,
-        BOTTOM_LEFT,
-        BOTTOM_RIGHT
-    };
-
-    int LOGOHEIGHT; // max. 140
-    int LOGOWIDTH; // 192-288
-
-    areaT area;
-
-    int GX[3][3];
-    int GY[3][3];
-
-    MarkAdContext *macontext;
-    bool pixfmt_info;
-    int SobelPlane(int plane); // do sobel operation on plane
-    int Load(const char *directory, const char *file, const int plane);
-    void Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int plane);
-public:
-    cMarkAdLogo(MarkAdContext *maContext);
-    int Detect(int framenumber, int *logoframenumber); // ret 1 = logo, 0 = unknown, -1 = no logo
-    int Process(int FrameNumber, int *LogoFrameNumber);
-    int Status()
-    {
-        return area.status;
-    }
-    void SetStatusLogoInvisible()
-    {
-        if (area.status==LOGO_VISIBLE)
-            area.status=LOGO_INVISIBLE;
-    }
-    void SetStatusUninitialized()
-    {
-        if (area.status!=LOGO_UNINITIALIZED)
-            area.status=LOGO_UNINITIALIZED;
-    }
-    void Clear();
-    areaT *GetArea();
+class cMarkAdLogo {
+    private:
+        enum {
+            TOP_LEFT,
+            TOP_RIGHT,
+            BOTTOM_LEFT,
+            BOTTOM_RIGHT
+        };
+        int LOGOHEIGHT; // max. 140
+        int LOGOWIDTH; // 192-288
+        areaT area;
+        int GX[3][3];
+        int GY[3][3];
+        MarkAdContext *macontext;
+        bool pixfmt_info;
+        int SobelPlane(int plane); // do sobel operation on plane
+        int Load(const char *directory, const char *file, const int plane);
+        void Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int plane);
+    public:
+        explicit cMarkAdLogo(MarkAdContext *maContext);
+        int Detect(int framenumber, int *logoframenumber); // ret 1 = logo, 0 = unknown, -1 = no logo
+        int Process(int FrameNumber, int *LogoFrameNumber);
+        int Status() {
+            return area.status;
+        }
+        void SetStatusLogoInvisible() {
+            if (area.status==LOGO_VISIBLE) area.status=LOGO_INVISIBLE;
+        }
+        void SetStatusUninitialized() {
+            if (area.status!=LOGO_UNINITIALIZED) area.status=LOGO_UNINITIALIZED;
+        }
+        void Clear();
+        areaT *GetArea();
 };
 
-class cMarkAdBlackScreen
-{
-private:
-    int blackScreenstatus;
-    MarkAdContext *macontext;
-public:
-    cMarkAdBlackScreen(MarkAdContext *maContext);
-    int Process(int FrameNumber,int *BlackFrameNumber);
-    void Clear();
+
+class cMarkAdBlackScreen {
+    private:
+        int blackScreenstatus;
+        MarkAdContext *macontext;
+    public:
+        explicit cMarkAdBlackScreen(MarkAdContext *maContext);
+        int Process(int FrameNumber,int *BlackFrameNumber);
+        void Clear();
 };
 
-class cMarkAdBlackBordersHoriz
-{
-private:
-    int borderstatus;
-    int borderframenumber;
-    MarkAdContext *macontext;
-public:
-    cMarkAdBlackBordersHoriz(MarkAdContext *maContext);
-    int Process(int FrameNumber,int *BorderFrameNumber);
-    int Status()
-    {
-        return borderstatus;
-    }
-    void SetStatusBorderInvisible() {
-        borderstatus=HBORDER_INVISIBLE;
-        borderframenumber=-1;
-    }
-    void Clear();
+
+class cMarkAdBlackBordersHoriz {
+    private:
+        int borderstatus;
+        int borderframenumber;
+        MarkAdContext *macontext;
+    public:
+        explicit cMarkAdBlackBordersHoriz(MarkAdContext *maContext);
+        int Process(int FrameNumber,int *BorderFrameNumber);
+        int Status() {
+            return borderstatus;
+        }
+        void SetStatusBorderInvisible() {
+            borderstatus=HBORDER_INVISIBLE;
+            borderframenumber=-1;
+        }
+        void Clear();
 };
 
-class cMarkAdBlackBordersVert
-{
-private:
-    int borderstatus;
-    int borderframenumber;
-    MarkAdContext *macontext;
-public:
-    cMarkAdBlackBordersVert(MarkAdContext *maContext);
-    int Process(int FrameNumber,int *BorderFrameNumber);
-    int Status()
-    {
-        return borderstatus;
-    }
-    void SetStatusBorderInvisible() {
-        borderstatus=VBORDER_INVISIBLE;
-        borderframenumber=-1;
-    }
-    void Clear();
+
+class cMarkAdBlackBordersVert {
+    private:
+        int borderstatus;
+        int borderframenumber;
+        MarkAdContext *macontext;
+    public:
+        explicit cMarkAdBlackBordersVert(MarkAdContext *maContext);
+        int Process(int FrameNumber,int *BorderFrameNumber);
+        int Status() {
+            return borderstatus;
+        }
+        void SetStatusBorderInvisible() {
+            borderstatus=VBORDER_INVISIBLE;
+            borderframenumber=-1;
+        }
+        void Clear();
 };
 
-class cMarkAdVideo
-{
-private:
-    MarkAdContext *macontext;
-    MarkAdMarks marks;
 
-    MarkAdAspectRatio aspectratio;
-    cMarkAdBlackScreen *blackScreen;
-    cMarkAdBlackBordersHoriz *hborder;
-    cMarkAdBlackBordersVert *vborder;
-    cMarkAdLogo *logo;
-    cMarkAdOverlap *overlap;
-
-    void resetmarks();
-    bool addmark(int type, int position, MarkAdAspectRatio *before=NULL,
-                 MarkAdAspectRatio *after=NULL);
-    bool aspectratiochange(MarkAdAspectRatio &a, MarkAdAspectRatio &b, bool &start);
-
-    int framelast;
-    int framebeforelast;
-
-public:
-    cMarkAdVideo(MarkAdContext *maContext);
-    ~cMarkAdVideo();
-    MarkAdPos *ProcessOverlap(int FrameNumber, int Frames, bool BeforeAd, bool H264);
-    MarkAdMarks *Process(int FrameNumber, int FrameNumberNext);
-    void Clear(bool isRestart);
+class cMarkAdVideo {
+    private:
+        MarkAdContext *macontext;
+        MarkAdMarks marks;
+        MarkAdAspectRatio aspectratio;
+        cMarkAdBlackScreen *blackScreen;
+        cMarkAdBlackBordersHoriz *hborder;
+        cMarkAdBlackBordersVert *vborder;
+        cMarkAdLogo *logo;
+        cMarkAdOverlap *overlap;
+        void resetmarks();
+        bool addmark(int type, int position, MarkAdAspectRatio *before=NULL, MarkAdAspectRatio *after=NULL);
+        bool aspectratiochange(MarkAdAspectRatio &a, MarkAdAspectRatio &b, bool &start);
+        int framelast;
+        int framebeforelast;
+    public:
+        explicit cMarkAdVideo(MarkAdContext *maContext);
+        ~cMarkAdVideo();
+        MarkAdPos *ProcessOverlap(int FrameNumber, int Frames, bool BeforeAd, bool H264);
+        MarkAdMarks *Process(int FrameNumber, int FrameNumberNext);
+        void Clear(bool isRestart);
 };
-
 #endif

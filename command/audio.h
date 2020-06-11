@@ -10,22 +10,21 @@
 
 #include "global.h"
 
-class cMarkAdAudio
-{
-private:
-    MarkAdContext *macontext;
 
-    MarkAdMark mark;
-    void resetmark();
-    void setmark(int type, int position, int channelsbefore, int channelsafter);
-    short int channels[MAXSTREAMS] = {0};
-    bool channelchange(int a, int b);
-    int framelast;
-public:
-    cMarkAdAudio(MarkAdContext *maContext);
-    ~cMarkAdAudio();
-    MarkAdMark *Process(int FrameNumber, int FrameNumberBefore);
-    void Clear();
+class cMarkAdAudio {
+    private:
+        MarkAdContext *macontext;
+        MarkAdMark mark;
+        int framelast;
+        short int channels[MAXSTREAMS] = {0};
+
+        void resetmark();
+        void setmark(int type, int position, int channelsbefore, int channelsafter);
+        bool channelchange(int a, int b);
+    public:
+        explicit cMarkAdAudio(MarkAdContext *maContext);
+        ~cMarkAdAudio();
+        MarkAdMark *Process(int FrameNumber, int FrameNumberBefore);
+        void Clear();
 };
-
 #endif

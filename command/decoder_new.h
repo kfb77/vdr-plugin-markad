@@ -41,10 +41,9 @@ extern "C"{
 // #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(1<<8)+0)       Rasbian Jessie
 
 
-class cDecoder
-{
+class cDecoder {
     public:
-        cDecoder(int threads);
+        explicit cDecoder(int threads);
         ~cDecoder();
         bool DecodeDir(const char * recDir);
         void Reset();
@@ -85,8 +84,7 @@ class cDecoder
         long int framenumber=-1;
         long int iFrameCount=0;
         int64_t pts_time_ms_LastFile=0;
-        struct iFrameInfo
-        {
+        struct iFrameInfo {
             int fileNumber=0;
             long int iFrameNumber=0;
             int64_t pts_time_ms=0;
