@@ -216,7 +216,7 @@ clMark *clMarks::GetAround(int Frames, int Position, int Type, int Mask) {
     }
     else {
         dsyslog("clMarks::GetAround(): invalid marks found");
-	return NULL;
+        return NULL;
     }
 }
 
@@ -379,8 +379,10 @@ void clMarks::RemoveGeneratedIndex(const char *Directory, bool isTS) {
     free(ipath);
     return;
 }
+#endif
 
 
+#if !defined ONLY_WITH_CDECODER
 bool clMarks::ReadIndex(const char *Directory, bool isTS, int FrameNumber, int Range, int *Number, off_t *Offset,  int *Frame, int *iFrames) {
     if (!Offset) return false;
     if (!Number) return false;
@@ -472,8 +474,10 @@ bool clMarks::ReadIndex(const char *Directory, bool isTS, int FrameNumber, int R
     if (!*iFrames) return false;
     return true;
 }
+#endif
 
 
+#if !defined ONLY_WITH_CDECODER
 void clMarks::WriteIndex(bool isTS, uint64_t Offset, int FrameType, int Number) {
     if (indexfd==-1) return;
     if (isTS) {
@@ -493,8 +497,10 @@ void clMarks::WriteIndex(bool isTS, uint64_t Offset, int FrameType, int Number) 
         if (write(indexfd,&IndexVDR,sizeof(IndexVDR))!=sizeof(IndexVDR)) return;
     }
 }
+#endif
 
 
+#if !defined ONLY_WITH_CDECODER
 void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset, int FrameType, int Number) {
     if (indexfd==-1) {
         char *ipath=NULL;
@@ -508,13 +514,14 @@ void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset, int 
     WriteIndex(isTS,Offset,FrameType,Number);
     return;
 }
+#endif
 
 
+#if !defined ONLY_WITH_CDECODER
 void clMarks::CloseIndex(const char *Directory, bool isTS) {
     if (indexfd==-1) return;
 
-    if (getuid()==0 || geteuid()!=0)
-    {
+    if (getuid()==0 || geteuid()!=0) {
         // if we are root, set fileowner to owner of 001.vdr/00001.ts file
         char *spath=NULL;
         if (asprintf(&spath,"%s/%s",Directory,isTS ? "00001.ts" : "001.vdr")!=-1) {
@@ -530,8 +537,10 @@ void clMarks::CloseIndex(const char *Directory, bool isTS) {
     close(indexfd);
     indexfd=-1;
 }
+#endif
 
 
+#if !defined ONLY_WITH_CDECODER
 bool clMarks::CheckIndex(const char *Directory, bool isTS, int *FrameCnt, int *IndexError) {
     if (!IndexError) return false;
     *IndexError=0;

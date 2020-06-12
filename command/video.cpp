@@ -18,6 +18,7 @@ extern "C" {
 #include "video.h"
 #include "logo.h"
 
+
 cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext) {
     macontext=maContext;
 
@@ -57,14 +58,17 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext) {
     Clear();
 }
 
+
 void cMarkAdLogo::Clear() {
     area={};
     area.status=LOGO_UNINITIALIZED;
 }
 
+
 areaT * cMarkAdLogo::GetArea() {
    return &area;
 }
+
 
 int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) {
     if (!directory) return -1;
@@ -906,6 +910,7 @@ cMarkAdVideo::~cMarkAdVideo() {
     if (overlap) delete overlap;
 }
 
+
 void cMarkAdVideo::Clear(bool isRestart) {
     if (! isRestart) {
         aspectratio.Num=0;
@@ -1004,8 +1009,7 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext) {
         }
     }
 
-    if (!macontext->Video.Options.IgnoreAspectRatio)
-    {
+    if (!macontext->Video.Options.IgnoreAspectRatio) {
         bool start;
         if (aspectratiochange(macontext->Video.Info.AspectRatio,aspectratio,start)) {
             if ((logo->Status()==LOGO_VISIBLE) && (!start)) {

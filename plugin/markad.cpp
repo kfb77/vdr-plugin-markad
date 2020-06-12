@@ -388,6 +388,4 @@ cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int
 #endif
     return NULL;
 }
-
-
 VDRPLUGINCREATOR(cPluginMarkAd) // Don't touch this!
