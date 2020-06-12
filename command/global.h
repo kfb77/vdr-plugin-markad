@@ -88,7 +88,9 @@ typedef struct config {
     bool NoPid;
     bool OSD;
     bool Before;
+#if !defined ONLY_WITH_CDECODER
     bool GenIndex;
+#endif
     bool SaveInfo;
 } MarkAdConfig;
 

@@ -1174,9 +1174,10 @@ void cMarkAdStandalone::CheckIndexGrowing()
     do {
         struct stat statbuf;
         if (stat(indexFile,&statbuf)==-1) {
-            if (!macontext.Config->GenIndex) {
+#if !defined ONLY_WITH_CDECODER
+            if (!macontext.Config->GenIndex)
                 esyslog("failed to stat %s",indexFile);
-            }
+#endif
             return;
         }
 
@@ -3355,9 +3356,11 @@ int usage(int svdrpport) {
            "                  increments loglevel by one, can be given multiple times\n"
            "-B              --backupmarks\n"
            "                  make a backup of existing marks\n"
+#if !defined ONLY_WITH_CDECODER
            "-G              --genindex\n"
            "                  regenerate index file\n"
            "                  this functions is depreciated and will be removed in a future version, use vdr --genindex instead\n"
+#endif
            "-I              --saveinfo\n"
            "                  correct information in info file\n"
            "-L              --extractlogo=<direction>[,width[,height]]\n"
@@ -3403,14 +3406,18 @@ int usage(int svdrpport) {
            "                  assumed stop offset in seconds range from 0 to 240\n"
            "                --posttimer=<value> (default is 600)\n"
            "                  additional recording after timer end in seconds range from 0 to 1200\n"
+#if !defined ONLY_WITH_CDECODER
            "                --cDecoder\n"
            "                  use alternative cDecoder class for decoding\n"
+#endif
            "                --cut\n"
            "                  cut vidio based on marks and write it in the recording directory\n"
+#if !defined ONLY_WITH_CDECODER
            "                  requires --cDecoder\n"
+#endif
            "                --ac3reencode\n"
            "                  re-encode AC3 stream to fix low audio level of cutted video on same devices\n"
-           "                  requires --cDecoder and --cut\n"
+           "                  requires --cut\n"
            "                --autologo=<option>\n"
            "                  <option>   0 = disable, only use logos from logo cache directory (default)\n"
            "                             1 = enable, find logo from recording and store it in the recording directory\n"
@@ -3528,7 +3535,9 @@ int main(int argc, char *argv[]) {
             {"verbose", 0, 0, 'v'},
 
             {"backupmarks", 0, 0, 'B'},
+#if !defined ONLY_WITH_CDECODER
             {"genindex",0, 0, 'G'},
+#endif
             {"saveinfo",0, 0, 'I'},
             {"extractlogo", 1, 0, 'L'},
             {"OSD",0,0,'O' },
@@ -3631,10 +3640,12 @@ int main(int argc, char *argv[]) {
                 // --backupmarks
                 config.BackupMarks=true;
                 break;
+#if !defined ONLY_WITH_CDECODER
             case 'G':
                 config.GenIndex=true;
                 fprintf(stderr, "markad: --genindex is depreciated and will be removed in a future version, use vdr --genindex instead\n");
                 break;
+#endif
             case 'I':
                 config.SaveInfo=true;
                 break;
