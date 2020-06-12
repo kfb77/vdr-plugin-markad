@@ -2005,6 +2005,11 @@ void cMarkAdStandalone::ProcessFile_cDecoder() {
             break;
         }
         if(ptr_cDecoder->GetFrameNumber() < 0) {
+            macontext.Info.VPid.Type = ptr_cDecoder->GetVideoType();
+            if (macontext.Info.VPid.Type == 0) {
+                dsyslog("cExtractLogo::SearchLogo(): video type not set");
+                return;
+            }
             macontext.Video.Info.Height=ptr_cDecoder->GetVideoHeight();
             isyslog("video hight: %i", macontext.Video.Info.Height);
 
@@ -2782,6 +2787,7 @@ off_t cMarkAdStandalone::SeekPATPMT()
 }
 
 
+#if !defined ONLY_WITH_CDECODER
 bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
 {
     if (Offset<(off_t) 0) return false;
@@ -2872,9 +2878,7 @@ bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
                 break;
             case 0x6:
                 if (es) {
-#if !defined ONLY_WITH_CDECODER
                     if (es->Descriptor_Tag==0x6A) macontext.Info.DPid.Num=pid;
-#endif
                 }
                 break;
             case 0x1b:
@@ -2887,7 +2891,7 @@ bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
     }
     return true;
 }
-
+#endif
 
 #if !defined ONLY_WITH_CDECODER
 bool cMarkAdStandalone::RegenerateIndex() {
@@ -3124,11 +3128,13 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
             }
         } while (pos==(off_t) -2);
 
+#if !defined ONLY_WITH_CDECODER
         if (!CheckPATPMT(pos)) {
             esyslog("no PAT/PMT found (%i) -> cannot process",(int) pos);
             abortNow=true;
             return;
         }
+#endif
         if (asprintf(&indexFile,"%s/index",Directory)==-1) indexFile=NULL;
         ALLOC(strlen(indexFile)+1, "indexFile");
     }

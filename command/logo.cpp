@@ -469,9 +469,9 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
     ALLOC(sizeof(*ptr_cDecoder), "ptr_cDecoder");
     cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext);
     ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
-    cMarkAdBlackBordersHoriz *hborder=new cMarkAdBlackBordersHoriz(maContext);
+    cMarkAdBlackBordersHoriz *hborder = new cMarkAdBlackBordersHoriz(maContext);
     ALLOC(sizeof(*hborder), "hborder");
-    cMarkAdBlackBordersVert *vborder=new cMarkAdBlackBordersVert(maContext);
+    cMarkAdBlackBordersVert *vborder = new cMarkAdBlackBordersVert(maContext);
     ALLOC(sizeof(*vborder), "vborder");
     areaT *area = ptr_Logo->GetArea();
 
@@ -480,18 +480,23 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
         return false;
     }
     while(ptr_cDecoder->DecodeDir(maContext->Config->recDir)) {
-        maContext->Video.Info.Height=ptr_cDecoder->GetVideoHeight();
+        maContext->Info.VPid.Type = ptr_cDecoder->GetVideoType();
+        if (maContext->Info.VPid.Type == 0) {
+            dsyslog("cExtractLogo::SearchLogo(): video type not set");
+            return false;
+        }
+        maContext->Video.Info.Height = ptr_cDecoder->GetVideoHeight();
         dsyslog("cExtractLogo::SearchLogo(): video height: %i", maContext->Video.Info.Height);
         maContext->Video.Info.Width=ptr_cDecoder->GetVideoWidth();
         dsyslog("cExtractLogo::SearchLogo(): video width: %i", maContext->Video.Info.Width);
 
         if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) {
-        logoHeight=LOGO_DEFHDHEIGHT;
-        logoWidth=LOGO_DEFHDWIDTH;
+            logoHeight=LOGO_DEFHDHEIGHT;
+            logoWidth=LOGO_DEFHDWIDTH;
         }
         else if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262) {
-        logoHeight=LOGO_DEFHEIGHT;
-        logoWidth=LOGO_DEFWIDTH;
+            logoHeight=LOGO_DEFHEIGHT;
+            logoWidth=LOGO_DEFWIDTH;
         }
         else dsyslog("cExtractLogo::SearchLogo(): maContext->Info.VPid.Type %i not valid", maContext->Info.VPid.Type);
 

@@ -170,7 +170,6 @@ class cMarkAdStandalone {
     void CheckIndexGrowing();
     bool CheckVDRHD();
     off_t SeekPATPMT();
-    bool CheckPATPMT(off_t Offset=0);
     bool CheckTS();
     bool CheckLogo();
     void CheckMarks();
@@ -180,6 +179,7 @@ class cMarkAdStandalone {
     bool SaveInfo();
     bool SetFileUID(char *File);
 #if !defined ONLY_WITH_CDECODER
+    bool CheckPATPMT(off_t Offset=0);
     cDemux *demux = NULL;
     cMarkAdDecoder *decoder;
     cMarkAdStreamInfo *streaminfo;

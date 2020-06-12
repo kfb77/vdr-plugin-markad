@@ -44,6 +44,7 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext) {
     GY[2][1] = -2;
     GY[2][2] = -1;
 
+#if !defined ONLY_WITH_CDECODER     // with cDecoder we set this later after open the first file
     if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) {
         LOGOHEIGHT=LOGO_DEFHDHEIGHT;
         LOGOWIDTH=LOGO_DEFHDWIDTH;
@@ -53,6 +54,7 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext) {
         LOGOWIDTH=LOGO_DEFWIDTH;
     }
     else dsyslog("cMarkAdLogo::cMarkAdLogo maContext->Info.VPid.Type %i not valid", maContext->Info.VPid.Type);
+#endif
 
     pixfmt_info=false;
     Clear();
@@ -136,17 +138,27 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
 }
 
 
-void cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int plane) {
-    if (!macontext) return;
-    if ((plane<0) || (plane>3)) return;
-    if (!macontext->Info.ChannelName) return;
-    if (!macontext->Video.Info.Width) return;
-    if (!macontext->Video.Info.Height) return;
-    if (!macontext->Video.Data.Valid) return;
-    if (!macontext->Video.Data.PlaneLinesize[plane]) return;
+bool cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int plane) {
+    if (!macontext) return false;
+    if ((plane<0) || (plane>3)) return false;
+    if (!macontext->Info.ChannelName) return false;
+    if (!macontext->Video.Info.Width) {
+        dsyslog("cMarkAdLogo::Save(): macontext->Video.Info.Width not set");
+        return false;
+    }
+    if (!macontext->Video.Info.Height) {
+        dsyslog("cMarkAdLogo::Save(): macontext->Video.Info.Height not set");
+        return false;
+    }
+    if (!macontext->Video.Data.Valid) return false;
+    if (!macontext->Video.Data.PlaneLinesize[plane]) return false;
+    if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
+        dsyslog("cMarkAdLogo::Save(): LOGOWIDTH or LOGOHEIGHT not set");
+        return false;
+    }
 
     char *buf=NULL;
-    if (asprintf(&buf,"%s/%06d-%s-A%i_%i-P%i.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectratio.Num,area.aspectratio.Den,plane)==-1) return;
+    if (asprintf(&buf,"%s/%06d-%s-A%i_%i-P%i.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectratio.Num,area.aspectratio.Den,plane)==-1) return false;
     ALLOC(strlen(buf)+1, "buf");
 
     // Open file
@@ -154,7 +166,7 @@ void cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int pla
     if (pFile==NULL) {
         FREE(strlen(buf)+1, "buf");
         free(buf);
-        return;
+        return false;
     }
 
     int width=LOGOWIDTH;
@@ -174,6 +186,7 @@ void cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int pla
     fclose(pFile);
     FREE(strlen(buf)+1, "buf");
     free(buf);
+    return true;
 }
 
 
@@ -181,6 +194,22 @@ int cMarkAdLogo::SobelPlane(int plane) {
     if ((plane<0) || (plane>3)) return 0;
     if (!macontext->Video.Data.PlaneLinesize[plane]) return 0;
 
+#if defined ONLY_WITH_CDECODER     // we need a default size for logo extraction, no longer set in constructor
+    if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
+        if (macontext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) {
+            LOGOHEIGHT=LOGO_DEFHDHEIGHT;
+            LOGOWIDTH=LOGO_DEFHDWIDTH;
+        }
+        else if (macontext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262) {
+            LOGOHEIGHT=LOGO_DEFHEIGHT;
+            LOGOWIDTH=LOGO_DEFWIDTH;
+        }
+        else {
+            dsyslog("cMarkAdLogo::cMarkAdLogo macontext->Info.VPid.Type %i not valid", macontext->Info.VPid.Type);
+            return 0;
+        }
+    }
+#endif
     int xstart,xend,ystart,yend;
 
     switch (area.corner) {
@@ -308,7 +337,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
             if (SobelPlane(plane)) processed++;
         }
         if (extract) {
-            Save(framenumber,area.sobel,plane);
+            if (!Save(framenumber,area.sobel,plane)) dsyslog("cMarkAdLogo::Detect(): save logo from frame (%d) failed", framenumber);
         }
         else {
 //            tsyslog("plane %i area.rpixel[plane] %i area.mpixel[plane] %i", plane, area.rpixel[plane], area.mpixel[plane]);
@@ -406,6 +435,8 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
         dsyslog("cMarkAdLogo::Process(): ChannelName missing");
         return LOGO_ERROR;
     }
+
+
     if (macontext->Config->logoExtraction==-1) {
         if ((area.aspectratio.Num!=macontext->Video.Info.AspectRatio.Num) || (area.aspectratio.Den!=macontext->Video.Info.AspectRatio.Den)) {
             dsyslog("cMarkAdLogo::Process(): aspect ratio changed from %i:%i to %i:%i, reload logo", area.aspectratio.Num, area.aspectratio.Den, macontext->Video.Info.AspectRatio.Num, macontext->Video.Info.AspectRatio.Den);
@@ -465,6 +496,22 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
         }
     }
     else {
+#if defined ONLY_WITH_CDECODER     // we need a default size for logo extraction, no longer set in constructor
+        if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
+            if (macontext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) {
+                LOGOHEIGHT=LOGO_DEFHDHEIGHT;
+                LOGOWIDTH=LOGO_DEFHDWIDTH;
+            }
+            else if (macontext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262) {
+                LOGOHEIGHT=LOGO_DEFHEIGHT;
+                LOGOWIDTH=LOGO_DEFWIDTH;
+            }
+            else {
+                dsyslog("cMarkAdLogo::cMarkAdLogo macontext->Info.VPid.Type %i not valid", macontext->Info.VPid.Type);
+                return LOGO_ERROR;
+            }
+        }
+#endif
         area.aspectratio.Num=macontext->Video.Info.AspectRatio.Num;
         area.aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
         area.corner=macontext->Config->logoExtraction;

@@ -6,7 +6,7 @@
  */
 
 #include "decoder_new.h"
-extern "C"{
+extern "C" {
 #include "debug.h"
 }
 
@@ -200,6 +200,41 @@ bool cDecoder::DecodeFile(const char * filename) {
     }
     msgDecodeFile=false;
     return true;
+}
+
+
+int cDecoder::GetVideoType() {
+    if (!avctx) return 0;
+    for (unsigned int i = 0; i < avctx->nb_streams; i++) {
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
+        if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+            if (avctx->streams[i]->codecpar->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
+                dsyslog("cDecoder::GetVideoType(): found H.262 Video");
+                return MARKAD_PIDTYPE_VIDEO_H262;
+            }
+            if (avctx->streams[i]->codecpar->codec_id == AV_CODEC_ID_H264) {
+                dsyslog("cDecoder::GetVideoType(): found H.264 Video");
+                return MARKAD_PIDTYPE_VIDEO_H264;
+            }
+            dsyslog("cDecoder::GetVideoType(): unknown coded id %i", avctx->streams[i]->codecpar->codec_id);
+            return 0;
+#else
+        if (avctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+            if (avctx->streams[i]->codec->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
+                dsyslog("cDecoder::GetVideoType(): found H.262 Video");
+                return MARKAD_PIDTYPE_VIDEO_H262;
+            }
+            if (avctx->streams[i]->codec->codec_id == AV_CODEC_ID_H264) {
+                dsyslog("cDecoder::GetVideoType(): found H.264 Video");
+                return MARKAD_PIDTYPE_VIDEO_H264;
+            }
+           dsyslog("cDecoder::GetVideoType(): unknown coded id %i", avctx->streams[i]->codec->codec_id);
+            return 0;
+#endif
+        }
+    }
+    dsyslog("cDecoder::GetVideoType(): failed");
+    return 0;
 }
 
 

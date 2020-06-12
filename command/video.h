@@ -114,8 +114,8 @@ class cMarkAdLogo {
             BOTTOM_LEFT,
             BOTTOM_RIGHT
         };
-        int LOGOHEIGHT; // max. 140
-        int LOGOWIDTH; // 192-288
+        int LOGOHEIGHT = 0; // max. 140
+        int LOGOWIDTH = 0; // 192-288
         areaT area;
         int GX[3][3];
         int GY[3][3];
@@ -123,7 +123,7 @@ class cMarkAdLogo {
         bool pixfmt_info;
         int SobelPlane(int plane); // do sobel operation on plane
         int Load(const char *directory, const char *file, const int plane);
-        void Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int plane);
+        bool Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int plane);
     public:
         explicit cMarkAdLogo(MarkAdContext *maContext);
         int Detect(int framenumber, int *logoframenumber); // ret 1 = logo, 0 = unknown, -1 = no logo

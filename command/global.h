@@ -125,8 +125,8 @@ typedef struct MarkAdMarks {
 #define MARKAD_PIDTYPE_AUDIO_MP2  0x21
 
 typedef struct MarkAdPid {
-    int Num=0;
-    int Type=0;
+    int Num = 0;
+    int Type = 0;
 } MarkAdPid;
 
 typedef struct MarkAdContext {

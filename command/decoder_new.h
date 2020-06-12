@@ -50,6 +50,7 @@ class cDecoder {
         AVFormatContext *GetAVFormatContext();
         AVCodecContext **GetAVCodecContext();
         bool DecodeFile(const char * filename);
+        int GetVideoType();
         int GetVideoHeight();
         int GetVideoWidth();
         int GetVideoFramesPerSecond();
