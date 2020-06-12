@@ -1,8 +1,13 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
-2020-xx-xx: Version 2.1.3
+2020-06-12: Version 2.1.3
+- remove support of VDR version 1.x
+- fix memory leak 14 bytes per recording
 - add function to debug heap memory consumption of the plugin
+  uncomment DEBUGMEMPLUGIN=1 in plugin/Makefile
+  show memory usage with svdrpsend PLUG markad DEBUGMEM
+- code optimizations based on ccpcheck output
 - some minor bug fixes and optimizations, see git
 
 2020-06-04: Version 2.1.2
