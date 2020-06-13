@@ -109,7 +109,7 @@ class cMarkAdStandalone {
 
     enum { mSTART=0x1, mBEFORE, mAFTER };
 
-    static const char frametypes[8];
+//    static const char frametypes[8];
     const char *directory;
 
     cMarkAdVideo *video;
@@ -168,8 +168,6 @@ class cMarkAdStandalone {
     bool Reset(bool FirstPass=true);
     void ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos);
     void CheckIndexGrowing();
-    bool CheckVDRHD();
-    off_t SeekPATPMT();
     bool CheckTS();
     bool CheckLogo();
     void CheckMarks();
@@ -179,6 +177,8 @@ class cMarkAdStandalone {
     bool SaveInfo();
     bool SetFileUID(char *File);
 #if !defined ONLY_WITH_CDECODER
+    bool CheckVDRHD();
+    off_t SeekPATPMT();
     bool CheckPATPMT(off_t Offset=0);
     cDemux *demux = NULL;
     cMarkAdDecoder *decoder;

@@ -2715,6 +2715,7 @@ bool cMarkAdStandalone::CheckTS()
 }
 
 
+#if !defined ONLY_WITH_CDECODER
 bool cMarkAdStandalone::CheckVDRHD() {
     char *buf;
     if (asprintf(&buf,"%s/001.vdr",directory)==-1) return false;
@@ -2742,8 +2743,10 @@ bool cMarkAdStandalone::CheckVDRHD() {
     }
     return false;
 }
+#endif
 
 
+#if !defined ONLY_WITH_CDECODER
 off_t cMarkAdStandalone::SeekPATPMT()
 {
     char *buf;
@@ -2785,6 +2788,7 @@ off_t cMarkAdStandalone::SeekPATPMT()
     close(fd);
     return (off_t) -1;
 }
+#endif
 
 
 #if !defined ONLY_WITH_CDECODER
@@ -2980,7 +2984,7 @@ void cMarkAdStandalone::RemovePidfile() {
 }
 
 
-const char cMarkAdStandalone::frametypes[8]={'?','I','P','B','D','S','s','b'};
+// const char cMarkAdStandalone::frametypes[8]={'?','I','P','B','D','S','s','b'};
 
 
 cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *config) {
@@ -3117,6 +3121,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     }
 
     if (isTS) {
+#if !defined ONLY_WITH_CDECODER
         off_t pos;
         int sc=0;
         do {
@@ -3128,7 +3133,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
             }
         } while (pos==(off_t) -2);
 
-#if !defined ONLY_WITH_CDECODER
         if (!CheckPATPMT(pos)) {
             esyslog("no PAT/PMT found (%i) -> cannot process",(int) pos);
             abortNow=true;
@@ -3140,17 +3144,16 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     }
     else {
         macontext.Info.APid.Num=-1;
+        macontext.Info.VPid.Num=-1;
 #if !defined ONLY_WITH_CDECODER
         macontext.Info.DPid.Num=-1;
-#endif
-        macontext.Info.VPid.Num=-1;
-
         if (CheckVDRHD()) {
             macontext.Info.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
         }
         else {
             macontext.Info.VPid.Type=MARKAD_PIDTYPE_VIDEO_H262;
         }
+#endif
         if (asprintf(&indexFile,"%s/index.vdr",Directory)==-1) indexFile=NULL;
         ALLOC(strlen(indexFile)+1, "indexFile");
     }
