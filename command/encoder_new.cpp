@@ -219,32 +219,25 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
         dsyslog("cEncoder::OpenFile(): failed to allocate string, out of memory?");
         return false;
     }
+#ifdef DEBUGMEM
     ALLOC(strlen(buffCutName)+1, "buffCutName");
+    int memsize_buffCutName = strlen(buffCutName)+1;
+#endif
     char *datePart = strrchr(buffCutName, '/');
     if (!datePart) {
         dsyslog("cEncoder::OpenFile(): faild to find last '/'");
         return false;
     }
-    char *recPath = (char *) malloc((strlen(buffCutName) - strlen(datePart) + 1) * sizeof(char));
-    ALLOC((strlen(buffCutName) - strlen(datePart) +1) * sizeof(char), "recPath");
-    strncpy(recPath, buffCutName, strlen(buffCutName) - strlen(datePart));
-    recPath[strlen(buffCutName) - strlen(datePart)] = 0;
-    dsyslog("cEncoder::OpenFile(): recording path: %s", recPath);
-    FREE(strlen(buffCutName)+1, "buffCutName");
-    char *pos = strrchr(recPath, '/');
-    if (!pos) {
+    *datePart = 0;    // cut off date part
+
+    char *cutName = strrchr(buffCutName, '/');
+    if (!cutName) {
         dsyslog("cEncoder::OpenFile(): faild to find last '/'");
-        FREE(strlen(recPath)+1, "recPath");
-        free(recPath);
+        FREE(strlen(buffCutName)+1, "recPath");
+        free(buffCutName);
         return false;
     }
-    pos++;    // ignore first char = /
-    char *cutName = (char *) malloc((strlen(pos) + 1) * sizeof(char));
-    ALLOC((strlen(pos) +1) * sizeof(char), "cutName");
-    strncpy(cutName, pos, strlen(pos));
-    cutName[strlen(pos)] = 0;
-    FREE(strlen(recPath)+1, "recPath");
-    free(recPath);
+    cutName++;   // ignore first char = /
     dsyslog("cEncoder::OpenFile(): cutName '%s'",cutName);
 
     if (asprintf(&filename,"%s/%s.ts", directory, cutName)==-1) {
@@ -252,8 +245,11 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
         return false;
     }
     ALLOC(strlen(filename)+1, "filename");
-    FREE(strlen(cutName)+1, "cutName");
-    free(cutName);
+#ifdef DEBUGMEM
+    FREE(memsize_buffCutName, "buffCutName");
+#endif
+    free(buffCutName);
+    datePart = NULL;
     dsyslog("cEncoder::OpenFile(): write to '%s'", filename);
 
 #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(26<<8)+100)
