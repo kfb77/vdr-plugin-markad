@@ -171,8 +171,8 @@ class cMarkAdStandalone {
     bool LoadInfo();
     bool SaveInfo();
     bool SetFileUID(char *File);
-    int skipped;       // skipped bytes in whole file
 #if !defined ONLY_WITH_CDECODER
+    int skipped;       // skipped bytes in whole file
     struct ES_DESCRIPTOR {
         unsigned Descriptor_Tag: 8;
         unsigned Descriptor_Length: 8;
@@ -223,10 +223,10 @@ public:
         chkSTART = origin.chkSTART;
         chkSTOP = origin.chkSTOP;
         inBroadCast = origin.inBroadCast;
-        skipped = origin.skipped;
         indexFile = origin.indexFile;
         sleepcnt = origin.sleepcnt;
 #if !defined ONLY_WITH_CDECODER
+        skipped = origin.skipped;
         demux = NULL;
         decoder = NULL;
         streaminfo = NULL;
@@ -261,10 +261,10 @@ public:
         chkSTART = origin->chkSTART;
         chkSTOP = origin->chkSTOP;
         inBroadCast = origin->inBroadCast;
-        skipped = origin->skipped;
         indexFile = origin->indexFile;
         sleepcnt = origin->sleepcnt;
 #if !defined ONLY_WITH_CDECODER
+        skipped = origin->skipped;
         demux = NULL;
         decoder = NULL;
         streaminfo = NULL;
