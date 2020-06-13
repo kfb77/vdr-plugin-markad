@@ -1610,6 +1610,7 @@ void cMarkAdStandalone::MarkadCut() {
         delete ptr_cEncoder;
         ptr_cEncoder = NULL;
     }
+    framecnt3 = ptr_cDecoder->GetFrameNumber();
 }
 
 
@@ -1618,6 +1619,8 @@ void cMarkAdStandalone::Process2ndPass() {
     if (duplicate) return;
 #if !defined ONLY_WITH_CDECODER
     if (!decoder) return;
+#else
+    if (!ptr_cDecoder) return;
 #endif
     if (!length) return;
     if (!startTime) return;
@@ -1691,6 +1694,7 @@ void cMarkAdStandalone::Process2ndPass() {
             p2=NULL;
         }
     }
+    if (ptr_cDecoder) framecnt2 = ptr_cDecoder->GetFrameNumber();
     dsyslog("end 2ndPass");
 }
 
@@ -3000,6 +3004,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     streaminfo=NULL;
     demux=NULL;
     decoder=NULL;
+    skipped=0;
 #endif
     video=NULL;
     audio=NULL;
@@ -3012,7 +3017,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     noticeHEADER=false;
     noticeFILLER=false;
 
-    skipped=0;
     length=0;
 
     sleepcnt=0;
@@ -3246,6 +3250,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
     framecnt=0;
     framecnt2=0;
+    framecnt3=0;
     lastiframe=0;
     iframe=0;
     chkSTART=chkSTOP=INT_MAX;
@@ -3255,10 +3260,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
 cMarkAdStandalone::~cMarkAdStandalone() {
     if ((!abortNow) && (!duplicate)) {
-        if (skipped) {
-            isyslog("skipped %i bytes",skipped);
-        }
-
         gettimeofday(&tv2,&tz);
         time_t sec;
         suseconds_t usec;
@@ -3268,11 +3269,11 @@ cMarkAdStandalone::~cMarkAdStandalone() {
             usec+=1000000;
             sec--;
         }
-        double etime,ftime=0,ptime=0;
+        double etime =0;
+        double ftime = 0;
         etime=sec+((double) usec/1000000)-waittime;
-        if (etime>0) ftime=(framecnt+framecnt2)/etime;
-        if (macontext.Video.Info.FramesPerSecond>0) ptime=ftime/macontext.Video.Info.FramesPerSecond;
-        isyslog("processed time %.2fs, %i/%i frames, %.1f fps, %.1f pps", etime,framecnt,framecnt2,ftime,ptime);
+        if (etime>0) ftime=(framecnt+framecnt2+framecnt3)/etime;
+        isyslog("processed time %.2fs, %i/%i/%i frames, %.1f fps", etime,framecnt,framecnt2,framecnt2,ftime);
     }
 
     if ((osd) && (!duplicate)) {
@@ -3294,6 +3295,9 @@ cMarkAdStandalone::~cMarkAdStandalone() {
     }
 
 #if !defined ONLY_WITH_CDECODER
+    if (skipped) {
+            isyslog("skipped %i bytes",skipped);
+        }
     if (demux) {
         FREE(sizeof(*demux), "demux");
         delete demux;
@@ -3323,7 +3327,6 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
         delete ptr_cDecoder;
     }
-
     RemovePidfile();
 }
 

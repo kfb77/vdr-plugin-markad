@@ -102,11 +102,6 @@ class cMarkAdStandalone {
     };
 #pragma pack()
 
-    struct ES_DESCRIPTOR {
-        unsigned Descriptor_Tag: 8;
-        unsigned Descriptor_Length: 8;
-    };
-
     enum { mSTART=0x1, mBEFORE, mAFTER };
 
 //    static const char frametypes[8];
@@ -127,8 +122,9 @@ class cMarkAdStandalone {
     int MaxFiles;
     int lastiframe;
     int iframe;
-    int framecnt;
+    int framecnt;  // 1nd pass
     int framecnt2; // 2nd pass
+    int framecnt3; // 3nd pass (cut recording)
     bool gotendmark;
     int waittime;
     int iwaittime;
@@ -153,7 +149,6 @@ class cMarkAdStandalone {
     int chkSTART;
     int chkSTOP;
     bool inBroadCast;  // are we in a broadcast (or ad)?
-    int skipped;       // skipped bytes in whole file
     char *indexFile;
     int sleepcnt;
     clMarks marks;
@@ -176,7 +171,12 @@ class cMarkAdStandalone {
     bool LoadInfo();
     bool SaveInfo();
     bool SetFileUID(char *File);
+    int skipped;       // skipped bytes in whole file
 #if !defined ONLY_WITH_CDECODER
+    struct ES_DESCRIPTOR {
+        unsigned Descriptor_Tag: 8;
+        unsigned Descriptor_Length: 8;
+    };
     bool CheckVDRHD();
     off_t SeekPATPMT();
     bool CheckPATPMT(off_t Offset=0);
