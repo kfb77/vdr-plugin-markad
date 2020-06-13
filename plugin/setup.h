@@ -9,8 +9,8 @@
 
 #include <vdr/menuitems.h>
 
-struct setup
-{
+
+struct setup {
     int ProcessDuring;
     bool whileRecording;
     bool whileReplaying;
@@ -72,8 +72,7 @@ public:
 };
 
 
-class cSetupMarkAdListItem : public cOsdItem
-{
+class cSetupMarkAdListItem : public cOsdItem {
 public:
     cSetupMarkAdListItem(const char *Text, eOSState State=osUnknown,bool Selectable=true):cOsdItem(Text,State,Selectable) { }
     virtual int Compare(const cListObject &ListObject) const;

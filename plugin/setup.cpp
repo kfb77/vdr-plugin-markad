@@ -8,8 +8,8 @@
 #include "setup.h"
 #include "debug.h"
 
-cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
-{
+
+cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
     setup=Setup;
 
     processduring=setup->ProcessDuring;
@@ -40,16 +40,15 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup)
     write();
 }
 
-void cSetupMarkAd::write(void)
-{
+
+void cSetupMarkAd::write(void) {
     int current=Current();
     Clear();
     cMenuEditStraItem *first=new cMenuEditStraItem(tr("execution"),&processduring,3,processTexts);
     if (!first) return;
     Add(first);
     if (processduring!=2) {
-        if (!processduring)
-        {
+        if (!processduring) {
             Add(new cMenuEditBoolItem(tr("  during another recording"),&whilerecording));
             Add(new cMenuEditBoolItem(tr("  while replaying"),&whilereplaying));
         }
@@ -66,60 +65,50 @@ void cSetupMarkAd::write(void)
         Add(new cMenuEditBoolItem(tr("hide mainmenu entry"),&hidemainmenuentry));
         if (setup->autoLogoConf < 0) Add(new cMenuEditStraItem(tr("extract logos from recording"),&autologomenue,3,autoLogoTexts));
 
-        if (current==-1)
-        {
+        if (current==-1) {
             SetCurrent(first);
         }
-        else
-        {
+        else {
             SetCurrent(Get(current));
         }
-    } else {
+    }
+    else {
         lpos=-1;
     }
     Display();
 }
 
-eOSState cSetupMarkAd::ProcessKey(eKeys Key)
-{
+
+eOSState cSetupMarkAd::ProcessKey(eKeys Key) {
     eOSState state = cOsdMenu::ProcessKey(Key);
     if (HasSubMenu()) return osContinue;
-    switch (state)
-    {
-    case osContinue:
-        if (((Key==kLeft) || (Key==kRight)) && (Current()==0)) write();
-
-        if ((Key==kDown) || (Key==kUp))
-        {
-            if (Current()==lpos)
-            {
-                SetHelp(NULL,NULL,NULL,tr("show list"));
+    switch (state) {
+        case osContinue:
+            if (((Key==kLeft) || (Key==kRight)) && (Current()==0)) write();
+            if ((Key==kDown) || (Key==kUp)) {
+                if (Current()==lpos) {
+                    SetHelp(NULL,NULL,NULL,tr("show list"));
+                }
+                else {
+                    SetHelp(NULL,NULL,NULL,NULL);
+                }
             }
-            else
-            {
-                SetHelp(NULL,NULL,NULL,NULL);
+            break;
+        case osUnknown:
+            if ((Key==kBlue) && (Current()==lpos)) return AddSubMenu(new cSetupMarkAdList(setup));
+            if (Key==kOk) {
+                Store();
+                state=osBack;
             }
-        }
-        break;
-
-    case osUnknown:
-        if ((Key==kBlue) && (Current()==lpos))
-            return AddSubMenu(new cSetupMarkAdList(setup));
-        if (Key==kOk)
-        {
-            Store();
-            state=osBack;
-        }
-        break;
-
-    default:
-        break;
+            break;
+        default:
+            break;
     }
     return state;
 }
 
-void cSetupMarkAd::Store(void)
-{
+
+void cSetupMarkAd::Store(void) {
     SetupStore("Execution",processduring);
     if (processduring!=0) {
         whilerecording=1;
@@ -155,11 +144,13 @@ void cSetupMarkAd::Store(void)
     setup->SaveInfo=saveinfo;
 }
 
+
 #if APIVERSNUM>=20301
 #define CHNUMWIDTH (numdigits(cChannels::MaxNumber())+1)
 #else
 #define CHNUMWIDTH (numdigits(Channels.MaxNumber())+1)
 #endif
+
 
 cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup) :cOsdMenu("",CHNUMWIDTH) {
     SetTitle(cString::sprintf("%s - %s '%s' %s",trVDR("Setup"),trVDR("Plugin"),Setup->PluginName,tr("list")));
@@ -218,36 +209,32 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup) :cOsdMenu("",CHNUMWIDTH)
     closedir(dir);
 }
 
-int cSetupMarkAdListItem::Compare(const cListObject &ListObject) const
-{
+
+int cSetupMarkAdListItem::Compare(const cListObject &ListObject) const {
     const cSetupMarkAdListItem *la=(cSetupMarkAdListItem *) &ListObject;
     const char *t1=strchr(Text(),'\t');
     const char *t2=strchr(la->Text(),'\t');
-    if ((t1) && (t2))
-    {
+    if ((t1) && (t2)) {
         return strcasecmp(t1,t2);
     }
-    else
-    {
+    else {
         return 0;
     }
 }
 
-eOSState cSetupMarkAdList::ProcessKey (eKeys Key)
-{
+
+eOSState cSetupMarkAdList::ProcessKey (eKeys Key) {
     eOSState state = cOsdMenu::ProcessKey(Key);
     if (HasSubMenu()) return osContinue;
-    if (state==osUnknown)
-    {
-        switch (Key)
-        {
-        case kOk:
-        case kBlue:
-        case kBack:
-            state=osBack;
-            break;
-        default:
-            break;
+    if (state==osUnknown) {
+        switch (Key) {
+            case kOk:
+            case kBlue:
+            case kBack:
+                state=osBack;
+                break;
+            default:
+                break;
         }
     }
     return state;
