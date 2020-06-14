@@ -405,6 +405,10 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
     AVCodec *codec=avcodec_find_encoder(codec_id);
 #endif
     if (!codec) {
+        if (codec_id == 94215) { // libavcodec does not support Libzvbi DVB teletext encoder, encode without this stream
+            dsyslog("cEncoder::InitEncoderCodec(): Libzvbi DVB teletext for stream %i codec id %i not supported, ignoring this stream", streamIndex, codec_id);
+            return true;
+        }
         dsyslog("cEncoder::InitEncoderCodec(): could not find encoder for stream %i codec id %i", streamIndex, codec_id);
         return false;
     }
@@ -494,6 +498,11 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         return false;
     }
 
+//    dsyslog("+++++ streamindex %i pts %ld dts %ld ptsBeforeCut %ld ptsAfterCut %ld", avpktOut->stream_index, avpktOut->pts, avpktOut->dts, ptsBeforeCut, ptsAfterCut);
+
+    if ((unsigned int) avpktOut->stream_index >= avctxOut->nb_streams) return true;
+
+
     AVPacket avpktAC3;
     av_init_packet(&avpktAC3);
     AVFrame *avFrame = NULL;
@@ -510,25 +519,28 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     }
 
     if (dts[avpktOut->stream_index] == 0) {
-        dts[avpktOut->stream_index] = avpktOut->dts;
+        dts[avpktOut->stream_index] = avpktOut->dts;   // initalize start value
     }
     else {
-        if ((avpktOut->stream_index == 0) && (avpktOut->dts - pts_dts_offset) > dts[avpktOut->stream_index]){
+        if ((avpktOut->stream_index == 0) && ((avpktOut->dts - pts_dts_offset) > dts[avpktOut->stream_index])){
             int64_t newOffset = avpktOut->dts - pts_dts_offset - dts[avpktOut->stream_index];
             int newOffsetMin = (int) newOffset*av_q2d(avctxOut->streams[avpktOut->stream_index]->time_base)/60;
-            dsyslog("cEncoder::WritePacket(): frame (%ld) stream %d old offset: %" PRId64 " increase %" PRId64 " = %dmin", ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, pts_dts_offset, newOffset, newOffsetMin);
+            if (newOffset > 1) dsyslog("cEncoder::WritePacket(): frame (%ld) stream %d old offset: %" PRId64 " increase %" PRId64 " = %dmin", ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, pts_dts_offset, newOffset, newOffsetMin);
             if (newOffsetMin > 100) {
                 dsyslog("cEncoder::WritePacket(): dts value not valid, ignoring");
                 return false;
             }
-            ptsCut = avpktOut->pts;
+            ptsAfterCut = avpktOut->pts;
             pts_dts_offset += newOffset;
-            dsyslog("cEncoder::WritePacket(): frame (%ld) stream %d new offset: %" PRId64,ptr_cDecoder->GetFrameNumber(),avpktOut->stream_index,pts_dts_offset);
+            if (newOffset > 1) {  // ignore very small offsets, that is not a cut
+                ptsBeforeCut = ptsBefore;
+                dsyslog("cEncoder::WritePacket(): frame (%ld) stream %d new offset: %" PRId64,ptr_cDecoder->GetFrameNumber(),avpktOut->stream_index,pts_dts_offset);
+            }
         }
     }
 
-    if (avpktOut->pts < ptsCut) {  // after cut ignore audio frames with smaller PTS than video frame
-        dsyslog("cEncoder::WritePacket(): audio pts %ld smaller than video cut pts (%ld) at frame (%ld) of stream %d", avpktOut->pts, ptsCut, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index);
+    if ((avpktOut->pts > ptsBeforeCut) && (avpktOut->pts < ptsAfterCut)) {  // after cut ignore audio frames with smaller PTS than video frame
+        dsyslog("cEncoder::WritePacket(): audio pts %ld is %ld smaller than video cut pts (%ld) at frame (%ld) of stream %d", avpktOut->pts, ptsAfterCut - avpktOut->pts, ptsAfterCut, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index);
         return true;
     }
 
@@ -651,6 +663,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     }
     else av_write_frame(avctxOut, avpktOut);
 
+    if (avpktOut->stream_index == 0) ptsBefore=avpktOut->pts;
     dtsBefore[avpktOut->stream_index]=avpktOut->dts;
     dts[avpktOut->stream_index] += avpktOut->duration;
     av_packet_unref(&avpktAC3);

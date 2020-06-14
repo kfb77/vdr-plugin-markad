@@ -48,7 +48,9 @@ class cEncoder {
         AVCodecContext **codecCtxArrayOut = NULL;
         unsigned int nb_streamsIn = 0;
         int64_t pts_dts_offset = 0;
-        int64_t ptsCut = 0;
+        int64_t ptsBefore = 0;
+        int64_t ptsBeforeCut = INT64_MAX;
+        int64_t ptsAfterCut = 0;
         int64_t *dts = NULL;
         int64_t *dtsBefore = NULL;
         bool stateEAGAIN = false;
