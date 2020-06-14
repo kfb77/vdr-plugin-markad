@@ -1557,6 +1557,8 @@ void cMarkAdStandalone::MarkadCut() {
     ALLOC(sizeof(*ptr_cEncoder), "ptr_cEncoder");
     if ( ! ptr_cEncoder->OpenFile(directory,ptr_cDecoder)) {
         esyslog("failed to open output file");
+        FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
+        delete ptr_cEncoder;
         return;
     }
     while(ptr_cDecoder->DecodeDir(directory)) {
