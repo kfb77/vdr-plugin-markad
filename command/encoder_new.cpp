@@ -177,8 +177,10 @@ cEncoder::~cEncoder() {
     }
     FREE(sizeof(AVCodecContext *) * nb_streamsIn, "codecCtxArrayOut");
     free(codecCtxArrayOut);
-    FREE(sizeof(int64_t) * nb_streamsIn, "dts");
-    free(dts);
+    FREE(sizeof(int64_t) * nb_streamsIn, "pts_dts_CyclicalOffset");
+    free(pts_dts_CyclicalOffset);
+    FREE(sizeof(int64_t) * nb_streamsIn, "dtsOut");
+    free(dtsOut);
     FREE(sizeof(int64_t) * nb_streamsIn, "dtsBefore");
     free(dtsBefore);
 
@@ -208,9 +210,13 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     ALLOC(sizeof(AVCodecContext *) * avctxIn->nb_streams, "codecCtxArrayOut");
     memset(codecCtxArrayOut, 0, sizeof(AVCodecContext *) * avctxIn->nb_streams);
 
-    dts = (int64_t *) malloc(sizeof(int64_t) * avctxIn->nb_streams);
-    ALLOC(sizeof(int64_t) * avctxIn->nb_streams, "dts");
-    memset(dts, 0, sizeof(int64_t) * avctxIn->nb_streams);
+    pts_dts_CyclicalOffset = (int64_t *) malloc(sizeof(int64_t) * avctxIn->nb_streams);
+    ALLOC(sizeof(int64_t) * avctxIn->nb_streams, "pts_dts_CyclicalOffset");
+    memset(pts_dts_CyclicalOffset, 0, sizeof(int64_t) * avctxIn->nb_streams);
+
+    dtsOut = (int64_t *) malloc(sizeof(int64_t) * avctxIn->nb_streams);
+    ALLOC(sizeof(int64_t) * avctxIn->nb_streams, "dtsOut");
+    memset(dtsOut, 0, sizeof(int64_t) * avctxIn->nb_streams);
 
     dtsBefore = (int64_t *) malloc(sizeof(int64_t) * avctxIn->nb_streams);
     ALLOC(sizeof(int64_t) * avctxIn->nb_streams, "dtsBefore");
@@ -502,7 +508,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         return false;
     }
     if ((unsigned int) avpktOut->stream_index >= avctxOut->nb_streams) return true;
-    dsyslog("+++++ streamindex %i pts %ld dts %ld ptsBeforeCut %ld ptsAfterCut %ld", avpktOut->stream_index, avpktOut->pts, avpktOut->dts, ptsBeforeCut, ptsAfterCut);
+//    dsyslog("+++++ streamindex %i pts %11ld dts %11ld", avpktOut->stream_index, avpktOut->pts, avpktOut->dts);
 
     AVPacket avpktAC3;
     av_init_packet(&avpktAC3);
@@ -514,28 +520,33 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
          dsyslog("cEncoder::WritePacket(): frame (%ld) got no dts value from input stream %i", ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index);
          return false;
     }
+    if ((dtsBefore[avpktOut->stream_index] + avpktOut->duration - avpktOut->dts - 0x200000000) >= 0) {
+        pts_dts_CyclicalOffset[avpktOut->stream_index] += 0x200000000;
+        dsyslog("cEncoder::WritePacket(): dts and pts cyclicle in stream %d at frame (%ld), offset now 0x%lX", avpktOut->stream_index, ptr_cDecoder->GetFrameNumber(), pts_dts_CyclicalOffset[avpktOut->stream_index]);
+    }
+
     if (avpktOut->pts <  avpktOut->dts) {
         dsyslog("cEncoder::WritePacket(): pts (%" PRId64 ") smaller than dts (%" PRId64 ") in frame (%ld) of stream %d",avpktOut->pts,avpktOut->dts,ptr_cDecoder->GetFrameNumber(),avpktOut->stream_index);
         return false;
     }
 
-    if (dts[avpktOut->stream_index] == 0) {
-        dts[avpktOut->stream_index] = avpktOut->dts;   // initalize start value
+    if (dtsOut[avpktOut->stream_index] == 0) {
+        dtsOut[avpktOut->stream_index] = avpktOut->dts;   // initalize start value
     }
     else {
-        if ((avpktOut->stream_index == 0) && ((avpktOut->dts - pts_dts_offset) > dts[avpktOut->stream_index])){
-            int64_t newOffset = avpktOut->dts - pts_dts_offset - dts[avpktOut->stream_index];
+        if ((avpktOut->stream_index == 0) && ((avpktOut->dts - pts_dts_CutOffset) > dtsOut[avpktOut->stream_index])){
+            int64_t newOffset = avpktOut->dts - pts_dts_CutOffset - dtsOut[avpktOut->stream_index];
             int newOffsetMin = (int) newOffset*av_q2d(avctxOut->streams[avpktOut->stream_index]->time_base)/60;
-            if (newOffset > 1) dsyslog("cEncoder::WritePacket(): frame (%ld) stream %d old offset: %" PRId64 " increase %" PRId64 " = %dmin", ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, pts_dts_offset, newOffset, newOffsetMin);
+            if (newOffset > 1) dsyslog("cEncoder::WritePacket(): frame (%ld) stream %d old offset: %" PRId64 " increase %" PRId64 " = %dmin", ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, pts_dts_CutOffset, newOffset, newOffsetMin);
             if (newOffsetMin > 100) {
                 dsyslog("cEncoder::WritePacket(): dts value not valid, ignoring");
                 return false;
             }
             ptsAfterCut = avpktOut->pts;
-            pts_dts_offset += newOffset;
+            pts_dts_CutOffset += newOffset;
             if (newOffset > 1) {  // ignore very small offsets, that is not a cut
                 ptsBeforeCut = ptsBefore;
-                dsyslog("cEncoder::WritePacket(): frame (%ld) stream %d new offset: %" PRId64,ptr_cDecoder->GetFrameNumber(),avpktOut->stream_index,pts_dts_offset);
+                dsyslog("cEncoder::WritePacket(): frame (%ld) stream %d new offset: %" PRId64,ptr_cDecoder->GetFrameNumber(),avpktOut->stream_index,pts_dts_CutOffset);
             }
         }
     }
@@ -545,8 +556,8 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         return true;
     }
 
-    avpktOut->pts = avpktOut->pts - pts_dts_offset;
-    avpktOut->dts = avpktOut->dts - pts_dts_offset;
+    avpktOut->pts = avpktOut->pts - pts_dts_CutOffset + pts_dts_CyclicalOffset[avpktOut->stream_index];
+    avpktOut->dts = avpktOut->dts - pts_dts_CutOffset + pts_dts_CyclicalOffset[avpktOut->stream_index];
     avpktOut->pos=-1;   // byte position in stream unknown
     if (dtsBefore[avpktOut->stream_index] >= avpktOut->dts) {  // drop non monotonically increasing dts packets
         dsyslog("cEncoder::WritePacket(): non monotonically increasing dts at frame (%ld) of stream %d, dts last packet %" PRId64 ", dts %" PRId64 ", offset %" PRId64, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, dtsBefore[avpktOut->stream_index], avpktOut->dts, avpktOut->dts - dtsBefore[avpktOut->stream_index]);
@@ -665,8 +676,8 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     else av_write_frame(avctxOut, avpktOut);
 
     if (avpktOut->stream_index == 0) ptsBefore=avpktOut->pts;
-    dtsBefore[avpktOut->stream_index]=avpktOut->dts;
-    dts[avpktOut->stream_index] += avpktOut->duration;
+    dtsBefore[avpktOut->stream_index]=avpktOut->dts - pts_dts_CyclicalOffset[avpktOut->stream_index];
+    dtsOut[avpktOut->stream_index] += avpktOut->duration;
     av_packet_unref(&avpktAC3);
     return true;
 }

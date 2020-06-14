@@ -47,11 +47,12 @@ class cEncoder {
         AVFormatContext *avctxOut = NULL;
         AVCodecContext **codecCtxArrayOut = NULL;
         unsigned int nb_streamsIn = 0;
-        int64_t pts_dts_offset = 0;
+        int64_t pts_dts_CutOffset = 0;
         int64_t ptsBefore = 0;
         int64_t ptsBeforeCut = INT64_MAX;
         int64_t ptsAfterCut = 0;
-        int64_t *dts = NULL;
+        int64_t *pts_dts_CyclicalOffset = NULL;
+        int64_t *dtsOut = NULL;
         int64_t *dtsBefore = NULL;
         bool stateEAGAIN = false;
         bool ac3ReEncode = false;
