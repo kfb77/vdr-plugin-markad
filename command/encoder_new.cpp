@@ -292,13 +292,14 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     }
 
     for (unsigned int i = 0; i < avctxIn->nb_streams; i++) {
-            bool ret = InitEncoderCodec(ptr_cDecoder, avctxIn, avctxOut, i, codecCtxArrayIn[i]);
-            if ( !ret ) {
-                dsyslog("cEncoder::OpenFile(): InitEncoderCodec failed");
-                FREE(strlen(filename)+1, "filename");
-                free(filename);
-                return false;
-            }
+        if (!codecCtxArrayIn[i]) break;   // if we have no input codec we can not decode and encode this stream
+        bool ret = InitEncoderCodec(ptr_cDecoder, avctxIn, avctxOut, i, codecCtxArrayIn[i]);
+        if ( !ret ) {
+            dsyslog("cEncoder::OpenFile(): InitEncoderCodec failed");
+            FREE(strlen(filename)+1, "filename");
+            free(filename);
+            return false;
+        }
     }
 
     ret = avio_open(&avctxOut->pb, filename, AVIO_FLAG_WRITE);
@@ -392,10 +393,13 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
     if (!avctxIn) return false;
     if (!avctxOut) return false;
     if (streamIndex >= avctxIn->nb_streams) {
-        dsyslog("cEncoder::ChangeEncoderCodec(): streamindex %d out of range", streamIndex);
+        dsyslog("cEncoder::InitEncoderCodec(): streamindex %d out of range", streamIndex);
         return false;
     }
-    if (!avCodecCtxIn) return false;
+    if (!avCodecCtxIn) {
+        dsyslog("cEncoder::InitEncoderCodec(): no input codec set for streamindex %d", streamIndex);
+        return false;
+    }
 
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     AVCodecID codec_id = avctxIn->streams[streamIndex]->codecpar->codec_id;
@@ -497,11 +501,8 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         dsyslog("cEncoder::WritePacket(): got no ptr_cDecoder from output file");
         return false;
     }
-
-//    dsyslog("+++++ streamindex %i pts %ld dts %ld ptsBeforeCut %ld ptsAfterCut %ld", avpktOut->stream_index, avpktOut->pts, avpktOut->dts, ptsBeforeCut, ptsAfterCut);
-
     if ((unsigned int) avpktOut->stream_index >= avctxOut->nb_streams) return true;
-
+    dsyslog("+++++ streamindex %i pts %ld dts %ld ptsBeforeCut %ld ptsAfterCut %ld", avpktOut->stream_index, avpktOut->pts, avpktOut->dts, ptsBeforeCut, ptsAfterCut);
 
     AVPacket avpktAC3;
     av_init_packet(&avpktAC3);

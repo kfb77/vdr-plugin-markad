@@ -167,7 +167,7 @@ bool cDecoder::DecodeFile(const char * filename) {
 #endif
         if (!codec) {
             if (codec_id == 100359) {  // not supported by libavcodec
-                dsyslog("cDecoder::DecodeFile(): ignore unsupported codec for stream %i", streamIndex);
+                dsyslog("cDecoder::DecodeFile(): ignore unsupported subtitle codec for stream %i codec id %d", streamIndex, codec_id);
                 continue;
             }
             else {
