@@ -1037,7 +1037,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
         clMark *prev=marks.GetPrev(Mark->Position,MT_LOGOSTART);
         if (prev) {
             int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*30);    // maybe this is only ia short logo detection failure
-            if ( (Mark->Position - prev->position) < MARKDIFF )
+            if (((Mark->Position - prev->position) < MARKDIFF ) && (prev->position == marks.GetFirst()->position))   // do not delete start mark
             {
                 double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between START and STOP too short (%.1fs), deleting %i,%i",distance, prev->position,Mark->Position);
