@@ -257,6 +257,8 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     avformat_alloc_output_context2(&avctxOut, NULL, NULL, filename);
     if (!avctxOut) {
         dsyslog("cEncoder::OpenFile(): Could not create output context");
+        FREE(strlen(filename)+1, "filename");
+        free(filename);
         return false;
     }
     ALLOC(sizeof(*avctxOut), "avctxOut");
@@ -264,6 +266,8 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     avctxOut = avformat_alloc_context();
     if (!avctxOut) {
         dsyslog("cEncoder::OpenFile(): Could not create output context");
+        FREE(strlen(filename)+1, "filename");
+        free(filename);
         return false;
     }
     ALLOC(sizeof(*avctxOut), "avctxOut");
@@ -271,6 +275,8 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     AVOutputFormat *avOutputFormat = av_guess_format(NULL, filename, NULL);
     if (!avOutputFormat) {
         dsyslog("cEncoder::OpenFile(): Could not create output format");
+        FREE(strlen(filename)+1, "filename");
+        free(filename);
         return false;
     }
     avctxOut->oformat=avOutputFormat;
@@ -278,15 +284,19 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     dsyslog("cEncoder::OpenFile(): output format %s", avctxOut->oformat->long_name);
 
     AVCodecContext **codecCtxArrayIn = ptr_cDecoder->GetAVCodecContext();
-        if (! codecCtxArrayIn) {
-            dsyslog("cEncoder::OpenFile(): failed to get input codec context");
-            return false;
-        }
+    if (! codecCtxArrayIn) {
+        dsyslog("cEncoder::OpenFile(): failed to get input codec context");
+        FREE(strlen(filename)+1, "filename");
+        free(filename);
+        return false;
+    }
 
     for (unsigned int i = 0; i < avctxIn->nb_streams; i++) {
             bool ret = InitEncoderCodec(ptr_cDecoder, avctxIn, avctxOut, i, codecCtxArrayIn[i]);
             if ( !ret ) {
                 dsyslog("cEncoder::OpenFile(): InitEncoderCodec failed");
+                FREE(strlen(filename)+1, "filename");
+                free(filename);
                 return false;
             }
     }
@@ -294,15 +304,17 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     ret = avio_open(&avctxOut->pb, filename, AVIO_FLAG_WRITE);
     if (ret < 0) {
         dsyslog("cEncoder::OpenFile(): Could not open output file '%s'", filename);
+        FREE(strlen(filename)+1, "filename");
+        free(filename);
         return false;
     }
+    FREE(strlen(filename)+1, "filename");
+    free(filename);
     ret = avformat_write_header(avctxOut, NULL);
     if (ret < 0) {
         dsyslog("cEncoder::OpenFile(): could not write header");
         return false;
     }
-    FREE(strlen(filename)+1, "filename");
-    free(filename);
     return true;
 }
 
