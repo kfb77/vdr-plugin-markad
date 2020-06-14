@@ -5,7 +5,7 @@
  *
  */
 
-extern "C"{
+extern "C" {
     #include <libavcodec/avcodec.h>
     #include <libavformat/avformat.h>
     #include <libavformat/avio.h>
@@ -43,12 +43,10 @@ class cEncoder {
         bool CloseFile();
 
     private:
-        bool InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, const unsigned int streamIndex, AVCodecContext *avCodecCtxIn);
-        bool ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, const unsigned int streamIndex, AVCodecContext *avCodecCtxIn);
-
         int threadCount = 0;
         AVFormatContext *avctxOut = NULL;
         AVCodecContext **codecCtxArrayOut = NULL;
+        unsigned int nb_streamsIn = 0;
         int64_t pts_dts_offset = 0;
         int64_t ptsCut = 0;
         int64_t *dts = NULL;
@@ -56,4 +54,7 @@ class cEncoder {
         bool stateEAGAIN = false;
         bool ac3ReEncode = false;
         cAC3VolumeFilter *ptr_cAC3VolumeFilter[MAXSTREAMS] = {NULL};
+
+        bool InitEncoderCodec(cDecoder *ptr_cDecoder,AVFormatContext *avctxIn,AVFormatContext *avctxOut,const unsigned int streamIndex,AVCodecContext *avCodecCtxIn);
+        bool ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, const unsigned int streamIndex, AVCodecContext *avCodecCtxIn);
 };

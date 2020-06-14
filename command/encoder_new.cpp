@@ -175,11 +175,11 @@ cEncoder::~cEncoder() {
             avcodec_free_context(&codecCtxArrayOut[streamIndex]);
         }
     }
-    FREE(sizeof(AVCodecContext *) * avctxOut->nb_streams, "codecCtxArrayOut");
+    FREE(sizeof(AVCodecContext *) * nb_streamsIn, "codecCtxArrayOut");
     free(codecCtxArrayOut);
-    FREE(sizeof(int64_t) * avctxOut->nb_streams, "dts");
+    FREE(sizeof(int64_t) * nb_streamsIn, "dts");
     free(dts);
-    FREE(sizeof(int64_t) * avctxOut->nb_streams, "dtsBefore");
+    FREE(sizeof(int64_t) * nb_streamsIn, "dtsBefore");
     free(dtsBefore);
 
     if (avctxOut) {
@@ -203,6 +203,7 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
         return false;
     }
 
+    nb_streamsIn = avctxIn->nb_streams;   // needed from desctrucor
     codecCtxArrayOut = (AVCodecContext **) malloc(sizeof(AVCodecContext *) * avctxIn->nb_streams);
     ALLOC(sizeof(AVCodecContext *) * avctxIn->nb_streams, "codecCtxArrayOut");
     memset(codecCtxArrayOut, 0, sizeof(AVCodecContext *) * avctxIn->nb_streams);

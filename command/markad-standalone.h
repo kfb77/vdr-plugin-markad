@@ -122,9 +122,9 @@ class cMarkAdStandalone {
     int MaxFiles;
     int lastiframe;
     int iframe;
-    int framecnt;  // 1nd pass
-    int framecnt2; // 2nd pass
-    int framecnt3; // 3nd pass (cut recording)
+    int framecnt = 0;  // 1nd pass
+    int framecnt2 = 0; // 2nd pass
+    int framecnt3 = 0; // 3nd pass (cut recording)
     bool gotendmark;
     int waittime;
     int iwaittime;
@@ -247,6 +247,7 @@ public:
         iframe = origin->iframe;
         framecnt = origin->framecnt;
         framecnt2 = origin->framecnt2;
+        framecnt3 = origin->framecnt3;
         gotendmark = origin->gotendmark;
         waittime = origin->waittime;
         iwaittime = origin->iwaittime;
