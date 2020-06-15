@@ -496,8 +496,16 @@ void cMarkAdStandalone::CheckStart() {
             }
         }
     }
+    if (!begin && inBroadCast) {
+        clMark *chStart = marks.GetNext(0, MT_CHANNELSTART);
+        clMark *chStop = marks.GetPrev(INT_MAX, MT_CHANNELSTOP);
+        if (chStart && chStop && (chStart->position > chStop->position)) {
+            dsyslog("cMarkAdStandalone::CheckStart(): channel start after channel stop found, delete all weak marks inbetween");
+            marks.DelWeakFromTo(chStop->position, chStart->position, MT_CHANNELCHANGE);
+        }
+    }
     if ( !begin && !inBroadCast) {
-        dsyslog("cMarkAdStandalone() we are not in broadcast at frame (%d), trying to find channel start mark anyway", lastiframe);
+        dsyslog("cMarkAdStandalone::CheckStart(): we are not in broadcast at frame (%d), trying to find channel start mark anyway", lastiframe);
         begin=marks.GetAround(delta*4,iStartA,MT_CHANNELSTART);
     }
 
@@ -555,7 +563,7 @@ void cMarkAdStandalone::CheckStart() {
                        clMark *aStop = marks.GetNext(begin->position, MT_ASPECTSTOP);
                        if (aStop) {
                            dsyslog("cMarkAdStandalone::CheckStart(): found MT_ASPECTSTOP (%i), delete all weaker marks after", aStop->position);
-                           marks.DelWeakFrom(aStop->position, aStop->type);
+                           marks.DelWeakFromTo(aStop->position, INT_MAX, aStop->type);
                        }
                    }
 
@@ -842,8 +850,12 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                 clMark *tmp=mark;
                 mark=mark->Next()->Next();
                 marks.Del(tmp->Next());
-                if (marks.GetFirst()->position == tmp->position) mark=marks.GetFirst(); // do not delete start mark, restart check from first mark
+                if (marks.GetFirst()->position == tmp->position) {
+                    dsyslog("cMarkAdStandalone::CheckMarks(): mark on position (%i) not deleted because this is the start mark", tmp->position);
+                    mark=marks.GetFirst(); // do not delete start mark, restart check from first mark
+                }
                 else marks.Del(tmp);
+                marks.Del(tmp);
                 continue;
             }
         }
@@ -968,7 +980,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
         case MT_CHANNELSTOP:
             if ((Mark->Position > chkSTART) && (Mark->Position < iStopA / 2) && !macontext.Audio.Info.channelChange) {
                 dsyslog("cMarkAdStandalone::AddMark(): first audio channel change is after chkSTART, disable logo/border/aspect detection now");
-                if (iStart == 0) marks.DelWeakFrom(marks.GetFirst()->position, MT_CHANNELCHANGE); // only if we heve selected a start mark
+                if (iStart == 0) marks.DelWeakFromTo(marks.GetFirst()->position, INT_MAX, MT_CHANNELCHANGE); // only if we heve selected a start mark
                 bDecodeVideo=false;
                 macontext.Video.Options.IgnoreAspectRatio=true;
                 macontext.Video.Options.IgnoreLogoDetection=true;

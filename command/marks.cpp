@@ -92,10 +92,11 @@ void clMarks::Del(unsigned char Type) {
 }
 
 
-void clMarks::DelWeakFrom(const int position, const short int type) {
+void clMarks::DelWeakFromTo(const int from, const int to, const short int type) {
     clMark *mark=first;
     while (mark) {
-        if ((mark->position > position) && (mark->type < (type & 0xF0))) {
+        if (mark->position >= to) return;
+        if ((mark->position > from) && (mark->type < (type & 0xF0))) {
             clMark *tmpMark = mark->Next();
             Del(mark);
             mark = tmpMark;
