@@ -100,7 +100,8 @@ class Config:
         self.path = "/srv/vdr/video"
         self.bindir = "/usr/bin"
         self.minfree = 0
-        self.backupmarks=False
+        self.backupmarks = False
+        self.backuplogo = None
         self.logocachedir = "/var/lib/markad"
         self.nice = 19
         self.loglevel = 1
@@ -156,6 +157,12 @@ class Config:
         except (configparser.NoSectionError, configparser.NoOptionError):
             ret = False
         if ret: self.backupmarks = ret
+
+        try:
+            ret = config.get('GLOBAL', 'backuplogo')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret: self.backuplogo = ret
 
         try:
             ret = config.getint('GLOBAL', 'loglevel')
@@ -330,6 +337,7 @@ class CheckPath:
             if actFile == "resume": continue
             if fnmatch.fnmatch(actFile,'*.ts'): continue
             if fnmatch.fnmatch(actFile,'*.pgm'): continue
+            if fnmatch.fnmatch(actFile,'*.pgm'): continue
             if actFile == "info.epg2vdr": continue
             if actFile == "info":
                 isInfoFound = True
@@ -344,6 +352,7 @@ class CheckPath:
                     log.dsyslog("recording is running "+self.root)
                     return(False)
                 continue
+
             if actFile == "marks":
                 isMarksNotFound = False
                 continue
@@ -401,6 +410,9 @@ class CheckPath:
             if config.backupmarks:
                 self.BackupMarks()
 
+            if config.backuplogo is not None:
+                    self.BackupLogo()
+
             if config.mirror_path is not None:
                 if self.mirror_name is not None and self.mirror_type is not None:
                     (head, tail) = os.path.split(self.mirror_name)
@@ -422,6 +434,30 @@ class CheckPath:
         append = now.strftime("%Y-%m-%d_%H-%M-%S") + "_V"+append
         cmd = "cp " + self.ConvertPath(self.root) + "/marks " + self.ConvertPath(self.root) + "/marks_" + append
         os.system(cmd)
+
+    def BackupLogo(self):
+        for file in os.listdir(self.root):
+            if file.endswith(".pgm") and not file.startswith("logo_"):
+                log.dsyslog("backup logo file " + file)
+                markadVersion = subprocess.run([config.bindir+"/markad", "--version"], stdout=subprocess.PIPE)
+                wordList = markadVersion.stdout.decode('utf-8').split(" ")
+                append = wordList[1] + "-" + wordList [2]
+                append = append.replace("(","")
+                append = append.replace(")","")
+                append = append.replace(".","")
+                now = datetime.datetime.now()
+                append = now.strftime("%Y-%m-%d_%H-%M-%S") + "_V"+append
+                cmd = "cp " + self.ConvertPath(self.root) + "/" + file + " " + self.ConvertPath(self.root) + "/logo_" + append + "_" + file
+                os.system(cmd)
+                elements = self.root.split("/");
+                count = len(elements)
+                if "Staffel" in elements[count - 3]:
+                    centralLogoName =  elements[count - 4] + "_" + elements[count - 3] + "_" + elements[count - 2]
+                else:
+                    centralLogoName =  elements[count - 3] + "_" + elements[count - 2]
+                cmd = "cp " + self.ConvertPath(self.root) + "/" + file + " " + config.backuplogo + "/" + file + "_" + self.ConvertPath(centralLogoName) + ".pgm"
+                log.dsyslog("taget " + cmd)
+                os.system(cmd)
 
     def KillMarkad(self):
         self.process.send_signal(signal.SIGINT)
