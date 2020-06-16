@@ -123,7 +123,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
     int heightPlane_1_2 = *logoHeight/2;
     int widthPlane_1_2 = *logoWidth/2;
 
-    if (bestLogoCorner <= 1) {  // top corners, calculate new height and cut from below
+    if (bestLogoCorner <= TOP_RIGHT) {  // top corners, calculate new height and cut from below
         while (allWhite) {
             int isLineWhite = 0;
             for (int i = (*logoHeight -1) * *logoWidth; i < *logoHeight * *logoWidth; i++) {
@@ -160,7 +160,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
     }
 
     allWhite=true;
-    if ((bestLogoCorner == 1) || (bestLogoCorner == 3)) {  // right corners, cut from left
+    if ((bestLogoCorner == TOP_RIGHT) || (bestLogoCorner == BOTTOM_RIGHT)) {  // right corners, cut from left
         while (allWhite) {
             int isColumnWhite = 0;
             for (int i = whiteColumns; i < *logoHeight * *logoWidth; i = i + *logoWidth) {
@@ -241,21 +241,34 @@ int cExtractLogo::Compare(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, i
         return 0;
     }
     int hits=0;
-    if (corner <= 1) { // a valid top logo should have a white top part in plane 0
-        for (int i = 0 ; i < 10 * logoWidth; i++) {
+    if (corner <= TOP_RIGHT) {
+        for (int i = 0 ; i < 10 * logoWidth; i++) { // a valid top logo should have a white top part in plane 0
             if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
                 return 0;
             }
         }
-    }
-    else { // a valid bottom logo should have a white bottom  part in plane 0
-        for (int i = (logoHeight-10) * logoWidth; i < logoHeight*logoWidth; i++) {
+        for (int i = (logoHeight-8) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid top logo should have at least a small white buttom part in plane 0
             if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
                 return 0;
             }
         }
+
     }
-    if ((corner == 0) || (corner == 2)) { // a valid left logo should have white left part in pane 0
+    else {
+        for (int i = (logoHeight-10) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid bottom logo should have a white bottom part in plane 0
+            if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
+                return 0;
+            }
+        }
+        for (int i = 0 ; i < 8 * logoWidth; i++) { // a valid bottom logo should have at least a small white top part in plane 0
+            if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
+                return 0;
+            }
+        }
+
+    }
+
+    if ((corner == TOP_LEFT) || (corner == BOTTOM_LEFT)) { // a valid left logo should have white left part in pane 0
         for (int column = 0; column < 10; column++) {
             for (int i = column; i < logoHeight*logoWidth; i = i + logoWidth) {
                 if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
@@ -560,7 +573,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
                     for (int corner = 0; corner < CORNERS; corner++) {
                         int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
                                                     //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
-//                        if (corner == 1) iFrameNumberNext = -2;   // TODO only for debug
+                        if (corner == BOTTOM_RIGHT) iFrameNumberNext = -2;   // TODO only for debug
                         area->corner=corner;
                         ptr_Logo->Detect(iFrameNumber,&iFrameNumberNext);
                         logoInfo actLogoInfo = {};
