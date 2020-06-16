@@ -793,7 +793,7 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
 
 void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no sense
     LogSeparator();
-    isyslog("cleanup marks");
+    isyslog("check marks");
     DebugMarks();     //  only for debugging
 
     clMark *mark=marks.GetFirst();
@@ -855,7 +855,6 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                     mark=marks.GetFirst(); // do not delete start mark, restart check from first mark
                 }
                 else marks.Del(tmp);
-                marks.Del(tmp);
                 continue;
             }
         }
