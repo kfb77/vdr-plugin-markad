@@ -303,7 +303,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
 
     iStartA=abs(iStart);
     iStopA =startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->astopoffs - 30);
-    chkSTART=iStartA + macontext.Video.Info.FramesPerSecond * 3*MAXRANGE; // fit for later broadcast start
+    chkSTART=iStartA + macontext.Video.Info.FramesPerSecond * 4*MAXRANGE; //  fit for later broadcast start
     chkSTOP=startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->posttimer);
 
     dsyslog("cMarkAdStandalone::CalculateCheckPositions(): length of recording %is", length);
