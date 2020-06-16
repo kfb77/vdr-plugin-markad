@@ -327,7 +327,8 @@ class CheckPath:
             log.dsyslog("recording is deleted "+self.root)
             return(False)
         self.files.sort()
-        fileCompare = None
+        fileCompareMarks = None
+        fileCompareLogo = None
         for actFile in self.files:
             if not os.path.exists(root+"/"+actFile):
                 log.isyslog("directory was deleted "+root);
@@ -336,8 +337,6 @@ class CheckPath:
             if actFile == "markad.log": continue
             if actFile == "resume": continue
             if fnmatch.fnmatch(actFile,'*.ts'): continue
-            if fnmatch.fnmatch(actFile,'*.pgm'): continue
-            if fnmatch.fnmatch(actFile,'*.pgm'): continue
             if actFile == "info.epg2vdr": continue
             if actFile == "info":
                 isInfoFound = True
@@ -358,18 +357,36 @@ class CheckPath:
                 continue
 
             if fnmatch.fnmatch(actFile,'marks_*'):
-                if fileCompare is None: fileCompare = actFile
+                if fileCompareMarks is None: fileCompareMarks = actFile
                 else:
-                    rc = filecmp.cmp(self.root+"/"+fileCompare, self.root+"/"+actFile)
+                    rc = filecmp.cmp(self.root+"/"+fileCompareMarks, self.root+"/"+actFile)
                     if not rc:
                         log.isyslog("marks is different in recording: " + self.root)
-                        log.isyslog(fileCompare)
+                        log.isyslog(fileCompareMarks)
                         log.isyslog(actFile)
                     else:
-                        log.dsyslog("delete: "+ self.root+"/"+fileCompare);
-                        os.remove(self.root+"/"+fileCompare);
-                    fileCompare = actFile
+                        log.dsyslog("delete: "+ self.root+"/"+fileCompareMarks);
+                        os.remove(self.root+"/"+fileCompareMarks);
+                    fileCompareMarks = actFile
                 continue
+
+            if fnmatch.fnmatch(actFile,'logo__*'):
+                if fileCompareLogo is None: fileCompareLogo = actFile
+                else:
+                    logElemets1 = fileCompareLogo.split("__");
+                    logElemets2 = actFile.split("__");
+                    if (logElemets1[1] == logElemets2[1]) :
+                        rc = filecmp.cmp(self.root+"/"+fileCompareLogo, self.root+"/"+actFile)
+                        if not rc:
+                            log.isyslog("logo is different in recording: " + self.root)
+                            log.isyslog(fileCompareLogo)
+                            log.isyslog(actFile)
+                        else:
+                            log.dsyslog("delete: "+ self.root+"/"+fileCompareLogo);
+                            os.remove(self.root+"/"+fileCompareLogo);
+                    fileCompareLogo = actFile
+                continue
+            if fnmatch.fnmatch(actFile,'*.pgm'): continue
 
             if actFile == "markad.pid":
                 log.isyslog(" markad is running "+self.root)
@@ -440,7 +457,7 @@ class CheckPath:
 
     def BackupLogo(self):
         for file in os.listdir(self.root):
-            if file.endswith(".pgm") and not file.startswith("logo_"):
+            if file.endswith(".pgm") and not file.startswith("logo__"):
                 log.dsyslog("backup logo file " + file)
                 markadVersion = subprocess.run([config.bindir+"/markad", "--version"], stdout=subprocess.PIPE)
                 wordList = markadVersion.stdout.decode('utf-8').split(" ")
@@ -450,7 +467,7 @@ class CheckPath:
                 append = append.replace(".","")
                 now = datetime.datetime.now()
                 append = now.strftime("%Y-%m-%d_%H-%M-%S") + "_V"+append
-                cmd = "cp " + self.ConvertPath(self.root) + "/" + file + " " + self.ConvertPath(self.root) + "/logo_" + append + "_" + file
+                cmd = "cp " + self.ConvertPath(self.root) + "/" + file + " " + self.ConvertPath(self.root) + "/logo__" + file + "__" + append + ".pgm"
                 os.system(cmd)
                 elements = self.root.split("/");
                 count = len(elements)
