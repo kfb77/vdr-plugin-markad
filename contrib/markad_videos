@@ -365,6 +365,9 @@ class CheckPath:
                         log.isyslog("marks is different in recording: " + self.root)
                         log.isyslog(fileCompare)
                         log.isyslog(actFile)
+                    else:
+                        log.dsyslog("delete: "+ self.root+"/"+fileCompare);
+                        os.remove(self.root+"/"+fileCompare);
                     fileCompare = actFile
                 continue
 
