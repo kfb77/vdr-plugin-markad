@@ -152,7 +152,6 @@ typedef struct MarkAdContext {
                                       // later horizontal borders could be part of an ad
             bool ignoreVborder=false; // ignore vertical borders detection if there is none at the start of the recording
                                       // later vertical borders could be closing credits
-            bool WeakMarksOk;
         } Options;
 
         struct Info {

@@ -957,7 +957,6 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
                 if ((macontext.Config->autoLogo > 0) &&( Mark->Position > 0) && bDecodeVideo) {
                     isyslog("logo detection reenabled, trying to find a logo from this position");
                     macontext.Video.Options.IgnoreLogoDetection=false;
-                    macontext.Video.Options.WeakMarksOk=false;
                 }
             }
             break;
@@ -968,7 +967,6 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
             if ((macontext.Config->autoLogo > 0) && (Mark->Position > 0) && bDecodeVideo) {
                 isyslog("logo detection reenabled, trying to find a logo from this position");
                 macontext.Video.Options.IgnoreLogoDetection=false;
-                macontext.Video.Options.WeakMarksOk=false;
             }
             break;
         case MT_CHANNELSTART:
@@ -1033,7 +1031,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
             {
                 double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between STOP and START too short (%.1fs), deleting %i,%i",distance, prev->position,Mark->Position);
-                if (!macontext.Video.Options.WeakMarksOk) inBroadCast=true;
+                inBroadCast=true;
                 marks.Del(prev);
                 if (comment) {
                     FREE(strlen(comment)+1, "comment");
@@ -1052,7 +1050,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
             {
                 double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between START and STOP too short (%.1fs), deleting %i,%i",distance, prev->position,Mark->Position);
-                if (!macontext.Video.Options.WeakMarksOk) inBroadCast=false;
+                inBroadCast=false;
                 marks.Del(prev);
                 if (comment) {
                     FREE(strlen(comment)+1, "comment");
@@ -1076,7 +1074,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
             if ((Mark->Position - prev->position) < MARKDIFF) {
                 double distance=(Mark->Position - prev->position)/macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between START and STOP too short (%.1fs), deleting %i,%i",distance,prev->position,Mark->Position);
-                if (!macontext.Video.Options.WeakMarksOk) inBroadCast=false;
+                inBroadCast=false;
                 marks.Del(prev);
                 if (comment) {
                     FREE(strlen(comment)+1, "comment");
@@ -1116,18 +1114,17 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
 
 // set inBroadCast status
     bool inBroadCastBefore = inBroadCast;
-    if (!macontext.Video.Options.WeakMarksOk) {
-        if ((Mark->Type & 0xF0) != MT_BLACKCHANGE){ //  dont use BLACKSCEEN to detect if we are in broadcast
-            if (!((Mark->Type <= MT_ASPECTSTART) && (marks.GetPrev(Mark->Position,MT_CHANNELSTOP) && marks.GetPrev(Mark->Position,MT_CHANNELSTART)))) { // if there are MT_CHANNELSTOP and MT_CHANNELSTART marks, wait for MT_CHANNELSTART
-                if ((Mark->Type & 0x0F)==MT_START) {
-                    inBroadCast=true;
-                }
-                else {
-                    inBroadCast=false;
-                }
+    if ((Mark->Type & 0xF0) != MT_BLACKCHANGE){ //  dont use BLACKSCEEN to detect if we are in broadcast
+        if (!((Mark->Type <= MT_ASPECTSTART) && (marks.GetPrev(Mark->Position,MT_CHANNELSTOP) && marks.GetPrev(Mark->Position,MT_CHANNELSTART)))) { // if there are MT_CHANNELSTOP and MT_CHANNELSTART marks, wait for MT_CHANNELSTART
+            if ((Mark->Type & 0x0F)==MT_START) {
+                inBroadCast=true;
+            }
+            else {
+                inBroadCast=false;
             }
         }
     }
+    dsyslog("cMarkAdStandalone::AddMark(): status inBroadCast after %i", inBroadCast);
     if (inBroadCast != inBroadCastBefore) dsyslog("cMarkAdStandalone::AddMark(): status inBroadCast changed to %i", inBroadCast);
 }
 
@@ -3183,20 +3180,13 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
                     bIgnoreTimerInfo ? " " : " and pre-/post-timer ");
             tStart=iStart=iStop=iStopA=0;
             macontext.Video.Options.IgnoreLogoDetection=true;
-            macontext.Video.Options.WeakMarksOk=true;
         }
     }
     else {
         if (!CheckLogo() && (config->logoExtraction==-1)) {
             isyslog("no logo found, logo detection disabled");
             macontext.Video.Options.IgnoreLogoDetection=true;
-            macontext.Video.Options.WeakMarksOk=true;
         }
-    }
-
-    if (macontext.Video.Options.WeakMarksOk) {
-        isyslog("marks can/will be weak!");
-        inBroadCast=true;
     }
 
     if (tStart>1) {

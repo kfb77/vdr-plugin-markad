@@ -484,7 +484,6 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
                 if (!logoStatus) {
                     dsyslog("cMarkAdLogo::Process(): no valid logo found for aspect ratio %i:%i, disable logo detection", macontext->Video.Info.AspectRatio.Num, macontext->Video.Info.AspectRatio.Den);
                     macontext->Video.Options.IgnoreLogoDetection=true;
-                    macontext->Video.Options.WeakMarksOk=true;
                 }
                 FREE(strlen(buf)+1, "buf");
                 free(buf);
