@@ -621,7 +621,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
         }
     }
     if (retStatus) {
-        dsyslog("cExtractLogo::SearchLogo(): got enough frames, start analyze");
+        dsyslog("cExtractLogo::SearchLogo(): got enough iFrames at frame (%ld), start analyze",ptr_cDecoder->GetFrameNumber());
         logoInfoPacked actLogoInfoPacked[CORNERS] = {};
         logoInfo actLogoInfo[CORNERS] = {};
         for (int corner = 0; corner < CORNERS; corner++) {
@@ -681,7 +681,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
             logoInfoVectorPacked[corner].clear();
         }
 
-        if (bestLogoInfo.hits < 2) {
+        if (bestLogoInfo.hits < 50) {
             dsyslog("cExtractLogo::SearchLogo(): no valid logo found, best logo at frame %i with %i similars at corner %i", bestLogoInfo.iFrameNumber, bestLogoInfo.hits, bestLogoCorner);
             retStatus=false;
         }
