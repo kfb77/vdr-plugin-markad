@@ -457,7 +457,7 @@ void cExtractLogo::UnpackLogoInfo(logoInfo *logoInfo, logoInfoPacked *logoInfoPa
 }
 
 
-bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
+int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
     dsyslog("----------------------------------------------------------------------------");
     dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i", startFrame);
 
@@ -573,7 +573,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
                     for (int corner = 0; corner < CORNERS; corner++) {
                         int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
                                                     //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
-                        if (corner == BOTTOM_RIGHT) iFrameNumberNext = -2;   // TODO only for debug
+//                        if (corner == BOTTOM_RIGHT) iFrameNumberNext = -2;   // TODO only for debug
                         area->corner=corner;
                         ptr_Logo->Detect(iFrameNumber,&iFrameNumberNext);
                         logoInfo actLogoInfo = {};
@@ -611,7 +611,7 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
         }
     }
     if (!retStatus && (iFrameCountAll < MAXREADFRAMES) && (iFrameCountAll > MAXREADFRAMES / 2)) {  // reached end of recording before we got 1000 valid frames
-        dsyslog("cExtractLogo::SearchLogo(): end of recording reached at frame (%ld), read (%i) iFrames and got (%i) valid iFrames, try anyway", ptr_cDecoder->GetFrameNumber(), iFrameCountAll, iFrameCountValid);
+        dsyslog("cExtractLogo::SearchLogo(): end of recording reached at frame (%ld), read (%i) iFrames and got (%i) valid iFrames, try anyway",iFrameNumber , iFrameCountAll, iFrameCountValid);
         retStatus=true;
     }
     else {
@@ -723,8 +723,9 @@ bool cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
     delete ptr_Logo;
     maContext->Video = maContextSaveState.Video;     // restore state of calling video context
     maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
-    if (retStatus) dsyslog("cExtractLogo::SearchLogo(): finished successfully");
+    if (retStatus) dsyslog("cExtractLogo::SearchLogo(): finished successfully at frame");
     else dsyslog("cExtractLogo::SearchLogo(): failed");
     dsyslog("----------------------------------------------------------------------------");
-    return retStatus;
+    if (retStatus) return 0;
+    else return iFrameNumber;
 }

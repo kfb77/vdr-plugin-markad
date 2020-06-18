@@ -464,7 +464,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
                         if (macontext->Config->autoLogo > 0) {
                             isyslog("no valid logo for %s in logo cache and recording directory, extract logo from recording",buf);
                             cExtractLogo *ptr_cExtractLogo = new cExtractLogo();  // search logo from current frame
-                            if (!ptr_cExtractLogo->SearchLogo(macontext, FrameNumber)) dsyslog("cMarkAdLogo::Process(): no logo found in recording");
+                            if (ptr_cExtractLogo->SearchLogo(macontext, FrameNumber) > 0) dsyslog("cMarkAdLogo::Process(): no logo found in recording");
                             else dsyslog("cMarkAdLogo::Process(): new logo for %s found in recording",buf);
                             if (ptr_cExtractLogo) {
                                 delete ptr_cExtractLogo;

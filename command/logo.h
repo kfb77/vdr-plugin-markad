@@ -26,7 +26,7 @@ class cExtractLogo {
     public:
         cExtractLogo();
         ~cExtractLogo();
-        bool SearchLogo(MarkAdContext *maContext, int startFrame);
+        int SearchLogo(MarkAdContext *maContext, int startFrame);
         bool abort = false;
         void SetAbort() {
             abort = true;

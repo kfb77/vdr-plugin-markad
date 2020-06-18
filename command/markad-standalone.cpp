@@ -2021,7 +2021,7 @@ void cMarkAdStandalone::ProcessFile_cDecoder() {
         if(ptr_cDecoder->GetFrameNumber() < 0) {
             macontext.Info.VPid.Type = ptr_cDecoder->GetVideoType();
             if (macontext.Info.VPid.Type == 0) {
-                dsyslog("cExtractLogo::SearchLogo(): video type not set");
+                dsyslog("cMarkAdStandalone::ProcessFile_cDecoder(): video type not set");
                 return;
             }
             macontext.Video.Info.Height=ptr_cDecoder->GetVideoHeight();
@@ -2492,13 +2492,23 @@ bool cMarkAdStandalone::CheckLogo() {
         isyslog("no logo found in recording directory, trying to extract logo from recording");
         ptr_cExtractLogo = new cExtractLogo();
         ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
-        if (!ptr_cExtractLogo->SearchLogo(&macontext, 0)) {  // search logo from start
+        long int endpos = ptr_cExtractLogo->SearchLogo(&macontext, 0);   // search logo from start
+        if (endpos > 0) {
+            isyslog("no logo found in recording, retry in next recording part");
+            endpos = ptr_cExtractLogo->SearchLogo(&macontext, endpos);   // search logo from start
             if (ptr_cExtractLogo) {
                 FREE(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
                 delete ptr_cExtractLogo;
                 ptr_cExtractLogo = NULL;
             }
-            isyslog("no logo found in recording");
+            if (endpos > 0) {
+                isyslog("no logo found in recording");
+                return false;
+            }
+            else {
+               dsyslog("cMarkAdStandalone::CheckLogo(): found logo in recording in second part");
+               return true;
+           }
         }
         else {
             dsyslog("cMarkAdStandalone::CheckLogo(): found logo in recording");
