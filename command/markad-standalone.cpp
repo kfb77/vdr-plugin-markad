@@ -3427,7 +3427,7 @@ int usage(int svdrpport) {
            "                  ip/hostname of a remote VDR for OSD messages\n"
            "                --svdrpport=<port> (default is %i)\n"
            "                  port of a remote VDR for OSD messages\n"
-           "                --astopoffs=<value> (default is 100)\n"
+           "                --astopoffs=<value> (default is 0)\n"
            "                  assumed stop offset in seconds range from 0 to 240\n"
            "                --posttimer=<value> (default is 600)\n"
            "                  additional recording after timer end in seconds range from 0 to 1200\n"
@@ -3532,7 +3532,7 @@ int main(int argc, char *argv[]) {
     config.logoWidth=-1;
     config.logoHeight=-1;
     config.threads=-1;
-    config.astopoffs=100;
+    config.astopoffs=0;
     config.posttimer=600;
     strcpy(config.svdrphost,"127.0.0.1");
     strcpy(config.logoDirectory,"/var/lib/markad");
