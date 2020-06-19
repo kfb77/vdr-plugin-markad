@@ -61,7 +61,7 @@ class clMarks {
         char filename[1024];
         clMark *first,*last;
         int count;
-        int savedcount;
+        int savedcount = 0;
         int indexfd;
 #if !defined ONLY_WITH_CDECODER
         void WriteIndex(bool isTS, uint64_t Offset,int FrameType, int Number);
@@ -76,6 +76,7 @@ class clMarks {
         }
         ~clMarks();
         int Count(int Type=0xFF, int Mask=0xFF);
+        int CountWithoutBlack();
         void SetFileName(const char *FileName) {
             if (FileName) {
                 strncpy(filename,FileName,sizeof(filename));

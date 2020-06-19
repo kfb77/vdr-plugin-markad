@@ -65,6 +65,19 @@ int clMarks::Count(int Type, int Mask) {
 }
 
 
+int clMarks::CountWithoutBlack() {
+    if (!first) return 0;
+
+    int ret=0;
+    clMark *mark=first;
+    while (mark) {
+        if ((mark->type & 0xF0) != MT_BLACKCHANGE) ret++;
+        mark=mark->Next();
+    }
+    return ret;
+}
+
+
 void clMarks::Del(int Position) {
     if (!first) return; // no elements yet
 
@@ -692,7 +705,8 @@ bool clMarks::Load(const char *Directory, double FrameRate, bool isTS) {
 
 bool clMarks::Save(const char *Directory, MarkAdContext *maContext, cDecoder *ptr_cDecoder, bool isTS, bool Force) {
     if (!first) return false;
-    if ((savedcount==count) && (!Force)) return false;
+    if ((savedcount == CountWithoutBlack()) && (!Force)) return false;
+    dsyslog("clMarks::Save(): save marks, force=%d", Force);
 
     char *fpath=NULL;
     if (asprintf(&fpath,"%s/%s%s",Directory,filename,isTS ? "" : ".vdr")==-1) return false;
@@ -709,11 +723,13 @@ bool clMarks::Save(const char *Directory, MarkAdContext *maContext, cDecoder *pt
 
     clMark *mark=first;
     while (mark) {
-        char *indexToHMSF=IndexToHMSF(mark->position,maContext,ptr_cDecoder);
-        if (indexToHMSF) {
-            fprintf(mf,"%s %s\n",indexToHMSF,mark->comment ? mark->comment : "");
-            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-            free(indexToHMSF);
+        if (Force || ((mark->type & 0xF0) != MT_BLACKCHANGE)) {    // do not save MT_BLACKCHANGE before analysed
+            char *indexToHMSF=IndexToHMSF(mark->position,maContext,ptr_cDecoder);
+            if (indexToHMSF) {
+                fprintf(mf,"%s %s\n",indexToHMSF,mark->comment ? mark->comment : "");
+                FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                free(indexToHMSF);
+            }
         }
         mark=mark->Next();
     }
@@ -734,6 +750,6 @@ bool clMarks::Save(const char *Directory, MarkAdContext *maContext, cDecoder *pt
     }
     FREE(strlen(fpath)+1, "fpath");
     free(fpath);
-    savedcount=count;
+    savedcount = CountWithoutBlack();
     return true;
 }

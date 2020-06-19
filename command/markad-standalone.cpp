@@ -765,9 +765,10 @@ void cMarkAdStandalone::CheckStart() {
         AddMark(&mark);
         CalculateCheckPositions(iStart);
     }
+    iStart=0;
+    if (macontext.Config->Before) marks.Save(directory,&macontext, ptr_cDecoder, isTS, true);
     DebugMarks();     //  only for debugging
     LogSeparator();
-    iStart=0;
     return;
 }
 
@@ -1126,6 +1127,10 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
     }
     dsyslog("cMarkAdStandalone::AddMark(): status inBroadCast after %i", inBroadCast);
     if (inBroadCast != inBroadCastBefore) dsyslog("cMarkAdStandalone::AddMark(): status inBroadCast changed to %i", inBroadCast);
+    if (macontext.Config->Before) {
+        if (Mark->Position > chkSTART) marks.Save(directory,&macontext, ptr_cDecoder, isTS, true);
+        else marks.Save(directory,&macontext, ptr_cDecoder, isTS, false);
+    }
 }
 
 
@@ -1210,7 +1215,6 @@ void cMarkAdStandalone::CheckIndexGrowing()
                     return;
                 }
             }
-            marks.Save(directory,&macontext, ptr_cDecoder, isTS);
             unsigned int sleeptime=WAITTIME;
             time_t sleepstart=time(NULL);
             double slepttime=0;
@@ -2123,7 +2127,7 @@ void cMarkAdStandalone::Process_cDecoder() {
     ProcessFile_cDecoder();
 
     if (!abortNow) {
-        if (marks.Save(directory,&macontext,ptr_cDecoder,isTS)) {
+        if (marks.Save(directory, &macontext, ptr_cDecoder, isTS, true)) {
             if (length && startTime)
                     if (macontext.Config->SaveInfo) SaveInfo();
 
