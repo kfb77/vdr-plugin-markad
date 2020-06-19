@@ -233,6 +233,8 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     char *datePart = strrchr(buffCutName, '/');
     if (!datePart) {
         dsyslog("cEncoder::OpenFile(): faild to find last '/'");
+        FREE(strlen(buffCutName)+1, "buffCutName");
+        free(buffCutName);
         return false;
     }
     *datePart = 0;    // cut off date part
@@ -240,7 +242,7 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
     char *cutName = strrchr(buffCutName, '/');
     if (!cutName) {
         dsyslog("cEncoder::OpenFile(): faild to find last '/'");
-        FREE(strlen(buffCutName)+1, "recPath");
+        FREE(strlen(buffCutName)+1, "buffCutName");
         free(buffCutName);
         return false;
     }

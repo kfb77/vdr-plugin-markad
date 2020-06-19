@@ -3130,10 +3130,29 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         // just to be sure extraction works
         bDecodeVideo=true;
     }
-
     if (config->Before) sleep(10);
 
-    if (strstr(directory,"/@")) {
+    char *tmpDir = strdup(directory);
+#ifdef DEBUGMEM
+    ALLOC(strlen(tmpDir)+1, "tmpDir");
+    int memsize_tmpDir = strlen(directory)+1;
+#endif
+    char *datePart = strrchr(tmpDir, '/');
+    if (!datePart) {
+        dsyslog("cMarkAdStandalone::cMarkAdStandalone(): faild to find last '/'");
+        FREE(strlen(tmpDir+1), "tmpDir");
+        free(tmpDir);
+        return;
+    }
+    *datePart = 0;    // cut off date part
+    char *recName = strrchr(tmpDir, '/');
+    if (!recName) {
+        dsyslog("cMarkAdStandalone::cMarkAdStandalone(): faild to find last '/'");
+        FREE(strlen(tmpDir+1), "tmpDir");
+        free(tmpDir);
+        return;
+    }
+    if (strstr(recName,"/@")) {
         isyslog("live-recording, disabling pre-/post timer");
         bIgnoreTimerInfo=true;
         bLiveRecording=true;
@@ -3141,6 +3160,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     else {
         bLiveRecording=false;
     }
+#ifdef DEBUGMEM
+    FREE(memsize_tmpDir, "tmpDir");
+#endif
+    free(tmpDir);
 
     if (!CheckTS()) {
         esyslog("no files found");
