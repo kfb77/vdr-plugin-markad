@@ -17,7 +17,8 @@
 
 struct setup {
     int ProcessDuring;
-    bool useVPS;
+    bool useVPS = false;
+    bool logVPS = false;
     bool whileRecording;
     bool whileReplaying;
     bool OSDMessage;
@@ -49,7 +50,8 @@ class cSetupMarkAd : public cMenuSetupPage {
         struct setup *setup;
         int autologomenue;
         int processduring;
-        int usevps;
+        int usevps = 0;
+        int logvps = 0;
         int whilerecording;
         int whilereplaying;
         int osdmsg;

@@ -270,6 +270,7 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value) {
     // Parse setup parameters and store their values.
     if (!strcasecmp(Name,"Execution")) setup.ProcessDuring=atoi(Value);
     else if (!strcasecmp(Name,"useVPS")) setup.useVPS=atoi(Value);
+    else if (!strcasecmp(Name,"logVPS")) setup.logVPS=atoi(Value);
     else if (!strcasecmp(Name,"whileRecording")) setup.whileRecording=atoi(Value);
     else if (!strcasecmp(Name,"whileReplaying")) setup.whileReplaying=atoi(Value);
     else if (!strcasecmp(Name,"OSDMessage")) setup.OSDMessage=atoi(Value);
@@ -367,7 +368,7 @@ cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int
         if (Option) {
             char *Title=NULL;
             if (ReadTitle(Option)) Title=(char *) &title;
-            if (statusMonitor->Start(Option,Title,true)) {
+            if (statusMonitor->Start(Option,Title,0, 0, true)) {
                 return cString::sprintf("Started markad for %s",Option);
             }
             else {

@@ -52,20 +52,17 @@ Command line options:
 --------------------------------------------------------------------------------------------------------------------------------------------------
 
 VPS and markad plugin:
-You can use VPS events to optimze your start and stop marks.
+You can use VPS events to optimize your start and stop marks.
 Prerequisites:
-- Set "use VPS" to yes in the VDR plugin setup menue. If you use markad from command line, add parameter --vps.
+- Set "use VPS" to yes in the VDR plugin setup menue. If you use markad from command line, additional add parameter --vps to your markad call.
 
-If you use epg2vdr plugin:
-- set "Store extended EPD Data to AUX (e.g. for Skins)" to yes in the VDR plugin setup menue.
-- apply the epg2vdr-add-original-VDR-EventID-to-Event-Aux-xml.patch from the patches directory to the epg2vdr plugin.
-- Be patient, the change will only take affect for new epg data. This will take some days.
-
-It will only work with channels that send a valid VPS signal (see comment in plugin/status.cpp).
+It will only work with channels that send a valid VPS signal (see comment in plugin/status.cpp for examples).
+The VPS events are checked at the end of the recording and only used if they appear valid.
+If markad is running during the recording, the VPS marks are applied at the end of the recording.
+This is not a real VPS function and does not control your recording start/stop time. If you want to do this, use the VPS flag on the VDR timer.
 
 --------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-To report bugs please execute markad with the following command line parameters:
+To report bugs please execute markad with at least the following command line parameters:
 markad --loglevel=3 --log2rec nice <path to recording>
 Post the files markad.log, marks und info from the recording directory at https://www.vdr-portal.de.

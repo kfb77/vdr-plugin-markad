@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
-"POT-Creation-Date: 2020-05-24 10:34+0200\n"
+"POT-Creation-Date: 2020-06-23 17:01+0200\n"
 "PO-Revision-Date: 2011-07-10 00:56+0100\n"
 "Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
 "Language-Team: Italian <vdr@linuxtv.org>\n"
@@ -77,6 +77,9 @@ msgid "execution"
 msgstr "Esecuzione"
 
 msgid "use VPS"
+msgstr ""
+
+msgid "log VPS events"
 msgstr ""
 
 msgid "  during another recording"

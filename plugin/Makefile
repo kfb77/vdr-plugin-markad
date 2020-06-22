@@ -66,7 +66,6 @@ endif
 ### The object files (add further files here):
 
 OBJS = $(PLUGIN).o status.o menu.o setup.o debug.o
-LIBS += $(shell pkg-config --libs tinyxml2)
 
 ### The main target:
 

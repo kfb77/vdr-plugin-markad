@@ -14,6 +14,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
 
     processduring=setup->ProcessDuring;
     usevps=setup->useVPS;
+    logvps=setup->logVPS;
     whilerecording=setup->whileRecording;
     whilereplaying=setup->whileReplaying;
     osdmsg=setup->OSDMessage;
@@ -49,6 +50,7 @@ void cSetupMarkAd::write(void) {
     if (!first) return;
     Add(first);
     Add(new cMenuEditBoolItem(tr("use VPS"),&usevps));
+    if (usevps) Add(new cMenuEditBoolItem(tr("log VPS events"),&logvps));
     if (processduring < PROCESS_NEVER) {
         if (!processduring)
         {
@@ -118,6 +120,7 @@ void cSetupMarkAd::Store(void) {
         whilereplaying=1;
     }
     SetupStore("useVPS",usevps);
+    SetupStore("logVPS",logvps);
     SetupStore("whileRecording",whilerecording);
     SetupStore("whileReplaying",whilereplaying);
     SetupStore("IgnoreMargins",nomargins);
@@ -134,6 +137,7 @@ void cSetupMarkAd::Store(void) {
 
     setup->ProcessDuring=(int) processduring;
     setup->useVPS=(bool) usevps;
+    setup->logVPS=(bool) logvps;
     setup->whileRecording=(bool) whilerecording;
     setup->whileReplaying=(bool) whilereplaying;
     setup->OSDMessage=(bool) osdmsg;
