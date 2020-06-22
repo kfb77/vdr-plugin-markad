@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2020-06-22: Version 2.2.0
+- remove classic decoder per compiler option (see Makefile)
+- remove genindex function
+- some minor bug fixes and optimizations, see git
+
 2020-06-18: Version 2.1.4
 - improved logo search function with --autolog > 0
 - fix cut function for recording with missing subtitle decoder or encoder

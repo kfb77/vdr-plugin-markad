@@ -3,7 +3,7 @@
 #
 
 # use this, if you want to build with the new cDecoder class only
-# ONLY_WITH_CDECODER=1
+ONLY_WITH_CDECODER=1
 
 # use this, if you want to debug heap memory consumption
 # DEBUGMEMMARKAD=1
