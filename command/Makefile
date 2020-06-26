@@ -6,7 +6,7 @@
 ONLY_WITH_CDECODER=1
 
 # use this, if you want to debug heap memory consumption
-DEBUGMEMMARKAD=1
+# DEBUGMEMMARKAD=1
 
 # use this, if you use libavcodec51
 # WITH_OLD_FFMPEG_HEADERS=1

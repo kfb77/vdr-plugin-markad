@@ -12,7 +12,7 @@ PLUGIN = markad
 
 
 # use this, if you want to debug heap memory consumption
-DEBUGMEMPLUGIN=1
+# DEBUGMEMPLUGIN=1
 
 
 ### The version number of this plugin (taken from the version header file):

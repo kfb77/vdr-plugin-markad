@@ -58,7 +58,7 @@ Prerequisites:
 
 It will only work with channels that send a valid VPS signal (see comment in plugin/status.cpp for examples).
 The VPS events are checked at the end of the recording and only used if they appear valid.
-If markad is running during the recording, the VPS marks are applied at the end of the recording.
+If markad is running during the recording, the VPS marks are applied after the end of the recording.
 This is not a real VPS function and does not control your recording start/stop time. If you want to do this, use the VPS flag on the VDR timer.
 
 --------------------------------------------------------------------------------------------------------------------------------------------------
