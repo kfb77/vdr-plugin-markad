@@ -29,6 +29,8 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 void memAlloc(int size, int line, char *file, char *var) {
+    if (!file) return;
+    if (!var) return;
     pthread_mutex_lock(&mutex);
     memUseSum += size;
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
@@ -45,6 +47,8 @@ void memAlloc(int size, int line, char *file, char *var) {
 
 
 void memFree(int size, int line, char *file, char *var) {
+    if (!file) return;
+    if (!var) return;
     pthread_mutex_lock(&mutex);
     memUseSum -= size;
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
