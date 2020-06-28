@@ -2476,7 +2476,7 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd) {
     struct mntent *ent;
     struct stat statbuf;
     FILE *mounts=setmntent(_PATH_MOUNTED,"r");
-    int mlen=0;
+    int mlen;
     int oldmlen=0;
     bool useatime=false;
     while ((ent=getmntent(mounts))!=NULL) {
