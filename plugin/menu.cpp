@@ -53,23 +53,22 @@ cOsdMarkAd::cOsdMarkAd(struct recs *Entry) {
 
 
 cMenuMarkAd::cMenuMarkAd(cStatusMarkAd *Status):cOsdMenu(tr("markad status"),15) {
-    status=Status;
-    last=time(NULL);
-
+    status = Status;
     int width=0;
+
     cSkinDisplayMenu *disp=DisplayMenu();
     if (disp) {
-        width=disp->GetTextAreaWidth();
+        width = disp->GetTextAreaWidth();
     }
-    if (!width) width=Setup.OSDWidth;
+    if (!width) width = Setup.OSDWidth;
 
     int AvgCharWidth = Setup.FontOsdSize * 3 / 5; // see skins.c
-    if (AvgCharWidth<1) AvgCharWidth=1;
-    int tab=(width-10*AvgCharWidth)/AvgCharWidth;
+    if (AvgCharWidth < 1) AvgCharWidth = 1;
+    int tab = (width - 10 * AvgCharWidth) / AvgCharWidth;
     SetCols(tab);
 
     if (write()) {
-        cOsdMarkAd *osd=static_cast<cOsdMarkAd *>(Get(Current()));
+        cOsdMarkAd *osd = static_cast<cOsdMarkAd *>(Get(Current()));
         if ((osd) && (osd->Selectable())) {
             SetHelpText(osd->GetEntry());
         }
@@ -77,7 +76,7 @@ cMenuMarkAd::cMenuMarkAd(cStatusMarkAd *Status):cOsdMenu(tr("markad status"),15)
     else {
         SetHelpText(NULL);
     }
-    lastpos=0;
+    lastpos = 0;
 }
 
 

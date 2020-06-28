@@ -11,25 +11,25 @@
 
 
 class cOsdMarkAd : public cOsdItem {
-private:
-    struct recs *entry;
-public:
-    explicit cOsdMarkAd(struct recs *Entry);
-    struct recs *GetEntry() {
-        return entry;
-    }
+    private:
+        struct recs *entry;
+    public:
+        explicit cOsdMarkAd(struct recs *Entry);
+        struct recs *GetEntry() {
+            return entry;
+        }
 };
 
 
 class cMenuMarkAd : public cOsdMenu {
-private:
-    cStatusMarkAd *status;
-    void SetHelpText(struct recs *Entry);
-    bool write();
-    time_t last;
-    int lastpos;
-public:
-    explicit cMenuMarkAd(cStatusMarkAd *Status);
-    eOSState ProcessKey(eKeys Key);
+    private:
+        cStatusMarkAd *status = NULL;
+        void SetHelpText(struct recs *Entry);
+        bool write();
+        time_t last = time(NULL);;
+        int lastpos = 0;
+    public:
+        explicit cMenuMarkAd(cStatusMarkAd *Status);
+        eOSState ProcessKey(eKeys Key);
 };
 #endif
