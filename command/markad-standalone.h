@@ -195,7 +195,7 @@ class cMarkAdStandalone {
 public:
     cMarkAdStandalone(const char *Directory, const MarkAdConfig *config);
     ~cMarkAdStandalone();
-    cMarkAdStandalone(const cMarkAdStandalone &origin) {
+    cMarkAdStandalone(const cMarkAdStandalone &origin) {   //  copy constructor, not used, only for formal reason
         strcpy(title,origin.title);
         ptitle = title;
         directory = origin.directory;
@@ -233,7 +233,7 @@ public:
         streaminfo = NULL;
 #endif
     };
-    cMarkAdStandalone &operator =(const cMarkAdStandalone *origin) {
+    cMarkAdStandalone &operator =(const cMarkAdStandalone *origin) {   // operator=, not used, only for formal reason
         strcpy(title,origin->title);
         ptitle = title;
         directory = origin->directory;

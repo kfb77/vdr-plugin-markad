@@ -209,6 +209,27 @@ class cMarkAdVideo {
     public:
         explicit cMarkAdVideo(MarkAdContext *maContext);
         ~cMarkAdVideo();
+        cMarkAdVideo(const cMarkAdVideo &origin) {   //  copy constructor, not used, only for formal reason
+            macontext = NULL;
+            blackScreen = NULL;
+            hborder = NULL;
+            vborder = NULL;
+            logo = NULL;
+            overlap = NULL;
+            framelast = 0;
+            framebeforelast = 0;
+        };
+        cMarkAdVideo &operator =(const cMarkAdVideo *origin) {  // operator=, not used, only for formal reason
+            macontext = NULL;
+            blackScreen = NULL;
+            hborder = NULL;
+            vborder = NULL;
+            logo = NULL;
+            overlap = NULL;
+            framelast = 0;
+            framebeforelast = 0;
+            return *this;
+        }
         MarkAdPos *ProcessOverlap(int FrameNumber, int Frames, bool BeforeAd, bool H264);
         MarkAdMarks *Process(int FrameNumber, int FrameNumberNext);
         void Clear(bool isRestart);
