@@ -107,37 +107,37 @@ class cMarkAdStandalone {
 //    static const char frametypes[8];
     const char *directory;
 
-    cMarkAdVideo *video;
-    cMarkAdAudio *audio;
-    cOSDMessage *osd;
-    AvPacket pkt;
-    MarkAdContext macontext;
+    cMarkAdVideo *video = NULL;
+    cMarkAdAudio *audio = NULL;
+    cOSDMessage *osd = NULL;
+    AvPacket pkt = {0};
+    MarkAdContext macontext = {0};
     char title[80];
-    char *ptitle;
+    char *ptitle = NULL;
     bool CreatePidfile();
     void RemovePidfile();
-    bool duplicate; // are we a dup?
-    bool isTS;
-    bool isREEL;
-    int MaxFiles;
-    int lastiframe;
-    int iframe;
+    bool duplicate = false; // are we a dup?
+    bool isTS = false;
+    bool isREEL = false;
+    int MaxFiles = 0;
+    int lastiframe = 0;
+    int iframe = 0;
     int framecnt = 0;  // 1nd pass
     int framecnt2 = 0; // 2nd pass
     int framecnt3 = 0; // 3nd pass (cut recording)
-    bool gotendmark;
-    int waittime;
-    int iwaittime;
+    bool gotendmark = false;
+    int waittime = 0;
+    int iwaittime = 0;
     struct timeval tv1,tv2;
     struct timezone tz;
-    bool noticeVDR_VID;
-    bool noticeVDR_AC3;
-    bool noticeHEADER;
-    bool noticeFILLER;
-    bool bDecodeVideo;
-    bool bDecodeAudio;
-    bool bIgnoreTimerInfo;
-    bool bLiveRecording;
+    bool noticeVDR_VID = false;
+    bool noticeVDR_AC3 = false;
+    bool noticeHEADER = false;
+    bool noticeFILLER = false ;
+    bool bDecodeVideo = false;
+    bool bDecodeAudio = false;
+    bool bIgnoreTimerInfo = false;
+    bool bLiveRecording = false;
     time_t startTime = 0;  // starttime of broadcast
     int length = 0;        // length of broadcast in seconds
     int tStart = 0;        // pretimer in seconds
@@ -146,11 +146,11 @@ class cMarkAdStandalone {
     int iStartA = 0;       // assumed startposition in frames
     int iStopA = 0;        // assumed endposition in frames (negative if unset)
     bool iStopinBroadCast = false;    // in broadcast @ iStop position?
-    int chkSTART;
-    int chkSTOP;
-    bool inBroadCast;  // are we in a broadcast (or ad)?
-    char *indexFile;
-    int sleepcnt;
+    int chkSTART = 0;
+    int chkSTOP = 0;
+    bool inBroadCast = false;  // are we in a broadcast (or ad)?
+    char *indexFile = NULL;
+    int sleepcnt = 0;
     clMarks marks;
 
     void CheckStop();
