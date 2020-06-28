@@ -933,7 +933,6 @@ MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd, b
 
 cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext) {
     macontext=maContext;
-    marks={};
     blackScreen=new cMarkAdBlackScreen(maContext);
     hborder=new cMarkAdBlackBordersHoriz(maContext);
     vborder=new cMarkAdBlackBordersVert(maContext);

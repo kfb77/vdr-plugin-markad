@@ -194,7 +194,7 @@ class cMarkAdBlackBordersVert {
 class cMarkAdVideo {
     private:
         MarkAdContext *macontext;
-        MarkAdMarks marks;
+        MarkAdMarks marks = {0};
         MarkAdAspectRatio aspectratio;
         cMarkAdBlackScreen *blackScreen;
         cMarkAdBlackBordersHoriz *hborder;
