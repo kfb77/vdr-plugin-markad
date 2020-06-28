@@ -259,9 +259,9 @@ void cStatusMarkAd::SaveVPSStatus(const int index) {
         return;
     }
 
-    int offset = 0;
+    int offset;
     char timeVPSchar[20] = {0};
-    struct tm timeVPStm = {0};
+    struct tm timeVPStm;
     char *fileVPS = NULL;
 
     if (!asprintf(&fileVPS, "%s/%s", recs[index].FileName, "markad.vps")) {
