@@ -1605,9 +1605,9 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
         if (ptr_cDecoder->isVideoIFrame()) {
             ptr_MarkAdPos=video->ProcessOverlap(ptr_cDecoder->GetFrameNumber(),iFrameCount,false,(macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264));
         }
-        if (ptr_MarkAdPos) dsyslog("cMarkAdStandalone::ProcessMark2ndPass found overlap in frames (%i,%i)", ptr_MarkAdPos->FrameNumberBefore, ptr_MarkAdPos->FrameNumberAfter);
         if (ptr_MarkAdPos) {
             // found overlap
+            dsyslog("cMarkAdStandalone::ProcessMark2ndPass found overlap in frames (%i,%i)", ptr_MarkAdPos->FrameNumberBefore, ptr_MarkAdPos->FrameNumberAfter);
             ChangeMarks(mark1,mark2,ptr_MarkAdPos);
             return true;
         }
