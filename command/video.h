@@ -203,7 +203,7 @@ class cMarkAdVideo {
         cMarkAdOverlap *overlap;
         void resetmarks();
         bool addmark(int type, int position, MarkAdAspectRatio *before=NULL, MarkAdAspectRatio *after=NULL);
-        bool aspectratiochange(MarkAdAspectRatio &a, MarkAdAspectRatio &b, bool &start);
+        bool aspectratiochange(const MarkAdAspectRatio &a, const MarkAdAspectRatio &b, bool &start);
         int framelast;
         int framebeforelast;
     public:

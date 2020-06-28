@@ -974,42 +974,39 @@ void cMarkAdVideo::resetmarks() {
 bool cMarkAdVideo::addmark(int type, int position, MarkAdAspectRatio *before, MarkAdAspectRatio *after) {
     if (marks.Count>marks.maxCount) return false;
     if (before) {
-        marks.Number[marks.Count].AspectRatioBefore.Num=before->Num;
-        marks.Number[marks.Count].AspectRatioBefore.Den=before->Den;
+        marks.Number[marks.Count].AspectRatioBefore.Num = before->Num;
+        marks.Number[marks.Count].AspectRatioBefore.Den = before->Den;
     }
     if (after) {
-        marks.Number[marks.Count].AspectRatioAfter.Num=after->Num;
-        marks.Number[marks.Count].AspectRatioAfter.Den=after->Den;
+        marks.Number[marks.Count].AspectRatioAfter.Num = after->Num;
+        marks.Number[marks.Count].AspectRatioAfter.Den = after->Den;
     }
-    marks.Number[marks.Count].Position=position;
-    marks.Number[marks.Count].Type=type;
+    marks.Number[marks.Count].Position = position;
+    marks.Number[marks.Count].Type = type;
     marks.Count++;
     return true;
 }
 
 
-bool cMarkAdVideo::aspectratiochange(MarkAdAspectRatio &a, MarkAdAspectRatio &b, bool &start) {
-    start=false;
-    if (a.Num==0 || a.Den==0 || b.Num==0 || b.Den==0) {
-        if (((a.Num==4) || (b.Num==4)) && ((a.Den==3) || (b.Den==3))) {
-            start=true;
+bool cMarkAdVideo::aspectratiochange(const MarkAdAspectRatio &a, const MarkAdAspectRatio &b, bool &start) {
+    start = false;
+    if ((a.Num == 0) || (a.Den == 0) || (b.Num == 0) || (b.Den == 0)) {
+        if (((a.Num == 4) || (b.Num == 4)) && ((a.Den == 3) || (b.Den == 3))) {
+            start = true;
         }
         else {
             return false;
         }
     }
-    if ((a.Num!=b.Num) && (a.Den!=b.Den)) return true;
+    if ((a.Num != b.Num) && (a.Den != b.Den)) return true;
     return false;
-
 }
 
 
 MarkAdPos *cMarkAdVideo::ProcessOverlap(int FrameNumber, int Frames, bool BeforeAd, bool H264) {
-
     if (!FrameNumber) return NULL;
-    if (!overlap) overlap=new cMarkAdOverlap(macontext);
+    if (!overlap) overlap = new cMarkAdOverlap(macontext);
     if (!overlap) return NULL;
-
     return overlap->Process(FrameNumber, Frames, BeforeAd, H264);
 }
 
