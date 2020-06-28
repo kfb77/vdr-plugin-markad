@@ -1074,28 +1074,28 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext) {
                 }
             }
             else {
-                if ((macontext->Video.Info.AspectRatio.Num==16) && (macontext->Video.Info.AspectRatio.Den==9)) {
-                    addmark(MT_ASPECTSTART,start ? FrameNumber : FrameNumberNext,&aspectratio,&macontext->Video.Info.AspectRatio);
+                if ((macontext->Video.Info.AspectRatio.Num == 16) && (macontext->Video.Info.AspectRatio.Den == 9)) {
+                    addmark(MT_ASPECTSTART,start ? FrameNumber : FrameNumberNext, &aspectratio, &macontext->Video.Info.AspectRatio);
                 }
                 else {
-                    addmark(MT_ASPECTSTOP,framelast,&aspectratio,&macontext->Video.Info.AspectRatio);
+                    addmark(MT_ASPECTSTOP, framelast, &aspectratio, &macontext->Video.Info.AspectRatio);
                 }
             }
         }
 
-        aspectratio.Num=macontext->Video.Info.AspectRatio.Num;
-        aspectratio.Den=macontext->Video.Info.AspectRatio.Den;
+        aspectratio.Num = macontext->Video.Info.AspectRatio.Num;
+        aspectratio.Den = macontext->Video.Info.AspectRatio.Den;
     }
 
     if (!macontext->Video.Options.IgnoreLogoDetection) {
-        int logoframenumber;
-        int lret=logo->Process(FrameNumber,&logoframenumber);
-        if ((lret>=-1) && (lret!=0) && (logoframenumber!=-1)) {
-            if (lret>0) {
-                addmark(MT_LOGOSTART,logoframenumber);
+        int logoframenumber = 0;
+        int lret=logo->Process(FrameNumber, &logoframenumber);
+        if ((lret >= -1) && (lret != 0) && (logoframenumber != -1)) {
+            if (lret > 0) {
+                addmark(MT_LOGOSTART, logoframenumber);
             }
             else {
-                addmark(MT_LOGOSTOP,logoframenumber);
+                addmark(MT_LOGOSTOP, logoframenumber);
             }
         }
     }
