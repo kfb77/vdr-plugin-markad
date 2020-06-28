@@ -3982,8 +3982,6 @@ int main(int argc, char *argv[]) {
             if (pid != 0) {
                 return 0; // initial program immediately returns
             }
-        }
-        if ( bFork ) {
             if (chdir("/")==-1) {
                 perror("chdir");
                 exit(EXIT_FAILURE);
