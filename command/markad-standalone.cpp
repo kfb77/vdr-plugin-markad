@@ -2542,12 +2542,12 @@ bool cMarkAdStandalone::CheckLogo() {
 
     dsyslog("cMarkAdStandalone::CheckLogo(): using logo directory %s",macontext.Config->logoDirectory);
     dsyslog("cMarkAdStandalone::CheckLogo(): searching logo for %s",macontext.Info.ChannelName);
-    DIR *dir=opendir(macontext.Config->logoDirectory);
+    DIR *dir = opendir(macontext.Config->logoDirectory);
     if (!dir) return false;
 
-    struct dirent *dirent;
-    while ((dirent=readdir(dir))) {
-        if (!strncmp(dirent->d_name,macontext.Info.ChannelName,len)) {
+    struct dirent *dirent = NULL;
+    while ((dirent = readdir(dir))) {
+        if (!strncmp(dirent->d_name, macontext.Info.ChannelName, len)) {
             closedir(dir);
             return true;
         }
@@ -2556,11 +2556,11 @@ bool cMarkAdStandalone::CheckLogo() {
 
     if (macontext.Config->autoLogo > 0) {
         isyslog("no logo found in logo directory, trying to find logo in recording directory");
-        DIR *recDIR=opendir(macontext.Config->recDir);
+        DIR *recDIR = opendir(macontext.Config->recDir);
         if (recDIR) {
-            struct dirent *dirent;
-            while ((dirent=readdir(recDIR))) {
-                if (!strncmp(dirent->d_name,macontext.Info.ChannelName,len)) {
+            struct dirent *direntRec = NULL;
+            while ((direntRec = readdir(recDIR))) {
+                if (!strncmp(direntRec->d_name, macontext.Info.ChannelName, len)) {
                     closedir(recDIR);
                     isyslog("logo found in recording directory");
                     return true;
