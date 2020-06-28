@@ -2556,17 +2556,17 @@ bool cMarkAdStandalone::CheckLogo() {
 
     if (macontext.Config->autoLogo > 0) {
         isyslog("no logo found in logo directory, trying to find logo in recording directory");
-        DIR *dir=opendir(macontext.Config->recDir);
-        if (dir) {
+        DIR *recDIR=opendir(macontext.Config->recDir);
+        if (recDIR) {
             struct dirent *dirent;
-            while ((dirent=readdir(dir))) {
+            while ((dirent=readdir(recDIR))) {
                 if (!strncmp(dirent->d_name,macontext.Info.ChannelName,len)) {
-                    closedir(dir);
+                    closedir(recDIR);
                     isyslog("logo found in recording directory");
                     return true;
                 }
             }
-            closedir(dir);
+            closedir(recDIR);
         }
         isyslog("no logo found in recording directory, trying to extract logo from recording");
         ptr_cExtractLogo = new cExtractLogo();
