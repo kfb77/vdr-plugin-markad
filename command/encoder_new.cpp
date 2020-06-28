@@ -301,7 +301,7 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
 
     for (unsigned int i = 0; i < avctxIn->nb_streams; i++) {
         if (!codecCtxArrayIn[i]) break;   // if we have no input codec we can not decode and encode this stream
-        bool ret = InitEncoderCodec(ptr_cDecoder, avctxIn, avctxOut, i, codecCtxArrayIn[i]);
+        ret = InitEncoderCodec(ptr_cDecoder, avctxIn, avctxOut, i, codecCtxArrayIn[i]);
         if ( !ret ) {
             dsyslog("cEncoder::OpenFile(): InitEncoderCodec failed");
             FREE(strlen(filename)+1, "filename");
