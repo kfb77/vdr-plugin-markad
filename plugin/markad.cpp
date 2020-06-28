@@ -24,29 +24,25 @@ cPluginMarkAd::cPluginMarkAd(void) {
     // Initialize any member variables here.
     // DON'T DO ANYTHING ELSE THAT MAY HAVE SIDE EFFECTS, REQUIRE GLOBAL
     // VDR OBJECTS TO EXIST OR PRODUCE ANY OUTPUT!
-    statusMonitor=NULL;
-
-    bindir=strdup(DEF_BINDIR);
+    statusMonitor = NULL;
+    bindir = strdup(DEF_BINDIR);
     ALLOC(strlen(bindir)+1, "bindir");
-
-    logodir=strdup(DEF_LOGODIR);
+    logodir = strdup(DEF_LOGODIR);
     ALLOC(strlen(logodir)+1, "logodir");
-
-    title[0]=0;
-
-    setup.ProcessDuring=true;
-    setup.whileRecording=true;
-    setup.whileReplaying=true;
-    setup.GenIndex=false;
-    setup.OSDMessage=false;
-    setup.Verbose=false;
-    setup.NoMargins=false;
-    setup.HideMainMenuEntry=false;
-    setup.SecondPass=true;
-    setup.Log2Rec=false;
-    setup.LogoOnly=true;
-    setup.SaveInfo=false;
-    setup.DeferredShutdown=true;
+    title[0] = 0;
+    setup.ProcessDuring = true;
+    setup.whileRecording = true;
+    setup.whileReplaying = true;
+    setup.GenIndex = false;
+    setup.OSDMessage = false;
+    setup.Verbose = false;
+    setup.NoMargins = false;
+    setup.HideMainMenuEntry = false;
+    setup.SecondPass = true;
+    setup.Log2Rec = false;
+    setup.LogoOnly = true;
+    setup.SaveInfo = false;
+    setup.DeferredShutdown = true;
 }
 
 
@@ -120,7 +116,7 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
     while ((c = getopt_long(argc, argv, "b:l:", long_options, NULL)) != -1) {
         switch (c) {
             case 'b':
-                if ((access(optarg,R_OK | X_OK))!=-1) {
+                if ((access(optarg,R_OK | X_OK)) != -1) {
                     if (bindir) {
                         FREE(strlen(bindir)+1, "bindir");
                         free(bindir);
@@ -134,7 +130,7 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
                 }
                 break;
             case 'l':
-                if ((access(optarg,R_OK))!=-1) {
+                if ((access(optarg,R_OK)) != -1) {
                     if (logodir) {
                         FREE(strlen(logodir)+1, "logodir");
                         free(logodir);
@@ -148,22 +144,22 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
                 }
                 break;
             case '1':
-                loglevel=atoi(optarg);
+                loglevel = atoi(optarg);
                 break;
             case '2':
-                astopoffs=atoi(optarg);
+                astopoffs = atoi(optarg);
                 break;
             case '3':
-                cDecoder=true;
+                cDecoder = true;
                 break;
             case '4':
-                MarkadCut=true;
+                MarkadCut = true;
                 break;
             case '5':
-                ac3ReEncode=true;
+                ac3ReEncode = true;
                 break;
             case '6':
-                autoLogoConf=atoi(optarg);
+                autoLogoConf = atoi(optarg);
                 break;
             default:
                 return false;
@@ -176,12 +172,12 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
 bool cPluginMarkAd::Initialize(void) {
     // Initialize any background activities the plugin shall perform.
     char *path;
-    if (asprintf(&path,"%s/markad",bindir)==-1) return false;
+    if (asprintf(&path, "%s/markad", bindir) == -1) return false;
     ALLOC(strlen(path)+1, "path");
 
     struct stat statbuf;
-    if (stat(path,&statbuf)==-1) {
-        esyslog("markad: cannot find %s, please install",path);
+    if (stat(path, &statbuf) == -1) {
+        esyslog("markad: cannot find %s, please install", path);
 
         FREE(strlen(path)+1, "path");
         free(path);
@@ -195,25 +191,25 @@ bool cPluginMarkAd::Initialize(void) {
 
 bool cPluginMarkAd::Start(void) {
     // Start any background activities the plugin shall perform.
-    lastcheck=0;
-    setup.PluginName=Name();
+    lastcheck = 0;
+    setup.PluginName = Name();
     if (loglevel) {
-        if(! asprintf(&setup.LogLevel," --loglevel=%i ",loglevel)) esyslog("markad: asprintf ouf of memory");
+        if(! asprintf(&setup.LogLevel, " --loglevel=%i ", loglevel)) esyslog("markad: asprintf ouf of memory");
         ALLOC(strlen(setup.LogLevel)+1, "setup.LogLevel");
     }
 
-    if (astopoffs>=0) {
-        if(! asprintf(&setup.aStopOffs," --astopoffs=%i ",astopoffs)) esyslog("markad: asprintf ouf of memory");
+    if (astopoffs >= 0) {
+        if(! asprintf(&setup.aStopOffs, " --astopoffs=%i ", astopoffs)) esyslog("markad: asprintf ouf of memory");
         ALLOC(strlen(setup.aStopOffs)+1, "setup.aStopOffs");
     }
-    setup.cDecoder=cDecoder;
-    setup.MarkadCut=MarkadCut;
-    setup.ac3ReEncode=ac3ReEncode;
-    setup.autoLogoConf=autoLogoConf;
-    setup.LogoDir=logodir;
+    setup.cDecoder = cDecoder;
+    setup.MarkadCut = MarkadCut;
+    setup.ac3ReEncode = ac3ReEncode;
+    setup.autoLogoConf = autoLogoConf;
+    setup.LogoDir = logodir;
 
     dsyslog("markad: cPluginMarkAd::Start(): create recording handler");
-    statusMonitor = new cStatusMarkAd(bindir,logodir,&setup);
+    statusMonitor = new cStatusMarkAd(bindir, logodir, &setup);
     ALLOC(sizeof(*statusMonitor), "statusMonitor");
     return (statusMonitor!=NULL);
 }
@@ -232,10 +228,10 @@ void cPluginMarkAd::Housekeeping(void) {
 void cPluginMarkAd::MainThreadHook(void) {
     // Perform actions in the context of the main program thread.
     // WARNING: Use with great care - see PLUGINS.html!
-    time_t now=time(NULL);
-    if (now>(lastcheck+5)) {
+    time_t now = time(NULL);
+    if (now > (lastcheck + 5)) {
         statusMonitor->Check();
-        lastcheck=now;
+        lastcheck = now;
     }
 }
 
@@ -268,22 +264,22 @@ cMenuSetupPage *cPluginMarkAd::SetupMenu(void) {
 
 bool cPluginMarkAd::SetupParse(const char *Name, const char *Value) {
     // Parse setup parameters and store their values.
-    if (!strcasecmp(Name,"Execution")) setup.ProcessDuring=atoi(Value);
-    else if (!strcasecmp(Name,"useVPS")) setup.useVPS=atoi(Value);
-    else if (!strcasecmp(Name,"logVPS")) setup.logVPS=atoi(Value);
-    else if (!strcasecmp(Name,"whileRecording")) setup.whileRecording=atoi(Value);
-    else if (!strcasecmp(Name,"whileReplaying")) setup.whileReplaying=atoi(Value);
-    else if (!strcasecmp(Name,"OSDMessage")) setup.OSDMessage=atoi(Value);
-    else if (!strcasecmp(Name,"GenIndex")) setup.GenIndex=atoi(Value);
-    else if (!strcasecmp(Name,"Verbose")) setup.Verbose=atoi(Value);
-    else if (!strcasecmp(Name,"IgnoreMargins")) setup.NoMargins=atoi(Value);
-    else if (!strcasecmp(Name,"HideMainMenuEntry")) setup.HideMainMenuEntry=atoi(Value)?true:false;
-    else if (!strcasecmp(Name,"SecondPass")) setup.SecondPass=atoi(Value);
-    else if (!strcasecmp(Name,"Log2Rec")) setup.Log2Rec=atoi(Value);
-    else if (!strcasecmp(Name,"LogoOnly")) setup.LogoOnly=atoi(Value);
-    else if (!strcasecmp(Name,"SaveInfo")) setup.SaveInfo=atoi(Value);
-    else if (!strcasecmp(Name,"DeferredShutdown")) setup.DeferredShutdown=atoi(Value);
-    else if (!strcasecmp(Name,"AutoLogoExtraction")) setup.autoLogoMenue=atoi(Value);
+    if (!strcasecmp(Name,"Execution")) setup.ProcessDuring = atoi(Value);
+    else if (!strcasecmp(Name,"useVPS")) setup.useVPS = atoi(Value);
+    else if (!strcasecmp(Name,"logVPS")) setup.logVPS = atoi(Value);
+    else if (!strcasecmp(Name,"whileRecording")) setup.whileRecording = atoi(Value);
+    else if (!strcasecmp(Name,"whileReplaying")) setup.whileReplaying = atoi(Value);
+    else if (!strcasecmp(Name,"OSDMessage")) setup.OSDMessage = atoi(Value);
+    else if (!strcasecmp(Name,"GenIndex")) setup.GenIndex = atoi(Value);
+    else if (!strcasecmp(Name,"Verbose")) setup.Verbose = atoi(Value);
+    else if (!strcasecmp(Name,"IgnoreMargins")) setup.NoMargins = atoi(Value);
+    else if (!strcasecmp(Name,"HideMainMenuEntry")) setup.HideMainMenuEntry = atoi(Value)?true:false;
+    else if (!strcasecmp(Name,"SecondPass")) setup.SecondPass = atoi(Value);
+    else if (!strcasecmp(Name,"Log2Rec")) setup.Log2Rec = atoi(Value);
+    else if (!strcasecmp(Name,"LogoOnly")) setup.LogoOnly = atoi(Value);
+    else if (!strcasecmp(Name,"SaveInfo")) setup.SaveInfo = atoi(Value);
+    else if (!strcasecmp(Name,"DeferredShutdown")) setup.DeferredShutdown = atoi(Value);
+    else if (!strcasecmp(Name,"AutoLogoExtraction")) setup.autoLogoMenue = atoi(Value);
     else return false;
     return true;
 }
@@ -305,8 +301,7 @@ bool cPluginMarkAd::Service(const char *UNUSED(Id), void *UNUSED(Data)) {
 
 const char **cPluginMarkAd::SVDRPHelpPages(void) {
     // Return help text for SVDRP
-    static const char *HelpPage[] =
-    {
+    static const char *HelpPage[] = {
         "MARK <filename>\n"
         "     Start markad for the recording with the given filename.",
         NULL
@@ -317,38 +312,38 @@ const char **cPluginMarkAd::SVDRPHelpPages(void) {
 
 bool cPluginMarkAd::ReadTitle(const char *Directory) {
     usleep(1000000); // wait 1 second
-    memset(&title,0,sizeof(title));
+    memset(&title, 0, sizeof(title));
     char *buf;
-    if (asprintf(&buf,"%s/info",Directory)==-1) return false;
+    if (asprintf(&buf, "%s/info",Directory) == -1) return false;
     ALLOC(strlen(buf)+1, "buf");
 
     FILE *f;
-    f=fopen(buf,"r");
+    f = fopen(buf,"r");
     FREE(strlen(buf)+1, "buf");
     free(buf);
-    buf=NULL;
+    buf = NULL;
     if (!f) {
-        if (asprintf(&buf,"%s/info.vdr",Directory)==-1) return false;
+        if (asprintf(&buf, "%s/info.vdr",Directory) == -1) return false;
         ALLOC(strlen(buf)+1, "buf");
-        f=fopen(buf,"r");
+        f = fopen(buf,"r");
         FREE(strlen(buf)+1, "buf");
         free(buf);
         if (!f) return false;
     }
 
-    char *line=NULL;
+    char *line = NULL;
     size_t length;
-    while (getline(&line,&length,f)!=-1) {
-        if (line[0]=='T') {
-            int result=sscanf(line,"%*c %79c",title);
-            if ((result==0) || (result==EOF)) {
-                title[0]=0;
+    while (getline(&line, &length, f) != -1) {
+        if (line[0] == 'T') {
+            int result = sscanf(line, "%*c %79c", title);
+            if ((result == 0) || (result == EOF)) {
+                title[0] = 0;
             }
             else {
-                char *lf=strchr(title,10);
-                if (lf) *lf=0;
-                char *cr=strchr(title,13);
-                if (cr) *cr=0;
+                char *lf = strchr(title, 10);
+                if (lf) *lf = 0;
+                char *cr = strchr(title, 13);
+                if (cr) *cr = 0;
             }
         }
     }
@@ -358,26 +353,26 @@ bool cPluginMarkAd::ReadTitle(const char *Directory) {
     }
 
     fclose(f);
-    return (title[0]!=0);
+    return (title[0] != 0);
 }
 
 
 cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int &ReplyCode) {
     // Process SVDRP command
-    if (strcasecmp(Command,"MARK") == 0) {
+    if (strcasecmp(Command, "MARK") == 0) {
         if (Option) {
-            char *Title=NULL;
-            if (ReadTitle(Option)) Title=(char *) &title;
-            if (statusMonitor->Start(Option,Title,0, 0, true)) {
-                return cString::sprintf("Started markad for %s",Option);
+            char *Title = NULL;
+            if (ReadTitle(Option)) Title = (char *) &title;
+            if (statusMonitor->Start(Option, Title, 0, 0, true)) {
+                return cString::sprintf("Started markad for %s", Option);
             }
             else {
-                ReplyCode=451;
-                return cString::sprintf("Failed to start markad for %s",Option);
+                ReplyCode = 451;
+                return cString::sprintf("Failed to start markad for %s", Option);
             }
         }
         else {
-            ReplyCode=501;
+            ReplyCode = 501;
             return cString::sprintf("Missing filename");
         }
     }

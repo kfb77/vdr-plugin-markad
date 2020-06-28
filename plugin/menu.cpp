@@ -14,32 +14,32 @@
 
 
 cOsdMarkAd::cOsdMarkAd(struct recs *Entry) {
-    entry=Entry;
+    entry = Entry;
     const char *status;
 
     switch (entry->Status) {
         case 'R':
-            status=tr("running");
+            status = tr("running");
             break;
         case 'S':
-            status=tr("sleeping");
+            status = tr("sleeping");
             break;
         case 'D':
-            status=tr("inactive");
+            status = tr("inactive");
             break;
         case 'Z':
-            status=tr("zombie");
+            status = tr("zombie");
             break;
         case 'T':
-            status=tr("stopped");
+            status = tr("stopped");
             break;
         default:
-           status=tr("unknown");
+           status = tr("unknown");
            break;
     }
 
-    char *buf=NULL;
-    if (asprintf(&buf,"%s\t %s",entry->Name ? entry->Name : entry->FileName,status)!=-1) {
+    char *buf = NULL;
+    if (asprintf(&buf, "%s\t %s", entry->Name ? entry->Name : entry->FileName,status) != -1) {
         ALLOC(strlen(buf)+1, "buf");
         SetText(buf,true);
         FREE(strlen(buf)+1, "buf");
@@ -54,7 +54,7 @@ cOsdMarkAd::cOsdMarkAd(struct recs *Entry) {
 
 cMenuMarkAd::cMenuMarkAd(cStatusMarkAd *Status):cOsdMenu(tr("markad status"),15) {
     status = Status;
-    int width=0;
+    int width = 0;
 
     cSkinDisplayMenu *disp=DisplayMenu();
     if (disp) {

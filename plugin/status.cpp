@@ -87,7 +87,7 @@ cEpgEventLog::cEpgEventLog(const char *recDir) {
     }
     ALLOC(strlen(eventLogName), "eventLogName");
 
-    eventLogFile = fopen(eventLogName,"w");
+    eventLogFile = fopen(eventLogName, "w");
     if (!eventLogFile) {
         esyslog("markad: eventLogFile(): VPS event logfile <%s> open file failed", eventLogName);
     }
@@ -359,16 +359,16 @@ cStatusMarkAd::cStatusMarkAd(const char *BinDir, const char *LogoDir, struct set
 
 
 cStatusMarkAd::~cStatusMarkAd() {
-    for (int i=0; i<(MAXDEVICES*MAXRECEIVERS); i++) {
-        Remove(i,true);
+    for (int i = 0; i < (MAXDEVICES*MAXRECEIVERS); i++) {
+        Remove(i, true);
     }
 }
 
 
 int cStatusMarkAd::Recording() {
-    int cnt=0;
-    for (int i=0; i<cDevice::NumDevices(); i++) {
-        cDevice *dev=cDevice::GetDevice(i);
+    int cnt = 0;
+    for (int i = 0; i < cDevice::NumDevices(); i++) {
+        cDevice *dev = cDevice::GetDevice(i);
         if (dev) {
             if (dev->Receiving()) cnt++;
         }
@@ -378,8 +378,8 @@ int cStatusMarkAd::Recording() {
 
 
 bool cStatusMarkAd::Replaying() {
-    for (int i=0; i<cDevice::NumDevices(); i++) {
-        cDevice *dev=cDevice::GetDevice(i);
+    for (int i = 0; i < cDevice::NumDevices(); i++) {
+        cDevice *dev = cDevice::GetDevice(i);
         if (dev) {
             if (dev->Replaying()) return true;
         }
@@ -470,14 +470,14 @@ void cStatusMarkAd::TimerChange(const cTimer *Timer, eTimerChange Change) {
     if (!Timer) return;
     if (Change!=tcDel) return;
     if (setup->ProcessDuring == PROCESS_NEVER) return;
-    if (time(NULL)>=Timer->StopTime()) return; // don't react on normal VDR timer deletion after recording
-    Remove(Timer->File(),true);
+    if (time(NULL) >= Timer->StopTime()) return; // don't react on normal VDR timer deletion after recording
+    Remove(Timer->File(), true);
 }
 
 
 void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID *eventID, time_t *timerStartTime, time_t *timerStopTime) {
     if (!Name) return;
-    const cTimer *timer=NULL;
+    const cTimer *timer = NULL;
     *timerStartTime = 0;
     *timerStopTime = 0;
     *eventID = 0;
@@ -575,19 +575,19 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
 
 bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName) {
     if (!FileName) return false;
-    char *cname=NULL;
+    char *cname = NULL;
 #if APIVERSNUM>=20301
-    const cTimer *timer=NULL;
+    const cTimer *timer = NULL;
     cStateKey StateKey;
     if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
         for (const cTimer *Timer=Timers->First(); Timer; Timer=Timers->Next(Timer))
 #else
-    cTimer *timer=NULL;
-    for (cTimer *Timer = Timers.First(); Timer; Timer=Timers.Next(Timer))
+    cTimer *timer = NULL;
+    for (cTimer *Timer = Timers.First(); Timer; Timer = Timers.Next(Timer))
 #endif
         {
             if (Timer->Recording() && const_cast<cDevice *>(Device)->IsTunedToTransponder(Timer->Channel()))
-                if (difftime(time(NULL),Timer->StartTime())<60) {
+                if (difftime(time(NULL), Timer->StartTime()) < 60) {
                     timer=Timer;
                     break;
                 }
@@ -595,12 +595,12 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName) {
         }
 
         if (!timer) {
-            esyslog("markad: cannot find timer for '%s'",FileName);
+            esyslog("markad: cannot find timer for '%s'", FileName);
         }
         else {
-            const cChannel *chan=timer->Channel();
+            const cChannel *chan = timer->Channel();
             if (chan) {
-                cname=strdup(chan->Name());
+                cname = strdup(chan->Name());
                 ALLOC(strlen(cname)+1, "cname");
             }
         }
@@ -613,14 +613,14 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName) {
     if (!timer) return false;
     if (!cname) return false;
 
-    for (int i=0; i<(int) strlen(cname); i++) {
-        if (cname[i]==' ') cname[i]='_';
-        if (cname[i]=='.') cname[i]='_';
-        if (cname[i]=='/') cname[i]='_';
+    for (int i = 0; i < (int) strlen(cname); i++) {
+        if (cname[i] == ' ') cname[i] = '_';
+        if (cname[i] == '.') cname[i] = '_';
+        if (cname[i] == '/') cname[i] = '_';
     }
 
     char *fname=NULL;
-    if (asprintf(&fname,"%s/%s-A16_9-P0.pgm",logodir,cname)==-1) {
+    if (asprintf(&fname,"%s/%s-A16_9-P0.pgm",logodir,cname) == -1) {
         FREE(strlen(cname)+1, "cname");
         free(cname);
         return false;
@@ -628,18 +628,18 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName) {
     ALLOC(strlen(fname)+1, "fname");
 
     struct stat statbuf;
-    if (stat(fname,&statbuf)==-1) {
+    if (stat(fname,&statbuf) == -1) {
         FREE(strlen(fname)+1, "fname");
         free(fname);
         fname=NULL;
-        if (asprintf(&fname,"%s/%s-A4_3-P0.pgm",logodir,cname)==-1) {
+        if (asprintf(&fname,"%s/%s-A4_3-P0.pgm",logodir,cname) == -1) {
             FREE(strlen(cname)+1, "cname");
             free(cname);
             return false;
         }
         ALLOC(strlen(fname)+1, "fname");
 
-        if (stat(fname,&statbuf)==-1) {
+        if (stat(fname,&statbuf) == -1) {
             FREE(strlen(cname)+1, "cname");
             free(cname);
 
@@ -658,50 +658,50 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device,const char *FileName) {
 
 
 bool cStatusMarkAd::getStatus(int Position) {
-    if (Position<0) return false;
+    if (Position < 0) return false;
     if (!recs[Position].Pid) return false;
-    int ret=0;
-    char procname[256]="";
-    snprintf(procname,sizeof(procname),"/proc/%i/stat",recs[Position].Pid);
-    FILE *fstat=fopen(procname,"r");
+    int ret = 0;
+    char procname[256] = "";
+    snprintf(procname, sizeof(procname), "/proc/%i/stat", recs[Position].Pid);
+    FILE *fstat = fopen(procname, "r");
     if (fstat) {
         // found a running markad
-        ret=fscanf(fstat,"%*10d %*255s %c",&recs[Position].Status);
+        ret=fscanf(fstat, "%*10d %*255s %c", &recs[Position].Status);
         fclose(fstat);
     }
     else {
-        if (errno==ENOENT) {
+        if (errno == ENOENT) {
             // no such file or directory -> markad done or crashed
             // remove filename from list
             Remove(Position);
         }
     }
-    return (ret==1);
+    return (ret == 1);
 }
 
 
 bool cStatusMarkAd::getPid(int Position) {
-    if (Position<0) return false;
+    if (Position < 0) return false;
     if (!recs[Position].FileName) return false;
     if (recs[Position].Pid) return true;
-    int ret=0;
+    int ret = 0;
     char *buf;
-    if (asprintf(&buf,"%s/markad.pid",recs[Position].FileName)==-1) return false;
+    if (asprintf(&buf, "%s/markad.pid", recs[Position].FileName) == -1) return false;
     ALLOC(strlen(buf)+1, "buf");
 
     usleep(500*1000);   // wait 500ms to give markad time to create pid file
-    FILE *fpid=fopen(buf,"r");
+    FILE *fpid = fopen(buf,"r");
     if (fpid) {
         FREE(strlen(buf)+1, "buf");
         free(buf);
         int pid;
-        ret=fscanf(fpid,"%10i\n",&pid);
-        if (ret==1) recs[Position].Pid=pid;
+        ret = fscanf(fpid,"%10i\n",&pid);
+        if (ret == 1) recs[Position].Pid = pid;
         fclose(fpid);
     }
     else {
         esyslog("markad: failed to open pid file %s with errno %i", buf, errno);
-        if (errno==ENOENT) {
+        if (errno == ENOENT) {
             // no such file or directory -> markad done or crashed
             // remove entry from list
             Remove(Position);
@@ -709,53 +709,53 @@ bool cStatusMarkAd::getPid(int Position) {
         FREE(strlen(buf)+1, "buf");
         free(buf);
     }
-    return (ret==1);
+    return (ret == 1);
 }
 
 
 bool cStatusMarkAd::GetNextActive(struct recs **RecEntry) {
     if (!RecEntry) return false;
-    *RecEntry=NULL;
+    *RecEntry = NULL;
 
-    if (actpos>=(MAXDEVICES*MAXRECEIVERS)) return false;
+    if (actpos >= (MAXDEVICES*MAXRECEIVERS)) return false;
 
     do {
         if ((recs[actpos].FileName) && (recs[actpos].Pid)) {
             if (getStatus(actpos)) {
                 /* check if recording directory still exists */
-                if (access(recs[actpos].FileName,R_OK)==-1) {
+                if (access(recs[actpos].FileName,R_OK) == -1) {
                     Remove(actpos,true);
                 } else {
-                    *RecEntry=&recs[actpos++];
+                    *RecEntry = &recs[actpos++];
                     return true;
                 }
             }
         }
         actpos++;
     }
-    while (actpos<(MAXDEVICES*MAXRECEIVERS));
+    while (actpos < (MAXDEVICES*MAXRECEIVERS));
 
     return false;
 }
 
 
 void cStatusMarkAd::Check() {
-    struct recs *tmpRecs=NULL;
+    struct recs *tmpRecs = NULL;
     ResetActPos();
     while (GetNextActive(&tmpRecs)) ;
 }
 
 
 bool cStatusMarkAd::MarkAdRunning() {
-    struct recs *tmpRecs=NULL;
+    struct recs *tmpRecs = NULL;
     ResetActPos();
     GetNextActive(&tmpRecs);
-    return (tmpRecs!=NULL);
+    return (tmpRecs != NULL);
 }
 
 
 int cStatusMarkAd::Get(const char *FileName, const char *Name) {
-    for (int i=0; i<(MAXDEVICES*MAXRECEIVERS); i++) {
+    for (int i = 0; i < (MAXDEVICES*MAXRECEIVERS); i++) {
         if (Name && recs[i].Name && !strcmp(recs[i].Name,Name)) return i;
         if (FileName && recs[i].FileName && !strcmp(recs[i].FileName,FileName)) return i;
     }
@@ -765,8 +765,8 @@ int cStatusMarkAd::Get(const char *FileName, const char *Name) {
 
 void cStatusMarkAd::Remove(const char *Name, bool Kill) {
     if (!Name) return;
-    int pos=Get(NULL,Name);
-    if (pos==-1) return;
+    int pos = Get(NULL,Name);
+    if (pos == -1) return;
     Remove(pos,Kill);
 }
 
@@ -779,27 +779,27 @@ void cStatusMarkAd::Remove(int pos, bool Kill) {
         free(recs[pos].FileName);
     }
 
-    recs[pos].FileName=NULL;
+    recs[pos].FileName = NULL;
     if (recs[pos].Name) {
         FREE(strlen(recs[pos].Name)+1, "recs[pos].Name");
         free(recs[pos].Name);
-        recs[pos].Name=NULL;
+        recs[pos].Name = NULL;
     }
     if ((Kill) && (recs[pos].Pid)) {
         if (getStatus(pos)) {
-            if ((recs[pos].Status=='R') || (recs[pos].Status=='S')) {
-                dsyslog("markad: cStatusMarkAd::Remove(): terminating pid %i",recs[pos].Pid);
-                kill(recs[pos].Pid,SIGTERM);
+            if ((recs[pos].Status == 'R') || (recs[pos].Status == 'S')) {
+                dsyslog("markad: cStatusMarkAd::Remove(): terminating pid %i", recs[pos].Pid);
+                kill(recs[pos].Pid, SIGTERM);
             }
             else {
-                dsyslog("markad: cStatusMarkAd::Remove(): killing pid %i",recs[pos].Pid);
-                kill(recs[pos].Pid,SIGKILL);
+                dsyslog("markad: cStatusMarkAd::Remove(): killing pid %i", recs[pos].Pid);
+                kill(recs[pos].Pid, SIGKILL);
             }
         }
     }
-    recs[pos].Status=0;
-    recs[pos].Pid=0;
-    recs[pos].ChangedbyUser=false;
+    recs[pos].Status = 0;
+    recs[pos].Pid = 0;
+    recs[pos].ChangedbyUser = false;
     recs[pos].eventID = 0;
     recs[pos].eitEventID = 0;
     recs[pos].timerStartTime = 0;
@@ -874,13 +874,13 @@ void cStatusMarkAd::Pause(const char *FileName) {
         if (FileName) {
             if ((recs[i].FileName) && (!strcmp(recs[i].FileName,FileName)) && (recs[i].Pid) && (!recs[i].ChangedbyUser)) {
                 dsyslog("markad: pausing pid %i",recs[i].Pid);
-                kill(recs[i].Pid,SIGTSTP);
+                kill(recs[i].Pid, SIGTSTP);
             }
         }
         else {
             if ((recs[i].Pid) && (!recs[i].ChangedbyUser)) {
                 dsyslog("markad: pausing pid %i",recs[i].Pid);
-                kill(recs[i].Pid,SIGTSTP);
+                kill(recs[i].Pid, SIGTSTP);
             }
         }
     }
@@ -891,14 +891,14 @@ void cStatusMarkAd::Continue(const char *FileName) {
     for (int i=0; i<(MAXDEVICES*MAXRECEIVERS); i++) {
         if (FileName) {
             if ((recs[i].FileName) && (!strcmp(recs[i].FileName,FileName)) && (recs[i].Pid) && (!recs[i].ChangedbyUser) ) {
-                dsyslog("markad: resume pid %i",recs[i].Pid);
-                kill(recs[i].Pid,SIGCONT);
+                dsyslog("markad: resume pid %i", recs[i].Pid);
+                kill(recs[i].Pid, SIGCONT);
             }
         }
         else {
             if ((recs[i].Pid) && (!recs[i].ChangedbyUser)) {
-                dsyslog("markad: resume pid %i",recs[i].Pid);
-                kill(recs[i].Pid,SIGCONT);
+                dsyslog("markad: resume pid %i", recs[i].Pid);
+                kill(recs[i].Pid, SIGCONT);
             }
         }
     }
