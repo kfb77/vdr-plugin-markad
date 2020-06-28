@@ -1099,16 +1099,16 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
         }
     }
 
-    if (((Mark->Type & 0x0F)==MT_START) && (!iStart) && (Mark->Position < (abs(iStopA) - 2*macontext.Video.Info.FramesPerSecond*MAXRANGE ))) {
-        clMark *prev=marks.GetPrev(Mark->Position,(Mark->Type & 0xF0)|MT_STOP);
-        if (prev) {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*10);    // maybe this is only ia short logo detection failure
-            if ( (Mark->Position - prev->position) < MARKDIFF )
+    if (((Mark->Type & 0x0F)==MT_START) && (!iStart) && (Mark->Position < (abs(iStopA) - 2*macontext.Video.Info.FramesPerSecond * MAXRANGE ))) {
+        clMark *prevStop=marks.GetPrev(Mark->Position,(Mark->Type & 0xF0) | MT_STOP);
+        if (prevStop) {
+            int MARKDIFF = (int) (macontext.Video.Info.FramesPerSecond * 10);    // maybe this is only ia short logo detection failure
+            if ( (Mark->Position - prevStop->position) < MARKDIFF )
             {
-                double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
-                isyslog("mark distance between STOP and START too short (%.1fs), deleting %i,%i",distance, prev->position,Mark->Position);
-                inBroadCast=true;
-                marks.Del(prev);
+                double distance=(Mark->Position - prevStop->position) / macontext.Video.Info.FramesPerSecond;
+                isyslog("mark distance between STOP and START too short (%.1fs), deleting %i,%i",distance, prevStop->position, Mark->Position);
+                inBroadCast = true;
+                marks.Del(prevStop);
                 if (comment) {
                     FREE(strlen(comment)+1, "comment");
                     free(comment);
@@ -1119,15 +1119,15 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
     }
 
     if (Mark->Type==MT_LOGOSTOP) {
-        clMark *prev=marks.GetPrev(Mark->Position,MT_LOGOSTART);
-        if (prev) {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*30);    // maybe this is only ia short logo detection failure
-            if (((Mark->Position - prev->position) < MARKDIFF ) && (prev->position == marks.GetFirst()->position))   // do not delete start mark
+        clMark *prevLogoStart=marks.GetPrev(Mark->Position,MT_LOGOSTART);
+        if (prevLogoStart) {
+            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 30);    // maybe this is only ia short logo detection failure
+            if (((Mark->Position - prevLogoStart->position) < MARKDIFF ) && (prevLogoStart->position == marks.GetFirst()->position))   // do not delete start mark
             {
-                double distance=(Mark->Position-prev->position)/macontext.Video.Info.FramesPerSecond;
-                isyslog("mark distance between START and STOP too short (%.1fs), deleting %i,%i",distance, prev->position,Mark->Position);
-                inBroadCast=false;
-                marks.Del(prev);
+                double distance = (Mark->Position-prevLogoStart->position) / macontext.Video.Info.FramesPerSecond;
+                isyslog("mark distance between START and STOP too short (%.1fs), deleting %i,%i",distance, prevLogoStart->position, Mark->Position);
+                inBroadCast = false;
+                marks.Del(prevLogoStart);
                 if (comment) {
                     FREE(strlen(comment)+1, "comment");
                     free(comment);
@@ -1137,21 +1137,21 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
         }
     }
 
-    if (((Mark->Type & 0x0F)==MT_STOP) && (!iStart) && (Mark->Position < abs(iStopA) - macontext.Video.Info.FramesPerSecond*MAXRANGE )) {
-        clMark *prev=marks.GetPrev(Mark->Position,(Mark->Type & 0xF0)|MT_START);
-        if (prev) {
+    if (((Mark->Type & 0x0F) == MT_STOP) && (!iStart) && (Mark->Position < abs(iStopA) - macontext.Video.Info.FramesPerSecond * MAXRANGE )) {
+        clMark *prevStart = marks.GetPrev(Mark->Position,(Mark->Type & 0xF0) | MT_START);
+        if (prevStart) {
             int MARKDIFF;
-            if ((Mark->Type & 0xF0)==MT_LOGOCHANGE) {
-                MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*120);
+            if ((Mark->Type & 0xF0) == MT_LOGOCHANGE) {
+                MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 120);
             }
             else {
-                MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*90);
+                MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 90);
             }
-            if ((Mark->Position - prev->position) < MARKDIFF) {
-                double distance=(Mark->Position - prev->position)/macontext.Video.Info.FramesPerSecond;
-                isyslog("mark distance between START and STOP too short (%.1fs), deleting %i,%i",distance,prev->position,Mark->Position);
-                inBroadCast=false;
-                marks.Del(prev);
+            if ((Mark->Position - prevStart->position) < MARKDIFF) {
+                double distance = (Mark->Position - prevStart->position) / macontext.Video.Info.FramesPerSecond;
+                isyslog("mark distance between START and STOP too short (%.1fs), deleting %i,%i", distance, prevStart->position, Mark->Position);
+                inBroadCast = false;
+                marks.Del(prevStart);
                 if (comment) {
                     FREE(strlen(comment)+1, "comment");
                     free(comment);
@@ -1164,7 +1164,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
     prev=marks.GetLast();
     if (prev) {
         if ((prev->type & 0x0F)==(Mark->Type & 0x0F)) {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*30);
+            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 30);
             int diff=abs(Mark->Position-prev->position);
             if (diff<MARKDIFF) {
                 if (prev->type>Mark->Type) {
