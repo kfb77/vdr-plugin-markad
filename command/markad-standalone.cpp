@@ -385,10 +385,10 @@ void cMarkAdStandalone::CheckStop() {
                                                      // this can happen by audio channel change too if the next broadcast has also 6 channels
             if ( ( lastStart) && ( lastStart->position > end->position ) ) {
                 isyslog("last STOP mark results in to short recording, set STOP at the end of the recording (%i)", lastiframe);
-                MarkAdMark mark={};
-                mark.Position=lastiframe;
-                mark.Type=MT_ASSUMEDSTOP;
-                AddMark(&mark);
+                MarkAdMark markNew={};
+                markNew.Position=lastiframe;
+                markNew.Type=MT_ASSUMEDSTOP;
+                AddMark(&markNew);
             }
         }
     }
