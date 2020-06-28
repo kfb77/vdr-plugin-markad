@@ -95,7 +95,7 @@ class cMarkAdOverlap {
         MarkAdPos result;
         int similarCutOff;
         int similarMaxCnt;
-        bool areSimilar(simpleHistogram &hist1, simpleHistogram &hist2);
+        int areSimilar(simpleHistogram &hist1, simpleHistogram &hist2);
         void getHistogram(simpleHistogram &dest);
         MarkAdPos *Detect();
         void Clear();
