@@ -558,10 +558,10 @@ void cMarkAdStandalone::CheckStart() {
                         marks.Del(MT_LOGOSTOP);
                    }
                    else { // if there is a MT_ASPECTSTOP, delete all marks after this position
-                       clMark *aStop = marks.GetNext(begin->position, MT_ASPECTSTOP);
-                       if (aStop) {
-                           dsyslog("cMarkAdStandalone::CheckStart(): found MT_ASPECTSTOP (%i), delete all weaker marks after", aStop->position);
-                           marks.DelWeakFromTo(aStop->position, INT_MAX, aStop->type);
+                       clMark *aStopNext = marks.GetNext(begin->position, MT_ASPECTSTOP);
+                       if (aStopNext) {
+                           dsyslog("cMarkAdStandalone::CheckStart(): found MT_ASPECTSTOP (%i), delete all weaker marks after", aStopNext->position);
+                           marks.DelWeakFromTo(aStopNext->position, INT_MAX, aStopNext->type);
                        }
                    }
 
