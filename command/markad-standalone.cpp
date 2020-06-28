@@ -732,7 +732,7 @@ void cMarkAdStandalone::CheckStart() {
             mark=mark->Next();
         }
         if (begin->type == MT_LOGOSTART) {
-            clMark *mark=marks.GetFirst();
+            mark=marks.GetFirst();
             while (mark)
             {
                 if ( (mark->type == MT_LOGOSTART) && (mark->position > begin->position) && (mark->position <= chkSTART)) {
