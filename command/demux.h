@@ -124,7 +124,7 @@ class cPaketQueue {
         int findaudioheader(int start, int *framesize, int *headersize, bool ac3);
         int findpktheader(int start, int *streamsize,int *headersize, bool longstartcode, bool pesonly);
     public:
-        cPaketQueue(const char *Name, int Size=32768);
+        explicit cPaketQueue(const char *Name, int Size=32768);
         ~cPaketQueue();
         int Length() {
             return inptr-outptr;
@@ -180,7 +180,7 @@ class cTS2Pkt {
         bool h264 = false;
         bool noticeFILLER;
     public:
-        cTS2Pkt(int Pid, const char *QueueName="TS2Pkt", int QueueSize=32768, bool H264=false);
+        explicit cTS2Pkt(int Pid, const char *QueueName="TS2Pkt", int QueueSize=32768, bool H264=false);
         ~cTS2Pkt();
         void Clear(AvPacket *Pkt=NULL);
         int Skipped() {
@@ -217,7 +217,7 @@ class cPES2ES {
         int lasterror;
         bool h264 = false;
     public:
-        cPES2ES(int PacketType, const char *QueueName="PES2ES", int QueueSize=32768);
+        explicit cPES2ES(int PacketType, const char *QueueName="PES2ES", int QueueSize=32768);
         ~cPES2ES();
         void Clear();
         bool Process(uchar *PESData, int PESSize, AvPacket *ESPkt);
