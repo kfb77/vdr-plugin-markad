@@ -182,24 +182,24 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key) {
             }
             break;
         case kOk:
-            state=osBack;
+            state = osBack;
             break;
         case kNone:
             if (time(NULL)>(last+2)) {
                 if (write()) {
-                    cOsdMarkAd *osd=static_cast<cOsdMarkAd *>(Get(Current()));
-                    if ((osd) && (osd->Selectable())) {
-                        SetHelpText(osd->GetEntry());
+                    cOsdMarkAd *osdCurrent = static_cast<cOsdMarkAd *>(Get(Current()));
+                    if ((osdCurrent) && (osdCurrent->Selectable())) {
+                        SetHelpText(osdCurrent->GetEntry());
                     }
                 }
                 else {
                     SetHelpText(NULL);
                 }
-                last=time(NULL);
+                last = time(NULL);
             }
             break;
         default:
-            state=cOsdMenu::ProcessKey(Key);
+            state = cOsdMenu::ProcessKey(Key);
             break;
     }
     return state;
