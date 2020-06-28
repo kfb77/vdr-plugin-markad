@@ -131,7 +131,6 @@ void syslog_with_tid(int priority, const char *format, ...) {
 
 
 cOSDMessage::cOSDMessage(const char *Host, int Port) {
-    tid=0;
     msg=NULL;
     host=strdup(Host);
     ALLOC(strlen(host)+1, "host");

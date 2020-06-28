@@ -36,7 +36,7 @@ class cOSDMessage {
         const char *host;
         int port;
         char *msg;
-        pthread_t tid;
+        pthread_t tid = 0;
         static void *send(void *osd);
         bool readreply(int fd, char **reply=NULL);
     public:
