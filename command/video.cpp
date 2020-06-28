@@ -841,17 +841,13 @@ MarkAdPos *cMarkAdOverlap::Detect() {
     result.FrameNumberBefore=-1;
     for (int B=0; B<histcnt[OV_BEFORE]; B++) {
         for (int A=start; A<histcnt[OV_AFTER]; A++) {
-            //printf("%6i %6i ",histbuf[OV_BEFORE][B].framenumber,histbuf[OV_AFTER][A].framenumber);
             bool simil=areSimilar(histbuf[OV_BEFORE][B].histogram,histbuf[OV_AFTER][A].histogram);
             if (simil) {
 //                dsyslog("---cMarkAdOverlap::Detect() similar frames (%6i) (%6i) ",histbuf[OV_BEFORE][B].framenumber,histbuf[OV_AFTER][A].framenumber);
                 tmpA=A;
                 tmpB=B;
                 start=A+1;
-                if (simil<(similarCutOff/2)) simcnt+=2;
-                else if (simil<(similarCutOff/4)) simcnt+=4;
-                else if (simil<(similarCutOff/6)) simcnt+=6;
-                else simcnt++;
+                simcnt++;
                 break;
             }
             else {
