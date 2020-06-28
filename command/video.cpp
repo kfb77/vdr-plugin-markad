@@ -138,9 +138,9 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
 }
 
 
-bool cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int plane) {
+bool cMarkAdLogo::Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], const short int plane) {
     if (!macontext) return false;
-    if ((plane<0) || (plane>3)) return false;
+    if ((plane<0) || (plane >= PLANES)) return false;
     if (!macontext->Info.ChannelName) return false;
     if (!macontext->Video.Info.Width) {
         dsyslog("cMarkAdLogo::Save(): macontext->Video.Info.Width not set");
@@ -157,13 +157,13 @@ bool cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int pla
         return false;
     }
 
-    char *buf=NULL;
+    char *buf = NULL;
     if (asprintf(&buf,"%s/%06d-%s-A%i_%i-P%i.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectratio.Num,area.aspectratio.Den,plane)==-1) return false;
     ALLOC(strlen(buf)+1, "buf");
 
     // Open file
     FILE *pFile=fopen(buf, "wb");
-    if (pFile==NULL) {
+    if (pFile == NULL) {
         FREE(strlen(buf)+1, "buf");
         free(buf);
         return false;
@@ -172,16 +172,16 @@ bool cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int pla
     int width=LOGOWIDTH;
     int height=LOGOHEIGHT;
 
-    if (plane>0) {
-        width/=2;
-        height/=2;
+    if (plane > 0) {
+        width /= 2;
+        height /= 2;
     }
 
     // Write header
     fprintf(pFile, "P5\n#C%i\n%d %d\n255\n", area.corner,width,height);
 
     // Write pixel data
-    if (fwrite(picture[plane],1,width*height,pFile)) {};
+    if (fwrite(picture[plane], 1, width * height, pFile)) {};
     // Close file
     fclose(pFile);
     FREE(strlen(buf)+1, "buf");
@@ -190,8 +190,8 @@ bool cMarkAdLogo::Save(int framenumber, uchar picture[PLANES][MAXPIXEL], int pla
 }
 
 
-int cMarkAdLogo::SobelPlane(int plane) {
-    if ((plane<0) || (plane>3)) return 0;
+int cMarkAdLogo::SobelPlane(const int plane) {
+    if ((plane < 0) || (plane >= PLANES)) return 0;
     if (!macontext->Video.Data.PlaneLinesize[plane]) return 0;
 
 #if defined ONLY_WITH_CDECODER     // we need a default size for logo extraction, no longer set in constructor
