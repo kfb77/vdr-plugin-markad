@@ -660,12 +660,10 @@ void cMarkAdStandalone::CheckStart() {
                     dsyslog("cMarkAdStandalone::CheckStart(): delete HBORDER marks if any");
                     marks.Del(MT_HBORDERSTART);
                     marks.Del(MT_HBORDERSTOP);
-                    begin = vStart;   // found valid horizontal border start mark
+                    begin = vStart;   // found valid vertical border start mark
                     macontext.Video.Options.ignoreHborder = true;
                 }
             }
-
-            begin = vStart;
         }
     }
 
