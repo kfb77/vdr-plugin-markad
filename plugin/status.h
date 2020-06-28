@@ -23,6 +23,13 @@ class cEpgEventLog {
     public:
        explicit cEpgEventLog(const char *recDir);
        ~cEpgEventLog();
+       cEpgEventLog(const cEpgEventLog &origin) {   //  copy constructor, not used, only for formal reason
+           eventLogFile = NULL;
+       };
+       cEpgEventLog &operator =(const cEpgEventLog *origin) {   // operator=, not used, only for formal reason
+           eventLogFile = NULL;
+           return *this;
+       };
        void Log(const time_t recStart, const tEventID recEventID, const tEventID eventID, const tEventID followingEventID, const tEventID eitEventID, const int state, const int event, const int newState, const char* action);
     private:
        FILE *eventLogFile = NULL;
