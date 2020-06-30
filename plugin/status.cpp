@@ -334,7 +334,7 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, int index) {
         return true;
     }
     if (strcmp(status,"STOP") == 0) {
-        if ( curr_time >  recs[index].vpsStartTime + 60) {
+        if ( curr_time >  recs[index].vpsStartTime + 300) {  // STOP must be at least 5 min after START
             recs[index].vpsStopTime=curr_time;
             return true;
         }
