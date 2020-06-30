@@ -2578,28 +2578,19 @@ bool cMarkAdStandalone::CheckLogo() {
         if (endpos > 0) {
             isyslog("no logo found in recording, retry in next recording part");
             endpos = ptr_cExtractLogo->SearchLogo(&macontext, endpos);   // search logo from start
-            if (ptr_cExtractLogo) {
-                FREE(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
-                delete ptr_cExtractLogo;
-                ptr_cExtractLogo = NULL;
-            }
-            if (endpos > 0) {
-                isyslog("no logo found in recording");
-                return false;
-            }
-            else {
-               dsyslog("cMarkAdStandalone::CheckLogo(): found logo in recording in second part");
-               return true;
-           }
+        }
+        if (ptr_cExtractLogo) {
+            FREE(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
+            delete ptr_cExtractLogo;
+            ptr_cExtractLogo = NULL;
+        }
+        if (endpos == 0) {
+            dsyslog("cMarkAdStandalone::CheckLogo(): found logo in recording");
+            return true;
         }
         else {
-            dsyslog("cMarkAdStandalone::CheckLogo(): found logo in recording");
-            if (ptr_cExtractLogo) {
-                FREE(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
-                delete ptr_cExtractLogo;
-                ptr_cExtractLogo = NULL;
-            }
-            return true;
+            dsyslog("cMarkAdStandalone::CheckLogo(): logo search faild with internal error");
+            return false;
         }
     }
     return false;

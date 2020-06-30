@@ -457,15 +457,15 @@ void cExtractLogo::UnpackLogoInfo(logoInfo *logoInfo, logoInfoPacked *logoInfoPa
 }
 
 
-int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
+int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
     dsyslog("----------------------------------------------------------------------------");
     dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i", startFrame);
 
     if (!maContext) {
         dsyslog("cExtractLogo::SearchLogo(): maContext not valid");
-        return false;
+        return -1;
     }
-    if (startFrame < 0) return false;
+    if (startFrame < 0) return -1;
 
     long int iFrameNumber = 0;
     int iFrameCountValid = 0;
@@ -490,13 +490,13 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
 
     if (!WaitForFrames(maContext, ptr_cDecoder)) {
         dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");
-        return false;
+        return -1;
     }
     while(ptr_cDecoder->DecodeDir(maContext->Config->recDir)) {
         maContext->Info.VPid.Type = ptr_cDecoder->GetVideoType();
         if (maContext->Info.VPid.Type == 0) {
             dsyslog("cExtractLogo::SearchLogo(): video type not set");
-            return false;
+            return -1;
         }
         maContext->Video.Info.Height = ptr_cDecoder->GetVideoHeight();
         dsyslog("cExtractLogo::SearchLogo(): video height: %i", maContext->Video.Info.Height);
@@ -516,7 +516,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {
         bool firstFrame = true;
         MarkAdAspectRatio aspectRatio = {};
         while(ptr_cDecoder->GetNextFrame()) {
-            if (abortNow) return false;
+            if (abortNow) return -1;
             if (!WaitForFrames(maContext, ptr_cDecoder)) {
                 dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");
                 retStatus=false;
