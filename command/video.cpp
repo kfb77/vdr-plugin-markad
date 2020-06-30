@@ -196,7 +196,7 @@ int cMarkAdLogo::SobelPlane(const int plane) {
 
 #if defined ONLY_WITH_CDECODER     // we need a default size for logo extraction, no longer set in constructor
     if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
-        if (macontext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264) {
+        if ((macontext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264) || (macontext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H265)){
             LOGOHEIGHT = LOGO_DEFHDHEIGHT;
             LOGOWIDTH = LOGO_DEFHDWIDTH;
         }
@@ -408,6 +408,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
     if ((rpixel < (mpixel*LOGO_VMARK)) && (rpixel > (mpixel*LOGO_IMARK))) {
         area.counter = 0;
     }
+//    dsyslog("cMarkAdLogo::Detect(): framenumber %d logoframenumber %d ret %d", framenumber, *logoframenumber, ret);
     return ret;
 }
 
@@ -499,7 +500,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
     else {
 #if defined ONLY_WITH_CDECODER     // we need a default size for logo extraction, no longer set in constructor
         if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
-            if (macontext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264) {
+            if ((macontext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264) || (macontext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H265)) {
                 LOGOHEIGHT = LOGO_DEFHDHEIGHT;
                 LOGOWIDTH = LOGO_DEFHDWIDTH;
             }

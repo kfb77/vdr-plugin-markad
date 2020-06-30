@@ -2051,18 +2051,23 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
 #endif
 
             if (!bDecodeVideo) macontext.Video.Data.Valid=false; // make video picture invalid, we do not need them
-            MarkAdMarks *vmarks=video->Process(lastiframe,iframe);
+            MarkAdMarks *vmarks=video->Process(lastiframe, iframe);
             if (vmarks) {
-                for (int i=0; i<vmarks->Count; i++) {
+                for (int i = 0; i < vmarks->Count; i++) {
+                    if (((vmarks->Number[i].Type & 0xF0) == MT_LOGOCHANGE) && (macontext.Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H265)) {   // we are one iFrame to late with logo marks, these is to much (2s) with H.265 codec
+                        long int iFrameBefore = ptr_cDecoder->GetIFrameBefore(vmarks->Number[i].Position);
+                        dsyslog("cMarkAdStandalone::ProcessFrame(): found logo mark in H.265 recording at (%d) move to (%ld)", vmarks->Number[i].Position, iFrameBefore);
+                        vmarks->Number[i].Position = iFrameBefore;
+                    }
                     AddMark(&vmarks->Number[i]);
                 }
             }
 
-            if (iStart>0) {
-                if ((inBroadCast) && (lastiframe>chkSTART)) CheckStart();
+            if (iStart > 0) {
+                if ((inBroadCast) && (lastiframe > chkSTART)) CheckStart();
             }
-            if ((iStop>0) && (iStopA>0)) {
-                if (lastiframe>chkSTOP) {
+            if ((iStop > 0) && (iStopA > 0)) {
+                if (lastiframe > chkSTOP) {
                     if (iStart != 0) {
                         dsyslog("still no chkStart called, doing it now");
                         CheckStart();
@@ -2073,7 +2078,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
             }
         }
         if(ptr_cDecoder->isAudioAC3Packet()) {
-             MarkAdMark *amark=audio->Process(lastiframe,iframe);
+             MarkAdMark *amark = audio->Process(lastiframe,iframe);
             if (amark) AddMark(amark);
         }
     }

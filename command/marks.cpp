@@ -367,7 +367,7 @@ char *clMarks::IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cD
     char *indexToHMSF=NULL;
     double Seconds;
     int f=0;
-    if (maContext->Config->use_cDecoder && (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) && ptr_cDecoder) {
+    if (maContext->Config->use_cDecoder && ptr_cDecoder && ((maContext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264) || (maContext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H265))) {
         f = int(modf(float(ptr_cDecoder->GetTimeFromIFrame(Index))/100,&Seconds)*100);
     }
     else {

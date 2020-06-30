@@ -519,7 +519,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
         maContext->Video.Info.Width=ptr_cDecoder->GetVideoWidth();
         dsyslog("cExtractLogo::SearchLogo(): video width: %i", maContext->Video.Info.Width);
 
-        if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) {
+        if ((maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) || (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H265)) {
             logoHeight=LOGO_DEFHDHEIGHT;
             logoWidth=LOGO_DEFHDWIDTH;
         }

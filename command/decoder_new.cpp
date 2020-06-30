@@ -208,16 +208,24 @@ int cDecoder::GetVideoType() {
     for (unsigned int i = 0; i < avctx->nb_streams; i++) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-            if (avctx->streams[i]->codecpar->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
-                dsyslog("cDecoder::GetVideoType(): found H.262 Video");
-                return MARKAD_PIDTYPE_VIDEO_H262;
+            switch (avctx->streams[i]->codecpar->codec_id) {
+                case AV_CODEC_ID_MPEG2VIDEO:
+                    dsyslog("cDecoder::GetVideoType(): found H.262 Video");
+                    return MARKAD_PIDTYPE_VIDEO_H262;
+                    break;
+                case AV_CODEC_ID_H264:
+                    dsyslog("cDecoder::GetVideoType(): found H.264 Video");
+                    return MARKAD_PIDTYPE_VIDEO_H264;
+                    break;
+                case AV_CODEC_ID_H265:
+                    dsyslog("cDecoder::GetVideoType(): found H.265 Video");
+                    return MARKAD_PIDTYPE_VIDEO_H265;
+                    break;
+                default:
+                    dsyslog("cDecoder::GetVideoType(): unknown coded id %i", avctx->streams[i]->codecpar->codec_id);
+                    return 0;
             }
-            if (avctx->streams[i]->codecpar->codec_id == AV_CODEC_ID_H264) {
-                dsyslog("cDecoder::GetVideoType(): found H.264 Video");
-                return MARKAD_PIDTYPE_VIDEO_H264;
-            }
-            dsyslog("cDecoder::GetVideoType(): unknown coded id %i", avctx->streams[i]->codecpar->codec_id);
-            return 0;
+        }
 #else
         if (avctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
             if (avctx->streams[i]->codec->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
@@ -229,9 +237,9 @@ int cDecoder::GetVideoType() {
                 return MARKAD_PIDTYPE_VIDEO_H264;
             }
            dsyslog("cDecoder::GetVideoType(): unknown coded id %i", avctx->streams[i]->codec->codec_id);
-            return 0;
-#endif
+           return 0;
         }
+#endif
     }
     dsyslog("cDecoder::GetVideoType(): failed");
     return 0;
@@ -566,8 +574,9 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                     return false;
                 }
                 if ((sample_aspect_ratio_num == 1) && (sample_aspect_ratio_den == 1)) {
-                    if ((avFrame->width == 1280) && (avFrame->height  ==  720) ||
-                        (avFrame->width == 1920) && (avFrame->height  == 1080)) {
+                    if ((avFrame->width == 1280) && (avFrame->height  ==  720) ||   // HD ready
+                        (avFrame->width == 1920) && (avFrame->height  == 1080) ||   // full HD
+                        (avFrame->width == 3840) && (avFrame->height  == 2160)) {   // UHD
                         sample_aspect_ratio_num = 16;
                         sample_aspect_ratio_den = 9;
                     }

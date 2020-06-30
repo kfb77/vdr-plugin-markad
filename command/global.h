@@ -65,12 +65,12 @@
 #define MT_MOVED          (unsigned char) 0xE0
 #define MT_ALL            (unsigned char) 0xFF
 
+
 typedef struct config {
     char logoDirectory[1024];
     char LogoDir[1024];
     char markFileName[1024];
     char svdrphost[1024];
-
     int logoExtraction;
     int logoWidth;
     int logoHeight;
@@ -79,17 +79,15 @@ typedef struct config {
     int threads;
     int astopoffs;
     int posttimer;
-    bool use_cDecoder=false;
-    bool useVPS=false;
-    bool MarkadCut=false;
-    bool ac3ReEncode=false;
-    int autoLogo=0;   // 0 = off, 1 = on, use less memory but a lot of cpu, 2 use a lot of memory but runs faster
+    bool use_cDecoder = false;
+    bool useVPS = false;
+    bool MarkadCut = false;
+    bool ac3ReEncode = false;
+    int autoLogo = 0;   // 0 = off, 1 = on, use less memory but a lot of cpu, 2 use a lot of memory but runs faster
     const char *recDir;
-
     bool DecodeVideo;
     bool DecodeAudio;
     bool BackupMarks;
-
     bool NoPid;
     bool OSD;
     bool Before;
@@ -99,40 +97,49 @@ typedef struct config {
     bool SaveInfo;
 } MarkAdConfig;
 
+
 typedef struct MarkAdPos {
     int FrameNumberBefore;
     int FrameNumberAfter;
 } MarkAdPos;
+
 
 typedef struct MarkAdAspectRatio {
     int Num=0;
     int Den=0;
 } MarkAdAspectRatio;
 
+
 typedef struct MarkAdMark {
-    int Type=0;
-    int Position=0;
-    int ChannelsBefore=0;
-    int ChannelsAfter=0;
+    int Type = 0;
+    int Position = 0;
+    int ChannelsBefore = 0;
+    int ChannelsAfter = 0;
     MarkAdAspectRatio AspectRatioBefore;
     MarkAdAspectRatio AspectRatioAfter;
 } MarkAdMark;
 
+
 typedef struct MarkAdMarks {
-    static const int maxCount=4;
+    static const int maxCount = 4;
     MarkAdMark Number[maxCount];
     int Count;
 } MarkAdMarks;
 
+
 #define MARKAD_PIDTYPE_VIDEO_H262 0x10
 #define MARKAD_PIDTYPE_VIDEO_H264 0x11
+#define MARKAD_PIDTYPE_VIDEO_H265 0x12
+
 #define MARKAD_PIDTYPE_AUDIO_AC3  0x20
 #define MARKAD_PIDTYPE_AUDIO_MP2  0x21
+
 
 typedef struct MarkAdPid {
     int Num = 0;
     int Type = 0;
 } MarkAdPid;
+
 
 typedef struct MarkAdContext {
     const MarkAdConfig *Config;
@@ -151,12 +158,12 @@ typedef struct MarkAdContext {
     struct Video {
         struct Options {
             bool IgnoreAspectRatio;
-            bool IgnoreBlackScreenDetection=false;
+            bool IgnoreBlackScreenDetection = false;
             bool IgnoreLogoDetection;
-            bool ignoreHborder=false; // ignore horizontal borders detection if there is none at the start of the recording
-                                      // later horizontal borders could be part of an ad
-            bool ignoreVborder=false; // ignore vertical borders detection if there is none at the start of the recording
-                                      // later vertical borders could be closing credits
+            bool ignoreHborder = false; // ignore horizontal borders detection if there is none at the start of the recording
+                                        // later horizontal borders could be part of an ad
+            bool ignoreVborder = false; // ignore vertical borders detection if there is none at the start of the recording
+                                        // later vertical borders could be closing credits
         } Options;
 
         struct Info {
@@ -166,7 +173,7 @@ typedef struct MarkAdContext {
             int Pix_Fmt; // Pixel format (see libavutil/pixfmt.h)
             MarkAdAspectRatio AspectRatio;
             double FramesPerSecond;
-            bool Interlaced=false;
+            bool Interlaced = false;
         } Info;
 
         struct Data {
@@ -191,6 +198,5 @@ typedef struct MarkAdContext {
             int SampleBufLen;
         } Data;
     } Audio;
-
 } MarkAdContext;
 #endif
