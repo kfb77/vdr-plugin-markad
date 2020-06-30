@@ -3374,28 +3374,28 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
 cMarkAdStandalone::~cMarkAdStandalone() {
     if ((!abortNow) && (!duplicate)) {
-        gettimeofday(&tv2,&tz);
+        gettimeofday(&tv2, &tz);
         time_t sec;
         suseconds_t usec;
-        sec=tv2.tv_sec-tv1.tv_sec;
-        usec=tv2.tv_usec-tv1.tv_usec;
-        if (usec<0) {
-            usec+=1000000;
+        sec = tv2.tv_sec - tv1.tv_sec;
+        usec = tv2.tv_usec - tv1.tv_usec;
+        if (usec < 0) {
+            usec += 1000000;
             sec--;
         }
-        double etime =0;
+        double etime = 0;
         double ftime = 0;
-        etime=sec+((double) usec/1000000)-waittime;
-        if (etime>0) ftime=(framecnt+framecnt2+framecnt3)/etime;
-        isyslog("processed time %.2fs, %i/%i/%i frames, %.1f fps", etime,framecnt,framecnt2,framecnt2,ftime);
+        etime = sec + ((double) usec / 1000000) - waittime;
+        if (etime > 0) ftime = (framecnt + framecnt2 + framecnt3) / etime;
+        isyslog("processed time %.2fs, %i/%i/%i frames, %.1f fps", etime, framecnt, framecnt2, framecnt3, ftime);
     }
 
     if ((osd) && (!duplicate)) {
         if (abortNow) {
-            osd->Send("%s '%s'",tr("markad aborted for"),ptitle);
+            osd->Send("%s '%s'",tr("markad aborted for"), ptitle);
         }
         else {
-            osd->Send("%s '%s'",tr("markad finished for"),ptitle);
+            osd->Send("%s '%s'",tr("markad finished for"), ptitle);
         }
     }
 
