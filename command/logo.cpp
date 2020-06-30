@@ -490,12 +490,28 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
 
     if (!WaitForFrames(maContext, ptr_cDecoder)) {
         dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");
+        FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
+        delete ptr_cDecoder;
+        FREE(sizeof(*ptr_Logo), "ptr_Logo");
+        delete ptr_Logo;
+        FREE(sizeof(*hborder), "hborder");
+        delete hborder;
+        FREE(sizeof(*vborder), "vborder");
+        delete vborder;
         return -1;
     }
     while(ptr_cDecoder->DecodeDir(maContext->Config->recDir)) {
         maContext->Info.VPid.Type = ptr_cDecoder->GetVideoType();
         if (maContext->Info.VPid.Type == 0) {
             dsyslog("cExtractLogo::SearchLogo(): video type not set");
+            FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
+            delete ptr_cDecoder;
+            FREE(sizeof(*ptr_Logo), "ptr_Logo");
+            delete ptr_Logo;
+            FREE(sizeof(*hborder), "hborder");
+            delete hborder;
+            FREE(sizeof(*vborder), "vborder");
+            delete vborder;
             return -1;
         }
         maContext->Video.Info.Height = ptr_cDecoder->GetVideoHeight();
@@ -713,16 +729,16 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
         logoInfoVector[corner].clear();
         logoInfoVectorPacked[corner].clear();
     }
+    maContext->Video = maContextSaveState.Video;     // restore state of calling video context
+    maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
     FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
     delete ptr_cDecoder;
+    FREE(sizeof(*ptr_Logo), "ptr_Logo");
+    delete ptr_Logo;
     FREE(sizeof(*hborder), "hborder");
     delete hborder;
     FREE(sizeof(*vborder), "vborder");
     delete vborder;
-    FREE(sizeof(*ptr_Logo), "ptr_Logo");
-    delete ptr_Logo;
-    maContext->Video = maContextSaveState.Video;     // restore state of calling video context
-    maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
     if (retStatus) dsyslog("cExtractLogo::SearchLogo(): finished successfully at frame");
     else dsyslog("cExtractLogo::SearchLogo(): failed");
     dsyslog("----------------------------------------------------------------------------");
