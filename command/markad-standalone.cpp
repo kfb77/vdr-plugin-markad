@@ -2589,7 +2589,7 @@ bool cMarkAdStandalone::CheckLogo() {
             return true;
         }
         else {
-            dsyslog("cMarkAdStandalone::CheckLogo(): logo search faild with internal error");
+            dsyslog("cMarkAdStandalone::CheckLogo(): logo search failed");
             return false;
         }
     }
@@ -2599,35 +2599,35 @@ bool cMarkAdStandalone::CheckLogo() {
 
 bool cMarkAdStandalone::LoadInfo() {
     char *buf;
-    if (asprintf(&buf,"%s/info%s",directory,isTS ? "" : ".vdr")==-1) return false;
+    if (asprintf(&buf, "%s/info%s", directory, isTS ? "" : ".vdr") == -1) return false;
     ALLOC(strlen(buf)+1, "buf");
 
     FILE *f;
-    f=fopen(buf,"r");
+    f = fopen(buf, "r");
     FREE(strlen(buf)+1, "buf");
     free(buf);
-    buf=NULL;
+    buf = NULL;
     if (!f) {
         // second try for reel vdr
-        if (asprintf(&buf,"%s/info.txt",directory)==-1) return false;
+        if (asprintf(&buf, "%s/info.txt", directory) == -1) return false;
         ALLOC(strlen(buf)+1, "buf");
-        f=fopen(buf,"r");
+        f = fopen(buf,"r");
         FREE(strlen(buf)+1, "buf");
         free(buf);
         if (!f) return false;
-        isREEL=true;
+        isREEL = true;
     }
 
-    char *line=NULL;
+    char *line = NULL;
     size_t linelen;
-    while (getline(&line,&linelen,f)!=-1) {
-        if (line[0]=='C') {
-            char channelname[256]="";
-            int result=sscanf(line,"%*c %*80s %250c",(char *) &channelname);
-            if (result==1) {
-                macontext.Info.ChannelName=strdup(channelname);
+    while (getline(&line, &linelen, f) != -1) {
+        if (line[0] == 'C') {
+            char channelname[256] = "";
+            int result = sscanf(line, "%*c %*80s %250c", (char *) &channelname);
+            if (result == 1) {
+                macontext.Info.ChannelName = strdup(channelname);
                 ALLOC(strlen(macontext.Info.ChannelName)+1, "macontext.Info.ChannelName");
-                char *lf=strchr(macontext.Info.ChannelName,10);
+                char *lf = strchr(macontext.Info.ChannelName, 10);
                 if (lf) {
                    *lf = 0;
                     char *tmpName = strdup(macontext.Info.ChannelName);
@@ -2637,9 +2637,9 @@ bool cMarkAdStandalone::LoadInfo() {
                     free(macontext.Info.ChannelName);
                     macontext.Info.ChannelName = tmpName;
                 }
-                char *cr=strchr(macontext.Info.ChannelName,13);
+                char *cr = strchr(macontext.Info.ChannelName, 13);
                 if (cr) {
-                    *cr=0;
+                    *cr = 0;
                     char *tmpName = strdup(macontext.Info.ChannelName);
                     ALLOC(strlen(tmpName)+1, "macontext.Info.ChannelName");
                     *lf = 13;
@@ -2647,78 +2647,78 @@ bool cMarkAdStandalone::LoadInfo() {
                     free(macontext.Info.ChannelName);
                     macontext.Info.ChannelName = tmpName;
                 }
-                for (int i=0; i<(int) strlen(macontext.Info.ChannelName); i++) {
-                    if (macontext.Info.ChannelName[i]==' ') macontext.Info.ChannelName[i]='_';
-                    if (macontext.Info.ChannelName[i]=='.') macontext.Info.ChannelName[i]='_';
-                    if (macontext.Info.ChannelName[i]=='/') macontext.Info.ChannelName[i]='_';
+                for (int i = 0; i < (int) strlen(macontext.Info.ChannelName); i++) {
+                    if (macontext.Info.ChannelName[i] == ' ') macontext.Info.ChannelName[i] = '_';
+                    if (macontext.Info.ChannelName[i] == '.') macontext.Info.ChannelName[i] = '_';
+                    if (macontext.Info.ChannelName[i] == '/') macontext.Info.ChannelName[i] = '_';
                 }
             }
         }
-        if ((line[0]=='E') && (!bLiveRecording)) {
-            int result=sscanf(line,"%*c %*10i %20li %6i %*2x %*2x",&startTime,&length);
-            if (result!=2) {
-                startTime=0;
-                length=0;
+        if ((line[0] == 'E') && (!bLiveRecording)) {
+            int result = sscanf(line,"%*c %*10i %20li %6i %*2x %*2x", &startTime, &length);
+            if (result != 2) {
+                startTime = 0;
+                length = 0;
             }
         }
-        if (line[0]=='T') {
-            int result=sscanf(line,"%*c %79c",title);
-            if ((result==0) || (result==EOF)) {
-                title[0]=0;
+        if (line[0] == 'T') {
+            int result = sscanf(line, "%*c %79c", title);
+            if ((result == 0) || (result == EOF)) {
+                title[0] = 0;
             }
             else {
-                char *lf=strchr(title,10);
-                if (lf) *lf=0;
-                char *cr=strchr(title,13);
-                if (cr) *cr=0;
+                char *lf = strchr(title, 10);
+                if (lf) *lf = 0;
+                char *cr = strchr(title, 13);
+                if (cr) *cr = 0;
             }
         }
-        if (line[0]=='F') {
+        if (line[0] == 'F') {
             int fps;
-            int result=sscanf(line,"%*c %3i",&fps);
-            if ((result==0) || (result==EOF)) {
-                macontext.Video.Info.FramesPerSecond=0;
+            int result = sscanf(line, "%*c %3i", &fps);
+            if ((result == 0) || (result == EOF)) {
+                macontext.Video.Info.FramesPerSecond = 0;
             }
             else {
-                macontext.Video.Info.FramesPerSecond=fps;
+                macontext.Video.Info.FramesPerSecond = fps;
             }
         }
-        if ((line[0]=='X') && (!bLiveRecording)) {
-            int stream=0,type=0;
-            char descr[256]="";
-            int result=sscanf(line,"%*c %3i %3i %250c",&stream,&type,(char *) &descr);
-            if ((result!=0) && (result!=EOF)) {
-                if ((stream==1) || (stream==5)) {
-                    if ((type!=1) && (type!=5) && (type!=9) && (type!=13)) {
+        if ((line[0] == 'X') && (!bLiveRecording)) {
+            int stream = 0, type = 0;
+            char descr[256] = "";
+            int result=sscanf(line, "%*c %3i %3i %250c", &stream, &type, (char *) &descr);
+            if ((result != 0) && (result != EOF)) {
+                if ((stream == 1) || (stream == 5)) {
+                    if ((type != 1) && (type != 5) && (type != 9) && (type != 13)) {
                         isyslog("broadcast aspectratio 16:9 (from info)");
-                        macontext.Info.AspectRatio.Num=16;
-                        macontext.Info.AspectRatio.Den=9;
+                        macontext.Info.AspectRatio.Num = 16;
+                        macontext.Info.AspectRatio.Den = 9;
                     }
                     else {
                         isyslog("broadcast aspectratio 4:3 (from info)");
-                        macontext.Info.AspectRatio.Num=4;
-                        macontext.Info.AspectRatio.Den=3;
+                        macontext.Info.AspectRatio.Num = 4;
+                        macontext.Info.AspectRatio.Den = 3;
                     }
                 }
 
-                if (stream==2) {
-                    if (type==5) {
+                if (stream == 2) {
+                    if (type == 5) {
                         // if we have DolbyDigital 2.0 disable AC3
-                        if (strchr(descr,'2')) {
+                        if (strchr(descr, '2')) {
                             isyslog("broadcast with DolbyDigital2.0 (from info)");
-                            macontext.Info.Channels[stream]=2;
+                            macontext.Info.Channels[stream] = 2;
                         }
                         // if we have DolbyDigital 5.1 disable video decoding
-                        if (strchr(descr,'5')) {
+                        if (strchr(descr, '5')) {
                             isyslog("broadcast with DolbyDigital5.1 (from info)");
-                            macontext.Info.Channels[stream]=6;
+                            macontext.Info.Channels[stream] = 6;
                         }
                     }
                 }
             }
         }
     }
-    if ((macontext.Info.AspectRatio.Num==0) && (macontext.Info.AspectRatio.Den==0)) isyslog("no broadcast aspectratio found in info");
+    if ((macontext.Info.AspectRatio.Num == 0) && (macontext.Info.AspectRatio.Den == 0)) isyslog("no broadcast aspectratio found in info");
     if (line) free(line);
 
     if ((length) && (!bIgnoreTimerInfo) && (startTime)) {
@@ -2731,35 +2731,35 @@ bool cMarkAdStandalone::LoadInfo() {
                 isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", tStart);
                 tStart = 120;
             }
-            if (tStart<0) {
-                if (length+tStart>0) {
-                    isyslog("broadcast start truncated by %im, length will be corrected",-tStart/60);
-                    startTime=rStart;
-                    length+=tStart;
-                    tStart=-1;
+            if (tStart < 0) {
+                if (length+tStart > 0) {
+                    isyslog("broadcast start truncated by %im, length will be corrected", -tStart / 60);
+                    startTime = rStart;
+                    length += tStart;
+                    tStart = -1;
                 }
                 else {
                     esyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
-                    tStart=120;
+                    tStart = 120;
                 }
             }
         }
         else {
-            tStart=0;
+            tStart = 0;
         }
     }
     else {
-        tStart=0;
+        tStart = 0;
     }
     fclose(f);
     dsyslog("cMarkAdStandalone::LoadInfo() broadcast start %is after recording start", tStart);
 
     if ((!length) && (!bLiveRecording)) {
         esyslog("cannot read broadcast length from info, marks can be wrong!");
-        macontext.Info.AspectRatio.Num=0;
-        macontext.Info.AspectRatio.Den=0;
-        bDecodeVideo=macontext.Config->DecodeVideo;
-        macontext.Video.Options.IgnoreAspectRatio=false;
+        macontext.Info.AspectRatio.Num = 0;
+        macontext.Info.AspectRatio.Den = 0;
+        bDecodeVideo = macontext.Config->DecodeVideo;
+        macontext.Video.Options.IgnoreAspectRatio = false;
     }
 
     if (!macontext.Info.ChannelName) {
