@@ -2494,11 +2494,15 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd) {
     }
     endmntent(mounts);
 
-    if ((useatime) && (stat(directory,&statbuf)!=-1)) {
-        if (fabs(difftime(start,statbuf.st_atime))<7200) {
+    if (useatime) dsyslog("cMarkAdStandalone::GetBroadcastStart(): mount option noatime is set, use time from directory %s", directory);
+    else dsyslog("cMarkAdStandalone::GetBroadcastStart(): mount option noatime is not set");
+
+    if ((useatime) && (stat(directory, &statbuf) != -1)) {
+        if (fabs(difftime(start,statbuf.st_atime)) < 60*60*12) {  // do not beleave recordings > 12h
             dsyslog("cMarkAdStandalone::GetBroadcastStart(): getting recording start from directory atime");
             return statbuf.st_atime;
         }
+        dsyslog("cMarkAdStandalone::GetBroadcastStart(): got no valid atime %ld for start time %ld", statbuf.st_atime, start);
     }
 
     // try to get from mtime
@@ -2510,7 +2514,7 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd) {
         }
     }
 
-    // fallback to the directory
+    // fallback to the directory name (time part)
     const char *timestr=strrchr(directory,'/');
     if (timestr) {
         timestr++;
