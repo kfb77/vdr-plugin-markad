@@ -71,7 +71,6 @@
 
 
 #include <signal.h>
-#include <tinyxml2.h>
 #include "status.h"
 #include "setup.h"
 #include "debug.h"
