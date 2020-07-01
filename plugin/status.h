@@ -31,7 +31,7 @@ class cEpgEventLog {
            return *this;
        };
        void Log(const time_t recStart, const tEventID recEventID, const tEventID eventID, const tEventID followingEventID, const tEventID eitEventID, const int state, const int event, const int newState, const char* action);
-       void Log(char *message);
+       void Log(const char *message);
     private:
        FILE *eventLogFile = NULL;
 };
@@ -82,7 +82,7 @@ class cStatusMarkAd : public cStatus {
         bool LogoExists(const cDevice *Device, const char *FileName);
         void GetEventID(const cDevice *Device,const char *FileName, tEventID *eventID, time_t *timerStartTime, time_t *timerStopTime);
         void SaveVPSStatus(const int index);
-        bool StoreVPSStatus(const char *status, int index);
+        bool StoreVPSStatus(const char *status, const int index);
         cEpgHandlerMarkad *epgHandlerMarkad = NULL;
     protected:
         virtual void Recording(const cDevice *Device, const char *Name, const char *FileName, bool On);
