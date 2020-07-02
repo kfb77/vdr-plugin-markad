@@ -911,7 +911,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             if (vpsOffset > 0) {
                 isyslog("found VPS stop event at offset %ds", vpsOffset);
                 AddMarkVPS(vpsOffset, MT_STOP, false);
-                marks.DelWeakFromTo(ptr_cDecoder->GetIFrameFromOffset(vpsOffset*100) - macontext.Video.Info.FramesPerSecond*MAXRANGE, INT_MAX, MT_VPSCHANGE);  // delete all marks short before and after VPS stop
+                marks.DelWeakFromTo(0, INT_MAX, MT_VPSCHANGE);  // delete all non vps marks
             }
             else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS stop event found");
         }
