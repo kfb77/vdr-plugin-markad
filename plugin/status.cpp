@@ -172,7 +172,7 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
     if (Schedule->GetFollowingEvent()) followingEventID = Schedule->GetFollowingEvent()->EventID();
     tEventID eitEventID = (unsigned int) EitEvent->getEventId();
     for (int i = 0; i <= max_recs; i++) {
-        if (recs[i].eitEventID == 0) {  // we do not know the EIT Event ID, with epg2vdr it is different from eventID
+        if (recs[i].eitEventID == 0) {  // we do not know the EIT Event ID, with epg2vdr it is different from timer eventID
             if ((recs[i].eventID != eventID) && (recs[i].eventID != followingEventID)) continue;
             if (!((EitEvent->getStartTime() >= recs[i].timerStartTime) && ((EitEvent->getStartTime() + EitEvent->getDuration()) <= recs[i].timerStopTime))) continue;
             recs[i].eitEventID = eitEventID;
@@ -193,6 +193,11 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
         if ((recs[i].runningStatus == 0) && (runningStatus == 1)) { // VPS event not running
             if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, runningStatus, "accept");
             recs[i].runningStatus = 1;
+            return;
+        }
+
+        if ((recs[i].runningStatus == 0) && (runningStatus == 4)) {  // recording start after vps start, ignore this event
+            if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, recs[i].runningStatus, "ignore");
             return;
         }
 
@@ -379,12 +384,14 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
         }
     }
     if (strcmp(status,"STOP") == 0) {
-        if ( curr_time >  recs[index].vpsStartTime + 300) {  // STOP must be at least 5 min after START
+        if ( curr_time >  recs[index].vpsStartTime + 60) {  // STOP must be at least 1 min after START
             recs[index].vpsStopTime=curr_time;
             return true;
         }
         else {
-            dsyslog("markad: cStatusMarkAd::StoreVPSStatus(): VPS stop to fast after start for recording %s, reset to not running", recs[index].Name);
+            char *log = NULL;
+            if ((recs[index].epgEventLog) && (asprintf(&log, "VPS stop to fast after start, reset to not running") != -1)) recs[index].epgEventLog->Log(log);
+            if (log) free(log);
             recs[index].vpsStartTime=0;
             return true;
         }
