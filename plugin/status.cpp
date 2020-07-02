@@ -196,8 +196,9 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
             return;
         }
 
-        if ((recs[i].runningStatus == 0) && (runningStatus == 4)) {  // recording start after vps start, ignore this event
-            if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, recs[i].runningStatus, "ignore");
+        if ((recs[i].runningStatus == 0) && (runningStatus == 4)) {  // recording start after vps start
+            if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, runningStatus, "accept (recording start after VPS start)");
+            recs[i].runningStatus = 4;
             return;
         }
 
