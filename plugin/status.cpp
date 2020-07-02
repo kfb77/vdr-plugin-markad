@@ -361,12 +361,22 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
         return true;
     }
     if (strcmp(status,"PAUSE_START") == 0) {
-        recs[index].vpsPauseStartTime=curr_time;
-        return true;
+        if (recs[index].vpsPauseStartTime == 0) {
+            recs[index].vpsPauseStartTime=curr_time;
+            return true;
+        }
+        else {
+            return false;
+        }
     }
     if (strcmp(status,"PAUSE_STOP") == 0) {
-        recs[index].vpsPauseStopTime=curr_time;
-        return true;
+        if (recs[index].vpsPauseStopTime == 0) {
+            recs[index].vpsPauseStopTime=curr_time;
+            return true;
+        }
+        else {
+            return false;
+        }
     }
     if (strcmp(status,"STOP") == 0) {
         if ( curr_time >  recs[index].vpsStartTime + 300) {  // STOP must be at least 5 min after START
@@ -379,7 +389,7 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
             return true;
         }
     }
-    dsyslog("cStatusMarkAd::StoreVPSStatus(): unknown state %s", status);
+    dsyslog("markad: cStatusMarkAd::StoreVPSStatus(): unknown state %s", status);
     return false;
 }
 
