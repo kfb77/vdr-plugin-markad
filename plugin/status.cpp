@@ -538,8 +538,10 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
     if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
         for (const cTimer *Timer = Timers->First(); Timer; Timer = Timers->Next(Timer)) {
             if (Timer->Recording() && const_cast<cDevice *>(Device)->IsTunedToTransponder(Timer->Channel())) {
-                timer=Timer;
-                break;
+                if (Timer->File() && (strcmp(Name, Timer->File()) == 0)) {
+                    timer=Timer;
+                    break;
+                }
             }
         }
     }
@@ -558,7 +560,7 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
         *eventID = timer->Event()->EventID();
     }
     StateKey.Remove();
-    dsyslog("markad: cStatusMarkAd::GetEventID(): eventID %u from event for timer <%s>  timer start %ld stop %ld", *eventID, Name, *timerStartTime, *timerStopTime);
+    dsyslog("markad: cStatusMarkAd::GetEventID(): eventID %u from event for recording <%s> timer <%s>  timer start %ld stop %ld", *eventID, Name, timer->File(), *timerStartTime, *timerStopTime);
 }
 
 
