@@ -904,7 +904,17 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID ev
                 dsyslog("markad: cStatusMarkAd::Add():: create epg event handler");
             }
             if (pos > max_recs) max_recs = pos;
-            dsyslog("markad: cStatusMarkAd::Add(): add recording <%s> to running list at position %i, eventID %u, start %ld, stop %ld", Name, pos, eventID, timerStartTime, timerStopTime);
+
+            struct tm start = *localtime(&timerStartTime);
+            char timerStart[20] = {0};
+            strftime(timerStart, 20, "%d.%m.%Y %H:%M:%S", &start);
+            struct tm stop = *localtime(&timerStopTime);
+            char timerStop[20] = {0};
+            strftime(timerStop, 20, "%d.%m.%Y %H:%M:%S", &stop);
+            char *log = NULL;
+            if ((recs[pos].epgEventLog) && (asprintf(&log, "position %i, eventID %u, start %s, stop %s", pos, eventID, timerStart, timerStop) != -1)) recs[pos].epgEventLog->Log(log);
+            if (log) free(log);
+
             return pos;
         }
     }
