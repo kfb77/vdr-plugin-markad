@@ -543,17 +543,24 @@ void cStatusMarkAd::TimerChange(const cTimer *Timer, eTimerChange Change) {
 
 void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID *eventID, time_t *timerStartTime, time_t *timerStopTime) {
     if (!Name) return;
+    if (!Device) return;
+    if (!eventID) return;
+    if (!timerStartTime) return;
+    if (!timerStopTime) return;
     const cTimer *timer = NULL;
     *timerStartTime = 0;
     *timerStopTime = 0;
     *eventID = 0;
+    int timeDiff = INT_MAX;
     cStateKey StateKey;
     if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
         for (const cTimer *Timer = Timers->First(); Timer; Timer = Timers->Next(Timer)) {
             if (Timer->Recording() && const_cast<cDevice *>(Device)->IsTunedToTransponder(Timer->Channel())) {
                 if (Timer->File() && (strcmp(Name, Timer->File()) == 0)) {
-                    timer=Timer;
-                    break;
+                    if (abs(Timer->StartTime() - time(NULL)) < timeDiff) {  // maybe we have two timer on same channel with same name, take the nearest start time
+                        timer=Timer;
+                        timeDiff = abs(Timer->StartTime() - time(NULL));
+                    }
                 }
             }
         }
@@ -574,6 +581,7 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
     }
     StateKey.Remove();
     dsyslog("markad: cStatusMarkAd::GetEventID(): eventID %u from event for recording <%s> timer <%s>  timer start %ld stop %ld", *eventID, Name, timer->File(), *timerStartTime, *timerStopTime);
+    return;
 }
 
 
