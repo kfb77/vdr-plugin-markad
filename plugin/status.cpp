@@ -188,7 +188,7 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
             char timerStop[20] = {0};
             strftime(timerStop, 20, "%d.%m.%Y %H:%M:%S", &stop);
             char *log = NULL;
-            if ((recs[i].epgEventLog) && (asprintf(&log, "         EIT ventID %6u, start %s, stop %s", eitEventID, timerStart, timerStop) != -1)) recs[i].epgEventLog->Log(log);
+            if ((recs[i].epgEventLog) && (asprintf(&log, "        EIT eventID %6u, start %s, stop %s", eitEventID, timerStart, timerStop) != -1)) recs[i].epgEventLog->Log(log);
             if (log) free(log);
         }
         if (recs[i].eitEventID != eitEventID) continue;
@@ -208,8 +208,10 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
         }
 
         if ((recs[i].runningStatus == 0) && (runningStatus == 4)) {  // recording start after vps start
-            if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, runningStatus, "accept (recording start after VPS start)");
-            recs[i].runningStatus = 4;
+            if (StoreVPSStatus("START", i)) {
+                if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, runningStatus, "start (recording start after VPS start)");
+                recs[i].runningStatus = 4;
+            }
             return;
         }
 
