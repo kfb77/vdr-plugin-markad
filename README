@@ -55,6 +55,7 @@ VPS and markad plugin:
 You can use VPS events to optimize your start and stop marks.
 Prerequisites:
 - Set "use VPS" to yes in the VDR plugin setup menue. If you use markad from command line, additional add parameter --vps to your markad call.
+- pre timer must be smaller than post timer
 
 It will only work with channels that send a valid VPS signal (see comment in plugin/status.cpp for examples).
 The VPS events are checked at the end of the recording and only used if they appear valid.

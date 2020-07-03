@@ -174,10 +174,21 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
     for (int i = 0; i <= max_recs; i++) {
         if (recs[i].eitEventID == 0) {  // we do not know the EIT Event ID, with epg2vdr it is different from timer eventID
             if ((recs[i].eventID != eventID) && (recs[i].eventID != followingEventID)) continue;
-            if (!((EitEvent->getStartTime() >= recs[i].timerStartTime) && ((EitEvent->getStartTime() + EitEvent->getDuration()) <= recs[i].timerStopTime))) continue;
+            time_t startTimeEIT = EitEvent->getStartTime();
+            time_t stopTimeEIT = startTimeEIT + EitEvent->getDuration();
+            if (!((startTimeEIT >= recs[i].timerStartTime) && (stopTimeEIT <= recs[i].timerStopTime))) continue;
+            if ((startTimeEIT - recs[i].timerStartTime) > (recs[i].timerStopTime - stopTimeEIT)) continue;  // pre timer must be smaller or equal than post timer
+                                                                                                            // to prevent getting short next broadcast
             recs[i].eitEventID = eitEventID;
+
+            struct tm start = *localtime(&startTimeEIT);
+            char timerStart[20] = {0};
+            strftime(timerStart, 20, "%d.%m.%Y %H:%M:%S", &start);
+            struct tm stop = *localtime(&stopTimeEIT);
+            char timerStop[20] = {0};
+            strftime(timerStop, 20, "%d.%m.%Y %H:%M:%S", &stop);
             char *log = NULL;
-            if ((recs[i].epgEventLog) && (asprintf(&log, "found EIT Event ID %u", eitEventID) != -1)) recs[i].epgEventLog->Log(log);
+            if ((recs[i].epgEventLog) && (asprintf(&log, "         EIT ventID %6u, start %s, stop %s", eitEventID, timerStart, timerStop) != -1)) recs[i].epgEventLog->Log(log);
             if (log) free(log);
         }
         if (recs[i].eitEventID != eitEventID) continue;
@@ -922,7 +933,7 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID ev
             char timerStop[20] = {0};
             strftime(timerStop, 20, "%d.%m.%Y %H:%M:%S", &stop);
             char *log = NULL;
-            if ((recs[pos].epgEventLog) && (asprintf(&log, "position %i, eventID %u, start %s, stop %s", pos, eventID, timerStart, timerStop) != -1)) recs[pos].epgEventLog->Log(log);
+            if ((recs[pos].epgEventLog) && (asprintf(&log, "position %i, eventID %6u, start %s, stop %s", pos, eventID, timerStart, timerStop) != -1)) recs[pos].epgEventLog->Log(log);
             if (log) free(log);
 
             return pos;
