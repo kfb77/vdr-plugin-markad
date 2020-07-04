@@ -80,17 +80,17 @@ cEpgEventLog::cEpgEventLog(const char *recDir) {
     if (!recDir) return;
     char *eventLogName = NULL;
 
-    if (!asprintf(&eventLogName, "%s/%s", recDir, "vps.log")) {
+    if (asprintf(&eventLogName, "%s/%s", recDir, "vps.log") == -1) {
         esyslog("markad: cEpgEventLog::cEpgEventLog(): VPS event logfile asprintf failed");
         return;
     }
-    ALLOC(strlen(eventLogName), "eventLogName");
+    ALLOC(strlen(eventLogName)+1, "eventLogName");
 
     eventLogFile = fopen(eventLogName, "w");
     if (!eventLogFile) {
         esyslog("markad: eventLogFile(): VPS event logfile <%s> open file failed", eventLogName);
     }
-    FREE(strlen(eventLogName), "eventLogName");
+    FREE(strlen(eventLogName)+1, "eventLogName");
     free(eventLogName);
     fprintf(eventLogFile, "         time        EventID      now     next    EIT  state event new  offset  action\n");
 }
@@ -116,9 +116,9 @@ void cEpgEventLog::Log(const time_t recStart, const tEventID recEventID, const t
         esyslog("markad: cEpgEventLog::Log(): asprintf failed");
         return;
     }
-    ALLOC(strlen(message), "message");
+    ALLOC(strlen(message)+1, "message");
     fprintf(eventLogFile,"%s\n", message);
-    FREE(strlen(message), "message");
+    FREE(strlen(message)+1, "message");
     free(message);
     fflush(eventLogFile);
 }
@@ -135,9 +135,9 @@ void cEpgEventLog::Log(const char *message) {
         esyslog("markad: cEpgEventLog::Log(): asprintf failed");
         return;
     }
-    ALLOC(strlen(message), "messageLog");
+    ALLOC(strlen(message)+1, "messageLog");
     fprintf(eventLogFile,"%s\n", messageLog);
-    FREE(strlen(message), "messageLog");
+    FREE(strlen(message)+1, "messageLog");
     free(messageLog);
     fflush(eventLogFile);
 }
@@ -188,7 +188,7 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
             char timerStop[20] = {0};
             strftime(timerStop, 20, "%d.%m.%Y %H:%M:%S", &stop);
             char *log = NULL;
-            if ((recs[i].epgEventLog) && (asprintf(&log, "        EIT eventID %6u, start %s, stop %s", eitEventID, timerStart, timerStop) != -1)) recs[i].epgEventLog->Log(log);
+            if ((recs[i].epgEventLog) && (asprintf(&log, "        EIT eventID %7u, start %s, stop %s", eitEventID, timerStart, timerStop) != -1)) recs[i].epgEventLog->Log(log);
             if (log) free(log);
         }
         if (recs[i].eitEventID != eitEventID) continue;
@@ -321,12 +321,12 @@ void cStatusMarkAd::SaveVPSStatus(const int index) {
         esyslog("markad: cStatusMarkAd::SaveVPSStatus(): recording <%s> asprintf failed", recs[index].Name);
         return;
     }
-    ALLOC(strlen(fileVPS), "fileVPS");
+    ALLOC(strlen(fileVPS)+1, "fileVPS");
 
     FILE *pFile = fopen(fileVPS,"w");
     if (!pFile) {
         esyslog("markad: cStatusMarkAd::SaveVPSStatus(): recording <%s> open file %s failed", recs[index].Name, fileVPS);
-        FREE(strlen(fileVPS), "fileVPS");
+        FREE(strlen(fileVPS)+1, "fileVPS");
         free(fileVPS);
         return;
     }
@@ -357,7 +357,7 @@ void cStatusMarkAd::SaveVPSStatus(const int index) {
     }
 
     fclose(pFile);
-    FREE(strlen(fileVPS), "fileVPS");
+    FREE(strlen(fileVPS)+1, "fileVPS");
     free(fileVPS);
     return;
 }
@@ -943,7 +943,7 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID ev
             char timerStop[20] = {0};
             strftime(timerStop, 20, "%d.%m.%Y %H:%M:%S", &stop);
             char *log = NULL;
-            if ((recs[pos].epgEventLog) && (asprintf(&log, "position %i, eventID %6u, start %s, stop %s", pos, eventID, timerStart, timerStop) != -1)) recs[pos].epgEventLog->Log(log);
+            if ((recs[pos].epgEventLog) && (asprintf(&log, "position %i, eventID %7u, start %s, stop %s", pos, eventID, timerStart, timerStop) != -1)) recs[pos].epgEventLog->Log(log);
             if (log) free(log);
 
             return pos;
