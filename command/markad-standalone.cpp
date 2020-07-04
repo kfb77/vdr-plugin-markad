@@ -2580,9 +2580,12 @@ bool cMarkAdStandalone::CheckLogo() {
         ptr_cExtractLogo = new cExtractLogo();
         ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
         long int endpos = ptr_cExtractLogo->SearchLogo(&macontext, 0);   // search logo from start
-        if (endpos > 0) {
-            isyslog("no logo found in recording, retry in next recording part");
-            endpos = ptr_cExtractLogo->SearchLogo(&macontext, endpos);   // search logo from start
+        for (int retry = 2; retry < 5; retry++) {
+            if (endpos > 0) {
+                isyslog("no logo found in recording, retry in %ind recording part", retry);
+                endpos = ptr_cExtractLogo->SearchLogo(&macontext, endpos);   // search logo from last end position
+            }
+            else break;
         }
         if (ptr_cExtractLogo) {
             FREE(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
