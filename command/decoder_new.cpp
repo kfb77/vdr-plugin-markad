@@ -830,7 +830,7 @@ long int cDecoder::GetTimeFromIFrame(long int iFrame) {
                 return before_pts;
             }
             else {
-                dsyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame after (%li) %" PRId64 "ms",iFrame,iInfo->iFrameNumber,iInfo->pts_time_ms);
+//                tsyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame after (%li) %" PRId64 "ms",iFrame,iInfo->iFrameNumber,iInfo->pts_time_ms);
                 return iInfo->pts_time_ms;
             }
         }

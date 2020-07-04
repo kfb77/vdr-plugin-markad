@@ -697,7 +697,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
             logoInfoVectorPacked[corner].clear();
         }
 
-        if (bestLogoInfo.hits < 40) {
+        if (bestLogoInfo.hits < 50) {
             dsyslog("cExtractLogo::SearchLogo(): no valid logo found, best logo at frame %i with %i similars at corner %i", bestLogoInfo.iFrameNumber, bestLogoInfo.hits, bestLogoCorner);
             retStatus=false;
         }
