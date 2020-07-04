@@ -235,7 +235,7 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
             if (recs[i].vpsStartTime && recs[i].vpsStopTime) {
                 if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, recs[i].runningStatus, "ignore");
                 char *log = NULL;
-                if ((recs[i].epgEventLog) && (asprintf(&log, "recording <%s> got VPS event 'running' at status %i after we had start and stop events, ignoring event", recs[i].Name, recs[i].runningStatus) != -1)) recs[i].epgEventLog->Log(log);
+                if ((recs[i].epgEventLog) && (asprintf(&log, "VPS event 'running' at status %i after we had start and stop events, ignoring event", recs[i].runningStatus) != -1)) recs[i].epgEventLog->Log(log);
                 free(log);
             }
             else {
