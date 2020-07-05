@@ -348,15 +348,14 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
     if (extract || onlyFillArea) return LOGO_NOCHANGE;
     if (!processed) return LOGO_ERROR;
 
-//   dsyslog("frame (%6i) rp=%5i mp=%5i mpV=%5.f mpI=%5.f i=%3i c=%d s=%i p=%i", framenumber, rpixel, mpixel, (mpixel*LOGO_VMARK), (mpixel*LOGO_IMARK), area.intensity, area.counter, area.status, processed);
+    tsyslog("frame (%6i) rp=%5i mp=%5i mpV=%5.f mpI=%5.f i=%3i c=%d s=%i p=%i", framenumber, rpixel, mpixel, (mpixel*LOGO_VMARK), (mpixel*LOGO_IMARK), area.intensity, area.counter, area.status, processed);
 
     // if we only have one plane we are "vulnerable"
     // to very bright pictures, so ignore them...
     if (area.intensity > 150) return LOGO_NOCHANGE;
 
     int ret = LOGO_NOCHANGE;
-    if (area.status == LOGO_UNINITIALIZED) {
-        // Initialize
+    if (area.status == LOGO_UNINITIALIZED) { // Initialize
         if (rpixel >= (mpixel*LOGO_VMARK)) {
             area.status = ret = LOGO_VISIBLE;
         }
@@ -395,6 +394,8 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
             else {
                 if (!area.counter) area.framenumber = framenumber;
                 area.counter++;
+                if (rpixel < (mpixel*LOGO_IMARK/4)) area.counter++;   // good detect for logo invisible
+                if (rpixel == 0) area.counter++;   // very good detect for logo invisible
             }
         }
         else {

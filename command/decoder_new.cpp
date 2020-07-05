@@ -392,7 +392,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     if (!avctx) return NULL;
     if (!avpkt) return NULL;
     AVFrame *avFrame = NULL;
-    tsyslog("cDecoder::DecodePacket(); framenumber %li pts %ld dts %ld",framenumber, avpkt->pts, avpkt->dts);
+//    tsyslog("cDecoder::DecodePacket(): framenumber %li pts %ld dts %ld",framenumber, avpkt->pts, avpkt->dts);
     avFrame=av_frame_alloc();
     if (!avFrame) {
         dsyslog("cDecoder::DecodePacket(): av_frame_alloc failed");
