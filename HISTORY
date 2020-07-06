@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2020-07-xx: Version 2.3.2
+- detect faster if logo is invisible
+- fix get correct eventID for VPS feature
+- some minor bug fixes and optimizations, see git
+
 2020-07-01: Version 2.3.1
 - add support for video codec H.265
 - optimize overlap detection
