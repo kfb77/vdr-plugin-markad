@@ -26,7 +26,7 @@ class cExtractLogo {
     public:
         cExtractLogo();
         ~cExtractLogo();
-        int SearchLogo(MarkAdContext *maContext, int startFrame);
+        int SearchLogo(MarkAdContext *maContext, const int startFrame);
         bool abort = false;
         void SetAbort() {
             abort = true;
@@ -50,14 +50,14 @@ class cExtractLogo {
         std::vector<logoInfoPacked> logoInfoVectorPacked[CORNERS];
         int recordingFrameCount = 0;
 
-        bool Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int logoHeight, int logoWidth, int corner);
-        int Compare(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int logoHeight, int logoWidth, int corner);
-        bool CompareLogoPair(logoInfo *logo1, logoInfo *logo2, int logoHeight, int logoWidth);
-        bool Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, int bestLogoCorner);
-        bool isWhitePlane(logoInfo *ptr_actLogoInfo, int logoHeight, int logoWidth, int plane);
-        int DeleteBorderFrames(MarkAdContext *maContext, int from, int to);
-        bool WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecoder);
-        void PackLogoInfo(logoInfo *logoInfo, logoInfoPacked *logoInfoPacked);
-        void UnpackLogoInfo(logoInfo *logoInfo, logoInfoPacked *logoInfoPacked);
+        bool Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
+        int Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
+        bool CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth);
+        bool Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner);
+        bool isWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
+        int DeleteBorderFrames(const MarkAdContext *maContext, const int from, const int to);
+        bool WaitForFrames(const MarkAdContext *maContext, cDecoder *ptr_cDecoder);
+        void PackLogoInfo(const logoInfo *logoInfo, logoInfoPacked *logoInfoPacked);
+        void UnpackLogoInfo(logoInfo *logoInfo, const logoInfoPacked *logoInfoPacked);
 };
 #endif

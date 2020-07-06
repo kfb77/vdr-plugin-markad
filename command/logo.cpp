@@ -31,7 +31,7 @@ cExtractLogo::~cExtractLogo() {
 }
 
 
-bool cExtractLogo::isWhitePlane(logoInfo *ptr_actLogoInfo, int logoHeight, int logoWidth, int plane) {
+bool cExtractLogo::isWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane) {
     if (!ptr_actLogoInfo) return false;
     if (logoHeight < 1) return false;
     if (logoWidth < 1) return false;
@@ -48,20 +48,20 @@ bool cExtractLogo::isWhitePlane(logoInfo *ptr_actLogoInfo, int logoHeight, int l
 }
 
 
-bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int logoHeight, int logoWidth, int corner) {
+bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
     if (!maContext) return false;
     if (!ptr_actLogoInfo) return false;
     if ((logoHeight <= 0) || (logoWidth <= 0)) return false;
     if ((corner < 0) || (corner > 3)) return false;
     if (!maContext->Info.ChannelName) return false;
 
-    for (int plane=0; plane < PLANES; plane++) {
+    for (int plane = 0; plane < PLANES; plane++) {
         char *buf=NULL;
         int height = logoHeight;
         int width = logoWidth;
-        if (plane>0) {
-            width/=2;
-            height/=2;
+        if (plane > 0) {
+            width /= 2;
+            height /= 2;
         }
         int black = 0;
         for (int i = 0; i < height*width; i++) {
@@ -77,7 +77,7 @@ bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int
         else dsyslog("cExtractLogo::Save(): %i pixel in plane %i", black, plane);
 
         if (this->isWhitePlane(ptr_actLogoInfo, height, width, plane)) continue;
-        if (asprintf(&buf,"%s/%s-A%i_%i-P%i.pgm",maContext->Config->recDir, maContext->Info.ChannelName, ptr_actLogoInfo->aspectratio.Num,ptr_actLogoInfo->aspectratio.Den,plane)==-1) return false;
+        if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", maContext->Config->recDir, maContext->Info.ChannelName, ptr_actLogoInfo->aspectratio.Num,ptr_actLogoInfo->aspectratio.Den,plane)==-1) return false;
         ALLOC(strlen(buf)+1, "buf");
         dsyslog("cExtractLogo::Save(): store logo in %s", buf);
         // Open file
@@ -93,7 +93,7 @@ bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int
         fprintf(pFile, "P5\n#C%i\n%d %d\n255\n", corner, width, height);
 
         // Write pixel data
-        if (!fwrite(ptr_actLogoInfo->sobel[plane],1,width*height,pFile)) {
+        if (!fwrite(ptr_actLogoInfo->sobel[plane], 1, width * height, pFile)) {
             dsyslog("cExtractLogo::Save(): write data failed");
             fclose(pFile);
             FREE(sizeof(buf), "buf");
@@ -109,7 +109,7 @@ bool cExtractLogo::Save(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int
 }
 
 
-bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, int bestLogoCorner) {
+bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner) {
     if (!bestLogoInfo) return false;
     if (!logoHeight) return false;
     if (!logoWidth) return false;
@@ -231,7 +231,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
 }
 
 
-int cExtractLogo::Compare(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, int logoHeight, int logoWidth, int corner) {
+int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
     if (!maContext) return 0;
     if (!ptr_actLogoInfo) return 0;
     if ((logoHeight <= 0) || (logoWidth <= 0)) return 0;
@@ -309,7 +309,7 @@ int cExtractLogo::Compare(MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, i
 }
 
 
-bool cExtractLogo::CompareLogoPair(logoInfo *logo1, logoInfo *logo2, int logoHeight, int logoWidth) {
+bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth) {
     if (!logo1) return false;
     if (!logo2) return false;
 
@@ -338,7 +338,7 @@ bool cExtractLogo::CompareLogoPair(logoInfo *logo1, logoInfo *logo2, int logoHei
 }
 
 
-int cExtractLogo::DeleteBorderFrames(MarkAdContext *maContext, int from, int to) {
+int cExtractLogo::DeleteBorderFrames(const MarkAdContext *maContext, const int from, const int to) {
     if (!maContext) return false;
     if (from >= to) return 0;
     int deleteCount=0;
@@ -369,7 +369,7 @@ int cExtractLogo::DeleteBorderFrames(MarkAdContext *maContext, int from, int to)
 }
 
 
-bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecoder) {
+bool cExtractLogo::WaitForFrames(const MarkAdContext *maContext, cDecoder *ptr_cDecoder) {
     if (!maContext) return false;
     if (!ptr_cDecoder) return false;
 
@@ -412,7 +412,7 @@ bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecode
 }
 
 
-void cExtractLogo::PackLogoInfo(logoInfo *logoInfo, logoInfoPacked *logoInfoPacked) {
+void cExtractLogo::PackLogoInfo(const logoInfo *logoInfo, logoInfoPacked *logoInfoPacked) {
     if ( !logoInfo ) return;
     if ( !logoInfoPacked) return;
     logoInfoPacked->iFrameNumber=logoInfo->iFrameNumber;
@@ -435,7 +435,7 @@ void cExtractLogo::PackLogoInfo(logoInfo *logoInfo, logoInfoPacked *logoInfoPack
 }
 
 
-void cExtractLogo::UnpackLogoInfo(logoInfo *logoInfo, logoInfoPacked *logoInfoPacked) {
+void cExtractLogo::UnpackLogoInfo(logoInfo *logoInfo, const logoInfoPacked *logoInfoPacked) {
     if ( !logoInfo ) return;
     if ( !logoInfoPacked) return;
     logoInfo->iFrameNumber=logoInfoPacked->iFrameNumber;
@@ -457,7 +457,7 @@ void cExtractLogo::UnpackLogoInfo(logoInfo *logoInfo, logoInfoPacked *logoInfoPa
 }
 
 
-int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
+int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
     dsyslog("----------------------------------------------------------------------------");
     dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i", startFrame);
 
