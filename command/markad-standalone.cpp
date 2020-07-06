@@ -636,11 +636,11 @@ void cMarkAdStandalone::CheckStart() {
             if (vStop) {
                 int pos = vStop->position;
                 char *comment=NULL;
-                dsyslog("cMarkAdStandalone::CheckStart(): vertical border stop without start mark found (%i), assume as start mark of the following recording", pos);
+                dsyslog("cMarkAdStandalone::CheckStart(): vertical border stop without start mark found (%i), possible start mark of the following recording", pos);
                 marks.Del(pos);
                 if (asprintf(&comment,"assumed start from vertical border stop (%d)", pos) == -1) comment=NULL;
                 ALLOC(strlen(comment)+1, "comment");
-                begin=marks.Add(MT_ASSUMEDSTART, pos, comment);
+                marks.Add(MT_ASSUMEDSTART, pos, comment);
                 FREE(strlen(comment)+1, "comment");
                 free(comment);
             }
@@ -689,7 +689,7 @@ void cMarkAdStandalone::CheckStart() {
 
     if (!begin) {    // try anything
         marks.DelTill(1);    // we do not want to have a start mark at position 0
-        begin=marks.GetAround(iStartA+2*delta,iStartA,MT_START,0x0F);    // reduced from 3 becaus of missing start in some recording
+        begin=marks.GetAround(iStartA+2*delta,iStartA,MT_START,0x0F);
         if (begin) {
             dsyslog("cMarkAdStandalone::CheckStart(): found start mark at (%i)", begin->position);
         }
