@@ -354,7 +354,7 @@ bool cDecoder::GetNextFrame() {
                          newFrameInfo.pts_time_ms=pts_time_ms_LastFile+pts_time_ms;
                          iFrameInfoVector.push_back(newFrameInfo);
                      }
-                     else dsyslog("cDecoder::GetNextFrame(): failed to get pts for frame %li", framenumber);
+                     else dsyslog("cDecoder::GetNextFrame(): failed to get pts for frame %d", framenumber);
                  }
              }
         }
@@ -370,9 +370,9 @@ AVPacket *cDecoder::GetPacket() {
 }
 
 
-bool cDecoder::SeekToFrame(long int iFrame) {
+bool cDecoder::SeekToFrame(int iFrame) {
     if (!avctx) return false;
-    dsyslog("cDecoder::SeekToFrame(): (%ld)", iFrame);
+    dsyslog("cDecoder::SeekToFrame(): (%d)", iFrame);
     if (framenumber > iFrame) {
         dsyslog("cDecoder::SeekToFrame(): could not seek backward");
         return false;
@@ -380,7 +380,7 @@ bool cDecoder::SeekToFrame(long int iFrame) {
     while (framenumber < iFrame) {
         if (!this->GetNextFrame())
             if (!this->DecodeDir(recordingDir)) {
-                dsyslog("cDecoder::SeekFrame(): failed for frame (%li) at frame (%li)", iFrame, framenumber);
+                dsyslog("cDecoder::SeekFrame(): failed for frame (%d) at frame (%d)", iFrame, framenumber);
                 return false;
         }
     }
@@ -451,24 +451,24 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     if (rc  < 0) {
         switch (rc) {
             case AVERROR(EAGAIN):
-                dsyslog("cDecoder::DecodePacket(): avcodec_send_packet error EAGAIN at frame %li", framenumber);
+                dsyslog("cDecoder::DecodePacket(): avcodec_send_packet error EAGAIN at frame %d", framenumber);
                 break;
             case AVERROR(ENOMEM):
-                dsyslog("cDecoder::DecodePacket(): avcodec_send_packet error ENOMEM at frame %li", framenumber);
+                dsyslog("cDecoder::DecodePacket(): avcodec_send_packet error ENOMEM at frame %d", framenumber);
                 break;
             case AVERROR(EINVAL):
-                dsyslog("cDecoder::DecodePacket():GetFrameInfo(): avcodec_send_packet error EINVAL at frame %li", framenumber);
+                dsyslog("cDecoder::DecodePacket():GetFrameInfo(): avcodec_send_packet error EINVAL at frame %d", framenumber);
                 break;
             case AVERROR_INVALIDDATA:
-                dsyslog("cDecoder::DecodePacket:(): avcodec_send_packet error AVERROR_INVALIDDATA at frame %li", framenumber);
+                dsyslog("cDecoder::DecodePacket:(): avcodec_send_packet error AVERROR_INVALIDDATA at frame %d", framenumber);
                 break;
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
             case AAC_AC3_PARSE_ERROR_SYNC:
-                dsyslog("cDecoder::DecodePacket:(): avcodec_send_packet error AAC_AC3_PARSE_ERROR_SYNC at frame %li", framenumber);
+                dsyslog("cDecoder::DecodePacket:(): avcodec_send_packet error AAC_AC3_PARSE_ERROR_SYNC at frame %d", framenumber);
                 break;
 #endif
             default:
-                dsyslog("cDecoder::DecodePacket(): avcodec_send_packet failed with rc=%i at frame %li",rc,framenumber);
+                dsyslog("cDecoder::DecodePacket(): avcodec_send_packet failed with rc=%d at frame %d",rc,framenumber);
                 break;
             }
         if (avFrame) {
@@ -481,14 +481,14 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     if (rc < 0) {
         switch (rc) {
             case AVERROR(EAGAIN):
-                tsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EAGAIN at frame %li", framenumber);
+                tsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EAGAIN at frame %d", framenumber);
                 stateEAGAIN=true;
                 break;
             case AVERROR(EINVAL):
-                dsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EINVAL at frame %li", framenumber);
+                dsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EINVAL at frame %d", framenumber);
                 break;
             default:
-                dsyslog("cDecoder::DecodePacket(): avcodec_receive_frame: decode of frame (%li) failed with return code %i", framenumber, rc);
+                dsyslog("cDecoder::DecodePacket(): avcodec_receive_frame: decode of frame (%d) failed with return code %i", framenumber, rc);
                 break;
         }
         if (avFrame) {
@@ -568,7 +568,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                 int sample_aspect_ratio_num = avFrame->sample_aspect_ratio.num;
                 int sample_aspect_ratio_den = avFrame->sample_aspect_ratio.den;
                 if ((sample_aspect_ratio_num == 0) || (sample_aspect_ratio_den == 0)) {
-                    dsyslog("cDecoder::GetFrameInfo(): invalid aspect ratio (%i:%i) at frame (%li)", sample_aspect_ratio_num, sample_aspect_ratio_den, framenumber);
+                    dsyslog("cDecoder::GetFrameInfo(): invalid aspect ratio (%d:%d) at frame (%d)", sample_aspect_ratio_num, sample_aspect_ratio_den, framenumber);
                     FREE(sizeof(*avFrame), "avFrame");
                     av_frame_free(&avFrame);
                     return false;
@@ -581,7 +581,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                         sample_aspect_ratio_den = 9;
                     }
                     else {
-                        dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio to video width %i hight %i at frame %li)",avFrame->width,avFrame->height,framenumber);
+                        dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio to video width %d hight %d at frame %d)",avFrame->width,avFrame->height,framenumber);
                         FREE(sizeof(*avFrame), "avFrame");
                         av_frame_free(&avFrame);
                         return false;
@@ -612,11 +612,11 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
 //                      sample_aspect_ratio_num =4;
 //                      sample_aspect_ratio_den =3;
                     }
-                    else dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio (%i:%i) at frame (%li)",sample_aspect_ratio_num,sample_aspect_ratio_den,framenumber);
+                    else dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio (%d:%d) at frame (%d)",sample_aspect_ratio_num,sample_aspect_ratio_den,framenumber);
                 }
                 if ((maContext->Video.Info.AspectRatio.Num != sample_aspect_ratio_num) ||
                    ( maContext->Video.Info.AspectRatio.Den != sample_aspect_ratio_den)) {
-                    if (msgGetFrameInfo) dsyslog("cDecoder::GetFrameInfo(): aspect ratio changed from (%i:%i) to (%i:%i) at frame %li",
+                    if (msgGetFrameInfo) dsyslog("cDecoder::GetFrameInfo(): aspect ratio changed from (%d:%d) to (%d:%d) at frame %d",
                                                                             maContext->Video.Info.AspectRatio.Num, maContext->Video.Info.AspectRatio.Den,
                                                                             sample_aspect_ratio_num, sample_aspect_ratio_den,
                                                                             framenumber);
@@ -645,14 +645,14 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
             }
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
             if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codecpar->channels) {
-                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %i changed from %i to %i at frame (%li)", avpkt.stream_index,
+                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d)", avpkt.stream_index,
                                                                                                         maContext->Audio.Info.Channels[avpkt.stream_index],
                                                                                                         avctx->streams[avpkt.stream_index]->codecpar->channels,
                                                                                                         framenumber);
                 maContext->Audio.Info.Channels[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codecpar->channels;
 #else
             if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codec->channels) {
-                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %i changed from %i to %i at frame (%li)", avpkt.stream_index,
+                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d)", avpkt.stream_index,
                                                                                                         maContext->Audio.Info.Channels[avpkt.stream_index],
                                                                                                         avctx->streams[avpkt.stream_index]->codec->channels,
                                                                                                         framenumber);
@@ -759,12 +759,12 @@ bool cDecoder::isVideoIFrame() {
 }
 
 
-long int cDecoder::GetFrameNumber(){
+int cDecoder::GetFrameNumber(){
     return framenumber;
 }
 
 
-long int cDecoder::GetIFrameCount(){
+int cDecoder::GetIFrameCount(){
     return iFrameCount;
 }
 
@@ -775,7 +775,7 @@ bool cDecoder::isInterlacedVideo(){
 }
 
 
-long int cDecoder::GetIFrameRangeCount(long int beginFrame, long int endFrame) {
+int cDecoder::GetIFrameRangeCount(int beginFrame, int endFrame) {
     if (iFrameInfoVector.empty()) {
         dsyslog("cDecoder::GetIFrameRangeCount(): iFrame Index not initialized");
         return 0;
@@ -788,17 +788,17 @@ long int cDecoder::GetIFrameRangeCount(long int beginFrame, long int endFrame) {
             if (iInfo->iFrameNumber >= endFrame) return counter;
         }
     }
-    dsyslog("cDecoder::GetIFrameRangeCount(): failed beginFrame (%li) endFrame (%li) last frame in index list (%li)", beginFrame, endFrame, iFrameInfoVector.back().iFrameNumber);
+    dsyslog("cDecoder::GetIFrameRangeCount(): failed beginFrame (%d) endFrame (%d) last frame in index list (%d)", beginFrame, endFrame, iFrameInfoVector.back().iFrameNumber);
     return 0;
 }
 
 
-long int cDecoder::GetIFrameBefore(long int iFrame) {
+int cDecoder::GetIFrameBefore(int iFrame) {
     if (iFrameInfoVector.empty()) {
         dsyslog("cDecoder::GetIFrameBefore(): iFrame Index not initialized");
         return 0;
     }
-    long int before_iFrame=0;
+    int before_iFrame=0;
 
     for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
         if (iInfo->iFrameNumber >= iFrame) {
@@ -806,22 +806,22 @@ long int cDecoder::GetIFrameBefore(long int iFrame) {
         }
         else before_iFrame=iInfo->iFrameNumber;
     }
-    dsyslog("cDecoder::GetIFrameBefore(): failed for frame (%li)", iFrame);
+    dsyslog("cDecoder::GetIFrameBefore(): failed for frame (%d)", iFrame);
     return 0;
 }
 
 
-long int cDecoder::GetTimeFromIFrame(long int iFrame) {
+int64_t cDecoder::GetTimeFromIFrame(int iFrame) {
     if (iFrameInfoVector.empty()) {
         dsyslog("cDecoder::GetTimeFromIFrame(): iFrame Index not initialized");
         return 0;
     }
     int64_t before_pts=0;
-    long int before_iFrame=0;
+    int before_iFrame=0;
 
     for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
         if (iFrame == iInfo->iFrameNumber) {
-            tsyslog("cDecoder::GetTimeFromIFrame(): iFrame (%li) time is %" PRId64" ms", iFrame, iInfo->pts_time_ms);
+            tsyslog("cDecoder::GetTimeFromIFrame(): iFrame (%d) time is %" PRId64" ms", iFrame, iInfo->pts_time_ms);
             return iInfo->pts_time_ms;
         }
         if (iInfo->iFrameNumber > iFrame) {
@@ -839,14 +839,14 @@ long int cDecoder::GetTimeFromIFrame(long int iFrame) {
             before_pts=iInfo->pts_time_ms;
         }
     }
-    dsyslog("cDecoder::GetTimeFromIFrame(): could not find time for frame %li",iFrame);
+    dsyslog("cDecoder::GetTimeFromIFrame(): could not find time for frame %d",iFrame);
     return 0;
 }
 
 
-long int cDecoder::GetIFrameFromOffset(int offset_ms) {
+int cDecoder::GetIFrameFromOffset(int offset_ms) {
     if (iFrameInfoVector.empty()) dsyslog(")cDecoder::GetIFrameFromOffset: iFrame Index not initialized");
-    long int iFrameBefore = 0;
+    int iFrameBefore = 0;
     for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
         if (iInfo->pts_time_ms > offset_ms) return iFrameBefore;
         iFrameBefore = iInfo->iFrameNumber;

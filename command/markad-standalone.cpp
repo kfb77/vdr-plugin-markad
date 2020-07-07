@@ -928,22 +928,22 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool isPause) {
     if (!ptr_cDecoder) return;
     int delta=macontext.Video.Info.FramesPerSecond*MAXRANGE;
-    long int vpsFrame = ptr_cDecoder->GetIFrameFromOffset(offset*100);
+    int vpsFrame = ptr_cDecoder->GetIFrameFromOffset(offset*100);
     clMark *mark = NULL;
     char *comment = NULL;
     char *timeText = NULL;
     if (!isPause) {
-        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%ld)", (type == MT_START) ? "start" : "stop", vpsFrame);
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%d)", (type == MT_START) ? "start" : "stop", vpsFrame);
         mark =  ((type == MT_START)) ? marks.GetNext(0, MT_START, 0x0F) : marks.GetPrev(INT_MAX, MT_STOP, 0x0F);
     }
     else {
-        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%ld)", (type == MT_START) ? "pause start" : "pause stop", vpsFrame);
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%d)", (type == MT_START) ? "pause start" : "pause stop", vpsFrame);
         mark =  ((type == MT_START)) ? marks.GetAround(delta, vpsFrame, MT_START, 0x0F) :  marks.GetAround(delta, vpsFrame, MT_STOP, 0x0F);
     }
     if (!mark) {
         if (isPause) {
             dsyslog("cMarkAdStandalone::AddMarkVPS(): no mark found to replace with pause mark, add new mark");
-            if (asprintf(&comment,"VPS %s (%ld)%s", (type == MT_START) ? "pause start" : "pause stop", vpsFrame, (type == MT_START) ? "*" : "") == -1) comment=NULL;
+            if (asprintf(&comment,"VPS %s (%d)%s", (type == MT_START) ? "pause start" : "pause stop", vpsFrame, (type == MT_START) ? "*" : "") == -1) comment=NULL;
             ALLOC(strlen(comment)+1, "comment");
             marks.Add((type == MT_START) ? MT_VPSSTART : MT_VPSSTOP, vpsFrame, comment);
             FREE(strlen(comment)+1,"comment");
@@ -959,7 +959,7 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
     if (timeText) {
         dsyslog("cMarkAdStandalone::AddMarkVPS(): mark to replace at frame (%d) type 0x%X at %s", mark->position, mark->type, timeText);
 
-        if (asprintf(&comment,"VPS %s (%ld), moved from mark (%d) type 0x%X at %s %s", (type == MT_START) ? "start" : "stop", vpsFrame, mark->position, mark->type, timeText, (type == MT_START) ? "*" : "") == -1) comment=NULL;
+        if (asprintf(&comment,"VPS %s (%d), moved from mark (%d) type 0x%X at %s %s", (type == MT_START) ? "start" : "stop", vpsFrame, mark->position, mark->type, timeText, (type == MT_START) ? "*" : "") == -1) comment=NULL;
         ALLOC(strlen(comment)+1, "comment");
         dsyslog("cMarkAdStandalone::AddMarkVPS(): delete mark on position (%d)", mark->position);
         marks.Del(mark->position);
@@ -1525,7 +1525,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
     if (!mark2) return false;
     if (!*mark2) return false;
 
-    long int iFrameCount=0;
+    int iFrameCount=0;
     int fRange=0;
     MarkAdPos *ptr_MarkAdPos=NULL;
 
@@ -1534,36 +1534,36 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
         esyslog("failed resetting state");
         return false;
     }
-    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): check overlap for marks at frames (%i) and (%i)", (*mark1)->position, (*mark2)->position);
+    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): check overlap for marks at frames (%d) and (%d)", (*mark1)->position, (*mark2)->position);
 
     fRange=macontext.Video.Info.FramesPerSecond*120;     // 40s + 80s
     int fRangeBegin=(*mark1)->position-fRange;           // 120 seconds before first mark
     if (fRangeBegin<0) fRangeBegin=0;                    // but not before beginning of broadcast
     fRangeBegin=ptr_cDecoder->GetIFrameBefore(fRangeBegin);
     if (!fRangeBegin) {
-        dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetIFrameBefore failed for frame (%i)", fRangeBegin);
+        dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetIFrameBefore failed for frame (%d)", fRangeBegin);
         return false;
     }
-    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): check start at frame (%i)", fRangeBegin);
+    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): check start at frame (%d)", fRangeBegin);
     if (!ptr_cDecoder->SeekToFrame(fRangeBegin)) {
         esyslog("could not seek to frame (%i)", fRangeBegin);
         return false;
     }
     iFrameCount=ptr_cDecoder->GetIFrameRangeCount(fRangeBegin, (*mark1)->position);
     if (iFrameCount<=0) {
-            dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetIFrameRangeCount failed at range (%i,%i))", fRangeBegin, (*mark1)->position);
+            dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetIFrameRangeCount failed at range (%d,%d))", fRangeBegin, (*mark1)->position);
             return false;
     }
     while (ptr_cDecoder->GetFrameNumber() <= (*mark1)->position ) {
         if (abortNow) return false;
         if (!ptr_cDecoder->GetNextFrame()) {
-            dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetNextFrame failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
+            dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetNextFrame failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             return false;
         }
         if (!ptr_cDecoder->isVideoPacket()) continue;
         if (!ptr_cDecoder->GetFrameInfo(&macontext)) {
             if (ptr_cDecoder->isVideoIFrame())  // if we have interlaced video this is expected, we have to read the next half picture
-                tsyslog("cMarkAdStandalone::ProcessMark2ndPass() before mark GetFrameInfo failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
+                tsyslog("cMarkAdStandalone::ProcessMark2ndPass() before mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             continue;
         }
         if (ptr_cDecoder->isVideoIFrame()) {
@@ -1574,29 +1574,29 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
     fRange=macontext.Video.Info.FramesPerSecond*320; // 160s + 160s
     fRangeBegin=ptr_cDecoder->GetIFrameBefore((*mark2)->position);
     if (!fRangeBegin) {
-        dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetIFrameBefore failed for frame (%i)", fRangeBegin);
+        dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetIFrameBefore failed for frame (%d)", fRangeBegin);
         return false;
     }
     int fRangeEnd=(*mark2)->position+fRange;         // 320 seconds after second mark
     if (!ptr_cDecoder->SeekToFrame((*mark2)->position)) {
-        esyslog("could not seek to frame (%i)", fRangeBegin);
+        esyslog("could not seek to frame (%d)", fRangeBegin);
         return false;
     }
     iFrameCount=ptr_cDecoder->GetIFrameRangeCount(fRangeBegin, fRangeEnd)-2;
     if (iFrameCount<=0) {
-            dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetIFrameRangeCount failed at range (%i,%i))", fRangeBegin, (*mark1)->position);
+            dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetIFrameRangeCount failed at range (%d,%d))", fRangeBegin, (*mark1)->position);
             return false;
     }
     while (ptr_cDecoder->GetFrameNumber() <= fRangeEnd ) {
         if (abortNow) return false;
         if (!ptr_cDecoder->GetNextFrame()) {
-            dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetNextFrame failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
+            dsyslog("cMarkAdStandalone::ProcessMark2ndPass() GetNextFrame failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             return false;
         }
         if (!ptr_cDecoder->isVideoPacket()) continue;
         if (!ptr_cDecoder->GetFrameInfo(&macontext)) {
             if (ptr_cDecoder->isVideoIFrame())
-                tsyslog("cMarkAdStandalone::ProcessMark2ndPass() after mark GetFrameInfo failed at frame (%li)", ptr_cDecoder->GetFrameNumber());
+                tsyslog("cMarkAdStandalone::ProcessMark2ndPass() after mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             continue;
         }
         if (ptr_cDecoder->isVideoIFrame()) {
@@ -1604,7 +1604,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
         }
         if (ptr_MarkAdPos) {
             // found overlap
-            dsyslog("cMarkAdStandalone::ProcessMark2ndPass found overlap in frames (%i,%i)", ptr_MarkAdPos->FrameNumberBefore, ptr_MarkAdPos->FrameNumberAfter);
+            dsyslog("cMarkAdStandalone::ProcessMark2ndPass found overlap in frames (%d,%d)", ptr_MarkAdPos->FrameNumberBefore, ptr_MarkAdPos->FrameNumberAfter);
             ChangeMarks(mark1,mark2,ptr_MarkAdPos);
             return true;
         }
@@ -1671,7 +1671,7 @@ void cMarkAdStandalone::MarkadCut() {
                 return;
             }
             if ( ! ptr_cEncoder->WritePacket(pkt, ptr_cDecoder) ) {
-                dsyslog("cMarkAdStandalone::MarkadCut(): failed to write frame %ld to output stream", ptr_cDecoder->GetFrameNumber());
+                dsyslog("cMarkAdStandalone::MarkadCut(): failed to write frame %d to output stream", ptr_cDecoder->GetFrameNumber());
             }
             if (abortNow) {
                 if (ptr_cDecoder) {
@@ -1692,7 +1692,7 @@ void cMarkAdStandalone::MarkadCut() {
         dsyslog("failed to close output file");
         return;
     }
-    dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %ld", ptr_cDecoder->GetFrameNumber());
+    dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %d", ptr_cDecoder->GetFrameNumber());
     if (ptr_cEncoder) {
         FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
         delete ptr_cEncoder;
@@ -2026,13 +2026,13 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 return false;
             }
             if (!macontext.Video.Data.Valid) {
-                isyslog("cMarkAdStandalone::ProcessFrame faild to get video data of frame (%li)", ptr_cDecoder->GetFrameNumber());
+                isyslog("cMarkAdStandalone::ProcessFrame faild to get video data of frame (%d)", ptr_cDecoder->GetFrameNumber());
                 return false;
             }
 
             if ( !restartLogoDetectionDone && (lastiframe > (iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE)) &&
                                      ((macontext.Video.Options.IgnoreBlackScreenDetection) || (macontext.Video.Options.IgnoreLogoDetection))) {
-                    isyslog("restart logo and black screen detection at frame (%li)",ptr_cDecoder->GetFrameNumber());
+                    isyslog("restart logo and black screen detection at frame (%d)",ptr_cDecoder->GetFrameNumber());
                     restartLogoDetectionDone=true;
                     bDecodeVideo=true;
                     macontext.Video.Options.IgnoreBlackScreenDetection=false;   // use black sceen setection only to find end mark
@@ -2055,8 +2055,8 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
             if (vmarks) {
                 for (int i = 0; i < vmarks->Count; i++) {
                     if (((vmarks->Number[i].Type & 0xF0) == MT_LOGOCHANGE) && (macontext.Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H265)) {   // we are one iFrame to late with logo marks, these is to much (2s) with H.265 codec
-                        long int iFrameBefore = ptr_cDecoder->GetIFrameBefore(vmarks->Number[i].Position);
-                        dsyslog("cMarkAdStandalone::ProcessFrame(): found logo mark in H.265 recording at (%d) move to (%ld)", vmarks->Number[i].Position, iFrameBefore);
+                        int iFrameBefore = ptr_cDecoder->GetIFrameBefore(vmarks->Number[i].Position);
+                        dsyslog("cMarkAdStandalone::ProcessFrame(): found logo mark in H.265 recording at (%d) move to (%d)", vmarks->Number[i].Position, iFrameBefore);
                         vmarks->Number[i].Position = iFrameBefore;
                     }
                     AddMark(&vmarks->Number[i]);
@@ -2579,7 +2579,7 @@ bool cMarkAdStandalone::CheckLogo() {
         isyslog("no logo found in recording directory, trying to extract logo from recording");
         ptr_cExtractLogo = new cExtractLogo();
         ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
-        long int endpos = ptr_cExtractLogo->SearchLogo(&macontext, 0);   // search logo from start
+        int endpos = ptr_cExtractLogo->SearchLogo(&macontext, 0);   // search logo from start
         for (int retry = 2; retry < 5; retry++) {
             if (endpos > 0) {
                 isyslog("no logo found in recording, retry in %ind recording part", retry);

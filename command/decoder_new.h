@@ -57,7 +57,7 @@ class cDecoder {
         int GetVideoRealFrameRate();
         bool GetNextFrame();
         AVPacket *GetPacket();
-        bool SeekToFrame(long int iFrame);
+        bool SeekToFrame(int iFrame);
         AVFrame *DecodePacket(AVFormatContext *avctx, AVPacket *avpkt);
         bool GetFrameInfo(MarkAdContext *maContext);
         bool isVideoStream(const unsigned int streamIndex);
@@ -67,13 +67,13 @@ class cDecoder {
         bool isAudioAC3Packet();
         bool isAudioStream(const unsigned int streamIndex);
         bool isAudioPacket();
-        long int GetFrameNumber();
-        long int GetIFrameCount();
+        int GetFrameNumber();
+        int GetIFrameCount();
         bool isInterlacedVideo();
-        long int GetIFrameRangeCount(long int beginFrame, long int endFrame);
-        long int GetIFrameBefore(long int iFrame);
-        long int GetTimeFromIFrame(long int iFrame);
-        long int GetIFrameFromOffset(int offset);
+        int GetIFrameRangeCount(int beginFrame, int endFrame);
+        int GetIFrameBefore(int iFrame);
+        int64_t GetTimeFromIFrame(int iFrame);
+        int GetIFrameFromOffset(int offset);
     private:
         char *recordingDir = NULL;
         int fileNumber = 0;
@@ -82,12 +82,12 @@ class cDecoder {
         AVPacket avpkt = {};
         AVCodec *codec = NULL;
         AVCodecContext **codecCtxArray = NULL;
-        long int framenumber=-1;
-        long int iFrameCount=0;
+        int framenumber=-1;
+        int iFrameCount=0;
         int64_t pts_time_ms_LastFile=0;
         struct iFrameInfo {
             int fileNumber=0;
-            long int iFrameNumber=0;
+            int iFrameNumber=0;
             int64_t pts_time_ms=0;
         };
         std::vector<iFrameInfo> iFrameInfoVector;
