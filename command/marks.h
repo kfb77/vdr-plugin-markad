@@ -63,7 +63,7 @@ class clMarks {
         int count;
         int savedcount = 0;
         int indexfd;
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
         void WriteIndex(bool isTS, uint64_t Offset,int FrameType, int Number);
 #endif
     public:
@@ -113,7 +113,7 @@ class clMarks {
 #define IERR_READ 4
 #define IERR_FRAME 5
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
         bool ReadIndex(const char *Directory, bool isTS, int FrameNumber, int Range, int *Number, off_t *Offset, int *Frame, int *iFrames);
         void WriteIndex(const char *Directory, bool isTS, uint64_t Offset, int FrameType, int Number);
         void RemoveGeneratedIndex(const char *Directory,bool isTS);

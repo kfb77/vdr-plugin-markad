@@ -5,7 +5,8 @@
  *
  */
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
+
 
 #include <stdint.h>
 #include <string.h>
@@ -755,13 +756,4 @@ void cBitStream::skipUeGolomb() {
 void cBitStream::skipSeGolomb() {
     skipGolomb();
 }
-
-
-/*
-void cBitStream::byteAlign() {
-    int n = index % 8;
-    if (n > 0)
-        skipBits(8 - n);
-}
-*/
 #endif

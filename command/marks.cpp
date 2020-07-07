@@ -383,7 +383,7 @@ char *clMarks::IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cD
 }
 
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
 void clMarks::RemoveGeneratedIndex(const char *Directory, bool isTS) {
     char *ipath=NULL;
     if (asprintf(&ipath,"%s/index%s.generated",Directory,isTS ? "" : ".vdr")==-1) return;
@@ -396,7 +396,7 @@ void clMarks::RemoveGeneratedIndex(const char *Directory, bool isTS) {
 #endif
 
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
 bool clMarks::ReadIndex(const char *Directory, bool isTS, int FrameNumber, int Range, int *Number, off_t *Offset,  int *Frame, int *iFrames) {
     if (!Offset) return false;
     if (!Number) return false;
@@ -491,7 +491,7 @@ bool clMarks::ReadIndex(const char *Directory, bool isTS, int FrameNumber, int R
 #endif
 
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
 void clMarks::WriteIndex(bool isTS, uint64_t Offset, int FrameType, int Number) {
     if (indexfd==-1) return;
     if (isTS) {
@@ -514,7 +514,7 @@ void clMarks::WriteIndex(bool isTS, uint64_t Offset, int FrameType, int Number) 
 #endif
 
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
 void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset, int FrameType, int Number) {
     if (indexfd==-1) {
         char *ipath=NULL;
@@ -531,7 +531,7 @@ void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset, int 
 #endif
 
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
 void clMarks::CloseIndex(const char *Directory, bool isTS) {
     if (indexfd==-1) return;
 
@@ -554,7 +554,7 @@ void clMarks::CloseIndex(const char *Directory, bool isTS) {
 #endif
 
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
 bool clMarks::CheckIndex(const char *Directory, bool isTS, int *FrameCnt, int *IndexError) {
     if (!IndexError) return false;
     *IndexError=0;

@@ -5,7 +5,6 @@
  *
  */
 
-#if !defined ONLY_WITH_CDECODER
 
 #include <stdint.h>
 #include <stdio.h>
@@ -525,4 +524,3 @@ bool cMarkAdDecoder::DecodeVideo(MarkAdContext *maContext,uchar *pkt, int plen)
     if (ret) addPkt=false;
     return ret;
 }
-#endif

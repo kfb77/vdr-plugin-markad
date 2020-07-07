@@ -2,8 +2,8 @@
 # Makefile for a Video Disk Recorder addon
 #
 
-# use this, if you want to build with the new cDecoder class only
-ONLY_WITH_CDECODER=1
+# use this, if yoYu want to build with the new cDecoder class only
+# CLASSIC_DECODER=1
 
 # use this, if you want to debug heap memory consumption
 # DEBUGMEMMARKAD=1
@@ -70,9 +70,8 @@ LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
 
 ### The object files (add further files here):
 OBJS = markad-standalone.o marks.o video.o audio.o decoder_new.o encoder_new.o logo.o debug.o
-ifdef ONLY_WITH_CDECODER
-        DEFINES += -DONLY_WITH_CDECODER
-else
+ifdef CLASSIC_DECODER
+        DEFINES += -DCLASSIC_DECODER
 	OBJS += demux.o decoder.o streaminfo.o
 endif
 

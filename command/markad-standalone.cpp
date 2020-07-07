@@ -484,7 +484,7 @@ void cMarkAdStandalone::CheckStart() {
                     macontext.Video.Options.IgnoreAspectRatio = false;   // then we have to find other marks
                     macontext.Video.Options.IgnoreLogoDetection = false;
                 }
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
                 if (macontext.Info.DPid.Num) {
                     macontext.Info.DPid.Num = 0;
                     demux->DisableDPid();
@@ -537,7 +537,7 @@ void cMarkAdStandalone::CheckStart() {
                 isyslog("logo/border detection disabled");
                 bDecodeVideo = false;
                 macontext.Video.Options.IgnoreAspectRatio = false;
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
                 for (short int stream = 0;stream < MAXSTREAMS; stream++) {
                     if (macontext.Info.Channels[stream] == 6) {
                         macontext.Info.DPid.Num = 0;
@@ -1261,7 +1261,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
     do {
         struct stat statbuf;
         if (stat(indexFile,&statbuf)==-1) {
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
             if (!macontext.Config->GenIndex)
                 esyslog("failed to stat %s",indexFile);
 #endif
@@ -1382,7 +1382,7 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
 }
 
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
 bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2, int Number, off_t Offset, int Frame, int Frames) {
     if (!directory) return false;
     if (!Number) return false;
@@ -1705,7 +1705,7 @@ void cMarkAdStandalone::MarkadCut() {
 void cMarkAdStandalone::Process2ndPass() {
     if (abortNow) return;
     if (duplicate) return;
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
     if (!decoder) return;
 #else
     if (!ptr_cDecoder) return;
@@ -1744,7 +1744,7 @@ void cMarkAdStandalone::Process2ndPass() {
     }
 
     while ((p1) && (p2)) {
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
         off_t offset;
         int number,frame,iframes;
 #endif
@@ -1758,7 +1758,7 @@ void cMarkAdStandalone::Process2ndPass() {
                 dsyslog("cMarkAdStandalone::Process2ndPass(): no overlap found for marks at frames (%i) and (%i)", p1->position, p2->position);
             }
         }
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
         else {
             if (marks.ReadIndex(directory,isTS,frange_begin,frange,&number,&offset,&frame,&iframes)) {
                 if (!ProcessFile2ndPass(&p1,NULL,number,offset,frame,iframes)) break;
@@ -1787,7 +1787,7 @@ void cMarkAdStandalone::Process2ndPass() {
 }
 
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
 bool cMarkAdStandalone::ProcessFile(int Number) {
     if (!directory) return false;
     if (!Number) return false;
@@ -1972,7 +1972,7 @@ bool cMarkAdStandalone::Reset(bool FirstPass) {
 
     if (FirstPass) {
         marks.DelAll();
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
         marks.CloseIndex(directory,isTS);
 #endif
     }
@@ -1982,7 +1982,7 @@ bool cMarkAdStandalone::Reset(bool FirstPass) {
     macontext.Video.Info.AspectRatio.Num=0;
     memset(macontext.Audio.Info.Channels, 0, sizeof(macontext.Audio.Info.Channels));
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
     if (streaminfo) streaminfo->Clear();
     if (decoder) ret=decoder->Clear();
     if (demux) demux->Clear();
@@ -2160,7 +2160,7 @@ void cMarkAdStandalone::ProcessFile_cDecoder() {
 }
 
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
 void cMarkAdStandalone::ProcessFile() {
     LogSeparator();
     dsyslog("cMarkAdStandalone::ProcessFile(): start processing files");
@@ -2215,7 +2215,7 @@ void cMarkAdStandalone::Process_cDecoder() {
 }
 
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
 void cMarkAdStandalone::Process() {
     if (abortNow) return;
 
@@ -2820,7 +2820,7 @@ bool cMarkAdStandalone::CheckTS()
 }
 
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
 bool cMarkAdStandalone::CheckVDRHD() {
     char *buf;
     if (asprintf(&buf,"%s/001.vdr",directory)==-1) return false;
@@ -2851,7 +2851,7 @@ bool cMarkAdStandalone::CheckVDRHD() {
 #endif
 
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
 off_t cMarkAdStandalone::SeekPATPMT()
 {
     char *buf;
@@ -2896,7 +2896,7 @@ off_t cMarkAdStandalone::SeekPATPMT()
 #endif
 
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
 bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
 {
     if (Offset<(off_t) 0) return false;
@@ -3002,7 +3002,8 @@ bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
 }
 #endif
 
-#if !defined ONLY_WITH_CDECODER
+
+#if defined CLASSIC_DECODER
 bool cMarkAdStandalone::RegenerateIndex() {
     if (!directory) return false;
     // rename index[.vdr].generated -> index[.vdr]
@@ -3101,7 +3102,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     isREEL=false;
 
     indexFile=NULL;
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
     streaminfo=NULL;
     demux=NULL;
     decoder=NULL;
@@ -3140,7 +3141,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         bIgnoreTimerInfo=false;
     }
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
     macontext.Info.DPid.Type=MARKAD_PIDTYPE_AUDIO_AC3;
 #endif
     macontext.Info.APid.Type=MARKAD_PIDTYPE_AUDIO_MP2;
@@ -3249,7 +3250,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     }
 
     if (isTS) {
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
         off_t pos;
         int sc=0;
         do {
@@ -3273,7 +3274,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     else {
         macontext.Info.APid.Num=-1;
         macontext.Info.VPid.Num=-1;
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
         macontext.Info.DPid.Num=-1;
         if (CheckVDRHD()) {
             macontext.Info.VPid.Type=MARKAD_PIDTYPE_VIDEO_H264;
@@ -3330,7 +3331,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         if (isTS) {
             isyslog("found %s-video (0x%04x)", macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262", macontext.Info.VPid.Num);
         }
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
         demux=new cDemux(macontext.Info.VPid.Num,macontext.Info.DPid.Num,macontext.Info.APid.Num, macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264,true);
         ALLOC(sizeof(*demux), "demux");
     }
@@ -3345,7 +3346,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     }
 
     if (!abortNow) {
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
         if (macontext.Info.DPid.Num) {
             if (macontext.Info.DPid.Num!=-1)
                 isyslog("found AC3 (0x%04x)",macontext.Info.DPid.Num);
@@ -3411,7 +3412,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         free(indexFile);
     }
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
     if (skipped) {
             isyslog("skipped %i bytes",skipped);
         }
@@ -3485,7 +3486,7 @@ int usage(int svdrpport) {
            "                  increments loglevel by one, can be given multiple times\n"
            "-B              --backupmarks\n"
            "                  make a backup of existing marks\n"
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
            "-G              --genindex\n"
            "                  regenerate index file\n"
            "                  this functions is depreciated and will be removed in a future version, use vdr --genindex instead\n"
@@ -3535,7 +3536,7 @@ int usage(int svdrpport) {
            "                  assumed stop offset in seconds range from 0 to 240\n"
            "                --posttimer=<value> (default is 600)\n"
            "                  additional recording after timer end in seconds range from 0 to 1200\n"
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
            "                --cDecoder\n"
            "                  use alternative cDecoder class for decoding\n"
 #endif
@@ -3544,7 +3545,7 @@ int usage(int svdrpport) {
            "                  requires --cDecoder\n"
            "                --cut\n"
            "                  cut vidio based on marks and write it in the recording directory\n"
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
            "                  requires --cDecoder\n"
 #endif
            "                --ac3reencode\n"
@@ -3667,7 +3668,7 @@ int main(int argc, char *argv[]) {
             {"verbose", 0, 0, 'v'},
 
             {"backupmarks", 0, 0, 'B'},
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
             {"genindex",0, 0, 'G'},
 #endif
             {"saveinfo",0, 0, 'I'},
@@ -3773,7 +3774,7 @@ int main(int argc, char *argv[]) {
                 // --backupmarks
                 config.BackupMarks=true;
                 break;
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
             case 'G':
                 config.GenIndex=true;
                 fprintf(stderr, "markad: --genindex is depreciated and will be removed in a future version, use vdr --genindex instead\n");
@@ -4105,7 +4106,7 @@ int main(int argc, char *argv[]) {
         dsyslog("parameter --astopoffs is set to %i",config.astopoffs);
         if (LOG2REC) dsyslog("parameter --log2rec is set");
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
         if (config.use_cDecoder) dsyslog("parameter --cDecoder is set");
 #else
         config.use_cDecoder = true;
@@ -4137,7 +4138,7 @@ int main(int argc, char *argv[]) {
 
         if (!bPass2Only)
             if (config.use_cDecoder) cmasta->Process_cDecoder();
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
             else {
                 cmasta->Process();
             }

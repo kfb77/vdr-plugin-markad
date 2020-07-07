@@ -5,7 +5,8 @@
  *
  */
 
-#if !defined ONLY_WITH_CDECODER
+#if defined CLASSIC_DECODER
+
 
 #include <string.h>
 #include "demux.h"
