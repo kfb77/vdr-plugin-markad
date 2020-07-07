@@ -8,8 +8,6 @@
 # use this, if you want to debug heap memory consumption
 # DEBUGMEMMARKAD=1
 
-# use this, if you use libavcodec51
-# WITH_OLD_FFMPEG_HEADERS=1
 
 ### The version number of this plugin (taken from the main source file):
 
@@ -56,11 +54,6 @@ DEFINES += -D__STDC_CONSTANT_MACROS -D__USE_XOPEN_EXTENDED
 ifdef DEBUGMEMMARKAD
 DEFINES += -DDEBUGMEM
 $(info option DEBUGMEMMARKAD is set)
-endif
-
-
-ifdef WITH_OLD_FFMPEG_HEADERS
-	DEFINES += -DUSE_OLD_FFMPEG_HEADERS
 endif
 
 

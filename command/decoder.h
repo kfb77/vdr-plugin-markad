@@ -13,28 +13,20 @@
 #endif
 
 extern "C" {
-    #ifdef USE_OLD_FFMPEG_HEADERS
-        #include <avcodec.h>
-    #else
-        #include <libavcodec/avcodec.h>
-    #endif
+    #include <libavcodec/avcodec.h>
 
     #if LIBAVCODEC_VERSION_INT < ((52<<16)+(0<<8)+0)
         #warning H264 parsing may be broken, better use libavcodec52
     #endif
 
     #if LIBAVCODEC_VERSION_INT < ((52<<16)+(23<<8)+0)
-        #ifdef USE_OLD_FFMPEG_HEADERS
-            #include <avformat.h>
-        #else
-            #include <libavformat/avformat.h>
-        #endif
+        #include <libavformat/avformat.h>
     #endif
 
     #include "debug.h"
 }
-
 #include "global.h"
+
 
 class cMarkAdDecoder {
     private:

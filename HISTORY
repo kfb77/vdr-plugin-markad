@@ -5,6 +5,7 @@ VDR Plugin 'markad' Revision History
 - detect faster if logo is invisible
 - fix get correct eventID for VPS feature
 - some minor bug fixes and optimizations, see git
+- remove support of libavcodec version 51.x.x
 
 2020-07-01: Version 2.3.1
 - add support for video codec H.265
