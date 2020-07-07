@@ -102,6 +102,7 @@ cEpgEventLog::~cEpgEventLog() {
 
 
 void cEpgEventLog::Log(const time_t recStart, const tEventID recEventID, const tEventID eventID, const tEventID followingEventID, const tEventID eitEventID, const int state, const int event, const int newState, const char* action) {
+    if (!eventLogFile) return;
     if (!action) return;
     char *message = NULL;
     time_t curr_time = time(NULL);
@@ -125,6 +126,7 @@ void cEpgEventLog::Log(const time_t recStart, const tEventID recEventID, const t
 
 
 void cEpgEventLog::Log(const char *message) {
+    if (!eventLogFile) return;
     if (!message) return;
     char *messageLog = NULL;
     time_t curr_time = time(NULL);
@@ -296,19 +298,19 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
 
 
 void cStatusMarkAd::SaveVPSStatus(const int index) {
-    if ((index < 0) || (index >= MAXDEVICES*MAXRECEIVERS)) {
-        dsyslog("markad: cStatusMarkAd::SaveVPSStatus(): index %i out of range",index);
+    if ((index < 0) || (index >= MAXDEVICES * MAXRECEIVERS)) {
+        dsyslog("markad: cStatusMarkAd::SaveVPSStatus(): index %i out of range", index);
     }
     if (recs[index].runningStatus == -1 ) {
-        dsyslog("markad: cStatusMarkAd::SaveVPSStatus(): VPS Infos not valid for recording <%s>",recs[index].Name);
+        dsyslog("markad: cStatusMarkAd::SaveVPSStatus(): VPS Infos not valid for recording <%s>", recs[index].Name);
         return;
     }
     if (!recs[index].vpsStartTime)  {
-        dsyslog("markad: cStatusMarkAd::SaveVPSStatus(): no VPS start time to save for recording <%s>",recs[index].Name);
+        dsyslog("markad: cStatusMarkAd::SaveVPSStatus(): no VPS start time to save for recording <%s>", recs[index].Name);
         return;
     }
     if (!recs[index].vpsStopTime)  {
-        dsyslog("markad: cStatusMarkAd::SaveVPSStatus(): no VPS stop time to save for recording <%s>",recs[index].Name);
+        dsyslog("markad: cStatusMarkAd::SaveVPSStatus(): no VPS stop time to save for recording <%s>", recs[index].Name);
         return;
     }
 
@@ -365,8 +367,8 @@ void cStatusMarkAd::SaveVPSStatus(const int index) {
 
 bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
     if (!status) return false;
-    if ((index < 0) || (index >= MAXDEVICES*MAXRECEIVERS)) {
-        dsyslog("markad: cStatusMarkAd::StoreVPSStatus(): index %i out of range",index);
+    if ((index < 0) || (index >= MAXDEVICES * MAXRECEIVERS)) {
+        dsyslog("markad: cStatusMarkAd::StoreVPSStatus(): index %i out of range", index);
         return false;
     }
 
@@ -416,16 +418,16 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
 
 
 cStatusMarkAd::cStatusMarkAd(const char *BinDir, const char *LogoDir, struct setup *Setup) {
-    setup=Setup;
-    bindir=BinDir;
-    logodir=LogoDir;
-    actpos=0;
-    memset(&recs,0,sizeof(recs));
+    setup = Setup;
+    bindir = BinDir;
+    logodir = LogoDir;
+    actpos = 0;
+    memset(&recs, 0, sizeof(recs));
 }
 
 
 cStatusMarkAd::~cStatusMarkAd() {
-    for (int i = 0; i < (MAXDEVICES*MAXRECEIVERS); i++) {
+    for (int i = 0; i < (MAXDEVICES * MAXRECEIVERS); i++) {
         Remove(i, true);
     }
 }
@@ -651,6 +653,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
 
 bool cStatusMarkAd::LogoExists(const cDevice *Device, const char *FileName) {
     if (!FileName) return false;
+    if (!Device) return false;
     char *cname = NULL;
 #if APIVERSNUM>=20301
     const cTimer *timer = NULL;
@@ -831,7 +834,7 @@ bool cStatusMarkAd::MarkAdRunning() {
 
 
 int cStatusMarkAd::Get(const char *FileName, const char *Name) {
-    for (int i = 0; i < (MAXDEVICES*MAXRECEIVERS); i++) {
+    for (int i = 0; i < (MAXDEVICES * MAXRECEIVERS); i++) {
         if (Name && recs[i].Name && !strcmp(recs[i].Name, Name)) return i;
         if (FileName && recs[i].FileName && !strcmp(recs[i].FileName, FileName)) return i;
     }
@@ -954,7 +957,7 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID ev
 
 
 void cStatusMarkAd::Pause(const char *FileName) {
-    for (int i = 0; i < (MAXDEVICES*MAXRECEIVERS); i++) {
+    for (int i = 0; i < (MAXDEVICES * MAXRECEIVERS); i++) {
         if (FileName) {
             if ((recs[i].FileName) && (!strcmp(recs[i].FileName,FileName)) && (recs[i].Pid) && (!recs[i].ChangedbyUser)) {
                 dsyslog("markad: pausing pid %i", recs[i].Pid);
