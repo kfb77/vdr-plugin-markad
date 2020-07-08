@@ -175,9 +175,9 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
     tEventID eitEventID = (unsigned int) EitEvent->getEventId();
     for (int i = 0; i <= max_recs; i++) {
         if (recs[i].eitEventID == 0) {  // we do not know the EIT Event ID, with epg2vdr it is different from timer eventID
-            if ((recs[i].eventID != eventID) && (recs[i].eventID != followingEventID)) continue;
             time_t startTimeEIT = EitEvent->getStartTime();
             time_t stopTimeEIT = startTimeEIT + EitEvent->getDuration();
+            if ((recs[i].eventID != eventID) && (recs[i].eventID != followingEventID)) continue;
             if (!((startTimeEIT >= recs[i].timerStartTime) && (stopTimeEIT <= recs[i].timerStopTime))) continue;
             if ((startTimeEIT - recs[i].timerStartTime) > (recs[i].timerStopTime - stopTimeEIT)) continue;  // pre timer must be smaller or equal than post timer
                                                                                                             // to prevent getting short next broadcast
@@ -255,8 +255,14 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
         if ((recs[i].runningStatus == 4) && (runningStatus == 1)) {  // VPS stop
             if (StoreVPSStatus("STOP", i)) {
                 if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, runningStatus, "stop");
+                if ((recs[i].vpsStopTime - recs[i].vpsStartTime) >  EitEvent->getDuration() / 2) recs[i].runningStatus = 1; // recording length at least half VPS duration
+                else {
+                    recs[i].runningStatus = -1;
+                    char *log = NULL;
+                    if ((recs[i].epgEventLog) && (asprintf(&log, "stop event results in too short recording") != -1)) recs[i].epgEventLog->Log(log);
+                    if (log) free(log);
+                }
                 SaveVPSStatus(i);
-                recs[i].runningStatus = 1;
             }
             else {
                 if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, recs[i].runningStatus, "ignore");
