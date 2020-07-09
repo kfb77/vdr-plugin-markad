@@ -352,11 +352,11 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
 
     // if we only have one plane we are "vulnerable"
     // to very bright pictures, so ignore them...
-    if (area.intensity > 150) return LOGO_NOCHANGE;
+    if ((rpixel < (mpixel * LOGO_VMARK)) && (area.intensity > 150)) return LOGO_NOCHANGE;
 
     int ret = LOGO_NOCHANGE;
     if (area.status == LOGO_UNINITIALIZED) { // Initialize
-        if (rpixel >= (mpixel*LOGO_VMARK)) {
+        if (rpixel >= (mpixel * LOGO_VMARK)) {
             area.status = ret = LOGO_VISIBLE;
         }
         else {
@@ -366,7 +366,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
         *logoframenumber = framenumber;
     }
 
-    if (rpixel >= (mpixel*LOGO_VMARK)) {
+    if (rpixel >= (mpixel * LOGO_VMARK)) {
         if (area.status == LOGO_INVISIBLE) {
             if (area.counter >= LOGO_VMAXCOUNT) {
                 area.status = ret = LOGO_VISIBLE;
