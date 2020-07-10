@@ -202,20 +202,18 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
 
     }
 
-// resize plane 1 - 2
-    whiteLines/= 2;
-    whiteColumns/=2;
-    for (int plane = 1; plane <= 2; plane++) {
-        if (bestLogoCorner <= 1) { // top corners, cut from below
-            heightPlane_1_2 = *logoHeight/2;
+// resize plane 1 and 2
+    whiteLines /= 2;
+    whiteColumns /= 2;
+    for (int plane = 1; plane < PLANES; plane++) {
+        if (bestLogoCorner <= TOP_RIGHT) { // top corners, cut from below
         }
         else { // bottom corners, cut from above
-            for (int i = 0; i < (heightPlane_1_2-whiteLines) * widthPlane_1_2; i++) {
+            for (int i = 0; i < (heightPlane_1_2 - whiteLines) * widthPlane_1_2; i++) {
                 bestLogoInfo->sobel[plane][i] =  bestLogoInfo->sobel[plane][i + whiteLines* widthPlane_1_2];
             }
-            heightPlane_1_2 = *logoHeight/2;
         }
-        if ((bestLogoCorner == 1) || (bestLogoCorner == 3)) {  // right corners, cut from left
+        if ((bestLogoCorner == TOP_RIGHT) || (bestLogoCorner == BOTTOM_RIGHT)) {  // right corners, cut from left
             for (int i = 0; i < heightPlane_1_2 * (widthPlane_1_2 - whiteColumns); i++) {
                 bestLogoInfo->sobel[plane][i] =  bestLogoInfo->sobel[plane][i + whiteColumns*(1 + (i / (widthPlane_1_2 - whiteColumns)))];
             }
