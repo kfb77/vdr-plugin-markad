@@ -730,23 +730,6 @@ void cMarkAdStandalone::CheckStart() {
             }
             mark=mark->Next();
         }
-        if (begin->type == MT_LOGOSTART) {
-            mark=marks.GetFirst();
-            while (mark)
-            {
-                if ( (mark->type == MT_LOGOSTART) && (mark->position > begin->position) && (mark->position <= chkSTART)) {
-                    if ( mark->Next() && (mark->Next()->type == MT_LOGOSTOP)) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): delete logo mark at position (%i),(%i) between STARTLOGO (%i) and chkSTART (%i)", mark->position, mark->Next()->position, begin->position, chkSTART);
-                        clMark *tmp=mark;
-                        mark=mark->Next()->Next();
-                        marks.Del(tmp->Next());
-                        marks.Del(tmp);
-                        continue;
-                    }
-                }
-                mark=mark->Next();
-            }
-        }
     }
     else {
         //fallback
