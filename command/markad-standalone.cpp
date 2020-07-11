@@ -838,13 +838,13 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             }
         }
 
-        if ((mark->type==MT_LOGOSTOP) && mark->Next() && mark->Next()->type==MT_LOGOSTART) {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*40);
-            if (abs(mark->Next()->position-mark->position)<=MARKDIFF) {
-                double distance=(mark->Next()->position-mark->position)/macontext.Video.Info.FramesPerSecond;
+        if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
+            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 38);
+            if (abs(mark->Next()->position - mark->position) <= MARKDIFF) {
+                double distance=(mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between logo STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
-                clMark *tmp=mark;
-                mark=marks.GetFirst();    // restart check from start
+                clMark *tmp = mark;
+                mark = marks.GetFirst();    // restart check from start
                 marks.Del(tmp->Next());
                 marks.Del(tmp);
                 continue;
