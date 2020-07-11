@@ -131,7 +131,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
                     isLineWhite++;
                 }
             }
-            if (isLineWhite < 2 ) {  // accept 1 false pixel
+            if (isLineWhite < 3 ) {  // accept 2 false pixel
                 (*logoHeight)--;
             }
             else allWhite=false;
@@ -146,7 +146,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
                     isLineWhite++;
                 }
             }
-            if (isLineWhite < 2 ) {  // accept 1 false pixel
+            if (isLineWhite < 3 ) {  // accept 2 false pixel
                 whiteLines++;
                 if (whiteLines >= *logoHeight) allWhite=false;
             }
@@ -168,7 +168,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
                     isColumnWhite++;
                 }
             }
-            if (isColumnWhite < 2 ) {  // accept 1 false pixel
+            if (isColumnWhite < 3 ) {  // accept 2 false pixel
                 whiteColumns++;
             }
             else allWhite=false;
@@ -188,7 +188,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
                     isColumnWhite++;
                 }
             }
-            if (isColumnWhite < 2 ) {  // accept 1 false pixel
+            if (isColumnWhite < 3 ) {  // accept 2 false pixel
                 whiteColumns--;
             }
             else allWhite=false;
@@ -268,7 +268,7 @@ int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoI
 
     if ((corner == TOP_LEFT) || (corner == BOTTOM_LEFT)) { // a valid left logo should have white left part in pane 0
         for (int column = 0; column < 10; column++) {
-            for (int i = column; i < logoHeight*logoWidth; i = i + logoWidth) {
+            for (int i = column; i < logoHeight * logoWidth; i = i + logoWidth) {
                 if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
                     return 0;
                 }
@@ -277,7 +277,7 @@ int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoI
     }
     else { // a valid right logo should have white right part in pane 0
         for (int column = 0; column < 10; column++) {
-            for (int i = logoWidth-column; i < logoHeight*logoWidth; i = i + logoWidth) {
+            for (int i = logoWidth - column; i < logoHeight * logoWidth; i = i + logoWidth) {
                 if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
                     return 0;
                 }
