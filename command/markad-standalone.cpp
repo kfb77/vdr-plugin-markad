@@ -586,6 +586,7 @@ void cMarkAdStandalone::CheckStart() {
                 }
             }
         }
+        macontext.Info.checkedAspectRatio = true;
     }
 
     if (!begin) {    // try horizontal border

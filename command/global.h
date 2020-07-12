@@ -145,7 +145,8 @@ typedef struct MarkAdContext {
     const MarkAdConfig *Config;
 
     struct Info {
-        MarkAdAspectRatio AspectRatio;
+        MarkAdAspectRatio AspectRatio;   // set from info file and checked after chkSTART, valid for the recording
+        bool checkedAspectRatio = false;
         short int Channels[MAXSTREAMS] = {0};
         char *ChannelName;
         MarkAdPid VPid;
@@ -171,7 +172,7 @@ typedef struct MarkAdContext {
             int Height; // height of pic
             int Pict_Type; // picture type (I,P,B,S,SI,SP,BI)
             int Pix_Fmt; // Pixel format (see libavutil/pixfmt.h)
-            MarkAdAspectRatio AspectRatio;
+            MarkAdAspectRatio AspectRatio;  // set by decoder for the current frame
             double FramesPerSecond;
             bool Interlaced = false;
         } Info;
