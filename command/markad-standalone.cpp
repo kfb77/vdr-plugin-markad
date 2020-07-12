@@ -1013,7 +1013,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
                          Mark->AspectRatioAfter.Num,Mark->AspectRatioAfter.Den, Mark->Position)==-1) comment=NULL;
                 ALLOC(strlen(comment)+1, "comment");
                 if ((macontext.Config->autoLogo > 0) &&( Mark->Position > 0) && bDecodeVideo) {
-                    isyslog("logo detection reenabled, trying to find a logo from this position");
+                    isyslog("logo detection reenabled at frame (%d), trying to find a logo from this position", Mark->Position);
                     macontext.Video.Options.IgnoreLogoDetection=false;
                 }
             }
@@ -1023,7 +1023,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
                      Mark->AspectRatioAfter.Num,Mark->AspectRatioAfter.Den, Mark->Position)==-1) comment=NULL;
             ALLOC(strlen(comment)+1, "comment");
             if ((macontext.Config->autoLogo > 0) && (Mark->Position > 0) && bDecodeVideo) {
-                isyslog("logo detection reenabled, trying to find a logo from this position");
+                isyslog("logo detection reenabled at frame (%d), trying to find a logo from this position", Mark->Position);
                 macontext.Video.Options.IgnoreLogoDetection=false;
             }
             break;
