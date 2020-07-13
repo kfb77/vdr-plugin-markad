@@ -971,7 +971,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
     char *comment=NULL;
     switch (Mark->Type) {
         case MT_ASSUMEDSTART:
-            if (asprintf(&comment,"assuming start (%i)",Mark->Position)==-1) comment=NULL;
+            if (asprintf(&comment,"assuming start (%i)*",Mark->Position)==-1) comment=NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_ASSUMEDSTOP:
