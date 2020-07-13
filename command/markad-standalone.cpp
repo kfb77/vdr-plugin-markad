@@ -416,6 +416,7 @@ void cMarkAdStandalone::CheckStart() {
     int delta = macontext.Video.Info.FramesPerSecond * MAXRANGE;
     macontext.Video.Options.IgnoreBlackScreenDetection = true;   // use black sceen setection only to find start mark
 
+// try to find a audio channel mark
     for (short int stream = 0; stream < MAXSTREAMS; stream++) {
         if ((macontext.Info.Channels[stream]) && (macontext.Audio.Info.Channels[stream]) && (macontext.Info.Channels[stream] != macontext.Audio.Info.Channels[stream])) {
             char as[20];
@@ -506,11 +507,13 @@ void cMarkAdStandalone::CheckStart() {
         begin=marks.GetAround(delta*4, iStartA, MT_CHANNELSTART);
     }
 
-    if (!begin) {    // try ascpect ratio mark
-        clMark *aStart = marks.GetAround(chkSTART, chkSTART, MT_ASPECTSTART);   // check if ascpect ratio changed in start part
-        clMark *aStop = marks.GetAround(chkSTART,chkSTART,MT_ASPECTSTOP);
+// try to find a ascpect ratio mark
+    if (!begin) {
+        clMark *aStart = marks.GetAround(chkSTART, chkSTART+1, MT_ASPECTSTART);   // check if ascpect ratio changed in start part
+        clMark *aStop = NULL;
+        if (aStart) aStop = marks.GetNext(aStart->position,MT_ASPECTSTOP);
         bool earlyAspectChange = false;
-        if (aStart && aStop && (aStop->position > aStart->position)) {
+        if (aStart && aStop && (aStop->position > aStart->position)) {  // we are in the first ad, do not correct aspect ratio from info file
             dsyslog("cMarkAdStandalone::CheckStart(): found very early aspect ratio change at (%i) and (%i)", aStart->position,  aStop->position);
             earlyAspectChange = true;
         }
@@ -589,7 +592,8 @@ void cMarkAdStandalone::CheckStart() {
         macontext.Info.checkedAspectRatio = true;
     }
 
-    if (!begin) {    // try horizontal border
+// try to find a horizontal border mark
+    if (!begin) {
         clMark *hStart=marks.GetAround(iStartA+delta,iStartA+delta+1,MT_HBORDERSTART);
         if (!hStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no horizontal border at start found, ignore horizontal border detection");
@@ -628,7 +632,8 @@ void cMarkAdStandalone::CheckStart() {
         }
     }
 
-    if (!begin) {    // try vertical border
+// try to find a vertical border mark
+    if (!begin) {
         clMark *vStart=marks.GetAround(iStartA+delta,iStartA+delta+1,MT_VBORDERSTART);
         if (!vStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no vertical border at start found, ignore vertical border detection");
@@ -667,7 +672,8 @@ void cMarkAdStandalone::CheckStart() {
         }
     }
 
-    if (!begin) {   // try logo start mark
+// try to find a logo mark
+    if (!begin) {
         clMark *lStart=marks.GetAround(iStartA+delta,iStartA,MT_LOGOSTART);
         if (!lStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no logo start mark found");
