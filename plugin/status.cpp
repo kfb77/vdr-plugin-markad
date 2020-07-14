@@ -397,11 +397,19 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
         }
     }
     if (strcmp(status,"PAUSE_STOP") == 0) {
-        if (recs[index].vpsPauseStopTime == 0) {
-            recs[index].vpsPauseStopTime=curr_time;
-            return true;
+        if (curr_time > recs[index].vpsPauseStartTime + 60) { // PAUSE STOP must be at least 1 min after PAUSE START
+            if (recs[index].vpsPauseStopTime == 0) {
+                recs[index].vpsPauseStopTime=curr_time;
+                return true;
+            }
+            else {
+                return false;
+            }
         }
         else {
+            char *log = NULL;
+            if ((recs[index].epgEventLog) && (asprintf(&log, "VPS pause stop to fast after pause start, ignoring") != -1)) recs[index].epgEventLog->Log(log);
+            if (log) free(log);
             return false;
         }
     }
