@@ -462,6 +462,7 @@ void cMarkAdStandalone::CheckStart() {
                     macontext.Video.Options.IgnoreLogoDetection = true;
                     marks.Del(MT_ASPECTSTART);
                     marks.Del(MT_ASPECTSTOP);
+
                     // start mark must be around iStartA
                     begin=marks.GetAround(delta*3, iStartA, MT_CHANNELSTART);  // decrease from 4
                     if (!begin) {          // previous recording had also 6 channels, try other marks
@@ -493,6 +494,12 @@ void cMarkAdStandalone::CheckStart() {
 #endif
             }
         }
+    }
+    if (begin && inBroadCast) { // set recording aspect ratio for logo search at the end of the recording
+        macontext.Info.AspectRatio.Num = macontext.Video.Info.AspectRatio.Num;
+        macontext.Info.AspectRatio.Den = macontext.Video.Info.AspectRatio.Den;
+        macontext.Info.checkedAspectRatio = true;
+        isyslog("Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
     }
     if (!begin && inBroadCast) {
         clMark *chStart = marks.GetNext(0, MT_CHANNELSTART);
