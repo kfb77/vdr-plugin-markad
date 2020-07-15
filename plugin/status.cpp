@@ -265,7 +265,8 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
                 SaveVPSStatus(i);
             }
             else {
-                if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, recs[i].runningStatus, "ignore");
+                if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, runningStatus, "reset");
+                recs[i].runningStatus = 1;
             }
             return;
         }
@@ -414,7 +415,7 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
         }
     }
     if (strcmp(status,"STOP") == 0) {
-        if ( curr_time >  recs[index].vpsStartTime + 60) {  // STOP must be at least 1 min after START
+        if ( curr_time >  recs[index].vpsStartTime + 60) {  // a valid STOP must be at least 1 min after START
             recs[index].vpsStopTime=curr_time;
             return true;
         }
@@ -423,7 +424,7 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
             if ((recs[index].epgEventLog) && (asprintf(&log, "VPS stop to fast after start, reset to not running") != -1)) recs[index].epgEventLog->Log(log);
             if (log) free(log);
             recs[index].vpsStartTime=0;
-            return true;
+            return false;
         }
     }
     dsyslog("markad: cStatusMarkAd::StoreVPSStatus(): unknown state %s", status);
