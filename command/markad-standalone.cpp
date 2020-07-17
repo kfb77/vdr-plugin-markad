@@ -786,11 +786,52 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
 
 void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no sense
     LogSeparator();
-    dsyslog(" cMarkAdStandalone::CheckMarks(): check marks");
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks first pass");
     DebugMarks();     //  only for debugging
 
+// delete short START STOP logo marks because they are previews in the advertisement
     clMark *mark=marks.GetFirst();
-    while (mark) {
+    while (mark) {   // first pass
+        if ((mark->type == MT_LOGOSTART) && (mark->position != marks.GetFirst()->position) && mark->Next() && (mark->Next()->type == MT_LOGOSTOP) && (mark->Next()->position != marks.GetLast()->position)) {
+            int lenght = (int) (mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
+            if ((lenght > 7) && (lenght < 110)) {
+                isyslog("found preview of lenght %is between (%i) and (%i) in advertisement, deleting marks", lenght, mark->position, mark->Next()->position);
+                clMark *tmp=mark;
+                mark=mark->Next()->Next();
+                marks.Del(tmp->Next());
+                marks.Del(tmp);
+                continue;
+            }
+        }
+        mark=mark->Next();
+    }
+
+// delete short STOP START logo marks because they are logo detection failure
+    LogSeparator();
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 2nd pass");
+    DebugMarks();     //  only for debugging
+    mark=marks.GetFirst();
+    while (mark) {   // 2nd pass
+        if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
+            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 30);   // assume shortest ad is at least 30s
+            if (abs(mark->Next()->position - mark->position) <= MARKDIFF) {
+                double distance=(mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
+                isyslog("mark distance between logo STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
+                clMark *tmp = mark;
+                mark = marks.GetFirst();    // restart check from start
+                marks.Del(tmp->Next());
+                marks.Del(tmp);
+                continue;
+            }
+        }
+        mark=mark->Next();
+    }
+
+    LogSeparator();
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 3nd pass");
+    DebugMarks();     //  only for debugging
+    mark=marks.GetFirst();
+    while (mark) { // 3nd pass
         if (((mark->type & 0x0F) == MT_STOP) && (mark == marks.GetFirst())){
             dsyslog("Start with STOP mark, delete first mark");
             clMark *tmp=mark;
@@ -829,36 +870,6 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                 isyslog("blackscreen start mark followed by blackscreen stop mark, deleting %i,%i", mark->position, mark->Next()->position);
                 clMark *tmp=mark;
                 mark=mark->Next()->Next();
-                marks.Del(tmp->Next());
-                marks.Del(tmp);
-                continue;
-            }
-        }
-
-        if ((mark->type==MT_LOGOSTART) && mark->Next() && mark->Next()->type==MT_LOGOSTOP) {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*60);
-            if (abs(mark->Next()->position-mark->position)<=MARKDIFF) {
-                double distance=(mark->Next()->position-mark->position)/macontext.Video.Info.FramesPerSecond;
-                isyslog("mark distance between START and STOP too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
-                clMark *tmp=mark;
-                mark=mark->Next()->Next();
-                marks.Del(tmp->Next());
-                if (marks.GetFirst()->position == tmp->position) {
-                    dsyslog("cMarkAdStandalone::CheckMarks(): mark on position (%i) not deleted because this is the start mark", tmp->position);
-                    mark=marks.GetFirst(); // do not delete start mark, restart check from first mark
-                }
-                else marks.Del(tmp);
-                continue;
-            }
-        }
-
-        if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 38);
-            if (abs(mark->Next()->position - mark->position) <= MARKDIFF) {
-                double distance=(mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
-                isyslog("mark distance between logo STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
-                clMark *tmp = mark;
-                mark = marks.GetFirst();    // restart check from start
                 marks.Del(tmp->Next());
                 marks.Del(tmp);
                 continue;
@@ -916,7 +927,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     }
 
     LogSeparator();
-    dsyslog(" cMarkAdStandalone::CheckMarks(): final marks:");
+    dsyslog("cMarkAdStandalone::CheckMarks(): final marks:");
     DebugMarks();     //  only for debugging
     LogSeparator();
 }
@@ -1070,100 +1081,13 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
             dsyslog("cMarkAdStandalone::AddMark(): unknown mark type 0x%X", Mark->Type);
     }
 
-    char *indexToHMSF = marks.IndexToHMSF(Mark->Position,&macontext, ptr_cDecoder);
-    if (indexToHMSF) {
-        if (comment) isyslog("%s at %s",comment, indexToHMSF);
-        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-        free(indexToHMSF);
-    }
-
-    clMark *prev=marks.GetLast();
+    clMark *prev = marks.GetLast();
     if (prev) {
-        if (prev->position==Mark->Position) {
-            if (prev->type>Mark->Type) {
-                isyslog("previous mark (%i) type 0x%X stronger than actual mark on same position, deleting (%i) type 0x%X", prev->position, prev->type, Mark->Position, Mark->Type);
-                if (comment) {
-                    FREE(strlen(comment)+1, "comment");
-                    free(comment);
-                }
-                return;
-            }
-            else {
-                isyslog("actual mark (%d) type 0x%X stronger then previous mark on same position, deleting (%i) type 0x%X",Mark->Position, Mark->Type, prev->position, prev->type);
-                marks.Del(prev);
-            }
-        }
-    }
-
-    if (((Mark->Type & 0x0F)==MT_START) && (!iStart) && (Mark->Position < (abs(iStopA) - 2*macontext.Video.Info.FramesPerSecond * MAXRANGE ))) {
-        clMark *prevStop=marks.GetPrev(Mark->Position,(Mark->Type & 0xF0) | MT_STOP);
-        if (prevStop) {
-            int MARKDIFF = (int) (macontext.Video.Info.FramesPerSecond * 10);    // maybe this is only ia short logo detection failure
-            if ( (Mark->Position - prevStop->position) < MARKDIFF )
-            {
-                double distance=(Mark->Position - prevStop->position) / macontext.Video.Info.FramesPerSecond;
-                isyslog("mark distance between STOP and START too short (%.1fs), deleting %i,%i",distance, prevStop->position, Mark->Position);
-                inBroadCast = true;
-                marks.Del(prevStop);
-                if (comment) {
-                    FREE(strlen(comment)+1, "comment");
-                    free(comment);
-                }
-                return;
-            }
-        }
-    }
-
-    if (Mark->Type==MT_LOGOSTOP) {
-        clMark *prevLogoStart=marks.GetPrev(Mark->Position,MT_LOGOSTART);
-        if (prevLogoStart) {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 30);    // maybe this is only ia short logo detection failure
-            if (((Mark->Position - prevLogoStart->position) < MARKDIFF ) && (prevLogoStart->position == marks.GetFirst()->position))   // do not delete start mark
-            {
-                double distance = (Mark->Position-prevLogoStart->position) / macontext.Video.Info.FramesPerSecond;
-                isyslog("mark distance between START and STOP too short (%.1fs), deleting %i,%i",distance, prevLogoStart->position, Mark->Position);
-                inBroadCast = false;
-                marks.Del(prevLogoStart);
-                if (comment) {
-                    FREE(strlen(comment)+1, "comment");
-                    free(comment);
-                }
-                return;
-            }
-        }
-    }
-
-    if (((Mark->Type & 0x0F) == MT_STOP) && (!iStart) && (Mark->Position < abs(iStopA) - macontext.Video.Info.FramesPerSecond * MAXRANGE )) {
-        clMark *prevStart = marks.GetPrev(Mark->Position,(Mark->Type & 0xF0) | MT_START);
-        if (prevStart) {
-            int MARKDIFF;
-            if ((Mark->Type & 0xF0) == MT_LOGOCHANGE) {
-                MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 120);
-            }
-            else {
-                MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 90);
-            }
-            if ((Mark->Position - prevStart->position) < MARKDIFF) {
-                double distance = (Mark->Position - prevStart->position) / macontext.Video.Info.FramesPerSecond;
-                isyslog("mark distance between START and STOP too short (%.1fs), deleting %i,%i", distance, prevStart->position, Mark->Position);
-                inBroadCast = false;
-                marks.Del(prevStart);
-                if (comment) {
-                    FREE(strlen(comment)+1, "comment");
-                    free(comment);
-                }
-                return;
-            }
-        }
-    }
-
-    prev=marks.GetLast();
-    if (prev) {
-        if ((prev->type & 0x0F)==(Mark->Type & 0x0F)) {
+        if ((prev->type & 0x0F) == (Mark->Type & 0x0F)) {
             int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 30);
-            int diff=abs(Mark->Position-prev->position);
-            if (diff<MARKDIFF) {
-                if (prev->type>Mark->Type) {
+            int diff = abs(Mark->Position-prev->position);
+            if (diff < MARKDIFF) {
+                if (prev->type > Mark->Type) {
                     isyslog("previous mark (%i) type 0x%X stronger than actual mark, deleting (%i) type 0x%X", prev->position, prev->type, Mark->Position, Mark->Type);
                     if (comment) {
                         FREE(strlen(comment)+1, "comment");
@@ -1177,6 +1101,13 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
                 }
             }
         }
+    }
+
+    char *indexToHMSF = marks.IndexToHMSF(Mark->Position,&macontext, ptr_cDecoder);
+    if (indexToHMSF) {
+        if (comment) isyslog("%s at %s",comment, indexToHMSF);
+        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+        free(indexToHMSF);
     }
     marks.Add(Mark->Type,Mark->Position,comment);
     if (comment) {
