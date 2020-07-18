@@ -400,9 +400,6 @@ void cMarkAdStandalone::CheckStop() {
     }
     iStop = iStopA = 0;
     gotendmark = true;
-
-    DebugMarks();     //  only for debugging
-    LogSeparator();
 }
 
 
@@ -802,7 +799,7 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
 
 void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no sense
     LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks first pass");
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks first pass (detect previews in advertisement)");
     DebugMarks();     //  only for debugging
 
 // delete short START STOP logo marks because they are previews in the advertisement
@@ -824,7 +821,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 
 // delete short STOP START logo marks because they are logo detection failure
     LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 2nd pass");
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 2nd pass (remove logo detection failure marks)");
     DebugMarks();     //  only for debugging
     mark=marks.GetFirst();
     while (mark) {   // 2nd pass
@@ -844,7 +841,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     }
 
     LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 3nd pass");
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 3nd pass (remove invalid marks)");
     DebugMarks();     //  only for debugging
     mark=marks.GetFirst();
     while (mark) { // 3nd pass
