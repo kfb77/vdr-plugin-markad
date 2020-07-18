@@ -697,7 +697,7 @@ void cMarkAdStandalone::CheckStart() {
     }
 
     if (begin && ((begin->position == 0) || ((begin->type == MT_LOGOSTART) && (begin->position  < iStart/8)))) { // we found the correct type but the mark is too early because the previous recording has same type
-        dsyslog("cMarkAdStandalone::CheckStart(): start mark (%i) dropped because it is too early", begin->position);
+        dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%i) dropped because it is too early", begin->position);
         begin = NULL;
     }
 
@@ -705,22 +705,27 @@ void cMarkAdStandalone::CheckStart() {
         marks.DelTill(1);    // we do not want to have a start mark at position 0
         begin=marks.GetAround(iStartA+2*delta,iStartA,MT_START,0x0F);
         if (begin) {
-            dsyslog("cMarkAdStandalone::CheckStart(): found start mark at (%i)", begin->position);
+            char *indexToHMSF = marks.IndexToHMSF(begin->position, &macontext, ptr_cDecoder);
+            if (indexToHMSF) {
+                dsyslog("cMarkAdStandalone::CheckStart(): found start mark on position (%i) type 0x%X at %s", begin->position, begin->type, indexToHMSF);
+                FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                free(indexToHMSF);
+            }
         }
     }
 
     clMark *beginRec=marks.GetAround(delta,1,MT_RECORDINGSTART);  // do we have an incomplete recording ?
     if (beginRec) {
-        dsyslog("cMarkAdStandalone::CheckStart(): found MT_RECORDINGSTART at %i, replace start mark", beginRec->position);
+        dsyslog("cMarkAdStandalone::CheckStart(): found MT_RECORDINGSTART at (%i), replace start mark", beginRec->position);
         begin = beginRec;
     }
 
     if (begin) {
         marks.DelTill(begin->position);    // delete all marks till start mark
         CalculateCheckPositions(begin->position);
-        char *indexToHMSF = marks.IndexToHMSF(begin->position,&macontext, ptr_cDecoder);
+        char *indexToHMSF = marks.IndexToHMSF(begin->position, &macontext, ptr_cDecoder);
         if (indexToHMSF) {
-            isyslog("using mark on position %i type 0x%X at %s as start mark", begin->position, begin->type, indexToHMSF);
+            isyslog("using mark on position (%i) type 0x%X at %s as start mark", begin->position, begin->type, indexToHMSF);
             FREE(strlen(indexToHMSF)+1, "indexToHMSF");
             free(indexToHMSF);
         }
@@ -1103,20 +1108,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
         }
     }
 
-    char *indexToHMSF = marks.IndexToHMSF(Mark->Position,&macontext, ptr_cDecoder);
-    if (indexToHMSF) {
-        if (comment) isyslog("%s at %s",comment, indexToHMSF);
-        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-        free(indexToHMSF);
-    }
-    marks.Add(Mark->Type,Mark->Position,comment);
-    if (comment) {
-        FREE(strlen(comment)+1, "comment");
-        free(comment);
-    }
-
 // set inBroadCast status
-    bool inBroadCastBefore = inBroadCast;
     if ((Mark->Type & 0xF0) != MT_BLACKCHANGE){ //  dont use BLACKSCEEN to detect if we are in broadcast
         if (!((Mark->Type <= MT_ASPECTSTART) && (marks.GetPrev(Mark->Position,MT_CHANNELSTOP) && marks.GetPrev(Mark->Position,MT_CHANNELSTART)))) { // if there are MT_CHANNELSTOP and MT_CHANNELSTART marks, wait for MT_CHANNELSTART
             if ((Mark->Type & 0x0F)==MT_START) {
@@ -1127,8 +1119,21 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
             }
         }
     }
-    dsyslog("cMarkAdStandalone::AddMark(): status inBroadCast after %i", inBroadCast);
-    if (inBroadCast != inBroadCastBefore) dsyslog("cMarkAdStandalone::AddMark(): status inBroadCast changed to %i", inBroadCast);
+
+// add mark
+    char *indexToHMSF = marks.IndexToHMSF(Mark->Position,&macontext, ptr_cDecoder);
+    if (indexToHMSF) {
+        if (comment) isyslog("%s at %s inBroadCast: %i",comment, indexToHMSF, inBroadCast);
+        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+        free(indexToHMSF);
+    }
+    marks.Add(Mark->Type,Mark->Position,comment);
+    if (comment) {
+        FREE(strlen(comment)+1, "comment");
+        free(comment);
+    }
+
+// save marks
     if (macontext.Config->Before) {
         if (Mark->Position > chkSTART) marks.Save(directory,&macontext, ptr_cDecoder, isTS, true);
         else marks.Save(directory,&macontext, ptr_cDecoder, isTS, false);
