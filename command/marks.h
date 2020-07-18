@@ -20,8 +20,9 @@ class clMark {
     public:
         int type;
         int position;
-        char *comment;
-        clMark(int Type=0, int Position = 0, const char *Comment = NULL);
+        char *comment = NULL;
+        bool inBroadCast = false;
+        clMark(int Type = 0, int Position = 0, const char *Comment = NULL, bool InBroadCast = false);
         ~clMark();
         clMark *Next() {
             return next;
@@ -68,7 +69,7 @@ class clMarks {
 #endif
     public:
         clMarks() {
-            strcpy(filename,"marks");
+            strcpy(filename, "marks");
             first=last=NULL;
             savedcount=0;
             count=0;
@@ -84,7 +85,7 @@ class clMarks {
 
             }
         }
-        clMark *Add(int Type, int Position, const char *Comment = NULL);
+        clMark *Add(int Type, int Position, const char *Comment = NULL, bool inBroadCast = false);
         char *IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cDecoder);
         void DelWeakFromTo(const int from, const int to, const short int type);
         void DelTill(int Position,bool FromStart=true);

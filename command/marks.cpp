@@ -22,9 +22,10 @@ extern "C" {
 }
 
 
-clMark::clMark(int Type, int Position, const char *Comment) {
-    type=Type;
-    position=Position;
+clMark::clMark(int Type, int Position, const char *Comment, bool InBroadCast) {
+    type = Type;
+    position = Position;
+    inBroadCast = InBroadCast;
     if (Comment) {
         comment=strdup(Comment);
         ALLOC(strlen(comment)+1, "comment");
@@ -278,7 +279,7 @@ clMark *clMarks::GetNext(int Position, int Type, int Mask) {
 }
 
 
-clMark *clMarks::Add(int Type, int Position,const char *Comment) {
+clMark *clMarks::Add(int Type, int Position, const char *Comment, bool inBroadCast) {
     clMark *newmark;
 
     if ((newmark=Get(Position))) {
@@ -291,12 +292,13 @@ clMark *clMarks::Add(int Type, int Position,const char *Comment) {
                 newmark->comment=strdup(Comment);
                 ALLOC(strlen(newmark->comment)+1, "comment");
             }
-            newmark->type=Type;
+            newmark->type = Type;
+            newmark->inBroadCast = inBroadCast;
         }
         return newmark;
     }
 
-    newmark=new clMark(Type, Position,Comment);
+    newmark=new clMark(Type, Position, Comment, inBroadCast);
     if (!newmark) return NULL;
     ALLOC(sizeof(*newmark), "mark");
 

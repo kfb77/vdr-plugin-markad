@@ -707,7 +707,7 @@ void cMarkAdStandalone::CheckStart() {
         if (begin) {
             char *indexToHMSF = marks.IndexToHMSF(begin->position, &macontext, ptr_cDecoder);
             if (indexToHMSF) {
-                dsyslog("cMarkAdStandalone::CheckStart(): found start mark on position (%i) type 0x%X at %s", begin->position, begin->type, indexToHMSF);
+                dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%i) type 0x%X at %s inBroadCast %i", begin->position, begin->type, indexToHMSF, begin->inBroadCast);
                 FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                 free(indexToHMSF);
             }
@@ -716,7 +716,7 @@ void cMarkAdStandalone::CheckStart() {
 
     clMark *beginRec=marks.GetAround(delta,1,MT_RECORDINGSTART);  // do we have an incomplete recording ?
     if (beginRec) {
-        dsyslog("cMarkAdStandalone::CheckStart(): found MT_RECORDINGSTART at (%i), replace start mark", beginRec->position);
+        dsyslog("cMarkAdStandalone::CheckStart(): found MT_RECORDINGSTART (%i), replace start mark", beginRec->position);
         begin = beginRec;
     }
 
@@ -780,7 +780,7 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
     while (mark) {
         char *indexToHMSF = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
         if (indexToHMSF) {
-            dsyslog("mark at position %6i type 0x%X at %s", mark->position, mark->type, indexToHMSF);
+            dsyslog("mark at position %6i type 0x%X at %s inBroadCast %i", mark->position, mark->type, indexToHMSF, mark->inBroadCast);
             FREE(strlen(indexToHMSF)+1, "indexToHMSF");
             free(indexToHMSF);
         }
@@ -1127,7 +1127,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
-    marks.Add(Mark->Type,Mark->Position,comment);
+    marks.Add(Mark->Type, Mark->Position, comment, inBroadCast);
     if (comment) {
         FREE(strlen(comment)+1, "comment");
         free(comment);
