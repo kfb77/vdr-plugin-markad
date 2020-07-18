@@ -705,11 +705,22 @@ void cMarkAdStandalone::CheckStart() {
         marks.DelTill(1);    // we do not want to have a start mark at position 0
         begin=marks.GetAround(iStartA+2*delta,iStartA,MT_START,0x0F);
         if (begin) {
-            char *indexToHMSF = marks.IndexToHMSF(begin->position, &macontext, ptr_cDecoder);
-            if (indexToHMSF) {
-                dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%i) type 0x%X at %s inBroadCast %i", begin->position, begin->type, indexToHMSF, begin->inBroadCast);
-                FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-                free(indexToHMSF);
+            if (begin->inBroadCast) {  // test on inBroadCast because we have to take care of black screen marks in an ad
+                char *indexToHMSF = marks.IndexToHMSF(begin->position, &macontext, ptr_cDecoder);
+                if (indexToHMSF) {
+                    dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%i) type 0x%X at %s inBroadCast %i", begin->position, begin->type, indexToHMSF, begin->inBroadCast);
+                    FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                    free(indexToHMSF);
+                }
+            }
+            else { // mark in ad
+                char *indexToHMSF = marks.IndexToHMSF(begin->position, &macontext, ptr_cDecoder);
+                if (indexToHMSF) {
+                    dsyslog("cMarkAdStandalone::CheckStart(): start mark not found but not inBroadCast (%i) type 0x%X at %s inBroadCast %i, ignoring", begin->position, begin->type, indexToHMSF, begin->inBroadCast);
+                    FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                    free(indexToHMSF);
+                }
+                begin = NULL;
             }
         }
     }
