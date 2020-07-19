@@ -598,7 +598,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // try to find a horizontal border mark
     if (!begin) {
-        clMark *hStart=marks.GetAround(iStartA+delta,iStartA+delta+1,MT_HBORDERSTART);
+        clMark *hStart=marks.GetAround(iStartA+delta,iStartA+delta,MT_HBORDERSTART);
         if (!hStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no horizontal border at start found, ignore horizontal border detection");
             macontext.Video.Options.ignoreHborder=true;
@@ -638,7 +638,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // try to find a vertical border mark
     if (!begin) {
-        clMark *vStart=marks.GetAround(iStartA+delta,iStartA+delta+1,MT_VBORDERSTART);
+        clMark *vStart=marks.GetAround(iStartA+delta,iStartA+delta,MT_VBORDERSTART);
         if (!vStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no vertical border at start found, ignore vertical border detection");
             macontext.Video.Options.ignoreVborder=true;
