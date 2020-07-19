@@ -404,7 +404,8 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
     }
 
     if ((rpixel < (mpixel*LOGO_VMARK)) && (rpixel > (mpixel*LOGO_IMARK))) {
-        area.counter = 0;
+        area.counter--;  // we are more uncertain of logo state
+        if (area.counter < 0) area.counter = 0;
     }
 //    dsyslog("cMarkAdLogo::Detect(): framenumber %d logoframenumber %d ret %d", framenumber, *logoframenumber, ret);
     return ret;
