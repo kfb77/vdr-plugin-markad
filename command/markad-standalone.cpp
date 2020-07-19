@@ -478,7 +478,7 @@ void cMarkAdStandalone::CheckStart() {
             else {
                 if (macontext.Audio.Options.IgnoreDolbyDetection == true) isyslog("disabling AC3 decoding (from logo)");
                 if ((macontext.Info.Channels[stream]) && (macontext.Audio.Options.IgnoreDolbyDetection == false))
-                    isyslog("broadcast with %i audio channels of stream %i, disabling AC3 decoding",macontext.Info.Channels[stream], stream);
+                    isyslog("broadcast with %i audio channels of stream %i",macontext.Info.Channels[stream], stream);
                 if (inBroadCast) {  // if we have channel marks but we are now with 2 channels inBroascast, delete these
                     macontext.Video.Options.IgnoreAspectRatio = false;   // then we have to find other marks
                     macontext.Video.Options.IgnoreLogoDetection = false;
@@ -799,12 +799,53 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
 
 void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no sense
     LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks first pass (detect previews in advertisement)");
+    clMark *mark = NULL;
+
+// delete logo marks if we have channel marks
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks first pass (delete logo marks if we have channel marks)");
     DebugMarks();     //  only for debugging
+    clMark *channelStart = marks.GetNext(0, MT_CHANNELSTART);
+    clMark *channelStop = marks.GetNext(0, MT_CHANNELSTOP);
+    if (channelStart && channelStop) {
+        mark = marks.GetFirst();
+        while (mark) {
+            if (mark != marks.GetFirst()) {
+                if (mark == marks.GetLast()) break;
+                if ((mark->type == MT_LOGOSTART) || (mark->type == MT_LOGOSTOP)) {
+                    clMark *tmp = mark;
+                    mark = mark->Next();
+                    dsyslog("cMarkAdStandalone::CheckMarks(): delete logo mark (%i)", tmp->position);
+                    marks.Del(tmp);
+                    continue;
+                }
+            }
+            mark = mark->Next();
+        }
+    }
+
+// delete all black sceen marks expect start or end mark
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 2nd pass (delete invalid black sceen marks)");
+    DebugMarks();     //  only for debugging
+    mark = marks.GetFirst();
+    while (mark) {
+        if (mark != marks.GetFirst()) {
+            if (mark == marks.GetLast()) break;
+            if ((mark->type == MT_NOBLACKSTOP) || (mark->type == MT_NOBLACKSTART)) {
+                clMark *tmp = mark;
+                mark = mark->Next();
+                dsyslog("cMarkAdStandalone::CheckMarks(): delete black screen mark (%i)", tmp->position);
+                marks.Del(tmp);
+                continue;
+            }
+        }
+        mark = mark->Next();
+    }
 
 // delete short START STOP logo marks because they are previews in the advertisement
-    clMark *mark=marks.GetFirst();
-    while (mark) {   // first pass
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 3nd pass (detect previews in advertisement)");
+    DebugMarks();     //  only for debugging
+    mark = marks.GetFirst();
+    while (mark) {   // second pass
         if ((mark->type == MT_LOGOSTART) && (mark->position != marks.GetFirst()->position) && mark->Next()) {  // not start mark
             if ((mark->Next()->type == MT_LOGOSTOP) && (mark->Next()->position != marks.GetLast()->position)) { // next mark not end mark
                 clMark *stopBefore = marks.GetPrev(mark->position, MT_LOGOSTOP);
@@ -828,10 +869,9 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     }
 
 // delete short STOP START logo marks because they are logo detection failure
-    LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 2nd pass (remove logo detection failure marks)");
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 4nd pass (remove logo detection failure marks)");
     DebugMarks();     //  only for debugging
-    mark=marks.GetFirst();
+    mark = marks.GetFirst();
     while (mark) {   // 2nd pass
         if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
             int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 30);   // assume shortest ad is at least 30s
@@ -848,10 +888,9 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         mark=mark->Next();
     }
 
-    LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 3nd pass (remove invalid marks)");
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 5nd pass (remove invalid marks)");
     DebugMarks();     //  only for debugging
-    mark=marks.GetFirst();
+    mark = marks.GetFirst();
     while (mark) { // 3nd pass
         if (((mark->type & 0x0F) == MT_STOP) && (mark == marks.GetFirst())){
             dsyslog("Start with STOP mark, delete first mark");
@@ -872,31 +911,6 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             marks.Del(tmp);
             continue;
         }
-
-        if ((mark->type==MT_NOBLACKSTOP) && mark->Next() && (mark->Next()->type==MT_NOBLACKSTART)) {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond*4);
-            if (abs(mark->Next()->position-mark->position)<=MARKDIFF) {
-                double distance=(mark->Next()->position-mark->position)/macontext.Video.Info.FramesPerSecond;
-                isyslog("mark distance of black screen between STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
-                clMark *tmp=mark;
-                mark=marks.GetFirst();    // restart check from start
-                marks.Del(tmp->Next());
-                marks.Del(tmp);
-                continue;
-            }
-        }
-
-        if ((mark->type==MT_NOBLACKSTOP) && mark->Next() && (mark->Next()->type==MT_NOBLACKSTART)) {
-            if ((mark->Next()->position>iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE) && (mark->position>iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE)) {
-                isyslog("blackscreen start mark followed by blackscreen stop mark, deleting %i,%i", mark->position, mark->Next()->position);
-                clMark *tmp=mark;
-                mark=mark->Next()->Next();
-                marks.Del(tmp->Next());
-                marks.Del(tmp);
-                continue;
-            }
-        }
-
         if (!inBroadCast || gotendmark) {  // in this case we will add a stop mark at the end of the recording
             if (((mark->type & 0x0F)==MT_START) && (!mark->Next())) {      // delete start mark at the end
                 if (marks.GetFirst()->position != mark->position) {        // do not delete start mark
