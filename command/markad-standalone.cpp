@@ -3294,7 +3294,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         if (tStart < 60) tStart = 60;
         isyslog("pre-timer %is", tStart);
     }
-    if (length) isyslog("broadcast length %im", length / 60);
+    if (length) isyslog("broadcast length %imin", (int) round(length / 60));
 
     if (title[0]) {
         ptitle = title;
