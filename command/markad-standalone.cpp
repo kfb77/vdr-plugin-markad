@@ -689,11 +689,25 @@ void cMarkAdStandalone::CheckStart() {
                 FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                 free(indexToHMSF);
             }
-            begin = lStart;   // found valid logo start mark
+            if (lStart->position  >= (iStart / 8)) {
+                begin = lStart;   // found valid logo start mark
+            }
+            else {  // logo start mark too early, try if tehe is a later logo start mark
+                lStart = marks.GetAround(iStartA, iStartA + delta, MT_LOGOSTART);
+                if (lStart && (lStart->position  > (iStart / 8))) {  // found later logo start mark
+                    char *indexToHMSF = marks.IndexToHMSF(lStart->position, &macontext, ptr_cDecoder);
+                    if (indexToHMSF) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lStart->position, indexToHMSF);
+                        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                        free(indexToHMSF);
+                    }
+                    begin = lStart;   // found valid logo start mark
+                }
+            }
         }
     }
 
-    if (begin && ((begin->position == 0) || ((begin->type == MT_LOGOSTART) && (begin->position  < (iStart / 8))))) { // we found the correct type but the mark is too early because the previous recording has same type
+    if (begin && ((begin->position == 0))) { // we found the correct type but the mark is too early because the previous recording has same type
         dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%i) dropped because it is too early", begin->position);
         begin = NULL;
     }
