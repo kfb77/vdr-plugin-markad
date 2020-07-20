@@ -695,7 +695,7 @@ void cMarkAdStandalone::CheckStart() {
             else {  // logo start mark too early, try if tehe is a later logo start mark
                 lStart = marks.GetAround(iStartA, iStartA + delta, MT_LOGOSTART);
                 if (lStart && (lStart->position  > (iStart / 8))) {  // found later logo start mark
-                    char *indexToHMSF = marks.IndexToHMSF(lStart->position, &macontext, ptr_cDecoder);
+                    indexToHMSF = marks.IndexToHMSF(lStart->position, &macontext, ptr_cDecoder);
                     if (indexToHMSF) {
                         dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lStart->position, indexToHMSF);
                         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
