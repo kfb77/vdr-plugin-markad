@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2020-07-22: Version 2.3.4
+- optimize find previews in the advertisement
+- some minor bug fixes and optimizations, see git
+
 2020-07-12: Version 2.3.3
 - reduce the shortest possible advertising to 38s
 - optimize detect logo in bright areas
