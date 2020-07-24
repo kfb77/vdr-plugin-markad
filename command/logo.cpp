@@ -289,7 +289,7 @@ int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoI
         for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
             logoInfo actLogo = {};
             UnpackLogoInfo(&actLogo, &(*actLogoPacked));
-            if (CompareLogoPair(&actLogo, ptr_actLogoInfo, logoHeight, logoWidth)) {
+            if (CompareLogoPair(&actLogo, ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
                 hits++;
                 actLogoPacked->hits++;
             }
@@ -297,7 +297,7 @@ int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoI
     }
     if (maContext->Config->autoLogo == 2){  // use unpacked logos
         for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
-            if (CompareLogoPair(&(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth)) {
+            if (CompareLogoPair(&(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
                 hits++;
                 actLogo->hits++;
             }
@@ -307,7 +307,7 @@ int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoI
 }
 
 
-bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth) {
+bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner) {
     if (!logo1) return false;
     if (!logo2) return false;
 
@@ -331,7 +331,17 @@ bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2,
     if (black_0 > 100) rate_0=1000*similar_0/black_0;   // accept only if we found some pixels
     else rate_0=0;
     rate_1_2 = 1000*similar_1_2/(logoHeight*logoWidth)*2;
-    if ((rate_0 > 900) && (rate_1_2 > 990)) return true;
+
+// #define DEBUG_CORNER TOP_LEFT  // only for debug
+    if ((rate_0 > 890) && (rate_1_2 > 985)) {
+#ifdef DEBUG_CORNER
+        if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ======== frame (%5d) and (%5d), rate_0 %4d (895), rate_1_2 %4d (990)", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, rate_1_2);  // only for debug
+#endif
+        return true;
+    }
+#ifdef DEBUG_CORNER
+if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo !=!=!=!= frame (%5d) and (%5d), rate_0 %4d (895), rate_1_2 %4d (990) ", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, rate_1_2);
+#endif
     return false;
 }
 
@@ -587,7 +597,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                     for (int corner = 0; corner < CORNERS; corner++) {
                         int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
                                                     //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
-//                        if (corner == BOTTOM_RIGHT) iFrameNumberNext = -2;   // TODO only for debug
+                        if (corner == TOP_LEFT) iFrameNumberNext = -2;   // TODO only for debug
                         area->corner=corner;
                         ptr_Logo->Detect(iFrameNumber,&iFrameNumberNext);
                         logoInfo actLogoInfo = {};

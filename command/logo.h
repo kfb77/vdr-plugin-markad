@@ -52,7 +52,7 @@ class cExtractLogo {
 
         bool Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
         int Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
-        bool CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth);
+        bool CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner);
         bool Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner);
         bool isWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
         int DeleteBorderFrames(const MarkAdContext *maContext, const int from, const int to);
