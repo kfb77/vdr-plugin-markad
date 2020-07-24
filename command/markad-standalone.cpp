@@ -617,8 +617,8 @@ void cMarkAdStandalone::CheckStart() {
         }
         else {
             dsyslog("cMarkAdStandalone::CheckStart(): horizontal border start found at (%i)", hStart->position);
-            clMark *hStop = marks.GetAround(delta, hStart->position, MT_HBORDERSTOP);  // if there is a MT_HBORDERSTOP short after the MT_HBORDERSTART, MT_HBORDERSTART is not valid
-            if ( (hStop) && (hStop->position > hStart->position)) {
+            clMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);  // if there is a MT_HBORDERSTOP short after the MT_HBORDERSTART, MT_HBORDERSTART is not valid
+            if ( hStop && ((hStop->position - hStart->position) < delta)) {
                 isyslog("horizontal border STOP (%i) short after horizontal border START (%i) found, this is not valid, delete marks", hStop->position, hStart->position);
                 marks.Del(hStart);
                 marks.Del(hStop);
