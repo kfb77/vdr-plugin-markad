@@ -413,6 +413,11 @@ void cMarkAdStandalone::CheckStart() {
     int delta = macontext.Video.Info.FramesPerSecond * MAXRANGE;
     macontext.Video.Options.IgnoreBlackScreenDetection = true;   // use black sceen setection only to find start mark
 
+    begin = marks.GetAround(delta, 1, MT_RECORDINGSTART);  // do we have an incomplete recording ?
+    if (begin) {
+        dsyslog("cMarkAdStandalone::CheckStart(): found MT_RECORDINGSTART (%i), use this as start mark for the incomplete recording", begin->position);
+    }
+
 // try to find a audio channel mark
     for (short int stream = 0; stream < MAXSTREAMS; stream++) {
         if ((macontext.Info.Channels[stream]) && (macontext.Audio.Info.Channels[stream]) && (macontext.Info.Channels[stream] != macontext.Audio.Info.Channels[stream])) {
@@ -734,12 +739,6 @@ void cMarkAdStandalone::CheckStart() {
                 begin = NULL;
             }
         }
-    }
-
-    clMark *beginRec = marks.GetAround(delta, 1, MT_RECORDINGSTART);  // do we have an incomplete recording ?
-    if (beginRec) {
-        dsyslog("cMarkAdStandalone::CheckStart(): found MT_RECORDINGSTART (%i), replace start mark", beginRec->position);
-        begin = beginRec;
     }
 
     if (begin) {
@@ -2728,10 +2727,9 @@ bool cMarkAdStandalone::LoadInfo() {
             }
             if (tStart < 0) {
                 if (length+tStart > 0) {
-                    isyslog("broadcast start truncated by %im, length will be corrected", -tStart / 60);
+                    isyslog("missed broadcast start by %d:%d min, length will be corrected", -tStart / 60, -tStart % 60);
                     startTime = rStart;
                     length += tStart;
-                    tStart = -1;
                 }
                 else {
                     esyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
