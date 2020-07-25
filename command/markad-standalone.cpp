@@ -698,6 +698,25 @@ void cMarkAdStandalone::CheckStart() {
                 FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                 free(indexToHMSF);
             }
+            clMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);
+            if (lStop && ((lStop->position - lStart->position) < (20 *  macontext.Video.Info.FramesPerSecond))) {  // very short logo part, lStart is possible wrong
+                indexToHMSF = marks.IndexToHMSF(lStop->position, &macontext, ptr_cDecoder);
+                if (indexToHMSF) {
+                    dsyslog("cMarkAdStandalone::CheckStart(): logo stop mark found very short after start mark on position (%i) at %s", lStop->position, indexToHMSF);
+                    FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                    free(indexToHMSF);
+                }
+                clMark *lNextStart = marks.GetNext(lStop->position, MT_LOGOSTART);
+                if (lNextStart && ((lNextStart->position - lStop->position) < delta)) { // found start mark short after start/stop, use this as start mark
+                    indexToHMSF = marks.IndexToHMSF(lNextStart->position, &macontext, ptr_cDecoder);
+                    if (indexToHMSF) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lNextStart->position, indexToHMSF);
+                        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                        free(indexToHMSF);
+                    }
+                    lStart = lNextStart;
+                }
+            }
             if (lStart->position  >= (iStart / 8)) {
                 begin = lStart;   // found valid logo start mark
             }
@@ -862,7 +881,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     dsyslog("cMarkAdStandalone::CheckMarks(): check marks 3nd pass (detect previews in advertisement)");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
-    while (mark) {   // second pass
+    while (mark) {
         if ((mark->type == MT_LOGOSTART) && (mark->position != marks.GetFirst()->position) && mark->Next()) {  // not start mark
             if ((mark->Next()->type == MT_LOGOSTOP) && (mark->Next()->position != marks.GetLast()->position)) { // next mark not end mark
                 clMark *stopBefore = marks.GetPrev(mark->position, MT_LOGOSTOP);
@@ -889,10 +908,10 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     dsyslog("cMarkAdStandalone::CheckMarks(): check marks 4nd pass (remove logo detection failure marks)");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
-    while (mark) {   // 2nd pass
+    while (mark) {
         if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
             int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 30);   // assume shortest ad is at least 30s
-            if (abs(mark->Next()->position - mark->position) <= MARKDIFF) {
+            if ((mark->Next()->position - mark->position) <= MARKDIFF) {
                 double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between logo STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
                 clMark *tmp = mark;
@@ -908,7 +927,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     dsyslog("cMarkAdStandalone::CheckMarks(): check marks 5nd pass (remove invalid marks)");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
-    while (mark) { // 3nd pass
+    while (mark) {
         if (((mark->type & 0x0F) == MT_STOP) && (mark == marks.GetFirst())){
             dsyslog("Start with STOP mark, delete first mark");
             clMark *tmp = mark;
