@@ -748,7 +748,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
     FREE(sizeof(*vborder), "vborder");
     delete vborder;
     if (retStatus) dsyslog("cExtractLogo::SearchLogo(): finished successfully, last frame %i", iFrameNumber);
-    else dsyslog("cExtractLogo::SearchLogo(): failed, fast frame %i", iFrameNumber);
+    else dsyslog("cExtractLogo::SearchLogo(): failed, last frame %i", iFrameNumber);
     dsyslog("----------------------------------------------------------------------------");
     if (retStatus) return 0;
     else return iFrameNumber;
