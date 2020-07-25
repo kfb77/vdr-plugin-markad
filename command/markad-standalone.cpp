@@ -316,8 +316,12 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
 void cMarkAdStandalone::CheckStop() {
     LogSeparator();
     dsyslog("checking stop (%i)", lastiframe);
-    dsyslog("assumed stop frame %i", iStopA);
-
+    char *indexToHMSF = marks.IndexToHMSF(iStopA, &macontext, ptr_cDecoder);
+        if (indexToHMSF) {
+            dsyslog("assumed stop position (%i) at %s", iStopA, indexToHMSF);
+            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+            free(indexToHMSF);
+        }
     DebugMarks();     //  only for debugging
 
     int delta = macontext.Video.Info.FramesPerSecond * MAXRANGE;
@@ -372,7 +376,7 @@ void cMarkAdStandalone::CheckStop() {
            }
         }
 
-        char *indexToHMSF = marks.IndexToHMSF(end->position, &macontext, ptr_cDecoder);
+        indexToHMSF = marks.IndexToHMSF(end->position, &macontext, ptr_cDecoder);
         if (indexToHMSF) {
             isyslog("using mark on position (%i) type 0x%X at %s as stop mark", end->position,  end->type, indexToHMSF);
             FREE(strlen(indexToHMSF)+1, "indexToHMSF");
