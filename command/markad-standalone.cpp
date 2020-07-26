@@ -2588,7 +2588,7 @@ bool cMarkAdStandalone::CheckLogo() {
         isyslog("no logo found in recording directory, trying to extract logo from recording");
         ptr_cExtractLogo = new cExtractLogo();
         ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
-        int endpos = ptr_cExtractLogo->SearchLogo(&macontext, 0);   // search logo from start
+        int endpos = ptr_cExtractLogo->SearchLogo(&macontext, tStart*25);  // search logo from assumed start, we do not know the frame rate at this point, so we use 25
         for (int retry = 2; retry < 5; retry++) {
             if (endpos > 0) {
                 isyslog("no logo found in recording, retry in %ind recording part", retry);
