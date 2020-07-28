@@ -2590,11 +2590,13 @@ bool cMarkAdStandalone::CheckLogo() {
         isyslog("no logo found in recording directory, trying to extract logo from recording");
         ptr_cExtractLogo = new cExtractLogo(macontext.Info.AspectRatio);
         ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
-        int endpos = ptr_cExtractLogo->SearchLogo(&macontext, tStart*25);  // search logo from assumed start, we do not know the frame rate at this point, so we use 25
-        for (int retry = 2; retry < 5; retry++) {
+        int startPos =  tStart * 25;  // search logo from assumed start, we do not know the frame rate at this point, so we use 25
+        int endpos = ptr_cExtractLogo->SearchLogo(&macontext, startPos);
+        for (int retry = 2; retry <= 6; retry++) {
+            startPos += 5 * 60 * 25; // next try 5 min later
             if (endpos > 0) {
                 isyslog("no logo found in recording, retry in %ind recording part", retry);
-                endpos = ptr_cExtractLogo->SearchLogo(&macontext, endpos);   // search logo from last end position
+                endpos = ptr_cExtractLogo->SearchLogo(&macontext, startPos);
             }
             else break;
         }
