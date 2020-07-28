@@ -24,7 +24,7 @@
 
 class cExtractLogo {
     public:
-        cExtractLogo();
+        explicit cExtractLogo(MarkAdAspectRatio aspectRatio);
         ~cExtractLogo();
         int SearchLogo(MarkAdContext *maContext, const int startFrame);
         bool abort = false;
@@ -37,7 +37,6 @@ class cExtractLogo {
             int hits = 0;
             uchar sobel[PLANES][MAXPIXEL] = {};
             bool valid[PLANES] = {};
-            MarkAdAspectRatio aspectratio = {};
         };
         struct logoInfoPacked {
             int iFrameNumber = 0;
@@ -49,6 +48,7 @@ class cExtractLogo {
         std::vector<logoInfo> logoInfoVector[CORNERS];
         std::vector<logoInfoPacked> logoInfoVectorPacked[CORNERS];
         int recordingFrameCount = 0;
+        MarkAdAspectRatio logoAspectRatio = {};
 
         bool Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
         int Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);

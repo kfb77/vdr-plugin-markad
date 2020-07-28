@@ -23,7 +23,9 @@ extern "C"{
 
 extern bool abortNow;
 
-cExtractLogo::cExtractLogo() {
+cExtractLogo::cExtractLogo(MarkAdAspectRatio aspectRatio) {
+    logoAspectRatio.Num = aspectRatio.Num;
+    logoAspectRatio.Den = aspectRatio.Den;
 }
 
 
@@ -77,7 +79,7 @@ bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actL
         else dsyslog("cExtractLogo::Save(): %i pixel in plane %i", black, plane);
 
         if (this->isWhitePlane(ptr_actLogoInfo, height, width, plane)) continue;
-        if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", maContext->Config->recDir, maContext->Info.ChannelName, ptr_actLogoInfo->aspectratio.Num,ptr_actLogoInfo->aspectratio.Den,plane)==-1) return false;
+        if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", maContext->Config->recDir, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane)==-1) return false;
         ALLOC(strlen(buf)+1, "buf");
         dsyslog("cExtractLogo::Save(): store logo in %s", buf);
         // Open file
@@ -332,15 +334,15 @@ bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2,
     else rate_0=0;
     rate_1_2 = 1000*similar_1_2/(logoHeight*logoWidth)*2;
 
-// #define DEBUG_CORNER TOP_LEFT  // only for debug
+// #define DEBUG_CORNER TOP_LEFT
     if ((rate_0 > 890) && (rate_1_2 > 985)) {
 #ifdef DEBUG_CORNER
-        if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ======== frame (%5d) and (%5d), rate_0 %4d (895), rate_1_2 %4d (990)", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, rate_1_2);  // only for debug
+        if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ======== frame (%5d) and (%5d), rate_0: %4d (895), rate_1_2: %4d (990)", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, rate_1_2);  // only for debug
 #endif
         return true;
     }
 #ifdef DEBUG_CORNER
-if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo !=!=!=!= frame (%5d) and (%5d), rate_0 %4d (895), rate_1_2 %4d (990) ", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, rate_1_2);
+if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo !=!=!=!= frame (%5d) and (%5d), rate_0: %4d (895), rate_1_2: %4d (990) ", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, rate_1_2);
 #endif
     return false;
 }
@@ -425,7 +427,6 @@ void cExtractLogo::PackLogoInfo(const logoInfo *logoInfo, logoInfoPacked *logoIn
     if ( !logoInfoPacked) return;
     logoInfoPacked->iFrameNumber=logoInfo->iFrameNumber;
     logoInfoPacked->hits=logoInfo->hits;
-    logoInfoPacked->aspectratio=logoInfo->aspectratio;
     for (int plane = 0; plane < PLANES; plane++) {
         logoInfoPacked->valid[plane]=logoInfo->valid[plane];
         for (int i = 0; i < MAXPIXEL/8; i++) {
@@ -448,7 +449,6 @@ void cExtractLogo::UnpackLogoInfo(logoInfo *logoInfo, const logoInfoPacked *logo
     if ( !logoInfoPacked) return;
     logoInfo->iFrameNumber=logoInfoPacked->iFrameNumber;
     logoInfo->hits=logoInfoPacked->hits;
-    logoInfo->aspectratio=logoInfoPacked->aspectratio;
     for (int plane = 0; plane < PLANES; plane++) {
         logoInfo->valid[plane]=logoInfoPacked->valid[plane];
         for (int i = 0; i < MAXPIXEL/8; i++) {
@@ -467,7 +467,7 @@ void cExtractLogo::UnpackLogoInfo(logoInfo *logoInfo, const logoInfoPacked *logo
 
 int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
     dsyslog("----------------------------------------------------------------------------");
-    dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i", startFrame);
+    dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d", startFrame, logoAspectRatio.Num, logoAspectRatio.Den);
 
     if (!maContext) {
         dsyslog("cExtractLogo::SearchLogo(): maContext not valid");
@@ -537,8 +537,6 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
         }
         else dsyslog("cExtractLogo::SearchLogo(): maContext->Info.VPid.Type %i not valid", maContext->Info.VPid.Type);
 
-        bool firstFrame = true;
-        MarkAdAspectRatio aspectRatio = {};
         while(ptr_cDecoder->GetNextFrame()) {
             if (abortNow) return -1;
             if (!WaitForFrames(maContext, ptr_cDecoder)) {
@@ -554,16 +552,13 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                         continue;
                     }
                     iFrameCountAll++;
-                    if (firstFrame) {
-                        aspectRatio.Num = maContext->Video.Info.AspectRatio.Num;
-                        aspectRatio.Den = maContext->Video.Info.AspectRatio.Den;
-                        dsyslog("cExtractLogo::SearchLogo(): aspect ratio at start frame (%d) %d:%d", iFrameNumber, aspectRatio.Num, aspectRatio.Den);
-                        firstFrame=false;
+                    if ((logoAspectRatio.Num == 0) || (logoAspectRatio.Den == 0)) {
+                        logoAspectRatio.Num = maContext->Video.Info.AspectRatio.Num;
+                        logoAspectRatio.Den = maContext->Video.Info.AspectRatio.Den;
+                        dsyslog("cExtractLogo::SearchLogo(): aspect ratio set to %d:%d", logoAspectRatio.Num, logoAspectRatio.Den);
                     }
-                    else {
-                        if ((aspectRatio.Num != maContext->Video.Info.AspectRatio.Num) || (aspectRatio.Den != maContext->Video.Info.AspectRatio.Den)) {
-                            continue;
-                        }
+                    if ((logoAspectRatio.Num != maContext->Video.Info.AspectRatio.Num) || (logoAspectRatio.Den != maContext->Video.Info.AspectRatio.Den)) {
+                        continue;
                     }
                     int BorderIFrame = 0;
                     int isVBorder = vborder->Process(iFrameNumber, &BorderIFrame);
@@ -597,13 +592,13 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                     for (int corner = 0; corner < CORNERS; corner++) {
                         int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
                                                     //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
-                        if (corner == TOP_LEFT) iFrameNumberNext = -2;   // TODO only for debug
+#ifdef DEBUG_CORNER
+                        if (corner == DEBUG_CORNER) iFrameNumberNext = -2;   // TODO only for debug
+#endif
                         area->corner=corner;
                         ptr_Logo->Detect(iFrameNumber,&iFrameNumberNext);
                         logoInfo actLogoInfo = {};
                         actLogoInfo.iFrameNumber = iFrameNumber;
-                        actLogoInfo.aspectratio.Den = maContext->Video.Info.AspectRatio.Den;
-                        actLogoInfo.aspectratio.Num = maContext->Video.Info.AspectRatio.Num;
                         memcpy(actLogoInfo.sobel,area->sobel, sizeof(area->sobel));
                         actLogoInfo.hits = this->Compare(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
 
