@@ -61,18 +61,20 @@ cDecoder::cDecoder(int threads) {
 
 cDecoder::~cDecoder() {
     av_packet_unref(&avpkt);
-    for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
-        if (codecCtxArray[streamIndex]) {
-            FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
-            avcodec_free_context(&codecCtxArray[streamIndex]);
+    if (avctx) {
+        for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
+            if (codecCtxArray[streamIndex]) {
+                FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
+                avcodec_free_context(&codecCtxArray[streamIndex]);
+            }
         }
+        if (codecCtxArray) {
+            FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
+            free(codecCtxArray);
+        }
+        dsyslog("cDecoder::~cDecoder(): close avformat context");
+        avformat_close_input(&avctx);
     }
-    if (codecCtxArray) {
-        FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
-        free(codecCtxArray);
-    }
-    dsyslog("cDecoder::~cDecoder(): close avformat context");
-    avformat_close_input(&avctx);
     if (recordingDir) {
         FREE(strlen(recordingDir), "recordingDir");
         free(recordingDir);
