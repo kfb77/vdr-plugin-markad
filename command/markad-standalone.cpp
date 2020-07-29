@@ -3309,7 +3309,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         }
     }
     else {
-        if (!CheckLogo() && (config->logoExtraction==-1)) {
+        if (!CheckLogo() && (config->logoExtraction==-1) && (config->autoLogo == 0)) {
             isyslog("no logo found, logo detection disabled");
             macontext.Video.Options.IgnoreLogoDetection = true;
         }
