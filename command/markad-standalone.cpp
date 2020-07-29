@@ -838,11 +838,13 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     clMark *mark = NULL;
 
 // delete logo marks if we have channel marks
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks first pass (delete logo marks if we have channel marks)");
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks first pass (delete logo marks if we have channel or vborder marks)");
     DebugMarks();     //  only for debugging
     clMark *channelStart = marks.GetNext(0, MT_CHANNELSTART);
     clMark *channelStop = marks.GetNext(0, MT_CHANNELSTOP);
-    if (channelStart && channelStop) {
+    clMark *vborderStart = marks.GetNext(0, MT_VBORDERSTART);
+    clMark *vborderStop = marks.GetNext(0, MT_VBORDERSTOP);
+    if ((channelStart && channelStop) || (vborderStart && vborderStop)) {
         mark = marks.GetFirst();
         while (mark) {
             if (mark != marks.GetFirst()) {
@@ -1656,6 +1658,7 @@ void cMarkAdStandalone::MarkadCut() {
         esyslog("failed to open output file");
         FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
         delete ptr_cEncoder;
+	ptr_cEncoder = NULL;
         return;
     }
     while(ptr_cDecoder->DecodeDir(directory)) {
@@ -1688,6 +1691,7 @@ void cMarkAdStandalone::MarkadCut() {
                 if (ptr_cDecoder) {
                     FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
                     delete ptr_cDecoder;
+		    ptr_cDecoder = NULL;
                 }
                 if (ptr_cEncoder) {
                     ptr_cEncoder->CloseFile();
@@ -3443,18 +3447,22 @@ cMarkAdStandalone::~cMarkAdStandalone() {
     if (video) {
         FREE(sizeof(*video), "video");
         delete video;
+	video = NULL;
     }
     if (audio) {
         FREE(sizeof(*audio), "audio");
         delete audio;
+	audio = NULL;
     }
     if (osd) {
         FREE(sizeof(*osd), "osd");
         delete osd;
+	osd = NULL;
     }
     if (ptr_cDecoder) {
         FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
         delete ptr_cDecoder;
+	ptr_cDecoder = NULL;
     }
     RemovePidfile();
 }
@@ -4159,6 +4167,7 @@ int main(int argc, char *argv[]) {
         if (cmasta) {
             FREE(sizeof(*cmasta), "cmasta");
             delete cmasta;
+	    cmasta = NULL;
         }
 #ifdef DEBUGMEM
         memList();
