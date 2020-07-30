@@ -666,9 +666,11 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
         // find best corner
         logoInfo bestLogoInfo = {};
         int bestLogoCorner=-1;
+        int sumHits = 0;
         if (maContext->Config->autoLogo == 1) { // use packed logos
             logoInfoPacked bestLogoInfoPacked = {};
             for (int corner = 0; corner < CORNERS; corner++) {  // search for the best hits of each corner
+                sumHits += actLogoInfoPacked[corner].hits;
                 if (actLogoInfoPacked[corner].hits > bestLogoInfoPacked.hits) {
                     bestLogoInfoPacked = actLogoInfoPacked[corner];
                     bestLogoCorner=corner;
@@ -677,14 +679,15 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
             UnpackLogoInfo(&bestLogoInfo, &bestLogoInfoPacked);
         }
         if (maContext->Config->autoLogo == 2) { // use unpacked logos
-            for (int corner = 0; corner <= 3; corner++) {  // search for the best hits of each corner
+            for (int corner = 0; corner < CORNERS; corner++) {  // search for the best hits of each corner
+                sumHits += actLogoInfo[corner].hits;
                 if (actLogoInfo[corner].hits > bestLogoInfo.hits) {
                     bestLogoInfo = actLogoInfo[corner];
                     bestLogoCorner=corner;
                 }
             }
         }
-        for (int corner = 0; corner <= 3; corner++) {  // free memory of the corners who are not selected
+        for (int corner = 0; corner < CORNERS; corner++) {  // free memory of the corners who are not selected
             if (corner == bestLogoCorner) continue;
 #ifdef DEBUGMEM
             int size = logoInfoVector[corner].size();
@@ -700,11 +703,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
             logoInfoVectorPacked[corner].clear();
         }
 
-        if (bestLogoInfo.hits < 50) {
-            dsyslog("cExtractLogo::SearchLogo(): no valid logo found, best logo at frame %i with %i similars at corner %i", bestLogoInfo.iFrameNumber, bestLogoInfo.hits, bestLogoCorner);
-            retStatus=false;
-        }
-        else {
+        if ((bestLogoInfo.hits >= 50) || ((bestLogoInfo.hits >= 25) && (bestLogoInfo.hits == sumHits))) {  // if all hits are in the same corner than 25 are enough
             dsyslog("cExtractLogo::SearchLogo(): best logo found at frame %i with %i similars at corner %i", bestLogoInfo.iFrameNumber, bestLogoInfo.hits, bestLogoCorner);
             if (! this->Resize(&bestLogoInfo, &logoHeight, &logoWidth, bestLogoCorner)) {
                 dsyslog("cExtractLogo::SearchLogo(): resize logo failed");
@@ -717,6 +716,11 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                 }
             }
         }
+        else {
+            dsyslog("cExtractLogo::SearchLogo(): no valid logo found, best logo at frame %i with %i similars at corner %i", bestLogoInfo.iFrameNumber, bestLogoInfo.hits, bestLogoCorner);
+            retStatus=false;
+        }
+
     }
     for (int corner = 0; corner <= 3; corner++) {  // free memory of all corners
 #ifdef DEBUGMEM
