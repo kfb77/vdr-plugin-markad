@@ -329,6 +329,9 @@ class CheckPath:
 
     def NeedMarks(self):
         isMarksNotFound = True
+        isCutNotFound = True
+        if (not config.cut):  # if not to cut do not search for cut ts file
+            isCutNotFound = False
         isInfoFound = False
         isIndexFound = False
         if self.root.find(".del") > 0:
@@ -344,7 +347,10 @@ class CheckPath:
             if actFile == ".timer": continue
             if actFile == "markad.log": continue
             if actFile == "resume": continue
-            if fnmatch.fnmatch(actFile,'*.ts'): continue
+            if fnmatch.fnmatch(actFile,'000??.ts'): continue
+            if fnmatch.fnmatch(actFile,'*.ts'): # other ts file is the recording cut
+                isCutNotFound = False
+                continue
             if actFile == "info.epg2vdr": continue
             if actFile == "markad.vps": continue
             if actFile == "vps.log": continue
@@ -409,7 +415,7 @@ class CheckPath:
         if not isIndexFound:
             log.esyslog("no index found "+self.root)
             return(False)
-        return(isMarksNotFound)
+        return(isMarksNotFound or isCutNotFound)
 
     def ConvertPath(self, path):
         newPath = path.replace('&','\&')
@@ -561,14 +567,14 @@ else:
 os.nice(config.nice)
 os.system("ionice -c 3 -p%d" % os.getpid())
 
-log.dsyslog("work on directory "+config.path)
+log.dsyslog("work on directory " + config.path)
 
 global curPath
 for root, dirs, files in sorted(os.walk(config.path)):
     if len(dirs) == 0:
         curPath = CheckPath(root,files)
         if curPath.NeedMarks():
-            if not config.checkOnly: log.isyslog("marks missing: "+root)
+            if not config.checkOnly: log.isyslog("marks missing: " + root)
             if curPath.CheckFreeSpace():
                 curPath.RunMarkad()
         else:
