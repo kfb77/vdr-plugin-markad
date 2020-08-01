@@ -907,7 +907,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     }
 
 // delete short STOP START logo marks because they are logo detection failure
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 4nd pass (remove logo detection failure marks)");
+// delete short STOP START hborder marks because some channels display information in the border
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 4nd pass (remove logo and hborder detection failure marks)");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
     while (mark) {
@@ -917,7 +918,19 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                 double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between logo STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
                 clMark *tmp = mark;
-                mark = marks.GetFirst();    // restart check from start
+                mark = mark->Next()->Next();
+                marks.Del(tmp->Next());
+                marks.Del(tmp);
+                continue;
+            }
+        }
+        if ((mark->type == MT_HBORDERSTOP) && mark->Next() && mark->Next()->type == MT_HBORDERSTART) {
+            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 15);
+            if ((mark->Next()->position - mark->position) <= MARKDIFF) {
+                double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
+                isyslog("mark distance between horizontal STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
+                clMark *tmp = mark;
+                mark = mark->Next()->Next();
                 marks.Del(tmp->Next());
                 marks.Del(tmp);
                 continue;
@@ -1658,7 +1671,7 @@ void cMarkAdStandalone::MarkadCut() {
         esyslog("failed to open output file");
         FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
         delete ptr_cEncoder;
-	ptr_cEncoder = NULL;
+        ptr_cEncoder = NULL;
         return;
     }
     while(ptr_cDecoder->DecodeDir(directory)) {
@@ -1691,7 +1704,7 @@ void cMarkAdStandalone::MarkadCut() {
                 if (ptr_cDecoder) {
                     FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
                     delete ptr_cDecoder;
-		    ptr_cDecoder = NULL;
+                    ptr_cDecoder = NULL;
                 }
                 if (ptr_cEncoder) {
                     ptr_cEncoder->CloseFile();
@@ -3447,22 +3460,22 @@ cMarkAdStandalone::~cMarkAdStandalone() {
     if (video) {
         FREE(sizeof(*video), "video");
         delete video;
-	video = NULL;
+        video = NULL;
     }
     if (audio) {
         FREE(sizeof(*audio), "audio");
         delete audio;
-	audio = NULL;
+        audio = NULL;
     }
     if (osd) {
         FREE(sizeof(*osd), "osd");
         delete osd;
-	osd = NULL;
+        osd = NULL;
     }
     if (ptr_cDecoder) {
         FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
         delete ptr_cDecoder;
-	ptr_cDecoder = NULL;
+        ptr_cDecoder = NULL;
     }
     RemovePidfile();
 }
@@ -4167,7 +4180,7 @@ int main(int argc, char *argv[]) {
         if (cmasta) {
             FREE(sizeof(*cmasta), "cmasta");
             delete cmasta;
-	    cmasta = NULL;
+            cmasta = NULL;
         }
 #ifdef DEBUGMEM
         memList();
