@@ -461,8 +461,9 @@ void cMarkAdStandalone::CheckStart() {
 
         if ((macontext.Config->DecodeAudio) && (macontext.Info.Channels[stream])) {
             if ((macontext.Info.Channels[stream] == 6) && (macontext.Audio.Options.IgnoreDolbyDetection == false)) {
+                isyslog("DolbyDigital5.1 audio whith 6 Channels in stream %i detected", stream);
                 if (macontext.Audio.Info.channelChange) {
-                    isyslog("DolbyDigital5.1 audio whith 6 Channels in stream %i detected. disable logo/border/aspect detection", stream);
+                    dsyslog("cMarkAdStandalone::CheckStart(): channel change detected, disable logo/border/aspect detection");
                     bDecodeVideo = false;
                     macontext.Video.Options.IgnoreAspectRatio = true;
                     macontext.Video.Options.IgnoreLogoDetection = true;
