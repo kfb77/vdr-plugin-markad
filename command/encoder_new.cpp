@@ -580,18 +580,16 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
 
 // decode packet
         avFrame = ptr_cDecoder->DecodePacket(avctxIn, avpktOut);
-        if ( ! avFrame ) {
+        if (!avFrame) {
             dsyslog("cEncoder::WritePacket(): AC3 Decoder failed at frame %d",ptr_cDecoder->GetFrameNumber());
             return false;
         }
 
         AVCodecContext **codecCtxArrayIn = ptr_cDecoder->GetAVCodecContext();
-        if (! codecCtxArrayIn) {
+        if (!codecCtxArrayIn) {
             dsyslog("cEncoder::WritePacket(): failed to get input codec context");
-            if (avFrame) {
-                FREE(sizeof(*avFrame), "avFrame");
-                av_frame_free(&avFrame);
-            }
+            FREE(sizeof(*avFrame), "avFrame");
+            av_frame_free(&avFrame);  // test if avFrame not NULL above
             return false;
         }
         if (! codecCtxArrayOut[avpktOut->stream_index]) {

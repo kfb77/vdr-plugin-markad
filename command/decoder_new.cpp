@@ -395,7 +395,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     if (!avpkt) return NULL;
     AVFrame *avFrame = NULL;
 //    tsyslog("cDecoder::DecodePacket(): framenumber %li pts %ld dts %ld",framenumber, avpkt->pts, avpkt->dts);
-    avFrame=av_frame_alloc();
+    avFrame = av_frame_alloc();
     if (!avFrame) {
         dsyslog("cDecoder::DecodePacket(): av_frame_alloc failed");
         return NULL;
@@ -432,10 +432,8 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     }
     else {
         dsyslog("cDecoder::DecodePacket(): stream type not supported");
-        if (avFrame) {
-            FREE(sizeof(*avFrame), "avFrame");
-            av_frame_free(&avFrame);
-        }
+        FREE(sizeof(*avFrame), "avFrame");   // test if avFrame not NULL above
+        av_frame_free(&avFrame);
         return NULL;
     }
     int rc=av_frame_get_buffer(avFrame,32);
