@@ -472,11 +472,9 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
                                 ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
                                 if (ptr_cExtractLogo->SearchLogo(macontext, FrameNumber) > 0) dsyslog("cMarkAdLogo::Process(): no logo found in recording");
                                 else dsyslog("cMarkAdLogo::Process(): new logo for %s found in recording",buf);
-                                if (ptr_cExtractLogo) {
-                                    FREE(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
-                                    delete ptr_cExtractLogo;
-                                    ptr_cExtractLogo = NULL;
-                                }
+                                FREE(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo"); // ptr_cExtraceLogo is valid because it it used above
+                                delete ptr_cExtractLogo;
+                                ptr_cExtractLogo = NULL;
                                 if (Load(macontext->Config->recDir,buf,0) == 0) {  // try again recording directory
                                     isyslog("logo %s found in %s", buf, macontext->Config->recDir);
                                     logoStatus = true;
