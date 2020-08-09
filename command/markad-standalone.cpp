@@ -4147,17 +4147,21 @@ int main(int argc, char *argv[]) {
 #endif
         if (config.useVPS) {
             dsyslog("parameter --vps is set");
+#if defined CLASSIC_DECODER
             if (!config.use_cDecoder) {
                 esyslog("--cDecoder is not set, ignoring --vps");
                 config.useVPS = false;
             }
+#endif
         }
         if (config.MarkadCut) {
             dsyslog("parameter --cut is set");
+#if defined CLASSIC_DECODER
             if (!config.use_cDecoder) {
                 esyslog("--cDecoder is not set, ignoring --cut");
                 config.MarkadCut = false;
             }
+#endif
         }
         if (config.ac3ReEncode) {
             dsyslog("parameter --ac3reencode is set");
