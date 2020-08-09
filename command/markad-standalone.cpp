@@ -1698,7 +1698,7 @@ void cMarkAdStandalone::MarkadCut() {
                 esyslog("failed to get packet from input stream");
                 return;
             }
-            if ( ! ptr_cEncoder->WritePacket(pkt, ptr_cDecoder) ) {
+            if (!ptr_cEncoder->WritePacket(pkt, ptr_cDecoder)) {
                 dsyslog("cMarkAdStandalone::MarkadCut(): failed to write frame %d to output stream", ptr_cDecoder->GetFrameNumber());
             }
             if (abortNow) {
@@ -1707,26 +1707,22 @@ void cMarkAdStandalone::MarkadCut() {
                     delete ptr_cDecoder;
                     ptr_cDecoder = NULL;
                 }
-                if (ptr_cEncoder) {
-                    ptr_cEncoder->CloseFile();
-                    FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
-                    delete ptr_cEncoder;
-                    ptr_cEncoder = NULL;
-                }
+                ptr_cEncoder->CloseFile();  // ptr_cEncoder must be valid here because it is used above
+                FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
+                delete ptr_cEncoder;
+                ptr_cEncoder = NULL;
                 return;
             }
         }
     }
-    if ( ! ptr_cEncoder->CloseFile()) {
+    if (!ptr_cEncoder->CloseFile()) {
         dsyslog("failed to close output file");
         return;
     }
     dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %d", ptr_cDecoder->GetFrameNumber());
-    if (ptr_cEncoder) {
-        FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
-        delete ptr_cEncoder;
-        ptr_cEncoder = NULL;
-    }
+    FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
+    delete ptr_cEncoder;  // ptr_cEncoder must be valid here because it is used above
+    ptr_cEncoder = NULL;
     framecnt3 = ptr_cDecoder->GetFrameNumber();
 }
 
