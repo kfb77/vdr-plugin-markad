@@ -424,7 +424,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
         dsyslog("cEncoder::InitEncoderCodec(): could not find encoder for stream %i codec id %i", streamIndex, codec_id);
         return false;
     }
-    dsyslog("cEncoder::InitEncoderCodec(): using decoder id %s for stream %i", codec->long_name,streamIndex);
+    dsyslog("cEncoder::InitEncoderCodec(): using encoder id %d '%s' for stream %i", codec_id, codec->long_name, streamIndex);
 
     AVStream *out_stream = avformat_new_stream(avctxOut, codec);
     if (!out_stream) {
@@ -447,14 +447,17 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
         dsyslog("cEncoder::InitEncoderCodec(): avcodec_parameters_to_context failed");
         return false;
     }
-    codecCtxArrayOut[streamIndex]->time_base.num =  avCodecCtxIn->time_base.num;
+    dsyslog("cEncoder::InitEncoderCodec(): timebase %d/%d for stream %d", avCodecCtxIn->time_base.num, avCodecCtxIn->time_base.den, streamIndex);
+    codecCtxArrayOut[streamIndex]->time_base.num = avCodecCtxIn->time_base.num;
     codecCtxArrayOut[streamIndex]->time_base.den = avCodecCtxIn->time_base.den;
+
     if (ptr_cDecoder->isVideoStream(streamIndex)) {
         codecCtxArrayOut[streamIndex]->pix_fmt = avCodecCtxIn->pix_fmt;
         codecCtxArrayOut[streamIndex]->height = avCodecCtxIn->height;
         codecCtxArrayOut[streamIndex]->width = avCodecCtxIn->width;
     }
     else if (ptr_cDecoder->isAudioStream(streamIndex)) {
+        dsyslog("cEncoder::InitEncoderCodec(): input codec sample rate %d for stream %d", avCodecCtxIn->sample_rate, streamIndex);
         codecCtxArrayOut[streamIndex]->sample_fmt = avCodecCtxIn->sample_fmt;
         codecCtxArrayOut[streamIndex]->channel_layout = avCodecCtxIn->channel_layout;
         codecCtxArrayOut[streamIndex]->sample_rate = avCodecCtxIn->sample_rate;
