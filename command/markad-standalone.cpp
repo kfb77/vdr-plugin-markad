@@ -481,6 +481,8 @@ void cMarkAdStandalone::CheckStart() {
                         marks.Del(MT_LOGOSTOP);
                         marks.Del(MT_HBORDERSTART);
                         marks.Del(MT_HBORDERSTOP);
+                        marks.Del(MT_VBORDERSTART);
+                        marks.Del(MT_VBORDERSTOP);
                     }
                 }
                 else dsyslog("cMarkAdStandalone::CheckStart(): no audio channel change found till now, do not disable logo/border/aspect detection");
