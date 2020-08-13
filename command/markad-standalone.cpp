@@ -572,8 +572,14 @@ void cMarkAdStandalone::CheckStart() {
                 if (begin) {
                     dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTART found at (%i)",begin->position);
                     if (begin->position > abs(iStartA) / 4) {    // this is a valid start
-                        marks.Del(MT_LOGOSTART);  // we found MT_ASPECTSTART, we do not need LOGOSTART
+                        marks.Del(MT_LOGOSTART);  // we found MT_ASPECTSTART, we do not need weeker marks
                         marks.Del(MT_LOGOSTOP);
+                        marks.Del(MT_HBORDERSTART);
+                        marks.Del(MT_HBORDERSTOP);
+                        marks.Del(MT_VBORDERSTART);
+                        marks.Del(MT_VBORDERSTOP);
+                        macontext.Video.Options.ignoreHborder = true;
+                        macontext.Video.Options.ignoreVborder = true;
                    }
                    else { // if there is a MT_ASPECTSTOP, delete all marks after this position
                        clMark *aStopNext = marks.GetNext(begin->position, MT_ASPECTSTOP);
@@ -840,7 +846,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     LogSeparator();
     clMark *mark = NULL;
 
-// delete logo marks if we have channel marks
+// delete logo and border marks if we have channel marks
     dsyslog("cMarkAdStandalone::CheckMarks(): check marks first pass (delete logo marks if we have channel or vborder marks)");
     DebugMarks();     //  only for debugging
     clMark *channelStart = marks.GetNext(0, MT_CHANNELSTART);

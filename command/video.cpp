@@ -1041,6 +1041,7 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext) {
             addmark(MT_HBORDERSTOP,hborderframenumber);
         }
     }
+    else if (hborder) hborder->Clear();
 
     if (!macontext->Video.Options.ignoreVborder) {
         int vborderframenumber;
@@ -1052,6 +1053,7 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext) {
             addmark(MT_VBORDERSTOP,vborderframenumber);
         }
     }
+    else if (vborder) vborder->Clear();
 
     if (!macontext->Video.Options.IgnoreAspectRatio) {
         bool start;
