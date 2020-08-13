@@ -122,8 +122,10 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
     bool allWhite = true;
     int whiteLines = 0;
     int whiteColumns = 0;
+    int logoWidthBeforeResize = *logoWidth;
     int heightPlane_1_2 = *logoHeight/2;
     int widthPlane_1_2 = *logoWidth/2;
+
 
     if (bestLogoCorner <= TOP_RIGHT) {  // top corners, calculate new height and cut from below
         while (allWhite) {
@@ -227,6 +229,10 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
         }
     }
     dsyslog("cExtractLogo::Resize(): logo size after resize: %d height %d width on corner %d", *logoHeight, *logoWidth, bestLogoCorner);
+    if (*logoWidth > logoWidthBeforeResize * 0.9) {  // if logo is too wide, it maybe is a lettering
+        dsyslog("cExtractLogo::Resize(): logo size not valid after resize");
+        return false;
+    }
     return true;
 }
 
