@@ -348,7 +348,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
     if (extract || onlyFillArea) return LOGO_NOCHANGE;
     if (!processed) return LOGO_ERROR;
 
-    tsyslog("frame (%6i) rp=%5i mp=%5i mpV=%5.f mpI=%5.f i=%3i c=%d s=%i p=%i", framenumber, rpixel, mpixel, (mpixel*LOGO_VMARK), (mpixel*LOGO_IMARK), area.intensity, area.counter, area.status, processed);
+    tsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel*LOGO_VMARK), (mpixel*LOGO_IMARK), area.intensity, area.counter, area.status, processed);
 
     // if we only have one plane we are "vulnerable"
     // to very bright pictures, so ignore them...
