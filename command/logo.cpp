@@ -122,6 +122,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
     bool allWhite = true;
     int whiteLines = 0;
     int whiteColumns = 0;
+    int logoHeightBeforeResize = *logoHeight;
     int logoWidthBeforeResize = *logoWidth;
     int heightPlane_1_2 = *logoHeight/2;
     int widthPlane_1_2 = *logoWidth/2;
@@ -228,9 +229,11 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
             }
         }
     }
-    dsyslog("cExtractLogo::Resize(): logo size after resize: %d height %d width on corner %d", *logoHeight, *logoWidth, bestLogoCorner);
+    dsyslog("cExtractLogo::Resize(): logo size after resize: height %d and width %d on corner %d", *logoHeight, *logoWidth, bestLogoCorner);
     if (*logoWidth > logoWidthBeforeResize * 0.9) {  // if logo is too wide, it maybe is a lettering
         dsyslog("cExtractLogo::Resize(): logo size not valid after resize");
+        *logoHeight = logoHeightBeforeResize; // restore logo size
+        *logoWidth = logoWidthBeforeResize;
         return false;
     }
     return true;
@@ -669,51 +672,67 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
             }
         }
 
-        // find best corner
-        logoInfo bestLogoInfo = {};
-        int bestLogoCorner=-1;
+        // find best and second best corner
+        logoInfo bestLogoInfo = {0};
+        logoInfo secondBestLogoInfo = {0};
+        int bestLogoCorner = -1;
+        int secondBestLogoCorner = -1;
         int sumHits = 0;
+
         if (maContext->Config->autoLogo == 1) { // use packed logos
-            logoInfoPacked bestLogoInfoPacked = {};
+            logoInfoPacked bestLogoInfoPacked = {0};
+            logoInfoPacked secondBestLogoInfoPacked = {0};
             for (int corner = 0; corner < CORNERS; corner++) {  // search for the best hits of each corner
                 sumHits += actLogoInfoPacked[corner].hits;
                 if (actLogoInfoPacked[corner].hits > bestLogoInfoPacked.hits) {
                     bestLogoInfoPacked = actLogoInfoPacked[corner];
-                    bestLogoCorner=corner;
+                    bestLogoCorner = corner;
+                }
+            }
+            for (int corner = 0; corner < CORNERS; corner++) {  // search for second best hits of each corner
+                if ((actLogoInfoPacked[corner].hits > secondBestLogoInfo.hits) && (actLogoInfoPacked[corner].hits < bestLogoInfoPacked.hits)) {
+                    secondBestLogoInfoPacked = actLogoInfoPacked[corner];
+                    secondBestLogoCorner = corner;
                 }
             }
             UnpackLogoInfo(&bestLogoInfo, &bestLogoInfoPacked);
+            UnpackLogoInfo(&secondBestLogoInfo, &secondBestLogoInfoPacked);
         }
+
         if (maContext->Config->autoLogo == 2) { // use unpacked logos
             for (int corner = 0; corner < CORNERS; corner++) {  // search for the best hits of each corner
                 sumHits += actLogoInfo[corner].hits;
                 if (actLogoInfo[corner].hits > bestLogoInfo.hits) {
                     bestLogoInfo = actLogoInfo[corner];
-                    bestLogoCorner=corner;
+                    bestLogoCorner = corner;
+                }
+            }
+            for (int corner = 0; corner < CORNERS; corner++) {  // search for second best hits of each corner
+                if ((actLogoInfo[corner].hits > secondBestLogoInfo.hits) && (corner != bestLogoCorner)) {
+                    secondBestLogoInfo = actLogoInfo[corner];
+                    secondBestLogoCorner = corner;
                 }
             }
         }
-        for (int corner = 0; corner < CORNERS; corner++) {  // free memory of the corners who are not selected
-            if (corner == bestLogoCorner) continue;
-#ifdef DEBUGMEM
-            int size = logoInfoVector[corner].size();
-            for (int i = 0 ; i < size; i++) {
-                FREE(sizeof(logoInfo), "logoInfoVector");
-            }
-            size = logoInfoVectorPacked[corner].size();
-            for (int i = 0 ; i < size; i++) {
-                FREE(sizeof(logoInfoPacked), "logoInfoVectorPacked");
-            }
-#endif
-            logoInfoVector[corner].clear();
-            logoInfoVectorPacked[corner].clear();
-        }
 
         if ((bestLogoInfo.hits >= 50) || ((bestLogoInfo.hits >= 25) && (bestLogoInfo.hits == sumHits))) {  // if all hits are in the same corner than 25 are enough
-            dsyslog("cExtractLogo::SearchLogo(): best logo found at frame %i with %i similars at corner %i", bestLogoInfo.iFrameNumber, bestLogoInfo.hits, bestLogoCorner);
+            dsyslog("cExtractLogo::SearchLogo(): best corner %d found at frame %d with %d similars", bestLogoCorner, bestLogoInfo.iFrameNumber, bestLogoInfo.hits);
             if (! this->Resize(&bestLogoInfo, &logoHeight, &logoWidth, bestLogoCorner)) {
-                dsyslog("cExtractLogo::SearchLogo(): resize logo failed");
-                retStatus=false;
+                dsyslog("cExtractLogo::SearchLogo(): resize logo failed from best corner failed");
+                if (secondBestLogoInfo.hits >= 50) {
+                    dsyslog("cExtractLogo::SearchLogo(): try with second best corner %d at frame %d with %d similars", secondBestLogoCorner, secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
+                    if (! this->Resize(&secondBestLogoInfo, &logoHeight, &logoWidth, secondBestLogoCorner)) {
+                       dsyslog("cExtractLogo::SearchLogo(): resize logo from second best failed");
+                       retStatus=false;
+                    }
+                    else {
+                        if (! this->Save(maContext, &secondBestLogoInfo, logoHeight, logoWidth, secondBestLogoCorner)) {
+                            dsyslog("cExtractLogo::SearchLogo(): logo save failed");
+                            retStatus=false;
+                        }
+                    }
+                }
+                else retStatus=false;
             }
             else {
                 if (! this->Save(maContext, &bestLogoInfo, logoHeight, logoWidth, bestLogoCorner)) {
