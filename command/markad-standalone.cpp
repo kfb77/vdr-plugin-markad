@@ -2568,24 +2568,23 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd) {
     }
     endmntent(mounts);
 
-    if (useatime) dsyslog("cMarkAdStandalone::GetBroadcastStart(): mount option noatime is set, use time from directory %s", directory);
+    if (useatime) dsyslog("cMarkAdStandalone::GetBroadcastStart(): mount option noatime is set, use atime from directory %s to get creation time", directory);
     else dsyslog("cMarkAdStandalone::GetBroadcastStart(): mount option noatime is not set");
 
     if ((useatime) && (stat(directory, &statbuf) != -1)) {
         if (fabs(difftime(start,statbuf.st_atime)) < 60 * 60 * 12) {  // do not beleave recordings > 12h
-            dsyslog("cMarkAdStandalone::GetBroadcastStart(): getting recording start from directory atime");
+            dsyslog("cMarkAdStandalone::GetBroadcastStart(): got recording start from directory creation time");
             return statbuf.st_atime;
         }
-        dsyslog("cMarkAdStandalone::GetBroadcastStart(): got no valid atime:");
-        dsyslog("cMarkAdStandalone::GetBroadcastStart(): atime directory %s", strtok(ctime(&statbuf.st_atime), "\n"));
-        dsyslog("cMarkAdStandalone::GetBroadcastStart():      start time %s", strtok(ctime(&start), "\n"));
+        dsyslog("cMarkAdStandalone::GetBroadcastStart(): got no valid directory creation time, maybe recording was copied %s", strtok(ctime(&statbuf.st_atime), "\n"));
+        dsyslog("cMarkAdStandalone::GetBroadcastStart(): broadcast start time from vdr info file                          %s", strtok(ctime(&start), "\n"));
     }
 
     // try to get from mtime
     // (and hope info.vdr has not changed after the start of the recording)
     if (fstat(fd,&statbuf) != -1) {
         if (fabs(difftime(start, statbuf.st_mtime)) < 7200) {
-            dsyslog("cMarkAdStandalone::GetBroadcastStart(): getting recording start from VDR info file mtime");
+            dsyslog("cMarkAdStandalone::GetBroadcastStart(): getting recording start from VDR info file modification time     %s", strtok(ctime(&statbuf.st_mtime), "\n"));
             return (time_t) statbuf.st_mtime;
         }
     }
@@ -2806,7 +2805,7 @@ bool cMarkAdStandalone::LoadInfo() {
         time_t rStart = GetBroadcastStart(startTime, fileno(f));
         if (rStart) {
             dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
-            dsyslog("cMarkAdStandalone::LoadInfo(): broadcast start at %s from VDR info file", strtok(ctime(&startTime), "\n"));
+            dsyslog("cMarkAdStandalone::LoadInfo(): broadcast start at %s", strtok(ctime(&startTime), "\n"));
             tStart=(int) (startTime-rStart);
             if (tStart > 60 * 60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
                 isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", tStart);
