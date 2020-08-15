@@ -720,7 +720,7 @@ void cMarkAdStandalone::CheckStart() {
                 if (lNextStart && ((lNextStart->position - lStop->position) < delta)) { // found start mark short after start/stop, use this as start mark
                     indexToHMSF = marks.IndexToHMSF(lNextStart->position, &macontext, ptr_cDecoder);
                     if (indexToHMSF) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lNextStart->position, indexToHMSF);
+                        dsyslog("cMarkAdStandalone::CheckStart(): found start mark short after logo start/stop marks on position (%i) at %s", lNextStart->position, indexToHMSF);
                         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                         free(indexToHMSF);
                     }
@@ -730,16 +730,16 @@ void cMarkAdStandalone::CheckStart() {
             if (lStart->position  >= (iStart / 8)) {
                 begin = lStart;   // found valid logo start mark
             }
-            else {  // logo start mark too early, try if tehe is a later logo start mark
-                lStart = marks.GetAround(iStartA, iStartA + delta, MT_LOGOSTART);
-                if (lStart && (lStart->position  > (iStart / 8))) {  // found later logo start mark
-                    indexToHMSF = marks.IndexToHMSF(lStart->position, &macontext, ptr_cDecoder);
+            else {  // logo start mark too early, try if there is a later logo start mark
+                clMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
+                if (lNextStart && (lNextStart->position  > (iStart / 8)) && ((lNextStart->position - lStart->position) < (5 * delta))) {  // found later logo start mark
+                    indexToHMSF = marks.IndexToHMSF(lNextStart->position, &macontext, ptr_cDecoder);
                     if (indexToHMSF) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lStart->position, indexToHMSF);
+                        dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lNextStart->position, indexToHMSF);
                         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                         free(indexToHMSF);
                     }
-                    begin = lStart;   // found valid logo start mark
+                    begin = lNextStart;   // found valid logo start mark
                 }
             }
         }
