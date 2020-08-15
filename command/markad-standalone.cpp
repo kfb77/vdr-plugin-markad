@@ -690,13 +690,14 @@ void cMarkAdStandalone::CheckStart() {
                     begin = vStart;   // found valid vertical border start mark
                     macontext.Video.Options.ignoreHborder = true;
                 }
+                else dsyslog("cMarkAdStandalone::CheckStart(): ignore vertical border start found at (0)");
             }
         }
     }
 
 // try to find a logo mark
     if (!begin) {
-        clMark *lStart = marks.GetAround(iStartA + delta, iStartA, MT_LOGOSTART);
+        clMark *lStart = marks.GetAround(iStartA + 2 * delta, iStartA, MT_LOGOSTART);   // increase from 1
         if (!lStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no logo start mark found");
         }
