@@ -72,6 +72,7 @@ typedef struct {
     int status;                // status = LOGO on, off, uninitialized
     int framenumber;           // start/stop frame
     int counter;               // how many logo on, offs detected?
+    int counterInvisible;      // how many logo offs detected even on bright areas
     int corner;                // which corner
     int intensity;             // intensity (higher -> brighter)
     MarkAdAspectRatio aspectratio; // aspectratio

@@ -348,11 +348,18 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
     if (extract || onlyFillArea) return LOGO_NOCHANGE;
     if (!processed) return LOGO_ERROR;
 
-    tsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel*LOGO_VMARK), (mpixel*LOGO_IMARK), area.intensity, area.counter, area.status, processed);
+    tsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | cI=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel*LOGO_VMARK), (mpixel*LOGO_IMARK), area.intensity, area.counter, area.counterInvisible, area.status, processed);
 
     // if we only have one plane we are "vulnerable"
     // to very bright pictures, so ignore them...
-    if ((rpixel < (mpixel * LOGO_VMARK)) && (area.intensity > 150)) return LOGO_NOCHANGE;
+    if (processed == 1) {
+        if (rpixel < ((mpixel * LOGO_IMARK) / 10)) {
+            if (area.intensity < 180) area.counterInvisible++;  // even on bright areas a very small rpixel value can be valid
+        }
+        else area.counterInvisible = 0;
+        if (area.counterInvisible >= LOGO_IMAXCOUNT) tsyslog("%d logo invisible in bright area", area.counterInvisible);
+        if ((rpixel < (mpixel * LOGO_VMARK)) && (area.intensity > 130) && (area.counterInvisible < LOGO_IMAXCOUNT)) return LOGO_NOCHANGE;
+    }
 
     int ret = LOGO_NOCHANGE;
     if (area.status == LOGO_UNINITIALIZED) { // Initialize
