@@ -969,12 +969,12 @@ void cMarkAdVideo::Clear(bool isRestart) {
     if (! isRestart) {
         aspectratio.Num=0;
         aspectratio.Den=0;
+        if (hborder) hborder->Clear();
+        if (vborder) vborder->Clear();
     }
     framelast=0;
     framebeforelast=0;
     if (blackScreen) blackScreen->Clear();
-    if (hborder) hborder->Clear();
-    if (vborder) vborder->Clear();
     if (logo) logo->Clear();
 }
 
