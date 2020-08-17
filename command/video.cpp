@@ -1127,3 +1127,20 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext) {
         return NULL;
     }
 }
+
+
+bool cMarkAdVideo::ReducePlanes() {
+    if (!logo) return false;
+    areaT *area = logo->GetArea();
+    if (!area) return false;
+    bool ret = false;
+    for (int plane = 1; plane < PLANES; plane++) {
+        if (area->valid[plane]) {
+           area->valid[plane] = false;
+           area->mpixel[plane] = 0;
+           area->rpixel[plane] = 0;
+           ret = true;
+        }
+    }
+    return ret;
+}

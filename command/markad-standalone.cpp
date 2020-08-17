@@ -827,6 +827,24 @@ void cMarkAdStandalone::CheckStart() {
         AddMark(&mark);
         CalculateCheckPositions(iStart);
     }
+
+// count logo STOP/START pairs
+    int countStopStart = 0;
+    clMark *mark = marks.GetFirst();
+    while (mark) {
+        if ((mark->type == MT_LOGOSTOP) && mark->Next() && (mark->Next()->type == MT_LOGOSTART)) {
+            countStopStart++;
+        }
+        mark = mark->Next();
+    }
+    if ((countStopStart >= 3) && begin) {
+        isyslog("%d logo STOP/START pairs found after start mark, something is wrong with your logo", countStopStart);
+        if (video->ReducePlanes()) {
+            dsyslog("cMarkAdStandalone::CheckStart(): reduce logo processing to first plane and delete all marks after start mark (%d)", begin->position);
+            marks.DelFrom(begin->position);
+        }
+    }
+
     iStart = 0;
     if (macontext.Config->Before) marks.Save(directory, &macontext, ptr_cDecoder, isTS, true);
     DebugMarks();     //  only for debugging

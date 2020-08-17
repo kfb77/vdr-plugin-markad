@@ -144,6 +144,21 @@ void clMarks::DelTill(int Position, bool FromStart) {
 }
 
 
+void clMarks::DelFrom(int Position) {
+    clMark *mark = first;
+    while (mark) {
+        if (mark->position > Position) break;
+        mark = mark->Next();
+    }
+
+    while (mark) {
+        clMark * next = mark->Next();
+        Del(mark);
+        mark = next;
+    }
+}
+
+
 void clMarks::DelAll() {
     clMark *next,*mark=first;
     while (mark) {
