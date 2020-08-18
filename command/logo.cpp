@@ -788,29 +788,42 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
         }
 
         if ((bestLogoInfo.hits >= 50) || ((bestLogoInfo.hits >= 25) && (sumHits <= bestLogoInfo.hits + 3))) {  // if almost all hits are in the same corner than 25 are enough
+            int secondLogoHeight = logoHeight;
+            int secondLogoWidth = logoWidth;
             dsyslog("cExtractLogo::SearchLogo(): best corner %d found at frame %d with %d similars", bestLogoCorner, bestLogoInfo.iFrameNumber, bestLogoInfo.hits);
-            if (! this->Resize(&bestLogoInfo, &logoHeight, &logoWidth, bestLogoCorner)) {
+            if (this->Resize(&bestLogoInfo, &logoHeight, &logoWidth, bestLogoCorner)) {
+                if ((secondBestLogoInfo.hits > 50) || (secondBestLogoInfo.hits > (bestLogoInfo.hits * 0.7))) { // decreased from 0.9 to 0.8 to 0.7
+                    dsyslog("cExtractLogo::SearchLogo(): no clear corner detected, second best corner has %d hits", secondBestLogoInfo.hits);
+                    if (secondBestLogoInfo.hits >= 50) {
+                        dsyslog("cExtractLogo::SearchLogo(): try with second best corner %d at frame %d with %d similars", secondBestLogoCorner, secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
+                        if (this->Resize(&secondBestLogoInfo, &secondLogoHeight, &secondLogoWidth, secondBestLogoCorner)) {
+                            if (secondLogoWidth < logoWidth) {  // smaller is the logo, the wider is a lettering
+                                dsyslog("cExtractLogo::SearchLogo(): second best corner is narrower, use this");
+                                bestLogoInfo = secondBestLogoInfo;
+                                bestLogoCorner = secondBestLogoCorner;
+                                logoHeight = secondLogoHeight;
+                                logoWidth = secondLogoWidth;
+                            }
+                        }
+                        else dsyslog("cExtractLogo::SearchLogo(): resize logo failed from second best corner failed");
+                    }
+                    else retStatus=false;
+                }
+            }
+            else {
                 dsyslog("cExtractLogo::SearchLogo(): resize logo failed from best corner failed");
                 if (secondBestLogoInfo.hits >= 50) {
                     dsyslog("cExtractLogo::SearchLogo(): try with second best corner %d at frame %d with %d similars", secondBestLogoCorner, secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
-                    if (! this->Resize(&secondBestLogoInfo, &logoHeight, &logoWidth, secondBestLogoCorner)) {
-                       dsyslog("cExtractLogo::SearchLogo(): resize logo from second best failed");
-                       retStatus=false;
+                    if (this->Resize(&secondBestLogoInfo, &logoHeight, &logoWidth, secondBestLogoCorner)) {
+                        bestLogoInfo = secondBestLogoInfo;
+                        bestLogoCorner = secondBestLogoCorner;
                     }
                     else {
-                        if (! this->Save(maContext, &secondBestLogoInfo, logoHeight, logoWidth, secondBestLogoCorner)) {
-                            dsyslog("cExtractLogo::SearchLogo(): logo save failed");
-                            retStatus=false;
-                        }
+                        dsyslog("cExtractLogo::SearchLogo(): resize logo from second best failed");
+                        retStatus=false;
                     }
                 }
                 else retStatus=false;
-            }
-            else {
-                if (! this->Save(maContext, &bestLogoInfo, logoHeight, logoWidth, bestLogoCorner)) {
-                    dsyslog("cExtractLogo::SearchLogo(): logo save failed");
-                    retStatus=false;
-                }
             }
         }
         else {
@@ -818,6 +831,12 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
             retStatus=false;
         }
 
+        if (retStatus) {
+            if (! this->Save(maContext, &bestLogoInfo, logoHeight, logoWidth, bestLogoCorner)) {
+                dsyslog("cExtractLogo::SearchLogo(): logo save failed");
+                retStatus=false;
+            }
+        }
     }
     maContext->Video = maContextSaveState.Video;     // restore state of calling video context
     maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
