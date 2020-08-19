@@ -217,7 +217,7 @@ clMark *clMarks::Get(int Position) {
 
 clMark *clMarks::GetAround(const int Frames, const int Position, const int Type, const int Mask) {
     clMark *m0 = Get(Position);
-    if (m0 && (m0->position == Position) && ((m0->type && Mask) == (Type && Mask))) return m0;
+    if (m0 && (m0->position == Position) && ((m0->type & Mask) == (Type & Mask))) return m0;
 
     clMark *m1 = GetPrev(Position, Type, Mask);
     clMark *m2 = GetNext(Position, Type, Mask);
