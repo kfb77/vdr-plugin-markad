@@ -602,11 +602,18 @@ void cMarkAdStandalone::CheckStart() {
             else { // recording is 16:9 but maybe we can get a MT_ASPECTSTART mark if previous recording was 4:3
                 begin = marks.GetAround(delta * 3, iStartA, MT_ASPECTSTART);
                 if (begin) {
-                    dsyslog("cMarkAdStandalone::CheckStart(): use MT_ASPECTSTART found at (%i) because previous recording was 4:3", begin->position);
-                    clMark *begin2 = marks.GetAround(delta * 4, begin->position, MT_LOGOSTART);  // do not use this mark if there is a later logo start mark
-                    if (begin2 && (begin2->position >  begin->position)) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): found later MT_LOGOSTART, do not use MT_ASPECTSTART");
+                    dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTART found at (%i) because previous recording was 4:3", begin->position);
+                    clMark *begin3 = marks.GetAround(delta, begin->position, MT_VBORDERSTART);  // do not use this mark if there is a later vborder start mark
+                    if (begin3 && (begin3->position >  begin->position)) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): found later MT_VBORDERSTAT, do not use MT_ASPECTSTART");
                         begin = NULL;
+                    }
+                    else {
+                        begin3 = marks.GetAround(delta * 4, begin->position, MT_LOGOSTART);  // do not use this mark if there is a later logo start mark
+                        if (begin3 && (begin3->position >  begin->position)) {
+                            dsyslog("cMarkAdStandalone::CheckStart(): found later MT_LOGOSTART, do not use MT_ASPECTSTART");
+                            begin = NULL;
+                        }
                     }
                 }
             }
