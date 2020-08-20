@@ -682,7 +682,7 @@ void cMarkAdStandalone::CheckStart() {
         }
         else {
             dsyslog("cMarkAdStandalone::CheckStart(): vertical border start found at (%i)", vStart->position);
-            clMark *vStop = marks.GetAround(delta, vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is not valid
+            clMark *vStop = marks.GetAround(delta / 2, vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is not valid, reduced from delta
             if ((vStop) && (vStop->position > vStart->position)) {
                 isyslog("vertical border STOP (%i) short after vertical border START (%i) found, this is not valid, delete marks", vStop->position,vStart->position);
                 marks.Del(vStart);
