@@ -230,7 +230,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
         }
     }
     dsyslog("cExtractLogo::Resize(): logo size after resize: height %d and width %d on corner %d", *logoHeight, *logoWidth, bestLogoCorner);
-    if (*logoWidth > logoWidthBeforeResize * 0.9) {  // if logo is too wide, it maybe is a lettering
+    if ((*logoWidth > logoWidthBeforeResize * 0.9) && (bestLogoCorner != BOTTOM_LEFT)) {  // if logo is too wide, it maybe is a lettering, but not bottom left, this could be a news ticker after the logo
         dsyslog("cExtractLogo::Resize(): logo size not valid after resize");
         *logoHeight = logoHeightBeforeResize; // restore logo size
         *logoWidth = logoWidthBeforeResize;
