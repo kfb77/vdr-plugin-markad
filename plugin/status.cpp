@@ -209,11 +209,9 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
             return;
         }
 
-        if ((recs[i].runningStatus == 0) && (runningStatus == 4)) {  // recording start after vps start
-            if (StoreVPSStatus("START", i)) {
-                if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, runningStatus, "start (recording start after VPS start)");
-                recs[i].runningStatus = 4;
-            }
+        if ((recs[i].runningStatus == 0) && (runningStatus == 4)) {  // invalid vps start sequence
+            if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, runningStatus, "invalid start sequence");
+            recs[i].runningStatus = -1;
             return;
         }
 
