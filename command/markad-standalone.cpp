@@ -716,7 +716,7 @@ void cMarkAdStandalone::CheckStart() {
                 free(indexToHMSF);
             }
             clMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);
-            if (lStop && ((lStop->position - lStart->position) < (20 *  macontext.Video.Info.FramesPerSecond))) {  // very short logo part, lStart is possible wrong
+            if (lStop && ((lStop->position - lStart->position) < (60 *  macontext.Video.Info.FramesPerSecond))) {  // very short logo part, lStart is possible wrong, increased from 20 to 60
                 indexToHMSF = marks.IndexToHMSF(lStop->position, &macontext, ptr_cDecoder);
                 if (indexToHMSF) {
                     dsyslog("cMarkAdStandalone::CheckStart(): logo stop mark found very short after start mark on position (%i) at %s", lStop->position, indexToHMSF);
