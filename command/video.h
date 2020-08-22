@@ -161,6 +161,7 @@ class cMarkAdBlackBordersHoriz {
         MarkAdContext *macontext;
     public:
         explicit cMarkAdBlackBordersHoriz(MarkAdContext *maContext);
+        int GetFirstBorderFrame();
         int Process(int FrameNumber,int *BorderFrameNumber);
         int Status() {
             return borderstatus;
@@ -180,6 +181,7 @@ class cMarkAdBlackBordersVert {
         MarkAdContext *macontext;
     public:
         explicit cMarkAdBlackBordersVert(MarkAdContext *maContext);
+        int GetFirstBorderFrame();
         int Process(int FrameNumber,int *BorderFrameNumber);
         int Status() {
             return borderstatus;

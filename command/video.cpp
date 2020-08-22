@@ -604,6 +604,12 @@ cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(MarkAdContext *maContext) {
 }
 
 
+int cMarkAdBlackBordersHoriz::GetFirstBorderFrame() {
+    if (borderstatus != HBORDER_VISIBLE) return borderframenumber;
+    else return -1;
+}
+
+
 void cMarkAdBlackBordersHoriz::Clear() {
     borderstatus = HBORDER_UNINITIALIZED;
     borderframenumber = -1;
@@ -702,6 +708,12 @@ cMarkAdBlackBordersVert::cMarkAdBlackBordersVert(MarkAdContext *maContext) {
 void cMarkAdBlackBordersVert::Clear() {
     borderstatus = VBORDER_UNINITIALIZED;
     borderframenumber = -1;
+}
+
+
+int cMarkAdBlackBordersVert::GetFirstBorderFrame() {
+    if (borderstatus != VBORDER_VISIBLE) return borderframenumber;
+    else return -1;
 }
 
 

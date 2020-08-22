@@ -362,7 +362,7 @@ int cExtractLogo::DeleteBorderFrames(const MarkAdContext *maContext, const int f
     if (from >= to) return 0;
     int deleteCount=0;
     dsyslog("cExtractLogo::DeleteBorderFrames(): delete border frames from %d to %d", from, to);
-    for (int corner = 0; corner <= 3; corner++) {
+    for (int corner = 0; corner < CORNERS; corner++) {
         if (maContext->Config->autoLogo == 1) { // use packed logos
             for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
                 if (abortNow) return 0;
@@ -569,25 +569,26 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                     if ((logoAspectRatio.Num != maContext->Video.Info.AspectRatio.Num) || (logoAspectRatio.Den != maContext->Video.Info.AspectRatio.Den)) {
                         continue;
                     }
-                    int BorderIFrame = 0;
-                    int isVBorder = vborder->Process(iFrameNumber, &BorderIFrame);
-                    int isHBorder = hborder->Process(iFrameNumber, &BorderIFrame);
-                    if (isVBorder) {
-                        if (vborder->Status() == VBORDER_VISIBLE) {
-                            dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d)", BorderIFrame, iFrameNumber);
-                            iFrameCountValid-=DeleteBorderFrames(maContext, BorderIFrame, iFrameNumber);
-                        }
-                        else {
-                            dsyslog("cExtractLogo::SearchLogo(): no vertical border from frame (%d)", iFrameNumber);
-                        }
-                    }
-                    if (isHBorder) {
+                    int hBorderIFrame = 0;
+                    int vBorderIFrame = 0;
+                    int isHBorder = hborder->Process(iFrameNumber, &hBorderIFrame);
+                    int isVBorder = vborder->Process(iFrameNumber, &vBorderIFrame);
+                    if (isHBorder) {  // -1 invisible, 1 visible
                         if (hborder->Status() == HBORDER_VISIBLE) {
-                            dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d)", BorderIFrame, iFrameNumber);
-                            iFrameCountValid-=DeleteBorderFrames(maContext, BorderIFrame, iFrameNumber);
+                            dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d)", hBorderIFrame, iFrameNumber);
+                            iFrameCountValid-=DeleteBorderFrames(maContext, hBorderIFrame, iFrameNumber);
                         }
                         else {
                             dsyslog("cExtractLogo::SearchLogo(): no horizontal border from frame (%d)", iFrameNumber);
+                        }
+                    }
+                    if (isVBorder) { // -1 invisible, 1 visible
+                        if (vborder->Status() == VBORDER_VISIBLE) {
+                            dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d)", vBorderIFrame, iFrameNumber);
+                            iFrameCountValid-=DeleteBorderFrames(maContext, vBorderIFrame, iFrameNumber);
+                        }
+                        else {
+                            dsyslog("cExtractLogo::SearchLogo(): no vertical border from frame (%d)", iFrameNumber);
                         }
                     }
                     if ((vborder->Status() == VBORDER_VISIBLE) || (hborder->Status() == HBORDER_VISIBLE)) {
@@ -630,6 +631,18 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                                 break;
                             }
                             ALLOC((sizeof(logoInfo)), "logoInfoVector");
+                        }
+                    }
+                    if (iFrameCountValid > 1000) {
+                        int firstBorder = hborder->GetFirstBorderFrame();
+                        if (firstBorder > 0) {
+                            dsyslog("cExtractLogo::SearchLogo(): detect unprocessed horizontal border from frame (%d) to frame (%d)", firstBorder, iFrameNumber);
+                            iFrameCountValid-=DeleteBorderFrames(maContext, firstBorder, iFrameNumber);
+                        }
+                        firstBorder = vborder->GetFirstBorderFrame();
+                        if (firstBorder > 0) {
+                            dsyslog("cExtractLogo::SearchLogo(): detect unprocessed vertical border from frame (%d) to frame (%d)", firstBorder, iFrameNumber);
+                            iFrameCountValid-=DeleteBorderFrames(maContext, firstBorder, iFrameNumber);
                         }
                     }
                     if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES) || !retStatus)  break; // finish inner loop and find best match
