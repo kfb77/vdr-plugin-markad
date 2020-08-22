@@ -540,6 +540,13 @@ void cMarkAdStandalone::CheckStart() {
             isyslog("video aspect description in info (%i:%i) wrong", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
             macontext.Info.AspectRatio.Num = macontext.Video.Info.AspectRatio.Num;
             macontext.Info.AspectRatio.Den = macontext.Video.Info.AspectRatio.Den;
+// we have to inverst MT_ASPECTSTART and MT_ASPECTSTOP
+            clMark *aMark = marks.GetFirst();
+            while (aMark) {
+                if (aMark->type == MT_ASPECTSTART) aMark->type = MT_ASPECTSTOP;
+                if (aMark->type == MT_ASPECTSTOP) aMark->type = MT_ASPECTSTOP;
+                aMark = aMark->Next();
+            }
         }
         if ((macontext.Info.AspectRatio.Num == 0) || (macontext.Video.Info.AspectRatio.Den == 0)) {
             isyslog("no video aspect ratio found in info file");
