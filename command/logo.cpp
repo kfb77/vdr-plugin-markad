@@ -135,7 +135,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
     int acceptFalsePixelV = *logoHeight / 30;
 
 // resize plane 0
-    dsyslog("cExtractLogo::Resize(): logo size before resize: %d height %d width on corner %d", *logoHeight, *logoWidth, bestLogoCorner);
+    dsyslog("cExtractLogo::Resize(): logo size before resize: %3d width %3d height on corner %d", *logoWidth, *logoHeight, bestLogoCorner);
     bool allWhite = true;
     int whiteLines = 0;
     int whiteColumns = 0;
@@ -246,14 +246,36 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
             }
         }
     }
-    dsyslog("cExtractLogo::Resize(): logo size after resize: height %d and width %d on corner %d", *logoHeight, *logoWidth, bestLogoCorner);
-    if ((*logoWidth > logoWidthBeforeResize * 0.9) && (bestLogoCorner != BOTTOM_LEFT)) {  // if logo is too wide, it maybe is a lettering, but not bottom left, this could be a news ticker after the logo
+
+// known logo sizes
+// SD FOX:    96W 72H
+// SD Nick:  144W 90H
+    dsyslog("cExtractLogo::Resize(): logo size after resize:  %3d width %3d height on corner %d", *logoWidth, *logoHeight, bestLogoCorner);
+    bool logoValid = true;
+    if ((logoWidthBeforeResize == LOGO_DEFWIDTH) && (*logoWidth >= 150)) {
+        dsyslog("cExtractLogo::Resize(): SD logo is too wide");
+        logoValid = false;
+    }
+    if (*logoWidth < logoWidthBeforeResize * 0.3) {
+        dsyslog("cExtractLogo::Resize(): logo is too narrow");
+        logoValid = false;
+    }
+    if (*logoHeight <= 50) {
+        dsyslog("cExtractLogo::Resize(): logo is no heigh enough");
+        logoValid = false;
+    }
+    if ((logoWidthBeforeResize == LOGO_DEFWIDTH) && (*logoHeight > 90)) {
+        dsyslog("cExtractLogo::Resize(): SD logo is too heigh");
+        logoValid = false;
+    }
+
+    if (logoValid) return true;
+    else {
         dsyslog("cExtractLogo::Resize(): logo size not valid after resize");
         *logoHeight = logoHeightBeforeResize; // restore logo size
         *logoWidth = logoWidthBeforeResize;
         return false;
     }
-    return true;
 }
 
 
@@ -731,7 +753,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                         actLogoInfoPacked[corner] = *actLogoPacked;
                     }
                 }
-                dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %i with %i similars at corner %i", actLogoInfoPacked[corner].iFrameNumber, actLogoInfoPacked[corner].hits, corner);
+                dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars at corner %i", actLogoInfoPacked[corner].iFrameNumber, actLogoInfoPacked[corner].hits, corner);
             }
             if (maContext->Config->autoLogo == 2) { // use unpacked logos
                 for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
@@ -739,7 +761,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                         actLogoInfo[corner] = *actLogo;
                     }
                 }
-                dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %i with %i similars at corner %i", actLogoInfo[corner].iFrameNumber, actLogoInfo[corner].hits, corner);
+                dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars at corner %i", actLogoInfo[corner].iFrameNumber, actLogoInfo[corner].hits, corner);
             }
         }
 
@@ -792,7 +814,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
             dsyslog("cExtractLogo::SearchLogo(): best corner %d found at frame %d with %d similars", bestLogoCorner, bestLogoInfo.iFrameNumber, bestLogoInfo.hits);
             if (this->Resize(&bestLogoInfo, &logoHeight, &logoWidth, bestLogoCorner)) {
                 if ((secondBestLogoInfo.hits > 50) || (secondBestLogoInfo.hits > (bestLogoInfo.hits * 0.7))) { // decreased from 0.9 to 0.8 to 0.7
-                    dsyslog("cExtractLogo::SearchLogo(): no clear corner detected, second best corner has %d hits", secondBestLogoInfo.hits);
+                    dsyslog("cExtractLogo::SearchLogo(): no clear corner detected, second best corner %d has %d hits", secondBestLogoCorner, secondBestLogoInfo.hits);
                     if (secondBestLogoInfo.hits >= 50) {
                         dsyslog("cExtractLogo::SearchLogo(): try with second best corner %d at frame %d with %d similars", secondBestLogoCorner, secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
                         if (this->Resize(&secondBestLogoInfo, &secondLogoHeight, &secondLogoWidth, secondBestLogoCorner)) {
