@@ -131,6 +131,9 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
     if (!logoWidth) return false;
     if ((bestLogoCorner < 0) || (bestLogoCorner > 3)) return false;
 
+    int acceptFalsePixelH = *logoWidth / 60;
+    int acceptFalsePixelV = *logoHeight / 30;
+
 // resize plane 0
     dsyslog("cExtractLogo::Resize(): logo size before resize: %d height %d width on corner %d", *logoHeight, *logoWidth, bestLogoCorner);
     bool allWhite = true;
@@ -150,7 +153,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
                     isLineWhite++;
                 }
             }
-            if (isLineWhite < 3 ) {  // accept 2 false pixel
+            if (isLineWhite <= acceptFalsePixelH ) {  // accept false pixel
                 (*logoHeight)--;
             }
             else allWhite=false;
@@ -165,7 +168,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
                     isLineWhite++;
                 }
             }
-            if (isLineWhite < 3 ) {  // accept 2 false pixel
+            if (isLineWhite <= acceptFalsePixelH ) {  // accept false pixel
                 whiteLines++;
                 if (whiteLines >= *logoHeight) allWhite=false;
             }
@@ -187,7 +190,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
                     isColumnWhite++;
                 }
             }
-            if (isColumnWhite < 3 ) {  // accept 2 false pixel
+            if (isColumnWhite <= acceptFalsePixelV ) {  // accept false pixel
                 whiteColumns++;
             }
             else allWhite=false;
@@ -207,7 +210,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
                     isColumnWhite++;
                 }
             }
-            if (isColumnWhite < 3 ) {  // accept 2 false pixel
+            if (isColumnWhite <= acceptFalsePixelV ) {  // accept false pixel
                 whiteColumns--;
             }
             else allWhite=false;
