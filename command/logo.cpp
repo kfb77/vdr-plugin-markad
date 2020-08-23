@@ -290,9 +290,9 @@ int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoI
         }
 
     }
-
+#define WHITEVERTICAL 10
     if ((corner == TOP_LEFT) || (corner == BOTTOM_LEFT)) { // a valid left logo should have white left part in pane 0
-        for (int column = 0; column < 10; column++) {
+        for (int column = 0; column <= WHITEVERTICAL; column++) {
             for (int i = column; i < logoHeight * logoWidth; i = i + logoWidth) {
                 if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
                     return 0;
@@ -301,7 +301,7 @@ int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoI
         }
     }
     else { // a valid right logo should have white right part in pane 0
-        for (int column = 0; column < 10; column++) {
+        for (int column = 0; column <= WHITEVERTICAL; column++) {
             for (int i = logoWidth - column; i < logoHeight * logoWidth; i = i + logoWidth) {
                 if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
                     return 0;
