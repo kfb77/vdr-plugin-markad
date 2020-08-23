@@ -30,6 +30,20 @@ cExtractLogo::cExtractLogo(MarkAdAspectRatio aspectRatio) {
 
 
 cExtractLogo::~cExtractLogo() {
+    for (int corner = 0; corner <= 3; corner++) {  // free memory of all corners
+#ifdef DEBUGMEM
+        int size = logoInfoVector[corner].size();
+        for (int i = 0 ; i < size; i++) {
+            FREE(sizeof(logoInfo), "logoInfoVector");
+        }
+        size = logoInfoVectorPacked[corner].size();
+        for (int i = 0 ; i < size; i++) {
+            FREE(sizeof(logoInfoPacked), "logoInfoVectorPacked");
+        }
+#endif
+        logoInfoVector[corner].clear();
+        logoInfoVectorPacked[corner].clear();
+    }
 }
 
 
@@ -357,30 +371,34 @@ if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo !=!=!
 }
 
 
-int cExtractLogo::DeleteBorderFrames(const MarkAdContext *maContext, const int from, const int to) {
+int cExtractLogo::DeleteFrames(const MarkAdContext *maContext, const int from, const int to) {
     if (!maContext) return false;
     if (from >= to) return 0;
     int deleteCount=0;
-    dsyslog("cExtractLogo::DeleteBorderFrames(): delete border frames from %d to %d", from, to);
+    dsyslog("cExtractLogo::DeleteFrames(): delete frames from %d to %d", from, to);
     for (int corner = 0; corner < CORNERS; corner++) {
         if (maContext->Config->autoLogo == 1) { // use packed logos
             for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
                 if (abortNow) return 0;
-                if (( actLogoPacked->iFrameNumber >= from) && ( actLogoPacked->iFrameNumber <= to)) {
+                if (actLogoPacked->iFrameNumber < from) continue;
+                if (actLogoPacked->iFrameNumber <= to) {
                     FREE(sizeof(*actLogoPacked), "logoInfoVectorPacked");
                     logoInfoVectorPacked[corner].erase(actLogoPacked--);  // "erase" increments the iterator, "for" also does, that is 1 to much
                     deleteCount++;
                 }
+                else break;
             }
         }
         if (maContext->Config->autoLogo == 2){  // use unpacked logos
             for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
                 if (abortNow) return 0;
-                if (( actLogo->iFrameNumber >= from) && ( actLogo->iFrameNumber <= to)) {
+                if (actLogo->iFrameNumber < from) continue;
+                if (actLogo->iFrameNumber <= to) {
                     FREE(sizeof(*actLogo), "logoInfoVector");
                     logoInfoVector[corner].erase(actLogo--);    // "erase" increments the iterator, "for" also does, that is 1 to much
                     deleteCount++;
                 }
+                else break;
             }
         }
    }
@@ -397,13 +415,13 @@ bool cExtractLogo::WaitForFrames(const MarkAdContext *maContext, cDecoder *ptr_c
     if (recordingFrameCount > (ptr_cDecoder->GetFrameNumber()+200)) return true; // we have already found enougt frames
 
     if (asprintf(&indexFile,"%s/index",maContext->Config->recDir)==-1) {
-        dsyslog("cExtractLogo::isRunningRecording(): out of memory in asprintf");
+        dsyslog("cExtractLogo::WaitForFrames: out of memory in asprintf");
         return false;
     }
     ALLOC(strlen(indexFile)+1, "indexFile");
     struct stat indexStatus;
     if (stat(indexFile,&indexStatus)==-1) {
-        dsyslog("cExtractLogo::isRunningRecording(): failed to stat %s",indexFile);
+        dsyslog("cExtractLogo::WaitForFrames: failed to stat %s",indexFile);
         FREE(strlen(indexFile)+1, "indexFile");
         free(indexFile);
         return false;
@@ -517,7 +535,35 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
         delete vborder;
         return -1;
     }
+// remove frames before start frame
+    DeleteFrames(maContext, 0, startFrame);
     while(ptr_cDecoder->DecodeDir(maContext->Config->recDir)) {
+// skip frames we have already read
+        if ((maContext->Config->autoLogo == 1) && (! logoInfoVectorPacked[0].empty())) { // use packed logos
+            logoInfoPacked lastInfo = logoInfoVectorPacked[0].back();
+            if (ptr_cDecoder->GetFrameNumber() < lastInfo.iFrameNumber) {
+                ptr_cDecoder->SeekToFrame(lastInfo.iFrameNumber);
+                iFrameCountValid = logoInfoVectorPacked[0].size();
+                if (iFrameCountValid > 1000) {
+                    dsyslog("cExtractLogo::SearchLogo(): we will get no new frames, give up");
+                }
+                iFrameCountAll = iFrameCountValid;
+                dsyslog("cExtractLogo::SearchLogo(): already have %d frames from (%d)to frame (%d)", iFrameCountValid, logoInfoVectorPacked[0].front().iFrameNumber, lastInfo.iFrameNumber);
+            }
+        }
+        if ((maContext->Config->autoLogo == 2) && (! logoInfoVector[0].empty())) { // use unpacked logos
+            logoInfo lastInfo = logoInfoVector[0].back();
+            if (ptr_cDecoder->GetFrameNumber() < lastInfo.iFrameNumber) {
+                ptr_cDecoder->SeekToFrame(lastInfo.iFrameNumber);
+                iFrameCountValid = logoInfoVector[0].size();
+                if (iFrameCountValid > 1000) {
+                    dsyslog("cExtractLogo::SearchLogo(): we will get no new frames, give up");
+                }
+                iFrameCountAll = iFrameCountValid;
+                dsyslog("cExtractLogo::SearchLogo(): already have %d frames from (%d) to (%d)", iFrameCountValid, logoInfoVector[0].front().iFrameNumber, lastInfo.iFrameNumber);
+            }
+        }
+
         maContext->Info.VPid.Type = ptr_cDecoder->GetVideoType();
         if (maContext->Info.VPid.Type == 0) {
             dsyslog("cExtractLogo::SearchLogo(): video type not set");
@@ -549,7 +595,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
         while(ptr_cDecoder->GetNextFrame()) {
             if (abortNow) return -1;
             if (!WaitForFrames(maContext, ptr_cDecoder)) {
-                dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");
+                dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at frame (%d), got %d valid frames of %d frames read", ptr_cDecoder->GetFrameNumber(), iFrameCountValid, iFrameCountAll);
                 retStatus=false;
             }
             if ((ptr_cDecoder->GetFrameInfo(maContext) && retStatus)) {
@@ -569,14 +615,20 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                     if ((logoAspectRatio.Num != maContext->Video.Info.AspectRatio.Num) || (logoAspectRatio.Den != maContext->Video.Info.AspectRatio.Den)) {
                         continue;
                     }
+                    if ((iFrameNumber >= firstBorderStart) && (iFrameNumber < lastBorderEnd)) {
+                        dsyslog("cExtractLogo::SearchLogo(): frame (%d) is in border area from (%d) to (%d) seek to end of area", iFrameNumber, firstBorderStart, lastBorderEnd);
+                        ptr_cDecoder->SeekToFrame(lastBorderEnd);
+                        continue;
+                    }
                     int hBorderIFrame = 0;
                     int vBorderIFrame = 0;
                     int isHBorder = hborder->Process(iFrameNumber, &hBorderIFrame);
                     int isVBorder = vborder->Process(iFrameNumber, &vBorderIFrame);
                     if (isHBorder) {  // -1 invisible, 1 visible
                         if (hborder->Status() == HBORDER_VISIBLE) {
-                            dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d)", hBorderIFrame, iFrameNumber);
-                            iFrameCountValid-=DeleteBorderFrames(maContext, hBorderIFrame, iFrameNumber);
+                            if (firstBorderStart == -1) firstBorderStart = hBorderIFrame;
+                            dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d), first border start at frame (%d)", hBorderIFrame, iFrameNumber, firstBorderStart);
+                            iFrameCountValid-=DeleteFrames(maContext, hBorderIFrame, iFrameNumber);
                         }
                         else {
                             dsyslog("cExtractLogo::SearchLogo(): no horizontal border from frame (%d)", iFrameNumber);
@@ -584,14 +636,16 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                     }
                     if (isVBorder) { // -1 invisible, 1 visible
                         if (vborder->Status() == VBORDER_VISIBLE) {
-                            dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d)", vBorderIFrame, iFrameNumber);
-                            iFrameCountValid-=DeleteBorderFrames(maContext, vBorderIFrame, iFrameNumber);
+                            if (firstBorderStart == -1) firstBorderStart = vBorderIFrame;
+                            dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d), first border start at frame (%d)", vBorderIFrame, iFrameNumber, firstBorderStart);
+                            iFrameCountValid-=DeleteFrames(maContext, vBorderIFrame, iFrameNumber);
                         }
                         else {
                             dsyslog("cExtractLogo::SearchLogo(): no vertical border from frame (%d)", iFrameNumber);
                         }
                     }
                     if ((vborder->Status() == VBORDER_VISIBLE) || (hborder->Status() == HBORDER_VISIBLE)) {
+                        lastBorderEnd = iFrameNumber;
                         continue;
                     }
                     iFrameCountValid++;
@@ -637,12 +691,12 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                         int firstBorder = hborder->GetFirstBorderFrame();
                         if (firstBorder > 0) {
                             dsyslog("cExtractLogo::SearchLogo(): detect unprocessed horizontal border from frame (%d) to frame (%d)", firstBorder, iFrameNumber);
-                            iFrameCountValid-=DeleteBorderFrames(maContext, firstBorder, iFrameNumber);
+                            iFrameCountValid-=DeleteFrames(maContext, firstBorder, iFrameNumber);
                         }
                         firstBorder = vborder->GetFirstBorderFrame();
                         if (firstBorder > 0) {
                             dsyslog("cExtractLogo::SearchLogo(): detect unprocessed vertical border from frame (%d) to frame (%d)", firstBorder, iFrameNumber);
-                            iFrameCountValid-=DeleteBorderFrames(maContext, firstBorder, iFrameNumber);
+                            iFrameCountValid-=DeleteFrames(maContext, firstBorder, iFrameNumber);
                         }
                     }
                     if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES) || !retStatus)  break; // finish inner loop and find best match
@@ -662,7 +716,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
         }
     }
     if (retStatus) {
-        dsyslog("cExtractLogo::SearchLogo(): got enough iFrames at frame (%d), start analyze",ptr_cDecoder->GetFrameNumber());
+        dsyslog("cExtractLogo::SearchLogo(): %d valid frames of %d frames read, got enough iFrames at frame (%d), start analyze", iFrameCountValid, iFrameCountAll, ptr_cDecoder->GetFrameNumber());
         logoInfoPacked actLogoInfoPacked[CORNERS] = {};
         logoInfo actLogoInfo[CORNERS] = {};
         for (int corner = 0; corner < CORNERS; corner++) {
@@ -760,20 +814,6 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
         }
 
     }
-    for (int corner = 0; corner <= 3; corner++) {  // free memory of all corners
-#ifdef DEBUGMEM
-        int size = logoInfoVector[corner].size();
-        for (int i = 0 ; i < size; i++) {
-            FREE(sizeof(logoInfo), "logoInfoVector");
-        }
-        size = logoInfoVectorPacked[corner].size();
-        for (int i = 0 ; i < size; i++) {
-            FREE(sizeof(logoInfoPacked), "logoInfoVectorPacked");
-        }
-#endif
-        logoInfoVector[corner].clear();
-        logoInfoVectorPacked[corner].clear();
-    }
     maContext->Video = maContextSaveState.Video;     // restore state of calling video context
     maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
     FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
@@ -788,5 +828,8 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
     else dsyslog("cExtractLogo::SearchLogo(): failed, last frame %i", iFrameNumber);
     dsyslog("----------------------------------------------------------------------------");
     if (retStatus) return 0;
-    else return iFrameNumber;
+    else {
+        if (iFrameNumber > 0) return iFrameNumber;
+        else return -1;
+    }
 }
