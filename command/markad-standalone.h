@@ -128,8 +128,6 @@ class cMarkAdStandalone {
     bool gotendmark = false;
     int waittime = 0;
     int iwaittime = 0;
-    struct timeval tv1,tv2;
-    struct timezone tz;
     bool noticeVDR_VID = false;
     bool noticeVDR_AC3 = false;
     bool noticeHEADER = false;

@@ -43,6 +43,8 @@ cMarkAdStandalone *cmasta = NULL;
 bool restartLogoDetectionDone = false;
 int SysLogLevel = 2;
 bool abortNow = false;
+struct timeval tv1,tv2;
+struct timezone tz;
 
 
 static inline int ioprio_set(int which, int who, int ioprio) {
@@ -3486,7 +3488,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     lastiframe = 0;
     iframe = 0;
     chkSTART = chkSTOP = INT_MAX;
-    gettimeofday(&tv1, &tz);
 }
 
 
@@ -3505,7 +3506,10 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         double ftime = 0;
         etime = sec + ((double) usec / 1000000) - waittime;
         if (etime > 0) ftime = (framecnt + framecnt2 + framecnt3) / etime;
-        isyslog("processed time %.2fs, %i/%i/%i frames, %.1f fps", etime, framecnt, framecnt2, framecnt3, ftime);
+        isyslog("processed time %d:%02dmin, %.1f fps", (int) (etime / 60), (int) (etime - ((int) (etime / 60) * 60)), ftime);
+        isyslog("frames processed %6i first pass", framecnt);
+        isyslog("frames processed %6i 2nd pass", framecnt2);
+        isyslog("frames processed %6i 3nd pass", framecnt3);
     }
 
     if ((osd) && (!duplicate)) {
@@ -3763,6 +3767,7 @@ int main(int argc, char *argv[]) {
     strcpy(config.svdrphost, "127.0.0.1");
     strcpy(config.logoDirectory, "/var/lib/markad");
 
+    gettimeofday(&tv1, &tz);
     struct servent *serv=getservbyname("svdrp", "tcp");
     if (serv) {
         config.svdrpport = htons(serv->s_port);
