@@ -329,31 +329,48 @@ void cMarkAdStandalone::CheckStop() {
     int delta = macontext.Video.Info.FramesPerSecond * MAXRANGE;
 
     clMark *end = marks.GetAround(3*delta, iStopA, MT_CHANNELSTOP);      // try if we can get a good stop mark, start with MT_ASPECTSTOP
+    if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTOP found at frame %i", end->position);
+    else dsyslog("cMarkAdStandalone::CheckStop(): no MT_CHANNELSTOP mark found");
+
     if (!end) {
-        dsyslog("cMarkAdStandalone::CheckStop(): no MT_CHANNELSTOP mark found");
         end = marks.GetAround(3*delta, iStopA, MT_ASPECTSTOP);      // try MT_ASPECTSTOP
-        if (!end) {
-            dsyslog("cMarkAdStandalone::CheckStop(): no MT_ASPECTSTOP mark found");
-            end = marks.GetAround(3*delta, iStopA, MT_HBORDERSTOP);         // try MT_HBORDERSTOP
-            if (!end) {
-                dsyslog("cMarkAdStandalone::CheckStop(): no MT_HBORDERSTOP mark found");
-                end = marks.GetAround(3*delta, iStopA, MT_VBORDERSTOP);         // try MT_VBORDERSTOP
-                if (!end) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): no MT_VBORDERSTOP mark found");
-                    end = marks.GetAround(3*delta, iStopA, MT_LOGOSTOP);        // try MT_LOGOSTOP
-                    if (!end) {
-                        dsyslog("cMarkAdStandalone::CheckStop(): no MT_LOGOSTOP mark found");
-                        end = marks.GetAround(3*delta, iStopA, MT_STOP, 0x0F);    // try any type of stop mark
-                    }
-                    else dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame %i", end->position);
-                }
-                else dsyslog("cMarkAdStandalone::CheckStop(): MT_VBORDERSTOP found at frame %i", end->position);
-            }
-            else dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTOP found at frame %i", end->position);
-        }
-        else dsyslog("cMarkAdStandalone::CheckStop(): MT_ASPECTSTOP found at frame %i", end->position);
+        if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_ASPECTSTOP found at frame %i", end->position);
+        else dsyslog("cMarkAdStandalone::CheckStop(): no MT_ASPECTSTOP mark found");
     }
-    else dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTOP found at frame %i", end->position);
+
+    if (!end) {
+        end = marks.GetAround(3*delta, iStopA, MT_HBORDERSTOP);         // try MT_HBORDERSTOP
+        if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTOP found at frame %i", end->position);
+        else dsyslog("cMarkAdStandalone::CheckStop(): no MT_HBORDERSTOP mark found");
+    }
+
+
+    if (!end) {
+        end = marks.GetAround(3*delta, iStopA, MT_VBORDERSTOP);         // try MT_VBORDERSTOP
+        if (end) {
+            dsyslog("cMarkAdStandalone::CheckStop(): MT_VBORDERSTOP found at frame %i", end->position);
+            clMark *prevVStart = marks.GetPrev(end->position, MT_VBORDERSTART);
+            if (prevVStart) {
+                int deltaV = (end->position - prevVStart->position) / macontext.Video.Info.FramesPerSecond;
+                if (deltaV < 240) {  // start/stop is too short, this is the next recording
+                    dsyslog("cMarkAdStandalone::CheckStop(): vertial border start/stop to short %ds, ignoring MT_VBORDERSTOP", deltaV);
+                    end = NULL;
+                }
+            }
+        }
+        else dsyslog("cMarkAdStandalone::CheckStop(): no MT_VBORDERSTOP mark found");
+    }
+
+    if (!end) {
+        end = marks.GetAround(3 * delta, iStopA, MT_LOGOSTOP);        // try MT_LOGOSTOP
+        if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame %i", end->position);
+        else dsyslog("cMarkAdStandalone::CheckStop(): no MT_LOGOSTOP mark found");
+    }
+    if (!end) {
+        end = marks.GetAround(3*delta, iStopA, MT_STOP, 0x0F);    // try any type of stop mark
+        if (end) dsyslog("cMarkAdStandalone::CheckStop(): end mark found at frame %i", end->position);
+        else dsyslog("cMarkAdStandalone::CheckStop(): no end mark found");
+    }
 
     clMark *lastStart = marks.GetAround(INT_MAX, lastiframe, MT_START, 0x0F);
     if (end) {
