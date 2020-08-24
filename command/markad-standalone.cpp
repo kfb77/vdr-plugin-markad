@@ -317,7 +317,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
 
 void cMarkAdStandalone::CheckStop() {
     LogSeparator();
-    dsyslog("checking stop (%i)", lastiframe);
+    dsyslog("cMarkAdStandalone::CheckStop(): checking stop (%i)", lastiframe);
     char *indexToHMSF = marks.IndexToHMSF(iStopA, &macontext, ptr_cDecoder);
         if (indexToHMSF) {
             dsyslog("assumed stop position (%i) at %s", iStopA, indexToHMSF);
@@ -330,38 +330,38 @@ void cMarkAdStandalone::CheckStop() {
 
     clMark *end = marks.GetAround(3*delta, iStopA, MT_CHANNELSTOP);      // try if we can get a good stop mark, start with MT_ASPECTSTOP
     if (!end) {
-        dsyslog("no MT_CHANNELSTOP mark found");
+        dsyslog("cMarkAdStandalone::CheckStop(): no MT_CHANNELSTOP mark found");
         end = marks.GetAround(3*delta, iStopA, MT_ASPECTSTOP);      // try MT_ASPECTSTOP
         if (!end) {
-            dsyslog("no MT_ASPECTSTOP mark found");
+            dsyslog("cMarkAdStandalone::CheckStop(): no MT_ASPECTSTOP mark found");
             end = marks.GetAround(3*delta, iStopA, MT_HBORDERSTOP);         // try MT_HBORDERSTOP
             if (!end) {
-                dsyslog("no MT_HBORDERSTOP mark found");
+                dsyslog("cMarkAdStandalone::CheckStop(): no MT_HBORDERSTOP mark found");
                 end = marks.GetAround(3*delta, iStopA, MT_VBORDERSTOP);         // try MT_VBORDERSTOP
                 if (!end) {
-                    dsyslog("no MT_VBORDERSTOP mark found");
+                    dsyslog("cMarkAdStandalone::CheckStop(): no MT_VBORDERSTOP mark found");
                     end = marks.GetAround(3*delta, iStopA, MT_LOGOSTOP);        // try MT_LOGOSTOP
                     if (!end) {
-                        dsyslog("no MT_LOGOSTOP mark found");
+                        dsyslog("cMarkAdStandalone::CheckStop(): no MT_LOGOSTOP mark found");
                         end = marks.GetAround(3*delta, iStopA, MT_STOP, 0x0F);    // try any type of stop mark
                     }
-                    else dsyslog("MT_LOGOSTOP found at frame %i", end->position);
+                    else dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame %i", end->position);
                 }
-                else dsyslog("MT_VBORDERSTOP found at frame %i", end->position);
+                else dsyslog("cMarkAdStandalone::CheckStop(): MT_VBORDERSTOP found at frame %i", end->position);
             }
-            else dsyslog("MT_HBORDERSTOP found at frame %i", end->position);
+            else dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTOP found at frame %i", end->position);
         }
-        else dsyslog("MT_ASPECTSTOP found at frame %i", end->position);
+        else dsyslog("cMarkAdStandalone::CheckStop(): MT_ASPECTSTOP found at frame %i", end->position);
     }
-    else dsyslog("MT_CHANNELSTOP found at frame %i", end->position);
+    else dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTOP found at frame %i", end->position);
 
     clMark *lastStart = marks.GetAround(INT_MAX, lastiframe, MT_START, 0x0F);
     if (end) {
-        dsyslog("found end mark at (%i)", end->position);
+        dsyslog("cMarkAdStandalone::CheckStop(): found end mark at (%i)", end->position);
         clMark *mark = marks.GetFirst();
         while (mark) {
             if ((mark->position >= iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE) && (mark->position < end->position) && ((mark->type & 0xF0) < (end->type & 0xF0))) { // delete all weak marks
-                dsyslog("found stronger end mark delete mark (%i)", mark->position);
+                dsyslog("cMarkAdStandalone::CheckStop(): found stronger end mark delete mark (%i)", mark->position);
                 clMark *tmp = mark;
                 mark = mark->Next();
                 marks.Del(tmp);
@@ -373,7 +373,7 @@ void cMarkAdStandalone::CheckStop() {
         if ((end->type == MT_NOBLACKSTOP) && (end->position < iStopA)) {        // if stop mark is MT_NOBLACKSTOP and it is not after iStopA try next, better save than sorry
            clMark *end2 = marks.GetAround(delta, end->position + 2*delta, MT_STOP, 0x0F);
            if (end2) {
-               dsyslog("stop mark is week, use next stop mark at (%i)", end2->position);
+               dsyslog("cMarkAdStandalone::CheckStop(): stop mark is week, use next stop mark at (%i)", end2->position);
                end = end2;
            }
         }
@@ -398,7 +398,7 @@ void cMarkAdStandalone::CheckStop() {
         }
     }
     else {
-        dsyslog("no stop mark found, add stop mark at the last frame (%i)",lastiframe);
+        dsyslog("cMarkAdStandalone::CheckStop(): no stop mark found, add stop mark at the last frame (%i)",lastiframe);
         MarkAdMark mark = {};
         mark.Position = lastiframe;  // we are lost, add a end mark at the last iframe
         mark.Type = MT_ASSUMEDSTOP;
