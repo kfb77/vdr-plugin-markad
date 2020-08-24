@@ -784,7 +784,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
             }
         }
 
-        if ((bestLogoInfo.hits >= 50) || ((bestLogoInfo.hits >= 25) && (bestLogoInfo.hits == sumHits))) {  // if all hits are in the same corner than 25 are enough
+        if ((bestLogoInfo.hits >= 50) || ((bestLogoInfo.hits >= 25) && (sumHits <= bestLogoInfo.hits + 3))) {  // if almost all hits are in the same corner than 25 are enough
             dsyslog("cExtractLogo::SearchLogo(): best corner %d found at frame %d with %d similars", bestLogoCorner, bestLogoInfo.iFrameNumber, bestLogoInfo.hits);
             if (! this->Resize(&bestLogoInfo, &logoHeight, &logoWidth, bestLogoCorner)) {
                 dsyslog("cExtractLogo::SearchLogo(): resize logo failed from best corner failed");
