@@ -618,7 +618,7 @@ void cMarkAdBlackBordersHoriz::Clear() {
 
 int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame) {
 #define CHECKHEIGHT 20
-#define BRIGHTNESS 20
+#define BRIGHTNESS_H 21  // increased from 20 to 21 because of channels with logo in border
 #define VOFFSET 5
     if (!macontext) return 0;
     if (!macontext->Video.Data.Valid) return 0;
@@ -650,7 +650,7 @@ int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame) {
         if (xz >= macontext->Video.Data.PlaneLinesize[0]) xz=0;
     }
     val /= cnt;
-    if (val > BRIGHTNESS) fbottom=false;
+    if (val > BRIGHTNESS_H) fbottom=false;
 
     if (fbottom) {
         start = VOFFSET * macontext->Video.Data.PlaneLinesize[0];
@@ -667,7 +667,7 @@ int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame) {
             if (xz >= macontext->Video.Data.PlaneLinesize[0]) xz=0;
         }
         val /= cnt;
-        if (val > BRIGHTNESS) ftop = false;
+        if (val > BRIGHTNESS_H) ftop = false;
     }
 
     if ((fbottom) && (ftop)) {
@@ -719,7 +719,7 @@ int cMarkAdBlackBordersVert::GetFirstBorderFrame() {
 
 int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
 #define CHECKWIDTH 32
-#define BRIGHTNESS 20
+#define BRIGHTNESS_V 20
 #define HOFFSET 50
 #define VOFFSET_ 120
     if (!macontext) {
@@ -752,7 +752,7 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
         i += macontext->Video.Data.PlaneLinesize[0];
     }
     val /= cnt;
-    if (val > BRIGHTNESS) fleft = false;
+    if (val > BRIGHTNESS_V) fleft = false;
 
     if (fleft) {
         val = cnt = 0;
@@ -766,7 +766,7 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
             i += macontext->Video.Data.PlaneLinesize[0];
         }
         val /= cnt;
-        if (val > BRIGHTNESS) fright = false;
+        if (val > BRIGHTNESS_V) fright = false;
     }
 
     if ((fleft) && (fright)) {
