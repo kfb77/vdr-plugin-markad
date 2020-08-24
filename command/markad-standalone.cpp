@@ -2696,6 +2696,7 @@ bool cMarkAdStandalone::CheckLogo() {
         ptr_cExtractLogo = new cExtractLogo(macontext.Info.AspectRatio);
         ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
         int startPos =  tStart * 25;  // search logo from assumed start, we do not know the frame rate at this point, so we use 25
+        if (startPos < 0) startPos = 0;  // consider late start of recording
         int endpos = ptr_cExtractLogo->SearchLogo(&macontext, startPos);
         for (int retry = 2; retry <= 6; retry++) {
             startPos += 5 * 60 * 25; // next try 5 min later
