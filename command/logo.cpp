@@ -183,7 +183,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
 
     allWhite=true;
     if ((bestLogoCorner == TOP_RIGHT) || (bestLogoCorner == BOTTOM_RIGHT)) {  // right corners, cut from left
-        while (allWhite) {
+        while ((allWhite) && (whiteColumns < *logoWidth)) {
             int isColumnWhite = 0;
             for (int i = whiteColumns; i < *logoHeight * *logoWidth; i = i + *logoWidth) {
                 if ( bestLogoInfo->sobel[0][i] == 0) {
@@ -203,7 +203,7 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
     }
     else { // left corners, cut from right
         whiteColumns = *logoWidth;
-        while (allWhite) {
+        while ((allWhite) && (whiteColumns > 0)) {
             int isColumnWhite = 0;
             for (int i = whiteColumns; i < *logoHeight * *logoWidth; i = i + *logoWidth) {
                 if ( bestLogoInfo->sobel[0][i] == 0) {
