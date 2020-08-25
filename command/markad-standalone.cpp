@@ -363,12 +363,27 @@ void cMarkAdStandalone::CheckStop() {
 
     if (!end) {
         end = marks.GetAround(3 * delta, iStopA, MT_LOGOSTOP);        // try MT_LOGOSTOP
-        if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame %i", end->position);
+        if (end) {
+            dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame %i", end->position);
+            clMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
+            if (prevLogoStart) {
+                int deltaLogo = (end->position - prevLogoStart->position) / macontext.Video.Info.FramesPerSecond;
+                if (deltaLogo < 20) {
+                    dsyslog("cMarkAdStandalone::CheckStop(): logo start/stop to short %ds, delete both and retry logo stop mark", deltaLogo);
+                    marks.Del(end);
+                    marks.Del(prevLogoStart);
+                    end = marks.GetAround(3*delta, iStopA, MT_STOP, 0x0F);
+                    if (end) dsyslog("cMarkAdStandalone::CheckStop(): second end mark found at frame %i", end->position);
+                    else dsyslog("cMarkAdStandalone::CheckStop(): no second end mark found");
+                }
+            }
+        }
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_LOGOSTOP mark found");
     }
+
     if (!end) {
         end = marks.GetAround(3*delta, iStopA, MT_STOP, 0x0F);    // try any type of stop mark
-        if (end) dsyslog("cMarkAdStandalone::CheckStop(): end mark found at frame %i", end->position);
+        if (end)dsyslog("cMarkAdStandalone::CheckStop(): end mark found at frame %i", end->position);
         else dsyslog("cMarkAdStandalone::CheckStop(): no end mark found");
     }
 
