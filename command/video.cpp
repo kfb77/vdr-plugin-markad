@@ -196,17 +196,13 @@ int cMarkAdLogo::SobelPlane(const int plane) {
 
 #if !defined CLASSIC_DECODER     // we need a default size for logo extraction, no longer set in constructor
     if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
-        if ((macontext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264) || (macontext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H265)){
+        if (macontext->Video.Info.Width > 720){
             LOGOHEIGHT = LOGO_DEFHDHEIGHT;
             LOGOWIDTH = LOGO_DEFHDWIDTH;
         }
-        else if (macontext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262) {
+        else {
             LOGOHEIGHT = LOGO_DEFHEIGHT;
             LOGOWIDTH = LOGO_DEFWIDTH;
-        }
-        else {
-            dsyslog("cMarkAdLogo::cMarkAdLogo macontext->Info.VPid.Type %i not valid", macontext->Info.VPid.Type);
-            return 0;
         }
     }
 #endif

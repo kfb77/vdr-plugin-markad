@@ -586,16 +586,15 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
         dsyslog("cExtractLogo::SearchLogo(): video height: %i", maContext->Video.Info.Height);
         maContext->Video.Info.Width=ptr_cDecoder->GetVideoWidth();
         dsyslog("cExtractLogo::SearchLogo(): video width: %i", maContext->Video.Info.Width);
-
-        if ((maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) || (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H265)) {
-            logoHeight=LOGO_DEFHDHEIGHT;
-            logoWidth=LOGO_DEFHDWIDTH;
+        if (maContext->Video.Info.Width > 720){
+            logoHeight = LOGO_DEFHDHEIGHT;
+            logoWidth = LOGO_DEFHDWIDTH;
         }
-        else if (maContext->Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H262) {
-            logoHeight=LOGO_DEFHEIGHT;
-            logoWidth=LOGO_DEFWIDTH;
+        else {
+            logoHeight = LOGO_DEFHEIGHT;
+            logoWidth = LOGO_DEFWIDTH;
         }
-        else dsyslog("cExtractLogo::SearchLogo(): maContext->Info.VPid.Type %i not valid", maContext->Info.VPid.Type);
+        dsyslog("cExtractLogo::SearchLogo(): logo size %dx%d", logoWidth, logoHeight);
 
         while(ptr_cDecoder->GetNextFrame()) {
             if (abortNow) return -1;
