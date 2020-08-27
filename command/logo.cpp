@@ -813,7 +813,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
             int secondLogoWidth = logoWidth;
             dsyslog("cExtractLogo::SearchLogo(): best corner %d found at frame %d with %d similars", bestLogoCorner, bestLogoInfo.iFrameNumber, bestLogoInfo.hits);
             if (this->Resize(&bestLogoInfo, &logoHeight, &logoWidth, bestLogoCorner)) {
-                if ((secondBestLogoInfo.hits > 50) || (secondBestLogoInfo.hits > (bestLogoInfo.hits * 0.7))) { // decreased from 0.9 to 0.8 to 0.7
+                if ((secondBestLogoInfo.hits > 50) && (secondBestLogoInfo.hits > (bestLogoInfo.hits * 0.7))) { // decreased from 0.9 to 0.8 to 0.7
                     dsyslog("cExtractLogo::SearchLogo(): no clear corner detected, second best corner %d has %d hits", secondBestLogoCorner, secondBestLogoInfo.hits);
                     if (secondBestLogoInfo.hits >= 50) {
                         dsyslog("cExtractLogo::SearchLogo(): try with second best corner %d at frame %d with %d similars", secondBestLogoCorner, secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
