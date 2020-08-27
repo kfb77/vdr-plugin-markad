@@ -808,7 +808,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
             }
         }
 
-        if ((bestLogoInfo.hits >= 50) || ((bestLogoInfo.hits >= 25) && (sumHits <= bestLogoInfo.hits + 3))) {  // if almost all hits are in the same corner than 25 are enough
+        if ((bestLogoInfo.hits >= 50) || ((bestLogoInfo.hits >= 30) && (sumHits <= bestLogoInfo.hits + 3))) {  // if almost all hits are in the same corner than less are enough, increased from 25 to 30
             int secondLogoHeight = logoHeight;
             int secondLogoWidth = logoWidth;
             dsyslog("cExtractLogo::SearchLogo(): best corner %d found at frame %d with %d similars", bestLogoCorner, bestLogoInfo.iFrameNumber, bestLogoInfo.hits);
