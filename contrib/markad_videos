@@ -319,6 +319,8 @@ class CheckPath:
             log.dsyslog("video mirror file name: " + self.mirror_name)
 
     def CheckFreeSpace(self):
+        if (self.root.find('TODO') != -1): 
+            return(False)
         total, used, free = shutil.disk_usage(self.root)
         freeGB = free // (2**30)
         if freeGB < config.minfree:
@@ -330,6 +332,7 @@ class CheckPath:
     def NeedMarks(self):
         isMarksNotFound = True
         isCutNotFound = True
+        isVideoDir = False
         if (not config.cut):  # if not to cut do not search for cut ts file
             isCutNotFound = False
         isInfoFound = False
@@ -347,7 +350,9 @@ class CheckPath:
             if actFile == ".timer": continue
             if actFile == "markad.log": continue
             if actFile == "resume": continue
-            if fnmatch.fnmatch(actFile,'000??.ts'): continue
+            if fnmatch.fnmatch(actFile,'000??.ts'):
+                isVideoDir = True
+                continue
             if fnmatch.fnmatch(actFile,'*.ts'): # other ts file is the recording cut
                 isCutNotFound = False
                 continue
@@ -409,13 +414,13 @@ class CheckPath:
                 return(False)
             log.isyslog("unexpected file found: "+self.root+"/"+actFile)
 
-        if not isInfoFound:
+        if not isInfoFound and isVideoDir:
             log.esyslog("no info file found "+self.root)
             return(False)
-        if not isIndexFound:
+        if not isIndexFound and isVideoDir:
             log.esyslog("no index found "+self.root)
             return(False)
-        return(isMarksNotFound or isCutNotFound)
+        return((isMarksNotFound or isCutNotFound) and isVideoDir)
 
     def ConvertPath(self, path):
         newPath = path.replace('&','\&')
