@@ -338,34 +338,36 @@ bool cDecoder::GetNextFrame() {
     av_packet_unref(&avpkt);
     if (av_read_frame(avctx, &avpkt) == 0 ) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-       if (avctx->streams[avpkt.stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+        if (avctx->streams[avpkt.stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
 #else
-       if (avctx->streams[avpkt.stream_index]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+        if (avctx->streams[avpkt.stream_index]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
 #endif
-             framenumber++;
-             if (isVideoIFrame()) {
-                 iFrameCount++;
-                 if ((iFrameInfoVector.empty()) || (framenumber > iFrameInfoVector.back().iFrameNumber)) {
-                     if (avpkt.pts != AV_NOPTS_VALUE) {   // store a iframe number pts index
-                         int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
-                         if ( tmp_pts < 0 ) { tmp_pts += 0x200000000; }   // libavodec restart at 0 if pts greater than 0x200000000
-                         int64_t pts_time_ms=tmp_pts*av_q2d(avctx->streams[avpkt.stream_index]->time_base)*100;
-                         iFrameInfo newFrameInfo;
-                         newFrameInfo.fileNumber=fileNumber;
-                         newFrameInfo.iFrameNumber=framenumber;
-                         newFrameInfo.pts_time_ms=pts_time_ms_LastFile+pts_time_ms;
-                         iFrameInfoVector.push_back(newFrameInfo);
-                     }
-                     else dsyslog("cDecoder::GetNextFrame(): failed to get pts for frame %d", framenumber);
-                 }
-             }
+        {
+            framenumber++;
+            if (isVideoIFrame()) {
+                iFrameCount++;
+                if ((iFrameInfoVector.empty()) || (framenumber > iFrameInfoVector.back().iFrameNumber)) {
+                    if (avpkt.pts != AV_NOPTS_VALUE) {   // store a iframe number pts index
+                        int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
+                        if ( tmp_pts < 0 ) { tmp_pts += 0x200000000; }   // libavodec restart at 0 if pts greater than 0x200000000
+                        int64_t pts_time_ms=tmp_pts*av_q2d(avctx->streams[avpkt.stream_index]->time_base)*100;
+                        iFrameInfo newFrameInfo;
+                        newFrameInfo.fileNumber=fileNumber;
+                        newFrameInfo.iFrameNumber=framenumber;
+                        newFrameInfo.pts_time_ms=pts_time_ms_LastFile+pts_time_ms;
+                        iFrameInfoVector.push_back(newFrameInfo);
+                    }
+                    else dsyslog("cDecoder::GetNextFrame(): failed to get pts for frame %d", framenumber);
+                }
+            }
         }
         return true;
     }
-    pts_time_ms_LastFile += iFrameInfoVector.back().pts_time_ms;
-    dsyslog("cDecoder::GetNextFrame(): start time next file %" PRId64, pts_time_ms_LastFile);
+    pts_time_ms_LastFile = iFrameInfoVector.back().pts_time_ms;
+    dsyslog("cDecoder::GetNextFrame(): start time next file %" PRId64 "ms (%3d:%02dmin)", pts_time_ms_LastFile, (int) (pts_time_ms_LastFile / 100 / 60), (int) (pts_time_ms_LastFile / 100) % 60);
     return false;
 }
+
 
 AVPacket *cDecoder::GetPacket() {
     return &avpkt;
