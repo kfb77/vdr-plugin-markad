@@ -121,11 +121,13 @@ bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actL
         FREE(strlen(buf)+1, "buf");
         free(buf);
     }
+    isyslog("Logo size for Channel: %s %d:%d %dW %dH: %dW %dH %s", maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, maContext->Video.Info.Width, maContext->Video.Info.Height, logoWidth, logoHeight, aCorner[corner]);
     return true;
 }
 
 
-bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner) {
+bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner) {
+    if (!maContext) return false;
     if (!bestLogoInfo) return false;
     if (!logoHeight) return false;
     if (!logoWidth) return false;
@@ -246,30 +248,95 @@ bool cExtractLogo::Resize(logoInfo *bestLogoInfo, int *logoHeight, int *logoWidt
             }
         }
     }
-
+//
 // known logo sizes
-// SD FOX:    96W 72H
-// SD Nick:  144W 90H
-    dsyslog("cExtractLogo::Resize(): logo size after resize:  %3d width %3d height on corner %d", *logoWidth, *logoHeight, bestLogoCorner);
+// SD FOX Channel:    96W 72H 16:9 TOP_RIGHT
+// SD Nick:          144W 90H 16:9 TOP_LEFT
+// SD WELT:          186W 62H 16:9 BOTTOM_LEFT (logo in news ticker)
+// SD ProSieben:     100W 66W  4:3 TOP_RIGHT
+//
+// HD ARD-alpha HD:  204W 86H 16:9 TOP_LEFT
+//
+    dsyslog("cExtractLogo::Resize(): logo size after resize: %3d width %3d height on corner %d", *logoWidth, *logoHeight, bestLogoCorner);
     bool logoValid = true;
-    if ((logoWidthBeforeResize == LOGO_DEFWIDTH) && (*logoWidth >= 150)) {
-        dsyslog("cExtractLogo::Resize(): SD logo is too wide");
-        logoValid = false;
-    }
-    if (*logoWidth < logoWidthBeforeResize * 0.3) {
-        dsyslog("cExtractLogo::Resize(): logo is too narrow");
-        logoValid = false;
-    }
-    if (*logoHeight <= 50) {
-        dsyslog("cExtractLogo::Resize(): logo is no heigh enough");
-        logoValid = false;
-    }
-    if ((logoWidthBeforeResize == LOGO_DEFWIDTH) && (*logoHeight > 90)) {
-        dsyslog("cExtractLogo::Resize(): SD logo is too heigh");
-        logoValid = false;
+    switch (maContext->Video.Info.Width) {
+        case 720:
+            if (logoWidthBeforeResize == LOGO_DEFWIDTH) {
+                if ((bestLogoCorner >= BOTTOM_LEFT) && (*logoHeight >= 60) && (*logoHeight <= 65) && (*logoWidth >= 185)) { // if logo size is low and wide on BOTTON, it is in a news ticker
+                dsyslog("cExtractLogo::Resize(): found SD logo in a news ticker");
+                }
+                else {
+                    if (strcmp(maContext->Info.ChannelName, "RTLplus") == 0) {
+                        if (*logoWidth > 212) { // RTLplus
+                            dsyslog("cExtractLogo::Resize(): SD logo for RTLPlus is too wide");
+                            logoValid = false;
+                        }
+                    }
+                    else {
+                        if (*logoWidth >= 150) {
+                            dsyslog("cExtractLogo::Resize(): SD logo is too wide");
+                            logoValid = false;
+                        }
+                    }
+                }
+                if (*logoHeight <= 50) {
+                    dsyslog("cExtractLogo::Resize(): SD logo is not heigh enough");
+                    logoValid = false;
+                }
+                if (*logoHeight > 90) {
+                    dsyslog("cExtractLogo::Resize(): SD logo is too heigh");
+                    logoValid = false;
+                }
+            }
+            break;
+        case 1280:
+            if (maContext->Video.Info.Height == 1080) {  // ANIXE+
+            }
+            else {
+                if (*logoWidth >= 256) {
+                    dsyslog("cExtractLogo::Resize(): HD logo is too wide");
+                    logoValid = false;
+                }
+                if (*logoHeight > 134) { // arte HD
+                    dsyslog("cExtractLogo::Resize(): HD logo is too heigh");
+                    logoValid = false;
+                }
+                if (*logoHeight >= 134) { // logo is vertical
+                    if (*logoWidth < 84) { // arte HD
+                        dsyslog("cExtractLogo::Resize(): HD logo is too narrow");
+                        logoValid = false;
+                    }
+                }
+                else { // logo is horizontal
+                    if (*logoWidth <= 116) {
+                        dsyslog("cExtractLogo::Resize(): HD logo is too narrow");
+                        logoValid = false;
+                    }
+                }
+            }
+            break;
+        case 1920:
+            if (strcmp(maContext->Info.ChannelName, "münchen_tv_HD") == 0) {
+                if (*logoHeight < 96) { // münchen_tv_HD
+                    dsyslog("cExtractLogo::Resize(): HD logo for münchen_tv_HD is not heigh enough");
+                    logoValid = false;
+                }
+            }
+            else {
+                if (*logoHeight <= 106) {
+                    dsyslog("cExtractLogo::Resize(): HD logo is not heigh enough");
+                    logoValid = false;
+                }
+            }
+            break;
+        default:
+            dsyslog("cExtractLogo::Resize(): no logo size rules for %dx%d", maContext->Video.Info.Width, maContext->Video.Info.Height);
+            break;
     }
 
-    if (logoValid) return true;
+    if (logoValid) {
+        return true;
+    }
     else {
         dsyslog("cExtractLogo::Resize(): logo size not valid after resize");
         *logoHeight = logoHeightBeforeResize; // restore logo size
@@ -816,12 +883,12 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
             int secondLogoHeight = logoHeight;
             int secondLogoWidth = logoWidth;
             dsyslog("cExtractLogo::SearchLogo(): best corner %d found at frame %d with %d similars", bestLogoCorner, bestLogoInfo.iFrameNumber, bestLogoInfo.hits);
-            if (this->Resize(&bestLogoInfo, &logoHeight, &logoWidth, bestLogoCorner)) {
+            if (this->Resize(maContext, &bestLogoInfo, &logoHeight, &logoWidth, bestLogoCorner)) {
                 if ((secondBestLogoInfo.hits > 50) || (secondBestLogoInfo.hits > (bestLogoInfo.hits * 0.8))) { // decreased from 0.9 to 0.8
                     dsyslog("cExtractLogo::SearchLogo(): no clear corner detected, second best corner %d has %d hits", secondBestLogoCorner, secondBestLogoInfo.hits);
                     if ((secondBestLogoInfo.hits >= 50) && (secondBestLogoInfo.hits > (bestLogoInfo.hits * 0.7))) {
                         dsyslog("cExtractLogo::SearchLogo(): try with second best corner %d at frame %d with %d similars", secondBestLogoCorner, secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
-                        if (this->Resize(&secondBestLogoInfo, &secondLogoHeight, &secondLogoWidth, secondBestLogoCorner)) {
+                        if (this->Resize(maContext, &secondBestLogoInfo, &secondLogoHeight, &secondLogoWidth, secondBestLogoCorner)) {
                             if (secondLogoWidth < logoWidth) {  // smaller is the logo, the wider is a lettering
                                 dsyslog("cExtractLogo::SearchLogo(): second best corner is narrower, use this");
                                 bestLogoInfo = secondBestLogoInfo;
@@ -839,7 +906,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                 dsyslog("cExtractLogo::SearchLogo(): resize logo failed from best corner failed");
                 if (secondBestLogoInfo.hits >= 50) {
                     dsyslog("cExtractLogo::SearchLogo(): try with second best corner %d at frame %d with %d similars", secondBestLogoCorner, secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
-                    if (this->Resize(&secondBestLogoInfo, &logoHeight, &logoWidth, secondBestLogoCorner)) {
+                    if (this->Resize(maContext, &secondBestLogoInfo, &logoHeight, &logoWidth, secondBestLogoCorner)) {
                         bestLogoInfo = secondBestLogoInfo;
                         bestLogoCorner = secondBestLogoCorner;
                     }
