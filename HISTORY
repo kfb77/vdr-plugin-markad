@@ -1,6 +1,9 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2020-08-28: Version 2.3.6
+- fix time calculation if there is more than one ts file
+
 2020-08-28: Version 2.3.5
 - check if logo size is valid
 - a lot of minor bug fixes and optimizations, see git
