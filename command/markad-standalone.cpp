@@ -931,6 +931,14 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     clMark *channelStop = marks.GetNext(0, MT_CHANNELSTOP);
     clMark *vborderStart = marks.GetNext(0, MT_VBORDERSTART);
     clMark *vborderStop = marks.GetNext(0, MT_VBORDERSTOP);
+    if (vborderStart && vborderStop) {
+        int vDelta = (vborderStop->position - vborderStart->position) / macontext.Video.Info.FramesPerSecond;
+        if (vDelta < 120) {
+            dsyslog("cMarkAdStandalone::CheckMarks(): found vborder stop/start, but distance %d too short, try if there is a next pair", vDelta);
+            vborderStart = marks.GetNext(vborderStart->position, MT_VBORDERSTART);
+            vborderStop = marks.GetNext(vborderStop->position, MT_VBORDERSTOP);
+        }
+    }
     if ((channelStart && channelStop) || (vborderStart && vborderStop)) {
         mark = marks.GetFirst();
         while (mark) {
