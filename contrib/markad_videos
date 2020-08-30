@@ -420,7 +420,7 @@ class CheckPath:
             log.isyslog("unexpected file found: "+self.root+"/"+actFile)
 
         if not isLogo and not isMarksNotFound and hadLogo and isVideoDir:
-            log.esyslog("logo file found "+self.root)
+            log.esyslog("no logo file found "+self.root)
         if not isInfoFound and isVideoDir:
             log.esyslog("no info file found "+self.root)
             return(False)
