@@ -363,12 +363,16 @@ bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2,
 
     int similar_0=0;
     int similar_1_2=0;
-    int black_0 = 0;
+    int oneBlack_0 = 0;
+    int blackPixel1 = 0;
+    int blackPixel2 = 0;
     int rate_0=0;
     int rate_1_2=0;
     for (int i = 0; i < logoHeight*logoWidth; i++) {    // compare all black pixel in plane 0
         if ((logo1->sobel[0][i] == 255) && (logo2->sobel[0][i] == 255)) continue;   // ignore white pixel
-        else black_0 ++;
+        else oneBlack_0 ++;
+        if (logo1->sobel[0][i] == 0) blackPixel1++;
+        if (logo2->sobel[0][i] == 0) blackPixel2++;
         if (logo1->sobel[0][i] == logo2->sobel[0][i]) {
             similar_0++;
         }
@@ -378,7 +382,7 @@ bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2,
             if (logo1->sobel[plane][i] == logo2->sobel[plane][i]) similar_1_2++;
         }
     }
-    if (black_0 > 100) rate_0=1000*similar_0/black_0;   // accept only if we found some pixels
+    if ((oneBlack_0 > 100) && (blackPixel1 > 110) && (blackPixel2 > 110)) rate_0=1000*similar_0/oneBlack_0;   // accept only if we found some pixels
     else rate_0=0;
     rate_1_2 = 1000*similar_1_2/(logoHeight*logoWidth)*2;
 
