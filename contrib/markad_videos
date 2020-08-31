@@ -337,6 +337,8 @@ class CheckPath:
             isCutNotFound = False
         isInfoFound = False
         isIndexFound = False
+        isLogo = False
+        hadLogo = False
         if self.root.find(".del") > 0:
             log.dsyslog("recording is deleted "+self.root)
             return(False)
@@ -392,6 +394,7 @@ class CheckPath:
                 continue
 
             if fnmatch.fnmatch(actFile,'logo__*'):
+                hadLogo = True
                 if fileCompareLogo is None: fileCompareLogo = actFile
                 else:
                     logElemets1 = fileCompareLogo.split("__");
@@ -407,13 +410,17 @@ class CheckPath:
                             os.remove(self.root+"/"+fileCompareLogo);
                     fileCompareLogo = actFile
                 continue
-            if fnmatch.fnmatch(actFile,'*.pgm'): continue
+            if fnmatch.fnmatch(actFile,'*.pgm'):
+                isLogo = True
+                continue
 
             if actFile == "markad.pid":
                 log.isyslog(" markad is running "+self.root)
                 return(False)
             log.isyslog("unexpected file found: "+self.root+"/"+actFile)
 
+        if not isLogo and not isMarksNotFound and hadLogo and isVideoDir:
+            log.esyslog("logo file found "+self.root)
         if not isInfoFound and isVideoDir:
             log.esyslog("no info file found "+self.root)
             return(False)
