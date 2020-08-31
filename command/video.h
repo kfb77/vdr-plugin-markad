@@ -13,9 +13,10 @@
 #define LOGO_MAXHEIGHT   250
 #define LOGO_MAXWIDTH    480
 
-#define LOGO_DEFHEIGHT   100
-#define LOGO_DEFWIDTH    192
-#define LOGO_DEFHDHEIGHT 180
+#define LOGO_DEFHEIGHT   130  // increased from 100 to 130
+#define LOGO_DEFWIDTH    230
+
+#define LOGO_DEFHDHEIGHT 190
 #define LOGO_DEFHDWIDTH  340
 
 #define LOGO_VMAXCOUNT 3  // count of IFrames for detection of "logo visible"
