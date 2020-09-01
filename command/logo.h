@@ -12,6 +12,7 @@
 #include "markad-standalone.h"
 #include "decoder_new.h"
 #include "video.h"
+#include "audio.h"
 
 #define CORNERS 4
 #define MAXREADFRAMES 3000
@@ -51,6 +52,9 @@ class cExtractLogo {
         MarkAdAspectRatio logoAspectRatio = {};
         int firstBorderStart = -1;
         int lastBorderEnd = -1;
+        bool is6Channel = false;
+        bool has6Channel = false;
+
 
         bool Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
         int Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);

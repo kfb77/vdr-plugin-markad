@@ -704,6 +704,24 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                         continue;
                     }
                     iFrameCountAll++;
+
+                    bool is6ChannelBefore = is6Channel;
+                    for (short int stream = 0; stream < MAXSTREAMS; stream++){
+                        is6Channel = false;
+                        if (maContext->Audio.Info.Channels[stream]>2) {
+                            is6Channel = true;
+                            has6Channel = true;
+                            break;
+                        }
+                    }
+                    if (has6Channel) {
+                        if (is6Channel && !is6ChannelBefore) dsyslog("cExtractLogo::SearchLogo(): stop ignoring frame because of 6 channel at frame (%d)", iFrameNumber);
+                        if (!is6Channel) {
+                            if (is6ChannelBefore) dsyslog("cExtractLogo::SearchLogo(): start ignoring frame because of 2 channel at frame (%d)", iFrameNumber);
+                            continue;
+                        }
+                    }
+
                     if ((logoAspectRatio.Num == 0) || (logoAspectRatio.Den == 0)) {
                         logoAspectRatio.Num = maContext->Video.Info.AspectRatio.Num;
                         logoAspectRatio.Den = maContext->Video.Info.AspectRatio.Den;
