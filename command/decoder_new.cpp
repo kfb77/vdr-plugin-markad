@@ -590,29 +590,33 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                     }
                 }
                 else {
-                    if ((sample_aspect_ratio_num==64) && (sample_aspect_ratio_den==45)){  // // generic PAR MPEG-2 for PAL
+                    if ((sample_aspect_ratio_num==64) && (sample_aspect_ratio_den==45)) {  // // generic PAR MPEG-2 for PAL
                         sample_aspect_ratio_num =16;
                         sample_aspect_ratio_den = 9;
                     }
-                    else if ((sample_aspect_ratio_num==16) && (sample_aspect_ratio_den==11)){  // // generic PAR MPEG-4 for PAL
+                    else if ((sample_aspect_ratio_num==16) && (sample_aspect_ratio_den==11)) {  // // generic PAR MPEG-4 for PAL
                         sample_aspect_ratio_num =16;
                         sample_aspect_ratio_den = 9;
                     }
-                    else if ((sample_aspect_ratio_num==32) && (sample_aspect_ratio_den==17)){
+                    else if ((sample_aspect_ratio_num==32) && (sample_aspect_ratio_den==17)) {
                          sample_aspect_ratio_num =16;
                          sample_aspect_ratio_den = 9;
                     }
-                    else if ((sample_aspect_ratio_num==16) && (sample_aspect_ratio_den==15)){  // generic PAR MPEG-2 for PAL
+                    else if ((sample_aspect_ratio_num==16) && (sample_aspect_ratio_den==15)) {  // generic PAR MPEG-2 for PAL
                         sample_aspect_ratio_num =4;
                         sample_aspect_ratio_den =3;
                     }
-                    else if ((sample_aspect_ratio_num==12) && (sample_aspect_ratio_den==11)){  // generic PAR MPEG-4 for PAL
+                    else if ((sample_aspect_ratio_num==12) && (sample_aspect_ratio_den==11)) {  // generic PAR MPEG-4 for PAL
                         sample_aspect_ratio_num =4;
                         sample_aspect_ratio_den =3;
                     }
-                    else if ((sample_aspect_ratio_num==4) && (sample_aspect_ratio_den==3)){
+                    else if ((sample_aspect_ratio_num==4) && (sample_aspect_ratio_den==3)) {
 //                      sample_aspect_ratio_num =4;
 //                      sample_aspect_ratio_den =3;
+                    }
+                    else if ((sample_aspect_ratio_num==3) && (sample_aspect_ratio_den==2)) {  // H.264 1280x1080
+                        sample_aspect_ratio_num =16;
+                        sample_aspect_ratio_den =9;
                     }
                     else dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio (%d:%d) at frame (%d)",sample_aspect_ratio_num,sample_aspect_ratio_den,framenumber);
                 }
