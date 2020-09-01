@@ -496,16 +496,16 @@ bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2,
     else rate_0=0;
     rate_1_2 = 1000*similar_1_2/(logoHeight*logoWidth)*2;
 
-#define MINMATCH_0 860  // reduced from 890 to 870 to 860
-#define MINMATCH_1_2 985
+#define MINMATCH_0 800  // reduced from 890 to 870 to 860 to 800
+#define MINMATCH_1_2 980  // reduced from 985 to 980
     if ((rate_0 > MINMATCH_0) && (rate_1_2 > MINMATCH_1_2)) { // reduced from 890 to 870
 #ifdef DEBUG_CORNER
-        if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ======== frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d)", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, MINMATCH_0, rate_1_2, MINMATCH_1_2);  // only for debug
+        if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ++++ frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d)", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, MINMATCH_0, rate_1_2, MINMATCH_1_2);  // only for debug
 #endif
         return true;
     }
 #ifdef DEBUG_CORNER
-if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo !=!=!=!= frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d) ", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, MINMATCH_0, rate_1_2, MINMATCH_1_2);
+if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ---- frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d) ", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, MINMATCH_0, rate_1_2, MINMATCH_1_2);
 #endif
     return false;
 }
