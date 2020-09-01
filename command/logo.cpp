@@ -884,22 +884,13 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
             int secondLogoWidth = logoWidth;
             dsyslog("cExtractLogo::SearchLogo(): best corner %d found at frame %d with %d similars", bestLogoCorner, bestLogoInfo.iFrameNumber, bestLogoInfo.hits);
             if (this->Resize(maContext, &bestLogoInfo, &logoHeight, &logoWidth, bestLogoCorner)) {
-                if ((secondBestLogoInfo.hits > 50) || (secondBestLogoInfo.hits > (bestLogoInfo.hits * 0.8))) { // decreased from 0.9 to 0.8
-                    dsyslog("cExtractLogo::SearchLogo(): no clear corner detected, second best corner %d has %d hits", secondBestLogoCorner, secondBestLogoInfo.hits);
-                    if ((secondBestLogoInfo.hits >= 50) && (secondBestLogoInfo.hits > (bestLogoInfo.hits * 0.7))) {
-                        dsyslog("cExtractLogo::SearchLogo(): try with second best corner %d at frame %d with %d similars", secondBestLogoCorner, secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
-                        if (this->Resize(maContext, &secondBestLogoInfo, &secondLogoHeight, &secondLogoWidth, secondBestLogoCorner)) {
-                            if (secondLogoWidth < logoWidth) {  // smaller is the logo, the wider is a lettering
-                                dsyslog("cExtractLogo::SearchLogo(): second best corner is narrower, use this");
-                                bestLogoInfo = secondBestLogoInfo;
-                                bestLogoCorner = secondBestLogoCorner;
-                                logoHeight = secondLogoHeight;
-                                logoWidth = secondLogoWidth;
-                            }
-                        }
-                        else dsyslog("cExtractLogo::SearchLogo(): resize logo failed from second best corner failed");
+                if ((secondBestLogoInfo.hits > 50) && (secondBestLogoInfo.hits > (bestLogoInfo.hits * 0.8))) { // decreased from 0.9 to 0.8
+                    dsyslog("cExtractLogo::SearchLogo(): try with second best corner %d at frame %d with %d similars", secondBestLogoCorner, secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
+                    if (this->Resize(maContext, &secondBestLogoInfo, &secondLogoHeight, &secondLogoWidth, secondBestLogoCorner)) {
+                        dsyslog("cExtractLogo::SearchLogo(): resize logo from second best corner is valid, still no clear result");
+                        retStatus=false;
                     }
-                    else retStatus=false;
+                    else dsyslog("cExtractLogo::SearchLogo(): resize logo failed from second best corner, use best corner");
                 }
             }
             else {
