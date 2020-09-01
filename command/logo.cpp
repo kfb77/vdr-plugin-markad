@@ -13,6 +13,8 @@ extern "C"{
 #include "debug.h"
 }
 
+// #define DEBUG_CORNER TOP_RIGHT
+
 // based on this idee to find the logo in a recording:
 // 1. take 1000 ifarmes
 // 2. compare each corner of the iframes with all other iframes of the same corner
@@ -346,61 +348,106 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
 }
 
 
-int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
-    if (!maContext) return 0;
-    if (!ptr_actLogoInfo) return 0;
+bool cExtractLogo::CheckValid(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
+#define WHITEHORIZONTAL_BIG 10
+#define WHITEHORIZONTAL_SMALL 7 // reduced from 8 to 7
+#define WHITEVERTICAL_BIG 10
     if ((logoHeight <= 0) || (logoWidth <= 0)) return 0;
-    if ((corner < 0) || (corner > 3)) return 0;
+    if ((corner < 0) || (corner >= CORNERS)) return 0;
+    if (!ptr_actLogoInfo) return 0;
     if (!ptr_actLogoInfo->valid) {
-        dsyslog("cExtractLogo::Compare(): invalid logo data at frame %i", ptr_actLogoInfo->iFrameNumber);
-        return 0;
+        dsyslog("cExtractLogo::CheckValid(): invalid logo data at frame %i", ptr_actLogoInfo->iFrameNumber);
+        return false;
     }
-    int hits=0;
     if (corner <= TOP_RIGHT) {
-        for (int i = 0 ; i < 10 * logoWidth; i++) { // a valid top logo should have a white top part in plane 0
-            if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
-                return 0;
+        for (int i = 0 ; i < WHITEHORIZONTAL_BIG * logoWidth; i++) { // a valid top logo should have a white top part
+            if ((ptr_actLogoInfo->sobel[0][i] == 0) ||
+               ((i < WHITEHORIZONTAL_BIG * logoWidth / 4) && ((ptr_actLogoInfo->sobel[1][i] == 0) || (ptr_actLogoInfo->sobel[2][i] == 0)))) {
+#ifdef DEBUG_CORNER
+                if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s and has no big white top part at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+#endif
+                return false;
             }
         }
-        for (int i = (logoHeight-8) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid top logo should have at least a small white buttom part in plane 0
-            if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
-                return 0;
+        for (int i = (logoHeight - WHITEHORIZONTAL_SMALL) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid top logo should have at least a small white buttom part in plane 0
+            if (ptr_actLogoInfo->sobel[0][i] == 0) {
+#ifdef DEBUG_CORNER
+                 if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s and has no small white buttom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+#endif
+                return false;
             }
         }
 
     }
     else {
-        for (int i = (logoHeight-10) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid bottom logo should have a white bottom part in plane 0
+        for (int i = (logoHeight - WHITEHORIZONTAL_BIG) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid bottom logo should have a white bottom part in plane 0
             if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
-                return 0;
+#ifdef DEBUG_CORNER
+                 if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s and has no big white buttom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+#endif
+                return false;
             }
         }
-        for (int i = 0 ; i < 8 * logoWidth; i++) { // a valid bottom logo should have at least a small white top part in plane 0
+        for (int i = 0 ; i < WHITEHORIZONTAL_SMALL * logoWidth; i++) { // a valid bottom logo should have at least a small white top part in plane 0
             if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
-                return 0;
+#ifdef DEBUG_CORNER
+                 if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s and has no small white top part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+#endif
+                return false;
             }
         }
 
     }
-#define WHITEVERTICAL 10
+
     if ((corner == TOP_LEFT) || (corner == BOTTOM_LEFT)) { // a valid left logo should have white left part in pane 0
-        for (int column = 0; column <= WHITEVERTICAL; column++) {
+        for (int column = 0; column <= WHITEVERTICAL_BIG; column++) {
             for (int i = column; i < logoHeight * logoWidth; i = i + logoWidth) {
                 if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
-                    return 0;
+#ifdef DEBUG_CORNER
+                     if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s and has no big white left part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+#endif
+                    return false;
                 }
             }
         }
     }
     else { // a valid right logo should have white right part in pane 0
-        for (int column = 0; column <= WHITEVERTICAL; column++) {
+        for (int column = 0; column <= WHITEVERTICAL_BIG; column++) {
             for (int i = logoWidth - column; i < logoHeight * logoWidth; i = i + logoWidth) {
                 if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
-                    return 0;
+#ifdef DEBUG_CORNER
+                    if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s and has no big white right part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+#endif
+                    return false;
                 }
             }
         }
     }
+
+    int blackPixel1 = 0;
+    for (int i = 0; i < logoHeight * logoWidth; i++) {
+        if (ptr_actLogoInfo->sobel[0][i] == 0) blackPixel1++;
+    }
+    if (blackPixel1 < 300) {
+#ifdef DEBUG_CORNER
+        if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CheckValid(): logo has no enough pixel %d plane 0 at frame %i", blackPixel1, ptr_actLogoInfo->iFrameNumber);
+#endif
+        return false;
+    }
+    return true;
+}
+
+
+int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
+    if (!maContext) return 0;
+    if (!ptr_actLogoInfo) return 0;
+    if ((logoHeight <= 0) || (logoWidth <= 0)) return 0;
+    if ((corner < 0) || (corner >= CORNERS)) return 0;
+    if (!ptr_actLogoInfo->valid) {
+        dsyslog("cExtractLogo::Compare(): invalid logo data at frame %i", ptr_actLogoInfo->iFrameNumber);
+        return 0;
+    }
+    int hits=0;
 
     if (maContext->Config->autoLogo == 1) { // use packed logos
         for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
@@ -431,15 +478,11 @@ bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2,
     int similar_0=0;
     int similar_1_2=0;
     int oneBlack_0 = 0;
-    int blackPixel1 = 0;
-    int blackPixel2 = 0;
     int rate_0=0;
     int rate_1_2=0;
     for (int i = 0; i < logoHeight*logoWidth; i++) {    // compare all black pixel in plane 0
         if ((logo1->sobel[0][i] == 255) && (logo2->sobel[0][i] == 255)) continue;   // ignore white pixel
         else oneBlack_0 ++;
-        if (logo1->sobel[0][i] == 0) blackPixel1++;
-        if (logo2->sobel[0][i] == 0) blackPixel2++;
         if (logo1->sobel[0][i] == logo2->sobel[0][i]) {
             similar_0++;
         }
@@ -449,13 +492,12 @@ bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2,
             if (logo1->sobel[plane][i] == logo2->sobel[plane][i]) similar_1_2++;
         }
     }
-    if ((oneBlack_0 > 100) && (blackPixel1 > 110) && (blackPixel2 > 110)) rate_0=1000*similar_0/oneBlack_0;   // accept only if we found some pixels
+    if (oneBlack_0 > 100) rate_0 = 1000 * similar_0 / oneBlack_0;   // accept only if we found some pixels
     else rate_0=0;
     rate_1_2 = 1000*similar_1_2/(logoHeight*logoWidth)*2;
 
 #define MINMATCH_0 860  // reduced from 890 to 870 to 860
 #define MINMATCH_1_2 985
-// #define DEBUG_CORNER TOP_LEFT
     if ((rate_0 > MINMATCH_0) && (rate_1_2 > MINMATCH_1_2)) { // reduced from 890 to 870
 #ifdef DEBUG_CORNER
         if (corner == DEBUG_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ======== frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d)", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, MINMATCH_0, rate_1_2, MINMATCH_1_2);  // only for debug
@@ -487,7 +529,7 @@ int cExtractLogo::DeleteFrames(const MarkAdContext *maContext, const int from, c
                 else break;
             }
         }
-        if (maContext->Config->autoLogo == 2){  // use unpacked logos
+        if (maContext->Config->autoLogo == 2) {  // use unpacked logos
             for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
                 if (abortNow) return 0;
                 if (actLogo->iFrameNumber < from) continue;
@@ -501,6 +543,48 @@ int cExtractLogo::DeleteFrames(const MarkAdContext *maContext, const int from, c
         }
    }
    return deleteCount/4;  // 4 corner
+}
+
+
+int cExtractLogo::GetFirstFrame(const MarkAdContext *maContext) {
+    int firstFrame = INT_MAX;
+    for (int corner = 0; corner < CORNERS; corner++) {
+        if (maContext->Config->autoLogo == 1) { // use packed logos
+            if (!logoInfoVectorPacked[corner].empty() && logoInfoVectorPacked[corner].front().iFrameNumber < firstFrame) firstFrame = logoInfoVectorPacked[corner].front().iFrameNumber;
+        }
+        if (maContext->Config->autoLogo == 2) {  // use unpacked logos
+            if (!logoInfoVector[corner].empty() && logoInfoVector[corner].front().iFrameNumber < firstFrame) firstFrame = logoInfoVector[corner].front().iFrameNumber;
+        }
+    }
+    return firstFrame;
+}
+
+
+int cExtractLogo::GetLastFrame(const MarkAdContext *maContext) {
+    int lastFrame = 0;
+    for (int corner = 0; corner < CORNERS; corner++) {
+        if (maContext->Config->autoLogo == 1) { // use packed logos
+            if (!logoInfoVectorPacked[corner].empty() && logoInfoVectorPacked[corner].back().iFrameNumber > lastFrame) lastFrame = logoInfoVectorPacked[corner].back().iFrameNumber;
+        }
+        if (maContext->Config->autoLogo == 2) {  // use unpacked logos
+            if (!logoInfoVector[corner].empty() && logoInfoVector[corner].back().iFrameNumber > lastFrame) lastFrame = logoInfoVector[corner].back().iFrameNumber;
+        }
+    }
+    return lastFrame;
+}
+
+
+int cExtractLogo::CountFrames(const MarkAdContext *maContext) {
+    long unsigned int count = 0;
+    for (int corner = 0; corner < CORNERS; corner++) {
+        if (maContext->Config->autoLogo == 1) { // use packed logos
+            if (!logoInfoVectorPacked[corner].empty() && logoInfoVectorPacked[corner].size() > count) count = logoInfoVectorPacked[corner].size();
+        }
+        if (maContext->Config->autoLogo == 2) {  // use unpacked logos
+            if (!logoInfoVector[corner].empty() && logoInfoVector[corner].size() > count) count = logoInfoVector[corner].size();
+        }
+    }
+    return count;
 }
 
 
@@ -590,7 +674,7 @@ void cExtractLogo::UnpackLogoInfo(logoInfo *logoInfo, const logoInfoPacked *logo
 }
 
 
-int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
+int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
     dsyslog("----------------------------------------------------------------------------");
     dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d", startFrame, logoAspectRatio.Num, logoAspectRatio.Den);
 
@@ -601,7 +685,6 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
     if (startFrame < 0) return -1;
 
     int iFrameNumber = 0;
-    int iFrameCountValid = 0;
     int iFrameCountAll = 0;
     int logoHeight = 0;
     int logoWidth = 0;
@@ -633,35 +716,19 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
         delete vborder;
         return -1;
     }
-// remove frames before start frame
-    DeleteFrames(maContext, 0, startFrame);
-    while(ptr_cDecoder->DecodeDir(maContext->Config->recDir)) {
-// skip frames we have already read
-        if ((maContext->Config->autoLogo == 1) && (! logoInfoVectorPacked[0].empty())) { // use packed logos
-            logoInfoPacked lastInfo = logoInfoVectorPacked[0].back();
-            if (ptr_cDecoder->GetFrameNumber() < lastInfo.iFrameNumber) {
-                ptr_cDecoder->SeekToFrame(lastInfo.iFrameNumber);
-                iFrameCountValid = logoInfoVectorPacked[0].size();
-                if (iFrameCountValid > 1000) {
-                    dsyslog("cExtractLogo::SearchLogo(): we will get no new frames, give up");
-                }
-                iFrameCountAll = iFrameCountValid;
-                dsyslog("cExtractLogo::SearchLogo(): already have %d frames from (%d)to frame (%d)", iFrameCountValid, logoInfoVectorPacked[0].front().iFrameNumber, lastInfo.iFrameNumber);
-            }
-        }
-        if ((maContext->Config->autoLogo == 2) && (! logoInfoVector[0].empty())) { // use unpacked logos
-            logoInfo lastInfo = logoInfoVector[0].back();
-            if (ptr_cDecoder->GetFrameNumber() < lastInfo.iFrameNumber) {
-                ptr_cDecoder->SeekToFrame(lastInfo.iFrameNumber);
-                iFrameCountValid = logoInfoVector[0].size();
-                if (iFrameCountValid > 1000) {
-                    dsyslog("cExtractLogo::SearchLogo(): we will get no new frames, give up");
-                }
-                iFrameCountAll = iFrameCountValid;
-                dsyslog("cExtractLogo::SearchLogo(): already have %d frames from (%d) to (%d)", iFrameCountValid, logoInfoVector[0].front().iFrameNumber, lastInfo.iFrameNumber);
-            }
-        }
 
+// set start point
+    DeleteFrames(maContext, 0, startFrame);
+    int firstFrame = GetFirstFrame(maContext);
+    int lastFrame = GetLastFrame(maContext);
+    int countFrame = CountFrames(maContext);
+    if (firstFrame == INT_MAX) dsyslog("cExtractLogo::SearchLogo(): we have no frames already stored");
+    else dsyslog("cExtractLogo::SearchLogo(): already have %d frames from (%d) to frame (%d)", countFrame, firstFrame, lastFrame);
+    iFrameCountValid = countFrame;
+    if (lastFrame > startFrame) startFrame = lastFrame;
+
+
+    while(ptr_cDecoder->DecodeDir(maContext->Config->recDir)) {
         maContext->Info.VPid.Type = ptr_cDecoder->GetVideoType();
         if (maContext->Info.VPid.Type == 0) {
             dsyslog("cExtractLogo::SearchLogo(): video type not set");
@@ -779,27 +846,29 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                         logoInfo actLogoInfo = {};
                         actLogoInfo.iFrameNumber = iFrameNumber;
                         memcpy(actLogoInfo.sobel,area->sobel, sizeof(area->sobel));
-                        actLogoInfo.hits = this->Compare(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
+                        if (CheckValid(&actLogoInfo, logoHeight, logoWidth, corner)) {
+                            actLogoInfo.hits = Compare(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
 
-                        if (maContext->Config->autoLogo == 1) { // use packed logos
-                            logoInfoPacked actLogoInfoPacked = {};
-                            PackLogoInfo(&actLogoInfo, &actLogoInfoPacked);
-                            try { logoInfoVectorPacked[corner].push_back(actLogoInfoPacked); }  // this allocates a lot of memory
-                            catch(std::bad_alloc &e) {
-                                dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %d", iFrameNumber);
-                                retStatus=false;
-                                break;
+                            if (maContext->Config->autoLogo == 1) { // use packed logos
+                                logoInfoPacked actLogoInfoPacked = {};
+                                PackLogoInfo(&actLogoInfo, &actLogoInfoPacked);
+                                try { logoInfoVectorPacked[corner].push_back(actLogoInfoPacked); }  // this allocates a lot of memory
+                                catch(std::bad_alloc &e) {
+                                    dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %d", iFrameNumber);
+                                    retStatus=false;
+                                    break;
+                                }
+                                ALLOC((sizeof(logoInfoPacked)), "logoInfoVectorPacked");
                             }
-                            ALLOC((sizeof(logoInfoPacked)), "logoInfoVectorPacked");
-                        }
-                        if (maContext->Config->autoLogo == 2){  // use unpacked logos
-                            try { logoInfoVector[corner].push_back(actLogoInfo); }  // this allocates a lot of memory
-                            catch(std::bad_alloc &e) {
-                                dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %d", iFrameNumber);
-                                retStatus=false;
-                                break;
+                            if (maContext->Config->autoLogo == 2){  // use unpacked logos
+                                try { logoInfoVector[corner].push_back(actLogoInfo); }  // this allocates a lot of memory
+                                catch(std::bad_alloc &e) {
+                                    dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %d", iFrameNumber);
+                                    retStatus=false;
+                                    break;
+                                }
+                                ALLOC((sizeof(logoInfo)), "logoInfoVector");
                             }
-                            ALLOC((sizeof(logoInfo)), "logoInfoVector");
                         }
                     }
                     if (iFrameCountValid > 1000) {
@@ -820,6 +889,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
             if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES) || !retStatus)  break; // finish outer loop and find best match
         }
     }
+
     if (!retStatus && (iFrameCountAll < MAXREADFRAMES) && ((iFrameCountAll > MAXREADFRAMES / 2) || (iFrameCountValid > 800))) {  // reached end of recording before we got 1000 valid frames
         dsyslog("cExtractLogo::SearchLogo(): end of recording reached at frame (%d), read (%d) iFrames and got (%d) valid iFrames, try anyway",iFrameNumber , iFrameCountAll, iFrameCountValid);
         retStatus=true;
@@ -842,7 +912,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                         actLogoInfoPacked[corner] = *actLogoPacked;
                     }
                 }
-                dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars at corner %i", actLogoInfoPacked[corner].iFrameNumber, actLogoInfoPacked[corner].hits, corner);
+                dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars out of %3ld valid frames at %s", actLogoInfoPacked[corner].iFrameNumber, actLogoInfoPacked[corner].hits, logoInfoVectorPacked[corner].size(), aCorner[corner]);
             }
             if (maContext->Config->autoLogo == 2) { // use unpacked logos
                 for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
@@ -850,7 +920,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
                         actLogoInfo[corner] = *actLogo;
                     }
                 }
-                dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars at corner %i", actLogoInfo[corner].iFrameNumber, actLogoInfo[corner].hits, corner);
+                dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars out of %3ld valid frames at %s", actLogoInfo[corner].iFrameNumber, actLogoInfo[corner].hits, logoInfoVector[corner].size(), aCorner[corner]);
             }
         }
 
@@ -897,7 +967,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, const int startFrame) {  
             }
         }
 
-        if ((bestLogoInfo.hits >= 50) || ((bestLogoInfo.hits >= 30) && (sumHits <= bestLogoInfo.hits + 3))) {  // if almost all hits are in the same corner than less are enough, increased from 25 to 30
+        if ((bestLogoInfo.hits >= 50) || ((bestLogoInfo.hits > 30) && (sumHits <= bestLogoInfo.hits + 3))) {  // if almost all hits are in the same corner than less are enough, increased from 25 to 30
             int secondLogoHeight = logoHeight;
             int secondLogoWidth = logoWidth;
             dsyslog("cExtractLogo::SearchLogo(): best corner %d found at frame %d with %d similars", bestLogoCorner, bestLogoInfo.iFrameNumber, bestLogoInfo.hits);
