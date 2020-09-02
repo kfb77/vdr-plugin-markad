@@ -727,7 +727,6 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
     iFrameCountValid = countFrame;
     if (lastFrame > startFrame) startFrame = lastFrame;
 
-
     while(ptr_cDecoder->DecodeDir(maContext->Config->recDir)) {
         maContext->Info.VPid.Type = ptr_cDecoder->GetVideoType();
         if (maContext->Info.VPid.Type == 0) {
@@ -797,19 +796,14 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                     if ((logoAspectRatio.Num != maContext->Video.Info.AspectRatio.Num) || (logoAspectRatio.Den != maContext->Video.Info.AspectRatio.Den)) {
                         continue;
                     }
-                    if ((iFrameNumber >= firstBorderStart) && (iFrameNumber < lastBorderEnd)) {
-                        dsyslog("cExtractLogo::SearchLogo(): frame (%d) is in border area from (%d) to (%d) seek to end of area", iFrameNumber, firstBorderStart, lastBorderEnd);
-                        ptr_cDecoder->SeekToFrame(lastBorderEnd);
-                        continue;
-                    }
+
                     int hBorderIFrame = 0;
                     int vBorderIFrame = 0;
                     int isHBorder = hborder->Process(iFrameNumber, &hBorderIFrame);
                     int isVBorder = vborder->Process(iFrameNumber, &vBorderIFrame);
                     if (isHBorder) {  // -1 invisible, 1 visible
                         if (hborder->Status() == HBORDER_VISIBLE) {
-                            if (firstBorderStart == -1) firstBorderStart = hBorderIFrame;
-                            dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d), first border start at frame (%d)", hBorderIFrame, iFrameNumber, firstBorderStart);
+                            dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d)", hBorderIFrame, iFrameNumber);
                             iFrameCountValid-=DeleteFrames(maContext, hBorderIFrame, iFrameNumber);
                         }
                         else {
@@ -818,18 +812,21 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                     }
                     if (isVBorder) { // -1 invisible, 1 visible
                         if (vborder->Status() == VBORDER_VISIBLE) {
-                            if (firstBorderStart == -1) firstBorderStart = vBorderIFrame;
-                            dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d), first border start at frame (%d)", vBorderIFrame, iFrameNumber, firstBorderStart);
+                            dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d)", vBorderIFrame, iFrameNumber);
                             iFrameCountValid-=DeleteFrames(maContext, vBorderIFrame, iFrameNumber);
                         }
                         else {
                             dsyslog("cExtractLogo::SearchLogo(): no vertical border from frame (%d)", iFrameNumber);
                         }
                     }
-                    if ((vborder->Status() == VBORDER_VISIBLE) || (hborder->Status() == HBORDER_VISIBLE)) {
-                        lastBorderEnd = iFrameNumber;
-                        continue;
+                    if ((vborder->Status() == VBORDER_VISIBLE) || (hborder->Status() == HBORDER_VISIBLE)) {  // if we run from start, we could start with a border from the previous recording
+                        if ((startFrame > 0)) {
+                            dsyslog("cExtractLogo::SearchLogo(): border frame detected, abort logo search");
+                            retStatus = false;
+                        }
+                        else continue;
                     }
+
                     iFrameCountValid++;
                     if (!maContext->Video.Data.Valid) {
                         dsyslog("cExtractLogo::SearchLogo(): faild to get video data of frame (%d)", iFrameNumber);

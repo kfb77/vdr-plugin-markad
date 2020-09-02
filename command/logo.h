@@ -50,8 +50,6 @@ class cExtractLogo {
         std::vector<logoInfoPacked> logoInfoVectorPacked[CORNERS];
         int recordingFrameCount = 0;
         MarkAdAspectRatio logoAspectRatio = {};
-        int firstBorderStart = -1;
-        int lastBorderEnd = -1;
         bool is6Channel = false;
         bool has6Channel = false;
         int iFrameCountValid = 0;
