@@ -135,120 +135,126 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
     if (!logoWidth) return false;
     if ((bestLogoCorner < 0) || (bestLogoCorner > 3)) return false;
 
-    int acceptFalsePixelH = *logoWidth / 60;
-    int acceptFalsePixelV = *logoHeight / 30;
-
-// resize plane 0
     dsyslog("cExtractLogo::Resize(): logo size before resize: %3d width %3d height on corner %d", *logoWidth, *logoHeight, bestLogoCorner);
-    bool allWhite = true;
-    int whiteLines = 0;
-    int whiteColumns = 0;
     int logoHeightBeforeResize = *logoHeight;
     int logoWidthBeforeResize = *logoWidth;
-    int heightPlane_1_2 = *logoHeight/2;
-    int widthPlane_1_2 = *logoWidth/2;
+    int acceptFalsePixelH = *logoWidth / 30;  // reduced from 60 to 20, increased to 30 for vertical logo of arte HD
+    int acceptFalsePixelV = *logoHeight / 20; // reduced from 30 to 20
 
+    for (int repeat = 1; repeat <= 2; repeat++) {
+        if ((*logoWidth == 0) || (*logoHeight == 0)) {
+            dsyslog("cExtractLogo::Resize(): not enought pixel found");
+            return false;
+        }
+        int allWhite = true;
+        int whiteLines = 0;
+        int whiteColumns = 0;
+        int heightPlane_1_2 = *logoHeight/2;
+        int widthPlane_1_2 = *logoWidth/2;
 
-    if (bestLogoCorner <= TOP_RIGHT) {  // top corners, calculate new height and cut from below
-        while (allWhite) {
-            int isLineWhite = 0;
-            for (int i = (*logoHeight -1) * *logoWidth; i < *logoHeight * *logoWidth; i++) {
-                if ( bestLogoInfo->sobel[0][i] == 0) {
-                    isLineWhite++;
+// resize plane 0
+        if (bestLogoCorner <= TOP_RIGHT) {  // top corners, calculate new height and cut from below
+            while (allWhite) {
+                int isLineWhite = 0;
+                for (int i = (*logoHeight -1) * *logoWidth; i < *logoHeight * *logoWidth; i++) {
+                    if ( bestLogoInfo->sobel[0][i] == 0) {
+                        isLineWhite++;
+                    }
                 }
-            }
-            if (isLineWhite <= acceptFalsePixelH ) {  // accept false pixel
-                (*logoHeight)--;
-            }
-            else allWhite=false;
-        }
-        if (*logoHeight % 2) (*logoHeight)++;
-    }
-    else { // bottom corners, calculate new height and cut from above
-        while (allWhite) {
-            int isLineWhite = 0;
-            for (int i = whiteLines; i < (whiteLines+1) * *logoWidth; i++) {
-                if ( bestLogoInfo->sobel[0][i] == 0) {
-                    isLineWhite++;
+                if (isLineWhite <= acceptFalsePixelH ) {  // accept false pixel
+//                  dsyslog("cExtractLogo::Resize(): white line %d with %d pixel found", *logoHeight, isLineWhite);
+                    (*logoHeight)--;
                 }
+                else allWhite=false;
             }
-            if (isLineWhite <= acceptFalsePixelH ) {  // accept false pixel
-                whiteLines++;
-                if (whiteLines >= *logoHeight) allWhite=false;
-            }
-            else allWhite=false;
+            if (*logoHeight % 2) (*logoHeight)++;
         }
-        if (whiteLines % 2) whiteLines--;
-        for (int i = 0; i < (*logoHeight-whiteLines) * *logoWidth; i++) {
-             bestLogoInfo->sobel[0][i] =  bestLogoInfo->sobel[0][i + whiteLines* *logoWidth];
-        }
-        *logoHeight -= whiteLines;
-    }
-
-    allWhite=true;
-    if ((bestLogoCorner == TOP_RIGHT) || (bestLogoCorner == BOTTOM_RIGHT)) {  // right corners, cut from left
-        while ((allWhite) && (whiteColumns < *logoWidth)) {
-            int isColumnWhite = 0;
-            for (int i = whiteColumns; i < *logoHeight * *logoWidth; i = i + *logoWidth) {
-                if ( bestLogoInfo->sobel[0][i] == 0) {
-                    isColumnWhite++;
+        else { // bottom corners, calculate new height and cut from above
+            while (allWhite) {
+                int isLineWhite = 0;
+                for (int i = whiteLines; i < (whiteLines+1) * *logoWidth; i++) {
+                    if ( bestLogoInfo->sobel[0][i] == 0) {
+                        isLineWhite++;
+                    }
                 }
-            }
-            if (isColumnWhite <= acceptFalsePixelV ) {  // accept false pixel
-                whiteColumns++;
-            }
-            else allWhite=false;
-        }
-        if (whiteColumns % 2) whiteColumns--;
-        for (int i = 0; i < *logoHeight * (*logoWidth - whiteColumns); i++) {
-             bestLogoInfo->sobel[0][i] =  bestLogoInfo->sobel[0][i + whiteColumns*(1 + (i / (*logoWidth - whiteColumns)))];
-        }
-        *logoWidth -= whiteColumns;
-    }
-    else { // left corners, cut from right
-        whiteColumns = *logoWidth;
-        while ((allWhite) && (whiteColumns > 0)) {
-            int isColumnWhite = 0;
-            for (int i = whiteColumns; i < *logoHeight * *logoWidth; i = i + *logoWidth) {
-                if ( bestLogoInfo->sobel[0][i] == 0) {
-                    isColumnWhite++;
+                if (isLineWhite <= acceptFalsePixelH ) {  // accept false pixel
+                    whiteLines++;
+                    if (whiteLines >= *logoHeight) allWhite=false;
                 }
+                else allWhite=false;
             }
-            if (isColumnWhite <= acceptFalsePixelV ) {  // accept false pixel
-                whiteColumns--;
+            if (whiteLines % 2) whiteLines--;
+            for (int i = 0; i < (*logoHeight-whiteLines) * *logoWidth; i++) {
+                bestLogoInfo->sobel[0][i] =  bestLogoInfo->sobel[0][i + whiteLines* *logoWidth];
             }
-            else allWhite=false;
+            *logoHeight -= whiteLines;
         }
-        if (whiteColumns % 2) whiteColumns--;
-        whiteColumns = *logoWidth - whiteColumns;
-        for (int i = 0; i < *logoHeight * (*logoWidth - whiteColumns); i++) {
-             bestLogoInfo->sobel[0][i] =  bestLogoInfo->sobel[0][i + whiteColumns*(i / (*logoWidth - whiteColumns))];
-        }
-        *logoWidth -= whiteColumns;
 
-    }
-
-// resize plane 1 and 2
-    whiteLines /= 2;
-    whiteColumns /= 2;
-    for (int plane = 1; plane < PLANES; plane++) {
-        if (bestLogoCorner <= TOP_RIGHT) { // top corners, cut from below
-        }
-        else { // bottom corners, cut from above
-            for (int i = 0; i < (heightPlane_1_2 - whiteLines) * widthPlane_1_2; i++) {
-                bestLogoInfo->sobel[plane][i] =  bestLogoInfo->sobel[plane][i + whiteLines* widthPlane_1_2];
-            }
-        }
+        allWhite=true;
         if ((bestLogoCorner == TOP_RIGHT) || (bestLogoCorner == BOTTOM_RIGHT)) {  // right corners, cut from left
-            for (int i = 0; i < heightPlane_1_2 * (widthPlane_1_2 - whiteColumns); i++) {
-                bestLogoInfo->sobel[plane][i] =  bestLogoInfo->sobel[plane][i + whiteColumns*(1 + (i / (widthPlane_1_2 - whiteColumns)))];
+            while ((allWhite) && (whiteColumns < *logoWidth)) {
+                int isColumnWhite = 0;
+                for (int i = whiteColumns; i < *logoHeight * *logoWidth; i = i + *logoWidth) {
+                    if ( bestLogoInfo->sobel[0][i] == 0) {
+                        isColumnWhite++;
+                    }
+                }
+                if (isColumnWhite <= acceptFalsePixelV ) {  // accept false pixel
+                    whiteColumns++;
+                }
+                else allWhite=false;
             }
+            if (whiteColumns % 2) whiteColumns--;
+            for (int i = 0; i < *logoHeight * (*logoWidth - whiteColumns); i++) {
+                bestLogoInfo->sobel[0][i] =  bestLogoInfo->sobel[0][i + whiteColumns*(1 + (i / (*logoWidth - whiteColumns)))];
+            }
+            *logoWidth -= whiteColumns;
         }
         else { // left corners, cut from right
-            for (int i = 0; i < heightPlane_1_2 * (widthPlane_1_2 - whiteColumns); i++) {
-                bestLogoInfo->sobel[plane][i] =  bestLogoInfo->sobel[plane][i + whiteColumns*(i / (widthPlane_1_2 - whiteColumns))];
+            whiteColumns = *logoWidth;
+            while ((allWhite) && (whiteColumns > 0)) {
+                int isColumnWhite = 0;
+                for (int i = whiteColumns; i < *logoHeight * *logoWidth; i = i + *logoWidth) {
+                    if ( bestLogoInfo->sobel[0][i] == 0) {
+                        isColumnWhite++;
+                    }
+                }
+                if (isColumnWhite <= acceptFalsePixelV ) {  // accept false pixel
+                    whiteColumns--;
+                }
+                else allWhite=false;
+            }
+            if (whiteColumns % 2) whiteColumns--;
+            whiteColumns = *logoWidth - whiteColumns;
+            for (int i = 0; i < *logoHeight * (*logoWidth - whiteColumns); i++) {
+                bestLogoInfo->sobel[0][i] =  bestLogoInfo->sobel[0][i + whiteColumns*(i / (*logoWidth - whiteColumns))];
+            }
+            *logoWidth -= whiteColumns;
+        }
+
+// resize plane 1 and 2
+        whiteLines /= 2;
+        whiteColumns /= 2;
+        for (int plane = 1; plane < PLANES; plane++) {
+            if (bestLogoCorner <= TOP_RIGHT) { // top corners, cut from below
+            }
+            else { // bottom corners, cut from above
+                for (int i = 0; i < (heightPlane_1_2 - whiteLines) * widthPlane_1_2; i++) {
+                    bestLogoInfo->sobel[plane][i] =  bestLogoInfo->sobel[plane][i + whiteLines* widthPlane_1_2];
+                }
+            }
+            if ((bestLogoCorner == TOP_RIGHT) || (bestLogoCorner == BOTTOM_RIGHT)) {  // right corners, cut from left
+                for (int i = 0; i < heightPlane_1_2 * (widthPlane_1_2 - whiteColumns); i++) {
+                    bestLogoInfo->sobel[plane][i] =  bestLogoInfo->sobel[plane][i + whiteColumns*(1 + (i / (widthPlane_1_2 - whiteColumns)))];
+                }
+            }
+            else { // left corners, cut from right
+                for (int i = 0; i < heightPlane_1_2 * (widthPlane_1_2 - whiteColumns); i++) {
+                    bestLogoInfo->sobel[plane][i] =  bestLogoInfo->sobel[plane][i + whiteColumns*(i / (widthPlane_1_2 - whiteColumns))];
+                }
             }
         }
+    dsyslog("cExtractLogo::Resize(): logo size after %d resize: %3d width %3d height on corner %d", repeat, *logoWidth, *logoHeight, bestLogoCorner);
     }
 //
 // known logo sizes
@@ -259,7 +265,6 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
 //
 // HD ARD-alpha HD:  204W 86H 16:9 TOP_LEFT
 //
-    dsyslog("cExtractLogo::Resize(): logo size after resize: %3d width %3d height on corner %d", *logoWidth, *logoHeight, bestLogoCorner);
     bool logoValid = true;
     switch (maContext->Video.Info.Width) {
         case 720:
@@ -979,7 +984,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                 }
             }
             else {
-                dsyslog("cExtractLogo::SearchLogo(): resize logo failed from best corner failed");
+                dsyslog("cExtractLogo::SearchLogo(): resize logo from best corner failed");
                 if (secondBestLogoInfo.hits >= 50) {
                     dsyslog("cExtractLogo::SearchLogo(): try with second best corner %d at frame %d with %d similars", secondBestLogoCorner, secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
                     if (this->Resize(maContext, &secondBestLogoInfo, &logoHeight, &logoWidth, secondBestLogoCorner)) {
