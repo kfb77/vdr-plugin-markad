@@ -339,7 +339,7 @@ void cMarkAdStandalone::CheckStop() {
     }
 
     if (!end) {
-        end = marks.GetAround(3*delta, iStopA, MT_HBORDERSTOP);         // try MT_HBORDERSTOP
+        end = marks.GetAround(5 * delta, iStopA, MT_HBORDERSTOP);         // try MT_HBORDERSTOP, increased from 3 to 5
         if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTOP found at frame %i", end->position);
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_HBORDERSTOP mark found");
     }
@@ -418,7 +418,7 @@ void cMarkAdStandalone::CheckStop() {
         }
         marks.DelTill(end->position, false);
 
-        if ( end->position < iStopA - 3*delta ) {    // last found stop mark too early, adding STOP mark at the end
+        if ( end->position < iStopA - 5 * delta ) {    // last found stop mark too early, adding STOP mark at the end, increased from 3 to 5
                                                      // this can happen by audio channel change too if the next broadcast has also 6 channels
             if ( ( lastStart) && ( lastStart->position > end->position ) ) {
                 isyslog("last STOP mark results in to short recording, set STOP at the end of the recording (%i)", lastiframe);
