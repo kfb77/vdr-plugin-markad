@@ -812,7 +812,7 @@ void cMarkAdStandalone::CheckStart() {
                 begin = NULL;
             }
             else {
-                if (begin->inBroadCast) {  // test on inBroadCast because we have to take care of black screen marks in an ad
+                if ((begin->inBroadCast) || macontext.Video.Options.IgnoreLogoDetection){  // test on inBroadCast because we have to take care of black screen marks in an ad
                     char *indexToHMSF = marks.IndexToHMSF(begin->position, &macontext, ptr_cDecoder);
                     if (indexToHMSF) {
                         dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%i) type 0x%X at %s inBroadCast %i", begin->position, begin->type, indexToHMSF, begin->inBroadCast);
