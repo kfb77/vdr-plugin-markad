@@ -256,15 +256,7 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
         }
     dsyslog("cExtractLogo::Resize(): logo size after %d resize: %3d width %3d height on corner %d", repeat, *logoWidth, *logoHeight, bestLogoCorner);
     }
-//
-// known logo sizes
-// SD FOX Channel:    96W 72H 16:9 TOP_RIGHT
-// SD Nick:          144W 90H 16:9 TOP_LEFT
-// SD WELT:          186W 62H 16:9 BOTTOM_LEFT (logo in news ticker)
-// SD ProSieben:     100W 66W  4:3 TOP_RIGHT
-//
-// HD ARD-alpha HD:  204W 86H 16:9 TOP_LEFT
-//
+
     bool logoValid = true;
     switch (maContext->Video.Info.Width) {
         case 720:
@@ -290,7 +282,7 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
                     dsyslog("cExtractLogo::Resize(): SD logo is not heigh enough");
                     logoValid = false;
                 }
-                if (*logoHeight > 90) {
+                if (*logoHeight >= 114) {  // TLC with "love you" addon
                     dsyslog("cExtractLogo::Resize(): SD logo is too heigh");
                     logoValid = false;
                 }
