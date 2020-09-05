@@ -705,7 +705,7 @@ bool cExtractLogo::WaitForFrames(const MarkAdContext *maContext, cDecoder *ptr_c
     }
     FREE(strlen(indexFile)+1, "indexFile");
     free(indexFile);
-    dsyslog("cExtractLogo::WaitForFrames(): index file size %ld byte", indexStatus.st_size);
+    dsyslog("cExtractLogo::WaitForFrames(): index file size %ld bytes", indexStatus.st_size);
     int maxframes = indexStatus.st_size/8;
     recordingFrameCount = maxframes;
     if (maxframes>(ptr_cDecoder->GetFrameNumber()+200)) return true;  // recording has enough frames
@@ -837,9 +837,8 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
             return -1;
         }
         maContext->Video.Info.Height = ptr_cDecoder->GetVideoHeight();
-        dsyslog("cExtractLogo::SearchLogo(): video height: %i", maContext->Video.Info.Height);
-        maContext->Video.Info.Width=ptr_cDecoder->GetVideoWidth();
-        dsyslog("cExtractLogo::SearchLogo(): video width: %i", maContext->Video.Info.Width);
+        maContext->Video.Info.Width = ptr_cDecoder->GetVideoWidth();
+        dsyslog("cExtractLogo::SearchLogo(): video resolution %dx%d", maContext->Video.Info.Width, maContext->Video.Info.Height);
         if (maContext->Video.Info.Width > 720){
             logoHeight = LOGO_DEFHDHEIGHT;
             logoWidth = LOGO_DEFHDWIDTH;
@@ -876,9 +875,9 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                         }
                     }
                     if (has6Channel) {
-                        if (is6Channel && !is6ChannelBefore) dsyslog("cExtractLogo::SearchLogo(): stop ignoring frame because of 6 channel at frame (%d)", iFrameNumber);
+                        if (is6Channel && !is6ChannelBefore) dsyslog("cExtractLogo::SearchLogo(): start using frames because of 6 channel at frame (%d)", iFrameNumber);
                         if (!is6Channel) {
-                            if (is6ChannelBefore) dsyslog("cExtractLogo::SearchLogo(): start ignoring frame because of 2 channel at frame (%d)", iFrameNumber);
+                            if (is6ChannelBefore) dsyslog("cExtractLogo::SearchLogo(): ignoring frames because of 2 channel at frame (%d)", iFrameNumber);
                             continue;
                         }
                     }

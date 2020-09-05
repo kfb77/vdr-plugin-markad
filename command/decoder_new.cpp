@@ -212,19 +212,19 @@ int cDecoder::GetVideoType() {
         if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             switch (avctx->streams[i]->codecpar->codec_id) {
                 case AV_CODEC_ID_MPEG2VIDEO:
-                    dsyslog("cDecoder::GetVideoType(): found H.262 Video");
+                    dsyslog("cDecoder::GetVideoType(): video coding format: H.262");
                     return MARKAD_PIDTYPE_VIDEO_H262;
                     break;
                 case AV_CODEC_ID_H264:
-                    dsyslog("cDecoder::GetVideoType(): found H.264 Video");
+                    dsyslog("cDecoder::GetVideoType(): video coding format: H.264");
                     return MARKAD_PIDTYPE_VIDEO_H264;
                     break;
                 case AV_CODEC_ID_H265:
-                    dsyslog("cDecoder::GetVideoType(): found H.265 Video");
+                    dsyslog("cDecoder::GetVideoType(): video coding format: H.265");
                     return MARKAD_PIDTYPE_VIDEO_H265;
                     break;
                 default:
-                    dsyslog("cDecoder::GetVideoType(): unknown coded id %i", avctx->streams[i]->codecpar->codec_id);
+                    dsyslog("cDecoder::GetVideoType(): video coding format unknown, coded id: %i", avctx->streams[i]->codecpar->codec_id);
                     return 0;
             }
         }
@@ -556,7 +556,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
             if (avFrame) {
                 stateEAGAIN=false;
                 if (avFrame->interlaced_frame != interlaced_frame) {
-                    dsyslog("cDecoder::GetFrameInfo(): found %s video format",(avFrame->interlaced_frame) ? "interlaced" : "non interlaced");
+                    dsyslog("cDecoder::GetFrameInfo(): %s video format",(avFrame->interlaced_frame) ? "interlaced" : "non interlaced");
                     interlaced_frame=avFrame->interlaced_frame;
                 }
                 for (int i = 0; i < PLANES; i++) {
