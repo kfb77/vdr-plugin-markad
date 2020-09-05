@@ -379,9 +379,17 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
                     dsyslog("cExtractLogo::Resize(): SD logo is not heigh enough");
                     logoValid = false;
                 }
-                if (*logoHeight >= 114) {  // TLC with "love you" addon
-                    dsyslog("cExtractLogo::Resize(): SD logo is too heigh");
-                    logoValid = false;
+                if (strcmp(maContext->Info.ChannelName, "Welt_der_Wunder") == 0) {
+                    if (*logoHeight > 112) { // Welt der Wunder
+                        dsyslog("cExtractLogo::Resize(): SD logo is too heigh");
+                        logoValid = false;
+                    }
+                }
+                else {
+                    if (*logoHeight >= 94) {
+                        dsyslog("cExtractLogo::Resize(): SD logo is too heigh");
+                        logoValid = false;
+                    }
                 }
             }
             break;
