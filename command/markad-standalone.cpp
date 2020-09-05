@@ -2194,7 +2194,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                     macontext.Video.Options.IgnoreBlackScreenDetection = false;   // use black sceen setection only to find end mark
                     if (macontext.Video.Options.IgnoreLogoDetection == true) {
                         macontext.Video.Options.IgnoreLogoDetection = false;
-                        if (video) video->Clear(true);    // reset logo decoder status
+                        if (video) video->Clear(true, inBroadCast);    // reset logo decoder status
                     }
             }
 

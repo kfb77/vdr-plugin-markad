@@ -61,9 +61,13 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext) {
 }
 
 
-void cMarkAdLogo::Clear() {
+void cMarkAdLogo::Clear(bool isRestart, bool inBroadCast) {
     area={};
-    area.status = LOGO_UNINITIALIZED;
+    if (isRestart) { // reset valid logo status after restart
+        if (inBroadCast) area.status = LOGO_VISIBLE;
+        else area.status = LOGO_INVISIBLE;
+    }
+    else area.status = LOGO_UNINITIALIZED;
 }
 
 
@@ -973,7 +977,7 @@ cMarkAdVideo::~cMarkAdVideo() {
 }
 
 
-void cMarkAdVideo::Clear(bool isRestart) {
+void cMarkAdVideo::Clear(bool isRestart, bool inBroadCast) {
     if (! isRestart) {
         aspectratio.Num=0;
         aspectratio.Den=0;
@@ -983,7 +987,7 @@ void cMarkAdVideo::Clear(bool isRestart) {
     framelast=0;
     framebeforelast=0;
     if (blackScreen) blackScreen->Clear();
-    if (logo) logo->Clear();
+    if (logo) logo->Clear(isRestart, inBroadCast);
 }
 
 
