@@ -728,14 +728,17 @@ void cMarkAdStandalone::CheckStart() {
         }
         else {
             dsyslog("cMarkAdStandalone::CheckStart(): vertical border start found at (%i)", vStart->position);
-            clMark *vStop = marks.GetAround(delta, vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is not valid, reduced from delta, increased from delta / 2 to delta
-            if ((vStop) && (vStop->position > vStart->position)) {
-                isyslog("vertical border STOP (%i) short after vertical border START (%i) found, this is not valid, delete marks", vStop->position,vStart->position);
-                marks.Del(vStart);
-                marks.Del(vStop);
-
+            clMark *vStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is not valid
+            if (vStop) {
+                int markDiff = (int) (vStop->position - vStart->position) / macontext.Video.Info.FramesPerSecond;
+                if (markDiff < 90) {
+                    isyslog("vertical border STOP (%i) %ds after vertical border START (%i) found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
+                    marks.Del(vStop);
+                    marks.Del(vStart);
+                    vStart = NULL;
+                }
             }
-            else {
+            if (vStart) {
                 if (vStart->position != 0) {  // position 0 is a vborder previous recording
                     dsyslog("cMarkAdStandalone::CheckStart(): delete HBORDER marks if any");
                     marks.Del(MT_HBORDERSTART);
