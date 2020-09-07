@@ -609,10 +609,11 @@ void cMarkAdStandalone::CheckStart() {
                 marks.Del(MT_CHANNELSTART);
                 marks.Del(MT_CHANNELSTOP);
                 // start mark must be around iStartA
-                begin = marks.GetAround(delta*4, iStartA, MT_ASPECTSTART);
+                begin = marks.GetAround(delta * 4, iStartA, MT_ASPECTSTART);
                 if (begin) {
-                    dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTART found at (%i)",begin->position);
+                    dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTART found at (%i)", begin->position);
                     if (begin->position > abs(iStartA) / 4) {    // this is a valid start
+                        dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTART at (%i) is valid, delete all logo and border marks", begin->position);
                         marks.Del(MT_LOGOSTART);  // we found MT_ASPECTSTART, we do not need weeker marks
                         marks.Del(MT_LOGOSTOP);
                         marks.Del(MT_HBORDERSTART);
@@ -627,6 +628,10 @@ void cMarkAdStandalone::CheckStart() {
                        if (aStopNext) {
                            dsyslog("cMarkAdStandalone::CheckStart(): found MT_ASPECTSTOP (%i), delete all weaker marks after", aStopNext->position);
                            marks.DelWeakFromTo(aStopNext->position, INT_MAX, aStopNext->type);
+                       }
+                       else {
+                           dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTOP is not valid (%i), ignoring", begin->position);
+                           begin = NULL;
                        }
                    }
 
@@ -745,7 +750,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // try to find a logo mark
     if (!begin) {
-        clMark *lStart = marks.GetAround(iStartA + 2 * delta, iStartA, MT_LOGOSTART);   // increase from 1
+        clMark *lStart = marks.GetAround(iStartA + (2 * delta), iStartA, MT_LOGOSTART);   // increase from 1
         if (!lStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no logo start mark found");
         }
