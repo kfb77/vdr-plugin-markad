@@ -983,10 +983,12 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     }
 
 // delete short START STOP logo marks because they are previews in the advertisement
+// delete short START STOP hborder marks because they are advertisement in the advertisement
     dsyslog("cMarkAdStandalone::CheckMarks(): check marks 3nd pass (detect previews in advertisement)");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
     while (mark) {
+// check logo marks
         if ((mark->type == MT_LOGOSTART) && (mark->position != marks.GetFirst()->position) && mark->Next()) {  // not start or end mark
             if ((mark->Next()->type == MT_LOGOSTOP) && (mark->Next()->position != marks.GetLast()->position)) { // next mark not end mark
                 clMark *stopBefore = marks.GetPrev(mark->position, MT_LOGOSTOP);
@@ -995,7 +997,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                     int lenghtPreview = (int) ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
                     if ((lenghtAdBefore > 6) && (lenghtAdBefore < 500)) {  // if ad before is long this is the really the next start mark, increased from 450 to 455 to 500
                         if ((lenghtPreview > 2) && lenghtPreview < 110) {  // if logo part is long, this was a start mark
-                            isyslog("found preview of lenght %is between (%i) and (%i) in advertisement (lenght %is), deleting marks", lenghtPreview, mark->position, mark->Next()->position, lenghtAdBefore);
+                            isyslog("found preview of lenght %is between logo mark (%i) and logo mark (%i) in advertisement (lenght %is), deleting marks", lenghtPreview, mark->position, mark->Next()->position, lenghtAdBefore);
                             clMark *tmp=mark;
                             mark = mark->Next()->Next();
                             marks.Del(tmp->Next());
@@ -1004,6 +1006,20 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                         }
                     }
                     else dsyslog("cMarkAdStandalone::CheckMarks(): no preview of lenght %is between (%i) and (%i) in advertisement (lenght %is)", lenghtPreview, mark->position, mark->Next()->position, lenghtAdBefore);
+                }
+            }
+        }
+// check hborder marks
+        if ((mark->type == MT_HBORDERSTART) && (mark->position != marks.GetFirst()->position) && mark->Next()) {  // not start or end mark
+            if ((mark->Next()->type == MT_HBORDERSTOP) && (mark->Next()->position != marks.GetLast()->position)) { // next mark not end mark
+                int lenghtAd = (int) ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
+                if (lenghtAd < 70) {
+                    isyslog("found advertisement of lenght %is between hborder mark (%i) and hborder mark (%i), deleting marks", lenghtAd, mark->position, mark->Next()->position);
+                    clMark *tmp=mark;
+                    mark = mark->Next()->Next();
+                    marks.Del(tmp->Next());
+                    marks.Del(tmp);
+                    continue;
                 }
             }
         }
