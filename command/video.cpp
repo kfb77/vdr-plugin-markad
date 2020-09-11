@@ -800,7 +800,6 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
 
 cMarkAdOverlap::cMarkAdOverlap(MarkAdContext *maContext) {
     macontext = maContext;
-
     histbuf[OV_BEFORE] = NULL;
     histbuf[OV_AFTER] = NULL;
     Clear();
@@ -818,10 +817,12 @@ void cMarkAdOverlap::Clear() {
     histframes[OV_BEFORE] = 0;
     histframes[OV_AFTER] = 0;
     if (histbuf[OV_BEFORE]) {
+        FREE(sizeof(*histbuf[OV_BEFORE]), "histbuf");
         delete[] histbuf[OV_BEFORE];
         histbuf[OV_BEFORE] = NULL;
     }
     if (histbuf[OV_AFTER]) {
+        FREE(sizeof(*histbuf[OV_AFTER]), "histbuf");
         delete[] histbuf[OV_AFTER];
         histbuf[OV_AFTER] = NULL;
     }
@@ -904,7 +905,7 @@ MarkAdPos *cMarkAdOverlap::Detect() {
 }
 
 
-MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd, bool H264) {
+MarkAdPos *cMarkAdOverlap::Process(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264) {
 //    dsyslog("---cMarkAdOverlap::Process FrameNumber %i", FrameNumber);
 //    dsyslog("---cMarkAdOverlap::Process Frames %i", Frames);
 //    dsyslog("---cMarkAdOverlap::Process BeforeAd %i", BeforeAd);
@@ -930,8 +931,9 @@ MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd, b
             }
         }
         if (!histbuf[OV_BEFORE]) {
-            histframes[OV_BEFORE]=Frames;
-            histbuf[OV_BEFORE]=new histbuffer[Frames+1];
+            histframes[OV_BEFORE] = Frames;
+            histbuf[OV_BEFORE] = new histbuffer[Frames+1];
+            ALLOC(sizeof(*histbuf[OV_BEFORE]), "histbuf");
         }
         getHistogram(histbuf[OV_BEFORE][histcnt[OV_BEFORE]].histogram);
         histbuf[OV_BEFORE][histcnt[OV_BEFORE]].framenumber=FrameNumber;
@@ -939,8 +941,9 @@ MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd, b
     }
     else {
         if (!histbuf[OV_AFTER]) {
-            histframes[OV_AFTER]=Frames;
-            histbuf[OV_AFTER]=new histbuffer[Frames+1];
+            histframes[OV_AFTER] = Frames;
+            histbuf[OV_AFTER] = new histbuffer[Frames+1];
+            ALLOC(sizeof(*histbuf[OV_AFTER]), "histbuf");
         }
 
         if (histcnt[OV_AFTER]>=histframes[OV_AFTER]-1) {
@@ -958,10 +961,18 @@ MarkAdPos *cMarkAdOverlap::Process(int FrameNumber, int Frames, bool BeforeAd, b
 
 cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext) {
     macontext=maContext;
-    blackScreen=new cMarkAdBlackScreen(maContext);
+    blackScreen = new cMarkAdBlackScreen(maContext);
+    ALLOC(sizeof(*blackScreen), "blackScreen");
+
     hborder=new cMarkAdBlackBordersHoriz(maContext);
+    ALLOC(sizeof(*hborder), "hborder");
+
     vborder=new cMarkAdBlackBordersVert(maContext);
+    ALLOC(sizeof(*vborder), "vborder");
+
     logo = new cMarkAdLogo(maContext);
+    ALLOC(sizeof(*logo), "logo");
+
     overlap = NULL;
     Clear(false);
 }
@@ -969,11 +980,26 @@ cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext) {
 
 cMarkAdVideo::~cMarkAdVideo() {
     resetmarks();
-    if (blackScreen) delete blackScreen;
-    if (hborder) delete hborder;
-    if (vborder) delete vborder;
-    if (logo) delete logo;
-    if (overlap) delete overlap;
+    if (blackScreen) {
+        FREE(sizeof(*blackScreen), "blackScreen");
+        delete blackScreen;
+    }
+    if (hborder) {
+        FREE(sizeof(*hborder), "hborder");
+        delete hborder;
+    }
+    if (vborder) {
+        FREE(sizeof(*vborder), "vborder");
+        delete vborder;
+    }
+    if (logo) {
+        FREE(sizeof(*logo), "logo");
+        delete logo;
+    }
+    if (overlap) {
+        FREE(sizeof(*overlap), "overlap");
+        delete overlap;
+    }
 }
 
 
@@ -1028,9 +1054,12 @@ bool cMarkAdVideo::aspectratiochange(const MarkAdAspectRatio &a, const MarkAdAsp
 }
 
 
-MarkAdPos *cMarkAdVideo::ProcessOverlap(int FrameNumber, int Frames, bool BeforeAd, bool H264) {
+MarkAdPos *cMarkAdVideo::ProcessOverlap(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264) {
     if (!FrameNumber) return NULL;
-    if (!overlap) overlap = new cMarkAdOverlap(macontext);
+    if (!overlap) {
+        overlap = new cMarkAdOverlap(macontext);
+        ALLOC(sizeof(*overlap), "overlap");
+    }
     if (!overlap) return NULL;
     return overlap->Process(FrameNumber, Frames, BeforeAd, H264);
 }

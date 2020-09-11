@@ -104,7 +104,7 @@ class cMarkAdOverlap {
     public:
         explicit cMarkAdOverlap(MarkAdContext *maContext);
         ~cMarkAdOverlap();
-        MarkAdPos *Process(int FrameNumber, int Frames, bool BeforeAd, bool H264);
+        MarkAdPos *Process(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
 };
 
 
@@ -234,7 +234,7 @@ class cMarkAdVideo {
             framebeforelast = 0;
             return *this;
         }
-        MarkAdPos *ProcessOverlap(int FrameNumber, int Frames, bool BeforeAd, bool H264);
+        MarkAdPos *ProcessOverlap(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
         MarkAdMarks *Process(int FrameNumber, int FrameNumberNext);
         bool ReducePlanes(void);
         void Clear(bool isRestart, bool inBroadCast = false);
