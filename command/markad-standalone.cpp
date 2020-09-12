@@ -1718,7 +1718,6 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
         esyslog("failed resetting state");
         return false;
     }
-    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): check overlap for marks before frame (%d) and after (%d)", (*mark1)->position, (*mark2)->position);
 
 // calculate overlap check positions before stop mark
 #define OVERLAP_CHECK_BEFORE 120  // start 2 min before stop mark
@@ -1997,9 +1996,9 @@ void cMarkAdStandalone::Process2ndPass() {
         if (frange_begin < 0) frange_begin = 0; // but not before beginning of broadcast
 #endif
         if (ptr_cDecoder) {
-            dsyslog("cMarkAdStandalone::Process2ndPass(): ->->->->-> check overlap for marks before frames (%i) and after (%i)", p1->position, p2->position);
+            dsyslog("cMarkAdStandalone::Process2ndPass(): ->->->->-> check overlap before stop frame (%d) and after start frame (%d)", p1->position, p2->position);
             if (!ProcessMark2ndPass(&p1,&p2)) {
-                dsyslog("cMarkAdStandalone::Process2ndPass(): no overlap found for marks before frames (%i) and after (%i)", p1->position, p2->position);
+                dsyslog("cMarkAdStandalone::Process2ndPass(): no overlap found for marks before frames (%d) and after (%d)", p1->position, p2->position);
             }
         }
 #if defined CLASSIC_DECODER

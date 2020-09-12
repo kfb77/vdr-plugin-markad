@@ -859,6 +859,8 @@ int cMarkAdOverlap::areSimilar(simpleHistogram &hist1, simpleHistogram &hist2) {
 }
 
 
+// #define DEBUG_OVERLAP
+
 MarkAdPos *cMarkAdOverlap::Detect() {
     int start = 0, simcnt = 0;
     int tmpA = 0, tmpB = 0;
@@ -868,7 +870,9 @@ MarkAdPos *cMarkAdOverlap::Detect() {
         for (int A=start; A<histcnt[OV_AFTER]; A++) {
             int simil = areSimilar(histbuf[OV_BEFORE][B].histogram, histbuf[OV_AFTER][A].histogram);
             if (simil != -1) {
-//                dsyslog("cMarkAdOverlap::Detect(): simil %5i similarCutOff %5i simcnt %2i similarMaxCnt %2i, between (%5d) and (%5d)", simil, similarCutOff, simcnt, similarMaxCnt, histbuf[OV_BEFORE][B].framenumber, histbuf[OV_AFTER][A].framenumber);
+#ifdef DEBUG_OVERLAP
+                dsyslog("cMarkAdOverlap::Detect(): simil %5i similarCutOff %5i simcnt %2i similarMaxCnt %2i, between (%5d) and (%5d)", simil, similarCutOff, simcnt, similarMaxCnt, histbuf[OV_BEFORE][B].framenumber, histbuf[OV_AFTER][A].framenumber);
+#endif
                 tmpA = A;
                 tmpB = B;
                 start = A + 1;
@@ -914,7 +918,7 @@ MarkAdPos *cMarkAdOverlap::Process(const int FrameNumber, const int Frames, cons
 //    dsyslog("---cMarkAdOverlap::Process histcnt[OV_BEFORE] %i", histcnt[OV_BEFORE]);
 //    dsyslog("---cMarkAdOverlap::Process histcnt[OV_AFTER] %i", histcnt[OV_AFTER]);
     if ((lastframenumber > 0) && (!similarMaxCnt)) {
-        similarCutOff = 50000; // lower is harder!
+        similarCutOff = 49000; // lower is harder! reduced from 50000 to 49000
 //        if (H264) similarCutOff*=6;
         if (H264) similarCutOff *= 4;       // reduce false similar detection in H.264 streams
 //        similarMaxCnt=4;
