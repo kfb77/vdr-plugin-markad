@@ -13,8 +13,6 @@ extern "C"{
 #include "debug.h"
 }
 
-// #define DEBUG_CORNER TOP_RIGHT
-
 // based on this idee to find the logo in a recording:
 // 1. take 1000 ifarmes
 // 2. compare each corner of the iframes with all other iframes of the same corner
@@ -22,6 +20,10 @@ extern "C"{
 // 4. remove the white frame from the logo
 // 5. store the logo files in the recording directory for future use
 
+
+// #define DEBUG_CORNER TOP_RIGHT
+#define LOGO_720W_MIN_H 54      // SIXX
+#define LOGO_MIN_LETTERING_H 41 // "DIE NEUEN FOLGEN" SAT_1
 
 extern bool abortNow;
 
@@ -141,7 +143,7 @@ void cExtractLogo::CutOut(logoInfo *logoInfo, int cutPixelH, int cutPixelV, int 
     int widthPlane_1_2 = *logoWidth / 2;
 
     if (cutPixelH > 0) {
-        dsyslog("cExtractLogo::CutOut(): logo size before cut out:   %3d width %3d height on corner %12s, cut out %3dp horizontal and %3dp vertical", *logoWidth, *logoHeight, aCorner[corner], cutPixelH, cutPixelV);
+        dsyslog("cExtractLogo::CutOut(): cut out %3dp lines horizontal and %3dp column vertical", cutPixelH, cutPixelV);
         if (corner <= TOP_RIGHT) {  // top corners, cut from below
         }
         else { // bottom corners, cut from above
@@ -153,7 +155,7 @@ void cExtractLogo::CutOut(logoInfo *logoInfo, int cutPixelH, int cutPixelV, int 
     }
 
     if (cutPixelV > 0) {
-        dsyslog("cExtractLogo::CutOut(): logo size before cut out:   %3d width %3d height on corner %12s, cut out %3dp horizontal and %3dp vertical", *logoWidth, *logoHeight, aCorner[corner], cutPixelH, cutPixelV);
+        dsyslog("cExtractLogo::CutOut(): cut out %3dp lines horizontal and %3dp column vertical", cutPixelH, cutPixelV);
         if ((corner == TOP_RIGHT) || (corner == BOTTOM_RIGHT)) {  // right corners, cut from left
             for (int i = 0; i < *logoHeight * (*logoWidth - cutPixelV); i++) {
                 logoInfo->sobel[0][i] =  logoInfo->sobel[0][i + cutPixelV * (1 + (i / (*logoWidth - cutPixelV)))];
@@ -193,7 +195,102 @@ void cExtractLogo::CutOut(logoInfo *logoInfo, int cutPixelH, int cutPixelV, int 
             }
         }
     }
-//    dsyslog("cExtractLogo::CutOut(): logo size after cut out:    %3d width %3d height on corner %d", *logoWidth, *logoHeight, corner);
+    dsyslog("cExtractLogo::CutOut(): logo size after cut out:    %3d width %3d height on corner %12s", *logoWidth, *logoHeight, aCorner[corner]);
+}
+
+
+bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoHeight, const int logoWidth, const int corner) {
+    switch (maContext->Video.Info.Width) {
+        case 720:
+            if ((corner >= BOTTOM_LEFT) && (logoHeight >= 60) && (logoHeight <= 65) && (logoWidth >= 185)) { // if logo size is low and wide on BOTTON, it is in a news ticker
+            dsyslog("cExtractLogo::CheckLogoSize(): found SD logo in a news ticker");
+            }
+            else {  // logo on TOP
+                if (strcmp(maContext->Info.ChannelName, "RTLplus") == 0) {
+                    if (logoWidth > 212) { // RTLplus
+                        dsyslog("cExtractLogo::CheckLogoSize(): SD logo for RTLPlus is too wide");
+                        return false;
+                    }
+                }
+                else {
+                    if (logoWidth >= 150) {
+                        dsyslog("cExtractLogo::CheckLogoSize(): SD logo is too wide");
+                        return false;
+                    }
+                }
+            }
+
+            if (strcmp(maContext->Info.ChannelName, "SIXX") == 0) {
+                if (logoHeight < LOGO_720W_MIN_H) {
+                    dsyslog("cExtractLogo::CheckLogoSize(): SD logo is not heigh enough");
+                    return false;
+                }
+            }
+            else {
+                if (logoHeight < LOGO_720W_MIN_H + 3) { // increased from 2 to 3
+                    dsyslog("cExtractLogo::CheckLogoSize(): SD logo is not heigh enough");
+                    return false;
+                }
+            }
+
+            if (strcmp(maContext->Info.ChannelName, "Welt_der_Wunder") == 0) {
+                if (logoHeight > 112) { // Welt der Wunder
+                    dsyslog("cExtractLogo::CheckLogoSize(): SD logo is too heigh");
+                    return false;
+                }
+            }
+            else {
+                if (logoHeight >= 94) {
+                    dsyslog("cExtractLogo::CheckLogoSize(): SD logo is too heigh");
+                    return false;
+                }
+            }
+            break;
+        case 1280:
+            if (maContext->Video.Info.Height == 1080) {  // ANIXE+
+            }
+            else {
+                if (logoWidth >= 256) {
+                    dsyslog("cExtractLogo::CheckLogoSize(): HD logo is too wide");
+                    return false;
+                }
+                if (logoHeight > 134) { // arte HD
+                    dsyslog("cExtractLogo::CheckLogoSize(): HD logo is too heigh");
+                    return false;
+                }
+                if (logoHeight >= 134) { // logo is vertical
+                    if (logoWidth < 84) { // arte HD
+                        dsyslog("cExtractLogo::CheckLogoSize(): HD logo is too narrow");
+                        return false;
+                    }
+                }
+                else { // logo is horizontal
+                    if (logoWidth <= 116) {
+                        dsyslog("cExtractLogo::CheckLogoSize(): HD logo is too narrow");
+                        return false;
+                    }
+                }
+            }
+            break;
+        case 1920:
+            if (strcmp(maContext->Info.ChannelName, "münchen_tv_HD") == 0) {
+                if (logoHeight < 96) { // münchen_tv_HD
+                    dsyslog("cExtractLogo::CheckLogoSize(): HD logo for münchen_tv_HD is not heigh enough");
+                    return false;
+                }
+            }
+            else {
+                if (logoHeight <= 106) {
+                    dsyslog("cExtractLogo::CheckLogoSize(): HD logo is not heigh enough");
+                    return false;
+                }
+            }
+            break;
+        default:
+            dsyslog("cExtractLogo::CheckLogoSize(): no logo size rules for %dx%d", maContext->Video.Info.Width, maContext->Video.Info.Height);
+            break;
+    }
+    return true;
 }
 
 
@@ -213,6 +310,8 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
     for (int repeat = 1; repeat <= 2; repeat++) {
         if ((*logoWidth <= 0) || (*logoHeight <= 0)) {
             dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is not valid", maContext->Video.Info.Width, maContext->Video.Info.Height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
+            *logoHeight = logoHeightBeforeResize; // restore logo size
+            *logoWidth = logoWidthBeforeResize;
             return false;
         }
 
@@ -233,22 +332,26 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
                 else break;
             }
             CutOut(bestLogoInfo, whiteLines, 0, logoHeight, logoWidth, bestLogoCorner);
+// search for text under logo
 // search for at least 3 white lines to cut logos with text addon (e.g. "Neue Folge" or "Live")
             int countWhite = 0;
             int cutLine = 0;
             int topBlackLine= 0;
             int leftBlackPixel = INT_MAX;
             int rightBlackPixel = 0;
+            int minWhiteLines;
+            if ((maContext->Video.Info.Width) == 720) minWhiteLines = 2;
+            else minWhiteLines = 4;
             for (int line = *logoHeight - 1; line > 0; line--) {
-                bool isAllWhite = true;
+                int countBlackPixel = 0;
                 for (int column = 0; column < *logoWidth; column++) {
                     if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
-                        isAllWhite = false;
+                        countBlackPixel++;
                         if (column < leftBlackPixel) leftBlackPixel = column;
                         if (column > rightBlackPixel) rightBlackPixel = column;
                     }
                 }
-                if (isAllWhite) {
+                if (countBlackPixel <= 1) {  // accept 1 false pixel
                     countWhite++;
                 }
                 else {
@@ -256,16 +359,20 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
                     topBlackLine = line;
                     if (cutLine > 0) break;
                 }
-                if (countWhite >= 3) {
+                if (countWhite >= minWhiteLines) {
                     cutLine = line;
                 }
             }
             if (topBlackLine < cutLine) {
-                if ((rightBlackPixel - leftBlackPixel) >= 50) {
-                    dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d,  pixel before: left %d right %d, width is valid", cutLine, leftBlackPixel, rightBlackPixel);
-                    CutOut(bestLogoInfo, *logoHeight - cutLine, 0, logoHeight, logoWidth, bestLogoCorner);
+                if (cutLine >= LOGO_MIN_LETTERING_H) {
+                    if ((((rightBlackPixel - leftBlackPixel) >= 38) && ((*logoHeight - cutLine) > 8)) || // cut our "love your" from TLC with 38 pixel width, do not cut out lines in the logo
+                       (((rightBlackPixel - leftBlackPixel) <= 20) && ((*logoHeight - cutLine) <= 8))) { // cut out small pixel errors
+                        dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, *logoHeight - cutLine, leftBlackPixel, rightBlackPixel);
+                        CutOut(bestLogoInfo, *logoHeight - cutLine, 0, logoHeight, logoWidth, bestLogoCorner);
+                    }
+                    else dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, width is invalid", cutLine, rightBlackPixel - leftBlackPixel, *logoHeight - cutLine, leftBlackPixel, rightBlackPixel);
                 }
-                else dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d,  pixel before: left %d right %d width is invalid", cutLine, leftBlackPixel, rightBlackPixel);
+                else dsyslog("cExtractLogo::Resize(): cutline at %d not valid", cutLine);
             }
         }
         else { // bottom corners, calculate new height and cut from above
@@ -306,18 +413,24 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
             int countWhite = 0;
             int cutColumn = 0;
             int lastBlackColumn = 0;
-            int topBlackPixel = INT_MAX;
+            int topBlackPixel =  INT_MAX;
+            int topBlackPixelBefore = INT_MAX;
+            int bottomBlackPixelBefore = 0;
             int bottomBlackPixel = 0;
             for (int column = 0; column < *logoWidth; column++) {
                 bool isAllWhite = true;
+                topBlackPixel = topBlackPixelBefore;
+                bottomBlackPixel = bottomBlackPixelBefore;
                 for (int line = 0; line < *logoHeight; line++) {
                     if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
                         isAllWhite = false;
-                        if (line < topBlackPixel) topBlackPixel = line;
-                        if (line > bottomBlackPixel) bottomBlackPixel = line;
+                        if (line < topBlackPixelBefore) topBlackPixelBefore = line;
+                        if (line > bottomBlackPixelBefore) bottomBlackPixelBefore = line;
                     }
                 }
-                if (isAllWhite) countWhite++;
+                if (isAllWhite) {
+                    countWhite++;
+                }
                 else {
                     countWhite = 0;
                     lastBlackColumn = column;
@@ -329,10 +442,10 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
             }
             if (lastBlackColumn > cutColumn) {
                 if ((bottomBlackPixel - topBlackPixel) <= 13) {
-                    dsyslog("cExtractLogo::Resize(): found text before logo, cut at column %d, pixel before: top %d bottom %d, height is valid", cutColumn, topBlackPixel, bottomBlackPixel);
+                    dsyslog("cExtractLogo::Resize(): found text before logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
                     CutOut(bestLogoInfo, 0, cutColumn, logoHeight, logoWidth, bestLogoCorner);
                 }
-                else dsyslog("cExtractLogo::Resize(): found text before logo, cut at column %d, pixel before: top %d bottom %d, height is not valid", cutColumn, topBlackPixel, bottomBlackPixel);
+                else dsyslog("cExtractLogo::Resize(): found text before logo, cut at column %d, pixel test: top %d bottom %d, text height %d is not valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
             }
         }
         else { // left corners, cut from right
@@ -352,93 +465,9 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
             }
             CutOut(bestLogoInfo, 0, whiteColumns, logoHeight, logoWidth, bestLogoCorner);
         }
-        dsyslog("cExtractLogo::Resize(): logo size after %d resize:   %3d width %3d height on corner %d", repeat, *logoWidth, *logoHeight, bestLogoCorner);
+        dsyslog("cExtractLogo::Resize(): logo size after %d. resize:   %3d width %3d height on corner %d", repeat, *logoWidth, *logoHeight, bestLogoCorner);
     }
-    bool logoValid = true;
-    switch (maContext->Video.Info.Width) {
-        case 720:
-            if (logoWidthBeforeResize == LOGO_DEFWIDTH) {
-                if ((bestLogoCorner >= BOTTOM_LEFT) && (*logoHeight >= 60) && (*logoHeight <= 65) && (*logoWidth >= 185)) { // if logo size is low and wide on BOTTON, it is in a news ticker
-                dsyslog("cExtractLogo::Resize(): found SD logo in a news ticker");
-                }
-                else {
-                    if (strcmp(maContext->Info.ChannelName, "RTLplus") == 0) {
-                        if (*logoWidth > 212) { // RTLplus
-                            dsyslog("cExtractLogo::Resize(): SD logo for RTLPlus is too wide");
-                            logoValid = false;
-                        }
-                    }
-                    else {
-                        if (*logoWidth >= 150) {
-                            dsyslog("cExtractLogo::Resize(): SD logo is too wide");
-                            logoValid = false;
-                        }
-                    }
-                }
-                if (*logoHeight <= 50) {
-                    dsyslog("cExtractLogo::Resize(): SD logo is not heigh enough");
-                    logoValid = false;
-                }
-                if (strcmp(maContext->Info.ChannelName, "Welt_der_Wunder") == 0) {
-                    if (*logoHeight > 112) { // Welt der Wunder
-                        dsyslog("cExtractLogo::Resize(): SD logo is too heigh");
-                        logoValid = false;
-                    }
-                }
-                else {
-                    if (*logoHeight >= 94) {
-                        dsyslog("cExtractLogo::Resize(): SD logo is too heigh");
-                        logoValid = false;
-                    }
-                }
-            }
-            break;
-        case 1280:
-            if (maContext->Video.Info.Height == 1080) {  // ANIXE+
-            }
-            else {
-                if (*logoWidth >= 256) {
-                    dsyslog("cExtractLogo::Resize(): HD logo is too wide");
-                    logoValid = false;
-                }
-                if (*logoHeight > 134) { // arte HD
-                    dsyslog("cExtractLogo::Resize(): HD logo is too heigh");
-                    logoValid = false;
-                }
-                if (*logoHeight >= 134) { // logo is vertical
-                    if (*logoWidth < 84) { // arte HD
-                        dsyslog("cExtractLogo::Resize(): HD logo is too narrow");
-                        logoValid = false;
-                    }
-                }
-                else { // logo is horizontal
-                    if (*logoWidth <= 116) {
-                        dsyslog("cExtractLogo::Resize(): HD logo is too narrow");
-                        logoValid = false;
-                    }
-                }
-            }
-            break;
-        case 1920:
-            if (strcmp(maContext->Info.ChannelName, "münchen_tv_HD") == 0) {
-                if (*logoHeight < 96) { // münchen_tv_HD
-                    dsyslog("cExtractLogo::Resize(): HD logo for münchen_tv_HD is not heigh enough");
-                    logoValid = false;
-                }
-            }
-            else {
-                if (*logoHeight <= 106) {
-                    dsyslog("cExtractLogo::Resize(): HD logo is not heigh enough");
-                    logoValid = false;
-                }
-            }
-            break;
-        default:
-            dsyslog("cExtractLogo::Resize(): no logo size rules for %dx%d", maContext->Video.Info.Width, maContext->Video.Info.Height);
-            break;
-    }
-
-    if (logoValid) {
+    if (CheckLogoSize(maContext, *logoHeight, *logoWidth, bestLogoCorner)) {
         dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is valid", maContext->Video.Info.Width, maContext->Video.Info.Height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
         return true;
     }
@@ -1097,7 +1126,8 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
             }
         }
         else {
-            dsyslog("cExtractLogo::SearchLogo(): no valid logo found, best logo at frame %i with %i similars at corner %i", bestLogoInfo.iFrameNumber, bestLogoInfo.hits, bestLogoCorner);
+            if (bestLogoCorner >= 0) dsyslog("cExtractLogo::SearchLogo(): no valid logo found, best logo at frame %i with %i similars at corner %s", bestLogoInfo.iFrameNumber, bestLogoInfo.hits, aCorner[bestLogoCorner]);
+            else dsyslog("cExtractLogo::SearchLogo(): no logo found");
             retStatus=false;
         }
 
