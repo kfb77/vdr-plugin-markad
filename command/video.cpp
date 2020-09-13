@@ -323,7 +323,7 @@ int cMarkAdLogo::SobelPlane(const int plane) {
 }
 
 
-int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
+int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool movingLogo) {
     bool onlyFillArea = ( *logoframenumber < 0 );
     bool extract = (macontext->Config->logoExtraction != -1);
     if (*logoframenumber == -2) extract = true;
@@ -331,6 +331,8 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
     int processed = 0;
     *logoframenumber = -1;
     if (area.corner == -1) return LOGO_NOCHANGE;
+    float logo_vmark = LOGO_VMARK;
+    if (movingLogo) logo_vmark *= 0.9;   // reduce if we have a moving logo (SAT_1)
 
     for (int plane = 0; plane < PLANES; plane++) {
         if ((area.valid[plane]) || (extract) || (onlyFillArea)) {
@@ -348,7 +350,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
     if (extract || onlyFillArea) return LOGO_NOCHANGE;
     if (!processed) return LOGO_ERROR;
 
-    tsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | cI=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel*LOGO_VMARK), (mpixel*LOGO_IMARK), area.intensity, area.counter, area.counterInvisible, area.status, processed);
+    tsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | cI=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.counterInvisible, area.status, processed);
 
     // if we only have one plane we are "vulnerable"
     // to very bright pictures, so ignore them...
@@ -358,12 +360,12 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
         }
         else area.counterInvisible = 0;
         if ((area.counterInvisible >= LOGO_IMAXCOUNT) && (area.intensity > 130)) tsyslog("%d logo invisible in bright area", area.counterInvisible);
-        if ((rpixel < (mpixel * LOGO_VMARK)) && (area.intensity > 130) && (area.counterInvisible < LOGO_IMAXCOUNT)) return LOGO_NOCHANGE;
+        if ((rpixel < (mpixel * logo_vmark)) && (area.intensity > 130) && (area.counterInvisible < LOGO_IMAXCOUNT)) return LOGO_NOCHANGE;
     }
 
     int ret = LOGO_NOCHANGE;
     if (area.status == LOGO_UNINITIALIZED) { // Initialize
-        if (rpixel >= (mpixel * LOGO_VMARK)) {
+        if (rpixel >= (mpixel * logo_vmark)) {
             area.status = ret = LOGO_VISIBLE;
         }
         else {
@@ -373,7 +375,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
         *logoframenumber = framenumber;
     }
 
-    if (rpixel >= (mpixel * LOGO_VMARK)) {
+    if (rpixel >= (mpixel * logo_vmark)) {
         if (area.status == LOGO_INVISIBLE) {
             if (area.counter >= LOGO_VMAXCOUNT) {
                 area.status = ret = LOGO_VISIBLE;
@@ -410,7 +412,7 @@ int cMarkAdLogo::Detect(int framenumber, int *logoframenumber) {
         }
     }
 
-    if ((rpixel < (mpixel*LOGO_VMARK)) && (rpixel > (mpixel*LOGO_IMARK))) {
+    if ((rpixel < (mpixel * logo_vmark)) && (rpixel > (mpixel * LOGO_IMARK))) {
         area.counter--;  // we are more uncertain of logo state
         if (area.counter < 0) area.counter = 0;
     }
@@ -533,7 +535,12 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
             LOGOHEIGHT = macontext->Config->logoHeight;
         }
     }
-    return Detect(FrameNumber, LogoFrameNumber);
+    int ret;
+    if (strcmp(macontext->Info.ChannelName, "SAT_1") == 0) {  // set moving logo
+        ret = Detect(FrameNumber, LogoFrameNumber, true);
+    }
+    else ret = Detect(FrameNumber, LogoFrameNumber, false);
+    return ret;
 }
 
 
