@@ -773,14 +773,17 @@ void cMarkAdStandalone::CheckStart() {
                     free(indexToHMSF);
                 }
                 clMark *lNextStart = marks.GetNext(lStop->position, MT_LOGOSTART);
-                if (lNextStart && ((lNextStart->position - lStop->position) < delta)) { // found start mark short after start/stop, use this as start mark
+                if (lNextStart) {
                     indexToHMSF = marks.IndexToHMSF(lNextStart->position, &macontext, ptr_cDecoder);
+                    if ((lNextStart->position - lStop->position) < delta) { // found start mark short after start/stop, use this as start mark
+                        if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark short after logo start/stop marks on position (%i) at %s", lNextStart->position, indexToHMSF);
+                        lStart = lNextStart;
+                    }
+                    else if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): next logo start mark (%i) at %s too far away", lNextStart->position, indexToHMSF);
                     if (indexToHMSF) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): found start mark short after logo start/stop marks on position (%i) at %s", lNextStart->position, indexToHMSF);
                         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                         free(indexToHMSF);
                     }
-                    lStart = lNextStart;
                 }
             }
             if (lStart->position  >= (iStart / 8)) {
