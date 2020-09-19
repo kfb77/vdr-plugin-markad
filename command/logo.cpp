@@ -21,10 +21,14 @@ extern "C"{
 // 4. remove the white frame from the logo
 // 5. store the logo files in the recording directory for future use
 
-
+// debug options
 // #define DEBUG_LOGO_CORNER TOP_RIGHT
 // #define DEBUG_LOGO_CORNER TOP_LEFT
+// #define DEBUG_LOGO_SAVE 0   // save all logos before CheckValid
+// #define DEBUG_LOGO_SAVE 1   // save valid logos before RemovePixelDefects
+// #define DEBUG_LOGO_SAVE 2   // save valid logos after RemovePixelDefects
 
+// logo size limits
 #define LOGO_720W_MIN_H 54      // SIXX
 #define LOGO_MIN_LETTERING_H 41 // "DIE NEUEN FOLGEN" SAT_1
 
@@ -72,7 +76,7 @@ bool cExtractLogo::isWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoH
 }
 
 
-bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
+bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber = -1) {
     if (!maContext) return false;
     if (!ptr_actLogoInfo) return false;
     if ((logoHeight <= 0) || (logoWidth <= 0)) return false;
@@ -87,23 +91,29 @@ bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actL
             width /= 2;
             height /= 2;
         }
-        int black = 0;
-        for (int i = 0; i < height*width; i++) {
-            if (ptr_actLogoInfo->sobel[plane][i] == 0) black++;
-        }
-        if (plane > 0) {
-            if (black <= 130) {  // increased from 80 to 100 to 110 to 115 to 130
-                dsyslog("cExtractLogo::Save(): not enough pixel (%i) in plane %i", black, plane);
-                continue;
+        if (framenumber < 0) { // save loogo to recording directory
+            int black = 0;
+            for (int i = 0; i < height*width; i++) {
+                if (ptr_actLogoInfo->sobel[plane][i] == 0) black++;
             }
-            else dsyslog("cExtractLogo::Save(): got enough pixel (%i) in plane %i", black, plane);
-        }
-        else dsyslog("cExtractLogo::Save(): %i pixel in plane %i", black, plane);
+            if (plane > 0) {
+                if (black <= 130) {  // increased from 80 to 100 to 110 to 115 to 130
+                    dsyslog("cExtractLogo::Save(): not enough pixel (%i) in plane %i", black, plane);
+                    continue;
+                }
+                else dsyslog("cExtractLogo::Save(): got enough pixel (%i) in plane %i", black, plane);
+            }
+            else dsyslog("cExtractLogo::Save(): %i pixel in plane %i", black, plane);
 
-        if (this->isWhitePlane(ptr_actLogoInfo, height, width, plane)) continue;
-        if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", maContext->Config->recDir, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane)==-1) return false;
-        ALLOC(strlen(buf)+1, "buf");
-        dsyslog("cExtractLogo::Save(): store logo in %s", buf);
+            if (this->isWhitePlane(ptr_actLogoInfo, height, width, plane)) continue;
+            if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", maContext->Config->recDir, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane)==-1) return false;
+            ALLOC(strlen(buf)+1, "buf");
+            dsyslog("cExtractLogo::Save(): store logo in %s", buf);
+        }
+        else {  // debug function, sorte logo to /tmp
+            if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i.pgm", "/tmp/",framenumber, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane) == -1) return false;
+            ALLOC(strlen(buf)+1, "buf");
+        }
         // Open file
         FILE *pFile=fopen(buf, "wb");
         if (pFile==NULL)
@@ -813,6 +823,58 @@ void cExtractLogo::UnpackLogoInfo(logoInfo *logoInfo, const logoInfoPacked *logo
 }
 
 
+void cExtractLogo::RemovePixelDefects(const MarkAdContext *maContext, logoInfo *logoInfo, const int logoHeight, const int logoWidth, const int corner) {
+    if (!maContext) return;
+    if (!logoInfo) return;
+#if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 1
+    Save(maContext, logoInfo, logoHeight, logoWidth, corner, logoInfo->iFrameNumber);
+#endif
+
+    for (int plane = 0; plane < PLANES; plane++) {
+        int height;
+        int width;
+        if (plane == 0) {
+            height = logoHeight;
+            width = logoWidth;
+        }
+        else {
+            height = logoHeight / 2;
+            width = logoWidth / 2;
+        }
+        for (int line = height - 1; line >= 0; line--) {
+            for (int column = 0; column < width; column++) {
+                if ( logoInfo->sobel[plane][line * width + column] == 0) {  // remove single separate pixel
+                    if (( logoInfo->sobel[plane][(line + 1) * width + column] == 255) &&
+                        ( logoInfo->sobel[plane][(line - 1) * width + column] == 255) &&
+                        ( logoInfo->sobel[plane][line * width + (column + 1)] == 255) &&
+                        ( logoInfo->sobel[plane][line * width + (column - 1)] == 255) &&
+                        ( logoInfo->sobel[plane][(line + 1) * width + (column + 1)] == 255) &&
+                        ( logoInfo->sobel[plane][(line - 1) * width + (column - 1)] == 255)) {
+                        logoInfo->sobel[plane][line * width + column] = 255;
+#if defined(DEBUG_LOGO_CORNER)
+                        dsyslog("cExtractLogo::RemovePixelDefects(): fix single separate pixel found at line %d column %d at frame %d in plane %d", line, column, logoInfo->iFrameNumber, plane);
+#endif
+                    }
+                }
+                else if ( logoInfo->sobel[plane][line * width + column] == 255) {  //  add single missing pixel
+                    if (( logoInfo->sobel[plane][(line + 1) * width + column] == 0) &&
+                        ( logoInfo->sobel[plane][(line - 1) * width + column] == 0) &&
+                        ( logoInfo->sobel[plane][line * width + (column + 1)] == 0) &&
+                        ( logoInfo->sobel[plane][line * width + (column - 1)] == 0) &&
+                        ( logoInfo->sobel[plane][(line + 1) * width + (column + 1)] == 0) &&
+                        ( logoInfo->sobel[plane][(line - 1) * width + (column - 1)] == 0)) {
+                        logoInfo->sobel[plane][line * width + column] = 0;
+                    }
+                }
+            }
+        }
+    }
+#if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 2
+    Save(maContext, logoInfo, logoHeight, logoWidth, corner, logoInfo->iFrameNumber);
+#endif
+}
+
+
 int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
     dsyslog("----------------------------------------------------------------------------");
     dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d", startFrame, logoAspectRatio.Num, logoAspectRatio.Den);
@@ -975,7 +1037,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                     for (int corner = 0; corner < CORNERS; corner++) {
                         int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
                                                     //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
-#ifdef DEBUG_LOGO_CORNER
+#if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 0
                         if (corner == DEBUG_LOGO_CORNER) iFrameNumberNext = -2;   // only for debuging, store logo file to /tmp
 #endif
                         area->corner=corner;
@@ -984,6 +1046,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                         actLogoInfo.iFrameNumber = iFrameNumber;
                         memcpy(actLogoInfo.sobel,area->sobel, sizeof(area->sobel));
                         if (CheckValid(&actLogoInfo, logoHeight, logoWidth, corner)) {
+                            RemovePixelDefects(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
                             actLogoInfo.hits = Compare(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
 
                             if (maContext->Config->autoLogo == 1) { // use packed logos
@@ -1007,21 +1070,6 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                                 ALLOC((sizeof(logoInfo)), "logoInfoVector");
                             }
                         }
-#ifdef DEBUG_LOGO_CORNER
-                        else {   // delete unvalid logo files
-                            if (corner == DEBUG_LOGO_CORNER) {
-                                for (int plane = 0; plane < PLANES; plane++) {
-                                    char *filename = NULL;
-                                    if (asprintf(&filename, "%s/%06d-%s-A%i_%i-P%i.pgm", "/tmp/",iFrameNumber, maContext->Info.ChannelName, area->aspectratio.Num, area->aspectratio.Den, plane) != -1) {
-                                        ALLOC(strlen(filename)+1, "filename");
-                                        remove(filename);
-                                        FREE(strlen(filename)+1, "filename");
-                                        free(filename);
-                                    }
-                                }
-                            }
-                        }
-#endif
                     }
                     if (iFrameCountValid > 1000) {
                         int firstBorder = hborder->GetFirstBorderFrame();
