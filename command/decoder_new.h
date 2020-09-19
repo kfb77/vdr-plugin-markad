@@ -85,6 +85,7 @@ class cDecoder {
         int framenumber=-1;
         int iFrameCount=0;
         int64_t pts_time_ms_LastFile=0;
+        int diff_ms_usual = 0;
         struct iFrameInfo {
             int fileNumber=0;
             int iFrameNumber=0;

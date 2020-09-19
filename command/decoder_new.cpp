@@ -349,11 +349,18 @@ bool cDecoder::GetNextFrame() {
                     if (avpkt.pts != AV_NOPTS_VALUE) {   // store a iframe number pts index
                         int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
                         if ( tmp_pts < 0 ) { tmp_pts += 0x200000000; }   // libavodec restart at 0 if pts greater than 0x200000000
-                        int64_t pts_time_ms=tmp_pts*av_q2d(avctx->streams[avpkt.stream_index]->time_base)*100;
+                        int64_t pts_time_ms = tmp_pts*av_q2d(avctx->streams[avpkt.stream_index]->time_base) * 1000;
                         iFrameInfo newFrameInfo;
-                        newFrameInfo.fileNumber=fileNumber;
-                        newFrameInfo.iFrameNumber=framenumber;
-                        newFrameInfo.pts_time_ms=pts_time_ms_LastFile+pts_time_ms;
+                        newFrameInfo.fileNumber = fileNumber;
+                        newFrameInfo.iFrameNumber = framenumber;
+                        newFrameInfo.pts_time_ms = pts_time_ms_LastFile+pts_time_ms;
+                        if (!iFrameInfoVector.empty()) {
+                            iFrameInfo beforeFrameInfo = iFrameInfoVector.back();
+                            int diff_ms = (int) (newFrameInfo.pts_time_ms - beforeFrameInfo.pts_time_ms);
+                            if (diff_ms_usual == 0) diff_ms_usual = diff_ms;
+                            if (diff_ms > diff_ms_usual * 2) esyslog("presentation timestamp at frame (%5d) increased %3ds %3dms, usual was %3ds %3dms", framenumber, diff_ms / 1000, diff_ms % 1000, diff_ms_usual / 1000, diff_ms_usual % 1000);
+			    else if (diff_ms_usual < diff_ms) diff_ms_usual = diff_ms;
+                        }
                         iFrameInfoVector.push_back(newFrameInfo);
                     }
                     else dsyslog("cDecoder::GetNextFrame(): failed to get pts for frame %d", framenumber);
@@ -363,7 +370,7 @@ bool cDecoder::GetNextFrame() {
         return true;
     }
     pts_time_ms_LastFile = iFrameInfoVector.back().pts_time_ms;
-    dsyslog("cDecoder::GetNextFrame(): start time next file %" PRId64 "ms (%3d:%02dmin)", pts_time_ms_LastFile, (int) (pts_time_ms_LastFile / 100 / 60), (int) (pts_time_ms_LastFile / 100) % 60);
+    dsyslog("cDecoder::GetNextFrame(): start time next file %" PRId64 "ms (%3d:%02dmin)", pts_time_ms_LastFile, (int) (pts_time_ms_LastFile / 1000 / 60), (int) (pts_time_ms_LastFile / 1000) % 60);
     return false;
 }
 

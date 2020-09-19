@@ -1184,7 +1184,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool isPause) {
     if (!ptr_cDecoder) return;
     int delta = macontext.Video.Info.FramesPerSecond * MAXRANGE;
-    int vpsFrame = ptr_cDecoder->GetIFrameFromOffset(offset * 100);
+    int vpsFrame = ptr_cDecoder->GetIFrameFromOffset(offset * 1000);
     clMark *mark = NULL;
     char *comment = NULL;
     char *timeText = NULL;
