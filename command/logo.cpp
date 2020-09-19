@@ -7,6 +7,7 @@
 
 #include <sys/stat.h>
 #include <unistd.h>
+#include <chrono>
 
 #include "logo.h"
 extern "C"{
@@ -26,6 +27,7 @@ extern "C"{
 #define LOGO_MIN_LETTERING_H 41 // "DIE NEUEN FOLGEN" SAT_1
 
 extern bool abortNow;
+extern int logoSearchTime_ms;
 
 cExtractLogo::cExtractLogo(MarkAdAspectRatio aspectRatio) {
     logoAspectRatio.Num = aspectRatio.Num;
@@ -816,12 +818,14 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
     }
     if (startFrame < 0) return -1;
 
+    struct timeval startTime, stopTime;
     int iFrameNumber = 0;
     int iFrameCountAll = 0;
     int logoHeight = 0;
     int logoWidth = 0;
     bool retStatus = true;
 
+    gettimeofday(&startTime, NULL);
     MarkAdContext maContextSaveState = {};
     maContextSaveState.Video = maContext->Video;     // save state of calling video context
     maContextSaveState.Audio = maContext->Audio;     // save state of calling audio context
@@ -1151,6 +1155,14 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
     if (retStatus) dsyslog("cExtractLogo::SearchLogo(): finished successfully, last frame %i", iFrameNumber);
     else dsyslog("cExtractLogo::SearchLogo(): failed, last frame %i", iFrameNumber);
     dsyslog("----------------------------------------------------------------------------");
+    gettimeofday(&stopTime, NULL);
+    time_t sec = stopTime.tv_sec - startTime.tv_sec;
+    suseconds_t usec = stopTime.tv_usec - startTime.tv_usec;
+    if (usec < 0) {
+        usec += 1000000;
+        sec--;
+    }
+    logoSearchTime_ms += sec * 1000 + usec / 1000;
     if (retStatus) return 0;
     else {
         if (iFrameNumber > 0) return iFrameNumber;

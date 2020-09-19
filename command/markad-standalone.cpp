@@ -45,6 +45,7 @@ int SysLogLevel = 2;
 bool abortNow = false;
 struct timeval tv1,tv2;
 struct timezone tz;
+int logoSearchTime_ms = 0;
 
 
 static inline int ioprio_set(int which, int who, int ioprio) {
@@ -3625,10 +3626,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 cMarkAdStandalone::~cMarkAdStandalone() {
     if ((!abortNow) && (!duplicate)) {
         gettimeofday(&tv2, &tz);
-        time_t sec;
-        suseconds_t usec;
-        sec = tv2.tv_sec - tv1.tv_sec;
-        usec = tv2.tv_usec - tv1.tv_usec;
+        time_t sec = tv2.tv_sec - tv1.tv_sec;
+        suseconds_t usec = tv2.tv_usec - tv1.tv_usec;
         if (usec < 0) {
             usec += 1000000;
             sec--;
@@ -3637,7 +3636,9 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         double ftime = 0;
         etime = sec + ((double) usec / 1000000) - waittime;
         if (etime > 0) ftime = (framecnt + framecnt2 + framecnt3) / etime;
-        isyslog("processed time %d:%02dmin, %.1f fps", (int) (etime / 60), (int) (etime - ((int) (etime / 60) * 60)), ftime);
+        LogSeparator();
+        isyslog("processed time %d:%02d min with %.1f fps", (int) (etime / 60), (int) (etime - ((int) (etime / 60) * 60)), ftime);
+        if (logoSearchTime_ms > 0) isyslog("time to find logo in recording: %ds %dms", logoSearchTime_ms / 1000, logoSearchTime_ms % 1000);
         isyslog("frames processed %6i first pass", framecnt);
         isyslog("frames processed %6i 2nd pass", framecnt2);
         isyslog("frames processed %6i 3nd pass", framecnt3);

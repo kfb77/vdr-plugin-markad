@@ -72,7 +72,6 @@ cDecoder::~cDecoder() {
             FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
             free(codecCtxArray);
         }
-        dsyslog("cDecoder::~cDecoder(): close avformat context");
         avformat_close_input(&avctx);
     }
     if (recordingDir) {
