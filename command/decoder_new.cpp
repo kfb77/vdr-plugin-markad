@@ -359,7 +359,7 @@ bool cDecoder::GetNextFrame() {
                             int diff_ms = (int) (newFrameInfo.pts_time_ms - beforeFrameInfo.pts_time_ms);
                             if (diff_ms_usual == 0) diff_ms_usual = diff_ms;
                             if (diff_ms > diff_ms_usual * 2) esyslog("presentation timestamp at frame (%5d) increased %3ds %3dms, usual was %3ds %3dms", framenumber, diff_ms / 1000, diff_ms % 1000, diff_ms_usual / 1000, diff_ms_usual % 1000);
-			    else if (diff_ms_usual < diff_ms) diff_ms_usual = diff_ms;
+                            else if (diff_ms_usual < diff_ms) diff_ms_usual = diff_ms;
                         }
                         iFrameInfoVector.push_back(newFrameInfo);
                     }
@@ -370,7 +370,7 @@ bool cDecoder::GetNextFrame() {
         return true;
     }
     pts_time_ms_LastFile = iFrameInfoVector.back().pts_time_ms;
-    dsyslog("cDecoder::GetNextFrame(): start time next file %" PRId64 "ms (%3d:%02dmin)", pts_time_ms_LastFile, (int) (pts_time_ms_LastFile / 1000 / 60), (int) (pts_time_ms_LastFile / 1000) % 60);
+    dsyslog("cDecoder::GetNextFrame(): last frame of filenumber %d is (%d), start time next file %" PRId64 "ms (%3d:%02dmin)", fileNumber, framenumber, pts_time_ms_LastFile, (int) (pts_time_ms_LastFile / 1000 / 60), (int) (pts_time_ms_LastFile / 1000) % 60);
     return false;
 }
 
@@ -394,6 +394,7 @@ bool cDecoder::SeekToFrame(int iFrame) {
                 return false;
         }
     }
+    dsyslog("cDecoder::SeekToFrame(): successful");
     return true;
 }
 

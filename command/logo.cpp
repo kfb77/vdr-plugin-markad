@@ -891,6 +891,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
     int logoHeight = 0;
     int logoWidth = 0;
     bool retStatus = true;
+    bool readNextFile = true;
 
     gettimeofday(&startTime, NULL);
     MarkAdContext maContextSaveState = {};
@@ -930,7 +931,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
     iFrameCountValid = countFrame;
     if (lastFrame > startFrame) startFrame = lastFrame;
 
-    while(ptr_cDecoder->DecodeDir(maContext->Config->recDir)) {
+    while(retStatus && readNextFile && (ptr_cDecoder->DecodeDir(maContext->Config->recDir))) {
         maContext->Info.VPid.Type = ptr_cDecoder->GetVideoType();
         if (maContext->Info.VPid.Type == 0) {
             dsyslog("cExtractLogo::SearchLogo(): video type not set");
@@ -976,7 +977,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                     bool is6ChannelBefore = is6Channel;
                     for (short int stream = 0; stream < MAXSTREAMS; stream++){
                         is6Channel = false;
-                        if (maContext->Audio.Info.Channels[stream]>2) {
+                        if (maContext->Audio.Info.Channels[stream] > 2) {
                             is6Channel = true;
                             has6Channel = true;
                             break;
@@ -1083,10 +1084,16 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                             iFrameCountValid-=DeleteFrames(maContext, firstBorder, iFrameNumber);
                         }
                     }
-                    if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES) || !retStatus)  break; // finish inner loop and find best match
+                    if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES) || !retStatus) {
+                        readNextFile = false;  // force DecodeDir loop to exit
+                        break; // finish inner loop and find best match
+                    }
                 }
             }
-            if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES) || !retStatus)  break; // finish outer loop and find best match
+            if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES) || !retStatus) {
+                readNextFile = false;  // force DecodeDir loop to exit
+                break; // finish outer loop and find best match
+            }
         }
     }
 
