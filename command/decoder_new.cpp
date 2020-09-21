@@ -107,7 +107,7 @@ bool cDecoder::DecodeDir(const char * recDir) {
 
 void cDecoder::Reset(){
     fileNumber=0;
-    framenumber=0;
+    framenumber=-1;
     msgGetFrameInfo=false;
 }
 
@@ -200,6 +200,7 @@ bool cDecoder::DecodeFile(const char * filename) {
         }
     }
     msgDecodeFile=false;
+    if (fileNumber <= 1) pts_time_ms_LastFile = 0;
     return true;
 }
 
@@ -343,17 +344,22 @@ bool cDecoder::GetNextFrame() {
 #endif
         {
             framenumber++;
+            int64_t pts_time_ms = -1;
+            if (avpkt.pts != AV_NOPTS_VALUE) {
+                int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
+                if ( tmp_pts < 0 ) { tmp_pts += 0x200000000; }   // libavodec restart at 0 if pts greater than 0x200000000
+                pts_time_ms = tmp_pts*av_q2d(avctx->streams[avpkt.stream_index]->time_base) * 1000;
+                pts_time_ms_LastRead = pts_time_ms_LastFile + pts_time_ms;
+            }
             if (isVideoIFrame()) {
                 iFrameCount++;
+                // store a iframe number pts index
                 if ((iFrameInfoVector.empty()) || (framenumber > iFrameInfoVector.back().iFrameNumber)) {
-                    if (avpkt.pts != AV_NOPTS_VALUE) {   // store a iframe number pts index
-                        int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
-                        if ( tmp_pts < 0 ) { tmp_pts += 0x200000000; }   // libavodec restart at 0 if pts greater than 0x200000000
-                        int64_t pts_time_ms = tmp_pts*av_q2d(avctx->streams[avpkt.stream_index]->time_base) * 1000;
+                    if (pts_time_ms >= 0) {
                         iFrameInfo newFrameInfo;
                         newFrameInfo.fileNumber = fileNumber;
                         newFrameInfo.iFrameNumber = framenumber;
-                        newFrameInfo.pts_time_ms = pts_time_ms_LastFile+pts_time_ms;
+                        newFrameInfo.pts_time_ms = pts_time_ms_LastFile + pts_time_ms;
                         if (!iFrameInfoVector.empty()) {
                             iFrameInfo beforeFrameInfo = iFrameInfoVector.back();
                             int diff_ms = (int) (newFrameInfo.pts_time_ms - beforeFrameInfo.pts_time_ms);
@@ -369,8 +375,8 @@ bool cDecoder::GetNextFrame() {
         }
         return true;
     }
-    pts_time_ms_LastFile = iFrameInfoVector.back().pts_time_ms;
-    dsyslog("cDecoder::GetNextFrame(): last frame of filenumber %d is (%d), start time next file %" PRId64 "ms (%3d:%02dmin)", fileNumber, framenumber, pts_time_ms_LastFile, (int) (pts_time_ms_LastFile / 1000 / 60), (int) (pts_time_ms_LastFile / 1000) % 60);
+    pts_time_ms_LastFile = pts_time_ms_LastRead;
+    dsyslog("cDecoder::GetNextFrame(): last frame of filenumber %d is (%d), end time %" PRId64 "ms (%3d:%02dmin)", fileNumber, framenumber, pts_time_ms_LastFile, (int) (pts_time_ms_LastFile / 1000 / 60), (int) (pts_time_ms_LastFile / 1000) % 60);
     return false;
 }
 
@@ -380,17 +386,17 @@ AVPacket *cDecoder::GetPacket() {
 }
 
 
-bool cDecoder::SeekToFrame(int iFrame) {
+bool cDecoder::SeekToFrame(int frame) {
     if (!avctx) return false;
-    dsyslog("cDecoder::SeekToFrame(): (%d)", iFrame);
-    if (framenumber > iFrame) {
+    dsyslog("cDecoder::SeekToFrame(): (%d)", frame);
+    if (framenumber > frame) {
         dsyslog("cDecoder::SeekToFrame(): could not seek backward");
         return false;
     }
-    while (framenumber < iFrame) {
+    while (framenumber < frame) {
         if (!this->GetNextFrame())
             if (!this->DecodeDir(recordingDir)) {
-                dsyslog("cDecoder::SeekFrame(): failed for frame (%d) at frame (%d)", iFrame, framenumber);
+                dsyslog("cDecoder::SeekFrame(): failed for frame (%d) at frame (%d)", frame, framenumber);
                 return false;
         }
     }

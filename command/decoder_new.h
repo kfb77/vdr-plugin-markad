@@ -57,7 +57,7 @@ class cDecoder {
         int GetVideoRealFrameRate();
         bool GetNextFrame();
         AVPacket *GetPacket();
-        bool SeekToFrame(int iFrame);
+        bool SeekToFrame(int frame);
         AVFrame *DecodePacket(AVFormatContext *avctx, AVPacket *avpkt);
         bool GetFrameInfo(MarkAdContext *maContext);
         bool isVideoStream(const unsigned int streamIndex);
@@ -85,6 +85,7 @@ class cDecoder {
         int framenumber=-1;
         int iFrameCount=0;
         int64_t pts_time_ms_LastFile=0;
+        int64_t pts_time_ms_LastRead=0;
         int diff_ms_usual = 0;
         struct iFrameInfo {
             int fileNumber=0;
