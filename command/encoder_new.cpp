@@ -513,19 +513,20 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         return false;
     }
     if ((unsigned int) avpktOut->stream_index >= avctxOut->nb_streams) return true;
-//    dsyslog("+++++ streamindex %i pts %11ld dts %11ld", avpktOut->stream_index, avpktOut->pts, avpktOut->dts);
 
     AVPacket avpktAC3;
     av_init_packet(&avpktAC3);
     AVFrame *avFrame = NULL;
     avpktAC3.data = NULL;
     avpktAC3.size = 0;
-
     if (avpktOut->dts == AV_NOPTS_VALUE) {
          dsyslog("cEncoder::WritePacket(): frame (%d) got no dts value from input stream %d", ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index);
          return false;
     }
-    if ((dtsBefore[avpktOut->stream_index] + avpktOut->duration - avpktOut->dts - 0x200000000) >= 0) {
+    int64_t cyclicalTest = dtsBefore[avpktOut->stream_index] + avpktOut->duration - avpktOut->dts - 0x200000000; // >=0 on cyclical
+    int max_diff = -3 * avpktOut->duration;  // tolerance for some missed frames
+    if (max_diff == 0) max_diff = -400000; // subtitle has no duration
+    if (cyclicalTest >= max_diff) {
         pts_dts_CyclicalOffset[avpktOut->stream_index] += 0x200000000;
         dsyslog("cEncoder::WritePacket(): dts and pts cyclicle in stream %d at frame (%d), offset now 0x%lX", avpktOut->stream_index, ptr_cDecoder->GetFrameNumber(), pts_dts_CyclicalOffset[avpktOut->stream_index]);
     }
@@ -565,7 +566,8 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     avpktOut->dts = avpktOut->dts - pts_dts_CutOffset + pts_dts_CyclicalOffset[avpktOut->stream_index];
     avpktOut->pos=-1;   // byte position in stream unknown
     if (dtsBefore[avpktOut->stream_index] >= avpktOut->dts) {  // drop non monotonically increasing dts packets
-        dsyslog("cEncoder::WritePacket(): non monotonically increasing dts at frame (%d) of stream %d, dts last packet %" PRId64 ", dts %" PRId64 ", offset %" PRId64, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, dtsBefore[avpktOut->stream_index], avpktOut->dts, avpktOut->dts - dtsBefore[avpktOut->stream_index]);
+        dsyslog("cEncoder::WritePacket(): non monotonically increasing dts at frame (%6d) of stream %d, dts last packet %10" PRId64 ", dts offset %" PRId64, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, dtsBefore[avpktOut->stream_index], avpktOut->dts - dtsBefore[avpktOut->stream_index]);
+        dsyslog("cEncoder::WritePacket():                                                                 dts this packet %10" PRId64 ", cyclical test %" PRId64 " duration %" PRId64, avpktOut->dts, cyclicalTest, avpktOut->duration);
         return true;
     }
 
