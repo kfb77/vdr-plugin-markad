@@ -50,8 +50,7 @@ class cExtractLogo {
         std::vector<logoInfoPacked> logoInfoVectorPacked[CORNERS];
         int recordingFrameCount = 0;
         MarkAdAspectRatio logoAspectRatio = {};
-        bool is6Channel = false;
-        bool has6Channel = false;
+	int AudioState = 0;  // 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
         int iFrameCountValid = 0;
         const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" };
 
@@ -71,5 +70,6 @@ class cExtractLogo {
         int GetLastFrame(const MarkAdContext *maContext);
         int CountFrames(const MarkAdContext *maContext);
         void RemovePixelDefects(const MarkAdContext *maContext, logoInfo *logoInfo, const int logoHeight, const int logoWidth, const int corner);
+        int AudioInBroadcast(const MarkAdContext *maContext, const int iFrameNumber);   // 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
 };
 #endif

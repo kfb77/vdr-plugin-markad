@@ -875,6 +875,43 @@ void cExtractLogo::RemovePixelDefects(const MarkAdContext *maContext, logoInfo *
 }
 
 
+int cExtractLogo::AudioInBroadcast(const MarkAdContext *maContext, const int iFrameNumber) {
+// AudioState 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
+    bool is6Channel = false;
+    for (short int stream = 0; stream < MAXSTREAMS; stream++){
+        if (maContext->Audio.Info.Channels[stream] > 2) {
+            is6Channel = true;
+            break;
+        }
+    }
+    if (!is6Channel) {
+        if (AudioState == 0) {
+            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 2 channel at frame (%d)", iFrameNumber);
+            AudioState = 1;
+            return AudioState;
+        }
+        if (AudioState == 2) {
+            dsyslog("cExtractLogo::AudioInBroadcast(): 2 channel start at frame (%d)", iFrameNumber);
+            AudioState = 3;
+            return AudioState;
+        }
+    }
+    if (is6Channel) {
+        if (AudioState == 1) {
+            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 6 channel at frame (%d)", iFrameNumber);
+            AudioState = 2;
+            return AudioState;
+        }
+        if (AudioState == 3) {
+            dsyslog("cExtractLogo::AudioInBroadcast(): 6 channel start at frame (%d)", iFrameNumber);
+            AudioState = 2;
+            return AudioState;
+        }
+    }
+    return AudioState;
+}
+
+
 int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
     dsyslog("----------------------------------------------------------------------------");
     dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d", startFrame, logoAspectRatio.Num, logoAspectRatio.Den);
@@ -974,21 +1011,8 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                     }
                     iFrameCountAll++;
 
-                    bool is6ChannelBefore = is6Channel;
-                    for (short int stream = 0; stream < MAXSTREAMS; stream++){
-                        is6Channel = false;
-                        if (maContext->Audio.Info.Channels[stream] > 2) {
-                            is6Channel = true;
-                            has6Channel = true;
-                            break;
-                        }
-                    }
-                    if (has6Channel) {
-                        if (is6Channel && !is6ChannelBefore) dsyslog("cExtractLogo::SearchLogo(): start using frames because of 6 channel at frame (%d)", iFrameNumber);
-                        if (!is6Channel) {
-                            if (is6ChannelBefore) dsyslog("cExtractLogo::SearchLogo(): ignoring frames because of 2 channel at frame (%d)", iFrameNumber);
-                            continue;
-                        }
+                    if (AudioInBroadcast(maContext, iFrameNumber)  == 3) {  // we are in advertising
+                        continue;
                     }
 
                     if ((logoAspectRatio.Num == 0) || (logoAspectRatio.Den == 0)) {
