@@ -364,7 +364,8 @@ bool cDecoder::GetNextFrame() {
                             iFrameInfo beforeFrameInfo = iFrameInfoVector.back();
                             int diff_ms = (int) (newFrameInfo.pts_time_ms - beforeFrameInfo.pts_time_ms);
                             if (diff_ms_usual == 0) diff_ms_usual = diff_ms;
-                            if (diff_ms > diff_ms_usual * 2) esyslog("presentation timestamp at frame (%5d) increased %3ds %3dms, usual was %3ds %3dms", framenumber, diff_ms / 1000, diff_ms % 1000, diff_ms_usual / 1000, diff_ms_usual % 1000);
+                            if (diff_ms_usual < 200) diff_ms_usual = 200;  // set minimum duration
+                            if (diff_ms > diff_ms_usual * 5) esyslog("presentation timestamp in video stream at frame (%5d) increased %3ds %3dms, usual was %3ds %3dms", framenumber, diff_ms / 1000, diff_ms % 1000, diff_ms_usual / 1000, diff_ms_usual % 1000);
                             else if (diff_ms_usual < diff_ms) diff_ms_usual = diff_ms;
                         }
                         iFrameInfoVector.push_back(newFrameInfo);
