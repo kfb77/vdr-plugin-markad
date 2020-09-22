@@ -512,6 +512,7 @@ void cMarkAdStandalone::CheckStart() {
                     }
                     else {
                         dsyslog("cMarkAdStandalone::CheckStart(): audio channel start mark found at %d", begin->position);
+                        if (marks.GetNext(begin->position, MT_HBORDERSTART) || marks.GetNext(begin->position, MT_VBORDERSTART)) macontext.Video.Info.hasBorder = true;
                         marks.Del(MT_LOGOSTART);   // we do not need the weaker marks if we found a MT_CHANNELSTART
                         marks.Del(MT_LOGOSTOP);
                         marks.Del(MT_HBORDERSTART);
@@ -745,6 +746,7 @@ void cMarkAdStandalone::CheckStart() {
                     marks.Del(MT_HBORDERSTART);
                     marks.Del(MT_HBORDERSTOP);
                     begin = vStart;   // found valid vertical border start mark
+                    macontext.Video.Info.hasBorder = true;
                     macontext.Video.Options.ignoreHborder = true;
                 }
                 else dsyslog("cMarkAdStandalone::CheckStart(): ignore vertical border start found at (0)");
@@ -800,6 +802,7 @@ void cMarkAdStandalone::CheckStart() {
                         free(indexToHMSF);
                     }
                     begin = lNextStart;   // found valid logo start mark
+                    macontext.Video.Info.hasBorder = true;
                 }
             }
         }
@@ -2290,14 +2293,19 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
 
             if ( !restartLogoDetectionDone && (lastiframe > (iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE)) &&
                                      ((macontext.Video.Options.IgnoreBlackScreenDetection) || (macontext.Video.Options.IgnoreLogoDetection))) {
-                    isyslog("restart logo and black screen detection at frame (%d)", ptr_cDecoder->GetFrameNumber());
-                    restartLogoDetectionDone = true;
-                    bDecodeVideo = true;
-                    macontext.Video.Options.IgnoreBlackScreenDetection = false;   // use black sceen setection only to find end mark
-                    if (macontext.Video.Options.IgnoreLogoDetection == true) {
+                isyslog("restart logo and black screen detection at frame (%d)", ptr_cDecoder->GetFrameNumber());
+                restartLogoDetectionDone = true;
+                bDecodeVideo = true;
+                macontext.Video.Options.IgnoreBlackScreenDetection = false;   // use black sceen setection only to find end mark
+                if (macontext.Video.Options.IgnoreLogoDetection == true) {
+                    if (macontext.Video.Info.hasBorder) { // we no to need logos, we have hborder
+                        dsyslog("cMarkAdStandalone::ProcessFrame(): we do not need to look for logos, we have a broadcast with border");
+                    }
+                    else {
                         macontext.Video.Options.IgnoreLogoDetection = false;
                         if (video) video->Clear(true, inBroadCast);    // reset logo decoder status
                     }
+                }
             }
 
 // #define TESTFRAME 17487     // TODO: JUST FOR DEBUGGING!

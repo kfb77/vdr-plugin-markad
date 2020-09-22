@@ -175,6 +175,7 @@ typedef struct MarkAdContext {
             MarkAdAspectRatio AspectRatio;  // set by decoder for the current frame
             double FramesPerSecond;
             bool Interlaced = false;
+            bool hasBorder = false;
         } Info;
 
         struct Data {
