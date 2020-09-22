@@ -1046,12 +1046,9 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                             dsyslog("cExtractLogo::SearchLogo(): no vertical border from frame (%d)", iFrameNumber);
                         }
                     }
-                    if ((vborder->Status() == VBORDER_VISIBLE) || (hborder->Status() == HBORDER_VISIBLE)) {  // if we run from start, we could start with a border from the previous recording
-                        if ((startFrame > 0)) {
-                            dsyslog("cExtractLogo::SearchLogo(): border frame detected, abort logo search");
-                            retStatus = false;
-                        }
-                        else continue;
+                    if ((vborder->Status() == VBORDER_VISIBLE) || (hborder->Status() == HBORDER_VISIBLE)) {
+                        dsyslog("cExtractLogo::SearchLogo(): border frame detected, abort logo search");
+                        retStatus = false;
                     }
 
                     iFrameCountValid++;
