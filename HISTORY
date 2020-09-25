@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2020-09-25: Version 2.4.1
+- support moving logos
+- some minor bug fixes and optimizations, see git
+
 2020-09-06: Version 2.4.0
 - new feature: detect text next/under logo and cut it out
 - add support of H.264 1280x1080 PAR 2:3 (e.g. ANIXE+)
