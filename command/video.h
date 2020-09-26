@@ -73,7 +73,6 @@ typedef struct {
     int status;                // status = LOGO on, off, uninitialized
     int framenumber;           // start/stop frame
     int counter;               // how many logo on, offs detected?
-    int counterInvisible;      // how many logo offs detected even on bright areas
     int corner;                // which corner
     int intensity;             // intensity (higher -> brighter)
     MarkAdAspectRatio aspectratio; // aspectratio
@@ -124,6 +123,7 @@ class cMarkAdLogo {
         MarkAdContext *macontext;
         bool pixfmt_info;
         bool SetCoorginates(int *xstart, int *xend, int *ystart, int *yend, const int plane);
+        bool ReduceBrightness(const int framenumber);
         bool SobelPlane(const int framenumber, const int plane); // do sobel operation on plane
         int Load(const char *directory, const char *file, const int plane);
         bool Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], const short int plane, const int debug);

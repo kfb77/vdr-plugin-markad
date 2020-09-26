@@ -236,7 +236,7 @@ bool cMarkAdLogo::SetCoorginates(int *xstart, int *xend, int *ystart, int *yend,
 }
 
 
-// #define DEBUG_FRAME_CORNER 146232
+// #define DEBUG_FRAME_CORNER <framenumber>
 #ifdef DEBUG_FRAME_CORNER
 void cMarkAdLogo::SaveFrameCorner(const int framenumber, const int debug) {
     FILE *pFile;
@@ -248,7 +248,7 @@ void cMarkAdLogo::SaveFrameCorner(const int framenumber, const int debug) {
         int width = xend - xstart;
         int height = yend - ystart;
 
-    tsyslog("cMarkAdLogo::SaveFrameCorner(): framenumber (%d) xstart %d xend %d ystart %d yend %d corner %d width %d height %d", framenumber, xstart, xend, ystart, yend, area.corner, width, height);
+//    tsyslog("cMarkAdLogo::SaveFrameCorner(): framenumber (%d) xstart %d xend %d ystart %d yend %d corner %d width %d height %d", framenumber, xstart, xend, ystart, yend, area.corner, width, height);
     // Open file
         sprintf(szFilename, "/tmp/frame%07d_P%d_debug%d.pgm", framenumber, plane, debug);
         pFile=fopen(szFilename, "wb");
@@ -267,6 +267,44 @@ void cMarkAdLogo::SaveFrameCorner(const int framenumber, const int debug) {
     }
 }
 #endif
+
+
+bool cMarkAdLogo::ReduceBrightness(const int framenumber) {
+    int xstart,xend,ystart,yend;
+    if (!SetCoorginates(&xstart, &xend, &ystart, &yend, 0)) return false;
+    int brightness = 0;
+    for (int line = ystart; line < yend; line++) {
+        for (int column = xstart; column < xend; column++) {
+            int newPixel = macontext->Video.Data.Plane[0][line * macontext->Video.Data.PlaneLinesize[0] + column];
+            newPixel = 10 * (newPixel - 128) - 700;  // increase contrast and reduce brightness
+            if (newPixel < 0) newPixel = 0;
+            if (newPixel > 255) newPixel = 255;
+            brightness += newPixel;
+            macontext->Video.Data.Plane[0][line * macontext->Video.Data.PlaneLinesize[0] + column] = newPixel;
+        }
+    }
+#ifdef DEBUG_FRAME_CORNER
+    if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200)) SaveFrameCorner(framenumber, 2);
+#endif
+    brightness /= ((xend - xstart) * (yend - ystart));
+    int contrast = 0;
+    for (int line = ystart; line < yend; line++) {
+        for (int column = xstart; column < xend; column++) {
+            if ((macontext->Video.Data.Plane[0][line * macontext->Video.Data.PlaneLinesize[0] + column] > brightness + 20) ||
+                (macontext->Video.Data.Plane[0][line * macontext->Video.Data.PlaneLinesize[0] + column] < brightness - 20)) contrast++;
+            if (brightness >= 128) {  // invert pixel
+                macontext->Video.Data.Plane[0][line * macontext->Video.Data.PlaneLinesize[0] + column] = 255 -  macontext->Video.Data.Plane[0][line * macontext->Video.Data.PlaneLinesize[0] + column];
+            }
+        }
+    }
+    contrast = contrast * 1000 / ((xend - xstart) * (yend - ystart));
+    tsyslog("cMarkAdLogo::ReduceBrightness(): framenumber (%d) brightness %d contrast %d", framenumber, brightness, contrast);
+    if ((brightness < 1) || (contrast < 1) || (contrast > 965)) {  // no valid picture after change
+        tsyslog("cMarkAdLogo::ReduceBrightness(): framenumber (%d) not valid", framenumber);
+        return false;
+    }
+    return true;
+}
 
 
 bool cMarkAdLogo::SobelPlane(const int framenumber, const int plane) {
@@ -401,17 +439,35 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool 
 
 // #define DEBUG_LOGO_DETECTION 1
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | cI=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.counterInvisible, area.status, processed);
+    dsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
 #endif
     // if we only have one plane we are "vulnerable"
     // to very bright pictures, so ignore them...
     if (processed == 1) {
-        if (rpixel < ((mpixel * LOGO_IMARK) / 10)) {
-            if (area.intensity < 180) area.counterInvisible++;  // even on bright areas a very small rpixel value can be valid
+        if ((area.intensity > 120) && (area.intensity < 130) && (rpixel < (mpixel * LOGO_IMARK))) {  // if we found no logo try to reduce brightness, if we are to bright, this will not work
+            tsyslog("cMarkAdLogo::Detect(): frame (%5d) to bright,     area intensity %d", framenumber, area.intensity);
+            if (ReduceBrightness(framenumber)) {
+                area.rpixel[0] = 0;
+                rpixel = 0;
+                mpixel = 0;
+                SobelPlane(framenumber, 0);
+                tsyslog("cMarkAdLogo::Detect(): frame (%5d) corrected, new area intensity %d", framenumber, area.intensity);
+                rpixel += area.rpixel[0];
+                mpixel += area.mpixel[0];
+#ifdef DEBUG_LOGO_DETECTION
+                dsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
+#endif
+#ifdef DEBUG_FRAME_CORNER
+                if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200)) SaveFrameCorner(framenumber, 3);
+#endif
+#ifdef DEBUG_FRAME_CORNER
+                if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200)) {
+                    Save(framenumber, area.sobel, 0, 2);
+                }
+#endif
+            }
         }
-        else area.counterInvisible = 0;
-        if ((area.counterInvisible >= LOGO_IMAXCOUNT) && (area.intensity > 130)) tsyslog("%d logo invisible in bright area at frame (%d)", area.counterInvisible, framenumber);
-        if ((rpixel < (mpixel * logo_vmark)) && (area.intensity > 130) && (area.counterInvisible < LOGO_IMAXCOUNT)) {
+        if ((rpixel < (mpixel * logo_vmark)) && (area.intensity > 130)) {
             return LOGO_NOCHANGE;
         }
     }
