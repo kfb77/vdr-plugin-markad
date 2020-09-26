@@ -142,7 +142,7 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
 }
 
 
-bool cMarkAdLogo::Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], const short int plane) {
+bool cMarkAdLogo::Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], const short int plane, const int debug) {
     if (!macontext) return false;
     if ((plane<0) || (plane >= PLANES)) return false;
     if (!macontext->Info.ChannelName) return false;
@@ -162,7 +162,10 @@ bool cMarkAdLogo::Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], c
     }
 
     char *buf = NULL;
-    if (asprintf(&buf,"%s/%06d-%s-A%i_%i-P%i.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectratio.Num,area.aspectratio.Den,plane)==-1) return false;
+    if (debug == 0) {
+        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectratio.Num,area.aspectratio.Den, plane)==-1) return false;
+    }
+    else if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i_debug%d.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectratio.Num,area.aspectratio.Den, plane, debug)==-1) return false;
     ALLOC(strlen(buf)+1, "buf");
 
     // Open file
@@ -194,9 +197,81 @@ bool cMarkAdLogo::Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], c
 }
 
 
-int cMarkAdLogo::SobelPlane(const int plane) {
-    if ((plane < 0) || (plane >= PLANES)) return 0;
-    if (!macontext->Video.Data.PlaneLinesize[plane]) return 0;
+bool cMarkAdLogo::SetCoorginates(int *xstart, int *xend, int *ystart, int *yend, const int plane) {
+    switch (area.corner) {
+        case TOP_LEFT:
+            *xstart = 0;
+            *xend = LOGOWIDTH;
+            *ystart = 0;
+            *yend = LOGOHEIGHT;
+            break;
+        case TOP_RIGHT:
+            *xstart = macontext->Video.Info.Width - LOGOWIDTH;
+            *xend = macontext->Video.Info.Width;
+            *ystart = 0;
+            *yend = LOGOHEIGHT;
+            break;
+        case BOTTOM_LEFT:
+            *xstart = 0;
+            *xend = LOGOWIDTH;
+            *ystart = macontext->Video.Info.Height - LOGOHEIGHT;
+            *yend = macontext->Video.Info.Height;
+            break;
+        case BOTTOM_RIGHT:
+            *xstart = macontext->Video.Info.Width - LOGOWIDTH;
+            *xend = macontext->Video.Info.Width;
+            *ystart = macontext->Video.Info.Height - LOGOHEIGHT;
+            *yend = macontext->Video.Info.Height;
+            break;
+        default:
+            return false;
+    }
+    if (plane > 0) {
+        *xstart /= 2;
+        *xend /= 2;
+        *ystart /= 2;
+        *yend /= 2;
+    }
+    return true;
+}
+
+
+// #define DEBUG_FRAME_CORNER 146232
+#ifdef DEBUG_FRAME_CORNER
+void cMarkAdLogo::SaveFrameCorner(const int framenumber, const int debug) {
+    FILE *pFile;
+    char szFilename[256];
+
+    for (int plane = 0; plane < PLANES; plane ++) {
+        int xstart,xend,ystart,yend;
+        if (!SetCoorginates(&xstart, &xend, &ystart, &yend, plane)) return;
+        int width = xend - xstart;
+        int height = yend - ystart;
+
+    tsyslog("cMarkAdLogo::SaveFrameCorner(): framenumber (%d) xstart %d xend %d ystart %d yend %d corner %d width %d height %d", framenumber, xstart, xend, ystart, yend, area.corner, width, height);
+    // Open file
+        sprintf(szFilename, "/tmp/frame%07d_P%d_debug%d.pgm", framenumber, plane, debug);
+        pFile=fopen(szFilename, "wb");
+        if (pFile == NULL) {
+            dsyslog("cMarkAdLogo::SaveFrameCorner(): open file %s failed", szFilename);
+            return;
+        }
+        // Write header
+        fprintf(pFile, "P5\n%d %d\n255\n", width, height);
+        // Write pixel data
+        for (int line = ystart; line < yend; line++) {
+            fwrite(&macontext->Video.Data.Plane[plane][line * macontext->Video.Data.PlaneLinesize[plane] + xstart], 1, width, pFile);
+        }
+        // Close file
+        fclose(pFile);
+    }
+}
+#endif
+
+
+bool cMarkAdLogo::SobelPlane(const int framenumber, const int plane) {
+    if ((plane < 0) || (plane >= PLANES)) return false;
+    if (!macontext->Video.Data.PlaneLinesize[plane]) return false;
 
 #if !defined CLASSIC_DECODER     // we need a default size for logo extraction, no longer set in constructor
     if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
@@ -210,59 +285,23 @@ int cMarkAdLogo::SobelPlane(const int plane) {
         }
     }
 #endif
-    int xstart,xend,ystart,yend;
-
-    switch (area.corner) {
-        case TOP_LEFT:
-            xstart = 0;
-            xend = LOGOWIDTH;
-            ystart = 0;
-            yend = LOGOHEIGHT;
-            break;
-        case TOP_RIGHT:
-            xstart = macontext->Video.Info.Width - LOGOWIDTH;
-            xend = macontext->Video.Info.Width;
-            ystart = 0;
-            yend = LOGOHEIGHT;
-            break;
-        case BOTTOM_LEFT:
-            xstart = 0;
-            xend = LOGOWIDTH;
-            ystart = macontext->Video.Info.Height - LOGOHEIGHT;
-            yend = macontext->Video.Info.Height;
-            break;
-        case BOTTOM_RIGHT:
-            xstart = macontext->Video.Info.Width - LOGOWIDTH;
-            xend = macontext->Video.Info.Width;
-            ystart = macontext->Video.Info.Height - LOGOHEIGHT;
-            yend = macontext->Video.Info.Height;
-            break;
-        default:
-            return 0;
-    }
-
     if ((macontext->Video.Info.Pix_Fmt != 0) && (macontext->Video.Info.Pix_Fmt != 12)) {
         if (!pixfmt_info) {
             esyslog("unknown pix_fmt %i, please report!",macontext->Video.Info.Pix_Fmt);
             pixfmt_info=true;
         }
-        return 0;
+        return false;
     }
-
+    int xstart,xend,ystart,yend;
+    if (!SetCoorginates(&xstart, &xend, &ystart, &yend, plane)) return false;
     int boundary = 6;
     int cutval = 127;
     int width = LOGOWIDTH;
-
     if (plane > 0) {
-        xstart /= 2;
-        xend /= 2;
-        ystart /= 2;
-        yend /= 2;
         boundary /= 2;
         cutval /= 2;
         width /= 2;
     }
-
     int SUM;
     int sumX,sumY;
     area.rpixel[plane] = 0;
@@ -318,8 +357,7 @@ int cMarkAdLogo::SobelPlane(const int plane) {
         }
     }
     if (!plane) area.intensity /= (LOGOHEIGHT*width);
-
-    return 1;
+    return true;
 }
 
 
@@ -334,12 +372,23 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool 
     float logo_vmark = LOGO_VMARK;
     if (movingLogo) logo_vmark *= 0.9;   // reduce if we have a moving logo (SAT_1)
 
+#ifdef DEBUG_FRAME_CORNER
+    if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200)) SaveFrameCorner(framenumber, 1);
+#endif
+
     for (int plane = 0; plane < PLANES; plane++) {
         if ((area.valid[plane]) || (extract) || (onlyFillArea)) {
-            if (SobelPlane(plane)) processed++;
+            if (SobelPlane(framenumber, plane)) {
+                processed++;
+#ifdef DEBUG_FRAME_CORNER
+                if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200) && !onlyFillArea) {
+                    Save(framenumber, area.sobel, plane, 1);
+                }
+#endif
+            }
         }
         if (extract) {
-            if (!Save(framenumber, area.sobel, plane)) dsyslog("cMarkAdLogo::Detect(): save logo from frame (%d) failed", framenumber);
+            if (!Save(framenumber, area.sobel, plane, 0)) dsyslog("cMarkAdLogo::Detect(): save logo from frame (%d) failed", framenumber);
         }
         else {
 //            tsyslog("plane %i area.rpixel[plane] %i area.mpixel[plane] %i", plane, area.rpixel[plane], area.mpixel[plane]);
@@ -350,8 +399,10 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool 
     if (extract || onlyFillArea) return LOGO_NOCHANGE;
     if (!processed) return LOGO_ERROR;
 
-    tsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | cI=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.counterInvisible, area.status, processed);
-
+// #define DEBUG_LOGO_DETECTION 1
+#ifdef DEBUG_LOGO_DETECTION
+    dsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | cI=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.counterInvisible, area.status, processed);
+#endif
     // if we only have one plane we are "vulnerable"
     // to very bright pictures, so ignore them...
     if (processed == 1) {
@@ -360,7 +411,9 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool 
         }
         else area.counterInvisible = 0;
         if ((area.counterInvisible >= LOGO_IMAXCOUNT) && (area.intensity > 130)) tsyslog("%d logo invisible in bright area", area.counterInvisible);
-        if ((rpixel < (mpixel * logo_vmark)) && (area.intensity > 130) && (area.counterInvisible < LOGO_IMAXCOUNT)) return LOGO_NOCHANGE;
+        if ((rpixel < (mpixel * logo_vmark)) && (area.intensity > 130) && (area.counterInvisible < LOGO_IMAXCOUNT)) {
+            return LOGO_NOCHANGE;
+        }
     }
 
     int ret = LOGO_NOCHANGE;

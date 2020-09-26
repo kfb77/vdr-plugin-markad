@@ -123,9 +123,11 @@ class cMarkAdLogo {
         int GY[3][3];
         MarkAdContext *macontext;
         bool pixfmt_info;
-        int SobelPlane(const int plane); // do sobel operation on plane
+        bool SetCoorginates(int *xstart, int *xend, int *ystart, int *yend, const int plane);
+        bool SobelPlane(const int framenumber, const int plane); // do sobel operation on plane
         int Load(const char *directory, const char *file, const int plane);
-        bool Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], const short int plane);
+        bool Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], const short int plane, const int debug);
+        void SaveFrameCorner(const int framenumber, const int debug);
     public:
         explicit cMarkAdLogo(MarkAdContext *maContext);
         int Detect(const int framenumber, int *logoframenumber, const bool movingLogo); // ret 1 = logo, 0 = unknown, -1 = no logo

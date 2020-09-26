@@ -1402,6 +1402,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
 }
 
 
+#ifdef DEBUGFRAME
 void cMarkAdStandalone::SaveFrame(int frame) {
     if (!macontext.Video.Info.Width) {
         dsyslog("cMarkAdStandalone::SaveFrame(): macontext.Video.Info.Width not set");
@@ -1411,23 +1412,29 @@ void cMarkAdStandalone::SaveFrame(int frame) {
         dsyslog("cMarkAdStandalone::SaveFrame():  macontext.Video.Data.Valid not set");
         return;
     }
-
     FILE *pFile;
     char szFilename[256];
 
-    // Open file
-    sprintf(szFilename, "/tmp/frame%06d.pgm", frame);
-    pFile=fopen(szFilename, "wb");
-    if (pFile == NULL) return;
-
-    // Write header
-    fprintf(pFile, "P5\n%d %d\n255\n", macontext.Video.Data.PlaneLinesize[0], macontext.Video.Info.Height);
-
-    // Write pixel data
-    if (fwrite(macontext.Video.Data.Plane[0], 1, macontext.Video.Data.PlaneLinesize[0] * macontext.Video.Info.Height, pFile)) {};
-    // Close file
-    fclose(pFile);
+    for (int plane = 0; plane < PLANES; plane++) {
+        int height;
+        if (plane == 0) height = macontext.Video.Info.Height;
+        else height = macontext.Video.Info.Height / 2;
+        // Open file
+        sprintf(szFilename, "/tmp/frame%06d_P%d.pgm", frame, plane);
+        pFile=fopen(szFilename, "wb");
+        if (pFile == NULL) {
+            dsyslog("cMarkAdStandalone::SaveFrame(): open file %s failed", szFilename);
+            return;
+        }
+        // Write header
+        fprintf(pFile, "P5\n%d %d\n255\n", macontext.Video.Data.PlaneLinesize[plane], height);
+        // Write pixel data
+        if (fwrite(macontext.Video.Data.Plane[plane], 1, macontext.Video.Data.PlaneLinesize[plane] * height, pFile)) {};
+        // Close file
+        fclose(pFile);
+    }
 }
+#endif
 
 
 void cMarkAdStandalone::CheckIndexGrowing()
@@ -2308,9 +2315,9 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 }
             }
 
-// #define TESTFRAME 17487     // TODO: JUST FOR DEBUGGING!
-#ifdef TESTFRAME
-            if ((lastiframe > (TESTFRAME - 100)) && (lastiframe < (TESTFRAME + 100))) {
+// #define DEBUGFRAME 54500     // TODO: JUST FOR DEBUGGING!
+#ifdef DEBUGFRAME
+            if ((lastiframe > (DEBUGFRAME - 200)) && (lastiframe < (DEBUGFRAME + 200))) {
                 dsyslog("save frame (%i) to /tmp", lastiframe);
                 SaveFrame(lastiframe);
             }
