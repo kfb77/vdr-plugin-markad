@@ -404,7 +404,15 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool 
                 if (!area.counter) area.framenumber = framenumber;
                 area.counter++;
                 if (rpixel < (mpixel*LOGO_IMARK/4)) area.counter++;   // good detect for logo invisible
-                if (rpixel == 0) area.counter++;   // very good detect for logo invisible
+                if (rpixel == 0) {
+                    area.counter++;   // very good detect for logo invisible
+                    if (area.intensity <= 30) { // best detect, blackscreen without logo
+                        dsyslog("cMarkAdLogo::Detect(): black screen without logo detected at frame (%d)", framenumber);
+                        area.status = ret = LOGO_INVISIBLE;
+                        *logoframenumber = area.framenumber;
+                        area.counter = 0;
+                    }
+                }
             }
         }
         else {
