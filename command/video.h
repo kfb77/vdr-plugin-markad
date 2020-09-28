@@ -20,7 +20,7 @@
 #define LOGO_DEFHDWIDTH  340
 
 #define LOGO_VMAXCOUNT 3  // count of IFrames for detection of "logo visible"
-#define LOGO_IMAXCOUNT 5  // count of IFrames for detection of "logo invisible"
+#define LOGO_IMAXCOUNT 4  // count of IFrames for detection of "logo invisible", reduced from 5 to 4
 #define LOGO_VMARK 0.5    // percantage of pixels for visible
 #define LOGO_IMARK 0.15   // percentage of pixels for invisible
 

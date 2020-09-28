@@ -410,7 +410,7 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool 
             if (area.intensity < 180) area.counterInvisible++;  // even on bright areas a very small rpixel value can be valid
         }
         else area.counterInvisible = 0;
-        if ((area.counterInvisible >= LOGO_IMAXCOUNT) && (area.intensity > 130)) tsyslog("%d logo invisible in bright area", area.counterInvisible);
+        if ((area.counterInvisible >= LOGO_IMAXCOUNT) && (area.intensity > 130)) tsyslog("%d logo invisible in bright area at frame (%d)", area.counterInvisible, framenumber);
         if ((rpixel < (mpixel * logo_vmark)) && (area.intensity > 130) && (area.counterInvisible < LOGO_IMAXCOUNT)) {
             return LOGO_NOCHANGE;
         }
