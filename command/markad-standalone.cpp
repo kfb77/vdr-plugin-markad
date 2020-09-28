@@ -791,6 +791,8 @@ void cMarkAdStandalone::CheckStart() {
             }
             if (lStart->position  >= (iStart / 8)) {
                 begin = lStart;   // found valid logo start mark
+                marks.Del(MT_HBORDERSTART);  // there could be hborder from an ad in the recording
+                marks.Del(MT_HBORDERSTOP);
             }
             else {  // logo start mark too early, try if there is a later logo start mark
                 clMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
@@ -866,10 +868,10 @@ void cMarkAdStandalone::CheckStart() {
             marks.Del(MT_LOGOSTOP);
         }
 
+        dsyslog("cMarkAdStandalone::CheckStart(): delete all black screen marks except start mark");
         clMark *mark = marks.GetFirst();   // delete all black screen marks because they are weak, execpt the start mark
         while (mark) {
             if (( (mark->type == MT_NOBLACKSTART) || (mark->type == MT_NOBLACKSTOP) ) && (mark->position > begin->position) ) {
-                dsyslog("cMarkAdStandalone::CheckStart(): delete black screen mark at position (%i)", mark->position);
                 clMark *tmp = mark;
                 mark = mark->Next();
                 marks.Del(tmp);
