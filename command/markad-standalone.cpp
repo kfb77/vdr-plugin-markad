@@ -1005,7 +1005,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                     int lenghtAdBefore = (int) ((mark->position - stopBefore->position) / macontext.Video.Info.FramesPerSecond);
                     int lenghtPreview = (int) ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
                     if ((lenghtAdBefore > 6) && (lenghtAdBefore <= 560)) {  // if ad before is long this is the really the next start mark, increased from 450 to 455 to 500 to 560
-                        if ((lenghtPreview > 2) && lenghtPreview < 110) {  // if logo part is long, this was a start mark
+                        if ((lenghtPreview >= 2) && lenghtPreview < 110) {  // if logo part is long, this was a start mark
                             isyslog("found preview of lenght %is between logo mark (%i) and logo mark (%i) in advertisement (lenght %is), deleting marks", lenghtPreview, mark->position, mark->Next()->position, lenghtAdBefore);
                             clMark *tmp=mark;
                             mark = mark->Next()->Next();
@@ -1013,6 +1013,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                             marks.Del(tmp);
                             continue;
                         }
+                        else dsyslog("cMarkAdStandalone::CheckMarks(): no preview between (%i) and (%i), lenght %is not valid",  mark->position, mark->Next()->position, lenghtPreview);
                     }
                     else dsyslog("cMarkAdStandalone::CheckMarks(): no preview of lenght %is between (%i) and (%i) in advertisement (lenght %is)", lenghtPreview, mark->position, mark->Next()->position, lenghtAdBefore);
                 }
