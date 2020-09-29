@@ -467,7 +467,7 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool 
 #endif
             }
         }
-        if ((rpixel < (mpixel * logo_vmark)) && (area.intensity > 130)) {
+        if ((rpixel < (mpixel * logo_vmark)) && (area.intensity > 120)) {  // still too bright, reduced from 130 to 120
             return LOGO_NOCHANGE;
         }
     }
