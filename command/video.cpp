@@ -444,7 +444,7 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool 
     // if we only have one plane we are "vulnerable"
     // to very bright pictures, so ignore them...
     if (processed == 1) {
-        if ((area.intensity > 120) && (area.intensity < 130) && (rpixel < (mpixel * LOGO_IMARK))) {  // if we found no logo try to reduce brightness, if we are to bright, this will not work
+        if ((area.intensity > 120) && (area.intensity < 200) && (rpixel < (mpixel * LOGO_IMARK))) {  // if we found no logo try to reduce brightness, if we are to bright, this will not work
             tsyslog("cMarkAdLogo::Detect(): frame (%5d) to bright,     area intensity %d", framenumber, area.intensity);
             if (ReduceBrightness(framenumber)) {
                 area.rpixel[0] = 0;
