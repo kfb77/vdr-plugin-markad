@@ -20,18 +20,12 @@ void AVlog(void *ptr, int level, const char* fmt, va_list vl){
             dsyslog("AVlog(): error in vasprintf");
             return;
         }
-        ALLOC(strlen(logMsg)+1, "logMsg");
+#ifdef DEBUGMEM
+        int lenght = strlen(logMsg) + 1;
+        ALLOC(lenght, "logMsg");
+#endif
 
-        if (logMsg[strlen(logMsg)-1] == '\n') {
-            FREE(strlen(logMsg)+1, "logMsg");
-            logMsg[strlen(logMsg)-1] = 0;
-            logMsg = (char *) realloc(logMsg, strlen(logMsg)+1);
-            if (!logMsg) {
-                dsyslog("AVlog(): error in realloc");
-                return;
-            }
-            ALLOC(strlen(logMsg)+1, "logMsg");
-        }
+        if (logMsg[strlen(logMsg) - 1] == '\n') logMsg[strlen(logMsg) - 1] = 0;
 
         if ((strcmp(logMsg, "co located POCs unavailable") == 0) || // this will happen with h.264 coding because of partitial decoding
             (strcmp(logMsg, "mmco: unref short failure") == 0) ||
@@ -40,7 +34,9 @@ void AVlog(void *ptr, int level, const char* fmt, va_list vl){
         }
         else dsyslog("AVlog(): %s",logMsg);
 
-        FREE(strlen(logMsg)+1, "logMsg");
+#ifdef DEBUGMEM
+        FREE(lenght, "logMsg");
+#endif
         free(logMsg);
     }
     return;
