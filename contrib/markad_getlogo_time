@@ -3,8 +3,4 @@
 
 VIDEO="/srv/vdr/video"
 
-if [ "$1" == '-v' ]; then
-	grep -r "INFO:  time to find logo in recording:" --include "markad.log" $VIDEO | awk -F  ":" '{printf "%s %s\n", $1, $6}' | awk '{printf "%3ds %3dms %s\n", $2, $3, $1}' | sort --numeric-sort -k1,1 -k2,2
-else
-	grep -r "INFO:  time to find logo in recording:" --include "markad.log" $VIDEO | awk -F  ":" '{printf "%s %s\n", $1, $6}' | awk '{printf "%3d %3d\n", $2, $3}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for logo extraction: %fs from %d recordings\n", sum/n/1000, n }'
-fi
+grep -r "INFO:  time to find logo in recording:" --include "markad.log" $VIDEO | awk -F  ":" '{printf "%s %s\n", $1, $6}' | awk '{printf "%3ds %3dms %s\n", $2, $3, $1}' | sort --numeric-sort -k1,1 -k2,2

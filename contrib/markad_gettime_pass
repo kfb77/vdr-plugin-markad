@@ -1,0 +1,7 @@
+#!/bin/bash
+# extract all logo sizes from markad.log
+# parameter $1 pass
+
+VIDEO="/srv/vdr/video"
+
+grep -r "pass $1: time" --include "markad.log" $VIDEO | awk -F  " " '{printf "%3ds %3dms %s\n", $10, $11 ,$1}' | sort --numeric-sort -k1,1 -k2,2

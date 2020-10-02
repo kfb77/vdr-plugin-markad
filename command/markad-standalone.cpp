@@ -43,8 +43,8 @@ cMarkAdStandalone *cmasta = NULL;
 bool restartLogoDetectionDone = false;
 int SysLogLevel = 2;
 bool abortNow = false;
-struct timeval tv1,tv2;
-struct timezone tz;
+struct timeval startAll, endAll = {0};
+struct timeval startPass1, startPass2, startPass3, endPass1, endPass2, endPass3 = {0};
 int logoSearchTime_ms = 0;
 
 
@@ -1460,7 +1460,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
         dsyslog("slept too much");
         return; // we already slept too much
     }
-    if (ptr_cDecoder) framecnt = ptr_cDecoder->GetFrameNumber();
+    if (ptr_cDecoder) framecnt1 = ptr_cDecoder->GetFrameNumber();
     bool notenough = true;
     do {
         struct stat statbuf;
@@ -1473,7 +1473,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
         }
 
         int maxframes = statbuf.st_size / 8;
-        if (maxframes < (framecnt + 200)) {
+        if (maxframes < (framecnt1 + 200)) {
             if ((difftime(time(NULL), statbuf.st_mtime)) >= WAITTIME) {
                 if (length && startTime) {
                     if (time(NULL) > (startTime + (time_t) length)) {
@@ -2136,13 +2136,13 @@ again:
                                     noticeHEADER = true;
                                 }
 
-                                if (!framecnt) {
+                                if (!framecnt1) {
                                     CalculateCheckPositions(tStart * macontext.Video.Info.FramesPerSecond);
                                 }
                                 if (macontext.Config->GenIndex) {
                                     marks.WriteIndex(directory, isTS, demux->Offset(), macontext.Video.Info.Pict_Type, Number);
                                 }
-                                framecnt++;
+                                framecnt1++;
                                 if ((macontext.Config->logoExtraction != -1) && (framecnt >= 256)) {
                                     isyslog("finished logo extraction, please check /tmp for pgm files");
                                     abortNow = true;
@@ -2231,7 +2231,7 @@ again:
 
 bool cMarkAdStandalone::Reset(bool FirstPass) {
     bool ret = true;
-    if (FirstPass) framecnt = 0;
+    if (FirstPass) framecnt1 = 0;
     lastiframe = 0;
     iframe = 0;
 
@@ -3644,7 +3644,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
             macontext.Video.Options.IgnoreAspectRatio = true;
     }
 
-    framecnt = 0;
+    framecnt1 = 0;
     framecnt2 = 0;
     framecnt3 = 0;
     lastiframe = 0;
@@ -3655,9 +3655,37 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
 cMarkAdStandalone::~cMarkAdStandalone() {
     if ((!abortNow) && (!duplicate)) {
-        gettimeofday(&tv2, &tz);
-        time_t sec = tv2.tv_sec - tv1.tv_sec;
-        suseconds_t usec = tv2.tv_usec - tv1.tv_usec;
+        LogSeparator();
+        if (logoSearchTime_ms > 0) isyslog("time to find logo in recording: %ds %dms", logoSearchTime_ms / 1000, logoSearchTime_ms % 1000);
+
+        time_t sec = endPass1.tv_sec - startPass1.tv_sec;
+        suseconds_t usec = endPass1.tv_usec - startPass1.tv_usec;
+        if (usec < 0) {
+            usec += 1000000;
+            sec--;
+        }
+        if ((sec + usec / 1000000) > 0) isyslog("pass 1: time %3lds %03ldms, frames %6i, fps %4ld", sec, usec / 1000, framecnt1, framecnt1 / (sec + usec / 1000000));
+
+
+        sec = endPass2.tv_sec - startPass2.tv_sec;
+        usec = endPass2.tv_usec - startPass2.tv_usec;
+        if (usec < 0) {
+            usec += 1000000;
+            sec--;
+        }
+        if ((sec + usec / 1000000) > 0) isyslog("pass 2: time %3lds %03ldms, frames %6i, fps %4ld", sec, usec / 1000, framecnt2, framecnt2 / (sec + usec / 1000000));
+
+        sec = endPass3.tv_sec - startPass3.tv_sec;
+        usec = endPass3.tv_usec - startPass3.tv_usec;
+        if (usec < 0) {
+            usec += 1000000;
+            sec--;
+        }
+        if ((sec + usec / 1000000) > 0) isyslog("pass 3: time %3lds %03ldms, frames %6i, fps %4ld", sec, usec / 1000, framecnt3, framecnt3 / (sec + usec / 1000000));
+
+        gettimeofday(&endAll, NULL);
+        sec = endAll.tv_sec - startAll.tv_sec;
+        usec = endAll.tv_usec - startAll.tv_usec;
         if (usec < 0) {
             usec += 1000000;
             sec--;
@@ -3665,13 +3693,8 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         double etime = 0;
         double ftime = 0;
         etime = sec + ((double) usec / 1000000) - waittime;
-        if (etime > 0) ftime = (framecnt + framecnt2 + framecnt3) / etime;
-        LogSeparator();
+        if (etime > 0) ftime = (framecnt1 + framecnt2 + framecnt3) / etime;
         isyslog("processed time %d:%02d min with %.1f fps", (int) (etime / 60), (int) (etime - ((int) (etime / 60) * 60)), ftime);
-        if (logoSearchTime_ms > 0) isyslog("time to find logo in recording: %ds %dms", logoSearchTime_ms / 1000, logoSearchTime_ms % 1000);
-        isyslog("frames processed %6i first pass", framecnt);
-        isyslog("frames processed %6i 2nd pass", framecnt2);
-        isyslog("frames processed %6i 3nd pass", framecnt3);
     }
 
     if ((osd) && (!duplicate)) {
@@ -3916,6 +3939,8 @@ int main(int argc, char *argv[]) {
     bool bPass1Only = false;
     struct config config = {};
 
+    gettimeofday(&startAll, NULL);
+
     // set defaults
     config.DecodeVideo = true;
     config.DecodeAudio = true;
@@ -3929,7 +3954,6 @@ int main(int argc, char *argv[]) {
     strcpy(config.svdrphost, "127.0.0.1");
     strcpy(config.logoDirectory, "/var/lib/markad");
 
-    gettimeofday(&tv1, &tz);
     struct servent *serv=getservbyname("svdrp", "tcp");
     if (serv) {
         config.svdrpport = htons(serv->s_port);
@@ -4425,15 +4449,28 @@ int main(int argc, char *argv[]) {
         dsyslog("parameter --autologo is set to %i",config.autoLogo);
         if (config.Before) dsyslog("parameter Before is set");
 
-        if (!bPass2Only)
+        if (!bPass2Only) {
+            gettimeofday(&startPass1, NULL);
             if (config.use_cDecoder) cmasta->Process_cDecoder();
 #if defined CLASSIC_DECODER
             else {
                 cmasta->Process();
             }
 #endif
-        if (!bPass1Only) cmasta->Process2ndPass();
-        if (config.MarkadCut) cmasta->MarkadCut();
+            gettimeofday(&endPass1, NULL);
+        }
+
+        if (!bPass1Only) {
+            gettimeofday(&startPass2, NULL);
+            cmasta->Process2ndPass();
+            gettimeofday(&endPass2, NULL);
+        }
+
+        if (config.MarkadCut) {
+            gettimeofday(&startPass3, NULL);
+            cmasta->MarkadCut();
+            gettimeofday(&endPass3, NULL);
+        }
         if (cmasta) {
             FREE(sizeof(*cmasta), "cmasta");
             delete cmasta;
