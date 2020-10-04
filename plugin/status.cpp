@@ -562,14 +562,21 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
     if (!eventID) return;
     if (!timerStartTime) return;
     if (!timerStopTime) return;
-    const cTimer *timer = NULL;
     *timerStartTime = 0;
     *timerStopTime = 0;
     *eventID = 0;
     int timeDiff = INT_MAX;
+
+#if APIVERSNUM>=20301
+    const cTimer *timer = NULL;
     cStateKey StateKey;
     if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
-        for (const cTimer *Timer = Timers->First(); Timer; Timer = Timers->Next(Timer)) {
+        for (const cTimer *Timer = Timers->First(); Timer; Timer = Timers->Next(Timer))
+#else
+    cTimer *timer = NULL;
+    for (cTimer *Timer = Timers.First(); Timer; Timer = Timers.Next(Timer))
+#endif
+        {
             if (Timer->Recording() && const_cast<cDevice *>(Device)->IsTunedToTransponder(Timer->Channel())) {
                 if (Timer->File() && (strcmp(Name, Timer->File()) == 0)) {
                     if (abs(Timer->StartTime() - time(NULL)) < timeDiff) {  // maybe we have two timer on same channel with same name, take the nearest start time
@@ -579,10 +586,14 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
                 }
             }
         }
+#if APIVERSNUM>=20301
     }
+#endif
     if (!timer) {
         esyslog("markad: cannot find timer for <%s>", Name);
+#if APIVERSNUM>=20301
         StateKey.Remove();
+#endif
         return;
     }
     *timerStartTime = timer->StartTime();
@@ -594,7 +605,9 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
     else {
         *eventID = timer->Event()->EventID();
     }
+#if APIVERSNUM>=20301
     StateKey.Remove();
+#endif
     dsyslog("markad: cStatusMarkAd::GetEventID(): eventID %u from event for recording <%s> timer <%s>  timer start %ld stop %ld", *eventID, Name, timer->File(), *timerStartTime, *timerStopTime);
     return;
 }

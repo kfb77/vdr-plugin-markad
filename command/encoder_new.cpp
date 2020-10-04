@@ -567,7 +567,11 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     avpktOut->pos=-1;   // byte position in stream unknown
     if (dtsBefore[avpktOut->stream_index] >= avpktOut->dts) {  // drop non monotonically increasing dts packets
         dsyslog("cEncoder::WritePacket(): non monotonically increasing dts at frame (%6d) of stream %d, dts last packet %10" PRId64 ", dts offset %" PRId64, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, dtsBefore[avpktOut->stream_index], avpktOut->dts - dtsBefore[avpktOut->stream_index]);
-        dsyslog("cEncoder::WritePacket():                                                                 dts this packet %10" PRId64 ", cyclical test %" PRId64 " duration %" PRId64, avpktOut->dts, cyclicalTest, avpktOut->duration);
+#if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
+        dsyslog("cEncoder::WritePacket():                                                                 dts this packet %10" PRId64 ", cyclical test %" PRId64 " duration %" PRId64 , avpktOut->dts, cyclicalTest, avpktOut->duration);
+#else
+        dsyslog("cEncoder::WritePacket():                                                                 dts this packet %10" PRId64 ", cyclical test %" PRId64 " duration %d", avpktOut->dts, cyclicalTest, avpktOut->duration);
+#endif
         return true;
     }
 

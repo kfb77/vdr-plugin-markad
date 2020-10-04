@@ -7,7 +7,6 @@
 
 #include <sys/stat.h>
 #include <unistd.h>
-#include <chrono>
 
 #include "logo.h"
 extern "C"{
@@ -1154,15 +1153,15 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
         }
 
         // find best and second best corner
-        logoInfo bestLogoInfo = {0};
-        logoInfo secondBestLogoInfo = {0};
+        logoInfo bestLogoInfo = {};
+        logoInfo secondBestLogoInfo = {};
         int bestLogoCorner = -1;
         int secondBestLogoCorner = -1;
         int sumHits = 0;
 
         if (maContext->Config->autoLogo == 1) { // use packed logos
-            logoInfoPacked bestLogoInfoPacked = {0};
-            logoInfoPacked secondBestLogoInfoPacked = {0};
+            logoInfoPacked bestLogoInfoPacked = {};
+            logoInfoPacked secondBestLogoInfoPacked = {};
             for (int corner = 0; corner < CORNERS; corner++) {  // search for the best hits of each corner
                 sumHits += actLogoInfoPacked[corner].hits;
                 if (actLogoInfoPacked[corner].hits > bestLogoInfoPacked.hits) {

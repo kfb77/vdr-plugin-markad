@@ -8,7 +8,7 @@
 #define __status_h_
 
 #include <vdr/status.h>
-#include <chrono>
+// #include <chrono>
 #include "setup.h"
 
 #if __GNUC__ > 3
@@ -63,7 +63,7 @@ class cEpgHandlerMarkad;
 // --- cStatusMarkAd
 class cStatusMarkAd : public cStatus {
     private:
-        struct recs recs[MAXDEVICES*MAXRECEIVERS] = {0};
+        struct recs recs[MAXDEVICES*MAXRECEIVERS];
         int max_recs = -1;
         struct setup *setup;
         const char *bindir;

@@ -514,7 +514,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     if (isVideoPacket()) {
         rc=avcodec_decode_video2(codecCtxArray[avpkt->stream_index],avFrame,&frame_ready,avpkt);
         if (rc < 0) {
-            dsyslog("cDecoder::DecodePacket(): avcodec_decode_video2 decode of frame (%li) from stream %i failed with return code %i", framenumber, avpkt->stream_index, rc);
+            dsyslog("cDecoder::DecodePacket(): avcodec_decode_video2 decode of frame (%d) from stream %i failed with return code %i", framenumber, avpkt->stream_index, rc);
             if (avFrame) {
                 FREE(sizeof(*avFrame), "avFrame");
                 av_frame_free(&avFrame);
@@ -525,7 +525,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     else if (isAudioPacket()) {
         rc=avcodec_decode_audio4(codecCtxArray[avpkt->stream_index],avFrame,&frame_ready,avpkt);
         if (rc < 0) {
-            dsyslog("cDecoder::DecodePacket(): avcodec_decode_audio4 of frame (%li) from stream %i failed with return code %i", framenumber, avpkt->stream_index, rc);
+            dsyslog("cDecoder::DecodePacket(): avcodec_decode_audio4 of frame (%d) from stream %i failed with return code %i", framenumber, avpkt->stream_index, rc);
             if (avFrame) {
                 FREE(sizeof(*avFrame), "avFrame");
                 av_frame_free(&avFrame);
