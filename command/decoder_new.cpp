@@ -133,7 +133,7 @@ bool cDecoder::DecodeFile(const char * filename) {
         if (fileNumber <= 1) dsyslog("cDecoder::DecodeFile(): Could not open source file %s", filename);
         return false;
     }
-    if (avformat_find_stream_info(avctx, NULL) <0) {
+    if (avformat_find_stream_info(avctx, NULL) < 0) {
         dsyslog("cDecoder::DecodeFile(): Could not get stream infos %s", filename);
         return false;
     }
@@ -330,7 +330,7 @@ int cDecoder::GetVideoRealFrameRate() {
 
 bool cDecoder::GetNextFrame() {
     if (!avctx) return false;
-    iFrameData.Valid=false;
+    iFrameData.Valid = false;
     av_packet_unref(&avpkt);
     if (av_read_frame(avctx, &avpkt) == 0 ) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -415,31 +415,31 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     ALLOC(sizeof(*avFrame), "avFrame");
     if (isVideoPacket()) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-        avFrame->height=avctx->streams[avpkt->stream_index]->codecpar->height;
-        avFrame->width=avctx->streams[avpkt->stream_index]->codecpar->width;
-        avFrame->format=codecCtxArray[avpkt->stream_index]->pix_fmt;
+        avFrame->height = avctx->streams[avpkt->stream_index]->codecpar->height;
+        avFrame->width = avctx->streams[avpkt->stream_index]->codecpar->width;
+        avFrame->format = codecCtxArray[avpkt->stream_index]->pix_fmt;
 #else
-        avFrame->height=avctx->streams[avpkt->stream_index]->codec->height;
-        avFrame->width=avctx->streams[avpkt->stream_index]->codec->width;
-        avFrame->format=codecCtxArray[avpkt->stream_index]->pix_fmt;
+        avFrame->height = avctx->streams[avpkt->stream_index]->codec->height;
+        avFrame->width = avctx->streams[avpkt->stream_index]->codec->width;
+        avFrame->format = codecCtxArray[avpkt->stream_index]->pix_fmt;
 #endif
     }
     else if (isAudioPacket()) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-        avFrame->nb_samples=av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codecpar->channel_layout);
-        avFrame->channel_layout=avctx->streams[avpkt->stream_index]->codecpar->channel_layout;
-        avFrame->format=avctx->streams[avpkt->stream_index]->codecpar->format;
-        avFrame->sample_rate=avctx->streams[avpkt->stream_index]->codecpar->sample_rate;
+        avFrame->nb_samples = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codecpar->channel_layout);
+        avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codecpar->channel_layout;
+        avFrame->format = avctx->streams[avpkt->stream_index]->codecpar->format;
+        avFrame->sample_rate = avctx->streams[avpkt->stream_index]->codecpar->sample_rate;
 #elif LIBAVCODEC_VERSION_INT >= ((56<<16)+(26<<8)+100)
-        avFrame->nb_samples=av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codec->channel_layout);
-        avFrame->channel_layout=avctx->streams[avpkt->stream_index]->codec->channel_layout;
-        avFrame->format=codecCtxArray[avpkt->stream_index]->sample_fmt;
-        avFrame->sample_rate=avctx->streams[avpkt->stream_index]->codec->sample_rate;
+        avFrame->nb_samples = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codec->channel_layout);
+        avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codec->channel_layout;
+        avFrame->format = codecCtxArray[avpkt->stream_index]->sample_fmt;
+        avFrame->sample_rate = avctx->streams[avpkt->stream_index]->codec->sample_rate;
 #else  // Raspbian Jessie
-        avFrame->nb_samples=av_popcount64(avctx->streams[avpkt->stream_index]->codec->channel_layout);
-        avFrame->channel_layout=avctx->streams[avpkt->stream_index]->codec->channel_layout;
-        avFrame->format=codecCtxArray[avpkt->stream_index]->sample_fmt;
-        avFrame->sample_rate=avctx->streams[avpkt->stream_index]->codec->sample_rate;
+        avFrame->nb_samples = av_popcount64(avctx->streams[avpkt->stream_index]->codec->channel_layout);
+        avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codec->channel_layout;
+        avFrame->format = codecCtxArray[avpkt->stream_index]->sample_fmt;
+        avFrame->sample_rate = avctx->streams[avpkt->stream_index]->codec->sample_rate;
 #endif
     }
     else {
@@ -510,9 +510,9 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
         return NULL;
     }
 #else
-    int frame_ready=0;
+    int frame_ready = 0;
     if (isVideoPacket()) {
-        rc=avcodec_decode_video2(codecCtxArray[avpkt->stream_index],avFrame,&frame_ready,avpkt);
+        rc = avcodec_decode_video2(codecCtxArray[avpkt->stream_index], avFrame, &frame_ready, avpkt);
         if (rc < 0) {
             dsyslog("cDecoder::DecodePacket(): avcodec_decode_video2 decode of frame (%d) from stream %i failed with return code %i", framenumber, avpkt->stream_index, rc);
             if (avFrame) {
@@ -523,7 +523,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
         }
     }
     else if (isAudioPacket()) {
-        rc=avcodec_decode_audio4(codecCtxArray[avpkt->stream_index],avFrame,&frame_ready,avpkt);
+        rc = avcodec_decode_audio4(codecCtxArray[avpkt->stream_index], avFrame, &frame_ready, avpkt);
         if (rc < 0) {
             dsyslog("cDecoder::DecodePacket(): avcodec_decode_audio4 of frame (%d) from stream %i failed with return code %i", framenumber, avpkt->stream_index, rc);
             if (avFrame) {
@@ -559,7 +559,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
 bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
     if (!avctx) return false;
     AVFrame *avFrame = NULL;
-    iFrameData.Valid=false;
+    iFrameData.Valid = false;
     if (isVideoPacket()) {
         if (isVideoIFrame() || stateEAGAIN) {
             avFrame=this->DecodePacket(avctx, &avpkt);
@@ -571,9 +571,9 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                 }
                 for (int i = 0; i < PLANES; i++) {
                     if (avFrame->data[i]) {
-                        maContext->Video.Data.Plane[i]=avFrame->data[i];
-                        maContext->Video.Data.PlaneLinesize[i]=avFrame->linesize[i];
-                        maContext->Video.Data.Valid=true;
+                        maContext->Video.Data.Plane[i] = avFrame->data[i];
+                        maContext->Video.Data.PlaneLinesize[i] = avFrame->linesize[i];
+                        maContext->Video.Data.Valid = true;
                     }
                 }
 
@@ -600,35 +600,35 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                     }
                 }
                 else {
-                    if ((sample_aspect_ratio_num==64) && (sample_aspect_ratio_den==45)) {  // // generic PAR MPEG-2 for PAL
-                        sample_aspect_ratio_num =16;
-                        sample_aspect_ratio_den = 9;
+                    if ((sample_aspect_ratio_num == 64) && (sample_aspect_ratio_den == 45)) {  // // generic PAR MPEG-2 for PAL
+                        sample_aspect_ratio_num = 16;
+                        sample_aspect_ratio_den =  9;
                     }
-                    else if ((sample_aspect_ratio_num==16) && (sample_aspect_ratio_den==11)) {  // // generic PAR MPEG-4 for PAL
-                        sample_aspect_ratio_num =16;
-                        sample_aspect_ratio_den = 9;
+                    else if ((sample_aspect_ratio_num == 16) && (sample_aspect_ratio_den == 11)) {  // // generic PAR MPEG-4 for PAL
+                        sample_aspect_ratio_num = 16;
+                        sample_aspect_ratio_den =  9;
                     }
-                    else if ((sample_aspect_ratio_num==32) && (sample_aspect_ratio_den==17)) {
-                         sample_aspect_ratio_num =16;
-                         sample_aspect_ratio_den = 9;
+                    else if ((sample_aspect_ratio_num == 32) && (sample_aspect_ratio_den == 17)) {
+                         sample_aspect_ratio_num = 16;
+                         sample_aspect_ratio_den =  9;
                     }
-                    else if ((sample_aspect_ratio_num==16) && (sample_aspect_ratio_den==15)) {  // generic PAR MPEG-2 for PAL
-                        sample_aspect_ratio_num =4;
-                        sample_aspect_ratio_den =3;
+                    else if ((sample_aspect_ratio_num == 16) && (sample_aspect_ratio_den == 15)) {  // generic PAR MPEG-2 for PAL
+                        sample_aspect_ratio_num = 4;
+                        sample_aspect_ratio_den = 3;
                     }
-                    else if ((sample_aspect_ratio_num==12) && (sample_aspect_ratio_den==11)) {  // generic PAR MPEG-4 for PAL
-                        sample_aspect_ratio_num =4;
-                        sample_aspect_ratio_den =3;
+                    else if ((sample_aspect_ratio_num == 12) && (sample_aspect_ratio_den == 11)) {  // generic PAR MPEG-4 for PAL
+                        sample_aspect_ratio_num = 4;
+                        sample_aspect_ratio_den = 3;
                     }
-                    else if ((sample_aspect_ratio_num==4) && (sample_aspect_ratio_den==3)) {
+                    else if ((sample_aspect_ratio_num == 4) && (sample_aspect_ratio_den == 3)) {
 //                      sample_aspect_ratio_num =4;
 //                      sample_aspect_ratio_den =3;
                     }
-                    else if ((sample_aspect_ratio_num==3) && (sample_aspect_ratio_den==2)) {  // H.264 1280x1080
-                        sample_aspect_ratio_num =16;
-                        sample_aspect_ratio_den =9;
+                    else if ((sample_aspect_ratio_num == 3) && (sample_aspect_ratio_den == 2)) {  // H.264 1280x1080
+                        sample_aspect_ratio_num = 16;
+                        sample_aspect_ratio_den =  9;
                     }
-                    else dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio (%d:%d) at frame (%d)",sample_aspect_ratio_num,sample_aspect_ratio_den,framenumber);
+                    else dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio (%d:%d) at frame (%d)",sample_aspect_ratio_num, sample_aspect_ratio_den, framenumber);
                 }
                 if ((maContext->Video.Info.AspectRatio.Num != sample_aspect_ratio_num) ||
                    ( maContext->Video.Info.AspectRatio.Den != sample_aspect_ratio_den)) {
@@ -636,8 +636,8 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                                                                             maContext->Video.Info.AspectRatio.Num, maContext->Video.Info.AspectRatio.Den,
                                                                             sample_aspect_ratio_num, sample_aspect_ratio_den,
                                                                             framenumber);
-                    maContext->Video.Info.AspectRatio.Num=sample_aspect_ratio_num;
-                    maContext->Video.Info.AspectRatio.Den=sample_aspect_ratio_den;
+                    maContext->Video.Info.AspectRatio.Num = sample_aspect_ratio_num;
+                    maContext->Video.Info.AspectRatio.Den = sample_aspect_ratio_den;
                 }
                 if (avFrame) {
                     FREE(sizeof(*avFrame), "avFrame");
