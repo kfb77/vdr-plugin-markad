@@ -6,7 +6,7 @@
  */
 
 
-#ifdef DEBUGMEM
+#ifdef DEBUG_MEM
 
 #include <stdlib.h>
 #include <cstring>

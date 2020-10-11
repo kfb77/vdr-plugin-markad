@@ -6,7 +6,7 @@
 # CLASSIC_DECODER=1
 
 # use this, if you want to debug heap memory consumption
-# DEBUGMEMMARKAD=1
+# DEBUG_MEM_MARKAD=1
 
 
 ### The version number of this plugin (taken from the main source file):
@@ -51,9 +51,9 @@ DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
 DEFINES += -D__STDC_CONSTANT_MACROS -D__USE_XOPEN_EXTENDED
 
 
-ifdef DEBUGMEMMARKAD
-DEFINES += -DDEBUGMEM
-$(info option DEBUGMEMMARKAD is set)
+ifdef DEBUG_MEM_MARKAD
+DEFINES += -DDEBUG_MEM
+$(info option DEBUG_MEM_MARKAD is set)
 endif
 
 

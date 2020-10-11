@@ -20,7 +20,7 @@ void AVlog(void *ptr, int level, const char* fmt, va_list vl){
             dsyslog("AVlog(): error in vasprintf");
             return;
         }
-#ifdef DEBUGMEM
+#ifdef DEBUG_MEM
         int lenght = strlen(logMsg) + 1;
         ALLOC(lenght, "logMsg");
 #endif
@@ -34,7 +34,7 @@ void AVlog(void *ptr, int level, const char* fmt, va_list vl){
         }
         else dsyslog("AVlog(): %s",logMsg);
 
-#ifdef DEBUGMEM
+#ifdef DEBUG_MEM
         FREE(lenght, "logMsg");
 #endif
         free(logMsg);

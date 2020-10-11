@@ -226,7 +226,7 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
         dsyslog("cEncoder::OpenFile(): failed to allocate string, out of memory?");
         return false;
     }
-#ifdef DEBUGMEM
+#ifdef DEBUG_MEM
     ALLOC(strlen(buffCutName)+1, "buffCutName");
     int memsize_buffCutName = strlen(buffCutName)+1;
 #endif
@@ -254,7 +254,7 @@ bool cEncoder::OpenFile(const char * directory, cDecoder *ptr_cDecoder) {
         return false;
     }
     ALLOC(strlen(filename)+1, "filename");
-#ifdef DEBUGMEM
+#ifdef DEBUG_MEM
     FREE(memsize_buffCutName, "buffCutName");
 #endif
     free(buffCutName);

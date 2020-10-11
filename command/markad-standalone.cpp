@@ -2143,7 +2143,7 @@ again:
                                     marks.WriteIndex(directory, isTS, demux->Offset(), macontext.Video.Info.Pict_Type, Number);
                                 }
                                 framecnt1++;
-                                if ((macontext.Config->logoExtraction != -1) && (framecnt >= 256)) {
+                                if ((macontext.Config->logoExtraction != -1) && (framecnt1 >= 256)) {
                                     isyslog("finished logo extraction, please check /tmp for pgm files");
                                     abortNow = true;
                                     if (f != -1) close(f);
@@ -2160,7 +2160,7 @@ again:
                                     if ((iStopA < 0) && (lastiframe > -iStopA)) {
                                         iStopA = lastiframe;
                                     }
-                                    iframe = framecnt - 1;
+                                    iframe = framecnt1 - 1;
                                     dRes = true;
                                 }
                             }
@@ -2195,7 +2195,7 @@ again:
                                     isyslog("found AC3 (0x%02X)", pkt.Stream);
                                     noticeVDR_AC3 = true;
                                 }
-                                if ((framecnt-iframe) <= 3) {
+                                if ((framecnt1 - iframe) <= 3) {
                                     MarkAdMark *amark = audio->Process(lastiframe, iframe);
                                     if (amark) {
                                         AddMark(amark);
@@ -2234,11 +2234,7 @@ bool cMarkAdStandalone::Reset(bool FirstPass) {
     if (FirstPass) framecnt1 = 0;
     lastiframe = 0;
     iframe = 0;
-
     gotendmark = false;
-
-    memset(&pkt, 0, sizeof(pkt));
-
     chkSTART = chkSTOP = INT_MAX;
 
     if (FirstPass) {
@@ -2247,13 +2243,13 @@ bool cMarkAdStandalone::Reset(bool FirstPass) {
         marks.CloseIndex(directory,isTS);
 #endif
     }
-
     macontext.Video.Info.Pict_Type = 0;
     macontext.Video.Info.AspectRatio.Den = 0;
     macontext.Video.Info.AspectRatio.Num = 0;
     memset(macontext.Audio.Info.Channels, 0, sizeof(macontext.Audio.Info.Channels));
 
 #if defined CLASSIC_DECODER
+    memset(&pkt, 0, sizeof(pkt));
     if (streaminfo) streaminfo->Clear();
     if (decoder) ret=decoder->Clear();
     if (demux) demux->Clear();
@@ -2504,7 +2500,7 @@ void cMarkAdStandalone::Process() {
             if (length && startTime) {
                 if (((time(NULL) > (startTime + (time_t) length)) || (gotendmark)) && !ptr_cDecoder ) {
                     int iIndexError = false;
-                    int tframecnt = macontext.Config->GenIndex ? framecnt : 0;
+                    int tframecnt = macontext.Config->GenIndex ? framecnt1 : 0;
                     if (marks.CheckIndex(directory, isTS, &tframecnt, &iIndexError)) {
                         if (iIndexError) {
                             if (macontext.Config->GenIndex) {
@@ -3384,12 +3380,11 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     demux = NULL;
     decoder = NULL;
     skipped = 0;
+    memset(&pkt, 0, sizeof(pkt));
 #endif
     video = NULL;
     audio = NULL;
     osd = NULL;
-
-    memset(&pkt, 0, sizeof(pkt));
 
     noticeVDR_VID = false;
     noticeVDR_AC3 = false;
@@ -3397,7 +3392,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     noticeFILLER = false;
 
     length = 0;
-
     sleepcnt = 0;
     waittime = iwaittime = 0;
     duplicate = false;
@@ -3419,7 +3413,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     }
 
 #if defined CLASSIC_DECODER
-    macontext.Info.DPid.Typ e= MARKAD_PIDTYPE_AUDIO_AC3;
+    macontext.Info.DPid.Type = MARKAD_PIDTYPE_AUDIO_AC3;
 #endif
     macontext.Info.APid.Type = MARKAD_PIDTYPE_AUDIO_MP2;
 
@@ -3488,7 +3482,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     if (config->Before) sleep(10);
 
     char *tmpDir = strdup(directory);
-#ifdef DEBUGMEM
+#ifdef DEBUG_MEM
     ALLOC(strlen(tmpDir)+1, "tmpDir");
     int memsize_tmpDir = strlen(directory) + 1;
 #endif
@@ -3515,7 +3509,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     else {
         bLiveRecording = false;
     }
-#ifdef DEBUGMEM
+#ifdef DEBUG_MEM
     FREE(memsize_tmpDir, "tmpDir");
 #endif
     free(tmpDir);
@@ -4475,7 +4469,7 @@ int main(int argc, char *argv[]) {
             delete cmasta;
             cmasta = NULL;
         }
-#ifdef DEBUGMEM
+#ifdef DEBUG_MEM
         memList();
 #endif
         return 0;
