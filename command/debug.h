@@ -12,8 +12,29 @@
 
 #define LOG_TRACE 8
 
+
+// write picture from recording to /tmp from <framenumber>-200 to <framenumber>+200
+// #define DEBUG_FRAME <framenumber>
+
+// write picture from recording of logo corner to /tmp from <framenumber>-200 to <framenumber>+200
+// #define DEBUG_FRAME_CORNER <framenumber>
+
+// write logo detection informations in log file
+// #define DEBUG_LOGO_DETECTION
+
+// debug overlap detection
+// #define DEBUG_OVERLAP
+
+// #define DEBUG_LOGO_CORNER TOP_LEFT
+// #define DEBUG_LOGO_CORNER TOP_RIGHT
+// #define DEBUG_LOGO_SAVE 0   // save all logos before CheckValid to /tmp
+// #define DEBUG_LOGO_SAVE 1   // save valid logos before RemovePixelDefects to /tmp
+// #define DEBUG_LOGO_SAVE 2   // save valid logos after RemovePixelDefects /tmp
+
+
 extern int SysLogLevel;
 extern void syslog_with_tid(int priority, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
+
 
 #define esyslog(a...) void( (SysLogLevel > 0) ? syslog_with_tid(LOG_ERR, a) : void() )
 #define isyslog(a...) void( (SysLogLevel > 1) ? syslog_with_tid(LOG_INFO, a) : void() )

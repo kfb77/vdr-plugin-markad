@@ -236,7 +236,6 @@ bool cMarkAdLogo::SetCoorginates(int *xstart, int *xend, int *ystart, int *yend,
 }
 
 
-// #define DEBUG_FRAME_CORNER <framenumber>
 #ifdef DEBUG_FRAME_CORNER
 void cMarkAdLogo::SaveFrameCorner(const int framenumber, const int debug) {
     FILE *pFile;
@@ -437,7 +436,6 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool 
     if (extract || onlyFillArea) return LOGO_NOCHANGE;
     if (!processed) return LOGO_ERROR;
 
-// #define DEBUG_LOGO_DETECTION 1
 #ifdef DEBUG_LOGO_DETECTION
     dsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
 #endif
@@ -982,8 +980,6 @@ int cMarkAdOverlap::areSimilar(simpleHistogram &hist1, simpleHistogram &hist2) {
     return -1;
 }
 
-
-// #define DEBUG_OVERLAP
 
 MarkAdPos *cMarkAdOverlap::Detect() {
     int start = 0, simcnt = 0;

@@ -1405,7 +1405,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
 }
 
 
-#ifdef DEBUGFRAME
+#ifdef DEBUG_FRAME
 void cMarkAdStandalone::SaveFrame(int frame) {
     if (!macontext.Video.Info.Width) {
         dsyslog("cMarkAdStandalone::SaveFrame(): macontext.Video.Info.Width not set");
@@ -2318,9 +2318,8 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 }
             }
 
-// #define DEBUGFRAME 54500     // TODO: JUST FOR DEBUGGING!
-#ifdef DEBUGFRAME
-            if ((lastiframe > (DEBUGFRAME - 200)) && (lastiframe < (DEBUGFRAME + 200))) {
+#ifdef DEBUG_FRAME
+            if ((lastiframe > (DEBUG_FRAME - 200)) && (lastiframe < (DEBUG_FRAME + 200))) {
                 dsyslog("save frame (%i) to /tmp", lastiframe);
                 SaveFrame(lastiframe);
             }
