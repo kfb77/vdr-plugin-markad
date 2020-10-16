@@ -443,13 +443,13 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool 
     // to very bright pictures, so ignore them...
     if (processed == 1) {
         if ((area.intensity > 120) && (area.intensity < 200) && (rpixel < (mpixel * LOGO_IMARK))) {  // if we found no logo try to reduce brightness, if we are to bright, this will not work
-            tsyslog("cMarkAdLogo::Detect(): frame (%5d) to bright,     area intensity %d", framenumber, area.intensity);
+            tsyslog("cMarkAdLogo::Detect(): frame (%6d) to bright,     area intensity %d", framenumber, area.intensity);
             if (ReduceBrightness(framenumber)) {
                 area.rpixel[0] = 0;
                 rpixel = 0;
                 mpixel = 0;
                 SobelPlane(framenumber, 0);
-                tsyslog("cMarkAdLogo::Detect(): frame (%5d) corrected, new area intensity %d", framenumber, area.intensity);
+                tsyslog("cMarkAdLogo::Detect(): frame (%6d) corrected, new area intensity %d", framenumber, area.intensity);
                 rpixel += area.rpixel[0];
                 mpixel += area.mpixel[0];
 #ifdef DEBUG_LOGO_DETECTION
@@ -467,6 +467,12 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool 
         }
         if ((rpixel < (mpixel * logo_vmark)) && (area.intensity > 120)) {  // still too bright, reduced from 130 to 120
             return LOGO_NOCHANGE;
+        }
+    }
+    else {  // if we have more planes we can still have a problem with bright frames at start, make sure we get at least a quick initial logo visible
+        if ((area.status == LOGO_UNINITIALIZED) && (area.intensity > 120) && (rpixel < (mpixel * logo_vmark))) {
+            rpixel -= area.rpixel[0];
+            mpixel -= area.mpixel[0];
         }
     }
 
