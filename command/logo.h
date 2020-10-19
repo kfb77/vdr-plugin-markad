@@ -63,7 +63,7 @@ class cExtractLogo {
         bool Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner);
         bool isWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
         int DeleteFrames(const MarkAdContext *maContext, const int from, const int to);
-        bool WaitForFrames(const MarkAdContext *maContext, cDecoder *ptr_cDecoder);
+        bool WaitForFrames(const MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame);
         void PackLogoInfo(const logoInfo *logoInfo, logoInfoPacked *logoInfoPacked);
         void UnpackLogoInfo(logoInfo *logoInfo, const logoInfoPacked *logoInfoPacked);
         int GetFirstFrame(const MarkAdContext *maContext);

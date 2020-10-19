@@ -730,46 +730,50 @@ int cExtractLogo::CountFrames(const MarkAdContext *maContext) {
 }
 
 
-bool cExtractLogo::WaitForFrames(const MarkAdContext *maContext, cDecoder *ptr_cDecoder) {
+bool cExtractLogo::WaitForFrames(const MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame = 0) {
     if (!maContext) return false;
     if (!ptr_cDecoder) return false;
 
+    if ((recordingFrameCount > (ptr_cDecoder->GetFrameNumber() + 200)) && (recordingFrameCount > minFrame)) return true; // we have already found enough frames
+
 #define WAITTIME 60
     char *indexFile = NULL;
-    if (recordingFrameCount > (ptr_cDecoder->GetFrameNumber()+200)) return true; // we have already found enougt frames
-
-    if (asprintf(&indexFile,"%s/index",maContext->Config->recDir)==-1) {
+    if (asprintf(&indexFile, "%s/index", maContext->Config->recDir) == -1) {
         dsyslog("cExtractLogo::WaitForFrames: out of memory in asprintf");
         return false;
     }
     ALLOC(strlen(indexFile)+1, "indexFile");
+
+    bool ret = false;
     struct stat indexStatus;
-    if (stat(indexFile,&indexStatus)==-1) {
-        dsyslog("cExtractLogo::WaitForFrames: failed to stat %s",indexFile);
-        FREE(strlen(indexFile)+1, "indexFile");
-        free(indexFile);
-        return false;
+    for (int retry = 0; retry < 10; retry++) {
+        if (stat(indexFile,&indexStatus) == -1) {
+            dsyslog("cExtractLogo::WaitForFrames: failed to stat %s", indexFile);
+            ret = false;
+            break;
+        }
+        recordingFrameCount = indexStatus.st_size / 8;
+        dsyslog("cExtractLogo::WaitForFrames(): frames recorded (%d) read frames (%d) minFrame (%d)", recordingFrameCount, ptr_cDecoder->GetFrameNumber(), minFrame);
+        if ((recordingFrameCount > (ptr_cDecoder->GetFrameNumber() + 200)) && (recordingFrameCount > minFrame)) {
+            ret = true;  // recording has enough frames
+            break;
+        }
+        time_t now = time(NULL);
+        char systemTime[50] = {0};
+        char indexTime[50] = {0};
+        strftime(systemTime, sizeof(systemTime), "%d-%m-%Y %H:%M:%S", localtime(&now));
+        strftime(indexTime, sizeof(indexTime), "%d-%m-%Y %H:%M:%S", localtime(&indexStatus.st_mtime));
+        dsyslog("cExtractLogo::WaitForFrames(): index file size %ld bytes, system time %s index time %s, wait %ds", indexStatus.st_size, systemTime, indexTime, WAITTIME);
+        if ((difftime(now, indexStatus.st_mtime)) >= 2 * WAITTIME) {
+            dsyslog("cExtractLogo::isRunningRecording(): index not growing at frame (%d), old or interrupted recording", ptr_cDecoder->GetFrameNumber());
+            ret = false;
+            break;
+        }
+        sleep(WAITTIME); // now we sleep and hopefully the index will grow
     }
     FREE(strlen(indexFile)+1, "indexFile");
     free(indexFile);
-    dsyslog("cExtractLogo::WaitForFrames(): index file size %ld bytes", indexStatus.st_size);
-    int maxframes = indexStatus.st_size/8;
-    recordingFrameCount = maxframes;
-    if (maxframes>(ptr_cDecoder->GetFrameNumber()+200)) return true;  // recording has enough frames
-    time_t now = time(NULL);
-    char systemTime[50] = {0};
-    char indexTime[50] = {0};
-    strftime(systemTime,sizeof(systemTime),"%d-%m-%Y %H:%M:%S",localtime(&now));
-    strftime(indexTime,sizeof(indexTime),"%d-%m-%Y %H:%M:%S",localtime(&indexStatus.st_mtime));
-    dsyslog("cExtractLogo::WaitForFrames(): system time %s index time %s", systemTime, indexTime);
-    dsyslog("cExtractLogo::WaitForFrames(): need more frames at frame (%d), frames recorded (%i)", ptr_cDecoder->GetFrameNumber(), maxframes);
-    if ((difftime(now,indexStatus.st_mtime))>= 2*WAITTIME) {
-        dsyslog("cExtractLogo::isRunningRecording(): index not growing at frame (%d), old or interrupted recording", ptr_cDecoder->GetFrameNumber());
-        return false;
-    }
-    dsyslog("cExtractLogo::WaitForFrames(): waiting for new frames at frame (%d), frames recorded (%d)", ptr_cDecoder->GetFrameNumber(), maxframes);
-    sleep(WAITTIME); // now we sleep and hopefully the index will grow
-    return true;
+    return ret;
 }
 
 
@@ -999,7 +1003,14 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                     iFrameNumber = ptr_cDecoder->GetFrameNumber();
                     if (iFrameNumber < startFrame) {
                         dsyslog("cExtractLogo::SearchLogo(): seek to frame %i", startFrame);
-                        ptr_cDecoder->SeekToFrame(startFrame);
+                        if (!WaitForFrames(maContext, ptr_cDecoder, startFrame)) {
+                            dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() for startFrame %d failed", startFrame);
+                            retStatus = false;
+                        }
+                        if (!ptr_cDecoder->SeekToFrame(startFrame)) {
+                            dsyslog("cExtractLogo::SearchLogo(): seek to startFrame %d failed", startFrame);
+                            retStatus = false;
+                        }
                         continue;
                     }
                     iFrameCountAll++;
