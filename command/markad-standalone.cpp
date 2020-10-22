@@ -561,35 +561,46 @@ void cMarkAdStandalone::CheckStart() {
 
 // try to find a ascpect ratio mark
     if (!begin) {
-        clMark *aStart = marks.GetAround(chkSTART, chkSTART + 1, MT_ASPECTSTART);   // check if ascpect ratio changed in start part
-        clMark *aStop = NULL;
-        if (aStart) aStop = marks.GetNext(aStart->position, MT_ASPECTSTOP);
-        bool earlyAspectChange = false;
-        if (aStart && aStop && (aStop->position > aStart->position)) {  // we are in the first ad, do not correct aspect ratio from info file
-            dsyslog("cMarkAdStandalone::CheckStart(): found very early aspect ratio change at (%i) and (%i)", aStart->position, aStop->position);
-            earlyAspectChange = true;
-        }
-
-        if ((macontext.Info.AspectRatio.Num) && (!earlyAspectChange) &&
-           ((macontext.Info.AspectRatio.Num != macontext.Video.Info.AspectRatio.Num) || (macontext.Info.AspectRatio.Den != macontext.Video.Info.AspectRatio.Den)))
-        {
-            isyslog("video aspect description in info (%i:%i) wrong", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
+        if ((macontext.Info.AspectRatio.Num == 0) || (macontext.Video.Info.AspectRatio.Den == 0)) {
+            isyslog("no video aspect ratio found in vdr info file");
             macontext.Info.AspectRatio.Num = macontext.Video.Info.AspectRatio.Num;
             macontext.Info.AspectRatio.Den = macontext.Video.Info.AspectRatio.Den;
-// we have to inverst MT_ASPECTSTART and MT_ASPECTSTOP
+        }
+        // check marks and correct if necessary
+        clMark *aStart = marks.GetAround(chkSTART, chkSTART + 1, MT_ASPECTSTART);   // check if we have ascpect ratio START/STOP in start part
+        clMark *aStopAfter = NULL;
+        clMark *aStopBefore = NULL;
+        if (aStart) {
+            aStopAfter = marks.GetNext(aStart->position, MT_ASPECTSTOP);
+            aStopBefore = marks.GetPrev(aStart->position, MT_ASPECTSTOP);
+            if (aStopBefore && (aStopBefore->position == 0)) aStopBefore = NULL;   // do not accept initial aspect ratio
+        }
+        bool earlyAspectChange = false;
+        if (aStart && aStopAfter) {  // we are in the first ad, do not correct aspect ratio from info file
+            dsyslog("cMarkAdStandalone::CheckStart(): found very early aspect ratio change at (%i) and (%i)", aStart->position, aStopAfter->position);
+            earlyAspectChange = true;
+        }
+        bool wrongAspectInfo = false;
+        if ((macontext.Info.AspectRatio.Num == 16) && (macontext.Info.AspectRatio.Den == 9) && aStart && aStopBefore) {
+            dsyslog("cMarkAdStandalone::CheckStart(): found aspect ratio change 16:9 to 4:3 at (%d) to 16:9 at (%d), video info is 16:9, this must be wrong", aStopBefore->position, aStart->position);
+            wrongAspectInfo = true;
+        }
+        // cerrect wrong aspect ratio from vdr info file
+        if (wrongAspectInfo || ((!earlyAspectChange) && ((macontext.Info.AspectRatio.Num != macontext.Video.Info.AspectRatio.Num) ||
+                                                         (macontext.Info.AspectRatio.Den != macontext.Video.Info.AspectRatio.Den)))) {
+            MarkAdAspectRatio newMarkAdAspectRatio = {16,9};
+            if ((macontext.Info.AspectRatio.Num = 16) && (macontext.Info.AspectRatio.Den == 9)) newMarkAdAspectRatio = {4,3};
+            isyslog("video aspect description in info (%d:%d) wrong, correct to (%d:%d)", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den, newMarkAdAspectRatio.Num, newMarkAdAspectRatio.Den);
+            macontext.Info.AspectRatio.Num = newMarkAdAspectRatio.Num;
+            macontext.Info.AspectRatio.Den = newMarkAdAspectRatio.Den;
+            // we have to invert MT_ASPECTSTART and MT_ASPECTSTOP
             clMark *aMark = marks.GetFirst();
             while (aMark) {
                 if (aMark->type == MT_ASPECTSTART) aMark->type = MT_ASPECTSTOP;
-                if (aMark->type == MT_ASPECTSTOP) aMark->type = MT_ASPECTSTOP;
+                else if (aMark->type == MT_ASPECTSTOP) aMark->type = MT_ASPECTSTART;
                 aMark = aMark->Next();
             }
         }
-        if ((macontext.Info.AspectRatio.Num == 0) || (macontext.Video.Info.AspectRatio.Den == 0)) {
-            isyslog("no video aspect ratio found in info file");
-            macontext.Info.AspectRatio.Num = macontext.Video.Info.AspectRatio.Num;
-            macontext.Info.AspectRatio.Den = macontext.Video.Info.AspectRatio.Den;
-        }
-
         if (macontext.Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264) {
             isyslog("HD Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den);
         }
