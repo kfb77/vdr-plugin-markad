@@ -31,6 +31,9 @@
 // #define DEBUG_LOGO_SAVE 1   // save valid logos before RemovePixelDefects to /tmp
 // #define DEBUG_LOGO_SAVE 2   // save valid logos after RemovePixelDefects /tmp
 
+// debug vborder detection
+// #define DEBUG_VBORDER
+
 
 extern int SysLogLevel;
 extern void syslog_with_tid(int priority, const char *format, ...) __attribute__ ((format (printf, 2, 3)));

@@ -24,6 +24,8 @@
 #define LOGO_VMARK 0.5    // percantage of pixels for visible
 #define LOGO_IMARK 0.15   // percentage of pixels for invisible
 
+#define MIN_H_BORDER_SECS 60
+#define MIN_V_BORDER_SECS 37  // reduced from 50 to 37
 
 enum {
     LOGO_ERROR=-3,
@@ -50,8 +52,6 @@ enum {
     VBORDER_INVISIBLE=-1,
     VBORDER_VISIBLE=1
 };
-
-#define MINBORDERSECS 60
 
 enum {
     OV_BEFORE=0,

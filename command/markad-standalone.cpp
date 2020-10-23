@@ -744,8 +744,8 @@ void cMarkAdStandalone::CheckStart() {
             clMark *vStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is not valid
             if (vStop) {
                 int markDiff = (int) (vStop->position - vStart->position) / macontext.Video.Info.FramesPerSecond;
-                if (markDiff < 90) {
-                    isyslog("vertical border STOP (%i) %ds after vertical border START (%i) found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
+                if (markDiff < 35) {  // reduced from 90 to 35
+                    isyslog("vertical border STOP at (%d) %ds after vertical border START (%i) found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
                     marks.Del(vStop);
                     marks.Del(vStart);
                     vStart = NULL;

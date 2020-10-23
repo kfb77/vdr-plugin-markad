@@ -804,7 +804,7 @@ int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame) {
         }
         else {
             if (borderstatus != HBORDER_VISIBLE) {
-                if (FrameNumber > (borderframenumber+macontext->Video.Info.FramesPerSecond * MINBORDERSECS)) {
+                if (FrameNumber > (borderframenumber+macontext->Video.Info.FramesPerSecond * MIN_H_BORDER_SECS)) {
                     *BorderIFrame = borderframenumber;
                     borderstatus = HBORDER_VISIBLE;
                     return 1; // detected start of black border
@@ -897,13 +897,19 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
         if (val > BRIGHTNESS_V) fright = false;
     }
 
+#ifdef DEBUG_VBORDER
+    dsyslog("cMarkAdBlackBordersVert(): frame (%5d) fleft %d fright %d", FrameNumber, fleft, fright);
+#endif
     if ((fleft) && (fright)) {
         if (borderframenumber == -1) {
             borderframenumber = FrameNumber;
         }
         else {
             if (borderstatus != VBORDER_VISIBLE) {
-                if (FrameNumber > (borderframenumber + macontext->Video.Info.FramesPerSecond * MINBORDERSECS)) {
+#ifdef DEBUG_VBORDER
+                dsyslog("cMarkAdBlackBordersVert(): frame (%5d) duration %ds", FrameNumber, (int) ((FrameNumber - borderframenumber) /  macontext->Video.Info.FramesPerSecond));
+#endif
+                if (FrameNumber > (borderframenumber + macontext->Video.Info.FramesPerSecond * MIN_V_BORDER_SECS)) {
                     *BorderIFrame = borderframenumber;
                     borderstatus = VBORDER_VISIBLE;
                     return 1; // detected start of black border
