@@ -542,7 +542,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     else {
         if ((avpktOut->stream_index == 0) && ((avpktOut->dts - pts_dts_CutOffset) > dtsOut[avpktOut->stream_index])){
             int64_t newOffset = avpktOut->dts - pts_dts_CutOffset - dtsOut[avpktOut->stream_index];
-            int newOffsetMin = (int) newOffset*av_q2d(avctxOut->streams[avpktOut->stream_index]->time_base)/60;
+            int newOffsetMin = static_cast<int> (newOffset*av_q2d(avctxOut->streams[avpktOut->stream_index]->time_base) / 60);
             if (newOffset > 1) dsyslog("cEncoder::WritePacket(): frame (%d) stream %d old offset: %" PRId64 " increase %" PRId64 " = %dmin", ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, pts_dts_CutOffset, newOffset, newOffsetMin);
             if (newOffsetMin > 100) {
                 dsyslog("cEncoder::WritePacket(): dts value not valid, ignoring");

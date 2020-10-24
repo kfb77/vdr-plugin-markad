@@ -298,7 +298,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
         AddMark(&mark);
         startframe = macontext.Video.Info.FramesPerSecond * 6 * 60;  // give 6 minutes to get best mark type for this recording
     }
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): use frame rate %i", (int) macontext.Video.Info.FramesPerSecond);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): use frame rate %i", static_cast<int> (macontext.Video.Info.FramesPerSecond));
 
     iStart = -startframe;
     iStop = -(startframe + macontext.Video.Info.FramesPerSecond * length) ;   // iStop change from - to + when frames reached iStop
@@ -334,7 +334,7 @@ void cMarkAdStandalone::CheckStop() {
         dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTOP found at frame %i", end->position);
         clMark *cStart = marks.GetPrev(end->position, MT_CHANNELSTART);      // if there is short befor a channel start, this belongs to next recording
         if (cStart && ((end->position - cStart->position) < delta)) {
-            dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTART found at frame %i with delta %ds, MT_CHANNELSTOP is not valid", cStart->position, (int) ((end->position - cStart->position) / macontext.Video.Info.FramesPerSecond));
+            dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTART found at frame %i with delta %ds, MT_CHANNELSTOP is not valid", cStart->position, static_cast<int> ((end->position - cStart->position) / macontext.Video.Info.FramesPerSecond));
             end = NULL;
         }
     }
@@ -750,7 +750,7 @@ void cMarkAdStandalone::CheckStart() {
             dsyslog("cMarkAdStandalone::CheckStart(): vertical border start found at (%i)", vStart->position);
             clMark *vStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is not valid
             if (vStop) {
-                int markDiff = (int) (vStop->position - vStart->position) / macontext.Video.Info.FramesPerSecond;
+                int markDiff = static_cast<int> (vStop->position - vStart->position) / macontext.Video.Info.FramesPerSecond;
                 if (markDiff < 35) {  // reduced from 90 to 35
                     isyslog("vertical border STOP at (%d) %ds after vertical border START (%i) found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
                     marks.Del(vStop);
@@ -1020,8 +1020,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             if ((mark->Next()->type == MT_LOGOSTOP) && (mark->Next()->position != marks.GetLast()->position)) { // next mark not end mark
                 clMark *stopBefore = marks.GetPrev(mark->position, MT_LOGOSTOP);
                 if (stopBefore) {  // if ad before is long this is the really the next start mark
-                    int lenghtAdBefore = (int) ((mark->position - stopBefore->position) / macontext.Video.Info.FramesPerSecond);
-                    int lenghtPreview = (int) ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
+                    int lenghtAdBefore = static_cast<int> ((mark->position - stopBefore->position) / macontext.Video.Info.FramesPerSecond);
+                    int lenghtPreview = static_cast<int> ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
                     if ((lenghtAdBefore > 6) && (lenghtAdBefore <= 585)) {  // if ad before is long this is the really the next start mark, increased from 450 to 455 to 500 to 560 to 585
                         if ((lenghtPreview >= 2) && lenghtPreview < 110) {  // if logo part is long, this was a start mark
                             isyslog("found preview of lenght %is between logo mark (%i) and logo mark (%i) in advertisement (lenght %is), deleting marks", lenghtPreview, mark->position, mark->Next()->position, lenghtAdBefore);
@@ -1041,7 +1041,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // check hborder marks
         if ((mark->type == MT_HBORDERSTART) && (mark->position != marks.GetFirst()->position) && mark->Next()) {  // not start or end mark
             if ((mark->Next()->type == MT_HBORDERSTOP) && (mark->Next()->position != marks.GetLast()->position)) { // next mark not end mark
-                int lenghtAd = (int) ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
+                int lenghtAd = static_cast<int> ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
                 if (lenghtAd < 70) {
                     isyslog("found advertisement of lenght %is between hborder mark (%i) and hborder mark (%i), deleting marks", lenghtAd, mark->position, mark->Next()->position);
                     clMark *tmp=mark;
@@ -1062,7 +1062,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     mark = marks.GetFirst();
     while (mark) {
         if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 20);   // assume shortest ad is at least 30s, reduced to 20s
+            int MARKDIFF = static_cast<int> (macontext.Video.Info.FramesPerSecond * 20);   // assume shortest ad is at least 30s, reduced to 20s
             if ((mark->Next()->position - mark->position) <= MARKDIFF) {
                 double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between logo STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
@@ -1074,7 +1074,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             }
         }
         if ((mark->type == MT_HBORDERSTOP) && mark->Next() && mark->Next()->type == MT_HBORDERSTART) {
-            int MARKDIFF=(int) (macontext.Video.Info.FramesPerSecond * 15);
+            int MARKDIFF = static_cast<int> (macontext.Video.Info.FramesPerSecond * 15);
             if ((mark->Next()->position - mark->position) <= MARKDIFF) {
                 double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between horizontal STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
@@ -1370,8 +1370,8 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
     if (prev) {
         if ((prev->type & 0x0F) == (Mark->Type & 0x0F)) {
             int markDiff;
-            if (iStart != 0) markDiff = (int) (macontext.Video.Info.FramesPerSecond * 2);  // before chkStart: let more marks untouched, we need them for start detection
-            else markDiff = (int) (macontext.Video.Info.FramesPerSecond * 30);
+            if (iStart != 0) markDiff = static_cast<int> (macontext.Video.Info.FramesPerSecond * 2);  // before chkStart: let more marks untouched, we need them for start detection
+            else markDiff = static_cast<int> (macontext.Video.Info.FramesPerSecond * 30);
             int diff = abs(Mark->Position-prev->position);
             if (diff < markDiff) {
                 if (prev->type > Mark->Type) {
@@ -1529,7 +1529,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
                     esyslog("what's wrong with your system? we just slept %.0fs", slepttime);
                 }
             }
-            waittime += (int) slepttime;
+            waittime += static_cast<int> (slepttime);
             sleepcnt++;
             if (sleepcnt >= 2) {
                 esyslog("no new data after %is, skipping wait!", waittime);
@@ -2403,7 +2403,7 @@ void cMarkAdStandalone::ProcessFile_cDecoder() {
             isyslog("video width: %i", macontext.Video.Info.Width);
 
             macontext.Video.Info.FramesPerSecond = ptr_cDecoder->GetVideoFramesPerSecond();
-            isyslog("average frame rate %i frames per second", (int) macontext.Video.Info.FramesPerSecond);
+            isyslog("average frame rate %i frames per second", static_cast<int> (macontext.Video.Info.FramesPerSecond));
             isyslog("real frame rate    %i frames per second", ptr_cDecoder->GetVideoRealFrameRate());
 
             CalculateCheckPositions(tStart * macontext.Video.Info.FramesPerSecond);
@@ -2948,7 +2948,7 @@ bool cMarkAdStandalone::LoadInfo() {
                     free(macontext.Info.ChannelName);
                     macontext.Info.ChannelName = tmpName;
                 }
-                for (int i = 0; i < (int) strlen(macontext.Info.ChannelName); i++) {
+                for (int i = 0; i < static_cast<int> (strlen(macontext.Info.ChannelName)); i++) {
                     if (macontext.Info.ChannelName[i] == ' ') macontext.Info.ChannelName[i] = '_';
                     if (macontext.Info.ChannelName[i] == '.') macontext.Info.ChannelName[i] = '_';
                     if (macontext.Info.ChannelName[i] == '/') macontext.Info.ChannelName[i] = '_';
@@ -3027,7 +3027,7 @@ bool cMarkAdStandalone::LoadInfo() {
         if (rStart) {
             dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
             dsyslog("cMarkAdStandalone::LoadInfo(): broadcast start at %s", strtok(ctime(&startTime), "\n"));
-            tStart=(int) (startTime-rStart);
+            tStart = static_cast<int> (startTime - rStart);
             if (tStart > 60 * 60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
                 isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", tStart);
                 tStart = 120;
@@ -3360,7 +3360,7 @@ bool cMarkAdStandalone::CreatePidfile() {
     FREE(strlen(buf)+1, "buf");
     free(buf);
     if (!pidfile) return false;
-    fprintf(pidfile, "%i\n", (int) getpid());
+    fprintf(pidfile, "%i\n", static_cast<int> (getpid()));
     fflush(pidfile);
     fclose(pidfile);
     return true;
@@ -3552,7 +3552,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         } while (pos == (off_t) -2);
 
         if (!CheckPATPMT(pos)) {
-            esyslog("no PAT/PMT found (%i) -> cannot process", (int) pos);
+            esyslog("no PAT/PMT found (%i) -> cannot process", static_cast<int> pos);
             abortNow = true;
             return;
         }
@@ -3597,7 +3597,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         if (tStart < 60) tStart = 60;
         isyslog("pre-timer %is", tStart);
     }
-    if (length) isyslog("broadcast length %imin", (int) round(length / 60));
+    if (length) isyslog("broadcast length %imin", static_cast<int> (round(length / 60)));
 
     if (title[0]) {
         ptitle = title;
@@ -3705,7 +3705,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         double ftime = 0;
         etime = sec + ((double) usec / 1000000) - waittime;
         if (etime > 0) ftime = (framecnt1 + framecnt2 + framecnt3) / etime;
-        isyslog("processed time %d:%02d min with %.1f fps", (int) (etime / 60), (int) (etime - ((int) (etime / 60) * 60)), ftime);
+        isyslog("processed time %d:%02d min with %.1f fps", static_cast<int> (etime / 60), static_cast<int> (etime - (static_cast<int> (etime / 60) * 60)), ftime);
     }
 
     if ((osd) && (!duplicate)) {

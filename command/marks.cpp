@@ -446,7 +446,7 @@ bool clMarks::ReadIndex(const char *Directory, bool isTS, int FrameNumber, int R
                 *Offset=IndexTS.offset;
                 *Number=IndexTS.number;
                 pos=lseek(ifd,0,SEEK_CUR);
-                *Frame=(int) (pos/sizeof(IndexTS))-1;
+                *Frame = static_cast<int> (pos / sizeof(IndexTS)) - 1;
             }
         }
         while (!IndexTS.independent);
@@ -480,7 +480,7 @@ bool clMarks::ReadIndex(const char *Directory, bool isTS, int FrameNumber, int R
                 *Offset=IndexVDR.offset;
                 *Number=IndexVDR.number;
                 pos=lseek(ifd,0,SEEK_CUR);
-                *Frame=(int) (pos/sizeof(IndexVDR))-1;
+                *Frame = static_cast<int> (pos / sizeof(IndexVDR)) - 1;
             }
         }
         while (IndexVDR.type!=1);
@@ -518,7 +518,7 @@ void clMarks::WriteIndex(bool isTS, uint64_t Offset, int FrameType, int Number) 
     }
     else {
         struct tIndexVDR IndexVDR;
-        IndexVDR.offset=(int) Offset;
+        IndexVDR.offset = static_cast<int> Offset;
         IndexVDR.type=(unsigned char) FrameType;
         IndexVDR.number=(unsigned char) Number;
         IndexVDR.reserved=0;

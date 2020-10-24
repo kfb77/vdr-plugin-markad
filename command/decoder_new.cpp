@@ -358,7 +358,7 @@ bool cDecoder::GetNextFrame() {
                         newFrameInfo.pts_time_ms = pts_time_ms_LastFile + pts_time_ms;
                         if (!iFrameInfoVector.empty()) {
                             iFrameInfo beforeFrameInfo = iFrameInfoVector.back();
-                            int diff_ms = (int) (newFrameInfo.pts_time_ms - beforeFrameInfo.pts_time_ms);
+                            int diff_ms = static_cast<int> (newFrameInfo.pts_time_ms - beforeFrameInfo.pts_time_ms);
                             if (diff_ms_usual == 0) diff_ms_usual = diff_ms;
                             if (diff_ms_usual < 200) diff_ms_usual = 200;  // set minimum duration
                             if (diff_ms > diff_ms_usual * 5) esyslog("presentation timestamp in video stream at frame (%5d) increased %3ds %3dms, usual was %3ds %3dms", framenumber, diff_ms / 1000, diff_ms % 1000, diff_ms_usual / 1000, diff_ms_usual % 1000);
@@ -373,7 +373,7 @@ bool cDecoder::GetNextFrame() {
         return true;
     }
     pts_time_ms_LastFile = pts_time_ms_LastRead;
-    dsyslog("cDecoder::GetNextFrame(): last frame of filenumber %d is (%d), end time %" PRId64 "ms (%3d:%02dmin)", fileNumber, framenumber, pts_time_ms_LastFile, (int) (pts_time_ms_LastFile / 1000 / 60), (int) (pts_time_ms_LastFile / 1000) % 60);
+    dsyslog("cDecoder::GetNextFrame(): last frame of filenumber %d is (%d), end time %" PRId64 "ms (%3d:%02dmin)", fileNumber, framenumber, pts_time_ms_LastFile, static_cast<int> (pts_time_ms_LastFile / 1000 / 60), static_cast<int> (pts_time_ms_LastFile / 1000) % 60);
     return false;
 }
 

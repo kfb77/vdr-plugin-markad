@@ -404,7 +404,7 @@ bool cPaketQueue::Put(uchar *Data, int Size)
     memcpy(&buffer[inptr],Data,Size);
     inptr+=Size;
 
-    int npercent=(int) ((inptr*100)/maxqueue);
+    int npercent = static_cast<int> ((inptr * 100) / maxqueue);
     if (npercent>mpercent) mpercent=npercent;
 
     if ((npercent>90) && (name) && (npercent!=percent))
@@ -616,7 +616,7 @@ bool cTS2Pkt::Process(uchar *TSData, int TSSize, AvPacket *Pkt)
 
         if ((counter!=-1) && (((counter+1) & 0xF)!=tshdr->Counter))
         {
-            if (counter==(int) tshdr->Counter)
+            if (counter == static_cast<int> (tshdr->Counter))
             {
                 if (lasterror!=ERR_DUPLICATE)
                 {
@@ -700,7 +700,7 @@ bool cTS2Pkt::Process(uchar *TSData, int TSSize, AvPacket *Pkt)
         {
             // adaption field + payload
             int alen=TSData[4]+1;
-            if (alen>(TS_SIZE-(int) sizeof(struct TSHDR)))
+            if (alen>(TS_SIZE - static_cast<int> (sizeof(struct TSHDR))))
             {
                 if (lasterror!=ERR_AFCLEN)
                 {
@@ -987,7 +987,7 @@ bool cDemux::isvideopes(uchar *data, int count)
 int cDemux::checkts(uchar *data, int count, int &pid)
 {
     pid=-1;
-    if (count<(int) sizeof(struct TSHDR)) return -1;
+    if (count < static_cast<int> (sizeof(struct TSHDR))) return -1;
     if (data[0]!=0x47) return 1;
 
     struct TSHDR *tshdr = (struct TSHDR *) data;

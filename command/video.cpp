@@ -359,7 +359,7 @@ bool cMarkAdLogo::SobelPlane(const int framenumber, const int plane) {
                 // X Gradient approximation
                 for (int I = -1; I <= 1; I++) {
                     for (int J = -1; J <= 1; J++) {
-                        sumX = sumX+ (int) ((*(macontext->Video.Data.Plane[plane]+X+I+
+                        sumX = sumX+ static_cast<int> ((*(macontext->Video.Data.Plane[plane]+X+I+
                                              (Y+J)*macontext->Video.Data.PlaneLinesize[plane]))
                                           *GX[I+1][J+1]);
                     }
@@ -368,7 +368,7 @@ bool cMarkAdLogo::SobelPlane(const int framenumber, const int plane) {
                 // Y Gradient approximation
                 for (int I = -1; I <= 1; I++) {
                     for (int J = -1; J <= 1; J++) {
-                        sumY = sumY+ (int) ((*(macontext->Video.Data.Plane[plane]+X+I+ (Y+J)*macontext->Video.Data.PlaneLinesize[plane]))* GY[I+1][J+1]);
+                        sumY = sumY+ static_cast<int> ((*(macontext->Video.Data.Plane[plane]+X+I+ (Y+J)*macontext->Video.Data.PlaneLinesize[plane]))* GY[I+1][J+1]);
                     }
                 }
 
@@ -907,7 +907,7 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
         else {
             if (borderstatus != VBORDER_VISIBLE) {
 #ifdef DEBUG_VBORDER
-                dsyslog("cMarkAdBlackBordersVert(): frame (%5d) duration %ds", FrameNumber, (int) ((FrameNumber - borderframenumber) /  macontext->Video.Info.FramesPerSecond));
+                dsyslog("cMarkAdBlackBordersVert(): frame (%5d) duration %ds", FrameNumber, static_cast<int> ((FrameNumber - borderframenumber) /  macontext->Video.Info.FramesPerSecond));
 #endif
                 if (FrameNumber > (borderframenumber + macontext->Video.Info.FramesPerSecond * MIN_V_BORDER_SECS)) {
                     *BorderIFrame = borderframenumber;
