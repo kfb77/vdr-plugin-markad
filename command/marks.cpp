@@ -22,19 +22,19 @@ extern "C" {
 }
 
 
-clMark::clMark(int Type, int Position, const char *Comment, bool InBroadCast) {
+clMark::clMark(const int Type, const int Position, const char *Comment, const bool InBroadCast) {
     type = Type;
     position = Position;
     inBroadCast = InBroadCast;
     if (Comment) {
-        comment=strdup(Comment);
+        comment = strdup(Comment);
         ALLOC(strlen(comment)+1, "comment");
     }
     else {
-        comment=NULL;
+        comment = NULL;
     }
-    prev=NULL;
-    next=NULL;
+    prev = NULL;
+    next = NULL;
 }
 
 
@@ -48,19 +48,19 @@ clMark::~clMark() {
 
 clMarks::~clMarks() {
     DelAll();
-    if (indexfd!=-1) close(indexfd);
+    if (indexfd != -1) close(indexfd);
 }
 
 
 int clMarks::Count(int Type, int Mask) {
-    if (Type==0xFF) return count;
+    if (Type == 0xFF) return count;
     if (!first) return 0;
 
-    int ret=0;
-    clMark *mark=first;
+    int ret = 0;
+    clMark *mark = first;
     while (mark) {
-        if ((mark->type & Mask)==Type) ret++;
-        mark=mark->Next();
+        if ((mark->type & Mask) == Type) ret++;
+        mark = mark->Next();
     }
     return ret;
 }
@@ -69,11 +69,11 @@ int clMarks::Count(int Type, int Mask) {
 int clMarks::CountWithoutBlack() {
     if (!first) return 0;
 
-    int ret=0;
-    clMark *mark=first;
+    int ret = 0;
+    clMark *mark = first;
     while (mark) {
         if ((mark->type & 0xF0) != MT_BLACKCHANGE) ret++;
-        mark=mark->Next();
+        mark = mark->Next();
     }
     return ret;
 }
@@ -82,14 +82,14 @@ int clMarks::CountWithoutBlack() {
 void clMarks::Del(int Position) {
     if (!first) return; // no elements yet
 
-    clMark *next,*mark=first;
+    clMark *next,*mark = first;
     while (mark) {
-        next=mark->Next();
-        if (mark->position==Position) {
+        next = mark->Next();
+        if (mark->position == Position) {
             Del(mark);
             return;
         }
-        mark=next;
+        mark = next;
     }
 }
 
@@ -97,17 +97,17 @@ void clMarks::Del(int Position) {
 void clMarks::Del(unsigned char Type) {
     if (!first) return; // no elements yet
 
-    clMark *next,*mark=first;
+    clMark *next,*mark = first;
     while (mark) {
         next=mark->Next();
-        if (mark->type==Type) Del(mark);
-        mark=next;
+        if (mark->type == Type) Del(mark);
+        mark = next;
     }
 }
 
 
 void clMarks::DelWeakFromTo(const int from, const int to, const short int type) {
-    clMark *mark=first;
+    clMark *mark = first;
     while (mark) {
         if (mark->position >= to) return;
         if ((mark->position > from) && (mark->type < (type & 0xF0))) {
@@ -115,31 +115,31 @@ void clMarks::DelWeakFromTo(const int from, const int to, const short int type) 
             Del(mark);
             mark = tmpMark;
         }
-        else mark=mark->Next();
+        else mark = mark->Next();
     }
 }
 
 
 void clMarks::DelTill(int Position, bool FromStart) {
-    clMark *next,*mark=first;
+    clMark *next, *mark = first;
     if (!FromStart) {
         while (mark) {
-            if (mark->position>Position) break;
-            mark=mark->Next();
+            if (mark->position > Position) break;
+            mark = mark->Next();
         }
     }
 
     while (mark) {
-        next=mark->Next();
+        next = mark->Next();
         if (FromStart) {
-            if (mark->position<Position) {
+            if (mark->position < Position) {
                 Del(mark);
             }
         }
         else {
             Del(mark);
         }
-        mark=next;
+        mark = next;
     }
 }
 
@@ -160,28 +160,28 @@ void clMarks::DelFrom(int Position) {
 
 
 void clMarks::DelAll() {
-    clMark *next,*mark=first;
+    clMark *next, *mark = first;
     while (mark) {
-        next=mark->Next();
+        next = mark->Next();
         Del(mark);
         mark=next;
     }
-    first=NULL;
-    last=NULL;
+    first = NULL;
+    last = NULL;
 }
 
 
 void clMarks::Del(clMark *Mark) {
     if (!Mark) return;
 
-    if (first==Mark) {
+    if (first == Mark) {
         // we are the first mark
-        first=Mark->Next();
+        first = Mark->Next();
         if (first) {
             first->SetPrev(NULL);
         }
         else {
-            last=NULL;
+            last = NULL;
         }
     }
     else {
@@ -206,10 +206,10 @@ void clMarks::Del(clMark *Mark) {
 clMark *clMarks::Get(int Position) {
     if (!first) return NULL; // no elements yet
 
-    clMark *mark=first;
+    clMark *mark = first;
     while (mark) {
-        if (Position==mark->position) break;
-        mark=mark->Next();
+        if (Position == mark->position) break;
+        mark = mark->Next();
     }
     return mark;
 }
@@ -252,22 +252,22 @@ clMark *clMarks::GetPrev(int Position, int Type, int Mask) {
     if (!first) return NULL; // no elements yet
 
     // first advance
-    clMark *mark=first;
+    clMark *mark = first;
     while (mark) {
-        if (mark->position>=Position) break;
-        mark=mark->Next();
+        if (mark->position >= Position) break;
+        mark = mark->Next();
     }
-    if (Type==0xFF) {
+    if (Type == 0xFF) {
         if (mark) return mark->Prev();
         return last;
     }
     else {
-        if (!mark) mark=last;
-        else mark=mark->Prev();
+        if (!mark) mark = last;
+        else mark = mark->Prev();
         while (mark)
         {
-            if ((mark->type & Mask)==Type) break;
-            mark=mark->Prev();
+            if ((mark->type & Mask) == Type) break;
+            mark = mark->Prev();
         }
         return mark;
     }
@@ -276,15 +276,15 @@ clMark *clMarks::GetPrev(int Position, int Type, int Mask) {
 
 clMark *clMarks::GetNext(int Position, int Type, int Mask) {
     if (!first) return NULL; // no elements yet
-    clMark *mark=first;
+    clMark *mark = first;
     while (mark) {
-        if (Type==0xFF) {
-            if (mark->position>Position) break;
+        if (Type == 0xFF) {
+            if (mark->position > Position) break;
         }
         else {
-            if ((mark->position>Position) && ((mark->type & Mask)==Type)) break;
+            if ((mark->position > Position) && ((mark->type & Mask) == Type)) break;
         }
-        mark=mark->Next();
+        mark = mark->Next();
     }
     if (mark) return mark;
     return NULL;
@@ -294,7 +294,7 @@ clMark *clMarks::GetNext(int Position, int Type, int Mask) {
 clMark *clMarks::Add(int Type, int Position, const char *Comment, bool inBroadCast) {
     clMark *newmark;
 
-    if ((newmark=Get(Position))) {
+    if ((newmark = Get(Position))) {
         dsyslog("duplicate mark on position %i type 0x%X and type 0x%x", Position, Type, newmark->type);
         if (Type > newmark->type){   // keep the stronger mark
             if ((newmark->comment) && (Comment))
@@ -310,25 +310,25 @@ clMark *clMarks::Add(int Type, int Position, const char *Comment, bool inBroadCa
         return newmark;
     }
 
-    newmark=new clMark(Type, Position, Comment, inBroadCast);
+    newmark = new clMark(Type, Position, Comment, inBroadCast);
     if (!newmark) return NULL;
     ALLOC(sizeof(*newmark), "mark");
 
     if (!first) {
         //first element
-        first=last=newmark;
+        first = last = newmark;
         count++;
         return newmark;
     }
     else {
-        clMark *mark=first;
+        clMark *mark = first;
         while (mark) {
             if (!mark->Next()) {
-                if (Position>mark->position) {
+                if (Position > mark->position) {
                     // add as last element
                     newmark->Set(mark,NULL);
                     mark->SetNext(newmark);
-                    last=newmark;
+                    last = newmark;
                     break;
                 }
                 else {
@@ -337,7 +337,7 @@ clMark *clMarks::Add(int Type, int Position, const char *Comment, bool inBroadCa
                         // add as first element
                         newmark->Set(NULL,mark);
                         mark->SetPrev(newmark);
-                        first=newmark;
+                        first = newmark;
                         break;
                     }
                     else {
@@ -348,7 +348,7 @@ clMark *clMarks::Add(int Type, int Position, const char *Comment, bool inBroadCa
                 }
             }
             else {
-                if ((Position>mark->position) && (Position<mark->Next()->position)) {
+                if ((Position > mark->position) && (Position < mark->Next()->position)) {
                     // add between two marks
                     newmark->Set(mark,mark->Next());
                     mark->SetNext(newmark);
@@ -356,16 +356,16 @@ clMark *clMarks::Add(int Type, int Position, const char *Comment, bool inBroadCa
                     break;
                 }
                 else {
-                    if ((Position<mark->position) && (mark==first)) {
+                    if ((Position < mark->position) && (mark == first)) {
                         // add as first mark
-                        first=newmark;
+                        first = newmark;
                         mark->SetPrev(newmark);
                         newmark->SetNext(mark);
                         break;
                     }
                 }
             }
-            mark=mark->Next();
+            mark = mark->Next();
         }
         if (!mark)return NULL;
         count++;
@@ -376,22 +376,22 @@ clMark *clMarks::Add(int Type, int Position, const char *Comment, bool inBroadCa
 
 
 char *clMarks::IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cDecoder) {
-    double FramesPerSecond=maContext->Video.Info.FramesPerSecond;
-    if (FramesPerSecond==0.0) return NULL;
-    char *indexToHMSF=NULL;
+    double FramesPerSecond = maContext->Video.Info.FramesPerSecond;
+    if (FramesPerSecond == 0.0) return NULL;
+    char *indexToHMSF = NULL;
     double Seconds;
-    int f=0;
+    int f = 0;
     if (maContext->Config->use_cDecoder && ptr_cDecoder && ((maContext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264) || (maContext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H265))) {
-        f = int(modf(float(ptr_cDecoder->GetTimeFromIFrame(Index))/1000,&Seconds)*100); // convert ms to 1/100 s
+        f = int(modf(float(ptr_cDecoder->GetTimeFromIFrame(Index)) / 1000, &Seconds) * 100); // convert ms to 1/100 s
     }
     else {
-        f = int(modf((Index+0.5)/FramesPerSecond,&Seconds)*FramesPerSecond+1);
+        f = int(modf((Index + 0.5) / FramesPerSecond, &Seconds) * FramesPerSecond + 1);
     }
     int s = int(Seconds);
     int m = s / 60 % 60;
     int h = s / 3600;
     s %= 60;
-    if (asprintf(&indexToHMSF,"%d:%02d:%02d.%02d",h,m,s,f)==-1) return NULL;   // this has to be freed in the calling function
+    if (asprintf(&indexToHMSF, "%d:%02d:%02d.%02d", h, m, s, f) == -1) return NULL;   // this has to be freed in the calling function
     ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
     return indexToHMSF;
 }
@@ -399,8 +399,8 @@ char *clMarks::IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cD
 
 #if defined CLASSIC_DECODER
 void clMarks::RemoveGeneratedIndex(const char *Directory, bool isTS) {
-    char *ipath=NULL;
-    if (asprintf(&ipath,"%s/index%s.generated",Directory,isTS ? "" : ".vdr")==-1) return;
+    char *ipath = NULL;
+    if (asprintf(&ipath, "%s/index%s.generated", Directory, isTS ? "" : ".vdr") == -1) return;
     ALLOC(strlen(ipath)+1, "ipath");
     unlink(ipath);
     FREE(strlen(ipath)+1, "ipath");
@@ -417,86 +417,86 @@ bool clMarks::ReadIndex(const char *Directory, bool isTS, int FrameNumber, int R
     if (!Frame) return false;
     if (!iFrames) return false;
 
-    *Offset=0;
-    *Number=0;
-    *Frame=0;
-    *iFrames=0;
+    *Offset = 0;
+    *Number = 0;
+    *Frame = 0;
+    *iFrames = 0;
 
-    char *ipath=NULL;
-    if (asprintf(&ipath,"%s/index%s",Directory,isTS ? "" : ".vdr")==-1) return false;
+    char *ipath = NULL;
+    if (asprintf(&ipath, "%s/index%s", Directory, isTS ? "" : ".vdr") == -1) return false;
     ALLOC(strlen(ipath)+1, "ipath");
-    int ifd=open(ipath,O_RDONLY);
+    int ifd = open(ipath, O_RDONLY);
     FREE(strlen(ipath)+1, "ipath");
     free(ipath);
-    if (ifd==-1) return false;
+    if (ifd == -1) return false;
 
     if (isTS) {
         struct tIndexTS IndexTS;
-        off_t pos=FrameNumber*sizeof(IndexTS);
-        if (lseek(ifd,pos,SEEK_SET)!=pos) {
+        off_t pos = FrameNumber * sizeof(IndexTS);
+        if (lseek(ifd, pos, SEEK_SET) != pos) {
             close(ifd);
             return false;
         }
         do {
-            if (read(ifd,&IndexTS,sizeof(IndexTS))!=sizeof(IndexTS)) {
+            if (read(ifd, &IndexTS, sizeof(IndexTS)) != sizeof(IndexTS)) {
                 close(ifd);
                 return false;
             }
             if (IndexTS.independent) {
-                *Offset=IndexTS.offset;
-                *Number=IndexTS.number;
-                pos=lseek(ifd,0,SEEK_CUR);
+                *Offset = IndexTS.offset;
+                *Number = IndexTS.number;
+                pos = lseek(ifd, 0, SEEK_CUR);
                 *Frame = static_cast<int> (pos / sizeof(IndexTS)) - 1;
             }
         }
         while (!IndexTS.independent);
 
-        int cnt=0;
+        int cnt = 0;
         do {
-            if (read(ifd,&IndexTS,sizeof(IndexTS))!=sizeof(IndexTS)) {
+            if (read(ifd, &IndexTS, sizeof(IndexTS)) != sizeof(IndexTS)) {
                 close(ifd);
                 if (!*iFrames) return false;
-                (*iFrames)-=2; // just to be safe
+                (*iFrames) -= 2; // just to be safe
                 return true;
             }
             if (IndexTS.independent) (*iFrames)++;
             cnt++;
         }
-        while (cnt<Range);
+        while (cnt < Range);
     }
     else {
         struct tIndexVDR IndexVDR;
-        off_t pos=FrameNumber*sizeof(IndexVDR);
-        if (lseek(ifd,pos,SEEK_SET)!=pos) {
+        off_t pos = FrameNumber * sizeof(IndexVDR);
+        if (lseek(ifd, pos, SEEK_SET) != pos) {
             close(ifd);
             return false;
         }
         do {
-            if (read(ifd,&IndexVDR,sizeof(IndexVDR))!=sizeof(IndexVDR)) {
+            if (read(ifd, &IndexVDR, sizeof(IndexVDR)) != sizeof(IndexVDR)) {
                 close(ifd);
                 return false;
             }
-            if (IndexVDR.type==1) {
-                *Offset=IndexVDR.offset;
-                *Number=IndexVDR.number;
-                pos=lseek(ifd,0,SEEK_CUR);
+            if (IndexVDR.type == 1) {
+                *Offset = IndexVDR.offset;
+                *Number = IndexVDR.number;
+                pos = lseek(ifd, 0, SEEK_CUR);
                 *Frame = static_cast<int> (pos / sizeof(IndexVDR)) - 1;
             }
         }
-        while (IndexVDR.type!=1);
+        while (IndexVDR.type != 1);
 
-        int cnt=0;
+        int cnt = 0;
         do {
-            if (read(ifd,&IndexVDR,sizeof(IndexVDR))!=sizeof(IndexVDR)) {
+            if (read(ifd, &IndexVDR, sizeof(IndexVDR)) != sizeof(IndexVDR)) {
                 close(ifd);
                 if (!*iFrames) return false;
-                (*iFrames)-=2; // just to be safe
+                (*iFrames) -= 2; // just to be safe
                 return true;
             }
-            if (IndexVDR.type==1) (*iFrames)++;
+            if (IndexVDR.type == 1) (*iFrames)++;
             cnt++;
         }
-        while (cnt<Range);
+        while (cnt < Range);
     }
     close(ifd);
     if (!*iFrames) return false;
@@ -507,22 +507,22 @@ bool clMarks::ReadIndex(const char *Directory, bool isTS, int FrameNumber, int R
 
 #if defined CLASSIC_DECODER
 void clMarks::WriteIndex(bool isTS, uint64_t Offset, int FrameType, int Number) {
-    if (indexfd==-1) return;
+    if (indexfd == -1) return;
     if (isTS) {
         struct tIndexTS IndexTS;
-        IndexTS.offset=Offset;
-        IndexTS.reserved=0;
-        IndexTS.independent=(FrameType==1);
-        IndexTS.number=(uint16_t) Number;
-        if (write(indexfd,&IndexTS,sizeof(IndexTS))!=sizeof(IndexTS)) return;
+        IndexTS.offset = Offset;
+        IndexTS.reserved = 0;
+        IndexTS.independent = (FrameType == 1);
+        IndexTS.number = (uint16_t) Number;
+        if (write(indexfd, &IndexTS, sizeof(IndexTS)) != sizeof(IndexTS)) return;
     }
     else {
         struct tIndexVDR IndexVDR;
         IndexVDR.offset = static_cast<int> Offset;
-        IndexVDR.type=(unsigned char) FrameType;
-        IndexVDR.number=(unsigned char) Number;
-        IndexVDR.reserved=0;
-        if (write(indexfd,&IndexVDR,sizeof(IndexVDR))!=sizeof(IndexVDR)) return;
+        IndexVDR.type = (unsigned char) FrameType;
+        IndexVDR.number = (unsigned char) Number;
+        IndexVDR.reserved = 0;
+        if (write(indexfd, &IndexVDR, sizeof(IndexVDR)) != sizeof(IndexVDR)) return;
     }
 }
 #endif
@@ -530,16 +530,16 @@ void clMarks::WriteIndex(bool isTS, uint64_t Offset, int FrameType, int Number) 
 
 #if defined CLASSIC_DECODER
 void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset, int FrameType, int Number) {
-    if (indexfd==-1) {
-        char *ipath=NULL;
-        if (asprintf(&ipath,"%s/index%s.generated",Directory,isTS ? "" : ".vdr")==-1) return;
+    if (indexfd == -1) {
+        char *ipath = NULL;
+        if (asprintf(&ipath, "%s/index%s.generated", Directory,isTS ? "" : ".vdr") == -1) return;
         ALLOC(strlen(ipath)+1, "ipath");
-        indexfd=open(ipath,O_WRONLY|O_CREAT|O_TRUNC,0644);
+        indexfd = open(ipath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
         FREE(strlen(ipath)+1, "ipath");
         free(ipath);
-        if (indexfd==-1) return;
+        if (indexfd == -1) return;
     }
-    WriteIndex(isTS,Offset,FrameType,Number);
+    WriteIndex(isTS, Offset, FrameType, Number);
     return;
 }
 #endif
@@ -547,23 +547,23 @@ void clMarks::WriteIndex(const char *Directory, bool isTS, uint64_t Offset, int 
 
 #if defined CLASSIC_DECODER
 void clMarks::CloseIndex(const char *Directory, bool isTS) {
-    if (indexfd==-1) return;
+    if (indexfd == -1) return;
 
-    if (getuid()==0 || geteuid()!=0) {
+    if (getuid() == 0 || geteuid() != 0) {
         // if we are root, set fileowner to owner of 001.vdr/00001.ts file
-        char *spath=NULL;
-        if (asprintf(&spath,"%s/%s",Directory,isTS ? "00001.ts" : "001.vdr")!=-1) {
+        char *spath = NULL;
+        if (asprintf(&spath, "%s/%s", Directory, isTS ? "00001.ts" : "001.vdr") != -1) {
             ALLOC(strlen(spath)+1, "spath");
             struct stat statbuf;
-            if (!stat(spath,&statbuf)) {
-                if (fchown(indexfd,statbuf.st_uid, statbuf.st_gid)) {};
+            if (!stat(spath, &statbuf)) {
+                if (fchown(indexfd, statbuf.st_uid, statbuf.st_gid)) {};
             }
             FREE(strlen(spath)+1, "spath");
             free(spath);
         }
     }
     close(indexfd);
-    indexfd=-1;
+    indexfd = -1;
 }
 #endif
 
@@ -571,77 +571,77 @@ void clMarks::CloseIndex(const char *Directory, bool isTS) {
 #if defined CLASSIC_DECODER
 bool clMarks::CheckIndex(const char *Directory, bool isTS, int *FrameCnt, int *IndexError) {
     if (!IndexError) return false;
-    *IndexError=0;
+    *IndexError = 0;
 
     if (!first) return true;
 
-    char *ipath=NULL;
-    if (asprintf(&ipath,"%s/index%s",Directory,isTS ? "" : ".vdr")==-1) return false;
+    char *ipath = NULL;
+    if (asprintf(&ipath, "%s/index%s", Directory,isTS ? "" : ".vdr") == -1) return false;
     ALLOC(strlen(ipath)+1, "ipath");
 
-    int fd=open(ipath,O_RDONLY);
+    int fd = open(ipath, O_RDONLY);
     FREE(strlen(ipath)+1, "ipath");
     free(ipath);
-    if (fd==-1) {
-        *IndexError=IERR_NOTFOUND;
+    if (fd == -1) {
+        *IndexError = IERR_NOTFOUND;
         return true;
     }
 
     if ((FrameCnt) && (*FrameCnt)) {
         struct stat statbuf;
-        if (fstat(fd,&statbuf)!=-1) {
+        if (fstat(fd, &statbuf) != -1) {
             int framecnt;
             if (isTS) {
-                framecnt=statbuf.st_size/sizeof(struct tIndexTS);
+                framecnt = statbuf.st_size / sizeof(struct tIndexTS);
             }
             else {
-                framecnt=statbuf.st_size/sizeof(struct tIndexVDR);
+                framecnt = statbuf.st_size / sizeof(struct tIndexVDR);
             }
-            if (abs(framecnt-*FrameCnt)>2000) {
-                *FrameCnt=framecnt;
-                *IndexError=IERR_TOOSHORT;
+            if (abs(framecnt - *FrameCnt) > 2000) {
+                *FrameCnt = framecnt;
+                *IndexError = IERR_TOOSHORT;
                 close(fd);
                 return true;
             }
         }
     }
 
-    clMark *mark=first;
+    clMark *mark = first;
     while (mark)
     {
         if (isTS) {
             off_t offset = mark->position * sizeof(struct tIndexTS);
-            if (lseek(fd,offset,SEEK_SET)!=offset) {
-                *IndexError=IERR_SEEK;
+            if (lseek(fd, offset, SEEK_SET) != offset) {
+                *IndexError = IERR_SEEK;
                 break;
             }
             struct tIndexTS IndexTS;
-            if (read(fd,&IndexTS,sizeof(IndexTS))!=sizeof(IndexTS)) {
-                *IndexError=IERR_READ;
+            if (read(fd, &IndexTS, sizeof(IndexTS)) != sizeof(IndexTS)) {
+                *IndexError = IERR_READ;
                 break;
             }
             if (!IndexTS.independent) {
-                *IndexError=IERR_FRAME;
+                *IndexError = IERR_FRAME;
                 break;
             }
         }
         else {
             off_t offset = mark->position * sizeof(struct tIndexVDR);
-            if (lseek(fd,offset,SEEK_SET)!=offset) {
-                *IndexError=IERR_SEEK;
+            if (lseek(fd, offset, SEEK_SET) != offset) {
+                *IndexError = IERR_SEEK;
                 break;
             }
             struct tIndexVDR IndexVDR;
-            if (read(fd,&IndexVDR,sizeof(IndexVDR))!=sizeof(IndexVDR)) {
-                *IndexError=IERR_READ;
+            if (read(fd, &IndexVDR, sizeof(IndexVDR)) != sizeof(IndexVDR)) {
+                *IndexError = IERR_READ;
                 break;
             }
-            if (IndexVDR.type!=1) {
-                *IndexError=IERR_FRAME;
+            if (IndexVDR.type != 1) {
+                *IndexError = IERR_FRAME;
                 break;
             }
         }
-        mark=mark->Next();
+        mark = mark->Next();
     }
     close(fd);
     return true;
@@ -650,25 +650,25 @@ bool clMarks::CheckIndex(const char *Directory, bool isTS, int *FrameCnt, int *I
 
 
 bool clMarks::Backup(const char *Directory, bool isTS) {
-    char *fpath=NULL;
-    if (asprintf(&fpath,"%s/%s%s",Directory,filename,isTS ? "" : ".vdr")==-1) return false;
+    char *fpath = NULL;
+    if (asprintf(&fpath, "%s/%s%s", Directory, filename, isTS ? "" : ".vdr") == -1) return false;
     ALLOC(strlen(fpath)+1, "fpath");
 
     // make backup of old marks, filename convention taken from noad
-    char *bpath=NULL;
-    if (asprintf(&bpath,"%s/%s0%s",Directory,filename,isTS ? "" : ".vdr")==-1) {
+    char *bpath = NULL;
+    if (asprintf(&bpath, "%s/%s0%s", Directory, filename, isTS ? "" : ".vdr") == -1) {
         FREE(strlen(fpath)+1, "fpath");
         free(fpath);
         return false;
     }
     ALLOC(strlen(bpath)+1, "bpath");
 
-    int ret=rename(fpath,bpath);
+    int ret = rename(fpath,bpath);
     FREE(strlen(bpath)+1, "bpath");
     free(bpath);
     FREE(strlen(fpath)+1, "fpath");
     free(fpath);
-    return (ret==0);
+    return (ret == 0);
 }
 
 
@@ -687,7 +687,7 @@ int clMarks::LoadVPS(const char *Directory, const char *type) {
     }
     free(fpath);
 
-    char *line=NULL;
+    char *line = NULL;
     size_t length;
     char typeVPS[15] = "";
     char timeVPS[20] = "";
@@ -704,38 +704,38 @@ int clMarks::LoadVPS(const char *Directory, const char *type) {
 
 
 bool clMarks::Load(const char *Directory, double FrameRate, bool isTS) {
-    char *fpath=NULL;
-    if (asprintf(&fpath,"%s/%s%s",Directory,filename,isTS ? "" : ".vdr")==-1) return false;
+    char *fpath = NULL;
+    if (asprintf(&fpath, "%s/%s%s", Directory, filename, isTS ? "" : ".vdr") == -1) return false;
     ALLOC(strlen(fpath)+1, "fpath");
 
     FILE *mf;
-    mf=fopen(fpath,"r+");
+    mf=fopen(fpath, "r+");
     FREE(strlen(fpath)+1, "fpath");
     free(fpath);
     if (!mf) return false;
 
-    char *line=NULL;
+    char *line = NULL;
     size_t length;
     int h, m, s, f;
 
-    while (getline(&line,&length,mf)!=-1) {
-        char descr[256]="";
-        f=1;
-        int n=sscanf(line,"%3d:%02d:%02d.%02d %80c",&h,&m,&s,&f,(char *) &descr);
-        if (n==1) {
-            Add(0,h);
+    while (getline(&line, &length, mf) != -1) {
+        char descr[256] = "";
+        f = 1;
+        int n = sscanf(line, "%3d:%02d:%02d.%02d %80c", &h, &m, &s, &f, (char *) &descr);
+        if (n == 1) {
+            Add(0, h);
         }
-        if (n>=3) {
-            int pos=int(round((h*3600+m*60+s)*FrameRate))+f-1;
-            if (n<=4) {
-                Add(0,pos);
+        if (n >= 3) {
+            int pos = int(round((h*3600+m*60+s)*FrameRate))+f-1;
+            if (n <= 4) {
+                Add(0, pos);
             }
             else {
-                char *lf=strchr(descr,10);
-                if (lf) *lf=0;
-                char *cr=strchr(descr,13);
-                if (cr) *cr=0;
-                Add(0,pos,descr);
+                char *lf = strchr(descr, 10);
+                if (lf) *lf = 0;
+                char *cr = strchr(descr, 13);
+                if (cr) *cr = 0;
+                Add(0, pos, descr);
             }
         }
     }
@@ -753,12 +753,12 @@ bool clMarks::Save(const char *Directory, MarkAdContext *maContext, cDecoder *pt
     if ((savedcount == CountWithoutBlack()) && (!Force)) return false;
     dsyslog("clMarks::Save(): save marks, force=%d", Force);
 
-    char *fpath=NULL;
-    if (asprintf(&fpath,"%s/%s%s",Directory,filename,isTS ? "" : ".vdr")==-1) return false;
+    char *fpath = NULL;
+    if (asprintf(&fpath, "%s/%s%s", Directory, filename, isTS ? "" : ".vdr") == -1) return false;
     ALLOC(strlen(fpath)+1, "fpath");
 
     FILE *mf;
-    mf=fopen(fpath,"w+");
+    mf = fopen(fpath,"w+");
 
     if (!mf) {
         FREE(strlen(fpath)+1, "fpath");
@@ -766,28 +766,28 @@ bool clMarks::Save(const char *Directory, MarkAdContext *maContext, cDecoder *pt
         return false;
     }
 
-    clMark *mark=first;
+    clMark *mark = first;
     while (mark) {
         if (Force || ((mark->type & 0xF0) != MT_BLACKCHANGE)) {    // do not save MT_BLACKCHANGE before analysed
-            char *indexToHMSF=IndexToHMSF(mark->position,maContext,ptr_cDecoder);
+            char *indexToHMSF = IndexToHMSF(mark->position, maContext, ptr_cDecoder);
             if (indexToHMSF) {
-                fprintf(mf,"%s %s\n",indexToHMSF,mark->comment ? mark->comment : "");
+                fprintf(mf, "%s %s\n", indexToHMSF, mark->comment ? mark->comment : "");
                 FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                 free(indexToHMSF);
             }
         }
-        mark=mark->Next();
+        mark = mark->Next();
     }
     fclose(mf);
 
-    if (getuid()==0 || geteuid()!=0) {
+    if (getuid() == 0 || geteuid() != 0) {
         // if we are root, set fileowner to owner of 001.vdr/00001.ts file
-        char *spath=NULL;
-        if (asprintf(&spath,"%s/%s",Directory,isTS ? "00001.ts" : "001.vdr")!=-1) {
+        char *spath = NULL;
+        if (asprintf(&spath, "%s/%s", Directory, isTS ? "00001.ts" : "001.vdr") != -1) {
             ALLOC(strlen(spath)+1, "spath");
             struct stat statbuf;
-            if (!stat(spath,&statbuf)) {
-                if (chown(fpath,statbuf.st_uid, statbuf.st_gid)) {};
+            if (!stat(spath, &statbuf)) {
+                if (chown(fpath, statbuf.st_uid, statbuf.st_gid)) {};
             }
             FREE(strlen(spath)+1, "spath");
             free(spath);

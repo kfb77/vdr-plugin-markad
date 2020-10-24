@@ -22,7 +22,7 @@ class clMark {
         int position;
         char *comment = NULL;
         bool inBroadCast = false;
-        clMark(int Type = 0, int Position = 0, const char *Comment = NULL, bool InBroadCast = false);
+        clMark(const int Type = 0, const int Position = 0, const char *Comment = NULL, const bool InBroadCast = false);
         ~clMark();
         clMark *Next() {
             return next;
