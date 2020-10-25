@@ -451,7 +451,7 @@ void cMarkAdStandalone::CheckStop() {
 
 void cMarkAdStandalone::CheckStart() {
     LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckStart(); checking start at frame (%i)", lastiframe);
+    dsyslog("cMarkAdStandalone::CheckStart(); checking start at frame (%d) check start planed at (%d)", lastiframe, chkSTART);
     dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %i", iStartA);
     DebugMarks();     //  only for debugging
 
@@ -501,7 +501,7 @@ void cMarkAdStandalone::CheckStart() {
         }
         macontext.Info.Channels[stream] = macontext.Audio.Info.Channels[stream];
 
-        if ((macontext.Config->DecodeAudio) && (macontext.Info.Channels[stream])) {
+        if (macontext.Config->DecodeAudio && macontext.Info.Channels[stream]) {
             if ((macontext.Info.Channels[stream] == 6) && (macontext.Audio.Options.IgnoreDolbyDetection == false)) {
                 isyslog("DolbyDigital5.1 audio whith 6 Channels in stream %i detected", stream);
                 if (macontext.Audio.Info.channelChange) {
@@ -750,9 +750,11 @@ void cMarkAdStandalone::CheckStart() {
             dsyslog("cMarkAdStandalone::CheckStart(): vertical border start found at (%i)", vStart->position);
             clMark *vStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is not valid
             if (vStop) {
+                clMark *vNextStart = marks.GetNext(vStop->position, MT_VBORDERSTART);
                 int markDiff = static_cast<int> (vStop->position - vStart->position) / macontext.Video.Info.FramesPerSecond;
-                if (markDiff < 35) {  // reduced from 90 to 35
-                    isyslog("vertical border STOP at (%d) %ds after vertical border START (%i) found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
+                if ((markDiff < 60) ||    // reduced from 90 to 35 increased to 60
+                   ((lastiframe > iStopA) && !vNextStart)) {  // we have only start/stop vborder in start part, this is the opening or closing credits
+                    isyslog("vertical border STOP at (%d) %ds after vertical border START (%i) in start part found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
                     marks.Del(vStop);
                     marks.Del(vStart);
                     vStart = NULL;
