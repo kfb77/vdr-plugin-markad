@@ -9,8 +9,9 @@
 #include <unistd.h>
 
 #include "logo.h"
+
 extern "C"{
-#include "debug.h"
+    #include "debug.h"
 }
 
 // based on this idee to find the logo in a recording:
@@ -52,7 +53,7 @@ cExtractLogo::~cExtractLogo() {
 }
 
 
-bool cExtractLogo::isWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane) {
+bool cExtractLogo::IsWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane) {
     if (!ptr_actLogoInfo) return false;
     if (logoHeight < 1) return false;
     if (logoWidth < 1) return false;
@@ -69,6 +70,54 @@ bool cExtractLogo::isWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoH
 }
 
 
+void cExtractLogo::SetLogoSize(const MarkAdContext *maContext, int *logoHeight, int *logoWidth) {
+    if (!maContext) return;
+    if (maContext->Video.Info.Width > 720){
+        *logoHeight = LOGO_DEFHDHEIGHT;
+        *logoWidth = LOGO_DEFHDWIDTH;
+    }
+    else {
+        *logoHeight = LOGO_DEFHEIGHT;
+        *logoWidth = LOGO_DEFWIDTH;
+    }
+}
+
+
+bool cExtractLogo::IsLogoColourChange(const MarkAdContext *maContext, const int corner) {
+    if (!maContext) return false;
+    if ((corner < 0) || (corner > 3)) return false;
+
+    int logoHeight = 0;
+    int logoWidth = 0;
+    SetLogoSize(maContext, &logoHeight, &logoWidth);
+    logoHeight /= 2;  // we use plane 1 to check
+    logoWidth /= 2;
+
+    int count = 0;
+    int countWhite = 0;
+
+    if (maContext->Config->autoLogo == 1) { // use packed logos
+        for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
+            count++;
+            logoInfo actLogo = {};
+            UnpackLogoInfo(&actLogo, &(*actLogoPacked));
+            if (IsWhitePlane(&actLogo, logoHeight, logoWidth, 1)) countWhite++;
+        }
+    }
+    if (maContext->Config->autoLogo == 2){  // use unpacked logos
+        for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
+            count++;
+            if (IsWhitePlane(&(*actLogo), logoHeight, logoWidth, 1)) countWhite++;
+        }
+    }
+    if (count > 0) {
+        dsyslog("cExtractLogo::isLogoColourChange(): %d valid frames in corner %d, %d are white, ratio %d%%", count, corner, countWhite, countWhite * 100 / count);
+        if ((countWhite * 100 / count) >= 50) return true;
+    }
+    return false;
+}
+
+
 bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber = -1) {
     if (!maContext) return false;
     if (!ptr_actLogoInfo) return false;
@@ -76,15 +125,17 @@ bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actL
     if ((corner < 0) || (corner > 3)) return false;
     if (!maContext->Info.ChannelName) return false;
 
+    bool isLogoColourChange = false;
+    if (framenumber < 0)  isLogoColourChange = IsLogoColourChange(maContext, corner);  // some channels have transparent or color changing logos, do not save plane > 0 in this case
     for (int plane = 0; plane < PLANES; plane++) {
-        char *buf=NULL;
+        char *buf = NULL;
         int height = logoHeight;
         int width = logoWidth;
         if (plane > 0) {
             width /= 2;
             height /= 2;
         }
-        if (framenumber < 0) { // save loogo to recording directory
+        if (framenumber < 0) { // no debug flag, save logo to recording directory
             int black = 0;
             for (int i = 0; i < height*width; i++) {
                 if (ptr_actLogoInfo->sobel[plane][i] == 0) black++;
@@ -95,15 +146,20 @@ bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actL
                     continue;
                 }
                 else dsyslog("cExtractLogo::Save(): got enough pixel (%i) in plane %i", black, plane);
+
+                if (isLogoColourChange) {
+                    dsyslog("cExtractLogo::Save(): logo is transparent or changed color, save only plane 0");
+                    break;
+                }
             }
             else dsyslog("cExtractLogo::Save(): %i pixel in plane %i", black, plane);
 
-            if (this->isWhitePlane(ptr_actLogoInfo, height, width, plane)) continue;
+            if (this->IsWhitePlane(ptr_actLogoInfo, height, width, plane)) continue;
             if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", maContext->Config->recDir, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane)==-1) return false;
             ALLOC(strlen(buf)+1, "buf");
             dsyslog("cExtractLogo::Save(): store logo in %s", buf);
         }
-        else {  // debug function, sorte logo to /tmp
+        else {  // debug function, store logo to /tmp
             if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i.pgm", "/tmp/",framenumber, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane) == -1) return false;
             ALLOC(strlen(buf)+1, "buf");
         }
@@ -982,14 +1038,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
         maContext->Video.Info.Height = ptr_cDecoder->GetVideoHeight();
         maContext->Video.Info.Width = ptr_cDecoder->GetVideoWidth();
         dsyslog("cExtractLogo::SearchLogo(): video resolution %dx%d", maContext->Video.Info.Width, maContext->Video.Info.Height);
-        if (maContext->Video.Info.Width > 720){
-            logoHeight = LOGO_DEFHDHEIGHT;
-            logoWidth = LOGO_DEFHDWIDTH;
-        }
-        else {
-            logoHeight = LOGO_DEFHEIGHT;
-            logoWidth = LOGO_DEFWIDTH;
-        }
+        SetLogoSize(maContext, &logoHeight, &logoWidth);
         dsyslog("cExtractLogo::SearchLogo(): logo size %dx%d", logoWidth, logoHeight);
 
         while(ptr_cDecoder->GetNextFrame()) {

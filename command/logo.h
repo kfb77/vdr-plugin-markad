@@ -50,7 +50,7 @@ class cExtractLogo {
         std::vector<logoInfoPacked> logoInfoVectorPacked[CORNERS];
         int recordingFrameCount = 0;
         MarkAdAspectRatio logoAspectRatio = {};
-	int AudioState = 0;  // 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
+        int AudioState = 0;  // 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
         int iFrameCountValid = 0;
         const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" };
 
@@ -61,7 +61,9 @@ class cExtractLogo {
         void CutOut(logoInfo *logoInfo, int cutPixelH, int cutPixelV, int *logoHeight, int *logoWidth, int corner);
         bool CheckLogoSize(const MarkAdContext *maContext, const int logoHeight, const int logoWidth, const int corner);
         bool Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner);
-        bool isWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
+        bool IsWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
+        void SetLogoSize(const MarkAdContext *maContext, int *logoHeight, int *logoWidth);
+        bool IsLogoColourChange(const MarkAdContext *maContext, const int corner);
         int DeleteFrames(const MarkAdContext *maContext, const int from, const int to);
         bool WaitForFrames(const MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame);
         void PackLogoInfo(const logoInfo *logoInfo, logoInfoPacked *logoInfoPacked);
