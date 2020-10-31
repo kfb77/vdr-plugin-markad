@@ -5,10 +5,15 @@
  *
  */
 
+#include <string>
+#include <sys/time.h>
+
 #include "decoder_new.h"
 extern "C" {
-#include "debug.h"
+    #include "debug.h"
 }
+
+extern int decodeTime_us;
 
 
 void AVlog(void *ptr, int level, const char* fmt, va_list vl){
@@ -406,7 +411,10 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     if (!avctx) return NULL;
     if (!avpkt) return NULL;
     AVFrame *avFrame = NULL;
-//    tsyslog("cDecoder::DecodePacket(): framenumber %li pts %ld dts %ld",framenumber, avpkt->pts, avpkt->dts);
+
+    struct timeval startDecode = {0};
+    gettimeofday(&startDecode, NULL);
+
     avFrame = av_frame_alloc();
     if (!avFrame) {
         dsyslog("cDecoder::DecodePacket(): av_frame_alloc failed");
@@ -506,8 +514,8 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
         if (avFrame) {
             FREE(sizeof(*avFrame), "avFrame");
             av_frame_free(&avFrame);
+            avFrame = NULL;
         }
-        return NULL;
     }
 #else
     int frame_ready = 0;
@@ -542,7 +550,6 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
         }
        return NULL;
     }
-
     if ( !frame_ready ) {
         stateEAGAIN=true;
         if (avFrame) {
@@ -552,6 +559,16 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
         return NULL;
     }
 #endif
+    struct timeval endDecode = {0};
+    gettimeofday(&endDecode, NULL);
+    time_t sec = endDecode.tv_sec - startDecode.tv_sec;
+    suseconds_t usec = endDecode.tv_usec - startDecode.tv_usec;
+    if (usec < 0) {
+        usec += 1000000;
+        sec--;
+    }
+    decodeTime_us += sec * 1000000 + usec;
+
     return avFrame;
 }
 

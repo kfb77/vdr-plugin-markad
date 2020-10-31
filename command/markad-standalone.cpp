@@ -46,6 +46,7 @@ bool abortNow = false;
 struct timeval startAll, endAll = {0};
 struct timeval startPass1, startPass2, startPass3, endPass1, endPass2, endPass3 = {0};
 int logoSearchTime_ms = 0;
+int decodeTime_us = 0;
 
 
 static inline int ioprio_set(int which, int who, int ioprio) {
@@ -3669,6 +3670,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 cMarkAdStandalone::~cMarkAdStandalone() {
     if ((!abortNow) && (!duplicate)) {
         LogSeparator();
+        isyslog("time for decoding: %ds %dms", decodeTime_us / 1000000, (decodeTime_us % 1000000) / 1000);
         if (logoSearchTime_ms > 0) isyslog("time to find logo in recording: %ds %dms", logoSearchTime_ms / 1000, logoSearchTime_ms % 1000);
 
         time_t sec = endPass1.tv_sec - startPass1.tv_sec;
