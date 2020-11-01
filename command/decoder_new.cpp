@@ -80,6 +80,10 @@ cDecoder::~cDecoder() {
         free(recordingDir);
     }
     iFrameInfoVector.clear();
+    if (avFrame) {
+        FREE(sizeof(*avFrame), "avFrame");
+        av_frame_free(&avFrame);
+    }
 }
 
 
@@ -410,17 +414,21 @@ bool cDecoder::SeekToFrame(int frame) {
 AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     if (!avctx) return NULL;
     if (!avpkt) return NULL;
-    AVFrame *avFrame = NULL;
 
     struct timeval startDecode = {0};
     gettimeofday(&startDecode, NULL);
 
+    if (avFrame) {  // reset avFrame structure
+        FREE(sizeof(*avFrame), "avFrame");
+        av_frame_free(&avFrame);
+    }
     avFrame = av_frame_alloc();
     if (!avFrame) {
         dsyslog("cDecoder::DecodePacket(): av_frame_alloc failed");
         return NULL;
     }
     ALLOC(sizeof(*avFrame), "avFrame");
+
     if (isVideoPacket()) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         avFrame->height = avctx->streams[avpkt->stream_index]->codecpar->height;
@@ -477,7 +485,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
                 dsyslog("cDecoder::DecodePacket(): avcodec_send_packet error ENOMEM at frame %d", framenumber);
                 break;
             case AVERROR(EINVAL):
-                dsyslog("cDecoder::DecodePacket():GetFrameInfo(): avcodec_send_packet error EINVAL at frame %d", framenumber);
+                dsyslog("cDecoder::DecodePacket(): avcodec_send_packet error EINVAL at frame %d", framenumber);
                 break;
             case AVERROR_INVALIDDATA:
                 dsyslog("cDecoder::DecodePacket:(): avcodec_send_packet error AVERROR_INVALIDDATA at frame %d", framenumber);
@@ -574,45 +582,46 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
 
 
 bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
+    if (!maContext) return false;
     if (!avctx) return false;
-    AVFrame *avFrame = NULL;
+
+    AVFrame *avFrameRef = NULL;
+
     iFrameData.Valid = false;
     if (isVideoPacket()) {
         if (isVideoIFrame() || stateEAGAIN) {
-            avFrame=this->DecodePacket(avctx, &avpkt);
-            if (avFrame) {
+            avFrameRef = DecodePacket(avctx, &avpkt);  // free in DecodePacket
+            if (avFrameRef) {
                 stateEAGAIN=false;
-                if (avFrame->interlaced_frame != interlaced_frame) {
-                    dsyslog("cDecoder::GetFrameInfo(): %s video format",(avFrame->interlaced_frame) ? "interlaced" : "non interlaced");
-                    interlaced_frame=avFrame->interlaced_frame;
+                if (avFrameRef->interlaced_frame != interlaced_frame) {
+                    dsyslog("cDecoder::GetFrameInfo(): %s video format",(avFrameRef->interlaced_frame) ? "interlaced" : "non interlaced");
+                    interlaced_frame = avFrameRef->interlaced_frame;
                 }
                 for (int i = 0; i < PLANES; i++) {
-                    if (avFrame->data[i]) {
-                        maContext->Video.Data.Plane[i] = avFrame->data[i];
-                        maContext->Video.Data.PlaneLinesize[i] = avFrame->linesize[i];
+                    if (avFrameRef->data[i]) {
+                        maContext->Video.Data.Plane[i] = avFrameRef->data[i];
+                        maContext->Video.Data.PlaneLinesize[i] = avFrameRef->linesize[i];
                         maContext->Video.Data.Valid = true;
                     }
                 }
 
-                int sample_aspect_ratio_num = avFrame->sample_aspect_ratio.num;
-                int sample_aspect_ratio_den = avFrame->sample_aspect_ratio.den;
+                int sample_aspect_ratio_num = avFrameRef->sample_aspect_ratio.num;
+                int sample_aspect_ratio_den = avFrameRef->sample_aspect_ratio.den;
                 if ((sample_aspect_ratio_num == 0) || (sample_aspect_ratio_den == 0)) {
                     dsyslog("cDecoder::GetFrameInfo(): invalid aspect ratio (%d:%d) at frame (%d)", sample_aspect_ratio_num, sample_aspect_ratio_den, framenumber);
-                    FREE(sizeof(*avFrame), "avFrame");
-                    av_frame_free(&avFrame);
+                    maContext->Video.Data.Valid = false;
                     return false;
                 }
                 if ((sample_aspect_ratio_num == 1) && (sample_aspect_ratio_den == 1)) {
-                    if ((avFrame->width == 1280) && (avFrame->height  ==  720) ||   // HD ready
-                        (avFrame->width == 1920) && (avFrame->height  == 1080) ||   // full HD
-                        (avFrame->width == 3840) && (avFrame->height  == 2160)) {   // UHD
+                    if ((avFrameRef->width == 1280) && (avFrameRef->height  ==  720) ||   // HD ready
+                        (avFrameRef->width == 1920) && (avFrameRef->height  == 1080) ||   // full HD
+                        (avFrameRef->width == 3840) && (avFrameRef->height  == 2160)) {   // UHD
                         sample_aspect_ratio_num = 16;
                         sample_aspect_ratio_den = 9;
                     }
                     else {
-                        dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio to video width %d hight %d at frame %d)",avFrame->width,avFrame->height,framenumber);
-                        FREE(sizeof(*avFrame), "avFrame");
-                        av_frame_free(&avFrame);
+                        dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio to video width %d hight %d at frame %d)",avFrameRef->width,avFrameRef->height,framenumber);
+                        maContext->Video.Data.Valid = false;
                         return false;
                     }
                 }
@@ -656,15 +665,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                     maContext->Video.Info.AspectRatio.Num = sample_aspect_ratio_num;
                     maContext->Video.Info.AspectRatio.Den = sample_aspect_ratio_den;
                 }
-                if (avFrame) {
-                    FREE(sizeof(*avFrame), "avFrame");
-                    av_frame_free(&avFrame);
-                }
                 return true;
-            }
-            if (avFrame) {
-                FREE(sizeof(*avFrame), "avFrame");
-                av_frame_free(&avFrame);
             }
             return false;
         }

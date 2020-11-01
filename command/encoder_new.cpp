@@ -597,16 +597,10 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         AVCodecContext **codecCtxArrayIn = ptr_cDecoder->GetAVCodecContext();
         if (!codecCtxArrayIn) {
             dsyslog("cEncoder::WritePacket(): failed to get input codec context");
-            FREE(sizeof(*avFrame), "avFrame");
-            av_frame_free(&avFrame);  // test if avFrame not NULL above
             return false;
         }
         if (! codecCtxArrayOut[avpktOut->stream_index]) {
            dsyslog("cEncoder::WritePacket(): Codec Context not found for stream %d", avpktOut->stream_index);
-           if (avFrame) {
-                FREE(sizeof(*avFrame), "avFrame");
-                av_frame_free(&avFrame);
-            }
            return false;
         }
 
@@ -620,10 +614,6 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
 
             if( !ChangeEncoderCodec(ptr_cDecoder, avctxIn, avpktOut->stream_index, codecCtxArrayIn[avpktOut->stream_index])) {
                 dsyslog("cEncoder::WritePacket(): InitEncoderCodec failed");
-                if (avFrame) {
-                    FREE(sizeof(*avFrame), "avFrame");
-                    av_frame_free(&avFrame);
-                }
                 return false;
             }
         }
@@ -632,18 +622,10 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         if (ptr_cDecoder->isAudioAC3Stream(avpktOut->stream_index)) {
             if (!ptr_cAC3VolumeFilter[avpktOut->stream_index]->SendFrame(avFrame)) {
                 dsyslog("cEncoder::WriteFrame(): cAC3VolumeFilter SendFrame failed");
-                if (avFrame) {
-                    FREE(sizeof(*avFrame), "avFrame");
-                    av_frame_free(&avFrame);
-                }
                 return false;
             }
             if (!ptr_cAC3VolumeFilter[avpktOut->stream_index]->GetFrame(avFrame)) {
                 dsyslog("cEncoder::WriteFrame(): cAC3VolumeFilter GetFrame failed");
-                if (avFrame) {
-                    FREE(sizeof(*avFrame), "avFrame");
-                    av_frame_free(&avFrame);
-                }
                 return false;
             }
         }
@@ -653,26 +635,12 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
             if ( ! this->EncodeFrame(ptr_cDecoder, codecCtxArrayOut[avpktOut->stream_index], avFrame, &avpktAC3 )) {
                 dsyslog("cEncoder::WritePacket(): AC3 Encoder failed of stream %d at frame %d", avpktOut->stream_index, ptr_cDecoder->GetFrameNumber());
                 av_packet_unref(&avpktAC3);
-                if (avFrame) {
-                    FREE(sizeof(*avFrame), "avFrame");
-                    av_frame_free(&avFrame);
-                }
                 return false;
-            }
-            else {
-                if (avFrame) {
-                    FREE(sizeof(*avFrame), "avFrame");
-                    av_frame_free(&avFrame);
-                }
             }
         }
         else {
             dsyslog("cEncoder::WritePacket(): encoding of stream %d not supported", avpktOut->stream_index);
             av_packet_unref(&avpktAC3);
-            if (avFrame) {
-                 FREE(sizeof(*avFrame), "avFrame");
-                 av_frame_free(&avFrame);
-            }
             return false;
         }
         // restore packets timestamps and index to fit in recording
@@ -732,10 +700,6 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
                 dsyslog("cEncoder::EncodeFrame(): avcodec_receive_frame: decode of frame (%d) failed with return code %i", ptr_cDecoder->GetFrameNumber(), rc);
                 break;
         }
-        if (avFrame) {
-                    FREE(sizeof(*avFrame), "avFrame");
-                    av_frame_free(&avFrame);
-                }
         return false;
     }
 
@@ -745,19 +709,11 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
         rc=avcodec_encode_audio2(avCodecCtx, avpktAC3, avFrame, &frame_ready);
         if (rc < 0) {
             dsyslog("cEncoder::EncodeFrame(): avcodec_encode_audio2 of frame (%d) from stream %d failed with return code %i", ptr_cDecoder->GetFrameNumber(), avpktAC3->stream_index, rc);
-            if (avFrame) {
-                FREE(sizeof(*avFrame), "avFrame");
-                av_frame_free(&avFrame);
-            }
             return false;
         }
     }
     else {
        dsyslog("cEncoder::EncodeFrame(): packet type of stream %d not supported", avpktAC3->stream_index);
-       if (avFrame) {
-           FREE(sizeof(*avFrame), "avFrame");
-           av_frame_free(&avFrame);
-       }
        return false;
     }
 #endif

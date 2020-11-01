@@ -80,6 +80,7 @@ class cDecoder {
         int threadCount = 0;
         AVFormatContext *avctx = NULL;
         AVPacket avpkt = {};
+        AVFrame *avFrame = NULL;
         AVCodec *codec = NULL;
         AVCodecContext **codecCtxArray = NULL;
         int framenumber=-1;
