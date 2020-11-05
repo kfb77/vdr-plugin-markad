@@ -596,8 +596,13 @@ void cMarkAdStandalone::CheckStart() {
         // cerrect wrong aspect ratio from vdr info file
         if (wrongAspectInfo || ((!earlyAspectChange) && ((macontext.Info.AspectRatio.Num != macontext.Video.Info.AspectRatio.Num) ||
                                                          (macontext.Info.AspectRatio.Den != macontext.Video.Info.AspectRatio.Den)))) {
-            MarkAdAspectRatio newMarkAdAspectRatio = {16,9};
-            if ((macontext.Info.AspectRatio.Num = 16) && (macontext.Info.AspectRatio.Den == 9)) newMarkAdAspectRatio = {4,3};
+            MarkAdAspectRatio newMarkAdAspectRatio;
+            newMarkAdAspectRatio.Num = 16;
+            newMarkAdAspectRatio.Den = 9;
+            if ((macontext.Info.AspectRatio.Num = 16) && (macontext.Info.AspectRatio.Den == 9)) {
+                newMarkAdAspectRatio.Num = 4;
+                newMarkAdAspectRatio.Den = 3;
+            }
             isyslog("video aspect description in info (%d:%d) wrong, correct to (%d:%d)", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den, newMarkAdAspectRatio.Num, newMarkAdAspectRatio.Den);
             macontext.Info.AspectRatio.Num = newMarkAdAspectRatio.Num;
             macontext.Info.AspectRatio.Den = newMarkAdAspectRatio.Den;
