@@ -303,7 +303,7 @@ bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoH
                 }
             }
             else {
-                if (logoHeight >= 94) {
+                if (logoHeight >= 84) {  // reduced from 94 to 84
                     dsyslog("cExtractLogo::CheckLogoSize(): SD logo is too heigh");
                     return false;
                 }
