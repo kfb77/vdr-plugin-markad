@@ -1082,7 +1082,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             }
         }
         if ((mark->type == MT_HBORDERSTOP) && mark->Next() && mark->Next()->type == MT_HBORDERSTART) {
-            int MARKDIFF = static_cast<int> (macontext.Video.Info.FramesPerSecond * 15);
+            int MARKDIFF = static_cast<int> (macontext.Video.Info.FramesPerSecond * 20);  // increased from 15 to 20
             if ((mark->Next()->position - mark->position) <= MARKDIFF) {
                 double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between horizontal STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
@@ -1093,7 +1093,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                 continue;
             }
         }
-        mark=mark->Next();
+        mark = mark->Next();
     }
 
     dsyslog("cMarkAdStandalone::CheckMarks(): check marks 5nd pass (remove invalid marks)");
