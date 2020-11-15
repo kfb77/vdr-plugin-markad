@@ -149,6 +149,7 @@ typedef struct MarkAdContext {
         bool checkedAspectRatio = false;
         short int Channels[MAXSTREAMS] = {0};
         char *ChannelName;
+        bool rotatingLogo = false;
         MarkAdPid VPid;
         MarkAdPid APid;
 #if defined CLASSIC_DECODER

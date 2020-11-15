@@ -130,7 +130,7 @@ class cMarkAdLogo {
         void SaveFrameCorner(const int framenumber, const int debug);
     public:
         explicit cMarkAdLogo(MarkAdContext *maContext);
-        int Detect(const int framenumber, int *logoframenumber, const bool movingLogo); // ret 1 = logo, 0 = unknown, -1 = no logo
+        int Detect(const int framenumber, int *logoframenumber); // ret 1 = logo, 0 = unknown, -1 = no logo
         int Process(int FrameNumber, int *LogoFrameNumber);
         int Status() {
             return area.status;

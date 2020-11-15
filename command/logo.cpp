@@ -1116,7 +1116,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                         if (corner == DEBUG_LOGO_CORNER) iFrameNumberNext = -2;   // only for debuging, store logo file to /tmp
 #endif
                         area->corner=corner;
-                        ptr_Logo->Detect(iFrameNumber, &iFrameNumberNext, false);  // ignore moving logo, we do not take care if we detect the logo, we only fill the area
+                        ptr_Logo->Detect(iFrameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
                         logoInfo actLogoInfo = {};
                         actLogoInfo.iFrameNumber = iFrameNumber;
                         memcpy(actLogoInfo.sobel,area->sobel, sizeof(area->sobel));

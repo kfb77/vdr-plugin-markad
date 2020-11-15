@@ -398,7 +398,7 @@ bool cMarkAdLogo::SobelPlane(const int framenumber, const int plane) {
 }
 
 
-int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool movingLogo) {
+int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
     bool onlyFillArea = ( *logoframenumber < 0 );
     bool extract = (macontext->Config->logoExtraction != -1);
     if (*logoframenumber == -2) extract = true;
@@ -407,7 +407,7 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber, const bool 
     *logoframenumber = -1;
     if (area.corner == -1) return LOGO_NOCHANGE;
     float logo_vmark = LOGO_VMARK;
-    if (movingLogo) logo_vmark *= 0.9;   // reduce if we have a moving logo (SAT_1)
+    if (macontext->Info.rotatingLogo) logo_vmark *= 0.9;   // reduce if we have a moving logo (e.g. SAT_1)
 
 #ifdef DEBUG_FRAME_CORNER
     if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200)) SaveFrameCorner(framenumber, 1);
@@ -656,12 +656,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
             LOGOHEIGHT = macontext->Config->logoHeight;
         }
     }
-    int ret;
-    if (strcmp(macontext->Info.ChannelName, "SAT_1") == 0) {  // set moving logo
-        ret = Detect(FrameNumber, LogoFrameNumber, true);
-    }
-    else ret = Detect(FrameNumber, LogoFrameNumber, false);
-    return ret;
+    return Detect(FrameNumber, LogoFrameNumber);
 }
 
 

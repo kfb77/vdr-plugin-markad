@@ -2961,6 +2961,10 @@ bool cMarkAdStandalone::LoadInfo() {
                     if (macontext.Info.ChannelName[i] == '.') macontext.Info.ChannelName[i] = '_';
                     if (macontext.Info.ChannelName[i] == '/') macontext.Info.ChannelName[i] = '_';
                 }
+                if (strcmp(macontext.Info.ChannelName, "SAT_1") == 0) {
+                    dsyslog("cMarkAdStandalone::LoadInfo(): channel %s has a rotating logo", macontext.Info.ChannelName);
+                    macontext.Info.rotatingLogo = true;
+                }
             }
         }
         if ((line[0] == 'E') && (!bLiveRecording)) {
