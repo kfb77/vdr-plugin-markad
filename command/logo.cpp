@@ -651,21 +651,65 @@ int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoI
         for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
             logoInfo actLogo = {};
             UnpackLogoInfo(&actLogo, &(*actLogoPacked));
-            if (CompareLogoPair(&actLogo, ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
-                hits++;
-                actLogoPacked->hits++;
+            if (maContext->Info.rotatingLogo) {
+                if (CompareLogoPairRotating(&actLogo, ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
+                    hits++;
+                    actLogoPacked->hits++;
+                }
+            }
+            else {
+                if (CompareLogoPair(&actLogo, ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
+                    hits++;
+                    actLogoPacked->hits++;
+                }
             }
         }
     }
     if (maContext->Config->autoLogo == 2){  // use unpacked logos
         for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
-            if (CompareLogoPair(&(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
-                hits++;
-                actLogo->hits++;
+            if (maContext->Info.rotatingLogo) {
+                if (CompareLogoPairRotating(&(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
+                    hits++;
+                    actLogo->hits++;
+                }
+            }
+            else {
+                if (CompareLogoPair(&(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
+                    hits++;
+                    actLogo->hits++;
+                }
             }
         }
     }
     return hits;
+}
+
+
+bool cExtractLogo::CompareLogoPairRotating(logoInfo *logo1, logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner) {
+    if (!logo1) return false;
+    if (!logo2) return false;
+// TODO do not hardcode the logo range
+#define LOGO_START_LINE 30
+#define LOGO_END_LINE 75
+#define LOGO_START_COLUMN 150
+#define LOGO_END_COLUMN 185
+// check if pixel in both frames are only in the corner but let the pixel be different
+    if (corner != TOP_RIGHT) return false; // to optimze performance, only check TOP_RIGHT (SAT.1)
+// we use only logo with lixel in the expected logo range
+    for (int line = 0; line < logoHeight; line++) {
+        for (int column = 0; column < logoWidth; column++) {
+            if ((line > LOGO_START_LINE) && (line < LOGO_END_LINE) && (column > LOGO_START_COLUMN) && (column < LOGO_END_COLUMN)) continue;
+            if ((logo1->sobel[0][line * logoWidth + column] == 0) || (logo2->sobel[0][line * logoWidth + column] == 0)) return false;
+        }
+    }
+    for (int line = LOGO_START_LINE; line <= LOGO_END_LINE; line++) {
+        for (int column = LOGO_START_COLUMN; column <= LOGO_END_COLUMN; column++) {
+// merge pixel in logo range
+            logo1->sobel[0][line * logoWidth + column] &= logo2->sobel[0][line * logoWidth + column];
+            logo2->sobel[0][line * logoWidth + column] &= logo1->sobel[0][line * logoWidth + column];
+        }
+    }
+    return true;
 }
 
 
