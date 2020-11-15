@@ -968,12 +968,22 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     clMark *mark = NULL;
 
 // delete logo and border marks if we have channel marks
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks first pass (delete logo marks if we have channel or vborder marks)");
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks first pass (delete logo marks if we have channel or border marks)");
     DebugMarks();     //  only for debugging
     clMark *channelStart = marks.GetNext(0, MT_CHANNELSTART);
     clMark *channelStop = marks.GetNext(0, MT_CHANNELSTOP);
+    clMark *hborderStart = marks.GetNext(0, MT_HBORDERSTART);
+    clMark *hborderStop = marks.GetNext(0, MT_HBORDERSTOP);
     clMark *vborderStart = marks.GetNext(0, MT_VBORDERSTART);
     clMark *vborderStop = marks.GetNext(0, MT_VBORDERSTOP);
+    if (hborderStart && hborderStop) {
+        int hDelta = (hborderStop->position - hborderStart->position) / macontext.Video.Info.FramesPerSecond;
+        if (hDelta < 120) {
+            dsyslog("cMarkAdStandalone::CheckMarks(): found hborder stop/start, but distance %d too short, try if there is a next pair", hDelta);
+            hborderStart = marks.GetNext(hborderStart->position, MT_HBORDERSTART);
+            hborderStop = marks.GetNext(hborderStop->position, MT_HBORDERSTOP);
+        }
+    }
     if (vborderStart && vborderStop) {
         int vDelta = (vborderStop->position - vborderStart->position) / macontext.Video.Info.FramesPerSecond;
         if (vDelta < 120) {
@@ -982,7 +992,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             vborderStop = marks.GetNext(vborderStop->position, MT_VBORDERSTOP);
         }
     }
-    if ((channelStart && channelStop) || (vborderStart && vborderStop)) {
+    if ((channelStart && channelStop) || (hborderStart && hborderStop) || (vborderStart && vborderStop)) {
         mark = marks.GetFirst();
         while (mark) {
             if (mark != marks.GetFirst()) {
