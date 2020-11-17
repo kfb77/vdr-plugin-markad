@@ -25,7 +25,7 @@
 
 class cExtractLogo {
     public:
-        explicit cExtractLogo(MarkAdAspectRatio aspectRatio);
+        explicit cExtractLogo(const MarkAdAspectRatio aspectRatio);
         ~cExtractLogo();
         int SearchLogo(MarkAdContext *maContext, int startFrame);
         bool abort = false;
@@ -59,7 +59,7 @@ class cExtractLogo {
         int Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
         bool CompareLogoPairRotating(logoInfo *logo1, logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner);
         bool CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner);
-        void CutOut(logoInfo *logoInfo, int cutPixelH, int cutPixelV, int *logoHeight, int *logoWidth, int corner);
+        void CutOut(logoInfo *logoInfo, int cutPixelH, int cutPixelV, int *logoHeight, int *logoWidth, const int corner);
         bool CheckLogoSize(const MarkAdContext *maContext, const int logoHeight, const int logoWidth, const int corner);
         bool Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner);
         bool IsWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
