@@ -70,13 +70,13 @@ class clMarks {
     public:
         clMarks() {
             strcpy(filename, "marks");
-            first=last=NULL;
-            savedcount=0;
-            count=0;
-            indexfd=-1;
+            first = last = NULL;
+            savedcount = 0;
+            count = 0;
+            indexfd = -1;
         }
         ~clMarks();
-        int Count(int Type=0xFF, int Mask=0xFF);
+        int Count(const int Type = 0xFF, const int Mask = 0xFF);
         int CountWithoutBlack();
         void SetFileName(const char *FileName) {
             if (FileName) {
@@ -85,28 +85,28 @@ class clMarks {
 
             }
         }
-        clMark *Add(int Type, int Position, const char *Comment = NULL, bool inBroadCast = false);
-        char *IndexToHMSF(int Index, MarkAdContext *maContext, cDecoder *ptr_cDecoder);
+        clMark *Add(const int Type, const int Position, const char *Comment = NULL, const bool inBroadCast = false);
+        char *IndexToHMSF(const int Index, const MarkAdContext *maContext, cDecoder *ptr_cDecoder);
         void DelWeakFromTo(const int from, const int to, const short int type);
-        void DelTill(int Position,bool FromStart=true);
-        void DelFrom(int Position);
+        void DelTill(const int Position, const bool FromStart = true);
+        void DelFrom(const int Position);
         void DelAll();
         void Del(clMark *Mark);
-        void Del(unsigned char Type);
-        void Del(int Position);
-        clMark *Get(int Position);
-        clMark *GetAround(const int Frames, const int Position, const int Type=0xFF, const int Mask=0xFF);
-        clMark *GetPrev(int Position,int Type=0xFF, int Mask=0xFF);
-        clMark *GetNext(int Position,int Type=0xFF, int Mask=0xFF);
+        void Del(const unsigned char Type);
+        void Del(const int Position);
+        clMark *Get(const int Position);
+        clMark *GetAround(const int Frames, const int Position, const int Type = 0xFF, const int Mask = 0xFF);
+        clMark *GetPrev(const int Position, const int Type = 0xFF, const int Mask = 0xFF);
+        clMark *GetNext(const int Position, const int Type = 0xFF, const int Mask = 0xFF);
         clMark *GetFirst() {
             return first;
         }
         clMark *GetLast() {
             return last;
         }
-        bool Backup(const char *Directory, bool isTS);
-        bool Load(const char *Directory, double FrameRate, bool isTS);
-        bool Save(const char *Directory, MarkAdContext *maContext, cDecoder *ptr_cDecoder, bool isTS, bool Force=false);
+        bool Backup(const char *Directory, const bool isTS);
+        bool Load(const char *Directory, const double FrameRate, const bool isTS);
+        bool Save(const char *Directory, const MarkAdContext *maContext, cDecoder *ptr_cDecoder, const bool isTS, const bool Force = false);
         int LoadVPS(const char *Directory, const char *type);
 
 #define IERR_NOTFOUND 1

@@ -20,7 +20,7 @@ extern "C" {
 
 
 cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext) {
-    macontext=maContext;
+    macontext = maContext;
 
     // 3x3 GX Sobel mask
     GX[0][0] = -1;
@@ -61,8 +61,8 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext) {
 }
 
 
-void cMarkAdLogo::Clear(bool isRestart, bool inBroadCast) {
-    area={};
+void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
+    area = {};
     if (isRestart) { // reset valid logo status after restart
         if (inBroadCast) area.status = LOGO_VISIBLE;
         else area.status = LOGO_INVISIBLE;
@@ -100,12 +100,12 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
 
     int width,height;
     char c;
-    if (fscanf(pFile, "P5\n#%1c%1i %4i\n%3d %3d\n255\n#", &c,&area.corner,&area.mpixel[plane],&width,&height)!=5) {
+    if (fscanf(pFile, "P5\n#%1c%1i %4i\n%3d %3d\n255\n#", &c, &area.corner, &area.mpixel[plane], &width, &height) != 5) {
         fclose(pFile);
-        esyslog("format error in %s",file);
+        esyslog("format error in %s", file);
         return -2;
     }
-    if (c=='D') macontext->Audio.Options.IgnoreDolbyDetection=true;
+    if (c == 'D') macontext->Audio.Options.IgnoreDolbyDetection = true;
 
     if (height == 255) {
         height = width;
@@ -185,7 +185,7 @@ bool cMarkAdLogo::Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], c
     }
 
     // Write header
-    fprintf(pFile, "P5\n#C%i\n%d %d\n255\n", area.corner,width,height);
+    fprintf(pFile, "P5\n#C%i\n%d %d\n255\n", area.corner, width, height);
 
     // Write pixel data
     if (fwrite(picture[plane], 1, width * height, pFile)) {};
@@ -242,7 +242,7 @@ void cMarkAdLogo::SaveFrameCorner(const int framenumber, const int debug) {
     char szFilename[256];
 
     for (int plane = 0; plane < PLANES; plane ++) {
-        int xstart,xend,ystart,yend;
+        int xstart, xend, ystart, yend;
         if (!SetCoorginates(&xstart, &xend, &ystart, &yend, plane)) return;
         int width = xend - xstart;
         int height = yend - ystart;
@@ -269,7 +269,7 @@ void cMarkAdLogo::SaveFrameCorner(const int framenumber, const int debug) {
 
 
 bool cMarkAdLogo::ReduceBrightness(const int framenumber) {
-    int xstart,xend,ystart,yend;
+    int xstart, xend, ystart, yend;
     if (!SetCoorginates(&xstart, &xend, &ystart, &yend, 0)) return false;
     int brightness = 0;
     for (int line = ystart; line < yend; line++) {
@@ -324,12 +324,12 @@ bool cMarkAdLogo::SobelPlane(const int framenumber, const int plane) {
 #endif
     if ((macontext->Video.Info.Pix_Fmt != 0) && (macontext->Video.Info.Pix_Fmt != 12)) {
         if (!pixfmt_info) {
-            esyslog("unknown pix_fmt %i, please report!",macontext->Video.Info.Pix_Fmt);
-            pixfmt_info=true;
+            esyslog("unknown pix_fmt %i, please report!", macontext->Video.Info.Pix_Fmt);
+            pixfmt_info = true;
         }
         return false;
     }
-    int xstart,xend,ystart,yend;
+    int xstart, xend, ystart, yend;
     if (!SetCoorginates(&xstart, &xend, &ystart, &yend, plane)) return false;
     int boundary = 6;
     int cutval = 127;
@@ -343,32 +343,30 @@ bool cMarkAdLogo::SobelPlane(const int framenumber, const int plane) {
     int sumX,sumY;
     area.rpixel[plane] = 0;
     if (!plane) area.intensity = 0;
-    for (int Y = ystart; Y <= yend-1; Y++) {
-        for (int X = xstart; X <= xend-1; X++) {
+    for (int Y = ystart; Y <= yend - 1; Y++) {
+        for (int X = xstart; X <= xend - 1; X++) {
             if (!plane) {
-                area.intensity += macontext->Video.Data.Plane[plane][X+(Y*macontext->Video.Data.PlaneLinesize[plane])];
+                area.intensity += macontext->Video.Data.Plane[plane][X + (Y * macontext->Video.Data.PlaneLinesize[plane])];
             }
             sumX = 0;
             sumY = 0;
 
             // image boundaries
-            if (Y < (ystart+boundary) || Y > (yend-boundary)) SUM = 0;
-            else if (X < (xstart+boundary) || X > (xend-boundary)) SUM = 0;
+            if (Y < (ystart + boundary) || Y > (yend - boundary)) SUM = 0;
+            else if (X < (xstart + boundary) || X > (xend - boundary)) SUM = 0;
             // convolution starts here
             else {
                 // X Gradient approximation
                 for (int I = -1; I <= 1; I++) {
                     for (int J = -1; J <= 1; J++) {
-                        sumX = sumX+ static_cast<int> ((*(macontext->Video.Data.Plane[plane]+X+I+
-                                             (Y+J)*macontext->Video.Data.PlaneLinesize[plane]))
-                                          *GX[I+1][J+1]);
+                        sumX = sumX + static_cast<int> ((*(macontext->Video.Data.Plane[plane] + X + I + (Y + J) * macontext->Video.Data.PlaneLinesize[plane])) * GX[I + 1][J + 1]);
                     }
                 }
 
                 // Y Gradient approximation
                 for (int I = -1; I <= 1; I++) {
                     for (int J = -1; J <= 1; J++) {
-                        sumY = sumY+ static_cast<int> ((*(macontext->Video.Data.Plane[plane]+X+I+ (Y+J)*macontext->Video.Data.PlaneLinesize[plane]))* GY[I+1][J+1]);
+                        sumY = sumY+ static_cast<int> ((*(macontext->Video.Data.Plane[plane] + X + I + (Y + J) * macontext->Video.Data.PlaneLinesize[plane])) * GY[I + 1][J + 1]);
                     }
                 }
 

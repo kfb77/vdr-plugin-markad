@@ -141,7 +141,7 @@ class cMarkAdLogo {
         void SetStatusUninitialized() {
             area.status=LOGO_UNINITIALIZED;
         }
-        void Clear(bool isRestart = false, bool inBroadCast = false);
+        void Clear(const bool isRestart = false, const bool inBroadCast = false);
         areaT *GetArea();
 };
 
