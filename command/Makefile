@@ -2,7 +2,7 @@
 # Makefile for a Video Disk Recorder addon
 #
 
-# use this, if yoYu want to build with the new cDecoder class only
+# use this, if you want to build with the new and the old decoder
 # CLASSIC_DECODER=1
 
 # use this, if you want to debug heap memory consumption

@@ -1,13 +1,18 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2020-11-30: Version 2.4.3
+- optimize rotating logo extraction
+- detect transparent or colour change logo
+- some minor bug fixes and optimizations, see git
+
 2020-10-09: Version 2.4.2
 - reduce brightness of too bright frames to optimze logo detection
 - fix compiler errors under Ubuntu 16.04
 - some minor bug fixes and optimizations, see git
 
 2020-09-25: Version 2.4.1
-- support moving logos
+- support rotating logos
 - some minor bug fixes and optimizations, see git
 
 2020-09-06: Version 2.4.0
