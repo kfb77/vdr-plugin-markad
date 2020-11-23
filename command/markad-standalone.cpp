@@ -1451,7 +1451,6 @@ void cMarkAdStandalone::SaveFrame(int frame) {
         dsyslog("cMarkAdStandalone::SaveFrame():  macontext.Video.Data.Valid not set");
         return;
     }
-    FILE *pFile;
     char szFilename[256];
 
     for (int plane = 0; plane < PLANES; plane++) {
@@ -1460,7 +1459,7 @@ void cMarkAdStandalone::SaveFrame(int frame) {
         else height = macontext.Video.Info.Height / 2;
         // Open file
         sprintf(szFilename, "/tmp/frame%06d_P%d.pgm", frame, plane);
-        pFile=fopen(szFilename, "wb");
+        FILE *pFile = fopen(szFilename, "wb");
         if (pFile == NULL) {
             dsyslog("cMarkAdStandalone::SaveFrame(): open file %s failed", szFilename);
             return;
