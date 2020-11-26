@@ -737,9 +737,12 @@ void cMarkAdBlackBordersHoriz::Clear() {
 }
 
 
-int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame) {
+int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *BorderIFrame) { // return 0 no border change
+                                                                            //        1 detected start of black border
+                                                                            //       -1 detected stop of black border
 #define CHECKHEIGHT 20
-#define BRIGHTNESS_H 21  // increased from 20 to 21 because of channels with logo in border
+#define BRIGHTNESS_H_SURE 20
+#define BRIGHTNESS_H_MAYBE 27  // some channel have logo in border, so we will get a higher value
 #define VOFFSET 5
     if (!macontext) return 0;
     if (!macontext->Video.Data.Valid) return 0;
@@ -759,39 +762,43 @@ int cMarkAdBlackBordersHoriz::Process(int FrameNumber, int *BorderIFrame) {
     }
     int start = (height - CHECKHEIGHT) * macontext->Video.Data.PlaneLinesize[0];
     int end = height * macontext->Video.Data.PlaneLinesize[0];
-    bool ftop = true, fbottom = true;
-    int val = 0, cnt = 0, xz = 0;
+    int valTop = 0;
+    int valBottom = 0;
+    int cnt = 0;
+    int xz = 0;
 
     for (int x = start; x < end; x++) {
         if (xz < macontext->Video.Info.Width) {
-            val += macontext->Video.Data.Plane[0][x];
+            valBottom += macontext->Video.Data.Plane[0][x];
             cnt++;
         }
         xz++;
         if (xz >= macontext->Video.Data.PlaneLinesize[0]) xz=0;
     }
-    val /= cnt;
-    if (val > BRIGHTNESS_H) fbottom=false;
+    valBottom /= cnt;
 
-    if (fbottom) {
+    if (valBottom < BRIGHTNESS_H_MAYBE) { // we have a bottom border, test top border
         start = VOFFSET * macontext->Video.Data.PlaneLinesize[0];
         end = macontext->Video.Data.PlaneLinesize[0] * (CHECKHEIGHT+VOFFSET);
-        val = 0;
         cnt = 0;
         xz = 0;
         for (int x = start; x < end; x++) {
             if (xz < macontext->Video.Info.Width) {
-                val += macontext->Video.Data.Plane[0][x];
+                valTop += macontext->Video.Data.Plane[0][x];
                 cnt++;
             }
             xz++;
             if (xz >= macontext->Video.Data.PlaneLinesize[0]) xz=0;
         }
-        val /= cnt;
-        if (val > BRIGHTNESS_H) ftop = false;
+        valTop /= cnt;
     }
+    else valTop = INT_MAX;
 
-    if ((fbottom) && (ftop)) {
+#ifdef DEBUG_HBORDER
+    dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%5d) hborder brightness top %3d bottom %3d", FrameNumber, valTop, valBottom);
+#endif
+
+    if ((valTop < BRIGHTNESS_H_MAYBE) && (valBottom < BRIGHTNESS_H_SURE) || (valTop < BRIGHTNESS_H_SURE) && (valBottom < BRIGHTNESS_H_MAYBE)) {
         if (borderframenumber == -1) {
             borderframenumber = FrameNumber;
         }

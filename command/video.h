@@ -28,38 +28,38 @@
 #define MIN_V_BORDER_SECS 37  // reduced from 50 to 37
 
 enum {
-    LOGO_ERROR=-3,
-    LOGO_UNINITIALIZED=-2,
-    LOGO_INVISIBLE=-1,
-    LOGO_NOCHANGE=0,
-    LOGO_VISIBLE=1
+    LOGO_ERROR = -3,
+    LOGO_UNINITIALIZED = -2,
+    LOGO_INVISIBLE = -1,
+    LOGO_NOCHANGE = 0,
+    LOGO_VISIBLE = 1
 };
 
 enum {
-    BLACKSCREEN_UNINITIALIZED=-2,
-    BLACKSCREEN_INVISIBLE=-1,
-    BLACKSCREEN_VISIBLE=1
+    BLACKSCREEN_UNINITIALIZED = -2,
+    BLACKSCREEN_INVISIBLE = -1,
+    BLACKSCREEN_VISIBLE = 1
 };
 
 enum {
-    HBORDER_UNINITIALIZED=-2,
-    HBORDER_INVISIBLE=-1,
-    HBORDER_VISIBLE=1
+    HBORDER_UNINITIALIZED = -2,
+    HBORDER_INVISIBLE = -1,
+    HBORDER_VISIBLE = 1
 };
 
 enum {
-    VBORDER_UNINITIALIZED=-2,
-    VBORDER_INVISIBLE=-1,
-    VBORDER_VISIBLE=1
+    VBORDER_UNINITIALIZED = -2,
+    VBORDER_INVISIBLE = -1,
+    VBORDER_VISIBLE = 1
 };
 
 enum {
-    OV_BEFORE=0,
-    OV_AFTER=1
+    OV_BEFORE = 0,
+    OV_AFTER = 1
 };
 
 
-#define MAXPIXEL LOGO_MAXWIDTH*LOGO_MAXHEIGHT
+#define MAXPIXEL LOGO_MAXWIDTH * LOGO_MAXHEIGHT
 
 typedef struct {
 #ifdef VDRDEBUG
@@ -136,10 +136,10 @@ class cMarkAdLogo {
             return area.status;
         }
         void SetStatusLogoInvisible() {
-            if (area.status==LOGO_VISIBLE) area.status=LOGO_INVISIBLE;
+            if (area.status == LOGO_VISIBLE) area.status = LOGO_INVISIBLE;
         }
         void SetStatusUninitialized() {
-            area.status=LOGO_UNINITIALIZED;
+            area.status = LOGO_UNINITIALIZED;
         }
         void Clear(const bool isRestart = false, const bool inBroadCast = false);
         areaT *GetArea();
@@ -152,7 +152,7 @@ class cMarkAdBlackScreen {
         MarkAdContext *macontext;
     public:
         explicit cMarkAdBlackScreen(MarkAdContext *maContext);
-        int Process(int FrameNumber,int *BlackFrameNumber);
+        int Process(int FrameNumber, int *BlackFrameNumber);
         void Clear();
 };
 
@@ -165,13 +165,13 @@ class cMarkAdBlackBordersHoriz {
     public:
         explicit cMarkAdBlackBordersHoriz(MarkAdContext *maContext);
         int GetFirstBorderFrame();
-        int Process(int FrameNumber,int *BorderFrameNumber);
+        int Process(const int FrameNumber, int *BorderFrameNumber);
         int Status() {
             return borderstatus;
         }
         void SetStatusBorderInvisible() {
-            borderstatus=HBORDER_INVISIBLE;
-            borderframenumber=-1;
+            borderstatus = HBORDER_INVISIBLE;
+            borderframenumber = -1;
         }
         void Clear();
 };
@@ -185,13 +185,13 @@ class cMarkAdBlackBordersVert {
     public:
         explicit cMarkAdBlackBordersVert(MarkAdContext *maContext);
         int GetFirstBorderFrame();
-        int Process(int FrameNumber,int *BorderFrameNumber);
+        int Process(int FrameNumber, int *BorderFrameNumber);
         int Status() {
             return borderstatus;
         }
         void SetStatusBorderInvisible() {
-            borderstatus=VBORDER_INVISIBLE;
-            borderframenumber=-1;
+            borderstatus = VBORDER_INVISIBLE;
+            borderframenumber = -1;
         }
         void Clear();
 };
@@ -208,7 +208,7 @@ class cMarkAdVideo {
         cMarkAdLogo *logo;
         cMarkAdOverlap *overlap;
         void resetmarks();
-        bool addmark(int type, int position, MarkAdAspectRatio *before=NULL, MarkAdAspectRatio *after=NULL);
+        bool addmark(int type, int position, MarkAdAspectRatio *before = NULL, MarkAdAspectRatio *after = NULL);
         bool aspectratiochange(const MarkAdAspectRatio &a, const MarkAdAspectRatio &b, bool &start);
         int framelast;
         int framebeforelast;
