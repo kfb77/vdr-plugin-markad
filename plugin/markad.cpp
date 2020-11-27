@@ -68,7 +68,7 @@ cPluginMarkAd::~cPluginMarkAd() {
         FREE(strlen(setup.LogLevel)+1, "setup.LogLevel");
         free(setup.LogLevel);
     }
-#ifdef DEBUGMEM
+#ifdef DEBUG_MEM
     memList();
     memClear();
 #endif
@@ -376,8 +376,8 @@ cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int
             return cString::sprintf("Missing filename");
         }
     }
-#ifdef DEBUGMEM
-    if (strcasecmp(Command,"DEBUGMEM") == 0) {
+#ifdef DEBUG_MEM
+    if (strcasecmp(Command,"DEBUG_MEM") == 0) {
         return memListSVDR();
     }
 #endif

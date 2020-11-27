@@ -8,7 +8,7 @@
 #ifndef __debug_h_
 #define __debug_h_
 
-#ifdef DEBUGMEM
+#ifdef DEBUG_MEM
     #include <vdr/plugin.h>
 
     #define ALLOC(size, var) memAlloc(size, __LINE__, (char *) __FILE__, (char *) var)

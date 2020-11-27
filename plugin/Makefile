@@ -12,7 +12,7 @@ PLUGIN = markad
 
 
 # use this, if you want to debug heap memory consumption
-# DEBUGMEMPLUGIN=1
+# DEBUG_MEM_PLUGIN=1
 
 
 ### The version number of this plugin (taken from the version header file):
@@ -58,9 +58,9 @@ SOFILE = libvdr-$(PLUGIN).so
 INCLUDES +=
 
 DEFINES += -DPLUGIN_NAME_I18N='"$(PLUGIN)"'
-ifdef DEBUGMEMPLUGIN
-DEFINES += -DDEBUGMEM
-$(info option DEBUGMEMPLUGIN is set)
+ifdef DEBUG_MEM_PLUGIN
+DEFINES += -DDEBUG_MEM
+$(info option DEBUG_MEM_PLUGIN is set)
 endif
 
 ### The object files (add further files here):
