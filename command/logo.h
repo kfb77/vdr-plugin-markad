@@ -42,7 +42,7 @@ class cExtractLogo {
         struct logoInfoPacked {
             int iFrameNumber = 0;
             int hits = 0;
-            uchar sobel[PLANES][MAXPIXEL/8] = {};
+            uchar sobel[PLANES][MAXPIXEL / 8] = {};
             bool valid[PLANES] = {};
             MarkAdAspectRatio aspectratio = {};
         };
