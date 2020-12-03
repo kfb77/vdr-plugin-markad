@@ -1255,7 +1255,8 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
 
     timeText = marks.IndexToHMSF(mark->position, &macontext, ptr_cDecoder);
     if (timeText) {
-        if (mark->type > MT_ASPECTCHANGE) {  // keep strong marks, they are better than VPS marks
+        if ((mark->type > MT_ASPECTCHANGE) && (mark->type != MT_RECORDINGSTART)) {  // keep strong marks, they are better than VPS marks
+                                                                                    // for VPS recording we replace recording start mark
             dsyslog("cMarkAdStandalone::AddMarkVPS(): keep mark at frame (%d) type 0x%X at %s", mark->position, mark->type, timeText);
         }
         else {
