@@ -885,5 +885,5 @@ int cDecoder::GetIFrameFromOffset(int offset_ms) {
         if (iInfo->pts_time_ms > offset_ms) return iFrameBefore;
         iFrameBefore = iInfo->iFrameNumber;
     }
-    return 0;
+    return iFrameBefore;  // return last frame if offset is not in recording, needed for VPS stopped recordings
 }
