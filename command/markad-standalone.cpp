@@ -3883,8 +3883,10 @@ int usage(int svdrpport) {
            "                  use alternative cDecoder class for decoding\n"
 #endif
            "                --vps\n"
-           "                  use markad.vps from recording directory for stat and stop mark\n"
+           "                  use markad.vps from recording directory for start and stop mark\n"
+#if defined CLASSIC_DECODER
            "                  requires --cDecoder\n"
+#endif
            "                --cut\n"
            "                  cut vidio based on marks and write it in the recording directory\n"
 #if defined CLASSIC_DECODER
