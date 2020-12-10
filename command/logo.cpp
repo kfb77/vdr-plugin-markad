@@ -314,20 +314,19 @@ bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoH
         case 1280:
             if (maContext->Video.Info.Height == 1080) {  // ANIXE+
             }
-            else {
+            else {  // 720W
                 if (logoWidth >= 256) {
                     dsyslog("cExtractLogo::CheckLogoSize(): HD logo is too wide");
                     return false;
                 }
-                if (logoHeight > 134) { // arte HD
-                    dsyslog("cExtractLogo::CheckLogoSize(): HD logo is too heigh");
-                    return false;
-                }
-                if (logoHeight >= 134) { // logo is vertical
-                    if (logoWidth < 84) { // arte HD
-                        dsyslog("cExtractLogo::CheckLogoSize(): HD logo is too narrow");
-                        return false;
+                if (logoHeight >= 134) { // logo is vertial or too high
+                    if (strcmp(maContext->Info.ChannelName, "arte_HD") == 0) {  // vertical logo
+                        if (logoWidth < 84) { // arte HD
+                            dsyslog("cExtractLogo::CheckLogoSize(): vertical HD logo is too narrow");
+                            return false;
+                        }
                     }
+                    else return false;
                 }
                 else { // logo is horizontal
                     if (logoWidth <= 116) {
