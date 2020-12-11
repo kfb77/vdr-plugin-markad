@@ -750,7 +750,7 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device, const char *FileName) {
     if (!timer) return false;
     if (!cname) return false;
 
-    for (int i = 0; i < (int) strlen(cname); i++) {
+    for (int i = 0; i < static_cast<int>(strlen(cname)); i++) {
         if (cname[i] == ' ') cname[i] = '_';
         if (cname[i] == '.') cname[i] = '_';
         if (cname[i] == '/') cname[i] = '_';

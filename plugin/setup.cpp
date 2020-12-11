@@ -36,7 +36,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
     autoLogoTexts[1] = tr("enable for low memory systems");
     autoLogoTexts[2] = tr("enable");
 
-    lpos=0;
+    lpos = 0;
     write();
 }
 
@@ -133,19 +133,19 @@ void cSetupMarkAd::Store(void) {
     SetupStore("DeferredShutdown", deferredshutdown);
     SetupStore("AutoLogoExtraction", autologomenue);
 
-    setup->ProcessDuring = (int) processduring;
-    setup->useVPS = (bool) usevps;
-    setup->logVPS = (bool) logvps;
-    setup->whileRecording = (bool) whilerecording;
-    setup->whileReplaying = (bool) whilereplaying;
-    setup->OSDMessage = (bool) osdmsg;
-    setup->GenIndex = (bool) genindex;
-    setup->SecondPass = (bool) secondpass;
-    setup->Verbose = (bool) verbose;
-    setup->NoMargins = (bool) nomargins;
-    setup->HideMainMenuEntry = (bool) hidemainmenuentry;
-    setup->DeferredShutdown = (bool) deferredshutdown;
-    setup->autoLogoMenue = (int) autologomenue;
+    setup->ProcessDuring = static_cast<int>(processduring);
+    setup->useVPS = static_cast<bool>(usevps);
+    setup->logVPS = static_cast<bool>(logvps);
+    setup->whileRecording = static_cast<bool>(whilerecording);
+    setup->whileReplaying = static_cast<bool>(whilereplaying);
+    setup->OSDMessage = static_cast<bool>(osdmsg);
+    setup->GenIndex = static_cast<bool>(genindex);
+    setup->SecondPass = static_cast<bool>(secondpass);
+    setup->Verbose = static_cast<bool>(verbose);
+    setup->NoMargins = static_cast<bool>(nomargins);
+    setup->HideMainMenuEntry = static_cast<bool>(hidemainmenuentry);
+    setup->DeferredShutdown = static_cast<bool>(deferredshutdown);
+    setup->autoLogoMenue = static_cast<int>(autologomenue);
     setup->Log2Rec = log2rec;
     setup->LogoOnly = logoonly;
     setup->SaveInfo = saveinfo;
@@ -187,7 +187,7 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup) :cOsdMenu("",CHNUMWIDTH)
                             char *cname = strdup(channel->Name());
                             if (cname) {
                                 ALLOC(strlen(cname)+1, "cname");
-                                for (int i = 0; i < (int) strlen(cname); i++) {
+                                for (int i = 0; i < static_cast<int>(strlen(cname)); i++) {
                                     if (cname[i] == ' ') cname[i] = '_';
                                     if (cname[i] == '.') cname[i] = '_';
                                     if (cname[i] == '/') cname[i] = '_';
