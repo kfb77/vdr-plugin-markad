@@ -1231,11 +1231,17 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
     char *comment = NULL;
     char *timeText = NULL;
     if (!isPause) {
-        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%d)", (type == MT_START) ? "start" : "stop", vpsFrame);
+        char *indexToHMSF = marks.IndexToHMSF(vpsFrame, &macontext, ptr_cDecoder);
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%d) at %s", (type == MT_START) ? "start" : "stop", vpsFrame, indexToHMSF);
+        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+        free(indexToHMSF);
         mark = ((type == MT_START)) ? marks.GetNext(0, MT_START, 0x0F) : marks.GetPrev(INT_MAX, MT_STOP, 0x0F);
     }
     else {
-        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%d)", (type == MT_START) ? "pause start" : "pause stop", vpsFrame);
+        char *indexToHMSF = marks.IndexToHMSF(vpsFrame, &macontext, ptr_cDecoder);
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%d) at %s", (type == MT_START) ? "pause start" : "pause stop", vpsFrame, indexToHMSF);
+        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+        free(indexToHMSF);
         mark = ((type == MT_START)) ? marks.GetAround(delta, vpsFrame, MT_START, 0x0F) :  marks.GetAround(delta, vpsFrame, MT_STOP, 0x0F);
     }
     if (!mark) {
@@ -1255,8 +1261,8 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
 
     timeText = marks.IndexToHMSF(mark->position, &macontext, ptr_cDecoder);
     if (timeText) {
-        if ((mark->type > MT_ASPECTCHANGE) && (mark->type != MT_RECORDINGSTART)) {  // keep strong marks, they are better than VPS marks
-                                                                                    // for VPS recording we replace recording start mark
+        if ((mark->type > MT_LOGOCHANGE) && (mark->type != MT_RECORDINGSTART)) {  // keep strong marks, they are better than VPS marks
+                                                                                  // for VPS recording we replace recording start mark
             dsyslog("cMarkAdStandalone::AddMarkVPS(): keep mark at frame (%d) type 0x%X at %s", mark->position, mark->type, timeText);
         }
         else {
