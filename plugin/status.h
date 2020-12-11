@@ -73,15 +73,16 @@ class cStatusMarkAd : public cStatus {
         bool getStatus(int Position);
         int Recording();
         bool Replaying();
-        int Get(const char *FileName, const char *Name=NULL);
+        int Get(const char *FileName, const char *Name = NULL);
         int Add(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime);
-        void Remove(int Position, bool Kill=false);
-        void Remove(const char *Name, bool Kill=false);
+        void Remove(int Position, bool Kill = false);
+        void Remove(const char *Name, bool Kill = false);
         void Pause(const char *FileName);
         void Continue(const char *FileName);
         bool LogoExists(const cDevice *Device, const char *FileName);
-        void GetEventID(const cDevice *Device,const char *FileName, tEventID *eventID, time_t *timerStartTime, time_t *timerStopTime);
-        void SaveVPSStatus(const int index);
+        void GetEventID(const cDevice *Device,const char *FileName, tEventID *eventID, time_t *timerStartTime, time_t *timerStopTime, bool *timerVPS);
+        void SaveVPSTimer(const char *FileName, const bool timerVPS);
+        void SaveVPSEvents(const int index);
         bool StoreVPSStatus(const char *status, const int index);
         cEpgHandlerMarkad *epgHandlerMarkad = NULL;
     protected:
@@ -97,7 +98,7 @@ class cStatusMarkAd : public cStatus {
         }
         void Check(void);
         bool GetNextActive(struct recs **RecEntry);
-        bool Start(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, const bool Direct=false);
+        bool Start(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, const bool Direct = false);
         void SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event *EitEvent);
 };
 

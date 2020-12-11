@@ -260,7 +260,7 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
                     if ((recs[i].epgEventLog) && (asprintf(&log, "stop event results in too short recording") != -1)) recs[i].epgEventLog->Log(log);
                     if (log) free(log);
                 }
-                SaveVPSStatus(i);
+                SaveVPSEvents(i);
             }
             else {
                 if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, runningStatus, "reset");
@@ -302,20 +302,46 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
 }
 
 
-void cStatusMarkAd::SaveVPSStatus(const int index) {
+void cStatusMarkAd::SaveVPSTimer(const char *FileName, const bool timerVPS) {
+    if (!FileName) return;
+
+    char *fileVPS = NULL;
+    if (!asprintf(&fileVPS, "%s/%s", FileName, "markad.vps")) {
+        esyslog("markad: cStatusMarkAd::SaveVPSEvents(): recording <%s> asprintf failed", FileName);
+        return;
+    }
+    ALLOC(strlen(fileVPS)+1, "fileVPS");
+    FILE *pFile = fopen(fileVPS,"w");
+    if (!pFile) {
+        esyslog("markad: cStatusMarkAd::SaveVPSEvents(): recording <%s> open file %s failed", FileName, fileVPS);
+        FREE(strlen(fileVPS)+1, "fileVPS");
+        free(fileVPS);
+        return;
+    }
+    if (timerVPS) fprintf(pFile, "VPSTIMER=YES\n");
+    else fprintf(pFile, "VPSTIMER=NO\n");
+
+    fclose(pFile);
+    FREE(strlen(fileVPS)+1, "fileVPS");
+    free(fileVPS);
+    return;
+}
+
+
+void cStatusMarkAd::SaveVPSEvents(const int index) {
     if ((index < 0) || (index >= MAXDEVICES * MAXRECEIVERS)) {
-        dsyslog("markad: cStatusMarkAd::SaveVPSStatus(): index %i out of range", index);
+        dsyslog("markad: cStatusMarkAd::SaveVPSEvents(): index %i out of range", index);
     }
     if (recs[index].runningStatus == -1 ) {
-        dsyslog("markad: cStatusMarkAd::SaveVPSStatus(): VPS Infos not valid for recording <%s>", recs[index].Name);
+        dsyslog("markad: cStatusMarkAd::SaveVPSEvents(): VPS Infos not valid for recording <%s>", recs[index].Name);
         return;
     }
     if (!recs[index].vpsStartTime)  {
-        dsyslog("markad: cStatusMarkAd::SaveVPSStatus(): no VPS start time to save for recording <%s>", recs[index].Name);
+        dsyslog("markad: cStatusMarkAd::SaveVPSEvents(): no VPS start time to save for recording <%s>", recs[index].Name);
         return;
     }
     if (!recs[index].vpsStopTime)  {
-        dsyslog("markad: cStatusMarkAd::SaveVPSStatus(): no VPS stop time to save for recording <%s>", recs[index].Name);
+        dsyslog("markad: cStatusMarkAd::SaveVPSEvents(): no VPS stop time to save for recording <%s>", recs[index].Name);
         return;
     }
 
@@ -325,14 +351,14 @@ void cStatusMarkAd::SaveVPSStatus(const int index) {
     char *fileVPS = NULL;
 
     if (!asprintf(&fileVPS, "%s/%s", recs[index].FileName, "markad.vps")) {
-        esyslog("markad: cStatusMarkAd::SaveVPSStatus(): recording <%s> asprintf failed", recs[index].Name);
+        esyslog("markad: cStatusMarkAd::SaveVPSEvents(): recording <%s> asprintf failed", recs[index].Name);
         return;
     }
     ALLOC(strlen(fileVPS)+1, "fileVPS");
 
-    FILE *pFile = fopen(fileVPS,"w");
+    FILE *pFile = fopen(fileVPS,"a+");
     if (!pFile) {
-        esyslog("markad: cStatusMarkAd::SaveVPSStatus(): recording <%s> open file %s failed", recs[index].Name, fileVPS);
+        esyslog("markad: cStatusMarkAd::SaveVPSEvents(): recording <%s> open file %s failed", recs[index].Name, fileVPS);
         FREE(strlen(fileVPS)+1, "fileVPS");
         free(fileVPS);
         return;
@@ -556,7 +582,7 @@ void cStatusMarkAd::TimerChange(const cTimer *Timer, eTimerChange Change) {
 }
 
 
-void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID *eventID, time_t *timerStartTime, time_t *timerStopTime) {
+void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID *eventID, time_t *timerStartTime, time_t *timerStopTime, bool *timerVPS) {
     if (!Name) return;
     if (!Device) return;
     if (!eventID) return;
@@ -609,6 +635,10 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
     StateKey.Remove();
 #endif
     dsyslog("markad: cStatusMarkAd::GetEventID(): eventID %u from event for recording <%s> timer <%s>  timer start %ld stop %ld", *eventID, Name, timer->File(), *timerStartTime, *timerStopTime);
+    if (timer->HasFlags(tfVps)) {
+        dsyslog("markad: cStatusMarkAd::GetEventID(): timer <%s> uses VPS", timer->File());
+        *timerVPS = true;
+    }
     return;
 }
 
@@ -623,9 +653,11 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         tEventID eventID = 0;
         time_t timerStartTime = 0;
         time_t timerStopTime = 0;
-        GetEventID(Device, Name, &eventID, &timerStartTime, &timerStopTime);
+        bool timerVPS = false;
+        GetEventID(Device, Name, &eventID, &timerStartTime, &timerStopTime, &timerVPS);
+        SaveVPSTimer(FileName, timerVPS);
 
-       if ((setup->ProcessDuring == PROCESS_NEVER) && setup->useVPS) {  // markad start disabled per config menue, add recording for VPS detection
+        if ((setup->ProcessDuring == PROCESS_NEVER) && setup->useVPS) {  // markad start disabled per config menue, add recording for VPS detection
             int pos=Add(FileName, Name, eventID, timerStartTime, timerStopTime);
             dsyslog("markad: cStatusMarkAd::Recording(): added recording <%s> event ID %u at position %i only for VPS detection", Name, eventID, pos);
             return;
