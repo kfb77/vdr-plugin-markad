@@ -2782,6 +2782,40 @@ bool cMarkAdStandalone::SaveInfo() {
 }
 
 
+bool cMarkAdStandalone::isVPSTimer() {
+    if (!directory) return false;
+    bool timerVPS = false;
+
+    char *fpath = NULL;
+    if (asprintf(&fpath, "%s/%s", directory, "markad.vps") == -1) return false;
+    ALLOC(strlen(fpath)+1, "fpath");
+
+    FILE *mf;
+    mf = fopen(fpath, "r");
+    if (!mf) {
+        dsyslog("cMarkAdStandalone::isVPSTimer(): %s not found", fpath);
+        free(fpath);
+        return false;
+    }
+    FREE(strlen(fpath)+1, "fpath");
+    free(fpath);
+
+    char *line = NULL;
+    size_t length;
+    char vpsTimer[12] = "";
+    while (getline(&line, &length, mf) != -1) {
+        sscanf(line, "%12s", (char *) &vpsTimer);
+        if (strcmp(vpsTimer, "VPSTIMER=YES") == 0) {
+            timerVPS = true;
+            break;
+        }
+    }
+    if (line) free(line);
+    fclose(mf);
+    return timerVPS;
+}
+
+
 time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd) {
     // get recording start from atime of directory (if the volume is mounted with noatime)
     struct mntent *ent;
@@ -3048,22 +3082,28 @@ bool cMarkAdStandalone::LoadInfo() {
         time_t rStart = GetBroadcastStart(startTime, fileno(f));
         if (rStart) {
             dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
-            dsyslog("cMarkAdStandalone::LoadInfo(): broadcast start at %s", strtok(ctime(&startTime), "\n"));
-            tStart = static_cast<int> (startTime - rStart);
-            if (tStart > 60 * 60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
-                isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", tStart);
-                tStart = 120;
+            dsyslog("cMarkAdStandalone::LoadInfo():     timer start at %s", strtok(ctime(&startTime), "\n"));
+            if (isVPSTimer()) { //  VPS controlled recording start, we use assume broascast start 45s after recording start
+                tStart = 45;
+                isyslog("VPS controlled recording start");
             }
-            if (tStart < 0) {
-                if (length+tStart > 0) {
-                    isyslog("missed broadcast start by %d:%02d min or VPS controlled recording start", -tStart / 60, -tStart % 60);
-                    dsyslog("cMarkAdStandalone::LoadInfo(): length will be corrected");
-                    startTime = rStart;
-                    length += tStart;
-                }
-                else {
-                    esyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
+            else {
+                tStart = static_cast<int> (startTime - rStart);
+                if (tStart > 60 * 60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
+                    isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", tStart);
                     tStart = 120;
+                }
+                if (tStart < 0) {
+                    if (length+tStart > 0) {
+                        isyslog("missed broadcast start by %d:%02d min or VPS controlled recording start", -tStart / 60, -tStart % 60);
+                        dsyslog("cMarkAdStandalone::LoadInfo(): length will be corrected");
+                        startTime = rStart;
+                        length += tStart;
+                    }
+                    else {
+                        esyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
+                        tStart = 120;
+                    }
                 }
             }
         }

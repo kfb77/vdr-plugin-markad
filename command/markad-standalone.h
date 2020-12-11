@@ -103,6 +103,7 @@ class cMarkAdStandalone {
         void CheckStop();
         void CheckStart();
         void CalculateCheckPositions(int startframe);
+        bool isVPSTimer();
         time_t GetBroadcastStart(time_t start, int fd);
         void SaveFrame(int Frame);
         char *IndexToHMSF(int Index);
