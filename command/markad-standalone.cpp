@@ -3663,7 +3663,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     }
 
     if (tStart > 1) {
-        if (tStart < 60) tStart = 60;
+        if (tStart < 45) tStart = 45;  // reduced from 60 to 45 for VPS controlled timer
         isyslog("pre-timer %is", tStart);
     }
     if (length) isyslog("broadcast length %imin", static_cast<int> (round(length / 60)));
