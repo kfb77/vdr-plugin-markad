@@ -215,7 +215,7 @@ void *cOSDMessage::send(void *posd) {
     sock=socket(PF_INET, SOCK_STREAM, 0);
     if (sock < 0) return NULL;
 
-    if (connect(sock, (struct sockaddr *)&name, size) !=0 ) {
+    if (connect(sock, (struct sockaddr *)&name, size) != 0 ) {
         close(sock);
         return NULL;
     }
@@ -274,7 +274,7 @@ int cOSDMessage::Send(const char *format, ...) {
     ALLOC(strlen(msg)+1, "msg");
     va_end(ap);
 
-    if (pthread_create(&tid, NULL, (void *(*) (void *))&send, (void *) this) !=0 ) return -1;
+    if (pthread_create(&tid, NULL, (void *(*) (void *))&send, (void *) this) != 0 ) return -1;
     return 0;
 }
 
@@ -3929,7 +3929,7 @@ int usage(int svdrpport) {
            "                  use alternative cDecoder class for decoding\n"
 #endif
            "                --vps\n"
-           "                  use markad.vps from recording directory for start and stop mark\n"
+           "                  use markad.vps from recording directory to optimize start, stop and break marks\n"
 #if defined CLASSIC_DECODER
            "                  requires --cDecoder\n"
 #endif
