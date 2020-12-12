@@ -1118,12 +1118,12 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             continue;
         }
         if (((mark->type & 0x0F)==MT_START) && (mark->Next()) && ((mark->Next()->type & 0x0F)==MT_START)) {  // two start marks, delete second
-            dsyslog("cMarkAdStandalone::CheckMarks(): start mark (%i) folowed by start mark (%i) delete second", mark->position, mark->Next()->position);
+            dsyslog("cMarkAdStandalone::CheckMarks(): start mark (%i) followed by start mark (%i) delete second", mark->position, mark->Next()->position);
             marks.Del(mark->Next());
             continue;
         }
         if (((mark->type & 0x0F)==MT_STOP) && (mark->Next()) && ((mark->Next()->type & 0x0F)==MT_STOP)) {  // two stop marks, delete second
-            dsyslog("cMarkAdStandalone::CheckMarks(): stop mark (%i) folowed by stop mark (%i) delete first", mark->position, mark->Next()->position);
+            dsyslog("cMarkAdStandalone::CheckMarks(): stop mark (%i) followed by stop mark (%i) delete first", mark->position, mark->Next()->position);
             clMark *tmp=mark;
             mark = mark->Next();
             marks.Del(tmp);
@@ -1181,7 +1181,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         mark = marks.GetFirst();
         while (mark) {
             if (((mark->type & 0x0F)==MT_START) && (mark->Next()) && ((mark->Next()->type & 0x0F)==MT_START)) {  // two start marks, delete second
-                dsyslog("cMarkAdStandalone::CheckMarks(): start mark (%i) folowed by start mark (%i) delete non VPS mark", mark->position, mark->Next()->position);
+                dsyslog("cMarkAdStandalone::CheckMarks(): start mark (%i) followed by start mark (%i) delete non VPS mark", mark->position, mark->Next()->position);
                 if (mark->type == MT_VPSSTART) {
                     marks.Del(mark->Next());
                     continue;
@@ -1194,7 +1194,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                 }
             }
             if (((mark->type & 0x0F)==MT_STOP) && (mark->Next()) && ((mark->Next()->type & 0x0F)==MT_STOP)) {  // two stop marks, delete second
-                dsyslog("cMarkAdStandalone::CheckMarks(): stop mark (%i) folowed by stop mark (%i) delete non VPS mark", mark->position, mark->Next()->position);
+                dsyslog("cMarkAdStandalone::CheckMarks(): stop mark (%i) followed by stop mark (%i) delete non VPS mark", mark->position, mark->Next()->position);
                 if (mark->type == MT_VPSSTOP) {
                     marks.Del(mark->Next());
                     continue;
