@@ -86,7 +86,7 @@ cEpgEventLog::cEpgEventLog(const char *recDir) {
     }
     ALLOC(strlen(eventLogName)+1, "eventLogName");
 
-    eventLogFile = fopen(eventLogName, "w");
+    eventLogFile = fopen(eventLogName, "a");
     if (!eventLogFile) {
         esyslog("markad: eventLogFile(): VPS event logfile <%s> open file failed", eventLogName);
     }
