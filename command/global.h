@@ -149,7 +149,8 @@ typedef struct MarkAdContext {
         bool checkedAspectRatio = false;
         short int Channels[MAXSTREAMS] = {0};
         char *ChannelName;
-        bool rotatingLogo = false;
+        bool timerVPS = false;  // true it was a VPS controlled timer
+        bool rotatingLogo = false;  // logo is rotating, e.g. SAT.1
         MarkAdPid VPid;
         MarkAdPid APid;
 #if defined CLASSIC_DECODER

@@ -3084,14 +3084,22 @@ bool cMarkAdStandalone::LoadInfo() {
     if ((macontext.Info.AspectRatio.Num == 0) && (macontext.Info.AspectRatio.Den == 0)) isyslog("no broadcast aspectratio found in info");
     if (line) free(line);
 
+    macontext.Info.timerVPS = isVPSTimer();
     if ((length) && (!bIgnoreTimerInfo) && (startTime)) {
         time_t rStart = GetBroadcastStart(startTime, fileno(f));
         if (rStart) {
             dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
             dsyslog("cMarkAdStandalone::LoadInfo():     timer start at %s", strtok(ctime(&startTime), "\n"));
-            if (isVPSTimer()) { //  VPS controlled recording start, we use assume broascast start 45s after recording start
-                tStart = 45;
+            if (macontext.Info.timerVPS) { //  VPS controlled recording start, we use assume broascast start 45s after recording start
                 isyslog("VPS controlled recording start");
+                tStart = marks.LoadVPS(macontext.Config->recDir, "START:"); // VPS start mark
+                if (tStart >= 0) {
+                    dsyslog("cMarkAdStandalone::LoadInfo(): found VPS start event at offset %ds", tStart);
+                }
+                else {
+                    dsyslog("cMarkAdStandalone::LoadInfo(): no VPS start event found");
+                    tStart = 45;
+                }
             }
             else {
                 tStart = static_cast<int> (startTime - rStart);
@@ -3663,9 +3671,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     }
 
     if (tStart > 1) {
-        if (tStart < 45) tStart = 45;  // reduced from 60 to 45 for VPS controlled timer
-        isyslog("pre-timer %is", tStart);
+        if ((tStart < 60) && (!macontext.Info.timerVPS)) tStart = 60;
     }
+    isyslog("pre-timer %is", tStart);
+
     if (length) isyslog("broadcast length %imin", static_cast<int> (round(length / 60)));
 
     if (title[0]) {
