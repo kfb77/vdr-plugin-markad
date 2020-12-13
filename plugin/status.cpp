@@ -209,9 +209,20 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
             return;
         }
 
-        if ((recs[i].runningStatus == 0) && (runningStatus == 4)) {  // invalid vps start sequence
-            if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, runningStatus, "invalid start sequence");
-            recs[i].runningStatus = -1;
+        if ((recs[i].runningStatus == 0) && (runningStatus == 4)) {  // to late VPS timer start or invalid vps start sequence
+            if (recs[i].timerVPS) {
+                if (StoreVPSStatus("START", i)) {
+                    if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, runningStatus, "late VPS timer start");
+                    recs[i].runningStatus = 4;
+                }
+                else {
+                    if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, recs[i].runningStatus, "ignore");
+                }
+            }
+            else {
+                if (recs[i].epgEventLog) recs[i].epgEventLog->Log(recs[i].recStart, recs[i].eventID, eventID, followingEventID, eitEventID, recs[i].runningStatus, runningStatus, runningStatus, "invalid start sequence");
+                recs[i].runningStatus = -1;
+            }
             return;
         }
 
@@ -507,8 +518,8 @@ void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSE
 }
 
 
-bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, const bool Direct) {
-    if ((Direct) && (Get(FileName) != -1)) return false;
+bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, const bool timerVPS, const bool direct) {
+    if ((direct) && (Get(FileName) != -1)) return false;
 
     char *autoLogoOption = NULL;
     if (setup->autoLogoConf >= 0) {
@@ -544,7 +555,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
                                    setup->ac3ReEncode ? " --ac3reencode " : "",
                                    autoLogoOption ? autoLogoOption : "",
                                    logodir,
-                                   Direct ? "-O after" : "--online=2 before",
+                                   direct ? "-O after" : "--online=2 before",
                                    FileName);
     FREE(strlen(autoLogoOption)+1, "autoLogoOption");
     free(autoLogoOption);
@@ -553,10 +564,10 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
     if (SystemExec(cmd) != -1) {
         dsyslog("markad: executing %s", *cmd);
         usleep(200000);
-        int pos=Add(FileName, Name, eventID, timerStartTime, timerStopTime);
+        int pos=Add(FileName, Name, eventID, timerStartTime, timerStopTime, timerVPS);
         if (getPid(pos) && getStatus(pos)) {
             if (setup->ProcessDuring == PROCESS_AFTER) {
-                if (!Direct) {
+                if (!direct) {
                     if (!setup->whileRecording) Pause(NULL);
                     else Pause(FileName);
                 }
@@ -658,7 +669,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         SaveVPSTimer(FileName, timerVPS);
 
         if ((setup->ProcessDuring == PROCESS_NEVER) && setup->useVPS) {  // markad start disabled per config menue, add recording for VPS detection
-            int pos=Add(FileName, Name, eventID, timerStartTime, timerStopTime);
+            int pos=Add(FileName, Name, eventID, timerStartTime, timerStopTime, timerVPS);
             dsyslog("markad: cStatusMarkAd::Recording(): added recording <%s> event ID %u at position %i only for VPS detection", Name, eventID, pos);
             return;
         }
@@ -677,7 +688,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         }
 
         // Start markad with recording
-        if (!Start(FileName, Name, eventID, timerStartTime, timerStopTime, false)) {
+        if (!Start(FileName, Name, eventID, timerStartTime, timerStopTime, timerVPS, false)) {
             esyslog("markad: failed starting on <%s>", FileName);
         }
     }
@@ -947,6 +958,7 @@ void cStatusMarkAd::Remove(int pos, bool Kill) {
     recs[pos].vpsStopTime = 0;
     recs[pos].vpsPauseStartTime = 0;
     recs[pos].vpsPauseStopTime = 0;
+    recs[pos].timerVPS = false;
     if (recs[pos].epgEventLog) {
         FREE(sizeof(*(recs[pos].epgEventLog)), "recs[pos].epgEventLog");
         delete recs[pos].epgEventLog;
@@ -962,7 +974,7 @@ void cStatusMarkAd::Remove(int pos, bool Kill) {
 }
 
 
-int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime) {
+int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, bool timerVPS) {
     for (int pos = 0; pos < (MAXDEVICES*MAXRECEIVERS); pos++) {
         if (!recs[pos].FileName) {
             recs[pos].FileName = strdup(FileName);
@@ -987,6 +999,7 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID ev
             recs[pos].vpsStopTime = 0;
             recs[pos].vpsPauseStartTime = 0;
             recs[pos].vpsPauseStopTime = 0;
+            recs[pos].timerVPS = timerVPS;
             if (setup->useVPS && setup->logVPS) {
                 recs[pos].epgEventLog = new cEpgEventLog(FileName);
                 ALLOC(sizeof(*(recs[pos].epgEventLog)), "recs[pos].epgEventLog");

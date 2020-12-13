@@ -47,6 +47,7 @@ struct recs {
     tEventID eitEventID = 0;
     time_t timerStartTime = 0;
     time_t timerStopTime = 0;
+    bool timerVPS = false;
     int runningStatus = 0;
     time_t recStart = 0;
     time_t vpsStartTime = 0;
@@ -74,7 +75,7 @@ class cStatusMarkAd : public cStatus {
         int Recording();
         bool Replaying();
         int Get(const char *FileName, const char *Name = NULL);
-        int Add(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime);
+        int Add(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, bool timerVPS);
         void Remove(int Position, bool Kill = false);
         void Remove(const char *Name, bool Kill = false);
         void Pause(const char *FileName);
@@ -98,7 +99,7 @@ class cStatusMarkAd : public cStatus {
         }
         void Check(void);
         bool GetNextActive(struct recs **RecEntry);
-        bool Start(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, const bool Direct = false);
+        bool Start(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, const bool timerVPS, const bool Direct);
         void SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event *EitEvent);
 };
 
