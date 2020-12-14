@@ -265,6 +265,15 @@ void cExtractLogo::CutOut(logoInfo *logoInfo, int cutPixelH, int cutPixelV, int 
 
 
 bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoHeight, const int logoWidth, const int corner) {
+// check special channels
+    if (strcmp(maContext->Info.ChannelName, "DMAX") == 0) {
+        if (logoWidth < 126) {  // DMAX logo is 126 pixel wide
+            dsyslog("cExtractLogo::CheckLogoSize(): DMAX logo to narrow, this is possibly NEUE FOLGE");
+            return false;
+        }
+    }
+
+// check other logo sizes
     switch (maContext->Video.Info.Width) {
         case 720:
             if ((corner >= BOTTOM_LEFT) && (logoHeight >= 60) && (logoHeight <= 65) && (logoWidth >= 185)) { // if logo size is low and wide on BOTTON, it is in a news ticker
