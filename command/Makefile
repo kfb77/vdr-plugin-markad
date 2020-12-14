@@ -2,7 +2,9 @@
 # Makefile for a Video Disk Recorder addon
 #
 
-# use this, if you want to build with the new and the old decoder
+# build with the new and the old decoder
+# do not remove the comment, this is only for developer testing and will not be supported 
+# the old decoder code will be removed in a future release
 # CLASSIC_DECODER=1
 
 # use this, if you want to debug heap memory consumption
