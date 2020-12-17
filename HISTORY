@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2020-12-17: Version 2.4.4
+- add support of VPS controlled timer
+- some minor bug fixes and optimizations, see git
+
 2020-11-30: Version 2.4.3
 - optimize rotating logo extraction
 - detect transparent or colour change logo
