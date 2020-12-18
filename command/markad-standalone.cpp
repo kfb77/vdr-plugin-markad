@@ -43,8 +43,8 @@ cMarkAdStandalone *cmasta = NULL;
 bool restartLogoDetectionDone = false;
 int SysLogLevel = 2;
 bool abortNow = false;
-struct timeval startAll, endAll = {0};
-struct timeval startPass1, startPass2, startPass3, endPass1, endPass2, endPass3 = {0};
+struct timeval startAll, endAll = {};
+struct timeval startPass1, startPass2, startPass3, endPass1, endPass2, endPass3 = {};
 int logoSearchTime_ms = 0;
 int decodeTime_us = 0;
 

@@ -53,14 +53,13 @@ class cOSDMessage {
 
 class cMarkAdStandalone {
     private:
-        enum { mSTART=0x1, mBEFORE, mAFTER };
-
-        const char *directory;
-
         cMarkAdVideo *video = NULL;
         cMarkAdAudio *audio = NULL;
         cOSDMessage *osd = NULL;
-        MarkAdContext macontext = {0};
+        MarkAdContext macontext = {};
+
+        enum { mSTART = 0x1, mBEFORE, mAFTER };
+        const char *directory;
         char title[80];
         char *ptitle = NULL;
         bool CreatePidfile();

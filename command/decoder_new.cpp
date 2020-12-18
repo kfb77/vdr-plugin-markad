@@ -16,7 +16,7 @@ extern "C" {
 extern int decodeTime_us;
 
 
-void AVlog(void *ptr, int level, const char* fmt, va_list vl){
+void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_list vl){
     if (level <= AVLOGLEVEL) {
         char *logMsg = NULL;
         int rc = 0;
@@ -415,7 +415,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     if (!avctx) return NULL;
     if (!avpkt) return NULL;
 
-    struct timeval startDecode = {0};
+    struct timeval startDecode = {};
     gettimeofday(&startDecode, NULL);
 
     if (avFrame) {  // reset avFrame structure
@@ -567,7 +567,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
         return NULL;
     }
 #endif
-    struct timeval endDecode = {0};
+    struct timeval endDecode = {};
     gettimeofday(&endDecode, NULL);
     time_t sec = endDecode.tv_sec - startDecode.tv_sec;
     suseconds_t usec = endDecode.tv_usec - startDecode.tv_usec;

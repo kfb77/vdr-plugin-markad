@@ -306,7 +306,7 @@ bool cMarkAdLogo::ReduceBrightness(const int framenumber) {
 }
 
 
-bool cMarkAdLogo::SobelPlane(const int framenumber, const int plane) {
+bool cMarkAdLogo::SobelPlane(const int plane) {
     if ((plane < 0) || (plane >= PLANES)) return false;
     if (!macontext->Video.Data.PlaneLinesize[plane]) return false;
 
@@ -413,7 +413,7 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
 
     for (int plane = 0; plane < PLANES; plane++) {
         if ((area.valid[plane]) || (extract) || (onlyFillArea)) {
-            if (SobelPlane(framenumber, plane)) {
+            if (SobelPlane(plane)) {
                 processed++;
 #ifdef DEBUG_FRAME_CORNER
                 if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200) && !onlyFillArea) {
@@ -446,7 +446,7 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
                 area.rpixel[0] = 0;
                 rpixel = 0;
                 mpixel = 0;
-                SobelPlane(framenumber, 0);
+                SobelPlane(0);
                 tsyslog("cMarkAdLogo::Detect(): frame (%6d) corrected, new area intensity %d", framenumber, area.intensity);
                 rpixel += area.rpixel[0];
                 mpixel += area.mpixel[0];

@@ -40,6 +40,50 @@ endif
 ifeq ($(CXXVERION),5)
 	export CXXFLAGS += -std=c++11   # to prevent compiler errors with g++ V5
 endif
+ifeq ($(CXXVERION),9)
+	export CXXFLAGS += -Wextra   # extra warnings for current development version
+endif
+#
+PKG-CONFIG ?= pkg-config
+STRIP ?= strip
+
+### Includes and Defines (add further entries here):
+PKG-LIBS += libavcodec libavutil libavformat libavfilter
+PKG-INCLUDES += libavcodec libavutil libavformat libavfilter
+
+DEFINES += -D_GNU_SOURCE
+DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
+DEFINES += -D__STDC_CONSTANT_MACROS -D__USE_XOPEN_EXTENDED
+
+
+ifdef DEBUG_MEM_MARKAD
+DEFINES += -DDEBUG_MEM
+$(info option DEBUG_MEM_MARKAD is set)
+endif
+
+
+INCLUDES += $(shell $(PKG-CONFIG) --cflags $(PKG-INCLUDES))
+LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
+
+
+### The object files (add further files here):
+OBJS = markad-standalone.o marks.o video.o audio.o decoder_new.o encoder_new.o logo.o debug.o
+ifdef CLASSIC_DECODER
+        DEFINES += -DCLASSIC_DECODER
+	OBJS += demux.o decoder.o streaminfo.o
+endif
+
+
+### The main target:
+
+all: markad i18n
+
+### Implicit rules:
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $(DEFINES) $(INCLUDES) $<
+
+### Dependencies:
 #
 PKG-CONFIG ?= pkg-config
 STRIP ?= strip

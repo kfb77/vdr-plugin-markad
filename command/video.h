@@ -124,7 +124,7 @@ class cMarkAdLogo {
         bool pixfmt_info;
         bool SetCoorginates(int *xstart, int *xend, int *ystart, int *yend, const int plane);
         bool ReduceBrightness(const int framenumber);
-        bool SobelPlane(const int framenumber, const int plane); // do sobel operation on plane
+        bool SobelPlane(const int plane); // do sobel operation on plane
         int Load(const char *directory, const char *file, const int plane);
         bool Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], const short int plane, const int debug);
         void SaveFrameCorner(const int framenumber, const int debug);
@@ -216,7 +216,7 @@ class cMarkAdVideo {
         explicit cMarkAdVideo(MarkAdContext *maContext);
         ~cMarkAdVideo();
         cMarkAdVideo(const cMarkAdVideo &origin) {   //  copy constructor, not used, only for formal reason
-            macontext = NULL;
+            macontext = origin.macontext;
             blackScreen = NULL;
             hborder = NULL;
             vborder = NULL;
@@ -226,7 +226,7 @@ class cMarkAdVideo {
             framebeforelast = 0;
         };
         cMarkAdVideo &operator =(const cMarkAdVideo *origin) {  // operator=, not used, only for formal reason
-            macontext = NULL;
+            macontext = origin->macontext;
             blackScreen = NULL;
             hborder = NULL;
             vborder = NULL;
