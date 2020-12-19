@@ -71,9 +71,11 @@ class cDecoder {
         int GetIFrameCount();
         bool isInterlacedVideo();
         int GetIFrameRangeCount(int beginFrame, int endFrame);
+        int GetIFrameAfter(int iFrame);
         int GetIFrameBefore(int iFrame);
         int64_t GetTimeFromIFrame(int iFrame);
         int GetIFrameFromOffset(int offset);
+        int GetNextSilence(MarkAdContext *maContext, const int range, const bool start);
     private:
         char *recordingDir = NULL;
         int fileNumber = 0;
@@ -83,15 +85,15 @@ class cDecoder {
         AVFrame *avFrame = NULL;
         AVCodec *codec = NULL;
         AVCodecContext **codecCtxArray = NULL;
-        int framenumber=-1;
-        int iFrameCount=0;
-        int64_t pts_time_ms_LastFile=0;
-        int64_t pts_time_ms_LastRead=0;
+        int framenumber = -1;
+        int iFrameCount = 0;
+        int64_t pts_time_ms_LastFile = 0;
+        int64_t pts_time_ms_LastRead = 0;
         int diff_ms_usual = 0;
         struct iFrameInfo {
-            int fileNumber=0;
-            int iFrameNumber=0;
-            int64_t pts_time_ms=0;
+            int fileNumber = 0;
+            int iFrameNumber = 0;
+            int64_t pts_time_ms = 0;
         };
         std::vector<iFrameInfo> iFrameInfoVector;
         struct structFrameData {
@@ -99,9 +101,10 @@ class cDecoder {
             uchar *Plane[PLANES] = {};  // picture planes (YUV420)
             int PlaneLinesize[PLANES] = {}; // size int bytes of each picture plane line
         } iFrameData;
-        bool msgDecodeFile=true;
-        bool msgGetFrameInfo=true;
-        int interlaced_frame=-1;
-        bool stateEAGAIN=false;
+        bool msgDecodeFile = true;
+        bool msgGetFrameInfo = true;
+        int interlaced_frame = -1;
+        bool stateEAGAIN = false;
+        int GetFirstMP2AudioStream();
 };
 #endif

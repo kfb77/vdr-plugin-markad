@@ -70,9 +70,10 @@ class cMarkAdStandalone {
         int MaxFiles = 0;
         int lastiframe = 0;
         int iframe = 0;
-        int framecnt1 = 0;  // 1nd pass
-        int framecnt2 = 0; // 2nd pass
-        int framecnt3 = 0; // 3nd pass (cut recording)
+        int framecnt1 = 0; // 1nd pass (detect marks)
+        int framecnt2 = 0; // 2nd pass (overlap)
+        int framecnt3 = 0; // 3nd pass (silence)
+        int framecnt4 = 0; // 3nd pass (cut)
         bool gotendmark = false;
         int waittime = 0;
         int iwaittime = 0;
@@ -279,6 +280,7 @@ class cMarkAdStandalone {
         }
         void Process_cDecoder();
         void Process2ndPass();
+        void Process3ndPass();
         void MarkadCut();
 #if defined CLASSIC_DECODER
         void Process();

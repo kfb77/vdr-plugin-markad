@@ -182,7 +182,7 @@ bool cDecoder::DecodeFile(const char * filename) {
             }
         }
 
-        if (msgDecodeFile) dsyslog("cDecoder::DecodeFile(): using decoder for stream %i: %s", streamIndex, codec->long_name);
+        if (msgDecodeFile) dsyslog("cDecoder::DecodeFile(): using decoder for stream %i: codec id %i %s", streamIndex, codec_id, codec->long_name);
         codecCtxArray[streamIndex]=avcodec_alloc_context3(codec);
         if (!codecCtxArray[streamIndex]) {
             dsyslog("cDecoder::DecodeFile(): avcodec_alloc_context3 failed");
@@ -827,6 +827,22 @@ int cDecoder::GetIFrameRangeCount(int beginFrame, int endFrame) {
 }
 
 
+int cDecoder::GetIFrameAfter(int iFrame) {
+    if (iFrameInfoVector.empty()) {
+        dsyslog("cDecoder::GetIFrameAfter(): iFrame Index not initialized");
+        return 0;
+    }
+
+    for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
+        if (iInfo->iFrameNumber >= iFrame) {
+            return iInfo->iFrameNumber;
+        }
+    }
+    dsyslog("cDecoder::GetIFrameAfter(): failed for frame (%d)", iFrame);
+    return 0;
+}
+
+
 int cDecoder::GetIFrameBefore(int iFrame) {
     if (iFrameInfoVector.empty()) {
         dsyslog("cDecoder::GetIFrameBefore(): iFrame Index not initialized");
@@ -879,11 +895,78 @@ int64_t cDecoder::GetTimeFromIFrame(int iFrame) {
 
 
 int cDecoder::GetIFrameFromOffset(int offset_ms) {
-    if (iFrameInfoVector.empty()) dsyslog(")cDecoder::GetIFrameFromOffset: iFrame Index not initialized");
+    if (iFrameInfoVector.empty()) dsyslog("cDecoder::GetIFrameFromOffset: iFrame Index not initialized");
     int iFrameBefore = 0;
     for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
         if (iInfo->pts_time_ms > offset_ms) return iFrameBefore;
         iFrameBefore = iInfo->iFrameNumber;
     }
     return iFrameBefore;  // return last frame if offset is not in recording, needed for VPS stopped recordings
+}
+
+
+int cDecoder::GetFirstMP2AudioStream() {
+    for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
+        AVCodecID codec_id = avctx->streams[streamIndex]->codecpar->codec_id;
+#else
+        AVCodecID codec_id = avctx->streams[streamIndex]->codec->codec_id;
+#endif
+        if (codec_id == AV_CODEC_ID_MP2) return streamIndex;
+    }
+    return -1;
+}
+
+
+int cDecoder::GetNextSilence(MarkAdContext *maContext, const int range, const bool start) {
+#define SILENCE_LEVEL 10
+#define SILENCE_COUNT 4
+    int silenceCount = 0;
+    int silenceFrame = 0;
+    int streamIndex = GetFirstMP2AudioStream();
+    if (streamIndex < 0) {
+        dsyslog("cDecoder::GetNextSilence(): could not get stream index of MP2 audio stream");
+        return 0;
+    }
+    dsyslog("cDecoder::GetNextSilence(): using stream index %i", streamIndex);
+    int startFrame = GetFrameNumber();
+    while (GetFrameNumber() < startFrame + (range * maContext->Video.Info.FramesPerSecond)) {
+        GetNextFrame();
+        if (avpkt.stream_index != streamIndex) continue;
+        if (isAudioPacket()) {
+            AVFrame *audioFrame = DecodePacket(avctx, &avpkt);
+            if (audioFrame) {
+                if (audioFrame->format == AV_SAMPLE_FMT_S16P) {
+                    int level = 0;
+                    for (int channel = 0; channel < audioFrame->channels; channel++) {
+                        int16_t *samples = reinterpret_cast<int16_t*>(audioFrame->data[channel]);
+                        for (int sample = 0; sample < audioFrame->nb_samples; sample++) {
+                            level += abs(samples[sample]);
+                        }
+                    }
+                    int normLevel =  level / audioFrame->nb_samples / audioFrame->channels;
+                    if (normLevel <= SILENCE_LEVEL) {
+                        silenceCount++;
+                        if (silenceFrame == 0) silenceFrame = GetFrameNumber();
+                        dsyslog("cDecoder::GetNextSilence(): stream %i frame (%i) level %i silenceCount %i", avpkt.stream_index, GetFrameNumber(), normLevel, silenceCount);
+                        if (silenceCount >= SILENCE_COUNT) {
+                            dsyslog("cDecoder::GetNextSilence(): found silence in stream %i at frame (%i)", avpkt.stream_index, silenceFrame);
+                            if (start) silenceFrame = GetIFrameAfter(silenceFrame);
+                            else silenceFrame = GetIFrameBefore(silenceFrame);
+                            break;
+                        }
+                    }
+                    else {
+                        silenceCount = 0;
+                        silenceFrame = 0;
+                    }
+                }
+                else {
+                    dsyslog("cDecoder::GetNextSilence(): stream %i frame %i sample format not supported %s", avpkt.stream_index, GetFrameNumber(), av_get_sample_fmt_name((enum AVSampleFormat) audioFrame->format));
+                    return 0;
+                }
+            }
+        }
+    }
+    return silenceFrame;
 }
