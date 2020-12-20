@@ -44,7 +44,7 @@ bool cMarkAdStreamInfo::FindAC3AudioInfos(MarkAdContext *maContext, uchar *espkt
     };
 #pragma pack()
     if ((!maContext) || (!espkt)) return false;
-    if (eslen < static_cast<int> sizeof(struct AC3HDR)) return false;
+    if (eslen < static_cast<int>(sizeof(struct AC3HDR))) return false;
 
     struct AC3HDR *ac3hdr = (struct AC3HDR *) espkt;
 

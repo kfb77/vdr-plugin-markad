@@ -179,7 +179,7 @@ class cMarkAdStandalone {
         };
 #pragma pack()
 
-        AvPacket pkt = {0};
+        AvPacket pkt = {};
         int skipped;       // skipped bytes in whole file
         struct ES_DESCRIPTOR {
             unsigned Descriptor_Tag: 8;

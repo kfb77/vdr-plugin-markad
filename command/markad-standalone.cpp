@@ -3638,7 +3638,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         } while (pos == (off_t) -2);
 
         if (!CheckPATPMT(pos)) {
-            esyslog("no PAT/PMT found (%i) -> cannot process", static_cast<int> pos);
+            esyslog("no PAT/PMT found (%i) -> cannot process", static_cast<int>(pos));
             abortNow = true;
             return;
         }

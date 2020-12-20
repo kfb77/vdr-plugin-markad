@@ -515,7 +515,7 @@ void clMarks::WriteIndex(bool isTS, uint64_t Offset, int FrameType, int Number) 
     }
     else {
         struct tIndexVDR IndexVDR;
-        IndexVDR.offset = static_cast<int> Offset;
+        IndexVDR.offset = static_cast<int>(Offset);
         IndexVDR.type = (unsigned char) FrameType;
         IndexVDR.number = (unsigned char) Number;
         IndexVDR.reserved = 0;
