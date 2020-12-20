@@ -1963,6 +1963,7 @@ void cMarkAdStandalone::MarkadCut() {
         esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
         return;
     }
+    int stopPosition = ptr_cDecoder->GetIFrameBefore(StopMark->position);
     ptr_cEncoder = new cEncoder(macontext.Config->threads, macontext.Config->ac3ReEncode);
     ALLOC(sizeof(*ptr_cEncoder), "ptr_cEncoder");
     if (!ptr_cEncoder->OpenFile(directory, ptr_cDecoder)) {
@@ -1975,7 +1976,7 @@ void cMarkAdStandalone::MarkadCut() {
     while(ptr_cDecoder->DecodeDir(directory)) {
         while(ptr_cDecoder->GetNextFrame()) {
             if  (ptr_cDecoder->GetFrameNumber() < StartMark->position) ptr_cDecoder->SeekToFrame(StartMark->position);
-            if  (ptr_cDecoder->GetFrameNumber() > StopMark->position) {
+            if  (ptr_cDecoder->GetFrameNumber() > stopPosition) {
                 if (StopMark->Next() && StopMark->Next()->Next()) {
                     StartMark = StopMark->Next();
                     if (((StartMark->type & 0x0F) != MT_START) && (StartMark->type != MT_MOVED)) {
@@ -1987,6 +1988,7 @@ void cMarkAdStandalone::MarkadCut() {
                         esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
                         return;
                     }
+                    stopPosition = ptr_cDecoder->GetIFrameBefore(StopMark->position);
                 }
                 else break;
             }
