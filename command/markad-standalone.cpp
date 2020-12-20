@@ -2808,6 +2808,7 @@ bool cMarkAdStandalone::isVPSTimer() {
     mf = fopen(fpath, "r");
     if (!mf) {
         dsyslog("cMarkAdStandalone::isVPSTimer(): %s not found", fpath);
+        FREE(strlen(fpath)+1, "fpath");
         free(fpath);
         return false;
     }
