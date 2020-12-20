@@ -298,6 +298,10 @@ bool cMarkAdLogo::ReduceBrightness(const int framenumber) {
     }
     contrast = contrast * 1000 / ((xend - xstart) * (yend - ystart));
     tsyslog("cMarkAdLogo::ReduceBrightness(): framenumber (%d) brightness %d contrast %d", framenumber, brightness, contrast);
+    if ((area.status == LOGO_VISIBLE) && (brightness == 0) && (contrast == 0)) {  // empty separation picture
+        tsyslog("cMarkAdLogo::ReduceBrightness(): framenumber (%d) is a empty separation picture", framenumber);
+        return true;
+    }
     if ((brightness < 1) || (contrast < 1) || (contrast > 965)) {  // no valid picture after change
         tsyslog("cMarkAdLogo::ReduceBrightness(): framenumber (%d) not valid", framenumber);
         return false;
