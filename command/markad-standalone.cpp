@@ -3118,8 +3118,7 @@ bool cMarkAdStandalone::LoadInfo() {
                 }
                 if (tStart < 0) {
                     if (length+tStart > 0) {
-                        isyslog("missed broadcast start by %d:%02d min or VPS controlled recording start", -tStart / 60, -tStart % 60);
-                        dsyslog("cMarkAdStandalone::LoadInfo(): length will be corrected");
+                        isyslog("missed broadcast start by %d:%02d min, length will be corrected", -tStart / 60, -tStart % 60);
                         startTime = rStart;
                         length += tStart;
                     }
