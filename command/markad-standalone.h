@@ -99,8 +99,10 @@ class cMarkAdStandalone {
         char *indexFile = NULL;
         int sleepcnt = 0;
         clMarks marks;
+	cDecoder *ptr_cDecoderLogoChange = NULL;
 
         void CheckStop();
+        void RemoveLogoChangeMarks();
         void CheckStart();
         void CalculateCheckPositions(int startframe);
         bool isVPSTimer();

@@ -799,7 +799,7 @@ bool cExtractLogo::CompareLogoPairRotating(logoInfo *logo1, logoInfo *logo2, con
 }
 
 
-bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner) {
+bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0, int match12, int *rate0) {
     if (!logo1) return false;
     if (!logo2) return false;
     if ((corner < 0) || (corner >= CORNERS)) return false;
@@ -825,16 +825,21 @@ bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2,
     else rate_0 = 0;
     rate_1_2 = 1000 * similar_1_2 / (logoHeight * logoWidth) * 2;
 
-#define MINMATCH_0 800  // reduced from 890 to 870 to 860 to 800
-#define MINMATCH_1_2 980  // reduced from 985 to 980
-    if ((rate_0 > MINMATCH_0) && (rate_1_2 > MINMATCH_1_2)) { // reduced from 890 to 870
+    if (rate0) *rate0 = rate_0;
+
+#define MINMATCH0 800   // reduced from 890 to 870 to 860 to 800
+#define MINMATCH12 980  // reduced from 985 to 980
+    if (match0 == 0) match0 = MINMATCH0;
+    if (match12 == 0) match12 = MINMATCH12;
+
+    if ((rate_0 > match0) && (rate_1_2 > match12)) {
 #ifdef DEBUG_LOGO_CORNER
-        if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ++++ frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d)", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, MINMATCH_0, rate_1_2, MINMATCH_1_2);  // only for debug
+        if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ++++ frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d)", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, match0, rate_1_2, match12);  // only for debug
 #endif
         return true;
     }
 #ifdef DEBUG_LOGO_CORNER
-if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ---- frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d) ", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, MINMATCH_0, rate_1_2, MINMATCH_1_2);
+if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ---- frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d) ", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, match0, rate_1_2, match12);
 #endif
     return false;
 }
@@ -1463,4 +1468,189 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
         if (iFrameNumber > 0) return iFrameNumber;
         else return -1;
     }
+}
+
+
+// check if part of recording between frame <stopPos> and start <startPos> is a logo change part of the recording
+// some channels play with changes of the logo in the recording
+//
+// return: true  if the given part is detected as logo change part
+//         false if not
+//
+bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPos, const int startPos) {
+    if (!maContext) return false;
+    if (!ptr_cDecoder) return false;
+    if (startPos <= stopPos) return false;
+
+    bool status = true;
+    int count = 0;
+    int noMatchStart = 0;
+    int noMatchEnd = 0;
+    int matchLow = 0;
+    int matchVeryLow = 0;
+    int matchHigh = 0;
+    int matchHighStatus = 0;  // 0 unknown, 1 got matches, 2 got at least one no match, 3 got at least one match again
+    int continuousDiff = 0;
+    int tmpContinuousDiff = 0;
+
+    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext);
+    ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
+    areaT *area = ptr_Logo->GetArea();
+    logoInfo *logo1 = new logoInfo;
+    ALLOC(sizeof(*logo1), "logo");
+
+    MarkAdContext maContextSaveState = {};
+    maContextSaveState.Video = maContext->Video;     // save state of calling video context
+    maContextSaveState.Audio = maContext->Audio;     // save state of calling audio context
+
+    int logoHeight = 0;
+    int logoWidth = 0;
+    SetLogoSize(maContext, &logoHeight, &logoWidth);
+
+    dsyslog("cExtractLogo::isLogoChange(): check logo stop mark             (%5i) to logo start mark (%5i)", stopPos, startPos);
+    dsyslog("cExtractLogo::isLogoChange(): compare frames from iFrame after (%5i) to iFrame before   (%5i)", stopPos, startPos);
+
+    if (!ptr_cDecoder->SeekToFrame(maContext, stopPos)) {
+        dsyslog("cExtractLogo::isLogoChange(): >SeekToFrame (%d) failed", stopPos);
+        status = false;
+    }
+    while ((ptr_cDecoder->GetFrameNumber() < startPos) && status){
+        if (!ptr_cDecoder->GetNextFrame()) {
+            dsyslog("cExtractLogo::isLogoChange(): GetNextFrame() failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
+            status = false;
+        }
+        int frameNumber =  ptr_cDecoder->GetFrameNumber();
+        if (!ptr_cDecoder->isVideoPacket()) continue;
+        if (!ptr_cDecoder->GetFrameInfo(maContext)) {
+            if (ptr_cDecoder->isVideoIFrame()) // if we have interlaced video this is expected, we have to read the next half picture
+                tsyslog("cExtractLogo::isLogoChange(): GetFrameInfo() failed at frame (%d)", frameNumber);
+            continue;
+        }
+        if (ptr_cDecoder->isVideoIFrame()) {
+            if (!maContext->Video.Data.Valid) {
+                dsyslog("cExtractLogo::isLogoChange(): faild to get video data of frame (%d)", frameNumber);
+                continue;
+            }
+            area->corner = maContext->Video.Logo.corner;
+            int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
+                                        //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
+#ifdef DEBUG_LOGO_CHANGE
+            iFrameNumberNext = -2;
+#endif
+            ptr_Logo->Detect(frameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
+
+            logoInfo *logo2 = new logoInfo;
+            ALLOC(sizeof(*logo2), "logo");
+            logo2->iFrameNumber = frameNumber;
+            memcpy(logo2->sobel, area->sobel, sizeof(area->sobel));
+
+#define RATE_0_HIGH_MIN    820  // changed from 850 to 820
+#define RATE_0_LOW_MIN     250  // reduced from 350 to 290 to 250
+#define RATE_0_VERYLOW_MAX  12  // changed from 0 to 12
+#define RATE_12_MIN        950
+
+            if (logo1->iFrameNumber >= 0) {  // we have a logo pair
+                count++;
+                int rate0 = 0;
+                if (CompareLogoPair(logo1, logo2, logoHeight, logoWidth, area->corner, RATE_0_LOW_MIN, RATE_12_MIN, &rate0)) {
+                    matchLow++;
+                    if (rate0 >= RATE_0_HIGH_MIN) {
+                        matchHigh++;
+                        if (matchHighStatus == 0) matchHighStatus = 1;  // unknown -> match
+                        if (matchHighStatus == 2) matchHighStatus = 3;  // no match -> match
+                    }
+                    tmpContinuousDiff = 0;
+                    noMatchEnd = 0;
+                    tsyslog("cExtractLogo::isLogoChange(): corner %d frame (%5d) and frame (%5d) is similar,   rate %4d (low %d, high %d)", area->corner, logo1->iFrameNumber, logo2->iFrameNumber, rate0, RATE_0_LOW_MIN, RATE_0_HIGH_MIN);
+                }
+                else {
+                    if (matchHighStatus == 1) matchHighStatus = 2;  // match -> no match
+                    if (matchLow == 0) noMatchStart++;
+                    else noMatchEnd++;
+                    if (rate0 <= RATE_0_VERYLOW_MAX) matchVeryLow++;
+                    tmpContinuousDiff++;
+                    tsyslog("cExtractLogo::isLogoChange(): corner %d frame (%5d) and frame (%5d) is different, rate %4d (low %d, high %d)", area->corner, logo1->iFrameNumber, logo2->iFrameNumber, rate0, RATE_0_LOW_MIN, RATE_0_HIGH_MIN);
+                }
+                if (tmpContinuousDiff > continuousDiff) continuousDiff = tmpContinuousDiff;
+            }
+            FREE(sizeof(*logo1), "logo");
+            delete logo1;
+            logo1 = logo2;
+        }
+    }
+#define MAX_QUOTE_CONTINUOUS_DIFF      45  // do not increase, found preview before broascast with 46%
+#define MAX_QUOTE_DIFFERENT_START      25  // do not reduce, found logo change with quote 25
+#define MAX_QUOTE_DIFFERENT_START_STOP 38  // changed from 50 to 40 to 38
+#define MAX_QUOTE_HIGH                 84  // do not reduce, found logo change with quoteHigh 84 #define RATE_0_HIGH_MIN 850
+#define MIN_QUOTE_LOW                  50  // do not reduce this, logo change parts has at least a match of 50 with RATE_0_LOW_MIN 290
+#define MAX_QUOTE_VERYLOW              34  // change from 40 to 34
+
+// log status
+    int quoteContinuousDiff = 0;
+    if (count > 0) quoteContinuousDiff = 100 * continuousDiff / count;
+    dsyslog("cExtractLogo::isLogoChange(): %4d continuous different, of %d frames, quote %d%% (expect <=%d)", continuousDiff, count, quoteContinuousDiff, MAX_QUOTE_CONTINUOUS_DIFF);
+
+    int quoteInvalid_Start = 0;
+    if (count) quoteInvalid_Start = 100 * noMatchStart / count;
+    dsyslog("cExtractLogo::isLogoChange(): %4d different at start, of %d frames, quote %d%% (expect <=%d)", noMatchStart, count, quoteInvalid_Start, MAX_QUOTE_DIFFERENT_START);
+    int quoteInvalid_StartEnd = 0;
+    if (count) quoteInvalid_StartEnd = 100 * (noMatchStart + noMatchEnd) / count;
+    dsyslog("cExtractLogo::isLogoChange(): %4d different at start, %d different at end, of %d frames, quote %i%% (expect <=%d)", noMatchStart, noMatchEnd, count, quoteInvalid_StartEnd, MAX_QUOTE_DIFFERENT_START_STOP);
+
+    int validCount = count - noMatchStart - noMatchEnd;
+    int quoteHigh = 0;
+    if (validCount > 0) quoteHigh = 100 * matchHigh / validCount;
+    dsyslog("cExtractLogo::isLogoChange(): %4d high matches (>=%d), %d different at start, %d different at end, of %d inner frames, quote high match %i%% (expect < %d)", matchHigh, RATE_0_HIGH_MIN, noMatchStart, noMatchEnd, validCount, quoteHigh, MAX_QUOTE_HIGH);
+
+    int quoteVeryLow = 0;
+    if (validCount > 0) quoteVeryLow = 100 * matchVeryLow / validCount;
+    dsyslog("cExtractLogo::isLogoChange(): %4d very low matches (<=%d) of %d all frames, quote very low match %d%% (expext <=%d)", matchVeryLow, RATE_0_VERYLOW_MAX, count, quoteVeryLow, MAX_QUOTE_VERYLOW);
+
+    int quoteLow = 0;
+    if (validCount > 0) quoteLow = 100 * matchLow / validCount;
+    dsyslog("cExtractLogo::isLogoChange(): %4d similars     (>=%d), %d different at start, %d different at end, of %d valid frames, quote %d%% (%d)", matchLow, RATE_0_LOW_MIN, noMatchStart, noMatchEnd, validCount, quoteLow, MIN_QUOTE_LOW);
+
+// check status
+    // check quote of continuous different frames
+    if (quoteContinuousDiff > MAX_QUOTE_CONTINUOUS_DIFF) {
+        dsyslog("cExtractLogo::isLogoChange(): to much continuous different logos %d, quote %d%% (expect <=%d), no static new logo found, keep marks", continuousDiff, quoteContinuousDiff, MAX_QUOTE_CONTINUOUS_DIFF);
+        status = false;
+    }
+    // different frames at start
+    if (quoteInvalid_Start > MAX_QUOTE_DIFFERENT_START) {
+        dsyslog("cExtractLogo::isLogoChange(): to much different logos at start, quote %d%% (expect <=%d), this is the part between last preview and broadcast start, keep marks", quoteInvalid_Start, MAX_QUOTE_DIFFERENT_START);
+        status = false;
+    }
+
+    // different frames at start and end
+    // normal logo -> logo changes -> fix different logo -> logo changes -> normal logo is valid
+    if (quoteInvalid_StartEnd > MAX_QUOTE_DIFFERENT_START_STOP) {
+        if (quoteLow < 100) {
+            dsyslog("cExtractLogo::isLogoChange(): to much different logos at start and end, not all logo in between are similar, keep marks");
+            status = false;
+        }
+        else dsyslog("cExtractLogo::isLogoChange(): %2d differnt logo at start and end, quote %d%% (expect <=%d), but all logo in between are similar, this could be a logo change", noMatchStart + noMatchEnd, quoteInvalid_StartEnd, MAX_QUOTE_DIFFERENT_START_STOP);
+    }
+    if (quoteHigh > MAX_QUOTE_HIGH) {
+        dsyslog("cExtractLogo::isLogoChange(): quote high match %d%% (expect < %d), closing credits detected, keep marks", quoteHigh, MAX_QUOTE_HIGH);
+        status = false;
+    }
+    if (quoteVeryLow > MAX_QUOTE_VERYLOW) {
+        dsyslog("cExtractLogo::isLogoChange(): to much very low matches, quote %d (expext <=%d), keep marks", quoteVeryLow, MAX_QUOTE_VERYLOW);
+        status = false;
+    }
+
+    if (quoteLow < MIN_QUOTE_LOW) {
+        dsyslog("cExtractLogo::isLogoChange(): keep marks");
+        status = false;
+    }
+
+    FREE(sizeof(*ptr_Logo), "ptr_Logo");
+    delete ptr_Logo;
+    FREE(sizeof(*logo1), "logo");
+    delete logo1;
+
+    maContext->Video = maContextSaveState.Video;     // restore state of calling video context
+    maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
+    return status;
 }

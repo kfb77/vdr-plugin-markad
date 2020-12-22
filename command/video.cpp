@@ -139,6 +139,9 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
         LOGOWIDTH = width;
         LOGOHEIGHT = height;
     }
+    macontext->Video.Logo.corner = area.corner;
+    macontext->Video.Logo.height = LOGOHEIGHT;
+    macontext->Video.Logo.width = LOGOWIDTH;
 
     area.valid[plane] = true;
     return 0;
