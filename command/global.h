@@ -181,6 +181,12 @@ typedef struct MarkAdContext {
             bool hasBorder = false;
         } Info;
 
+	struct Logo {
+	    int width = 0;  // width of logo
+	    int height = 0;  // height of logo
+	    int corner = -1;  // corner of logo
+	} Logo;
+
         struct Data {
             bool Valid; // flag, if true data is valid
             uchar *Plane[PLANES];  // picture planes (YUV420)
