@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2020-12-24: Version 2.5.0
+- add new feature: detect audio silence to optimize logo marks
+- detect empty picture as separation picture for a logo stop mark
+- some minor bug fixes and optimizations, see git
+
 2020-12-17: Version 2.4.4
 - add support of VPS controlled timer
 - some minor bug fixes and optimizations, see git
