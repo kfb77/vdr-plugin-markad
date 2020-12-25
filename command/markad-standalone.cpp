@@ -764,7 +764,8 @@ void cMarkAdStandalone::CheckStart() {
             if (vStop) {
                 clMark *vNextStart = marks.GetNext(vStop->position, MT_VBORDERSTART);
                 int markDiff = static_cast<int> (vStop->position - vStart->position) / macontext.Video.Info.FramesPerSecond;
-                if ((markDiff < 60) ||    // reduced from 90 to 35 increased to 60
+                dsyslog("cMarkAdStandalone::CheckStart(): vertical border stop found at (%d), %ds after vertical border start", vStop->position, markDiff);
+                if ((markDiff < 70) ||    // reduced from 90 to 35 increased to 60 increased to 70
                    ((lastiframe > iStopA) && !vNextStart)) {  // we have only start/stop vborder in start part, this is the opening or closing credits
                     isyslog("vertical border STOP at (%d) %ds after vertical border START (%i) in start part found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
                     marks.Del(vStop);
