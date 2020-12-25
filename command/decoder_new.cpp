@@ -392,19 +392,30 @@ AVPacket *cDecoder::GetPacket() {
 }
 
 
-bool cDecoder::SeekToFrame(int frame) {
-    if (!avctx) return false;
+bool cDecoder::SeekToFrame(MarkAdContext *maContext, int frame) {
     dsyslog("cDecoder::SeekToFrame(): (%d)", frame);
+    if (!avctx) return false;
+    if (!maContext) return false;
     if (framenumber > frame) {
         dsyslog("cDecoder::SeekToFrame(): could not seek backward");
         return false;
     }
+
+    // flush decoder buffer
+    int iFrameBefore = GetIFrameBefore(frame);
+    for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
+        if (codecCtxArray[streamIndex]) {
+            avcodec_flush_buffers(codecCtxArray[streamIndex]);
+        }
+    }
     while (framenumber < frame) {
-        if (!this->GetNextFrame())
+        if (!this->GetNextFrame()) {
             if (!this->DecodeDir(recordingDir)) {
                 dsyslog("cDecoder::SeekFrame(): failed for frame (%d) at frame (%d)", frame, framenumber);
                 return false;
+            }
         }
+        if (framenumber >= iFrameBefore) GetFrameInfo(maContext);  // preload decoder buffer for interleaved codec
     }
     dsyslog("cDecoder::SeekToFrame(): successful");
     return true;

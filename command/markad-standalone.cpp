@@ -1817,7 +1817,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
-    if (!ptr_cDecoder->SeekToFrame(fRangeBegin)) {
+    if (!ptr_cDecoder->SeekToFrame(&macontext, fRangeBegin)) {
         esyslog("could not seek to frame (%i)", fRangeBegin);
         return false;
     }
@@ -1860,7 +1860,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
-    if (!ptr_cDecoder->SeekToFrame(fRangeBegin)) {
+    if (!ptr_cDecoder->SeekToFrame(&macontext, fRangeBegin)) {
         esyslog("could not seek to frame (%d)", fRangeBegin);
         return false;
     }
@@ -1975,7 +1975,7 @@ void cMarkAdStandalone::MarkadCut() {
     }
     while(ptr_cDecoder->DecodeDir(directory)) {
         while(ptr_cDecoder->GetNextFrame()) {
-            if  (ptr_cDecoder->GetFrameNumber() < StartMark->position) ptr_cDecoder->SeekToFrame(StartMark->position);
+            if  (ptr_cDecoder->GetFrameNumber() < StartMark->position) ptr_cDecoder->SeekToFrame(&macontext, StartMark->position);
             if  (ptr_cDecoder->GetFrameNumber() > stopPosition) {
                 if (StopMark->Next() && StopMark->Next()->Next()) {
                     StartMark = StopMark->Next();
@@ -2048,7 +2048,7 @@ void cMarkAdStandalone::Process3ndPass() {
             free(indexToHMSF);
         }
         if (mark->type == MT_LOGOSTART) {
-            if (!ptr_cDecoder->SeekToFrame(mark->position - (silenceRange * macontext.Video.Info.FramesPerSecond))) {
+            if (!ptr_cDecoder->SeekToFrame(&macontext, mark->position - (silenceRange * macontext.Video.Info.FramesPerSecond))) {
                 esyslog("could not seek to frame (%i)", mark->position);
                 return;
             }
@@ -2081,13 +2081,13 @@ void cMarkAdStandalone::Process3ndPass() {
             }
         }
         if (mark->type == MT_LOGOSTOP) {
-            if (!ptr_cDecoder->SeekToFrame(mark->position - (silenceRange * macontext.Video.Info.FramesPerSecond))) {
+            if (!ptr_cDecoder->SeekToFrame(&macontext, mark->position - (silenceRange * macontext.Video.Info.FramesPerSecond))) {
                 esyslog("could not seek to frame (%i)", mark->position);
                 return;
             }
             int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, silenceRange, true);
             if (beforeSilence != 0) dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo stop mark (%i) at iFrame (%i)", mark->position, beforeSilence);
-            if (!ptr_cDecoder->SeekToFrame(mark->position)) {
+            if (!ptr_cDecoder->SeekToFrame(&macontext, mark->position)) {
                 esyslog("could not seek to frame (%i)", mark->position);
                 return;
             }

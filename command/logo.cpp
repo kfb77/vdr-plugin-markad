@@ -1139,7 +1139,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                             dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() for startFrame %d failed", startFrame);
                             retStatus = false;
                         }
-                        if (!ptr_cDecoder->SeekToFrame(startFrame)) {
+                        if (!ptr_cDecoder->SeekToFrame(maContext, startFrame)) {
                             dsyslog("cExtractLogo::SearchLogo(): seek to startFrame %d failed", startFrame);
                             retStatus = false;
                         }
