@@ -33,7 +33,7 @@
 
 // debug vborder detection
 // #define DEBUG_VBORDER
-//
+
 // debug hborder detection
 // #define DEBUG_HBORDER
 

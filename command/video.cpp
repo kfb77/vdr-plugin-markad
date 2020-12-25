@@ -297,13 +297,17 @@ bool cMarkAdLogo::ReduceBrightness(const int framenumber) {
         }
     }
     contrast = contrast * 1000 / ((xend - xstart) * (yend - ystart));
-    tsyslog("cMarkAdLogo::ReduceBrightness(): framenumber (%d) brightness %d contrast %d", framenumber, brightness, contrast);
+#ifdef DEBUG_LOGO_DETECTION
+    dsyslog("cMarkAdLogo::ReduceBrightness(): framenumber (%d) brightness %d contrast %d", framenumber, brightness, contrast);
+#endif
     if ((area.status == LOGO_VISIBLE) && (brightness == 0) && (contrast == 0)) {  // empty separation picture
         tsyslog("cMarkAdLogo::ReduceBrightness(): framenumber (%d) is a empty separation picture", framenumber);
         return true;
     }
     if ((brightness < 1) || (contrast < 1) || (contrast > 965)) {  // no valid picture after change
-        tsyslog("cMarkAdLogo::ReduceBrightness(): framenumber (%d) not valid", framenumber);
+#ifdef DEBUG_LOGO_DETECTION
+        dsyslog("cMarkAdLogo::ReduceBrightness(): framenumber (%d) not valid", framenumber);
+#endif
         return false;
     }
     return true;
@@ -445,25 +449,23 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
     // to very bright pictures, so ignore them...
     if (processed == 1) {
         if ((area.intensity > 110) && (area.intensity < 200) && (rpixel < (mpixel * LOGO_IMARK))) {  // if we found no logo try to reduce brightness, if we are to bright, this will not work, reduced from 120 to 110
-            tsyslog("cMarkAdLogo::Detect(): frame (%6d) to bright,     area intensity %d", framenumber, area.intensity);
+#ifdef DEBUG_LOGO_DETECTION
+            dsyslog("cMarkAdLogo::Detect(): frame (%6d) to bright,     area intensity %d", framenumber, area.intensity);
+#endif
             if (ReduceBrightness(framenumber)) {
                 area.rpixel[0] = 0;
                 rpixel = 0;
                 mpixel = 0;
                 SobelPlane(0);
-                tsyslog("cMarkAdLogo::Detect(): frame (%6d) corrected, new area intensity %d", framenumber, area.intensity);
                 rpixel += area.rpixel[0];
                 mpixel += area.mpixel[0];
 #ifdef DEBUG_LOGO_DETECTION
+                dsyslog("cMarkAdLogo::Detect(): frame (%6d) corrected, new area intensity %d", framenumber, area.intensity);
                 dsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
 #endif
 #ifdef DEBUG_FRAME_CORNER
                 if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200)) SaveFrameCorner(framenumber, 3);
-#endif
-#ifdef DEBUG_FRAME_CORNER
-                if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200)) {
-                    Save(framenumber, area.sobel, 0, 2);
-                }
+                if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200)) Save(framenumber, area.sobel, 0, 2);
 #endif
             }
         }
