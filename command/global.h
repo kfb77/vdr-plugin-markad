@@ -67,6 +67,7 @@
 
 
 typedef struct config {
+    char logFile[20] = {};
     char logoDirectory[1024];
     char LogoDir[1024];
     char markFileName[1024];

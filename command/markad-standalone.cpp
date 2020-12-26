@@ -3635,9 +3635,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
     if (LOG2REC) {
         char *fbuf;
-        if (asprintf(&fbuf, "%s/markad.log", directory) != -1) {
+        if (asprintf(&fbuf, "%s/%s", directory, config->logFile) != -1) {
             ALLOC(strlen(fbuf)+1, "fbuf");
-            if (freopen(fbuf, "w+",stdout)) {};
+            if (freopen(fbuf, "w+", stdout)) {};
             SetFileUID(fbuf);
             FREE(strlen(fbuf)+1, "fbuf");
             free(fbuf);
@@ -4027,6 +4027,8 @@ int usage(int svdrpport) {
            "                  markad sends an OSD-Message for start and end\n"
            "-R              --log2rec\n"
            "                  write logfiles into recording directory\n"
+           "                --logfile=<filename>\n"
+           "                  logfile name (default: markad.log)\n"
            "-T              --threads=<number>\n"
            "                  number of threads used for decoding, max. 16\n"
            "                  (default is the number of cpus)\n"
@@ -4219,6 +4221,7 @@ int main(int argc, char *argv[]) {
             {"ac3reencode",0,0,13},
             {"autologo",1,0,14},
             {"vps",0,0,15},
+            {"logfile",1,0,16},
 
             {0, 0, 0, 0}
         };
@@ -4371,7 +4374,7 @@ int main(int argc, char *argv[]) {
                 printf ("\n");
                 break;
             case 1: // --markfile
-                strncpy(config.markFileName,optarg, sizeof(config.markFileName));
+                strncpy(config.markFileName, optarg, sizeof(config.markFileName));
                 config.markFileName[sizeof(config.markFileName) - 1] = 0;
                 break;
             case 2: // --loglevel
@@ -4456,6 +4459,10 @@ int main(int argc, char *argv[]) {
             case 15: // --vps
                 config.useVPS = true;
                 break;
+            case 16: // --logfile
+                strncpy(config.logFile, optarg, sizeof(config.logFile));
+                config.logFile[sizeof(config.logFile) - 1] = 0;
+                break;
             default:
                 printf ("? getopt returned character code 0%o ? (option_index %d)\n", option,option_index);
         }
@@ -4487,6 +4494,12 @@ int main(int argc, char *argv[]) {
             }
             optind++;
         }
+    }
+
+    // set defaults
+    if (config.logFile[0] == 0) {
+        strncpy(config.logFile, "markad.log", sizeof(config.logFile));
+        config.logFile[sizeof("markad.log") - 1] = 0;
     }
 
     // do nothing if called from vdr before/after the video is cutted
