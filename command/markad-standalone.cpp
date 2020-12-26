@@ -2051,7 +2051,7 @@ void cMarkAdStandalone::Process3ndPass() {
         if (mark->type == MT_LOGOSTART) {
             if (!ptr_cDecoder->SeekToFrame(&macontext, mark->position - (silenceRange * macontext.Video.Info.FramesPerSecond))) {
                 esyslog("could not seek to frame (%i)", mark->position);
-                return;
+                break;
             }
             framecnt3 += silenceRange * macontext.Video.Info.FramesPerSecond;
             int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, silenceRange, true);
@@ -2060,7 +2060,7 @@ void cMarkAdStandalone::Process3ndPass() {
                 char *buf = NULL;
                 char *indexToHMSFBefore = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
                 char *indexToHMSFNewPos = marks.IndexToHMSF(beforeSilence, &macontext, ptr_cDecoder);
-                if (asprintf(&buf,"silence before logo start mark frame (%i) at %s, moved to frame (%i) at %s", mark->position, indexToHMSFBefore, beforeSilence, indexToHMSFNewPos) == -1) return;
+                if (asprintf(&buf,"silence before logo start mark frame (%i) at %s, moved to frame (%i) at %s", mark->position, indexToHMSFBefore, beforeSilence, indexToHMSFNewPos) == -1) break;
                 ALLOC(strlen(buf)+1, "buf");
                 isyslog("%s",buf);
                 clMark *tmpMark = mark->Next();
@@ -2084,13 +2084,13 @@ void cMarkAdStandalone::Process3ndPass() {
         if (mark->type == MT_LOGOSTOP) {
             if (!ptr_cDecoder->SeekToFrame(&macontext, mark->position - (silenceRange * macontext.Video.Info.FramesPerSecond))) {
                 esyslog("could not seek to frame (%i)", mark->position);
-                return;
+                break;
             }
             int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, silenceRange, true);
             if (beforeSilence != 0) dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo stop mark (%i) at iFrame (%i)", mark->position, beforeSilence);
             if (!ptr_cDecoder->SeekToFrame(&macontext, mark->position)) {
                 esyslog("could not seek to frame (%i)", mark->position);
-                return;
+                break;
             }
             int afterSilence = ptr_cDecoder->GetNextSilence(&macontext, silenceRange, false);
             if (afterSilence != 0) dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence after logo stop mark (%i) at iFrame (%i)", mark->position, afterSilence);
@@ -2107,7 +2107,7 @@ void cMarkAdStandalone::Process3ndPass() {
                 char *buf = NULL;
                 char *indexToHMSFBefore = marks.IndexToHMSF(mark->position,&macontext, ptr_cDecoder);
                 char *indexToHMSFNewPos = marks.IndexToHMSF(afterSilence, &macontext, ptr_cDecoder);
-                if (asprintf(&buf,"silence %s logo stop mark frame (%i) at %s, moved to frame (%i) at %s", (before) ? "before" : "after", mark->position, indexToHMSFBefore, afterSilence, indexToHMSFNewPos) == -1) return;
+                if (asprintf(&buf,"silence %s logo stop mark frame (%i) at %s, moved to frame (%i) at %s", (before) ? "before" : "after", mark->position, indexToHMSFBefore, afterSilence, indexToHMSFNewPos) == -1) break;
                 ALLOC(strlen(buf)+1, "buf");
                 isyslog("%s",buf);
                 clMark *tmpMark = mark->Next();
@@ -2131,6 +2131,7 @@ void cMarkAdStandalone::Process3ndPass() {
         mark=mark->Next();
     }
     if (save) marks.Save(directory, &macontext, ptr_cDecoder, isTS, true);
+    return;
 }
 
 
