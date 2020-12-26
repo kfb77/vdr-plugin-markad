@@ -351,6 +351,7 @@ class CheckPath:
                 return(False)
             if actFile == ".timer": continue
             if actFile == "markad.log": continue
+            if actFile == "-markad.log": continue  # ignore test log file
             if actFile == "resume": continue
             if fnmatch.fnmatch(actFile,'000??.ts'):
                 isVideoDir = True
@@ -377,6 +378,8 @@ class CheckPath:
 
             if actFile == "marks":
                 isMarksNotFound = False
+                continue
+            if actFile == "-marks":  # ignore test marks
                 continue
 
             if fnmatch.fnmatch(actFile,'marks_*'):
