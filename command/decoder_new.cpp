@@ -26,8 +26,8 @@ void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_lis
             return;
         }
 #ifdef DEBUG_MEM
-        int lenght = strlen(logMsg) + 1;
-        ALLOC(lenght, "logMsg");
+        int length = strlen(logMsg) + 1;
+        ALLOC(length, "logMsg");
 #endif
 
         if (logMsg[strlen(logMsg) - 1] == '\n') logMsg[strlen(logMsg) - 1] = 0;
@@ -40,7 +40,7 @@ void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_lis
         else dsyslog("AVlog(): %s",logMsg);
 
 #ifdef DEBUG_MEM
-        FREE(lenght, "logMsg");
+        FREE(length, "logMsg");
 #endif
         free(logMsg);
     }

@@ -1045,20 +1045,20 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             if ((mark->Next()->type == MT_LOGOSTOP) && (mark->Next()->position != marks.GetLast()->position)) { // next mark not end mark
                 clMark *stopBefore = marks.GetPrev(mark->position, MT_LOGOSTOP);
                 if (stopBefore) {  // if ad before is long this is the really the next start mark
-                    int lenghtAdBefore = static_cast<int> ((mark->position - stopBefore->position) / macontext.Video.Info.FramesPerSecond);
-                    int lenghtPreview = static_cast<int> ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
-                    if ((lenghtAdBefore > 6) && (lenghtAdBefore <= 585)) {  // if ad before is long this is the really the next start mark, increased from 450 to 455 to 500 to 560 to 585
-                        if ((lenghtPreview >= 2) && lenghtPreview < 110) {  // if logo part is long, this was a start mark
-                            isyslog("found preview of lenght %is between logo mark (%i) and logo mark (%i) in advertisement (lenght %is), deleting marks", lenghtPreview, mark->position, mark->Next()->position, lenghtAdBefore);
+                    int lengthAdBefore = static_cast<int> ((mark->position - stopBefore->position) / macontext.Video.Info.FramesPerSecond);
+                    int lengthPreview = static_cast<int> ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
+                    if ((lengthAdBefore > 6) && (lengthAdBefore <= 585)) {  // if ad before is long this is the really the next start mark, increased from 450 to 455 to 500 to 560 to 585
+                        if ((lengthPreview >= 2) && lengthPreview < 110) {  // if logo part is long, this was a start mark
+                            isyslog("found preview of length %is between logo mark (%i) and logo mark (%i) in advertisement (length %is), deleting marks", lengthPreview, mark->position, mark->Next()->position, lengthAdBefore);
                             clMark *tmp=mark;
                             mark = mark->Next()->Next();
                             marks.Del(tmp->Next());
                             marks.Del(tmp);
                             continue;
                         }
-                        else dsyslog("cMarkAdStandalone::CheckMarks(): no preview between (%i) and (%i), lenght %is not valid",  mark->position, mark->Next()->position, lenghtPreview);
+                        else dsyslog("cMarkAdStandalone::CheckMarks(): no preview between (%i) and (%i), length %is not valid",  mark->position, mark->Next()->position, lengthPreview);
                     }
-                    else dsyslog("cMarkAdStandalone::CheckMarks(): no preview of lenght %is between (%i) and (%i) in advertisement (lenght %is)", lenghtPreview, mark->position, mark->Next()->position, lenghtAdBefore);
+                    else dsyslog("cMarkAdStandalone::CheckMarks(): no preview of length %is between (%i) and (%i) in advertisement (length %is)", lengthPreview, mark->position, mark->Next()->position, lengthAdBefore);
                 }
                 else dsyslog("cMarkAdStandalone::CheckMarks(): no preview because no MT_LOGOSTOP before found");
             }
@@ -1066,9 +1066,9 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // check hborder marks
         if ((mark->type == MT_HBORDERSTART) && (mark->position != marks.GetFirst()->position) && mark->Next()) {  // not start or end mark
             if ((mark->Next()->type == MT_HBORDERSTOP) && (mark->Next()->position != marks.GetLast()->position)) { // next mark not end mark
-                int lenghtAd = static_cast<int> ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
-                if (lenghtAd < 130) { // increased from 70 to 130
-                    isyslog("found advertisement of lenght %is between hborder mark (%i) and hborder mark (%i), deleting marks", lenghtAd, mark->position, mark->Next()->position);
+                int lengthAd = static_cast<int> ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
+                if (lengthAd < 130) { // increased from 70 to 130
+                    isyslog("found advertisement of length %is between hborder mark (%i) and hborder mark (%i), deleting marks", lengthAd, mark->position, mark->Next()->position);
                     clMark *tmp=mark;
                     mark = mark->Next()->Next();
                     marks.Del(tmp->Next());
