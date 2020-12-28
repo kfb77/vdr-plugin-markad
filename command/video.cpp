@@ -985,35 +985,42 @@ void cMarkAdOverlap::getHistogram(simpleHistogram &dest) {
 }
 
 
-int cMarkAdOverlap::areSimilar(simpleHistogram &hist1, simpleHistogram &hist2) {
+int cMarkAdOverlap::areSimilar(simpleHistogram &hist1, simpleHistogram &hist2) { // return > 0 if similar, else <= 0
     int similar = 0;
     for (int i = 0; i < 256; i++) {
-        similar += abs(hist1[i] - hist2[i]);
+        similar += abs(hist1[i] - hist2[i]);  // calculte difference, smaller is more similar
     }
     if (similar < similarCutOff) {
-//       dsyslog("---areSimilar() similarCutOff %8i",similarCutOff);
-//       dsyslog("---areSimilar() similar       %8i",similar);
        return similar;
     }
-    return -1;
+    return -similar;
 }
 
 
 MarkAdPos *cMarkAdOverlap::Detect() {
-    int start = 0, simcnt = 0;
-    int tmpA = 0, tmpB = 0;
     if (result.FrameNumberBefore == -1) return NULL;
+    int startAfterMark = 0;
+    int simcnt = 0;
+    int tmpindexAfterStartMark = 0;
+    int tmpindexBeforeStopMark = 0;
     result.FrameNumberBefore = -1;
-    for (int B = 0; B < histcnt[OV_BEFORE]; B++) {
-        for (int A=start; A<histcnt[OV_AFTER]; A++) {
-            int simil = areSimilar(histbuf[OV_BEFORE][B].histogram, histbuf[OV_AFTER][A].histogram);
-            if (simil != -1) {
+    int firstSimilarBeforeStopMark = 0;
+    for (int indexBeforeStopMark = 0; indexBeforeStopMark < histcnt[OV_BEFORE]; indexBeforeStopMark++) {
 #ifdef DEBUG_OVERLAP
-                dsyslog("cMarkAdOverlap::Detect(): simil %5i similarCutOff %5i simcnt %2i similarMaxCnt %2i, between (%5d) and (%5d)", simil, similarCutOff, simcnt, similarMaxCnt, histbuf[OV_BEFORE][B].framenumber, histbuf[OV_AFTER][A].framenumber);
+        dsyslog("cMarkAdOverlap::Detect(): ------------------ testing frame (%5d) before stop mark, indexBeforeStopMark %d, against all frames after start mark", histbuf[OV_BEFORE][indexBeforeStopMark].framenumber, indexBeforeStopMark);
 #endif
-                tmpA = A;
-                tmpB = B;
-                start = A + 1;
+        for (int indexAfterStartMark = startAfterMark; indexAfterStartMark < histcnt[OV_AFTER]; indexAfterStartMark++) {
+            int simil = areSimilar(histbuf[OV_BEFORE][indexBeforeStopMark].histogram, histbuf[OV_AFTER][indexAfterStartMark].histogram);
+#ifdef DEBUG_OVERLAP
+            if (simil > 0) dsyslog("cMarkAdOverlap::Detect(): compare frame  (%5d) (index %3d) and (%5d) (index %3d) -> simil %5d (max %d) simcnt %2i similarMaxCnt %2i)", histbuf[OV_BEFORE][indexBeforeStopMark].framenumber, indexBeforeStopMark, histbuf[OV_AFTER][indexAfterStartMark].framenumber, indexAfterStartMark, simil, similarCutOff, simcnt, similarMaxCnt);
+#endif
+            if (simil > 0) {
+                if (simcnt == 0) {  // this is the first similar frame pair, store position
+                    firstSimilarBeforeStopMark = indexBeforeStopMark;
+                }
+                tmpindexAfterStartMark = indexAfterStartMark;
+                tmpindexBeforeStopMark = indexBeforeStopMark;
+                startAfterMark = indexAfterStartMark + 1;
                 if (simil < (similarCutOff / 2)) simcnt += 2;
                 else if (simil < (similarCutOff/4)) simcnt += 4;
                 else if (simil < (similarCutOff/6)) simcnt += 6;
@@ -1021,14 +1028,17 @@ MarkAdPos *cMarkAdOverlap::Detect() {
                 break;
             }
             else {
+                if (simcnt > 0) {
+                    indexBeforeStopMark = firstSimilarBeforeStopMark;  // reset to first similar frame
+                }
                 if (simcnt > similarMaxCnt) {
-                    if ((histbuf[OV_BEFORE][tmpB].framenumber > result.FrameNumberBefore) && (histbuf[OV_AFTER][tmpA].framenumber > result.FrameNumberAfter)) {
-                        result.FrameNumberBefore = histbuf[OV_BEFORE][tmpB].framenumber;
-                        result.FrameNumberAfter = histbuf[OV_AFTER][tmpA].framenumber;
+                    if ((histbuf[OV_BEFORE][tmpindexBeforeStopMark].framenumber > result.FrameNumberBefore) && (histbuf[OV_AFTER][tmpindexAfterStartMark].framenumber > result.FrameNumberAfter)) {
+                        result.FrameNumberBefore = histbuf[OV_BEFORE][tmpindexBeforeStopMark].framenumber;
+                        result.FrameNumberAfter = histbuf[OV_AFTER][tmpindexAfterStartMark].framenumber;
                     }
                 }
                 else {
-                    start = 0;
+                    startAfterMark = 0;
                 }
                 simcnt = 0;
             }
@@ -1036,8 +1046,8 @@ MarkAdPos *cMarkAdOverlap::Detect() {
     }
     if (result.FrameNumberBefore == -1) {
         if (simcnt > similarMaxCnt) {
-            result.FrameNumberBefore = histbuf[OV_BEFORE][tmpB].framenumber;
-            result.FrameNumberAfter = histbuf[OV_AFTER][tmpA].framenumber;
+            result.FrameNumberBefore = histbuf[OV_BEFORE][tmpindexBeforeStopMark].framenumber;
+            result.FrameNumberAfter = histbuf[OV_AFTER][tmpindexAfterStartMark].framenumber;
         }
         else {
             return NULL;
@@ -1064,7 +1074,7 @@ MarkAdPos *cMarkAdOverlap::Process(const int FrameNumber, const int Frames, cons
     }
 
     if (BeforeAd) {
-        if ((histframes[OV_BEFORE]) && (histcnt[OV_BEFORE]>=histframes[OV_BEFORE])) {
+        if ((histframes[OV_BEFORE]) && (histcnt[OV_BEFORE] >= histframes[OV_BEFORE])) {
             if (result.FrameNumberBefore) {
                 Clear();
             }
@@ -1078,7 +1088,7 @@ MarkAdPos *cMarkAdOverlap::Process(const int FrameNumber, const int Frames, cons
             ALLOC(sizeof(*histbuf[OV_BEFORE]), "histbuf");
         }
         getHistogram(histbuf[OV_BEFORE][histcnt[OV_BEFORE]].histogram);
-        histbuf[OV_BEFORE][histcnt[OV_BEFORE]].framenumber=FrameNumber;
+        histbuf[OV_BEFORE][histcnt[OV_BEFORE]].framenumber = FrameNumber;
         histcnt[OV_BEFORE]++;
     }
     else {
@@ -1093,10 +1103,10 @@ MarkAdPos *cMarkAdOverlap::Process(const int FrameNumber, const int Frames, cons
             return Detect();
         }
         getHistogram(histbuf[OV_AFTER][histcnt[OV_AFTER]].histogram);
-        histbuf[OV_AFTER][histcnt[OV_AFTER]].framenumber=FrameNumber;
+        histbuf[OV_AFTER][histcnt[OV_AFTER]].framenumber = FrameNumber;
         histcnt[OV_AFTER]++;
     }
-    lastframenumber=FrameNumber;
+    lastframenumber = FrameNumber;
     return NULL;
 }
 
