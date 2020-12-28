@@ -23,7 +23,8 @@ extern "C"{
 
 // logo size limits
 #define LOGO_720W_MIN_H 54      // SIXX
-#define LOGO_MIN_LETTERING_H 41 // "DIE NEUEN FOLGEN" SAT_1
+#define LOGO_MIN_LETTERING_H 38 // 41 for "DIE NEUEN FOLGEN" SAT_1
+                                // 38 for "#wir bleiben zuhause" RTL2
 
 extern bool abortNow;
 extern int logoSearchTime_ms;
@@ -406,10 +407,10 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
             }
             CutOut(bestLogoInfo, whiteLines, 0, logoHeight, logoWidth, bestLogoCorner);
 // search for text under logo
-// search for at least 3 white lines to cut logos with text addon (e.g. "Neue Folge" or "Live")
+// search for at least 2 (SD) or 4 (HD) white lines to cut logos with text addon (e.g. "Neue Folge" or "Live")
             int countWhite = 0;
             int cutLine = 0;
-            int topBlackLine= 0;
+            int topBlackLineOfLogo= 0;
             int leftBlackPixel = INT_MAX;
             int rightBlackPixel = 0;
             int minWhiteLines;
@@ -429,14 +430,14 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
                 }
                 else {
                     countWhite = 0;
-                    topBlackLine = line;
+                    topBlackLineOfLogo = line;
                     if (cutLine > 0) break;
                 }
                 if (countWhite >= minWhiteLines) {
                     cutLine = line;
                 }
             }
-            if (topBlackLine < cutLine) {
+            if (topBlackLineOfLogo < cutLine) {
                 if (cutLine >= LOGO_MIN_LETTERING_H) {
                     if ((((rightBlackPixel - leftBlackPixel) >= 38) && ((*logoHeight - cutLine) > 8)) || // cut our "love your" from TLC with 38 pixel width, do not cut out lines in the logo
                        (((rightBlackPixel - leftBlackPixel) <= 20) && ((*logoHeight - cutLine) <= 8))) { // cut out small pixel errors
@@ -464,6 +465,44 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
                 else break;
             }
             CutOut(bestLogoInfo, whiteLines, 0, logoHeight, logoWidth, bestLogoCorner);
+// search for text above logo
+// search for at least 3 white lines to cut logos with text addon (e.g. "Neue Folge" or "Live")
+            int countWhite = 0;
+            int cutLine = 0;
+            int topBlackLineOfLogo = 0;
+            int leftBlackPixel = INT_MAX;
+            int rightBlackPixel = 0;
+            int minWhiteLines;
+            if ((maContext->Video.Info.Width) == 720) minWhiteLines = 2;
+            else minWhiteLines = 4;
+            for (int line = 0; line < *logoHeight; line++) {
+                int countBlackPixel = 0;
+                for (int column = *logoWidth - 1; column > 0; column--) {
+                    if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
+                        countBlackPixel++;
+                        if (column < leftBlackPixel) leftBlackPixel = column;
+                        if (column > rightBlackPixel) rightBlackPixel = column;
+                    }
+                }
+                if (countBlackPixel <= 1) {  // accept 1 false pixel
+                    countWhite++;
+                }
+                else {
+                    countWhite = 0;
+                    topBlackLineOfLogo = line;
+                    if (cutLine > 0) break;
+                }
+                if (countWhite >= minWhiteLines) {
+                    cutLine = line;
+                }
+            }
+            if (topBlackLineOfLogo > cutLine) {
+                if (cutLine >= LOGO_MIN_LETTERING_H) {
+                    dsyslog("cExtractLogo::Resize(): found text above logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, cutLine, leftBlackPixel, rightBlackPixel);
+                    CutOut(bestLogoInfo, cutLine, 0, logoHeight, logoWidth, bestLogoCorner);
+                }
+                else dsyslog("cExtractLogo::Resize(): cutline at %d not valid (expect min %d)", cutLine, LOGO_MIN_LETTERING_H);
+            }
         }
 
         if ((bestLogoCorner == TOP_RIGHT) || (bestLogoCorner == BOTTOM_RIGHT)) {  // right corners, cut from left
