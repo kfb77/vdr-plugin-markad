@@ -102,6 +102,7 @@ class cMarkAdStandalone {
 	cDecoder *ptr_cDecoderLogoChange = NULL;
 
         void CheckStop();
+        bool MoveLastLogoStopAfterClosingCredits(clMark *stopMark);
         void RemoveLogoChangeMarks();
         void CheckStart();
         void CalculateCheckPositions(int startframe);

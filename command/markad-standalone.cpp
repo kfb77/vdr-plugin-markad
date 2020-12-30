@@ -462,6 +462,47 @@ void cMarkAdStandalone::CheckStop() {
 }
 
 
+// check if stop mark is start of closing credits without logo
+// move stop mark to end of closing credit
+// <stopMark> last logo stop mark
+// return: true if closing credits was found and last logo stop mark position was changed
+//
+bool cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(clMark *stopMark) {
+    if (!stopMark) return false;
+    dsyslog("cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(): check closing credits without logo after position (%d)", stopMark->position);
+
+    cExtractLogo *ptr_cExtractLogoChange = new cExtractLogo(macontext.Video.Info.AspectRatio);
+    ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
+
+    int newPosition = ptr_cExtractLogoChange->isClosingCredit(&macontext, ptr_cDecoder, stopMark->position);
+
+    FREE(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
+    delete ptr_cExtractLogoChange;
+
+    if (newPosition > stopMark->position) {
+        dsyslog("cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(): closing credits found, move logo stop mark to position (%d)", newPosition);
+        char *comment = NULL;
+        char *indexToHMSF = marks.IndexToHMSF(stopMark->position, &macontext, ptr_cDecoder);
+        if (asprintf(&comment,"logo stop mark moved from (%d) at %s to end of closing credits (%d)", stopMark->position, indexToHMSF, newPosition) == -1) comment=NULL;
+        ALLOC(strlen(comment)+1, "comment");
+        dsyslog("cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(): delete mark on position (%d)", stopMark->position);
+        marks.Del(stopMark->position);
+        marks.Add(MT_MOVED, newPosition, comment);
+
+        FREE(strlen(comment)+1,"comment");
+        free(comment);
+        FREE(strlen(indexToHMSF)+1,"indexToHMSF");
+        free(indexToHMSF);
+
+        return true;
+    }
+    else {
+        dsyslog("cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(): no closing credits found");
+        return false;
+    }
+}
+
+
 // remove stop/start logo mark pair if it detecs a part in the broadcast with logo changes
 // some channel e.g. TELE5 plays with the logo in the broadcast
 //
@@ -2443,7 +2484,7 @@ void cMarkAdStandalone::Process2ndPass() {
     if (time(NULL) < (startTime+(time_t) length)) return;
 
     LogSeparator(true);
-    isyslog("start 2nd pass (detect overlaps)");
+    isyslog("start 2nd pass (detect overlaps and check last logo stop mark if closing credits follows)");
 
     if (!macontext.Video.Info.FramesPerSecond) {
         isyslog("WARNING: assuming fps of 25");
@@ -2453,64 +2494,71 @@ void cMarkAdStandalone::Process2ndPass() {
     if (!marks.Count()) {
         marks.Load(directory, macontext.Video.Info.FramesPerSecond, isTS);
     }
-
     clMark *p1 = NULL,*p2 = NULL;
-
-    if (marks.Count() < 4) {
-        dsyslog("only %i marks, abort 2nd pass", marks.Count());
-        return; // we cannot do much without marks
-    }
-    p1 = marks.GetFirst();
-    if (!p1) return;
-
-    p1 = p1->Next();
-    if (p1) p2 = p1->Next();
 
     if (ptr_cDecoder) {
         ptr_cDecoder->Reset();
         ptr_cDecoder->DecodeDir(directory);
     }
 
-    while ((p1) && (p2)) {
-#if defined CLASSIC_DECODER
-        off_t offset;
-        int number, frame, iframes;
-        int frange = macontext.Video.Info.FramesPerSecond * 120; // 40s + 80s
-        int frange_begin = p1->position - frange; // 120 seconds before first mark
-        if (frange_begin < 0) frange_begin = 0; // but not before beginning of broadcast
-#endif
-        if (ptr_cDecoder) {
-            dsyslog("cMarkAdStandalone::Process2ndPass(): ->->->->-> check overlap before stop frame (%d) and after start frame (%d)", p1->position, p2->position);
-            if (!ProcessMark2ndPass(&p1,&p2)) {
-                dsyslog("cMarkAdStandalone::Process2ndPass(): no overlap found for marks before frames (%d) and after (%d)", p1->position, p2->position);
-            }
-        }
-#if defined CLASSIC_DECODER
-        else {
-            if (marks.ReadIndex(directory, isTS, frange_begin, frange, &number, &offset, &frame, &iframes)) {
-                if (!ProcessFile2ndPass(&p1, NULL, number, offset, frame, iframes)) break;
+    if (marks.Count() >= 4) {
+        p1 = marks.GetFirst();
+        if (!p1) return;
 
-                frange = macontext.Video.Info.FramesPerSecond * 320; // 160s + 160s
-                if (marks.ReadIndex(directory, isTS, p2->position, frange, &number, &offset, &frame, &iframes)) {
-                    if (!ProcessFile2ndPass(&p1, &p2, number, offset, frame, iframes)) break;
+        p1 = p1->Next();
+        if (p1) p2 = p1->Next();
+
+        while ((p1) && (p2)) {
+#if defined CLASSIC_DECODER
+            off_t offset;
+            int number, frame, iframes;
+            int frange = macontext.Video.Info.FramesPerSecond * 120; // 40s + 80s
+            int frange_begin = p1->position - frange; // 120 seconds before first mark
+            if (frange_begin < 0) frange_begin = 0; // but not before beginning of broadcast
+#endif
+            if (ptr_cDecoder) {
+                dsyslog("cMarkAdStandalone::Process2ndPass(): ->->->->-> check overlap before stop frame (%d) and after start frame (%d)", p1->position, p2->position);
+                if (!ProcessMark2ndPass(&p1, &p2)) {
+                    dsyslog("cMarkAdStandalone::Process2ndPass(): no overlap found for marks before frames (%d) and after (%d)", p1->position, p2->position);
                 }
             }
+#if defined CLASSIC_DECODER
             else {
-                esyslog("error reading index");
-                return;
+                if (marks.ReadIndex(directory, isTS, frange_begin, frange, &number, &offset, &frame, &iframes)) {
+                    if (!ProcessFile2ndPass(&p1, NULL, number, offset, frame, iframes)) break;
+
+                    frange = macontext.Video.Info.FramesPerSecond * 320; // 160s + 160s
+                    if (marks.ReadIndex(directory, isTS, p2->position, frange, &number, &offset, &frame, &iframes)) {
+                        if (!ProcessFile2ndPass(&p1, &p2, number, offset, frame, iframes)) break;
+                    }
+                }
+                else {
+                    esyslog("error reading index");
+                    return;
+                }
+            }
+#endif
+            p1 = p2->Next();
+            if (p1) {
+                p2 = p1->Next();
+            }
+            else {
+                p2 = NULL;
             }
         }
-#endif
-        p1 = p2->Next();
-        if (p1) {
-            p2 = p1->Next();
-        }
-        else {
-            p2 = NULL;
-        }
     }
-    if (ptr_cDecoder) framecnt2 = ptr_cDecoder->GetFrameNumber();
+
+// check last logo stop mark if closing credits follows
+    if (ptr_cDecoder) {
+        clMark *lastStop = marks.GetLast();
+        if (lastStop->type == MT_LOGOSTOP) {
+            dsyslog("cMarkAdStandalone::Process2ndPass(): search for closing credits");
+            if (MoveLastLogoStopAfterClosingCredits(lastStop)) marks.Save(directory, &macontext, ptr_cDecoder, isTS, true);
+        }
+        framecnt2 = ptr_cDecoder->GetFrameNumber();
+    }
     dsyslog("end 2ndPass");
+    return;
 }
 
 
