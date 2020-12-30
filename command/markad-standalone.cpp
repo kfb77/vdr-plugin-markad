@@ -1798,15 +1798,18 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
 #define OVERLAP_CHECK_AFTER 300  // start 5 min after start mark
     int fRangeEnd = (*mark2)->position + (macontext.Video.Info.FramesPerSecond * OVERLAP_CHECK_AFTER);
     clMark *nextStop = marks.GetNext((*mark2)->position, MT_STOP, 0x0F);
-    if (nextStop && (nextStop->position != marks.GetLast()->position)) {
-        if (fRangeEnd >= (nextStop->position - ((OVERLAP_CHECK_BEFORE + OVERLAP_CHECK_AFTER + 1) * macontext.Video.Info.FramesPerSecond))) { // next start mark less than OVERLAP_CHECK_AFTER + OVERLAP_CHECK_BEFORE away, prevent overlapping check
-            fRangeEnd = nextStop->position - ((OVERLAP_CHECK_BEFORE + 1) * macontext.Video.Info.FramesPerSecond);
-            if (fRangeEnd <= (*mark2)->position) {
-                dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): next stop mark at (%d) very near, unable to check overlap", nextStop->position);
-                return false;
+    if (nextStop) {
+        if (nextStop->position != marks.GetLast()->position) {
+            if (fRangeEnd >= (nextStop->position - ((OVERLAP_CHECK_BEFORE + OVERLAP_CHECK_AFTER + 1) * macontext.Video.Info.FramesPerSecond))) { // next start mark less than OVERLAP_CHECK_AFTER + OVERLAP_CHECK_BEFORE away, prevent overlapping check
+                fRangeEnd = nextStop->position - ((OVERLAP_CHECK_BEFORE + 1) * macontext.Video.Info.FramesPerSecond);
+                if (fRangeEnd <= (*mark2)->position) {
+                    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): next stop mark at (%d) very near, unable to check overlap", nextStop->position);
+                    return false;
+                }
+                dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): next stop mark at (%d) to near, reduce check end position", nextStop->position);
             }
-            dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): next stop mark at (%d) to near, reduce check end position", nextStop->position);
         }
+        if (nextStop->position < fRangeEnd) fRangeEnd = nextStop->position;  // do not check after next stop mark position
     }
     dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): preload from frame       (%5d) to (%5d)", fRangeBegin, (*mark1)->position);
     dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): compare with frames from (%5d) to (%5d)", (*mark2)->position, fRangeEnd);
