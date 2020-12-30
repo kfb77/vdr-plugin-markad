@@ -29,6 +29,7 @@ class cExtractLogo {
         ~cExtractLogo();
         int SearchLogo(MarkAdContext *maContext, int startFrame);
         bool isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPos, const int startPos);
+        int isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopMarkPosition);
         bool abort = false;
         void SetAbort() {
             abort = true;
@@ -75,5 +76,6 @@ class cExtractLogo {
         int CountFrames(const MarkAdContext *maContext);
         void RemovePixelDefects(const MarkAdContext *maContext, logoInfo *logoInfo, const int logoHeight, const int logoWidth, const int corner);
         int AudioInBroadcast(const MarkAdContext *maContext, const int iFrameNumber);   // 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
+        bool DetectClosingCredit(const int frameNumber, const int logoHeight, const int logoWidth, const int corner, cMarkAdLogo *ptr_Logo, logoInfo **logoFirst, int *count, int *match, int *noMatchStart);
 };
 #endif
