@@ -51,6 +51,8 @@
 // debug marks frames, write mark frame picture (and some before and after) to recording directory
 // #define DEBUG_MARK_FRAMES <count frames before and after>
 
+// debug index build
+// #define DEBUG_INDEX_BUILD
 
 
 extern int SysLogLevel;

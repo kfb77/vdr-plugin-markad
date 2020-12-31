@@ -57,6 +57,7 @@ class cMarkAdStandalone {
         cMarkAdAudio *audio = NULL;
         cOSDMessage *osd = NULL;
         MarkAdContext macontext = {};
+	cIndex *recordingIndexMark = NULL;
 
         enum { mSTART = 0x1, mBEFORE, mAFTER };
         const char *directory;
@@ -203,7 +204,7 @@ class cMarkAdStandalone {
         void ProcessFile();
 #endif
     public:
-        cMarkAdStandalone(const char *Directory, const MarkAdConfig *config);
+        cMarkAdStandalone(const char *Directory, const MarkAdConfig *config, cIndex *recordingIndex);
         ~cMarkAdStandalone();
         cMarkAdStandalone(const cMarkAdStandalone &origin) {   //  copy constructor, not used, only for formal reason
             strcpy(title,origin.title);

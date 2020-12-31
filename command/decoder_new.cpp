@@ -48,7 +48,7 @@ void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_lis
 }
 
 
-cDecoder::cDecoder(int threads) {
+cDecoder::cDecoder(int threads, cIndex *recordingIndex) {
     av_log_set_level(AVLOGLEVEL);
     av_log_set_callback(AVlog);
     av_init_packet(&avpkt);
@@ -57,6 +57,7 @@ cDecoder::cDecoder(int threads) {
     if (threads > 16) threads = 16;
     dsyslog("cDecoder::cDecoder(): init with %i threads", threads);
     threadCount = threads;
+    recordingIndexDecoder = recordingIndex;
 }
 
 
@@ -79,7 +80,6 @@ cDecoder::~cDecoder() {
         FREE(strlen(recordingDir), "recordingDir");
         free(recordingDir);
     }
-    iFrameInfoVector.clear();
     if (avFrame) {
         FREE(sizeof(*avFrame), "avFrame");
         av_frame_free(&avFrame);
@@ -359,24 +359,10 @@ bool cDecoder::GetNextFrame() {
             if (isVideoIFrame()) {
                 iFrameCount++;
                 // store a iframe number pts index
-                if ((iFrameInfoVector.empty()) || (framenumber > iFrameInfoVector.back().iFrameNumber)) {
-                    if (pts_time_ms >= 0) {
-                        iFrameInfo newFrameInfo;
-                        newFrameInfo.fileNumber = fileNumber;
-                        newFrameInfo.iFrameNumber = framenumber;
-                        newFrameInfo.pts_time_ms = pts_time_ms_LastFile + pts_time_ms;
-                        if (!iFrameInfoVector.empty()) {
-                            iFrameInfo beforeFrameInfo = iFrameInfoVector.back();
-                            int diff_ms = static_cast<int> (newFrameInfo.pts_time_ms - beforeFrameInfo.pts_time_ms);
-                            if (diff_ms_usual == 0) diff_ms_usual = diff_ms;
-                            if (diff_ms_usual < 200) diff_ms_usual = 200;  // set minimum duration
-                            if (diff_ms > diff_ms_usual * 5) esyslog("presentation timestamp in video stream at frame (%5d) increased %3ds %3dms, usual was %3ds %3dms", framenumber, diff_ms / 1000, diff_ms % 1000, diff_ms_usual / 1000, diff_ms_usual % 1000);
-                            else if (diff_ms_usual < diff_ms) diff_ms_usual = diff_ms;
-                        }
-                        iFrameInfoVector.push_back(newFrameInfo);
-                    }
-                    else dsyslog("cDecoder::GetNextFrame(): failed to get pts for frame %d", framenumber);
+                if (pts_time_ms >= 0) {
+                    recordingIndexDecoder->Add(fileNumber, framenumber, pts_time_ms_LastFile + pts_time_ms);
                 }
+                else dsyslog("cDecoder::GetNextFrame(): failed to get pts for frame %d", framenumber);
             }
         }
         return true;
@@ -401,8 +387,17 @@ bool cDecoder::SeekToFrame(MarkAdContext *maContext, int frame) {
         return false;
     }
 
+    int iFrameBefore = recordingIndexDecoder->GetIFrameBefore(frame);
+    if (iFrameBefore == -1) {
+        dsyslog("cDecoder::SeekFrame(): failed to get iFrame before frame (%d)", frame);
+        return false;
+    }
+    if (iFrameBefore == -2) {
+        iFrameBefore = 0;
+        dsyslog("cDecoder::SeekFrame(): index does not yet contain frame (%5d), decode from current frame (%d) to build index", frame, framenumber);
+    }
+
     // flush decoder buffer
-    int iFrameBefore = GetIFrameBefore(frame);
     for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
         if (codecCtxArray[streamIndex]) {
             avcodec_flush_buffers(codecCtxArray[streamIndex]);
@@ -820,102 +815,6 @@ bool cDecoder::isInterlacedVideo(){
 }
 
 
-int cDecoder::GetIFrameRangeCount(int beginFrame, int endFrame) {
-    if (iFrameInfoVector.empty()) {
-        dsyslog("cDecoder::GetIFrameRangeCount(): iFrame Index not initialized");
-        return 0;
-    }
-    int counter=0;
-
-    for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
-        if (iInfo->iFrameNumber >= beginFrame) {
-            counter++;
-            if (iInfo->iFrameNumber >= endFrame) return counter;
-        }
-    }
-    dsyslog("cDecoder::GetIFrameRangeCount(): failed beginFrame (%d) endFrame (%d) last frame in index list (%d)", beginFrame, endFrame, iFrameInfoVector.back().iFrameNumber);
-    return 0;
-}
-
-
-int cDecoder::GetIFrameAfter(int iFrame) {
-    if (iFrameInfoVector.empty()) {
-        dsyslog("cDecoder::GetIFrameAfter(): iFrame Index not initialized");
-        return 0;
-    }
-
-    for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
-        if (iInfo->iFrameNumber >= iFrame) {
-            return iInfo->iFrameNumber;
-        }
-    }
-    dsyslog("cDecoder::GetIFrameAfter(): failed for frame (%d)", iFrame);
-    return 0;
-}
-
-
-int cDecoder::GetIFrameBefore(int iFrame) {
-    if (iFrameInfoVector.empty()) {
-        dsyslog("cDecoder::GetIFrameBefore(): iFrame Index not initialized");
-        return 0;
-    }
-    int before_iFrame=0;
-
-    for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
-        if (iInfo->iFrameNumber >= iFrame) {
-            return before_iFrame;
-        }
-        else before_iFrame=iInfo->iFrameNumber;
-    }
-    dsyslog("cDecoder::GetIFrameBefore(): failed for frame (%d)", iFrame);
-    return 0;
-}
-
-
-int64_t cDecoder::GetTimeFromIFrame(int iFrame) {
-    if (iFrameInfoVector.empty()) {
-        dsyslog("cDecoder::GetTimeFromIFrame(): iFrame Index not initialized");
-        return 0;
-    }
-    int64_t before_pts=0;
-    int before_iFrame=0;
-
-    for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
-        if (iFrame == iInfo->iFrameNumber) {
-            tsyslog("cDecoder::GetTimeFromIFrame(): iFrame (%d) time is %" PRId64" ms", iFrame, iInfo->pts_time_ms);
-            return iInfo->pts_time_ms;
-        }
-        if (iInfo->iFrameNumber > iFrame) {
-            if (abs(iFrame - before_iFrame) < abs(iFrame - iInfo->iFrameNumber)) {
-//                tsyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame before (%li) %" PRId64 "ms",iFrame,before_iFrame,before_pts);
-                return before_pts;
-            }
-            else {
-//                tsyslog("cDecoder::GetTimeFromIFrame(): frame (%li) is not an iFrame, returning time from iFrame after (%li) %" PRId64 "ms",iFrame,iInfo->iFrameNumber,iInfo->pts_time_ms);
-                return iInfo->pts_time_ms;
-            }
-        }
-        else {
-            before_iFrame=iInfo->iFrameNumber;
-            before_pts=iInfo->pts_time_ms;
-        }
-    }
-    dsyslog("cDecoder::GetTimeFromIFrame(): could not find time for frame %d",iFrame);
-    return 0;
-}
-
-
-int cDecoder::GetIFrameFromOffset(int offset_ms) {
-    if (iFrameInfoVector.empty()) dsyslog("cDecoder::GetIFrameFromOffset: iFrame Index not initialized");
-    int iFrameBefore = 0;
-    for (std::vector<iFrameInfo>::iterator iInfo = iFrameInfoVector.begin(); iInfo != iFrameInfoVector.end(); ++iInfo) {
-        if (iInfo->pts_time_ms > offset_ms) return iFrameBefore;
-        iFrameBefore = iInfo->iFrameNumber;
-    }
-    return iFrameBefore;  // return last frame if offset is not in recording, needed for VPS stopped recordings
-}
-
-
 int cDecoder::GetFirstMP2AudioStream() {
     for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -977,12 +876,12 @@ int cDecoder::GetNextSilence(const int stopFrame, const bool before) {
                         if (silenceCount >= SILENCE_COUNT) {
                             if (before) {
                                 dsyslog("cDecoder::GetNextSilence(): found silence part in stream %d before mark, %d silence frames end at frame (%d)", avpkt.stream_index, SILENCE_COUNT, nextSilenceFrame);
-                                lastSilenceFrame = GetIFrameAfter(nextSilenceFrame);
+                                lastSilenceFrame = recordingIndexDecoder->GetIFrameAfter(nextSilenceFrame);
                                 silenceCount--;
                             }
                             else {
                                 dsyslog("cDecoder::GetNextSilence(): found silence part in stream %d after mark, %d silence frames start at frame (%d)", avpkt.stream_index, SILENCE_COUNT, nextSilenceFrame);
-                                firstSilenceFrame = GetIFrameBefore(nextSilenceFrame);
+                                firstSilenceFrame = recordingIndexDecoder->GetIFrameBefore(nextSilenceFrame);
                                 break;
                             }
                         }

@@ -25,7 +25,7 @@
 
 class cExtractLogo {
     public:
-        explicit cExtractLogo(const MarkAdAspectRatio aspectRatio);
+        explicit cExtractLogo(const MarkAdAspectRatio aspectRatio, cIndex *recordingIndex);
         ~cExtractLogo();
         int SearchLogo(MarkAdContext *maContext, int startFrame);
         bool isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPos, const int startPos);
@@ -35,6 +35,7 @@ class cExtractLogo {
             abort = true;
         };
     private:
+	cIndex *recordingIndexLogo = NULL;
         struct logoInfo {
             int iFrameNumber = -1;
             int hits = 0;

@@ -10,6 +10,7 @@
 
 #include <vector>
 #include "global.h"
+#include "index.h"
 
 extern "C"{
     #include <libavcodec/avcodec.h>
@@ -43,7 +44,7 @@ extern "C"{
 
 class cDecoder {
     public:
-        explicit cDecoder(int threads);
+        explicit cDecoder(int threads, cIndex *recordingIndex);
         ~cDecoder();
         bool DecodeDir(const char * recDir);
         void Reset();
@@ -71,12 +72,11 @@ class cDecoder {
         int GetIFrameCount();
         bool isInterlacedVideo();
         int GetIFrameRangeCount(int beginFrame, int endFrame);
-        int GetIFrameAfter(int iFrame);
-        int GetIFrameBefore(int iFrame);
         int64_t GetTimeFromIFrame(int iFrame);
         int GetIFrameFromOffset(int offset);
         int GetNextSilence(const int stopFrame, const bool before);
     private:
+        cIndex *recordingIndexDecoder = NULL;
         char *recordingDir = NULL;
         int fileNumber = 0;
         int threadCount = 0;
@@ -89,13 +89,6 @@ class cDecoder {
         int iFrameCount = 0;
         int64_t pts_time_ms_LastFile = 0;
         int64_t pts_time_ms_LastRead = 0;
-        int diff_ms_usual = 0;
-        struct iFrameInfo {
-            int fileNumber = 0;
-            int iFrameNumber = 0;
-            int64_t pts_time_ms = 0;
-        };
-        std::vector<iFrameInfo> iFrameInfoVector;
         struct structFrameData {
             bool Valid=false; // flag, if true data is valid
             uchar *Plane[PLANES] = {};  // picture planes (YUV420)
