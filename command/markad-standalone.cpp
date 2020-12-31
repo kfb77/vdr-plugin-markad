@@ -3235,7 +3235,7 @@ bool cMarkAdStandalone::LoadInfo() {
                         length += tStart;
                     }
                     else {
-                        esyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
+                        isyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
                         tStart = 120;
                     }
                 }
