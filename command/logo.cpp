@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "logo.h"
+#include "index.h"
 
 extern "C"{
     #include "debug.h"
@@ -26,13 +27,15 @@ extern "C"{
 #define LOGO_MIN_LETTERING_H 38 // 41 for "DIE NEUEN FOLGEN" SAT_1
                                 // 38 for "#wir bleiben zuhause" RTL2
 
+// global variables
 extern bool abortNow;
 extern int logoSearchTime_ms;
 
 
-cExtractLogo::cExtractLogo(const MarkAdAspectRatio aspectRatio) {
+cExtractLogo::cExtractLogo(const MarkAdAspectRatio aspectRatio, cIndex *recordingIndex) {
     logoAspectRatio.Num = aspectRatio.Num;
     logoAspectRatio.Den = aspectRatio.Den;
+    recordingIndexLogo = recordingIndex;
 }
 
 
@@ -1121,6 +1124,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
         dsyslog("cExtractLogo::SearchLogo(): maContext not valid");
         return -1;
     }
+    if (!recordingIndexLogo) return -1;
     if (startFrame < 0) return -1;
 
     struct timeval startTime, stopTime;
@@ -1136,9 +1140,9 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
     maContextSaveState.Video = maContext->Video;     // save state of calling video context
     maContextSaveState.Audio = maContext->Audio;     // save state of calling audio context
 
-    cDecoder *ptr_cDecoder = new cDecoder(maContext->Config->threads);
+    cDecoder *ptr_cDecoder = new cDecoder(maContext->Config->threads, recordingIndexLogo);
     ALLOC(sizeof(*ptr_cDecoder), "ptr_cDecoder");
-    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext);
+    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, recordingIndexLogo);
     ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
     cMarkAdBlackBordersHoriz *hborder = new cMarkAdBlackBordersHoriz(maContext);
     ALLOC(sizeof(*hborder), "hborder");
@@ -1477,6 +1481,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
 bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPos, const int startPos) {
     if (!maContext) return false;
     if (!ptr_cDecoder) return false;
+    if (!recordingIndexLogo) return false;
     if (startPos <= stopPos) return false;
 
     bool status = true;
@@ -1490,7 +1495,7 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
     int continuousDiff = 0;
     int tmpContinuousDiff = 0;
 
-    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext);
+    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, recordingIndexLogo);
     ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
     areaT *area = ptr_Logo->GetArea();
     logoInfo *logo1 = new logoInfo;
@@ -1712,6 +1717,7 @@ bool cExtractLogo::DetectClosingCredit(const int frameNumber, const int logoHeig
 int cExtractLogo::isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopMarkPosition) {
     if (!maContext) return 0;
     if (!ptr_cDecoder) return 0;
+    if (!recordingIndexLogo) return 0;
 
     int newPosition = 0;
     bool status = true;
@@ -1734,9 +1740,9 @@ int cExtractLogo::isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecod
         oppositeCorner = TOP_LEFT;
     }
 
-    cMarkAdLogo *ptr_Logo1 = new cMarkAdLogo(maContext);
+    cMarkAdLogo *ptr_Logo1 = new cMarkAdLogo(maContext, recordingIndexLogo);
     ALLOC(sizeof(*ptr_Logo1), "ptr_Logo");
-    cMarkAdLogo *ptr_Logo2 = new cMarkAdLogo(maContext);
+    cMarkAdLogo *ptr_Logo2 = new cMarkAdLogo(maContext, recordingIndexLogo);
     ALLOC(sizeof(*ptr_Logo2), "ptr_Logo");
 
     logoInfo *logoFirst1 = new logoInfo;

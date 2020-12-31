@@ -11,6 +11,7 @@
 #include <string.h>
 #include "global.h"
 #include "decoder_new.h"
+#include "index.h"
 
 
 class clMark {
@@ -51,14 +52,12 @@ class clMarks {
             unsigned char number;
             short reserved;
         };
-
         struct tIndexTS {
             uint64_t offset: 40;
             int reserved: 7;
             int independent: 1;
             uint16_t number: 16;
         };
-
         char filename[1024];
         clMark *first,*last;
         int count;
@@ -68,14 +67,9 @@ class clMarks {
         void WriteIndex(bool isTS, uint64_t Offset,int FrameType, int Number);
 #endif
     public:
-        clMarks() {
-            strcpy(filename, "marks");
-            first = last = NULL;
-            savedcount = 0;
-            count = 0;
-            indexfd = -1;
-        }
+        clMarks();
         ~clMarks();
+        void RegisterIndex(cIndex *recordingIndex);
         int Count(const int Type = 0xFF, const int Mask = 0xFF);
         int CountWithoutBlack();
         void SetFileName(const char *FileName) {
@@ -86,7 +80,7 @@ class clMarks {
             }
         }
         clMark *Add(const int Type, const int Position, const char *Comment = NULL, const bool inBroadCast = false);
-        char *IndexToHMSF(const int Index, const MarkAdContext *maContext, cDecoder *ptr_cDecoder);
+        char *IndexToHMSF(const int Index, const MarkAdContext *maContext);
         void DelWeakFromTo(const int from, const int to, const short int type);
         void DelTill(const int Position, const bool FromStart = true);
         void DelFrom(const int Position);
@@ -106,9 +100,10 @@ class clMarks {
         }
         bool Backup(const char *Directory, const bool isTS);
         bool Load(const char *Directory, const double FrameRate, const bool isTS);
-        bool Save(const char *Directory, const MarkAdContext *maContext, cDecoder *ptr_cDecoder, const bool isTS, const bool Force = false);
+        bool Save(const char *Directory, const MarkAdContext *maContext, const bool isTS, const bool Force = false);
         int LoadVPS(const char *Directory, const char *type);
 
+        cIndex *recordingIndexMarks = NULL;
 #define IERR_NOTFOUND 1
 #define IERR_TOOSHORT 2
 #define IERR_SEEK 3

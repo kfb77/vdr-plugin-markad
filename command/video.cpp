@@ -19,8 +19,9 @@ extern "C" {
 #include "logo.h"
 
 
-cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext) {
+cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext, cIndex *recordingIndex) {
     macontext = maContext;
+    recordingIndexMarkAdLogo = recordingIndex;
 
     // 3x3 GX Sobel mask
     GX[0][0] = -1;
@@ -617,7 +618,7 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
                         else {
                             if (macontext->Config->autoLogo > 0) {
                                 isyslog("no valid logo for %s in logo cache and recording directory, extract logo from recording",buf);
-                                cExtractLogo *ptr_cExtractLogo = new cExtractLogo(macontext->Video.Info.AspectRatio);  // search logo from current frame
+                                cExtractLogo *ptr_cExtractLogo = new cExtractLogo(macontext->Video.Info.AspectRatio, recordingIndexMarkAdLogo);  // search logo from current frame
                                 ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
                                 if (ptr_cExtractLogo->SearchLogo(macontext, FrameNumber) > 0) dsyslog("cMarkAdLogo::Process(): no logo found in recording");
                                 else dsyslog("cMarkAdLogo::Process(): new logo for %s found in recording",buf);
@@ -1121,8 +1122,10 @@ MarkAdPos *cMarkAdOverlap::Process(const int FrameNumber, const int Frames, cons
 }
 
 
-cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext) {
-    macontext=maContext;
+cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext, cIndex *recordingIndex) {
+    macontext = maContext;
+    recordingIndexMarkAdVideo = recordingIndex;
+
     blackScreen = new cMarkAdBlackScreen(maContext);
     ALLOC(sizeof(*blackScreen), "blackScreen");
 
@@ -1132,7 +1135,7 @@ cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext) {
     vborder=new cMarkAdBlackBordersVert(maContext);
     ALLOC(sizeof(*vborder), "vborder");
 
-    logo = new cMarkAdLogo(maContext);
+    logo = new cMarkAdLogo(maContext, recordingIndexMarkAdVideo);
     ALLOC(sizeof(*logo), "logo");
 
     overlap = NULL;

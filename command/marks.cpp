@@ -45,6 +45,15 @@ clMark::~clMark() {
 }
 
 
+clMarks::clMarks() {
+    strcpy(filename, "marks");
+    first = last = NULL;
+    savedcount = 0;
+    count = 0;
+    indexfd = -1;
+}
+
+
 clMarks::~clMarks() {
     DelAll();
     if (indexfd != -1) close(indexfd);
@@ -372,14 +381,25 @@ clMark *clMarks::Add(const int Type, const int Position, const char *Comment, co
 }
 
 
-char *clMarks::IndexToHMSF(const int Index, const MarkAdContext *maContext, cDecoder *ptr_cDecoder) {
+void clMarks::RegisterIndex(cIndex *recordingIndex) {
+    recordingIndexMarks = recordingIndex;
+}
+
+
+char *clMarks::IndexToHMSF(const int Index, const MarkAdContext *maContext) {
     double FramesPerSecond = maContext->Video.Info.FramesPerSecond;
     if (FramesPerSecond == 0.0) return NULL;
     char *indexToHMSF = NULL;
     double Seconds;
     int f = 0;
-    if (maContext->Config->use_cDecoder && ptr_cDecoder && ((maContext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264) || (maContext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H265))) {
-        f = int(modf(float(ptr_cDecoder->GetTimeFromIFrame(Index)) / 1000, &Seconds) * 100); // convert ms to 1/100 s
+    if (recordingIndexMarks && ((maContext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264) || (maContext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H265))) {
+        int64_t pts_time_ms = recordingIndexMarks->GetTimeFromFrame(Index);
+        if (pts_time_ms >= 0) {
+            f = int(modf(float(pts_time_ms) / 1000, &Seconds) * 100); // convert ms to 1/100 s
+        }
+        else {
+            dsyslog("clMarks::IndexToHMSF(): failed to get time from frame (%d)", Index);
+        }
     }
     else {
         f = int(modf((Index + 0.5) / FramesPerSecond, &Seconds) * FramesPerSecond + 1);
@@ -745,7 +765,7 @@ bool clMarks::Load(const char *Directory, const double FrameRate, const bool isT
 }
 
 
-bool clMarks::Save(const char *Directory, const MarkAdContext *maContext, cDecoder *ptr_cDecoder, const bool isTS, const bool Force) {
+bool clMarks::Save(const char *Directory, const MarkAdContext *maContext, const bool isTS, const bool Force) {
     if (!first) return false;
     if ((savedcount == CountWithoutBlack()) && (!Force)) return false;
     dsyslog("clMarks::Save(): save marks, force=%d", Force);
@@ -766,7 +786,7 @@ bool clMarks::Save(const char *Directory, const MarkAdContext *maContext, cDecod
     clMark *mark = first;
     while (mark) {
         if (Force || ((mark->type & 0xF0) != MT_BLACKCHANGE)) {    // do not save MT_BLACKCHANGE before analysed
-            char *indexToHMSF = IndexToHMSF(mark->position, maContext, ptr_cDecoder);
+            char *indexToHMSF = IndexToHMSF(mark->position, maContext);
             if (indexToHMSF) {
                 fprintf(mf, "%s %s\n", indexToHMSF, mark->comment ? mark->comment : "");
                 FREE(strlen(indexToHMSF)+1, "indexToHMSF");

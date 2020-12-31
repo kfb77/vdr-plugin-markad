@@ -9,6 +9,7 @@
 #define __video_h_
 
 #include "global.h"
+#include "index.h"
 
 #define LOGO_MAXHEIGHT   250
 #define LOGO_MAXWIDTH    480
@@ -109,6 +110,7 @@ class cMarkAdOverlap {
 
 class cMarkAdLogo {
     private:
+	cIndex *recordingIndexMarkAdLogo = NULL;
         enum {
             TOP_LEFT,
             TOP_RIGHT,
@@ -129,7 +131,7 @@ class cMarkAdLogo {
         bool Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], const short int plane, const int debug);
         void SaveFrameCorner(const int framenumber, const int debug);
     public:
-        explicit cMarkAdLogo(MarkAdContext *maContext);
+        explicit cMarkAdLogo(MarkAdContext *maContext, cIndex *recordingIndex);
         int Detect(const int framenumber, int *logoframenumber); // ret 1 = logo, 0 = unknown, -1 = no logo
         int Process(int FrameNumber, int *LogoFrameNumber);
         int Status() {
@@ -199,6 +201,7 @@ class cMarkAdBlackBordersVert {
 
 class cMarkAdVideo {
     private:
+	cIndex *recordingIndexMarkAdVideo = NULL;
         MarkAdContext *macontext;
         MarkAdMarks marks = {};
         MarkAdAspectRatio aspectratio;
@@ -213,7 +216,7 @@ class cMarkAdVideo {
         int framelast;
         int framebeforelast;
     public:
-        explicit cMarkAdVideo(MarkAdContext *maContext);
+        explicit cMarkAdVideo(MarkAdContext *maContext, cIndex *recordingIndex);
         ~cMarkAdVideo();
         cMarkAdVideo(const cMarkAdVideo &origin) {   //  copy constructor, not used, only for formal reason
             macontext = origin.macontext;
