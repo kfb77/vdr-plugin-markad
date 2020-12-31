@@ -102,17 +102,8 @@ DEFINES += -DDEBUG_MEM
 $(info option DEBUG_MEM_MARKAD is set)
 endif
 
-
 INCLUDES += $(shell $(PKG-CONFIG) --cflags $(PKG-INCLUDES))
 LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
-
-
-### The object files (add further files here):
-OBJS = markad-standalone.o marks.o video.o audio.o decoder_new.o encoder_new.o logo.o debug.o
-ifdef CLASSIC_DECODER
-        DEFINES += -DCLASSIC_DECODER
-	OBJS += demux.o decoder.o streaminfo.o
-endif
 
 
 ### The main target:
