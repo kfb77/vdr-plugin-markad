@@ -930,7 +930,7 @@ int cDecoder::GetFirstMP2AudioStream() {
 
 
 int cDecoder::GetNextSilence(MarkAdContext *maContext, const int range, const bool start) {
-#define SILENCE_LEVEL 10
+#define SILENCE_LEVEL 27  // changed from 10 to 27
 #define SILENCE_COUNT 4
     int silenceCount = 0;
     int silenceFrame = 0;
@@ -956,6 +956,9 @@ int cDecoder::GetNextSilence(MarkAdContext *maContext, const int range, const bo
                         }
                     }
                     int normLevel =  level / audioFrame->nb_samples / audioFrame->channels;
+#ifdef DEBUG_SILENCE
+                    dsyslog("cDecoder::GetNextSilence(): frame (%5d) level %d", GetFrameNumber(), normLevel);
+#endif
                     if (normLevel <= SILENCE_LEVEL) {
                         silenceCount++;
                         if (silenceFrame == 0) silenceFrame = GetFrameNumber();

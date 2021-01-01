@@ -37,6 +37,9 @@
 // debug hborder detection
 // #define DEBUG_HBORDER
 
+// debug silence detection
+// #define DEBUG_SILENCE
+
 
 extern int SysLogLevel;
 extern void syslog_with_tid(int priority, const char *format, ...) __attribute__ ((format (printf, 2, 3)));

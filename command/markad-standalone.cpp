@@ -2033,7 +2033,7 @@ void cMarkAdStandalone::MarkadCut() {
 void cMarkAdStandalone::Process3ndPass() {
     if (!ptr_cDecoder) return;
 
-    int silenceRange = 1;
+    int silenceRange = 2;  // change from 1s to 2s
     if (strcmp(macontext.Info.ChannelName, "DMAX") == 0) silenceRange = 12; // logo color change at the begin
     if (strcmp(macontext.Info.ChannelName, "TELE_5") == 0) silenceRange = 5; // logo fade in/out
 
