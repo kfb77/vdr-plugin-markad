@@ -1048,7 +1048,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                     int lengthAdBefore = static_cast<int> ((mark->position - stopBefore->position) / macontext.Video.Info.FramesPerSecond);
                     int lengthPreview = static_cast<int> ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
                     if ((lengthAdBefore > 6) && (lengthAdBefore <= 585)) {  // if ad before is long this is the really the next start mark, increased from 450 to 455 to 500 to 560 to 585
-                        if ((lengthPreview >= 2) && lengthPreview < 110) {  // if logo part is long, this was a start mark
+                        if ((lengthPreview >= 3) && lengthPreview < 110) {  // if logo part is long, this was a start mark, min changed from 2 to 3
                             isyslog("found preview of length %is between logo mark (%i) and logo mark (%i) in advertisement (length %is), deleting marks", lengthPreview, mark->position, mark->Next()->position, lengthAdBefore);
                             clMark *tmp=mark;
                             mark = mark->Next()->Next();
