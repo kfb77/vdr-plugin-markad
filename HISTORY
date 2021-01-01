@@ -1,6 +1,13 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-01-01: Version 2.5.1
+- fix missing flush decoder buffer before seek
+- add parameter --logfile
+- fix overlap detection after scenes without movement
+- cut out text above logo
+- some minor bug fixes and optimizations, see git
+
 2020-12-24: Version 2.5.0
 - add new feature: detect audio silence to optimize logo marks
 - detect empty picture as separation picture for a logo stop mark
