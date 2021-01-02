@@ -931,7 +931,7 @@ int cDecoder::GetFirstMP2AudioStream() {
 
 int cDecoder::GetNextSilence(MarkAdContext *maContext, const int range, const bool start) {
 #define SILENCE_LEVEL 27  // changed from 10 to 27
-#define SILENCE_COUNT 4
+#define SILENCE_COUNT 3   // changed from 4 to 3
     int silenceCount = 0;
     int silenceFrame = 0;
     int streamIndex = GetFirstMP2AudioStream();
