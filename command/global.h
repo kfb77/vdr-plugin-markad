@@ -40,13 +40,13 @@
 #define MT_LOGOSTART      (unsigned char) 0x31
 #define MT_LOGOSTOP       (unsigned char) 0x32
 
-#define MT_HBORDERCHANGE  (unsigned char) 0x40
-#define MT_HBORDERSTART   (unsigned char) 0x41
-#define MT_HBORDERSTOP    (unsigned char) 0x42
+#define MT_VBORDERCHANGE  (unsigned char) 0x40
+#define MT_VBORDERSTART   (unsigned char) 0x41
+#define MT_VBORDERSTOP    (unsigned char) 0x42
 
-#define MT_VBORDERCHANGE  (unsigned char) 0x50
-#define MT_VBORDERSTART   (unsigned char) 0x51
-#define MT_VBORDERSTOP    (unsigned char) 0x52
+#define MT_HBORDERCHANGE  (unsigned char) 0x50
+#define MT_HBORDERSTART   (unsigned char) 0x51
+#define MT_HBORDERSTOP    (unsigned char) 0x52
 
 #define MT_ASPECTCHANGE   (unsigned char) 0x60
 #define MT_ASPECTSTART    (unsigned char) 0x61
