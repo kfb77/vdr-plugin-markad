@@ -337,7 +337,7 @@ void cMarkAdStandalone::CheckStop() {
         clMark *cStart = marks.GetPrev(end->position, MT_CHANNELSTART);      // if there is short befor a channel start, this stop mark belongs to next recording
         if (cStart && ((end->position - cStart->position) < delta)) {
             dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTART found short before at frame %i with delta %ds, MT_CHANNELSTOP is not valid, try to find stop mark short before", cStart->position, static_cast<int> ((end->position - cStart->position) / macontext.Video.Info.FramesPerSecond));
-            end = marks.GetAround(delta, iStopA - delta, MT_CHANNELSTOP); 
+            end = marks.GetAround(delta, iStopA - delta, MT_CHANNELSTOP);
             if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTOP found short before at frame (%d)", end->position);
         }
     }
@@ -380,12 +380,12 @@ void cMarkAdStandalone::CheckStop() {
             if (prevLogoStart) {
                 int deltaLogo = (end->position - prevLogoStart->position) / macontext.Video.Info.FramesPerSecond;
                 if (deltaLogo < 20) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): logo start/stop to short %ds, delete both and retry logo stop mark", deltaLogo);
+                    dsyslog("cMarkAdStandalone::CheckStop(): logo start/stop to short %ds, delete both (%d) and (%d), retry logo stop mark", deltaLogo, prevLogoStart->position, end->position);
                     marks.Del(end);
                     marks.Del(prevLogoStart);
-                    end = marks.GetAround(3*delta, iStopA, MT_STOP, 0x0F);
-                    if (end) dsyslog("cMarkAdStandalone::CheckStop(): second end mark found at frame %i", end->position);
-                    else dsyslog("cMarkAdStandalone::CheckStop(): no second end mark found");
+                    end = marks.GetAround(3*delta, iStopA, MT_LOGOSTOP);
+                    if (end) dsyslog("cMarkAdStandalone::CheckStop(): second try logo end mark found at frame %i", end->position);
+                    else dsyslog("cMarkAdStandalone::CheckStop(): no second try logo end mark found");
                 }
             }
         }
