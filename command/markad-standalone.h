@@ -105,7 +105,9 @@ class cMarkAdStandalone {
         void CalculateCheckPositions(int startframe);
         bool isVPSTimer();
         time_t GetBroadcastStart(time_t start, int fd);
-        void SaveFrame(int Frame);
+#if defined(DEBUG_FRAME) || defined(DEBUG_MARK_FRAMES)
+        void SaveFrame(const int frame, const char *path = NULL, const char *suffix = NULL);
+#endif
         char *IndexToHMSF(int Index);
         void AddMark(MarkAdMark *Mark);
         void AddMarkVPS(const int offset, const int type, const bool isPause);
@@ -282,6 +284,9 @@ class cMarkAdStandalone {
         void Process2ndPass();
         void Process3ndPass();
         void MarkadCut();
+#ifdef DEBUG_MARK_FRAMES
+        void DebugMarkFrames();
+#endif
 #if defined CLASSIC_DECODER
         void Process();
 #endif

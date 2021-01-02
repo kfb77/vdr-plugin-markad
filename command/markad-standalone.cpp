@@ -1455,8 +1455,11 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
 }
 
 
-#ifdef DEBUG_FRAME
-void cMarkAdStandalone::SaveFrame(int frame) {
+// save currect content of the frame buffer to /tmp
+// if path and suffix is set, this will set as target path and file name suffix
+//
+#if defined(DEBUG_FRAME) || defined(DEBUG_MARK_FRAMES)
+void cMarkAdStandalone::SaveFrame(const int frame, const char *path, const char *suffix) {
     if (!macontext.Video.Info.Width) {
         dsyslog("cMarkAdStandalone::SaveFrame(): macontext.Video.Info.Width not set");
         return;
@@ -1465,14 +1468,16 @@ void cMarkAdStandalone::SaveFrame(int frame) {
         dsyslog("cMarkAdStandalone::SaveFrame():  macontext.Video.Data.Valid not set");
         return;
     }
-    char szFilename[256];
+    char szFilename[1024];
 
     for (int plane = 0; plane < PLANES; plane++) {
         int height;
         if (plane == 0) height = macontext.Video.Info.Height;
         else height = macontext.Video.Info.Height / 2;
+        // set path and file name
+        if (path && suffix) sprintf(szFilename, "%s/frame%06d_P%d_%s.pgm", path, frame, plane, suffix);
+        else sprintf(szFilename, "/tmp/frame%06d_P%d.pgm", frame, plane);
         // Open file
-        sprintf(szFilename, "/tmp/frame%06d_P%d.pgm", frame, plane);
         FILE *pFile = fopen(szFilename, "wb");
         if (pFile == NULL) {
             dsyslog("cMarkAdStandalone::SaveFrame(): open file %s failed", szFilename);
@@ -1939,6 +1944,52 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
     }
     return false;
 }
+
+
+#ifdef DEBUG_MARK_FRAMES
+void cMarkAdStandalone::DebugMarkFrames() {
+    if (!ptr_cDecoder) return;
+
+    ptr_cDecoder->Reset();
+    clMark *mark = marks.GetFirst();
+    if (!mark) return;
+
+    int writePosition = mark->position;
+    for (int i = 0; i < DEBUG_MARK_FRAMES; i++) {
+        writePosition = ptr_cDecoder->GetIFrameBefore(writePosition - 1);
+    }
+    int writeOffset = -DEBUG_MARK_FRAMES;
+
+    // read and decode all video frames, we want to be sure we have a valid decoder state, this is a debug function, we dont care about performance
+    while(mark && (ptr_cDecoder->DecodeDir(directory))) {
+        while(mark && (ptr_cDecoder->GetNextFrame())) {
+            if (ptr_cDecoder->isVideoPacket()) {
+                if (ptr_cDecoder->GetFrameInfo(&macontext)) {
+                    if (ptr_cDecoder->GetFrameNumber() >= writePosition) {
+                        dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at frame (%5d) write frame (%5d)", mark->position, writePosition);
+                        if (writePosition == mark->position) {
+                            SaveFrame(mark->position, directory, ((mark->type & 0x0F) == MT_STOP) ? "STOP" : "START");
+                        }
+                        else {
+                            SaveFrame(writePosition, directory, (writePosition < mark->position) ? "BEFORE" : "AFTER");
+                        }
+                        writePosition = ptr_cDecoder->GetIFrameAfter(writePosition + 1);
+                        if (writeOffset >= DEBUG_MARK_FRAMES) {
+                            mark = mark->Next();
+                            if (!mark) break;
+                            for (int i = 0; i < DEBUG_MARK_FRAMES; i++) {
+                                writePosition = ptr_cDecoder->GetIFrameBefore(mark->position - 1);
+                            }
+                            writeOffset = -DEBUG_MARK_FRAMES;
+                        }
+                        else writeOffset++;
+                    }
+                }
+            }
+        }
+    }
+}
+#endif
 
 
 void cMarkAdStandalone::MarkadCut() {
@@ -4703,12 +4754,14 @@ int main(int argc, char *argv[]) {
             cmasta->Process3ndPass();  // Audio silence detection
             gettimeofday(&endPass3, NULL);
         }
-
         if (config.MarkadCut) {
             gettimeofday(&startPass4, NULL);
             cmasta->MarkadCut();
             gettimeofday(&endPass4, NULL);
         }
+#ifdef DEBUG_MARK_FRAMES
+        cmasta->DebugMarkFrames(); // write frames picture of marks to recording directory
+#endif
         if (cmasta) {
             FREE(sizeof(*cmasta), "cmasta");
             delete cmasta;

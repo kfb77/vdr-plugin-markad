@@ -40,6 +40,10 @@
 // debug silence detection
 // #define DEBUG_SILENCE
 
+// debug marks frames, write mark frame picture (and some before and after) to recording directory
+// #define DEBUG_MARK_FRAMES <count frames before and after>
+
+
 
 extern int SysLogLevel;
 extern void syslog_with_tid(int priority, const char *format, ...) __attribute__ ((format (printf, 2, 3)));

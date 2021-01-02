@@ -61,6 +61,11 @@ DEFINES += -DDEBUG_MEM
 $(info option DEBUG_MEM_MARKAD is set)
 endif
 
+ifdef DEBUG_MARK_FRAMES
+DEFINES += -DDEBUG_MARK_FRAMES=$(DEBUG_MARK_FRAMES)
+$(info option DEBUG_MARK_FRAMES is set)
+endif
+
 
 INCLUDES += $(shell $(PKG-CONFIG) --cflags $(PKG-INCLUDES))
 LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
