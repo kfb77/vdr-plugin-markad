@@ -2512,7 +2512,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 return false;
             }
 
-            if ( !restartLogoDetectionDone && (lastiframe > (iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE)) &&
+            if ( !restartLogoDetectionDone && (lastiframe > (iStopA-macontext.Video.Info.FramesPerSecond * 2 * MAXRANGE)) &&
                                      ((macontext.Video.Options.IgnoreBlackScreenDetection) || (macontext.Video.Options.IgnoreLogoDetection))) {
                 isyslog("restart logo and black screen detection at frame (%d)", ptr_cDecoder->GetFrameNumber());
                 restartLogoDetectionDone = true;
