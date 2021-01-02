@@ -305,7 +305,8 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
     iStop = -(startframe + macontext.Video.Info.FramesPerSecond * length) ;   // iStop change from - to + when frames reached iStop
 
     iStartA = abs(iStart);
-    iStopA = startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->astopoffs - 30);
+    // iStopA = startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->astopoffs - 30);
+    iStopA = startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->astopoffs);
     chkSTART = iStartA + macontext.Video.Info.FramesPerSecond * 4 * MAXRANGE; //  fit for later broadcast start
     chkSTOP = startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->posttimer);
 
