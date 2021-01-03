@@ -2088,7 +2088,7 @@ void cMarkAdStandalone::Process3ndPass() {
 
     int silenceRange = 2;  // change from 1s to 2s
     if (strcmp(macontext.Info.ChannelName, "DMAX") == 0) silenceRange = 12; // logo color change at the begin
-    if (strcmp(macontext.Info.ChannelName, "TELE_5") == 0) silenceRange = 5; // logo fade in/out
+    if (strcmp(macontext.Info.ChannelName, "TELE_5") == 0) silenceRange = 6; // logo fade in/out, changed from 5 to 6
 
     bool save = false;
     LogSeparator();
