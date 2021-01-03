@@ -1970,7 +1970,9 @@ void cMarkAdStandalone::DebugMarkFrames() {
                     if (ptr_cDecoder->GetFrameNumber() >= writePosition) {
                         dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at frame (%5d) write frame (%5d)", mark->position, writePosition);
                         if (writePosition == mark->position) {
-                            SaveFrame(mark->position, directory, ((mark->type & 0x0F) == MT_STOP) ? "STOP" : "START");
+                            if ((mark->type & 0x0F) == MT_START) SaveFrame(mark->position, directory, "START");
+                            else if ((mark->type & 0x0F) == MT_STOP) SaveFrame(mark->position, directory, "STOP");
+                                 else SaveFrame(mark->position, directory, "MOVED");
                         }
                         else {
                             SaveFrame(writePosition, directory, (writePosition < mark->position) ? "BEFORE" : "AFTER");
