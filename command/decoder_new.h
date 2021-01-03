@@ -75,7 +75,7 @@ class cDecoder {
         int GetIFrameBefore(int iFrame);
         int64_t GetTimeFromIFrame(int iFrame);
         int GetIFrameFromOffset(int offset);
-        int GetNextSilence(MarkAdContext *maContext, const int range, const bool start);
+        int GetNextSilence(MarkAdContext *maContext, const int range, const bool before);
     private:
         char *recordingDir = NULL;
         int fileNumber = 0;
