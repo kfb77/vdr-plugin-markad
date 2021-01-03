@@ -946,7 +946,7 @@ int cDecoder::GetNextSilence(MarkAdContext *maContext, const int range, const bo
     int streamIndex = GetFirstMP2AudioStream();
     if (streamIndex < 0) {
         dsyslog("cDecoder::GetNextSilence(): could not get stream index of MP2 audio stream");
-        return 0;
+        return -1;
     }
     int startFrame = GetFrameNumber();
     dsyslog("cDecoder::GetNextSilence(): using stream index %i and start at frame (%d)", streamIndex, startFrame);
@@ -994,7 +994,7 @@ int cDecoder::GetNextSilence(MarkAdContext *maContext, const int range, const bo
                 }
                 else {
                     dsyslog("cDecoder::GetNextSilence(): stream %i frame %i sample format not supported %s", avpkt.stream_index, GetFrameNumber(), av_get_sample_fmt_name((enum AVSampleFormat) audioFrame->format));
-                    return 0;
+                    return -1;
                 }
             }
         }
