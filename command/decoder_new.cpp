@@ -397,7 +397,7 @@ bool cDecoder::SeekToFrame(MarkAdContext *maContext, int frame) {
     if (!avctx) return false;
     if (!maContext) return false;
     if (framenumber > frame) {
-        dsyslog("cDecoder::SeekToFrame(): could not seek backward");
+        dsyslog("cDecoder::SeekToFrame(): current frame position (%d), could not seek backward to frame (%d)", framenumber, frame);
         return false;
     }
 
