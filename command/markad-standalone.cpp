@@ -491,19 +491,7 @@ bool cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(clMark *stopMark) {
 
     if (newPosition > stopMark->position) {
         dsyslog("cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(): closing credits found, move logo stop mark to position (%d)", newPosition);
-        char *comment = NULL;
-        char *indexToHMSF = marks.IndexToHMSF(stopMark->position, &macontext);
-        if (asprintf(&comment,"logo stop mark moved from (%d) at %s to end of closing credits (%d)", stopMark->position, indexToHMSF, newPosition) == -1) comment=NULL;
-        ALLOC(strlen(comment)+1, "comment");
-        dsyslog("cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(): delete mark on position (%d)", stopMark->position);
-        marks.Del(stopMark->position);
-        marks.Add(MT_MOVED, newPosition, comment);
-
-        FREE(strlen(comment)+1,"comment");
-        free(comment);
-        FREE(strlen(indexToHMSF)+1,"indexToHMSF");
-        free(indexToHMSF);
-
+        marks.Move(&macontext, stopMark, newPosition, "closing credits");
         return true;
     }
     else {
@@ -1781,6 +1769,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
 }
 
 
+#if defined CLASSIC_DECODER
 void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos) {
     if (!NewPos) return;
     if (!Mark1) return;
@@ -1795,7 +1784,7 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
         ALLOC(strlen(buf)+1, "buf");
         isyslog("%s",buf);
         marks.Del(*Mark1);
-        *Mark1 = marks.Add(MT_MOVED, NewPos->FrameNumberBefore, buf);
+        *Mark1 = marks.Add(MT_MOVEDCHANGE, NewPos->FrameNumberBefore, buf);
         FREE(strlen(buf)+1, "buf");
         free(buf);
         if (indexToHMSFBefore) {
@@ -1818,7 +1807,7 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
         ALLOC(strlen(buf)+1, "buf");
         isyslog("%s",buf);
         marks.Del(*Mark2);
-        *Mark2 = marks.Add(MT_MOVED, NewPos->FrameNumberAfter, buf);
+        *Mark2 = marks.Add(MT_MOVEDCHANGE, NewPos->FrameNumberAfter, buf);
         FREE(strlen(buf)+1, "buf");
         free(buf);
         if (indexToHMSFBefore) {
@@ -1833,6 +1822,7 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
     }
     if (save) marks.Save(directory, &macontext, isTS, true);
 }
+#endif
 
 
 #if defined CLASSIC_DECODER
@@ -2133,8 +2123,9 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
                 FREE(strlen(indexToHMSFafter)+1, "indexToHMSF");
                 free(indexToHMSFafter);
             }
-
-            ChangeMarks(mark1, mark2, ptr_MarkAdPos);
+            *mark1 = marks.Move(&macontext, *mark1, ptr_MarkAdPos->FrameNumberBefore, "overlap");
+            *mark2 = marks.Move(&macontext, *mark2, ptr_MarkAdPos->FrameNumberAfter, "overlap");
+            marks.Save(directory, &macontext, isTS, true);
             return true;
         }
     }
@@ -2208,12 +2199,12 @@ void cMarkAdStandalone::MarkadCut() {
     DebugMarks();     //  only for debugging
 
     clMark *StartMark = marks.GetFirst();
-    if (((StartMark->type & 0x0F) != MT_START) && (StartMark->type != MT_MOVED)) {
+    if ((StartMark->type & 0x0F) != MT_START) {
         esyslog("got invalid start mark at (%i) type 0x%X", StartMark->position, StartMark->type);
         return;
     }
     clMark *StopMark = StartMark->Next();
-    if (((StopMark->type & 0x0F) != MT_STOP) && (StopMark->type != MT_MOVED)) {
+    if ((StopMark->type & 0x0F) != MT_STOP) {
         esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
         return;
     }
@@ -2233,12 +2224,12 @@ void cMarkAdStandalone::MarkadCut() {
             if  (ptr_cDecoder->GetFrameNumber() > stopPosition) {
                 if (StopMark->Next() && StopMark->Next()->Next()) {
                     StartMark = StopMark->Next();
-                    if (((StartMark->type & 0x0F) != MT_START) && (StartMark->type != MT_MOVED)) {
+                    if ((StartMark->type & 0x0F) != MT_START) {
                         esyslog("got invalid start mark at (%i) type 0x%X", StartMark->position, StartMark->type);
                         return;
                     }
                     StopMark = StartMark->Next();
-                    if (((StopMark->type & 0x0F) != MT_STOP) && (StopMark->type != MT_MOVED)) {
+                    if ((StopMark->type & 0x0F) != MT_STOP) {
                         esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
                         return;
                     }
@@ -2280,6 +2271,9 @@ void cMarkAdStandalone::MarkadCut() {
 }
 
 
+// 3nd pass
+// move marks if silence was detected before start mark or after/before end mark
+//
 void cMarkAdStandalone::Process3ndPass() {
     if (!ptr_cDecoder) return;
 
@@ -2312,29 +2306,10 @@ void cMarkAdStandalone::Process3ndPass() {
             }
             framecnt3 += silenceRange * macontext.Video.Info.FramesPerSecond;
             int beforeSilence = ptr_cDecoder->GetNextSilence(mark->position, true);
-            if ((beforeSilence > 0) && (beforeSilence != mark->position)) {
+            if ((beforeSilence >= 0) && (beforeSilence != mark->position)) {
                 dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo start at iFrame (%i)", beforeSilence);
-                char *buf = NULL;
-                char *indexToHMSFBefore = marks.IndexToHMSF(mark->position,&macontext);
-                char *indexToHMSFNewPos = marks.IndexToHMSF(beforeSilence, &macontext);
-                if (asprintf(&buf,"silence before logo start mark frame (%i) at %s, moved to frame (%i) at %s", mark->position, indexToHMSFBefore, beforeSilence, indexToHMSFNewPos) == -1) break;
-                ALLOC(strlen(buf)+1, "buf");
-                isyslog("%s",buf);
-                clMark *tmpMark = mark->Next();
-                marks.Del(mark);
-                marks.Add(MT_MOVED, beforeSilence, buf);
-                FREE(strlen(buf)+1, "buf");
-                free(buf);
-                if (indexToHMSFBefore) {
-                    FREE(strlen(indexToHMSFBefore)+1, "indexToHMSF");
-                    free(indexToHMSFBefore);
-                }
-                if (indexToHMSFNewPos) {
-                    FREE(strlen(indexToHMSFNewPos)+1, "indexToHMSF");
-                    free(indexToHMSFNewPos);
-                }
+                mark = marks.Move(&macontext, mark, beforeSilence, "silence");
                 save = true;
-                mark = tmpMark;
                 continue;
             }
         }
@@ -2372,27 +2347,8 @@ void cMarkAdStandalone::Process3ndPass() {
             if ((afterSilence >= 0) && (afterSilence != mark->position)) {
                 if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): detect audio silence for mark at frame (%6i) type 0x%X at %s range %i", mark->position, mark->type, indexToHMSF, silenceRange);
                 dsyslog("cMarkAdStandalone::Process3ndPass(): use audio silence %s logo stop at iFrame (%i)", (before) ? "before" : "after", afterSilence);
-                char *buf = NULL;
-                char *indexToHMSFBefore = marks.IndexToHMSF(mark->position,&macontext);
-                char *indexToHMSFNewPos = marks.IndexToHMSF(afterSilence, &macontext);
-                if (asprintf(&buf,"silence %s logo stop mark frame (%i) at %s, moved to frame (%i) at %s", (before) ? "before" : "after", mark->position, indexToHMSFBefore, afterSilence, indexToHMSFNewPos) == -1) break;
-                ALLOC(strlen(buf)+1, "buf");
-                isyslog("%s",buf);
-                clMark *tmpMark = mark->Next();
-                marks.Del(mark);
-                marks.Add(MT_MOVED, afterSilence, buf);
-                FREE(strlen(buf)+1, "buf");
-                free(buf);
-                if (indexToHMSFBefore) {
-                    FREE(strlen(indexToHMSFBefore)+1, "indexToHMSF");
-                    free(indexToHMSFBefore);
-                }
-                if (indexToHMSFNewPos) {
-                    FREE(strlen(indexToHMSFNewPos)+1, "indexToHMSF");
-                    free(indexToHMSFNewPos);
-                }
+                mark = marks.Move(&macontext, mark, afterSilence, "silence");
                 save = true;
-                mark = tmpMark;
                 continue;
             }
         }

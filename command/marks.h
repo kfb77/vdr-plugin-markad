@@ -63,6 +63,7 @@ class clMarks {
         int count;
         int savedcount = 0;
         int indexfd;
+        char *TypeToText(const int type);
 #if defined CLASSIC_DECODER
         void WriteIndex(bool isTS, uint64_t Offset,int FrameType, int Number);
 #endif
@@ -88,6 +89,7 @@ class clMarks {
         void Del(clMark *Mark);
         void Del(const unsigned char Type);
         void Del(const int Position);
+        clMark *Move(MarkAdContext *maContext, clMark *mark, const int newPosition, const char* reason);
         clMark *Get(const int Position);
         clMark *GetAround(const int Frames, const int Position, const int Type = 0xFF, const int Mask = 0xFF);
         clMark *GetPrev(const int Position, const int Type = 0xFF, const int Mask = 0xFF);
