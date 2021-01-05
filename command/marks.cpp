@@ -74,19 +74,6 @@ int clMarks::Count(const int Type, const int Mask) {
 }
 
 
-int clMarks::CountWithoutBlack() {
-    if (!first) return 0;
-
-    int ret = 0;
-    clMark *mark = first;
-    while (mark) {
-        if ((mark->type & 0xF0) != MT_BLACKCHANGE) ret++;
-        mark = mark->Next();
-    }
-    return ret;
-}
-
-
 void clMarks::Del(const int Position) {
     if (!first) return; // no elements yet
 
@@ -128,7 +115,11 @@ void clMarks::DelWeakFromTo(const int from, const int to, const short int type) 
 }
 
 
-void clMarks::DelTill(const int Position, const bool FromStart) {
+// <FromStart> = true: delete all marks from start to <Position>
+// <FromStart> = false: delete all marks from <Position> to end
+// blackscreen marks were moved to blackscreen list
+//
+void clMarks::DelTill(const int Position, clMarks *blackMarks, const bool FromStart) {
     clMark *next, *mark = first;
     if (!FromStart) {
         while (mark) {
@@ -136,15 +127,16 @@ void clMarks::DelTill(const int Position, const bool FromStart) {
             mark = mark->Next();
         }
     }
-
     while (mark) {
         next = mark->Next();
         if (FromStart) {
             if (mark->position < Position) {
+                if ((mark->type & 0xF0) == MT_BLACKCHANGE) blackMarks->Add(mark->type, mark->position, NULL, mark->inBroadCast); // add mark to blackscreen list
                 Del(mark);
             }
         }
         else {
+            if ((mark->type & 0xF0) == MT_BLACKCHANGE) blackMarks->Add(mark->type, mark->position, NULL, mark->inBroadCast); // add mark to blackscreen list
             Del(mark);
         }
         mark = next;
@@ -332,7 +324,7 @@ clMark *clMarks::Add(const int Type, const int Position, const char *Comment, co
             if (!mark->Next()) {
                 if (Position > mark->position) {
                     // add as last element
-                    newmark->Set(mark,NULL);
+                    newmark->Set(mark, NULL);
                     mark->SetNext(newmark);
                     last = newmark;
                     break;
@@ -347,7 +339,7 @@ clMark *clMarks::Add(const int Type, const int Position, const char *Comment, co
                         break;
                     }
                     else {
-                        newmark->Set(mark->Prev(),mark);
+                        newmark->Set(mark->Prev(), mark);
                         mark->SetPrev(newmark);
                         break;
                     }
