@@ -322,7 +322,8 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
 
 void cMarkAdStandalone::CheckStop() {
     LogSeparator(true);
-    dsyslog("cMarkAdStandalone::CheckStop(): checking stop (%i)", lastiframe);
+    LogSeparator();
+    dsyslog("cMarkAdStandalone::CheckStop(): start check stop (%i)", lastiframe);
 
     char *indexToHMSF = marks.IndexToHMSF(iStopA, &macontext);
         if (indexToHMSF) {
@@ -425,6 +426,7 @@ void cMarkAdStandalone::CheckStop() {
         while (mark) {
             if ((mark->position >= iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE) && (mark->position < end->position) && ((mark->type & 0xF0) < (end->type & 0xF0))) { // delete all weak marks
                 dsyslog("cMarkAdStandalone::CheckStop(): found stronger end mark delete mark (%i)", mark->position);
+                if ((mark->type & 0xF0) == MT_BLACKCHANGE) blackMarks.Add(mark->type, mark->position, NULL, mark->inBroadCast); // add mark to blackscreen list
                 clMark *tmp = mark;
                 mark = mark->Next();
                 marks.Del(tmp);
@@ -447,7 +449,9 @@ void cMarkAdStandalone::CheckStop() {
             FREE(strlen(indexToHMSF)+1, "indexToHMSF");
             free(indexToHMSF);
         }
-        marks.DelTill(end->position, false);
+
+        dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after final stop mark at (%d)", end->position);
+        marks.DelTill(end->position, &blackMarks, false);
 
         if ( end->position < iStopA - 5 * delta ) {    // last found stop mark too early, adding STOP mark at the end, increased from 3 to 5
                                                      // this can happen by audio channel change too if the next broadcast has also 6 channels
@@ -467,8 +471,32 @@ void cMarkAdStandalone::CheckStop() {
         mark.Type = MT_ASSUMEDSTOP;
         AddMark(&mark);
     }
+
+    // delete all black sceen marks expect start or end mark
+    dsyslog("cMarkAdStandalone::CheckStop(): move all black screen marks except start and end mark to black screen list");
+    clMark *mark = marks.GetFirst();
+    while (mark) {
+        if (mark != marks.GetFirst()) {
+            if (mark == marks.GetLast()) break;
+            if ((mark->type & 0xF0) == MT_BLACKCHANGE) {
+                blackMarks.Add(mark->type, mark->position, NULL, mark->inBroadCast); // add mark to blackscreen list
+                clMark *tmp = mark;
+                mark = mark->Next();
+                dsyslog("cMarkAdStandalone::CheckStop(): delete black screen mark (%i)", tmp->position);
+                marks.Del(tmp);
+                continue;
+            }
+        }
+        mark = mark->Next();
+    }
+
     iStop = iStopA = 0;
     gotendmark = true;
+
+    DebugMarks();     //  only for debugging
+    dsyslog("cMarkAdStandalone::CheckStop(): end check stop");
+    LogSeparator();
+
 }
 
 
@@ -1025,7 +1053,7 @@ void cMarkAdStandalone::CheckStart() {
     }
 
     if (!begin) {    // try anything
-        marks.DelTill(1);    // we do not want to have a start mark at position 0
+        marks.DelTill(1, &blackMarks);    // we do not want to have a start mark at position 0
         begin = marks.GetAround(iStartA + 3 * delta, iStartA, MT_START, 0x0F);  // increased from 2 to 3
         if (begin) {
             if ((begin->type == MT_NOBLACKSTART) && (begin->position > (iStartA + 2 * delta))) {
@@ -1060,7 +1088,7 @@ void cMarkAdStandalone::CheckStart() {
     }
 
     if (begin) {
-        marks.DelTill(begin->position);    // delete all marks till start mark
+        marks.DelTill(begin->position, &blackMarks);    // delete all marks till start mark
         CalculateCheckPositions(begin->position);
         char *indexToHMSF = marks.IndexToHMSF(begin->position, &macontext);
         if (indexToHMSF) {
@@ -1077,13 +1105,14 @@ void cMarkAdStandalone::CheckStart() {
             marks.Del(MT_LOGOSTOP);
         }
 
-        dsyslog("cMarkAdStandalone::CheckStart(): delete all black screen marks except start mark");
+        dsyslog("cMarkAdStandalone::CheckStart(): move all black screen marks except start mark to black screen list");
         clMark *mark = marks.GetFirst();   // delete all black screen marks because they are weak, execpt the start mark
         while (mark) {
             if (((mark->type & 0xF0) == MT_BLACKCHANGE) && (mark->position > begin->position) ) {
+                blackMarks.Add(mark->type, mark->position, NULL, mark->inBroadCast); // add mark to blackscreen list
                 clMark *tmp = mark;
                 mark = mark->Next();
-                marks.Del(tmp);
+                marks.Del(tmp);  // delete mark from normal list
                 continue;
             }
             mark = mark->Next();
@@ -1092,7 +1121,7 @@ void cMarkAdStandalone::CheckStart() {
     else {
         //fallback
         dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, assume start time at pre recording time");
-        marks.DelTill(iStart);
+        marks.DelTill(iStart, &blackMarks);
         marks.Del(MT_NOBLACKSTART);  // delete all black screen marks
         marks.Del(MT_NOBLACKSTOP);
         MarkAdMark mark = {};
@@ -1133,7 +1162,11 @@ void cMarkAdStandalone::LogSeparator(const bool main) {
 }
 
 
+// write all current marks to log file
+//
 void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
+    LogSeparator();
+    dsyslog("cMarkAdStandalone::DebugMarks(): current marks:");
     clMark *mark = marks.GetFirst();
     while (mark) {
         char *indexToHMSF = marks.IndexToHMSF(mark->position, &macontext);
@@ -1144,6 +1177,18 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
         }
         mark=mark->Next();
     }
+    tsyslog("cMarkAdStandalone::DebugMarks(): current black screen marks:");
+    mark = blackMarks.GetFirst();
+    while (mark) {
+        char *indexToHMSF = marks.IndexToHMSF(mark->position, &macontext);
+        if (indexToHMSF) {
+            tsyslog("mark at position %6i type 0x%X at %s inBroadCast %i", mark->position, mark->type, indexToHMSF, mark->inBroadCast);
+            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+            free(indexToHMSF);
+        }
+        mark=mark->Next();
+    }
+    LogSeparator();
 }
 
 
@@ -1213,7 +1258,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 
 // delete short START STOP logo marks because they are previews in the advertisement
 // delete short START STOP hborder marks because they are advertisement in the advertisement
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 3nd pass (detect previews in advertisement)");
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 2nd pass (detect previews in advertisement)");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
     while (mark) {
@@ -1262,7 +1307,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 
 // delete short STOP START logo marks because they are logo detection failure
 // delete short STOP START hborder marks because some channels display information in the border
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 4nd pass (remove logo and hborder detection failure marks)");
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 3nd pass (remove logo and hborder detection failure marks)");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
     while (mark) {
@@ -1293,7 +1338,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         mark = mark->Next();
     }
 
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 5nd pass (remove invalid marks)");
+    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 4nd pass (remove invalid marks)");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
     while (mark) {
@@ -1591,6 +1636,9 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
             if (diff < markDiff) {
                 if (prev->type > Mark->Type) {
                     isyslog("previous mark (%i) type 0x%X stronger than actual mark, deleting (%i) type 0x%X", prev->position, prev->type, Mark->Position, Mark->Type);
+                    if ((Mark->Type == MT_NOBLACKSTOP) || (Mark->Type == MT_NOBLACKSTART)) {
+                        blackMarks.Add(Mark->Type, Mark->Position, NULL, false); // add mark to blackscreen list
+                    }
                     if (comment) {
                         FREE(strlen(comment)+1, "comment");
                         free(comment);
@@ -1599,6 +1647,9 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
                 }
                 else {
                     isyslog("actual mark (%i) type 0x%X stronger then previous mark, deleting %i type 0x%X", Mark->Position, Mark->Type, prev->position, prev->type);
+                    if ((prev->type == MT_NOBLACKSTOP) || (prev->type == MT_NOBLACKSTART)) {
+                        blackMarks.Add(prev->type, prev->position, NULL, false); // add mark to blackscreen list
+                    }
                     marks.Del(prev);
                 }
             }
@@ -2272,18 +2323,20 @@ void cMarkAdStandalone::MarkadCut() {
 
 
 // 3nd pass
-// move marks if silence was detected before start mark or after/before end mark
+// move logo marks if -silence was detected before start mark or after/before end mark
+//                    -black screen marks are direct before stop mark or direct after start mark
 //
 void cMarkAdStandalone::Process3ndPass() {
     if (!ptr_cDecoder) return;
 
+#define BLACKSCREEN_RANGE 6 // in s
     int silenceRange = 2;  // change from 1s to 2s
     if (strcmp(macontext.Info.ChannelName, "DMAX") == 0) silenceRange = 12; // logo color change at the begin
     if (strcmp(macontext.Info.ChannelName, "TELE_5") == 0) silenceRange = 6; // logo fade in/out, changed from 5 to 6
 
     bool save = false;
     LogSeparator(true);
-    isyslog("start 3nd pass (detect audio silence)");
+    isyslog("start 3nd pass (detect audio silence and blackcreen marks near by logo marks)");
     ptr_cDecoder->Reset();
     ptr_cDecoder->DecodeDir(directory);
 
@@ -2312,6 +2365,8 @@ void cMarkAdStandalone::Process3ndPass() {
                 save = true;
                 continue;
             }
+            if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): no audio silence before logo mark at frame (%6i) type 0x%X at %s found", mark->position, mark->type, indexToHMSF);
+
         }
         if (mark->type == MT_LOGOSTOP) {
             // search before stop mark
@@ -2357,6 +2412,43 @@ void cMarkAdStandalone::Process3ndPass() {
     if (indexToHMSF) {  // cleanup after loop
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
+    }
+
+// try blacksceen mark
+    dsyslog("cMarkAdStandalone::Process3ndPass(): start search for blackscreen near logo marks");
+    mark = marks.GetFirst();
+    while (mark) {
+        if (mark->type == MT_LOGOSTART) {
+            clMark *blackMark = blackMarks.GetAround(BLACKSCREEN_RANGE * macontext.Video.Info.FramesPerSecond, mark->position, MT_NOBLACKSTART);
+            if (blackMark) {
+                int distance = mark->position - blackMark->position;
+                int distance_s = distance / macontext.Video.Info.FramesPerSecond;
+                if (distance > 0)  { // blackscreen is before logo start mark
+                    dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d) %ds (expect >0 and <=%ds) before logo start mark (%d), move mark", blackMark->position, distance, distance_s, BLACKSCREEN_RANGE, mark->position);
+                    mark = marks.Move(&macontext, mark, blackMark->position, "black screen");
+                    save = true;
+                    continue;
+                }
+                else dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d) %ds (expect >0 and <=%ds) before (-after) logo start mark (%d), keep mark", blackMark->position, distance, distance_s, BLACKSCREEN_RANGE, mark->position);
+            }
+            else dsyslog("cMarkAdStandalone::Process3ndPass(): no black screen mark found before logo start mark (%d)", mark->position);
+        }
+        if (mark->type == MT_LOGOSTOP) {
+            clMark *blackMark = blackMarks.GetAround(BLACKSCREEN_RANGE * macontext.Video.Info.FramesPerSecond, mark->position, MT_NOBLACKSTOP);
+            if (blackMark) {
+                int distance = blackMark->position - mark->position;
+                int distance_s = distance / macontext.Video.Info.FramesPerSecond;
+                if (distance > 0)  { // blackscreen is after logo stop mark
+                    dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d) %ds (expect >0 and <=%ds) after logo stop mark (%d), move mark", blackMark->position, distance, distance_s, BLACKSCREEN_RANGE, mark->position);
+                    mark = marks.Move(&macontext, mark, blackMark->position, "black screen");
+                    save = true;
+                    continue;
+                }
+                else dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d) %ds (expect >0 and <=%ds) after (-before) logo stop mark (%d), keep mark", blackMark->position, distance, distance_s, BLACKSCREEN_RANGE, mark->position);
+            }
+            else dsyslog("cMarkAdStandalone::Process3ndPass(): no black screen mark found after logo stop mark (%d)", mark->position);
+        }
+        mark=mark->Next();
     }
 
     if (save) marks.Save(directory, &macontext, isTS, true);

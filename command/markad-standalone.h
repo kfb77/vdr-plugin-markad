@@ -122,6 +122,7 @@ class cMarkAdStandalone {
         char *indexFile = NULL;
         int sleepcnt = 0;
         clMarks marks;
+        clMarks blackMarks;
         cDecoder *ptr_cDecoderLogoChange = NULL;
 
         void CheckStop();

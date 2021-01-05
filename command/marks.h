@@ -72,7 +72,6 @@ class clMarks {
         ~clMarks();
         void RegisterIndex(cIndex *recordingIndex);
         int Count(const int Type = 0xFF, const int Mask = 0xFF);
-        int CountWithoutBlack();
         void SetFileName(const char *FileName) {
             if (FileName) {
                 strncpy(filename,FileName,sizeof(filename));
@@ -83,7 +82,7 @@ class clMarks {
         clMark *Add(const int Type, const int Position, const char *Comment = NULL, const bool inBroadCast = false);
         char *IndexToHMSF(const int Index, const MarkAdContext *maContext);
         void DelWeakFromTo(const int from, const int to, const short int type);
-        void DelTill(const int Position, const bool FromStart = true);
+        void DelTill(const int Position, clMarks *blackMarks, const bool FromStart = true);
         void DelFrom(const int Position);
         void DelAll();
         void Del(clMark *Mark);
