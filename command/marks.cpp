@@ -381,6 +381,79 @@ clMark *clMarks::Add(const int Type, const int Position, const char *Comment, co
 }
 
 
+// get text to mark type
+// return pointer to text
+//
+char *clMarks::TypeToText(const int type) {
+    char *text = NULL;
+    switch (type & 0xF0) {
+        case MT_LOGOCHANGE:
+            if (asprintf(&text, "logo") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            break;
+        case MT_CHANNELCHANGE:
+            if (asprintf(&text, "channel") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            break;
+        case MT_MOVEDCHANGE:
+            if (asprintf(&text, "moved") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            break;
+        default:
+           if (asprintf(&text, "unknown") != -1) {
+               ALLOC(strlen(text)+1, "text");
+           }
+           break;
+    }
+    return text;
+}
+
+
+// move mark to new posiition
+// return pointer to new mark
+//
+clMark *clMarks::Move(MarkAdContext *maContext, clMark *mark, const int newPosition, const char* reason) {
+    if (!mark) return NULL;
+    if (!reason) return NULL;
+
+    char *comment = NULL;
+    char *indexToHMSF = IndexToHMSF(mark->position, maContext);
+    clMark *newMark = NULL;
+    char* typeText = TypeToText(mark->type);
+
+    if (indexToHMSF && typeText) {
+       if (asprintf(&comment,"moved %s mark (%d) %s %s %s mark (%d) at %s, %s detected%s",
+                                    ((mark->type & 0x0F) == MT_START) ? "start" : "stop",
+                                             newPosition,
+                                                  (newPosition > mark->position) ? "after" : "before",
+                                                     typeText,
+                                                        ((mark->type & 0x0F) == MT_START) ? "start" : "stop",
+                                                                 mark->position,
+                                                                       indexToHMSF,
+                                                                           reason,
+                                                                                      ((mark->type & 0x0F) == MT_START) ? "*" : "") != -1) {
+           ALLOC(strlen(comment)+1, "comment");
+           isyslog("%s",comment);
+
+           int newType = ((mark->type & 0x0F) == MT_START) ? MT_MOVEDSTART : MT_MOVEDSTOP;
+           Del(mark);
+           newMark = Add(newType, newPosition, comment);
+
+           FREE(strlen(typeText)+1, "text");
+           free(typeText);
+           FREE(strlen(comment)+1, "comment");
+           free(comment);
+           FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+           free(indexToHMSF);
+       }
+   }
+   return newMark;
+}
+
+
 void clMarks::RegisterIndex(cIndex *recordingIndex) {
     recordingIndexMarks = recordingIndex;
 }

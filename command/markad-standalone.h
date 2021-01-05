@@ -79,7 +79,7 @@ class cMarkAdStandalone {
         cMarkAdAudio *audio = NULL;
         cOSDMessage *osd = NULL;
         MarkAdContext macontext = {};
-	cIndex *recordingIndexMark = NULL;
+        cIndex *recordingIndexMark = NULL;
 
         enum { mSTART = 0x1, mBEFORE, mAFTER };
         const char *directory;
@@ -122,7 +122,7 @@ class cMarkAdStandalone {
         char *indexFile = NULL;
         int sleepcnt = 0;
         clMarks marks;
-	cDecoder *ptr_cDecoderLogoChange = NULL;
+        cDecoder *ptr_cDecoderLogoChange = NULL;
 
         void CheckStop();
         bool MoveLastLogoStopAfterClosingCredits(clMark *stopMark);
