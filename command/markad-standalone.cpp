@@ -333,13 +333,14 @@ void cMarkAdStandalone::CheckStop() {
     DebugMarks();     //  only for debugging
 
     // remove logo change marks
-    RemoveLogoChangeMarks();
+    int lastClosingCreditsStart = RemoveLogoChangeMarks();
     if (ptr_cDecoderLogoChange) {  // no longer need this object
         FREE(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
         delete ptr_cDecoderLogoChange;
         ptr_cDecoderLogoChange = NULL;
     }
 
+// try MT_CHANNELSTOP
     int delta = macontext.Video.Info.FramesPerSecond * MAXRANGE;
     clMark *end = marks.GetAround(3*delta, iStopA, MT_CHANNELSTOP);      // try if we can get a good stop mark, start with MT_ASPECTSTOP
     if (end) {
@@ -359,15 +360,16 @@ void cMarkAdStandalone::CheckStop() {
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_ASPECTSTOP mark found");
     }
 
+// try MT_HBORDERSTOP
     if (!end) {
-        end = marks.GetAround(5 * delta, iStopA, MT_HBORDERSTOP);         // try MT_HBORDERSTOP, increased from 3 to 5
+        end = marks.GetAround(5 * delta, iStopA, MT_HBORDERSTOP);         // increased from 3 to 5
         if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTOP found at frame %i", end->position);
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_HBORDERSTOP mark found");
     }
 
-
+// try MT_VBORDERSTOP
     if (!end) {
-        end = marks.GetAround(3*delta, iStopA, MT_VBORDERSTOP);         // try MT_VBORDERSTOP
+        end = marks.GetAround(3*delta, iStopA, MT_VBORDERSTOP);
         if (end) {
             dsyslog("cMarkAdStandalone::CheckStop(): MT_VBORDERSTOP found at frame %i", end->position);
             clMark *prevVStart = marks.GetPrev(end->position, MT_VBORDERSTART);
@@ -384,7 +386,13 @@ void cMarkAdStandalone::CheckStop() {
 
 // try MT_LOGOSTOP
 #define MAX_LOGO_END_MARK_FACTOR 3
-    if (!end) {
+    if (!end && (lastClosingCreditsStart > iStopA - delta) && (lastClosingCreditsStart < iStopA + delta)) {  // try stop mark from closing credit
+        end = marks.Get(lastClosingCreditsStart);
+        if (end) {
+            dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP at frame (%d) found before detected closing credit (%d)", end->position, lastClosingCreditsStart);
+        }
+    }
+    if (!end) {  // try any logo stop
         end = marks.GetAround(MAX_LOGO_END_MARK_FACTOR * delta, iStopA, MT_LOGOSTOP);
         if (end) {
             dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame %i", end->position);
@@ -507,158 +515,75 @@ bool cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(clMark *stopMark) {
 
 // remove stop/start logo mark pair if it detecs a part in the broadcast with logo changes
 // some channel e.g. TELE5 plays with the logo in the broadcast
+// return: last stop position with isClosingCredits = 1
 //
-void cMarkAdStandalone::RemoveLogoChangeMarks() {
+int cMarkAdStandalone::RemoveLogoChangeMarks() {
 
 // check logo stop/start pairs, channel may changes logo
-#define LOGO_CHANGE_STOP_START_MIN 12  // in s
-#define LOGO_CHANGE_STOP_START_MAX 21  // in s
 #define LOGO_CHANGE_NEXT_STOP_MIN   7  // in s, do not increase, 7s is the shortest found distance between two logo changes
                                        // next stop max (=lenght next valid broadcast) found: 1242
 
-    LogSeparator();
-    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start mark pairs with special logo");
-
     struct timeval startTime, stopTime;
     gettimeofday(&startTime, NULL);
+    int lastClosingCreditsEnd = -1;
+
+    LogSeparator();
+    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start mark pairs with special logo");
 
     if (marks.Count(MT_LOGOSTOP) <= 1) {
         dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): only %d logo stop mark, do not delete any", marks.Count(MT_LOGOSTOP));
     }
     else {
+        cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(&marks, macontext.Video.Info.FramesPerSecond, iStart);
+        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+
         char *indexToHMSFStop = NULL;
         char *indexToHMSFStart = NULL;
 
         cExtractLogo *ptr_cExtractLogoChange = NULL;
-        clMark *markStop = marks.GetFirst();
-        while (markStop) {
-            if (markStop->type == MT_LOGOSTOP) {  // we need a logo marks sequence STOP - START and additional a STOP if it exists
-                clMark *markStart = marks.GetNext(markStop->position, MT_LOGOSTART);
-                if (markStart) {
-                    bool status = true;
-// get marks around stop/start pair
-                    if (indexToHMSFStop) {
-                        FREE(strlen(indexToHMSFStop)+1, "indexToHMSF");
-                        free(indexToHMSFStop);
-                    }
-                    if (indexToHMSFStart) {
-                        FREE(strlen(indexToHMSFStart)+1, "indexToHMSF");
-                        free(indexToHMSFStart);
-                    }
-                    indexToHMSFStop = marks.IndexToHMSF(markStop->position, &macontext);
-                    indexToHMSFStart = marks.IndexToHMSF(markStart->position, &macontext);
+        int stopPosition = 0;
+        int startPosition = 0;
 
-                    // marks before pair
-                    clMark *markStop_BeforePair = marks.GetPrev(markStop->position, MT_LOGOSTOP);
-                    clMark *markStart_BeforePair_Stop = NULL;
-                    if (markStop_BeforePair) markStart_BeforePair_Stop = marks.GetPrev(markStop_BeforePair->position, MT_LOGOSTART);
-                    // marks after pair
-                    clMark *markStop_AfterPair = marks.GetNext(markStart->position, MT_LOGOSTOP);
-                    clMark *markStart_AfterPair_Stop = NULL;
-                    if (markStop_AfterPair) markStart_AfterPair_Stop = marks.GetNext(markStop_AfterPair->position, MT_LOGOSTART);
-
-
-
-
-// check valid logo sequence
-                    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): ????? check logo stop (%6d) at %s and logo start (%6d) at %s pair", markStop->position, indexToHMSFStop, markStart->position, indexToHMSFStart);
-// check marks after pair
-
-                    // check valid length of stop/start logo pair
-                    int deltaStopStart = (markStart->position - markStop->position) / macontext.Video.Info.FramesPerSecond;
-                    if (deltaStopStart < LOGO_CHANGE_STOP_START_MIN) {
-                        if (indexToHMSFStop && indexToHMSFStart) dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): ----- stop start delta too small %ds (expect >=%ds)", deltaStopStart, LOGO_CHANGE_STOP_START_MIN);
-                        markStop = markStop->Next();
-                        continue;
-                    }
-                    if (deltaStopStart > LOGO_CHANGE_STOP_START_MAX) {
-                        if (indexToHMSFStop && indexToHMSFStart) dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): ----- stop start delta too big %ds (expect <=%ds)", deltaStopStart, LOGO_CHANGE_STOP_START_MAX);
-                        markStop = markStop->Next();
-                        continue;
-                    }
-
-                    // check if next stop mark after pair is in broadcast
-                    int lastPossibleStop = iStopA + (MAX_LOGO_END_MARK_FACTOR * macontext.Video.Info.FramesPerSecond * MAXRANGE);
-                    if (!markStop_AfterPair) markStop_AfterPair = marks.GetNext(markStart->position, MT_ASPECTSTOP);  // maybe next broascast has 4:3
-                    if (markStop_AfterPair && (markStop_AfterPair->position > lastPossibleStop)) {
-                        if (indexToHMSFStop && indexToHMSFStart) dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): ----- next logo stop mark (%d) is out of possible logo end mark range (%d), keep marks", markStop_AfterPair->position, lastPossibleStop);
-                        status = false;
-                    }
-
-                    // check next stop distance after stop/start pair
-                    int delta_Stop_AfterPair = 0;
-                    if (markStop_AfterPair) {
-                        delta_Stop_AfterPair = (markStop_AfterPair->position - markStart->position) / macontext.Video.Info.FramesPerSecond;
-                    }
-                    else {
-                        if (iStart > 0) { // if we were called by CheckStart, the next stop is not yet detected
-                            delta_Stop_AfterPair = LOGO_CHANGE_NEXT_STOP_MIN;
-                        }
-                    }
-                    if (delta_Stop_AfterPair == 0) {
-                        if (indexToHMSFStop && indexToHMSFStart) dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): ----- no logo stop mark after, this is the last pair, keep marks");
-                        status = false;
-                    }
-                    if (delta_Stop_AfterPair < LOGO_CHANGE_NEXT_STOP_MIN) {
-                        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): ----- stop mark after stop/start pair too fast %ds (expect >=%ds), keep marks", delta_Stop_AfterPair, LOGO_CHANGE_NEXT_STOP_MIN);
-                        status = false;
-                    }
-
-                    // check lenght of stop/start after pair
-                    int length_StopStart_AfterPair = -1;  // -1 = no stop/start pair after current pair
-                    if (markStop_AfterPair && markStart_AfterPair_Stop) {
-                        length_StopStart_AfterPair = (markStart_AfterPair_Stop->position - markStop_AfterPair->position) / macontext.Video.Info.FramesPerSecond;
-                    }
-
-// check marks before pair
-                    // check stop/start pait length before
-                    int length_StopStart_BeforePair = -1;
-                    if (markStop_BeforePair && markStart_BeforePair_Stop) {
-                        length_StopStart_BeforePair =  (markStop_BeforePair->position - markStart_BeforePair_Stop->position) / macontext.Video.Info.FramesPerSecond;
-                        // do not check this, there a logo changes direct after long ad
-                    }
-
-                    if (indexToHMSFStop && indexToHMSFStart) {
-                        if (status) dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): +++++ valid logo stop (%6d) at %s and logo start (%6d) at %s pair found", markStop->position, indexToHMSFStop, markStart->position, indexToHMSFStart);
-                        else dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): ----- invalid logo stop (%6d) at %s and logo start (%6d) at %s pair found", markStop->position, indexToHMSFStop, markStart->position, indexToHMSFStart);
-                    }
-                    dsyslog("               this stop/start       delta %3is (expect %is-%is)", deltaStopStart, LOGO_CHANGE_STOP_START_MIN, LOGO_CHANGE_STOP_START_MAX);
-                    dsyslog("               after stop/start:     next stop in %is (expect >=%is))", delta_Stop_AfterPair, LOGO_CHANGE_NEXT_STOP_MIN);
-                    dsyslog("               after stop/start:     length next     stop/start %d", length_StopStart_AfterPair);
-                    dsyslog("               before stop:          length previous stop/start %d", length_StopStart_BeforePair);
-
-                    if (!status) {
-                        markStop = markStop->Next();
-                        continue;
-                    }
-
-                    if (!ptr_cDecoderLogoChange) {  // init new instance of cDecoder
-                        ptr_cDecoderLogoChange = new cDecoder(macontext.Config->threads, recordingIndexMark);
-                        ALLOC(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
-                        ptr_cDecoderLogoChange->DecodeDir(directory);
-                    }
-                    if (!ptr_cExtractLogoChange) { // init new instance of cExtractLogo
-                        ptr_cExtractLogoChange = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
-                        ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
-                    }
-                    if (ptr_cExtractLogoChange->isLogoChange(&macontext, ptr_cDecoderLogoChange, markStop->position, markStart->position)) {
-                        if (indexToHMSFStop && indexToHMSFStart) {
-                            isyslog("logo has changed between frame (%i) at %s and (%i) at %s, deleting marks", markStop->position, indexToHMSFStop, markStart->position, indexToHMSFStart);
-                        }
-                        clMark *del1 = markStop;
-                        clMark *del2 = markStart;
-                        markStop = markStop_AfterPair;
-                        marks.Del(del1);
-                        marks.Del(del2);
-                        continue;
-                    }
-                    else {
-                            dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): ^^^^^       logo stop (%6d) at %s and logo start (%6d) at %s pair no logo change, keep marks", markStop->position, indexToHMSFStop, markStart->position, indexToHMSFStart);
-                    }
-                }
+        while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition)) {
+            if (indexToHMSFStop) {
+                FREE(strlen(indexToHMSFStop)+1, "indexToHMSF");
+                free(indexToHMSFStop);
             }
-            markStop = markStop->Next();
+            if (indexToHMSFStart) {
+                FREE(strlen(indexToHMSFStart)+1, "indexToHMSF");
+                free(indexToHMSFStart);
+            }
+            indexToHMSFStop = marks.IndexToHMSF(stopPosition, &macontext);
+            indexToHMSFStart = marks.IndexToHMSF(startPosition, &macontext);
+
+            if (indexToHMSFStop && indexToHMSFStart) {
+                dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): check logo stop (%6d) at %s and logo start (%6d) at %s", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
+            }
+
+            if (!ptr_cDecoderLogoChange) {  // init new instance of cDecoder
+                ptr_cDecoderLogoChange = new cDecoder(macontext.Config->threads, recordingIndexMark);
+                ALLOC(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
+                ptr_cDecoderLogoChange->DecodeDir(directory);
+            }
+            if (!ptr_cExtractLogoChange) { // init new instance of cExtractLogo
+                ptr_cExtractLogoChange = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
+                ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
+            }
+            if (ptr_cExtractLogoChange->isLogoChange(&macontext, ptr_cDecoderLogoChange, evaluateLogoStopStartPair, stopPosition, startPosition)) {
+                if (indexToHMSFStop && indexToHMSFStart) {
+                    isyslog("logo has changed between frame (%i) at %s and (%i) at %s, deleting marks", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
+                }
+                clMark *del1 = marks.Get(stopPosition);
+                clMark *del2 = marks.Get(startPosition);
+                marks.Del(del1);
+                marks.Del(del2);
+             }
+             else {
+                 dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): ^^^^^       logo stop (%6d) at %s and logo start (%6d) at %s pair no logo change, keep marks", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
+            }
         }
+
+        lastClosingCreditsEnd = evaluateLogoStopStartPair->GetLastClosingCreditsStart();
         // delete last timer string
         if (indexToHMSFStop) {
             FREE(strlen(indexToHMSFStop)+1, "indexToHMSF");
@@ -673,7 +598,10 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {
             FREE(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
             delete ptr_cExtractLogoChange;
         }
+        FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+        delete evaluateLogoStopStartPair;
     }
+
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): marks after detect and remove logo stop/start mark pairs with special logo");
     DebugMarks();     //  only for debugging
     LogSeparator();
@@ -686,7 +614,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {
         sec--;
     }
     logoChangeTime_ms += sec * 1000 + usec / 1000;
-
+    return lastClosingCreditsEnd;
 }
 
 
@@ -5085,4 +5013,162 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     return usage(config.svdrpport);
+}
+
+
+// evaluate logo stop/start pairs
+// used by logo change detection
+cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, const int framesPerSecond, const int iStart) {
+    if (!marks) return;
+
+#define LOGO_CHANGE_STOP_START_MIN 11  // in s, changed from 12 to 11
+#define LOGO_CHANGE_STOP_START_MAX 21  // in s
+#define LOGO_CHANGE_IS_ADVERTISING_MIN 300  // in s
+#define LOGO_CHANGE_IS_BROADCAST_MIN 240  // in s
+
+    logoStopStartPair newPair;
+    clMark *mark = marks->GetFirst();
+
+    while (mark) {
+        if (mark->type == MT_LOGOSTOP) newPair.stopPosition = mark->position;
+        if ((mark->type == MT_LOGOSTART) && (newPair.stopPosition >= 0)) {
+            newPair.startPosition = mark->position;
+            logoPairVector.push_back(newPair);
+            ALLOC(sizeof(logoStopStartPair), "logoPairVector");
+            // reset for next pair
+            newPair.stopPosition = -1;
+            newPair.startPosition = -1;
+        }
+        mark=mark->Next();
+    }
+
+// evaluate stop/start pairs
+    for (std::vector<logoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+        // mark after pair
+        clMark *markStop_AfterPair = marks->GetNext(logoPairIterator->stopPosition, MT_LOGOSTOP);
+
+        // check length of stop/start logo pair
+        int deltaStopStart = (logoPairIterator->startPosition - logoPairIterator->stopPosition ) / framesPerSecond;
+        if (deltaStopStart < LOGO_CHANGE_STOP_START_MIN) {
+            dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: delta too small %ds (expect >=%ds)", logoPairIterator->stopPosition, logoPairIterator->startPosition, deltaStopStart, LOGO_CHANGE_STOP_START_MIN);
+            logoPairIterator->isLogoChange = -1;
+        }
+        if (deltaStopStart > LOGO_CHANGE_STOP_START_MAX) {
+            dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: delta too big %ds (expect <=%ds)", logoPairIterator->stopPosition, logoPairIterator->startPosition, deltaStopStart, LOGO_CHANGE_STOP_START_MAX);
+            logoPairIterator->isLogoChange = -1;
+        }
+        if (deltaStopStart >= LOGO_CHANGE_IS_ADVERTISING_MIN) {
+            dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: delta %ds (expect >=%ds) is a advertising", logoPairIterator->stopPosition, logoPairIterator->startPosition, deltaStopStart, LOGO_CHANGE_IS_ADVERTISING_MIN);
+            logoPairIterator->isAdvertising = 1;
+        }
+
+        // check next stop distance after stop/start pair
+        int delta_Stop_AfterPair = 0;
+        if (markStop_AfterPair) {  // we have a next logo stop
+            delta_Stop_AfterPair = (markStop_AfterPair->position - logoPairIterator->startPosition) / framesPerSecond;
+        }
+        else {  // this is the last logo stop we have
+            if (iStart > 0) { // we were called by CheckStart, the next stop is not yet detected
+                              // we can not ignore early stop start pairs because they can be logo changed short after start
+                delta_Stop_AfterPair = LOGO_CHANGE_NEXT_STOP_MIN;
+            }
+        }
+        if ((delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair < LOGO_CHANGE_NEXT_STOP_MIN)) {
+            dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: stop mark after stop/start pair too fast %ds (expect >=%ds)", logoPairIterator->stopPosition, logoPairIterator->startPosition, delta_Stop_AfterPair, LOGO_CHANGE_NEXT_STOP_MIN);
+            logoPairIterator->isLogoChange = -1;
+        }
+        if (delta_Stop_AfterPair >= LOGO_CHANGE_IS_BROADCAST_MIN) {
+            dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: next stop mark after stop/start pair in %ds (expect >=%ds, start mark is in braoscast)", logoPairIterator->stopPosition, logoPairIterator->startPosition, delta_Stop_AfterPair, LOGO_CHANGE_IS_BROADCAST_MIN);
+            logoPairIterator->isStartMarkInBroadcast = 1;
+        }
+    }
+
+    // check sequenz of stop/start pairs
+    // search for part between advertising and broadcast, keep this mark, because it contains the start mark of the broadcast
+    //
+    for (std::vector<logoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+        if (logoPairIterator->isAdvertising == 1) {  // advertising pair
+            std::vector<logoStopStartPair>::iterator nextLogoPairIterator = logoPairIterator;
+            ++nextLogoPairIterator;
+            if (nextLogoPairIterator != logoPairVector.end()) {
+                if ((nextLogoPairIterator->isLogoChange == 0) && (nextLogoPairIterator->isStartMarkInBroadcast  == 0)){ // unknown pair
+                    std::vector<logoStopStartPair>::iterator next2LogoPairIterator = nextLogoPairIterator;
+                    ++next2LogoPairIterator;
+                    if (next2LogoPairIterator != logoPairVector.end()) {
+                        if (next2LogoPairIterator->isStartMarkInBroadcast  == 1) { // pair with bradcast start mark
+                            dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: part between advertising and broadcast, keep this mark because it contains start mark of broadcast)", nextLogoPairIterator->stopPosition, nextLogoPairIterator->startPosition);
+                            nextLogoPairIterator->isLogoChange = -1;
+                        }
+                        if ((next2LogoPairIterator->isLogoChange == 0) && (next2LogoPairIterator->isStartMarkInBroadcast  == 0)) { // unknown pair
+                            std::vector<logoStopStartPair>::iterator next3LogoPairIterator = next2LogoPairIterator;
+                            ++next3LogoPairIterator;
+                            if (next3LogoPairIterator != logoPairVector.end()) {
+                                if (next3LogoPairIterator->isStartMarkInBroadcast  == 1) { // pair with bradcast start mark
+                                    dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: part between advertising and broadcast, keep this mark because it contains start mark of broadcast)", next2LogoPairIterator->stopPosition, next2LogoPairIterator->startPosition);
+                                    next2LogoPairIterator->isLogoChange = -1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for (std::vector<logoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): add stop (%d) start (%d) pair:", logoPairIterator->stopPosition, logoPairIterator->startPosition);
+        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isLogoChange           %2d", logoPairIterator->isLogoChange);
+        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isAdvertising          %2d", logoPairIterator->isAdvertising);
+        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isStartMarkInBroadcast %2d", logoPairIterator->isStartMarkInBroadcast);
+        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isClosingCredits       %2d", logoPairIterator->isClosingCredits);
+    }
+    nextLogoPairIterator = logoPairVector.begin();
+}
+
+
+cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
+#ifdef DEBUG_MEM
+    int size =  logoPairVector.size();
+    for (int i = 0 ; i < size; i++) {
+        FREE(sizeof(logoStopStartPair), "logoPairVector");
+    }
+#endif
+     logoPairVector.clear();
+}
+
+
+bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPosition) {
+    if (!stopPosition) return false;
+    if (!startPosition) return false;
+    if (nextLogoPairIterator == logoPairVector.end()) return false;
+
+    while (nextLogoPairIterator->isLogoChange == -1) {
+        ++nextLogoPairIterator;
+        if (nextLogoPairIterator == logoPairVector.end()) return false;
+    }
+    *stopPosition = nextLogoPairIterator->stopPosition;
+    *startPosition = nextLogoPairIterator->startPosition;
+    ++nextLogoPairIterator;
+    return true;
+}
+
+
+void cEvaluateLogoStopStartPair::SetClosingCredits(const int stopPosition, const int isClosingCredits) {
+    for (std::vector<logoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+        if (logoPairIterator->stopPosition == stopPosition) {
+            logoPairIterator->isClosingCredits = isClosingCredits;
+            dsyslog("cEvaluateLogoStopStartPair::SetClosingCredits(): mark pair stop (%d) start (%d) set to isClosingCredits to: %d", stopPosition, logoPairIterator->startPosition, isClosingCredits);
+            return;
+        }
+    }
+}
+
+
+int cEvaluateLogoStopStartPair::GetLastClosingCreditsStart() {
+    int lastClosingCreditsStart = -1;
+    for (std::vector<logoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+        if (logoPairIterator->isClosingCredits == 1) {
+            lastClosingCreditsStart = logoPairIterator->stopPosition;  // stop position of pair is start position of closing credits
+        }
+    }
+    return lastClosingCreditsStart;
 }

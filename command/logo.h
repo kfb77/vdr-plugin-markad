@@ -28,14 +28,14 @@ class cExtractLogo {
         explicit cExtractLogo(const MarkAdAspectRatio aspectRatio, cIndex *recordingIndex);
         ~cExtractLogo();
         int SearchLogo(MarkAdContext *maContext, int startFrame);
-        bool isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPos, const int startPos);
+        bool isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, cEvaluateLogoStopStartPair *evaluateLogoStopStartPair, const int stopPos, const int startPos);
         int isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopMarkPosition);
         bool abort = false;
         void SetAbort() {
             abort = true;
         };
     private:
-	cIndex *recordingIndexLogo = NULL;
+        cIndex *recordingIndexLogo = NULL;
         struct logoInfo {
             int iFrameNumber = -1;
             int hits = 0;

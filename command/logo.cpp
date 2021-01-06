@@ -1478,7 +1478,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
 // return: true  if the given part is detected as logo change part
 //         false if not
 //
-bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPos, const int startPos) {
+bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, cEvaluateLogoStopStartPair *evaluateLogoStopStartPair, const int stopPos, const int startPos) {
     if (!maContext) return false;
     if (!ptr_cDecoder) return false;
     if (!recordingIndexLogo) return false;
@@ -1636,6 +1636,7 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
     // check for closing credits (on right side) or short advertising in frame (on both sides)
     if (quoteHigh > MAX_QUOTE_HIGH) {
         dsyslog("cExtractLogo::isLogoChange(): quote high match %d%% (expect < %d), closing credits or short advertising in frame detected, keep marks", quoteHigh, MAX_QUOTE_HIGH);
+        evaluateLogoStopStartPair->SetClosingCredits(stopPos, 1);
         status = false;
     }
     if (quoteVeryLow > MAX_QUOTE_VERYLOW) {
