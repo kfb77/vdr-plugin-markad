@@ -277,6 +277,7 @@ bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoH
 // check other logo sizes
     switch (maContext->Video.Info.Width) {
         case 720:
+            // check logo width
             if ((corner >= BOTTOM_LEFT) && (logoHeight >= 60) && (logoHeight <= 65) && (logoWidth >= 185)) { // if logo size is low and wide on BOTTON, it is in a news ticker
             dsyslog("cExtractLogo::CheckLogoSize(): found SD logo in a news ticker");
             }
@@ -295,6 +296,7 @@ bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoH
                 }
             }
 
+            // check logo height
             if (strcmp(maContext->Info.ChannelName, "SIXX") == 0) {
                 if (logoHeight < LOGO_720W_MIN_H) {
                     dsyslog("cExtractLogo::CheckLogoSize(): SD logo is not heigh enough");
@@ -315,7 +317,7 @@ bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoH
                 }
             }
             else {
-                if (logoHeight >= 84) {  // reduced from 94 to 84
+                if (logoHeight > 88) {  // NICK 88H
                     dsyslog("cExtractLogo::CheckLogoSize(): SD logo is too heigh");
                     return false;
                 }
