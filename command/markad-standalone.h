@@ -117,7 +117,7 @@ class cMarkAdStandalone {
         bool CheckTS();
         bool CheckLogo();
         void CheckMarks();
-        void LogSeparator();
+        void LogSeparator(const bool main = false);
         void DebugMarks();
         bool LoadInfo();
         bool SaveInfo();

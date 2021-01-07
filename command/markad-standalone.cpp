@@ -319,7 +319,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
 
 
 void cMarkAdStandalone::CheckStop() {
-    LogSeparator();
+    LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStop(): checking stop (%i)", lastiframe);
     char *indexToHMSF = marks.IndexToHMSF(iStopA, &macontext, ptr_cDecoder);
         if (indexToHMSF) {
@@ -453,7 +453,7 @@ void cMarkAdStandalone::CheckStop() {
 
 
 void cMarkAdStandalone::CheckStart() {
-    LogSeparator();
+    LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStart(); checking start at frame (%d) check start planed at (%d)", lastiframe, chkSTART);
     dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %i", iStartA);
     DebugMarks();     //  only for debugging
@@ -953,8 +953,9 @@ void cMarkAdStandalone::CheckStart() {
 }
 
 
-void cMarkAdStandalone::LogSeparator() {
-    dsyslog("------------------------------------------------------------------------------------------------");
+void cMarkAdStandalone::LogSeparator(const bool main) {
+    if (main) dsyslog("=======================================================================================================================");
+    else      dsyslog("-----------------------------------------------------------------------------------------------------------------------");
 }
 
 
@@ -2003,8 +2004,8 @@ void cMarkAdStandalone::MarkadCut() {
         return;
     }
     cEncoder* ptr_cEncoder = NULL;
-    LogSeparator();
-    dsyslog("start MarkadCut()");
+    LogSeparator(true);
+    isyslog("start cut video based on marks");
     if (marks.Count() < 2) {
         isyslog("need at least 2 marks to cut Video");
         return; // we cannot do much without marks
@@ -2093,7 +2094,7 @@ void cMarkAdStandalone::Process3ndPass() {
     if (strcmp(macontext.Info.ChannelName, "TELE_5") == 0) silenceRange = 6; // logo fade in/out, changed from 5 to 6
 
     bool save = false;
-    LogSeparator();
+    LogSeparator(true);
     isyslog("start 3nd pass (detect audio silence)");
     ptr_cDecoder->Reset();
     ptr_cDecoder->DecodeDir(directory);
@@ -2219,7 +2220,7 @@ void cMarkAdStandalone::Process2ndPass() {
     if (!startTime) return;
     if (time(NULL) < (startTime+(time_t) length)) return;
 
-    LogSeparator();
+    LogSeparator(true);
     isyslog("start 2nd pass (detect overlaps)");
 
     if (!macontext.Video.Info.FramesPerSecond) {
