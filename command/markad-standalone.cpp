@@ -621,7 +621,6 @@ int cMarkAdStandalone::RemoveLogoChangeMarks() {
 
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): marks after detect and remove logo stop/start mark pairs with special logo");
     DebugMarks();     //  only for debugging
-    LogSeparator();
 
     gettimeofday(&stopTime, NULL);
     time_t sec = stopTime.tv_sec - startTime.tv_sec;
@@ -631,6 +630,9 @@ int cMarkAdStandalone::RemoveLogoChangeMarks() {
         sec--;
     }
     logoChangeTime_ms += sec * 1000 + usec / 1000;
+
+    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): end detect and remove logo stop/start mark pairs with special logo");
+    LogSeparator();
     return lastClosingCreditsEnd;
 }
 
@@ -639,7 +641,6 @@ void cMarkAdStandalone::CheckStart() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStart(): checking start at frame (%d) check start planed at (%d)", lastiframe, chkSTART);
     dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %i", iStartA);
-
     DebugMarks();     //  only for debugging
 
     RemoveLogoChangeMarks();
@@ -1166,7 +1167,7 @@ void cMarkAdStandalone::LogSeparator(const bool main) {
 // write all current marks to log file
 //
 void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
-    LogSeparator();
+    dsyslog("*************************************************************");
     dsyslog("cMarkAdStandalone::DebugMarks(): current marks:");
     clMark *mark = marks.GetFirst();
     while (mark) {
@@ -1189,7 +1190,7 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
         }
         mark=mark->Next();
     }
-    LogSeparator();
+    dsyslog("*************************************************************");
 }
 
 
@@ -2324,20 +2325,38 @@ void cMarkAdStandalone::MarkadCut() {
 
 
 // 3nd pass
-// move logo marks if -silence was detected before start mark or after/before end mark
-//                    -black screen marks are direct before stop mark or direct after start mark
+// move logo marks:
+//     - if closing credits are detected after last logo stop mark
+//     - if silence was detected before start mark or after/before end mark
+//     - if black screen marks are direct before stop mark or direct after start mark
 //
 void cMarkAdStandalone::Process3ndPass() {
     if (!ptr_cDecoder) return;
 
+    LogSeparator(true);
+    isyslog("start 3nd pass (optimze logo marks)");
+
+    bool save = false;
+// check last logo stop mark if closing credits follows
+    if (ptr_cDecoder) {  // we use file position from 2ndPass call
+        clMark *lastStop = marks.GetLast();
+        if (lastStop->type == MT_LOGOSTOP) {
+            dsyslog("cMarkAdStandalone::Process3ndPass(): search for closing credits");
+            if (MoveLastLogoStopAfterClosingCredits(lastStop)) {
+                dsyslog("cMarkAdStandalone::Process3ndPass(): moved last logo stop mark after closing credit");
+            }
+            save = true;
+            framecnt3 = ptr_cDecoder->GetFrameNumber() - framecnt2;
+        }
+    }
+
+
+    dsyslog("cMarkAdStandalone::Process3ndPass(): search for audio silence");
 #define BLACKSCREEN_RANGE 6 // in s
     int silenceRange = 2;  // change from 1s to 2s
     if (strcmp(macontext.Info.ChannelName, "DMAX") == 0) silenceRange = 12; // logo color change at the begin
     if (strcmp(macontext.Info.ChannelName, "TELE_5") == 0) silenceRange = 6; // logo fade in/out, changed from 5 to 6
 
-    bool save = false;
-    LogSeparator(true);
-    isyslog("start 3nd pass (detect audio silence and blackcreen marks near by logo marks)");
     ptr_cDecoder->Reset();
     ptr_cDecoder->DecodeDir(directory);
 
@@ -2470,7 +2489,7 @@ void cMarkAdStandalone::Process2ndPass() {
     if (time(NULL) < (startTime+(time_t) length)) return;
 
     LogSeparator(true);
-    isyslog("start 2nd pass (detect overlaps and check last logo stop mark if closing credits follows)");
+    isyslog("start 2nd pass (detect overlaps)");
 
     if (!macontext.Video.Info.FramesPerSecond) {
         isyslog("WARNING: assuming fps of 25");
@@ -2533,16 +2552,7 @@ void cMarkAdStandalone::Process2ndPass() {
             }
         }
     }
-
-// check last logo stop mark if closing credits follows
-    if (ptr_cDecoder) {
-        clMark *lastStop = marks.GetLast();
-        if (lastStop->type == MT_LOGOSTOP) {
-            dsyslog("cMarkAdStandalone::Process2ndPass(): search for closing credits");
-            if (MoveLastLogoStopAfterClosingCredits(lastStop)) marks.Save(directory, &macontext, isTS, true);
-        }
-        framecnt2 = ptr_cDecoder->GetFrameNumber();
-    }
+    framecnt2 = ptr_cDecoder->GetFrameNumber();
     dsyslog("end 2ndPass");
     return;
 }
