@@ -400,8 +400,9 @@ void cMarkAdStandalone::CheckStop() {
             clMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
             if (prevLogoStart) {
                 int deltaLogo = (end->position - prevLogoStart->position) / macontext.Video.Info.FramesPerSecond;
-                if (deltaLogo < 20) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): logo start/stop to short %ds, delete both (%d) and (%d), retry logo stop mark", deltaLogo, prevLogoStart->position, end->position);
+#define CHECK_START_STOP_MIN 11  // do not increase, there are 11s logo dissolve short before end with forecast of next broadcast in SAT.1
+                if (deltaLogo < CHECK_START_STOP_MIN) {
+                    dsyslog("cMarkAdStandalone::CheckStop(): logo start/stop to short %ds (expect >=%ds), delete both (%d) and (%d), retry logo stop mark", deltaLogo, CHECK_START_STOP_MIN, prevLogoStart->position, end->position);
                     marks.Del(end);
                     marks.Del(prevLogoStart);
                     end = marks.GetAround(3*delta, iStopA, MT_LOGOSTOP);
