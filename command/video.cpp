@@ -413,7 +413,7 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
     *logoframenumber = -1;
     if (area.corner == -1) return LOGO_NOCHANGE;
     float logo_vmark = LOGO_VMARK;
-    if (macontext->Info.rotatingLogo) logo_vmark *= 0.9;   // reduce if we have a moving logo (e.g. SAT_1)
+    if (macontext->Info.rotatingLogo) logo_vmark *= 0.8;   // reduce if we have a rotating logo (e.g. SAT_1)i, changed from 0.9 to 0.8
 
 #ifdef DEBUG_FRAME_CORNER
     if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200)) SaveFrameCorner(framenumber, 1);
