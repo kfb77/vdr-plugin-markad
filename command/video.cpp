@@ -83,6 +83,8 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
         dsyslog("cMarkAdLogo::Load(): plane %d not valid", plane);
         return -3;
     }
+    dsyslog("cMarkAdLogo::Load(): try to find logo %s plane %d in %s", file, plane, directory);
+
     char *path;
     if (asprintf(&path, "%s/%s-P%i.pgm", directory, file, plane) == -1) return -3;
     ALLOC(strlen(path)+1, "path");
@@ -94,9 +96,10 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
     FREE(strlen(path)+1, "path");
     free(path);
     if (!pFile) {
-        if (plane > 0) dsyslog("cMarkAdLogo::Load(): file not found for logo %s plane %d in %s",file, plane, directory);
+        dsyslog("cMarkAdLogo::Load(): file not found for logo %s plane %d in %s",file, plane, directory);
         return -1;
     }
+    else dsyslog("cMarkAdLogo::Load(): file found for logo %s plane %d in %s",file, plane, directory);
 
     int width,height;
     char c;
