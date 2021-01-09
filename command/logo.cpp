@@ -1813,3 +1813,111 @@ int cExtractLogo::isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecod
 
     return newPosition;
 }
+
+
+// check for advertising in frame with logo before logo stop mark
+// start search at current position, end at stopPosition
+// return start pasition of advertising in frame with logo
+int cExtractLogo::SearchAdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPosition) {
+    if (!maContext) return -1;
+    if (!ptr_cDecoder) return -1;
+    dsyslog("cExtractLogo::SearchAdInFrame(): start search advertising in frame with logo before stop mark at (%d)", ptr_cDecoder->GetFrameNumber());
+
+    int areaCorner;
+    switch (maContext->Video.Logo.corner) {
+        case TOP_RIGHT:  // SIXX
+            areaCorner = BOTTOM_LEFT;
+            break;
+        case BOTTOM_RIGHT:  // RTL2
+            areaCorner = BOTTOM_LEFT;
+            break;
+        default:
+            return -1;
+    }
+    bool status = true;
+    int count = 0;
+    int logoHeight = 0;
+    int logoWidth = 0;
+    SetLogoSize(maContext, &logoHeight, &logoWidth);
+    int firstContinuous = -1;
+    int lastContinuous = -1;
+    int startAdInFrame = -1;
+    int endAdInFrame = -1;
+
+    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, recordingIndexLogo);
+    ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
+
+    areaT *area = ptr_Logo->GetArea();
+    logoInfo *logo1 = new logoInfo;
+    ALLOC(sizeof(*logo1), "logo");
+    area->corner = areaCorner;
+
+    while ((ptr_cDecoder->GetFrameNumber() < stopPosition) && status){
+        if (!ptr_cDecoder->GetNextFrame()) {
+            dsyslog("cExtractLogo::SearchAdInFrame(): GetNextFrame() failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
+            status = false;
+        }
+        if (!ptr_cDecoder->isVideoPacket()) continue;
+        if (!ptr_cDecoder->GetFrameInfo(maContext)) {
+            if (ptr_cDecoder->isVideoIFrame()) // if we have interlaced video this is expected, we have to read the next half picture
+            continue;
+        }
+        if (ptr_cDecoder->isVideoIFrame()) {
+            int frameNumber =  ptr_cDecoder->GetFrameNumber();
+            if (!maContext->Video.Data.Valid) {
+                dsyslog("cExtractLogo::SearchAdInFrame(): faild to get video data of frame (%d)", frameNumber);
+                continue;
+            }
+            int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
+                                        //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
+#ifdef DEBUG_LOGO_CHANGE
+            iFrameNumberNext = -2;
+#endif
+            ptr_Logo->Detect(frameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
+
+            logoInfo *logo2 = new logoInfo;
+            ALLOC(sizeof(*logo2), "logo");
+            logo2->iFrameNumber = frameNumber;
+            memcpy(logo2->sobel, area->sobel, sizeof(area->sobel));
+            if (logo1->iFrameNumber >= 0) {  // we have a logo pair
+                count++;
+                int rate0 = 0;
+#define AD_IN_FRAME_MIN_0 640   // changed from 650 to 640
+                if (CompareLogoPair(logo1, logo2, logoHeight, logoWidth, area->corner, AD_IN_FRAME_MIN_0, 920, &rate0)) {
+                    dsyslog("cExtractLogo::SearchAdInFrame(): corner %d frame (%5d) and frame (%5d) is similar,   rate %4d (expect > %d)", area->corner, logo1->iFrameNumber, logo2->iFrameNumber, rate0, AD_IN_FRAME_MIN_0);
+                    if (firstContinuous == -1) firstContinuous = logo1->iFrameNumber;
+                    lastContinuous = logo2->iFrameNumber;
+                }
+                else {
+                    dsyslog("cExtractLogo::SearchAdInFrame(): corner %d frame (%5d) and frame (%5d) is different, rate %4d (expect > %d)", area->corner, logo1->iFrameNumber, logo2->iFrameNumber, rate0, AD_IN_FRAME_MIN_0);
+                    if ((endAdInFrame - startAdInFrame) < (lastContinuous - firstContinuous)) { // get biggest block
+                        startAdInFrame = firstContinuous;
+                        endAdInFrame = lastContinuous;
+                    }
+                    firstContinuous = -1;
+                    lastContinuous = -1;
+                }
+            }
+            FREE(sizeof(*logo1), "logo");
+            delete logo1;
+            logo1 = logo2;
+        }
+    }
+
+    FREE(sizeof(*ptr_Logo), "ptr_Logo");
+    delete ptr_Logo;
+    FREE(sizeof(*logo1), "logo");
+    delete logo1;
+
+    if ((startAdInFrame == -1) && (endAdInFrame == -1)) { // continuous frames ends with stop mark
+        startAdInFrame = firstContinuous;
+        endAdInFrame = lastContinuous;
+    }
+    int length = (endAdInFrame - startAdInFrame) / maContext->Video.Info.FramesPerSecond;
+    dsyslog("cExtractLogo::SearchAdInFrame(): results: firstContinuous (%d), lastContinuous (%d), startAdInFrame (%d), endAdInFrame (%d), length %d", firstContinuous, lastContinuous, startAdInFrame, endAdInFrame, length);
+    if (length > 11) { // changed from 10 to 11
+        dsyslog("cExtractLogo::SearchAdInFrame(): found advertising in frame with logo, start at (%d)", startAdInFrame);
+        return startAdInFrame;
+    }
+    else return -1;
+}
