@@ -4712,7 +4712,7 @@ int main(int argc, char *argv[]) {
             isyslog("warning: increasing priority may affect other applications");
         }
         dsyslog("markad process nice level %i", PrioProcess);
-        dsyslog("makrad IO priority class %i" ,IOPrio);
+        dsyslog("markad IO priority class  %i" ,IOPrio);
 
         dsyslog("parameter --logocachedir is set to %s", config.logoDirectory);
         dsyslog("parameter --threads is set to %i", config.threads);
