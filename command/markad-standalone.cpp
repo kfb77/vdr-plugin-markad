@@ -709,7 +709,7 @@ void cMarkAdStandalone::CheckStart() {
     clMark *begin = NULL;
     int hBorderStopPosition = 0;
     int delta = macontext.Video.Info.FramesPerSecond * MAXRANGE;
-    macontext.Video.Options.IgnoreBlackScreenDetection = true;   // use black sceen setection only to find start mark
+//    macontext.Video.Options.IgnoreBlackScreenDetection = true;   // use black sceen setection only to find start mark
 
     begin = marks.GetAround(delta, 1, MT_RECORDINGSTART);  // do we have an incomplete recording ?
     if (begin) {
@@ -761,6 +761,7 @@ void cMarkAdStandalone::CheckStart() {
                     bDecodeVideo = false;
                     macontext.Video.Options.IgnoreAspectRatio = true;
                     macontext.Video.Options.IgnoreLogoDetection = true;
+                    macontext.Video.Options.IgnoreBlackScreenDetection = true;
                     marks.Del(MT_ASPECTSTART);
                     marks.Del(MT_ASPECTSTOP);
 
@@ -795,6 +796,7 @@ void cMarkAdStandalone::CheckStart() {
                 if (inBroadCast) {  // if we have channel marks but we are now with 2 channels inBroascast, delete these
                     macontext.Video.Options.IgnoreAspectRatio = false;   // then we have to find other marks
                     macontext.Video.Options.IgnoreLogoDetection = false;
+                    macontext.Video.Options.IgnoreBlackScreenDetection = false;
                 }
             }
         }
@@ -881,6 +883,7 @@ void cMarkAdStandalone::CheckStart() {
                 bDecodeVideo = false;
                 macontext.Video.Options.IgnoreAspectRatio = false;
                 macontext.Video.Options.IgnoreLogoDetection = true;
+                macontext.Video.Options.IgnoreBlackScreenDetection = true;
                 marks.Del(MT_CHANNELSTART);
                 marks.Del(MT_CHANNELSTOP);
                 // start mark must be around iStartA
@@ -1160,6 +1163,7 @@ void cMarkAdStandalone::CheckStart() {
         if ((begin->type == MT_VBORDERSTART) || (begin->type == MT_HBORDERSTART)) {
             isyslog("found %s borders, logo detection disabled",(begin->type == MT_HBORDERSTART) ? "horizontal" : "vertical");
             macontext.Video.Options.IgnoreLogoDetection = true;
+            macontext.Video.Options.IgnoreBlackScreenDetection = true;
             marks.Del(MT_LOGOSTART);
             marks.Del(MT_LOGOSTOP);
         }
@@ -1667,6 +1671,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
                 if ((macontext.Config->autoLogo > 0) &&( Mark->Position > 0) && bDecodeVideo) {
                     isyslog("logo detection reenabled at frame (%d), trying to find a logo from this position", Mark->Position);
                     macontext.Video.Options.IgnoreLogoDetection = false;
+                    macontext.Video.Options.IgnoreBlackScreenDetection = false;
                 }
             }
             break;
@@ -1677,6 +1682,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
             if ((macontext.Config->autoLogo > 0) && (Mark->Position > 0) && bDecodeVideo) {
                 isyslog("logo detection reenabled at frame (%d), trying to find a logo from this position", Mark->Position);
                 macontext.Video.Options.IgnoreLogoDetection = false;
+                macontext.Video.Options.IgnoreBlackScreenDetection = false;
             }
             break;
         case MT_CHANNELSTART:
@@ -1691,6 +1697,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
                 bDecodeVideo = false;
                 macontext.Video.Options.IgnoreAspectRatio = true;
                 macontext.Video.Options.IgnoreLogoDetection = true;
+                macontext.Video.Options.IgnoreBlackScreenDetection = true;
             }
             macontext.Audio.Info.channelChange = true;
             if (asprintf(&comment, "audio channel change from %i to %i (%i)", Mark->ChannelsBefore, Mark->ChannelsAfter, Mark->Position) == -1) comment = NULL;
@@ -2447,13 +2454,19 @@ void cMarkAdStandalone::Process3ndPass() {
             if (blackMark) {
                 int distance = blackMark->position - mark->position;
                 int distance_s = distance / macontext.Video.Info.FramesPerSecond;
-                if (distance > 0)  { // blackscreen is after logo stop mark
-                    dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d) %ds (expect >0 and <=%ds) after logo stop mark (%d), move mark", blackMark->position, distance, distance_s, BLACKSCREEN_RANGE, mark->position);
-                    mark = marks.Move(&macontext, mark, blackMark->position, "black screen");
-                    save = true;
+                if (distance == 0) { // found blackscreen at same position
+                    mark=mark->Next();
                     continue;
                 }
-                else dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d) %ds (expect >0 and <=%ds) after (-before) logo stop mark (%d), keep mark", blackMark->position, distance, distance_s, BLACKSCREEN_RANGE, mark->position);
+                if (distance > 0)  { // blackscreen is after logo stop mark
+                    dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d) %ds (expect >0 and <=%ds) after logo stop mark (%d), move mark", blackMark->position, distance, distance_s, BLACKSCREEN_RANGE, mark->position);
+                }
+                else {  // blackscreen is before logo stop mark
+                    dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d) %ds (expect >0 and <=%ds) before logo stop mark (%d), move mark", blackMark->position, -distance, -distance_s, BLACKSCREEN_RANGE, mark->position);
+                }
+                mark = marks.Move(&macontext, mark, blackMark->position, "black screen");
+                save = true;
+                continue;
             }
             else dsyslog("cMarkAdStandalone::Process3ndPass(): no black screen mark found after logo stop mark (%d)", mark->position);
         }
