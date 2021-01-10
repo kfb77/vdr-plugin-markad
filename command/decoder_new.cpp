@@ -938,7 +938,7 @@ int cDecoder::GetFirstMP2AudioStream() {
 int cDecoder::GetNextSilence(MarkAdContext *maContext, const int range, const bool before) {
     if (!maContext) return -1;
 #define SILENCE_LEVEL 25  // changed from 10 to 27 to 25
-#define SILENCE_COUNT 3   // changed from 4 to 3
+#define SILENCE_COUNT 5   // low level counts twice
     int silenceCount = 0;
     int nextSilenceFrame = -1;
     int firstSilenceFrame = -1;
@@ -970,6 +970,7 @@ int cDecoder::GetNextSilence(MarkAdContext *maContext, const int range, const bo
 #endif
                     if (normLevel <= SILENCE_LEVEL) {
                         silenceCount++;
+                        if (normLevel <= 7) silenceCount++;  // changed from 0 to 7
                         if (nextSilenceFrame == -1) nextSilenceFrame = GetFrameNumber();
                         if (before) nextSilenceFrame = GetFrameNumber();
                         dsyslog("cDecoder::GetNextSilence(): stream %d frame (%d) level %d silenceCount %d", avpkt.stream_index, GetFrameNumber(), normLevel, silenceCount);
