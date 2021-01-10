@@ -615,10 +615,10 @@ bool cExtractLogo::CheckValid(const logoInfo *ptr_actLogoInfo, const int logoHei
                 return false;
             }
         }
-        for (int i = (logoHeight - WHITEHORIZONTAL_SMALL) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid top logo should have at least a small white buttom part in plane 0
+        for (int i = (logoHeight - WHITEHORIZONTAL_SMALL) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid top logo should have at least a small white bottom part in plane 0
             if (ptr_actLogoInfo->sobel[0][i] == 0) {
 #ifdef DEBUG_LOGO_CORNER
-                 if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no small white buttom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                 if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no small white bottom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
 #endif
                 return false;
             }
@@ -629,7 +629,7 @@ bool cExtractLogo::CheckValid(const logoInfo *ptr_actLogoInfo, const int logoHei
         for (int i = (logoHeight - WHITEHORIZONTAL_BIG) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid bottom logo should have a white bottom part in plane 0
             if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                 if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no big white buttom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                 if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no big white bottom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
 #endif
                 return false;
             }
