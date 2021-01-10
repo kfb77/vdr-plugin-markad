@@ -594,7 +594,11 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
 }
 
 
-bool cExtractLogo::CheckValid(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
+// check if extracted picture from the corner could be a logo
+// used before picture is stored in logo cantidates list
+// return: true if valid
+//
+bool cExtractLogo::CheckValid(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
 #define WHITEHORIZONTAL_BIG 10
 #define WHITEHORIZONTAL_SMALL 7 // reduced from 8 to 7
 #define WHITEVERTICAL_BIG 10
@@ -615,12 +619,16 @@ bool cExtractLogo::CheckValid(const logoInfo *ptr_actLogoInfo, const int logoHei
                 return false;
             }
         }
-        for (int i = (logoHeight - WHITEHORIZONTAL_SMALL) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid top logo should have at least a small white bottom part in plane 0
-            if (ptr_actLogoInfo->sobel[0][i] == 0) {
+        if ((corner != TOP_RIGHT) || (strcmp(maContext->Info.ChannelName, "SPORT1") != 0)) { // this channels have sometimes a big preview text below the logo on the right side
+                                                                                             // more general solution will be: make the possible logo size bigger
+                                                                                             // but this wll have a performence impact
+            for (int i = (logoHeight - WHITEHORIZONTAL_SMALL) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid top logo should have at least a small white bottom part in plane 0
+                if (ptr_actLogoInfo->sobel[0][i] == 0) {
 #ifdef DEBUG_LOGO_CORNER
-                 if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no small white bottom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                    if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no small white bottom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
 #endif
-                return false;
+                    return false;
+                }
             }
         }
 
@@ -1244,7 +1252,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                         logoInfo actLogoInfo = {};
                         actLogoInfo.iFrameNumber = iFrameNumber;
                         memcpy(actLogoInfo.sobel,area->sobel, sizeof(area->sobel));
-                        if (CheckValid(&actLogoInfo, logoHeight, logoWidth, corner)) {
+                        if (CheckValid(maContext, &actLogoInfo, logoHeight, logoWidth, corner)) {
                             RemovePixelDefects(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
                             actLogoInfo.hits = Compare(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
 

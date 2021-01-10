@@ -28,7 +28,7 @@
 // #define DEBUG_LOGO_CORNER TOP_LEFT
 // #define DEBUG_LOGO_CORNER TOP_RIGHT
 // #define DEBUG_LOGO_SAVE 0   // save all logos before CheckValid to /tmp
-// #define DEBUG_LOGO_SAVE 1   // save valid logos before RemovePixelDefects to /tmp
+// #define DEBUG_LOGO_SAVE 1   // save valid logos after CheckValid and before RemovePixelDefects to /tmp
 // #define DEBUG_LOGO_SAVE 2   // save valid logos after RemovePixelDefects /tmp
 
 // debug vborder detection
