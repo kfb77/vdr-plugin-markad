@@ -70,7 +70,7 @@ class cExtractLogo {
         void SetLogoSize(const MarkAdContext *maContext, int *logoHeight, int *logoWidth);
         bool IsLogoColourChange(const MarkAdContext *maContext, const int corner);
         int DeleteFrames(const MarkAdContext *maContext, const int from, const int to);
-        bool WaitForFrames(const MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame);
+        bool WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame);
         void PackLogoInfo(const logoInfo *logoInfo, logoInfoPacked *logoInfoPacked);
         void UnpackLogoInfo(logoInfo *logoInfo, const logoInfoPacked *logoInfoPacked);
         int GetFirstFrame(const MarkAdContext *maContext);

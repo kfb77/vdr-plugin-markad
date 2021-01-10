@@ -1151,7 +1151,7 @@ void cMarkAdStandalone::CheckStart() {
     }
 
     iStart = 0;
-    if (macontext.Config->Before) marks.Save(directory, &macontext, isTS, true);
+    marks.Save(directory, &macontext, isTS, false);
     DebugMarks();     //  only for debugging
     LogSeparator();
     return;
@@ -1684,10 +1684,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
     }
 
 // save marks
-    if (macontext.Config->Before) {
-        if (Mark->Position > chkSTART) marks.Save(directory, &macontext, isTS, true);
-        else marks.Save(directory, &macontext, isTS, false);
-    }
+    if (Mark->Position > chkSTART) marks.Save(directory, &macontext, isTS, false);
 }
 
 
@@ -1788,6 +1785,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
             double slepttime = 0;
             while ((unsigned int)slepttime < sleeptime) {
                 while (sleeptime > 0) {
+                    macontext.Info.isRunningRecording = true;
                     unsigned int ret = sleep(sleeptime); // now we sleep and hopefully the index will grow
                     if ((errno) && (ret)) {
                         if (abortNow) return;
@@ -1873,7 +1871,7 @@ void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *N
         }
         save = true;
     }
-    if (save) marks.Save(directory, &macontext, isTS, true);
+    if (save) marks.Save(directory, &macontext, isTS, false);
 }
 #endif
 
@@ -2178,7 +2176,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
             }
             *mark1 = marks.Move(&macontext, *mark1, ptr_MarkAdPos->FrameNumberBefore, "overlap");
             *mark2 = marks.Move(&macontext, *mark2, ptr_MarkAdPos->FrameNumberAfter, "overlap");
-            marks.Save(directory, &macontext, isTS, true);
+            marks.Save(directory, &macontext, isTS, false);
             return true;
         }
     }
@@ -2520,7 +2518,7 @@ void cMarkAdStandalone::Process3ndPass() {
         }
     }
 
-    if (save) marks.Save(directory, &macontext, isTS, true);
+    if (save) marks.Save(directory, &macontext, isTS, false);
     return;
 }
 
@@ -3029,7 +3027,7 @@ void cMarkAdStandalone::Process_cDecoder() {
     ProcessFile_cDecoder();
 
     if (!abortNow) {
-        if (marks.Save(directory, &macontext, isTS, true)) {
+        if (marks.Save(directory, &macontext, isTS, false)) {
             if (length && startTime)
                     if (macontext.Config->SaveInfo) SaveInfo();
 
@@ -3048,7 +3046,7 @@ void cMarkAdStandalone::Process() {
 
     marks.CloseIndex(directory, isTS);
     if (!abortNow) {
-        if (marks.Save(directory, &macontext, ptr_cDecoder, isTS)) {
+        if (marks.Save(directory, &macontext, isTS, false)) {
             if (length && startTime) {
                 if (((time(NULL) > (startTime + (time_t) length)) || (gotendmark)) && !ptr_cDecoder ) {
                     int iIndexError = false;
@@ -4255,6 +4253,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
 
 
 cMarkAdStandalone::~cMarkAdStandalone() {
+    marks.Save(directory, &macontext, isTS, true);
     if ((!abortNow) && (!duplicate)) {
         LogSeparator();
         dsyslog("time for decoding:              %2ds %3dms", decodeTime_us / 1000000, (decodeTime_us % 1000000) / 1000);
