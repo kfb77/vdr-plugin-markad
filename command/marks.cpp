@@ -830,10 +830,15 @@ bool clMarks::Load(const char *Directory, const double FrameRate, const bool isT
 }
 
 
-bool clMarks::Save(const char *Directory, const MarkAdContext *maContext, const bool isTS, const bool Force) {
-    if (!first) return false;
-    if ((savedcount == CountWithoutBlack()) && (!Force)) return false;
-    dsyslog("clMarks::Save(): save marks, force=%d", Force);
+bool clMarks::Save(const char *Directory, const MarkAdContext *maContext, const bool isTS, const bool force) {
+    if (!Directory) return false;
+    if (!maContext) return false;
+    if (!first) return false;  // no marks to save
+    if (!maContext->Info.isRunningRecording && !force) {
+//        dsyslog("clMarks::Save(): save marks later, isRunningRecording=%d force=%d", maContext->Info.isRunningRecording, force);
+        return false;
+    }
+    dsyslog("clMarks::Save(): save marks, isRunningRecording=%d force=%d", maContext->Info.isRunningRecording, force);
 
     char *fpath = NULL;
     if (asprintf(&fpath, "%s/%s%s", Directory, filename, isTS ? "" : ".vdr") == -1) return false;
@@ -850,13 +855,11 @@ bool clMarks::Save(const char *Directory, const MarkAdContext *maContext, const 
 
     clMark *mark = first;
     while (mark) {
-        if (Force || ((mark->type & 0xF0) != MT_BLACKCHANGE)) {    // do not save MT_BLACKCHANGE before analysed
-            char *indexToHMSF = IndexToHMSF(mark->position, maContext);
-            if (indexToHMSF) {
-                fprintf(mf, "%s %s\n", indexToHMSF, mark->comment ? mark->comment : "");
-                FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-                free(indexToHMSF);
-            }
+        char *indexToHMSF = IndexToHMSF(mark->position, maContext);
+        if (indexToHMSF) {
+            fprintf(mf, "%s %s\n", indexToHMSF, mark->comment ? mark->comment : "");
+            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+            free(indexToHMSF);
         }
         mark = mark->Next();
     }
@@ -877,6 +880,5 @@ bool clMarks::Save(const char *Directory, const MarkAdContext *maContext, const 
     }
     FREE(strlen(fpath)+1, "fpath");
     free(fpath);
-    savedcount = CountWithoutBlack();
     return true;
 }

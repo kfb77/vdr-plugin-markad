@@ -150,6 +150,7 @@ typedef struct MarkAdContext {
     const MarkAdConfig *Config;
 
     struct Info {
+        bool isRunningRecording = false;           // true if markad is running during recording
         MarkAdAspectRatio AspectRatio;   // set from info file and checked after chkSTART, valid for the recording
         bool checkedAspectRatio = false;
         short int Channels[MAXSTREAMS] = {0};

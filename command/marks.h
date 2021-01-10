@@ -101,7 +101,7 @@ class clMarks {
         }
         bool Backup(const char *Directory, const bool isTS);
         bool Load(const char *Directory, const double FrameRate, const bool isTS);
-        bool Save(const char *Directory, const MarkAdContext *maContext, const bool isTS, const bool Force = false);
+        bool Save(const char *Directory, const MarkAdContext *maContext, const bool isTS, const bool force);
         int LoadVPS(const char *Directory, const char *type);
 
         cIndex *recordingIndexMarks = NULL;

@@ -931,7 +931,7 @@ int cExtractLogo::CountFrames(const MarkAdContext *maContext) {
 }
 
 
-bool cExtractLogo::WaitForFrames(const MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame = 0) {
+bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame = 0) {
     if (!maContext) return false;
     if (!ptr_cDecoder) return false;
 
@@ -970,6 +970,7 @@ bool cExtractLogo::WaitForFrames(const MarkAdContext *maContext, cDecoder *ptr_c
             ret = false;
             break;
         }
+        maContext->Info.isRunningRecording = true;
         sleep(WAITTIME); // now we sleep and hopefully the index will grow
     }
     FREE(strlen(indexFile)+1, "indexFile");
