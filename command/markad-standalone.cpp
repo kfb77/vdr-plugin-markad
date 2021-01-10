@@ -2109,7 +2109,7 @@ void cMarkAdStandalone::Process3ndPass() {
         indexToHMSF = marks.IndexToHMSF(mark->position, &macontext, ptr_cDecoder);
 
         if (mark->type == MT_LOGOSTART) {
-            if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): detect audio silence for before logo mark at frame (%6i) type 0x%X at %s range %i", mark->position, mark->type, indexToHMSF, silenceRange);
+            if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): detect audio silence before logo mark at frame (%6i) type 0x%X at %s range %is", mark->position, mark->type, indexToHMSF, silenceRange);
             if (!ptr_cDecoder->SeekToFrame(&macontext, mark->position - (silenceRange * macontext.Video.Info.FramesPerSecond))) {
                 esyslog("could not seek to frame (%i)", mark->position);
                 break;
