@@ -155,7 +155,6 @@ typedef struct MarkAdContext {
         short int Channels[MAXSTREAMS] = {0};
         char *ChannelName;
         bool timerVPS = false;  // true it was a VPS controlled timer
-        bool rotatingLogo = false;  // logo is rotating, e.g. SAT.1
         MarkAdPid VPid;
         MarkAdPid APid;
 #if defined CLASSIC_DECODER
@@ -189,6 +188,7 @@ typedef struct MarkAdContext {
             int width = 0;  // width of logo
             int height = 0;  // height of logo
             int corner = -1;  // corner of logo
+            bool isRotating = false;  // logo is rotating, e.g. SAT.1
         } Logo;
 
         struct Data {

@@ -724,7 +724,7 @@ int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoI
         for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
             logoInfo actLogo = {};
             UnpackLogoInfo(&actLogo, &(*actLogoPacked));
-            if (maContext->Info.rotatingLogo) {
+            if (maContext->Video.Logo.isRotating) {
                 if (CompareLogoPairRotating(&actLogo, ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
                     hits++;
                     actLogoPacked->hits++;
@@ -740,7 +740,7 @@ int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoI
     }
     if (maContext->Config->autoLogo == 2){  // use unpacked logos
         for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
-            if (maContext->Info.rotatingLogo) {
+            if (maContext->Video.Logo.isRotating) {
                 if (CompareLogoPairRotating(&(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
                     hits++;
                     actLogo->hits++;
