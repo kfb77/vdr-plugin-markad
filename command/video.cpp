@@ -667,6 +667,8 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
 }
 
 
+// detect blackscreen
+//
 cMarkAdBlackScreen::cMarkAdBlackScreen(MarkAdContext *maContext) {
     macontext = maContext;
     Clear();
@@ -678,53 +680,46 @@ void cMarkAdBlackScreen::Clear() {
 }
 
 
-int cMarkAdBlackScreen::Process(int FrameNumber, int *BlackIFrame) {
-#define BLACKNESS 20
+// check if current frame is a blackscreen
+// return: -1 blackscreen start (notice: this is a STOP mark)
+//          0 no status change
+//          1 blackscreen end (notice: this is a START mark)
+//
+int cMarkAdBlackScreen::Process() {
+#define BLACKNESS 20  // maximum average brightness
     if (!macontext) return 0;
     if (!macontext->Video.Data.Valid) return 0;
     if (macontext->Video.Info.FramesPerSecond == 0) return 0;
-    *BlackIFrame = 0;
     if (!macontext->Video.Info.Height) {
         dsyslog("cMarkAdBlackScreen::Process() missing macontext->Video.Info.Height");
         return 0;
     }
-    int height = macontext->Video.Info.Height;
-
     if (!macontext->Video.Info.Width) {
         dsyslog("cMarkAdBlackScreen::Process() missing macontext->Video.Info.Width");
         return 0;
     }
-    int width = macontext->Video.Info.Width;
-
-    int end = height * width;
-    int cnt = 0;
-    int val = 0;
     if (!macontext->Video.Data.Plane[0]) {
         dsyslog("cMarkAdBlackScreen::Process() Video.Data.Plane[0] missing");
         return 0;
     }
-
+    int end = macontext->Video.Info.Height * macontext->Video.Info.Width;
+    int val = 0;
+    int maxBrightness = BLACKNESS * end;
     for (int x = 0; x < end; x++) {
         val += macontext->Video.Data.Plane[0][x];
-        cnt++;
-    }
-    val /= cnt;
-    if (val < BLACKNESS) {
-        if (blackScreenstatus != BLACKSCREEN_VISIBLE) {
-            *BlackIFrame = FrameNumber;
-            blackScreenstatus = BLACKSCREEN_VISIBLE;
-            return -1; // detected start of black screen
+        if (val > maxBrightness) {
+            if (blackScreenstatus != BLACKSCREEN_INVISIBLE) {
+                blackScreenstatus = BLACKSCREEN_INVISIBLE;
+                return 1; // detected stop of black screen
+            }
+            else return 0;
         }
     }
-    else {
-        if (blackScreenstatus != BLACKSCREEN_INVISIBLE)
-        {
-            *BlackIFrame = FrameNumber;
-            blackScreenstatus = BLACKSCREEN_INVISIBLE;
-            return 1; // detected stop of black screen
-        }
+    if (blackScreenstatus != BLACKSCREEN_VISIBLE) {
+        blackScreenstatus = BLACKSCREEN_VISIBLE;
+        return -1; // detected start of black screen
     }
-    return 0;
+    else return 0;
 }
 
 
@@ -1225,14 +1220,15 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext) {
 
     resetmarks();
     if (!macontext->Video.Options.IgnoreBlackScreenDetection) {
-        int blackScreenframenumber=0;
-        int blackret=blackScreen->Process(FrameNumber,&blackScreenframenumber);
-        if (blackret>0) {
-            addmark(MT_NOBLACKSTART,blackScreenframenumber);
+        int blackret = blackScreen->Process();
+        if (blackret > 0) {
+            addmark(MT_NOBLACKSTART, FrameNumber);
         }
-        else if (blackret<0) {
-                 addmark(MT_NOBLACKSTOP,blackScreenframenumber);
-             }
+        else {
+            if (blackret < 0) {
+                addmark(MT_NOBLACKSTOP, FrameNumber);
+            }
+        }
     }
     if (!macontext->Video.Options.ignoreHborder) {
         int hborderframenumber;
