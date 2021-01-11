@@ -906,7 +906,7 @@ void cMarkAdStandalone::CheckStart() {
         dsyslog("cMarkAdStandalone::CheckStart(): delete all black screen marks except start mark");
         clMark *mark = marks.GetFirst();   // delete all black screen marks because they are weak, execpt the start mark
         while (mark) {
-            if (( (mark->type == MT_NOBLACKSTART) || (mark->type == MT_NOBLACKSTOP) ) && (mark->position > begin->position) ) {
+            if (((mark->type & 0xF0) == MT_BLACKCHANGE) && (mark->position > begin->position) ) {
                 clMark *tmp = mark;
                 mark = mark->Next();
                 marks.Del(tmp);
@@ -1026,7 +1026,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     while (mark) {
         if (mark != marks.GetFirst()) {
             if (mark == marks.GetLast()) break;
-            if ((mark->type == MT_NOBLACKSTOP) || (mark->type == MT_NOBLACKSTART)) {
+            if ((mark->type & 0xF0) == MT_BLACKCHANGE) {
                 clMark *tmp = mark;
                 mark = mark->Next();
                 dsyslog("cMarkAdStandalone::CheckMarks(): delete black screen mark (%i)", tmp->position);
