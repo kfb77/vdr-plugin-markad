@@ -182,7 +182,7 @@ bool cDecoder::DecodeFile(const char * filename) {
             }
         }
 
-        if (msgDecodeFile) dsyslog("cDecoder::DecodeFile(): using decoder for stream %i: codec id %i %s", streamIndex, codec_id, codec->long_name);
+        if (msgDecodeFile) dsyslog("cDecoder::DecodeFile(): using decoder for stream %i: codec id %5i -> %s", streamIndex, codec_id, codec->long_name);
         codecCtxArray[streamIndex]=avcodec_alloc_context3(codec);
         if (!codecCtxArray[streamIndex]) {
             dsyslog("cDecoder::DecodeFile(): avcodec_alloc_context3 failed");

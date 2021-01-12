@@ -310,11 +310,11 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
     chkSTART = iStartA + macontext.Video.Info.FramesPerSecond * 4 * MAXRANGE; //  fit for later broadcast start
     chkSTOP = startframe + macontext.Video.Info.FramesPerSecond * (length + macontext.Config->posttimer);
 
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): length of recording %ds (%dmin %2ds)", length, length / 60, length % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed start frame %d  (%dmin %2ds)", iStartA, static_cast<int>(iStartA / macontext.Video.Info.FramesPerSecond / 60), static_cast<int>(iStartA / macontext.Video.Info.FramesPerSecond) % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed stop frame  %d  (%dmin %2ds)", iStopA, static_cast<int>(iStopA / macontext.Video.Info.FramesPerSecond / 60), static_cast<int>(iStopA / macontext.Video.Info.FramesPerSecond) % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): chkSTART set to     %d  (%dmin %2ds)", chkSTART, static_cast<int>(chkSTART / macontext.Video.Info.FramesPerSecond / 60), static_cast<int>(chkSTART / macontext.Video.Info.FramesPerSecond) % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): chkSTOP set to      %d  (%dmin %2ds)", chkSTOP, static_cast<int>(chkSTOP / macontext.Video.Info.FramesPerSecond / 60), static_cast<int>(chkSTOP / macontext.Video.Info.FramesPerSecond) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): length of recording:   %4ds (%3dmin %2ds)", length, length / 60, length % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed start frame:  %5d  (%3dmin %2ds)", iStartA, static_cast<int>(iStartA / macontext.Video.Info.FramesPerSecond / 60), static_cast<int>(iStartA / macontext.Video.Info.FramesPerSecond) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed stop frame:  %6d  (%3dmin %2ds)", iStopA, static_cast<int>(iStopA / macontext.Video.Info.FramesPerSecond / 60), static_cast<int>(iStopA / macontext.Video.Info.FramesPerSecond) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): chkSTART set to:     %6d  (%3dmin %2ds)", chkSTART, static_cast<int>(chkSTART / macontext.Video.Info.FramesPerSecond / 60), static_cast<int>(chkSTART / macontext.Video.Info.FramesPerSecond) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): chkSTOP set to:      %6d  (%3dmin %2ds)", chkSTOP, static_cast<int>(chkSTOP / macontext.Video.Info.FramesPerSecond / 60), static_cast<int>(chkSTOP / macontext.Video.Info.FramesPerSecond) % 60);
 }
 
 

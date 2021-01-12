@@ -579,7 +579,7 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
             }
             CutOut(bestLogoInfo, 0, whiteColumns, logoHeight, logoWidth, bestLogoCorner);
         }
-        dsyslog("cExtractLogo::Resize(): logo size after %d. resize:   %3d width %3d height on corner %s", repeat, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
+        dsyslog("cExtractLogo::Resize(): logo size after %d. resize:  %3d width %3d height on corner %12s", repeat, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
     }
     if (CheckLogoSize(maContext, *logoHeight, *logoWidth, bestLogoCorner)) {
         dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is valid", maContext->Video.Info.Width, maContext->Video.Info.Height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
