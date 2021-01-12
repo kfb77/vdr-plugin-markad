@@ -534,7 +534,7 @@ int cMarkAdStandalone::RemoveLogoChangeMarks() {
         dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): only %d logo stop mark, do not delete any", marks.Count(MT_LOGOSTOP));
     }
     else {
-        cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(&marks, macontext.Video.Info.FramesPerSecond, iStart);
+        cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(&marks, macontext.Video.Info.FramesPerSecond, iStart, iStopA);
         ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
 
         char *indexToHMSFStop = NULL;
@@ -5018,7 +5018,7 @@ int main(int argc, char *argv[]) {
 
 // evaluate logo stop/start pairs
 // used by logo change detection
-cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, const int framesPerSecond, const int iStart) {
+cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, const int framesPerSecond, const int iStart, const int iStopA) {
     if (!marks) return;
 
 #define LOGO_CHANGE_STOP_START_MIN 11  // in s, changed from 12 to 11
@@ -5071,6 +5071,9 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, const int
             if (iStart > 0) { // we were called by CheckStart, the next stop is not yet detected
                               // we can not ignore early stop start pairs because they can be logo changed short after start
                 delta_Stop_AfterPair = LOGO_CHANGE_NEXT_STOP_MIN;
+            }
+            else { // we are called by CheckStop()
+                if (logoPairIterator->stopPosition < iStopA) logoPairIterator->isLogoChange = -1; // this is the last stop mark and it is before assumed end mark, this is the end mark
             }
         }
         if ((delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair < LOGO_CHANGE_NEXT_STOP_MIN)) {

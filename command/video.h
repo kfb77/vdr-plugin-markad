@@ -59,6 +59,12 @@ enum {
     OV_AFTER = 1
 };
 
+enum {
+    BRIGHTNESS_VALID = 0,
+    BRIGHTNESS_SEPARATOR = -1,
+    BRIGHTNESS_ERROR = -2
+};
+
 
 #define MAXPIXEL LOGO_MAXWIDTH * LOGO_MAXHEIGHT
 
@@ -110,7 +116,7 @@ class cMarkAdOverlap {
 
 class cMarkAdLogo {
     private:
-	cIndex *recordingIndexMarkAdLogo = NULL;
+        cIndex *recordingIndexMarkAdLogo = NULL;
         enum {
             TOP_LEFT,
             TOP_RIGHT,
@@ -124,12 +130,15 @@ class cMarkAdLogo {
         int GY[3][3];
         MarkAdContext *macontext;
         bool pixfmt_info;
+        bool isInitColourChange = false;
+
         bool SetCoorginates(int *xstart, int *xend, int *ystart, int *yend, const int plane);
-        bool ReduceBrightness(const int framenumber);
+        int ReduceBrightness(const int framenumber);
         bool SobelPlane(const int plane); // do sobel operation on plane
         int Load(const char *directory, const char *file, const int plane);
         bool Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], const short int plane, const int debug);
         void SaveFrameCorner(const int framenumber, const int debug);
+        void LogoGreyToColour();
     public:
         explicit cMarkAdLogo(MarkAdContext *maContext, cIndex *recordingIndex);
         int Detect(const int framenumber, int *logoframenumber); // ret 1 = logo, 0 = unknown, -1 = no logo
@@ -201,7 +210,7 @@ class cMarkAdBlackBordersVert {
 
 class cMarkAdVideo {
     private:
-	cIndex *recordingIndexMarkAdVideo = NULL;
+        cIndex *recordingIndexMarkAdVideo = NULL;
         MarkAdContext *macontext;
         MarkAdMarks marks = {};
         MarkAdAspectRatio aspectratio;
