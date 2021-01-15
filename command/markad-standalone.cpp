@@ -4078,6 +4078,7 @@ int usage(int svdrpport) {
            "                  <class> 1 = realtime, <level> from 0..7, default 4\n"
            "                          2 = besteffort, <level> from 0..7, default 4\n"
            "                          3 = idle (default)\n"
+           "                  make sure your I/O scheduler supports scheduling priorities and classes (e.g. BFQ or CFQ)\n"
            "-v              --verbose\n"
            "                  increments loglevel by one, can be given multiple times\n"
            "-B              --backupmarks\n"

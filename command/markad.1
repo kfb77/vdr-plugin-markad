@@ -20,7 +20,7 @@ MarkAd \- marks advertisements in VDR recordings.
 marks advertisements in VDR recordings.
 .SH "OPTIONS"
 .TP 
-Usage: markad [options] cmd <record>
+Usage: markad [options] cmd <recording>
 .TP 
 .BI \-b\ ,\ \-\-background
 \fImarkad\fR runs as a background\-process
@@ -56,6 +56,7 @@ io priority of markad when running in background
 <class> 1 = realtime, <level> from 0..7, default 4
              2 = besteffort, <level> from 0..7, default 4
              3 = idle (default)
+ make sure your I/O scheduler supports scheduling priorities and classes (e.g. BFQ or CFQ)
 .TP 
 .BI \-v\ ,\ \-\-verbose
 increments loglevel by one, can be given multiple times
