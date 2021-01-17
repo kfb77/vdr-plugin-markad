@@ -710,16 +710,16 @@ int cMarkAdBlackScreen::Process() {
         if (val > maxBrightness) {
             if (blackScreenstatus != BLACKSCREEN_INVISIBLE) {
                 blackScreenstatus = BLACKSCREEN_INVISIBLE;
-                return 1; // detected stop of black screen
+                if (blackScreenstatus != BLACKSCREEN_UNINITIALIZED) return 1; // detected stop of black screen
             }
-            else return 0;
+            return 0;
         }
     }
-    if (blackScreenstatus != BLACKSCREEN_VISIBLE) {
+    if (blackScreenstatus == BLACKSCREEN_INVISIBLE) {
         blackScreenstatus = BLACKSCREEN_VISIBLE;
-        return -1; // detected start of black screen
+        if (blackScreenstatus != BLACKSCREEN_UNINITIALIZED) return -1; // detected start of black screen
     }
-    else return 0;
+    return 0;
 }
 
 
@@ -1221,11 +1221,11 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext) {
     resetmarks();
     if (!macontext->Video.Options.IgnoreBlackScreenDetection) {
         int blackret = blackScreen->Process();
-        if (blackret > 0) {
+        if ((blackret > 0) && (FrameNumber > 0)) {  // first frame can be invalid result
             addmark(MT_NOBLACKSTART, FrameNumber);
         }
         else {
-            if (blackret < 0) {
+            if ((blackret < 0) && (FrameNumber > 0)) { // first frame can be invalid result
                 addmark(MT_NOBLACKSTOP, FrameNumber);
             }
         }
