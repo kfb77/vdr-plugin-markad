@@ -607,7 +607,7 @@ void cMarkAdStandalone::CheckStart() {
             MarkAdAspectRatio newMarkAdAspectRatio;
             newMarkAdAspectRatio.Num = 16;
             newMarkAdAspectRatio.Den = 9;
-            if ((macontext.Info.AspectRatio.Num = 16) && (macontext.Info.AspectRatio.Den == 9)) {
+            if ((macontext.Info.AspectRatio.Num == 16) && (macontext.Info.AspectRatio.Den == 9)) {
                 newMarkAdAspectRatio.Num = 4;
                 newMarkAdAspectRatio.Den = 3;
             }
