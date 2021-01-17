@@ -951,7 +951,9 @@ int cDecoder::GetNextSilence(MarkAdContext *maContext, const int range, const bo
     int startFrame = GetFrameNumber();
     dsyslog("cDecoder::GetNextSilence(): using stream index %i and start at frame (%d)", streamIndex, startFrame);
     while (GetFrameNumber() < startFrame + (range * maContext->Video.Info.FramesPerSecond)) {
-        GetNextFrame();
+        if (!GetNextFrame()) {
+            if (!DecodeDir(recordingDir)) break;
+        }
         if (avpkt.stream_index != streamIndex) continue;
         if (isAudioPacket()) {
             AVFrame *audioFrame = DecodePacket(avctx, &avpkt);
