@@ -443,7 +443,7 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
         }
     }
     if (extract || onlyFillArea) return LOGO_NOCHANGE;
-    if (!processed) return LOGO_ERROR;
+    if (processed == 0) return LOGO_ERROR;  // we have no plane processed
 
 #ifdef DEBUG_LOGO_DETECTION
     dsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
