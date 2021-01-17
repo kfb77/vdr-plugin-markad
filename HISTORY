@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-01-17: Version 2.5.3
+- fix endless loop when silent detection over file boundaries
+- some minor bug fixes and optimizations, see git
+
 2021-01-08: Version 2.5.2
 - optimize silence detection
 - optimize detection of rotating logos
