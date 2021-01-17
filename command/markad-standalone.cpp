@@ -2110,12 +2110,14 @@ void cMarkAdStandalone::Process3ndPass() {
 
         if (mark->type == MT_LOGOSTART) {
             if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): detect audio silence before logo mark at frame (%6i) type 0x%X at %s range %is", mark->position, mark->type, indexToHMSF, silenceRange);
-            if (!ptr_cDecoder->SeekToFrame(&macontext, mark->position - (silenceRange * macontext.Video.Info.FramesPerSecond))) {
+            int seekPos =  mark->position - (silenceRange * macontext.Video.Info.FramesPerSecond);
+            if (seekPos < 0) seekPos = 0;
+            if (!ptr_cDecoder->SeekToFrame(&macontext, seekPos)) {
                 esyslog("could not seek to frame (%i)", mark->position);
                 break;
             }
             framecnt3 += silenceRange * macontext.Video.Info.FramesPerSecond;
-            int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, silenceRange, true);
+            int beforeSilence = ptr_cDecoder->GetNextSilence(mark->position, true);
             if ((beforeSilence > 0) && (beforeSilence != mark->position)) {
                 dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo start at iFrame (%i)", beforeSilence);
                 char *buf = NULL;
@@ -2145,11 +2147,14 @@ void cMarkAdStandalone::Process3ndPass() {
         if (mark->type == MT_LOGOSTOP) {
             // search before stop mark
             if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): detect audio silence before logo stop mark at frame (%6i) type 0x%X at %s range %i", mark->position, mark->type, indexToHMSF, silenceRange);
-            if (!ptr_cDecoder->SeekToFrame(&macontext, mark->position - (silenceRange * macontext.Video.Info.FramesPerSecond))) {
+            int seekPos =  mark->position - (silenceRange * macontext.Video.Info.FramesPerSecond);
+            if (seekPos < ptr_cDecoder->GetFrameNumber()) seekPos = ptr_cDecoder->GetFrameNumber();  // will retun -1 before first frame read
+            if (seekPos < 0) seekPos = 0;
+            if (!ptr_cDecoder->SeekToFrame(&macontext, seekPos)) {
                 esyslog("could not seek to frame (%i)", mark->position);
                 break;
             }
-            int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, silenceRange, true);
+            int beforeSilence = ptr_cDecoder->GetNextSilence(mark->position, true);
             if (beforeSilence >= 0) dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo stop mark (%i) at iFrame (%i)", mark->position, beforeSilence);
 
             // search after stop mark
@@ -2158,7 +2163,8 @@ void cMarkAdStandalone::Process3ndPass() {
                 esyslog("could not seek to frame (%i)", mark->position);
                 break;
             }
-            int afterSilence = ptr_cDecoder->GetNextSilence(&macontext, silenceRange, false);
+            int stopFrame =  mark->position + (silenceRange * macontext.Video.Info.FramesPerSecond);
+            int afterSilence = ptr_cDecoder->GetNextSilence(stopFrame, false);
             if (afterSilence >= 0) dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence after logo stop mark (%i) at iFrame (%i)", mark->position, afterSilence);
             framecnt3 += 2 * silenceRange * macontext.Video.Info.FramesPerSecond;
             bool before = false;

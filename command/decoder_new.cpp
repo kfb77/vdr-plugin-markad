@@ -935,8 +935,7 @@ int cDecoder::GetFirstMP2AudioStream() {
 // if not <before> we are called direct after mark position and return iFrame before first silence part
 // -1 if no silence part were found
 //
-int cDecoder::GetNextSilence(MarkAdContext *maContext, const int range, const bool before) {
-    if (!maContext) return -1;
+int cDecoder::GetNextSilence(const int stopFrame, const bool before) {
 #define SILENCE_LEVEL 25  // changed from 10 to 27 to 25
 #define SILENCE_COUNT 5   // low level counts twice
     int silenceCount = 0;
@@ -948,9 +947,8 @@ int cDecoder::GetNextSilence(MarkAdContext *maContext, const int range, const bo
         dsyslog("cDecoder::GetNextSilence(): could not get stream index of MP2 audio stream");
         return -1;
     }
-    int startFrame = GetFrameNumber();
-    dsyslog("cDecoder::GetNextSilence(): using stream index %i and start at frame (%d)", streamIndex, startFrame);
-    while (GetFrameNumber() < startFrame + (range * maContext->Video.Info.FramesPerSecond)) {
+    dsyslog("cDecoder::GetNextSilence(): using stream index %i from frame (%d) to frame (%d)", streamIndex, GetFrameNumber(), stopFrame);
+    while (GetFrameNumber() < stopFrame) {
         if (!GetNextFrame()) {
             if (!DecodeDir(recordingDir)) break;
         }
