@@ -1861,11 +1861,12 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
     }
 
 // seek to iFrame before start mark
-    fRangeBegin = ptr_cDecoder->GetIFrameBefore((*mark2)->position);
+    fRangeBegin = ptr_cDecoder->GetIFrameBefore((*mark2)->position);  // go one iframe before to load decoder buffer
     if (!fRangeBegin) {
         dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetIFrameBefore failed for frame (%d)", fRangeBegin);
         return false;
     }
+    if (fRangeBegin <  ptr_cDecoder->GetFrameNumber()) fRangeBegin = ptr_cDecoder->GetFrameNumber(); // on very short stop/start pairs we have no room to go before start mark
     indexToHMSF = marks.IndexToHMSF(fRangeBegin, &macontext, ptr_cDecoder);
     if (indexToHMSF) {
         dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): seek forward to iFrame (%d) at %s before start mark (%d) and start overlap check", fRangeBegin, indexToHMSF, (*mark2)->position);
