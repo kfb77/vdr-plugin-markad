@@ -1479,7 +1479,7 @@ void cMarkAdStandalone::SaveFrame(const int frame, const char *path, const char 
         else height = macontext.Video.Info.Height / 2;
         // set path and file name
         if (path && suffix) sprintf(szFilename, "%s/frame%06d_P%d_%s.pgm", path, frame, plane, suffix);
-        else sprintf(szFilename, "/tmp/frame%06d_P%d.pgm", frame, plane);
+        else sprintf(szFilename, "/tmp/frame%06dfull_P%d.pgm", frame, plane);
         // Open file
         FILE *pFile = fopen(szFilename, "wb");
         if (pFile == NULL) {
