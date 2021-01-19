@@ -575,7 +575,7 @@ void cMarkAdStandalone::CheckStart() {
         begin=marks.GetAround(delta*4, iStartA, MT_CHANNELSTART);
     }
 
-// try to find a ascpect ratio mark
+// try to find a aspect ratio mark
     if (!begin) {
         if ((macontext.Info.AspectRatio.Num == 0) || (macontext.Video.Info.AspectRatio.Den == 0)) {
             isyslog("no video aspect ratio found in vdr info file");
@@ -796,33 +796,41 @@ void cMarkAdStandalone::CheckStart() {
             dsyslog("cMarkAdStandalone::CheckStart(): no logo start mark found");
         }
         else {
-            char *indexToHMSF = marks.IndexToHMSF(lStart->position, &macontext, ptr_cDecoder);
-            if (indexToHMSF) {
-                dsyslog("cMarkAdStandalone::CheckStart(): logo start mark found on position (%i) at %s", lStart->position, indexToHMSF);
-                FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-                free(indexToHMSF);
-            }
-            clMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);
-            if (lStop && ((lStop->position - lStart->position) < (60 *  macontext.Video.Info.FramesPerSecond))) {  // very short logo part, lStart is possible wrong, increased from 20 to 60
-                indexToHMSF = marks.IndexToHMSF(lStop->position, &macontext, ptr_cDecoder);
+            bool isInvalid = true;
+            while (isInvalid) {
+                char *indexToHMSF = marks.IndexToHMSF(lStart->position, &macontext, ptr_cDecoder);
                 if (indexToHMSF) {
-                    dsyslog("cMarkAdStandalone::CheckStart(): logo stop mark found very short after start mark on position (%i) at %s", lStop->position, indexToHMSF);
+                    dsyslog("cMarkAdStandalone::CheckStart(): logo start mark found on position (%i) at %s", lStart->position, indexToHMSF);
                     FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                     free(indexToHMSF);
                 }
-                clMark *lNextStart = marks.GetNext(lStop->position, MT_LOGOSTART);
-                if (lNextStart) {
-                    indexToHMSF = marks.IndexToHMSF(lNextStart->position, &macontext, ptr_cDecoder);
-                    if ((lNextStart->position - lStop->position) < delta) { // found start mark short after start/stop, use this as start mark
-                        if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark short after logo start/stop marks on position (%i) at %s", lNextStart->position, indexToHMSF);
-                        lStart = lNextStart;
-                    }
-                    else if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): next logo start mark (%i) at %s too far away", lNextStart->position, indexToHMSF);
+                clMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
+                if (lStop && ((lStop->position - lStart->position) < (60 *  macontext.Video.Info.FramesPerSecond))) {  // very short logo part, lStart is possible wrong, increased from 20 to 60
+                    indexToHMSF = marks.IndexToHMSF(lStop->position, &macontext, ptr_cDecoder);
                     if (indexToHMSF) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): logo stop mark found very short after start mark on position (%i) at %s", lStop->position, indexToHMSF);
                         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                         free(indexToHMSF);
                     }
+                    clMark *lNextStart = marks.GetNext(lStop->position, MT_LOGOSTART); // get next logo start mark
+                    if (lNextStart) {  // now we have logo start/stop/start, this can be a preview before broadcast start
+                        indexToHMSF = marks.IndexToHMSF(lNextStart->position, &macontext, ptr_cDecoder);
+                        if ((lNextStart->position - lStop->position) < delta) { // found start mark short after start/stop, use this as start mark
+                            if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark short after logo start/stop marks on position (%i) at %s", lNextStart->position, indexToHMSF);
+                            lStart = lNextStart;
+                        }
+                        else {
+                            isInvalid = false;
+                            if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): next logo start mark (%i) at %s too far away", lNextStart->position, indexToHMSF);
+                        }
+                        if (indexToHMSF) {
+                            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                            free(indexToHMSF);
+                        }
+                    }
+                    else isInvalid = false;
                 }
+                else isInvalid = false;
             }
             if (lStart->position  >= (iStart / 8)) {
                 begin = lStart;   // found valid logo start mark
@@ -832,7 +840,7 @@ void cMarkAdStandalone::CheckStart() {
             else {  // logo start mark too early, try if there is a later logo start mark
                 clMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
                 if (lNextStart && (lNextStart->position  > (iStart / 8)) && ((lNextStart->position - lStart->position) < (5 * delta))) {  // found later logo start mark
-                    indexToHMSF = marks.IndexToHMSF(lNextStart->position, &macontext, ptr_cDecoder);
+                    char *indexToHMSF = marks.IndexToHMSF(lNextStart->position, &macontext, ptr_cDecoder);
                     if (indexToHMSF) {
                         dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lNextStart->position, indexToHMSF);
                         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
