@@ -145,6 +145,11 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
 }
 
 
+// save the area.corner picture after sobel transformation to /tmp
+// debug = 0: save was called by --extract function
+// debug > 0: save was called by debug statements, add debug identifier to filename
+// return: true if successful
+//
 bool cMarkAdLogo::Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], const short int plane, const int debug) {
     if (!macontext) return false;
     if ((plane<0) || (plane >= PLANES)) return false;
@@ -239,6 +244,10 @@ bool cMarkAdLogo::SetCoorginates(int *xstart, int *xend, int *ystart, int *yend,
 }
 
 
+// save the original corner picture /tmp
+// add debug identifier to filename
+// return: true if successful
+//
 #ifdef DEBUG_FRAME_CORNER
 void cMarkAdLogo::SaveFrameCorner(const int framenumber, const int debug) {
     FILE *pFile;
@@ -252,7 +261,7 @@ void cMarkAdLogo::SaveFrameCorner(const int framenumber, const int debug) {
 
 //    tsyslog("cMarkAdLogo::SaveFrameCorner(): framenumber (%d) xstart %d xend %d ystart %d yend %d corner %d width %d height %d", framenumber, xstart, xend, ystart, yend, area.corner, width, height);
     // Open file
-        sprintf(szFilename, "/tmp/frame%07d_P%d_debug%d.pgm", framenumber, plane, debug);
+        sprintf(szFilename, "/tmp/frame%07d_C%d_P%d_D%02d.pgm", framenumber, area.corner, plane, debug);
         pFile=fopen(szFilename, "wb");
         if (pFile == NULL) {
             dsyslog("cMarkAdLogo::SaveFrameCorner(): open file %s failed", szFilename);
