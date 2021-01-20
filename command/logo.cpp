@@ -64,7 +64,7 @@ bool cExtractLogo::IsWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoH
     for (int i = 0; i < logoHeight * logoWidth; i++) {
         if (ptr_actLogoInfo->sobel[plane][i] == 0) {
             countBlack++;
-            if (countBlack >= 5) return false;   // only if there are same pixel
+            if (countBlack >= 60) return false;   // only if there are some pixel, changed from 5 to 60
         }
     }
     return true;
@@ -86,6 +86,10 @@ void cExtractLogo::SetLogoSize(const MarkAdContext *maContext, int *logoHeight, 
 }
 
 
+// check plane 1 and calculate quote of white pictures
+// return: true if only some frames have have pixels in plane 1, a channel with logo coulor change is detected
+//         false if almost all frames have pixel in plane 1, this is realy a coloured logo
+//
 bool cExtractLogo::IsLogoColourChange(const MarkAdContext *maContext, const int corner) {
     if (!maContext) return false;
     if ((corner < 0) || (corner >= CORNERS)) return false;
@@ -157,7 +161,6 @@ bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actL
             }
             else dsyslog("cExtractLogo::Save(): %i pixel in plane %i", black, plane);
 
-            if (this->IsWhitePlane(ptr_actLogoInfo, height, width, plane)) continue;
             if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", maContext->Config->recDir, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane)==-1) return false;
             ALLOC(strlen(buf)+1, "buf");
             dsyslog("cExtractLogo::Save(): store logo in %s", buf);
