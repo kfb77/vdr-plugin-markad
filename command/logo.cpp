@@ -103,23 +103,25 @@ bool cExtractLogo::IsLogoColourChange(const MarkAdContext *maContext, const int 
     int count = 0;
     int countWhite = 0;
 
-    if (maContext->Config->autoLogo == 1) { // use packed logos
-        for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
-            count++;
-            logoInfo actLogo = {};
-            UnpackLogoInfo(&actLogo, &(*actLogoPacked));
-            if (IsWhitePlane(&actLogo, logoHeight, logoWidth, 1)) countWhite++;
+    for (int plane = 1; plane < PLANES; plane++) {
+        if (maContext->Config->autoLogo == 1) { // use packed logos
+            for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
+                count++;
+                logoInfo actLogo = {};
+                UnpackLogoInfo(&actLogo, &(*actLogoPacked));
+                if (IsWhitePlane(&actLogo, logoHeight, logoWidth, plane)) countWhite++;
+           }
         }
-    }
-    if (maContext->Config->autoLogo == 2){  // use unpacked logos
-        for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
-            count++;
-            if (IsWhitePlane(&(*actLogo), logoHeight, logoWidth, 1)) countWhite++;
+        if (maContext->Config->autoLogo == 2){  // use unpacked logos
+            for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
+                count++;
+                if (IsWhitePlane(&(*actLogo), logoHeight, logoWidth, plane)) countWhite++;
+            }
         }
     }
     if (count > 0) {
         dsyslog("cExtractLogo::isLogoColourChange(): %d valid frames in corner %d, %d are white, ratio %d%%", count, corner, countWhite, countWhite * 100 / count);
-        if ((countWhite * 100 / count) >= 50) return true;
+        if ((countWhite * 100 / count) >= 40) return true;
     }
     return false;
 }
