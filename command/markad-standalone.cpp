@@ -818,7 +818,7 @@ void cMarkAdStandalone::CheckStart() {
                         if (lNextStart) {  // now we have logo start/stop/start, this can be a preview before broadcast start
                             indexToHMSF = marks.IndexToHMSF(lNextStart->position, &macontext, ptr_cDecoder);
                             int distanceStartStop = (lNextStart->position - lStop->position) / macontext.Video.Info.FramesPerSecond;
-                            if (distanceStartStop < 10) { // found start mark short after start/stop, use this as start mark
+                            if (distanceStartStop <= 21) { // found start mark short after start/stop, use this as start mark
                                 if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark short after logo start/stop marks on position (%i) at %s", lNextStart->position, indexToHMSF);
                                 lStart = lNextStart;
                             }
