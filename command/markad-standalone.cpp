@@ -2348,7 +2348,56 @@ void cMarkAdStandalone::Process3ndPass() {
         }
     }
 
+// check for advertising in frame with logo before stop logo
+// for performance reason only for known channels for now
+    if ((strcmp(macontext.Info.ChannelName, "SIXX") == 0) ||
+        (strcmp(macontext.Info.ChannelName, "RTL2") == 0) || // maybe there also exists broadcast in frame TODO
+        (strcmp(macontext.Info.ChannelName, "kabel_eins") == 0)) {
+        ptr_cDecoder->Reset();
+        ptr_cDecoder->DecodeDir(directory);
 
+        cExtractLogo *ptr_cExtractLogoAdInFrame = NULL;
+        clMark *markLogoStop = marks.GetFirst();
+        while (markLogoStop) {
+            if (markLogoStop->type == MT_LOGOSTOP) {
+                int searchPosition = markLogoStop->position - (35 * macontext.Video.Info.FramesPerSecond); // advertising in frame are usually 30s
+                char *indexToHMSFStopMark = marks.IndexToHMSF(markLogoStop->position, &macontext);
+                char *indexToHMSFSearchPosition = marks.IndexToHMSF(searchPosition, &macontext);
+                if (indexToHMSFStopMark && indexToHMSFSearchPosition) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo before logo stop mark (%d) at %s from position %d at %s", markLogoStop->position, indexToHMSFStopMark, searchPosition, indexToHMSFSearchPosition);
+                if (indexToHMSFStopMark) {
+                    FREE(strlen(indexToHMSFStopMark)+1, "indexToHMSF");
+                    free(indexToHMSFStopMark);
+                }
+                if (indexToHMSFSearchPosition) {
+                    FREE(strlen(indexToHMSFSearchPosition)+1, "indexToHMSF");
+                    free(indexToHMSFSearchPosition);
+                }
+
+                if (!ptr_cDecoder->SeekToFrame(&macontext, searchPosition)) {
+                    esyslog("could not seek to frame (%i)", markLogoStop->position);
+                    break;
+                }
+                if (!ptr_cExtractLogoAdInFrame) {
+                    ptr_cExtractLogoAdInFrame = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
+                    ALLOC(sizeof(*ptr_cExtractLogoAdInFrame), "ptr_cExtractLogoAdInFrame");
+                }
+                int newStopPosition = ptr_cExtractLogoAdInFrame->SearchAdInFrame(&macontext, ptr_cDecoder, markLogoStop->position);
+                if (newStopPosition != -1) {
+                    newStopPosition = recordingIndexMark->GetIFrameBefore(newStopPosition);  // we got first frame of ad, go one iFrame back for stop mark
+                    markLogoStop = marks.Move(&macontext, markLogoStop, newStopPosition, "advertising in frame");
+                    save = true;
+                    continue;
+                }
+            }
+            markLogoStop=markLogoStop->Next();
+        }
+        if (ptr_cExtractLogoAdInFrame) {
+            FREE(sizeof(*ptr_cExtractLogoAdInFrame), "ptr_cExtractLogoAdInFrame");
+            delete(ptr_cExtractLogoAdInFrame);
+        }
+    }
+
+// search for audio silence near logo marks
     dsyslog("cMarkAdStandalone::Process3ndPass(): search for audio silence");
 #define BLACKSCREEN_RANGE 6 // in s
     int silenceRange = 2;  // change from 1s to 2s
@@ -2467,55 +2516,6 @@ void cMarkAdStandalone::Process3ndPass() {
             else dsyslog("cMarkAdStandalone::Process3ndPass(): no black screen mark found after logo stop mark (%d)", mark->position);
         }
         mark=mark->Next();
-    }
-
-// check for advertising in frame with logo before stop logo
-// for performance reason only for known channels for now
-    if ((strcmp(macontext.Info.ChannelName, "SIXX") == 0) ||
-        (strcmp(macontext.Info.ChannelName, "RTL2") == 0) || // maybe there also exists broadcast in frame TODO
-        (strcmp(macontext.Info.ChannelName, "kabel_eins") == 0)) {
-        ptr_cDecoder->Reset();
-        ptr_cDecoder->DecodeDir(directory);
-
-        cExtractLogo *ptr_cExtractLogoAdInFrame = NULL;
-        clMark *markLogoStop = marks.GetFirst();
-        while (markLogoStop) {
-            if (markLogoStop->type == MT_LOGOSTOP) {
-                int searchPosition = markLogoStop->position - (35 * macontext.Video.Info.FramesPerSecond); // advertising in frame are usually 30s
-                char *indexToHMSFStopMark = marks.IndexToHMSF(markLogoStop->position, &macontext);
-                char *indexToHMSFSearchPosition = marks.IndexToHMSF(searchPosition, &macontext);
-                if (indexToHMSFStopMark && indexToHMSFSearchPosition) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo before logo stop mark (%d) at %s from position %d at %s", markLogoStop->position, indexToHMSFStopMark, searchPosition, indexToHMSFSearchPosition);
-                if (indexToHMSFStopMark) {
-                    FREE(strlen(indexToHMSFStopMark)+1, "indexToHMSF");
-                    free(indexToHMSFStopMark);
-                }
-                if (indexToHMSFSearchPosition) {
-                    FREE(strlen(indexToHMSFSearchPosition)+1, "indexToHMSF");
-                    free(indexToHMSFSearchPosition);
-                }
-
-                if (!ptr_cDecoder->SeekToFrame(&macontext, searchPosition)) {
-                    esyslog("could not seek to frame (%i)", markLogoStop->position);
-                    break;
-                }
-                if (!ptr_cExtractLogoAdInFrame) {
-                    ptr_cExtractLogoAdInFrame = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
-                    ALLOC(sizeof(*ptr_cExtractLogoAdInFrame), "ptr_cExtractLogoAdInFrame");
-                }
-                int newStopPosition = ptr_cExtractLogoAdInFrame->SearchAdInFrame(&macontext, ptr_cDecoder, markLogoStop->position);
-                if (newStopPosition != -1) {
-                    newStopPosition = recordingIndexMark->GetIFrameBefore(newStopPosition);  // we got first frame of ad, go one iFrame back for stop mark
-                    markLogoStop = marks.Move(&macontext, markLogoStop, newStopPosition, "advertising in frame");
-                    save = true;
-                    continue;
-                }
-            }
-            markLogoStop=markLogoStop->Next();
-        }
-        if (ptr_cExtractLogoAdInFrame) {
-            FREE(sizeof(*ptr_cExtractLogoAdInFrame), "ptr_cExtractLogoAdInFrame");
-            delete(ptr_cExtractLogoAdInFrame);
-        }
     }
 
     if (save) marks.Save(directory, &macontext, isTS, false);
