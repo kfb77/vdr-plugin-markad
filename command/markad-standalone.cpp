@@ -2022,6 +2022,7 @@ void cMarkAdStandalone::MarkadCut() {
         isyslog("video cut function only supported with --cDecoder");
         return;
     }
+    ptr_cDecoder->Reset();
     cEncoder* ptr_cEncoder = NULL;
     LogSeparator(true);
     isyslog("start cut video based on marks");
