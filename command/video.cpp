@@ -252,7 +252,7 @@ bool cMarkAdLogo::SetCoorginates(int *xstart, int *xend, int *ystart, int *yend,
 // add debug identifier to filename
 // return: true if successful
 //
-#ifdef DEBUG_FRAME_CORNER
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
 void cMarkAdLogo::SaveFrameCorner(const int framenumber, const int debug) {
     FILE *pFile;
     char szFilename[256];
@@ -461,8 +461,8 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int framenumber)
     int contrastReduced = maxPixel - minPixel;
     dsyslog("cMarkAdLogo::ReduceBrightness(): after brightness correction: contrast %3d, brightness %3d", contrastReduced, brightnessReduced);
 #endif
-#ifdef DEBUG_FRAME_CORNER
-    if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200)) SaveFrameCorner(framenumber, 2);
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+    if ((framenumber > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (framenumber < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) SaveFrameCorner(framenumber, 2);
 #endif
     return contrastLogo;
 }
@@ -577,6 +577,7 @@ void cMarkAdLogo::LogoGreyToColour() {
 }
 
 
+// notice: if we are called by logo detection, <framenumber> is last iFrame before, otherwise it is current frame
 int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
     bool onlyFillArea = ( *logoframenumber < 0 );
     bool extract = (macontext->Config->logoExtraction != -1);
@@ -588,20 +589,12 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
     float logo_vmark = LOGO_VMARK;
     if (macontext->Video.Logo.isRotating) logo_vmark *= 0.8;   // reduce if we have a rotating logo (e.g. SAT_1)i, changed from 0.9 to 0.8
 
-#ifdef DEBUG_FRAME_CORNER
-    if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200)) {
-        // prevent override saved frames from 3nd pass
-        if (onlyFillArea) SaveFrameCorner(framenumber, 99);  // we are called by logo.cpp frame debug
-        else SaveFrameCorner(framenumber, 1);  // we are not called by logo.cpp frame debug
-    }
-#endif
-
     for (int plane = 0; plane < PLANES; plane++) {
         if ((area.valid[plane]) || (extract) || (onlyFillArea)) {
             if (SobelPlane(plane)) {
                 processed++;
-#ifdef DEBUG_FRAME_CORNER
-                if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200) && !onlyFillArea) {
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+                if ((framenumber > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (framenumber < DEBUG_LOGO_DETECT_FRAME_CORNER + 200) && !onlyFillArea) {
                     Save(framenumber, area.sobel, plane, 1);
                 }
 #endif
@@ -618,6 +611,12 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
     }
     if (extract || onlyFillArea) return LOGO_NOCHANGE;
     if (processed == 0) return LOGO_ERROR;  // we have no plane processed
+
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+    if ((framenumber > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (framenumber < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) {
+        SaveFrameCorner(framenumber, 1);  // we are not called by logo.cpp frame debug
+    }
+#endif
 
 #ifdef DEBUG_LOGO_DETECTION
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
@@ -645,8 +644,8 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
                 dsyslog("cMarkAdLogo::Detect(): frame (%6d) corrected, new area intensity %d", framenumber, area.intensity);
                 dsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
 #endif
-#ifdef DEBUG_FRAME_CORNER
-                if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200)) Save(framenumber, area.sobel, 0, 2);
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+                if ((framenumber > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (framenumber < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) Save(framenumber, area.sobel, 0, 2);
 #endif
                 if ((area.status == LOGO_INVISIBLE) && (contrast < 25)) {  // if we have a very low contrast this could not be a new logo
                     return LOGO_NOCHANGE;
@@ -688,8 +687,8 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
                 area.valid[plane] = true;
                 area.mpixel[plane] = area.mpixel[0] / 4;
                 SobelPlane(plane);
-#ifdef DEBUG_FRAME_CORNER
-                if ((framenumber > DEBUG_FRAME_CORNER - 200) && (framenumber < DEBUG_FRAME_CORNER + 200)) {
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+                if ((framenumber > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (framenumber < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) {
                     Save(framenumber, area.sobel, plane, 3);
                 }
 #endif
