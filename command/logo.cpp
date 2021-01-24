@@ -15,14 +15,14 @@ extern "C"{
 }
 
 // based on this idee to find the logo in a recording:
-// 1. take 1000 ifarmes
+// 1. take 1000 iframes
 // 2. compare each corner of the iframes with all other iframes of the same corner
 // 3. take the iframe who has the most similar frame on the same corner, this hopefully should be the logo
 // 4. remove the white frame from the logo
 // 5. store the logo files in the recording directory for future use
 
 // logo size limits
-#define LOGO_720W_MIN_H 54      // SIXX
+#define LOGO_720W_MIN_H 54      // SIXX and SUPER RTL
 #define LOGO_MIN_LETTERING_H 38 // 41 for "DIE NEUEN FOLGEN" SAT_1
                                 // 38 for "#wir bleiben zuhause" RTL2
 
@@ -271,11 +271,17 @@ void cExtractLogo::CutOut(logoInfo *logoInfo, int cutPixelH, int cutPixelV, int 
 
 
 bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoHeight, const int logoWidth, const int corner) {
-// check special channels
+// check special channels and special logos
     if (strcmp(maContext->Info.ChannelName, "DMAX") == 0) {
         if (logoWidth < 126) {  // DMAX logo is 126 pixel wide
             dsyslog("cExtractLogo::CheckLogoSize(): DMAX logo to narrow, this is possibly NEUE FOLGE");
             return false;
+        }
+    }
+    if (strcmp(maContext->Info.ChannelName, "SUPER_RTL") == 0) {
+        if ((logoWidth == 160) && (logoHeight == 54) && (corner >= TOP_LEFT)) {  // SUPER RTL PRIMETIME logo
+            dsyslog("cExtractLogo::CheckLogoSize(): SUPER RTL PRIMETIME special logo detected");
+            return true;
         }
     }
 
