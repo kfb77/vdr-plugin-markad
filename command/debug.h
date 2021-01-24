@@ -13,11 +13,9 @@
 #define LOG_TRACE 8
 
 
-// write picture from recording to /tmp from <framenumber>-200 to <framenumber>+200
-// #define DEBUG_FRAME <framenumber>
-
-// write picture from recording of logo corner to /tmp from <framenumber>-200 to <framenumber>+200
-// #define DEBUG_FRAME_CORNER <framenumber>
+// write picture from full recording recording and logo corner to /tmp from <framenumber> - 200 to <framenumber> + 200
+// notice: <framenumber> is here last iFrame
+// #define DEBUG_LOGO_DETECT_FRAME_CORNER <framenumber>
 
 // write logo detection informations in log file
 // #define DEBUG_LOGO_DETECTION

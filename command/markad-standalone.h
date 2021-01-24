@@ -132,7 +132,7 @@ class cMarkAdStandalone {
         void CalculateCheckPositions(int startframe);
         bool isVPSTimer();
         time_t GetBroadcastStart(time_t start, int fd);
-#if defined(DEBUG_FRAME) || defined(DEBUG_MARK_FRAMES)
+#if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_MARK_FRAMES)
         void SaveFrame(const int frame, const char *path = NULL, const char *suffix = NULL);
 #endif
         char *IndexToHMSF(int Index);

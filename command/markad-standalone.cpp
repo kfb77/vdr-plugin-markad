@@ -1691,7 +1691,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
 // save currect content of the frame buffer to /tmp
 // if path and suffix is set, this will set as target path and file name suffix
 //
-#if defined(DEBUG_FRAME) || defined(DEBUG_MARK_FRAMES)
+#if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_MARK_FRAMES)
 void cMarkAdStandalone::SaveFrame(const int frame, const char *path, const char *suffix) {
     if (!macontext.Video.Info.Width) {
         dsyslog("cMarkAdStandalone::SaveFrame(): macontext.Video.Info.Width not set");
@@ -2859,8 +2859,8 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 }
             }
 
-#ifdef DEBUG_FRAME
-            if ((lastiframe > (DEBUG_FRAME - 200)) && (lastiframe < (DEBUG_FRAME + 200))) {
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+            if ((lastiframe > (DEBUG_LOGO_DETECT_FRAME_CORNER - 200)) && (lastiframe < (DEBUG_LOGO_DETECT_FRAME_CORNER + 200))) {
 //                dsyslog("save frame (%i) to /tmp", lastiframe);
                 SaveFrame(lastiframe);
             }
