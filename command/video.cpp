@@ -45,18 +45,6 @@ cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext, cIndex *recordingIndex) {
     GY[2][1] = -2;
     GY[2][2] = -1;
 
-#if defined CLASSIC_DECODER     // with cDecoder we set this later after open the first file
-    if (maContext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264) {
-        LOGOHEIGHT = LOGO_DEFHDHEIGHT;
-        LOGOWIDTH = LOGO_DEFHDWIDTH;
-    }
-    else if (maContext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H262) {
-        LOGOHEIGHT = LOGO_DEFHEIGHT;
-        LOGOWIDTH = LOGO_DEFWIDTH;
-    }
-    else dsyslog("cMarkAdLogo::cMarkAdLogo maContext->Info.VPid.Type %i not valid", maContext->Info.VPid.Type);
-#endif
-
     pixfmt_info = false;
     Clear();
 }
@@ -472,7 +460,6 @@ bool cMarkAdLogo::SobelPlane(const int plane) {
     if ((plane < 0) || (plane >= PLANES)) return false;
     if (!macontext->Video.Data.PlaneLinesize[plane]) return false;
 
-#if !defined CLASSIC_DECODER     // we need a default size for logo extraction, no longer set in constructor
     if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
         if (macontext->Video.Info.Width > 720){
             LOGOHEIGHT = LOGO_DEFHDHEIGHT;
@@ -483,7 +470,6 @@ bool cMarkAdLogo::SobelPlane(const int plane) {
             LOGOWIDTH = LOGO_DEFWIDTH;
         }
     }
-#endif
     if ((macontext->Video.Info.Pix_Fmt != 0) && (macontext->Video.Info.Pix_Fmt != 12)) {
         if (!pixfmt_info) {
             esyslog("unknown pix_fmt %i, please report!", macontext->Video.Info.Pix_Fmt);
@@ -879,7 +865,6 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
         }
     }
     else {
-#if !defined CLASSIC_DECODER     // we need a default size for logo extraction, no longer set in constructor
         if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
             if ((macontext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264) || (macontext->Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H265)) {
                 LOGOHEIGHT = LOGO_DEFHDHEIGHT;
@@ -894,7 +879,6 @@ int cMarkAdLogo::Process(int FrameNumber, int *LogoFrameNumber) {
                 return LOGO_ERROR;
             }
         }
-#endif
         area.aspectratio.Num = macontext->Video.Info.AspectRatio.Num;
         area.aspectratio.Den = macontext->Video.Info.AspectRatio.Den;
         area.corner = macontext->Config->logoExtraction;

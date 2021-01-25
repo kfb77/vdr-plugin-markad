@@ -96,9 +96,6 @@ typedef struct config {
     bool NoPid;
     bool OSD;
     bool Before;
-#if defined CLASSIC_DECODER
-    bool GenIndex;
-#endif
     bool SaveInfo;
 } MarkAdConfig;
 
@@ -158,9 +155,6 @@ typedef struct MarkAdContext {
         bool timerVPS = false;  // true it was a VPS controlled timer
         MarkAdPid VPid;
         MarkAdPid APid;
-#if defined CLASSIC_DECODER
-        MarkAdPid DPid;
-#endif
     } Info;
 
     struct Video {

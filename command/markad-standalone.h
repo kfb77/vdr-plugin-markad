@@ -19,12 +19,6 @@ extern "C" {
 #include "marks.h"
 #include "encoder_new.h"
 
-#if defined CLASSIC_DECODER
-    #include "demux.h"
-    #include "decoder.h"
-    #include "streaminfo.h"
-#endif
-
 #define trcs(c) bind_textdomain_codeset("markad",c)
 #define tr(s) dgettext("markad",s)
 
@@ -153,79 +147,6 @@ class cMarkAdStandalone {
         void ProcessFile_cDecoder();
         bool ProcessFrame(cDecoder *ptr_cDecoder);
 
-#if defined CLASSIC_DECODER
-        struct PAT {
-            unsigned table_id: 8;
-            unsigned section_length_H: 4;
-            unsigned reserved1: 2;
-            unsigned zero: 1;
-            unsigned section_syntax_indicator: 1;
-            unsigned section_length_L: 8;
-            unsigned transport_stream_id_H: 8;
-            unsigned transport_stream_id_L: 8;
-            unsigned current_next_indicator: 1;
-            unsigned version_number: 5;
-            unsigned reserved2: 2;
-            unsigned section_number: 8;
-            unsigned last_section_number: 8;
-            unsigned program_number_H: 8;
-            unsigned program_number_L: 8;
-            unsigned pid_H: 5;
-            unsigned reserved3: 3;
-            unsigned pid_L: 8;
-        };
-
-        struct PMT {
-            unsigned table_id: 8;
-            unsigned section_length_H: 4;
-            unsigned reserved1: 2;
-            unsigned zero: 1;
-            unsigned section_syntax_indicator: 1;
-            unsigned section_length_L: 8;
-            unsigned program_number_H: 8;
-            unsigned program_number_L: 8;
-            unsigned current_next_indicator: 1;
-            unsigned version_number: 5;
-            unsigned reserved2: 2;
-            unsigned section_number: 8;
-            unsigned last_section_number: 8;
-            unsigned PCR_PID_H: 5;
-            unsigned reserved3: 3;
-            unsigned PCR_PID_L: 8;
-            unsigned program_info_length_H: 4;
-            unsigned reserved4: 4;
-            unsigned program_info_length_L: 8;
-        };
-
-#pragma pack(1)
-        struct STREAMINFO {
-            unsigned stream_type: 8;
-            unsigned PID_H: 5;
-            unsigned reserved1: 3;
-            unsigned PID_L: 8;
-            unsigned ES_info_length_H: 4;
-            unsigned reserved2: 4;
-            unsigned ES_info_length_L: 8;
-        };
-#pragma pack()
-
-        AvPacket pkt = {};
-        int skipped;       // skipped bytes in whole file
-        struct ES_DESCRIPTOR {
-            unsigned Descriptor_Tag: 8;
-            unsigned Descriptor_Length: 8;
-        };
-        bool CheckVDRHD();
-        off_t SeekPATPMT();
-        bool CheckPATPMT(off_t Offset=0);
-        cDemux *demux = NULL;
-        cMarkAdDecoder *decoder;
-        cMarkAdStreamInfo *streaminfo;
-        bool RegenerateIndex();
-        bool ProcessFile2ndPass(clMark **Mark1, clMark **Mark2, int Number, off_t Offset, int Frame, int Frames);
-        bool ProcessFile(int Number);
-        void ProcessFile();
-#endif
     public:
         cMarkAdStandalone(const char *Directory, const MarkAdConfig *config, cIndex *recordingIndex);
         ~cMarkAdStandalone();
@@ -260,12 +181,6 @@ class cMarkAdStandalone {
             inBroadCast = origin.inBroadCast;
             indexFile = origin.indexFile;
             sleepcnt = origin.sleepcnt;
-#if defined CLASSIC_DECODER
-            skipped = origin.skipped;
-            demux = NULL;
-            decoder = NULL;
-            streaminfo = NULL;
-#endif
         };
         cMarkAdStandalone &operator =(const cMarkAdStandalone *origin) {   // operator=, not used, only for formal reason
             strcpy(title,origin->title);
@@ -299,12 +214,6 @@ class cMarkAdStandalone {
             inBroadCast = origin->inBroadCast;
             indexFile = origin->indexFile;
             sleepcnt = origin->sleepcnt;
-#if defined CLASSIC_DECODER
-            skipped = origin->skipped;
-            demux = NULL;
-            decoder = NULL;
-            streaminfo = NULL;
-#endif
             return *this;
         }
         void Process_cDecoder();
@@ -313,9 +222,6 @@ class cMarkAdStandalone {
         void MarkadCut();
 #ifdef DEBUG_MARK_FRAMES
         void DebugMarkFrames();
-#endif
-#if defined CLASSIC_DECODER
-        void Process();
 #endif
 };
 #endif

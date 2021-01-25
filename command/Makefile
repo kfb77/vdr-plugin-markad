@@ -2,11 +2,6 @@
 # Makefile for a Video Disk Recorder addon
 #
 
-# build with the new and the old decoder
-# do not remove the comment, this is only for developer testing and will not be supported 
-# the old decoder code will be removed in a future release
-# CLASSIC_DECODER=1
-
 # use this, if you want to debug heap memory consumption
 # DEBUG_MEM_MARKAD=1
 
@@ -73,18 +68,11 @@ LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
 
 ### The object files (add further files here):
 OBJS = markad-standalone.o marks.o video.o audio.o decoder_new.o encoder_new.o logo.o debug.o index.o
-ifdef CLASSIC_DECODER
-        DEFINES += -DCLASSIC_DECODER
-	OBJS += demux.o decoder.o streaminfo.o
-endif
-
 
 ### The main target:
-
 all: markad i18n
 
 ### Implicit rules:
-
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $(DEFINES) $(INCLUDES) $<
 

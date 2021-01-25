@@ -733,12 +733,6 @@ void cMarkAdStandalone::CheckStart() {
                     macontext.Video.Options.IgnoreAspectRatio = false;   // then we have to find other marks
                     macontext.Video.Options.IgnoreLogoDetection = false;
                 }
-#if defined CLASSIC_DECODER
-                if (macontext.Info.DPid.Num) {
-                    macontext.Info.DPid.Num = 0;
-                    demux->DisableDPid();
-                }
-#endif
             }
         }
     }
@@ -817,14 +811,6 @@ void cMarkAdStandalone::CheckStart() {
                 isyslog("logo/border detection disabled");
                 bDecodeVideo = false;
                 macontext.Video.Options.IgnoreAspectRatio = false;
-#if defined CLASSIC_DECODER
-                for (short int stream = 0; stream < MAXSTREAMS; stream++) {
-                    if (macontext.Info.Channels[stream] == 6) {
-                        macontext.Info.DPid.Num = 0;
-                        demux->DisableDPid();
-                    }
-                }
-#endif
                 macontext.Video.Options.IgnoreLogoDetection = true;
                 marks.Del(MT_CHANNELSTART);
                 marks.Del(MT_CHANNELSTOP);
@@ -1752,10 +1738,6 @@ void cMarkAdStandalone::CheckIndexGrowing()
     do {
         struct stat statbuf;
         if (stat(indexFile,&statbuf) == -1) {
-#if defined CLASSIC_DECODER
-            if (!macontext.Config->GenIndex)
-                esyslog("failed to stat %s", indexFile);
-#endif
             return;
         }
 
@@ -1818,198 +1800,6 @@ void cMarkAdStandalone::CheckIndexGrowing()
     while (notenough);
     return;
 }
-
-
-#if defined CLASSIC_DECODER
-void cMarkAdStandalone::ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos) {
-    if (!NewPos) return;
-    if (!Mark1) return;
-    if (!*Mark1) return;
-    bool save = false;
-
-    if ((*Mark1)->position != NewPos->FrameNumberBefore) {
-        char *buf = NULL;
-        char *indexToHMSFBefore = marks.IndexToHMSF((*Mark1)->position,&macontext);
-        char *indexToHMSFNewPos = marks.IndexToHMSF(NewPos->FrameNumberBefore,&macontext);
-        if (asprintf(&buf,"overlap before frame (%i) at %s, moved to frame (%i) at %s", (*Mark1)->position, indexToHMSFBefore, NewPos->FrameNumberBefore, indexToHMSFNewPos) == -1) return;
-        ALLOC(strlen(buf)+1, "buf");
-        isyslog("%s",buf);
-        marks.Del(*Mark1);
-        *Mark1 = marks.Add(MT_MOVEDCHANGE, NewPos->FrameNumberBefore, buf);
-        FREE(strlen(buf)+1, "buf");
-        free(buf);
-        if (indexToHMSFBefore) {
-            FREE(strlen(indexToHMSFBefore)+1, "indexToHMSF");
-            free(indexToHMSFBefore);
-        }
-        if (indexToHMSFNewPos) {
-            FREE(strlen(indexToHMSFNewPos)+1, "indexToHMSF");
-            free(indexToHMSFNewPos);
-        }
-        save = true;
-    }
-
-    if (Mark2 && (*Mark2) && (*Mark2)->position != NewPos->FrameNumberAfter) {
-        char *buf = NULL;
-        char *indexToHMSFBefore = marks.IndexToHMSF((*Mark2)->position, &macontext);
-        char *indexToHMSFNewPos = marks.IndexToHMSF(NewPos->FrameNumberAfter, &macontext);
-        if (asprintf(&buf, "overlap after frame (%i) at %s, moved to frame (%i) at %s", (*Mark2)->position, indexToHMSFBefore,
-                     NewPos->FrameNumberAfter, indexToHMSFNewPos) == -1) return;
-        ALLOC(strlen(buf)+1, "buf");
-        isyslog("%s",buf);
-        marks.Del(*Mark2);
-        *Mark2 = marks.Add(MT_MOVEDCHANGE, NewPos->FrameNumberAfter, buf);
-        FREE(strlen(buf)+1, "buf");
-        free(buf);
-        if (indexToHMSFBefore) {
-            FREE(strlen(indexToHMSFBefore)+1, "indexToHMSF");
-            free(indexToHMSFBefore);
-        }
-        if (indexToHMSFNewPos) {
-            FREE(strlen(indexToHMSFNewPos)+1, "indexToHMSF");
-            free(indexToHMSFNewPos);
-        }
-        save = true;
-    }
-    if (save) marks.Save(directory, &macontext, isTS, false);
-}
-#endif
-
-
-#if defined CLASSIC_DECODER
-bool cMarkAdStandalone::ProcessFile2ndPass(clMark **Mark1, clMark **Mark2, int Number, off_t Offset, int Frame, int Frames) {
-    if (!directory) return false;
-    if (!Number) return false;
-    if (!Frames) return false;
-    if (!decoder) return false;
-    if (!Mark1) return false;
-    if (!*Mark1) return false;
-
-    int pn; // process number 1=start mark, 2=before mark, 3=after mark
-    if (Mark2) {
-        if (!(*Mark1) || !(*Mark2)) return false;
-        if (*Mark1 == *Mark2) pn = mSTART;
-        if (*Mark1 != *Mark2) pn = mAFTER;
-    }
-    else {
-        pn = mBEFORE;
-    }
-
-    if (!Reset(false)) {
-        // reset all, but marks
-        esyslog("failed resetting state");
-        return false;
-    }
-    iframe = Frame;
-    int actframe = Frame;
-    int framecounter = 0;
-    int pframe = -1;
-    MarkAdPos *pos = NULL;
-
-    while (framecounter < Frames) {
-        if (abortNow) return false;
-
-        const int datalen = 319976;
-        uchar data[datalen];
-
-        char *fbuf;
-        if (isTS) {
-            if (asprintf(&fbuf, "%s/%05i.ts", directory, Number) == -1) return false;
-            ALLOC(strlen(fbuf)+1, "fbuf");
-        }
-        else {
-            if (asprintf(&fbuf, "%s/%03i.vdr", directory, Number) == -1) return false;
-            ALLOC(strlen(fbuf)+1, "fbuf");
-        }
-
-        int f = open(fbuf, O_RDONLY);
-        FREE(strlen(fbuf)+1, "fbuf");
-        free(fbuf);
-        if (f == -1) return false;
-
-        int dataread;
-        if (pn == mSTART) {
-            dsyslog("processing file %05i (start mark)", Number);
-        }
-        else {
-            if (pn == mBEFORE) {
-                dsyslog("processing file %05i (before mark %i)", Number, (*Mark1)->position);
-            }
-            else {
-                dsyslog("processing file %05i (after mark %i)", Number, (*Mark2)->position);
-            }
-        }
-
-        if (lseek(f, Offset, SEEK_SET) != Offset) {
-            close(f);
-            return false;
-        }
-
-        while ((dataread = read(f, data, datalen)) > 0) {
-            if (abortNow) break;
-
-            if ((demux) && (video) && (decoder) && (streaminfo)) {
-                uchar *tspkt = data;
-                int tslen = dataread;
-
-                while (tslen > 0) {
-                    int len = demux->Process(tspkt, tslen, &pkt);
-                    if (len < 0) {
-                        esyslog("error demuxing file");
-                        abortNow = true;
-                        break;
-                    }
-                    else {
-                        if ((pkt.Data) && ((pkt.Type & PACKET_MASK) == PACKET_VIDEO)) {
-                            bool dRes = false;
-                            if (streaminfo->FindVideoInfos(&macontext, pkt.Data, pkt.Length)) {
-                                actframe++;
-                                framecnt2++;
-
-                                if (macontext.Video.Info.Pict_Type == MA_I_TYPE) {
-                                    lastiframe = iframe;
-                                    iframe = actframe - 1;
-                                    dRes = true;
-                                }
-                            }
-                            if (pn > mSTART) dRes = decoder->DecodeVideo(&macontext, pkt.Data, pkt.Length);
-                            if (dRes) {
-                                if (pframe != lastiframe) {
-                                    if (pn > mSTART) pos = video->ProcessOverlap(lastiframe, Frames, (pn==mBEFORE),
-                                                       (macontext.Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264));
-                                    framecounter++;
-                                }
-                                if ((pos) && (pn == mAFTER)) {
-                                    // found overlap
-                                    ChangeMarks(Mark1, Mark2, pos);
-                                    close(f);
-                                    return true;
-                                }
-                                pframe = lastiframe;
-                            }
-                        }
-                        tspkt += len;
-                        tslen -= len;
-                    }
-                }
-            }
-
-            if (abortNow) {
-                close(f);
-                return false;
-            }
-            if (framecounter > Frames) {
-                break;
-            }
-
-        }
-        close(f);
-        Number++;
-        Offset = 0;
-    }
-    return true;
-}
-#endif
 
 
 bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
@@ -2526,11 +2316,7 @@ void cMarkAdStandalone::Process3ndPass() {
 void cMarkAdStandalone::Process2ndPass() {
     if (abortNow) return;
     if (duplicate) return;
-#if defined CLASSIC_DECODER
-    if (!decoder) return;
-#else
     if (!ptr_cDecoder) return;
-#endif
     if (!length) return;
     if (!startTime) return;
     if (time(NULL) < (startTime+(time_t) length)) return;
@@ -2561,35 +2347,12 @@ void cMarkAdStandalone::Process2ndPass() {
         if (p1) p2 = p1->Next();
 
         while ((p1) && (p2)) {
-#if defined CLASSIC_DECODER
-            off_t offset;
-            int number, frame, iframes;
-            int frange = macontext.Video.Info.FramesPerSecond * 120; // 40s + 80s
-            int frange_begin = p1->position - frange; // 120 seconds before first mark
-            if (frange_begin < 0) frange_begin = 0; // but not before beginning of broadcast
-#endif
             if (ptr_cDecoder) {
                 dsyslog("cMarkAdStandalone::Process2ndPass(): ->->->->-> check overlap before stop frame (%d) and after start frame (%d)", p1->position, p2->position);
                 if (!ProcessMark2ndPass(&p1, &p2)) {
                     dsyslog("cMarkAdStandalone::Process2ndPass(): no overlap found for marks before frames (%d) and after (%d)", p1->position, p2->position);
                 }
             }
-#if defined CLASSIC_DECODER
-            else {
-                if (marks.ReadIndex(directory, isTS, frange_begin, frange, &number, &offset, &frame, &iframes)) {
-                    if (!ProcessFile2ndPass(&p1, NULL, number, offset, frame, iframes)) break;
-
-                    frange = macontext.Video.Info.FramesPerSecond * 320; // 160s + 160s
-                    if (marks.ReadIndex(directory, isTS, p2->position, frange, &number, &offset, &frame, &iframes)) {
-                        if (!ProcessFile2ndPass(&p1, &p2, number, offset, frame, iframes)) break;
-                    }
-                }
-                else {
-                    esyslog("error reading index");
-                    return;
-                }
-            }
-#endif
             p1 = p2->Next();
             if (p1) {
                 p2 = p1->Next();
@@ -2605,175 +2368,6 @@ void cMarkAdStandalone::Process2ndPass() {
 }
 
 
-#if defined CLASSIC_DECODER
-bool cMarkAdStandalone::ProcessFile(int Number) {
-    if (!directory) return false;
-    if (!Number) return false;
-
-    CheckIndexGrowing();
-    if (abortNow) return false;
-
-    const int datalen = 319976;
-    uchar data[datalen];
-    char *fbuf;
-    if (isTS) {
-        if (asprintf(&fbuf, "%s/%05i.ts", directory,Number) == -1) {
-            ALLOC(strlen(fbuf)+1, "fbuf");
-            esyslog("failed to allocate string, out of memory?");
-            return false;
-        }
-    }
-    else {
-        if (asprintf(&fbuf, "%s/%03i.vdr", directory,Number) == -1) {
-            esyslog("failed to allocate string, out of memory?");
-            return false;
-        }
-        ALLOC(strlen(fbuf)+1, "fbuf");
-    }
-
-    int f = open(fbuf, O_RDONLY);
-    if (f == -1) {
-        if (isTS) {
-            dsyslog("failed to open %05i.ts", Number);
-        } else {
-            dsyslog("failed to open %03i.vdr", Number);
-        }
-        return false;
-    }
-    FREE(strlen(fbuf)+1, "fbuf");
-    free(fbuf);
-
-    int dataread;
-    dsyslog("processing file %05i", Number);
-
-    int pframe = -1;
-    demux->NewFile();
-
-again:
-    while ((dataread = read(f,data,datalen)) > 0) {
-        if (abortNow) break;
-        if ((demux) && (video) && (streaminfo)) {
-            uchar *tspkt = data;
-            int tslen = dataread;
-            while (tslen > 0) {
-                int len = demux->Process(tspkt, tslen, &pkt);
-                if (len < 0) {
-                    esyslog("error demuxing");
-                    abortNow = true;
-                    break;
-                }
-                else {
-                    if (pkt.Data) {
-                        if ((pkt.Type & PACKET_MASK) == PACKET_VIDEO) {
-                            bool dRes = false;
-                            if (streaminfo->FindVideoInfos(&macontext, pkt.Data, pkt.Length)) {
-                                if ((macontext.Video.Info.Height) && (!noticeHEADER)) {
-                                    if ((!isTS) && (!noticeVDR_VID)) {
-                                        isyslog("found %s-video (0x%02X)", macontext.Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262", pkt.Stream);
-                                        noticeVDR_VID = true;
-                                    }
-
-                                    isyslog("%s %ix%i%c%0.f", (macontext.Video.Info.Height > 576) ? "HDTV" : "SDTV",
-                                            macontext.Video.Info.Width,
-                                            macontext.Video.Info.Height,
-                                            macontext.Video.Info.Interlaced ? 'i' : 'p',
-                                            macontext.Video.Info.FramesPerSecond);
-                                    noticeHEADER = true;
-                                }
-
-                                if (!framecnt1) {
-                                    CalculateCheckPositions(tStart * macontext.Video.Info.FramesPerSecond);
-                                }
-                                if (macontext.Config->GenIndex) {
-                                    marks.WriteIndex(directory, isTS, demux->Offset(), macontext.Video.Info.Pict_Type, Number);
-                                }
-                                framecnt1++;
-                                if ((macontext.Config->logoExtraction != -1) && (framecnt1 >= 256)) {
-                                    isyslog("finished logo extraction, please check /tmp for pgm files");
-                                    abortNow = true;
-                                    if (f != -1) close(f);
-                                    return true;
-                                }
-
-                                if (macontext.Video.Info.Pict_Type == MA_I_TYPE) {
-                                    lastiframe = iframe;
-                                    if ((iStart < 0) && (lastiframe > -iStart)) iStart = lastiframe;
-                                    if ((iStop < 0) && (lastiframe > -iStop)) {
-                                        iStop = lastiframe;
-                                        iStopinBroadCast = inBroadCast;
-                                    }
-                                    if ((iStopA < 0) && (lastiframe > -iStopA)) {
-                                        iStopA = lastiframe;
-                                    }
-                                    iframe = framecnt1 - 1;
-                                    dRes = true;
-                                }
-                            }
-                            if ((decoder) && (bDecodeVideo)) dRes = decoder->DecodeVideo(&macontext, pkt.Data, pkt.Length);
-                            if (dRes) {
-                                if (pframe != lastiframe) {
-                                    MarkAdMarks *vmarks = video->Process(lastiframe, iframe);
-                                    if (vmarks) {
-                                        for (int i=0; i < vmarks->Count; i++) {
-                                            AddMark(&vmarks->Number[i]);
-                                        }
-                                    }
-//                                    if (lastiframe == 14716) SaveFrame(lastiframe);  // TODO: JUST FOR DEBUGGING!
-                                    if (iStart > 0) {
-                                        if ((inBroadCast) && (lastiframe>chkSTART)) CheckStart();
-                                    }
-                                    if ((lastiframe > iStopA-macontext.Video.Info.FramesPerSecond * MAXRANGE) && (macontext.Video.Options.IgnoreBlackScreenDetection)) {
-                                        dsyslog("start black screen detection");
-                                        macontext.Video.Options.IgnoreBlackScreenDetection = false;   // use black sceen setection only to find end mark
-                                    }
-                                    if ((iStop > 0) && (iStopA > 0)) {
-                                        if (lastiframe > chkSTOP) CheckStop();
-                                    }
-                                    pframe = lastiframe;
-                                }
-                            }
-                        }
-
-                        if ((pkt.Type & PACKET_MASK) == PACKET_AC3) {
-                            if (streaminfo->FindAC3AudioInfos(&macontext, pkt.Data, pkt.Length)) {
-                                if ((!isTS) && (!noticeVDR_AC3)) {
-                                    isyslog("found AC3 (0x%02X)", pkt.Stream);
-                                    noticeVDR_AC3 = true;
-                                }
-                                if ((framecnt1 - iframe) <= 3) {
-                                    MarkAdMark *amark = audio->Process(lastiframe, iframe);
-                                    if (amark) {
-                                        AddMark(amark);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    tspkt += len;
-                    tslen -= len;
-                }
-            }
-        }
-        if ((gotendmark) && (!macontext.Config->GenIndex)) {
-            if (f != -1) close(f);
-            return true;
-        }
-
-        CheckIndexGrowing();
-        if (abortNow) {
-            if (f != -1) close(f);
-            return false;
-        }
-    }
-    if ((dataread == -1) && (errno == EINTR)) goto again; // i know this is ugly ;)
-
-    close(f);
-    return true;
-}
-#endif
-
-
 bool cMarkAdStandalone::Reset(bool FirstPass) {
     bool ret = true;
     if (FirstPass) framecnt1 = 0;
@@ -2784,21 +2378,12 @@ bool cMarkAdStandalone::Reset(bool FirstPass) {
 
     if (FirstPass) {
         marks.DelAll();
-#if defined CLASSIC_DECODER
-        marks.CloseIndex(directory,isTS);
-#endif
     }
     macontext.Video.Info.Pict_Type = 0;
     macontext.Video.Info.AspectRatio.Den = 0;
     macontext.Video.Info.AspectRatio.Num = 0;
     memset(macontext.Audio.Info.Channels, 0, sizeof(macontext.Audio.Info.Channels));
 
-#if defined CLASSIC_DECODER
-    memset(&pkt, 0, sizeof(pkt));
-    if (streaminfo) streaminfo->Clear();
-    if (decoder) ret=decoder->Clear();
-    if (demux) demux->Clear();
-#endif
     if (video) video->Clear(false);
     if (audio) audio->Clear();
     return ret;
@@ -2981,44 +2566,6 @@ void cMarkAdStandalone::ProcessFile_cDecoder() {
 }
 
 
-#if defined CLASSIC_DECODER
-void cMarkAdStandalone::ProcessFile() {
-    LogSeparator();
-    dsyslog("cMarkAdStandalone::ProcessFile(): start processing files");
-    for (int i = 1; i <= MaxFiles; i++) {
-        if (abortNow) break;
-        if (!ProcessFile(i)) break;
-        if ((gotendmark) && (!macontext.Config->GenIndex)) break;
-    }
-
-    if (!abortNow) {
-        if (iStart != 0 ) {  // iStart will be 0 if iStart was called
-            dsyslog("recording ends unexpected before chkSTART (%d) at frame %d", chkSTART, lastiframe);
-            isyslog("got end of recording before recording length from info file reached");
-            CheckStart();
-        }
-        if (iStopA > 0) {
-            if (iStop <= 0) {  // unexpected end of recording reached
-                iStop = lastiframe;
-                iStopinBroadCast= true;
-                dsyslog("recording ends unexpected before chkSTOP (%d) at frame %d", chkSTOP, lastiframe);
-                isyslog("got end of recording before recording length from info file reached");
-            }
-            CheckStop();
-        }
-        CheckMarks();
-        if ((inBroadCast) && (!gotendmark) && (lastiframe)) {
-            MarkAdMark tempmark;
-            tempmark.Type = MT_RECORDINGSTOP;
-            tempmark.Position = lastiframe;
-            AddMark(&tempmark);
-        }
-    }
-    if (demux) skipped = demux->Skipped();
-    dsyslog("cMarkAdStandalone::ProcessFile(): end processing files");
-}
-#endif
-
 
 void cMarkAdStandalone::Process_cDecoder() {
     if (abortNow) return;
@@ -3034,61 +2581,6 @@ void cMarkAdStandalone::Process_cDecoder() {
         }
     }
 }
-
-
-#if defined CLASSIC_DECODER
-void cMarkAdStandalone::Process() {
-    if (abortNow) return;
-
-    if (macontext.Config->BackupMarks) marks.Backup(directory, isTS);
-
-    ProcessFile();
-
-    marks.CloseIndex(directory, isTS);
-    if (!abortNow) {
-        if (marks.Save(directory, &macontext, isTS, false)) {
-            if (length && startTime) {
-                if (((time(NULL) > (startTime + (time_t) length)) || (gotendmark)) && !ptr_cDecoder ) {
-                    int iIndexError = false;
-                    int tframecnt = macontext.Config->GenIndex ? framecnt1 : 0;
-                    if (marks.CheckIndex(directory, isTS, &tframecnt, &iIndexError)) {
-                        if (iIndexError) {
-                            if (macontext.Config->GenIndex) {
-                                switch (iIndexError) {
-                                    case IERR_NOTFOUND:
-                                        isyslog("no index found");
-                                        break;
-                                    case IERR_TOOSHORT:
-                                        isyslog("index too short");
-                                        break;
-                                    default:
-                                        isyslog("index doesn't match marks");
-                                    break;
-                                }
-                                if (RegenerateIndex()) {
-                                    isyslog("recreated index");
-                                }
-                                else {
-                                    esyslog("failed to recreate index");
-                                }
-                            }
-                            else {
-                                esyslog("index doesn't match marks%s", ((isTS) || ((macontext.Info.VPid.Type== MARKAD_PIDTYPE_VIDEO_H264) && (!isTS))) ?
-                                            ", sorry you're lost" : ", please run genindex");
-                            }
-                        }
-                    }
-                    if (macontext.Config->SaveInfo) SaveInfo();
-                }
-                else { // this shouldn't be reached
-                    if (macontext.Config->logoExtraction == -1) esyslog("ALERT: stopping before end of broadcast");
-                }
-            }
-        }
-    }
-    if (macontext.Config->GenIndex) marks.RemoveGeneratedIndex(directory,isTS);
-}
-#endif
 
 
 bool cMarkAdStandalone::SetFileUID(char *File) {
@@ -3697,216 +3189,6 @@ bool cMarkAdStandalone::CheckTS()
 }
 
 
-#if defined CLASSIC_DECODER
-bool cMarkAdStandalone::CheckVDRHD() {
-    char *buf;
-    if (asprintf(&buf,"%s/001.vdr", directory) == -1) return false;
-    ALLOC(strlen(buf)+1, "buf");
-
-    int fd=open(buf,O_RDONLY);
-    FREE(strlen(buf)+1, "buf");
-    free(buf);
-    if (fd == -1) return false;
-
-    uchar pes_buf[32];
-    if (read(fd,pes_buf, sizeof(pes_buf)) != sizeof(pes_buf)) {
-        close(fd);
-        return false;
-    }
-    close(fd);
-
-    if ((pes_buf[0] == 0) && (pes_buf[1] == 0) && (pes_buf[2] == 1) && ((pes_buf[3] & 0xF0) == 0xE0)) {
-        int payloadstart= 9 + pes_buf[8];
-        if (payloadstart > 23) return false;
-        uchar *start = &pes_buf[payloadstart];
-        if ((start[0] == 0) && (start[1] == 0) && (start[2] == 1) && (start[5] == 0) && (start[6] == 0) && (start[7] == 0) && (start[8] == 1)) {
-            return true;
-        }
-    }
-    return false;
-}
-#endif
-
-
-#if defined CLASSIC_DECODER
-off_t cMarkAdStandalone::SeekPATPMT()
-{
-    char *buf;
-    if (asprintf(&buf, "%s/00001.ts", directory) == -1) return (off_t) -1;
-    ALLOC(strlen(buf)+1, "buf");
-
-    int fd=open(buf,O_RDONLY);
-    FREE(strlen(buf)+1, "buf");
-    free(buf);
-    if (fd == -1) return (off_t) -1;
-    uchar peek_buf[188];
-    for (int i = 0; i < 5000; i++) {
-        int ret=read(fd, peek_buf, sizeof(peek_buf));
-        if (!ret) {
-            close(fd);
-            return (off_t) -2;
-        }
-        if (ret != sizeof(peek_buf)) {
-            close(fd);
-            return (off_t) -2;
-        }
-        if (ret < 0) {
-            if (errno != EINTR) {
-                close(fd);
-                return (off_t) -3;
-            } else {
-                sleep(3);
-            }
-        }
-
-        if ((peek_buf[0] == 0x47) && ((peek_buf[1] & 0x5F) == 0x40) && (peek_buf[2] == 00))
-        {
-            off_t ret = lseek(fd, 0, SEEK_CUR);
-            close(fd);
-            return ret - 188;
-        }
-
-    }
-    close(fd);
-    return (off_t) -1;
-}
-#endif
-
-
-#if defined CLASSIC_DECODER
-bool cMarkAdStandalone::CheckPATPMT(off_t Offset)
-{
-    if (Offset<(off_t) 0) return false;
-    char *buf;
-    if (asprintf(&buf, "%s/00001.ts", directory) == -1) return false;
-    ALLOC(strlen(buf)+1, "buf");
-
-    int fd = open(buf, O_RDONLY);
-    FREE(strlen(buf)+1, "buf");
-    free(buf);
-    if (fd == -1) return false;
-
-    if (lseek(fd, Offset, SEEK_SET) == (off_t) -1) {
-        close(fd);
-        return false;
-    }
-
-    uchar patpmt_buf[564];
-    uchar *patpmt;
-
-    if (read(fd, patpmt_buf, sizeof(patpmt_buf)) != sizeof(patpmt_buf)) {
-        close(fd);
-        return false;
-    }
-    close(fd);
-    patpmt = patpmt_buf;
-
-    if ((patpmt[0] == 0x47) && ((patpmt[1] & 0x5F) == 0x40) && (patpmt[2] == 0x11) && ((patpmt[3] & 0x10) == 0x10)) patpmt += 188; // skip SDT
-
-    // some checks
-    if ((patpmt[0] != 0x47) || (patpmt[188] != 0x47)) return false; // no TS-Sync
-    if (((patpmt[1] & 0x5F) != 0x40) && (patpmt[2] != 0)) return false; // no PAT
-    if ((patpmt[3] & 0x10) != 0x10) return false; // PAT not without AFC
-    if ((patpmt[191] & 0x10) != 0x10) return false; // PMT not without AFC
-    struct PAT *pat = (struct PAT *) &patpmt[5];
-
-    // more checks
-    if (pat->reserved1!=3) return false; // is always 11
-    if (pat->reserved3!=7) return false; // is always 111
-
-    int pid = pat->pid_L + (pat->pid_H<<8);
-    int pmtpid = ((patpmt[189] & 0x1f)<<8) + patpmt[190];
-    if (pid != pmtpid) return false; // pid in PAT differs from pid in PMT
-
-    struct PMT *pmt = (struct PMT *) &patpmt[193];
-
-    // still more checks
-    if (pmt->reserved1 != 3) return false; // is always 11
-    if (pmt->reserved2 != 3) return false; // is always 11
-    if (pmt->reserved3 != 7) return false; // is always 111
-    if (pmt->reserved4 != 15) return false; // is always 1111
-
-    if ((pmt->program_number_H != pat->program_number_H) || (pmt->program_number_L != pat->program_number_L)) return false;
-
-    int desc_len = (pmt->program_info_length_H<<8) + pmt->program_info_length_L;
-    if (desc_len > 166) return false; // beyond patpmt buffer
-
-    int section_end = 196 + (pmt->section_length_H<<8) + pmt->section_length_L;
-    section_end -= 4; // we don't care about the CRC32
-    if (section_end > 376) return false; //beyond patpmt buffer
-
-    int i = 205 + desc_len;
-
-    while (i < section_end) {
-        struct ES_DESCRIPTOR *es = NULL;
-        struct STREAMINFO *si = (struct STREAMINFO *) &patpmt[i];
-        int esinfo_len = (si->ES_info_length_H<<8) + si->ES_info_length_L;
-        if (esinfo_len) {
-            es = (struct ES_DESCRIPTOR *) &patpmt[i + sizeof(struct STREAMINFO)];
-        }
-
-        // oh no -> more checks!
-        if (si->reserved1 != 7) return false;
-        if (si->reserved2 != 15) return false;
-
-        int pid = (si->PID_H<<8) + si->PID_L;
-
-        switch (si->stream_type) {
-            case 0x1:
-            case 0x2:
-                macontext.Info.VPid.Type = MARKAD_PIDTYPE_VIDEO_H262;
-                // just use the first pid
-                if (!macontext.Info.VPid.Num) macontext.Info.VPid.Num = pid;
-                break;
-            case 0x3:
-            case 0x4: // just use the first pid
-                if (!macontext.Info.APid.Num) macontext.Info.APid.Num = pid;
-                break;
-            case 0x6:
-                if (es) {
-                    if (es->Descriptor_Tag == 0x6A) macontext.Info.DPid.Num = pid;
-                }
-                break;
-            case 0x1b:
-                macontext.Info.VPid.Type = MARKAD_PIDTYPE_VIDEO_H264;
-                // just use the first pid
-                if (!macontext.Info.VPid.Num) macontext.Info.VPid.Num = pid;
-                break;
-        }
-        i += (sizeof(struct STREAMINFO) + esinfo_len);
-    }
-    return true;
-}
-#endif
-
-
-#if defined CLASSIC_DECODER
-bool cMarkAdStandalone::RegenerateIndex() {
-    if (!directory) return false;
-    // rename index[.vdr].generated -> index[.vdr]
-    char *oldpath, *newpath;
-    if (asprintf(&oldpath, "%s/index%s.generated", directory, isTS ? "" : ".vdr") == -1) return false;
-    ALLOC(strlen(oldpath)+1, "oldpath");
-    if (asprintf(&newpath, "%s/index%s", directory,isTS ? "" : ".vdr") == -1) {
-        free(oldpath);
-        return false;
-    }
-    ALLOC(strlen(newpath)+1, "newpath");
-
-    if (rename(oldpath,newpath) != 0) {
-        if (errno != ENOENT) {
-            free(oldpath);
-            free(newpath);
-            return false;
-        }
-    }
-    free(oldpath);
-    free(newpath);
-    return true;
-}
-#endif
-
-
 bool cMarkAdStandalone::CreatePidfile() {
     char *buf = NULL;
     if (asprintf(&buf, "%s/markad.pid", directory) == -1) return false;
@@ -3979,13 +3261,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     recordingIndexMark = recordingIndex;
     marks.RegisterIndex(recordingIndexMark);
     indexFile = NULL;
-#if defined CLASSIC_DECODER
-    streaminfo = NULL;
-    demux = NULL;
-    decoder = NULL;
-    skipped = 0;
-    memset(&pkt, 0, sizeof(pkt));
-#endif
     video = NULL;
     audio = NULL;
     osd = NULL;
@@ -4015,10 +3290,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     else {
         bIgnoreTimerInfo = false;
     }
-
-#if defined CLASSIC_DECODER
-    macontext.Info.DPid.Type = MARKAD_PIDTYPE_AUDIO_AC3;
-#endif
     macontext.Info.APid.Type = MARKAD_PIDTYPE_AUDIO_MP2;
 
     if (!config->NoPid) {
@@ -4125,39 +3396,12 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     }
 
     if (isTS) {
-#if defined CLASSIC_DECODER
-        off_t pos;
-        int sc = 0;
-        do {
-            pos = SeekPATPMT();
-            if (pos == (off_t) -2) {
-                sleep(10);
-                sc++;
-                if (sc > 6) break;
-            }
-        } while (pos == (off_t) -2);
-
-        if (!CheckPATPMT(pos)) {
-            esyslog("no PAT/PMT found (%i) -> cannot process", static_cast<int>(pos));
-            abortNow = true;
-            return;
-        }
-#endif
         if (asprintf(&indexFile, "%s/index", Directory) == -1) indexFile = NULL;
         ALLOC(strlen(indexFile)+1, "indexFile");
     }
     else {
         macontext.Info.APid.Num = -1;
         macontext.Info.VPid.Num = -1;
-#if defined CLASSIC_DECODER
-        macontext.Info.DPid.Num = -1;
-        if (CheckVDRHD()) {
-            macontext.Info.VPid.Type = MARKAD_PIDTYPE_VIDEO_H264;
-        }
-        else {
-            macontext.Info.VPid.Type = MARKAD_PIDTYPE_VIDEO_H262;
-        }
-#endif
         if (asprintf(&indexFile, "%s/index.vdr", Directory) == -1) indexFile = NULL;
         ALLOC(strlen(indexFile)+1, "indexFile");
     }
@@ -4207,31 +3451,13 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         if (isTS) {
             isyslog("found %s-video (0x%04x)", macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264 ? "H264": "H262", macontext.Info.VPid.Num);
         }
-#if defined CLASSIC_DECODER
-        demux = new cDemux(macontext.Info.VPid.Num, macontext.Info.DPid.Num,macontext.Info.APid.Num, macontext.Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264, true);
-        ALLOC(sizeof(*demux), "demux");
     }
-    else {
-        demux = NULL;
-#endif
-    }
-
     if (macontext.Info.APid.Num) {
         if (macontext.Info.APid.Num != -1)
             isyslog("found MP2 (0x%04x)", macontext.Info.APid.Num);
     }
 
     if (!abortNow) {
-#if defined CLASSIC_DECODER
-        if (macontext.Info.DPid.Num) {
-            if (macontext.Info.DPid.Num != -1)
-                isyslog("found AC3 (0x%04x)", macontext.Info.DPid.Num);
-        }
-        decoder = new cMarkAdDecoder(macontext.Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H264, config->threads);
-        ALLOC(sizeof(*decoder), "decoder");
-        streaminfo = new cMarkAdStreamInfo;
-        ALLOC(sizeof(*streaminfo), "streaminfo");
-#endif
         video = new cMarkAdVideo(&macontext, recordingIndex);
         ALLOC(sizeof(*video), "video");
         audio = new cMarkAdAudio(&macontext);
@@ -4324,24 +3550,6 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         FREE(strlen(indexFile)+1, "indexFile");
         free(indexFile);
     }
-
-#if defined CLASSIC_DECODER
-    if (skipped) {
-            isyslog("skipped %i bytes", skipped);
-        }
-    if (demux) {
-        FREE(sizeof(*demux), "demux");
-        delete demux;
-    }
-    if (decoder) {
-        FREE(sizeof(*decoder), "decoder");
-        delete decoder;
-    }
-    if (streaminfo) {
-        FREE(sizeof(*streaminfo), "streaminfo");
-        delete streaminfo;
-    }
-#endif
     if (video) {
         FREE(sizeof(*video), "video");
         delete video;
@@ -4404,11 +3612,6 @@ int usage(int svdrpport) {
            "                  increments loglevel by one, can be given multiple times\n"
            "-B              --backupmarks\n"
            "                  make a backup of existing marks\n"
-#if defined CLASSIC_DECODER
-           "-G              --genindex\n"
-           "                  regenerate index file\n"
-           "                  this functions is depreciated and will be removed in a future version, use vdr --genindex instead\n"
-#endif
            "-I              --saveinfo\n"
            "                  correct information in info file\n"
            "-L              --extractlogo=<direction>[,width[,height]]\n"
@@ -4456,20 +3659,10 @@ int usage(int svdrpport) {
            "                  assumed stop offset in seconds range from 0 to 240\n"
            "                --posttimer=<value> (default is 600)\n"
            "                  additional recording after timer end in seconds range from 0 to 1200\n"
-#if defined CLASSIC_DECODER
-           "                --cDecoder\n"
-           "                  use alternative cDecoder class for decoding\n"
-#endif
            "                --vps\n"
            "                  use markad.vps from recording directory to optimize start, stop and break marks\n"
-#if defined CLASSIC_DECODER
-           "                  requires --cDecoder\n"
-#endif
            "                --cut\n"
            "                  cut vidio based on marks and write it in the recording directory\n"
-#if defined CLASSIC_DECODER
-           "                  requires --cDecoder\n"
-#endif
            "                --ac3reencode\n"
            "                  re-encode AC3 stream to fix low audio level of cutted video on same devices\n"
            "                  requires --cut\n"
@@ -4592,9 +3785,6 @@ int main(int argc, char *argv[]) {
             {"verbose", 0, 0, 'v'},
 
             {"backupmarks", 0, 0, 'B'},
-#if defined CLASSIC_DECODER
-            {"genindex",0, 0, 'G'},
-#endif
             {"saveinfo",0, 0, 'I'},
             {"extractlogo", 1, 0, 'L'},
             {"OSD",0,0,'O' },
@@ -4699,12 +3889,6 @@ int main(int argc, char *argv[]) {
                 // --backupmarks
                 config.BackupMarks = true;
                 break;
-#if defined CLASSIC_DECODER
-            case 'G':
-                config.GenIndex = true;
-                fprintf(stderr, "markad: --genindex is depreciated and will be removed in a future version, use vdr --genindex instead\n");
-                break;
-#endif
             case 'I':
                 config.SaveInfo = true;
                 break;
@@ -5044,29 +4228,13 @@ int main(int argc, char *argv[]) {
         dsyslog("parameter --astopoffs is set to %i", config.astopoffs);
         if (LOG2REC) dsyslog("parameter --log2rec is set");
 
-#if defined CLASSIC_DECODER
-        if (config.use_cDecoder) dsyslog("parameter --cDecoder is set");
-#else
         config.use_cDecoder = true;
         dsyslog("force parameter --cDecoder to set because this markad is compiled without classic decoder");
-#endif
         if (config.useVPS) {
             dsyslog("parameter --vps is set");
-#if defined CLASSIC_DECODER
-            if (!config.use_cDecoder) {
-                esyslog("--cDecoder is not set, ignoring --vps");
-                config.useVPS = false;
-            }
-#endif
         }
         if (config.MarkadCut) {
             dsyslog("parameter --cut is set");
-#if defined CLASSIC_DECODER
-            if (!config.use_cDecoder) {
-                esyslog("--cDecoder is not set, ignoring --cut");
-                config.MarkadCut = false;
-            }
-#endif
         }
         if (config.ac3ReEncode) {
             dsyslog("parameter --ac3reencode is set");
@@ -5081,11 +4249,6 @@ int main(int argc, char *argv[]) {
         if (!bPass2Only) {
             gettimeofday(&startPass1, NULL);
             if (config.use_cDecoder) cmasta->Process_cDecoder();
-#if defined CLASSIC_DECODER
-            else {
-                cmasta->Process();
-            }
-#endif
             gettimeofday(&endPass1, NULL);
         }
 
