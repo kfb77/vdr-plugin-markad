@@ -24,7 +24,6 @@ class cPluginMarkAd : public cPlugin {
         char *logodir = NULL;
         int loglevel = 0;
         int astopoffs = -1;
-        bool cDecoder = false;
         bool MarkadCut = false;
         bool ac3ReEncode = false;
         int autoLogoConf = -1;

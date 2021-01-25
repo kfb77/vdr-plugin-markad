@@ -3327,7 +3327,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
             esyslog("libavcodec header version %s", AV_STRINGIFY(LIBAVCODEC_VERSION));
             esyslog("header and library mismatch, do not report decoder bugs");
         }
-        if (config->use_cDecoder && ((ver >> 16) < MINLIBAVCODECVERSION)) esyslog("update libavcodec to at least version %d, do not report decoder bugs", MINLIBAVCODECVERSION);
+        if ((ver >> 16) < MINLIBAVCODECVERSION) esyslog("update libavcodec to at least version %d, do not report decoder bugs", MINLIBAVCODECVERSION);
         FREE(strlen(libver)+1, "libver");
         free(libver);
     }
@@ -4021,7 +4021,7 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             case 11: // --cDecoder
-                config.use_cDecoder = true;
+                fprintf(stderr, "markad: parameter --cDecoder: is depreciated, please remove it from your configuration\n");
                 break;
             case 12: // --cut
                 config.MarkadCut = true;
@@ -4228,8 +4228,6 @@ int main(int argc, char *argv[]) {
         dsyslog("parameter --astopoffs is set to %i", config.astopoffs);
         if (LOG2REC) dsyslog("parameter --log2rec is set");
 
-        config.use_cDecoder = true;
-        dsyslog("force parameter --cDecoder to set because this markad is compiled without classic decoder");
         if (config.useVPS) {
             dsyslog("parameter --vps is set");
         }
@@ -4248,7 +4246,7 @@ int main(int argc, char *argv[]) {
 
         if (!bPass2Only) {
             gettimeofday(&startPass1, NULL);
-            if (config.use_cDecoder) cmasta->Process_cDecoder();
+            cmasta->Process_cDecoder();
             gettimeofday(&endPass1, NULL);
         }
 

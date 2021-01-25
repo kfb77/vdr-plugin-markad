@@ -85,11 +85,9 @@ const char *cPluginMarkAd::CommandLineHelp(void) {
            "                                 <level> 1=error 2=info 3=debug 4=trace\n"
            "            --astopoffs=<value>  (default is 100)\n"
            "                                  assumed stop offset in seconds range from 0 to 240\n"
-           "            --cDecoder            use alternative Decoder class)\n"
            "            --cut                 cut video based on marks and store it in the recording directory)\n"
-           "                                  requires --cDecoder\n"
            "            --ac3reencode         re-encode AC3 stream to fix low audio level of cutted video on same devices\n"
-           "                                  requires --cDecoder and --cut\n"
+           "                                  requires --cut\n"
            "            --autologo=<option>   0 = disable, only use logos from logo cache directory (default)\n"
            "                                  1 = enable, find logo from recording and store it in the recording directory\n"
            "                                      memory usage optimized operation mode, but runs slow\n"
@@ -150,7 +148,7 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
                 astopoffs = atoi(optarg);
                 break;
             case '3':
-                cDecoder = true;
+		fprintf(stderr,"markad: parameter --cDecoder: is depreciated, please remove it from your configuration\n");
                 break;
             case '4':
                 MarkadCut = true;
@@ -202,7 +200,6 @@ bool cPluginMarkAd::Start(void) {
         if(! asprintf(&setup.aStopOffs, " --astopoffs=%i ", astopoffs)) esyslog("markad: asprintf ouf of memory");
         ALLOC(strlen(setup.aStopOffs)+1, "setup.aStopOffs");
     }
-    setup.cDecoder = cDecoder;
     setup.MarkadCut = MarkadCut;
     setup.ac3ReEncode = ac3ReEncode;
     setup.autoLogoConf = autoLogoConf;

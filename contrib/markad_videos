@@ -112,7 +112,6 @@ class Config:
         self.threads = 1
         self.astopoffs = 0
         self.log2rec=False
-        self.cDecoder=False
         self.vps=False
         self.cut=False
         self.ac3reencode=False
@@ -215,12 +214,6 @@ class Config:
         if ret: self.log2rec = ret
 
         try:
-            ret = config.getboolean('MARKAD', 'cDecoder')
-        except (configparser.NoSectionError, configparser.NoOptionError):
-            ret = False
-        if ret: self.cDecoder = ret
-
-        try:
             ret = config.getboolean('MARKAD', 'vps')
         except (configparser.NoSectionError, configparser.NoOptionError):
             ret = False
@@ -275,7 +268,6 @@ class Config:
         if args.threads is not None: self.threads = args.threads
         if args.astopoffs is not None: self.astopoffs = args.astopoffs
         if args.log2rec: self.log2rec = args.log2rec
-        if args.cDecoder: self.cDecoder = args.cDecoder
         if args.cut: self.cut = args.cut
         if args.ac3reencode: self.ac3reencode = args.ac3reencode
         if args.backupmarks: self.backupmarks = args.backupmarks
@@ -451,7 +443,6 @@ class CheckPath:
         if not config.checkOnly:
             cmd = '%s/markad --logocachedir=%s --loglevel=%i --autologo=%i --threads=%i --astopoffs=%i --priority=%i' % (config.bindir, config.logocachedir, config.markad_loglevel, config.autologo, config.threads, config.astopoffs, config.nice)
             if config.log2rec: cmd = cmd + " --log2rec"
-            if config.cDecoder: cmd = cmd + " --cDecoder"
             if config.vps: cmd = cmd + " --vps"
             if config.cut: cmd = cmd + " --cut"
             if config.ac3reencode: cmd = cmd + " --ac3reencode"
@@ -534,7 +525,6 @@ parser.add_argument('--autologo=', metavar="<option>", type=int, choices=range(0
 parser.add_argument('--threads=', metavar="<number>", type=int, choices=range(1, 17), dest="threads", action="store", help='sets --threads of markad to the specified value, see markad for more details (default 1)')
 parser.add_argument('--astopoffs=', metavar="<value>", type=int, choices=range(0, 241), dest="astopoffs", action="store", help='sets --astopoffs of markad to the specified value, see markad for more details (default 0)')
 parser.add_argument('--log2rec', dest="log2rec", action='store_true', default=False, help='sets --log2rec of markad to the specified value, see markad for more details')
-parser.add_argument('--cDecoder', dest="cDecoder", action='store_true', default=False, help='sets --cDecoder of markad to the specified value, see markad for more details')
 parser.add_argument('--cut', dest="cut", action='store_true', default=False, help='sets --cut of markad to the specified value, see markad for more details')
 parser.add_argument('--ac3reencode', dest="ac3reencode", action='store_true', default=False, help='sets --ac3reencode of markad to the specified value, see markad for more details')
 parser.add_argument('--mirror_path=', dest="mirror_path",  metavar="<path>", action="store", help='path to the video mirror directory (default: None)')

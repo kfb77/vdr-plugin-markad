@@ -84,7 +84,6 @@ typedef struct config {
     int threads;
     int astopoffs;
     int posttimer;
-    bool use_cDecoder = false;
     bool useVPS = false;
     bool MarkadCut = false;
     bool ac3ReEncode = false;

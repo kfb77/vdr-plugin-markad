@@ -538,7 +538,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
             ALLOC(strlen(autoLogoOption)+1, "autoLogoOption");
         }
     }
-    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
+    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->Verbose ? " -v " : "",
                                    setup->SaveInfo ? " -I " : "",
@@ -549,7 +549,6 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
                                    setup->Log2Rec ? " -R " : "",
                                    setup->LogLevel ? setup->LogLevel : "",
                                    setup->aStopOffs ? setup->aStopOffs : "",
-                                   setup->cDecoder ? " --cDecoder " : "",
                                    setup->useVPS ? " --vps " : "",
                                    setup->MarkadCut ? " --cut " : "",
                                    setup->ac3ReEncode ? " --ac3reencode " : "",
