@@ -59,7 +59,7 @@ void cSetupMarkAd::write(void) {
         lpos = Current();
         Add(new cMenuEditBoolItem(tr("deferred shutdown"), &deferredshutdown));
         Add(new cMenuEditBoolItem(tr("ignore timer margins"), &nomargins));
-        Add(new cMenuEditBoolItem(tr("detect overlaps"), &secondpass));
+        Add(new cMenuEditBoolItem(tr("optimize marks (overlaps and logo marks adjustments"), &secondpass));
         Add(new cMenuEditBoolItem(tr("recreate index"), &genindex));
         Add(new cMenuEditBoolItem(tr("correct info file"), &saveinfo));
         Add(new cMenuEditBoolItem(tr("OSD message"), &osdmsg));
