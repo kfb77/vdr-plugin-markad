@@ -1261,7 +1261,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                                                                              // previews can be at start of advertising (e.g. DMAX)
                                                                              // max changed from 500 to 560 to 585
                                                                              // min changed from 7 to 5
-                        if ((lengthPreview >= 3) && lengthPreview < 110) {  // if logo part is long, this was a start mark, min changed from 2 to 3
+                        if ((lengthPreview >= 2) && lengthPreview < 110) {  // if logo part is long, this was a start mark, min changed from 2 to 3
+                                                                            // back to 2, needed for short logo (sixx Werbung) at start of advertising block
                             isyslog("found preview of length %is between logo mark (%i) and logo mark (%i) in advertisement (length %is), deleting marks", lengthPreview, mark->position, mark->Next()->position, lengthAdBefore);
                             clMark *tmp=mark;
                             mark = mark->Next()->Next();
