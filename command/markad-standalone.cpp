@@ -1829,6 +1829,15 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
     }
 #define OVERLAP_CHECK_AFTER 300  // start 5 min after start mark
     int fRangeEnd = (*mark2)->position + (macontext.Video.Info.FramesPerSecond * OVERLAP_CHECK_AFTER);
+
+    clMark *prevStart = marks.GetPrev((*mark1)->position, MT_START, 0x0F);
+    if (prevStart) {
+        if (fRangeBegin <= (prevStart->position + ((OVERLAP_CHECK_AFTER + 1) * macontext.Video.Info.FramesPerSecond))) { // previous start mark less than OVERLAP_CHECK_AFTER away, prevent overlapping check
+            dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): previous stop mark at (%d) very near, unable to check overlap", prevStart->position);
+            return false;
+        }
+    }
+
     clMark *nextStop = marks.GetNext((*mark2)->position, MT_STOP, 0x0F);
     if (nextStop) {
         if (nextStop->position != marks.GetLast()->position) {
@@ -1843,6 +1852,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
         }
         if (nextStop->position < fRangeEnd) fRangeEnd = nextStop->position;  // do not check after next stop mark position
     }
+
     dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): preload from frame       (%5d) to (%5d)", fRangeBegin, (*mark1)->position);
     dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): compare with frames from (%5d) to (%5d)", (*mark2)->position, fRangeEnd);
 
