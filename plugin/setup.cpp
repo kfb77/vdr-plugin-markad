@@ -18,7 +18,6 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
     whilereplaying = setup->whileReplaying;
     osdmsg = setup->OSDMessage;
     verbose = setup->Verbose;
-    genindex = setup->GenIndex;
     nomargins = setup->NoMargins;
     hidemainmenuentry = setup->HideMainMenuEntry;
     secondpass = setup->SecondPass;
@@ -60,7 +59,6 @@ void cSetupMarkAd::write(void) {
         Add(new cMenuEditBoolItem(tr("deferred shutdown"), &deferredshutdown));
         Add(new cMenuEditBoolItem(tr("ignore timer margins"), &nomargins));
         Add(new cMenuEditBoolItem(tr("optimize marks (overlaps and logo marks adjustments"), &secondpass));
-        Add(new cMenuEditBoolItem(tr("recreate index"), &genindex));
         Add(new cMenuEditBoolItem(tr("correct info file"), &saveinfo));
         Add(new cMenuEditBoolItem(tr("OSD message"), &osdmsg));
         Add(new cMenuEditBoolItem(tr("verbose logging"), &verbose));
@@ -122,7 +120,6 @@ void cSetupMarkAd::Store(void) {
     SetupStore("whileRecording", whilerecording);
     SetupStore("whileReplaying", whilereplaying);
     SetupStore("IgnoreMargins", nomargins);
-    SetupStore("GenIndex", genindex);
     SetupStore("SecondPass", secondpass);
     SetupStore("OSDMessage", osdmsg);
     SetupStore("Verbose", verbose);
@@ -139,7 +136,6 @@ void cSetupMarkAd::Store(void) {
     setup->whileRecording = static_cast<bool>(whilerecording);
     setup->whileReplaying = static_cast<bool>(whilereplaying);
     setup->OSDMessage = static_cast<bool>(osdmsg);
-    setup->GenIndex = static_cast<bool>(genindex);
     setup->SecondPass = static_cast<bool>(secondpass);
     setup->Verbose = static_cast<bool>(verbose);
     setup->NoMargins = static_cast<bool>(nomargins);

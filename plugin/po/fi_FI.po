@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
-"POT-Creation-Date: 2021-01-25 22:34+0100\n"
+"POT-Creation-Date: 2021-01-26 16:37+0100\n"
 "PO-Revision-Date: 2011-02-27 02:27+0200\n"
 "Last-Translator: Rolf Ahrenberg\n"
 "Language-Team: Finnish <vdr@linuxtv.org>\n"
@@ -96,9 +96,6 @@ msgid "ignore timer margins"
 msgstr "Älä huomioi ajastinmarginaaleja"
 
 msgid "optimize marks (overlaps and logo marks adjustments"
-msgstr ""
-
-msgid "recreate index"
 msgstr ""
 
 msgid "correct info file"

@@ -56,7 +56,6 @@ class cSetupMarkAd : public cMenuSetupPage {
         int whilereplaying;
         int osdmsg;
         int verbose;
-        int genindex;
         int nomargins;
         int secondpass;
         int hidemainmenuentry;
