@@ -439,7 +439,11 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
                 return true;
             }
             else {
-                return false;
+                char *log = NULL;
+                if ((recs[index].epgEventLog) && (asprintf(&log, "VPS pause stop already received, pause stop now set to last event") != -1)) recs[index].epgEventLog->Log(log);
+                if (log) free(log);
+                recs[index].vpsPauseStopTime=curr_time;
+                return true;
             }
         }
         else {
