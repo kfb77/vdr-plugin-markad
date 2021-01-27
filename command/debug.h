@@ -48,6 +48,7 @@
 
 // debug marks frames, write mark frame picture (and some before and after) to recording directory
 // #define DEBUG_MARK_FRAMES <count frames before and after>
+// #define DEBUG_MARK_FRAMES 2
 
 // debug index build
 // #define DEBUG_INDEX_BUILD

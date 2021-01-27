@@ -1680,6 +1680,10 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
 //
 #if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_MARK_FRAMES)
 void cMarkAdStandalone::SaveFrame(const int frame, const char *path, const char *suffix) {
+    if (!macontext.Video.Info.Height) {
+        dsyslog("cMarkAdStandalone::SaveFrame(): macontext.Video.Info.Height not set");
+        return;
+    }
     if (!macontext.Video.Info.Width) {
         dsyslog("cMarkAdStandalone::SaveFrame(): macontext.Video.Info.Width not set");
         return;
@@ -1692,8 +1696,15 @@ void cMarkAdStandalone::SaveFrame(const int frame, const char *path, const char 
 
     for (int plane = 0; plane < PLANES; plane++) {
         int height;
-        if (plane == 0) height = macontext.Video.Info.Height;
-        else height = macontext.Video.Info.Height / 2;
+        int width;
+        if (plane == 0) {
+            height = macontext.Video.Info.Height;
+            width  = macontext.Video.Info.Width;
+        }
+        else {
+            height = macontext.Video.Info.Height / 2;
+            width  = macontext.Video.Info.Width  / 2;
+        }
         // set path and file name
         if (path && suffix) sprintf(szFilename, "%s/frame%06d_P%d_%s.pgm", path, frame, plane, suffix);
         else sprintf(szFilename, "/tmp/frame%06dfull_P%d.pgm", frame, plane);
@@ -1704,9 +1715,11 @@ void cMarkAdStandalone::SaveFrame(const int frame, const char *path, const char 
             return;
         }
         // Write header
-        fprintf(pFile, "P5\n%d %d\n255\n", macontext.Video.Data.PlaneLinesize[plane], height);
+        fprintf(pFile, "P5\n%d %d\n255\n", width, height);
         // Write pixel data
-        if (fwrite(macontext.Video.Data.Plane[plane], 1, macontext.Video.Data.PlaneLinesize[plane] * height, pFile)) {};
+        for (int line = 0; line < height; line++) {
+            if (fwrite(&macontext.Video.Data.Plane[plane][line * macontext.Video.Data.PlaneLinesize[plane]], 1, width, pFile)) {};
+        }
         // Close file
         fclose(pFile);
     }
