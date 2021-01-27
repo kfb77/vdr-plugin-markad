@@ -2134,6 +2134,8 @@ void cMarkAdStandalone::Process3ndPass() {
 
     LogSeparator(true);
     isyslog("start 3nd pass (optimze logo marks)");
+    LogSeparator(false);
+    dsyslog("cMarkAdStandalone::Process3ndPass(): check last logo stop mark if closing credits follows");
 
     bool save = false;
 // check last logo stop mark if closing credits follows
@@ -2149,7 +2151,9 @@ void cMarkAdStandalone::Process3ndPass() {
         }
     }
 
-// check for advertising in frame with logo before stop logo
+// check for advertising in frame with logo before logo stop mark
+    LogSeparator(false);
+    dsyslog("cMarkAdStandalone::Process3ndPass(): check for advertising in frame with logo before logo stop mark");
 // for performance reason only for known channels for now
     if ((strcmp(macontext.Info.ChannelName, "SIXX") == 0) ||
         (strcmp(macontext.Info.ChannelName, "RTL2") == 0) || // maybe there also exists broadcast in frame TODO
@@ -2197,8 +2201,10 @@ void cMarkAdStandalone::Process3ndPass() {
             delete(ptr_cExtractLogoAdInFrame);
         }
     }
+    else dsyslog("skip for this channel");
 
 // search for audio silence near logo marks
+    LogSeparator(false);
     dsyslog("cMarkAdStandalone::Process3ndPass(): search for audio silence");
 #define BLACKSCREEN_RANGE 6 // in s
     int silenceRange = 5;  // do not increase, otherwise we got stop marks behind separation images
@@ -2282,6 +2288,7 @@ void cMarkAdStandalone::Process3ndPass() {
     }
 
 // try blacksceen mark
+    LogSeparator(false);
     dsyslog("cMarkAdStandalone::Process3ndPass(): start search for blackscreen near logo marks");
     mark = marks.GetFirst();
     while (mark) {
