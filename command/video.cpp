@@ -610,7 +610,7 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
 #endif
     // if we only have one plane we are "vulnerable"
     // to very bright pictures, so ignore them...
-    int contrast = BRIGHTNESS_ERROR;
+    int contrast = BRIGHTNESS_UNINITIALIZED;
     if (processed == 1) {
 #define MAX_AREA_INTENSITY 125  // change from 128 to 127 to 126 to 125
         if (((area.intensity > MAX_AREA_INTENSITY) || // if we found no logo try to reduce brightness
