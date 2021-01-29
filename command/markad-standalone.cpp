@@ -415,8 +415,8 @@ void cMarkAdStandalone::CheckStop() {
     }
 
     if (!end) {
-        end = marks.GetAround(3*delta, iStopA, MT_STOP, 0x0F);    // try any type of stop mark
-        if (end)dsyslog("cMarkAdStandalone::CheckStop(): end mark found at frame %i", end->position);
+        end = marks.GetAround(delta, iStopA + delta, MT_STOP, 0x0F);    // try any type of stop mark, only accept after iStopA
+        if (end) dsyslog("cMarkAdStandalone::CheckStop(): weak end mark found at frame %i", end->position);
         else dsyslog("cMarkAdStandalone::CheckStop(): no end mark found");
     }
 
