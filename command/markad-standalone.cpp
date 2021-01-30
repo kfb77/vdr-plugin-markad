@@ -397,19 +397,32 @@ void cMarkAdStandalone::CheckStop() {
         end = marks.GetAround(MAX_LOGO_END_MARK_FACTOR * delta, iStopA, MT_LOGOSTOP);
         if (end) {
             dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame %i", end->position);
+// detect very short logo stop/start before assumed stop mark, they are text previews over the logo (e.g. SAT.1)
             clMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
-            if (prevLogoStart) {
-                int deltaLogo = (end->position - prevLogoStart->position) / macontext.Video.Info.FramesPerSecond;
-#define CHECK_START_STOP_MIN 11  // do not increase, there are 11s logo dissolve short before end with forecast of next broadcast in SAT.1
-                if (deltaLogo < CHECK_START_STOP_MIN) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): logo start/stop to short %ds (expect >=%ds), delete both (%d) and (%d), retry logo stop mark", deltaLogo, CHECK_START_STOP_MIN, prevLogoStart->position, end->position);
-                    marks.Del(end);
+            clMark *prevLogoStop  = marks.GetPrev(end->position, MT_LOGOSTOP);
+            if (prevLogoStart && prevLogoStop) {
+                int deltaLogoStart = (end->position - prevLogoStart->position) / macontext.Video.Info.FramesPerSecond;
+                int deltaLogoPrevStartStop = (prevLogoStart->position - prevLogoStop->position) / macontext.Video.Info.FramesPerSecond;
+#define CHECK_START_DISTANCE_MAX 12
+#define CHECK_START_STOP_LENGTH_MAX 2
+                if ((deltaLogoStart < CHECK_START_DISTANCE_MAX) && (deltaLogoPrevStartStop < CHECK_START_STOP_LENGTH_MAX)) {
+                    dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) stop (%d) pair before assumed end mark too near %ds (expect >=%ds) and too short %ds (expect >=%ds), this is a text preview over the logo, delete marks", prevLogoStart->position, prevLogoStop->position, deltaLogoStart, CHECK_START_DISTANCE_MAX, deltaLogoPrevStartStop, CHECK_START_STOP_LENGTH_MAX);
                     marks.Del(prevLogoStart);
-                    end = marks.GetAround(3*delta, iStopA, MT_LOGOSTOP);
-                    if (end) dsyslog("cMarkAdStandalone::CheckStop(): second try logo end mark found at frame %i", end->position);
-                    else dsyslog("cMarkAdStandalone::CheckStop(): no second try logo end mark found");
+                    marks.Del(prevLogoStop);
                 }
             }
+            if (end) { // notice: this can be NULL it it was deleted above
+                clMark *prevLogoStop  = marks.GetPrev(end->position, MT_LOGOSTOP);
+                if (prevLogoStop) {
+                    int deltaLogo = (end->position - prevLogoStop->position) / macontext.Video.Info.FramesPerSecond;
+#define CHECK_STOP_BEFORE_MIN 300 // if stop before is too near, maybe recording length is too big
+                    if (deltaLogo < CHECK_STOP_BEFORE_MIN) {
+                        dsyslog("cMarkAdStandalone::CheckStop(): logo stop before too near %ds (expect >=%ds), use (%d) as stop mark", deltaLogo, CHECK_STOP_BEFORE_MIN, prevLogoStop->position);
+                        end = prevLogoStop;
+                    }
+                    else dsyslog("cMarkAdStandalone::CheckStop(): logo stop before at (%d) too far away %ds (expect >=%ds), no alternative", prevLogoStop->position, deltaLogo, CHECK_STOP_BEFORE_MIN);
+                }
+	    }
         }
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_LOGOSTOP mark found");
     }
