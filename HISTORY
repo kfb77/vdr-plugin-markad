@@ -1,12 +1,15 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
-2021-01-25: Version 2.6.0-RC01
+2021-01-30: Version 2.6.0
 - new feature: recognize logo changes and keep this part
 - new feature: recognize closing credits and move stop mark afterwards
 - new feature: recognize logos with colour change and coloured separation images
 - new feature: move logo marks before/after black screen marks
 - new feature: detect advertising in frame with logo before logo stop mark
+- cleanup no longer supported classic decoder code
+- declare parameter --cDecoder as depreciated
+- remove depreciated recreate index from menu
 - some minor bug fixes and optimizations, see git
 
 2021-01-29: Version 2.5.6
