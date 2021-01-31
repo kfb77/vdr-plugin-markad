@@ -376,6 +376,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int framenumber)
 // contrast  13, brightness 128
 //
 // logo in bright area
+// contrast  89, brightness 187
 // contrast  81, brightness 206
 // contrast  76, brightness 197
 // contrast  76, brightness 190
@@ -386,6 +387,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int framenumber)
 // contrast  49, brightness 217
 // contrast  42, brightness 217
 // contrast  39, brightness 216
+// contrast  35, brightness 218
 // contrast  34, brightness 223
 // contrast  33, brightness 221
 // contrast  33, brightness 219
@@ -412,10 +414,10 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int framenumber)
         return BRIGHTNESS_ERROR; // nothing we can work with
     }
     // build the curve
-    if (((contrastLogo >= 72) && (brightnessLogo >= 190)) ||  // changed from 197 to 190, changed from 79 to 72
+    if (((contrastLogo >= 72) && (brightnessLogo >= 187)) ||  // changed from 197 to 190 to 187, changed from 79 to 72
         ((contrastLogo >= 54) && (brightnessLogo >= 204)) ||
         ((contrastLogo >= 39) && (brightnessLogo >= 216)) ||  // changed contrast from 49 to 39, brightness from 217 to 216
-        ((contrastLogo >= 33) && (brightnessLogo >= 219))) {
+        ((contrastLogo >= 33) && (brightnessLogo >= 218))) {  // changed from 219 to 218
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): contrast/brightness pair in logo area invalid");
 #endif
@@ -612,7 +614,9 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
     // to very bright pictures, so ignore them...
     int contrast = BRIGHTNESS_UNINITIALIZED;
     if (processed == 1) {
-#define MAX_AREA_INTENSITY 125  // change from 128 to 127 to 126 to 125
+#define MAX_AREA_INTENSITY 98  // change from 128 to 127 to 126 to 125 to 114 to 100 to 98
+                               // notice: there can be very bright logo parts in dark areas, this will result in a lower brightness
+                               // we handle there cases in ReduceBrightness() when we detect contrast
         if (((area.intensity > MAX_AREA_INTENSITY) || // if we found no logo try to reduce brightness
             ((area.intensity >= 80) && (strcmp(macontext->Info.ChannelName, "NITRO") == 0))) &&  // workaround for NITRO, this channel has a very transparent logo, brightness reduction needed earlyer
              (area.intensity < 220) &&  // if we are to bright, this will not work, max changed from 200 to 220
@@ -695,7 +699,9 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
             }
             else contrast = BRIGHTNESS_VALID;  // ignore bightness, we found a coloured logo
         }
-        if ((area.intensity > MAX_AREA_INTENSITY) && ((contrast == BRIGHTNESS_ERROR) || (contrast == BRIGHTNESS_UNINITIALIZED))) {  // still too bright, reduced from 130 to 120 to 128
+        if ((area.intensity > MAX_AREA_INTENSITY) && // still too bright
+           ((contrast == BRIGHTNESS_ERROR) || (contrast == BRIGHTNESS_UNINITIALIZED)) &&
+            (rpixel < (mpixel * logo_vmark))) {  // accept it, if we can see a logo
             return LOGO_NOCHANGE;
         }
     }
