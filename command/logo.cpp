@@ -1402,7 +1402,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
         }
 
         if ((bestLogoCorner >= 0) &&
-           ((startFrame == 0) ||  // this is the very last try, use what we have, bettet than nothing
+           (((startFrame == 0) && (bestLogoInfo.hits >= 15)) ||  // this is the very last try, use what we have, bettet than nothing
              (bestLogoInfo.hits >= 50) || // we have a good result
             ((bestLogoInfo.hits > 30) && (sumHits <= bestLogoInfo.hits + 3)))) {  // if almost all hits are in the same corner than less are enough, increased from 25 to 30
             int secondLogoHeight = logoHeight;
