@@ -1319,12 +1319,25 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         mark = mark->Next();
     }
 
+// delete short START STOP logo marks because they are previes not detected above
 // delete short STOP START logo marks because they are logo detection failure
 // delete short STOP START hborder marks because some channels display information in the border
     dsyslog("cMarkAdStandalone::CheckMarks(): check marks 3nd pass (remove logo and hborder detection failure marks)");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
     while (mark) {
+        if ((mark->type == MT_LOGOSTART) && mark->Next() && mark->Next()->type == MT_LOGOSTOP) {
+            int MARKDIFF = static_cast<int> (macontext.Video.Info.FramesPerSecond * 8);
+            if ((mark->Next()->position - mark->position) <= MARKDIFF) {
+                double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
+                isyslog("mark distance between logo START and STOP too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
+                clMark *tmp = mark;
+                mark = mark->Next()->Next();
+                marks.Del(tmp->Next());
+                marks.Del(tmp);
+                continue;
+            }
+        }
         if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
             int MARKDIFF = static_cast<int> (macontext.Video.Info.FramesPerSecond * 23);   // assume thre is shortest advertising, changed from 20s to 23s
             if ((mark->Next()->position - mark->position) <= MARKDIFF) {
