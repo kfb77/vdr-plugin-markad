@@ -1910,7 +1910,7 @@ int cExtractLogo::SearchAdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecod
     FREE(sizeof(*logo1), "logo");
     delete logo1;
 
-    if ((startAdInFrame == -1) && (endAdInFrame == -1)) { // continuous frames ends with stop mark
+    if ((endAdInFrame - startAdInFrame) < (lastContinuous - firstContinuous)) { // continuous frames ends with stop mark
         startAdInFrame = firstContinuous;
         endAdInFrame = lastContinuous;
     }
