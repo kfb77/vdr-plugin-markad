@@ -30,7 +30,7 @@ class cExtractLogo {
         int SearchLogo(MarkAdContext *maContext, int startFrame);
         bool isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, cEvaluateLogoStopStartPair *evaluateLogoStopStartPair, const int stopPos, const int startPos);
         int isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopMarkPosition);
-        int SearchAdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPosition);
+        int SearchAdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPosition, const bool isStartMark);
         bool abort = false;
         void SetAbort() {
             abort = true;

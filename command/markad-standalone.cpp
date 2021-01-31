@@ -424,7 +424,7 @@ void cMarkAdStandalone::CheckStop() {
                 }
             }
             if (end) { // notice: this can be NULL it it was deleted above
-                clMark *prevLogoStop  = marks.GetPrev(end->position, MT_LOGOSTOP);
+                clMark *prevLogoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
                 if (prevLogoStop) {
                     int deltaLogo = (end->position - prevLogoStop->position) / macontext.Video.Info.FramesPerSecond;
 #define CHECK_STOP_BEFORE_MIN 300 // if stop before is too near, maybe recording length is too big
@@ -434,7 +434,7 @@ void cMarkAdStandalone::CheckStop() {
                     }
                     else dsyslog("cMarkAdStandalone::CheckStop(): logo stop before at (%d) too far away %ds (expect >=%ds), no alternative", prevLogoStop->position, deltaLogo, CHECK_STOP_BEFORE_MIN);
                 }
-	    }
+            }
         }
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_LOGOSTOP mark found");
     }
@@ -2200,13 +2200,13 @@ void cMarkAdStandalone::Process3ndPass() {
         ptr_cDecoder->DecodeDir(directory);
 
         cExtractLogo *ptr_cExtractLogoAdInFrame = NULL;
-        clMark *markLogoStop = marks.GetFirst();
-        while (markLogoStop) {
-            if (markLogoStop->type == MT_LOGOSTOP) {
-                int searchPosition = markLogoStop->position - (35 * macontext.Video.Info.FramesPerSecond); // advertising in frame are usually 30s
-                char *indexToHMSFStopMark = marks.IndexToHMSF(markLogoStop->position, &macontext);
-                char *indexToHMSFSearchPosition = marks.IndexToHMSF(searchPosition, &macontext);
-                if (indexToHMSFStopMark && indexToHMSFSearchPosition) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo before logo stop mark (%d) at %s from position %d at %s", markLogoStop->position, indexToHMSFStopMark, searchPosition, indexToHMSFSearchPosition);
+        clMark *markLogo = marks.GetFirst();
+        while (markLogo) {
+            if (markLogo->type == MT_LOGOSTART) {
+                int searchEndPosition = markLogo->position + (35 * macontext.Video.Info.FramesPerSecond); // advertising in frame are usually 30s
+                char *indexToHMSFStopMark = marks.IndexToHMSF(markLogo->position, &macontext);
+                char *indexToHMSFSearchPosition = marks.IndexToHMSF(searchEndPosition, &macontext);
+                if (indexToHMSFStopMark && indexToHMSFSearchPosition) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo after logo start mark (%d) at %s from position %d at %s", markLogo->position, indexToHMSFStopMark, searchEndPosition, indexToHMSFSearchPosition);
                 if (indexToHMSFStopMark) {
                     FREE(strlen(indexToHMSFStopMark)+1, "indexToHMSF");
                     free(indexToHMSFStopMark);
@@ -2216,23 +2216,53 @@ void cMarkAdStandalone::Process3ndPass() {
                     free(indexToHMSFSearchPosition);
                 }
 
-                if (!ptr_cDecoder->SeekToFrame(&macontext, searchPosition)) {
-                    esyslog("could not seek to frame (%i)", markLogoStop->position);
+                if (!ptr_cDecoder->SeekToFrame(&macontext, markLogo->position)) {
+                    esyslog("could not seek to frame (%d)", markLogo->position);
                     break;
                 }
                 if (!ptr_cExtractLogoAdInFrame) {
                     ptr_cExtractLogoAdInFrame = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
                     ALLOC(sizeof(*ptr_cExtractLogoAdInFrame), "ptr_cExtractLogoAdInFrame");
                 }
-                int newStopPosition = ptr_cExtractLogoAdInFrame->SearchAdInFrame(&macontext, ptr_cDecoder, markLogoStop->position);
+                int newStopPosition = ptr_cExtractLogoAdInFrame->SearchAdInFrame(&macontext, ptr_cDecoder, searchEndPosition, true);
                 if (newStopPosition != -1) {
-                    newStopPosition = recordingIndexMark->GetIFrameBefore(newStopPosition);  // we got first frame of ad, go one iFrame back for stop mark
-                    markLogoStop = marks.Move(&macontext, markLogoStop, newStopPosition, "advertising in frame");
+                    newStopPosition = recordingIndexMark->GetIFrameAfter(newStopPosition);  // we got last frame of ad, go to next iFrame for start mark
+                    markLogo = marks.Move(&macontext, markLogo, newStopPosition, "advertising in frame");
                     save = true;
                     continue;
                 }
             }
-            markLogoStop=markLogoStop->Next();
+            if (markLogo->type == MT_LOGOSTOP) {
+                int searchStartPosition = markLogo->position - (35 * macontext.Video.Info.FramesPerSecond); // advertising in frame are usually 30s
+                char *indexToHMSFStopMark = marks.IndexToHMSF(markLogo->position, &macontext);
+                char *indexToHMSFSearchPosition = marks.IndexToHMSF(searchStartPosition, &macontext);
+                if (indexToHMSFStopMark && indexToHMSFSearchPosition) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo before logo stop mark (%d) at %s from position %d at %s", markLogo->position, indexToHMSFStopMark, searchStartPosition, indexToHMSFSearchPosition);
+                if (indexToHMSFStopMark) {
+                    FREE(strlen(indexToHMSFStopMark)+1, "indexToHMSF");
+                    free(indexToHMSFStopMark);
+                }
+                if (indexToHMSFSearchPosition) {
+                    FREE(strlen(indexToHMSFSearchPosition)+1, "indexToHMSF");
+                    free(indexToHMSFSearchPosition);
+                }
+
+                if (!ptr_cDecoder->SeekToFrame(&macontext, searchStartPosition)) {
+                    esyslog("could not seek to frame (%d)", searchStartPosition);
+                    break;
+                }
+                if (!ptr_cExtractLogoAdInFrame) {
+                    ptr_cExtractLogoAdInFrame = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
+                    ALLOC(sizeof(*ptr_cExtractLogoAdInFrame), "ptr_cExtractLogoAdInFrame");
+                }
+                int newStopPosition = ptr_cExtractLogoAdInFrame->SearchAdInFrame(&macontext, ptr_cDecoder, markLogo->position, false);
+                if (newStopPosition != -1) {
+                    newStopPosition = recordingIndexMark->GetIFrameBefore(newStopPosition);  // we got first frame of ad, go one iFrame back for stop mark
+                    markLogo = marks.Move(&macontext, markLogo, newStopPosition, "advertising in frame");
+                    save = true;
+                    continue;
+                }
+            }
+            markLogo=markLogo->Next();
         }
         if (ptr_cExtractLogoAdInFrame) {
             FREE(sizeof(*ptr_cExtractLogoAdInFrame), "ptr_cExtractLogoAdInFrame");

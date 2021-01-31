@@ -1819,7 +1819,7 @@ int cExtractLogo::isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecod
 // check for advertising in frame with logo before logo stop mark
 // start search at current position, end at stopPosition
 // return start pasition of advertising in frame with logo
-int cExtractLogo::SearchAdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPosition) {
+int cExtractLogo::SearchAdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPosition, const bool isStartMark) {
     if (!maContext) return -1;
     if (!ptr_cDecoder) return -1;
     dsyslog("cExtractLogo::SearchAdInFrame(): start search advertising in frame with logo before stop mark at (%d)", ptr_cDecoder->GetFrameNumber());
@@ -1918,7 +1918,8 @@ int cExtractLogo::SearchAdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecod
     dsyslog("cExtractLogo::SearchAdInFrame(): results: firstContinuous (%d), lastContinuous (%d), startAdInFrame (%d), endAdInFrame (%d), length %d", firstContinuous, lastContinuous, startAdInFrame, endAdInFrame, length);
     if (length > 11) { // changed from 10 to 11
         dsyslog("cExtractLogo::SearchAdInFrame(): found advertising in frame with logo, start at (%d)", startAdInFrame);
-        return startAdInFrame;
+        if (isStartMark) return endAdInFrame;
+        else return startAdInFrame;
     }
     else return -1;
 }
