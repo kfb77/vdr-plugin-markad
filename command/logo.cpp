@@ -1883,7 +1883,7 @@ int cExtractLogo::SearchAdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecod
             if (logo1->iFrameNumber >= 0) {  // we have a logo pair
                 count++;
                 int rate0 = 0;
-#define AD_IN_FRAME_MIN_0 640   // changed from 650 to 640
+#define AD_IN_FRAME_MIN_0 510   // changed from 650 to 640 to 615 to 610 to 510
                 if (CompareLogoPair(logo1, logo2, logoHeight, logoWidth, area->corner, AD_IN_FRAME_MIN_0, 920, &rate0)) {
                     dsyslog("cExtractLogo::SearchAdInFrame(): corner %d frame (%5d) and frame (%5d) is similar,   rate %4d (expect > %d)", area->corner, logo1->iFrameNumber, logo2->iFrameNumber, rate0, AD_IN_FRAME_MIN_0);
                     if (firstContinuous == -1) firstContinuous = logo1->iFrameNumber;
