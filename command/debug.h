@@ -34,6 +34,9 @@
 // #define DEBUG_LOGO_SAVE 1   // save valid logos after CheckValid and before RemovePixelDefects to /tmp
 // #define DEBUG_LOGO_SAVE 2   // save valid logos after RemovePixelDefects /tmp
 
+// debug logo resize function
+// #define DEBUG_LOGO_RESIZE
+
 // debug temporary logo change detection
 // #define DEBUG_LOGO_CHANGE
 

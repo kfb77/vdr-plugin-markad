@@ -26,6 +26,7 @@ extern "C"{
 #define LOGO_720W_MIN_H 54      // SIXX and SUPER RTL
 #define LOGO_MIN_LETTERING_H 38 // 41 for "DIE NEUEN FOLGEN" SAT_1
                                 // 38 for "#wir bleiben zuhause" RTL2
+#define LOGO_MAX_LETTERING_H 56 // 56 for II over RTL (old RTL2 logo)
 
 // global variables
 extern bool abortNow;
@@ -130,7 +131,7 @@ bool cExtractLogo::IsLogoColourChange(const MarkAdContext *maContext, const int 
 }
 
 
-bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber = -1) { // framenumber >= 0: save from debug function
+bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber = -1, const char *debugText = NULL) { // framenumber >= 0: save from debug function
     if (!maContext) return false;
     if (!ptr_actLogoInfo) return false;
     if ((logoHeight <= 0) || (logoWidth <= 0)) return false;
@@ -172,7 +173,12 @@ bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actL
             isyslog("Logo size for Channel: %s %d:%d %dW %dH: %dW %dH %s", maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, maContext->Video.Info.Width, maContext->Video.Info.Height, logoWidth, logoHeight, aCorner[corner]);
         }
         else {  // debug function, store logo to /tmp
-            if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i.pgm", "/tmp/",framenumber, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane) == -1) return false;
+            if (debugText) {
+                if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i_%s.pgm", "/tmp/",framenumber, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane, debugText) == -1) return false;
+            }
+            else {
+                if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i.pgm", "/tmp/",framenumber, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane) == -1) return false;
+            }
             ALLOC(strlen(buf)+1, "buf");
         }
         // Open file
@@ -310,7 +316,8 @@ bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoH
                 }
             }
 
-            // check logo height
+// check logo height
+            // check min height
             if (strcmp(maContext->Info.ChannelName, "SIXX") == 0) {
                 if (logoHeight < LOGO_720W_MIN_H) {
                     dsyslog("cExtractLogo::CheckLogoSize(): SD logo is not heigh enough");
@@ -323,17 +330,25 @@ bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoH
                     return false;
                 }
             }
-
+            // check max height
             if (strcmp(maContext->Info.ChannelName, "Welt_der_Wunder") == 0) {
                 if (logoHeight > 112) { // Welt der Wunder
-                    dsyslog("cExtractLogo::CheckLogoSize(): SD logo is too heigh");
+                    dsyslog("cExtractLogo::CheckLogoSize(): SD logo is too heigh %dp", logoHeight);
                     return false;
                 }
             }
             else {
-                if (logoHeight > 88) {  // NICK 88H
-                    dsyslog("cExtractLogo::CheckLogoSize(): SD logo is too heigh");
-                    return false;
+                if (strcmp(maContext->Info.ChannelName, "RTL2") == 0) {
+                    if (logoHeight > 108) { // old RTL2 logo
+                        dsyslog("cExtractLogo::CheckLogoSize(): SD logo is too heigh %dp", logoHeight);
+                        return false;
+                    }
+                }
+                else {
+                    if (logoHeight > 88) {  // NICK 88H
+                        dsyslog("cExtractLogo::CheckLogoSize(): SD logo is too heigh %dp", logoHeight);
+                        return false;
+                    }
                 }
             }
             break;
@@ -390,7 +405,9 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
     if (!logoHeight) return false;
     if (!logoWidth) return false;
     if ((bestLogoCorner < 0) || (bestLogoCorner >= CORNERS)) return false;
-
+#ifdef DEBUG_LOGO_RESIZE
+    Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "0_before_resize");
+#endif
     dsyslog("cExtractLogo::Resize(): logo size before resize:    %3d width %3d height on corner %12s", *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
     int logoHeightBeforeResize = *logoHeight;
     int logoWidthBeforeResize = *logoWidth;
@@ -481,6 +498,10 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
                 else break;
             }
             CutOut(bestLogoInfo, whiteLines, 0, logoHeight, logoWidth, bestLogoCorner);
+#ifdef DEBUG_LOGO_RESIZE
+            if (repeat == 1) Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "1_after_cut_top_1");
+            else Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "4_after_cut_top_2");
+#endif
 // search for text above logo
 // search for at least 3 white lines to cut logos with text addon (e.g. "Neue Folge" or "Live")
             int countWhite = 0;
@@ -513,13 +534,17 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
                 }
             }
             if (topBlackLineOfLogo > cutLine) {
-                if (cutLine >= LOGO_MIN_LETTERING_H) {
+                if ((cutLine >= LOGO_MIN_LETTERING_H) && (cutLine < LOGO_MAX_LETTERING_H)) {
                     dsyslog("cExtractLogo::Resize(): found text above logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, cutLine, leftBlackPixel, rightBlackPixel);
                     CutOut(bestLogoInfo, cutLine, 0, logoHeight, logoWidth, bestLogoCorner);
                 }
-                else dsyslog("cExtractLogo::Resize(): cutline at %d not valid (expect min %d)", cutLine, LOGO_MIN_LETTERING_H);
+                else dsyslog("cExtractLogo::Resize(): cutline at %d not valid (expect >=%d and <%d)", cutLine, LOGO_MIN_LETTERING_H, LOGO_MAX_LETTERING_H);
             }
         }
+#ifdef DEBUG_LOGO_RESIZE
+        if (repeat == 1) Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "2_after_cut_text_above_1");
+        else Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "5_after_cut_text_above_2");
+#endif
 
         if ((bestLogoCorner == TOP_RIGHT) || (bestLogoCorner == BOTTOM_RIGHT)) {  // right corners, cut from left
             int whiteColumns = 0;
@@ -537,6 +562,10 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
                 else break;
             }
             CutOut(bestLogoInfo, 0, whiteColumns, logoHeight, logoWidth, bestLogoCorner);
+#ifdef DEBUG_LOGO_RESIZE
+            if (repeat == 1) Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "3_after_cut_right_1");
+            else Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "6_after_cut_right_2");
+#endif
 // search for at least 3 white columns to cut logos with text addon (e.g. "Neue Folge")
             int countWhite = 0;
             int cutColumn = 0;
