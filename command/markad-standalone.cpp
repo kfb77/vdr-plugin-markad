@@ -286,14 +286,15 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
 
     if (!length) {
         esyslog("length of recording not found");
-        return;
+        length = 100 * 60 * 60; // try anyway, set to 100h
+        startframe = macontext.Video.Info.FramesPerSecond * 2 * 60;  // assume default pretimer of 2min
     }
     if (!macontext.Video.Info.FramesPerSecond) {
         esyslog("video frame rate of recording not found");
         return;
     }
 
-    if (startframe < 0) {   // recodring start ist too late
+    if (startframe < 0) {   // recodring start is too late
         isyslog("recording started too late, set start mark to start of recording");
         MarkAdMark mark = {};
         mark.Position = 1;  // do not use position 0 because this will later be deleted
@@ -1808,8 +1809,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
                     }
                 }
                 else {
-                    // "old" recording
-                    dsyslog("assuming old recording - no length and startTime");
+                    dsyslog("cMarkAdStandalone::CheckIndexGrowing(): no length and startTime");
                     return;
                 }
             }
@@ -3118,6 +3118,7 @@ bool cMarkAdStandalone::LoadInfo() {
         if ((line[0] == 'E') && (!bLiveRecording)) {
             int result = sscanf(line,"%*c %*10i %20li %6i %*2x %*2x", &startTime, &length);
             if (result != 2) {
+                dsyslog("cMarkAdStandalone::LoadInfo(): vdr info file not valid, could not read start time and length");
                 startTime = 0;
                 length = 0;
             }
@@ -3183,39 +3184,44 @@ bool cMarkAdStandalone::LoadInfo() {
     if (line) free(line);
 
     macontext.Info.timerVPS = isVPSTimer();
-    if ((length) && (!bIgnoreTimerInfo) && (startTime)) {
-        time_t rStart = GetBroadcastStart(startTime, fileno(f));
-        if (rStart) {
-            dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
-            dsyslog("cMarkAdStandalone::LoadInfo():     timer start at %s", strtok(ctime(&startTime), "\n"));
-            if (macontext.Info.timerVPS) { //  VPS controlled recording start, we use assume broascast start 45s after recording start
-                isyslog("VPS controlled recording start");
-                tStart = marks.LoadVPS(macontext.Config->recDir, "START:"); // VPS start mark
-                if (tStart >= 0) {
-                    dsyslog("cMarkAdStandalone::LoadInfo(): found VPS start event at offset %ds", tStart);
+    if ((length) && (startTime)) {
+        if (!bIgnoreTimerInfo) {
+            time_t rStart = GetBroadcastStart(startTime, fileno(f));
+            if (rStart) {
+                dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
+                dsyslog("cMarkAdStandalone::LoadInfo():     timer start at %s", strtok(ctime(&startTime), "\n"));
+                if (macontext.Info.timerVPS) { //  VPS controlled recording start, we use assume broascast start 45s after recording start
+                    isyslog("VPS controlled recording start");
+                    tStart = marks.LoadVPS(macontext.Config->recDir, "START:"); // VPS start mark
+                    if (tStart >= 0) {
+                        dsyslog("cMarkAdStandalone::LoadInfo(): found VPS start event at offset %ds", tStart);
+                    }
+                    else {
+                        dsyslog("cMarkAdStandalone::LoadInfo(): no VPS start event found");
+                        tStart = 45;
+                    }
                 }
                 else {
-                    dsyslog("cMarkAdStandalone::LoadInfo(): no VPS start event found");
-                    tStart = 45;
+                    tStart = static_cast<int> (startTime - rStart);
+                    if (tStart > 60 * 60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
+                        isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", tStart);
+                        tStart = 120;
+                    }
+                    if (tStart < 0) {
+                        if (length+tStart > 0) {
+                            isyslog("missed broadcast start by %d:%02d min, length will be corrected", -tStart / 60, -tStart % 60);
+                            startTime = rStart;
+                            length += tStart;
+                        }
+                        else {
+                            isyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
+                            tStart = 120;
+                        }
+                    }
                 }
             }
             else {
-                tStart = static_cast<int> (startTime - rStart);
-                if (tStart > 60 * 60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
-                    isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", tStart);
-                    tStart = 120;
-                }
-                if (tStart < 0) {
-                    if (length+tStart > 0) {
-                        isyslog("missed broadcast start by %d:%02d min, length will be corrected", -tStart / 60, -tStart % 60);
-                        startTime = rStart;
-                        length += tStart;
-                    }
-                    else {
-                        isyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
-                        tStart = 120;
-                    }
-                }
+                tStart = 0;
             }
         }
         else {
@@ -3223,6 +3229,7 @@ bool cMarkAdStandalone::LoadInfo() {
         }
     }
     else {
+        dsyslog("cMarkAdStandalone::LoadInfo(): start time and length from vdr info file not valid");
         tStart = 0;
     }
     fclose(f);
