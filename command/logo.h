@@ -64,7 +64,7 @@ class cExtractLogo {
         bool CompareLogoPairRotating(logoInfo *logo1, logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner);
         bool CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0 = 0, int match12 = 0, int *rate0 = NULL);
         void CutOut(logoInfo *logoInfo, int cutPixelH, int cutPixelV, int *logoHeight, int *logoWidth, const int corner);
-        bool CheckLogoSize(const MarkAdContext *maContext, const int logoHeight, const int logoWidth, const int corner);
+        bool CheckLogoSize(const MarkAdContext *maContext, const int logoHeight, const int logoWidth);
         bool Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner);
         bool IsWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
         void SetLogoSize(const MarkAdContext *maContext, int *logoHeight, int *logoWidth);
