@@ -1532,7 +1532,6 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
     int matchLow = 0;
     int matchVeryLow = 0;
     int matchHigh = 0;
-    int matchHighStatus = 0;  // 0 unknown, 1 got matches, 2 got at least one no match, 3 got at least one match again
     int continuousDiff = 0;
     int tmpContinuousDiff = 0;
 
@@ -1599,15 +1598,12 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
                     matchLow++;
                     if (rate0 >= RATE_0_HIGH_MIN) {
                         matchHigh++;
-                        if (matchHighStatus == 0) matchHighStatus = 1;  // unknown -> match
-                        if (matchHighStatus == 2) matchHighStatus = 3;  // no match -> match
                     }
                     tmpContinuousDiff = 0;
                     noMatchEnd = 0;
                     tsyslog("cExtractLogo::isLogoChange(): corner %d frame (%5d) and frame (%5d) is similar,   rate %4d (low %d, high %d)", area->corner, logo1->iFrameNumber, logo2->iFrameNumber, rate0, RATE_0_LOW_MIN, RATE_0_HIGH_MIN);
                 }
                 else {
-                    if (matchHighStatus == 1) matchHighStatus = 2;  // match -> no match
                     if (matchLow == 0) noMatchStart++;
                     else noMatchEnd++;
                     if (rate0 <= RATE_0_VERYLOW_MAX) matchVeryLow++;
