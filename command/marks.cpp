@@ -602,6 +602,10 @@ bool clMarks::Save(const char *Directory, const MarkAdContext *maContext, const 
 
     clMark *mark = first;
     while (mark) {
+        if (((mark->type & 0xF0) == MT_BLACKCHANGE) && (mark->position != first->position) && (mark->position != last->position)) { // do not save blackscreen marks expect start and end mark
+            mark = mark->Next();
+            continue;
+        }
         char *indexToHMSF = IndexToHMSF(mark->position, maContext);
         if (indexToHMSF) {
             fprintf(mf, "%s %s\n", indexToHMSF, mark->comment ? mark->comment : "");
