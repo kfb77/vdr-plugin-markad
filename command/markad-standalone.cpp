@@ -559,10 +559,7 @@ bool cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(clMark *stopMark) {
 // return: last stop position with isClosingCredits = 1
 //
 int cMarkAdStandalone::RemoveLogoChangeMarks() {
-
-// check logo stop/start pairs, channel may changes logo
-#define LOGO_CHANGE_NEXT_STOP_MIN   7  // in s, do not increase, 7s is the shortest found distance between two logo changes
-                                       // next stop max (=lenght next valid broadcast) found: 1242
+    if (strcmp(macontext.Info.ChannelName, "TELE_5") != 0) return 0;  // for performance reason only known channels
 
     struct timeval startTime, stopTime;
     gettimeofday(&startTime, NULL);
@@ -4394,6 +4391,8 @@ int main(int argc, char *argv[]) {
 cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, const int framesPerSecond, const int iStart, const int iStopA) {
     if (!marks) return;
 
+#define LOGO_CHANGE_NEXT_STOP_MIN   7  // in s, do not increase, 7s is the shortest found distance between two logo changes
+                                       // next stop max (=lenght next valid broadcast) found: 1242
 #define LOGO_CHANGE_STOP_START_MIN 11  // in s, changed from 12 to 11
 #define LOGO_CHANGE_STOP_START_MAX 21  // in s
 #define LOGO_CHANGE_IS_ADVERTISING_MIN 300  // in s
