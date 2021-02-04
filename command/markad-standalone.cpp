@@ -3774,10 +3774,10 @@ int usage(int svdrpport) {
            "                                 speed optimized operation mode, but needs a lot of memonry, use it only > 1 GB memory\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
-           "after                        markad starts to analyze the recording\n"
-           "before                       markad exits immediately if called with \"before\"\n"
-           "edited                       markad exits immediately if called with \"edited\"\n"
-           "nice                         runs markad with nice(19)\n"
+           "nice                         runs markad directly and with nice(19)\n"
+           "after                        markad started by vdr after the recording is complete\n"
+           "before                       markad started by vdr before the recording is complete, only valid together with --online\n"
+           "edited                       markad started by vdr in edit function and exits immediately\n"
            "\n<record>                     is the name of the directory where the recording\n"
            "                             is stored\n\n",
            LOGO_MAXWIDTH,LOGO_DEFWIDTH,LOGO_DEFHDWIDTH,
@@ -4342,7 +4342,7 @@ int main(int argc, char *argv[]) {
             }
         }
         dsyslog("parameter --autologo is set to %i",config.autoLogo);
-        if (config.Before) dsyslog("parameter Before is set");
+        if (config.Before) dsyslog("parameter before is set");
 
         if (!bPass2Only) {
             gettimeofday(&startPass1, NULL);

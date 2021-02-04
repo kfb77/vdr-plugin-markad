@@ -139,13 +139,12 @@ re-encode AC3 stream to fix low audio level of cutted video on same devices
 port of a remote VDR for OSD messages
 
  cmd: one of
- \-                            dummy\-parameter if called directly
- after                       markad starts to analyze the recording
- before                    markad exits immediately if called with "before
- edited                     markad exits immediately if called with "edited"
- nice                        runs markad with nice(19)
- <record>                 is the name of the directory where the recording
-                               is stored
+ \-                         dummy\-parameter if called directly
+ nice                      runs markad directly and with nice(19)
+ after                     markad started by vdr after the recording is complete
+ before                    markad started by vdr before the recording is complete, only valid together with --online
+ edited                    markad started by vdr in edit function and exits immediately
+ <record>                  is the name of the directory where the recording is stored
 .SH "AUTHOR"
 Written by Jochen Dolze <vdr@dolze.de>
 .SH "REPORTING BUGS"
