@@ -1232,6 +1232,14 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
 
         while(ptr_cDecoder->GetNextFrame()) {
             if (abortNow) return -1;
+            // write an early start mark for running recordings
+            if (maContext->Info.isRunningRecording && !maContext->Info.isStartMarkSaved && (iFrameNumber >= (maContext->Info.tStart * maContext->Video.Info.FramesPerSecond))) {
+                dsyslog("cExtractLogo::SearchLogo(): recording is aktive, read frame (%d), now save dummy start mark at pre timer position %ds", iFrameNumber, maContext->Info.tStart);
+                clMarks marksTMP;
+                marksTMP.Add(MT_ASSUMEDSTART, iFrameNumber, "timer start", true);
+                marksTMP.Save(maContext->Config->recDir, maContext, true, true);
+                maContext->Info.isStartMarkSaved = true;
+            }
             if (!WaitForFrames(maContext, ptr_cDecoder)) {
                 dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at frame (%d), got %d valid frames of %d frames read", ptr_cDecoder->GetFrameNumber(), iFrameCountValid, iFrameCountAll);
                 retStatus=false;

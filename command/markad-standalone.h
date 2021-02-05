@@ -104,7 +104,6 @@ class cMarkAdStandalone {
         bool bLiveRecording = false;
         time_t startTime = 0;  // starttime of broadcast
         int length = 0;        // length of broadcast in seconds
-        int tStart = 0;        // pretimer in seconds
         int iStart = 0;        // pretimer in frames (negative if unset)
         int iStop = 0;         // endposition in frames (negative if unset)
         int iStartA = 0;       // assumed startposition in frames

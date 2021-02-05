@@ -1705,7 +1705,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
     }
 
 // save marks
-    if (Mark->Position > chkSTART) marks.Save(directory, &macontext, isTS, false);
+    if (iStart == 0) marks.Save(directory, &macontext, isTS, false);  // save after start mark is valid
 }
 
 
@@ -2498,7 +2498,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 dsyslog("change internal frame rate to handle H.264 interlaced video");
                 macontext.Video.Info.FramesPerSecond *= 2;
                 macontext.Video.Info.Interlaced = true;
-                CalculateCheckPositions(tStart * macontext.Video.Info.FramesPerSecond);
+                CalculateCheckPositions(macontext.Info.tStart * macontext.Video.Info.FramesPerSecond);
             }
             lastiframe=iframe;
             if ((iStart < 0) && (lastiframe > -iStart)) iStart = lastiframe;
@@ -2616,7 +2616,7 @@ void cMarkAdStandalone::ProcessFile_cDecoder() {
             isyslog("average frame rate %i frames per second", static_cast<int> (macontext.Video.Info.FramesPerSecond));
             isyslog("real frame rate    %i frames per second", ptr_cDecoder->GetVideoRealFrameRate());
 
-            CalculateCheckPositions(tStart * macontext.Video.Info.FramesPerSecond);
+            CalculateCheckPositions(macontext.Info.tStart * macontext.Video.Info.FramesPerSecond);
         }
         while(ptr_cDecoder && ptr_cDecoder->GetNextFrame()) {
             if (abortNow) {
@@ -2627,6 +2627,15 @@ void cMarkAdStandalone::ProcessFile_cDecoder() {
                 }
                 break;
             }
+            // write an early start mark for running recordings
+            if (macontext.Info.isRunningRecording && !macontext.Info.isStartMarkSaved && (ptr_cDecoder->GetFrameNumber() >= (macontext.Info.tStart * macontext.Video.Info.FramesPerSecond))) {
+                dsyslog("cMarkAdStandalone::ProcessFile_cDecoder(): recording is aktive, read frame (%d), now save dummy start mark at pre timer position %ds", ptr_cDecoder->GetFrameNumber(), macontext.Info.tStart);
+                clMarks marksTMP;
+                marksTMP.Add(MT_ASSUMEDSTART, ptr_cDecoder->GetFrameNumber(), "timer start", true);
+                marksTMP.Save(macontext.Config->recDir, &macontext, true, true);
+                macontext.Info.isStartMarkSaved = true;
+            }
+
             if (!cMarkAdStandalone::ProcessFrame(ptr_cDecoder)) break;
             CheckIndexGrowing();
         }
@@ -3021,7 +3030,7 @@ bool cMarkAdStandalone::CheckLogo() {
         isyslog("no logo found in recording directory, trying to extract logo from recording");
         ptr_cExtractLogo = new cExtractLogo(macontext.Info.AspectRatio, recordingIndexMark);
         ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
-        int startPos =  tStart * 25;  // search logo from assumed start, we do not know the frame rate at this point, so we use 25
+        int startPos =  macontext.Info.tStart * 25;  // search logo from assumed start, we do not know the frame rate at this point, so we use 25
         if (startPos < 0) startPos = 0;  // consider late start of recording
         int endpos = ptr_cExtractLogo->SearchLogo(&macontext, startPos);
         for (int retry = 2; retry <= 4; retry++) {  // reduced from 6 to 4
@@ -3054,6 +3063,11 @@ bool cMarkAdStandalone::LoadInfo() {
     char *buf;
     if (asprintf(&buf, "%s/info%s", directory, isTS ? "" : ".vdr") == -1) return false;
     ALLOC(strlen(buf)+1, "buf");
+
+    if (macontext.Config->Before) {
+        macontext.Info.isRunningRecording = true;
+        dsyslog("parameter before is set, markad is called with a running recording");
+    }
 
     FILE *f;
     f = fopen(buf, "r");
@@ -3188,48 +3202,48 @@ bool cMarkAdStandalone::LoadInfo() {
                 dsyslog("cMarkAdStandalone::LoadInfo():     timer start at %s", strtok(ctime(&startTime), "\n"));
                 if (macontext.Info.timerVPS) { //  VPS controlled recording start, we use assume broascast start 45s after recording start
                     isyslog("VPS controlled recording start");
-                    tStart = marks.LoadVPS(macontext.Config->recDir, "START:"); // VPS start mark
-                    if (tStart >= 0) {
-                        dsyslog("cMarkAdStandalone::LoadInfo(): found VPS start event at offset %ds", tStart);
+                    macontext.Info.tStart = marks.LoadVPS(macontext.Config->recDir, "START:"); // VPS start mark
+                    if (macontext.Info.tStart >= 0) {
+                        dsyslog("cMarkAdStandalone::LoadInfo(): found VPS start event at offset %ds", macontext.Info.tStart);
                     }
                     else {
                         dsyslog("cMarkAdStandalone::LoadInfo(): no VPS start event found");
-                        tStart = 45;
+                        macontext.Info.tStart = 45;
                     }
                 }
                 else {
-                    tStart = static_cast<int> (startTime - rStart);
-                    if (tStart > 60 * 60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
-                        isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", tStart);
-                        tStart = 120;
+                    macontext.Info.tStart = static_cast<int> (startTime - rStart);
+                    if (macontext.Info.tStart > 60 * 60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
+                        isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", macontext.Info.tStart);
+                        macontext.Info.tStart = 120;
                     }
-                    if (tStart < 0) {
-                        if (length+tStart > 0) {
-                            isyslog("missed broadcast start by %d:%02d min, length will be corrected", -tStart / 60, -tStart % 60);
+                    if (macontext.Info.tStart < 0) {
+                        if (length + macontext.Info.tStart > 0) {
+                            isyslog("missed broadcast start by %d:%02d min, length will be corrected", -macontext.Info.tStart / 60, -macontext.Info.tStart % 60);
                             startTime = rStart;
-                            length += tStart;
+                            length += macontext.Info.tStart;
                         }
                         else {
                             isyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
-                            tStart = 120;
+                            macontext.Info.tStart = 120;
                         }
                     }
                 }
             }
             else {
-                tStart = 0;
+                macontext.Info.tStart = 0;
             }
         }
         else {
-            tStart = 0;
+            macontext.Info.tStart = 0;
         }
     }
     else {
         dsyslog("cMarkAdStandalone::LoadInfo(): start time and length from vdr info file not valid");
-        tStart = 0;
+        macontext.Info.tStart = 0;
     }
     fclose(f);
-    dsyslog("cMarkAdStandalone::LoadInfo(): broadcast start %is after recording start", tStart);
+    dsyslog("cMarkAdStandalone::LoadInfo(): broadcast start %is after recording start", macontext.Info.tStart);
 
     if ((!length) && (!bLiveRecording)) {
         esyslog("cannot read broadcast length from info, marks can be wrong!");
@@ -3382,7 +3396,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     bDecodeVideo = config->DecodeVideo;
     bDecodeAudio = config->DecodeAudio;
 
-    tStart = iStart = iStop = iStopA = 0;
+    macontext.Info.tStart = iStart = iStop = iStopA = 0;
 
     if ((config->ignoreInfo & IGNORE_TIMERINFO) == IGNORE_TIMERINFO) {
         bIgnoreTimerInfo = true;
@@ -3512,7 +3526,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
             esyslog("failed loading info - logo %s%sdisabled",
                     (config->logoExtraction != -1) ? "extraction" : "detection",
                     bIgnoreTimerInfo ? " " : " and pre-/post-timer ");
-            tStart=iStart = iStop = iStopA = 0;
+            macontext.Info.tStart = iStart = iStop = iStopA = 0;
             macontext.Video.Options.IgnoreLogoDetection = true;
         }
     }
@@ -3523,10 +3537,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
         }
     }
 
-    if (tStart > 1) {
-        if ((tStart < 60) && (!macontext.Info.timerVPS)) tStart = 60;
+    if (macontext.Info.tStart > 1) {
+        if ((macontext.Info.tStart < 60) && (!macontext.Info.timerVPS)) macontext.Info.tStart = 60;
     }
-    isyslog("pre-timer %is", tStart);
+    isyslog("pre-timer %is", macontext.Info.tStart);
 
     if (length) isyslog("broadcast length %imin", static_cast<int> (round(length / 60)));
 
@@ -3842,7 +3856,6 @@ int main(int argc, char *argv[]) {
     int ioprio = 7;
     char *tok,*str;
     int ntok;
-    int online = 0;
     bool bPass2Only = false;
     bool bPass1Only = false;
     struct config config = {};
@@ -4064,12 +4077,12 @@ int main(int argc, char *argv[]) {
                 break;
             case 3: // --online
                 if (optarg) {
-                    online = atoi(optarg);
+                    config.online = atoi(optarg);
                 }
                 else {
-                    online = 1;
+                    config.online = 1;
                 }
-                if ((online != 1) && (online != 2)) {
+                if ((config.online != 1) && (config.online != 2)) {
                     fprintf(stderr, "markad: invalid online value: %s\n", optarg);
                     return 2;
                 }
@@ -4154,7 +4167,7 @@ int main(int argc, char *argv[]) {
                 bAfter = bFork = bNice = SYSLOG = true;
             }
             else if (strcmp(argv[optind], "before" ) == 0 ) {
-                if (!online) online=1;
+                if (!config.online) config.online = 1;
                 config.Before = bFork = bNice = SYSLOG = true;
             }
             else if (strcmp(argv[optind], "edited" ) == 0 ) {
@@ -4184,8 +4197,8 @@ int main(int argc, char *argv[]) {
 
     // do nothing if called from vdr before/after the video is cutted
     if (bEdited) return 0;
-    if ((bAfter) && (online)) return 0;
-    if ((config.Before) && (online == 1) && (!strchr(recDir, '@'))) return 0;
+    if ((bAfter) && (config.online)) return 0;
+    if ((config.Before) && (config.online == 1) && (!strchr(recDir, '@'))) return 0;
 
     // we can run, if one of bImmediateCall, bAfter, bBefore or bNice is true
     // and recDir is given
@@ -4342,7 +4355,7 @@ int main(int argc, char *argv[]) {
             }
         }
         dsyslog("parameter --autologo is set to %i",config.autoLogo);
-        if (config.Before) dsyslog("parameter before is set");
+
 
         if (!bPass2Only) {
             gettimeofday(&startPass1, NULL);

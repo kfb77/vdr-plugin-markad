@@ -94,6 +94,7 @@ typedef struct config {
     bool BackupMarks;
     bool NoPid;
     bool OSD;
+    int online = 0;
     bool Before;
     bool SaveInfo;
 } MarkAdConfig;
@@ -147,6 +148,8 @@ typedef struct MarkAdContext {
 
     struct Info {
         bool isRunningRecording = false;           // true if markad is running during recording
+        bool isStartMarkSaved = false;             // true if dummy start mark is set to end of pre timer and saved
+        int tStart = 0;                            // offset of timer start to recording start (pre timer)
         MarkAdAspectRatio AspectRatio;   // set from info file and checked after chkSTART, valid for the recording
         bool checkedAspectRatio = false;
         short int Channels[MAXSTREAMS] = {0};
