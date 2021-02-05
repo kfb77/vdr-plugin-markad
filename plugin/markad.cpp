@@ -148,7 +148,7 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
                 astopoffs = atoi(optarg);
                 break;
             case '3':
-		fprintf(stderr,"markad: parameter --cDecoder: is depreciated, please remove it from your configuration\n");
+                fprintf(stderr,"markad: parameter --cDecoder: is depreciated, please remove it from your configuration\n");
                 break;
             case '4':
                 MarkadCut = true;
@@ -301,6 +301,8 @@ const char **cPluginMarkAd::SVDRPHelpPages(void) {
     static const char *HelpPage[] = {
         "MARK <filename>\n"
         "     Start markad for the recording with the given filename.",
+        "STATUS\n"
+        "     show active recordings with running markad",
         NULL
     };
     return HelpPage;
@@ -372,6 +374,9 @@ cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int
             ReplyCode = 501;
             return cString::sprintf("Missing filename");
         }
+    }
+    if (strcasecmp(Command, "STATUS") == 0) {
+        return statusMonitor->GetStatus();
     }
 #ifdef DEBUG_MEM
     if (strcasecmp(Command,"DEBUG_MEM") == 0) {

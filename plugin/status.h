@@ -97,6 +97,7 @@ class cStatusMarkAd : public cStatus {
         void ResetActPos(void) {
             actpos=0;
         }
+        char *GetStatus();
         void Check(void);
         bool GetNextActive(struct recs **RecEntry);
         bool Start(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, const bool timerVPS, const bool Direct);

@@ -977,6 +977,28 @@ void cStatusMarkAd::Remove(int pos, bool Kill) {
 }
 
 
+char *cStatusMarkAd::GetStatus() {
+    char *status = NULL;  // vdr will free this memory
+    for (int pos = 0; pos < (MAXDEVICES*MAXRECEIVERS); pos++) {
+        if (!recs[pos].FileName) continue;
+        dsyslog("markad: cStatusMarkAd::GetStatus(): active recording with markad running: %s",recs[pos].FileName);
+        char *line = NULL;
+        char *tmp = NULL;
+        if (asprintf(&line, "markad: running for %s\n", recs[pos].FileName) != -1) {
+            if (asprintf(&tmp, "%s%s", (status) ? status : "", line) != -1) {
+                free(status);
+                free(line);
+                status = tmp;
+            }
+        }
+     }
+     if (!status) {
+         if (asprintf(&status, "markad: no active recording with running markad found\n") != -1) return status;
+     }
+     return status;
+}
+
+
 int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, bool timerVPS) {
     for (int pos = 0; pos < (MAXDEVICES*MAXRECEIVERS); pos++) {
         if (!recs[pos].FileName) {
