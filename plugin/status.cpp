@@ -685,7 +685,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         if (setup->autoLogoConf >= 0) autoLogo = (setup->autoLogoConf > 0);
         else autoLogo = (setup->autoLogoMenue > 0);
 
-        if (!autoLogo && setup->LogoOnly && !LogoExists(Device,FileName)) {   // from v2.0.0 we will find the logo in the recording
+        if (!autoLogo && setup->LogoOnly && !LogoExists(Device,FileName)) {   // we can find the logo in the recording
             isyslog("markad: no logo found for %s", Name);
             return;
         }
@@ -698,7 +698,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
     else {
         dsyslog("markad: cStatusMarkAd::Recording(): recording <%s> [%s] stopped", Name, FileName);
         int pos = Get(FileName, Name);
-        if ((setup->ProcessDuring == PROCESS_NEVER) && ( pos >= 0)) {
+        if ((setup->ProcessDuring == PROCESS_DURING) && ( pos >= 0)) {
             Remove(pos, false);
         }
         if (setup->ProcessDuring == PROCESS_NEVER) {
