@@ -307,9 +307,11 @@ bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoH
     }
     if (strcmp(maContext->Info.ChannelName, "Nickelodeon") == 0) {    // Nickelodeon old logo    16:9  720W  576H:-> 180W  78H TOP_LEFT
                                                                       // Nickelodeon old logo    16:9  720W  576H:-> 180W  80H TOP_LEFT
+                                                                      // Nickelodeon old logo    16:9  720W  576H:-> 184W  80H TOP_LEFT
                                                                       // Nickelodeon new logo    16:9  720W  576H:-> 144W  88H TOP_LEFT
                                                                       // Nickelodeon new logo    16:9  720W  576H:-> 146W  88H TOP_LEFT
-        size.widthMax  = 180;
+        size.widthMin  = 144;
+        size.widthMax  = 184;
         size.heightMin =  78;
     }
     if (strcmp(maContext->Info.ChannelName, "n-tv") == 0) { // n-tv: 224W 60H BOTTOM_RIGHT
