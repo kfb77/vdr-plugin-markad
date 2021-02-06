@@ -680,6 +680,7 @@ void cMarkAdStandalone::CheckStart() {
 
     RemoveLogoChangeMarks();
     clMark *begin = NULL;
+    int hBorderStopPosition = 0;
     int delta = macontext.Video.Info.FramesPerSecond * MAXRANGE;
     macontext.Video.Options.IgnoreBlackScreenDetection = true;   // use black sceen setection only to find start mark
 
@@ -937,7 +938,8 @@ void cMarkAdStandalone::CheckStart() {
             dsyslog("cMarkAdStandalone::CheckStart(): horizontal border start found at (%i)", hStart->position);
             clMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);  // if there is a MT_HBORDERSTOP short after the MT_HBORDERSTART, MT_HBORDERSTART is not valid
             if ( hStop && ((hStop->position - hStart->position) < (2 * delta))) {
-                isyslog("horizontal border STOP (%i) short after horizontal border START (%i) found, this is not valid, delete marks", hStop->position, hStart->position);
+                dsyslog("cMarkAdStandalone::CheckStart(): horizontal border STOP (%i) short after horizontal border START (%i) found, this is not valid, delete marks", hStop->position, hStart->position);
+                hBorderStopPosition = hStop->position;  // maybe we can use it as start mark if we found nothing else
                 marks.Del(hStart);
                 marks.Del(hStop);
 
@@ -1147,17 +1149,24 @@ void cMarkAdStandalone::CheckStart() {
             mark = mark->Next();
         }
     }
-    else {
-        //fallback
-        dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, assume start time at pre recording time");
-        marks.DelTill(iStart, &blackMarks);
-        marks.Del(MT_NOBLACKSTART);  // delete all black screen marks
-        marks.Del(MT_NOBLACKSTOP);
-        MarkAdMark mark = {};
-        mark.Position = iStart;
-        mark.Type = MT_ASSUMEDSTART;
-        AddMark(&mark);
-        CalculateCheckPositions(iStart);
+    else { //fallback
+        // try hborder stop mark as start mark
+        if (hBorderStopPosition > 0) {
+            dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, use MT_HBORDERSTOP from previous recoring as start mark");
+            marks.Add(MT_ASSUMEDSTART, hBorderStopPosition, "start mark from border stop of previous recording*", true);
+            marks.DelTill(hBorderStopPosition, &blackMarks);
+        }
+        else {  // set start after pre timer
+            dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, assume start time at pre recording time");
+            marks.DelTill(iStart, &blackMarks);
+            marks.Del(MT_NOBLACKSTART);  // delete all black screen marks
+            marks.Del(MT_NOBLACKSTOP);
+            MarkAdMark mark = {};
+            mark.Position = iStart;
+            mark.Type = MT_ASSUMEDSTART;
+            AddMark(&mark);
+            CalculateCheckPositions(iStart);
+        }
     }
 
 // count logo STOP/START pairs
