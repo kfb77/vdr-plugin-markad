@@ -363,6 +363,12 @@ bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoH
 
 // set default values
     switch (maContext->Video.Info.Width) {
+        case 544:
+            if (size.widthMin  == 0) size.widthMin  =  95; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
+            if (size.widthMax  == 0) size.widthMax  =  97; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
+            if (size.heightMin == 0) size.heightMin =  89; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
+            if (size.heightMax == 0) size.heightMax =  91; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
+            break;
         case 720:
             if (size.widthMin  == 0) size.widthMin  =  76; // SAT_1
             if (size.widthMax  == 0) size.widthMax  = 150; // Nickelodeon, NICK_MTV+
