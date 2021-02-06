@@ -1022,10 +1022,10 @@ void cMarkAdStandalone::CheckStart() {
                 clMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
                 if (lStop) {  // there is a next stop mark in the start range
                     int distanceStopStart = (lStop->position - lStart->position) / macontext.Video.Info.FramesPerSecond;
-                    if (distanceStopStart <= 285) {  // very short logo part, lStart is possible wrong, changed from 60 to 255
+                    if (distanceStopStart < 144) {  // very short logo part, lStart is possible wrong, do not increase, first ad can be early
                         indexToHMSF = marks.IndexToHMSF(lStop->position, &macontext);
                         if (indexToHMSF) {
-                            dsyslog("cMarkAdStandalone::CheckStart(): logo stop mark found very short after start mark on position (%i) at %s", lStop->position, indexToHMSF);
+                            dsyslog("cMarkAdStandalone::CheckStart(): logo stop mark found very short after start mark on position (%i) at %s, distance %ds", lStop->position, indexToHMSF, distanceStopStart);
                             FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                             free(indexToHMSF);
                         }
