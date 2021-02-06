@@ -1328,14 +1328,16 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         }
 // check hborder marks
         if ((mark->type == MT_HBORDERSTART) && (mark->position != marks.GetFirst()->position) && mark->Next()) {  // not start or end mark
-            if ((mark->Next()->type == MT_HBORDERSTOP) && (mark->Next()->position != marks.GetLast()->position)) { // next mark not end mark
-                int lengthAd = static_cast<int> ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
+            clMark *bStop = marks.GetNext(mark->position, MT_HBORDERSTOP);
+            if (bStop && (bStop->position != marks.GetLast()->position)) { // next mark not end mark
+                int lengthAd = static_cast<int> ((bStop->position - mark->position) / macontext.Video.Info.FramesPerSecond);
                 if (lengthAd < 130) { // increased from 70 to 130
-                    isyslog("found advertisement of length %is between hborder mark (%i) and hborder mark (%i), deleting marks", lengthAd, mark->position, mark->Next()->position);
-                    clMark *tmp=mark;
-                    mark = mark->Next()->Next();
-                    marks.Del(tmp->Next());
+                    isyslog("found advertisement of length %is between hborder mark (%i) and hborder mark (%i), deleting marks", lengthAd, mark->position, bStop->position);
+                    clMark *tmp = mark;
+                    mark = mark->Next();  // this can be the border stop mark or any other mark in between
+                    if (mark->position == bStop->position) mark = mark->Next();  // there can be other marks in between
                     marks.Del(tmp);
+                    marks.Del(bStop);
                     continue;
                 }
             }
