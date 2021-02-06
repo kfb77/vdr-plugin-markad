@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-02-06: Version 2.6.1
+- write assumed start mark when started by vdr during recording
+- add svdrpsend command STATUS
+- many bug fixes and optimizations, see git
+
 2021-01-30: Version 2.6.0
 - new feature: recognize logo changes and keep this part
 - new feature: recognize closing credits and move stop mark afterwards
