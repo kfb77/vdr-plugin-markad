@@ -1307,10 +1307,10 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                 if (stopBefore) {  // if advertising before is long this is the really the next start mark
                     int lengthAdBefore = static_cast<int> ((mark->position - stopBefore->position) / macontext.Video.Info.FramesPerSecond);
                     int lengthPreview = static_cast<int> ((mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond);
-                    if ((lengthAdBefore >= 5) && (lengthAdBefore <= 585)) {  // if advertising before is long this is the really the next start mark
+                    if ((lengthAdBefore >= 1) && (lengthAdBefore <= 585)) {  // if advertising before is long this is the really the next start mark
                                                                              // previews can be at start of advertising (e.g. DMAX)
                                                                              // max changed from 500 to 560 to 585
-                                                                             // min changed from 7 to 5
+                                                                             // min changed from 7 to 5 to 1
                         if (lengthPreview < 110) {  // if logo part is long, removed check of min (was >=2)
                             isyslog("found preview of length %is between logo mark (%i) and logo mark (%i) in advertisement (length %is), deleting marks", lengthPreview, mark->position, mark->Next()->position, lengthAdBefore);
                             clMark *tmp=mark;
@@ -1321,7 +1321,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                         }
                         else dsyslog("cMarkAdStandalone::CheckMarks(): no preview between (%i) and (%i), length %is not valid",  mark->position, mark->Next()->position, lengthPreview);
                     }
-                    else dsyslog("cMarkAdStandalone::CheckMarks(): no preview between (%d) and (%d), length advertising before %ds is not valid (expect >=6s and <110s)", mark->position, mark->Next()->position, lengthAdBefore);
+                    else dsyslog("cMarkAdStandalone::CheckMarks(): no preview between (%d) and (%d), length advertising before %ds is not valid (expect >=1s and <110s)", mark->position, mark->Next()->position, lengthAdBefore);
                 }
                 else dsyslog("cMarkAdStandalone::CheckMarks(): no preview because no MT_LOGOSTOP before found");
             }
