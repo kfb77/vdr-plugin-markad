@@ -368,6 +368,7 @@ void cMarkAdStandalone::CheckStop() {
     }
     else dsyslog("cMarkAdStandalone::CheckStop(): no MT_CHANNELSTOP mark found");
 
+// try MT_ASPECTSTOP
     if (!end) {
         end = marks.GetAround(3*delta, iStopA, MT_ASPECTSTOP);      // try MT_ASPECTSTOP
         if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_ASPECTSTOP found at frame %i", end->position);
@@ -490,12 +491,24 @@ void cMarkAdStandalone::CheckStop() {
             }
         }
     }
-    else {
-        dsyslog("cMarkAdStandalone::CheckStop(): no stop mark found, add stop mark at the last frame (%i)",lastiframe);
-        MarkAdMark mark = {};
-        mark.Position = lastiframe;  // we are lost, add a end mark at the last iframe
-        mark.Type = MT_ASSUMEDSTOP;
-        AddMark(&mark);
+    else {  // no valid stop mark found
+        // try if there is any late MT_ASPECTSTOP
+        clMark *aFirstStart = marks.GetNext(0, MT_ASPECTSTART);
+        if (aFirstStart) {
+            clMark *aLastStop = marks.GetPrev(INT_MAX, MT_ASPECTSTOP);
+            if (aLastStop && (aLastStop->position > iStopA)) {
+                dsyslog("cMarkAdStandalone::CheckStop(): start mark is MT_ASPECTSTART (%d) found very late MT_ASPECTSTOP at (%d)", aFirstStart->position, aLastStop->position);
+                end = aLastStop;
+                marks.DelTill(end->position, &blackMarks, false);
+            }
+        }
+        if (!end) {
+            dsyslog("cMarkAdStandalone::CheckStop(): no stop mark found, add stop mark at the last frame (%i)",lastiframe);
+            MarkAdMark mark = {};
+            mark.Position = lastiframe;  // we are lost, add a end mark at the last iframe
+            mark.Type = MT_ASSUMEDSTOP;
+            AddMark(&mark);
+        }
     }
 
     // delete all black sceen marks expect start or end mark
@@ -799,9 +812,15 @@ void cMarkAdStandalone::CheckStart() {
             earlyAspectChange = true;
         }
         bool wrongAspectInfo = false;
-        if ((macontext.Info.AspectRatio.Num == 16) && (macontext.Info.AspectRatio.Den == 9) && aStart && aStopBefore) {
-            dsyslog("cMarkAdStandalone::CheckStart(): found aspect ratio change 16:9 to 4:3 at (%d) to 16:9 at (%d), video info is 16:9, this must be wrong", aStopBefore->position, aStart->position);
-            wrongAspectInfo = true;
+        if ((macontext.Info.AspectRatio.Num == 16) && (macontext.Info.AspectRatio.Den == 9)) {
+            if ((aStart && aStopBefore)) {
+                dsyslog("cMarkAdStandalone::CheckStart(): found aspect ratio change 16:9 to 4:3 at (%d) to 16:9 at (%d), video info is 16:9, this must be wrong", aStopBefore->position, aStart->position);
+                wrongAspectInfo = true;
+            }
+            if ((macontext.Video.Info.AspectRatio.Num == 4) && (macontext.Video.Info.AspectRatio.Den == 3) && inBroadCast) {
+                dsyslog("cMarkAdStandalone::CheckStart(): vdr info tells 16:9 but we are in broadcast and found 4:3, vdr info file must be wrong");
+                wrongAspectInfo = true;
+            }
         }
         // cerrect wrong aspect ratio from vdr info file
         if (wrongAspectInfo || ((!earlyAspectChange) && ((macontext.Info.AspectRatio.Num != macontext.Video.Info.AspectRatio.Num) ||
@@ -1058,7 +1077,7 @@ void cMarkAdStandalone::CheckStart() {
     }
 
     if (begin && ((begin->position == 0))) { // we found the correct type but the mark is too early because the previous recording has same type
-        dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%i) dropped because it is too early", begin->position);
+        dsyslog("cMarkAdStandalone::CheckStart(): start mark (%d) type 0x%X dropped because it is too early", begin->position, begin->type);
         begin = NULL;
     }
 
