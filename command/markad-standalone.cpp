@@ -4198,7 +4198,7 @@ int main(int argc, char *argv[]) {
     // do nothing if called from vdr before/after the video is cutted
     if (bEdited) return 0;
     if ((bAfter) && (config.online)) return 0;
-    if ((config.Before) && (config.online == 1) && (!strchr(recDir, '@'))) return 0;
+    if ((config.Before) && (config.online == 1) && recDir && (!strchr(recDir, '@'))) return 0;
 
     // we can run, if one of bImmediateCall, bAfter, bBefore or bNice is true
     // and recDir is given
