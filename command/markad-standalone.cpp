@@ -408,10 +408,37 @@ void cMarkAdStandalone::CheckStop() {
         }
     }
     if (!end) {  // try any logo stop
-        end = marks.GetAround(MAX_LOGO_END_MARK_FACTOR * delta, iStopA, MT_LOGOSTOP);
+        // delete possible logo end marks with very near logo start mark before
+        bool isInvalid = true;
+        while (isInvalid) {
+            end = marks.GetAround(MAX_LOGO_END_MARK_FACTOR * delta, iStopA, MT_LOGOSTOP);
+            if (end) {
+                dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame %i", end->position);
+                clMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
+                if (prevLogoStart) {
+                    int deltaLogoStart = (end->position - prevLogoStart->position) / macontext.Video.Info.FramesPerSecond;
+                    if (deltaLogoStart < 9) { // changed from 12 to 10 to 9 because of SIXX and SAT.1 has short logo change at the end of recording
+                        dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d) is invalid, logo start mark (%d) only %ds before", end->position, prevLogoStart->position, deltaLogoStart);
+                        marks.Del(end);
+                        marks.Del(prevLogoStart);
+                    }
+                    else {
+                        dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d) is valid, logo start mark (%d) is %ds before", end->position, prevLogoStart->position, deltaLogoStart);
+                        isInvalid = false;
+                    }
+                }
+                else {
+                    dsyslog("cMarkAdStandalone::CheckStop(): no logo start mark before found");
+                    isInvalid = false;
+                }
+            }
+            else {
+                dsyslog("cMarkAdStandalone::CheckStop(): no logo stop mark found");
+                isInvalid = false;
+            }
+        }
         if (end) {
-            dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame %i", end->position);
-// detect very short logo stop/start before assumed stop mark, they are text previews over the logo (e.g. SAT.1)
+            // detect very short logo stop/start before assumed stop mark, they are text previews over the logo (e.g. SAT.1)
             clMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
             clMark *prevLogoStop  = marks.GetPrev(end->position, MT_LOGOSTOP);
             if (prevLogoStart && prevLogoStop) {
@@ -429,7 +456,7 @@ void cMarkAdStandalone::CheckStop() {
             prevLogoStop = marks.GetPrev(end->position, MT_LOGOSTOP); // maybe different if deleted above
             if (prevLogoStop) {
                 int deltaLogo = (end->position - prevLogoStop->position) / macontext.Video.Info.FramesPerSecond;
-#define CHECK_STOP_BEFORE_MIN 114 // if stop before is too near, maybe recording length is too big, changed from 300 to 242 to 220 to 114
+#define CHECK_STOP_BEFORE_MIN 14 // if stop before is too near, maybe recording length is too big
                 if (deltaLogo < CHECK_STOP_BEFORE_MIN) {
                     dsyslog("cMarkAdStandalone::CheckStop(): logo stop before too near %ds (expect >=%ds), use (%d) as stop mark", deltaLogo, CHECK_STOP_BEFORE_MIN, prevLogoStop->position);
                     end = prevLogoStop;
@@ -1354,16 +1381,17 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     mark = marks.GetFirst();
     while (mark) {
         if ((mark->type == MT_LOGOSTART) && mark->Next() && mark->Next()->type == MT_LOGOSTOP) {
-            int MARKDIFF = static_cast<int> (macontext.Video.Info.FramesPerSecond * 8);
+            int MARKDIFF = static_cast<int> (macontext.Video.Info.FramesPerSecond * 18); // changed from 8 to 18
+            double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
             if ((mark->Next()->position - mark->position) <= MARKDIFF) {
-                double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
-                isyslog("mark distance between logo START and STOP too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
+                isyslog("mark distance between logo START and STOP too short %.1fs, deleting (%i,%i)", distance, mark->position, mark->Next()->position);
                 clMark *tmp = mark;
                 mark = mark->Next()->Next();
                 marks.Del(tmp->Next());
                 marks.Del(tmp);
                 continue;
             }
+            else dsyslog("cMarkAdStandalone::CheckMarks(): mark distance between logo START and STOP %.1fs, keep (%i,%i)", distance, mark->position, mark->Next()->position);
         }
         if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
             int MARKDIFF = static_cast<int> (macontext.Video.Info.FramesPerSecond * 23);   // assume thre is shortest advertising, changed from 20s to 23s
