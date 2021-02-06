@@ -124,7 +124,7 @@ bool cExtractLogo::IsLogoColourChange(const MarkAdContext *maContext, const int 
     }
     if (count > 0) {
         dsyslog("cExtractLogo::isLogoColourChange(): %d valid frames in corner %d, %d are white, ratio %d%%", count, corner, countWhite, countWhite * 100 / count);
-        if ((countWhite * 100 / count) >= 40) return true;
+        if ((countWhite * 100 / count) >= 34) return true;  // changed from 40 to 34
     }
     return false;
 }
