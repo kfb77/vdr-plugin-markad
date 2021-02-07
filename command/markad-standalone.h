@@ -51,7 +51,7 @@ class cEvaluateLogoStopStartPair {
         cEvaluateLogoStopStartPair(clMarks *marks, const int framesPerSecond, const int iStart, const int iStopA);
         ~cEvaluateLogoStopStartPair();
         bool GetNextPair(int *stopPosition, int *startPosition);
-        void SetClosingCredits(const int stopPosition, const int isClosingCredits);
+//        void SetClosingCredits(const int stopPosition, const int isClosingCredits);
         int GetLastClosingCreditsStart();
     private:
         struct logoStopStartPair {

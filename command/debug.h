@@ -37,8 +37,8 @@
 // debug logo resize function
 // #define DEBUG_LOGO_RESIZE
 
-// debug temporary logo change detection
-// #define DEBUG_LOGO_CHANGE
+// debug load and analyze logo logo corners
+// #define DEBUG_LOGO_LOAD_ANALYZE
 
 // debug vborder detection
 // #define DEBUG_VBORDER

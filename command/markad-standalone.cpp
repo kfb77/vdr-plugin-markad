@@ -600,7 +600,9 @@ bool cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(clMark *stopMark) {
 // return: last stop position with isClosingCredits = 1
 //
 int cMarkAdStandalone::RemoveLogoChangeMarks() {
-    if (strcmp(macontext.Info.ChannelName, "TELE_5") != 0) return 0;  // for performance reason only known channels
+    if ((strcmp(macontext.Info.ChannelName, "TELE_5") != 0) &&
+        (strcmp(macontext.Info.ChannelName, "SIXX") != 0) &&
+        (strcmp(macontext.Info.ChannelName, "kabel_eins") != 0)) return 0;  // for performance reason only known channels
 
     struct timeval startTime, stopTime;
     gettimeofday(&startTime, NULL);
@@ -648,7 +650,7 @@ int cMarkAdStandalone::RemoveLogoChangeMarks() {
                 ptr_cExtractLogoChange = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
                 ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
             }
-            if (ptr_cExtractLogoChange->isLogoChange(&macontext, ptr_cDecoderLogoChange, evaluateLogoStopStartPair, stopPosition, startPosition)) {
+            if (ptr_cExtractLogoChange->isLogoChange(&macontext, ptr_cDecoderLogoChange, stopPosition, startPosition)) {
                 if (indexToHMSFStop && indexToHMSFStart) {
                     isyslog("logo has changed between frame (%i) at %s and (%i) at %s, deleting marks", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
                 }
@@ -705,7 +707,6 @@ void cMarkAdStandalone::CheckStart() {
     dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %i", iStartA);
     DebugMarks();     //  only for debugging
 
-    RemoveLogoChangeMarks();
     clMark *begin = NULL;
     int hBorderStopPosition = 0;
     int delta = macontext.Video.Info.FramesPerSecond * MAXRANGE;
@@ -1036,6 +1037,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // try to find a logo mark
     if (!begin) {
+        RemoveLogoChangeMarks();
         clMark *lStart = marks.GetAround(iStartA + (2 * delta), iStartA, MT_LOGOSTART);   // increase from 1
         if (!lStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no logo start mark found");
@@ -4479,7 +4481,7 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, const int
 
 #define LOGO_CHANGE_NEXT_STOP_MIN   7  // in s, do not increase, 7s is the shortest found distance between two logo changes
                                        // next stop max (=lenght next valid broadcast) found: 1242
-#define LOGO_CHANGE_STOP_START_MIN 11  // in s, changed from 12 to 11
+#define LOGO_CHANGE_STOP_START_MIN 10  // in s, changed from 12 to 11 to 10
 #define LOGO_CHANGE_STOP_START_MAX 21  // in s
 #define LOGO_CHANGE_IS_ADVERTISING_MIN 300  // in s
 #define LOGO_CHANGE_IS_BROADCAST_MIN 240  // in s
@@ -4613,6 +4615,7 @@ bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPositi
 }
 
 
+/* not used
 void cEvaluateLogoStopStartPair::SetClosingCredits(const int stopPosition, const int isClosingCredits) {
     for (std::vector<logoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
         if (logoPairIterator->stopPosition == stopPosition) {
@@ -4622,6 +4625,7 @@ void cEvaluateLogoStopStartPair::SetClosingCredits(const int stopPosition, const
         }
     }
 }
+*/
 
 
 int cEvaluateLogoStopStartPair::GetLastClosingCreditsStart() {

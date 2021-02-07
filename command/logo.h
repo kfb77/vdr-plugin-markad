@@ -28,7 +28,7 @@ class cExtractLogo {
         explicit cExtractLogo(const MarkAdAspectRatio aspectRatio, cIndex *recordingIndex);
         ~cExtractLogo();
         int SearchLogo(MarkAdContext *maContext, int startFrame);
-        bool isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, cEvaluateLogoStopStartPair *evaluateLogoStopStartPair, const int stopPos, const int startPos);
+        bool isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPos, const int startPos);
         int isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopMarkPosition);
         int SearchAdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPosition, const bool isStartMark);
         bool abort = false;
@@ -52,12 +52,20 @@ class cExtractLogo {
         };
         std::vector<logoInfo> logoInfoVector[CORNERS];
         std::vector<logoInfoPacked> logoInfoVectorPacked[CORNERS];
+
+        struct compareInfoType {
+            int frameNumber = 0;
+            int rate[CORNERS] = {0};
+        };
+        typedef std::vector<compareInfoType> compareResultType;
+
         int recordingFrameCount = 0;
         MarkAdAspectRatio logoAspectRatio = {};
         int AudioState = 0;  // 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
         int iFrameCountValid = 0;
         const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" };
 
+        bool CompairFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startFrame, const int endFrame, compareResultType *compareResult);
         bool Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber,  const char *debugText);
         bool CheckValid(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
         int Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
