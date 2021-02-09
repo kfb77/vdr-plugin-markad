@@ -372,7 +372,7 @@ clMark *clMarks::Add(const int Type, const int Position, const char *Comment, co
 }
 
 
-// get text to mark type
+// define text to mark type, used in marks file
 // return pointer to text
 //
 char *clMarks::TypeToText(const int type) {
@@ -385,6 +385,11 @@ char *clMarks::TypeToText(const int type) {
             break;
         case MT_CHANNELCHANGE:
             if (asprintf(&text, "channel") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            break;
+        case MT_ASPECTCHANGE:
+            if (asprintf(&text, "aspectratio") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
             break;
