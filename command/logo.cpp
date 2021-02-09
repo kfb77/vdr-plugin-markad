@@ -1575,13 +1575,12 @@ bool cExtractLogo::CompairFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDe
                 tsyslog("cExtractLogo::CompairFrameRange(): GetFrameInfo() failed at frame (%d)", frameNumber);
             continue;
         }
+        compareInfoType compareInfo;
         if (ptr_cDecoder->isVideoIFrame()) {
             if (!maContext->Video.Data.Valid) {
                 dsyslog("cExtractLogo::CompairFrameRange(): faild to get video data of frame (%d)", frameNumber);
                 continue;
             }
-            compareInfoType compareInfo;
-            compareInfo.frameNumber = frameNumber;
             for (int corner = 0; corner < CORNERS; corner++) {
                 area->corner = corner;
                 int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
@@ -1601,6 +1600,11 @@ bool cExtractLogo::CompairFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDe
                     if (CompareLogoPair(logo1[corner], logo2[corner], logoHeight, logoWidth, corner, RATE_0_MIN, RATE_12_MIN, &compareInfo.rate[corner])) {
                     }
                 }
+                if (corner == 0) {  // set current frame numbers, needed only once
+                    compareInfo.frameNumber1 = logo1[corner]->iFrameNumber;
+                    compareInfo.frameNumber2 = logo2[corner]->iFrameNumber;
+               }
+
                 FREE(sizeof(*logo1[corner]), "logo");
                 delete logo1[corner];
                 logo1[corner] = logo2[corner];
@@ -1665,22 +1669,22 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
         int matchNoLogoCorner = 0;
         bool isSeparationImage = false;
         for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
-            dsyslog("cExtractLogo::isLogoChange(): frame (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+            dsyslog("cExtractLogo::isLogoChange(): frame (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
             // calculate possible closing credits
             if ((oppositeCorner >= 0) && ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 450) && ((*cornerResultIt).rate[oppositeCorner] >= 840)) {
                                                    // if logo corner and opposite corner has high matches, this can be a closing credit without logo
                                                    // changed logo corner from 850 to 535 to 450, opposite changed from 850 to 840
-                if (closingCredits.start == 0) closingCredits.start = (*cornerResultIt).frameNumber;
+                if (closingCredits.start == 0) closingCredits.start = (*cornerResultIt).frameNumber1;
             }
             else {
-                if ((closingCredits.start != 0) && (closingCredits.end == 0)) closingCredits.end = (*cornerResultIt).frameNumber;
+                if ((closingCredits.start != 0) && (closingCredits.end == 0)) closingCredits.end = (*cornerResultIt).frameNumber1;
             }
             // calculate possible preview images
             if (((*cornerResultIt).rate[0] >= 500) && ((*cornerResultIt).rate[1] >= 500) && ((*cornerResultIt).rate[2] >= 500) && ((*cornerResultIt).rate[3] >= 500)) {
-                if (previewImage.start == 0) previewImage.start = (*cornerResultIt).frameNumber;
+                if (previewImage.start == 0) previewImage.start = (*cornerResultIt).frameNumber1;
             }
             else {
-                if ((previewImage.start != 0) && (previewImage.end == 0)) previewImage.end = (*cornerResultIt).frameNumber;
+                if ((previewImage.start != 0) && (previewImage.end == 0)) previewImage.end = (*cornerResultIt).frameNumber1;
             }
             // calculate matches
             count ++;
@@ -1698,7 +1702,7 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
                     matchNoLogoCorner+= (*cornerResultIt).rate[corner];
                 }
             }
-            if ((matchPicture <= 60) && ((*cornerResultIt).frameNumber >= previewImage.end) && (previewImage.end != 0)) {
+            if ((matchPicture <= 60) && ((*cornerResultIt).frameNumber1 >= previewImage.end) && (previewImage.end != 0)) {
                 isSeparationImage = true; // we found a separation image
                 dsyslog("cExtractLogo::isLogoChange(): separation image found");
             }
@@ -1915,112 +1919,78 @@ int cExtractLogo::isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecod
 }
 
 
-// check for advertising in frame with logo before logo stop mark
+// search advertising in frame with logo
+// check if we have matches in 3 of 4 corners
 // start search at current position, end at stopPosition
-// return start pasition of advertising in frame with logo
-int cExtractLogo::SearchAdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPosition, const bool isStartMark) {
+// return first/last of advertising in frame with logo
+//
+int cExtractLogo::AdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startPos, const int stopPos, const bool isStartMark) {
     if (!maContext) return -1;
     if (!ptr_cDecoder) return -1;
-    dsyslog("cExtractLogo::SearchAdInFrame(): start search advertising in frame with logo before stop mark at (%d)", ptr_cDecoder->GetFrameNumber());
+    if (isStartMark) dsyslog("cExtractLogo::AdInFrame(): start search advertising in frame between logo start mark (%d) and (%d)", startPos, stopPos);
+    else dsyslog("cExtractLogo::AdInFrame(): start search advertising in frame between (%d) and logo stop mark at (%d)", startPos, stopPos);
 
-    int areaCorner;
-    switch (maContext->Video.Logo.corner) {
-        case TOP_RIGHT:  // SIXX
-            areaCorner = BOTTOM_LEFT;
-            break;
-        case BOTTOM_RIGHT:  // RTL2
-            areaCorner = BOTTOM_LEFT;
-            break;
-        default:
-            return -1;
-    }
-    bool status = true;
-    int count = 0;
-    int logoHeight = 0;
-    int logoWidth = 0;
-    SetLogoSize(maContext, &logoHeight, &logoWidth);
-    int firstContinuous = -1;
-    int lastContinuous = -1;
-    int startAdInFrame = -1;
-    int endAdInFrame = -1;
+    struct adInFrame {  // image at the end of a preview
+        int start = 0;
+        int end = 0;
+        int startFinal = 0;
+        int endFinal = 0;
+    } adInFrame;
 
-    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, recordingIndexLogo);
-    ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
+    int retFrame = -1;
 
-    areaT *area = ptr_Logo->GetArea();
-    logoInfo *logo1 = new logoInfo;
-    ALLOC(sizeof(*logo1), "logo");
-    area->corner = areaCorner;
-
-    while ((ptr_cDecoder->GetFrameNumber() < stopPosition) && status){
-        if (!ptr_cDecoder->GetNextFrame()) {
-            dsyslog("cExtractLogo::SearchAdInFrame(): GetNextFrame() failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
-            status = false;
-        }
-        if (!ptr_cDecoder->isVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(maContext)) {
-            if (ptr_cDecoder->isVideoIFrame()) // if we have interlaced video this is expected, we have to read the next half picture
-            continue;
-        }
-        if (ptr_cDecoder->isVideoIFrame()) {
-            int frameNumber =  ptr_cDecoder->GetFrameNumber();
-            if (!maContext->Video.Data.Valid) {
-                dsyslog("cExtractLogo::SearchAdInFrame(): faild to get video data of frame (%d)", frameNumber);
-                continue;
+    compareResultType compareResult;
+    if (CompairFrameRange(maContext, ptr_cDecoder, startPos, stopPos, &compareResult)) {
+        for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
+            dsyslog("cExtractLogo::isLogoChange(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+            // calculate possible advertising in frame
+            int similarCornersLow  = 0;
+            int similarCornersHigh = 0;
+            for (int corner = 0; corner < CORNERS; corner++) {
+                if ((*cornerResultIt).rate[corner] >= 140) similarCornersLow++;
+                if ((*cornerResultIt).rate[corner] >= 300) similarCornersHigh++;
             }
-            int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
-                                        //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
-/*
-#ifdef DEBUG_LOGO_CHANGE
-            iFrameNumberNext = -2;
-#endif
-*/
-            ptr_Logo->Detect(frameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
-
-            logoInfo *logo2 = new logoInfo;
-            ALLOC(sizeof(*logo2), "logo");
-            logo2->iFrameNumber = frameNumber;
-            memcpy(logo2->sobel, area->sobel, sizeof(area->sobel));
-            if (logo1->iFrameNumber >= 0) {  // we have a logo pair
-                count++;
-                int rate0 = 0;
-#define AD_IN_FRAME_MIN_0 510   // changed from 650 to 640 to 615 to 610 to 510
-                if (CompareLogoPair(logo1, logo2, logoHeight, logoWidth, area->corner, AD_IN_FRAME_MIN_0, 920, &rate0)) {
-                    dsyslog("cExtractLogo::SearchAdInFrame(): corner %d frame (%5d) and frame (%5d) is similar,   rate %4d (expect > %d)", area->corner, logo1->iFrameNumber, logo2->iFrameNumber, rate0, AD_IN_FRAME_MIN_0);
-                    if (firstContinuous == -1) firstContinuous = logo1->iFrameNumber;
-                    lastContinuous = logo2->iFrameNumber;
-                }
-                else {
-                    dsyslog("cExtractLogo::SearchAdInFrame(): corner %d frame (%5d) and frame (%5d) is different, rate %4d (expect > %d)", area->corner, logo1->iFrameNumber, logo2->iFrameNumber, rate0, AD_IN_FRAME_MIN_0);
-                    if ((endAdInFrame - startAdInFrame) < (lastContinuous - firstContinuous)) { // get biggest block
-                        startAdInFrame = firstContinuous;
-                        endAdInFrame = lastContinuous;
+            if ((similarCornersLow >= 3) && (similarCornersHigh >= 2)) {  // at least 3 corners has low match and 2 corner with high match
+                if (adInFrame.start == 0) adInFrame.start = (*cornerResultIt).frameNumber1;
+                adInFrame.end = (*cornerResultIt).frameNumber2;
+            }
+            else {
+                if ((adInFrame.start != 0) && (adInFrame.end != 0)) {  // we have a new pair
+                    if ((adInFrame.end - adInFrame.start) > (adInFrame.endFinal - adInFrame.startFinal)) {
+                        adInFrame.startFinal = adInFrame.start;
+                        adInFrame.endFinal = adInFrame.end;
                     }
-                    firstContinuous = -1;
-                    lastContinuous = -1;
+                    adInFrame.start = 0;  // reset state
+                    adInFrame.end = 0;
                 }
+
             }
-            FREE(sizeof(*logo1), "logo");
-            delete logo1;
-            logo1 = logo2;
         }
+        if ((adInFrame.end - adInFrame.start) > (adInFrame.endFinal - adInFrame.startFinal)) {  // in case of ad in frame go to end position
+            adInFrame.startFinal = adInFrame.start;
+            adInFrame.endFinal = adInFrame.end;
+        }
+        int startOffset = (adInFrame.startFinal - startPos) / maContext->Video.Info.FramesPerSecond;
+        int stopOffset = (stopPos - adInFrame.endFinal) / maContext->Video.Info.FramesPerSecond;
+        int length = (adInFrame.endFinal - adInFrame.startFinal) / maContext->Video.Info.FramesPerSecond;
+        dsyslog("cExtractLogo::AdInFrame(): advertising in frame: start offset %ds start (%d), end (%d) stop offset %ds, length %ds (expect >=8s and <=14s)", startOffset, adInFrame.startFinal, adInFrame.endFinal, stopOffset, length);
+        if ((length >= 9) && (length <= 30)) { // max from 14 to 20 to 30
+            if ((isStartMark && startOffset <= 5) ||  // an ad in frame after start mark must be near start mark
+               (!isStartMark && stopOffset  <= 14)) {  // an ad in frame before stop mark mast be near stop mark, preview with logo can follow ad in frame
+                dsyslog("cExtractLogo::isLogoChange(): this is a advertising in frame with logo");
+                if (isStartMark) retFrame = adInFrame.endFinal;
+                else retFrame = adInFrame.startFinal;
+            }
+            else dsyslog("cExtractLogo::isLogoChange(): offset not valid, this is not a advertising in frame with logo");
+        }
+        else dsyslog("cExtractLogo::isLogoChange(): length not valid, this is not a advertising in frame with logo");
     }
-
-    FREE(sizeof(*ptr_Logo), "ptr_Logo");
-    delete ptr_Logo;
-    FREE(sizeof(*logo1), "logo");
-    delete logo1;
-
-    if ((endAdInFrame - startAdInFrame) < (lastContinuous - firstContinuous)) { // continuous frames ends with stop mark
-        startAdInFrame = firstContinuous;
-        endAdInFrame = lastContinuous;
+#ifdef DEBUG_MEM
+    int size = compareResult.size();
+    for (int i = 0 ; i < size; i++) {
+        FREE(sizeof(compareInfoType), "compareResult");
     }
-    int length = (endAdInFrame - startAdInFrame) / maContext->Video.Info.FramesPerSecond;
-    dsyslog("cExtractLogo::SearchAdInFrame(): results: firstContinuous (%d), lastContinuous (%d), startAdInFrame (%d), endAdInFrame (%d), length %d", firstContinuous, lastContinuous, startAdInFrame, endAdInFrame, length);
-    if (length > 11) { // changed from 10 to 11
-        dsyslog("cExtractLogo::SearchAdInFrame(): found advertising in frame with logo, start at (%d)", startAdInFrame);
-        if (isStartMark) return endAdInFrame;
-        else return startAdInFrame;
-    }
-    else return -1;
+#endif
+    compareResult.clear();
+    return retFrame;
 }

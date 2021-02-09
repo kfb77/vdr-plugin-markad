@@ -30,7 +30,7 @@ class cExtractLogo {
         int SearchLogo(MarkAdContext *maContext, int startFrame);
         bool isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPos, const int startPos);
         int isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopMarkPosition);
-        int SearchAdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPosition, const bool isStartMark);
+        int AdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startPos, const int stopPos, const bool isStartMark);
         bool abort = false;
         void SetAbort() {
             abort = true;
@@ -54,7 +54,8 @@ class cExtractLogo {
         std::vector<logoInfoPacked> logoInfoVectorPacked[CORNERS];
 
         struct compareInfoType {
-            int frameNumber = 0;
+            int frameNumber1 = 0;
+            int frameNumber2 = 0;
             int rate[CORNERS] = {0};
         };
         typedef std::vector<compareInfoType> compareResultType;
