@@ -1763,61 +1763,6 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
 }
 
 
-// decect closing credit in <corner>
-// return false if end of similar part is reached
-//
-bool cExtractLogo::DetectClosingCredit(const int frameNumber, const int logoHeight, const int logoWidth, const int corner, cMarkAdLogo *ptr_Logo, logoInfo **logoFirst, int *count, int *match, int *noMatchStart) {
-    if ((corner < 0) || (corner >= CORNERS)) return false;
-    if (!ptr_Logo) return false;
-    if (!logoFirst) return false;
-    if (!*logoFirst) return false;
-    if (!count) return false;
-    if (!match) return false;
-    if (!noMatchStart) return false;
-
-    areaT *area = ptr_Logo->GetArea();
-    area->corner = corner;
-    int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
-                                //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
-/*
-#ifdef DEBUG_LOGO_CHANGE
-    iFrameNumberNext = -2;
-#endif
-*/
-    ptr_Logo->Detect(frameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
-
-    logoInfo *logoSecond = new logoInfo;
-    ALLOC(sizeof(*logoSecond), "logo");
-    logoSecond->iFrameNumber = frameNumber;
-    memcpy(logoSecond->sobel, area->sobel, sizeof(area->sobel));
-
-    if ((*logoFirst)->iFrameNumber >= 0) {  // we have a logo pair
-        (*count)++;
-        int rate0 = 0;
-#define RATE_0_HIGH_MIN    820
-        if (CompareLogoPair(*logoFirst, logoSecond, logoHeight, logoWidth, area->corner, RATE_0_HIGH_MIN, RATE_12_MIN, &rate0)) {
-            (*match)++;
-            tsyslog("cExtractLogo::isClosingCredit(): corner %-10s frame (%5d) and frame (%5d) is similar,   rate %4d", aCorner[area->corner], (*logoFirst)->iFrameNumber, logoSecond->iFrameNumber, rate0);
-         }
-         else {
-            if (*match > 0) {
-                tsyslog("cExtractLogo::isClosingCredit(): corner %-10s frame (%5d) and frame (%5d) is different, rate %4d", aCorner[area->corner], (*logoFirst)->iFrameNumber, logoSecond->iFrameNumber, rate0);
-                FREE(sizeof(*logoSecond), "logo");
-                delete logoSecond;
-                return false;
-            }
-            (*noMatchStart)++;
-            tsyslog("cExtractLogo::isClosingCredit(): corner %-10s frame (%5d) and frame (%5d) is different, rate %4d", aCorner[area->corner], (*logoFirst)->iFrameNumber, logoSecond->iFrameNumber, rate0);
-        }
-    }
-    FREE(sizeof(**logoFirst), "logo");
-    delete *logoFirst;
-    *logoFirst = logoSecond;
-    return true;
-}
-
-
-
 // search for closing credits after <stopPosition>
 // return 0     if no closing credits were found
 //        <int> end position of closing credits
@@ -1827,95 +1772,51 @@ int cExtractLogo::isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecod
     if (!ptr_cDecoder) return 0;
     if (!recordingIndexLogo) return 0;
 
-    int newPosition = 0;
-    bool status = true;
-    int count1 = 0;
-    int count2 = 0;
-    int match1 = 0;
-    int match2 = 0;
-    int noMatchStart1 = 0;
-    int noMatchStart2 = 0;
-    bool detectStatus1 = true;
-    bool detectStatus2 = true;
-    int end = stopMarkPosition + 15 * maContext->Video.Info.FramesPerSecond;  // try till 15s after stopMarkPosition
+    int stopPos = stopMarkPosition + 15 * maContext->Video.Info.FramesPerSecond;  // try till 15s after stopMarkPosition
+    dsyslog("cExtractLogo::isClosingCredit(): start detect closing credits between logo stop (%d) and (%d)", stopMarkPosition, stopPos);
 
-    int logoHeight = 0;
-    int logoWidth = 0;
-    SetLogoSize(maContext, &logoHeight, &logoWidth);
+    struct closingCredits {
+        int start = 0;
+        int end = 0;
+        int length = 0;
+    } closingCredits;
 
-    int oppositeCorner = -1;
-    if (maContext->Video.Logo.corner == TOP_RIGHT) {
-        oppositeCorner = TOP_LEFT;
-    }
+    int closingCreditsFrame = -1;
 
-    cMarkAdLogo *ptr_Logo1 = new cMarkAdLogo(maContext, recordingIndexLogo);
-    ALLOC(sizeof(*ptr_Logo1), "ptr_Logo");
-    cMarkAdLogo *ptr_Logo2 = new cMarkAdLogo(maContext, recordingIndexLogo);
-    ALLOC(sizeof(*ptr_Logo2), "ptr_Logo");
-
-    logoInfo *logoFirst1 = new logoInfo;
-    ALLOC(sizeof(*logoFirst1), "logo");
-    logoInfo *logoFirst2 = new logoInfo;
-    ALLOC(sizeof(*logoFirst2), "logo");
-
-
-    if (!ptr_cDecoder->SeekToFrame(maContext, stopMarkPosition)) {
-        dsyslog("cExtractLogo::isClosingCredit(): >SeekToFrame (%d) failed", stopMarkPosition);
-        status = false;
-    }
-    while ((ptr_cDecoder->GetFrameNumber() < end) && status){
-        if (!ptr_cDecoder->GetNextFrame()) {
-            dsyslog("cExtractLogo::isClosingCredit(): GetNextFrame() failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
-            status = false;
-        }
-        int frameNumber =  ptr_cDecoder->GetFrameNumber();
-        if (!ptr_cDecoder->isVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(maContext)) {
-            if (ptr_cDecoder->isVideoIFrame()) // if we have interlaced video this is expected, we have to read the next half picture
-                tsyslog("cExtractLogo::isClosingCredit(): GetFrameInfo() failed at frame (%d)", frameNumber);
-            continue;
-        }
-        if (ptr_cDecoder->isVideoIFrame()) {
-            if (!maContext->Video.Data.Valid) {
-                dsyslog("cExtractLogo::isClosingCredit(): faild to get video data of frame (%d)", frameNumber);
-                continue;
+    compareResultType compareResult;
+    if (CompairFrameRange(maContext, ptr_cDecoder, stopMarkPosition, stopPos, &compareResult)) {
+        for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
+            dsyslog("cExtractLogo::isLogoChange(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+            int similarCorners = 0;
+            for (int corner = 0; corner < CORNERS; corner++) {
+                if ((*cornerResultIt).rate[corner] >= 220) similarCorners++;
             }
-            if (detectStatus1) detectStatus1 = DetectClosingCredit(frameNumber, logoHeight, logoWidth, maContext->Video.Logo.corner, ptr_Logo1, &logoFirst1, &count1, &match1, &noMatchStart1);
-            if ((oppositeCorner != -1) && detectStatus2) detectStatus2 = DetectClosingCredit(frameNumber, logoHeight, logoWidth, oppositeCorner, ptr_Logo2, &logoFirst2, &count2, &match2, &noMatchStart2);
-            if (!detectStatus1 && !detectStatus2) break;
-        }
-    }
-    if (status) {
-        int quote1 = 0;
-        if (count1 > 0) quote1 = 100 * match1 / count1;
-#define CLOSING_CREDITS_QUOTE_MIN 86  // changed from 95 to 86
-        if (quote1 >= CLOSING_CREDITS_QUOTE_MIN) {
-            dsyslog("cExtractLogo::isClosingCredit(): corner %-10s: %d matches after %d differnt at start, valid frames %d, quote %d, closing credits found (expect >=%d)", aCorner[maContext->Video.Logo.corner], match1, noMatchStart1, count1, quote1, CLOSING_CREDITS_QUOTE_MIN);
-            newPosition = logoFirst1->iFrameNumber; // here same as logo2
-        }
-        else  {
-            if (oppositeCorner > 0) {
-                dsyslog("cExtractLogo::isClosingCredit(): corner %-10s: %d matches after %d differnt at start, valid frames %d, quote %d, no closing credits found (expect >=%d)", aCorner[maContext->Video.Logo.corner], match1, noMatchStart1, count1, quote1, CLOSING_CREDITS_QUOTE_MIN);
-                int quote2 = 0;
-                if (count2 > 0) quote2 = 100 * match2 / count2;
-                if (quote2 >= CLOSING_CREDITS_QUOTE_MIN) {
-                    dsyslog("cExtractLogo::isClosingCredit(): corner %-10s: %d matches after %d differnt at start, valid frames %d, quote %d, closing credits found (expect >=%d)", aCorner[oppositeCorner], match2, noMatchStart2, count2, quote2, CLOSING_CREDITS_QUOTE_MIN);
-                    newPosition = logoFirst2->iFrameNumber; // here same as logo2
-                }
-                else dsyslog("cExtractLogo::isClosingCredit(): corner %-10s: %d matches after %d differnt at start, valid frames %d, quote %d, no closing credits found (expect >=%d)", aCorner[oppositeCorner], match2, noMatchStart2, count2, quote2, CLOSING_CREDITS_QUOTE_MIN);
+            if (similarCorners >= 3) {  // at least 3 corners has a match
+                if (closingCredits.start == 0) closingCredits.start = (*cornerResultIt).frameNumber1;
+            }
+            else {
+                if ((closingCredits.start != 0) && (closingCredits.end == 0)) closingCredits.end = (*cornerResultIt).frameNumber2;
+
             }
         }
+        // check if it are closing credits
+        dsyslog("cExtractLogo::isClosingCredit(): closing credits: offset (%d) start (%d) end (%d)", stopMarkPosition, closingCredits.start, closingCredits.end);
+        int offset = (closingCredits.start - stopMarkPosition) / maContext->Video.Info.FramesPerSecond;
+        closingCredits.length = (closingCredits.end - closingCredits.start) / maContext->Video.Info.FramesPerSecond;
+        dsyslog("cExtractLogo::isLogoChange(): closing credits: offset %d length %ds", offset, closingCredits.length);
+        if ((offset <= 1) && (closingCredits.length >= 9)) {
+            dsyslog("cExtractLogo::isLogoChange(): this is a closing credits, pair contains a valid mark");
+            closingCreditsFrame = closingCredits.end;
+        }
     }
-    FREE(sizeof(*ptr_Logo1), "ptr_Logo");
-    delete ptr_Logo1;
-    FREE(sizeof(*ptr_Logo2), "ptr_Logo");
-    delete ptr_Logo2;
-    FREE(sizeof(*logoFirst1), "logo");
-    delete logoFirst1;
-    FREE(sizeof(*logoFirst2), "logo");
-    delete logoFirst2;
-
-    return newPosition;
+#ifdef DEBUG_MEM
+    int size = compareResult.size();
+    for (int i = 0 ; i < size; i++) {
+        FREE(sizeof(compareInfoType), "compareResult");
+    }
+#endif
+    compareResult.clear();
+    return closingCreditsFrame;
 }
 
 
