@@ -1367,6 +1367,11 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                 int lengthAd = static_cast<int> ((bStop->position - mark->position) / macontext.Video.Info.FramesPerSecond);
                 if (lengthAd < 130) { // increased from 70 to 130
                     isyslog("found advertisement of length %is between hborder mark (%i) and hborder mark (%i), deleting marks", lengthAd, mark->position, bStop->position);
+                    clMark *logoStart = marks.GetNext(mark->position, MT_LOGOSTART);
+                    if (logoStart && (logoStart->position <= bStop->position)) { // if there is a logo start between hborder start and bhorder end, it is the logo start of the preview, this is invalid
+                        dsyslog("cMarkAdStandalone::CheckMarks(): invalid logo start mark between hborder start/stop, delete (%d)", logoStart->position);
+                        marks.Del(logoStart);
+                    }
                     clMark *tmp = mark;
                     mark = mark->Next();  // this can be the border stop mark or any other mark in between
                     if (mark->position == bStop->position) mark = mark->Next();  // there can be other marks in between
