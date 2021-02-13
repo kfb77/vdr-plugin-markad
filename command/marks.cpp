@@ -388,6 +388,11 @@ char *clMarks::TypeToText(const int type) {
                 ALLOC(strlen(text)+1, "text");
             }
             break;
+        case MT_HBORDERCHANGE:
+            if (asprintf(&text, "horizontal border") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            break;
         case MT_ASPECTCHANGE:
             if (asprintf(&text, "aspectratio") != -1) {
                 ALLOC(strlen(text)+1, "text");
