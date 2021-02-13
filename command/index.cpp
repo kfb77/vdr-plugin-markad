@@ -64,6 +64,32 @@ void cIndex::Add(int fileNumber, int frameNumber, int64_t pts_time_ms) {
 }
 
 
+// get nearest iFrame to given frame
+// if frame is a iFrame, frame will be returned
+// return: iFrame number
+int cIndex::GetIFrameNear(int frame) {
+    if (indexVector.empty()) {
+        dsyslog("cIndex::GetIFrameNear(): frame index not initialized");
+        return -1;
+    }
+    int before_iFrame = -1;
+    int after_iFrame  = -1;
+    for (std::vector<index>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+        if (frameIterator->frameNumber >= frame) {
+            after_iFrame = frameIterator->frameNumber;
+            break;
+        }
+        else before_iFrame = frameIterator->frameNumber;
+    }
+    if ((before_iFrame == -1) || (after_iFrame == -1)) {
+        dsyslog("cIndex::GetIFrameNear(): failed for frame (%d), index: first frame (%d) last frame (%d)", frame, indexVector.front().frameNumber, indexVector.back().frameNumber);
+        return -2; // frame not yet in index
+    }
+    if ((after_iFrame - frame) < (frame - before_iFrame)) return after_iFrame;
+    else return before_iFrame;
+}
+
+
 // get iFrame before given frame
 // if frame is a iFrame, frame will be returned
 // return: iFrame number
@@ -72,12 +98,12 @@ int cIndex::GetIFrameBefore(int frame) {
         dsyslog("cIndex::GetIFrameBefore(): frame index not initialized");
         return -1;
     }
-    int before_iFrame=0;
+    int before_iFrame = 0;
     for (std::vector<index>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
         if (frameIterator->frameNumber > frame) {
             return before_iFrame;
         }
-        else before_iFrame = frameIterator -> frameNumber;
+        else before_iFrame = frameIterator->frameNumber;
     }
     dsyslog("cIndex::GetIFrameBefore(): failed for frame (%d), index: first frame (%d) last frame (%d)", frame, indexVector.front().frameNumber, indexVector.back().frameNumber);
     return -2; // frame not yet in index

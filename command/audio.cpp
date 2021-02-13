@@ -17,62 +17,61 @@ extern "C"{
 }
 
 
-cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext) {
-    macontext=maContext;
-    mark.Position=0;
-    mark.Type=0;
+cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext, cIndex *recordingIndex) {
+    macontext = maContext;
+    recordingIndexAudio = recordingIndex;
+    mark.Position = 0;
+    mark.Type = 0;
     Clear();
 }
 
 cMarkAdAudio::~cMarkAdAudio() {
-    resetmark();
+    ResetMark();
     Clear();
 }
 
 
 void cMarkAdAudio::Clear() {
-    framelast=0;
     channels[MAXSTREAMS-1] = {0};
 }
 
 
-void cMarkAdAudio::resetmark() {
+void cMarkAdAudio::ResetMark() {
     if (!mark.Type) return;
-    mark={};
+    mark = {};
 }
 
 
-void cMarkAdAudio::setmark(int type, int position, int channelsbefore, int channelsafter) {
-    mark.ChannelsBefore=channelsbefore;
-    mark.ChannelsAfter=channelsafter;
-    mark.Position=position;
-    mark.Type=type;
+void cMarkAdAudio::SetMark(const int type, const int position, const int channelsbefore, const int channelsafter) {
+    mark.ChannelsBefore = channelsbefore;
+    mark.ChannelsAfter = channelsafter;
+    mark.Position = position;
+    mark.Type = type;
 }
 
 
-bool cMarkAdAudio::channelchange(int a, int b) {
-    if ((a==0) || (b==0)) return false;
-    if (a!=b) return true;
+bool cMarkAdAudio::ChannelChange(int a, int b) {
+    if ((a == 0) || (b == 0)) return false;
+    if (a != b) return true;
     return false;
 }
 
 
-MarkAdMark *cMarkAdAudio::Process(int FrameNumber, int FrameNumberNext) {
-    if ((!FrameNumber) || (!FrameNumberNext)) return NULL;
-    resetmark();
+MarkAdMark *cMarkAdAudio::Process() {
+    ResetMark();
 
     for (short int stream = 0; stream < MAXSTREAMS; stream++){
-        if (channelchange(macontext->Audio.Info.Channels[stream],channels[stream])) {
-            if (macontext->Audio.Info.Channels[stream]>2) {
-                setmark(MT_CHANNELSTART,FrameNumberNext,channels[stream],macontext->Audio.Info.Channels[stream]);
+        if (ChannelChange(macontext->Audio.Info.Channels[stream], channels[stream])) {
+            int nearestIFrame = recordingIndexAudio->GetIFrameNear(macontext->Audio.Info.frameChannelChange);
+            if (macontext->Audio.Info.Channels[stream] > 2) {
+                SetMark(MT_CHANNELSTART, nearestIFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
             }
             else {
-                setmark(MT_CHANNELSTOP,framelast,channels[stream],macontext->Audio.Info.Channels[stream]);
+                SetMark(MT_CHANNELSTOP, nearestIFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
             }
         }
 
-        channels[stream]=macontext->Audio.Info.Channels[stream];
-        framelast=FrameNumber;
+        channels[stream] = macontext->Audio.Info.Channels[stream];
     }
     if (mark.Position) {
         return &mark;

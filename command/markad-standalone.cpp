@@ -2583,7 +2583,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 macontext.Video.Info.Interlaced = true;
                 CalculateCheckPositions(macontext.Info.tStart * macontext.Video.Info.FramesPerSecond);
             }
-            lastiframe=iframe;
+            lastiframe = iframe;
             if ((iStart < 0) && (lastiframe > -iStart)) iStart = lastiframe;
             if ((iStop < 0) && (lastiframe > -iStop)) {
                 iStop = lastiframe;
@@ -2658,8 +2658,8 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 }
             }
         }
-        if(ptr_cDecoder->isAudioAC3Packet()) {
-             MarkAdMark *amark = audio->Process(lastiframe, iframe);
+        if (ptr_cDecoder->isVideoIFrame()) {  // check audio channels on next iFrame because audio changes are not at iFrame positions
+            MarkAdMark *amark = audio->Process();  // class audio will take frame number of channel change from macontext->Audio.Info.frameChannelChange
             if (amark) AddMark(amark);
         }
     }
@@ -3657,7 +3657,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     if (!abortNow) {
         video = new cMarkAdVideo(&macontext, recordingIndex);
         ALLOC(sizeof(*video), "video");
-        audio = new cMarkAdAudio(&macontext);
+        audio = new cMarkAdAudio(&macontext, recordingIndex);
         ALLOC(sizeof(*audio), "audio");
         if (macontext.Info.ChannelName)
             isyslog("channel %s", macontext.Info.ChannelName);

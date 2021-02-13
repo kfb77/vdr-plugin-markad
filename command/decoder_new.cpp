@@ -698,6 +698,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
                                                                                                         framenumber);
                 maContext->Audio.Info.Channels[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codec->channels;
 #endif
+                maContext->Audio.Info.frameChannelChange = framenumber;
             }
         }
         return true;

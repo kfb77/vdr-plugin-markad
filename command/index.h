@@ -21,6 +21,7 @@ class cIndex {
         ~cIndex();
         int64_t GetLastTime();
         void Add(int fileNumber, int frameNumber, int64_t pts_time_ms);
+        int GetIFrameNear(int frame);
         int GetIFrameBefore(int frame);
         int GetIFrameAfter(int frame);
         int64_t GetTimeFromFrame(int frame);

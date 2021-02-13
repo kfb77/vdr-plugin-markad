@@ -9,22 +9,23 @@
 #define __audio_h_
 
 #include "global.h"
+#include "index.h"
 
 
 class cMarkAdAudio {
     private:
         MarkAdContext *macontext;
+        cIndex *recordingIndexAudio = NULL;
         MarkAdMark mark;
-        int framelast;
         short int channels[MAXSTREAMS] = {0};
 
-        void resetmark();
-        void setmark(int type, int position, int channelsbefore, int channelsafter);
-        bool channelchange(int a, int b);
+        void ResetMark();
+        void SetMark(const int type, const int position, const int channelsbefore, const int channelsafter);
+        bool ChannelChange(int a, int b);
     public:
-        explicit cMarkAdAudio(MarkAdContext *maContext);
+        explicit cMarkAdAudio(MarkAdContext *maContext, cIndex *recordingIndex);
         ~cMarkAdAudio();
-        MarkAdMark *Process(int FrameNumber, int FrameNumberBefore);
+        MarkAdMark *Process();
         void Clear();
 };
 #endif
