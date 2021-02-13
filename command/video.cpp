@@ -1508,15 +1508,21 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext) {
             if (((macontext->Info.AspectRatio.Num == 4) && (macontext->Info.AspectRatio.Den == 3)) ||
                 ((macontext->Info.AspectRatio.Num == 0) && (macontext->Info.AspectRatio.Den == 0))) {
                 if ((macontext->Video.Info.AspectRatio.Num==4) && (macontext->Video.Info.AspectRatio.Den==3)) {
-                    addmark(MT_ASPECTSTART,start ? FrameNumber : FrameNumberNext,&aspectratio,&macontext->Video.Info.AspectRatio);
+                    int markFrame = 0;
+                    if (start) markFrame = FrameNumber;
+                    else markFrame = recordingIndexMarkAdVideo->GetIFrameAfter(FrameNumber + 1); // do not use FrameNumberNext because on interleaved video it is not a iFrame
+                    addmark(MT_ASPECTSTART, markFrame, &aspectratio, &macontext->Video.Info.AspectRatio);
                 }
                 else {
-                    addmark(MT_ASPECTSTOP,framelast,&aspectratio,&macontext->Video.Info.AspectRatio);
+                    addmark(MT_ASPECTSTOP, framelast, &aspectratio, &macontext->Video.Info.AspectRatio);
                 }
             }
             else {
                 if ((macontext->Video.Info.AspectRatio.Num == 16) && (macontext->Video.Info.AspectRatio.Den == 9)) {
-                    addmark(MT_ASPECTSTART,start ? FrameNumber : FrameNumberNext, &aspectratio, &macontext->Video.Info.AspectRatio);
+                    int markFrame = 0;
+                    if (start) markFrame = FrameNumber;
+                    else markFrame = recordingIndexMarkAdVideo->GetIFrameAfter(FrameNumber + 1); // do not use FrameNumberNext because on interleaved video it is not a iFrame
+                    addmark(MT_ASPECTSTART, markFrame, &aspectratio, &macontext->Video.Info.AspectRatio);
                 }
                 else {
                     addmark(MT_ASPECTSTOP, framelast, &aspectratio, &macontext->Video.Info.AspectRatio);

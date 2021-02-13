@@ -853,7 +853,7 @@ void cMarkAdStandalone::CheckStart() {
                 wrongAspectInfo = true;
             }
         }
-        // cerrect wrong aspect ratio from vdr info file
+        // fix wrong aspect ratio from vdr info file
         if (wrongAspectInfo || ((!earlyAspectChange) && ((macontext.Info.AspectRatio.Num != macontext.Video.Info.AspectRatio.Num) ||
                                                          (macontext.Info.AspectRatio.Den != macontext.Video.Info.AspectRatio.Den)))) {
             MarkAdAspectRatio newMarkAdAspectRatio;
@@ -866,11 +866,17 @@ void cMarkAdStandalone::CheckStart() {
             isyslog("video aspect description in info (%d:%d) wrong, correct to (%d:%d)", macontext.Info.AspectRatio.Num, macontext.Info.AspectRatio.Den, newMarkAdAspectRatio.Num, newMarkAdAspectRatio.Den);
             macontext.Info.AspectRatio.Num = newMarkAdAspectRatio.Num;
             macontext.Info.AspectRatio.Den = newMarkAdAspectRatio.Den;
-            // we have to invert MT_ASPECTSTART and MT_ASPECTSTOP
+            // we have to invert MT_ASPECTSTART and MT_ASPECTSTOP and fix position
             clMark *aMark = marks.GetFirst();
             while (aMark) {
-                if (aMark->type == MT_ASPECTSTART) aMark->type = MT_ASPECTSTOP;
-                else if (aMark->type == MT_ASPECTSTOP) aMark->type = MT_ASPECTSTART;
+                if (aMark->type == MT_ASPECTSTART) {
+                    aMark->type = MT_ASPECTSTOP;
+                    aMark->position = recordingIndexMark->GetIFrameBefore(aMark->position - 1);
+                }
+                else if (aMark->type == MT_ASPECTSTOP) {
+                         aMark->type = MT_ASPECTSTART;
+                         aMark->position = recordingIndexMark->GetIFrameAfter(aMark->position + 1);
+                     }
                 aMark = aMark->Next();
             }
         }
@@ -2110,6 +2116,12 @@ void cMarkAdStandalone::DebugMarkFrames() {
 
     ptr_cDecoder->Reset();
     clMark *mark = marks.GetFirst();
+    while (mark) {
+        if (mark->position != recordingIndexMark->GetIFrameBefore(mark->position)) dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at (%d) type 0x%X is not a iFrame position", mark->position, mark->type);
+        mark=mark->Next();
+    }
+
+    mark = marks.GetFirst();
     if (!mark) return;
 
     int writePosition = mark->position;
@@ -2124,7 +2136,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
             if (ptr_cDecoder->isVideoPacket()) {
                 if (ptr_cDecoder->GetFrameInfo(&macontext)) {
                     if (ptr_cDecoder->GetFrameNumber() >= writePosition) {
-                        dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at frame (%5d) write frame (%5d)", mark->position, writePosition);
+                        dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at frame (%5d) type 0x%X, write frame (%5d)", mark->position, mark->type, writePosition);
                         if (writePosition == mark->position) {
                             if ((mark->type & 0x0F) == MT_START) SaveFrame(mark->position, directory, "START");
                             else if ((mark->type & 0x0F) == MT_STOP) SaveFrame(mark->position, directory, "STOP");
@@ -2137,8 +2149,9 @@ void cMarkAdStandalone::DebugMarkFrames() {
                         if (writeOffset >= DEBUG_MARK_FRAMES) {
                             mark = mark->Next();
                             if (!mark) break;
+                            writePosition = mark->position;
                             for (int i = 0; i < DEBUG_MARK_FRAMES; i++) {
-                                writePosition = recordingIndexMark->GetIFrameBefore(mark->position - 1);
+                                writePosition = recordingIndexMark->GetIFrameBefore(writePosition - 1);
                             }
                             writeOffset = -DEBUG_MARK_FRAMES;
                         }
