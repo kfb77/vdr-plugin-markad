@@ -2274,7 +2274,7 @@ void cMarkAdStandalone::Process3ndPass() {
 // check last logo stop mark if closing credits follows
     if (ptr_cDecoder) {  // we use file position from 2ndPass call
         clMark *lastStop = marks.GetLast();
-        if (lastStop->type == MT_LOGOSTOP) {
+        if (lastStop && lastStop->type == MT_LOGOSTOP) {
             dsyslog("cMarkAdStandalone::Process3ndPass(): search for closing credits");
             if (MoveLastLogoStopAfterClosingCredits(lastStop)) {
                 dsyslog("cMarkAdStandalone::Process3ndPass(): moved last logo stop mark after closing credit");
