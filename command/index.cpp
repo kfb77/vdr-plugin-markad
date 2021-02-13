@@ -64,6 +64,9 @@ void cIndex::Add(int fileNumber, int frameNumber, int64_t pts_time_ms) {
 }
 
 
+// get iFrame before given frame
+// if frame is a iFrame, frame will be returned
+// return: iFrame number
 int cIndex::GetIFrameBefore(int frame) {
     if (indexVector.empty()) {
         dsyslog("cIndex::GetIFrameBefore(): frame index not initialized");
@@ -71,7 +74,7 @@ int cIndex::GetIFrameBefore(int frame) {
     }
     int before_iFrame=0;
     for (std::vector<index>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->frameNumber >= frame) {
+        if (frameIterator->frameNumber > frame) {
             return before_iFrame;
         }
         else before_iFrame = frameIterator -> frameNumber;
@@ -81,6 +84,9 @@ int cIndex::GetIFrameBefore(int frame) {
 }
 
 
+// get iFrame after^ given frame
+// if frame is a iFrame, frame will be returned
+// return: iFrame number
 int cIndex::GetIFrameAfter(int frame) {
     if (indexVector.empty()) {
         dsyslog("cIndex::GetIFrameAfter(): frame index not initialized");

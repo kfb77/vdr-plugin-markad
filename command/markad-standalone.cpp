@@ -2179,7 +2179,7 @@ void cMarkAdStandalone::MarkadCut() {
         esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
         return;
     }
-    int stopPosition = recordingIndexMark->GetIFrameBefore(StopMark->position);
+    int stopPosition = recordingIndexMark->GetIFrameBefore(StopMark->position - 1);
     ptr_cEncoder = new cEncoder(macontext.Config->threads, macontext.Config->ac3ReEncode);
     ALLOC(sizeof(*ptr_cEncoder), "ptr_cEncoder");
     if (!ptr_cEncoder->OpenFile(directory, ptr_cDecoder)) {
@@ -2204,9 +2204,10 @@ void cMarkAdStandalone::MarkadCut() {
                         esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
                         return;
                     }
-                    stopPosition = recordingIndexMark->GetIFrameBefore(StopMark->position);
+                    stopPosition = recordingIndexMark->GetIFrameBefore(StopMark->position - 1);
                 }
                 else break;
+                continue;
             }
             AVPacket *pkt = ptr_cDecoder->GetPacket();
             if ( !pkt ) {
