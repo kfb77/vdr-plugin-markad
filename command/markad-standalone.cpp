@@ -1049,14 +1049,26 @@ void cMarkAdStandalone::CheckStart() {
             dsyslog("cMarkAdStandalone::CheckStart(): no logo start mark found");
         }
         else {
+            char *indexToHMSF = marks.IndexToHMSF(lStart->position, &macontext);
+            if (indexToHMSF) {
+                dsyslog("cMarkAdStandalone::CheckStart(): logo start mark found on position (%i) at %s", lStart->position, indexToHMSF);
+                FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                free(indexToHMSF);
+            }
+            if (lStart->position  < (iStart / 8)) {  // start mark is too early, try to find a later mark
+                clMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
+                if (lNextStart && (lNextStart->position  > (iStart / 8)) && ((lNextStart->position - lStart->position) < (5 * delta))) {  // found later logo start mark
+                    char *indexToHMSF = marks.IndexToHMSF(lNextStart->position, &macontext);
+                    if (indexToHMSF) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lNextStart->position, indexToHMSF);
+                        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                        free(indexToHMSF);
+                    }
+                    lStart = lNextStart;   // found better logo start mark
+                }
+            }
             bool isInvalid = true;
             while (isInvalid) {
-                char *indexToHMSF = marks.IndexToHMSF(lStart->position, &macontext);
-                if (indexToHMSF) {
-                    dsyslog("cMarkAdStandalone::CheckStart(): logo start mark found on position (%i) at %s", lStart->position, indexToHMSF);
-                    FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-                    free(indexToHMSF);
-                }
                 clMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
                 if (lStop) {  // there is a next stop mark in the start range
                     int distanceStartStop = (lStop->position - lStart->position) / macontext.Video.Info.FramesPerSecond;
@@ -1100,19 +1112,6 @@ void cMarkAdStandalone::CheckStart() {
                 begin = lStart;   // found valid logo start mark
                 marks.Del(MT_HBORDERSTART);  // there could be hborder from an advertising in the recording
                 marks.Del(MT_HBORDERSTOP);
-            }
-            else {  // logo start mark too early, try if there is a later logo start mark
-                clMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
-                if (lNextStart && (lNextStart->position  > (iStart / 8)) && ((lNextStart->position - lStart->position) < (5 * delta))) {  // found later logo start mark
-                    char *indexToHMSF = marks.IndexToHMSF(lNextStart->position, &macontext);
-                    if (indexToHMSF) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lNextStart->position, indexToHMSF);
-                        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-                        free(indexToHMSF);
-                    }
-                    begin = lNextStart;   // found valid logo start mark
-                    macontext.Video.Info.hasBorder = true;
-                }
             }
         }
     }
