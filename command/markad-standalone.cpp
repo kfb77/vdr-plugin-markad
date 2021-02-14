@@ -2358,7 +2358,7 @@ void cMarkAdStandalone::Process3ndPass() {
 
 // search for audio silence near logo marks
     LogSeparator(false);
-    dsyslog("cMarkAdStandalone::Process3ndPass(): search for audio silence");
+    dsyslog("cMarkAdStandalone::Process3ndPass(): search for audio silence around logo marks");
 #define BLACKSCREEN_RANGE 6 // in s
     int silenceRange = 5;  // do not increase, otherwise we got stop marks behind separation images
     if (strcmp(macontext.Info.ChannelName, "DMAX") == 0) silenceRange = 12; // logo color change at the begin
