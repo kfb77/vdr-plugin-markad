@@ -548,7 +548,6 @@ void cMarkAdStandalone::CheckStop() {
                 blackMarks.Add(mark->type, mark->position, NULL, mark->inBroadCast); // add mark to blackscreen list
                 clMark *tmp = mark;
                 mark = mark->Next();
-                dsyslog("cMarkAdStandalone::CheckStop(): delete black screen mark (%i)", tmp->position);
                 marks.Del(tmp);
                 continue;
             }
