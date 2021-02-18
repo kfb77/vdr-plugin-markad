@@ -974,8 +974,8 @@ void cMarkAdBlackBordersHoriz::Clear() {
 
 
 int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *BorderIFrame) { // return 0 no border change
-                                                                            //        1 detected start of black border
-                                                                            //       -1 detected stop of black border
+                                                                                  //        1 detected start of black border
+                                                                                  //       -1 detected stop of black border
 #define CHECKHEIGHT 20
 #define BRIGHTNESS_H_SURE 20
 #define BRIGHTNESS_H_MAYBE 27  // some channel have logo in border, so we will get a higher value
@@ -1466,12 +1466,12 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext) {
     }
     if (!macontext->Video.Options.ignoreHborder) {
         int hborderframenumber;
-        int hret=hborder->Process(FrameNumber,&hborderframenumber);
-        if ((hret>0) && (hborderframenumber!=-1)) {
-            addmark(MT_HBORDERSTART,hborderframenumber);
+        int hret = hborder->Process(FrameNumberNext, &hborderframenumber);  // we get start frame of hborder back
+        if ((hret > 0) && (hborderframenumber != -1)) {
+            addmark(MT_HBORDERSTART, hborderframenumber);
         }
-        if ((hret<0) && (hborderframenumber!=-1)) {
-            addmark(MT_HBORDERSTOP,hborderframenumber);
+        if ((hret < 0) && (hborderframenumber != -1)) {
+            addmark(MT_HBORDERSTOP, FrameNumber);  // we use iFrame before current frame as stop mark, this was the last frame with hborder
         }
     }
     else if (hborder) hborder->Clear();
