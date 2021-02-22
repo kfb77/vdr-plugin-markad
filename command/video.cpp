@@ -942,14 +942,14 @@ int cMarkAdBlackScreen::Process() {
         if (val > maxBrightness) {
             if (blackScreenstatus != BLACKSCREEN_INVISIBLE) {
                 blackScreenstatus = BLACKSCREEN_INVISIBLE;
-                if (blackScreenstatus != BLACKSCREEN_UNINITIALIZED) return 1; // detected stop of black screen
+                return 1; // detected stop of black screen
             }
             return 0;
         }
     }
     if (blackScreenstatus == BLACKSCREEN_INVISIBLE) {
         blackScreenstatus = BLACKSCREEN_VISIBLE;
-        if (blackScreenstatus != BLACKSCREEN_UNINITIALIZED) return -1; // detected start of black screen
+        return -1; // detected start of black screen
     }
     return 0;
 }
