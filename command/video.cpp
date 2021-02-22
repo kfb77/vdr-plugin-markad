@@ -1099,18 +1099,20 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
     //if (macontext->Video.Info.AspectRatio.Num==4) return 0; // seems not to be true in all countries?
     *BorderIFrame = 0;
 
-    bool fleft = true, fright = true;
-    int val = 0,cnt = 0;
+    bool fleft  = true;
+    bool fright = true;
+    int val = 0;
+    int cnt = 0;
 
     if(!macontext->Video.Data.PlaneLinesize[0]) {
         dsyslog("Video.Data.PlaneLinesize[0] missing");
         return 0;
     }
-    int end = macontext->Video.Data.PlaneLinesize[0] * (macontext->Video.Info.Height-VOFFSET_);
-    int i = VOFFSET_*macontext->Video.Data.PlaneLinesize[0];
+    int end = macontext->Video.Data.PlaneLinesize[0] * (macontext->Video.Info.Height - VOFFSET_);
+    int i = VOFFSET_ * macontext->Video.Data.PlaneLinesize[0];
     while (i < end) {
         for (int x = 0; x < CHECKWIDTH; x++) {
-            val += macontext->Video.Data.Plane[0][HOFFSET+x+i];
+            val += macontext->Video.Data.Plane[0][HOFFSET + x + i];
             cnt++;
         }
         i += macontext->Video.Data.PlaneLinesize[0];
@@ -1120,7 +1122,7 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
 
     if (fleft) {
         val = cnt = 0;
-        i = VOFFSET_*macontext->Video.Data.PlaneLinesize[0];
+        i = VOFFSET_ * macontext->Video.Data.PlaneLinesize[0];
         int w = macontext->Video.Info.Width - HOFFSET - CHECKWIDTH;
         while (i < end) {
             for (int x = 0; x < CHECKWIDTH; x++) {
@@ -1136,7 +1138,7 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
 #ifdef DEBUG_VBORDER
     dsyslog("cMarkAdBlackBordersVert(): frame (%5d) fleft %d fright %d", FrameNumber, fleft, fright);
 #endif
-    if ((fleft) && (fright)) {
+    if (fleft && fright) {
         if (borderframenumber == -1) {
             borderframenumber = FrameNumber;
         }
