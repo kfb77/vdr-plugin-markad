@@ -705,10 +705,14 @@ int cMarkAdLogo::Detect(const int framenumber, int *logoframenumber) {
             return LOGO_NOCHANGE;
         }
     }
-    else {  // if we have more planes we can still have a problem with bright frames at start, make sure we get at least a quick initial logo visible
-        if ((area.status == LOGO_UNINITIALIZED) && (area.intensity > 120) && (rpixel < (mpixel * logo_vmark))) {
-            rpixel -= area.rpixel[0];
+    else {  // if we have more planes we can still have a problem with bright frames
+        if ((area.status == LOGO_VISIBLE) && (area.intensity > 150) && (rpixel < (mpixel * LOGO_IMARK))) return LOGO_NOCHANGE; // too bright, logo detection can be wrong
+        if ((((area.status == LOGO_UNINITIALIZED) && (rpixel < (mpixel * logo_vmark))) ||  // at start make sure we get at least a quick initial logo visible
+            ((area.status == LOGO_VISIBLE) && (rpixel < (mpixel * LOGO_IMARK)) && (rpixel > (mpixel * LOGO_IMARK * 0.75)))) &&  // we have a lot of machtes but not enough
+             (area.intensity > 120)) {
+            rpixel -= area.rpixel[0]; //  try without plane 0
             mpixel -= area.mpixel[0];
+            dsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | s=%i | p=%i", framenumber, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
         }
     }
 
