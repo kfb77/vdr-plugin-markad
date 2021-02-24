@@ -977,28 +977,26 @@ void cMarkAdBlackBordersHoriz::Clear() {
 }
 
 
-int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *BorderIFrame) { // return 0 no border change
-                                                                                  //        1 detected start of black border
-                                                                                  //       -1 detected stop of black border
+int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *BorderIFrame) {
 #define CHECKHEIGHT 20
 #define BRIGHTNESS_H_SURE 20
 #define BRIGHTNESS_H_MAYBE 27  // some channel have logo in border, so we will get a higher value
 #define VOFFSET 5
-    if (!macontext) return 0;
-    if (!macontext->Video.Data.Valid) return 0;
-    if (macontext->Video.Info.FramesPerSecond == 0) return 0;
+    if (!macontext) return HBORDER_ERROR;
+    if (!macontext->Video.Data.Valid) return HBORDER_ERROR;
+    if (macontext->Video.Info.FramesPerSecond == 0) return HBORDER_ERROR;
     // Assumption: If we have 4:3, we should have aspectratio-changes!
     //if (macontext->Video.Info.AspectRatio.Num==4) return 0; // seems not to be true in all countries?
-    *BorderIFrame = 0;
+    *BorderIFrame = -1;   // framenumber if we has a change, otherwise -1
     if (!macontext->Video.Info.Height) {
         dsyslog("cMarkAdBlackBordersHoriz::Process() video hight missing");
-        return 0;
+        return HBORDER_ERROR;
     }
     int height = macontext->Video.Info.Height - VOFFSET;
 
     if (!macontext->Video.Data.PlaneLinesize[0]) {
         dsyslog("cMarkAdBlackBordersHoriz::Process() Video.Data.PlaneLinesize[0] not initalized");
-        return 0;
+        return HBORDER_ERROR;
     }
     int start = (height - CHECKHEIGHT) * macontext->Video.Data.PlaneLinesize[0];
     int end = height * macontext->Video.Data.PlaneLinesize[0];
@@ -1047,7 +1045,7 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *BorderIFrame) 
                 if (FrameNumber > (borderframenumber+macontext->Video.Info.FramesPerSecond * MIN_H_BORDER_SECS)) {
                     *BorderIFrame = borderframenumber;
                     borderstatus = HBORDER_VISIBLE;
-                    return 1; // detected start of black border
+                    return HBORDER_VISIBLE; // detected start of black border
                 }
             }
         }
@@ -1056,14 +1054,14 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *BorderIFrame) 
         if (borderstatus == HBORDER_VISIBLE) {
             *BorderIFrame = FrameNumber;
             borderstatus = HBORDER_INVISIBLE;
-            borderframenumber = -1;
-            return -1; // detected stop of black border
+            borderframenumber = HBORDER_INVISIBLE;
+            return HBORDER_INVISIBLE; // detected stop of black border
         }
         else {
             borderframenumber = -1; // restart from scratch
         }
     }
-    return 0;
+    return borderstatus;
 }
 
 
@@ -1092,16 +1090,16 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
 #define VOFFSET_ 120
     if (!macontext) {
         dsyslog("cMarkAdBlackBordersVert::Process(): macontext not valid");
-        return 0;
+        return VBORDER_ERROR;
     }
-    if (!macontext->Video.Data.Valid) return 0;  // no error, this is expected if bDecodeVideo is disabled
+    if (!macontext->Video.Data.Valid) return VBORDER_ERROR;  // no error, this is expected if bDecodeVideo is disabled
     if (macontext->Video.Info.FramesPerSecond == 0) {
         dsyslog("cMarkAdBlackBordersVert::Process(): video frames per second  not valid");
-        return 0;
+        return VBORDER_ERROR;
     }
     // Assumption: If we have 4:3, we should have aspectratio-changes!
     //if (macontext->Video.Info.AspectRatio.Num==4) return 0; // seems not to be true in all countries?
-    *BorderIFrame = 0;
+    *BorderIFrame = -1;
 
     bool fleft  = true;
     bool fright = true;
@@ -1110,7 +1108,7 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
 
     if(!macontext->Video.Data.PlaneLinesize[0]) {
         dsyslog("Video.Data.PlaneLinesize[0] missing");
-        return 0;
+        return VBORDER_ERROR;
     }
     int end = macontext->Video.Data.PlaneLinesize[0] * (macontext->Video.Info.Height - VOFFSET_);
     int i = VOFFSET_ * macontext->Video.Data.PlaneLinesize[0];
@@ -1154,7 +1152,7 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
                 if (FrameNumber > (borderframenumber + macontext->Video.Info.FramesPerSecond * MIN_V_BORDER_SECS)) {
                     *BorderIFrame = borderframenumber;
                     borderstatus = VBORDER_VISIBLE;
-                    return 1; // detected start of black border
+                    return VBORDER_VISIBLE; // detected start of black border
                 }
             }
         }
@@ -1164,13 +1162,13 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
             *BorderIFrame = FrameNumber;
             borderstatus = VBORDER_INVISIBLE;
             borderframenumber = -1;
-            return -1; // detected stop of black border
+            return VBORDER_INVISIBLE; // detected stop of black border
         }
         else {
             borderframenumber = -1; // restart from scratch
         }
     }
-    return 0;
+    return borderstatus;
 }
 
 
@@ -1470,45 +1468,48 @@ MarkAdMarks *cMarkAdVideo::Process(int FrameNumber, int FrameNumberNext) {
             }
         }
     }
+    int hret = HBORDER_ERROR;
     if (!macontext->Video.Options.ignoreHborder) {
         int hborderframenumber;
-        int hret = hborder->Process(FrameNumberNext, &hborderframenumber);  // we get start frame of hborder back
-        if ((hret > 0) && (hborderframenumber != -1)) {
+        hret = hborder->Process(FrameNumberNext, &hborderframenumber);  // we get start frame of hborder back
+        if ((hret == HBORDER_VISIBLE) && (hborderframenumber >= 0)) {
             addmark(MT_HBORDERSTART, hborderframenumber);
         }
-        if ((hret < 0) && (hborderframenumber != -1)) {
+        if ((hret == HBORDER_INVISIBLE) && (hborderframenumber >= 0)) {
             addmark(MT_HBORDERSTOP, FrameNumber);  // we use iFrame before current frame as stop mark, this was the last frame with hborder
         }
     }
     else if (hborder) hborder->Clear();
 
+    int vret = VBORDER_ERROR;
     if (!macontext->Video.Options.ignoreVborder) {
         int vborderframenumber;
-        int vret=vborder->Process(FrameNumber,&vborderframenumber);
-        if ((vret>0) && (vborderframenumber!=-1)) {
-            addmark(MT_VBORDERSTART,vborderframenumber);
+        vret = vborder->Process(FrameNumber, &vborderframenumber);
+        if ((vret == VBORDER_VISIBLE) && (vborderframenumber >= 0)) {
+            if (hret == HBORDER_VISIBLE) dsyslog("cMarkAdVideo::Process(); hborder and vborder detected, ignore this, it is a very long black screen");
+            else addmark(MT_VBORDERSTART, vborderframenumber);
         }
-        if ((vret<0) && (vborderframenumber!=-1)) {
-            addmark(MT_VBORDERSTOP,vborderframenumber);
+        if ((vret == VBORDER_INVISIBLE) && (vborderframenumber >= 0)) {
+            addmark(MT_VBORDERSTOP, vborderframenumber);
         }
     }
     else if (vborder) vborder->Clear();
 
     if (!macontext->Video.Options.IgnoreAspectRatio) {
         bool start;
-        if (aspectratiochange(macontext->Video.Info.AspectRatio,aspectratio,start)) {
-            if ((logo->Status()==LOGO_VISIBLE) && (!start)) {
-                addmark(MT_LOGOSTOP,framebeforelast);
+        if (aspectratiochange(macontext->Video.Info.AspectRatio, aspectratio,start)) {
+            if ((logo->Status() == LOGO_VISIBLE) && (!start)) {
+                addmark(MT_LOGOSTOP, framebeforelast);
                 logo->SetStatusLogoInvisible();
             }
 
-            if ((vborder->Status()==VBORDER_VISIBLE) && (!start)) {
-                addmark(MT_VBORDERSTOP,framebeforelast);
+            if ((vret == VBORDER_VISIBLE) && (!start)) {
+                addmark(MT_VBORDERSTOP, framebeforelast);
                 vborder->SetStatusBorderInvisible();
             }
 
-            if ((hborder->Status()==HBORDER_VISIBLE) && (!start)) {
-                addmark(MT_HBORDERSTOP,framebeforelast);
+            if ((hret == HBORDER_VISIBLE) && (!start)) {
+                addmark(MT_HBORDERSTOP, framebeforelast);
                 hborder->SetStatusBorderInvisible();
             }
             if (((macontext->Info.AspectRatio.Num == 4) && (macontext->Info.AspectRatio.Den == 3)) ||

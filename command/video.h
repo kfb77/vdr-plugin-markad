@@ -26,7 +26,7 @@
 #define LOGO_IMARK 0.15   // percentage of pixels for invisible
 
 #define MIN_H_BORDER_SECS 60
-#define MIN_V_BORDER_SECS 37  // reduced from 50 to 37
+#define MIN_V_BORDER_SECS 70  // keep it greater than MIN_H_BORDER_SECS fot detecting long black screens
 
 enum {
     LOGO_ERROR = -3,
@@ -44,14 +44,16 @@ enum {
 
 enum {
     HBORDER_UNINITIALIZED = -2,
-    HBORDER_INVISIBLE = -1,
-    HBORDER_VISIBLE = 1
+    HBORDER_INVISIBLE     = -1,
+    HBORDER_ERROR         =  0,
+    HBORDER_VISIBLE       =  1
 };
 
 enum {
     VBORDER_UNINITIALIZED = -2,
-    VBORDER_INVISIBLE = -1,
-    VBORDER_VISIBLE = 1
+    VBORDER_INVISIBLE     = -1,
+    VBORDER_ERROR         =  0,
+    VBORDER_VISIBLE       =  1
 };
 
 enum {
@@ -178,9 +180,6 @@ class cMarkAdBlackBordersHoriz {
         explicit cMarkAdBlackBordersHoriz(MarkAdContext *maContext);
         int GetFirstBorderFrame();
         int Process(const int frameNumber, int *BorderFrameNumber);
-        int Status() {
-            return borderstatus;
-        }
         void SetStatusBorderInvisible() {
             borderstatus = HBORDER_INVISIBLE;
             borderframenumber = -1;
@@ -198,9 +197,6 @@ class cMarkAdBlackBordersVert {
         explicit cMarkAdBlackBordersVert(MarkAdContext *maContext);
         int GetFirstBorderFrame();
         int Process(int FrameNumber, int *BorderFrameNumber);
-        int Status() {
-            return borderstatus;
-        }
         void SetStatusBorderInvisible() {
             borderstatus = VBORDER_INVISIBLE;
             borderframenumber = -1;
