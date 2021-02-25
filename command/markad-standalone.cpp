@@ -981,7 +981,7 @@ void cMarkAdStandalone::CheckStart() {
 
             }
             else {
-                if (hStart->position != 0) {  // position 0 is a hborder previous recording
+                if (hStart->position >= 5) {  // position < 5 is a hborder start from previous recording
                     dsyslog("cMarkAdStandalone::CheckStart(): delete VBORDER marks if any");
                     marks.Del(MT_VBORDERSTART);
                     marks.Del(MT_VBORDERSTOP);
