@@ -37,7 +37,13 @@ APIVERSION = $(call PKGCFG,apiversion)
 
 
 all:
-	for i in $(DIRS); do $(MAKE) -C $$i; done
+	@for i in $(DIRS); do \
+		$(MAKE) -C $$i; \
+		if [ $$? -ne 0 ]; then \
+		        echo "make failed on directory $$i"; \
+			exit 1; \
+		fi; \
+	done
 
 install:
 	for i in $(DIRS); do $(MAKE) -C $$i install; done
@@ -65,3 +71,6 @@ dist:
 clean:
 	for i in $(DIRS); do make -C $$i clean; done
 	@-rm -f version.h $(PACKAGE).tgz
+
+cppcheck: 
+	cppcheck --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction:plugin/markad.cpp --suppress=unusedFunction:plugin/status.cpp -DLIBAVCODEC_VERSION_INT=3763044 -DDEBUGMEM=1 --error-exitcode=1 . > /dev/null
