@@ -378,7 +378,14 @@ void cMarkAdStandalone::CheckStop() {
 // try MT_HBORDERSTOP
     if (!end) {
         end = marks.GetAround(5 * delta, iStopA, MT_HBORDERSTOP);         // increased from 3 to 5
-        if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTOP found at frame %i", end->position);
+        if (end) {
+            dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTOP found at frame %i", end->position);
+            clMark *prevHStart = marks.GetPrev(end->position, MT_HBORDERSTART);
+            if (prevHStart && (prevHStart->position > iStopA)) {
+                dsyslog("cMarkAdStandalone::CheckStop(): previous hborder start mark (%d) is before assumed stop (%d), hborder stop mark (%d) is invalid", prevHStart->position, iStopA, end->position);
+                end = NULL;
+            }
+        }
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_HBORDERSTOP mark found");
     }
 
