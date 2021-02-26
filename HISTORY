@@ -1,7 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
-2021-02-15: Version 2.6.1
+2021-02-26: Version 2.6.3
+- check return code of subdir makes
+- optimze coloured logo detection in bright area
+- some minor bug fixes and optimizations, see git
+
+2021-02-15: Version 2.6.2
 - optimize new features introduced in 2.6.0
 - some fine tuning of mark positions
 - some minor bug fixes and optimizations, see git
