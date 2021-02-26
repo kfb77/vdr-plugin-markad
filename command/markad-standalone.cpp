@@ -4505,25 +4505,6 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, const int
 
     clMark *mark = marks->GetFirst();
     while (mark) {
-        if ((mark->type == MT_LOGOSTOP) && (mark->position < iStopA)) {
-            clMark *markStart = marks->GetNext(mark->position, MT_LOGOSTART);
-            if (markStart) {
-                int diff = (markStart->position - mark->position) / framesPerSecond;
-                if (diff <= 2) {  // this is a logo detection failue or a short logo change
-                    dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): distance %ds between logo stop (%d) and start (%d) too short, delete marks", diff, mark->position, markStart->position);
-                    clMark *tmp = mark;
-                    mark = marks->GetNext(mark->position, MT_LOGOSTOP);
-                    marks->Del(tmp);
-                    marks->Del(markStart);
-                    continue;
-                }
-            }
-        }
-        mark = marks->GetNext(mark->position, MT_LOGOSTOP);
-    }
-
-    mark = marks->GetFirst();
-    while (mark) {
         if (mark->type == MT_LOGOSTOP) newPair.stopPosition = mark->position;
         if ((mark->type == MT_LOGOSTART) && (newPair.stopPosition >= 0)) {
             newPair.startPosition = mark->position;
