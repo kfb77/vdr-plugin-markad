@@ -156,6 +156,7 @@ class cMarkAdLogo {
             area.status = LOGO_UNINITIALIZED;
         }
         void Clear(const bool isRestart = false, const bool inBroadCast = false);
+        void SetLogoSize(const int width, const int height);
         areaT *GetArea();
 };
 

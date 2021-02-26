@@ -65,6 +65,12 @@ areaT * cMarkAdLogo::GetArea() {
 }
 
 
+void cMarkAdLogo::SetLogoSize(const int width, const int height) {
+    LOGOWIDTH = width;
+    LOGOHEIGHT = height;
+}
+
+
 int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) {
     if (!directory) return -1;
     if (!file) return -1;

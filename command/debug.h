@@ -24,7 +24,7 @@
 // debug overlap detection
 // #define DEBUG_OVERLAP
 
-// debug logo detection
+// debug logo detection of logo.cpp
 // #define DEBUG_LOGO_CORNER TOP_LEFT
 // #define DEBUG_LOGO_CORNER TOP_RIGHT
 // #define DEBUG_LOGO_CORNER BOTTOM_LEFT

@@ -871,6 +871,7 @@ bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2,
 #define MIN_BLACK_PLANE_0 100
     if (oneBlack_0 > MIN_BLACK_PLANE_0) rate_0 = 1000 * similar_0 / oneBlack_0;   // accept only if we found some pixels
     else rate_0 = 0;
+    if (oneBlack_0 == 0) rate_0 = -1;  // tell calling function, we found no pixel
     rate_1_2 = 1000 * similar_1_2 / (logoHeight * logoWidth) * 2;
 
     if (rate0) *rate0 = rate_0;
@@ -1537,7 +1538,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
 
 // load and analyse logo corners for given frame range
 // return: true if successfull
-bool cExtractLogo::CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startFrame, const int endFrame, compareResultType *compareResult) {
+bool cExtractLogo::CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startFrame, const int endFrame, compareResultType *compareResult, const bool forFrame) {
     if (!maContext) return false;
     if (!ptr_cDecoder) return false;
     if (startFrame >= endFrame) return false;
@@ -1563,6 +1564,11 @@ bool cExtractLogo::CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDe
     int logoHeight = 0;
     int logoWidth  = 0;
     SetLogoSize(maContext, &logoHeight, &logoWidth);
+    if (forFrame) { // do check for frame
+        logoWidth *= 0.32;   // less width to ignore content in frame
+        dsyslog("cExtractLogo::CompareFrameRange(): use logo sie %dWx%dH", logoWidth, logoHeight);
+        ptr_Logo->SetLogoSize(logoWidth, logoHeight);
+    }
 
     if (!ptr_cDecoder->SeekToFrame(maContext, startFrame)) {
         dsyslog("cExtractLogo::CompareFrameRange(): SeekToFrame (%d) failed", startFrame);
@@ -1590,8 +1596,8 @@ bool cExtractLogo::CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDe
                 area->corner = corner;
                 int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
                                             //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
-#ifdef DEBUG_COMPAIRE_FRAME_RANGE
-                if (corner == DEBUG_COMPAIRE_FRAME_RANGE) iFrameNumberNext = -2;
+#ifdef DEBUG_COMPARE_FRAME_RANGE
+                if (corner == DEBUG_COMPARE_FRAME_RANGE) iFrameNumberNext = -2;
 #endif
                 ptr_Logo->Detect(frameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
 
@@ -1668,7 +1674,7 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
     } previewImage;
 
     compareResultType compareResult;
-    if (CompareFrameRange(maContext, ptr_cDecoder, stopPos, startPos, &compareResult)) {
+    if (CompareFrameRange(maContext, ptr_cDecoder, stopPos, startPos, &compareResult, false)) {
         int count = 0;
         int match[CORNERS] = {0};
         int matchNoLogoCorner = 0;
@@ -1789,12 +1795,12 @@ int cExtractLogo::isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecod
     int closingCreditsFrame = -1;
 
     compareResultType compareResult;
-    if (CompareFrameRange(maContext, ptr_cDecoder, stopMarkPosition, stopPos, &compareResult)) {
+    if (CompareFrameRange(maContext, ptr_cDecoder, stopMarkPosition, stopPos, &compareResult, false)) {
         for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
             dsyslog("cExtractLogo::isLogoChange(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
             int similarCorners = 0;
             for (int corner = 0; corner < CORNERS; corner++) {
-                if ((*cornerResultIt).rate[corner] >= 220) similarCorners++;
+                if (((*cornerResultIt).rate[corner] >= 220) || ((*cornerResultIt).rate[corner] == -1)) similarCorners++;
             }
             if (similarCorners >= 3) {  // at least 3 corners has a match
                 if (closingCredits.start == 0) closingCredits.start = (*cornerResultIt).frameNumber1;
@@ -1805,7 +1811,7 @@ int cExtractLogo::isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecod
             }
         }
         // check if it are closing credits
-        dsyslog("cExtractLogo::isClosingCredit(): closing credits: offset (%d) start (%d) end (%d)", stopMarkPosition, closingCredits.start, closingCredits.end);
+        dsyslog("cExtractLogo::isClosingCredit(): closing credits: start (%d) end (%d)", closingCredits.start, closingCredits.end);
         int offset = (closingCredits.start - stopMarkPosition) / maContext->Video.Info.FramesPerSecond;
         closingCredits.length = (closingCredits.end - closingCredits.start) / maContext->Video.Info.FramesPerSecond;
         dsyslog("cExtractLogo::isLogoChange(): closing credits: offset %d length %ds", offset, closingCredits.length);
@@ -1846,14 +1852,14 @@ int cExtractLogo::AdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, co
     int retFrame = -1;
 
     compareResultType compareResult;
-    if (CompareFrameRange(maContext, ptr_cDecoder, startPos, stopPos, &compareResult)) {
+    if (CompareFrameRange(maContext, ptr_cDecoder, startPos, stopPos, &compareResult, true)) {
         for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
             dsyslog("cExtractLogo::isLogoChange(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
             // calculate possible advertising in frame
             int similarCornersLow  = 0;
             int similarCornersHigh = 0;
             for (int corner = 0; corner < CORNERS; corner++) {
-                if ((*cornerResultIt).rate[corner] >= 140) similarCornersLow++;
+                if (((*cornerResultIt).rate[corner] >= 140) || ((*cornerResultIt).rate[corner] == -1)) similarCornersLow++;
                 if ((*cornerResultIt).rate[corner] >= 300) similarCornersHigh++;
             }
             if ((similarCornersLow >= 3) && (similarCornersHigh >= 2)) {  // at least 3 corners has low match and 2 corner with high match
