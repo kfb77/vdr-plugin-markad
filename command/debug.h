@@ -14,7 +14,8 @@
 
 
 // write picture from full recording recording and logo corner to /tmp from <framenumber> - 200 to <framenumber> + 200
-// notice: <framenumber> is here last iFrame
+// notice: <framenumber> is here last iFrame if called by main routine
+//         <framenumber> is current frame number if called by logo.cpp
 // #define DEBUG_LOGO_DETECT_FRAME_CORNER <framenumber>
 
 // write logo detection informations in log file
@@ -37,8 +38,11 @@
 // debug logo resize function
 // #define DEBUG_LOGO_RESIZE
 
-// debug load and analyze logo logo corners
-// #define DEBUG_LOGO_LOAD_ANALYZE
+// debug compare frame range
+// #define DEBUG_COMPARE_FRAME_RANGE TOP_LEFT
+// #define DEBUG_COMPARE_FRAME_RANGE TOP_RIGHT
+// #define DEBUG_COMPARE_FRAME_RANGE BOTTOM_LEFT
+// #define DEBUG_COMPARE_FRAME_RANGE BOTTOM_RIGHT
 
 // debug vborder detection
 // #define DEBUG_VBORDER
