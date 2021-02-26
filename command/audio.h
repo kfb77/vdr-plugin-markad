@@ -13,19 +13,20 @@
 
 
 class cMarkAdAudio {
-    private:
-        MarkAdContext *macontext;
-        cIndex *recordingIndexAudio = NULL;
-        MarkAdMark mark;
-        short int channels[MAXSTREAMS] = {0};
-
-        void ResetMark();
-        void SetMark(const int type, const int position, const int channelsbefore, const int channelsafter);
-        bool ChannelChange(int a, int b);
     public:
         explicit cMarkAdAudio(MarkAdContext *maContext, cIndex *recordingIndex);
         ~cMarkAdAudio();
         MarkAdMark *Process();
         void Clear();
+
+    private:
+        void ResetMark();
+        void SetMark(const int type, const int position, const int channelsbefore, const int channelsafter);
+        bool ChannelChange(int a, int b);
+
+        MarkAdContext *macontext;
+        cIndex *recordingIndexAudio = NULL;
+        MarkAdMark mark;
+        short int channels[MAXSTREAMS] = {0};
 };
 #endif
