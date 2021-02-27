@@ -48,10 +48,9 @@ class cOSDMessage {
 
 class cEvaluateLogoStopStartPair {
     public:
-        cEvaluateLogoStopStartPair(clMarks *marks, const int framesPerSecond, const int iStart, const int iStopA);
+        cEvaluateLogoStopStartPair(clMarks *marks, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA);
         ~cEvaluateLogoStopStartPair();
         bool GetNextPair(int *stopPosition, int *startPosition);
-//        void SetClosingCredits(const int stopPosition, const int isClosingCredits);
         int GetLastClosingCreditsStart();
     private:
         struct logoStopStartPair {
