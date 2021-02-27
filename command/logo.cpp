@@ -1652,26 +1652,14 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
     if (startPos <= stopPos) return false;
 
     dsyslog("cExtractLogo::isLogoChange(): check change between logo stop mark (%d) and logo start mark (%d)", stopPos, startPos);
-    int oppositeCorner = -1;
-    switch (maContext->Video.Logo.corner) {
-        case TOP_RIGHT:
-            oppositeCorner = BOTTOM_LEFT; // SIXX
-            break;
-        default:
-            dsyslog("cExtractLogo::isLogoChange(): no opposite corner defined");
-            break;
-    }
 
     bool status = true;
     int highMatchCount = 0;  // check if we have a lot of very similar pictures in the logo corner
     int lowMatchCount = 0;   // we need at least a hight quote of low similar pictures in the logo corner, if not there is no logo
-    struct closingCredits {
-        int start = 0;
-        int end = 0;
-    } closingCredits;
     struct previewImage {  // image at the end of a preview
         int start = 0;
         int end = 0;
+        int length = 0;
     } previewImage;
 
     compareResultType compareResult;
@@ -1679,19 +1667,11 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
         int count = 0;
         int match[CORNERS] = {0};
         int matchNoLogoCorner = 0;
-        bool isSeparationImage = false;
+        bool isSeparationImageNoPixel = false;
+        bool isSeparationImageLowPixel = false;
         for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
             dsyslog("cExtractLogo::isLogoChange(): frame (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
-            // calculate possible closing credits
-            if ((oppositeCorner >= 0) && ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 450) && ((*cornerResultIt).rate[oppositeCorner] >= 840)) {
-                                                   // if logo corner and opposite corner has high matches, this can be a closing credit without logo
-                                                   // changed logo corner from 850 to 535 to 450, opposite changed from 850 to 840
-                if (closingCredits.start == 0) closingCredits.start = (*cornerResultIt).frameNumber1;
-            }
-            else {
-                if ((closingCredits.start != 0) && (closingCredits.end == 0)) closingCredits.end = (*cornerResultIt).frameNumber1;
-            }
-            // calculate possible preview images
+            // calculate possible preview fixed images
             if (((*cornerResultIt).rate[0] >= 500) && ((*cornerResultIt).rate[1] >= 500) && ((*cornerResultIt).rate[2] >= 500) && ((*cornerResultIt).rate[3] >= 500)) {
                 if (previewImage.start == 0) previewImage.start = (*cornerResultIt).frameNumber1;
             }
@@ -1714,31 +1694,25 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
                     matchNoLogoCorner+= (*cornerResultIt).rate[corner];
                 }
             }
-            if ((matchPicture <= 60) && ((*cornerResultIt).frameNumber1 >= previewImage.end) && (previewImage.end != 0)) {
-                isSeparationImage = true; // we found a separation image
-                dsyslog("cExtractLogo::isLogoChange(): separation image found");
+            if (matchPicture == -4) { // all 4 corners has no pixel
+                isSeparationImageNoPixel = true; // we found a separation image at start
+                dsyslog("cExtractLogo::isLogoChange(): separation image without pixel at all corners found");
             }
-        }
+            if ((matchPicture <= 60) && ((*cornerResultIt).frameNumber1 >= previewImage.end) && (previewImage.end != 0)) { // all 4 corner has only a few pixel
+                isSeparationImageLowPixel = true; // we found a separation image
+                dsyslog("cExtractLogo::isLogoChange(): separation image found with low pixel count found");
+            }
+        } // for
         // log found results
         for (int corner = 0; corner < CORNERS; corner++) {
             dsyslog("cExtractLogo::isLogoChange(): corner %-12s rate summery %5d of %2d frames", aCorner[corner], match[corner], count);
         }
-        // check if it are closing credits
-        if (oppositeCorner >= 0) {
-            dsyslog("cExtractLogo::isLogoChange(): closing credits: start (%d) end (%d)", closingCredits.start, closingCredits.end);
-            closingCredits.end = (closingCredits.end - closingCredits.start) / maContext->Video.Info.FramesPerSecond;
-            dsyslog("cExtractLogo::isLogoChange(): closing credits: length %ds", closingCredits.end);
-            if (closingCredits.end >= 9) {
-                dsyslog("cExtractLogo::isLogoChange(): this is a closing credits, pair contains a valid mark");
-                status = false;
-            }
-        }
-        // check if there is a preview image
+        // check if there is a separation image at start or a separation image and a later preview image
         dsyslog("cExtractLogo::isLogoChange(): preview image: start (%d) end (%d)", previewImage.start, previewImage.end);
-        previewImage.end = (previewImage.end - previewImage.start) / maContext->Video.Info.FramesPerSecond;
-        dsyslog("cExtractLogo::isLogoChange(): preview image: length %ds", previewImage.end);
-        if (status && (previewImage.end >= 3) && isSeparationImage) {
-            dsyslog("cExtractLogo::isLogoChange(): there is a preview images, pair can contain a start mark");
+        previewImage.length = (previewImage.end - previewImage.start) / maContext->Video.Info.FramesPerSecond;
+        dsyslog("cExtractLogo::isLogoChange(): preview image: length %ds", previewImage.length);
+        if ((isSeparationImageNoPixel || ((previewImage.length >= 1) && isSeparationImageLowPixel))) {  // changed from 3 to 2 to 1
+            dsyslog("cExtractLogo::isLogoChange(): there is a separation images, pair can contain a valid start mark");
             status = false;
         }
         // check match quotes

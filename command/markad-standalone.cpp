@@ -605,10 +605,8 @@ bool cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(clMark *stopMark) {
 // some channel e.g. TELE5 plays with the logo in the broadcast
 // return: last stop position with isClosingCredits = 1
 //
-int cMarkAdStandalone::RemoveLogoChangeMarks() {
-    if ((strcmp(macontext.Info.ChannelName, "TELE_5") != 0) &&
-        (strcmp(macontext.Info.ChannelName, "SIXX") != 0) &&
-        (strcmp(macontext.Info.ChannelName, "kabel_eins") != 0)) return 0;  // for performance reason only known channels
+int cMarkAdStandalone::RemoveLogoChangeMarks() {  // TODO: detect short logo change after ad at start of broadcast (kabel eins)
+    if (strcmp(macontext.Info.ChannelName, "TELE_5") != 0) return 0;  // for performance reason only known and tested channels
 
     struct timeval startTime, stopTime;
     gettimeofday(&startTime, NULL);
