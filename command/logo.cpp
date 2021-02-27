@@ -1566,7 +1566,7 @@ bool cExtractLogo::CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDe
     SetLogoSize(maContext, &logoHeight, &logoWidth);
     if (forFrame) { // do check for frame
         logoWidth *= 0.32;   // less width to ignore content in frame
-        dsyslog("cExtractLogo::CompareFrameRange(): use logo sie %dWx%dH", logoWidth, logoHeight);
+        dsyslog("cExtractLogo::CompareFrameRange(): use logo size %dWx%dH", logoWidth, logoHeight);
         ptr_Logo->SetLogoSize(logoWidth, logoHeight);
     }
 
@@ -1620,9 +1620,10 @@ bool cExtractLogo::CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDe
                 delete logo1[corner];
                 logo1[corner] = logo2[corner];
             }
-            (*compareResult).push_back(compareInfo);
-            ALLOC((sizeof(compareInfoType)), "compareResult");
-
+            if (compareInfo.frameNumber1 >= 0) {  // got valid pair
+                (*compareResult).push_back(compareInfo);
+                ALLOC((sizeof(compareInfoType)), "compareResult");
+            }
         }
     }
     FREE(sizeof(*ptr_Logo), "ptr_Logo");
@@ -1845,11 +1846,21 @@ int cExtractLogo::isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecod
 // start search at current position, end at stopPosition
 // return first/last of advertising in frame with logo
 //
-int cExtractLogo::AdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startPos, const int stopPos, const bool isStartMark) {
+int cExtractLogo::AdInFrameWithLogo(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startPos, const int stopPos, const bool isStartMark) {
     if (!maContext) return -1;
     if (!ptr_cDecoder) return -1;
-    if (isStartMark) dsyslog("cExtractLogo::AdInFrame(): start search advertising in frame between logo start mark (%d) and (%d)", startPos, stopPos);
-    else dsyslog("cExtractLogo::AdInFrame(): start search advertising in frame between (%d) and logo stop mark at (%d)", startPos, stopPos);
+
+// for performance reason only for known and tested channels for now
+    if ((strcmp(maContext->Info.ChannelName, "SIXX") != 0) &&
+        (strcmp(maContext->Info.ChannelName, "RTL2") != 0) &&
+        (strcmp(maContext->Info.ChannelName, "RTL_Television") != 0) &&
+        (strcmp(maContext->Info.ChannelName, "kabel_eins") != 0)) {
+        dsyslog("cExtractLogo::AdInFrameWithLogo(): skip this channel");
+        return -1;
+    }
+
+    if (isStartMark) dsyslog("cExtractLogo::AdInFrameWithLogo(): start search advertising in frame between logo start mark (%d) and (%d)", startPos, stopPos);
+    else dsyslog("cExtractLogo::AdInFrameWithLogo(): start search advertising in frame between (%d) and logo stop mark at (%d)", startPos, stopPos);
 
     struct adInFrame {  // image at the end of a preview
         int start = 0;
@@ -1857,19 +1868,20 @@ int cExtractLogo::AdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, co
         int startFinal = 0;
         int endFinal = 0;
     } adInFrame;
-
     int retFrame = -1;
-
     compareResultType compareResult;
+
     if (CompareFrameRange(maContext, ptr_cDecoder, startPos, stopPos, &compareResult, true)) {
+        bool isCornerLogo[CORNERS] = {true};
         for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
-            dsyslog("cExtractLogo::isLogoChange(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+            dsyslog("cExtractLogo::AdInFrameWithLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
             // calculate possible advertising in frame
             int similarCornersLow  = 0;
             int similarCornersHigh = 0;
             for (int corner = 0; corner < CORNERS; corner++) {
                 if (((*cornerResultIt).rate[corner] >= 140) || ((*cornerResultIt).rate[corner] == -1)) similarCornersLow++;
                 if ((*cornerResultIt).rate[corner] >= 300) similarCornersHigh++;
+                if ((*cornerResultIt).rate[corner] < 100) isCornerLogo[corner] = false; // check if we have more than one logo
             }
             if ((similarCornersLow >= 3) && (similarCornersHigh >= 2)) {  // at least 3 corners has low match and 2 corner with high match
                 if (adInFrame.start == 0) adInFrame.start = (*cornerResultIt).frameNumber1;
@@ -1888,25 +1900,40 @@ int cExtractLogo::AdInFrame(MarkAdContext *maContext, cDecoder *ptr_cDecoder, co
                 }
 
             }
-        }
-        if ((adInFrame.end - adInFrame.start) > (adInFrame.endFinal - adInFrame.startFinal)) {  // in case of ad in frame go to end position
-            adInFrame.startFinal = adInFrame.start;
-            adInFrame.endFinal = adInFrame.end;
-        }
-        int startOffset = (adInFrame.startFinal - startPos) / maContext->Video.Info.FramesPerSecond;
-        int stopOffset = (stopPos - adInFrame.endFinal) / maContext->Video.Info.FramesPerSecond;
-        int length = (adInFrame.endFinal - adInFrame.startFinal) / maContext->Video.Info.FramesPerSecond;
-        dsyslog("cExtractLogo::AdInFrame(): advertising in frame: start offset %ds start (%d), end (%d) stop offset %ds, length %ds (expect >=8s and <=14s)", startOffset, adInFrame.startFinal, adInFrame.endFinal, stopOffset, length);
-        if ((length >= 9) && (length <= 30)) { // max from 14 to 20 to 30
-            if ((isStartMark && startOffset <= 5) ||  // an ad in frame after start mark must be near start mark
-               (!isStartMark && stopOffset  <= 14)) {  // an ad in frame before stop mark mast be near stop mark, preview with logo can follow ad in frame
-                dsyslog("cExtractLogo::isLogoChange(): this is a advertising in frame with logo");
-                if (isStartMark) retFrame = adInFrame.endFinal;
-                else retFrame = adInFrame.startFinal;
+        } // for
+        // check if we have more than one logo
+        int countLogo = 0;
+        for (int corner = 0; corner < CORNERS; corner++) {
+            if (corner == maContext->Video.Logo.corner) continue;
+            if (isCornerLogo[corner]) {
+                dsyslog("cExtractLogo::AdInFrameWithLogo(): found additional logo in corner %s", aCorner[corner]);
+                countLogo++;
             }
-            else dsyslog("cExtractLogo::isLogoChange(): offset not valid, this is not a advertising in frame with logo");
         }
-        else dsyslog("cExtractLogo::isLogoChange(): length not valid, this is not a advertising in frame with logo");
+        if (countLogo > 0) {
+            dsyslog("cExtractLogo::AdInFrameWithLogo(): found more than one logo, this is not a advertising in frame");
+        }
+        else {
+            if ((adInFrame.end - adInFrame.start) > (adInFrame.endFinal - adInFrame.startFinal)) {  // in case of ad in frame go to end position
+                adInFrame.startFinal = adInFrame.start;
+                adInFrame.endFinal = adInFrame.end;
+            }
+            int startOffset = (adInFrame.startFinal - startPos) / maContext->Video.Info.FramesPerSecond;
+            int stopOffset = (stopPos - adInFrame.endFinal) / maContext->Video.Info.FramesPerSecond;
+            int length = (adInFrame.endFinal - adInFrame.startFinal) / maContext->Video.Info.FramesPerSecond;
+            dsyslog("cExtractLogo::AdInFrameWithLogo(): advertising in frame: start offset %ds start (%d), end (%d) stop offset %ds, length %ds (expect >=8s and <=14s)", startOffset, adInFrame.startFinal, adInFrame.endFinal, stopOffset, length);
+            if ((length >= 9) && (length <= 30)) { // max from 14 to 20 to 30
+                if ((isStartMark && startOffset < 4) ||  // an ad in frame with logo after start mark must be near start mark, changed from 5 to 4
+                   (!isStartMark && stopOffset  < 5)) {  // an ad in frame with logo before stop mark must be near stop mark
+                                                         // TODO detect preview with logo after ad in frame with logo
+                    dsyslog("cExtractLogo::AdInFrameWithLogo(): this is a advertising in frame with logo");
+                    if (isStartMark) retFrame = adInFrame.endFinal;
+                    else retFrame = adInFrame.startFinal;
+                }
+                else dsyslog("cExtractLogo::AdInFrameWithLogo(): offset not valid, this is not a advertising in frame with logo");
+            }
+            else dsyslog("cExtractLogo::AdInFrameWithLogo(): length not valid, this is not a advertising in frame with logo");
+        }
     }
 #ifdef DEBUG_MEM
     int size = compareResult.size();
