@@ -377,6 +377,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int framenumber)
 // build a curve from examples
 //
 // no logo in bright area, take it as valid
+// contrast 116, brightness  93  // no logo in frame with black picture
 // contrast  90, brightness 183
 // contrast  30, brightness 217
 // contrast  13, brightness 128
@@ -407,7 +408,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int framenumber)
 #endif
         return BRIGHTNESS_ERROR; // nothing we can work with
     }
-    if (contrastLogo > 90) {   // this could not be the contrast of the logo area because it would be detected without calling ReduceBrightness()
+    if (contrastLogo > 116) { // this could not be the contrast of the logo area because it would be detected without calling ReduceBrightness(), changed from 90 to 116
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): contrast in logo area too high");
 #endif
