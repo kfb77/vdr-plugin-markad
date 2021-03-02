@@ -1815,6 +1815,64 @@ int cExtractLogo::isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecod
 }
 
 
+int cExtractLogo::IntroductionLogo(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startPos, const int stopPos) {
+    if (!maContext) return -1;
+    if (!ptr_cDecoder) return -1;
+
+// for performance reason only for known and tested channels for now
+    if (strcmp(maContext->Info.ChannelName, "kabel_eins") != 0) {
+        dsyslog("cExtractLogo::AdInFrameWithLogo(): skip this channel");
+        return -1;
+    }
+
+    struct introductionLogo {
+        int start = 0;
+        int end = 0;
+        int startFinal = 0;
+        int endFinal = 0;
+    } introductionLogo;
+    int retFrame = -1;
+    compareResultType compareResult;
+    if (CompareFrameRange(maContext, ptr_cDecoder, startPos, stopPos, &compareResult, false)) {
+        for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
+            dsyslog("cExtractLogo::IntroductionLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+            if ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 155) {
+                if (introductionLogo.start == 0) introductionLogo.start = (*cornerResultIt).frameNumber1;
+                introductionLogo.end = (*cornerResultIt).frameNumber2;
+            }
+            else {
+                if ((introductionLogo.end - introductionLogo.start) > (introductionLogo.endFinal - introductionLogo.startFinal)) {
+                    introductionLogo.startFinal = introductionLogo.start;
+                    introductionLogo.endFinal = introductionLogo.end;
+                }
+                introductionLogo.start = 0;  // reset state
+                introductionLogo.end = 0;
+            }
+        }
+        if ((introductionLogo.end - introductionLogo.start) > (introductionLogo.endFinal - introductionLogo.startFinal)) {
+            introductionLogo.startFinal = introductionLogo.start;
+            introductionLogo.endFinal = introductionLogo.end;
+        }
+        int length = (introductionLogo.endFinal - introductionLogo.startFinal) / maContext->Video.Info.FramesPerSecond;
+        dsyslog("cExtractLogo::IntroductionLogo(): introduction logo: start (%d), end (%d), length %ds (expect >=9s)", introductionLogo.startFinal, introductionLogo.endFinal, length);
+        if (length >= 6) {
+            dsyslog("cExtractLogo::AdInFrameWithLogo(): found introduction logo");
+            retFrame = introductionLogo.startFinal;
+        }
+        else dsyslog("cExtractLogo::AdInFrameWithLogo(): no introduction logo found");
+    }
+
+#ifdef DEBUG_MEM
+    int size = compareResult.size();
+    for (int i = 0 ; i < size; i++) {
+        FREE(sizeof(compareInfoType), "compareResult");
+    }
+#endif
+    compareResult.clear();
+    return retFrame;
+}
+
+
 // search advertising in frame with logo
 // check if we have matches in 3 of 4 corners
 // start search at current position, end at stopPosition
@@ -1836,7 +1894,7 @@ int cExtractLogo::AdInFrameWithLogo(MarkAdContext *maContext, cDecoder *ptr_cDec
     if (isStartMark) dsyslog("cExtractLogo::AdInFrameWithLogo(): start search advertising in frame between logo start mark (%d) and (%d)", startPos, stopPos);
     else dsyslog("cExtractLogo::AdInFrameWithLogo(): start search advertising in frame between (%d) and logo stop mark at (%d)", startPos, stopPos);
 
-    struct adInFrame {  // image at the end of a preview
+    struct adInFrame {
         int start = 0;
         int end = 0;
         int startFinal = 0;
@@ -1895,7 +1953,7 @@ int cExtractLogo::AdInFrameWithLogo(MarkAdContext *maContext, cDecoder *ptr_cDec
             int startOffset = (adInFrame.startFinal - startPos) / maContext->Video.Info.FramesPerSecond;
             int stopOffset = (stopPos - adInFrame.endFinal) / maContext->Video.Info.FramesPerSecond;
             int length = (adInFrame.endFinal - adInFrame.startFinal) / maContext->Video.Info.FramesPerSecond;
-            dsyslog("cExtractLogo::AdInFrameWithLogo(): advertising in frame: start offset %ds start (%d), end (%d) stop offset %ds, length %ds (expect >=8s and <=14s)", startOffset, adInFrame.startFinal, adInFrame.endFinal, stopOffset, length);
+            dsyslog("cExtractLogo::AdInFrameWithLogo(): advertising in frame: start offset %ds start (%d), end (%d) stop offset %ds, length %ds (expect >=9s and <=30s)", startOffset, adInFrame.startFinal, adInFrame.endFinal, stopOffset, length);
             if ((length >= 9) && (length <= 30)) { // max from 14 to 20 to 30
                 if ((isStartMark && startOffset < 4) ||  // an ad in frame with logo after start mark must be near start mark, changed from 5 to 4
                    (!isStartMark && stopOffset  < 5)) {  // an ad in frame with logo before stop mark must be near stop mark
