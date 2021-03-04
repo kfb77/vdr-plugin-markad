@@ -46,26 +46,6 @@ class cOSDMessage {
 };
 
 
-class cEvaluateLogoStopStartPair {
-    public:
-        cEvaluateLogoStopStartPair(clMarks *marks, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA);
-        ~cEvaluateLogoStopStartPair();
-        bool GetNextPair(int *stopPosition, int *startPosition);
-        int GetLastClosingCreditsStart();
-    private:
-        struct logoStopStartPair {
-            int stopPosition = -1;
-            int startPosition = -1;
-            int isLogoChange = 0;            // -1 no logo change, 0 unknown, 1 is logo change
-            int isAdvertising = 0;           // -1 pair is advertising, 0 unknown, 1 pair is advertising
-            int isStartMarkInBroadcast = 0;  // -1 start mark does not contain to broadcast, 0 unknown, 1 start mark contains to broadcast
-            int isClosingCredits = 0;            // -1 no closing credits, 0 unknown, 1 is closing credits
-        };
-        std::vector<logoStopStartPair> logoPairVector;
-        std::vector<logoStopStartPair>::iterator nextLogoPairIterator;
-};
-
-
 class cMarkAdStandalone {
     private:
         cMarkAdVideo *video = NULL;
@@ -119,7 +99,7 @@ class cMarkAdStandalone {
 
         void CheckStop();
         bool MoveLastLogoStopAfterClosingCredits(clMark *stopMark);
-        int RemoveLogoChangeMarks();
+        void RemoveLogoChangeMarks();
         void CheckStart();
         void CalculateCheckPositions(int startframe);
         bool isVPSTimer();
