@@ -87,7 +87,7 @@ typedef struct config {
     bool useVPS = false;
     bool MarkadCut = false;
     bool ac3ReEncode = false;
-    int autoLogo = 0;   // 0 = off, 1 = on, use less memory but a lot of cpu, 2 use a lot of memory but runs faster
+    int autoLogo = 2;   // 0 = off, 1 = on, use less memory but a lot of cpu, 2 use a lot of memory but runs faster
     const char *recDir;
     bool DecodeVideo;
     bool DecodeAudio;
