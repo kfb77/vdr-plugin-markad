@@ -467,7 +467,8 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
             codecCtxArrayOut[streamIndex]->channels = avCodecCtxIn->channels;
         }
         else {
-            dsyslog("cEncoder::InitEncoderCodec(): codec of stream %i not suported", streamIndex);
+            dsyslog("cEncoder::InitEncoderCodec(): codec of stream %i not audio or video, ignoring", streamIndex);
+            return true;
         }
     }
     if (codecCtxArrayOut[streamIndex]->time_base.num == 0) {
