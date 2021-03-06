@@ -2162,7 +2162,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
 void cMarkAdStandalone::MarkadCut() {
     if (abortNow) return;
     if (!ptr_cDecoder) {
-        isyslog("video cut function only supported with --cDecoder");
+        dsyslog("cMarkAdStandalone::MarkadCut(): ptr_cDecoder not set");
         return;
     }
     ptr_cDecoder->Reset();

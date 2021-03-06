@@ -447,25 +447,34 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
         dsyslog("cEncoder::InitEncoderCodec(): avcodec_parameters_to_context failed");
         return false;
     }
-    dsyslog("cEncoder::InitEncoderCodec(): timebase %d/%d for stream %d", avCodecCtxIn->time_base.num, avCodecCtxIn->time_base.den, streamIndex);
-    codecCtxArrayOut[streamIndex]->time_base.num = avCodecCtxIn->time_base.num;
-    codecCtxArrayOut[streamIndex]->time_base.den = avCodecCtxIn->time_base.den;
 
     if (ptr_cDecoder->isVideoStream(streamIndex)) {
+        dsyslog("cEncoder::InitEncoderCodec(): input codec real framerate %d/%d for stream %d", avctxIn->streams[streamIndex]->r_frame_rate.num, avctxIn->streams[streamIndex]->r_frame_rate.den, streamIndex);
+        codecCtxArrayOut[streamIndex]->time_base.num = avctxIn->streams[streamIndex]->r_frame_rate.den;  // time_base = 1 / framerate
+        codecCtxArrayOut[streamIndex]->time_base.den = avctxIn->streams[streamIndex]->r_frame_rate.num;
         codecCtxArrayOut[streamIndex]->pix_fmt = avCodecCtxIn->pix_fmt;
         codecCtxArrayOut[streamIndex]->height = avCodecCtxIn->height;
         codecCtxArrayOut[streamIndex]->width = avCodecCtxIn->width;
     }
-    else if (ptr_cDecoder->isAudioStream(streamIndex)) {
-        dsyslog("cEncoder::InitEncoderCodec(): input codec sample rate %d for stream %d", avCodecCtxIn->sample_rate, streamIndex);
-        codecCtxArrayOut[streamIndex]->sample_fmt = avCodecCtxIn->sample_fmt;
-        codecCtxArrayOut[streamIndex]->channel_layout = avCodecCtxIn->channel_layout;
-        codecCtxArrayOut[streamIndex]->sample_rate = avCodecCtxIn->sample_rate;
-        codecCtxArrayOut[streamIndex]->channels = avCodecCtxIn->channels;
-    }
     else {
-        dsyslog("cEncoder::InitEncoderCodec(): codec of stream %i not suported", streamIndex);
+        if (ptr_cDecoder->isAudioStream(streamIndex)) {
+            dsyslog("cEncoder::InitEncoderCodec(): input codec sample rate %d, timebase %d/%d for stream %d", avCodecCtxIn->sample_rate, avCodecCtxIn->time_base.num, avCodecCtxIn->time_base.den, streamIndex);
+            codecCtxArrayOut[streamIndex]->time_base.num = avCodecCtxIn->time_base.num;
+            codecCtxArrayOut[streamIndex]->time_base.den = avCodecCtxIn->time_base.den;
+            codecCtxArrayOut[streamIndex]->sample_fmt = avCodecCtxIn->sample_fmt;
+            codecCtxArrayOut[streamIndex]->channel_layout = avCodecCtxIn->channel_layout;
+            codecCtxArrayOut[streamIndex]->sample_rate = avCodecCtxIn->sample_rate;
+            codecCtxArrayOut[streamIndex]->channels = avCodecCtxIn->channels;
+        }
+        else {
+            dsyslog("cEncoder::InitEncoderCodec(): codec of stream %i not suported", streamIndex);
+        }
     }
+    if (codecCtxArrayOut[streamIndex]->time_base.num == 0) {
+        dsyslog("cEncoder::InitEncoderCodec(): output timebase %d/%d not valid", codecCtxArrayOut[streamIndex]->time_base.num, codecCtxArrayOut[streamIndex]->time_base.den);
+        return false;
+    }
+
 
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     int ret = avcodec_parameters_copy(avctxOut->streams[streamIndex]->codecpar, avctxIn->streams[streamIndex]->codecpar);
