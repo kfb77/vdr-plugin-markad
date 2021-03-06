@@ -122,7 +122,7 @@ class cMarkAdStandalone {
         bool SaveInfo();
         bool SetFileUID(char *File);
         bool ProcessMark2ndPass(clMark **Mark1, clMark **Mark2);
-        void ProcessFile_cDecoder();
+        void ProcessFile();
         bool ProcessFrame(cDecoder *ptr_cDecoder);
 
     public:
