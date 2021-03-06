@@ -144,8 +144,8 @@ class cMarkAdLogo {
         void LogoGreyToColour();
     public:
         explicit cMarkAdLogo(MarkAdContext *maContext, cIndex *recordingIndex);
-        int Detect(const int framenumber, int *logoframenumber); // ret 1 = logo, 0 = unknown, -1 = no logo
-        int Process(int FrameNumber, int *LogoFrameNumber);
+        int Detect(const int frameBefore, const int frameCurrent, int *logoFrameNumber); // return: 1 = logo, 0 = unknown, -1 = no logo
+        int Process(const int iFrameBefore, const int iFrameCurrent, const int frameCurrent, int *logoFrameNumber);
         int Status() {
             return area.status;
         }
@@ -207,21 +207,6 @@ class cMarkAdBlackBordersVert {
 
 
 class cMarkAdVideo {
-    private:
-        cIndex *recordingIndexMarkAdVideo = NULL;
-        MarkAdContext *macontext;
-        MarkAdMarks marks = {};
-        MarkAdAspectRatio aspectratio;
-        cMarkAdBlackScreen *blackScreen;
-        cMarkAdBlackBordersHoriz *hborder;
-        cMarkAdBlackBordersVert *vborder;
-        cMarkAdLogo *logo;
-        cMarkAdOverlap *overlap;
-        void resetmarks();
-        bool addmark(int type, int position, MarkAdAspectRatio *before = NULL, MarkAdAspectRatio *after = NULL);
-        bool aspectratiochange(const MarkAdAspectRatio &a, const MarkAdAspectRatio &b, bool &start);
-        int framelast;
-        int framebeforelast;
     public:
         explicit cMarkAdVideo(MarkAdContext *maContext, cIndex *recordingIndex);
         ~cMarkAdVideo();
@@ -232,8 +217,6 @@ class cMarkAdVideo {
             vborder = NULL;
             logo = NULL;
             overlap = NULL;
-            framelast = 0;
-            framebeforelast = 0;
         };
         cMarkAdVideo &operator =(const cMarkAdVideo *origin) {  // operator=, not used, only for formal reason
             macontext = origin->macontext;
@@ -242,13 +225,26 @@ class cMarkAdVideo {
             vborder = NULL;
             logo = NULL;
             overlap = NULL;
-            framelast = 0;
-            framebeforelast = 0;
             return *this;
         }
         MarkAdPos *ProcessOverlap(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
-        MarkAdMarks *Process(int FrameNumber, int FrameNumberNext);
+        MarkAdMarks *Process(int iFrameBefore, const int iFrameCurrent, const int frameCurrent);
         bool ReducePlanes(void);
         void Clear(bool isRestart, bool inBroadCast = false);
+
+    private:
+        void resetmarks();
+        bool addmark(int type, int position, MarkAdAspectRatio *before = NULL, MarkAdAspectRatio *after = NULL);
+        bool aspectratiochange(const MarkAdAspectRatio &a, const MarkAdAspectRatio &b, bool &start);
+
+        cIndex *recordingIndexMarkAdVideo = NULL;
+        MarkAdContext *macontext;
+        MarkAdMarks marks = {};
+        MarkAdAspectRatio aspectratio;
+        cMarkAdBlackScreen *blackScreen;
+        cMarkAdBlackBordersHoriz *hborder;
+        cMarkAdBlackBordersVert *vborder;
+        cMarkAdLogo *logo;
+        cMarkAdOverlap *overlap;
 };
 #endif

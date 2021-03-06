@@ -14,8 +14,6 @@
 
 
 // write picture from full recording recording and logo corner to /tmp from <framenumber> - 200 to <framenumber> + 200
-// notice: <framenumber> is here last iFrame if called by main routine
-//         <framenumber> is current frame number if called by logo.cpp
 // #define DEBUG_LOGO_DETECT_FRAME_CORNER <framenumber>
 
 // write logo detection informations in log file

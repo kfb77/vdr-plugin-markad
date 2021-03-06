@@ -325,7 +325,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
 void cMarkAdStandalone::CheckStop() {
     LogSeparator(true);
     LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckStop(): start check stop (%i)", lastiframe);
+    dsyslog("cMarkAdStandalone::CheckStop(): start check stop (%i)", frameCurrent);
 
     char *indexToHMSF = marks.IndexToHMSF(iStopA, &macontext);
         if (indexToHMSF) {
@@ -475,7 +475,7 @@ void cMarkAdStandalone::CheckStop() {
         else dsyslog("cMarkAdStandalone::CheckStop(): no end mark found");
     }
 
-    clMark *lastStart = marks.GetAround(INT_MAX, lastiframe, MT_START, 0x0F);
+    clMark *lastStart = marks.GetAround(INT_MAX, frameCurrent, MT_START, 0x0F);
     if (end) {
         dsyslog("cMarkAdStandalone::CheckStop(): found end mark at (%i)", end->position);
         clMark *mark = marks.GetFirst();
@@ -512,9 +512,9 @@ void cMarkAdStandalone::CheckStop() {
         if ( end->position < iStopA - 5 * delta ) {    // last found stop mark too early, adding STOP mark at the end, increased from 3 to 5
                                                      // this can happen by audio channel change too if the next broadcast has also 6 channels
             if ( ( lastStart) && ( lastStart->position > end->position ) ) {
-                isyslog("last STOP mark results in to short recording, set STOP at the end of the recording (%i)", lastiframe);
+                isyslog("last STOP mark results in to short recording, set STOP at the end of the recording (%i)", iFrameCurrent);
                 MarkAdMark markNew = {};
-                markNew.Position = lastiframe;
+                markNew.Position = iFrameCurrent;
                 markNew.Type = MT_ASSUMEDSTOP;
                 AddMark(&markNew);
             }
@@ -532,9 +532,9 @@ void cMarkAdStandalone::CheckStop() {
             }
         }
         if (!end) {
-            dsyslog("cMarkAdStandalone::CheckStop(): no stop mark found, add stop mark at the last frame (%i)",lastiframe);
+            dsyslog("cMarkAdStandalone::CheckStop(): no stop mark found, add stop mark at the last frame (%i)", iFrameCurrent);
             MarkAdMark mark = {};
-            mark.Position = lastiframe;  // we are lost, add a end mark at the last iframe
+            mark.Position = iFrameCurrent;  // we are lost, add a end mark at the last iframe
             mark.Type = MT_ASSUMEDSTOP;
             AddMark(&mark);
         }
@@ -700,7 +700,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {
 
 void cMarkAdStandalone::CheckStart() {
     LogSeparator(true);
-    dsyslog("cMarkAdStandalone::CheckStart(): checking start at frame (%d) check start planed at (%d)", lastiframe, chkSTART);
+    dsyslog("cMarkAdStandalone::CheckStart(): checking start at frame (%d) check start planed at (%d)", frameCurrent, chkSTART);
     dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %i", iStartA);
     DebugMarks();     //  only for debugging
 
@@ -813,9 +813,9 @@ void cMarkAdStandalone::CheckStart() {
             marks.DelWeakFromTo(chStop->position, chStart->position, MT_CHANNELCHANGE);
         }
     }
-    if ( !begin && !inBroadCast) {
-        dsyslog("cMarkAdStandalone::CheckStart(): we are not in broadcast at frame (%d), trying to find channel start mark anyway", lastiframe);
-        begin=marks.GetAround(delta*4, iStartA, MT_CHANNELSTART);
+    if (!begin && !inBroadCast) {
+        dsyslog("cMarkAdStandalone::CheckStart(): we are not in broadcast at frame (%d), trying to find channel start mark anyway", frameCurrent);
+        begin = marks.GetAround(delta*4, iStartA, MT_CHANNELSTART);
     }
 
 // try to find a aspect ratio mark
@@ -870,10 +870,12 @@ void cMarkAdStandalone::CheckStart() {
                     aMark->type = MT_ASPECTSTOP;
                     aMark->position = recordingIndexMark->GetIFrameBefore(aMark->position - 1);
                 }
-                else if (aMark->type == MT_ASPECTSTOP) {
-                         aMark->type = MT_ASPECTSTART;
-                         aMark->position = recordingIndexMark->GetIFrameAfter(aMark->position + 1);
-                     }
+                else {
+                    if (aMark->type == MT_ASPECTSTOP) {
+                        aMark->type = MT_ASPECTSTART;
+                        aMark->position = recordingIndexMark->GetIFrameAfter(aMark->position + 1);
+                    }
+                }
                 aMark = aMark->Next();
             }
         }
@@ -1017,7 +1019,7 @@ void cMarkAdStandalone::CheckStart() {
                 int markDiff = static_cast<int> (vStop->position - vStart->position) / macontext.Video.Info.FramesPerSecond;
                 dsyslog("cMarkAdStandalone::CheckStart(): vertical border stop found at (%d), %ds after vertical border start", vStop->position, markDiff);
                 if ((markDiff <= 96) ||    // found 96s opening credits with vborder
-                   ((lastiframe > iStopA) && !vNextStart)) {  // we have only start/stop vborder in start part, this is the opening or closing credits
+                   ((frameCurrent > iStopA) && !vNextStart)) {  // we have only start/stop vborder in start part, this is the opening or closing credits
                     isyslog("vertical border STOP at (%d) %ds after vertical border START (%i) in start part found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
                     marks.Del(vStop);
                     marks.Del(vStart);
@@ -2562,8 +2564,9 @@ void cMarkAdStandalone::Process2ndPass() {
 bool cMarkAdStandalone::Reset(bool FirstPass) {
     bool ret = true;
     if (FirstPass) framecnt1 = 0;
-    lastiframe = 0;
-    iframe = 0;
+    iFrameBefore = -1;
+    iFrameCurrent = -1;
+    frameCurrent = -1;
     gotendmark = false;
     chkSTART = chkSTOP = INT_MAX;
 
@@ -2583,10 +2586,19 @@ bool cMarkAdStandalone::Reset(bool FirstPass) {
 
 bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
     if (!ptr_cDecoder) return false;
+    if (!video) {
+        esyslog("cMarkAdStandalone::ProcessFrame() video not initialized");
+        return false;
+    }
 
     if ((macontext.Config->logoExtraction != -1) && (ptr_cDecoder->GetIFrameCount() >= 512)) {    // extract logo
         isyslog("finished logo extraction, please check /tmp for pgm files");
         abortNow=true;
+    }
+    frameCurrent = ptr_cDecoder->GetFrameNumber();
+    if (ptr_cDecoder->isVideoIFrame()) {
+        iFrameBefore = iFrameCurrent;
+        iFrameCurrent = frameCurrent;
     }
 
     if (ptr_cDecoder->GetFrameInfo(&macontext)) {
@@ -2598,27 +2610,21 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 macontext.Video.Info.Interlaced = true;
                 CalculateCheckPositions(macontext.Info.tStart * macontext.Video.Info.FramesPerSecond);
             }
-            lastiframe = iframe;
-            if ((iStart < 0) && (lastiframe > -iStart)) iStart = lastiframe;
-            if ((iStop < 0) && (lastiframe > -iStop)) {
-                iStop = lastiframe;
+            if ((iStart < 0) && (frameCurrent > -iStart)) iStart = frameCurrent;
+            if ((iStop < 0) && (frameCurrent > -iStop)) {
+                iStop = frameCurrent;
                 iStopinBroadCast = inBroadCast;
             }
-            if ((iStopA < 0) && (lastiframe > -iStopA)) {
-                iStopA = lastiframe;
+            if ((iStopA < 0) && (frameCurrent > -iStopA)) {
+                iStopA = frameCurrent;
             }
-            iframe = ptr_cDecoder->GetFrameNumber();
 
-            if (!video) {
-                esyslog("cMarkAdStandalone::ProcessFrame() video not initialized");
-                return false;
-            }
             if (!macontext.Video.Data.Valid) {
                 isyslog("cMarkAdStandalone::ProcessFrame faild to get video data of frame (%d)", ptr_cDecoder->GetFrameNumber());
                 return false;
             }
 
-            if ( !restartLogoDetectionDone && (lastiframe > (iStopA-macontext.Video.Info.FramesPerSecond * 2 * MAXRANGE)) &&
+            if ( !restartLogoDetectionDone && (frameCurrent > (iStopA-macontext.Video.Info.FramesPerSecond * 2 * MAXRANGE)) &&
                                      ((macontext.Video.Options.IgnoreBlackScreenDetection) || (macontext.Video.Options.IgnoreLogoDetection))) {
                 isyslog("restart logo and black screen detection at frame (%d)", ptr_cDecoder->GetFrameNumber());
                 restartLogoDetectionDone = true;
@@ -2636,34 +2642,25 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
             }
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-            if ((lastiframe > (DEBUG_LOGO_DETECT_FRAME_CORNER - 200)) && (lastiframe < (DEBUG_LOGO_DETECT_FRAME_CORNER + 200))) {
-//                dsyslog("save frame (%i) to /tmp", lastiframe);
-                SaveFrame(lastiframe);
+            if ((iFrameCurrent > (DEBUG_LOGO_DETECT_FRAME_CORNER - 200)) && (iFrameCurrent < (DEBUG_LOGO_DETECT_FRAME_CORNER + 200))) {
+//                dsyslog("save frame (%i) to /tmp", iFrameCurrent);
+                SaveFrame(iFrameCurrent);
             }
 #endif
 
             if (!bDecodeVideo) macontext.Video.Data.Valid = false; // make video picture invalid, we do not need them
-            MarkAdMarks *vmarks = video->Process(lastiframe, iframe);
+            MarkAdMarks *vmarks = video->Process(iFrameBefore, iFrameCurrent, frameCurrent);
             if (vmarks) {
                 for (int i = 0; i < vmarks->Count; i++) {
-                    if (((vmarks->Number[i].Type & 0xF0) == MT_LOGOCHANGE) && (macontext.Info.VPid.Type == MARKAD_PIDTYPE_VIDEO_H265)) {   // we are one iFrame to late with logo marks, these is to much (2s) with H.265 codec
-                        int iFrameBefore = recordingIndexMark->GetIFrameBefore(vmarks->Number[i].Position);
-                        if (iFrameBefore < 0) {
-                            dsyslog("cMarkAdStandalone::ProcessFrame(): could not get iFrame before frame %d)", vmarks->Number[i].Position);
-                            return false;
-                        }
-                        dsyslog("cMarkAdStandalone::ProcessFrame(): found logo mark in H.265 recording at (%d) move to (%d)", vmarks->Number[i].Position, iFrameBefore);
-                        vmarks->Number[i].Position = iFrameBefore;
-                    }
                     AddMark(&vmarks->Number[i]);
                 }
             }
 
             if (iStart > 0) {
-                if ((inBroadCast) && (lastiframe > chkSTART)) CheckStart();
+                if ((inBroadCast) && (frameCurrent > chkSTART)) CheckStart();
             }
             if ((iStop > 0) && (iStopA > 0)) {
-                if (lastiframe > chkSTOP) {
+                if (frameCurrent > chkSTOP) {
                     if (iStart != 0) {
                         dsyslog("still no chkStart called, doing it now");
                         CheckStart();
@@ -2744,24 +2741,24 @@ void cMarkAdStandalone::ProcessFiles() {
 
     if (!abortNow) {
         if (iStart !=0 ) {  // iStart will be 0 if iStart was called
-            dsyslog("cMarkAdStandalone::ProcessFiles(): recording ends unexpected before chkSTART (%d) at frame %d", chkSTART, lastiframe);
+            dsyslog("cMarkAdStandalone::ProcessFiles(): recording ends unexpected before chkSTART (%d) at frame %d", chkSTART, frameCurrent);
             isyslog("got end of recording before recording length from info file reached");
             CheckStart();
         }
         if (iStopA > 0) {
             if (iStop <= 0) {  // unexpected end of recording reached
-                iStop = lastiframe;
+                iStop = frameCurrent;
                 iStopinBroadCast = true;
-                dsyslog("cMarkAdStandalone::ProcessFiles(): recording ends unexpected before chkSTOP (%d) at frame %d", chkSTOP, lastiframe);
+                dsyslog("cMarkAdStandalone::ProcessFiles(): recording ends unexpected before chkSTOP (%d) at frame %d", chkSTOP, frameCurrent);
                 isyslog("got end of recording before recording length from info file reached");
             }
             CheckStop();
         }
         CheckMarks();
-        if ((inBroadCast) && (!gotendmark) && (lastiframe)) {
+        if ((inBroadCast) && (!gotendmark) && (frameCurrent)) {
             MarkAdMark tempmark;
             tempmark.Type = MT_RECORDINGSTOP;
-            tempmark.Position = lastiframe;
+            tempmark.Position = iFrameCurrent;
             AddMark(&tempmark);
         }
         if (marks.Save(directory, &macontext, isTS, false)) {
@@ -3675,8 +3672,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *
     framecnt2 = 0;
     framecnt3 = 0;
     framecnt4 = 0;
-    lastiframe = 0;
-    iframe = 0;
     chkSTART = chkSTOP = INT_MAX;
 }
 

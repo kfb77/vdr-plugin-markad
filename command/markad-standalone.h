@@ -61,8 +61,6 @@ class cMarkAdStandalone {
             isTS = origin.isTS;
             isREEL = origin.isREEL;
             MaxFiles = origin.MaxFiles;
-            lastiframe = origin.lastiframe;
-            iframe = origin.iframe;
             framecnt1 = origin.framecnt1;
             framecnt2 = origin.framecnt2;
             gotendmark = origin.gotendmark;
@@ -93,8 +91,6 @@ class cMarkAdStandalone {
             isTS = origin->isTS;
             isREEL = origin->isREEL;
             MaxFiles = origin->MaxFiles;
-            lastiframe = origin->lastiframe;
-            iframe = origin->iframe;
             framecnt1 = origin->framecnt1;
             framecnt2 = origin->framecnt2;
             framecnt3 = origin->framecnt3;
@@ -167,8 +163,9 @@ class cMarkAdStandalone {
         bool isTS = false;
         bool isREEL = false;
         int MaxFiles = 0;
-        int lastiframe = 0;
-        int iframe = 0;
+        int iFrameBefore = -1;
+        int iFrameCurrent = -1;
+        int frameCurrent = -1;
         int framecnt1 = 0; // 1nd pass (detect marks)
         int framecnt2 = 0; // 2nd pass (overlap)
         int framecnt3 = 0; // 3nd pass (silence)

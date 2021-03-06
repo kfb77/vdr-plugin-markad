@@ -410,7 +410,7 @@ bool cDecoder::SeekToFrame(MarkAdContext *maContext, int frame) {
                 return false;
             }
         }
-        if (framenumber >= iFrameBefore) GetFrameInfo(maContext);  // preload decoder buffer for interleaved codec
+        if (framenumber >= iFrameBefore) GetFrameInfo(maContext);  // preload decoder buffer for interlaced video
     }
     dsyslog("cDecoder::SeekToFrame(): successful");
     return true;
@@ -515,7 +515,7 @@ AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
     if (rc < 0) {
         switch (rc) {
             case AVERROR(EAGAIN):
-                tsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EAGAIN at frame %d", framenumber);
+//                tsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EAGAIN at frame %d", framenumber);
                 stateEAGAIN=true;
                 break;
             case AVERROR(EINVAL):
