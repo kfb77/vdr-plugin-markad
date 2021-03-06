@@ -47,84 +47,6 @@ class cOSDMessage {
 
 
 class cMarkAdStandalone {
-    private:
-        cMarkAdVideo *video = NULL;
-        cMarkAdAudio *audio = NULL;
-        cOSDMessage *osd = NULL;
-        MarkAdContext macontext = {};
-        cIndex *recordingIndexMark = NULL;
-
-        enum { mSTART = 0x1, mBEFORE, mAFTER };
-        const char *directory;
-        char title[80];
-        char *ptitle = NULL;
-        bool CreatePidfile();
-        void RemovePidfile();
-        bool duplicate = false; // are we a dup?
-        bool isTS = false;
-        bool isREEL = false;
-        int MaxFiles = 0;
-        int lastiframe = 0;
-        int iframe = 0;
-        int framecnt1 = 0; // 1nd pass (detect marks)
-        int framecnt2 = 0; // 2nd pass (overlap)
-        int framecnt3 = 0; // 3nd pass (silence)
-        int framecnt4 = 0; // 3nd pass (cut)
-        bool gotendmark = false;
-        int waittime = 0;
-        int iwaittime = 0;
-        bool noticeVDR_VID = false;
-        bool noticeVDR_AC3 = false;
-        bool noticeHEADER = false;
-        bool noticeFILLER = false ;
-        bool bDecodeVideo = false;
-        bool bDecodeAudio = false;
-        bool bIgnoreTimerInfo = false;
-        bool bLiveRecording = false;
-        time_t startTime = 0;  // starttime of broadcast
-        int length = 0;        // length of broadcast in seconds
-        int iStart = 0;        // pretimer in frames (negative if unset)
-        int iStop = 0;         // endposition in frames (negative if unset)
-        int iStartA = 0;       // assumed startposition in frames
-        int iStopA = 0;        // assumed endposition in frames (negative if unset)
-        bool iStopinBroadCast = false;    // in broadcast @ iStop position?
-        int chkSTART = 0;
-        int chkSTOP = 0;
-        bool inBroadCast = false;  // are we in a broadcast (or ad)?
-        char *indexFile = NULL;
-        int sleepcnt = 0;
-        clMarks marks;
-        clMarks blackMarks;
-        cDecoder *ptr_cDecoderLogoChange = NULL;
-
-        void CheckStop();
-        bool MoveLastLogoStopAfterClosingCredits(clMark *stopMark);
-        void RemoveLogoChangeMarks();
-        void CheckStart();
-        void CalculateCheckPositions(int startframe);
-        bool isVPSTimer();
-        time_t GetBroadcastStart(time_t start, int fd);
-#if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_MARK_FRAMES)
-        void SaveFrame(const int frame, const char *path = NULL, const char *suffix = NULL);
-#endif
-        char *IndexToHMSF(int Index);
-        void AddMark(MarkAdMark *Mark);
-        void AddMarkVPS(const int offset, const int type, const bool isPause);
-        bool Reset(bool FirstPass=true);
-        void ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos);
-        void CheckIndexGrowing();
-        bool CheckTS();
-        bool CheckLogo();
-        void CheckMarks();
-        void LogSeparator(const bool main = false);
-        void DebugMarks();
-        bool LoadInfo();
-        bool SaveInfo();
-        bool SetFileUID(char *File);
-        bool ProcessMark2ndPass(clMark **Mark1, clMark **Mark2);
-        void ProcessFile();
-        bool ProcessFrame(cDecoder *ptr_cDecoder);
-
     public:
         cMarkAdStandalone(const char *Directory, const MarkAdConfig *config, cIndex *recordingIndex);
         ~cMarkAdStandalone();
@@ -194,12 +116,88 @@ class cMarkAdStandalone {
             sleepcnt = origin->sleepcnt;
             return *this;
         }
-        void Process_cDecoder();
+        void ProcessFiles();
         void Process2ndPass();
         void Process3ndPass();
         void MarkadCut();
 #ifdef DEBUG_MARK_FRAMES
         void DebugMarkFrames();
 #endif
+
+    private:
+        void CheckStop();
+        bool MoveLastLogoStopAfterClosingCredits(clMark *stopMark);
+        void RemoveLogoChangeMarks();
+        void CheckStart();
+        void CalculateCheckPositions(int startframe);
+        bool isVPSTimer();
+        time_t GetBroadcastStart(time_t start, int fd);
+#if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_MARK_FRAMES)
+        void SaveFrame(const int frame, const char *path = NULL, const char *suffix = NULL);
+#endif
+        char *IndexToHMSF(int Index);
+        void AddMark(MarkAdMark *Mark);
+        void AddMarkVPS(const int offset, const int type, const bool isPause);
+        bool Reset(bool FirstPass=true);
+        void ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos);
+        void CheckIndexGrowing();
+        bool CheckTS();
+        bool CheckLogo();
+        void CheckMarks();
+        void LogSeparator(const bool main = false);
+        void DebugMarks();
+        bool LoadInfo();
+        bool SaveInfo();
+        bool SetFileUID(char *File);
+        bool ProcessMark2ndPass(clMark **Mark1, clMark **Mark2);
+        bool ProcessFrame(cDecoder *ptr_cDecoder);
+
+        cMarkAdVideo *video = NULL;
+        cMarkAdAudio *audio = NULL;
+        cOSDMessage *osd = NULL;
+        MarkAdContext macontext = {};
+        cIndex *recordingIndexMark = NULL;
+        enum { mSTART = 0x1, mBEFORE, mAFTER };
+        const char *directory;
+        char title[80];
+        char *ptitle = NULL;
+        bool CreatePidfile();
+        void RemovePidfile();
+        bool duplicate = false; // are we a dup?
+        bool isTS = false;
+        bool isREEL = false;
+        int MaxFiles = 0;
+        int lastiframe = 0;
+        int iframe = 0;
+        int framecnt1 = 0; // 1nd pass (detect marks)
+        int framecnt2 = 0; // 2nd pass (overlap)
+        int framecnt3 = 0; // 3nd pass (silence)
+        int framecnt4 = 0; // 3nd pass (cut)
+        bool gotendmark = false;
+        int waittime = 0;
+        int iwaittime = 0;
+        bool noticeVDR_VID = false;
+        bool noticeVDR_AC3 = false;
+        bool noticeHEADER = false;
+        bool noticeFILLER = false ;
+        bool bDecodeVideo = false;
+        bool bDecodeAudio = false;
+        bool bIgnoreTimerInfo = false;
+        bool bLiveRecording = false;
+        time_t startTime = 0;  // starttime of broadcast
+        int length = 0;        // length of broadcast in seconds
+        int iStart = 0;        // pretimer in frames (negative if unset)
+        int iStop = 0;         // endposition in frames (negative if unset)
+        int iStartA = 0;       // assumed startposition in frames
+        int iStopA = 0;        // assumed endposition in frames (negative if unset)
+        bool iStopinBroadCast = false;    // in broadcast @ iStop position?
+        int chkSTART = 0;
+        int chkSTOP = 0;
+        bool inBroadCast = false;  // are we in a broadcast (or ad)?
+        char *indexFile = NULL;
+        int sleepcnt = 0;
+        clMarks marks;
+        clMarks blackMarks;
+        cDecoder *ptr_cDecoderLogoChange = NULL;
 };
 #endif

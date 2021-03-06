@@ -2666,10 +2666,13 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
 }
 
 
-void cMarkAdStandalone::ProcessFile() {
+void cMarkAdStandalone::ProcessFiles() {
+    if (abortNow) return;
 
-    LogSeparator();
-    dsyslog("cMarkAdStandalone::ProcessFile(): start processing files");
+    if (macontext.Config->BackupMarks) marks.Backup(directory,isTS);
+
+    LogSeparator(true);
+    dsyslog("cMarkAdStandalone::ProcessFiles(): start processing files");
     ptr_cDecoder = new cDecoder(macontext.Config->threads, recordingIndexMark);
     ALLOC(sizeof(*ptr_cDecoder), "ptr_cDecoder");
     CheckIndexGrowing();
@@ -2685,7 +2688,7 @@ void cMarkAdStandalone::ProcessFile() {
         if(ptr_cDecoder->GetFrameNumber() < 0) {
             macontext.Info.VPid.Type = ptr_cDecoder->GetVideoType();
             if (macontext.Info.VPid.Type == 0) {
-                dsyslog("cMarkAdStandalone::ProcessFile(): video type not set");
+                dsyslog("cMarkAdStandalone::ProcessFiles(): video type not set");
                 return;
             }
             macontext.Video.Info.Height = ptr_cDecoder->GetVideoHeight();
@@ -2711,7 +2714,7 @@ void cMarkAdStandalone::ProcessFile() {
             }
             // write an early start mark for running recordings
             if (macontext.Info.isRunningRecording && !macontext.Info.isStartMarkSaved && (ptr_cDecoder->GetFrameNumber() >= (macontext.Info.tStart * macontext.Video.Info.FramesPerSecond))) {
-                dsyslog("cMarkAdStandalone::ProcessFile(): recording is aktive, read frame (%d), now save dummy start mark at pre timer position %ds", ptr_cDecoder->GetFrameNumber(), macontext.Info.tStart);
+                dsyslog("cMarkAdStandalone::ProcessFiles(): recording is aktive, read frame (%d), now save dummy start mark at pre timer position %ds", ptr_cDecoder->GetFrameNumber(), macontext.Info.tStart);
                 clMarks marksTMP;
                 marksTMP.Add(MT_ASSUMEDSTART, ptr_cDecoder->GetFrameNumber(), "timer start", true);
                 marksTMP.Save(macontext.Config->recDir, &macontext, true, true);
@@ -2725,7 +2728,7 @@ void cMarkAdStandalone::ProcessFile() {
 
     if (!abortNow) {
         if (iStart !=0 ) {  // iStart will be 0 if iStart was called
-            dsyslog("cMarkAdStandalone::ProcessFile(): recording ends unexpected before chkSTART (%d) at frame %d", chkSTART, lastiframe);
+            dsyslog("cMarkAdStandalone::ProcessFiles(): recording ends unexpected before chkSTART (%d) at frame %d", chkSTART, lastiframe);
             isyslog("got end of recording before recording length from info file reached");
             CheckStart();
         }
@@ -2733,7 +2736,7 @@ void cMarkAdStandalone::ProcessFile() {
             if (iStop <= 0) {  // unexpected end of recording reached
                 iStop = lastiframe;
                 iStopinBroadCast = true;
-                dsyslog("cMarkAdStandalone::ProcessFile(): recording ends unexpected before chkSTOP (%d) at frame %d", chkSTOP, lastiframe);
+                dsyslog("cMarkAdStandalone::ProcessFiles(): recording ends unexpected before chkSTOP (%d) at frame %d", chkSTOP, lastiframe);
                 isyslog("got end of recording before recording length from info file reached");
             }
             CheckStop();
@@ -2745,25 +2748,13 @@ void cMarkAdStandalone::ProcessFile() {
             tempmark.Position = lastiframe;
             AddMark(&tempmark);
         }
-    }
-    dsyslog("cMarkAdStandalone::ProcessFile(): end processing files");
-}
-
-
-
-void cMarkAdStandalone::Process_cDecoder() {
-    if (abortNow) return;
-
-    if (macontext.Config->BackupMarks) marks.Backup(directory,isTS);
-    ProcessFile();
-
-    if (!abortNow) {
         if (marks.Save(directory, &macontext, isTS, false)) {
             if (length && startTime)
                     if (macontext.Config->SaveInfo) SaveInfo();
 
         }
     }
+    dsyslog("cMarkAdStandalone::ProcessFiles(): end processing files");
 }
 
 
@@ -4441,7 +4432,7 @@ int main(int argc, char *argv[]) {
 
         if (!bPass2Only) {
             gettimeofday(&startPass1, NULL);
-            cmasta->Process_cDecoder();
+            cmasta->ProcessFiles();
             gettimeofday(&endPass1, NULL);
         }
 
