@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-03-06: Version 2.6.5
+- fix crash in encoder using ffmpeg 4.3.x
+- some code cleanup
+
 2021-03-03: Version 2.6.4
 - optimize new features introduced in 2.6.0
 - detect introduction logo
