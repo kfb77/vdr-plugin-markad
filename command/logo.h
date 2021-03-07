@@ -32,12 +32,18 @@ class cExtractLogo {
         int isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopMarkPosition);
         int IntroductionLogo(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startPos, const int stopPos);
         int AdInFrameWithLogo(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startPos, const int stopPos, const bool isStartMark);
+
         bool abort = false;
         void SetAbort() {
             abort = true;
         };
+
     private:
-        cIndex *recordingIndexLogo = NULL;
+        struct compareInfoType {
+            int frameNumber1 = 0;
+            int frameNumber2 = 0;
+            int rate[CORNERS] = {0};
+        };
         struct logoInfo {
             int iFrameNumber = -1;
             int hits = 0;
@@ -51,21 +57,7 @@ class cExtractLogo {
             bool valid[PLANES] = {};
             MarkAdAspectRatio aspectratio = {};
         };
-        std::vector<logoInfo> logoInfoVector[CORNERS];
-        std::vector<logoInfoPacked> logoInfoVectorPacked[CORNERS];
-
-        struct compareInfoType {
-            int frameNumber1 = 0;
-            int frameNumber2 = 0;
-            int rate[CORNERS] = {0};
-        };
         typedef std::vector<compareInfoType> compareResultType;
-
-        int recordingFrameCount = 0;
-        MarkAdAspectRatio logoAspectRatio = {};
-        int AudioState = 0;  // 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
-        int iFrameCountValid = 0;
-        const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" };
 
         bool CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startFrame, const int endFrame, compareResultType *compareResult, const bool forFrame);
         bool Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber,  const char *debugText);
@@ -74,7 +66,7 @@ class cExtractLogo {
         bool CompareLogoPairRotating(logoInfo *logo1, logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner);
         bool CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0 = 0, int match12 = 0, int *rate0 = NULL);
         void CutOut(logoInfo *logoInfo, int cutPixelH, int cutPixelV, int *logoHeight, int *logoWidth, const int corner);
-        bool CheckLogoSize(const MarkAdContext *maContext, const int logoHeight, const int logoWidth);
+        bool CheckLogoSize(const MarkAdContext *maContext, const int logoHeight, const int logoWidth, const int logoCorner);
         bool Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner);
         bool IsWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
         void SetLogoSize(const MarkAdContext *maContext, int *logoHeight, int *logoWidth);
@@ -88,5 +80,14 @@ class cExtractLogo {
         int CountFrames(const MarkAdContext *maContext);
         void RemovePixelDefects(const MarkAdContext *maContext, logoInfo *logoInfo, const int logoHeight, const int logoWidth, const int corner);
         int AudioInBroadcast(const MarkAdContext *maContext, const int iFrameNumber);   // 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
+
+        cIndex *recordingIndexLogo = NULL;
+        std::vector<logoInfo> logoInfoVector[CORNERS];
+        std::vector<logoInfoPacked> logoInfoVectorPacked[CORNERS];
+        int recordingFrameCount = 0;
+        MarkAdAspectRatio logoAspectRatio = {};
+        int AudioState = 0;  // 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
+        int iFrameCountValid = 0;
+        const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" };
 };
 #endif

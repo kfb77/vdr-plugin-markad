@@ -278,136 +278,148 @@ void cExtractLogo::CutOut(logoInfo *logoInfo, int cutPixelH, int cutPixelV, int 
 }
 
 
-bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoHeight, const int logoWidth) {
+bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoHeight, const int logoWidth, const int logoCorner) {
     if (!maContext) return false;
     if ((logoHeight <= 0) || (logoWidth <= 0)) return false;
-    struct size_struct {
-       int widthMin  = 0;
-       int widthMax  = 0;
-       int heightMin = 0;
-       int heightMax = 0;
-    } size;
+    struct logo_struct {
+       int widthMin  =  0;
+       int widthMax  =  0;
+       int heightMin =  0;
+       int heightMax =  0;
+       int corner    = -1;
+    } logo;
 // define size for special channels, special logos or to prevent false logo detection
     if (strcmp(maContext->Info.ChannelName, "13th_Street_HD") == 0) { // 13th_Street_HD:         16:9 1920W 1080H:-> 218W 194H TOP_LEFT
-        size.widthMin  = 217;
-        size.heightMax = 195;
+        logo.widthMin  = 217;
+        logo.heightMax = 195;
     }
     if (strcmp(maContext->Info.ChannelName, "ANIXE+") == 0) {         // ANIXE+                  16:9 1280W 1080H:-> 254W 170H TOP_LEFT
-        size.heightMax = 170;
+        logo.heightMax = 170;
     }
     if (strcmp(maContext->Info.ChannelName, "arte_HD") == 0) {        // arte_HD                 16:9 1280W  720H:->  88W 134H TOP_LEFT
-        size.widthMin  = 88;
+        logo.widthMin  = 88;
     }
     if (strcmp(maContext->Info.ChannelName, "Disney_Channel") == 0) { // Disney_Channel:         16:9  720W  576H:-> 110W  70-72H TOP_LEFT
-        size.widthMin  = 110;
-        size.heightMin =  70;
+        logo.widthMin  = 110;
+        logo.heightMin =  70;
     }
-    if (strcmp(maContext->Info.ChannelName, "DMAX") == 0) { // DMAX: 126W 74H TOP_LEFT
-        size.widthMin  = 126;
+    if (strcmp(maContext->Info.ChannelName, "DMAX") == 0) {           // DMAX: 126W 74H TOP_LEFT
+        logo.widthMin  = 126;
+    }
+    if (strcmp(maContext->Info.ChannelName, "EinsPlus_HD") == 0) {    // EinsPlus_HD             16:9 1280W  720H:-> 334W  86H TOP_RIGHT
+        logo.widthMax  = 335;
     }
     if (strcmp(maContext->Info.ChannelName, "Nickelodeon") == 0) {    // Nickelodeon old logo    16:9  720W  576H:-> 180W  78H TOP_LEFT
                                                                       // Nickelodeon old logo    16:9  720W  576H:-> 180W  80H TOP_LEFT
                                                                       // Nickelodeon old logo    16:9  720W  576H:-> 184W  80H TOP_LEFT
                                                                       // Nickelodeon new logo    16:9  720W  576H:-> 144W  88H TOP_LEFT
                                                                       // Nickelodeon new logo    16:9  720W  576H:-> 146W  88H TOP_LEFT
-        size.widthMin  = 144;
-        size.widthMax  = 184;
-        size.heightMin =  78;
+        logo.widthMin  = 144;
+        logo.widthMax  = 184;
+        logo.heightMin =  78;
     }
     if (strcmp(maContext->Info.ChannelName, "n-tv") == 0) { // n-tv: 224W 60H BOTTOM_RIGHT
-        size.widthMax  = INT_MAX;  // news ticker
+        logo.widthMax  = INT_MAX;  // news ticker
     }
     if (strcmp(maContext->Info.ChannelName, "ProSieben") == 0) { // ProSieben 16:9:  84W 66H TOP_RIGHT
                                                                  // ProSieben  4:3: 100W 66H TOP_RIGHT
-        size.widthMax  =  100;
+        logo.widthMax  =  100;
     }
     if (strcmp(maContext->Info.ChannelName, "RTL_Television") == 0) { // RTL_Television: 104W 60H TOP_LEFT
-        size.widthMax  =  105;
+        logo.widthMax  =  105;
     }
     if (strcmp(maContext->Info.ChannelName, "RTL2") == 0) { // RTL2 new logo:  82W  78-80H BOTTOM_RIGHT
                                                             //      old logo: 108W    108H BOTTOM_RIGHT
-        size.widthMin  =  81;
-        size.widthMax  = 109;
-        size.heightMin =  77;
-        size.heightMax = 109;
+        logo.widthMin  =  81;
+        logo.widthMax  = 109;
+        logo.heightMin =  77;
+        logo.heightMax = 109;
     }
     if (strcmp(maContext->Info.ChannelName, "RTLplus") == 0) { // RTLplus: 168W 64H TOP_LEFT
-        size.widthMin  = 168;
-        size.widthMax  = 168;
+        logo.widthMin  = 168;
+        logo.widthMax  = 168;
     }
     if (strcmp(maContext->Info.ChannelName, "SIXX") == 0) { // SIXX old logo: 108W 56H TOP_RIGHT
                                                             //      new logo:  98W 54H TOP_RIGHT
-        size.widthMin  =  98;
-        size.heightMin =  54;
+        logo.widthMin  =  98;
+        logo.heightMin =  54;
     }
     if (strcmp(maContext->Info.ChannelName, "SUPER_RTL") == 0) { // SUPER RTL PRIMETIME: 160W 54H TOP_LEFT
-        size.widthMin  = 160;
-        size.widthMax  = 160;
-        size.heightMin =  54;
+        logo.widthMin  = 160;
+        logo.widthMax  = 160;
+        logo.heightMin =  54;
     }
-    if (strcmp(maContext->Info.ChannelName, "TELE_5") == 0) { // TELE_5 old logo: 108W 64H BOTTOM_RIGHT
-                                                              //        new logo:  72W 76H BOTTOM_RIGHT
-        size.widthMin  =  72;
-        size.widthMax  = 108;
-        size.heightMin =  64;
-        size.heightMax =  76;
+    if (strcmp(maContext->Info.ChannelName, "TELE_5") == 0) { // TELE_5 (old logo)                 16:9  720W  576H:-> 108W  64H BOTTOM_RIGHT
+                                                              // TELE_5 (old logo)                 16:9  720W  576H:-> 108W  66H BOTTOM_RIGHT
+                                                              // TELE_5 (new logo)                 16:9  720W  576H:->  72W  76H BOTTOM_RIGHT
+                                                              // TELE_5 (new logo)                  4:3  720W  576H:->  94W  74H BOTTOM_RIGHT
+                                                              // TELE_5 (new logo)                  4:3  720W  576H:->  94W  76H BOTTOM_RIGHT
+        logo.widthMin  =  72;
+        logo.widthMax  = 108;
+        logo.heightMin =  64;
+        logo.heightMax =  76;
+        logo.corner    = BOTTOM_RIGHT;
     }
     if (strcmp(maContext->Info.ChannelName, "VOX") == 0) { // VOX: 108W 70H TOP_LEFT
-        size.heightMin =  70;
+        logo.heightMin =  70;
     }
     if (strcmp(maContext->Info.ChannelName, "WELT") == 0) { // WELT: 222W 60H BOTTOM_LEFT
-        size.widthMax  = INT_MAX;  // news ticker
+        logo.widthMax  = INT_MAX;  // news ticker
     }
     if (strcmp(maContext->Info.ChannelName, "Welt_der_Wunder") == 0) { // Welt der Wunder: 96W 112H TOP_LEFT
-        size.widthMin  =  96;
-        size.heightMax = 112;
+        logo.widthMin  =  96;
+        logo.heightMax = 112;
     }
 
 // set default values
     switch (maContext->Video.Info.Width) {
         case 544:
-            if (size.widthMin  == 0) size.widthMin  =  95; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
-            if (size.widthMax  == 0) size.widthMax  =  97; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
-            if (size.heightMin == 0) size.heightMin =  89; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
-            if (size.heightMax == 0) size.heightMax =  91; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
+            if (logo.widthMin  == 0) logo.widthMin  =  95; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
+            if (logo.widthMax  == 0) logo.widthMax  =  97; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
+            if (logo.heightMin == 0) logo.heightMin =  89; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
+            if (logo.heightMax == 0) logo.heightMax =  91; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
             break;
         case 720:
-            if (size.widthMin  == 0) size.widthMin  =  76; // SAT_1
-            if (size.widthMax  == 0) size.widthMax  = 150; // Nickelodeon, NICK_MTV+
-            if (size.heightMin == 0) size.heightMin =  60; // SAT_1_Gold, TLC, n-tv, WELT
-            if (size.heightMax == 0) size.heightMax =  88; // Nickelodeon, NICK_MTV+
+            if (logo.widthMin  == 0) logo.widthMin  =  76; // SAT_1
+            if (logo.widthMax  == 0) logo.widthMax  = 150; // Nickelodeon, NICK_MTV+
+            if (logo.heightMin == 0) logo.heightMin =  60; // SAT_1_Gold, TLC, n-tv, WELT
+            if (logo.heightMax == 0) logo.heightMax =  88; // Nickelodeon, NICK_MTV+
             break;
         case 1280:
-            if (size.widthMin  == 0) size.widthMin  = 132; // BR_Fernsehen_Süd_HD
-            if (size.widthMax  == 0) size.widthMax  = 254; // ANIXE+
-            if (size.heightMin == 0) size.heightMin =  66; // SRF_zwei_HD
-            if (size.heightMax == 0) size.heightMax = 134; // arte_HD                 16:9 1280W  720H:->  88W 134H TOP_LEFT
+            if (logo.widthMin  == 0) logo.widthMin  = 132; // BR_Fernsehen_Süd_HD
+            if (logo.widthMax  == 0) logo.widthMax  = 254; // ANIXE+
+            if (logo.heightMin == 0) logo.heightMin =  66; // SRF_zwei_HD
+            if (logo.heightMax == 0) logo.heightMax = 134; // arte_HD                 16:9 1280W  720H:->  88W 134H TOP_LEFT
             break;
         case 1920:
-            if (size.widthMin  == 0) size.widthMin  = 256; // ServusTV_HD_Deutschland
-            if (size.widthMax  == 0) size.widthMax  = 336; // ANIXE_HD
-            if (size.heightMin == 0) size.heightMin =  96; // münchen_tv_HD
-            if (size.heightMax == 0) size.heightMax = 180; // ANIXE_HD
+            if (logo.widthMin  == 0) logo.widthMin  = 256; // ServusTV_HD_Deutschland
+            if (logo.widthMax  == 0) logo.widthMax  = 336; // ANIXE_HD
+            if (logo.heightMin == 0) logo.heightMin =  96; // münchen_tv_HD
+            if (logo.heightMax == 0) logo.heightMax = 180; // ANIXE_HD
             break;
         default:
             dsyslog("cExtractLogo::CheckLogoSize(): no logo size rules for %dx%d", maContext->Video.Info.Width, maContext->Video.Info.Height);
             return false;
             break;
     }
-    if (logoWidth < size.widthMin) {
-        dsyslog("cExtractLogo::CheckLogoSize(): logo too narrow %d, expect min %d", logoWidth, size.widthMin);
+    if (logoWidth < logo.widthMin) {
+        dsyslog("cExtractLogo::CheckLogoSize(): logo too narrow %d, expect min %d", logoWidth, logo.widthMin);
         return false;
     }
-    if (logoWidth > size.widthMax) {
-        dsyslog("cExtractLogo::CheckLogoSize(): logo too wide %d, expect max %d", logoWidth, size.widthMax);
+    if (logoWidth > logo.widthMax) {
+        dsyslog("cExtractLogo::CheckLogoSize(): logo too wide %d, expect max %d", logoWidth, logo.widthMax);
         return false;
     }
-    if (logoHeight < size.heightMin) {
-        dsyslog("cExtractLogo::CheckLogoSize(): logo too low %d, expect min %d", logoHeight, size.heightMin);
+    if (logoHeight < logo.heightMin) {
+        dsyslog("cExtractLogo::CheckLogoSize(): logo too low %d, expect min %d", logoHeight, logo.heightMin);
         return false;
     }
-    if (logoHeight > size.heightMax) {
-        dsyslog("cExtractLogo::CheckLogoSize(): logo too height %d, expect max %d", logoHeight, size.heightMax);
+    if (logoHeight > logo.heightMax) {
+        dsyslog("cExtractLogo::CheckLogoSize(): logo too height %d, expect max %d", logoHeight, logo.heightMax);
+        return false;
+    }
+    if ((logo.corner >= 0) && (logo.corner != logoCorner)) {
+        dsyslog("cExtractLogo::CheckLogoSize(): logo in corner %d, expect %d", logoCorner, logo.corner);
         return false;
     }
     return true;
@@ -639,7 +651,7 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
         }
         dsyslog("cExtractLogo::Resize(): logo size after %d. resize:  %3d width %3d height on corner %12s", repeat, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
     }
-    if (CheckLogoSize(maContext, *logoHeight, *logoWidth)) {
+    if (CheckLogoSize(maContext, *logoHeight, *logoWidth, bestLogoCorner)) {
         dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is valid", maContext->Video.Info.Width, maContext->Video.Info.Height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
         return true;
     }
