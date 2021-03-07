@@ -293,9 +293,12 @@ clMark *clMarks::Add(const int Type, const int Position, const char *Comment, co
 
     if ((newmark = Get(Position))) {
         dsyslog("duplicate mark on position %i type 0x%X and type 0x%x", Position, Type, newmark->type);
+        if ((Type & 0xF0) == (newmark->type & 0xF0)) {  // start and stop mark of same type at same position, delete both
+            Del(newmark->position);
+            return NULL;
+        }
         if (Type > newmark->type){   // keep the stronger mark
-            if (newmark->comment && Comment)
-            {
+            if (newmark->comment && Comment) {
                 FREE(strlen(newmark->comment)+1, "comment");
                 free(newmark->comment);
                 newmark->comment=strdup(Comment);
