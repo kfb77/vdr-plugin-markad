@@ -601,7 +601,8 @@ bool cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(clMark *stopMark) {
 // return: last stop position with isClosingCredits = 1
 //
 void cMarkAdStandalone::RemoveLogoChangeMarks() {
-    if (strcmp(macontext.Info.ChannelName, "TELE_5") != 0) return;  // for performance reason only known and tested channels
+    if ((strcmp(macontext.Info.ChannelName, "TELE_5") != 0) &&
+        (strcmp(macontext.Info.ChannelName, "DMAX") != 0)) return;  // for performance reason only known and tested channels
 
     struct timeval startTime, stopTime;
     gettimeofday(&startTime, NULL);
