@@ -336,6 +336,7 @@ void cMarkAdStandalone::CheckStop() {
     DebugMarks();     //  only for debugging
 
     // remove logo change marks
+    RemoveLogoChangeMarks();
     if (ptr_cDecoderLogoChange) {  // no longer need this object
         FREE(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
         delete ptr_cDecoderLogoChange;
