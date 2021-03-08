@@ -391,6 +391,11 @@ char *clMarks::TypeToText(const int type) {
                 ALLOC(strlen(text)+1, "text");
             }
             break;
+        case MT_VBORDERCHANGE:
+            if (asprintf(&text, "vertical border") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            break;
         case MT_HBORDERCHANGE:
             if (asprintf(&text, "horizontal border") != -1) {
                 ALLOC(strlen(text)+1, "text");
