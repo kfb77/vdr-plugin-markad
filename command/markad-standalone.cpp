@@ -1387,6 +1387,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // delete short START STOP logo marks because they are previes not detected above or due to next broadcast
 // delete short STOP START logo marks because they are logo detection failure
 // delete short STOP START hborder marks because some channels display information in the border
+// delete short STOP START vborder marks because they are from malfunction recording
     dsyslog("cMarkAdStandalone::CheckMarks(): check marks 3nd pass (remove logo and hborder detection failure marks)");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
@@ -1421,6 +1422,18 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             if ((mark->Next()->position - mark->position) <= MARKDIFF) {
                 double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
                 isyslog("mark distance between horizontal STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
+                clMark *tmp = mark;
+                mark = mark->Next()->Next();
+                marks.Del(tmp->Next());
+                marks.Del(tmp);
+                continue;
+            }
+        }
+        if ((mark->type == MT_VBORDERSTOP) && mark->Next() && mark->Next()->type == MT_VBORDERSTART) {
+            int MARKDIFF = static_cast<int> (macontext.Video.Info.FramesPerSecond * 2);
+            if ((mark->Next()->position - mark->position) <= MARKDIFF) {
+                double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
+                isyslog("mark distance between vertical STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
                 clMark *tmp = mark;
                 mark = mark->Next()->Next();
                 marks.Del(tmp->Next());
