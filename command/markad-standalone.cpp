@@ -1724,7 +1724,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
 
     clMark *prev = marks.GetLast();
     if (prev) {
-        if ((prev->type & 0x0F) == (Mark->Type & 0x0F)) {
+        if (((prev->type & 0x0F) == (Mark->Type & 0x0F)) && ((prev->type & 0xF0) != (Mark->Type & 0xF0))) { // do not delete same mark type
             int markDiff;
             if (iStart != 0) markDiff = static_cast<int> (macontext.Video.Info.FramesPerSecond * 2);  // before chkStart: let more marks untouched, we need them for start detection
             else markDiff = static_cast<int> (macontext.Video.Info.FramesPerSecond * 30);
