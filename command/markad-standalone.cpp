@@ -3874,7 +3874,7 @@ int usage(int svdrpport) {
            "                             1 = enable, find logo from recording and store it in the recording directory\n"
            "                                 memory usage optimized operation mode, but runs slow\n"
            "                             2 = enable, find logo from recording and store it in the recording directory (default)\n"
-           "                                 speed optimized operation mode, but needs a lot of memonry, use it only > 1 GB memory\n"
+           "                                 speed optimized operation mode, use it only on systems with >= 1 GB main memory\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
            "nice                         runs markad directly and with nice(19)\n"
