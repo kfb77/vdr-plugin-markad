@@ -109,6 +109,7 @@ class Config:
 
         self.markad_loglevel = 1
         self.autologo = 2
+        self.decoding = 0
         self.threads = 1
         self.astopoffs = 0
         self.log2rec=False
@@ -196,6 +197,12 @@ class Config:
         if ret is not None: self.autologo = ret
 
         try:
+            ret = config.getint('MARKAD', 'decoding')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.decoding = ret
+
+        try:
             ret = config.getint('MARKAD', 'threads')
         except (configparser.NoSectionError, configparser.NoOptionError):
             ret = None
@@ -265,6 +272,7 @@ class Config:
         if args.nice is not None: self.nice = args.nice
         if args.minfree is not None: self.minfree = args.minfree
         if args.autologo is not None: self.autologo = args.autologo
+        if args.decoding is not None: self.decoding = args.decoding
         if args.threads is not None: self.threads = args.threads
         if args.astopoffs is not None: self.astopoffs = args.astopoffs
         if args.log2rec: self.log2rec = args.log2rec
@@ -441,7 +449,7 @@ class CheckPath:
 
     def RunMarkad(self):
         if not config.checkOnly:
-            cmd = '%s/markad --logocachedir=%s --loglevel=%i --autologo=%i --threads=%i --astopoffs=%i --priority=%i' % (config.bindir, config.logocachedir, config.markad_loglevel, config.autologo, config.threads, config.astopoffs, config.nice)
+            cmd = '%s/markad --logocachedir=%s --loglevel=%i --autologo=%i --decoding=%i --threads=%i --astopoffs=%i --priority=%i' % (config.bindir, config.logocachedir, config.markad_loglevel, config.autologo, config.decoding, config.threads, config.astopoffs, config.nice)
             if config.log2rec: cmd = cmd + " --log2rec"
             if config.vps: cmd = cmd + " --vps"
             if config.cut: cmd = cmd + " --cut"
@@ -522,6 +530,7 @@ parser.add_argument('--bindir', dest="bindir",  metavar="<DIR>", action="store",
 parser.add_argument('--backupmarks', dest="backupmarks", action='store_true', default=False, help='make a versioned backup of the marks file')
 parser.add_argument('--logocachedir', dest="logocachedir",  metavar="<directory>", action="store", help='directory where logos stored, default /var/lib/markad')
 parser.add_argument('--autologo=', metavar="<option>", type=int, choices=range(0, 3), dest="autologo", action="store", help='sets --autologo of markad to the specified value, see markad for more detailsi (default 2)')
+parser.add_argument('--decoding=', metavar="<option>", type=int, choices=range(0, 3), dest="decoding", action="store", help='sets --decoding of markad to the specified value, see markad for more detailsi (default 0)')
 parser.add_argument('--threads=', metavar="<number>", type=int, choices=range(1, 17), dest="threads", action="store", help='sets --threads of markad to the specified value, see markad for more details (default 1)')
 parser.add_argument('--astopoffs=', metavar="<value>", type=int, choices=range(0, 241), dest="astopoffs", action="store", help='sets --astopoffs of markad to the specified value, see markad for more details (default 0)')
 parser.add_argument('--log2rec', dest="log2rec", action='store_true', default=False, help='sets --log2rec of markad to the specified value, see markad for more details')

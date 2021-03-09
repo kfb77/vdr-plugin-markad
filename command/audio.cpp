@@ -63,13 +63,14 @@ MarkAdMark *cMarkAdAudio::Process() {
     for (short int stream = 0; stream < MAXSTREAMS; stream++){
         if (ChannelChange(macontext->Audio.Info.Channels[stream], channels[stream])) {
             if (macontext->Audio.Info.Channels[stream] > 2) {
-                SetMark(MT_CHANNELSTART, recordingIndexAudio->GetIFrameAfter(macontext->Audio.Info.frameChannelChange), channels[stream], macontext->Audio.Info.Channels[stream]);  // we accept to cut out a little audio, we do not want to have a frame from ad
+		if (macontext->Config->decodingLevel == 0) SetMark(MT_CHANNELSTART, recordingIndexAudio->GetIFrameAfter(macontext->Audio.Info.frameChannelChange), channels[stream], macontext->Audio.Info.Channels[stream]); // we accept to cut out a little audio, we do not want to have a frame from ad
+		else SetMark(MT_CHANNELSTART, macontext->Audio.Info.frameChannelChange - 3, channels[stream], macontext->Audio.Info.Channels[stream]); // TODO: we should find video frame with PTS before this audio frame, for now: guess this video frame is on offset -3
             }
             else {
-                SetMark(MT_CHANNELSTOP, recordingIndexAudio->GetIFrameBefore(macontext->Audio.Info.frameChannelChange), channels[stream], macontext->Audio.Info.Channels[stream]);
+		 if (macontext->Config->decodingLevel == 0) SetMark(MT_CHANNELSTOP, recordingIndexAudio->GetIFrameBefore(macontext->Audio.Info.frameChannelChange), channels[stream], macontext->Audio.Info.Channels[stream]);
+		else SetMark(MT_CHANNELSTOP, macontext->Audio.Info.frameChannelChange - 1, channels[stream], macontext->Audio.Info.Channels[stream]); // frame before ist last frame in broadcast
             }
         }
-
         channels[stream] = macontext->Audio.Info.Channels[stream];
     }
     if (mark.Position) {

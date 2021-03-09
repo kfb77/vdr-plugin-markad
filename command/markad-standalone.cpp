@@ -703,6 +703,7 @@ void cMarkAdStandalone::CheckStart() {
     dsyslog("cMarkAdStandalone::CheckStart(): checking start at frame (%d) check start planed at (%d)", frameCurrent, chkSTART);
     dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %i", iStartA);
     DebugMarks();     //  only for debugging
+#define IGNORE_AT_START 10   // ignore this number of frames at the start for marks, they are initial marks from recording before
 
     clMark *begin = NULL;
     int hBorderStopPosition = 0;
@@ -953,7 +954,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // try to find a horizontal border mark
     if (!begin) {
-        clMark *hStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTART);
+        clMark *hStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTART); // do not find initial vborder start from previous recording
         if (!hStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no horizontal border at start found, ignore horizontal border detection");
             macontext.Video.Options.ignoreHborder = true;
@@ -981,12 +982,16 @@ void cMarkAdStandalone::CheckStart() {
 
             }
             else {
-                if (hStart->position >= 5) {  // position < 5 is a hborder start from previous recording
+                if (hStart->position >= IGNORE_AT_START) {  // position < 5 is a hborder start from previous recording
                     dsyslog("cMarkAdStandalone::CheckStart(): delete VBORDER marks if any");
                     marks.Del(MT_VBORDERSTART);
                     marks.Del(MT_VBORDERSTOP);
                     begin = hStart;   // found valid horizontal border start mark
                     macontext.Video.Options.ignoreVborder = true;
+                }
+                else {
+                    dsyslog("cMarkAdStandalone::CheckStart(): delete too early horizontal border mark (%d)", hStart->position);
+                    marks.Del(hStart->position);
                 }
             }
         }
@@ -994,7 +999,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // try to find a vertical border mark
     if (!begin) {
-        clMark *vStart = marks.GetAround(iStartA+delta, iStartA + delta, MT_VBORDERSTART);
+        clMark *vStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_VBORDERSTART);  // do not find initial vborder start from previous recording
         if (!vStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no vertical border at start found, ignore vertical border detection");
             macontext.Video.Options.ignoreVborder = true;
@@ -1027,7 +1032,7 @@ void cMarkAdStandalone::CheckStart() {
                 }
             }
             if (vStart) {
-                if (vStart->position != 0) {  // position 0 is a vborder previous recording
+                if (vStart->position >= IGNORE_AT_START) {  // early position is a vborder previous recording
                     dsyslog("cMarkAdStandalone::CheckStart(): delete HBORDER marks if any");
                     marks.Del(MT_HBORDERSTART);
                     marks.Del(MT_HBORDERSTOP);
@@ -1035,7 +1040,7 @@ void cMarkAdStandalone::CheckStart() {
                     macontext.Video.Info.hasBorder = true;
                     macontext.Video.Options.ignoreHborder = true;
                 }
-                else dsyslog("cMarkAdStandalone::CheckStart(): ignore vertical border start found at (0)");
+                else dsyslog("cMarkAdStandalone::CheckStart(): ignore vertical border start found at (%d)", vStart->position);
             }
         }
     }
@@ -1117,7 +1122,7 @@ void cMarkAdStandalone::CheckStart() {
         }
     }
 
-    if (begin && (begin->position == 0)) {
+    if (begin && (begin->position <= IGNORE_AT_START)) {  // first frames are from previous recording
         dsyslog("cMarkAdStandalone::CheckStart(): start mark (%d) type 0x%X dropped because it is too early", begin->position, begin->type);
         begin = NULL;
     }
@@ -1126,6 +1131,7 @@ void cMarkAdStandalone::CheckStart() {
         marks.DelTill(1, &blackMarks);    // we do not want to have a start mark at position 0
         begin = marks.GetAround(iStartA + 3 * delta, iStartA, MT_START, 0x0F);  // increased from 2 to 3
         if (begin) {
+            dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) type 0x%X after search for any type", begin->position, begin->type);
             if ((begin->type == MT_NOBLACKSTART) && (begin->position > (iStartA + 2 * delta))) {
                 char *indexToHMSF = marks.IndexToHMSF(begin->position, &macontext);
                 if (indexToHMSF) {
@@ -1808,7 +1814,10 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
 // add mark
     char *indexToHMSF = marks.IndexToHMSF(Mark->Position, &macontext);
     if (indexToHMSF) {
-        if (comment) isyslog("%s at %s inBroadCast: %i",comment, indexToHMSF, inBroadCast);
+        if (comment) {
+            if ((Mark->Type & 0xF0) == MT_BLACKCHANGE) dsyslog("%s at %s inBroadCast: %i",comment, indexToHMSF, inBroadCast);
+            else isyslog("%s at %s inBroadCast: %i",comment, indexToHMSF, inBroadCast);
+        }
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
@@ -2044,7 +2053,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
             return false;
         }
         if (!ptr_cDecoder->isVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(&macontext)) {
+        if (!ptr_cDecoder->GetFrameInfo(&macontext, false)) {
             if (ptr_cDecoder->isVideoIFrame())  // if we have interlaced video this is expected, we have to read the next half picture
                 tsyslog("cMarkAdStandalone::ProcessMark2ndPass() before mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             continue;
@@ -2099,7 +2108,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
             return false;
         }
         if (!ptr_cDecoder->isVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(&macontext)) {
+        if (!ptr_cDecoder->GetFrameInfo(&macontext, false)) {
             if (ptr_cDecoder->isVideoIFrame())
                 tsyslog("cMarkAdStandalone::ProcessMark2ndPass() after mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             continue;
@@ -2151,9 +2160,11 @@ void cMarkAdStandalone::DebugMarkFrames() {
 
     ptr_cDecoder->Reset();
     clMark *mark = marks.GetFirst();
-    while (mark) {
-        if (mark->position != recordingIndexMark->GetIFrameBefore(mark->position)) dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at (%d) type 0x%X is not a iFrame position", mark->position, mark->type);
-        mark=mark->Next();
+    if (macontext.Config->decodingLevel == 0) {
+        while (mark) {
+            if (mark->position != recordingIndexMark->GetIFrameBefore(mark->position)) dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at (%d) type 0x%X is not a iFrame position", mark->position, mark->type);
+            mark=mark->Next();
+        }
     }
 
     mark = marks.GetFirst();
@@ -2161,7 +2172,8 @@ void cMarkAdStandalone::DebugMarkFrames() {
 
     int writePosition = mark->position;
     for (int i = 0; i < DEBUG_MARK_FRAMES; i++) {
-        writePosition = recordingIndexMark->GetIFrameBefore(writePosition - 1);
+        if (macontext.Config->decodingLevel == 0) writePosition = recordingIndexMark->GetIFrameBefore(writePosition - 1);
+        else writePosition--;
     }
     int writeOffset = -DEBUG_MARK_FRAMES;
 
@@ -2169,7 +2181,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
     while(mark && (ptr_cDecoder->DecodeDir(directory))) {
         while(mark && (ptr_cDecoder->GetNextFrame())) {
             if (ptr_cDecoder->isVideoPacket()) {
-                if (ptr_cDecoder->GetFrameInfo(&macontext)) {
+                if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->decodingLevel != 0)) {
                     if (ptr_cDecoder->GetFrameNumber() >= writePosition) {
                         dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at frame (%5d) type 0x%X, write frame (%5d)", mark->position, mark->type, writePosition);
                         if (writePosition == mark->position) {
@@ -2180,13 +2192,15 @@ void cMarkAdStandalone::DebugMarkFrames() {
                         else {
                             SaveFrame(writePosition, directory, (writePosition < mark->position) ? "BEFORE" : "AFTER");
                         }
-                        writePosition = recordingIndexMark->GetIFrameAfter(writePosition + 1);
+                        if (macontext.Config->decodingLevel == 0) writePosition = recordingIndexMark->GetIFrameAfter(writePosition + 1);
+                        else writePosition++;
                         if (writeOffset >= DEBUG_MARK_FRAMES) {
                             mark = mark->Next();
                             if (!mark) break;
                             writePosition = mark->position;
                             for (int i = 0; i < DEBUG_MARK_FRAMES; i++) {
-                                writePosition = recordingIndexMark->GetIFrameBefore(writePosition - 1);
+                                if (macontext.Config->decodingLevel == 0) writePosition = recordingIndexMark->GetIFrameBefore(writePosition - 1);
+                                else writePosition--;
                             }
                             writeOffset = -DEBUG_MARK_FRAMES;
                         }
@@ -2442,7 +2456,7 @@ void cMarkAdStandalone::Process3ndPass() {
                 break;
             }
             framecnt3 += silenceRange * macontext.Video.Info.FramesPerSecond;
-            int beforeSilence = ptr_cDecoder->GetNextSilence(mark->position, true, true);
+            int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, mark->position, true, true);
             if ((beforeSilence >= 0) && (beforeSilence != mark->position)) {
                 dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo start at iFrame (%i)", beforeSilence);
                 mark = marks.Move(&macontext, mark, beforeSilence, "silence");
@@ -2462,7 +2476,7 @@ void cMarkAdStandalone::Process3ndPass() {
                 esyslog("could not seek to frame (%i)", mark->position);
                 break;
             }
-            int beforeSilence = ptr_cDecoder->GetNextSilence(mark->position, true, false);
+            int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, mark->position, true, false);
             if (beforeSilence >= 0) dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo stop mark (%i) at iFrame (%i)", mark->position, beforeSilence);
 
             // search after stop mark
@@ -2472,7 +2486,7 @@ void cMarkAdStandalone::Process3ndPass() {
                 break;
             }
             int stopFrame =  mark->position + ((silenceRange - 1) * macontext.Video.Info.FramesPerSecond);  // reduce detection range after logo stop to avoid to get stop mark after separation image
-            int afterSilence = ptr_cDecoder->GetNextSilence(stopFrame, false, false);
+            int afterSilence = ptr_cDecoder->GetNextSilence(&macontext, stopFrame, false, false);
             if (afterSilence >= 0) dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence after logo stop mark (%i) at iFrame (%i)", mark->position, afterSilence);
             framecnt3 += 2 * (silenceRange - 1) * macontext.Video.Info.FramesPerSecond;
             bool before = false;
@@ -2527,7 +2541,11 @@ void cMarkAdStandalone::Process3ndPass() {
                     mark=mark->Next();
                     continue;
                 }
-                int newPos =  recordingIndexMark->GetIFrameBefore(blackMark->position); // MT_NOBLACKSSTART is first frame afer blackscreen, get last frame of blackscreen, blacksceen at stop mark belongs to broasdact
+                int newPos;
+                if (macontext.Config->decodingLevel == 0) {
+                    newPos =  recordingIndexMark->GetIFrameBefore(blackMark->position); // MT_NOBLACKSSTART is th "only iFrame decoding" is first frame afer blackscreen, get last frame of blackscreen, blacksceen at stop mark belongs to broasdact
+                }
+                else newPos = blackMark->position;
                 if (distance > 0)  { // blackscreen is after logo stop mark
                     dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d) %ds (expect >0 and <=%ds) after logo stop mark (%d), move mark", newPos, distance, distance_s, BLACKSCREEN_RANGE, mark->position);
                 }
@@ -2643,7 +2661,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
         iFrameCurrent = frameCurrent;
     }
 
-    if (ptr_cDecoder->GetFrameInfo(&macontext)) {
+    if (ptr_cDecoder->GetFrameInfo(&macontext, (macontext.Config->decodingLevel >= 1))) {
         if (ptr_cDecoder->isVideoPacket()) {
             if (ptr_cDecoder->isInterlacedVideo() && !macontext.Video.Info.Interlaced && (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) &&
                                                      (ptr_cDecoder->GetVideoFramesPerSecond() == 25) && (ptr_cDecoder->GetVideoRealFrameRate() == 50)) {
@@ -3912,6 +3930,9 @@ int usage(int svdrpport) {
            "                                 memory usage optimized operation mode, but runs slow\n"
            "                             2 = enable, find logo from recording and store it in the recording directory (default)\n"
            "                                 speed optimized operation mode, use it only on systems with >= 1 GB main memory\n"
+           "               --decoding=<option>\n"
+           "                  <option>   0 = decode only iFrames (default)\n"
+           "                             1 = decode all video frame types and set mark position to all frame types\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
            "nice                         runs markad directly and with nice(19)\n"
@@ -4044,9 +4065,10 @@ int main(int argc, char *argv[]) {
             {"cDecoder",0,0,11},
             {"cut",0,0,12},
             {"ac3reencode",0,0,13},
-            {"autologo",1,0,14},
-            {"vps",0,0,15},
-            {"logfile",1,0,16},
+            {"vps",0,0,14},
+            {"logfile",1,0,15},
+            {"autologo",1,0,16},
+            {"decoding",1,0,17},
 
             {0, 0, 0, 0}
         };
@@ -4268,19 +4290,26 @@ int main(int argc, char *argv[]) {
             case 13: // --ac3reencode
                 config.ac3ReEncode = true;
                 break;
-            case 14: // --autoLogo
+            case 14: // --vps
+                config.useVPS = true;
+                break;
+            case 15: // --logfile
+                strncpy(config.logFile, optarg, sizeof(config.logFile));
+                config.logFile[sizeof(config.logFile) - 1] = 0;
+                break;
+            case 16: // --autologo
                 if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 2) config.autoLogo = atoi(optarg);
                 else {
                     fprintf(stderr, "markad: invalid autologo value: %s\n", optarg);
                     return 2;
                 }
                 break;
-            case 15: // --vps
-                config.useVPS = true;
-                break;
-            case 16: // --logfile
-                strncpy(config.logFile, optarg, sizeof(config.logFile));
-                config.logFile[sizeof(config.logFile) - 1] = 0;
+            case 17: // --decoding
+                if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 1) config.decodingLevel = atoi(optarg);
+                else {
+                    fprintf(stderr, "markad: invalid decoding value: %s\n", optarg);
+                    return 2;
+                }
                 break;
             default:
                 printf ("? getopt returned character code 0%o ? (option_index %d)\n", option,option_index);
@@ -4481,6 +4510,7 @@ int main(int argc, char *argv[]) {
             }
         }
         dsyslog("parameter --autologo is set to %i",config.autoLogo);
+        dsyslog("parameter --decoding is set to %i",config.decodingLevel);
 
 
         if (!bPass2Only) {

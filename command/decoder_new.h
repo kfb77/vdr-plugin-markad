@@ -59,8 +59,8 @@ class cDecoder {
         bool GetNextFrame();
         AVPacket *GetPacket();
         bool SeekToFrame(MarkAdContext *maContext, int frame);
-        bool GetFrameInfo(MarkAdContext *maContext);
         AVFrame *DecodePacket(AVPacket *avpkt);
+        bool GetFrameInfo(MarkAdContext *maContext, const bool full);
         bool isVideoStream(const unsigned int streamIndex);
         bool isVideoPacket();
         bool isVideoIFrame();
@@ -74,7 +74,7 @@ class cDecoder {
         int GetIFrameRangeCount(int beginFrame, int endFrame);
         int64_t GetTimeFromIFrame(int iFrame);
         int GetIFrameFromOffset(int offset);
-        int GetNextSilence(const int stopFrame, const bool isBeforeMark, const bool isStartMark);
+        int GetNextSilence(MarkAdContext *maContext, const int stopFrame, const bool isBeforeMark, const bool isStartMark);
     private:
         cIndex *recordingIndexDecoder = NULL;
         char *recordingDir = NULL;

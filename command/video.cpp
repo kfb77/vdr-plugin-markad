@@ -811,7 +811,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 }
 
 
-int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, __attribute__((unused)) const int frameCurrent, int *logoFrameNumber) {
+int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const int frameCurrent, int *logoFrameNumber) {
     if (!macontext) return LOGO_ERROR;
     if (!macontext->Video.Data.Valid) {
         area.status = LOGO_UNINITIALIZED;
@@ -923,7 +923,8 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, __attr
             LOGOHEIGHT = macontext->Config->logoHeight;
         }
     }
-    return Detect(iFrameBefore, iFrameCurrent, logoFrameNumber);
+    if (macontext->Config->decodingLevel == 0) return Detect(iFrameBefore, iFrameCurrent, logoFrameNumber);
+    else return Detect(frameCurrent - 1,  frameCurrent, logoFrameNumber);
 }
 
 
@@ -1486,27 +1487,34 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
     if ((iFrameCurrent < 0) || (frameCurrent < 0)) return NULL;
     if (iFrameBefore < 0) iFrameBefore = 0; // this could happen at the start of recording
 
+    int useFrame;
+    if (macontext->Config->decodingLevel == 0) useFrame = iFrameCurrent;
+    else useFrame = frameCurrent;
     resetmarks();
+
     if ((frameCurrent > 0) && !macontext->Video.Options.IgnoreBlackScreenDetection) { // first frame can be invalid result
-        int blackret = blackScreen->Process(iFrameCurrent);
+        int blackret;
+        blackret = blackScreen->Process(useFrame);
         if (blackret > 0) {
-            addmark(MT_NOBLACKSTART, iFrameCurrent);
+            if (macontext->Config->decodingLevel == 0) addmark(MT_NOBLACKSTART, useFrame); // with iFrames only we must set mark on first frame after blackscreen to avoid start and stop on same iFrame
+            else addmark(MT_NOBLACKSTART, useFrame - 1);  // frame before is last frame with blackscreen
         }
         else {
-            if (blackret < 0) { // first frame can be invalid result
-                addmark(MT_NOBLACKSTOP, iFrameCurrent);
+            if (blackret < 0) {
+                addmark(MT_NOBLACKSTOP, useFrame);
             }
         }
     }
     int hret = HBORDER_ERROR;
     if (!macontext->Video.Options.ignoreHborder) {
         int hborderframenumber;
-        hret = hborder->Process(iFrameCurrent, &hborderframenumber);  // we get start frame of hborder back
+        hret = hborder->Process(useFrame, &hborderframenumber);  // we get start frame of hborder back
         if ((hret == HBORDER_VISIBLE) && (hborderframenumber >= 0)) {
             addmark(MT_HBORDERSTART, hborderframenumber);
         }
         if ((hret == HBORDER_INVISIBLE) && (hborderframenumber >= 0)) {
-            addmark(MT_HBORDERSTOP, iFrameBefore);  // we use iFrame before current frame as stop mark, this was the last frame with hborder
+            if (macontext->Config->decodingLevel == 0) addmark(MT_HBORDERSTOP, iFrameBefore);  // we use iFrame before current frame as stop mark, this was the last frame with hborder
+            else addmark(MT_HBORDERSTOP, useFrame - 1);
         }
     }
     else if (hborder) hborder->Clear();
@@ -1514,13 +1522,14 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
     int vret = VBORDER_ERROR;
     if (!macontext->Video.Options.ignoreVborder) {
         int vborderframenumber;
-        vret = vborder->Process(iFrameCurrent, &vborderframenumber);
+        vret = vborder->Process(useFrame, &vborderframenumber);
         if ((vret == VBORDER_VISIBLE) && (vborderframenumber >= 0)) {
             if (hret == HBORDER_VISIBLE) dsyslog("cMarkAdVideo::Process(); hborder and vborder detected, ignore this, it is a very long black screen");
             else addmark(MT_VBORDERSTART, vborderframenumber);
         }
         if ((vret == VBORDER_INVISIBLE) && (vborderframenumber >= 0)) {
-            addmark(MT_VBORDERSTOP, iFrameBefore);
+            if (macontext->Config->decodingLevel == 0) addmark(MT_VBORDERSTOP, iFrameBefore);
+            else addmark(MT_VBORDERSTOP, useFrame - 1);
         }
     }
     else if (vborder) vborder->Clear();

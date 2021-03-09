@@ -1271,7 +1271,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                 dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at frame (%d), got %d valid frames of %d frames read", ptr_cDecoder->GetFrameNumber(), iFrameCountValid, iFrameCountAll);
                 retStatus=false;
             }
-            if ((ptr_cDecoder->GetFrameInfo(maContext) && retStatus)) {
+            if ((ptr_cDecoder->GetFrameInfo(maContext, false) && retStatus)) {
                 if (ptr_cDecoder->isVideoPacket()) {
                     iFrameNumber = ptr_cDecoder->GetFrameNumber();
                     if (iFrameNumber < startFrame) {
@@ -1598,7 +1598,7 @@ bool cExtractLogo::CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDe
         }
         int frameNumber =  ptr_cDecoder->GetFrameNumber();
         if (!ptr_cDecoder->isVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(maContext)) {
+        if (!ptr_cDecoder->GetFrameInfo(maContext, false)) {
             if (ptr_cDecoder->isVideoIFrame()) // if we have interlaced video this is expected, we have to read the next half picture
                 tsyslog("cExtractLogo::CompareFrameRange(): GetFrameInfo() failed at frame (%d)", frameNumber);
             continue;

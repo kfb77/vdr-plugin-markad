@@ -410,7 +410,7 @@ bool cDecoder::SeekToFrame(MarkAdContext *maContext, int frame) {
                 return false;
             }
         }
-        if (framenumber >= iFrameBefore) GetFrameInfo(maContext);  // preload decoder buffer for interlaced video
+        if (framenumber >= iFrameBefore) GetFrameInfo(maContext, false);  // preload decoder buffer for interlaced video
     }
     dsyslog("cDecoder::SeekToFrame(): successful");
     return true;
@@ -587,7 +587,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
 }
 
 
-bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
+bool cDecoder::GetFrameInfo(MarkAdContext *maContext, const bool full) {
     if (!maContext) return false;
     if (!avctx) return false;
 
@@ -595,7 +595,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
 
     iFrameData.Valid = false;
     if (isVideoPacket()) {
-        if (isVideoIFrame() || stateEAGAIN) {
+        if (full || isVideoIFrame() || stateEAGAIN) {
             avFrameRef = DecodePacket(&avpkt);  // free in DecodePacket
             if (avFrameRef) {
                 stateEAGAIN=false;
@@ -835,7 +835,7 @@ int cDecoder::GetFirstMP2AudioStream() {
 // if not <before> we are called direct after mark position and return iFrame before first silence part
 // -1 if no silence part were found
 //
-int cDecoder::GetNextSilence(const int stopFrame, const bool isBeforeMark, const bool isStartMark) {
+int cDecoder::GetNextSilence(MarkAdContext *maContext, const int stopFrame, const bool isBeforeMark, const bool isStartMark) {
 #define SILENCE_LEVEL 25  // changed from 10 to 27 to 25
 #define SILENCE_COUNT 5   // low level counts twice
     struct silenceType {
@@ -976,9 +976,12 @@ int cDecoder::GetNextSilence(const int stopFrame, const bool isBeforeMark, const
                 videoFrame.frameNumber = silence.endFrame;
             }
         }
-        if (isStartMark) silenceFrame = recordingIndexDecoder->GetIFrameBefore(videoFrame.frameNumber);
-        else silenceFrame = recordingIndexDecoder->GetIFrameAfter(videoFrame.frameNumber);
-        dsyslog("cDecoder::GetNextSilence(): found silence part in stream %d between audio frame (%d) and (%d), video frame before (%d) PTS %ld, return frame (%d)", streamIndex, silence.startFrame, silence.endFrame, videoFrame.frameNumber, videoFrame.pts, silenceFrame);
+        if (maContext->Config->decodingLevel == 0) {
+            if (isBeforeMark) silenceFrame = recordingIndexDecoder->GetIFrameBefore(videoFrame.frameNumber);
+            else              silenceFrame = recordingIndexDecoder->GetIFrameAfter(videoFrame.frameNumber);
+        }
+        else silenceFrame = videoFrame.frameNumber;
+        dsyslog("cDecoder::GetNextSilence(): found silence part in stream %d between audio frame (%d) and (%d), video frame (%d) PTS %ld, return frame (%d)", streamIndex, silence.startFrame, silence.endFrame, videoFrame.frameNumber, videoFrame.pts, silenceFrame);
     }
     else {
 #ifdef DEBUG_MEM
