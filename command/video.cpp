@@ -604,8 +604,8 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
             if (SobelPlane(plane)) {
                 processed++;
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-                if ((iFrameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (iFrameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200) && !onlyFillArea) {
-                    Save(iFrameCurrent, area.sobel, plane, 1);
+                if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200) && !onlyFillArea) {
+                    Save(frameCurrent, area.sobel, plane, 1);
                 }
 #endif
             }

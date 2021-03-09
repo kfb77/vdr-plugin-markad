@@ -74,7 +74,7 @@ class cDecoder {
         int GetIFrameRangeCount(int beginFrame, int endFrame);
         int64_t GetTimeFromIFrame(int iFrame);
         int GetIFrameFromOffset(int offset);
-        int GetNextSilence(const int stopFrame, const bool before);
+        int GetNextSilence(const int stopFrame, const bool isBeforeMark, const bool isStartMark);
     private:
         cIndex *recordingIndexDecoder = NULL;
         char *recordingDir = NULL;

@@ -835,16 +835,20 @@ int cDecoder::GetFirstMP2AudioStream() {
 // if not <before> we are called direct after mark position and return iFrame before first silence part
 // -1 if no silence part were found
 //
-int cDecoder::GetNextSilence(const int stopFrame, const bool before) {
+int cDecoder::GetNextSilence(const int stopFrame, const bool isBeforeMark, const bool isStartMark) {
 #define SILENCE_LEVEL 25  // changed from 10 to 27 to 25
 #define SILENCE_COUNT 5   // low level counts twice
-    struct silence {
-        int startTMP   = -1;
-        int endTMP     = -1;
-        int countTMP   =  0;
-        int startFrame = -1;
-        int endFrame   = -1;
-        int count      =  0;
+    struct silenceType {
+        int     startTmp    = -1;
+        int64_t startTmpPTS = -1;
+        int     endTmp      = -1;
+        int64_t endTmpPTS   = -1;
+        int     countTmp    =  0;
+        int     startFrame  = -1;
+        int64_t startPTS    = -1;
+        int     endFrame    = -1;
+        int64_t endPTS      = -1;
+        int     count       =  0;
     } silence;
 
     int streamIndex = GetFirstMP2AudioStream();
@@ -852,10 +856,24 @@ int cDecoder::GetNextSilence(const int stopFrame, const bool before) {
         dsyslog("cDecoder::GetNextSilence(): could not get stream index of MP2 audio stream");
         return -1;
     }
+    struct videoFrameType {
+        int frameNumber = -1;
+        int64_t pts = -1;
+    } videoFrame;
+    std::vector<videoFrameType> videoFrameVector;
+
     dsyslog("cDecoder::GetNextSilence(): using stream index %i from frame (%d) to frame (%d)", streamIndex, GetFrameNumber(), stopFrame);
     while (GetFrameNumber() < stopFrame) {
         if (!GetNextFrame()) {
             if (!DecodeDir(recordingDir)) break;
+        }
+        if (isVideoPacket()) {  // store video PTS of each video frame
+//            dsyslog("cDecoder::GetNextSilence(): index %i video frame (%d) pts %ld", streamIndex, GetFrameNumber(), avpkt.pts);
+            videoFrame.frameNumber = GetFrameNumber();
+            videoFrame.pts = avpkt.pts;
+            videoFrameVector.push_back(videoFrame);
+            ALLOC(sizeof(videoFrame), "videoFrameVector");
+            continue;
         }
         if (avpkt.stream_index != streamIndex) continue;
         if (isAudioPacket()) {
@@ -874,28 +892,36 @@ int cDecoder::GetNextSilence(const int stopFrame, const bool before) {
                     dsyslog("cDecoder::GetNextSilence(): frame (%5d) level %d", GetFrameNumber(), normLevel);
 #endif
                     if (normLevel <= SILENCE_LEVEL) {
-                        silence.countTMP++;
-                        if (normLevel <= 7) silence.countTMP++;
+                        silence.countTmp++;
+                        if (normLevel <= 7) silence.countTmp++;
                         int frameNumber = GetFrameNumber();
-                        if (silence.startTMP == -1) silence.startTMP = frameNumber;
-                        silence.endTMP = frameNumber;
-                        dsyslog("cDecoder::GetNextSilence(): stream %d frame (%5d) level %2d silenceCount %2d", avpkt.stream_index, frameNumber, normLevel, silence.countTMP);
+                        if (silence.startTmp == -1) {
+                            silence.startTmp = frameNumber;
+                            silence.startTmpPTS = avpkt.pts;
+                        }
+                        silence.endTmp = frameNumber;
+                        silence.endTmpPTS = avpkt.pts;
+                        dsyslog("cDecoder::GetNextSilence(): stream %d frame (%5d) level %2d silenceCount %2d, pts %ld", avpkt.stream_index, frameNumber, normLevel, silence.countTmp, silence.endTmpPTS);
+
                     }
                     else {
-                        if (silence.countTMP >= SILENCE_COUNT) { // min count reached, this part is valid
-                            if (silence.startTMP >= 0) {  // end of silence part reached
-                                silence.endTMP = GetFrameNumber();
-                                if (!before) break;  // we are called after the mark, take first valid silence part
-                                if (silence.startFrame <= silence.startTMP) { // later result found
-                                    silence.count = silence.countTMP;
-                                    silence.startFrame = silence.startTMP;
-                                    silence.endFrame   = silence.endTMP;
+                        if (silence.countTmp >= SILENCE_COUNT) { // min count reached, this part is valid
+                            if (silence.startTmp >= 0) {  // end of silence part reached
+                                if (!isBeforeMark) break;  // we are called after the mark, take first valid silence part
+                                if (silence.startFrame <= silence.startTmp) { // later result found
+                                    silence.count      = silence.countTmp;
+                                    silence.startFrame = silence.startTmp;
+                                    silence.startPTS   = silence.startTmpPTS;
+                                    silence.endFrame   = silence.endTmp;
+                                    silence.endPTS     = silence.endTmpPTS;
                                 }
                             }
                         }
-                        silence.countTMP = 0;
-                        silence.startTMP = -1;
-                        silence.endTMP   = -1;
+                        silence.countTmp    =  0;
+                        silence.startTmp    = -1;
+                        silence.startTmpPTS = -1;
+                        silence.endTmp      = -1;
+                        silence.endTmpPTS   = -1;
                     }
                 }
                 else {
@@ -904,17 +930,55 @@ int cDecoder::GetNextSilence(const int stopFrame, const bool before) {
                 }
             }
         }
+
     }
-    if (silence.startFrame <= silence.startTMP) { // later result found
-        silence.count      = silence.countTMP;
-        silence.startFrame = silence.startTMP;
-        silence.endFrame   = silence.endTMP;
+    if (silence.startFrame <= silence.startTmp) { // later result found
+        silence.count      = silence.countTmp;
+        silence.startFrame = silence.startTmp;
+        silence.startPTS   = silence.startTmpPTS;
+        silence.endFrame   = silence.endTmp;
+        silence.endPTS     = silence.endTmpPTS;
     }
+    videoFrame.frameNumber = -1;
+    videoFrame.pts = -1;
     int silenceFrame = -1;
+
     if (silence.count >= SILENCE_COUNT) {
-        if (before) silenceFrame = recordingIndexDecoder->GetIFrameNear(silence.endFrame);
-        else        silenceFrame = recordingIndexDecoder->GetIFrameNear(silence.startFrame);
-        dsyslog("cDecoder::GetNextSilence(): found silence part in stream %d between frame (%d) and (%d), return frame (%d)", avpkt.stream_index, silence.startFrame, silence.endFrame, silenceFrame);
+        int64_t audioFramePTS = -1;
+        if (isStartMark) {
+            audioFramePTS = silence.startPTS;
+            while (!videoFrameVector.empty()) {  // search video frame with pts before audio frame
+                if ((videoFrameVector.back().pts < audioFramePTS) && (videoFrameVector.back().pts > videoFrame.pts)) {
+                    videoFrame.frameNumber =  videoFrameVector.back().frameNumber;
+                    videoFrame.pts =  videoFrameVector.back().pts;
+                }
+                videoFrameVector.pop_back();
+                FREE(sizeof(videoFrame), "videoFrameVector");
+            }
+            if (videoFrame.frameNumber == -1) {
+                dsyslog("cDecoder::GetNextSilence(): video frame with pts before not in range, set to audio frame");
+                videoFrame.frameNumber = silence.startFrame;
+            }
+        }
+        else {
+            audioFramePTS = silence.endPTS;
+            videoFrame.pts = INT64_MAX;
+            while (!videoFrameVector.empty()) {  // search video frame with pts after audio frame
+                if ((videoFrameVector.back().pts > audioFramePTS) && (videoFrameVector.back().pts < videoFrame.pts)) {
+                    videoFrame.frameNumber =  videoFrameVector.back().frameNumber;
+                    videoFrame.pts =  videoFrameVector.back().pts;
+                }
+                videoFrameVector.pop_back();
+                FREE(sizeof(videoFrame), "videoFrameVector");
+            }
+            if (videoFrame.frameNumber == -1) {
+                dsyslog("cDecoder::GetNextSilence(): video frame with pts after not in range, set to audio frame");
+                videoFrame.frameNumber = silence.endFrame;
+            }
+        }
+        if (isStartMark) silenceFrame = recordingIndexDecoder->GetIFrameBefore(videoFrame.frameNumber);
+        else silenceFrame = recordingIndexDecoder->GetIFrameAfter(videoFrame.frameNumber);
+        dsyslog("cDecoder::GetNextSilence(): found silence part in stream %d between audio frame (%d) and (%d), video frame before (%d) PTS %ld, return frame (%d)", streamIndex, silence.startFrame, silence.endFrame, videoFrame.frameNumber, videoFrame.pts, silenceFrame);
     }
     return silenceFrame;
 }
