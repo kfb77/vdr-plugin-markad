@@ -48,6 +48,9 @@
 // debug hborder detection
 // #define DEBUG_HBORDER
 
+// debug blackscreen detection
+// #define DEBUG_BLACKSCREEN
+
 // debug silence detection
 // #define DEBUG_SILENCE
 

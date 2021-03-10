@@ -943,7 +943,7 @@ void cMarkAdBlackScreen::Clear() {
 //          0 no status change
 //          1 blackscreen end (notice: this is a START mark)
 //
-int cMarkAdBlackScreen::Process() {
+int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) {
 #define BLACKNESS 20  // maximum average brightness
     if (!macontext) return 0;
     if (!macontext->Video.Data.Valid) return 0;
@@ -963,6 +963,14 @@ int cMarkAdBlackScreen::Process() {
     int end = macontext->Video.Info.Height * macontext->Video.Info.Width;
     int val = 0;
     int maxBrightness = BLACKNESS * end;
+#ifdef DEBUG_BLACKSCREEN
+    int debugVal = 0;
+    for (int x = 0; x < end; x++) {
+        debugVal += macontext->Video.Data.Plane[0][x];
+    }
+    debugVal /= end;
+    dsyslog("cMarkAdBlackScreen::Process(): frame (%d) blackness %d (expect <%d)", frameCurrent, debugVal, BLACKNESS);
+#endif
     for (int x = 0; x < end; x++) {
         val += macontext->Video.Data.Plane[0][x];
         if (val > maxBrightness) {
@@ -1478,7 +1486,7 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
 
     resetmarks();
     if ((frameCurrent > 0) && !macontext->Video.Options.IgnoreBlackScreenDetection) { // first frame can be invalid result
-        int blackret = blackScreen->Process();
+        int blackret = blackScreen->Process(iFrameCurrent);
         if (blackret > 0) {
             addmark(MT_NOBLACKSTART, iFrameCurrent);
         }

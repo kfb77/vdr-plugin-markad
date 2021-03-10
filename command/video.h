@@ -167,7 +167,7 @@ class cMarkAdBlackScreen {
         MarkAdContext *macontext;
     public:
         explicit cMarkAdBlackScreen(MarkAdContext *maContext);
-        int Process();
+        int Process(const int frameCurrent);
         void Clear();
 };
 
