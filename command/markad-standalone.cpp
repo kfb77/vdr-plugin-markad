@@ -2193,16 +2193,22 @@ void cMarkAdStandalone::MarkadCut() {
     dsyslog("final marks are:");
     DebugMarks();     //  only for debugging
 
-    clMark *StartMark = marks.GetFirst();
-    if ((StartMark->type & 0x0F) != MT_START) {
-        esyslog("got invalid start mark at (%i) type 0x%X", StartMark->position, StartMark->type);
+    clMark *startMark = marks.GetFirst();
+    if ((startMark->type & 0x0F) != MT_START) {
+        esyslog("got invalid start mark at (%i) type 0x%X", startMark->position, startMark->type);
         return;
     }
-    clMark *StopMark = StartMark->Next();
-    if ((StopMark->type & 0x0F) != MT_STOP) {
-        esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
+    int startPosition = recordingIndexMark->GetIFrameNear(startMark->position);
+    if (startPosition < 0) startPosition = startMark->position;
+
+    clMark *stopMark = startMark->Next();
+    if ((stopMark->type & 0x0F) != MT_STOP) {
+        esyslog("got invalid stop mark at (%i) type 0x%X", stopMark->position, stopMark->type);
         return;
     }
+    int stopPosition = recordingIndexMark->GetIFrameNear(stopMark->position);
+    if (stopPosition < 0) stopPosition = stopMark->position;
+
     ptr_cEncoder = new cEncoder(macontext.Config->threads, macontext.Config->ac3ReEncode);
     ALLOC(sizeof(*ptr_cEncoder), "ptr_cEncoder");
     if (!ptr_cEncoder->OpenFile(directory, ptr_cDecoder)) {
@@ -2212,21 +2218,28 @@ void cMarkAdStandalone::MarkadCut() {
         ptr_cEncoder = NULL;
         return;
     }
+
     while(ptr_cDecoder->DecodeDir(directory)) {
         while(ptr_cDecoder->GetNextFrame()) {
-            if  (ptr_cDecoder->GetFrameNumber() < StartMark->position) ptr_cDecoder->SeekToFrame(&macontext, StartMark->position);
-            if  (ptr_cDecoder->GetFrameNumber() > StopMark->position) {
-                if (StopMark->Next() && StopMark->Next()->Next()) {
-                    StartMark = StopMark->Next();
-                    if ((StartMark->type & 0x0F) != MT_START) {
-                        esyslog("got invalid start mark at (%i) type 0x%X", StartMark->position, StartMark->type);
+            if  (ptr_cDecoder->GetFrameNumber() < startPosition) ptr_cDecoder->SeekToFrame(&macontext, startPosition);
+            if  (ptr_cDecoder->GetFrameNumber() > stopPosition) {
+                if (stopMark->Next() && stopMark->Next()->Next()) {
+
+                    startMark = stopMark->Next();
+                    if ((startMark->type & 0x0F) != MT_START) {
+                        esyslog("got invalid start mark at (%i) type 0x%X", startMark->position, startMark->type);
                         return;
                     }
-                    StopMark = StartMark->Next();
-                    if ((StopMark->type & 0x0F) != MT_STOP) {
-                        esyslog("got invalid stop mark at (%i) type 0x%X", StopMark->position, StopMark->type);
+                    startPosition = recordingIndexMark->GetIFrameNear(startMark->position);
+                    if (startPosition < 0) startPosition = startMark->position;
+
+                    stopMark = startMark->Next();
+                    if ((stopMark->type & 0x0F) != MT_STOP) {
+                        esyslog("got invalid stop mark at (%i) type 0x%X", stopMark->position, stopMark->type);
                         return;
                     }
+                    stopPosition = recordingIndexMark->GetIFrameNear(stopMark->position);
+                    if (stopPosition < 0) stopPosition = stopMark->position;
                 }
                 else break;
                 continue;
