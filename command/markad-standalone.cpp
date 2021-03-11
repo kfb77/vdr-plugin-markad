@@ -1112,10 +1112,11 @@ void cMarkAdStandalone::CheckStart() {
                 marks.Del(MT_HBORDERSTART);  // there could be hborder from an advertising in the recording
                 marks.Del(MT_HBORDERSTOP);
             }
+            else dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) too early, ignoring", lStart->position);
         }
     }
 
-    if (begin && ((begin->position == 0))) { // we found the correct type but the mark is too early because the previous recording has same type
+    if (begin && (begin->position == 0)) {
         dsyslog("cMarkAdStandalone::CheckStart(): start mark (%d) type 0x%X dropped because it is too early", begin->position, begin->type);
         begin = NULL;
     }
@@ -1153,6 +1154,10 @@ void cMarkAdStandalone::CheckStart() {
                 }
             }
         }
+    }
+    if (begin && ((begin->position  / macontext.Video.Info.FramesPerSecond) < 1) && (begin->type != MT_RECORDINGSTART)) { // do not accept marks in the first second, the are from previous recording, expect manual set MT_RECORDINGSTART fpr missed recording start
+        dsyslog("cMarkAdStandalone::CheckStart(): start mark (%d) type 0x%X dropped because it is too early", begin->position, begin->type);
+        begin = NULL;
     }
 
     if (begin) {
