@@ -303,6 +303,10 @@ const char **cPluginMarkAd::SVDRPHelpPages(void) {
         "     Start markad for the recording with the given filename.",
         "STATUS\n"
         "     show active recordings with running markad",
+#ifdef DEBUG_MEM
+        "DEBUG_MEM\n"
+        "     show current allocated heap memory",
+#endif
         NULL
     };
     return HelpPage;
