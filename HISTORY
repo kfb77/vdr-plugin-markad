@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-03-12: Version 2.6.6
+- fix missing deletion from recording list
+- optimze mark positions for interlaced video
+- change --autologo default to 2
+- some minor bug fixes and optimizations, see git
+
 2021-03-06: Version 2.6.5
 - fix crash in encoder using ffmpeg 4.3.x
 - some code cleanup
