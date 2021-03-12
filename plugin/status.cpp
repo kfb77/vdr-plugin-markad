@@ -698,12 +698,9 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
     else {
         dsyslog("markad: cStatusMarkAd::Recording(): recording <%s> [%s] stopped", Name, FileName);
         int pos = Get(FileName, Name);
-        if ((setup->ProcessDuring == PROCESS_DURING) && ( pos >= 0)) {
+        if (((setup->ProcessDuring == PROCESS_DURING) || (setup->ProcessDuring == PROCESS_NEVER)) && ( pos >= 0)) { // PROCESS_NEVER: recording maybe in list from vps detection
+            dsyslog("markad: cStatusMarkAd::Recording(): remove recording <%s> [%s] from list", Name, FileName);
             Remove(pos, false);
-        }
-        if (setup->ProcessDuring == PROCESS_NEVER) {
-        dsyslog("markad: deactivated by user");
-        return; // markad deactivated
         }
 
         if (setup->ProcessDuring == PROCESS_AFTER) {
