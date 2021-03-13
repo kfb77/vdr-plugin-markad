@@ -626,7 +626,7 @@ bool clMarks::Save(const char *Directory, const MarkAdContext *maContext, const 
         }
         char *indexToHMSF = IndexToHMSF(mark->position, maContext);
         if (indexToHMSF) {
-            fprintf(mf, "%s %s\n", indexToHMSF, mark->comment ? mark->comment : "");
+            fprintf(mf, "%s (%7d)%s %s\n", indexToHMSF, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", mark->comment ? mark->comment : "");
             FREE(strlen(indexToHMSF)+1, "indexToHMSF");
             free(indexToHMSF);
         }
