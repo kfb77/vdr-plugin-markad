@@ -1525,7 +1525,7 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
 
     if (!macontext->Video.Options.IgnoreAspectRatio) {
         bool start;
-        if (aspectratiochange(macontext->Video.Info.AspectRatio, aspectratio,start)) {
+        if (aspectratiochange(macontext->Video.Info.AspectRatio, aspectratio, start)) {
             if ((logo->Status() == LOGO_VISIBLE) && (!start)) {
                 addmark(MT_LOGOSTOP, iFrameBefore);
                 logo->SetStatusLogoInvisible();
@@ -1540,13 +1540,16 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
                 addmark(MT_HBORDERSTOP, iFrameBefore);
                 hborder->SetStatusBorderInvisible();
             }
+
+            // aspect ratio change is always on iFrame border
+            int startFrame;
+            if (start) startFrame = iFrameBefore;
+            else startFrame = iFrameCurrent;
+
             if (((macontext->Info.AspectRatio.Num == 4) && (macontext->Info.AspectRatio.Den == 3)) ||
                 ((macontext->Info.AspectRatio.Num == 0) && (macontext->Info.AspectRatio.Den == 0))) {
                 if ((macontext->Video.Info.AspectRatio.Num==4) && (macontext->Video.Info.AspectRatio.Den==3)) {
-                    int markFrame = 0;
-                    if (start) markFrame = iFrameBefore;
-                    else markFrame = iFrameCurrent;
-                    addmark(MT_ASPECTSTART, markFrame, &aspectratio, &macontext->Video.Info.AspectRatio);
+                    addmark(MT_ASPECTSTART, startFrame, &aspectratio, &macontext->Video.Info.AspectRatio);
                 }
                 else {
                     addmark(MT_ASPECTSTOP, iFrameBefore, &aspectratio, &macontext->Video.Info.AspectRatio);
@@ -1554,10 +1557,7 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
             }
             else {
                 if ((macontext->Video.Info.AspectRatio.Num == 16) && (macontext->Video.Info.AspectRatio.Den == 9)) {
-                    int markFrame = 0;
-                    if (start) markFrame = iFrameBefore;
-                    else markFrame = iFrameCurrent;
-                    addmark(MT_ASPECTSTART, markFrame, &aspectratio, &macontext->Video.Info.AspectRatio);
+                    addmark(MT_ASPECTSTART, startFrame, &aspectratio, &macontext->Video.Info.AspectRatio);
                 }
                 else {
                     addmark(MT_ASPECTSTOP, iFrameBefore, &aspectratio, &macontext->Video.Info.AspectRatio);
