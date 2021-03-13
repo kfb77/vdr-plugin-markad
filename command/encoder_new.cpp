@@ -598,7 +598,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         }
 
 // decode packet
-        avFrame = ptr_cDecoder->DecodePacket(avctxIn, avpktOut);
+        avFrame = ptr_cDecoder->DecodePacket(avpktOut);
         if (!avFrame) {
             dsyslog("cEncoder::WritePacket(): AC3 Decoder failed at frame %d",ptr_cDecoder->GetFrameNumber());
             return false;

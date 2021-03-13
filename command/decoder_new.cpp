@@ -417,7 +417,7 @@ bool cDecoder::SeekToFrame(MarkAdContext *maContext, int frame) {
 }
 
 
-AVFrame *cDecoder::DecodePacket(AVFormatContext *avctx, AVPacket *avpkt) {
+AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
     if (!avctx) return NULL;
     if (!avpkt) return NULL;
 
@@ -596,7 +596,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext) {
     iFrameData.Valid = false;
     if (isVideoPacket()) {
         if (isVideoIFrame() || stateEAGAIN) {
-            avFrameRef = DecodePacket(avctx, &avpkt);  // free in DecodePacket
+            avFrameRef = DecodePacket(&avpkt);  // free in DecodePacket
             if (avFrameRef) {
                 stateEAGAIN=false;
                 if (avFrameRef->interlaced_frame != interlaced_frame) {
@@ -877,7 +877,7 @@ int cDecoder::GetNextSilence(const int stopFrame, const bool isBeforeMark, const
         }
         if (avpkt.stream_index != streamIndex) continue;
         if (isAudioPacket()) {
-            AVFrame *audioFrame = DecodePacket(avctx, &avpkt);
+            AVFrame *audioFrame = DecodePacket(&avpkt);
             if (audioFrame) {
                 if (audioFrame->format == AV_SAMPLE_FMT_S16P) {
                     int level = 0;

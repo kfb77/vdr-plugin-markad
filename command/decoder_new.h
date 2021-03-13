@@ -59,8 +59,8 @@ class cDecoder {
         bool GetNextFrame();
         AVPacket *GetPacket();
         bool SeekToFrame(MarkAdContext *maContext, int frame);
-        AVFrame *DecodePacket(AVFormatContext *avctx, AVPacket *avpkt);
         bool GetFrameInfo(MarkAdContext *maContext);
+        AVFrame *DecodePacket(AVPacket *avpkt);
         bool isVideoStream(const unsigned int streamIndex);
         bool isVideoPacket();
         bool isVideoIFrame();
