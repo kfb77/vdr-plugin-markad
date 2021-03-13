@@ -523,6 +523,11 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         return false;
     }
     if ((unsigned int) avpktOut->stream_index >= avctxOut->nb_streams) return true;
+    int frameNumber =  ptr_cDecoder->GetFrameNumber();
+
+#ifdef DEBUG_CUT
+    dsyslog("cEncoder::WritePacket(): stream index %d frame (%6d) PTS %ld", avpktOut->stream_index, frameNumber, avpktOut->pts);
+#endif
 
     AVPacket avpktAC3;
     av_init_packet(&avpktAC3);
@@ -530,7 +535,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     avpktAC3.data = NULL;
     avpktAC3.size = 0;
     if (avpktOut->dts == AV_NOPTS_VALUE) {
-         dsyslog("cEncoder::WritePacket(): frame (%d) got no dts value from input stream %d", ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index);
+         dsyslog("cEncoder::WritePacket(): frame (%d) got no dts value from input stream %d", frameNumber, avpktOut->stream_index);
          return false;
     }
     int64_t cyclicalTest = dtsBefore[avpktOut->stream_index] + avpktOut->duration - avpktOut->dts - 0x200000000; // >=0 on cyclical
@@ -538,11 +543,11 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     if (max_diff == 0) max_diff = -400000; // subtitle has no duration
     if (cyclicalTest >= max_diff) {
         pts_dts_CyclicalOffset[avpktOut->stream_index] += 0x200000000;
-        dsyslog("cEncoder::WritePacket(): dts and pts cyclicle in stream %d at frame (%d), offset now 0x%lX", avpktOut->stream_index, ptr_cDecoder->GetFrameNumber(), pts_dts_CyclicalOffset[avpktOut->stream_index]);
+        dsyslog("cEncoder::WritePacket(): dts and pts cyclicle in stream %d at frame (%d), offset now 0x%lX", avpktOut->stream_index, frameNumber, pts_dts_CyclicalOffset[avpktOut->stream_index]);
     }
 
     if (avpktOut->pts <  avpktOut->dts) {
-        dsyslog("cEncoder::WritePacket(): pts (%" PRId64 ") smaller than dts (%" PRId64 ") in frame (%d) of stream %d",avpktOut->pts,avpktOut->dts,ptr_cDecoder->GetFrameNumber(),avpktOut->stream_index);
+        dsyslog("cEncoder::WritePacket(): pts (%" PRId64 ") smaller than dts (%" PRId64 ") in frame (%d) of stream %d",avpktOut->pts, avpktOut->dts, frameNumber, avpktOut->stream_index);
         return false;
     }
 
@@ -553,7 +558,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         if ((avpktOut->stream_index == 0) && ((avpktOut->dts - pts_dts_CutOffset) > dtsOut[avpktOut->stream_index])){
             int64_t newOffset = avpktOut->dts - pts_dts_CutOffset - dtsOut[avpktOut->stream_index];
             int newOffsetMin = static_cast<int> (newOffset*av_q2d(avctxOut->streams[avpktOut->stream_index]->time_base) / 60);
-            if (newOffset > 1) dsyslog("cEncoder::WritePacket(): frame (%d) stream %d old offset: %" PRId64 " increase %" PRId64 " = %dmin", ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, pts_dts_CutOffset, newOffset, newOffsetMin);
+            if (newOffset > 1) dsyslog("cEncoder::WritePacket(): frame (%d) stream %d old offset: %" PRId64 " increase %" PRId64 " = %dmin", frameNumber, avpktOut->stream_index, pts_dts_CutOffset, newOffset, newOffsetMin);
             if (newOffsetMin > 100) {
                 dsyslog("cEncoder::WritePacket(): dts value not valid, ignoring");
                 return false;
@@ -562,13 +567,13 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
             pts_dts_CutOffset += newOffset;
             if (newOffset > 1) {  // ignore very small offsets, that is not a cut
                 ptsBeforeCut = ptsBefore;
-                dsyslog("cEncoder::WritePacket(): frame (%d) stream %d new offset: %" PRId64,ptr_cDecoder->GetFrameNumber(),avpktOut->stream_index,pts_dts_CutOffset);
+                dsyslog("cEncoder::WritePacket(): frame (%d) stream %d new offset: %" PRId64, frameNumber, avpktOut->stream_index, pts_dts_CutOffset);
             }
         }
     }
 
     if ((avpktOut->pts > ptsBeforeCut) && (avpktOut->pts < ptsAfterCut)) {  // after cut ignore audio frames with smaller PTS than video frame
-        dsyslog("cEncoder::WritePacket(): audio pts %ld is %ld smaller than video cut pts (%ld) at frame (%d) of stream %d", avpktOut->pts, ptsAfterCut - avpktOut->pts, ptsAfterCut, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index);
+        dsyslog("cEncoder::WritePacket(): audio pts %ld is %ld smaller than video cut pts (%ld) at frame (%d) of stream %d", avpktOut->pts, ptsAfterCut - avpktOut->pts, ptsAfterCut, frameNumber, avpktOut->stream_index);
         return true;
     }
 
@@ -576,7 +581,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     avpktOut->dts = avpktOut->dts - pts_dts_CutOffset + pts_dts_CyclicalOffset[avpktOut->stream_index];
     avpktOut->pos=-1;   // byte position in stream unknown
     if (dtsBefore[avpktOut->stream_index] >= avpktOut->dts) {  // drop non monotonically increasing dts packets
-        dsyslog("cEncoder::WritePacket(): non monotonically increasing dts at frame (%6d) of stream %d, dts last packet %10" PRId64 ", dts offset %" PRId64, ptr_cDecoder->GetFrameNumber(), avpktOut->stream_index, dtsBefore[avpktOut->stream_index], avpktOut->dts - dtsBefore[avpktOut->stream_index]);
+        dsyslog("cEncoder::WritePacket(): non monotonically increasing dts at frame (%6d) of stream %d, dts last packet %10" PRId64 ", dts offset %" PRId64, frameNumber, avpktOut->stream_index, dtsBefore[avpktOut->stream_index], avpktOut->dts - dtsBefore[avpktOut->stream_index]);
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)  // yavdr Xenial ffmpeg
         dsyslog("cEncoder::WritePacket():                                                                 dts this packet %10" PRId64 ", cyclical test %" PRId64 " duration %" PRId64 , avpktOut->dts, cyclicalTest, avpktOut->duration);
 #else
@@ -593,14 +598,14 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
     {
         AVFormatContext *avctxIn = ptr_cDecoder->GetAVFormatContext();
         if (!avctxIn) {
-            dsyslog("cEncoder::WritePacket(): failed to get AVFormatContext at frame %d",ptr_cDecoder->GetFrameNumber());
+            dsyslog("cEncoder::WritePacket(): failed to get AVFormatContext at frame %d", frameNumber);
             return false;
         }
 
 // decode packet
         avFrame = ptr_cDecoder->DecodePacket(avpktOut);
         if (!avFrame) {
-            dsyslog("cEncoder::WritePacket(): AC3 Decoder failed at frame %d",ptr_cDecoder->GetFrameNumber());
+            dsyslog("cEncoder::WritePacket(): AC3 Decoder failed at frame %d", frameNumber);
             return false;
         }
 
@@ -618,9 +623,9 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
         if ((codecCtxArrayOut[avpktOut->stream_index]->channel_layout != codecCtxArrayIn[avpktOut->stream_index]->channel_layout) ||
             (codecCtxArrayOut[avpktOut->stream_index]->channels != codecCtxArrayIn[avpktOut->stream_index]->channels)) {
             dsyslog("cEncoder::WritePacket(): channel layout of stream %d changed at frame %d from %" PRIu64 " to %" PRIu64, avpktOut->stream_index,
-                    ptr_cDecoder->GetFrameNumber(), codecCtxArrayOut[avpktOut->stream_index]->channel_layout, codecCtxArrayIn[avpktOut->stream_index]->channel_layout);
+                    frameNumber, codecCtxArrayOut[avpktOut->stream_index]->channel_layout, codecCtxArrayIn[avpktOut->stream_index]->channel_layout);
             dsyslog("cEncoder::WritePacket(): number of channels of stream %d changed at frame %d from %d to %d", avpktOut->stream_index,
-                    ptr_cDecoder->GetFrameNumber(), codecCtxArrayOut[avpktOut->stream_index]->channels, codecCtxArrayIn[avpktOut->stream_index]->channels);
+                    frameNumber, codecCtxArrayOut[avpktOut->stream_index]->channels, codecCtxArrayIn[avpktOut->stream_index]->channels);
 
             if( !ChangeEncoderCodec(ptr_cDecoder, avctxIn, avpktOut->stream_index, codecCtxArrayIn[avpktOut->stream_index])) {
                 dsyslog("cEncoder::WritePacket(): InitEncoderCodec failed");
@@ -643,7 +648,7 @@ bool cEncoder::WritePacket(AVPacket *avpktOut, cDecoder *ptr_cDecoder) {
 //encode frame
         if ( codecCtxArrayOut[avpktOut->stream_index]) {
             if ( ! this->EncodeFrame(ptr_cDecoder, codecCtxArrayOut[avpktOut->stream_index], avFrame, &avpktAC3 )) {
-                dsyslog("cEncoder::WritePacket(): AC3 Encoder failed of stream %d at frame %d", avpktOut->stream_index, ptr_cDecoder->GetFrameNumber());
+                dsyslog("cEncoder::WritePacket(): AC3 Encoder failed of stream %d at frame %d", avpktOut->stream_index, frameNumber);
                 av_packet_unref(&avpktAC3);
                 return false;
             }

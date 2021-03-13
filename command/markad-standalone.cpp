@@ -2195,7 +2195,7 @@ void cMarkAdStandalone::MarkadCut() {
         isyslog("need at least 2 marks to cut Video");
         return; // we cannot do much without marks
     }
-    dsyslog("final marks are:");
+    dsyslog("cMarkAdStandalone::MarkadCut(): final marks are:");
     DebugMarks();     //  only for debugging
 
     clMark *startMark = marks.GetFirst();
@@ -2226,8 +2226,13 @@ void cMarkAdStandalone::MarkadCut() {
 
     while(ptr_cDecoder->DecodeDir(directory)) {
         while(ptr_cDecoder->GetNextFrame()) {
-            if  (ptr_cDecoder->GetFrameNumber() < startPosition) ptr_cDecoder->SeekToFrame(&macontext, startPosition);
-            if  (ptr_cDecoder->GetFrameNumber() > stopPosition) {
+            int frameNumber = ptr_cDecoder->GetFrameNumber();
+            if  (frameNumber < startPosition) {
+                dsyslog("cMarkAdStandalone::MarkadCut(): decoding from frame (%d) to (%d)", startPosition, stopPosition);
+                ptr_cDecoder->SeekToFrame(&macontext, startPosition);
+                frameNumber = ptr_cDecoder->GetFrameNumber();
+            }
+            if  (frameNumber > stopPosition) {
                 if (stopMark->Next() && stopMark->Next()->Next()) {
 
                     startMark = stopMark->Next();
@@ -2255,7 +2260,7 @@ void cMarkAdStandalone::MarkadCut() {
                 return;
             }
             if (!ptr_cEncoder->WritePacket(pkt, ptr_cDecoder)) {
-                dsyslog("cMarkAdStandalone::MarkadCut(): failed to write frame %d to output stream", ptr_cDecoder->GetFrameNumber());
+                dsyslog("cMarkAdStandalone::MarkadCut(): failed to write frame %d to output stream", frameNumber);
             }
             if (abortNow) {
                 if (ptr_cDecoder) {
