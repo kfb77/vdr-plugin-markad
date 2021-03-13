@@ -980,5 +980,14 @@ int cDecoder::GetNextSilence(const int stopFrame, const bool isBeforeMark, const
         else silenceFrame = recordingIndexDecoder->GetIFrameAfter(videoFrame.frameNumber);
         dsyslog("cDecoder::GetNextSilence(): found silence part in stream %d between audio frame (%d) and (%d), video frame before (%d) PTS %ld, return frame (%d)", streamIndex, silence.startFrame, silence.endFrame, videoFrame.frameNumber, videoFrame.pts, silenceFrame);
     }
+    else {
+#ifdef DEBUG_MEM
+        int size = videoFrameVector.size();
+        for (int i = 0 ; i < size; i++) {
+            FREE(sizeof(videoFrame), "videoFrameVector");
+        }
+#endif
+        videoFrameVector.clear();
+    }
     return silenceFrame;
 }
