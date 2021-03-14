@@ -62,12 +62,11 @@ MarkAdMark *cMarkAdAudio::Process() {
 
     for (short int stream = 0; stream < MAXSTREAMS; stream++){
         if (ChannelChange(macontext->Audio.Info.Channels[stream], channels[stream])) {
-            int nearestIFrame = recordingIndexAudio->GetIFrameNear(macontext->Audio.Info.frameChannelChange);
             if (macontext->Audio.Info.Channels[stream] > 2) {
-                SetMark(MT_CHANNELSTART, nearestIFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
+                SetMark(MT_CHANNELSTART, recordingIndexAudio->GetIFrameAfter(macontext->Audio.Info.frameChannelChange), channels[stream], macontext->Audio.Info.Channels[stream]);  // we accept to cut out a little audio, we do not want to have a frame from ad
             }
             else {
-                SetMark(MT_CHANNELSTOP, nearestIFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
+                SetMark(MT_CHANNELSTOP, recordingIndexAudio->GetIFrameBefore(macontext->Audio.Info.frameChannelChange), channels[stream], macontext->Audio.Info.Channels[stream]);
             }
         }
 
