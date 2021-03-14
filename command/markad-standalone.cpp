@@ -2247,7 +2247,7 @@ void cMarkAdStandalone::MarkadCut() {
     int stopPosition = recordingIndexMark->GetIFrameNear(stopMark->position);
     if (stopPosition < 0) stopPosition = stopMark->position;
 
-    ptr_cEncoder = new cEncoder(macontext.Config->threads, macontext.Config->ac3ReEncode);
+    ptr_cEncoder = new cEncoder(&macontext);
     ALLOC(sizeof(*ptr_cEncoder), "ptr_cEncoder");
     if (!ptr_cEncoder->OpenFile(directory, ptr_cDecoder)) {
         esyslog("failed to open output file");

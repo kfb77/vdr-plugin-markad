@@ -35,29 +35,34 @@ class cAC3VolumeFilter {
 
 class cEncoder {
     public:
-        cEncoder(int threadCount, const bool ac3reencode);
+        explicit cEncoder(MarkAdContext *macontext);
         ~cEncoder();
+
         bool OpenFile(const char * directory, cDecoder *pt_cDecoder);
         bool WritePacket(AVPacket *pkt, cDecoder *ptr_cDecoder);
         bool EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodexCtx, AVFrame *avFrame, AVPacket *avpktAC3);
         bool CloseFile();
 
     private:
+	bool InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, AVFormatContext *avctxOut, const unsigned int streamIndex, AVCodecContext *avCodecCtxIn);
+        bool ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, const unsigned int streamIndex, AVCodecContext *avCodecCtxIn);
+
+        MarkAdContext *maContext;
         int threadCount = 0;
         AVFormatContext *avctxOut = NULL;
         AVCodecContext **codecCtxArrayOut = NULL;
         unsigned int nb_streamsIn = 0;
-        int64_t pts_dts_CutOffset = 0;
         int64_t ptsBefore = 0;
         int64_t ptsBeforeCut = INT64_MAX;
         int64_t ptsAfterCut = 0;
-        int64_t *pts_dts_CyclicalOffset = NULL;
         int64_t *dtsOut = NULL;
-        int64_t *dtsBefore = NULL;
         bool stateEAGAIN = false;
-        bool ac3ReEncode = false;
         cAC3VolumeFilter *ptr_cAC3VolumeFilter[MAXSTREAMS] = {NULL};
-
-        bool InitEncoderCodec(cDecoder *ptr_cDecoder,AVFormatContext *avctxIn,AVFormatContext *avctxOut,const unsigned int streamIndex,AVCodecContext *avCodecCtxIn);
-        bool ChangeEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn, const unsigned int streamIndex, AVCodecContext *avCodecCtxIn);
+	struct cutStatusType {
+	    int64_t videoStartPTS = INT64_MAX;
+	    int frameBefore = -2;
+            int64_t *dtsBefore = NULL;
+            int64_t pts_dts_CutOffset = 0; // offset from the cut out frames
+            int64_t *pts_dts_CyclicalOffset = NULL;  // offset from pts/dts cyclicle, multiple of 0x200000000
+        } cutStatus;
 };
