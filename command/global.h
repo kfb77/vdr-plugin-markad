@@ -9,6 +9,7 @@
 #define __global_h_
 
 #include <time.h>
+#include <stdint.h>
 
 #ifndef uchar
     typedef unsigned char uchar;
@@ -207,7 +208,8 @@ typedef struct MarkAdContext {
             short int Channels[MAXSTREAMS] = {0}; // number of audio channels from AC3 streams
             int SampleRate;
             bool channelChange = false;
-            int frameChannelChange;
+            int channelChangeFrame;
+            int64_t channelChangePTS;
         } Info;
         struct Data {
             bool Valid;

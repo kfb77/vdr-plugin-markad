@@ -349,6 +349,8 @@ bool cDecoder::GetNextFrame() {
 #endif
         {
             framenumber++;
+            // store frame number and pts in a ring buffer
+            recordingIndexDecoder->AddPTS(framenumber, avpkt.pts);
             int64_t pts_time_ms = -1;
             if (avpkt.pts != AV_NOPTS_VALUE) {
                 int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
@@ -358,7 +360,7 @@ bool cDecoder::GetNextFrame() {
             }
             if (isVideoIFrame()) {
                 iFrameCount++;
-                // store a iframe number pts index
+                // store a iframe number pts offset in ms index
                 if (pts_time_ms >= 0) {
                     recordingIndexDecoder->Add(fileNumber, framenumber, pts_time_ms_LastFile + pts_time_ms);
                 }
@@ -685,20 +687,21 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext, const bool full) {
             }
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
             if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codecpar->channels) {
-                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d)", avpkt.stream_index,
+                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d) PTS %ld", avpkt.stream_index,
                                                                                                         maContext->Audio.Info.Channels[avpkt.stream_index],
                                                                                                         avctx->streams[avpkt.stream_index]->codecpar->channels,
-                                                                                                        framenumber);
+                                                                                                        framenumber, avpkt.pts);
                 maContext->Audio.Info.Channels[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codecpar->channels;
 #else
             if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codec->channels) {
-                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d)", avpkt.stream_index,
+                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d) PTS %ld", avpkt.stream_index,
                                                                                                         maContext->Audio.Info.Channels[avpkt.stream_index],
                                                                                                         avctx->streams[avpkt.stream_index]->codec->channels,
-                                                                                                        framenumber);
+                                                                                                        framenumber, avpkt.pts);
                 maContext->Audio.Info.Channels[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codec->channels;
 #endif
-                maContext->Audio.Info.frameChannelChange = framenumber;
+                maContext->Audio.Info.channelChangeFrame = framenumber;
+                maContext->Audio.Info.channelChangePTS = avpkt.pts;
             }
         }
         return true;

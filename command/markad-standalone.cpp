@@ -2236,7 +2236,7 @@ void cMarkAdStandalone::MarkadCut() {
         esyslog("got invalid start mark at (%i) type 0x%X", startMark->position, startMark->type);
         return;
     }
-    int startPosition = recordingIndexMark->GetIFrameNear(startMark->position);
+    int startPosition = recordingIndexMark->GetIFrameAfter(startMark->position);  // go after mark position to prevent last picture of ad
     if (startPosition < 0) startPosition = startMark->position;
 
     clMark *stopMark = startMark->Next();
@@ -2244,8 +2244,6 @@ void cMarkAdStandalone::MarkadCut() {
         esyslog("got invalid stop mark at (%i) type 0x%X", stopMark->position, stopMark->type);
         return;
     }
-    int stopPosition = recordingIndexMark->GetIFrameNear(stopMark->position);
-    if (stopPosition < 0) stopPosition = stopMark->position;
 
     ptr_cEncoder = new cEncoder(&macontext);
     ALLOC(sizeof(*ptr_cEncoder), "ptr_cEncoder");
@@ -2261,11 +2259,11 @@ void cMarkAdStandalone::MarkadCut() {
         while(ptr_cDecoder->GetNextFrame()) {
             int frameNumber = ptr_cDecoder->GetFrameNumber();
             if  (frameNumber < startPosition) {
-                dsyslog("cMarkAdStandalone::MarkadCut(): decoding from frame (%d) to (%d)", startPosition, stopPosition);
+                dsyslog("cMarkAdStandalone::MarkadCut(): decoding from frame (%d) to (%d)", startPosition, stopMark->position);
                 ptr_cDecoder->SeekToFrame(&macontext, startPosition);
                 frameNumber = ptr_cDecoder->GetFrameNumber();
             }
-            if  (frameNumber > stopPosition) {
+            if  (frameNumber > stopMark->position) {
                 if (stopMark->Next() && stopMark->Next()->Next()) {
 
                     startMark = stopMark->Next();
@@ -2273,7 +2271,7 @@ void cMarkAdStandalone::MarkadCut() {
                         esyslog("got invalid start mark at (%i) type 0x%X", startMark->position, startMark->type);
                         return;
                     }
-                    startPosition = recordingIndexMark->GetIFrameNear(startMark->position);
+                    startPosition = recordingIndexMark->GetIFrameAfter(startMark->position);
                     if (startPosition < 0) startPosition = startMark->position;
 
                     stopMark = startMark->Next();
@@ -2281,8 +2279,6 @@ void cMarkAdStandalone::MarkadCut() {
                         esyslog("got invalid stop mark at (%i) type 0x%X", stopMark->position, stopMark->type);
                         return;
                     }
-                    stopPosition = recordingIndexMark->GetIFrameNear(stopMark->position);
-                    if (stopPosition < 0) stopPosition = stopMark->position;
                 }
                 else break;
                 continue;

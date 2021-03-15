@@ -19,10 +19,15 @@ cIndex::~cIndex() {
 #ifdef DEBUG_MEM
     int size = indexVector.size();
     for (int i = 0 ; i < size; i++) {
-        FREE(sizeof(index), "indexVector");
+        FREE(sizeof(indexType), "indexVector");
+    }
+    size = ptsRing.size();
+    for (int i = 0 ; i < size; i++) {
+        FREE(sizeof(ptsRingType), "ptsRing");
     }
 #endif
     indexVector.clear();
+    ptsRing.clear();
 }
 
 
@@ -54,12 +59,12 @@ void cIndex::Add(int fileNumber, int frameNumber, int64_t pts_time_ms) {
 #endif
           }
         // add new frame timestamp to vector
-         index newIndex;
+         indexType newIndex;
          newIndex.fileNumber = fileNumber;
          newIndex.frameNumber = frameNumber;
          newIndex.pts_time_ms = pts_time_ms;
          indexVector.push_back(newIndex);
-         ALLOC(sizeof(index), "indexVector");
+         ALLOC(sizeof(indexType), "indexVector");
      }
 }
 
@@ -75,7 +80,7 @@ int cIndex::GetIFrameNear(int frame) {
     }
     int before_iFrame = -1;
     int after_iFrame  = -1;
-    for (std::vector<index>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+    for (std::vector<indexType>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
         if (frameIterator->frameNumber >= frame) {
             after_iFrame = frameIterator->frameNumber;
             break;
@@ -101,7 +106,7 @@ int cIndex::GetIFrameBefore(int frame) {
         return -1;
     }
     int before_iFrame = 0;
-    for (std::vector<index>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+    for (std::vector<indexType>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
         if (frameIterator->frameNumber > frame) {
             return before_iFrame;
         }
@@ -121,7 +126,7 @@ int cIndex::GetIFrameAfter(int frame) {
         dsyslog("cIndex::GetIFrameAfter(): frame index not initialized");
         return -1;
     }
-    for (std::vector<index>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+    for (std::vector<indexType>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
         if (frameIterator->frameNumber >= frame) {
             return frameIterator->frameNumber;
         }
@@ -139,7 +144,7 @@ int64_t cIndex::GetTimeFromFrame(int frame) {
     int64_t before_pts = 0;
     int before_iFrame = 0;
 
-    for (std::vector<index>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+    for (std::vector<indexType>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
         if (frameIterator->frameNumber == frame) {
             tsyslog("cIndex::GetTimeFromFrame(): frame (%d) time is %" PRId64" ms", frame, frameIterator->pts_time_ms);
             return frameIterator->pts_time_ms;
@@ -171,7 +176,7 @@ int cIndex::GetFrameFromOffset(int offset_ms) {
         return -1;
     }
     int iFrameBefore = 0;
-    for (std::vector<index>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+    for (std::vector<indexType>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
         if (frameIterator->pts_time_ms > offset_ms) return iFrameBefore;
         iFrameBefore = frameIterator->frameNumber;
     }
@@ -186,7 +191,7 @@ int cIndex::GetIFrameRangeCount(int beginFrame, int endFrame) {
     }
     int counter=0;
 
-    for (std::vector<index>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+    for (std::vector<indexType>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
         if (frameIterator->frameNumber >= beginFrame) {
             counter++;
             if (frameIterator->frameNumber >= endFrame) return counter;
@@ -194,4 +199,44 @@ int cIndex::GetIFrameRangeCount(int beginFrame, int endFrame) {
     }
     dsyslog("cIndex::GetIFrameRangeCount(): failed beginFrame (%d) endFrame (%d) last frame in index list (%d)", beginFrame, endFrame, indexVector.back().frameNumber);
     return -1;
+}
+
+
+void cIndex::AddPTS(const int frameNumber, const int64_t pts) {
+    // add new frame timestamp to vector
+    ptsRingType newPTS;
+    newPTS.frameNumber = frameNumber;
+    newPTS.pts = pts;
+    ptsRing.push_back(newPTS);
+    ALLOC(sizeof(ptsRingType), "ptsRing");
+
+    // delete oldest entry
+    if (ptsRing.size() > 20) {
+        ptsRing.erase(ptsRing.begin());
+        FREE(sizeof(ptsRingType), "ptsRing");
+    }
+
+}
+
+
+int cIndex::GetFirstVideoFrameAfterPTS(const int64_t pts) {
+    struct afterType {
+        int frameNumber = -1;
+        int64_t pts = INT64_MAX;
+    } after;
+
+    for (std::vector<ptsRingType>::iterator ptsIterator = ptsRing.begin(); ptsIterator != ptsRing.end(); ++ptsIterator) { // get framenumber after
+        if (ptsIterator->pts < pts) {  // reset state if we found a frame with pts samaller than target
+            after.frameNumber = -1;
+            after.pts = INT64_MAX;
+        }
+        else {
+            if (ptsIterator->pts < after.pts) {  // get frame with lowest pts after taget pts
+                after.frameNumber = ptsIterator->frameNumber;
+                after.pts = ptsIterator->pts;
+            }
+        }
+    }
+    dsyslog("cIndex::GetFirstVideoFrameAfterPTS(): found video frame (%d) PTS %ld after PTS %ld", after.frameNumber, after.pts, pts);
+    return after.frameNumber;
 }

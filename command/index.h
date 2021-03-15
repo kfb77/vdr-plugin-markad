@@ -27,16 +27,26 @@ class cIndex {
         int64_t GetTimeFromFrame(int frame);
         int GetFrameFromOffset(int offset_ms);
         int GetIFrameRangeCount(int beginFrame, int endFrame);
+        void AddPTS(const int frameNumber, const int64_t pts);
+        int GetFirstVideoFrameAfterPTS(const int64_t pts);
 
     private:
-        struct index {
+        int GetLastFrameNumber();
+
+        struct indexType {
             int fileNumber = 0;
             int frameNumber = 0;
             int64_t pts_time_ms = 0;
         };
-        std::vector<index> indexVector;
+        std::vector<indexType> indexVector;
+
+        struct ptsRingType {
+            int frameNumber = 0;
+            int64_t pts = 0;
+        };
+        std::vector<ptsRingType> ptsRing;
+
         int diff_ms_maxValid = 0;
 
-        int GetLastFrameNumber();
 };
 #endif
