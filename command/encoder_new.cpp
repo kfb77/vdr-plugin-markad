@@ -448,6 +448,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
         return false;
     }
 
+    // set encoding parameter
     if (ptr_cDecoder->isVideoStream(streamIndex)) {
         dsyslog("cEncoder::InitEncoderCodec(): input codec real framerate %d/%d for stream %d", avctxIn->streams[streamIndex]->r_frame_rate.num, avctxIn->streams[streamIndex]->r_frame_rate.den, streamIndex);
         codecCtxArrayOut[streamIndex]->time_base.num = avctxIn->streams[streamIndex]->r_frame_rate.den;  // time_base = 1 / framerate
@@ -465,12 +466,15 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
             codecCtxArrayOut[streamIndex]->channel_layout = avCodecCtxIn->channel_layout;
             codecCtxArrayOut[streamIndex]->sample_rate = avCodecCtxIn->sample_rate;
             codecCtxArrayOut[streamIndex]->channels = avCodecCtxIn->channels;
+            codecCtxArrayOut[streamIndex]->bit_rate = avCodecCtxIn->bit_rate;
+            dsyslog("cEncoder::InitEncoderCodec(): audio output codec parameter for stream %d: bit_rate %ld", streamIndex, codecCtxArrayOut[streamIndex]->bit_rate);
         }
         else {
             dsyslog("cEncoder::InitEncoderCodec(): codec of stream %i not audio or video, ignoring", streamIndex);
             return true;
         }
     }
+
     if (codecCtxArrayOut[streamIndex]->time_base.num == 0) {
         dsyslog("cEncoder::InitEncoderCodec(): output timebase %d/%d not valid", codecCtxArrayOut[streamIndex]->time_base.num, codecCtxArrayOut[streamIndex]->time_base.den);
         return false;
