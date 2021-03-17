@@ -345,7 +345,7 @@ void cMarkAdStandalone::CheckStop() {
 
 // try MT_CHANNELSTOP
     int delta = macontext.Video.Info.FramesPerSecond * MAXRANGE;
-    clMark *end = marks.GetAround(3*delta, iStopA, MT_CHANNELSTOP);      // try if we can get a good stop mark, start with MT_ASPECTSTOP
+    clMark *end = marks.GetAround(3 * delta, iStopA, MT_CHANNELSTOP);      // try if we can get a good stop mark, start with MT_ASPECTSTOP
     if (end) {
         dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTOP found at frame %i", end->position);
         clMark *cStart = marks.GetPrev(end->position, MT_CHANNELSTART);      // if there is short befor a channel start, this stop mark belongs to next recording
@@ -359,7 +359,7 @@ void cMarkAdStandalone::CheckStop() {
                 clMark *cStartFirst = marks.GetNext(0, MT_CHANNELSTART);  // get first channel start mark
                 if (cStartFirst) {
                     int deltaC = (end->position - cStartFirst->position) / macontext.Video.Info.FramesPerSecond;
-                    if (deltaC < 300) {
+                    if (deltaC < 305) {  // changed from 300 to 305
                     dsyslog("cMarkAdStandalone::CheckStop(): first channel start mark and possible channel end mark to near, this belongs to the next recording");
                     end = NULL;
                     }
