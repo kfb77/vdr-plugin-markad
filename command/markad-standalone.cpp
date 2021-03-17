@@ -3703,9 +3703,9 @@ cMarkAdStandalone::~cMarkAdStandalone() {
     marks.Save(directory, &macontext, isTS, true);
     if ((!abortNow) && (!duplicate)) {
         LogSeparator();
-        dsyslog("time for decoding:              %2ds %3dms", decodeTime_us / 1000000, (decodeTime_us % 1000000) / 1000);
-        if (logoSearchTime_ms > 0) dsyslog("time to find logo in recording: %2ds %3dms", logoSearchTime_ms / 1000, logoSearchTime_ms % 1000);
-        if (logoChangeTime_ms > 0) dsyslog("time to find logo changes:      %2ds %3dms", logoChangeTime_ms / 1000, logoChangeTime_ms % 1000);
+        dsyslog("time for decoding:              %3ds %3dms", decodeTime_us / 1000000, (decodeTime_us % 1000000) / 1000);
+        if (logoSearchTime_ms > 0) dsyslog("time to find logo in recording: %3ds %3dms", logoSearchTime_ms / 1000, logoSearchTime_ms % 1000);
+        if (logoChangeTime_ms > 0) dsyslog("time to find logo changes:      %3ds %3dms", logoChangeTime_ms / 1000, logoChangeTime_ms % 1000);
 
         time_t sec = endPass1.tv_sec - startPass1.tv_sec;
         suseconds_t usec = endPass1.tv_usec - startPass1.tv_usec;
