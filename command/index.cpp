@@ -73,6 +73,7 @@ void cIndex::Add(int fileNumber, int frameNumber, int64_t pts_time_ms) {
 // if frame is a iFrame, frame will be returned
 // return: iFrame number
 //
+/*  not used
 int cIndex::GetIFrameNear(int frame) {
     if (indexVector.empty()) {
         dsyslog("cIndex::GetIFrameNear(): frame index not initialized");
@@ -94,6 +95,7 @@ int cIndex::GetIFrameNear(int frame) {
     if ((after_iFrame - frame) < (frame - before_iFrame)) return after_iFrame;
     else return before_iFrame;
 }
+*/
 
 
 // get iFrame before given frame
