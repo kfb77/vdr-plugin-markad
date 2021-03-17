@@ -1715,7 +1715,7 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
                 isSeparationImageNoPixel = true; // we found a separation image at start
                 dsyslog("cExtractLogo::isLogoChange(): separation image without pixel at all corners found");
             }
-            if ((matchPicture <= 60) && ((*cornerResultIt).frameNumber1 >= previewImage.end) && (previewImage.end != 0)) { // all 4 corner has only a few pixel
+            if ((matchPicture <= 75) && ((*cornerResultIt).frameNumber1 >= previewImage.end) && (previewImage.end != 0)) { // all 4 corner has only a few pixel, changed from 60 to 75
                 isSeparationImageLowPixel = true; // we found a separation image
                 dsyslog("cExtractLogo::isLogoChange(): separation image found with low pixel count found");
             }
