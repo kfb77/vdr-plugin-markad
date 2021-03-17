@@ -347,7 +347,8 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int framenumber)
 // these are no separation images
 // contrast   0, brightness 235, plane 1: pixel diff   6, plane 2: pixel diff   6
 // contrast   4, brightness 232, plane 1: pixel diff   8, plane 2: pixel diff   6
-    if ((area.status == LOGO_VISIBLE) && (brightnessLogo < 232) && (contrastLogo <= 6)) {  // we have a very low contrast, now check full plane 1 and plane 2
+// contrast   6, brightness 230, plane 1: pixel diff  10, plane 2: pixel diff   6
+    if ((area.status == LOGO_VISIBLE) && (brightnessLogo < 230) && (contrastLogo <= 6)) {  // we have a very low contrast, now check full plane 1 and plane 2, change from 232 to 230
         int diffPixel_12[2] = {0};
         for (int line =  1; line <  (macontext->Video.Info.Height / 2) - 1; line++) {  // ignore first and last line, they have sometimes weird pixel
             for (int column = 1; column < (macontext->Video.Info.Width / 2) - 2; column++) { // ignore first and last column, they have sometimes weird pixel
@@ -387,6 +388,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int framenumber)
 // contrast 108, brightness 175
 // contrast 108, brightness 145
 // contrast 106, brightness 153
+// contrast  90, brightness 172
 // contrast  89, brightness 187
 // contrast  81, brightness 206
 // contrast  76, brightness 197
@@ -438,7 +440,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int framenumber)
     }
     // build the curve
     if (((contrastLogo >= 106) && (brightnessLogo >= 145)) ||
-        ((contrastLogo >=  62) && (brightnessLogo >= 173)) ||  // changed from 197 to 190 to 187 to 173, changed from 79 to 72 to 67 to 64 to 62
+        ((contrastLogo >=  62) && (brightnessLogo >= 172)) ||  // changed from 197 to 190 to 187 to 173 to 172, changed from 79 to 72 to 67 to 64 to 62
         ((contrastLogo >=  30) && (brightnessLogo >= 201))) {
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): contrast/brightness pair in logo area invalid");
