@@ -1,12 +1,10 @@
 Basic Installation
 ==================
 
-Prerequisite: build-essential vdr-dev libavcodec-dev libavformat-dev libavfilter-dev git
-e.g. for Ubuntu: sudo apt-get install vdr-dev build-essential libavcodec-dev libavformat-dev libavfilter-dev git
+Prerequisite: build-essential git vdr-dev libavcodec-dev libavformat-dev libavfilter-dev libswresample-dev
+e.g. for Ubuntu: sudo apt-get install build-essential git vdr-dev libavcodec-dev libavformat-dev libavfilter-dev libswresample-dev
 
 recommended minimum version of libavcodec: 56.x.x
-
-If you want to build with the classic decoder remove the comment of the line "CLASSIC_DECODER=1" in command/Makefile.
 
 
 The simplest way to compile this package is:

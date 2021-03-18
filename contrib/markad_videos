@@ -110,6 +110,7 @@ class Config:
         self.markad_loglevel = 1
         self.autologo = 2
         self.fulldecode = False
+        self.fullencode = None
         self.threads = 1
         self.astopoffs = 0
         self.log2rec=False
@@ -276,6 +277,7 @@ class Config:
         if args.astopoffs is not None: self.astopoffs = args.astopoffs
         if args.log2rec: self.log2rec = args.log2rec
         if args.fulldecode: self.fulldecode = args.fulldecode
+        if args.fulldecode: self.fullencode = args.fullencode
         if args.cut: self.cut = args.cut
         if args.ac3reencode: self.ac3reencode = args.ac3reencode
         if args.backupmarks: self.backupmarks = args.backupmarks
@@ -362,6 +364,8 @@ class CheckPath:
             if actFile == "info.epg2vdr": continue
             if actFile == "markad.vps": continue
             if actFile == "vps.log": continue
+            if actFile == "encoder": continue
+            if actFile == "encoder.mbtree": continue
             if actFile == "info":
                 isInfoFound = True
                 continue
@@ -453,6 +457,7 @@ class CheckPath:
             if config.log2rec: cmd = cmd + " --log2rec"
             if config.vps: cmd = cmd + " --vps"
             if config.fulldecode: cmd = cmd + " --fulldecode"
+            if config.fullencode: cmd = cmd + " --fullencode=" + config.fullencode
             if config.cut: cmd = cmd + " --cut"
             if config.ac3reencode: cmd = cmd + " --ac3reencode"
             cmd = cmd + ' - ' + self.ConvertPath(self.root)
@@ -532,6 +537,7 @@ parser.add_argument('--backupmarks', dest="backupmarks", action='store_true', de
 parser.add_argument('--logocachedir', dest="logocachedir",  metavar="<directory>", action="store", help='directory where logos stored, default /var/lib/markad')
 parser.add_argument('--autologo=', metavar="<option>", type=int, choices=range(0, 3), dest="autologo", action="store", help='sets --autologo of markad to the specified value, see markad for more detailsi (default 2)')
 parser.add_argument('--fulldecode', dest="fulldecode", action='store_true', default=False, help='sets --fulldecode of markad to the specified value, see markad for more details')
+parser.add_argument('--fullencode=', dest="fullencode",  metavar="<streams>", action="store", help='streams to encode (best or all)')
 parser.add_argument('--threads=', metavar="<number>", type=int, choices=range(1, 17), dest="threads", action="store", help='sets --threads of markad to the specified value, see markad for more details (default 1)')
 parser.add_argument('--astopoffs=', metavar="<value>", type=int, choices=range(0, 241), dest="astopoffs", action="store", help='sets --astopoffs of markad to the specified value, see markad for more details (default 0)')
 parser.add_argument('--log2rec', dest="log2rec", action='store_true', default=False, help='sets --log2rec of markad to the specified value, see markad for more details')

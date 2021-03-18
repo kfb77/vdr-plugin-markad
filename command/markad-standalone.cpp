@@ -2246,8 +2246,6 @@ void cMarkAdStandalone::MarkadCut() {
         dsyslog("cMarkAdStandalone::MarkadCut(): ptr_cDecoder not set");
         return;
     }
-    ptr_cDecoder->Reset();
-    cEncoder* ptr_cEncoder = NULL;
     LogSeparator(true);
     isyslog("start cut video based on marks");
     if (marks.Count() < 2) {
@@ -2257,83 +2255,117 @@ void cMarkAdStandalone::MarkadCut() {
     dsyslog("cMarkAdStandalone::MarkadCut(): final marks are:");
     DebugMarks();     //  only for debugging
 
-    clMark *startMark = marks.GetFirst();
-    if ((startMark->type & 0x0F) != MT_START) {
-        esyslog("got invalid start mark at (%i) type 0x%X", startMark->position, startMark->type);
-        return;
-    }
-    int startPosition = recordingIndexMark->GetIFrameAfter(startMark->position);  // go after mark position to prevent last picture of ad
-    if (startPosition < 0) startPosition = startMark->position;
-
-    clMark *stopMark = startMark->Next();
-    if ((stopMark->type & 0x0F) != MT_STOP) {
-        esyslog("got invalid stop mark at (%i) type 0x%X", stopMark->position, stopMark->type);
-        return;
-    }
-
+    // init encoder
+    cEncoder* ptr_cEncoder = NULL;
     ptr_cEncoder = new cEncoder(&macontext);
     ALLOC(sizeof(*ptr_cEncoder), "ptr_cEncoder");
-    if (!ptr_cEncoder->OpenFile(directory, ptr_cDecoder)) {
-        esyslog("failed to open output file");
-        FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
-        delete ptr_cEncoder;
-        ptr_cEncoder = NULL;
-        return;
+
+    int passMin = 0;
+    int passMax = 0;
+    if (macontext.Config->fullEncode) {  // to full endcode we need 2 pass full encoding
+        passMin = 1;
+        passMax = 2;
     }
 
-    while(ptr_cDecoder->DecodeDir(directory)) {
-        while(ptr_cDecoder->GetNextFrame()) {
-            int frameNumber = ptr_cDecoder->GetFrameNumber();
-            if  (frameNumber < startPosition) {
-                dsyslog("cMarkAdStandalone::MarkadCut(): decoding from frame (%d) to (%d)", startPosition, stopMark->position);
-                ptr_cDecoder->SeekToFrame(&macontext, startPosition);
-                frameNumber = ptr_cDecoder->GetFrameNumber();
-            }
-            if  (frameNumber > stopMark->position) {
-                if (stopMark->Next() && stopMark->Next()->Next()) {
+    for (int pass = passMin; pass <= passMax; pass ++) {
+        dsyslog("cMarkAdStandalone::MarkadCut(): start pass %d", pass);
+        ptr_cDecoder->Reset();
+        ptr_cEncoder->Reset(pass);
 
-                    startMark = stopMark->Next();
-                    if ((startMark->type & 0x0F) != MT_START) {
-                        esyslog("got invalid start mark at (%i) type 0x%X", startMark->position, startMark->type);
-                        return;
-                    }
-                    startPosition = recordingIndexMark->GetIFrameAfter(startMark->position);
-                    if (startPosition < 0) startPosition = startMark->position;
+        // set start and end mark of first part
+        clMark *startMark = marks.GetFirst();
+        if ((startMark->type & 0x0F) != MT_START) {
+            esyslog("got invalid start mark at (%i) type 0x%X", startMark->position, startMark->type);
+            return;
+        }
+        int startPosition;
+        if (macontext.Config->fullEncode) startPosition = recordingIndexMark->GetIFrameBefore(startMark->position - 1);  // go before mark position to preload decoder pipe
+        else startPosition = recordingIndexMark->GetIFrameAfter(startMark->position);  // go after mark position to prevent last picture of ad
+        if (startPosition < 0) startPosition = startMark->position;
 
-                    stopMark = startMark->Next();
-                    if ((stopMark->type & 0x0F) != MT_STOP) {
-                        esyslog("got invalid stop mark at (%i) type 0x%X", stopMark->position, stopMark->type);
-                        return;
+        clMark *stopMark = startMark->Next();
+        if ((stopMark->type & 0x0F) != MT_STOP) {
+            esyslog("got invalid stop mark at (%i) type 0x%X", stopMark->position, stopMark->type);
+            return;
+        }
+        int stopPosition = stopMark->position;
+
+        // open output file
+        ptr_cDecoder->SeekToFrame(&macontext, startPosition);  // seek to start posiition to get correct input video parameter
+        if (!ptr_cEncoder->OpenFile(directory, ptr_cDecoder)) {
+            esyslog("failed to open output file");
+            FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
+            delete ptr_cEncoder;
+            ptr_cEncoder = NULL;
+            return;
+        }
+
+        // process input file
+        while(ptr_cDecoder->DecodeDir(directory)) {
+            while(ptr_cDecoder->GetNextFrame()) {
+                int frameNumber = ptr_cDecoder->GetFrameNumber();
+                if  (frameNumber < startPosition) {  // go to start frame
+                    LogSeparator();
+                    dsyslog("cMarkAdStandalone::MarkadCut(): decoding from frame (%d) for start mark (%d) to frame (%d) for stop mark (%d)", startPosition, startMark->position, stopPosition, stopMark->position);
+                    ptr_cDecoder->SeekToFrame(&macontext, startPosition);
+                    frameNumber = ptr_cDecoder->GetFrameNumber();
+                }
+                if  (frameNumber > stopPosition) {  // stop mark reached
+                    if (stopMark->Next() && stopMark->Next()->Next()) {  // next mark pair
+                        startMark = stopMark->Next();
+                        if ((startMark->type & 0x0F) != MT_START) {
+                            esyslog("got invalid start mark at (%i) type 0x%X", startMark->position, startMark->type);
+                            return;
+                        }
+
+                        if (macontext.Config->fullEncode) startPosition = recordingIndexMark->GetIFrameBefore(startMark->position - 1);  // go before mark position to preload decoder pipe
+                        else startPosition = recordingIndexMark->GetIFrameAfter(startMark->position);  // go after mark position to prevent last picture of ad
+                        if (startPosition < 0) startPosition = startMark->position;
+
+                        stopMark = startMark->Next();
+                        if ((stopMark->type & 0x0F) != MT_STOP) {
+                            esyslog("got invalid stop mark at (%i) type 0x%X", stopMark->position, stopMark->type);
+                            return;
+                        }
+                        stopPosition = stopMark->position;
+
                     }
+                    else break;
+                    continue;
                 }
-                else break;
-                continue;
-            }
-            AVPacket *pkt = ptr_cDecoder->GetPacket();
-            if ( !pkt ) {
-                esyslog("failed to get packet from input stream");
-                return;
-            }
-            if (!ptr_cEncoder->WritePacket(pkt, ptr_cDecoder)) {
-                dsyslog("cMarkAdStandalone::MarkadCut(): failed to write frame %d to output stream", frameNumber);
-            }
-            if (abortNow) {
-                if (ptr_cDecoder) {
-                    FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
-                    delete ptr_cDecoder;
-                    ptr_cDecoder = NULL;
+                // read packet
+                AVPacket *pkt = ptr_cDecoder->GetPacket();
+                if (!pkt) {
+                    esyslog("failed to get packet from input stream");
+                    return;
                 }
-                ptr_cEncoder->CloseFile();  // ptr_cEncoder must be valid here because it is used above
-                FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
-                delete ptr_cEncoder;
-                ptr_cEncoder = NULL;
-                return;
+                // preload decoder pipe
+                if ((macontext.Config->fullEncode) && (frameNumber < startMark->position)) {
+                    ptr_cDecoder->DecodePacket(pkt);
+                    continue;
+                }
+                // decode/encode/write packet
+                if (!ptr_cEncoder->WritePacket(pkt, ptr_cDecoder)) {
+                    dsyslog("cMarkAdStandalone::MarkadCut(): failed to write frame %d to output stream", frameNumber);  // no not abort, maybe next frame works
+                }
+                if (abortNow) {
+                    ptr_cEncoder->CloseFile(ptr_cDecoder);  // ptr_cEncoder must be valid here because it is used above
+                    if (ptr_cDecoder) {
+                        FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
+                        delete ptr_cDecoder;
+                        ptr_cDecoder = NULL;
+                    }
+                    FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
+                    delete ptr_cEncoder;
+                    ptr_cEncoder = NULL;
+                    return;
+                }
             }
         }
-    }
-    if (!ptr_cEncoder->CloseFile()) {
-        dsyslog("failed to close output file");
-        return;
+        if (!ptr_cEncoder->CloseFile(ptr_cDecoder)) {
+            dsyslog("failed to close output file");
+            return;
+        }
     }
     dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %d", ptr_cDecoder->GetFrameNumber());
     FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
@@ -3556,7 +3588,7 @@ void cMarkAdStandalone::RemovePidfile() {
 // const char cMarkAdStandalone::frametypes[8]={'?','I','P','B','D','S','s','b'};
 
 
-cMarkAdStandalone::cMarkAdStandalone(const char *Directory, const MarkAdConfig *config, cIndex *recordingIndex) {
+cMarkAdStandalone::cMarkAdStandalone(const char *Directory, MarkAdConfig *config, cIndex *recordingIndex) {
     setlocale(LC_MESSAGES, "");
     directory = Directory;
     gotendmark = false;
@@ -3975,8 +4007,13 @@ int usage(int svdrpport) {
            "                                 memory usage optimized operation mode, but runs slow\n"
            "                             2 = enable, find logo from recording and store it in the recording directory (default)\n"
            "                                 speed optimized operation mode, use it only on systems with >= 1 GB main memory\n"
-           "               --fulldecode\n"
-           "                 decode all video frame types and set mark position to all frame types\n"
+           "                --fulldecode\n"
+           "                  decode all video frame types and set mark position to all frame types\n"
+           "                --fullencode=<streams>\n"
+           "                  full reencode video generated by --cut\n"
+           "                  use it only on powerfull CPUs, it will double overall run time\n"
+           "                  <streams>  all  = keep all video and audio streams of the recording\n"
+           "                             best = only encode best video and best audio stream, drop rest\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
            "nice                         runs markad directly and with nice(19)\n"
@@ -4113,6 +4150,7 @@ int main(int argc, char *argv[]) {
             {"logfile",1,0,15},
             {"autologo",1,0,16},
             {"fulldecode",0,0,17},
+            {"fullencode",1,0,18},
 
             {0, 0, 0, 0}
         };
@@ -4348,8 +4386,31 @@ int main(int argc, char *argv[]) {
                     return 2;
                 }
                 break;
-            case 17: // --decoding
+            case 17: // --fulldecode
                 config.fullDecode = true;
+                break;
+            case 18: // --fullencode
+                config.fullEncode = true;
+                str = optarg;
+                ntok = 0;
+                while (str) {
+                    tok = strtok(str, ",");
+                    if (!tok) break;
+                    switch (ntok) {
+                        case 0:
+                            if (strcmp(tok, "all") == 0) config.bestEncode = false;
+                            else if (strcmp(tok, "best") == 0) config.bestEncode = true;
+                                 else {
+                                     fprintf(stderr, "markad: invalid --fullencode value: %s\n", tok);
+                                     return 2;
+                                 }
+                            break;
+                         default:
+                            break;
+                    }
+                    str = NULL;
+                    ntok++;
+                }
                 break;
             default:
                 printf ("? getopt returned character code 0%o ? (option_index %d)\n", option,option_index);
@@ -4552,6 +4613,11 @@ int main(int argc, char *argv[]) {
         dsyslog("parameter --autologo is set to %i",config.autoLogo);
         if (config.fullDecode) {
             dsyslog("parameter --fulldeode is set");
+            if (config.bestEncode) dsyslog("encode best streams");
+            else dsyslog("encode all streams");
+        }
+        if (config.fullEncode) {
+            dsyslog("parameter --fullencode is set");
         }
         if (!bPass2Only) {
             gettimeofday(&startPass1, NULL);

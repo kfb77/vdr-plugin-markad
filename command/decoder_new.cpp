@@ -467,12 +467,12 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
 #endif
     }
     else {
-        dsyslog("cDecoder::DecodePacket(): stream type not supported");
+        dsyslog("cDecoder::DecodePacket(): stream %d type not supported", avpkt->stream_index);
         FREE(sizeof(*avFrame), "avFrame");   // test if avFrame not NULL above
         av_frame_free(&avFrame);
         return NULL;
     }
-    int rc=av_frame_get_buffer(avFrame,32);
+    int rc = av_frame_get_buffer(avFrame, 32);
     if (rc != 0) {
         dsyslog("cDecoder::DecodePacket(): av_frame_get_buffer failed rc=%i", rc);
         if (avFrame) {
@@ -516,8 +516,8 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
     rc = avcodec_receive_frame(codecCtxArray[avpkt->stream_index],avFrame);
     if (rc < 0) {
         switch (rc) {
-            case AVERROR(EAGAIN):
-//                tsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EAGAIN at frame %d", framenumber);
+            case AVERROR(EAGAIN):  // no error
+//                dsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EAGAIN at frame %d", framenumber);
                 stateEAGAIN=true;
                 break;
             case AVERROR(EINVAL):
@@ -575,6 +575,14 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
         return NULL;
     }
 #endif
+    // check decoding error
+    if (avFrame && (avFrame->decode_error_flags != 0)) {
+        dsyslog("cDecoder::DecodePacket(): decoding of frame (%d) from stream %i failed:  decode_error_flags %d", framenumber, avpkt->stream_index, avFrame->decode_error_flags);
+        FREE(sizeof(*avFrame), "avFrame");
+        av_frame_free(&avFrame);
+        avFrame = NULL;
+    }
+
     struct timeval endDecode = {};
     gettimeofday(&endDecode, NULL);
     time_t sec = endDecode.tv_sec - startDecode.tv_sec;

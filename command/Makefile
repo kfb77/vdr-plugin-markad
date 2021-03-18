@@ -43,8 +43,8 @@ PKG-CONFIG ?= pkg-config
 STRIP ?= strip
 
 ### Includes and Defines (add further entries here):
-PKG-LIBS += libavcodec libavutil libavformat libavfilter
-PKG-INCLUDES += libavcodec libavutil libavformat libavfilter
+PKG-LIBS += libavcodec libavutil libavformat libavfilter libswresample
+PKG-INCLUDES += libavcodec libavutil libavformat libavfilter libswresample
 
 DEFINES += -D_GNU_SOURCE
 DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE

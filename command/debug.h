@@ -62,8 +62,11 @@
 // #define DEBUG_INDEX_BUILD
 
 // debug video cut
-// #define DEBUG_CUT
+// #define DEBUG_CUT <streamindex>
+// #define DEBUG_CUT 0
 
+// debug encoder
+// #define DEBUG_ENCODER
 
 extern int SysLogLevel;
 extern void syslog_with_tid(int priority, const char *format, ...) __attribute__ ((format (printf, 2, 3)));

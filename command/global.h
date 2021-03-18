@@ -86,7 +86,7 @@ typedef struct config {
     int astopoffs;
     int posttimer;
     bool useVPS = false;
-    bool MarkadCut = false;
+    bool MarkadCut = false;   // cut video after mark detection
     bool ac3ReEncode = false;
     int autoLogo = 2;   // 0 = off, 1 = on, use less memory but a lot of cpu, 2 use a lot of memory but runs faster
     const char *recDir;
@@ -100,6 +100,10 @@ typedef struct config {
     bool SaveInfo;
     bool fullDecode = false; // false = decode only iFrames
                              // true  = decode all video frames
+    bool fullEncode = false; // false = copy frames without re-encode, cut on iframe position
+                             // true  = full re-encode all frames, cut on all frame types
+    bool bestEncode = true;  // flase = encode all video and audio streams
+                             // true  = encode only best video and best audio stream
 } MarkAdConfig;
 
 
@@ -147,7 +151,7 @@ typedef struct MarkAdPid {
 
 
 typedef struct MarkAdContext {
-    const MarkAdConfig *Config;
+    MarkAdConfig *Config;
 
     struct Info {
         bool isRunningRecording = false;           // true if markad is running during recording
