@@ -122,7 +122,7 @@ class cMarkAdStandalone {
 
     private:
         void CheckStop();
-        bool MoveLastLogoStopAfterClosingCredits(clMark *stopMark);
+        bool MoveLastStopAfterClosingCredits(clMark *stopMark);
         void RemoveLogoChangeMarks();
         void CheckStart();
         void CalculateCheckPositions(int startframe);

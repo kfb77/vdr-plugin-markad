@@ -567,14 +567,14 @@ void cMarkAdStandalone::CheckStop() {
 }
 
 
-// check if stop mark is start of closing credits without logo
+// check if stop mark is start of closing credits without logo or hborder
 // move stop mark to end of closing credit
-// <stopMark> last logo stop mark
+// <stopMark> last logo or hborder stop mark
 // return: true if closing credits was found and last logo stop mark position was changed
 //
-bool cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(clMark *stopMark) {
+bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(clMark *stopMark) {
     if (!stopMark) return false;
-    dsyslog("cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(): check closing credits without logo after position (%d)", stopMark->position);
+    dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits without logo after position (%d)", stopMark->position);
 
     cExtractLogo *ptr_cExtractLogoChange = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
     ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
@@ -585,12 +585,12 @@ bool cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(clMark *stopMark) {
     delete ptr_cExtractLogoChange;
 
     if (newPosition > stopMark->position) {
-        dsyslog("cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(): closing credits found, move logo stop mark to position (%d)", newPosition);
+        dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): closing credits found, move logo stop mark to position (%d)", newPosition);
         marks.Move(&macontext, stopMark, newPosition, "closing credits");
         return true;
     }
     else {
-        dsyslog("cMarkAdStandalone::MoveLastLogoStopAfterClosingCredits(): no closing credits found");
+        dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): no closing credits found");
         return false;
     }
 }
@@ -2306,9 +2306,9 @@ void cMarkAdStandalone::Process3ndPass() {
 // check last logo stop mark if closing credits follows
     if (ptr_cDecoder) {  // we use file position from 2ndPass call
         clMark *lastStop = marks.GetLast();
-        if (lastStop && lastStop->type == MT_LOGOSTOP) {
+        if (lastStop && ((lastStop->type == MT_LOGOSTOP) ||  (lastStop->type == MT_HBORDERSTOP))) {
             dsyslog("cMarkAdStandalone::Process3ndPass(): search for closing credits");
-            if (MoveLastLogoStopAfterClosingCredits(lastStop)) {
+            if (MoveLastStopAfterClosingCredits(lastStop)) {
                 dsyslog("cMarkAdStandalone::Process3ndPass(): moved last logo stop mark after closing credit");
             }
             save = true;
