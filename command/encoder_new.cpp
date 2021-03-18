@@ -694,14 +694,14 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
     if (rc < 0) {
         switch (rc) {
             case AVERROR(EAGAIN):
-                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_frame error EAGAIN at frame %d", ptr_cDecoder->GetFrameNumber());
+                dsyslog("cEncoder::EncodeFrame(): avcodec_send_frame error EAGAIN at frame %d", ptr_cDecoder->GetFrameNumber());
                 stateEAGAIN=true;
                 break;
             case AVERROR(EINVAL):
-                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_frame error EINVAL at frame %d", ptr_cDecoder->GetFrameNumber());
+                dsyslog("cEncoder::EncodeFrame(): avcodec_send_frame error EINVAL at frame %d", ptr_cDecoder->GetFrameNumber());
                 break;
             default:
-                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_frame(): decode of frame (%d) failed with return code %i", ptr_cDecoder->GetFrameNumber(), rc);
+                dsyslog("cEncoder::EncodeFrame(): avcodec_send_frame(): encode of frame (%d) failed with return code %i", ptr_cDecoder->GetFrameNumber(), rc);
                 break;
         }
     }
@@ -709,14 +709,14 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
     if (rc < 0) {
         switch (rc) {
             case AVERROR(EAGAIN):
-                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_frame error EAGAIN at frame %d", ptr_cDecoder->GetFrameNumber());
+                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_packet error EAGAIN at frame %d", ptr_cDecoder->GetFrameNumber());
                 stateEAGAIN=true;
                 break;
             case AVERROR(EINVAL):
-                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_frame error EINVAL at frame %d", ptr_cDecoder->GetFrameNumber());
+                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_packet error EINVAL at frame %d", ptr_cDecoder->GetFrameNumber());
                 break;
             default:
-                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_frame: decode of frame (%d) failed with return code %i", ptr_cDecoder->GetFrameNumber(), rc);
+                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_packet: encode of frame (%d) failed with return code %i", ptr_cDecoder->GetFrameNumber(), rc);
                 break;
         }
         return false;
