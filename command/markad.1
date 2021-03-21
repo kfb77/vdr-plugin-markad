@@ -49,11 +49,10 @@ Usage: markad [options] cmd <recording>
                 find logo from recording and store it in the recording directory
                 speed optimized operation mode, use it only on systems with >= 1 GB main memory
 .TP 
-.BI \-\-decoding= <option>
-           this option is only available on command line usage
-<option>   0 = decode only iFrames (default)
-           1 = decode all video frame types and set marks to all frame types
-               use it only on powerfull CPUs, it will double overall run time
+.BI \-\-fulldecode
+ this option is only available on command line usage
+ decode all video frame types
+ use it only on powerfull CPUs, it will double overall run time
 .TP
 .BI \-p\ ,\ \-\-priority= <priority>
  software priority of markad when running in background

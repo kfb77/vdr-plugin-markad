@@ -923,8 +923,8 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
             LOGOHEIGHT = macontext->Config->logoHeight;
         }
     }
-    if (macontext->Config->decodingLevel == 0) return Detect(iFrameBefore, iFrameCurrent, logoFrameNumber);
-    else return Detect(frameCurrent - 1,  frameCurrent, logoFrameNumber);
+    if (macontext->Config->fullDecode)  return Detect(frameCurrent - 1,  frameCurrent, logoFrameNumber);
+    else return Detect(iFrameBefore, iFrameCurrent, logoFrameNumber);
 }
 
 
@@ -1488,16 +1488,16 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
     if (iFrameBefore < 0) iFrameBefore = 0; // this could happen at the start of recording
 
     int useFrame;
-    if (macontext->Config->decodingLevel == 0) useFrame = iFrameCurrent;
-    else useFrame = frameCurrent;
+    if (macontext->Config->fullDecode) useFrame = frameCurrent;
+    else useFrame = iFrameCurrent;
     resetmarks();
 
     if ((frameCurrent > 0) && !macontext->Video.Options.IgnoreBlackScreenDetection) { // first frame can be invalid result
         int blackret;
         blackret = blackScreen->Process(useFrame);
         if (blackret > 0) {
-            if (macontext->Config->decodingLevel == 0) addmark(MT_NOBLACKSTART, useFrame); // with iFrames only we must set mark on first frame after blackscreen to avoid start and stop on same iFrame
-            else addmark(MT_NOBLACKSTART, useFrame - 1);  // frame before is last frame with blackscreen
+            if (macontext->Config->fullDecode) addmark(MT_NOBLACKSTART, useFrame - 1);  // frame before is last frame with blackscreen
+            else addmark(MT_NOBLACKSTART, useFrame); // with iFrames only we must set mark on first frame after blackscreen to avoid start and stop on same iFrame
         }
         else {
             if (blackret < 0) {
@@ -1513,8 +1513,8 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
             addmark(MT_HBORDERSTART, hborderframenumber);
         }
         if ((hret == HBORDER_INVISIBLE) && (hborderframenumber >= 0)) {
-            if (macontext->Config->decodingLevel == 0) addmark(MT_HBORDERSTOP, iFrameBefore);  // we use iFrame before current frame as stop mark, this was the last frame with hborder
-            else addmark(MT_HBORDERSTOP, useFrame - 1);
+            if (macontext->Config->fullDecode)  addmark(MT_HBORDERSTOP, useFrame - 1);
+	    else addmark(MT_HBORDERSTOP, iFrameBefore);  // we use iFrame before current frame as stop mark, this was the last frame with hborder
         }
     }
     else if (hborder) hborder->Clear();
@@ -1528,8 +1528,8 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
             else addmark(MT_VBORDERSTART, vborderframenumber);
         }
         if ((vret == VBORDER_INVISIBLE) && (vborderframenumber >= 0)) {
-            if (macontext->Config->decodingLevel == 0) addmark(MT_VBORDERSTOP, iFrameBefore);
-            else addmark(MT_VBORDERSTOP, useFrame - 1);
+            if (macontext->Config->fullDecode) addmark(MT_VBORDERSTOP, useFrame - 1);
+	    else addmark(MT_VBORDERSTOP, iFrameBefore);
         }
     }
     else if (vborder) vborder->Clear();

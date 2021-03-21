@@ -2160,7 +2160,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
 
     ptr_cDecoder->Reset();
     clMark *mark = marks.GetFirst();
-    if (macontext.Config->decodingLevel == 0) {
+    if (!macontext.Config->fullDecode) {
         while (mark) {
             if (mark->position != recordingIndexMark->GetIFrameBefore(mark->position)) dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at (%d) type 0x%X is not a iFrame position", mark->position, mark->type);
             mark=mark->Next();
@@ -2172,7 +2172,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
 
     int writePosition = mark->position;
     for (int i = 0; i < DEBUG_MARK_FRAMES; i++) {
-        if (macontext.Config->decodingLevel == 0) writePosition = recordingIndexMark->GetIFrameBefore(writePosition - 1);
+        if (!macontext.Config->fullDecode) writePosition = recordingIndexMark->GetIFrameBefore(writePosition - 1);
         else writePosition--;
     }
     int writeOffset = -DEBUG_MARK_FRAMES;
@@ -2181,7 +2181,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
     while(mark && (ptr_cDecoder->DecodeDir(directory))) {
         while(mark && (ptr_cDecoder->GetNextFrame())) {
             if (ptr_cDecoder->isVideoPacket()) {
-                if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->decodingLevel != 0)) {
+                if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) {
                     if (ptr_cDecoder->GetFrameNumber() >= writePosition) {
                         dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at frame (%5d) type 0x%X, write frame (%5d)", mark->position, mark->type, writePosition);
                         if (writePosition == mark->position) {
@@ -2192,14 +2192,14 @@ void cMarkAdStandalone::DebugMarkFrames() {
                         else {
                             SaveFrame(writePosition, directory, (writePosition < mark->position) ? "BEFORE" : "AFTER");
                         }
-                        if (macontext.Config->decodingLevel == 0) writePosition = recordingIndexMark->GetIFrameAfter(writePosition + 1);
+                        if (!macontext.Config->fullDecode) writePosition = recordingIndexMark->GetIFrameAfter(writePosition + 1);
                         else writePosition++;
                         if (writeOffset >= DEBUG_MARK_FRAMES) {
                             mark = mark->Next();
                             if (!mark) break;
                             writePosition = mark->position;
                             for (int i = 0; i < DEBUG_MARK_FRAMES; i++) {
-                                if (macontext.Config->decodingLevel == 0) writePosition = recordingIndexMark->GetIFrameBefore(writePosition - 1);
+                                if (!macontext.Config->fullDecode) writePosition = recordingIndexMark->GetIFrameBefore(writePosition - 1);
                                 else writePosition--;
                             }
                             writeOffset = -DEBUG_MARK_FRAMES;
@@ -2538,7 +2538,7 @@ void cMarkAdStandalone::Process3ndPass() {
                     continue;
                 }
                 int newPos;
-                if (macontext.Config->decodingLevel == 0) {
+                if (!macontext.Config->fullDecode) {
                     newPos =  recordingIndexMark->GetIFrameBefore(blackMark->position); // MT_NOBLACKSSTART is th "only iFrame decoding" is first frame afer blackscreen, get last frame of blackscreen, blacksceen at stop mark belongs to broasdact
                 }
                 else newPos = blackMark->position;
@@ -2656,8 +2656,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
         iFrameBefore = iFrameCurrent;
         iFrameCurrent = frameCurrent;
     }
-
-    if (ptr_cDecoder->GetFrameInfo(&macontext, (macontext.Config->decodingLevel >= 1))) {
+    if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) {
         if (ptr_cDecoder->isVideoPacket()) {
             if (ptr_cDecoder->isInterlacedVideo() && !macontext.Video.Info.Interlaced && (macontext.Info.VPid.Type==MARKAD_PIDTYPE_VIDEO_H264) &&
                                                      (ptr_cDecoder->GetVideoFramesPerSecond() == 25) && (ptr_cDecoder->GetVideoRealFrameRate() == 50)) {
@@ -3926,9 +3925,8 @@ int usage(int svdrpport) {
            "                                 memory usage optimized operation mode, but runs slow\n"
            "                             2 = enable, find logo from recording and store it in the recording directory (default)\n"
            "                                 speed optimized operation mode, use it only on systems with >= 1 GB main memory\n"
-           "               --decoding=<option>\n"
-           "                  <option>   0 = decode only iFrames (default)\n"
-           "                             1 = decode all video frame types and set mark position to all frame types\n"
+           "               --fulldecode\n"
+           "                 decode all video frame types and set mark position to all frame types\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
            "nice                         runs markad directly and with nice(19)\n"
@@ -4064,7 +4062,7 @@ int main(int argc, char *argv[]) {
             {"vps",0,0,14},
             {"logfile",1,0,15},
             {"autologo",1,0,16},
-            {"decoding",1,0,17},
+            {"fulldecode",0,0,17},
 
             {0, 0, 0, 0}
         };
@@ -4301,11 +4299,7 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             case 17: // --decoding
-                if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 1) config.decodingLevel = atoi(optarg);
-                else {
-                    fprintf(stderr, "markad: invalid decoding value: %s\n", optarg);
-                    return 2;
-                }
+                config.fullDecode = true;
                 break;
             default:
                 printf ("? getopt returned character code 0%o ? (option_index %d)\n", option,option_index);
@@ -4506,15 +4500,14 @@ int main(int argc, char *argv[]) {
             }
         }
         dsyslog("parameter --autologo is set to %i",config.autoLogo);
-        dsyslog("parameter --decoding is set to %i",config.decodingLevel);
-
-
+        if (config.fullDecode) {
+            dsyslog("parameter --fulldeode is set");
+        }
         if (!bPass2Only) {
             gettimeofday(&startPass1, NULL);
             cmasta->ProcessFiles();
             gettimeofday(&endPass1, NULL);
         }
-
         if (!bPass1Only) {
             gettimeofday(&startPass2, NULL);
             cmasta->Process2ndPass();  // overlap detection

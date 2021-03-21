@@ -979,7 +979,7 @@ int cDecoder::GetNextSilence(MarkAdContext *maContext, const int stopFrame, cons
                 videoFrame.frameNumber = silence.endFrame;
             }
         }
-        if (maContext->Config->decodingLevel == 0) {
+        if (!maContext->Config->fullDecode) {
             if (isBeforeMark) silenceFrame = recordingIndexDecoder->GetIFrameBefore(videoFrame.frameNumber);
             else              silenceFrame = recordingIndexDecoder->GetIFrameAfter(videoFrame.frameNumber);
         }

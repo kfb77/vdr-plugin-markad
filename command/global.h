@@ -98,10 +98,8 @@ typedef struct config {
     int online = 0;
     bool Before;
     bool SaveInfo;
-    int decodingLevel = 0; // 0 = decode only iFrames
-                           // 1 = decode all video frames and set marks to all frame types
-                           // 2 = cut video on all frame types
-
+    bool fullDecode = false; // false = decode only iFrames
+                             // true  = decode all video frames
 } MarkAdConfig;
 
 

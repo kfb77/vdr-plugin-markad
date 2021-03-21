@@ -64,7 +64,7 @@ MarkAdMark *cMarkAdAudio::Process() {
         if (ChannelChange(macontext->Audio.Info.Channels[stream], channels[stream])) {
             // we accept to cut out a little audio, we do not want to have a frame from ad
             if (macontext->Audio.Info.Channels[stream] > 2) {
-                if (macontext->Config->decodingLevel == 0) SetMark(MT_CHANNELSTART, recordingIndexAudio->GetIFrameAfter(macontext->Audio.Info.channelChangeFrame), channels[stream], macontext->Audio.Info.Channels[stream]);
+                if (!macontext->Config->fullDecode) SetMark(MT_CHANNELSTART, recordingIndexAudio->GetIFrameAfter(macontext->Audio.Info.channelChangeFrame), channels[stream], macontext->Audio.Info.Channels[stream]);
                 else { // get video frame with pts before channel change
                     int markFrame = recordingIndexAudio->GetFirstVideoFrameAfterPTS(macontext->Audio.Info.channelChangePTS);
                     if (markFrame < 0) markFrame = macontext->Audio.Info.channelChangeFrame;
@@ -73,7 +73,7 @@ MarkAdMark *cMarkAdAudio::Process() {
                 }
             }
             else { // frame before is last frame in broadcast
-                if (macontext->Config->decodingLevel == 0) SetMark(MT_CHANNELSTOP, recordingIndexAudio->GetIFrameBefore(macontext->Audio.Info.channelChangeFrame), channels[stream], macontext->Audio.Info.Channels[stream]);
+                if (!macontext->Config->fullDecode) SetMark(MT_CHANNELSTOP, recordingIndexAudio->GetIFrameBefore(macontext->Audio.Info.channelChangeFrame), channels[stream], macontext->Audio.Info.Channels[stream]);
                 else {
                     int markFrame = recordingIndexAudio->GetFirstVideoFrameAfterPTS(macontext->Audio.Info.channelChangePTS);
                     if (markFrame < 0) markFrame = macontext->Audio.Info.channelChangeFrame;
