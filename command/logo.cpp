@@ -1971,7 +1971,7 @@ int cExtractLogo::AdInFrameWithLogo(MarkAdContext *maContext, cDecoder *ptr_cDec
             int stopOffset = (stopPos - adInFrame.endFinal) / maContext->Video.Info.FramesPerSecond;
             int length = (adInFrame.endFinal - adInFrame.startFinal) / maContext->Video.Info.FramesPerSecond;
             dsyslog("cExtractLogo::AdInFrameWithLogo(): advertising in frame: start offset %ds start (%d), end (%d) stop offset %ds, length %ds (expect >=9s and <=30s)", startOffset, adInFrame.startFinal, adInFrame.endFinal, stopOffset, length);
-            if ((length >= 9) && (length <= 30)) { // max from 14 to 20 to 30
+            if ((length >= 7) && (length <= 30)) { // max from 14 to 20 to 30, min from 9 to 7
                 if ((isStartMark && startOffset < 4) ||  // an ad in frame with logo after start mark must be near start mark, changed from 5 to 4
                    (!isStartMark && stopOffset  < 5)) {  // an ad in frame with logo before stop mark must be near stop mark
                                                          // TODO detect preview with logo after ad in frame with logo
