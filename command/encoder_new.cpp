@@ -467,7 +467,11 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, AVFormatContext *avctxIn
             codecCtxArrayOut[streamIndex]->sample_rate = avCodecCtxIn->sample_rate;
             codecCtxArrayOut[streamIndex]->channels = avCodecCtxIn->channels;
             codecCtxArrayOut[streamIndex]->bit_rate = avCodecCtxIn->bit_rate;
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
             dsyslog("cEncoder::InitEncoderCodec(): audio output codec parameter for stream %d: bit_rate %ld", streamIndex, codecCtxArrayOut[streamIndex]->bit_rate);
+#else
+            dsyslog("cEncoder::InitEncoderCodec(): audio output codec parameter for stream %d: bit_rate %d", streamIndex, codecCtxArrayOut[streamIndex]->bit_rate);
+#endif
         }
         else {
             dsyslog("cEncoder::InitEncoderCodec(): codec of stream %i not audio or video, ignoring", streamIndex);
