@@ -1902,6 +1902,7 @@ int cExtractLogo::AdInFrameWithLogo(MarkAdContext *maContext, cDecoder *ptr_cDec
 // for performance reason only for known and tested channels for now
     if ((strcmp(maContext->Info.ChannelName, "SIXX") != 0) &&
         (strcmp(maContext->Info.ChannelName, "RTL2") != 0) &&
+        (strcmp(maContext->Info.ChannelName, "VOX") != 0) &&
         (strcmp(maContext->Info.ChannelName, "RTL_Television") != 0) &&
         (strcmp(maContext->Info.ChannelName, "kabel_eins") != 0)) {
         dsyslog("cExtractLogo::AdInFrameWithLogo(): skip this channel");
