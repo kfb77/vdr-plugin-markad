@@ -1071,7 +1071,8 @@ void cMarkAdStandalone::CheckStart() {
                 clMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
                 if (lStop) {  // there is a next stop mark in the start range
                     int distanceStartStop = (lStop->position - lStart->position) / macontext.Video.Info.FramesPerSecond;
-                    if (distanceStartStop < 144) {  // very short logo part, lStart is possible wrong, do not increase, first ad can be early
+                    if (distanceStartStop < 23) {  // very short logo part, lStart is possible wrong, do not increase, first ad can be early
+                                                   // change from 144 to 23 to prevent "Teletext Untertitel Tafel ..." make start mark wrong
                         indexToHMSF = marks.IndexToHMSF(lStop->position, &macontext);
                         if (indexToHMSF) {
                             dsyslog("cMarkAdStandalone::CheckStart(): logo stop mark found very short after start mark on position (%i) at %s, distance %ds", lStop->position, indexToHMSF, distanceStartStop);
@@ -1401,7 +1402,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
     while (mark) {
-        if ((mark->type == MT_LOGOSTART) && mark->Next() && mark->Next()->type == MT_LOGOSTOP) {
+        if ((mark->position > marks.GetFirst()->position) && (mark->type == MT_LOGOSTART) && mark->Next() && mark->Next()->type == MT_LOGOSTOP) {  // do not delete selected start mark
+                                                                                                                                                   // next logo stop/start pair could be "Teletext ..." info
             int MARKDIFF = static_cast<int> (macontext.Video.Info.FramesPerSecond * 38); // changed from 8 to 18 to 35 to 38
             double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.FramesPerSecond;
             if ((mark->Next()->position - mark->position) <= MARKDIFF) {
