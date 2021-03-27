@@ -1838,7 +1838,7 @@ int cExtractLogo::IntroductionLogo(MarkAdContext *maContext, cDecoder *ptr_cDeco
 
 // for performance reason only for known and tested channels for now
     if (strcmp(maContext->Info.ChannelName, "kabel_eins") != 0) {
-        dsyslog("cExtractLogo::AdInFrameWithLogo(): skip this channel");
+        dsyslog("IntroductionLogo(): skip this channel");
         return -1;
     }
 
@@ -1873,10 +1873,10 @@ int cExtractLogo::IntroductionLogo(MarkAdContext *maContext, cDecoder *ptr_cDeco
         int length = (introductionLogo.endFinal - introductionLogo.startFinal) / maContext->Video.Info.FramesPerSecond;
         dsyslog("cExtractLogo::IntroductionLogo(): introduction logo: start (%d), end (%d), length %ds (expect >=9s)", introductionLogo.startFinal, introductionLogo.endFinal, length);
         if (length >= 6) {
-            dsyslog("cExtractLogo::AdInFrameWithLogo(): found introduction logo");
+            dsyslog("cExtractLogo::IntroductionLogo(): found introduction logo");
             retFrame = introductionLogo.startFinal;
         }
-        else dsyslog("cExtractLogo::AdInFrameWithLogo(): no introduction logo found");
+        else dsyslog("cExtractLogo::IntroductionLogo(): no introduction logo found");
     }
 
 #ifdef DEBUG_MEM
@@ -1971,7 +1971,7 @@ int cExtractLogo::AdInFrameWithLogo(MarkAdContext *maContext, cDecoder *ptr_cDec
             int startOffset = (adInFrame.startFinal - startPos) / maContext->Video.Info.FramesPerSecond;
             int stopOffset = (stopPos - adInFrame.endFinal) / maContext->Video.Info.FramesPerSecond;
             int length = (adInFrame.endFinal - adInFrame.startFinal) / maContext->Video.Info.FramesPerSecond;
-            dsyslog("cExtractLogo::AdInFrameWithLogo(): advertising in frame: start offset %ds start (%d), end (%d) stop offset %ds, length %ds (expect >=9s and <=30s)", startOffset, adInFrame.startFinal, adInFrame.endFinal, stopOffset, length);
+            dsyslog("cExtractLogo::AdInFrameWithLogo(): advertising in frame: start offset %ds start (%d), end (%d) stop offset %ds, length %ds (expect >=7s and <=30s)", startOffset, adInFrame.startFinal, adInFrame.endFinal, stopOffset, length);
             if ((length >= 7) && (length <= 30)) { // max from 14 to 20 to 30, min from 9 to 7
                 if ((isStartMark && startOffset < 4) ||  // an ad in frame with logo after start mark must be near start mark, changed from 5 to 4
                    (!isStartMark && stopOffset  < 5)) {  // an ad in frame with logo before stop mark must be near stop mark
