@@ -59,7 +59,7 @@ class cExtractLogo {
         };
         typedef std::vector<compareInfoType> compareResultType;
 
-        bool CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startFrame, const int endFrame, compareResultType *compareResult, const bool forFrame);
+        bool CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, int startFrame, int endFrame, compareResultType *compareResult, const bool forFrame);
         bool Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber,  const char *debugText);
         bool CheckValid(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
         int Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);

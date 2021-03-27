@@ -1555,12 +1555,14 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
 
 // load and analyse logo corners for given frame range
 // return: true if successfull
-bool cExtractLogo::CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startFrame, const int endFrame, compareResultType *compareResult, const bool forFrame) {
+bool cExtractLogo::CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, int startFrame, int endFrame, compareResultType *compareResult, const bool forFrame) {
     if (!maContext) return false;
     if (!ptr_cDecoder) return false;
     if (startFrame >= endFrame) return false;
 
     bool status = true;
+    startFrame = recordingIndexLogo->GetIFrameBefore(startFrame);
+    endFrame = recordingIndexLogo->GetIFrameAfter(endFrame);
 
     dsyslog("cExtractLogo::CompareFrameRange(): load and analyse logo corners from start frame (%5i) to end frame (%5i)", startFrame, endFrame);
     cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, recordingIndexLogo);
