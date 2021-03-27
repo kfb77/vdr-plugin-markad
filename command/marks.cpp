@@ -114,6 +114,23 @@ void clMarks::DelWeakFromTo(const int from, const int to, const short int type) 
 }
 
 
+// delete all marks <from> <to> of <type>
+// include <from> and <to>
+//
+void clMarks::DelFromTo(const int from, const int to, const short int type) {
+    clMark *mark = first;
+    while (mark) {
+        if (mark->position > to) return;
+        if ((mark->position >= from) && ((mark->type & 0xF0) == type)) {
+            clMark *tmpMark = mark->Next();
+            Del(mark);
+            mark = tmpMark;
+        }
+        else mark = mark->Next();
+    }
+}
+
+
 // <FromStart> = true: delete all marks from start to <Position>
 // <FromStart> = false: delete all marks from <Position> to end
 // blackscreen marks were moved to blackscreen list

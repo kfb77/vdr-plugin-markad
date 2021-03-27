@@ -47,7 +47,14 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, const int
         int deltaStopStart = (logoPairIterator->startPosition - logoPairIterator->stopPosition ) / framesPerSecond;
         if (deltaStopStart < LOGO_CHANGE_STOP_START_MIN) {
             dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: delta too small %ds (expect >=%ds)", logoPairIterator->stopPosition, logoPairIterator->startPosition, deltaStopStart, LOGO_CHANGE_STOP_START_MIN);
-            logoPairIterator->isLogoChange = -1;
+            // maybe we have a wrong start/stop pait inbetween, try next start mark
+            clMark *markNextStart = marks->GetNext(logoPairIterator->startPosition, MT_LOGOSTART);
+            if (markNextStart) {
+                dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): replace start mark with next start mark (%d)",  markNextStart->position);
+                logoPairIterator->startPosition = markNextStart->position;
+                deltaStopStart = (logoPairIterator->startPosition - logoPairIterator->stopPosition ) / framesPerSecond;
+            }
+            else logoPairIterator->isLogoChange = -1;
         }
         if (deltaStopStart > LOGO_CHANGE_STOP_START_MAX) {
             dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: delta too big %ds (expect <=%ds)", logoPairIterator->stopPosition, logoPairIterator->startPosition, deltaStopStart, LOGO_CHANGE_STOP_START_MAX);

@@ -79,6 +79,7 @@ class clMarks {
         clMark *Add(const int Type, const int Position, const char *Comment = NULL, const bool inBroadCast = false);
         char *IndexToHMSF(const int Index, const MarkAdContext *maContext);
         void DelWeakFromTo(const int from, const int to, const short int type);
+        void DelFromTo(const int from, const int to, const short int type);
         void DelTill(const int Position, clMarks *blackMarks, const bool FromStart = true);
         void DelFrom(const int Position);
         void DelAll();
