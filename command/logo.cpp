@@ -1564,7 +1564,7 @@ bool cExtractLogo::CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDe
     startFrame = recordingIndexLogo->GetIFrameBefore(startFrame);
     endFrame = recordingIndexLogo->GetIFrameAfter(endFrame);
 
-    dsyslog("cExtractLogo::CompareFrameRange(): load and analyse logo corners from start frame (%5i) to end frame (%5i)", startFrame, endFrame);
+    dsyslog("cExtractLogo::CompareFrameRange(): load and analyse all corners from start iFrame (%5i) to end iFrame (%5i)", startFrame, endFrame);
     cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, recordingIndexLogo);
     ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
     areaT *area = ptr_Logo->GetArea();
@@ -1670,7 +1670,7 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
     if (!recordingIndexLogo) return false;
     if (startPos <= stopPos) return false;
 
-    dsyslog("cExtractLogo::isLogoChange(): check change between logo stop mark (%d) and logo start mark (%d)", stopPos, startPos);
+    dsyslog("cExtractLogo::isLogoChange(): check logo change between logo stop (%d) and logo start (%d)", stopPos, startPos);
 
     bool status = true;
     int highMatchCount = 0;  // check if we have a lot of very similar pictures in the logo corner
@@ -1873,7 +1873,7 @@ int cExtractLogo::IntroductionLogo(MarkAdContext *maContext, cDecoder *ptr_cDeco
             introductionLogo.endFinal = introductionLogo.end;
         }
         int length = (introductionLogo.endFinal - introductionLogo.startFinal) / maContext->Video.Info.FramesPerSecond;
-        dsyslog("cExtractLogo::IntroductionLogo(): introduction logo: start (%d), end (%d), length %ds (expect >=9s)", introductionLogo.startFinal, introductionLogo.endFinal, length);
+        dsyslog("cExtractLogo::IntroductionLogo(): introduction logo: start (%d), end (%d), length %ds (expect >=6s)", introductionLogo.startFinal, introductionLogo.endFinal, length);
         if (length >= 6) {
             dsyslog("cExtractLogo::IntroductionLogo(): found introduction logo");
             retFrame = introductionLogo.startFinal;
@@ -1889,6 +1889,69 @@ int cExtractLogo::IntroductionLogo(MarkAdContext *maContext, cDecoder *ptr_cDeco
 #endif
     compareResult.clear();
     return retFrame;
+}
+
+
+bool cExtractLogo::InfoLogo(MarkAdContext *maContext, cDecoder *ptr_cDecoder, int startPos, int stopPos) {
+    if (!maContext) return false;
+    if (!ptr_cDecoder) return false;
+
+    struct infoLogoType {
+        int start = 0;
+        int end = 0;
+        int startFinal = 0;
+        int endFinal = 0;
+    } infoLogo;
+    bool found = false;
+    compareResultType compareResult;
+
+    if (CompareFrameRange(maContext, ptr_cDecoder, startPos, stopPos, &compareResult, false)) {
+        for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
+            dsyslog("cExtractLogo::InfoLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+            if ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 300) {  // changed from 400 to 340 to 300
+                if (infoLogo.start == 0) infoLogo.start = (*cornerResultIt).frameNumber1;
+                infoLogo.end = (*cornerResultIt).frameNumber2;
+            }
+            else {
+                if ((infoLogo.end - infoLogo.start) > (infoLogo.endFinal - infoLogo.startFinal)) {
+                    infoLogo.startFinal = infoLogo.start;
+                    infoLogo.endFinal = infoLogo.end;
+                }
+                infoLogo.start = 0;  // reset state
+                infoLogo.end = 0;
+            }
+        }
+        if ((infoLogo.end - infoLogo.start) > (infoLogo.endFinal - infoLogo.startFinal)) {
+            infoLogo.startFinal = infoLogo.start;
+            infoLogo.endFinal = infoLogo.end;
+        }
+        // ignore short parts at start and end, this is fade in and fade out
+        int diffStart = 100 * (infoLogo.startFinal - startPos) / maContext->Video.Info.FramesPerSecond;
+        int diffEnd = 100 * (stopPos - infoLogo.endFinal) / maContext->Video.Info.FramesPerSecond;
+        dsyslog("cExtractLogo::InfoLogo(): start diff %dms, end diff %dms", diffStart, diffEnd);
+        if (diffStart < 250) startPos = infoLogo.startFinal;
+        if (diffEnd < 250) stopPos = infoLogo.endFinal;
+#define INFO_LOGO_MIN_LENGTH 4
+#define INFO_LOGO_MAX_LENGTH 14
+#define INFO_LOGO_MIN_QUOTE 80
+        int quote = 100 * (infoLogo.endFinal - infoLogo.startFinal) / (stopPos - startPos);
+        int length = (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.FramesPerSecond;
+        dsyslog("cExtractLogo::InfoLogo(): info logo: start (%d), end (%d), length %ds (expect >=%ds and <=%ds), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
+        if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE)){
+            dsyslog("cExtractLogo::InfoLogo(): found info logo");
+            found = true;
+        }
+        else dsyslog("cExtractLogo::InfoLogo(): no info logo found");
+    }
+
+#ifdef DEBUG_MEM
+    int size = compareResult.size();
+    for (int i = 0 ; i < size; i++) {
+        FREE(sizeof(compareInfoType), "compareResult");
+    }
+#endif
+    compareResult.clear();
+    return found;
 }
 
 

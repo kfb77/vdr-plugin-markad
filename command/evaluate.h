@@ -16,20 +16,23 @@ extern "C" {
 
 class cEvaluateLogoStopStartPair {
     public:
-        cEvaluateLogoStopStartPair(clMarks *marks, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA);
-        ~cEvaluateLogoStopStartPair();
-        bool GetNextPair(int *stopPosition, int *startPosition);
-        int GetLastClosingCreditsStart();
-
-    private:
-        struct logoStopStartPair {
+        struct logoStopStartPairType {
             int stopPosition = -1;
             int startPosition = -1;
             int isLogoChange = 0;            // -1 no logo change, 0 unknown, 1 is logo change
-            int isAdvertising = 0;           // -1 pair is advertising, 0 unknown, 1 pair is advertising
+            int isAdvertising = 0;           // -1 pair is no advertising, 0 unknown, 1 pair is advertising
             int isStartMarkInBroadcast = 0;  // -1 start mark does not contain to broadcast, 0 unknown, 1 start mark contains to broadcast
+            int isInfoLogo = 0;           // -1 pair is no introduction sequence, 0 unknown, 1 pair is introduction sequence
         };
-        std::vector<logoStopStartPair> logoPairVector;
-        std::vector<logoStopStartPair>::iterator nextLogoPairIterator;
+
+        cEvaluateLogoStopStartPair(clMarks *marks, clMarks *blackMarks, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA);
+        ~cEvaluateLogoStopStartPair();
+        void isInfoLogo(clMarks *marks, clMarks *blackMarks, logoStopStartPairType *logoStopStartPair, const int framesPerSecond);
+        bool GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo);
+        int GetLastClosingCreditsStart();
+
+    private:
+        std::vector<logoStopStartPairType> logoPairVector;
+        std::vector<logoStopStartPairType>::iterator nextLogoPairIterator;
 };
 #endif

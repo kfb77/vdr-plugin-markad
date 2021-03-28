@@ -31,6 +31,7 @@ class cExtractLogo {
         bool isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPos, const int startPos);
         int isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopMarkPosition);
         int IntroductionLogo(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startPos, const int stopPos);
+        bool InfoLogo(MarkAdContext *maContext, cDecoder *ptr_cDecoder, int startPos, int stopPos);
         int AdInFrameWithLogo(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startPos, const int stopPos, const bool isStartMark);
 
         bool abort = false;
