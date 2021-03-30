@@ -337,11 +337,6 @@ void cMarkAdStandalone::CheckStop() {
 
     // remove logo change marks
     RemoveLogoChangeMarks();
-    if (ptr_cDecoderLogoChange) {  // no longer need this object
-        FREE(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
-        delete ptr_cDecoderLogoChange;
-        ptr_cDecoderLogoChange = NULL;
-    }
 
 // try MT_CHANNELSTOP
     int delta = macontext.Video.Info.FramesPerSecond * MAXRANGE;
@@ -623,13 +618,11 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
         int isLogoChange = 0;
         int isInfoLogo = 0;
 
-        // if we called by CheckStart() we have to alloc the needed objects
-        if (!ptr_cDecoderLogoChange) {  // init new instance of cDecoder
-            ptr_cDecoderLogoChange = new cDecoder(macontext.Config->threads, recordingIndexMark);
-            ALLOC(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
-            ptr_cDecoderLogoChange->DecodeDir(directory);
-        }
-        // init new instance of cExtractLogo
+        // alloc new objects
+        ptr_cDecoderLogoChange = new cDecoder(macontext.Config->threads, recordingIndexMark);
+        ALLOC(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
+        ptr_cDecoderLogoChange->DecodeDir(directory);
+
         ptr_cExtractLogoChange = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
         ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
 
@@ -698,10 +691,12 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
             free(indexToHMSFStart);
         }
 
-        if (ptr_cExtractLogoChange) {
-            FREE(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
-            delete ptr_cExtractLogoChange;
-        }
+        // free objects
+        FREE(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
+        delete ptr_cExtractLogoChange;
+        FREE(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
+        delete ptr_cDecoderLogoChange;
+
         FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
         delete evaluateLogoStopStartPair;
     }

@@ -1561,8 +1561,8 @@ bool cExtractLogo::CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDe
     if (startFrame >= endFrame) return false;
 
     bool status = true;
-    startFrame = recordingIndexLogo->GetIFrameBefore(startFrame);
-    endFrame = recordingIndexLogo->GetIFrameAfter(endFrame);
+    startFrame = recordingIndexLogo->GetIFrameAfter(startFrame);
+    endFrame = recordingIndexLogo->GetIFrameBefore(endFrame);
 
     dsyslog("cExtractLogo::CompareFrameRange(): load and analyse all corners from start iFrame (%5i) to end iFrame (%5i)", startFrame, endFrame);
     cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, recordingIndexLogo);
