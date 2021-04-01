@@ -81,14 +81,6 @@ all: markad i18n
 PKG-CONFIG ?= pkg-config
 STRIP ?= strip
 
-### Includes and Defines (add further entries here):
-PKG-LIBS += libavcodec libavutil libavformat libavfilter
-PKG-INCLUDES += libavcodec libavutil libavformat libavfilter
-
-DEFINES += -D_GNU_SOURCE
-DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
-DEFINES += -D__STDC_CONSTANT_MACROS -D__USE_XOPEN_EXTENDED
-
 
 ifdef DEBUG_MEM_MARKAD
 DEFINES += -DDEBUG_MEM
