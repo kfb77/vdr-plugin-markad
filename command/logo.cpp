@@ -1839,7 +1839,8 @@ int cExtractLogo::IntroductionLogo(MarkAdContext *maContext, cDecoder *ptr_cDeco
     if (!ptr_cDecoder) return -1;
 
 // for performance reason only for known and tested channels for now
-    if (strcmp(maContext->Info.ChannelName, "kabel_eins") != 0) {
+    if ((strcmp(maContext->Info.ChannelName, "kabel_eins") != 0) &&
+        (strcmp(maContext->Info.ChannelName, "RTL2") != 0)) {
         dsyslog("IntroductionLogo(): skip this channel");
         return -1;
     }
@@ -1851,10 +1852,12 @@ int cExtractLogo::IntroductionLogo(MarkAdContext *maContext, cDecoder *ptr_cDeco
         int endFinal = 0;
     } introductionLogo;
     int retFrame = -1;
+
     compareResultType compareResult;
     if (CompareFrameRange(maContext, ptr_cDecoder, startPos, stopPos, &compareResult, false)) {
         for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
             dsyslog("cExtractLogo::IntroductionLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+
             if ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 155) {
                 if (introductionLogo.start == 0) introductionLogo.start = (*cornerResultIt).frameNumber1;
                 introductionLogo.end = (*cornerResultIt).frameNumber2;
@@ -1873,9 +1876,10 @@ int cExtractLogo::IntroductionLogo(MarkAdContext *maContext, cDecoder *ptr_cDeco
             introductionLogo.endFinal = introductionLogo.end;
         }
         int length = (introductionLogo.endFinal - introductionLogo.startFinal) / maContext->Video.Info.FramesPerSecond;
-        dsyslog("cExtractLogo::IntroductionLogo(): introduction logo: start (%d), end (%d), length %ds (expect >=6s)", introductionLogo.startFinal, introductionLogo.endFinal, length);
-        if (length >= 6) {
-            dsyslog("cExtractLogo::IntroductionLogo(): found introduction logo");
+#define INTRODUCTION_MIN 5  // changed from 6 to 5
+        dsyslog("cExtractLogo::IntroductionLogo(): introduction logo: start (%d), end (%d), length %ds (expect >=%ds)", introductionLogo.startFinal, introductionLogo.endFinal, length, INTRODUCTION_MIN);
+        if (length >= INTRODUCTION_MIN) {
+            dsyslog("cExtractLogo::IntroductionLogo(): found introduction logo start at (%d)", introductionLogo.startFinal);
             retFrame = introductionLogo.startFinal;
         }
         else dsyslog("cExtractLogo::IntroductionLogo(): no introduction logo found");
