@@ -1841,6 +1841,12 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
+    // move blackscreen marks on same postion to blackscreen list
+    clMark *moveBlack = marks.Get(Mark->Position);
+    if (moveBlack && ((moveBlack->type & 0xF0) == MT_BLACKCHANGE)) {
+        blackMarks.Add(moveBlack->type, moveBlack->position);
+        marks.Del(moveBlack->position);
+    }
     marks.Add(Mark->Type, Mark->Position, comment, inBroadCast);
     if (comment) {
         FREE(strlen(comment)+1, "comment");
@@ -2378,9 +2384,9 @@ void cMarkAdStandalone::Process3ndPass() {
     clMark *markLogo = marks.GetFirst();
     while (markLogo) {
         if (markLogo->type == MT_LOGOSTART) {
-            LogSeparator(false);
             char *indexToHMSFStartMark = marks.IndexToHMSF(markLogo->position, &macontext);
             // check for introduction logo before logo mark position
+            LogSeparator(false);
             int searchStartPosition = markLogo->position - (12 * macontext.Video.Info.FramesPerSecond); // introduction logos are usually 10s
             if (searchStartPosition < 0) searchStartPosition = 0;
             char *indexToHMSFSearchStart = marks.IndexToHMSF(searchStartPosition, &macontext);
@@ -2392,6 +2398,7 @@ void cMarkAdStandalone::Process3ndPass() {
             int introductionStartPosition = ptr_cExtractLogoAdInFrame->IntroductionLogo(&macontext, ptr_cDecoder, searchStartPosition, markLogo->position);
 
             // check for advertising in frame with logo after logo start mark position
+            LogSeparator(false);
             int searchEndPosition = markLogo->position + (35 * macontext.Video.Info.FramesPerSecond); // advertising in frame are usually 30s
             char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition, &macontext);
             if (indexToHMSFStartMark && indexToHMSFSearchEnd) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo after logo start mark (%d) at %s to position (%d) at %s", markLogo->position, indexToHMSFStartMark, searchEndPosition, indexToHMSFSearchEnd);
@@ -2413,18 +2420,30 @@ void cMarkAdStandalone::Process3ndPass() {
             }
             else {
                 if (introductionStartPosition != -1) {
-                    // check blackscreen before introduction logo
                     bool moved = false;
-                    clMark *blackMark = blackMarks.GetPrev(introductionStartPosition, MT_NOBLACKSTART);
-                    if (blackMark) {
-                        int diff = (introductionStartPosition - blackMark->position) / macontext.Video.Info.FramesPerSecond;
-                        if (diff <= 3) { // blackscreen should be very near
-                            dsyslog("cMarkAdStandalone::Process3ndPass(): found blackscreen at (%d), %ds before introduction logo", blackMark->position, diff);
-                            markLogo = marks.Move(&macontext, markLogo, blackMark->position, "blackscreen before introduction logo");
+                    // check blackscreen between introduction logo and logo start
+                    int innerDiff = 0;
+                    clMark *blackMarkStart = blackMarks.GetNext(introductionStartPosition, MT_NOBLACKSTART);
+                    clMark *blackMarkStop = blackMarks.GetNext(introductionStartPosition, MT_NOBLACKSTOP);
+                    if (blackMarkStart && blackMarkStop && (blackMarkStart->position <= markLogo->position) && (blackMarkStop->position <= markLogo->position)) {
+                        innerDiff = blackMarkStart->position - blackMarkStop->position;
+                        dsyslog("cMarkAdStandalone::Process3ndPass(): found blackscreen start (%d) and stop (%d) between introduction logo (%d) and start mark (%d), distance %d", blackMarkStop->position, blackMarkStart->position, introductionStartPosition, markLogo->position, innerDiff);
+                        if (innerDiff > 5) moved = true;  // only move if we find a longer blackscreen before
+                    }
+                    // check blackscreen before introduction logo
+                    blackMarkStart = blackMarks.GetPrev(introductionStartPosition, MT_NOBLACKSTART);
+                    blackMarkStop = blackMarks.GetPrev(introductionStartPosition, MT_NOBLACKSTOP);
+                    if (blackMarkStart && blackMarkStop) {
+                        int beforeDiff = blackMarkStart->position - blackMarkStop->position;
+                        dsyslog("cMarkAdStandalone::Process3ndPass(): found blackscreen start (%d) and stop (%d) before introduction logo (%d), distance %d", blackMarkStop->position, blackMarkStart->position, introductionStartPosition, beforeDiff);
+                        int diff = (introductionStartPosition - blackMarkStart->position) / macontext.Video.Info.FramesPerSecond;
+                        if ((diff <= 3) && ((beforeDiff >= (innerDiff * 5)) || (innerDiff <= 5))) { // blackscreen should be very near, if backsceen before is longer than inner blackscrenor inner blackscreen is very short, introduction logo detection is valid,
+                            dsyslog("cMarkAdStandalone::Process3ndPass(): found valid blackscreen at (%d), %ds before introduction logo", blackMarkStart->position, diff);
+                            markLogo = marks.Move(&macontext, markLogo, blackMarkStart->position, "blackscreen before introduction logo");
                             moved = true;
                         }
                     }
-                    if (!moved)  markLogo = marks.Move(&macontext, markLogo, introductionStartPosition, "introduction logo");
+                    if (!moved) markLogo = marks.Move(&macontext, markLogo, introductionStartPosition, "introduction logo");
                     save = true;
                     continue;
                 }
