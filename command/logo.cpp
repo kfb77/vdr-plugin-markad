@@ -1992,16 +1992,20 @@ int cExtractLogo::AdInFrameWithLogo(MarkAdContext *maContext, cDecoder *ptr_cDec
 
 #define START_OFFSET_MAX 4
     if (CompareFrameRange(maContext, ptr_cDecoder, startPos, stopPos, &compareResult, true)) {
-        bool isCornerLogo[CORNERS] = {true};
+        int isCornerLogo[CORNERS] = {0};
+        int countFrames = 0;
         for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
             dsyslog("cExtractLogo::AdInFrameWithLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
             // calculate possible advertising in frame
             int similarCornersLow  = 0;
             int similarCornersHigh = 0;
+            countFrames++;
             for (int corner = 0; corner < CORNERS; corner++) {
                 if (((*cornerResultIt).rate[corner] >= 140) || ((*cornerResultIt).rate[corner] == -1)) similarCornersLow++;
-                if ((*cornerResultIt).rate[corner] >= 300) similarCornersHigh++;
-                if ((*cornerResultIt).rate[corner] < 100) isCornerLogo[corner] = false; // check if we have more than one logo
+                if ((*cornerResultIt).rate[corner] >= 300) {
+                    similarCornersHigh++;
+                    isCornerLogo[corner]++; // check if we have more than one logo
+                }
             }
             if ((similarCornersLow >= 3) && (similarCornersHigh >= 2)) {  // at least 3 corners has low match and 2 corner with high match
                 if (adInFrame.start == 0) adInFrame.start = (*cornerResultIt).frameNumber1;
@@ -2027,10 +2031,14 @@ int cExtractLogo::AdInFrameWithLogo(MarkAdContext *maContext, cDecoder *ptr_cDec
         int countLogo = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
             if (corner == maContext->Video.Logo.corner) continue;
-            if (isCornerLogo[corner]) {
-                dsyslog("cExtractLogo::AdInFrameWithLogo(): found additional logo in corner %s", aCorner[corner]);
+            if ((100 * isCornerLogo[corner]) > (95 * countFrames)) { // we should not have a lot of high mathes in the complete part expect logo corner
+                                                                     // 57 / 59 = 0.96 is second logo
+                                                                     // 64 / 67 = 0.94 is ad in frame
+                                                                     // 54 / 58 = 0.93 is ad in frame
+                dsyslog("cExtractLogo::AdInFrameWithLogo(): %d high matches of %d frames, found additional logo in corner %s", isCornerLogo[corner], countFrames, aCorner[corner]);
                 countLogo++;
             }
+            else dsyslog("cExtractLogo::AdInFrameWithLogo(): %d high matches of %d frames, no additional logo in corner %s", isCornerLogo[corner], countFrames, aCorner[corner]);
         }
         if (countLogo > 0) {
             dsyslog("cExtractLogo::AdInFrameWithLogo(): found more than one logo, this is not a advertising in frame");
