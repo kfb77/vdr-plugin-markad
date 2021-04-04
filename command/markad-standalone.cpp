@@ -661,7 +661,18 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
                     if (indexToHMSFStop && indexToHMSFStart) {
                         dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
                     }
-                    marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
+                    clMark *blackMarkStart = marks.GetPrev(stopPosition, MT_NOBLACKSTART);
+                    clMark *blackMarkStop = marks.GetPrev(stopPosition, MT_NOBLACKSTOP);
+                    int valid = true;
+                    if (blackMarkStart && blackMarkStop) {
+                        int diff = 100 * (stopPosition - blackMarkStart->position) / macontext.Video.Info.FramesPerSecond;
+                        int length = 100 * (blackMarkStart->position - blackMarkStop->position) / macontext.Video.Info.FramesPerSecond;
+                        if ((diff <= 5) && (length >= 400)) {  // long blackscreen short before can be a valid stop mark
+                            dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): blackscreen start (%d) and stop (%d) found before info logo stop (%d) and start (%d) diff %dms length %dms, this could be a valid stop mark", blackMarkStop->position, blackMarkStart->position, stopPosition, startPosition, diff, length);
+                            valid = false;
+                        }
+                    }
+                    if (valid) marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
                  }
                  else {
                      dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): ^^^^^       logo stop (%6d) at %s and logo start (%6d) at %s pair no logo change, keep marks", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);

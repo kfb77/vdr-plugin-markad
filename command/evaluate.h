@@ -27,7 +27,7 @@ class cEvaluateLogoStopStartPair {
 
         cEvaluateLogoStopStartPair(clMarks *marks, clMarks *blackMarks, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA);
         ~cEvaluateLogoStopStartPair();
-        void isInfoLogo(clMarks *marks, clMarks *blackMarks, logoStopStartPairType *logoStopStartPair, const int framesPerSecond);
+        void isInfoLogo(clMarks *blackMarks, logoStopStartPairType *logoStopStartPair, const int framesPerSecond);
         bool GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo);
         int GetLastClosingCreditsStart();
 
