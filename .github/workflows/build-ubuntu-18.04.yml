@@ -5,10 +5,12 @@ on:
     branches:
       - master
       - V02
+      - V03
   pull_request:
     branches:
       - master
       - V02
+      - V03
 
 jobs:
   build:
