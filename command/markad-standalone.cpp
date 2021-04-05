@@ -1394,12 +1394,29 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         mark = mark->Next();
     }
 
+// delete short START STOP logo marks with logo STOP mark short before at the end of the recoring (optimize end mark)
 // delete short START STOP logo marks because they are previes not detected above or due to next broadcast
 // delete short STOP START logo marks because they are logo detection failure
 // delete short STOP START hborder marks because some channels display information in the border
 // delete short STOP START vborder marks because they are from malfunction recording
     dsyslog("cMarkAdStandalone::CheckMarks(): check marks 3nd pass (remove logo and hborder detection failure marks)");
     DebugMarks();     //  only for debugging
+
+    // check logo end marks
+    mark = marks.GetLast();
+    if (mark && (mark->type == MT_LOGOSTOP)) {  // last mark is a logo stop mark
+        clMark *markStart = marks.GetPrev(mark->position);
+        if (markStart && (markStart->type == MT_LOGOSTART) && ((mark->position - markStart->position) < (15 * macontext.Video.Info.FramesPerSecond))) { // logo start mark is short before
+            clMark *markStop = marks.GetPrev(markStart->position);
+            if (markStop && (markStop->type == MT_LOGOSTOP) && ((markStart->position - markStop->position) < (25 * macontext.Video.Info.FramesPerSecond))) { // logo stop maek is short before start mark, use this as end mark and delete rest
+                dsyslog("cMarkAdStandalone::CheckMarks(): short logo STOP/START/STOP sequence at the end, delete last pair");
+                marks.Del(mark->position);
+                marks.Del(markStart->position);
+            }
+        }
+    }
+
+    // check rest of the marks
     mark = marks.GetFirst();
     while (mark) {
         if ((mark->position > marks.GetFirst()->position) && (mark->type == MT_LOGOSTART) && mark->Next() && mark->Next()->type == MT_LOGOSTOP) {  // do not delete selected start mark
