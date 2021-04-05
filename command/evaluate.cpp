@@ -50,7 +50,7 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, clMarks *
 
         // check length of stop/start logo pair
         int deltaStopStart = (logoPairIterator->startPosition - logoPairIterator->stopPosition ) / framesPerSecond;
-        if (deltaStopStart < LOGO_CHANGE_STOP_START_MIN) {
+        if ((deltaStopStart < LOGO_CHANGE_STOP_START_MIN) &&  (logoPairIterator->isInfoLogo == -1)) { // do not change posible logo info parts
             dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: delta too small %ds (expect >=%ds)", logoPairIterator->stopPosition, logoPairIterator->startPosition, deltaStopStart, LOGO_CHANGE_STOP_START_MIN);
             // maybe we have a wrong start/stop pait inbetween, try next start mark
             clMark *markNextStart = marks->GetNext(logoPairIterator->startPosition, MT_LOGOSTART);
