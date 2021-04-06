@@ -1768,6 +1768,54 @@ bool cExtractLogo::isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder
 }
 
 
+int cExtractLogo::isClosingCreditDetect(MarkAdContext *maContext, const int stopMarkPosition, compareResultType *compareResult) {
+    if (!maContext) return -1;
+    if (!compareResult) return -1;
+
+    int closingCreditsFrame = -1;
+    struct closingCredits {
+        int start = 0;
+        int end = 0;
+    } closingCredits;
+
+    for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult->begin(); cornerResultIt != compareResult->end(); ++cornerResultIt) {
+        dsyslog("cExtractLogo::isClosingCreditDetect: frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+        int similarCorners = 0;
+        int noPixelCount = 0;
+        for (int corner = 0; corner < CORNERS; corner++) {
+            if ((*cornerResultIt).rate[corner] >= 220) similarCorners++;
+            if ((*cornerResultIt).rate[corner] == -1) {
+                similarCorners++;
+                noPixelCount++;
+            }
+        }
+#define CLOSING_CREDITS_LENGTH_MIN 9
+        if ((similarCorners >= 3) && (noPixelCount < CORNERS)) {  // at least 3 corners has a match, at least one corner has pixel
+            if (closingCredits.start == 0) closingCredits.start = (*cornerResultIt).frameNumber1;
+            closingCredits.end = (*cornerResultIt).frameNumber2;
+        }
+        else {
+            if ((closingCredits.end - closingCredits.start) >= (maContext->Video.Info.FramesPerSecond * CLOSING_CREDITS_LENGTH_MIN)) {  // first long enough part is the closing credit
+                break;
+            }
+            closingCredits.start = 0;
+            closingCredits.end = 0;
+        }
+    }
+    // check if it is a closing credit
+    dsyslog("cExtractLogo::isClosingCreditDetect(): closing credits: start (%d) end (%d)", closingCredits.start, closingCredits.end);
+    int offset = (closingCredits.start - stopMarkPosition) / maContext->Video.Info.FramesPerSecond;
+    int length = (closingCredits.end - closingCredits.start) / maContext->Video.Info.FramesPerSecond;
+    dsyslog("cExtractLogo::isClosingCreditDetect(): closing credits: offset %ds length %ds", offset, length);
+    if ((offset <= 1) && (length >= CLOSING_CREDITS_LENGTH_MIN) && (length < 19)) {
+        dsyslog("cExtractLogo::isClosingCreditDetect(): this is a closing credits, pair contains a valid mark");
+        closingCreditsFrame = closingCredits.end;
+    }
+    return closingCreditsFrame;
+}
+
+
+// TODO use isClosingCreditDetect
 // search for closing credits after <stopPosition>
 // return 0     if no closing credits were found
 //        <int> end position of closing credits
@@ -1780,48 +1828,10 @@ int cExtractLogo::isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecod
     int stopPos = stopMarkPosition + (25 * maContext->Video.Info.FramesPerSecond);  // try till 15s after stopMarkPosition
     dsyslog("cExtractLogo::isClosingCredit(): start detect closing credits between logo stop (%d) and (%d)", stopMarkPosition, stopPos);
 
-    struct closingCredits {
-        int start = 0;
-        int end = 0;
-    } closingCredits;
-
     int closingCreditsFrame = -1;
-
     compareResultType compareResult;
     if (CompareFrameRange(maContext, ptr_cDecoder, stopMarkPosition, stopPos, &compareResult, false)) {
-        for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
-            dsyslog("cExtractLogo::isClosingCredit: frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
-            int similarCorners = 0;
-            int noPixelCount = 0;
-            for (int corner = 0; corner < CORNERS; corner++) {
-                if ((*cornerResultIt).rate[corner] >= 220) similarCorners++;
-                if ((*cornerResultIt).rate[corner] == -1) {
-                    similarCorners++;
-                    noPixelCount++;
-                }
-            }
-#define CLOSING_CREDITS_LENGTH_MIN 9
-            if ((similarCorners >= 3) && (noPixelCount < CORNERS)) {  // at least 3 corners has a match, at least one corner has pixel
-                if (closingCredits.start == 0) closingCredits.start = (*cornerResultIt).frameNumber1;
-                closingCredits.end = (*cornerResultIt).frameNumber2;
-            }
-            else {
-                if ((closingCredits.end - closingCredits.start) >= (maContext->Video.Info.FramesPerSecond * CLOSING_CREDITS_LENGTH_MIN)) {  // first long enough part is the closing credit
-                    break;
-                }
-                closingCredits.start = 0;
-                closingCredits.end = 0;
-            }
-        }
-        // check if it is a closing credit
-        dsyslog("cExtractLogo::isClosingCredit(): closing credits: start (%d) end (%d)", closingCredits.start, closingCredits.end);
-        int offset = (closingCredits.start - stopMarkPosition) / maContext->Video.Info.FramesPerSecond;
-        int length = (closingCredits.end - closingCredits.start) / maContext->Video.Info.FramesPerSecond;
-        dsyslog("cExtractLogo::isClosingCredit(): closing credits: offset %ds length %ds", offset, length);
-        if ((offset <= 1) && (length >= CLOSING_CREDITS_LENGTH_MIN) && (length < 19)) {
-            dsyslog("cExtractLogo::isClosingCredit(): this is a closing credits, pair contains a valid mark");
-            closingCreditsFrame = closingCredits.end;
-        }
+        closingCreditsFrame = cExtractLogo::isClosingCreditDetect(maContext, stopMarkPosition, &compareResult);
     }
 #ifdef DEBUG_MEM
     int size = compareResult.size();
@@ -1947,7 +1957,12 @@ bool cExtractLogo::InfoLogo(MarkAdContext *maContext, cDecoder *ptr_cDecoder, in
         }
         else dsyslog("cExtractLogo::InfoLogo(): no info logo found");
     }
-
+    // check if stop/start pair is closing credits
+    int length = (stopPos - startPos) / maContext->Video.Info.FramesPerSecond;
+    if (found && (length >= CLOSING_CREDITS_LENGTH_MIN) && (isClosingCreditDetect(maContext, startPos, &compareResult) != -1)) {
+        dsyslog("cExtractLogo::InfoLogo(): no info logo, closing redits found");
+        found = false;
+    }
 #ifdef DEBUG_MEM
     int size = compareResult.size();
     for (int i = 0 ; i < size; i++) {
