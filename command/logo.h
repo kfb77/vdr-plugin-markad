@@ -14,7 +14,6 @@
 #include "video.h"
 #include "audio.h"
 
-#define CORNERS 4
 #define MAXREADFRAMES 3000
 
 #define TOP_LEFT 0
@@ -23,34 +22,33 @@
 #define BOTTOM_RIGHT 3
 
 
+struct logoInfo {
+    int iFrameNumber = -1;
+    int hits = 0;
+    uchar sobel[PLANES][MAXPIXEL] = {};
+    bool valid[PLANES] = {};
+};
+
+
 class cExtractLogo {
     public:
         explicit cExtractLogo(const MarkAdAspectRatio aspectRatio, cIndex *recordingIndex);
         ~cExtractLogo();
         int SearchLogo(MarkAdContext *maContext, int startFrame);
-        bool isLogoChange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopPos, const int startPos);
-        int isClosingCredit(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int stopMarkPosition);
-        int IntroductionLogo(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startPos, const int stopPos);
-        bool InfoLogo(MarkAdContext *maContext, cDecoder *ptr_cDecoder, int startPos, int stopPos);
-        int AdInFrameWithLogo(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int startPos, const int stopPos, const bool isStartMark);
+        void SetLogoSize(const MarkAdContext *maContext, int *logoHeight, int *logoWidth);
+        bool CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0 = 0, int match12 = 0, int *rate0 = NULL);
 
         bool abort = false;
         void SetAbort() {
             abort = true;
         };
-
     private:
-        struct compareInfoType {
+        struct compareInfoType {  // TODO remove
             int frameNumber1 = 0;
             int frameNumber2 = 0;
             int rate[CORNERS] = {0};
         };
-        struct logoInfo {
-            int iFrameNumber = -1;
-            int hits = 0;
-            uchar sobel[PLANES][MAXPIXEL] = {};
-            bool valid[PLANES] = {};
-        };
+        typedef std::vector<compareInfoType> compareResultType;
         struct logoInfoPacked {
             int iFrameNumber = 0;
             int hits = 0;
@@ -58,20 +56,15 @@ class cExtractLogo {
             bool valid[PLANES] = {};
             MarkAdAspectRatio aspectratio = {};
         };
-        typedef std::vector<compareInfoType> compareResultType;
 
-        bool CompareFrameRange(MarkAdContext *maContext, cDecoder *ptr_cDecoder, int startFrame, int endFrame, compareResultType *compareResult, const bool forFrame);
-        int isClosingCreditDetect(MarkAdContext *maContext, const int stopMarkPosition, compareResultType *compareResult);
         bool Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber,  const char *debugText);
         bool CheckValid(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
         int Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
         bool CompareLogoPairRotating(logoInfo *logo1, logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner);
-        bool CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0 = 0, int match12 = 0, int *rate0 = NULL);
         void CutOut(logoInfo *logoInfo, int cutPixelH, int cutPixelV, int *logoHeight, int *logoWidth, const int corner);
         bool CheckLogoSize(const MarkAdContext *maContext, const int logoHeight, const int logoWidth, const int logoCorner);
         bool Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner);
         bool IsWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
-        void SetLogoSize(const MarkAdContext *maContext, int *logoHeight, int *logoWidth);
         bool IsLogoColourChange(const MarkAdContext *maContext, const int corner);
         int DeleteFrames(const MarkAdContext *maContext, const int from, const int to);
         bool WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame);

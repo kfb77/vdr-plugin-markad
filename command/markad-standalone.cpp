@@ -569,13 +569,17 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(clMark *stopMark) {
     if (!stopMark) return false;
     dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits without logo after position (%d)", stopMark->position);
 
-    cExtractLogo *ptr_cExtractLogoChange = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
-    ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
+    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoder, recordingIndexMark);
+    ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
-    int newPosition = ptr_cExtractLogoChange->isClosingCredit(&macontext, ptr_cDecoder, stopMark->position);
+    int endPos = stopMark->position + (25 * macontext.Video.Info.FramesPerSecond);  // try till 15s after stopMarkPosition
+    int newPosition = -1;
+    if (ptr_cDetectLogoStopStart->Detect(stopMark->position, endPos, false)) {
+        newPosition = ptr_cDetectLogoStopStart->ClosingCredit();
+    }
 
-    FREE(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
-    delete ptr_cExtractLogoChange;
+    FREE(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
+    delete ptr_cDetectLogoStopStart;
 
     if (newPosition > stopMark->position) {
         dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): closing credits found, move logo stop mark to position (%d)", newPosition);
@@ -591,7 +595,6 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(clMark *stopMark) {
 
 // remove stop/start logo mark pair if it detecs a part in the broadcast with logo changes
 // some channel e.g. TELE5 plays with the logo in the broadcast
-// return: last stop position with isClosingCredits = 1
 //
 void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason only known and tested channels
     struct timeval startTime, stopTime;
@@ -624,6 +627,9 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
         ptr_cExtractLogoChange = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
         ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
 
+        cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoderLogoChange, recordingIndexMark);
+        ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
+
         // loop through all logo stop/start pairs
         while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo)) {
             LogSeparator();
@@ -642,50 +648,20 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
             if (indexToHMSFStop && indexToHMSFStart) {
                 dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): check logo stop (%d) at %s and logo start (%d) at %s, isInfoLogo %d", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart, isInfoLogo);
             }
-
-            if ((isInfoLogo >= 0) &&  // check introduction logo before logo mark position
-                ((strcmp(macontext.Info.ChannelName, "kabel_eins") == 0) ||
-                 (strcmp(macontext.Info.ChannelName, "DMAX") == 0) ||
-                 (strcmp(macontext.Info.ChannelName, "SIXX") == 0) ||
-                 (strcmp(macontext.Info.ChannelName, "RTL2") == 0))) {
-
-                char *indexToHMSFSearchStart = marks.IndexToHMSF(startPosition, &macontext);
-                if (indexToHMSFStart && indexToHMSFStop) dsyslog("cMarkAdStandalone::Process3ndPass(): search info logo from logo stop (%d) at %s to logo start (%d) at %s", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
-                if (indexToHMSFSearchStart) {
-                    FREE(strlen(indexToHMSFSearchStart)+1, "indexToHMSF");
-                    free(indexToHMSFSearchStart);
-                }
-                if (ptr_cExtractLogoChange->InfoLogo(&macontext, ptr_cDecoderLogoChange, stopPosition, startPosition)) {
+            if (ptr_cDetectLogoStopStart->Detect(stopPosition, startPosition, false)) {
+                // check info logo before logo mark position
+                if ((isInfoLogo >= 0) && ptr_cDetectLogoStopStart->isInfoLogo()) {
+                    // found info logo part
                     if (indexToHMSFStop && indexToHMSFStart) {
                         dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
                     }
-                    clMark *blackMarkStart = marks.GetPrev(stopPosition, MT_NOBLACKSTART);
-                    clMark *blackMarkStop = marks.GetPrev(stopPosition, MT_NOBLACKSTOP);
-                    int valid = true;
-                    if (blackMarkStart && blackMarkStop) {
-                        int diff = 100 * (stopPosition - blackMarkStart->position) / macontext.Video.Info.FramesPerSecond;
-                        int length = 100 * (blackMarkStart->position - blackMarkStop->position) / macontext.Video.Info.FramesPerSecond;
-                        if ((diff <= 5) && (length >= 400)) {  // long blackscreen short before can be a valid stop mark
-                            dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): blackscreen start (%d) and stop (%d) found before info logo stop (%d) and start (%d) diff %dms length %dms, this could be a valid stop mark", blackMarkStop->position, blackMarkStart->position, stopPosition, startPosition, diff, length);
-                            valid = false;
-                        }
-                    }
-                    if (valid) marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
-                 }
-                 else {
-                     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): ^^^^^       logo stop (%6d) at %s and logo start (%6d) at %s pair no logo change, keep marks", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
+                    marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
                 }
-            }
-            if ((isLogoChange >= 0) &&
-                (strcmp(macontext.Info.ChannelName, "TELE_5") == 0)) {  // has logo changes
-                if (ptr_cExtractLogoChange->isLogoChange(&macontext, ptr_cDecoderLogoChange, stopPosition, startPosition)) {
+                if ((isLogoChange >= 0) && ptr_cDetectLogoStopStart->isLogoChange()) {
                     if (indexToHMSFStop && indexToHMSFStart) {
                         isyslog("logo has changed between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
                     }
                     marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
-                 }
-                 else {
-                     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): ^^^^^       logo stop (%6d) at %s and logo start (%6d) at %s pair no logo change, keep marks", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
                 }
             }
         }
@@ -705,6 +681,8 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
         delete ptr_cExtractLogoChange;
         FREE(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
         delete ptr_cDecoderLogoChange;
+        FREE(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
+        delete ptr_cDetectLogoStopStart;
 
         FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
         delete evaluateLogoStopStartPair;
@@ -2413,13 +2391,14 @@ void cMarkAdStandalone::Process3ndPass() {
     ptr_cDecoder->Reset();
     ptr_cDecoder->DecodeDir(directory);
 
-    cExtractLogo *ptr_cExtractLogoAdInFrame = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
-    ALLOC(sizeof(*ptr_cExtractLogoAdInFrame), "ptr_cExtractLogoAdInFrame");
+    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoder, recordingIndexMark);
+    ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
     clMark *markLogo = marks.GetFirst();
     while (markLogo) {
         if (markLogo->type == MT_LOGOSTART) {
             char *indexToHMSFStartMark = marks.IndexToHMSF(markLogo->position, &macontext);
+
             // check for introduction logo before logo mark position
             LogSeparator(false);
             int searchStartPosition = markLogo->position - (12 * macontext.Video.Info.FramesPerSecond); // introduction logos are usually 10s
@@ -2430,7 +2409,10 @@ void cMarkAdStandalone::Process3ndPass() {
                 FREE(strlen(indexToHMSFSearchStart)+1, "indexToHMSF");
                 free(indexToHMSFSearchStart);
             }
-            int introductionStartPosition = ptr_cExtractLogoAdInFrame->IntroductionLogo(&macontext, ptr_cDecoder, searchStartPosition, markLogo->position);
+            int introductionStartPosition = -1;
+            if (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position, false)) {
+                introductionStartPosition = ptr_cDetectLogoStopStart->IntroductionLogo();
+            }
 
             // check for advertising in frame with logo after logo start mark position
             LogSeparator(false);
@@ -2445,13 +2427,14 @@ void cMarkAdStandalone::Process3ndPass() {
                 FREE(strlen(indexToHMSFSearchEnd)+1, "indexToHMSF");
                 free(indexToHMSFSearchEnd);
             }
-            int adInFrameEndPosition = ptr_cExtractLogoAdInFrame->AdInFrameWithLogo(&macontext, ptr_cDecoder, markLogo->position, searchEndPosition, true);
-
+            int adInFrameEndPosition = -1;
+            if (ptr_cDetectLogoStopStart->Detect(markLogo->position, searchEndPosition, true)) {
+                adInFrameEndPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(true);
+            }
             if (adInFrameEndPosition != -1) {  // if we found advertising in frame, use this
                 adInFrameEndPosition = recordingIndexMark->GetIFrameAfter(adInFrameEndPosition + 1);  // we got last frame of ad, go to next iFrame for start mark
                 markLogo = marks.Move(&macontext, markLogo, adInFrameEndPosition, "advertising in frame");
                 save = true;
-                continue;
             }
             else {
                 if (introductionStartPosition != -1) {
@@ -2480,7 +2463,6 @@ void cMarkAdStandalone::Process3ndPass() {
                     }
                     if (!moved) markLogo = marks.Move(&macontext, markLogo, introductionStartPosition, "introduction logo");
                     save = true;
-                    continue;
                 }
             }
         }
@@ -2497,17 +2479,19 @@ void cMarkAdStandalone::Process3ndPass() {
                 FREE(strlen(indexToHMSFSearchPosition)+1, "indexToHMSF");
                 free(indexToHMSFSearchPosition);
             }
-            int newStopPosition = ptr_cExtractLogoAdInFrame->AdInFrameWithLogo(&macontext, ptr_cDecoder, searchStartPosition, markLogo->position, false);
-            if (newStopPosition != -1) {
-                newStopPosition = recordingIndexMark->GetIFrameBefore(newStopPosition - 1);  // we got first frame of ad, go one iFrame back for stop mark
-                markLogo = marks.Move(&macontext, markLogo, newStopPosition, "advertising in frame");
-                save = true;
+            if (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position, true)) {
+                int newStopPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(false);
+                if (newStopPosition != -1) {
+                    newStopPosition = recordingIndexMark->GetIFrameBefore(newStopPosition - 1);  // we got first frame of ad, go one iFrame back for stop mark
+                    markLogo = marks.Move(&macontext, markLogo, newStopPosition, "advertising in frame");
+                    save = true;
+               }
             }
         }
         markLogo = markLogo->Next();
     }
-    FREE(sizeof(*ptr_cExtractLogoAdInFrame), "ptr_cExtractLogoAdInFrame");
-    delete(ptr_cExtractLogoAdInFrame);
+    FREE(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
+    delete ptr_cDetectLogoStopStart;
 
 // search for audio silence near logo marks
     LogSeparator(false);

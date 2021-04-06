@@ -17,6 +17,7 @@
 
 #define MAXSTREAMS 10
 #define PLANES 3
+#define CORNERS 4
 
 #define MA_I_TYPE 1
 #define MA_P_TYPE 2
