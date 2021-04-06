@@ -477,7 +477,6 @@ void cMarkAdStandalone::CheckStop() {
         while (mark) {
             if ((mark->position >= iStopA-macontext.Video.Info.FramesPerSecond*MAXRANGE) && (mark->position < end->position) && ((mark->type & 0xF0) < (end->type & 0xF0))) { // delete all weak marks
                 dsyslog("cMarkAdStandalone::CheckStop(): found stronger end mark delete mark (%i)", mark->position);
-                if ((mark->type & 0xF0) == MT_BLACKCHANGE) blackMarks.Add(mark->type, mark->position, NULL, mark->inBroadCast); // add mark to blackscreen list
                 clMark *tmp = mark;
                 mark = mark->Next();
                 marks.Del(tmp);
@@ -502,7 +501,7 @@ void cMarkAdStandalone::CheckStop() {
         }
 
         dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after final stop mark at (%d)", end->position);
-        marks.DelTill(end->position, &blackMarks, false);
+        marks.DelTill(end->position, false);
 
         if ( end->position < iStopA - 5 * delta ) {    // last found stop mark too early, adding STOP mark at the end, increased from 3 to 5
                                                      // this can happen by audio channel change too if the next broadcast has also 6 channels
@@ -523,7 +522,7 @@ void cMarkAdStandalone::CheckStop() {
             if (aLastStop && (aLastStop->position > iStopA)) {
                 dsyslog("cMarkAdStandalone::CheckStop(): start mark is MT_ASPECTSTART (%d) found very late MT_ASPECTSTOP at (%d)", aFirstStart->position, aLastStop->position);
                 end = aLastStop;
-                marks.DelTill(end->position, &blackMarks, false);
+                marks.DelTill(end->position, false);
             }
         }
         if (!end) {
@@ -542,7 +541,6 @@ void cMarkAdStandalone::CheckStop() {
         if (mark != marks.GetFirst()) {
             if (mark == marks.GetLast()) break;
             if ((mark->type & 0xF0) == MT_BLACKCHANGE) {
-                blackMarks.Add(mark->type, mark->position, NULL, mark->inBroadCast); // add mark to blackscreen list
                 clMark *tmp = mark;
                 mark = mark->Next();
                 marks.Del(tmp);
@@ -1217,11 +1215,10 @@ void cMarkAdStandalone::CheckStart() {
             marks.Del(MT_LOGOSTOP);
         }
 
-        dsyslog("cMarkAdStandalone::CheckStart(): move all black screen marks except start mark to black screen list");
+        dsyslog("cMarkAdStandalone::CheckStart(): delete all black screen marks except start mark");
         clMark *mark = marks.GetFirst();   // delete all black screen marks because they are weak, execpt the start mark
         while (mark) {
             if (((mark->type & 0xF0) == MT_BLACKCHANGE) && (mark->position > begin->position) ) {
-                blackMarks.Add(mark->type, mark->position, NULL, mark->inBroadCast); // add mark to blackscreen list
                 clMark *tmp = mark;
                 mark = mark->Next();
                 marks.Del(tmp);  // delete mark from normal list
@@ -1810,7 +1807,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
             if (diff < markDiff) {
                 if (prev->type > Mark->Type) {
                     isyslog("previous mark (%i) type 0x%X stronger than actual mark, deleting (%i) type 0x%X", prev->position, prev->type, Mark->Position, Mark->Type);
-                    if ((Mark->Type == MT_NOBLACKSTOP) || (Mark->Type == MT_NOBLACKSTART)) {
+                    if ((Mark->Type & 0xF0) == MT_BLACKCHANGE) {
                         blackMarks.Add(Mark->Type, Mark->Position, NULL, false); // add mark to blackscreen list
                     }
                     if (comment) {
@@ -1821,7 +1818,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
                 }
                 else {
                     isyslog("actual mark (%i) type 0x%X stronger then previous mark, deleting %i type 0x%X", Mark->Position, Mark->Type, prev->position, prev->type);
-                    if ((prev->type == MT_NOBLACKSTOP) || (prev->type == MT_NOBLACKSTART)) {
+                    if ((prev->type & 0xF0) == MT_BLACKCHANGE) {
                         blackMarks.Add(prev->type, prev->position, NULL, false); // add mark to blackscreen list
                     }
                     marks.Del(prev);
@@ -1852,12 +1849,7 @@ void cMarkAdStandalone::AddMark(MarkAdMark *Mark) {
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
-    // move blackscreen marks on same postion to blackscreen list
-    clMark *moveBlack = marks.Get(Mark->Position);
-    if (moveBlack && ((moveBlack->type & 0xF0) == MT_BLACKCHANGE)) {
-        blackMarks.Add(moveBlack->type, moveBlack->position);
-        marks.Del(moveBlack->position);
-    }
+    if ((Mark->Type & 0xF0) == MT_BLACKCHANGE) blackMarks.Add(Mark->Type, Mark->Position, NULL, inBroadCast);
     marks.Add(Mark->Type, Mark->Position, comment, inBroadCast);
     if (comment) {
         FREE(strlen(comment)+1, "comment");

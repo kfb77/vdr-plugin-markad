@@ -135,7 +135,7 @@ void clMarks::DelFromTo(const int from, const int to, const short int type) {
 // <FromStart> = false: delete all marks from <Position> to end
 // blackscreen marks were moved to blackscreen list
 //
-void clMarks::DelTill(const int Position, clMarks *blackMarks, const bool FromStart) {
+void clMarks::DelTill(const int Position, const bool FromStart) {
     clMark *next, *mark = first;
     if (!FromStart) {
         while (mark) {
@@ -147,12 +147,10 @@ void clMarks::DelTill(const int Position, clMarks *blackMarks, const bool FromSt
         next = mark->Next();
         if (FromStart) {
             if (mark->position < Position) {
-                if ((mark->type & 0xF0) == MT_BLACKCHANGE) blackMarks->Add(mark->type, mark->position, NULL, mark->inBroadCast); // add mark to blackscreen list
                 Del(mark);
             }
         }
         else {
-            if ((mark->type & 0xF0) == MT_BLACKCHANGE) blackMarks->Add(mark->type, mark->position, NULL, mark->inBroadCast); // add mark to blackscreen list
             Del(mark);
         }
         mark = next;
@@ -310,6 +308,7 @@ clMark *clMarks::Add(const int Type, const int Position, const char *Comment, co
 
     if ((newmark = Get(Position))) {
         dsyslog("duplicate mark on position %i type 0x%X and type 0x%x", Position, Type, newmark->type);
+        if (Type == newmark->type) return NULL;  // same type at same position, ignore add
         if ((Type & 0xF0) == (newmark->type & 0xF0)) {  // start and stop mark of same type at same position, delete both
             Del(newmark->position);
             return NULL;
