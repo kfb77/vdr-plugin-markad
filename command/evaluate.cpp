@@ -157,7 +157,7 @@ cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
 // check if stop/start pair could be a info logo section
 //
 void cEvaluateLogoStopStartPair::isInfoLogo(clMarks *blackMarks, logoStopStartPairType *logoStopStartPair, const int framesPerSecond) {
-#define LOGO_INTRODUCTION_STOP_START_MIN 8  // min time in s of a info logo section, bigger values than in InfoLogo becase of seek to iFrame
+#define LOGO_INTRODUCTION_STOP_START_MIN 7  // min time in s of a info logo section, bigger values than in InfoLogo becase of seek to iFrame, changed from 8 to 7
 #define LOGO_INTRODUCTION_STOP_START_MAX 17  // max time in s of a info logo section, changed from 17
     int length = (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / framesPerSecond;
     if ((length <= LOGO_INTRODUCTION_STOP_START_MAX) && (length >= LOGO_INTRODUCTION_STOP_START_MIN)) {
@@ -209,6 +209,9 @@ void cEvaluateLogoStopStartPair::isInfoLogo(clMarks *blackMarks, logoStopStartPa
         dsyslog("cEvaluateLogoStopStartPair::isInfoLogo():                 +++++ stop (%d) start (%d) pair: possible info logo section found, length  %ds (expect <= %ds and >=%ds)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, length, LOGO_INTRODUCTION_STOP_START_MIN, LOGO_INTRODUCTION_STOP_START_MAX);
         logoStopStartPair->isInfoLogo = 0;
         return;
+    }
+    else {
+        dsyslog("cEvaluateLogoStopStartPair::isInfoLogo():                 ----- stop (%d) start (%d) pair: possible info logo section found, length  %ds (expect <= %ds and >=%ds)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, length, LOGO_INTRODUCTION_STOP_START_MIN, LOGO_INTRODUCTION_STOP_START_MAX);
     }
     logoStopStartPair->isInfoLogo = -1;
     return;
