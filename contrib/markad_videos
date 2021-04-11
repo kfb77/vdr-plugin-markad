@@ -100,6 +100,7 @@ class Config:
         self.path = "/srv/vdr/video"
         self.bindir = "/usr/bin"
         self.minfree = 0
+        self.maxrecordings = 1000
         self.backupmarks = False
         self.backuplogo = None
         self.logocachedir = "/var/lib/markad"
@@ -272,6 +273,7 @@ class Config:
         if args.loglevel is not None: self.loglevel = args.loglevel
         if args.nice is not None: self.nice = args.nice
         if args.minfree is not None: self.minfree = args.minfree
+        if args.maxrecordings is not None: self.maxrecordings = args.maxrecordings
         if args.autologo is not None: self.autologo = args.autologo
         if args.threads is not None: self.threads = args.threads
         if args.astopoffs is not None: self.astopoffs = args.astopoffs
@@ -279,6 +281,7 @@ class Config:
         if args.fulldecode: self.fulldecode = args.fulldecode
         if args.fulldecode: self.fullencode = args.fullencode
         if args.cut: self.cut = args.cut
+        if args.checkOnly: self.checkOnly = args.checkOnly
         if args.ac3reencode: self.ac3reencode = args.ac3reencode
         if args.backupmarks: self.backupmarks = args.backupmarks
         if args.mirror_path is not None: self.mirror_path = args.mirror_path
@@ -453,6 +456,10 @@ class CheckPath:
 
     def RunMarkad(self):
         if not config.checkOnly:
+            if config.maxrecordings <= 0:
+                log.isyslog("maximum recording limit reached")
+                exit(0)
+            config.maxrecordings -= 1
             cmd = '%s/markad --logocachedir=%s --loglevel=%i --autologo=%i --threads=%i --astopoffs=%i --priority=%i' % (config.bindir, config.logocachedir, config.markad_loglevel, config.autologo, config.threads, config.astopoffs, config.nice)
             if config.log2rec: cmd = cmd + " --log2rec"
             if config.vps: cmd = cmd + " --vps"
@@ -532,6 +539,7 @@ parser.add_argument('-l', '--loglevel=', metavar="<level>", type=int, choices=ra
 parser.add_argument('-p', '--path=', dest="path",  metavar="<path>", action="store", help='path to the VDR recording directory (default: /srv/vdr/video)')
 parser.add_argument('--nice=', dest="nice",  metavar="<value>", choices=range(0, 20), action="store", help='set niceness of scheduling priority (default 19)')
 parser.add_argument('--minfree=', metavar="GB", type=int, dest="minfree", action="store", help='minimum free disk space in GBs for all disk consuming operations (default 0 no limit)')
+parser.add_argument('--maxrecordings=', metavar="", type=int, dest="maxrecordings", action="store", help='maximum recordings to process (default 1000)')
 parser.add_argument('--bindir', dest="bindir",  metavar="<DIR>", action="store", help='use DIR as location for markad executable (default: /usr/bin)')
 parser.add_argument('--backupmarks', dest="backupmarks", action='store_true', default=False, help='make a versioned backup of the marks file')
 parser.add_argument('--logocachedir', dest="logocachedir",  metavar="<directory>", action="store", help='directory where logos stored, default /var/lib/markad')
@@ -544,6 +552,7 @@ parser.add_argument('--log2rec', dest="log2rec", action='store_true', default=Fa
 parser.add_argument('--cut', dest="cut", action='store_true', default=False, help='sets --cut of markad to the specified value, see markad for more details')
 parser.add_argument('--ac3reencode', dest="ac3reencode", action='store_true', default=False, help='sets --ac3reencode of markad to the specified value, see markad for more details')
 parser.add_argument('--mirror_path=', dest="mirror_path",  metavar="<path>", action="store", help='path to the video mirror directory (default: None)')
+parser.add_argument('--checkonly', dest="checkOnly", action='store_true', default=False, help='only check marks file, no markad will executed')
 
 # get config values
 config = Config()
