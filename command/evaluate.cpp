@@ -615,6 +615,7 @@ bool cDetectLogoStopStart::ClosingCreditChannel() {
     if (!maContext) return false;
     if ((strcmp(maContext->Info.ChannelName, "kabel_eins") != 0) &&
         (strcmp(maContext->Info.ChannelName, "SAT_1") != 0) &&
+        (strcmp(maContext->Info.ChannelName, "SIXX") != 0) &&
         (strcmp(maContext->Info.ChannelName, "Pro7_MAXX") != 0) &&
         (strcmp(maContext->Info.ChannelName, "ProSieben") != 0)) {
         return false;

@@ -603,8 +603,8 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start mark pairs with special logo");
 
-    if (marks.Count(MT_LOGOSTOP) <= 1) {
-        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): only %d logo stop mark, do not delete any", marks.Count(MT_LOGOSTOP));
+    if ((marks.Count(MT_LOGOSTART) <= 1) || (marks.Count(MT_LOGOSTOP) == 0)) {
+        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): only %d logo start mark and %d logo stop marks found, do not delete any", marks.Count(MT_LOGOSTOP), marks.Count(MT_LOGOSTOP));
     }
     else {
         cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(&marks, &blackMarks, macontext.Video.Info.FramesPerSecond, iStart, chkSTART, iStopA);
