@@ -1129,7 +1129,7 @@ void cMarkAdStandalone::CheckStart() {
         }
     }
 
-    if (begin && (begin->position <= IGNORE_AT_START)) {  // first frames are from previous recording
+    if (begin && (begin->type != MT_RECORDINGSTART) && (begin->position <= IGNORE_AT_START)) {  // first frames are from previous recording
         dsyslog("cMarkAdStandalone::CheckStart(): start mark (%d) type 0x%X dropped because it is too early", begin->position, begin->type);
         begin = NULL;
     }
