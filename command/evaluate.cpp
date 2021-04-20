@@ -467,18 +467,18 @@ bool cDetectLogoStopStart::isInfoLogo() {
         infoLogo.endFinal = infoLogo.end;
     }
     // ignore short parts at start and end, this is fade in and fade out
-    int diffStart = 100 * (infoLogo.startFinal - startPos) / maContext->Video.Info.FramesPerSecond;
-    int diffEnd = 100 * (endPos - infoLogo.endFinal) / maContext->Video.Info.FramesPerSecond;
+    int diffStart = 1000 * (infoLogo.startFinal - startPos) / maContext->Video.Info.FramesPerSecond;
+    int diffEnd = 1000 * (endPos - infoLogo.endFinal) / maContext->Video.Info.FramesPerSecond;
     dsyslog("cDetectLogoStopStart::isInfoLogo(): start diff %dms, end diff %dms", diffStart, diffEnd);
-    if (diffStart < 250) startPos = infoLogo.startFinal;
-    if (diffEnd < 250) endPos = infoLogo.endFinal;
+    if (diffStart <= 960) startPos = infoLogo.startFinal;  // changed from 250 to 960
+    if (diffEnd <= 960) endPos = infoLogo.endFinal;  // changed from 250 to 960
 #define INFO_LOGO_MIN_LENGTH 4
 #define INFO_LOGO_MAX_LENGTH 14
 #define INFO_LOGO_MIN_QUOTE 80
     int quote = 100 * (infoLogo.endFinal - infoLogo.startFinal) / (endPos - startPos);
     int length = (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.FramesPerSecond;
     dsyslog("cDetectLogoStopStart::isInfoLogo(): info logo: start (%d), end (%d), length %ds (expect >=%ds and <=%ds), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
-    if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE)){
+    if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE) && (diffStart < 1920)) {
         dsyslog("cDetectLogoStopStart::isInfoLogo(): found info logo");
         found = true;
     }
