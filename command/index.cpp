@@ -109,7 +109,7 @@ int cIndex::GetIFrameBefore(int frame) {
     }
     int before_iFrame = 0;
     for (std::vector<indexType>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->frameNumber > frame) {
+        if (frameIterator->frameNumber >= frame) {
             return before_iFrame;
         }
         else before_iFrame = frameIterator->frameNumber;
