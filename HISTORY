@@ -1,6 +1,9 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-04-22: Version 2.6.8
+- some minor bug fixes and optimizations, see git
+
 2021-03-27: Version 2.6.7
 - fix AC3 encoding bitrate
 - some fine tuning mark positions
