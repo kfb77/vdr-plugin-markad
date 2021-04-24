@@ -59,26 +59,27 @@ bool cMarkAdAudio::ChannelChange(int a, int b) {
 
 MarkAdMark *cMarkAdAudio::Process() {
     ResetMark();
-
     for (short int stream = 0; stream < MAXSTREAMS; stream++){
         if (ChannelChange(macontext->Audio.Info.Channels[stream], channels[stream])) {
             // we accept to cut out a little audio, we do not want to have a frame from ad
             if (macontext->Audio.Info.Channels[stream] > 2) {
-                if (!macontext->Config->fullDecode) SetMark(MT_CHANNELSTART, recordingIndexAudio->GetIFrameAfter(macontext->Audio.Info.channelChangeFrame), channels[stream], macontext->Audio.Info.Channels[stream]);
-                else { // get video frame with pts before channel change
-                    int markFrame = recordingIndexAudio->GetFirstVideoFrameAfterPTS(macontext->Audio.Info.channelChangePTS);
+                if (macontext->Config->fullDecode) {
+                    int markFrame = recordingIndexAudio->GetFirstVideoFrameAfterPTS(macontext->Audio.Info.channelChangePTS); // get video frame with pts before channel change
+		    markFrame = recordingIndexAudio->GetIFrameAfter(markFrame);  // we need next iFrame for start cut, make sure we will not have last pic of ad
                     if (markFrame < 0) markFrame = macontext->Audio.Info.channelChangeFrame;
-                    markFrame = recordingIndexAudio->GetIFrameAfter(markFrame);  // we need next iFrame for start cut
                     SetMark(MT_CHANNELSTART, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
+                }
+                else { // audio streams are alway full decoded, use next video iFrame
+                    SetMark(MT_CHANNELSTART, recordingIndexAudio->GetIFrameAfter(macontext->Audio.Info.channelChangeFrame), channels[stream], macontext->Audio.Info.Channels[stream]);
                 }
             }
             else { // frame before is last frame in broadcast
-                if (!macontext->Config->fullDecode) SetMark(MT_CHANNELSTOP, recordingIndexAudio->GetIFrameBefore(macontext->Audio.Info.channelChangeFrame), channels[stream], macontext->Audio.Info.Channels[stream]);
-                else {
+                if (macontext->Config->fullDecode) {
                     int markFrame = recordingIndexAudio->GetFirstVideoFrameAfterPTS(macontext->Audio.Info.channelChangePTS);
                     if (markFrame < 0) markFrame = macontext->Audio.Info.channelChangeFrame;
                     SetMark(MT_CHANNELSTOP, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
                 }
+                else SetMark(MT_CHANNELSTOP, recordingIndexAudio->GetIFrameBefore(macontext->Audio.Info.channelChangeFrame), channels[stream], macontext->Audio.Info.Channels[stream]);
             }
         }
         channels[stream] = macontext->Audio.Info.Channels[stream];
