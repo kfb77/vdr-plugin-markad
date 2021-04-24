@@ -4595,11 +4595,11 @@ int main(int argc, char *argv[]) {
         dsyslog("parameter --autologo is set to %i",config.autoLogo);
         if (config.fullDecode) {
             dsyslog("parameter --fulldeode is set");
-            if (config.bestEncode) dsyslog("encode best streams");
-            else dsyslog("encode all streams");
         }
         if (config.fullEncode) {
             dsyslog("parameter --fullencode is set");
+            if (config.bestEncode) dsyslog("encode best streams");
+            else dsyslog("encode all streams");
         }
         if (!bPass2Only) {
             gettimeofday(&startPass1, NULL);
