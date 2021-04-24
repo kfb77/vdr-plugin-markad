@@ -26,6 +26,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
     saveinfo = setup->SaveInfo;
     deferredshutdown = setup->DeferredShutdown;
     autologomenue = setup->autoLogoMenue;
+    fulldecode = setup->fulldecode;
 
     processTexts[PROCESS_AFTER] = tr("after");
     processTexts[PROCESS_DURING] = tr("during");
@@ -65,6 +66,7 @@ void cSetupMarkAd::write(void) {
         Add(new cMenuEditBoolItem(tr("log to recording directory"), &log2rec));
         Add(new cMenuEditBoolItem(tr("hide mainmenu entry"), &hidemainmenuentry));
         if (setup->autoLogoConf < 0) Add(new cMenuEditStraItem(tr("extract logos from recording"), &autologomenue, 3, autoLogoTexts));
+        Add(new cMenuEditBoolItem(tr("full decode recording (WARNING: high cpu consumption)"), &fulldecode));
 
         if (current == -1) {
             SetCurrent(first);
@@ -129,6 +131,7 @@ void cSetupMarkAd::Store(void) {
     SetupStore("SaveInfo", saveinfo);
     SetupStore("DeferredShutdown", deferredshutdown);
     SetupStore("AutoLogoExtraction", autologomenue);
+    SetupStore("FullDecode", fulldecode);
 
     setup->ProcessDuring = static_cast<int>(processduring);
     setup->useVPS = static_cast<bool>(usevps);
@@ -142,6 +145,7 @@ void cSetupMarkAd::Store(void) {
     setup->HideMainMenuEntry = static_cast<bool>(hidemainmenuentry);
     setup->DeferredShutdown = static_cast<bool>(deferredshutdown);
     setup->autoLogoMenue = static_cast<int>(autologomenue);
+    setup->fulldecode = static_cast<bool>(fulldecode);
     setup->Log2Rec = log2rec;
     setup->LogoOnly = logoonly;
     setup->SaveInfo = saveinfo;

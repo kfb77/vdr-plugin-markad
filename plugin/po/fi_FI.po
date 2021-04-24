@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
-"POT-Creation-Date: 2021-01-26 16:37+0100\n"
+"POT-Creation-Date: 2021-04-24 21:16+0200\n"
 "PO-Revision-Date: 2011-02-27 02:27+0200\n"
 "Last-Translator: Rolf Ahrenberg\n"
 "Language-Team: Finnish <vdr@linuxtv.org>\n"
@@ -114,6 +114,9 @@ msgid "hide mainmenu entry"
 msgstr "Piilota valita päävalikosta"
 
 msgid "extract logos from recording"
+msgstr ""
+
+msgid "full decode recording (WARNING: high cpu consumption)"
 msgstr ""
 
 msgid "show list"

@@ -32,13 +32,14 @@ struct setup {
     bool LogoOnly;
     bool DeferredShutdown;
     const char *LogoDir;
-    char *LogLevel=NULL;
-    char *aStopOffs=NULL;
-    bool cDecoder=false;
-    bool MarkadCut=false;
-    bool ac3ReEncode=false;
-    int autoLogoConf=-1;
-    int autoLogoMenue=0;
+    char *LogLevel = NULL;
+    char *aStopOffs = NULL;
+    bool cDecoder = false;
+    bool MarkadCut = false;
+    bool ac3ReEncode = false;
+    int autoLogoConf = -1;
+    int autoLogoMenue = 0;
+    bool fulldecode = false;
     const char *PluginName;
 };
 
@@ -49,6 +50,7 @@ class cSetupMarkAd : public cMenuSetupPage {
         const char *autoLogoTexts[3];
         struct setup *setup;
         int autologomenue;
+        int fulldecode;
         int processduring;
         int usevps = 0;
         int logvps = 0;

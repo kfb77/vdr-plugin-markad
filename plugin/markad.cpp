@@ -277,6 +277,7 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value) {
     else if (!strcasecmp(Name,"SaveInfo")) setup.SaveInfo = atoi(Value);
     else if (!strcasecmp(Name,"DeferredShutdown")) setup.DeferredShutdown = atoi(Value);
     else if (!strcasecmp(Name,"AutoLogoExtraction")) setup.autoLogoMenue = atoi(Value);
+    else if (!strcasecmp(Name,"FullDecode")) setup.fulldecode = atoi(Value);
     else return false;
     return true;
 }
