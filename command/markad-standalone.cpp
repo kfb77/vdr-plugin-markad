@@ -2233,8 +2233,7 @@ void cMarkAdStandalone::MarkadCut() {
     DebugMarks();     //  only for debugging
 
     // init encoder
-    cEncoder* ptr_cEncoder = NULL;
-    ptr_cEncoder = new cEncoder(&macontext);
+    cEncoder *ptr_cEncoder = new cEncoder(&macontext);
     ALLOC(sizeof(*ptr_cEncoder), "ptr_cEncoder");
 
     int passMin = 0;
