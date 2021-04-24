@@ -880,10 +880,8 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
             beforeDecodePacketPTSbefore[streamIndexOut] = avpktIn->pts;
         }
 #endif
-        AVFrame *avFrame = NULL;
-        avFrame = ptr_cDecoder->DecodePacket(avpktIn);
+        AVFrame *avFrame = ptr_cDecoder->DecodePacket(avpktIn);
         if (!avFrame) {  // this is no error, maybe we only need more frames to decode (e.g. interlaced video)
-//            dsyslog("cEncoder::WritePacket(): decoding failed for input stream %d at frame %d", streamIndexIn, frameNumber);
             return true;
         }
         // correct pts after cut
