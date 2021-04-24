@@ -710,12 +710,10 @@ void cMarkAdStandalone::CheckStart() {
     DebugMarks();     //  only for debugging
 #define IGNORE_AT_START 10   // ignore this number of frames at the start for marks, they are initial marks from recording before
 
-    clMark *begin = NULL;
     int hBorderStopPosition = 0;
     int delta = macontext.Video.Info.FramesPerSecond * MAXRANGE;
-//    macontext.Video.Options.IgnoreBlackScreenDetection = true;   // use black sceen setection only to find start mark
 
-    begin = marks.GetAround(delta, 1, MT_RECORDINGSTART);  // do we have an incomplete recording ?
+    clMark *begin = marks.GetAround(delta, 1, MT_RECORDINGSTART);  // do we have an incomplete recording ?
     if (begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): found MT_RECORDINGSTART (%i), use this as start mark for the incomplete recording", begin->position);
     }
