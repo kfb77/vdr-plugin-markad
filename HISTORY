@@ -1,11 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
-xxx-xx-xx: Version 3.0.0
+2021-04-24: Version 3.0.0
 - new additional build requirements libswresample-dev
 - new feature: optional decode all video frames not only iFrames to get better mark positions
-- new feature: detect and ignore info logo section
 - new feature: full re-encode video cut
+- new feature: detect and ignore info logo section
 
 2021-04-22: Version 2.6.8
 - some minor bug fixes and optimizations, see git
