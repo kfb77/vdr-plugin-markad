@@ -225,6 +225,7 @@ class cMarkAdVideo {
             vborder = NULL;
             logo = NULL;
             overlap = NULL;
+            aspectratio = {};
             return *this;
         }
         MarkAdPos *ProcessOverlap(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
@@ -240,7 +241,7 @@ class cMarkAdVideo {
         cIndex *recordingIndexMarkAdVideo = NULL;
         MarkAdContext *macontext;
         MarkAdMarks marks = {};
-        MarkAdAspectRatio aspectratio;
+        MarkAdAspectRatio aspectratio = {};
         cMarkAdBlackScreen *blackScreen;
         cMarkAdBlackBordersHoriz *hborder;
         cMarkAdBlackBordersVert *vborder;
