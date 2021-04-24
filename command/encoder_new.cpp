@@ -946,7 +946,9 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         }
 #endif
         AVPacket avpktOut;
+#if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
         av_init_packet(&avpktOut);
+#endif
         avpktOut.data = NULL;
         avpktOut.size = 0;
         avFrame->pict_type = AV_PICTURE_TYPE_NONE;  // encoder decides picture type
@@ -1105,7 +1107,9 @@ bool cEncoder::CloseFile(cDecoder *ptr_cDecoder) {
     for (unsigned int streamIndex = 0; streamIndex < avctxOut->nb_streams; streamIndex++) {
         avcodec_send_frame(codecCtxArrayOut[streamIndex], NULL);
         AVPacket avpktOut;
+#if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
         av_init_packet(&avpktOut);
+#endif
         avpktOut.data = NULL;
         avpktOut.size = 0;
         while(EncodeFrame(ptr_cDecoder, codecCtxArrayOut[streamIndex], NULL, &avpktOut)) {
