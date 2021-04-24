@@ -158,6 +158,7 @@ cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
 // check if stop/start pair could be a info logo section
 //
 void cEvaluateLogoStopStartPair::isInfoLogo(clMarks *blackMarks, logoStopStartPairType *logoStopStartPair, const int framesPerSecond) {
+    if (framesPerSecond <= 0) return;
 #define LOGO_INTRODUCTION_STOP_START_MIN 6  // min time in s of a info logo section, bigger values than in InfoLogo becase of seek to iFrame, changed from 8 to 7 to 6
 #define LOGO_INTRODUCTION_STOP_START_MAX 17  // max time in s of a info logo section, changed from 17
     int length = (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / framesPerSecond;
