@@ -612,8 +612,6 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
 
         char *indexToHMSFStop = NULL;
         char *indexToHMSFStart = NULL;
-
-        cExtractLogo *ptr_cExtractLogoChange = NULL;
         int stopPosition = 0;
         int startPosition = 0;
         int isLogoChange = 0;
@@ -624,7 +622,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
         ALLOC(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
         ptr_cDecoderLogoChange->DecodeDir(directory);
 
-        ptr_cExtractLogoChange = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
+        cExtractLogo *ptr_cExtractLogoChange = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
         ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
 
         cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoderLogoChange, recordingIndexMark);
