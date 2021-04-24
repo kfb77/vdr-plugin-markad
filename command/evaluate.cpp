@@ -164,13 +164,10 @@ void cEvaluateLogoStopStartPair::isInfoLogo(clMarks *blackMarks, logoStopStartPa
     int length = (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / framesPerSecond;
     if ((length <= LOGO_INTRODUCTION_STOP_START_MAX) && (length >= LOGO_INTRODUCTION_STOP_START_MIN)) {
 
-        clMark *blackStop = NULL;
-        clMark *blackStart = NULL;
-
         // check blackscreen before stop/start
         // if direct before logo stop is a blackscreen mark stop/start pair, this logo stop is a valid stop mark
-        blackStop = blackMarks->GetPrev(logoStopStartPair->stopPosition + 1, MT_NOBLACKSTOP);  // blackscreen can stop at the same position as logo stop
-        blackStart = blackMarks->GetPrev(logoStopStartPair->stopPosition + 1, MT_NOBLACKSTART); // blackscreen can start at the same position as logo stop
+        clMark *blackStop = blackMarks->GetPrev(logoStopStartPair->stopPosition + 1, MT_NOBLACKSTOP);  // blackscreen can stop at the same position as logo stop
+        clMark *blackStart = blackMarks->GetPrev(logoStopStartPair->stopPosition + 1, MT_NOBLACKSTART); // blackscreen can start at the same position as logo stop
         if ( blackStop && blackStart) {
             int diff = 1000 * (logoStopStartPair->stopPosition - blackStart->position) / framesPerSecond;
             int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;
