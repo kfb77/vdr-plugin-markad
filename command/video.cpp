@@ -1018,8 +1018,6 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *BorderIFrame) 
     if (!macontext) return HBORDER_ERROR;
     if (!macontext->Video.Data.Valid) return HBORDER_ERROR;
     if (macontext->Video.Info.FramesPerSecond == 0) return HBORDER_ERROR;
-    // Assumption: If we have 4:3, we should have aspectratio-changes!
-    //if (macontext->Video.Info.AspectRatio.Num==4) return 0; // seems not to be true in all countries?
     *BorderIFrame = -1;   // framenumber if we has a change, otherwise -1
     if (!macontext->Video.Info.Height) {
         dsyslog("cMarkAdBlackBordersHoriz::Process() video hight missing");
@@ -1130,8 +1128,6 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
         dsyslog("cMarkAdBlackBordersVert::Process(): video frames per second  not valid");
         return VBORDER_ERROR;
     }
-    // Assumption: If we have 4:3, we should have aspectratio-changes!
-    //if (macontext->Video.Info.AspectRatio.Num==4) return 0; // seems not to be true in all countries?
     *BorderIFrame = -1;
 
     int valLeft = 0;
@@ -1428,8 +1424,6 @@ void cMarkAdVideo::Clear(bool isRestart, bool inBroadCast) {
         if (hborder) hborder->Clear();
         if (vborder) vborder->Clear();
     }
-//    framelast=0;
-//    framebeforelast=0;
     if (blackScreen) blackScreen->Clear();
     if (logo) logo->Clear(isRestart, inBroadCast);
 }
@@ -1514,7 +1508,7 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
         }
         if ((hret == HBORDER_INVISIBLE) && (hborderframenumber >= 0)) {
             if (macontext->Config->fullDecode)  addmark(MT_HBORDERSTOP, useFrame - 1);
-	    else addmark(MT_HBORDERSTOP, iFrameBefore);  // we use iFrame before current frame as stop mark, this was the last frame with hborder
+            else addmark(MT_HBORDERSTOP, iFrameBefore);  // we use iFrame before current frame as stop mark, this was the last frame with hborder
         }
     }
     else if (hborder) hborder->Clear();
@@ -1529,7 +1523,7 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
         }
         if ((vret == VBORDER_INVISIBLE) && (vborderframenumber >= 0)) {
             if (macontext->Config->fullDecode) addmark(MT_VBORDERSTOP, useFrame - 1);
-	    else addmark(MT_VBORDERSTOP, iFrameBefore);
+            else addmark(MT_VBORDERSTOP, iFrameBefore);
         }
     }
     else if (vborder) vborder->Clear();
@@ -1552,10 +1546,9 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
                 hborder->SetStatusBorderInvisible();
             }
 
-            // aspect ratio change is always on iFrame border
             int startFrame;
-            if (start) startFrame = iFrameBefore;
-            else startFrame = iFrameCurrent;
+            if (start && !macontext->Config->fullDecode) startFrame = iFrameBefore;
+            else startFrame = frameCurrent;
 
             if (((macontext->Info.AspectRatio.Num == 4) && (macontext->Info.AspectRatio.Den == 3)) ||
                 ((macontext->Info.AspectRatio.Num == 0) && (macontext->Info.AspectRatio.Den == 0))) {
