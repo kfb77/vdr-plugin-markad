@@ -3106,7 +3106,7 @@ bool cMarkAdStandalone::isVPSTimer() {
     FILE *mf;
     mf = fopen(fpath, "r");
     if (!mf) {
-        dsyslog("cMarkAdStandalone::isVPSTimer(): %s not found", fpath);
+        dsyslog("cMarkAdStandalone::isVPSTimer(): markad.vps not found");
         FREE(strlen(fpath)+1, "fpath");
         free(fpath);
         return false;
@@ -3367,12 +3367,12 @@ bool cMarkAdStandalone::LoadInfo() {
             if ((result != 0) && (result != EOF)) {
                 if ((stream == 1) || (stream == 5)) {
                     if ((type != 1) && (type != 5) && (type != 9) && (type != 13)) {
-                        isyslog("broadcast aspectratio 16:9 (from info)");
+                        isyslog("broadcast aspect ratio 16:9 (from vdr info)");
                         macontext.Info.AspectRatio.Num = 16;
                         macontext.Info.AspectRatio.Den = 9;
                     }
                     else {
-                        isyslog("broadcast aspectratio 4:3 (from info)");
+                        isyslog("broadcast aspect ratio 4:3 (from vdr info)");
                         macontext.Info.AspectRatio.Num = 4;
                         macontext.Info.AspectRatio.Den = 3;
                     }
@@ -3382,12 +3382,12 @@ bool cMarkAdStandalone::LoadInfo() {
                     if (type == 5) {
                         // if we have DolbyDigital 2.0 disable AC3
                         if (strchr(descr, '2')) {
-                            isyslog("broadcast with DolbyDigital2.0 (from info)");
+                            isyslog("broadcast with DolbyDigital2.0 (from vdr info)");
                             macontext.Info.Channels[stream] = 2;
                         }
                         // if we have DolbyDigital 5.1 disable video decoding
                         if (strchr(descr, '5')) {
-                            isyslog("broadcast with DolbyDigital5.1 (from info)");
+                            isyslog("broadcast with DolbyDigital5.1 (from vdr info)");
                             macontext.Info.Channels[stream] = 6;
                         }
                     }
@@ -3395,7 +3395,7 @@ bool cMarkAdStandalone::LoadInfo() {
             }
         }
     }
-    if ((macontext.Info.AspectRatio.Num == 0) && (macontext.Info.AspectRatio.Den == 0)) isyslog("no broadcast aspectratio found in info");
+    if ((macontext.Info.AspectRatio.Num == 0) && (macontext.Info.AspectRatio.Den == 0)) isyslog("no broadcast aspect ratio found in vdr info");
     if (line) free(line);
 
     macontext.Info.timerVPS = isVPSTimer();
@@ -3630,12 +3630,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, MarkAdConfig *config
     long lb;
     errno = 0;
     lb=sysconf(_SC_LONG_BIT);
-    if (errno == 0) {
-        isyslog("starting v%s (%libit)", VERSION, lb);
-    }
-    else {
-        isyslog("starting v%s", VERSION);
-    }
+    if (errno == 0) isyslog("starting markad v%s (%libit)", VERSION, lb);
+    else isyslog("starting markad v%s", VERSION);
 
     int ver = avcodec_version();
     char *libver = NULL;
