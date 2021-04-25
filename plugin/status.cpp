@@ -898,8 +898,13 @@ void cStatusMarkAd::Check() {
 bool cStatusMarkAd::MarkAdRunning() {
     struct recs *tmpRecs = NULL;
     ResetActPos();
-    GetNextActive(&tmpRecs);
-    return (tmpRecs != NULL);
+    bool running = false;
+    while (GetNextActive(&tmpRecs)) {
+        if (tmpRecs->Name) dsyslog("markad: markad is running for recording %s, defere shutdown", tmpRecs->Name);
+        else dsyslog("markad: markad is running for unknown recording, defere shutdown");
+        running = true;
+    }
+    return (running);
 }
 
 
