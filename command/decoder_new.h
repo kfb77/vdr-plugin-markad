@@ -19,7 +19,6 @@ extern "C"{
     #include <libavutil/file.h>
 }
 
-#define MINLIBAVCODECVERSION 56
 
 #define AVLOGLEVEL AV_LOG_ERROR
 
@@ -33,15 +32,17 @@ extern "C"{
     #define AAC_AC3_PARSE_ERROR_CHANNEL_CFG  -0x7030c0a
 #endif
 
+
 // libavcodec versions of some distributions
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4
-// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)    Ubuntu 20.04 and Debian Buster
+// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 35<<8)+100)   Ubuntu 20.04 and Debian Buster
 // #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   Ubuntu 18.04
-// #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)    Debian Stretch
-// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(57<<8)+100)    Ubuntu 14.04
-// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(26<<8)+100)    Debian Jessie
-// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(1<<8)+0)       Rasbian Jessie
-
+// #if LIBAVCODEC_VERSION_INT >= ((57<<16)+( 64<<8)+101)   Debian Stretch
+// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 57<<8)+100)   Ubuntu 14.04
+// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 26<<8)+100)   Debian Jessie
+// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(  1<<8)+  0)   Rasbian Jessie
+//
+#define LIBAVCODEC_VERSION_MIN 56
 
 class cDecoder {
     public:

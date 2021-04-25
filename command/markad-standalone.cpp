@@ -3642,18 +3642,15 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, MarkAdConfig *config
             esyslog("libavcodec header version %s", AV_STRINGIFY(LIBAVCODEC_VERSION));
             esyslog("header and library mismatch, do not report decoder bugs");
         }
-        if ((ver >> 16) < MINLIBAVCODECVERSION) esyslog("update libavcodec to at least version %d, do not report decoder bugs", MINLIBAVCODECVERSION);
+        if ((ver >> 16) < LIBAVCODEC_VERSION_MIN) {
+            esyslog("your libavcodec is not supported, update libavcodec to at least version %d", LIBAVCODEC_VERSION_MIN);
+            exit(1);
+        }
+        if ((ver >> 16) == LIBAVCODEC_VERSION_MIN) esyslog("your libavcodec is deprecated, update libavcodec to at least version %d, do not report decoder bugs", LIBAVCODEC_VERSION_MIN + 1);
         FREE(strlen(libver)+1, "libver");
         free(libver);
     }
-
-#if LIBAVCODEC_VERSION_INT >= ((52<<16)+(41<<8)+0)
     tsyslog("libavcodec config: %s",avcodec_configuration());
-#endif
-    if (((ver >> 16)<52)) {
-        dsyslog("dont report bugs about H264, use libavcodec >= 52 instead!");
-    }
-
     isyslog("on %s", Directory);
 
     if (!bDecodeAudio) {
