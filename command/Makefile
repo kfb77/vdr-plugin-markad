@@ -21,11 +21,11 @@ CFGDIR = $(call PKGCFG,configdir)
 ### The C++ compiler and options:
 CXX      ?= g++
 export CXXFLAGS ?= $(call PKGCFG,cxxflags)
-export CXXFLAGS ?= -g -rdynamic -O3 -funroll-loops -Wall -Wextra -Woverloaded-virtual -Wno-parentheses
+export CXXFLAGS ?= -g -rdynamic -O3 -funroll-loops -Wall -Woverloaded-virtual -Wno-parentheses
 
 DEBUG = $(filter -g ,$(CXXFLAGS))   # add -rdynamic if debug -g is set
 ifneq ($(DEBUG),)
-	export CXXFLAGS += -rdynamic
+        export CXXFLAGS += -rdynamic -Wextra
 endif
 
 CXXVERION=$(shell $(CXX) -dumpversion | cut -d"." -f1)
@@ -34,9 +34,6 @@ ifeq ($(CXXVERION),4)
 endif
 ifeq ($(CXXVERION),5)
 	export CXXFLAGS += -std=c++11   # to prevent compiler errors with g++ V5
-endif
-ifeq ($(CXXVERION),9)
-	export CXXFLAGS += -Wextra   # extra warnings for current development version
 endif
 #
 PKG-CONFIG ?= pkg-config
@@ -77,7 +74,6 @@ all: markad i18n
 	$(CXX) $(CXXFLAGS) -c $(DEFINES) $(INCLUDES) $<
 
 ### Dependencies:
-#
 PKG-CONFIG ?= pkg-config
 STRIP ?= strip
 
@@ -92,16 +88,13 @@ LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
 
 
 ### The main target:
-
 all: markad i18n
 
 ### Implicit rules:
-
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $(DEFINES) $(INCLUDES) $<
 
 ### Dependencies:
-
 MAKEDEP = $(CXX) -MM -MG
 DEPFILE = .dependencies
 $(DEPFILE): Makefile
@@ -110,7 +103,6 @@ $(DEPFILE): Makefile
 -include $(DEPFILE)
 
 ### Internationalization (I18N):
-
 PODIR     = po
 LOCALEDIR = /usr/share/locale
 I18Npo    = $(wildcard $(PODIR)/*.po)
@@ -134,7 +126,6 @@ $(I18Nmsgs): $(DESTDIR)$(LOCALEDIR)/%/LC_MESSAGES/markad.mo: $(PODIR)/%.mo
 i18n: $(I18Npot)
 
 ### Targets:
-
 markad: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 

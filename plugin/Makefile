@@ -16,11 +16,9 @@ PLUGIN = markad
 
 
 ### The version number of this plugin (taken from the version header file):
-
 VERSION = $(shell grep 'static const char \*VERSION *=' version.h | awk '{ print $$6 }' | sed -e 's/[";]//g')
 
 ### The directory environment:
-
 # Use package data if installed...otherwise assume we're under the VDR source directory:
 PKGCFG = $(if $(VDRDIR),$(shell pkg-config --variable=$(1) $(VDRDIR)/vdr.pc),$(shell PKG_CONFIG_PATH="$$PKG_CONFIG_PATH:../../../.." pkg-config --variable=$(1) vdr))
 LIBDIR = $(call PKGCFG,libdir)
@@ -29,7 +27,6 @@ LOCDIR = $(call PKGCFG,locdir)
 TMPDIR ?= /tmp
 
 ### The compiler options:
-
 export CFLAGS   = $(call PKGCFG,cflags)
 export CXXFLAGS = $(call PKGCFG,cxxflags)
 CXXVERION=$(shell $(CXX) -dumpversion | cut -d"." -f1)
@@ -41,20 +38,16 @@ ifeq ($(CXXVERION),5)
 endif
 
 ### The version number of VDR's plugin API:
-
 APIVERSION = $(call PKGCFG,apiversion)
 
 ### The name of the distribution archive:
-
 ARCHIVE = $(PLUGIN)-$(VERSION)
 PACKAGE = vdr-$(ARCHIVE)
 
 ### The name of the shared object file:
-
 SOFILE = libvdr-$(PLUGIN).so
 
 ### Includes and Defines (add further entries here):
-
 INCLUDES +=
 
 DEFINES += -DPLUGIN_NAME_I18N='"$(PLUGIN)"'
@@ -64,20 +57,16 @@ $(info option DEBUG_MEM_PLUGIN is set)
 endif
 
 ### The object files (add further files here):
-
 OBJS = $(PLUGIN).o status.o menu.o setup.o debug.o
 
 ### The main target:
-
 all: $(SOFILE) i18n
 
 ### Implicit rules:
-
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $(DEFINES) $(INCLUDES) -o $@ $<
 
 ### Dependencies:
-
 MAKEDEP = $(CXX) -MM -MG
 DEPFILE = .dependencies
 $(DEPFILE): Makefile
@@ -86,7 +75,6 @@ $(DEPFILE): Makefile
 -include $(DEPFILE)
 
 ### Internationalization (I18N):
-
 PODIR     = po
 I18Npo    = $(wildcard $(PODIR)/*.po)
 I18Nmo    = $(addsuffix .mo, $(foreach file, $(I18Npo), $(basename $(file))))
@@ -112,7 +100,6 @@ i18n: $(I18Nmo) $(I18Npot)
 install-i18n: $(I18Nmsgs)
 
 ### Targets:
-
 $(SOFILE): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -shared $(OBJS) $(LIBS) -o $@
 
