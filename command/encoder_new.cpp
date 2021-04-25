@@ -884,8 +884,9 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         if (!avFrame) {  // this is no error, maybe we only need more frames to decode (e.g. interlaced video)
             return true;
         }
-        // correct pts after cut
-        avFrame->pts = avFrame->pts - cutStatus.pts_dts_CutOffset;
+        codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio = avFrame->sample_aspect_ratio; // set encoder pixel aspect ratio to decoded frames aspect ratio
+        avFrame->pts = avFrame->pts - cutStatus.pts_dts_CutOffset; // correct pts after cut
+
         // libav encoder does not accept two frames with same pts
         if (ptr_cDecoder->isVideoPacket()) {
             if (cutStatus.ptsOutBefore == avFrame->pts) {
