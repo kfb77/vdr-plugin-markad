@@ -959,22 +959,7 @@ int cDecoder::GetNextSilence(MarkAdContext *maContext, const int stopFrame, cons
     if (silence.count >= SILENCE_COUNT) {
         int64_t audioFramePTS = -1;
         if (isStartMark) {
-            audioFramePTS = silence.startPTS;
-            while (!videoFrameVector.empty()) {  // search video frame with pts before audio frame
-                if ((videoFrameVector.back().pts < audioFramePTS) && (videoFrameVector.back().pts > videoFrame.pts)) {
-                    videoFrame.frameNumber =  videoFrameVector.back().frameNumber;
-                    videoFrame.pts =  videoFrameVector.back().pts;
-                }
-                videoFrameVector.pop_back();
-                FREE(sizeof(videoFrame), "videoFrameVector");
-            }
-            if (videoFrame.frameNumber == -1) {
-                dsyslog("cDecoder::GetNextSilence(): video frame with pts before not in range, set to audio frame");
-                videoFrame.frameNumber = silence.startFrame;
-            }
-        }
-        else {
-            audioFramePTS = silence.endPTS;
+            audioFramePTS = silence.endPTS;  // for start marks we use end of silence part
             videoFrame.pts = INT64_MAX;
             while (!videoFrameVector.empty()) {  // search video frame with pts after audio frame
                 if ((videoFrameVector.back().pts > audioFramePTS) && (videoFrameVector.back().pts < videoFrame.pts)) {
@@ -988,6 +973,26 @@ int cDecoder::GetNextSilence(MarkAdContext *maContext, const int stopFrame, cons
                 dsyslog("cDecoder::GetNextSilence(): video frame with pts after not in range, set to audio frame");
                 videoFrame.frameNumber = silence.endFrame;
             }
+        }
+        else {
+            audioFramePTS = silence.startPTS;  // for stop mark we use start of silence part
+            while (!videoFrameVector.empty()) {  // search video frame with pts before audio frame
+                if ((videoFrameVector.back().pts < audioFramePTS) && (videoFrameVector.back().pts > videoFrame.pts)) {
+                    videoFrame.frameNumber =  videoFrameVector.back().frameNumber;
+                    videoFrame.pts =  videoFrameVector.back().pts;
+                }
+                videoFrameVector.pop_back();
+                FREE(sizeof(videoFrame), "videoFrameVector");
+            }
+            if (videoFrame.frameNumber == -1) {
+                dsyslog("cDecoder::GetNextSilence(): video frame with pts before not in range, set to audio frame");
+                videoFrame.frameNumber = silence.startFrame;
+            }
+
+
+
+
+
         }
         if (!maContext->Config->fullDecode) {
             if (isBeforeMark) silenceFrame = recordingIndexDecoder->GetIFrameBefore(videoFrame.frameNumber);

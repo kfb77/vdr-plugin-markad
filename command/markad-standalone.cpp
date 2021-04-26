@@ -2520,7 +2520,7 @@ void cMarkAdStandalone::Process3ndPass() {
             framecnt3 += silenceRange * macontext.Video.Info.FramesPerSecond;
             int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, mark->position, true, true);
             if ((beforeSilence >= 0) && (beforeSilence != mark->position)) {
-                dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo start at iFrame (%i)", beforeSilence);
+                dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo start at frame (%i)", beforeSilence);
                 mark = marks.Move(&macontext, mark, beforeSilence, "silence");
                 save = true;
                 continue;
