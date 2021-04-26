@@ -1080,8 +1080,9 @@ void cMarkAdStandalone::CheckStart() {
                 clMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
                 if (lStop) {  // there is a next stop mark in the start range
                     int distanceStartStop = (lStop->position - lStart->position) / macontext.Video.Info.FramesPerSecond;
-                    if (distanceStartStop < 23) {  // very short logo part, lStart is possible wrong, do not increase, first ad can be early
-                                                   // change from 144 to 23 to prevent "Teletext Untertitel Tafel ..." make start mark wrong
+                    if (distanceStartStop < 55) {  // very short logo part, lStart is possible wrong, do not increase, first ad can be early
+                                                   // changed from 144 to 23 to prevent "Teletext Untertitel Tafel ..." make start mark wrong
+                                                   // change from 23 to 55, "Teletext Untertitel Tafel ..." should be now detected and ignored
                         indexToHMSF = marks.IndexToHMSF(lStop->position, &macontext);
                         if (indexToHMSF) {
                             dsyslog("cMarkAdStandalone::CheckStart(): logo stop mark found very short after start mark on position (%i) at %s, distance %ds", lStop->position, indexToHMSF, distanceStartStop);
