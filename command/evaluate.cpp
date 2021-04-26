@@ -634,7 +634,7 @@ int cDetectLogoStopStart::ClosingCredit() {
     } closingCredits;
 
 #define CLOSING_CREDITS_LENGTH_MIN 9
-    int minLength = (endPos - startPos) / maContext->Video.Info.FramesPerSecond;
+    int minLength = (endPos - startPos) / maContext->Video.Info.FramesPerSecond - 1;
     if (minLength > CLOSING_CREDITS_LENGTH_MIN) minLength = CLOSING_CREDITS_LENGTH_MIN;
     dsyslog("cDetectLogoStopStart::ClosingCredit: min length %d", minLength);
 
