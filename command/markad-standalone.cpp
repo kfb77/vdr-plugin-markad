@@ -918,7 +918,8 @@ void cMarkAdStandalone::CheckStart() {
                            marks.DelWeakFromTo(aStopNext->position, INT_MAX, aStopNext->type);
                        }
                        else {
-                           dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTOP is not valid (%i), ignoring", begin->position);
+                           dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTART is not valid (%i), ignoring", begin->position);
+                           marks.Del(begin->position);  // delete invalid start mark to prevent to be selected again later
                            begin = NULL;
                        }
                    }
