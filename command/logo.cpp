@@ -89,9 +89,9 @@ void cExtractLogo::SetLogoSize(const MarkAdContext *maContext, int *logoHeight, 
 }
 
 
-// check plane 1 and calculate quote of white pictures
-// return: true if only some frames have have pixels in plane 1, a channel with logo coulor change is detected
-//         false if almost all frames have pixel in plane 1, this is realy a coloured logo
+// check plane 1 and 2, calculate quote of white pictures
+// return: true if only some frames have have pixels in plane >=1, a channel with logo coulor change is detected
+//         false if almost all frames have pixel in plane >=1, this is realy a coloured logo
 //
 bool cExtractLogo::IsLogoColourChange(const MarkAdContext *maContext, const int corner) {
     if (!maContext) return false;
@@ -104,27 +104,28 @@ bool cExtractLogo::IsLogoColourChange(const MarkAdContext *maContext, const int 
     logoWidth /= 2;
 
     int count = 0;
-    int countWhite = 0;
+    int countWhite[2] = {};
 
     for (int plane = 1; plane < PLANES; plane++) {
         if (maContext->Config->autoLogo == 1) { // use packed logos
             for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
-                count++;
+                if (plane == 1) count++;
                 logoInfo actLogo = {};
                 UnpackLogoInfo(&actLogo, &(*actLogoPacked));
-                if (IsWhitePlane(&actLogo, logoHeight, logoWidth, plane)) countWhite++;
+                if (IsWhitePlane(&actLogo, logoHeight, logoWidth, plane)) countWhite[plane - 1]++;
            }
         }
         if (maContext->Config->autoLogo == 2){  // use unpacked logos
             for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
-                count++;
-                if (IsWhitePlane(&(*actLogo), logoHeight, logoWidth, plane)) countWhite++;
+                if (plane == 1) count++;
+                if (IsWhitePlane(&(*actLogo), logoHeight, logoWidth, plane)) countWhite[plane - 1]++;
             }
         }
     }
     if (count > 0) {
-        dsyslog("cExtractLogo::isLogoColourChange(): %d valid frames in corner %d, %d are white, ratio %d%%", count, corner, countWhite, countWhite * 100 / count);
-        if ((countWhite * 100 / count) >= 34) return true;  // changed from 40 to 34
+        dsyslog("cExtractLogo::isLogoColourChange(): %4d valid frames in corner %d, plane 1: %3d are white, ratio %3d%%", count, corner, countWhite[0], countWhite[0] * 100 / count);
+        dsyslog("cExtractLogo::isLogoColourChange():                                plane 2: %3d are white, ratio %3d%%", countWhite[1], countWhite[1] * 100 / count);
+        if (((countWhite[0] * 100 / count) >= 40) && ((countWhite[1] * 100 / count) >= 40)) return true;
     }
     return false;
 }
