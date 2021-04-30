@@ -736,7 +736,9 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
              (area.intensity > 120)) {
             rpixel -= area.rpixel[0]; //  try without plane 0
             mpixel -= area.mpixel[0];
+#ifdef DEBUG_LOGO_DETECTION
             dsyslog("frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
+#endif
         }
     }
 

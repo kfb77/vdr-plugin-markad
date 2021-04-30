@@ -1289,7 +1289,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     clMark *mark = NULL;
 
 // delete logo and border marks if we have channel marks
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks first pass (delete logo marks if we have channel or border marks)");
+    dsyslog("cMarkAdStandalone::CheckMarks(): delete logo marks if we have channel or border marks");
     DebugMarks();     //  only for debugging
     clMark *channelStart = marks.GetNext(0, MT_CHANNELSTART);
     clMark *channelStop = marks.GetNext(0, MT_CHANNELSTOP);
@@ -1331,7 +1331,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     }
 
 // delete all black sceen marks expect start or end mark
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 2nd pass (delete invalid black sceen marks)");
+    dsyslog("cMarkAdStandalone::CheckMarks(): delete invalid black sceen marks");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
     while (mark) {
@@ -1348,9 +1348,29 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         mark = mark->Next();
     }
 
+// delete very short logo stop/start pairs
+    dsyslog("cMarkAdStandalone::CheckMarks(): delete very short logo stop/start pairs");
+    DebugMarks();     //  only for debugging
+    mark = marks.GetFirst();
+    while (mark) {
+        if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
+            int diff = 1000 * (mark->Next()->position - mark->position) /  macontext.Video.Info.FramesPerSecond;
+            if (diff <= 880 ) {  // changed from 500 to 880
+                clMark *tmp = mark->Next()->Next();
+                dsyslog("cMarkAdStandalone::CheckMarks(): very short logo stop (%d) and logo start (%d) pair, diff %d, deleting", mark->position, mark->Next()->position, diff);
+                marks.Del(mark->Next());
+                marks.Del(mark);
+                mark = tmp;
+                continue;
+            }
+            else dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%d) and logo start (%d) pair, diff %d long enough", mark->position, mark->Next()->position, diff);
+        }
+        mark = mark->Next();
+    }
+
 // delete short START STOP logo marks because they are previews in the advertisement
 // delete short START STOP hborder marks because they are advertisement in the advertisement
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 2nd pass (detect previews in advertisement)");
+    dsyslog("cMarkAdStandalone::CheckMarks(): detect previews in advertisement");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
     while (mark) {
@@ -1409,7 +1429,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // delete short STOP START logo marks because they are logo detection failure
 // delete short STOP START hborder marks because some channels display information in the border
 // delete short STOP START vborder marks because they are from malfunction recording
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 3nd pass (remove logo and hborder detection failure marks)");
+    dsyslog("cMarkAdStandalone::CheckMarks(): remove logo and hborder detection failure marks");
     DebugMarks();     //  only for debugging
 
     // check logo end marks
@@ -1482,7 +1502,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         mark = mark->Next();
     }
 
-    dsyslog("cMarkAdStandalone::CheckMarks(): check marks 4nd pass (remove invalid marks)");
+    dsyslog("cMarkAdStandalone::CheckMarks(): remove invalid marks");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
     while (mark) {
