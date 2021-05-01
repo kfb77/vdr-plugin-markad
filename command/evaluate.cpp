@@ -676,7 +676,7 @@ int cDetectLogoStopStart::ClosingCredit() {
     int offset = 1000 * (closingCredits.start - startPos) / maContext->Video.Info.FramesPerSecond;
     int length = (closingCredits.end - closingCredits.start) / maContext->Video.Info.FramesPerSecond;
     dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: start (%d) end (%d) offset %dms length %ds", closingCredits.start, closingCredits.end, offset, length);
-    if ((offset < 1440) && (length >= minLength) && (length < 19)) {
+    if ((offset <= 1440) && (length >= minLength) && (length < 19)) {  // do not reduce offset
         dsyslog("cDetectLogoStopStart::ClosingCredit(): this is a closing credits, pair contains a valid mark");
         closingCreditsFrame = closingCredits.end;
     }
