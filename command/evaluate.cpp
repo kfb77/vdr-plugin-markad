@@ -673,12 +673,10 @@ int cDetectLogoStopStart::ClosingCredit() {
         }
     }
     // check if it is a closing credit
-    dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: start (%d) end (%d)", closingCredits.start, closingCredits.end);
-    int offset = (closingCredits.start - startPos) / maContext->Video.Info.FramesPerSecond;
+    int offset = 1000 * (closingCredits.start - startPos) / maContext->Video.Info.FramesPerSecond;
     int length = (closingCredits.end - closingCredits.start) / maContext->Video.Info.FramesPerSecond;
-    dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: offset %ds length %ds", offset, length);
-//    if ((offset <= 1) && (length >= CLOSING_CREDITS_LENGTH_MIN) && (length < 19)) {
-    if ((offset <= 1) && (length >= minLength) && (length < 19)) {
+    dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: start (%d) end (%d) offset %dms length %ds", closingCredits.start, closingCredits.end, offset, length);
+    if ((offset < 1440) && (length >= minLength) && (length < 19)) {
         dsyslog("cDetectLogoStopStart::ClosingCredit(): this is a closing credits, pair contains a valid mark");
         closingCreditsFrame = closingCredits.end;
     }
