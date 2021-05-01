@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-05-01: Version 3.0.1
+- fix compiler warnings with ffmpeg 4.4
+- make full decoding configurable through vdr menu
+- declare libavcodec-56 (FFmpeg 2) as deprecated
+- some minor bug fixes and optimizations, see git
+
 2021-04-24: Version 3.0.0
 - new additional build requirements libswresample-dev
 - new feature: optional decode all video frames not only iFrames to get better mark positions
