@@ -486,7 +486,6 @@ bool cDetectLogoStopStart::isInfoLogo() {
     // check if it is a closing credit, we may not delete this because it contains end mark
     length = (endPos - startPos) / maContext->Video.Info.FramesPerSecond;
     dsyslog("cDetectLogoStopStart::isInfoLogo(): length of stop/start part: %ds", length);
-//    if (found && (length > 5) && ClosingCredit() >= 0) {
     if (found && ClosingCredit() >= 0) {
         dsyslog("cDetectLogoStopStart::isInfoLogo(): stop/start part is closing credit, no info logo");
         found = false;
@@ -676,7 +675,8 @@ int cDetectLogoStopStart::ClosingCredit() {
     int offset = 1000 * (closingCredits.start - startPos) / maContext->Video.Info.FramesPerSecond;
     int length = (closingCredits.end - closingCredits.start) / maContext->Video.Info.FramesPerSecond;
     dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: start (%d) end (%d) offset %dms length %ds", closingCredits.start, closingCredits.end, offset, length);
-    if ((offset <= 1440) && (length >= minLength) && (length < 19)) {  // do not reduce offset
+    if ((offset <= 1440) && (length < 19) && // do not reduce offset
+           ((length >= CLOSING_CREDITS_LENGTH_MIN) || (closingCredits.end == endPos))) { // if we check from info logo, we would not have the complete part, so it should go to end
         dsyslog("cDetectLogoStopStart::ClosingCredit(): this is a closing credits, pair contains a valid mark");
         closingCreditsFrame = closingCredits.end;
     }
