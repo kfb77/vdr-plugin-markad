@@ -25,6 +25,7 @@ cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext, cIndex *recordingIndex) {
     Clear();
 }
 
+
 cMarkAdAudio::~cMarkAdAudio() {
     ResetMark();
     Clear();
@@ -50,9 +51,9 @@ void cMarkAdAudio::SetMark(const int type, const int position, const int channel
 }
 
 
-bool cMarkAdAudio::ChannelChange(int a, int b) {
-    if ((a == 0) || (b == 0)) return false;
-    if (a != b) return true;
+bool cMarkAdAudio::ChannelChange(int channelsbefore, int channelsafter) {
+    if ((channelsbefore == 0) || (channelsafter == 0)) return false;
+    if (channelsbefore != channelsafter) return true;
     return false;
 }
 
