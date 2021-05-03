@@ -346,7 +346,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
     ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
     areaT *area = ptr_Logo->GetArea();
 
-    cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext->Video.Info.AspectRatio, recordingIndex);
+    cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext->Video.Info.aspectRatio, recordingIndex);
     ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
 
     logoInfo *logo1[CORNERS];
@@ -383,7 +383,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
         }
         compareInfoType compareInfo;
         if (ptr_cDecoder->isVideoIFrame()) {
-            if (!maContext->Video.Data.Valid) {
+            if (!maContext->Video.Data.valid) {
                 dsyslog("cDetectLogoStopStart::Detect(): faild to get video data of frame (%d)", frameNumber);
                 continue;
             }
@@ -488,8 +488,8 @@ bool cDetectLogoStopStart::isInfoLogo() {
         infoLogo.endFinal = infoLogo.end;
     }
     // ignore short parts at start and end, this is fade in and fade out
-    int diffStart = 1000 * (infoLogo.startFinal - startPos) / maContext->Video.Info.FramesPerSecond;
-    int diffEnd = 1000 * (endPos - infoLogo.endFinal) / maContext->Video.Info.FramesPerSecond;
+    int diffStart = 1000 * (infoLogo.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
+    int diffEnd = 1000 * (endPos - infoLogo.endFinal) / maContext->Video.Info.framesPerSecond;
     dsyslog("cDetectLogoStopStart::isInfoLogo(): start diff %dms, end diff %dms", diffStart, diffEnd);
     if (diffStart <= 2400) startPos = infoLogo.startFinal;  // changed from 250 to 960 to 1800 to 2400
     if (diffEnd <= 1800) endPos = infoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
@@ -497,7 +497,7 @@ bool cDetectLogoStopStart::isInfoLogo() {
 #define INFO_LOGO_MAX_LENGTH 14
 #define INFO_LOGO_MIN_QUOTE 80
     int quote = 100 * (infoLogo.endFinal - infoLogo.startFinal) / (endPos - startPos);
-    int length = (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.FramesPerSecond;
+    int length = (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
     dsyslog("cDetectLogoStopStart::isInfoLogo(): info logo: start (%d), end (%d), length %ds (expect >=%ds and <=%ds), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
 //    if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE) && (diffStart < 1920)) {
     if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE)) {
@@ -507,7 +507,7 @@ bool cDetectLogoStopStart::isInfoLogo() {
     else dsyslog("cDetectLogoStopStart::isInfoLogo(): no info logo found");
 
     // check if it is a closing credit, we may not delete this because it contains end mark
-    length = (endPos - startPos) / maContext->Video.Info.FramesPerSecond;
+    length = (endPos - startPos) / maContext->Video.Info.framesPerSecond;
     dsyslog("cDetectLogoStopStart::isInfoLogo(): length of stop/start part: %ds", length);
     if (found && ClosingCredit() >= 0) {
         dsyslog("cDetectLogoStopStart::isInfoLogo(): stop/start part is closing credit, no info logo");
@@ -604,7 +604,7 @@ bool cDetectLogoStopStart::isLogoChange() {
     }
     // check if there is a separation image at start or a separation image and a later preview image
     dsyslog("cDetectLogoStopStart::isLogoChange(): preview image: start (%d) end (%d)", previewImage.start, previewImage.end);
-    previewImage.length = (previewImage.end - previewImage.start) / maContext->Video.Info.FramesPerSecond;
+    previewImage.length = (previewImage.end - previewImage.start) / maContext->Video.Info.framesPerSecond;
     dsyslog("cDetectLogoStopStart::isLogoChange(): preview image: length %ds", previewImage.length);
     if ((isSeparationImageNoPixel || ((previewImage.length >= 1) && isSeparationImageLowPixel))) {  // changed from 3 to 2 to 1
         dsyslog("cDetectLogoStopStart::isLogoChange(): there is a separation images, pair can contain a valid start mark");
@@ -666,7 +666,7 @@ int cDetectLogoStopStart::ClosingCredit() {
     } closingCredits;
 
 #define CLOSING_CREDITS_LENGTH_MIN 9
-    int minLength = (endPos - startPos) / maContext->Video.Info.FramesPerSecond - 1;
+    int minLength = (endPos - startPos) / maContext->Video.Info.framesPerSecond - 1;
     if (minLength > CLOSING_CREDITS_LENGTH_MIN) minLength = CLOSING_CREDITS_LENGTH_MIN;
     dsyslog("cDetectLogoStopStart::ClosingCredit: min length %d", minLength);
 
@@ -686,8 +686,7 @@ int cDetectLogoStopStart::ClosingCredit() {
             closingCredits.end = (*cornerResultIt).frameNumber2;
         }
         else {
-//            if ((closingCredits.end - closingCredits.start) >= (maContext->Video.Info.FramesPerSecond * CLOSING_CREDITS_LENGTH_MIN)) {  // first long enough part is the closing credit
-            if ((closingCredits.end - closingCredits.start) >= (maContext->Video.Info.FramesPerSecond * minLength)) {  // first long enough part is the closing credit
+            if ((closingCredits.end - closingCredits.start) >= (maContext->Video.Info.framesPerSecond * minLength)) {  // first long enough part is the closing credit
                 break;
             }
             closingCredits.start = 0;
@@ -695,8 +694,8 @@ int cDetectLogoStopStart::ClosingCredit() {
         }
     }
     // check if it is a closing credit
-    int offset = 1000 * (closingCredits.start - startPos) / maContext->Video.Info.FramesPerSecond;
-    int length = (closingCredits.end - closingCredits.start) / maContext->Video.Info.FramesPerSecond;
+    int offset = 1000 * (closingCredits.start - startPos) / maContext->Video.Info.framesPerSecond;
+    int length = (closingCredits.end - closingCredits.start) / maContext->Video.Info.framesPerSecond;
     dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: start (%d) end (%d) offset %dms length %ds", closingCredits.start, closingCredits.end, offset, length);
     if ((offset <= 1440) && (length < 19) && // do not reduce offset
            ((length >= CLOSING_CREDITS_LENGTH_MIN) || (closingCredits.end == endPos))) { // if we check from info logo, we would not have the complete part, so it should go to end
@@ -771,10 +770,10 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         }
         else {
             if ((adInFrame.start != 0) && (adInFrame.end != 0)) {  // we have a new pair
-                int startOffset = (adInFrame.startFinal - startPos) / maContext->Video.Info.FramesPerSecond;
+                int startOffset = (adInFrame.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
                 if ((adInFrame.end - adInFrame.start) > (adInFrame.endFinal - adInFrame.startFinal) ||
                     (!isStartMark && (startOffset < 1))) { // a valid ad in frame before stop mark has a start offset, dop invalid pair
-                    if (!isStartMark || (((adInFrame.start - startPos) / maContext->Video.Info.FramesPerSecond) < START_OFFSET_MAX)) { // ignore pair with invalid offset
+                    if (!isStartMark || (((adInFrame.start - startPos) / maContext->Video.Info.framesPerSecond) < START_OFFSET_MAX)) { // ignore pair with invalid offset
                         adInFrame.startFinal = adInFrame.start;
                         adInFrame.endFinal = adInFrame.end;
                     }
@@ -802,14 +801,14 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     }
     else {
         if ((adInFrame.end - adInFrame.start) > (adInFrame.endFinal - adInFrame.startFinal)) {  // in case of ad in frame go to end position
-            if (!isStartMark || (((adInFrame.start - startPos) / maContext->Video.Info.FramesPerSecond) < START_OFFSET_MAX)) {  // ignore pair with invalid start offset
+            if (!isStartMark || (((adInFrame.start - startPos) / maContext->Video.Info.framesPerSecond) < START_OFFSET_MAX)) {  // ignore pair with invalid start offset
                 adInFrame.startFinal = adInFrame.start;
                 adInFrame.endFinal = adInFrame.end;
             }
         }
-        int startOffset = (adInFrame.startFinal - startPos) / maContext->Video.Info.FramesPerSecond;
-        int stopOffset = (endPos - adInFrame.endFinal) / maContext->Video.Info.FramesPerSecond;
-        int length = (adInFrame.endFinal - adInFrame.startFinal) / maContext->Video.Info.FramesPerSecond;
+        int startOffset = (adInFrame.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
+        int stopOffset = (endPos - adInFrame.endFinal) / maContext->Video.Info.framesPerSecond;
+        int length = (adInFrame.endFinal - adInFrame.startFinal) / maContext->Video.Info.framesPerSecond;
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start offset %ds start (%d), end (%d) stop offset %ds, length %ds (expect >=8s and <=30s)", startOffset, adInFrame.startFinal, adInFrame.endFinal, stopOffset, length);
         if ((length >= 8) && (length <= 30)) { // do not reduce min to prevent false positive, do not increase to detect 10s ad in frame
             if ((isStartMark && startOffset < START_OFFSET_MAX) ||  // an ad in frame with logo after start mark must be near start mark, changed from 5 to 4
@@ -876,8 +875,8 @@ int cDetectLogoStopStart::IntroductionLogo() {
         introductionLogo.startFinal = introductionLogo.start;
         introductionLogo.endFinal = introductionLogo.end;
     }
-    int diff = (endPos - introductionLogo.endFinal) / maContext->Video.Info.FramesPerSecond;
-    int length = (introductionLogo.endFinal - introductionLogo.startFinal) / maContext->Video.Info.FramesPerSecond;
+    int diff = (endPos - introductionLogo.endFinal) / maContext->Video.Info.framesPerSecond;
+    int length = (introductionLogo.endFinal - introductionLogo.startFinal) / maContext->Video.Info.framesPerSecond;
 #define INTRODUCTION_MIN_LENGTH 5  // changed from 6 to 5
 #define INTRODUCTION_MAX_DIFF 4
     dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), length %ds (expect >=%ds, diff to start mark %d (expect <=%d)", introductionLogo.startFinal, introductionLogo.endFinal, length, INTRODUCTION_MIN_LENGTH, diff, INTRODUCTION_MAX_DIFF);

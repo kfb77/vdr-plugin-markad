@@ -78,7 +78,7 @@ void cExtractLogo::SetLogoSize(const MarkAdContext *maContext, int *logoHeight, 
     if (!maContext) return;
     if (!logoHeight) return;
     if (!logoWidth) return;
-    if (maContext->Video.Info.Width > 720){
+    if (maContext->Video.Info.width > 720){
         *logoHeight = LOGO_DEFHDHEIGHT;
         *logoWidth = LOGO_DEFHDWIDTH;
     }
@@ -170,7 +170,7 @@ bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actL
             if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", maContext->Config->recDir, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane)==-1) return false;
             ALLOC(strlen(buf)+1, "buf");
             dsyslog("cExtractLogo::Save(): store logo in %s", buf);
-            isyslog("Logo size for Channel: %s %d:%d %dW %dH: %dW %dH %s", maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, maContext->Video.Info.Width, maContext->Video.Info.Height, logoWidth, logoHeight, aCorner[corner]);
+            isyslog("Logo size for Channel: %s %d:%d %dW %dH: %dW %dH %s", maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, maContext->Video.Info.width, maContext->Video.Info.height, logoWidth, logoHeight, aCorner[corner]);
         }
         else {  // debug function, store logo to /tmp
             if (debugText) {
@@ -378,7 +378,7 @@ bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoH
     }
 
 // set default values
-    switch (maContext->Video.Info.Width) {
+    switch (maContext->Video.Info.width) {
         case 544:
             if (logo.widthMin  == 0) logo.widthMin  =  95;             // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
             if (logo.widthMax  == 0) logo.widthMax  =  97;             // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
@@ -404,7 +404,7 @@ bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoH
             if (logo.heightMax == 0) logo.heightMax = 180; // ANIXE_HD
             break;
         default:
-            dsyslog("cExtractLogo::CheckLogoSize(): no logo size rules for %dx%d", maContext->Video.Info.Width, maContext->Video.Info.Height);
+            dsyslog("cExtractLogo::CheckLogoSize(): no logo size rules for %dx%d", maContext->Video.Info.width, maContext->Video.Info.height);
             return false;
             break;
     }
@@ -449,7 +449,7 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
 
     for (int repeat = 1; repeat <= 2; repeat++) {
         if ((*logoWidth <= 0) || (*logoHeight <= 0)) {
-            dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is not valid", maContext->Video.Info.Width, maContext->Video.Info.Height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
+            dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is not valid", maContext->Video.Info.width, maContext->Video.Info.height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
             *logoHeight = logoHeightBeforeResize; // restore logo size
             *logoWidth = logoWidthBeforeResize;
             return false;
@@ -480,7 +480,7 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
             int leftBlackPixel = INT_MAX;
             int rightBlackPixel = 0;
             int minWhiteLines;
-            if ((maContext->Video.Info.Width) == 720) minWhiteLines = 2;
+            if ((maContext->Video.Info.width) == 720) minWhiteLines = 2;
             else minWhiteLines = 4;
             for (int line = *logoHeight - 1; line > 0; line--) {
                 int countBlackPixel = 0;
@@ -543,7 +543,7 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
             int leftBlackPixel = INT_MAX;
             int rightBlackPixel = 0;
             int minWhiteLines;
-            if ((maContext->Video.Info.Width) == 720) minWhiteLines = 2;
+            if ((maContext->Video.Info.width) == 720) minWhiteLines = 2;
             else minWhiteLines = 4;
             for (int line = 0; line < *logoHeight; line++) {
                 int countBlackPixel = 0;
@@ -658,11 +658,11 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
         dsyslog("cExtractLogo::Resize(): logo size after %d. resize:  %3d width %3d height on corner %12s", repeat, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
     }
     if (CheckLogoSize(maContext, *logoHeight, *logoWidth, bestLogoCorner)) {
-        dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is valid", maContext->Video.Info.Width, maContext->Video.Info.Height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
+        dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is valid", maContext->Video.Info.width, maContext->Video.Info.height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
         return true;
     }
     else {
-        dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is not valid", maContext->Video.Info.Width, maContext->Video.Info.Height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
+        dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is not valid", maContext->Video.Info.width, maContext->Video.Info.height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
         *logoHeight = logoHeightBeforeResize; // restore logo size
         *logoWidth = logoWidthBeforeResize;
         return false;
@@ -1239,8 +1239,8 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
     if (lastFrame > startFrame) startFrame = lastFrame;
 
     while(retStatus && readNextFile && (ptr_cDecoder->DecodeDir(maContext->Config->recDir))) {
-        maContext->Info.VPid.Type = ptr_cDecoder->GetVideoType();
-        if (maContext->Info.VPid.Type == 0) {
+        maContext->Info.vPidType = ptr_cDecoder->GetVideoType();
+        if (maContext->Info.vPidType == 0) {
             dsyslog("cExtractLogo::SearchLogo(): video type not set");
             FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
             delete ptr_cDecoder;
@@ -1252,16 +1252,16 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
             delete vborder;
             return -1;
         }
-        maContext->Video.Info.Height = ptr_cDecoder->GetVideoHeight();
-        maContext->Video.Info.Width = ptr_cDecoder->GetVideoWidth();
-        dsyslog("cExtractLogo::SearchLogo(): video resolution %dx%d", maContext->Video.Info.Width, maContext->Video.Info.Height);
+        maContext->Video.Info.height = ptr_cDecoder->GetVideoHeight();
+        maContext->Video.Info.width = ptr_cDecoder->GetVideoWidth();
+        dsyslog("cExtractLogo::SearchLogo(): video resolution %dx%d", maContext->Video.Info.width, maContext->Video.Info.height);
         SetLogoSize(maContext, &logoHeight, &logoWidth);
         dsyslog("cExtractLogo::SearchLogo(): logo size %dx%d", logoWidth, logoHeight);
 
         while(ptr_cDecoder->GetNextFrame()) {
             if (abortNow) return -1;
             // write an early start mark for running recordings
-            if (maContext->Info.isRunningRecording && !maContext->Info.isStartMarkSaved && (iFrameNumber >= (maContext->Info.tStart * maContext->Video.Info.FramesPerSecond))) {
+            if (maContext->Info.isRunningRecording && !maContext->Info.isStartMarkSaved && (iFrameNumber >= (maContext->Info.tStart * maContext->Video.Info.framesPerSecond))) {
                 dsyslog("cExtractLogo::SearchLogo(): recording is aktive, read frame (%d), now save dummy start mark at pre timer position %ds", iFrameNumber, maContext->Info.tStart);
                 clMarks marksTMP;
                 marksTMP.Add(MT_ASSUMEDSTART, iFrameNumber, "timer start", true);
@@ -1294,11 +1294,11 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                     }
 
                     if ((logoAspectRatio.Num == 0) || (logoAspectRatio.Den == 0)) {
-                        logoAspectRatio.Num = maContext->Video.Info.AspectRatio.Num;
-                        logoAspectRatio.Den = maContext->Video.Info.AspectRatio.Den;
+                        logoAspectRatio.Num = maContext->Video.Info.aspectRatio.Num;
+                        logoAspectRatio.Den = maContext->Video.Info.aspectRatio.Den;
                         dsyslog("cExtractLogo::SearchLogo(): aspect ratio set to %d:%d", logoAspectRatio.Num, logoAspectRatio.Den);
                     }
-                    if ((logoAspectRatio.Num != maContext->Video.Info.AspectRatio.Num) || (logoAspectRatio.Den != maContext->Video.Info.AspectRatio.Den)) {
+                    if ((logoAspectRatio.Num != maContext->Video.Info.aspectRatio.Num) || (logoAspectRatio.Den != maContext->Video.Info.aspectRatio.Den)) {
                         continue;
                     }
 
@@ -1334,7 +1334,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                     }
 
                     iFrameCountValid++;
-                    if (!maContext->Video.Data.Valid) {
+                    if (!maContext->Video.Data.valid) {
                         dsyslog("cExtractLogo::SearchLogo(): faild to get video data of frame (%d)", iFrameNumber);
                         continue;
                     }

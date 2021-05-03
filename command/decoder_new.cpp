@@ -619,7 +619,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext, const bool full) {
                     if (avFrameRef->data[i]) {
                         maContext->Video.Data.Plane[i] = avFrameRef->data[i];
                         maContext->Video.Data.PlaneLinesize[i] = avFrameRef->linesize[i];
-                        maContext->Video.Data.Valid = true;
+                        maContext->Video.Data.valid = true;
                     }
                 }
 
@@ -627,7 +627,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext, const bool full) {
                 int sample_aspect_ratio_den = avFrameRef->sample_aspect_ratio.den;
                 if ((sample_aspect_ratio_num == 0) || (sample_aspect_ratio_den == 0)) {
                     dsyslog("cDecoder::GetFrameInfo(): invalid aspect ratio (%d:%d) at frame (%d)", sample_aspect_ratio_num, sample_aspect_ratio_den, framenumber);
-                    maContext->Video.Data.Valid = false;
+                    maContext->Video.Data.valid = false;
                     return false;
                 }
                 if ((sample_aspect_ratio_num == 1) && (sample_aspect_ratio_den == 1)) {
@@ -639,7 +639,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext, const bool full) {
                     }
                     else {
                         dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio to video width %d hight %d at frame %d)",avFrameRef->width,avFrameRef->height,framenumber);
-                        maContext->Video.Data.Valid = false;
+                        maContext->Video.Data.valid = false;
                         return false;
                     }
                 }
@@ -674,14 +674,14 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext, const bool full) {
                     }
                     else dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio (%d:%d) at frame (%d)",sample_aspect_ratio_num, sample_aspect_ratio_den, framenumber);
                 }
-                if ((maContext->Video.Info.AspectRatio.Num != sample_aspect_ratio_num) ||
-                   ( maContext->Video.Info.AspectRatio.Den != sample_aspect_ratio_den)) {
+                if ((maContext->Video.Info.aspectRatio.Num != sample_aspect_ratio_num) ||
+                   ( maContext->Video.Info.aspectRatio.Den != sample_aspect_ratio_den)) {
                     if (msgGetFrameInfo) dsyslog("cDecoder::GetFrameInfo(): aspect ratio changed from (%d:%d) to (%d:%d) at frame %d",
-                                                                            maContext->Video.Info.AspectRatio.Num, maContext->Video.Info.AspectRatio.Den,
+                                                                            maContext->Video.Info.aspectRatio.Num, maContext->Video.Info.aspectRatio.Den,
                                                                             sample_aspect_ratio_num, sample_aspect_ratio_den,
                                                                             framenumber);
-                    maContext->Video.Info.AspectRatio.Num = sample_aspect_ratio_num;
-                    maContext->Video.Info.AspectRatio.Den = sample_aspect_ratio_den;
+                    maContext->Video.Info.aspectRatio.Num = sample_aspect_ratio_num;
+                    maContext->Video.Info.aspectRatio.Den = sample_aspect_ratio_den;
                 }
                 return true;
             }

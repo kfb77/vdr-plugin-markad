@@ -23,10 +23,18 @@
 
 
 struct logoInfo {
-    int iFrameNumber = -1;
-    int hits = 0;
-    uchar sobel[PLANES][MAXPIXEL] = {};
-    bool valid[PLANES] = {};
+    int iFrameNumber = -1;  //!< frame number of the logo
+                            //!<
+
+    int hits = 0;  //!< number of similar other logos
+                   //!<
+
+    uchar sobel[PLANES][MAXPIXEL] = {};  //!< video data plane data
+                                         //!<
+
+    bool valid[PLANES] = {}; //!< <b>true:</b> data planes contain valid data <br>
+                             //!< <b>false:</b> data planes are not valid
+                             //!<
 };
 
 
@@ -50,11 +58,22 @@ class cExtractLogo {
         };
         typedef std::vector<compareInfoType> compareResultType;
         struct logoInfoPacked {
-            int iFrameNumber = 0;
-            int hits = 0;
-            uchar sobel[PLANES][MAXPIXEL / 8] = {};
-            bool valid[PLANES] = {};
-            MarkAdAspectRatio aspectratio = {};
+            int iFrameNumber = -1; //!< frame number of the logo
+                                   //!<
+
+            int hits = 0; //!< number of similar other logos
+                          //!<
+
+            uchar sobel[PLANES][MAXPIXEL / 8] = {}; //!< video data plane data
+                                                    //!<
+
+            bool valid[PLANES] = {}; //!< <b>true:</b> data planes contain valid data <br>
+                                     //!< <b>false:</b> data planes are not valid
+                                     //!<
+
+            MarkAdAspectRatio aspectratio = {}; //!< video aspect ratio
+                                                //!<
+
         };
 
         bool Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber,  const char *debugText);

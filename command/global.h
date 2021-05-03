@@ -73,67 +73,168 @@
 
 
 typedef struct config {
-    char logFile[20] = {};
-    char logoDirectory[1024];
-    char LogoDir[1024];
-    char markFileName[1024];
-    char svdrphost[1024];
-    int logoExtraction;
-    int logoWidth;
-    int logoHeight;
-    int ignoreInfo;
-    int svdrpport;
-    int threads;
-    int astopoffs;
-    int posttimer;
-    bool useVPS = false;
-    bool MarkadCut = false;   // cut video after mark detection
-    bool ac3ReEncode = false;
-    int autoLogo = 2;   // 0 = off, 1 = on, use less memory but a lot of cpu, 2 use a lot of memory but runs faster
-    const char *recDir;
-    bool DecodeVideo;
-    bool DecodeAudio;
-    bool BackupMarks;
-    bool NoPid;
-    bool OSD;
-    int online = 0;
-    bool Before;
-    bool SaveInfo;
-    bool fullDecode = false; // false = decode only iFrames
-                             // true  = decode all video frames
-    bool fullEncode = false; // false = copy frames without re-encode, cut on iframe position
-                             // true  = full re-encode all frames, cut on all frame types
-    bool bestEncode = true;  // flase = encode all video and audio streams
-                             // true  = encode only best video and best audio stream
+    char logFile[20] = {};  //!< name of the markad log file
+                            //!<
+
+    char logoDirectory[1024]; //!< logo cache directory (defaut /var/lib/markad)
+                              //!<
+
+    char markFileName[1024];  //!< name of the marks file (default marks)
+                              //!<
+
+    char svdrphost[1024];  //!< ip or name of vdr server (default localhost)
+                           //!<
+
+    int svdrpport;  //!< vdr svdrp port number
+                    //!<
+
+    int logoExtraction = false; //!< <b>true:</b> extract logo and store to /tmp <br>
+                                //!< <b>false:</b> normal markad operation
+                                //!<
+
+    int logoWidth;  //!< width for logo extractions
+                    //!
+
+    int logoHeight; //!< height for logo extraction
+                    //!<
+
+    int ignoreInfo; //!< <b>true:</b> ignore vdr info file <br>
+                    //!< <b>false:</b> use data from vdr info file
+                    //!<
+
+    int threads;  //!< number of threads for decoder and encoder
+                  //!<
+
+    int astopoffs; //!< assumed stop offset in seconds
+                   //!<
+
+    int posttimer; //!< time in second in the recording after assumed end of broadcast
+                   //!<
+
+    bool useVPS = false; //!< <b>true:</b> use informations from vps file to optimize marks
+                         //!< <b>false:</b> do not use informations from vps file to optimize marks
+
+    bool MarkadCut = false;   //!< cut video after mark detection
+                              //!<
+
+    bool ac3ReEncode = false; //!< re-encode AC3 stream and adapt audio volume
+                              //!<
+
+    int autoLogo = 2;   //!< 0 = off, 1 = on, use less memory but a lot of cpu, 2 use a lot of memory but runs faster
+                        //!<
+
+    const char *recDir; //!< name of the recording directory
+                        //!<
+
+    bool DecodeVideo; //!< <b>true:</b> use video stream to detect marks <br>
+                      //!< <b>false:</b> do not use video stream to detect marks
+                      //!<
+
+    bool DecodeAudio; //!< <b>true:</b> use audio streams to detect marks <br>
+                      //!< <b>false:</b> do not use audio streams to detect marks
+                      //!<
+
+    bool BackupMarks; //!< <b>true:</b> backup marks file before override <br>
+                      //!< <b>false:</b> do not backup marks file
+                      //!<
+
+    bool NoPid;  //!< <b>true:</b> do not write a PID file <br>
+                 //!< <b>false:</b> write a PID file
+                 //!<
+
+    bool OSD; //!< <b>true:</b> send screen messages to vdr <br>
+              //!< <b>false:</b> do not send screen messages to vdr
+              //!<
+
+    int online = 0;  //!< start markad immediately when called with "before" as cmd
+                     //!< if online is 1, markad starts online for live-recordings
+                     //!< only, online=2 starts markad online for every recording
+                     //!< live-recordings are identified by having a '@' in the
+                     //!< filename so the entry 'Mark instant recording' in the menu
+                     //!< Setup - Recording of the vdr should be set to 'yes'
+                     //!< ( default is 1 )
+                     //!<
+
+    bool Before;     //!< <b>true:</b> markad started by vdr before the recording is complete, only valid together with --online <br>
+                     //!<
+
+    bool SaveInfo;  //!< <b>true:</b> override vdr info file <br>
+                    //!< <b>false:</b> do not save info file
+                    //!<
+
+
+    bool fullDecode = false; //!< <b>true:</b> decode all video frames <br>
+                             //!< <b>false:</b> decode only iFrames
+                             //!<
+
+    bool fullEncode = false;   //!< <b>true:</b> full re-encode all frames, cut on all frame types <br>
+                               //!< <b>false:</b> copy frames without re-encode, cut on iframe position
+                               //!<
+
+    bool bestEncode = true;  //!< <b>true:</b> encode all video and audio streams <br>
+                             //!< <b>false:</b> encode all video and audio streams
+                             //!<
+
 } MarkAdConfig;
 
 
-typedef struct MarkAdPos {
-    int FrameNumberBefore;
-    int FrameNumberAfter;
-} MarkAdPos;
+/**
+ * frame overlap start and stop positions
+ */
+typedef struct OverlapPos {
+    int FrameNumberBefore; //!< frame number of overlaps start before mark position
+                           //!<
+
+    int FrameNumberAfter; //!< frame number of overlaps stop after mark position
+                          //!<
+} OverlapPos;
 
 
 typedef struct MarkAdAspectRatio {
-    int Num=0;
-    int Den=0;
-} MarkAdAspectRatio;
+    int Num=0;  //!< video aspectio ratio numerator
+                //!<
+
+    int Den=0;  //!< video aspectio ratio denominator
+
+} MarkAdAspectRatio; //!< video aspectio ratio
+                     //!<
 
 
+/**
+ * new mark to add
+ */
 typedef struct MarkAdMark {
-    int Type = 0;
-    int Position = 0;
-    int ChannelsBefore = 0;
-    int ChannelsAfter = 0;
-    MarkAdAspectRatio AspectRatioBefore;
-    MarkAdAspectRatio AspectRatioAfter;
-} MarkAdMark;
+    int Type = 0; //!< type of the new mark, see global.h
+                  //!<
+
+    int Position = 0; //!< frame position
+                      //!<
+
+    int ChannelsBefore = 0; //!< audio channel count before mark (set if channel changed at this mark)
+                            //!<
+
+    int ChannelsAfter = 0; //!< audio channel count after mark (set if channel changed at this mark)
+                           //!<
+
+    MarkAdAspectRatio aspectRatioBefore; //!< video aspect ratio before mark (set if video aspect ratio changed at this mark)
+                                         //!<
+
+    MarkAdAspectRatio aspectRatioAfter; //!< video aspect ratio after mark (set if video aspect ratio changed at this mark)
+                                        //!<
+} sMarkAdMark;
 
 
+/**
+ * array of new marks to add
+ */
 typedef struct MarkAdMarks {
-    static const int maxCount = 4;
-    MarkAdMark Number[maxCount];
-    int Count;
+    static const int maxCount = 4; //!< maximum elements of the array
+                                   //!<
+    int Count; //!< current count of elements in the array
+               //!<
+
+    MarkAdMark Number[maxCount]; //!< array of new marks to add
+                                  //!<
 } MarkAdMarks;
 
 
@@ -145,80 +246,183 @@ typedef struct MarkAdMarks {
 #define MARKAD_PIDTYPE_AUDIO_MP2  0x21
 
 
-typedef struct MarkAdPid {
-    int Num = 0;
-    int Type = 0;
-} MarkAdPid;
-
-
 typedef struct MarkAdContext {
-    MarkAdConfig *Config;
+    MarkAdConfig *Config; //!< markad configuration
+                          //!<
 
     struct Info {
-        bool isRunningRecording = false;           // true if markad is running during recording
-        bool isStartMarkSaved = false;             // true if dummy start mark is set to end of pre timer and saved
-        int tStart = 0;                            // offset of timer start to recording start (pre timer)
-        MarkAdAspectRatio AspectRatio;   // set from info file and checked after chkSTART, valid for the recording
-        bool checkedAspectRatio = false;
-        short int Channels[MAXSTREAMS] = {0};
-        char *ChannelName;
-        bool timerVPS = false;  // true it was a VPS controlled timer
-        MarkAdPid VPid;
-        MarkAdPid APid;
-    } Info;
+        bool isRunningRecording = false;  //!< <b>true:</b> markad is running during recording <br>
+                                          //!< <b>false:</b>  markad is running after recording
+                                          //!<
+
+        bool isStartMarkSaved = false;    //!< <b>true:</b> dummy start mark is set to end of pre timer and saved
+                                          //!< <b>false:</b> dummy start mark is not jet set
+                                          //!<
+
+        int tStart = 0;                   //!< offset of timer start to recording start (pre timer)
+                                          //!<
+
+        MarkAdAspectRatio aspectRatio;   //!< set from info file and checked after chkSTART, valid for the recording
+                                         //!<
+
+        bool checkedAspectRatio = false;  //!< <b>true:</b> current video aspect ratio is verified <br>
+                                          //!< <b>false:</b> current video aspect ratio is not jet verified
+                                          //!<
+
+        short int Channels[MAXSTREAMS] = {0};  //!< count of audio channel of each audio stream
+                                               //!<
+
+
+        char *ChannelName = NULL;  //!< name of the channel
+                                   //!<
+
+        bool timerVPS = false;  //!< <b>true:</b> recording is from a VPS controlled timer <br>
+                                //!< <b>false:</b> recording is not from a VPS controlled timer
+                                //!<
+
+        int vPidType = 0;  //!< video packet identifier type
+                           //!<
+
+    } Info; //!< global markad state infos
+            //!<
 
     struct Video {
         struct Options {
-            bool IgnoreAspectRatio;
-            bool IgnoreBlackScreenDetection = false;
-            bool IgnoreLogoDetection;
-            bool ignoreHborder = false; // ignore horizontal borders detection if there is none at the start of the recording
-                                        // later horizontal borders could be part of an ad
-            bool ignoreVborder = false; // ignore vertical borders detection if there is none at the start of the recording
-                                        // later vertical borders could be closing credits
-        } Options;
 
+            bool ignoreAspectRatio = false; //!< <b>true:</b>  ignore video aspect ratio detection, set if we found audio channel changes or H.264 video <br>
+                                            //!< <b>false:</b> detect video aspect ratio
+                                            //!<
+
+            bool ignoreBlackScreenDetection = false; //!< <b>true:</b>  ignore black screen detection, set if there is a better criteria than logo detection found <br>
+                                                     //!< <b>false:</b> detect black screen
+                                                     //!<
+
+            bool ignoreLogoDetection = false; //!< <b>true:</b>  ignore logo detection, set if there is any other advertising criteria found <br>
+                                              //!< <b>false:</b> detect logo
+                                              //!<
+
+            bool ignoreHborder = false; //!< <b>true:</b>  ignore horizontal borders detection, set if there is no horizontal border found at the start of the recording
+                                        //!< later horizontal borders could be part of an advertising <br>
+                                        //!< <b>false:</b> detect horizontal borders
+                                        //!<
+
+            bool ignoreVborder = false; //!< <b>true:</b>  ignore vertical borders detection, set if there is no vertical border found at the start of the recording
+                                        //!< later vertical borders could be part of an advertising <br>
+                                        //!< <b>false:</b> detect vertical borders
+                                        //!<
+
+        } Options; //!< video detection options
+                   //!<
+
+/**
+ * video stream infos
+ */
         struct Info {
-            int Width;  // width of pic
-            int Height; // height of pic
-            int Pict_Type; // picture type (I,P,B,S,SI,SP,BI)
-            int Pix_Fmt; // Pixel format (see libavutil/pixfmt.h)
-            MarkAdAspectRatio AspectRatio;  // set by decoder for the current frame
-            double FramesPerSecond;
-            bool Interlaced = false;
-            bool hasBorder = false;
-        } Info;
+            int width;  //!< width of the video in pixel
+                        //!<
+
+            int height; //!< height of the video in pixel
+                        //!<
+
+            int pixFmt; //!< pixel format (see libavutil/pixfmt.h)
+                        //!<
+
+            MarkAdAspectRatio aspectRatio;  //!< current video aspect ratio, set by decoder for each frame
+                                            //!<
+
+            double framesPerSecond; //!< frames per second of the recording
+                                    //!<
+
+            bool interlaced = false;  //!< <b>true:</b> video is interlaced <br>
+                                      //!< <b>false:</b> video is progressive
+                                      //!<
+
+            bool hasBorder = false;  //!< <b>true:</b> video has horizontal or vertical borders <br>
+                                     //!< <b>false:</b> video has no horizontal or vertical borders
+                                     //!<
+
+
+        } Info; //!< video stream infos
+                //!<
 
         struct Logo {
-            int width = 0;  // width of logo
-            int height = 0;  // height of logo
-            int corner = -1;  // corner of logo
-            bool isRotating = false;  // logo is rotating, e.g. SAT.1
-        } Logo;
+            int width = 0;  //!< width of logo
+                            //!<
 
+            int height = 0;  //!< height of logo
+                             //!<
+
+            int corner = -1;  //!< corner of logo, -1 for undefined
+                              //!<
+
+            bool isRotating = false;  //!< <b>true:</b>  logo is rotating <br>
+                                      //!< <b>false:</b> logo is not rotating
+                                      //!<
+        } Logo; //!< logo infos
+                //!<
+
+/**
+ * video picture data
+ */
         struct Data {
-            bool Valid; // flag, if true data is valid
-            uchar *Plane[PLANES];  // picture planes (YUV420)
-            int PlaneLinesize[PLANES]; // size int bytes of each picture plane line
-        } Data;
-    } Video;
+            bool valid = false; //!< <b>true:</b>  video data planes are valid <br>
+                                //!< <b>false:</b> video data planes are not valid
+                                //!<
+
+            uchar *Plane[PLANES];  //!< array of picture planes (YUV420)
+                                   //!<
+
+            int PlaneLinesize[PLANES]; //!< size int bytes of each picture plane line
+                                       //!<
+
+        } Data;  //!< video picture data
+                 //!<
+
+    } Video; //!< video stream infos
+             //!<
 
     struct Audio {
         struct Options {
-            bool IgnoreDolbyDetection;
-        } Options;
+            bool ignoreDolbyDetection; //!< <b>true:</b> ignore audio channel count detection <br>
+                                       //!< <b>false:</b> detect audio channel count changes
+                                       //!<
+        } Options; //!< audio detection options
+                   //!<
+
         struct Info {
-            short int Channels[MAXSTREAMS] = {0}; // number of audio channels from AC3 streams
-            int SampleRate;
-            bool channelChange = false;
-            int channelChangeFrame;
-            int64_t channelChangePTS;
-        } Info;
+            short int Channels[MAXSTREAMS] = {0}; //!< number of audio channels from each AC3 streams
+                                                  //!<
+
+            int SampleRate;  //!< audio sample rate
+                             //!<
+
+            bool channelChange = false; //!< a valid channel change is detected in this recording
+                                        //!<
+
+            int channelChangeFrame; //!< frame number of last channel change
+                                    //!<
+
+            int64_t channelChangePTS; //!< presentation timestamp of last audio channel change
+                                      //!<
+
+        } Info; //!< audio stream infos
+                //!<
+
         struct Data {
-            bool Valid;
-            short *SampleBuf;
-            int SampleBufLen;
-        } Data;
-    } Audio;
+            bool Valid;  //!< <b>true:</b> audio sample buffer contains valid data <br>
+                         //!< <b>false:</b> audio sample buffer is not valid
+                         //!<
+
+            short *SampleBuf; //!< audio sample buffer
+                              //!<
+
+            int SampleBufLen; //!< length of audio sample buffer
+                              //!<
+
+        } Data;  //!< audio data
+                 //!<
+    } Audio;  //!< audio stream infos, options and data
+              //!<
+
 } MarkAdContext;
 #endif

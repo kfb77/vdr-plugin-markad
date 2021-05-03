@@ -136,7 +136,6 @@ class cMarkAdStandalone {
         void AddMark(MarkAdMark *Mark);
         void AddMarkVPS(const int offset, const int type, const bool isPause);
         bool Reset(bool FirstPass=true);
-        void ChangeMarks(clMark **Mark1, clMark **Mark2, MarkAdPos *NewPos);
         void CheckIndexGrowing();
         bool CheckTS();
         bool CheckLogo();
