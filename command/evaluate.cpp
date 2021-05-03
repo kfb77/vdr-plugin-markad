@@ -266,6 +266,29 @@ bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPositi
 }
 
 
+void cEvaluateLogoStopStartPair::SetIsInfoLogo(const int stopPosition, const int startPosition) {
+    for (std::vector<logoStopStartPairType>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+        if ((logoPairIterator->stopPosition == stopPosition) && (logoPairIterator->startPosition == startPosition)) {
+            dsyslog("cEvaluateLogoStopStartPair::SetIsInfoLogo(): set isInfoLogo for stop (%d) start (%d) pair", logoPairIterator->stopPosition, logoPairIterator->startPosition);
+            logoPairIterator->isLogoChange = 1;
+            return;
+        }
+    }
+    dsyslog("cEvaluateLogoStopStartPair::SetIsInfoLogo(): stop (%d) start (%d) pair not found", stopPosition, startPosition);
+}
+
+
+bool cEvaluateLogoStopStartPair::IncludesInfoLogo(const int stopPosition, const int startPosition) {
+    for (std::vector<logoStopStartPairType>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+        if ((logoPairIterator->stopPosition >= stopPosition) && (logoPairIterator->startPosition <= startPosition)) {
+            dsyslog("cEvaluateLogoStopStartPair::SetIsInfoLogo(): stop %d start %d is includes info logo for stop (%d) start (%d) pair", stopPosition, startPosition, logoPairIterator->stopPosition, logoPairIterator->startPosition);
+            return true;
+        }
+    }
+    return false;
+}
+
+
 
 cDetectLogoStopStart::cDetectLogoStopStart(MarkAdContext *maContext_, cDecoder *ptr_cDecoder_, cIndex *recordingIndex_) {
     maContext = maContext_;

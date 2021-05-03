@@ -18,6 +18,7 @@ extern "C" {
 #include "audio.h"
 #include "marks.h"
 #include "encoder_new.h"
+#include "evaluate.h"
 
 #define trcs(c) bind_textdomain_codeset("markad",c)
 #define tr(s) dgettext("markad",s)
@@ -196,5 +197,6 @@ class cMarkAdStandalone {
         clMarks marks;
         clMarks blackMarks;
         cDecoder *ptr_cDecoderLogoChange = NULL;
+        cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = NULL;
 };
 #endif

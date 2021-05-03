@@ -30,6 +30,8 @@ class cEvaluateLogoStopStartPair {
         ~cEvaluateLogoStopStartPair();
         void isInfoLogo(clMarks *blackMarks, logoStopStartPairType *logoStopStartPair, const int framesPerSecond);
         bool GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo);
+        void SetIsInfoLogo(const int stopPosition, const int startPosition);
+        bool IncludesInfoLogo(const int stopPosition, const int startPosition);
         int GetLastClosingCreditsStart();
 
     private:
