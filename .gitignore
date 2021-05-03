@@ -6,6 +6,7 @@ command/*.o
 command/*~
 command/po/*.pot
 command/po/*.mo
+command/html/*
 
 plugin/.dependencies
 plugin/*.o
@@ -13,4 +14,3 @@ plugin/*.so
 plugin/*~
 plugin/po/*.pot
 plugin/po/*.mo
-
