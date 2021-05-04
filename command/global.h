@@ -72,7 +72,7 @@
 #define MT_ALL            (unsigned char) 0xFF
 
 
-typedef struct config {
+typedef struct sMarkAdConfig {
     char logFile[20] = {};  //!< name of the markad log file
                             //!<
 
@@ -126,23 +126,23 @@ typedef struct config {
     const char *recDir; //!< name of the recording directory
                         //!<
 
-    bool DecodeVideo; //!< <b>true:</b> use video stream to detect marks <br>
+    bool decodeVideo; //!< <b>true:</b> use video stream to detect marks <br>
                       //!< <b>false:</b> do not use video stream to detect marks
                       //!<
 
-    bool DecodeAudio; //!< <b>true:</b> use audio streams to detect marks <br>
+    bool decodeAudio; //!< <b>true:</b> use audio streams to detect marks <br>
                       //!< <b>false:</b> do not use audio streams to detect marks
                       //!<
 
-    bool BackupMarks; //!< <b>true:</b> backup marks file before override <br>
+    bool backupMarks; //!< <b>true:</b> backup marks file before override <br>
                       //!< <b>false:</b> do not backup marks file
                       //!<
 
-    bool NoPid;  //!< <b>true:</b> do not write a PID file <br>
+    bool noPid;  //!< <b>true:</b> do not write a PID file <br>
                  //!< <b>false:</b> write a PID file
                  //!<
 
-    bool OSD; //!< <b>true:</b> send screen messages to vdr <br>
+    bool osd; //!< <b>true:</b> send screen messages to vdr <br>
               //!< <b>false:</b> do not send screen messages to vdr
               //!<
 
@@ -155,10 +155,10 @@ typedef struct config {
                      //!< ( default is 1 )
                      //!<
 
-    bool Before;     //!< <b>true:</b> markad started by vdr before the recording is complete, only valid together with --online <br>
+    bool before;     //!< <b>true:</b> markad started by vdr before the recording is complete, only valid together with --online <br>
                      //!<
 
-    bool SaveInfo;  //!< <b>true:</b> override vdr info file <br>
+    bool saveInfo;  //!< <b>true:</b> override vdr info file <br>
                     //!< <b>false:</b> do not save info file
                     //!<
 
@@ -175,7 +175,7 @@ typedef struct config {
                              //!< <b>false:</b> encode all video and audio streams
                              //!<
 
-} MarkAdConfig;
+} sMarkAdConfig;
 
 
 /**
@@ -247,8 +247,8 @@ typedef struct MarkAdMarks {
 
 
 typedef struct MarkAdContext {
-    MarkAdConfig *Config; //!< markad configuration
-                          //!<
+    sMarkAdConfig *Config; //!< markad configuration
+                           //!<
 
     struct Info {
         bool isRunningRecording = false;  //!< <b>true:</b> markad is running during recording <br>

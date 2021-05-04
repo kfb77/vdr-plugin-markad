@@ -49,7 +49,7 @@ class cOSDMessage {
 
 class cMarkAdStandalone {
     public:
-        cMarkAdStandalone(const char *Directory, MarkAdConfig *config, cIndex *recordingIndex);
+        cMarkAdStandalone(const char *Directory, sMarkAdConfig *config, cIndex *recordingIndex);
         ~cMarkAdStandalone();
         cMarkAdStandalone(const cMarkAdStandalone &origin) {   //  copy constructor, not used, only for formal reason
             strcpy(title,origin.title);

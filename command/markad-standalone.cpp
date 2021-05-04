@@ -756,7 +756,7 @@ void cMarkAdStandalone::CheckStart() {
         }
         macontext.Info.Channels[stream] = macontext.Audio.Info.Channels[stream];
 
-        if (macontext.Config->DecodeAudio && macontext.Info.Channels[stream]) {
+        if (macontext.Config->decodeAudio && macontext.Info.Channels[stream]) {
             if ((macontext.Info.Channels[stream] == 6) && (macontext.Audio.Options.ignoreDolbyDetection == false)) {
                 isyslog("DolbyDigital5.1 audio whith 6 Channels in stream %i detected", stream);
                 if (macontext.Audio.Info.channelChange) {
@@ -2836,7 +2836,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
 void cMarkAdStandalone::ProcessFiles() {
     if (abortNow) return;
 
-    if (macontext.Config->BackupMarks) marks.Backup(directory,isTS);
+    if (macontext.Config->backupMarks) marks.Backup(directory,isTS);
 
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::ProcessFiles(): start processing files");
@@ -2917,7 +2917,7 @@ void cMarkAdStandalone::ProcessFiles() {
         }
         if (marks.Save(directory, &macontext, isTS, false)) {
             if (length && startTime)
-                    if (macontext.Config->SaveInfo) SaveInfo();
+                    if (macontext.Config->saveInfo) SaveInfo();
 
         }
     }
@@ -3304,7 +3304,7 @@ bool cMarkAdStandalone::LoadInfo() {
     if (asprintf(&buf, "%s/info%s", directory, isTS ? "" : ".vdr") == -1) return false;
     ALLOC(strlen(buf)+1, "buf");
 
-    if (macontext.Config->Before) {
+    if (macontext.Config->before) {
         macontext.Info.isRunningRecording = true;
         dsyslog("parameter before is set, markad is called with a running recording");
     }
@@ -3489,7 +3489,7 @@ bool cMarkAdStandalone::LoadInfo() {
         esyslog("cannot read broadcast length from info, marks can be wrong!");
         macontext.Info.aspectRatio.Num = 0;
         macontext.Info.aspectRatio.Den = 0;
-        bDecodeVideo = macontext.Config->DecodeVideo;
+        bDecodeVideo = macontext.Config->decodeVideo;
         macontext.Video.Options.ignoreAspectRatio = false;
     }
 
@@ -3605,7 +3605,7 @@ void cMarkAdStandalone::RemovePidfile() {
 // const char cMarkAdStandalone::frametypes[8]={'?','I','P','B','D','S','s','b'};
 
 
-cMarkAdStandalone::cMarkAdStandalone(const char *Directory, MarkAdConfig *config, cIndex *recordingIndex) {
+cMarkAdStandalone::cMarkAdStandalone(const char *Directory, sMarkAdConfig *config, cIndex *recordingIndex) {
     setlocale(LC_MESSAGES, "");
     directory = Directory;
     gotendmark = false;
@@ -3633,8 +3633,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, MarkAdConfig *config
     macontext = {};
     macontext.Config = config;
 
-    bDecodeVideo = config->DecodeVideo;
-    bDecodeAudio = config->DecodeAudio;
+    bDecodeVideo = config->decodeVideo;
+    bDecodeAudio = config->decodeAudio;
 
     macontext.Info.tStart = iStart = iStop = iStopA = 0;
 
@@ -3645,7 +3645,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, MarkAdConfig *config
         bIgnoreTimerInfo = false;
     }
 
-    if (!config->NoPid) {
+    if (!config->noPid) {
         CreatePidfile();
         if (abortNow) return;
     }
@@ -3700,7 +3700,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, MarkAdConfig *config
         // just to be sure extraction works
         bDecodeVideo = true;
     }
-    if (config->Before) sleep(10);
+    if (config->before) sleep(10);
 
     char *tmpDir = strdup(directory);
 #ifdef DEBUG_MEM
@@ -3780,7 +3780,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, MarkAdConfig *config
         ptitle = (char *) Directory;
     }
 
-    if (config->OSD) {
+    if (config->osd) {
         osd= new cOSDMessage(config->svdrphost, config->svdrpport);
         if (osd) osd->Send("%s '%s'", tr("starting markad for"), ptitle);
     }
@@ -4082,14 +4082,14 @@ int main(int argc, char *argv[]) {
     int ntok;
     bool bPass2Only = false;
     bool bPass1Only = false;
-    struct config config = {};
+    struct sMarkAdConfig config = {};
 
     gettimeofday(&startAll, NULL);
 
     // set defaults
-    config.DecodeVideo = true;
-    config.DecodeAudio = true;
-    config.SaveInfo = false;
+    config.decodeVideo = true;
+    config.decodeAudio = true;
+    config.saveInfo = false;
     config.logoExtraction = -1;
     config.logoWidth = -1;
     config.logoHeight = -1;
@@ -4163,14 +4163,14 @@ int main(int argc, char *argv[]) {
                 // --disable
                 switch (atoi(optarg)) {
                     case 1:
-                        config.DecodeVideo = false;
+                        config.decodeVideo = false;
                         break;
                     case 2:
-                        config.DecodeAudio = false;
+                        config.decodeAudio = false;
                         break;
                     case 3:
-                        config.DecodeVideo = false;
-                        config.DecodeAudio = false;
+                        config.decodeVideo = false;
+                        config.decodeAudio = false;
                         break;
                     default:
                         fprintf(stderr, "markad: invalid disable option: %s\n", optarg);
@@ -4226,10 +4226,10 @@ int main(int argc, char *argv[]) {
                 break;
             case 'B':
                 // --backupmarks
-                config.BackupMarks = true;
+                config.backupMarks = true;
                 break;
             case 'I':
-                config.SaveInfo = true;
+                config.saveInfo = true;
                 break;
             case 'L':
                 // --extractlogo
@@ -4269,7 +4269,7 @@ int main(int argc, char *argv[]) {
                 break;
             case 'O':
                 // --OSD
-                config.OSD = true;
+                config.osd = true;
                 break;
             case 'R':
                 // --log2rec
@@ -4314,7 +4314,7 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             case 4: // --nopid
-                config.NoPid = true;
+                config.noPid = true;
                 break;
             case 5: // --svdrphost
                 strncpy(config.svdrphost, optarg, sizeof(config.svdrphost));
@@ -4420,7 +4420,7 @@ int main(int argc, char *argv[]) {
             }
             else if (strcmp(argv[optind], "before" ) == 0 ) {
                 if (!config.online) config.online = 1;
-                config.Before = bFork = bNice = SYSLOG = true;
+                config.before = bFork = bNice = SYSLOG = true;
             }
             else if (strcmp(argv[optind], "edited" ) == 0 ) {
                 bEdited = true;
@@ -4450,11 +4450,11 @@ int main(int argc, char *argv[]) {
     // do nothing if called from vdr before/after the video is cutted
     if (bEdited) return 0;
     if ((bAfter) && (config.online)) return 0;
-    if ((config.Before) && (config.online == 1) && recDir && (!strchr(recDir, '@'))) return 0;
+    if ((config.before) && (config.online == 1) && recDir && (!strchr(recDir, '@'))) return 0;
 
     // we can run, if one of bImmediateCall, bAfter, bBefore or bNice is true
     // and recDir is given
-    if ( (bImmediateCall || config.Before || bAfter || bNice) && recDir ) {
+    if ( (bImmediateCall || config.before || bAfter || bNice) && recDir ) {
         // if bFork is given go in background
         if ( bFork ) {
             //close_files();
