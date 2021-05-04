@@ -246,11 +246,11 @@ typedef struct MarkAdMarks {
 #define MARKAD_PIDTYPE_AUDIO_MP2  0x21
 
 
-typedef struct MarkAdContext {
+typedef struct sMarkAdContext {
     sMarkAdConfig *Config; //!< markad configuration
                            //!<
 
-    struct Info {
+    struct sInfo {
         bool isRunningRecording = false;  //!< <b>true:</b> markad is running during recording <br>
                                           //!< <b>false:</b>  markad is running after recording
                                           //!<
@@ -286,8 +286,8 @@ typedef struct MarkAdContext {
     } Info; //!< global markad state infos
             //!<
 
-    struct Video {
-        struct Options {
+    struct sVideo {
+        struct sOptions {
 
             bool ignoreAspectRatio = false; //!< <b>true:</b>  ignore video aspect ratio detection, set if we found audio channel changes or H.264 video <br>
                                             //!< <b>false:</b> detect video aspect ratio
@@ -317,7 +317,7 @@ typedef struct MarkAdContext {
 /**
  * video stream infos
  */
-        struct Info {
+        struct sInfo {
             int width;  //!< width of the video in pixel
                         //!<
 
@@ -345,7 +345,7 @@ typedef struct MarkAdContext {
         } Info; //!< video stream infos
                 //!<
 
-        struct Logo {
+        struct sLogo {
             int width = 0;  //!< width of logo
                             //!<
 
@@ -364,7 +364,7 @@ typedef struct MarkAdContext {
 /**
  * video picture data
  */
-        struct Data {
+        struct sData {
             bool valid = false; //!< <b>true:</b>  video data planes are valid <br>
                                 //!< <b>false:</b> video data planes are not valid
                                 //!<
@@ -381,15 +381,15 @@ typedef struct MarkAdContext {
     } Video; //!< video stream infos
              //!<
 
-    struct Audio {
-        struct Options {
+    struct sAudio {
+        struct sOptions {
             bool ignoreDolbyDetection; //!< <b>true:</b> ignore audio channel count detection <br>
                                        //!< <b>false:</b> detect audio channel count changes
                                        //!<
         } Options; //!< audio detection options
                    //!<
 
-        struct Info {
+        struct sInfo {
             short int Channels[MAXSTREAMS] = {0}; //!< number of audio channels from each AC3 streams
                                                   //!<
 
@@ -408,7 +408,7 @@ typedef struct MarkAdContext {
         } Info; //!< audio stream infos
                 //!<
 
-        struct Data {
+        struct sData {
             bool Valid;  //!< <b>true:</b> audio sample buffer contains valid data <br>
                          //!< <b>false:</b> audio sample buffer is not valid
                          //!<
