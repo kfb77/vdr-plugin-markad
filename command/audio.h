@@ -29,7 +29,7 @@ class cMarkAdAudio {
 /**
  *  compare current audio channels with channels before and add marks if channel count has changed
  */
-        MarkAdMark *Process();
+        sMarkAdMark *Process();
 
 /**
  *  reset stored channel states of all audio streams
@@ -63,7 +63,7 @@ class cMarkAdAudio {
 
         MarkAdContext *macontext;
         cIndex *recordingIndexAudio = NULL;
-        MarkAdMark mark;
+        sMarkAdMark mark;
         short int channels[MAXSTREAMS] = {0};
 };
 #endif

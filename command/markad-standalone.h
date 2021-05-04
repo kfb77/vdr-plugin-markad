@@ -133,7 +133,7 @@ class cMarkAdStandalone {
         void SaveFrame(const int frame, const char *path = NULL, const char *suffix = NULL);
 #endif
         char *IndexToHMSF(int Index);
-        void AddMark(MarkAdMark *Mark);
+        void AddMark(sMarkAdMark *Mark);
         void AddMarkVPS(const int offset, const int type, const bool isPause);
         bool Reset(bool FirstPass=true);
         void CheckIndexGrowing();

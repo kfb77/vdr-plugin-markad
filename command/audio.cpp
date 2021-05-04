@@ -20,8 +20,8 @@ extern "C"{
 cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext, cIndex *recordingIndex) {
     macontext = maContext;
     recordingIndexAudio = recordingIndex;
-    mark.Position = 0;
-    mark.Type = 0;
+    mark.position = 0;
+    mark.type = 0;
     Clear();
 }
 
@@ -38,16 +38,16 @@ void cMarkAdAudio::Clear() {
 
 
 void cMarkAdAudio::ResetMark() {
-    if (!mark.Type) return;
+    if (!mark.type) return;
     mark = {};
 }
 
 
 void cMarkAdAudio::SetMark(const int type, const int position, const int channelsbefore, const int channelsafter) {
-    mark.ChannelsBefore = channelsbefore;
-    mark.ChannelsAfter = channelsafter;
-    mark.Position = position;
-    mark.Type = type;
+    mark.channelsBefore = channelsbefore;
+    mark.channelsAfter = channelsafter;
+    mark.position = position;
+    mark.type = type;
 }
 
 
@@ -58,7 +58,7 @@ bool cMarkAdAudio::ChannelChange(int channelsbefore, int channelsafter) {
 }
 
 
-MarkAdMark *cMarkAdAudio::Process() {
+sMarkAdMark *cMarkAdAudio::Process() {
     ResetMark();
     for (short int stream = 0; stream < MAXSTREAMS; stream++){
         if (ChannelChange(macontext->Audio.Info.Channels[stream], channels[stream])) {
@@ -85,7 +85,7 @@ MarkAdMark *cMarkAdAudio::Process() {
         }
         channels[stream] = macontext->Audio.Info.Channels[stream];
     }
-    if (mark.Position) {
+    if (mark.position) {
         return &mark;
     }
     else {

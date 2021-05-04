@@ -1446,8 +1446,8 @@ bool cMarkAdVideo::addmark(int type, int position, MarkAdAspectRatio *before, Ma
         marks.Number[marks.Count].aspectRatioAfter.Num = after->Num;
         marks.Number[marks.Count].aspectRatioAfter.Den = after->Den;
     }
-    marks.Number[marks.Count].Position = position;
-    marks.Number[marks.Count].Type = type;
+    marks.Number[marks.Count].position = position;
+    marks.Number[marks.Count].type = type;
     marks.Count++;
     return true;
 }

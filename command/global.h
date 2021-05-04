@@ -203,17 +203,17 @@ typedef struct MarkAdAspectRatio {
 /**
  * new mark to add
  */
-typedef struct MarkAdMark {
-    int Type = 0; //!< type of the new mark, see global.h
+typedef struct sMarkAdMark {
+    int type = 0; //!< type of the new mark, see global.h
                   //!<
 
-    int Position = 0; //!< frame position
+    int position = 0; //!< frame position
                       //!<
 
-    int ChannelsBefore = 0; //!< audio channel count before mark (set if channel changed at this mark)
+    int channelsBefore = 0; //!< audio channel count before mark (set if channel changed at this mark)
                             //!<
 
-    int ChannelsAfter = 0; //!< audio channel count after mark (set if channel changed at this mark)
+    int channelsAfter = 0; //!< audio channel count after mark (set if channel changed at this mark)
                            //!<
 
     MarkAdAspectRatio aspectRatioBefore; //!< video aspect ratio before mark (set if video aspect ratio changed at this mark)
@@ -233,7 +233,7 @@ typedef struct MarkAdMarks {
     int Count; //!< current count of elements in the array
                //!<
 
-    MarkAdMark Number[maxCount]; //!< array of new marks to add
+    sMarkAdMark Number[maxCount]; //!< array of new marks to add
                                   //!<
 } MarkAdMarks;
 
