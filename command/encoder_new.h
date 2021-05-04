@@ -76,9 +76,17 @@ class cEncoder {
         } cutStatus;
         int *streamMap = NULL;
         int pass = 0;
-        struct stats_in_type {
-            char *data = NULL;
-            long int size = 0;
+
+/**
+ * statistic data for 2 pass encoding
+ */
+        struct sAVstatsIn {
+            char *data = NULL; //!< statistic data generated from encoder
+	                       //!<
+
+            long int size = 0; //!< size of statistic data
+	                       //!<
+
         } stats_in;
 
 #ifdef DEBUG_CUT
