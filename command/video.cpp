@@ -642,7 +642,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                                // notice: there can be very bright logo parts in dark areas, this will result in a lower brightness
                                // we handle there cases in ReduceBrightness() when we detect contrast
         if (((area.intensity > MAX_AREA_INTENSITY) || // if we found no logo try to reduce brightness
-            ((area.intensity >= 80) && (strcmp(macontext->Info.ChannelName, "NITRO") == 0))) &&  // workaround for NITRO, this channel has a very transparent logo, brightness reduction needed earlyer
+            ((area.intensity >= 62) && (strcmp(macontext->Info.ChannelName, "NITRO") == 0))) &&  // workaround for NITRO, this channel has a very transparent logo, brightness reduction needed earlyer, changed from 80 to 76 to 62
              (area.intensity < 220) &&  // if we are to bright, this will not work, max changed from 200 to 220
            ((((area.status == LOGO_INVISIBLE) || (area.status == LOGO_UNINITIALIZED)) && (rpixel < (mpixel * logo_vmark))) || // if we found the logo ignore area intensity
            ((area.status == LOGO_VISIBLE) && (rpixel < (mpixel * LOGO_IMARK))))) {
