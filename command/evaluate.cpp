@@ -349,10 +349,10 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
     cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext->Video.Info.aspectRatio, recordingIndex);
     ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
 
-    logoInfo *logo1[CORNERS];
-    logoInfo *logo2[CORNERS];
+    sLogoInfo *logo1[CORNERS];
+    sLogoInfo *logo2[CORNERS];
     for (int corner = 0; corner < CORNERS; corner++) {
-        logo1[corner] = new logoInfo;
+        logo1[corner] = new sLogoInfo;
         ALLOC(sizeof(*logo1[corner]), "logo");
     }
 
@@ -395,7 +395,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
                 if (corner == DEBUG_COMPARE_FRAME_RANGE) iFrameNumberNext = -2;
 #endif
                 ptr_Logo->Detect(0, frameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
-                logo2[corner] = new logoInfo;
+                logo2[corner] = new sLogoInfo;
                 ALLOC(sizeof(*logo2[corner]), "logo");
                 logo2[corner]->iFrameNumber = frameNumber;
                 memcpy(logo2[corner]->sobel, area->sobel, sizeof(area->sobel));

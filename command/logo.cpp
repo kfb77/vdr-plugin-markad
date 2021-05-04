@@ -44,11 +44,11 @@ cExtractLogo::~cExtractLogo() {
 #ifdef DEBUG_MEM
         int size = logoInfoVector[corner].size();
         for (int i = 0 ; i < size; i++) {
-            FREE(sizeof(logoInfo), "logoInfoVector");
+            FREE(sizeof(sLogoInfo), "logoInfoVector");
         }
         size = logoInfoVectorPacked[corner].size();
         for (int i = 0 ; i < size; i++) {
-            FREE(sizeof(logoInfoPacked), "logoInfoVectorPacked");
+            FREE(sizeof(sLogoInfoPacked), "logoInfoVectorPacked");
         }
 #endif
         logoInfoVector[corner].clear();
@@ -57,7 +57,7 @@ cExtractLogo::~cExtractLogo() {
 }
 
 
-bool cExtractLogo::IsWhitePlane(const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane) {
+bool cExtractLogo::IsWhitePlane(const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane) {
     if (!ptr_actLogoInfo) return false;
     if (logoHeight < 1) return false;
     if (logoWidth < 1) return false;
@@ -108,15 +108,15 @@ bool cExtractLogo::IsLogoColourChange(const MarkAdContext *maContext, const int 
 
     for (int plane = 1; plane < PLANES; plane++) {
         if (maContext->Config->autoLogo == 1) { // use packed logos
-            for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
+            for (std::vector<sLogoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
                 if (plane == 1) count++;
-                logoInfo actLogo = {};
+                sLogoInfo actLogo = {};
                 UnpackLogoInfo(&actLogo, &(*actLogoPacked));
                 if (IsWhitePlane(&actLogo, logoHeight, logoWidth, plane)) countWhite[plane - 1]++;
            }
         }
         if (maContext->Config->autoLogo == 2){  // use unpacked logos
-            for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
+            for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
                 if (plane == 1) count++;
                 if (IsWhitePlane(&(*actLogo), logoHeight, logoWidth, plane)) countWhite[plane - 1]++;
             }
@@ -131,7 +131,7 @@ bool cExtractLogo::IsLogoColourChange(const MarkAdContext *maContext, const int 
 }
 
 
-bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber = -1, const char *debugText = NULL) { // framenumber >= 0: save from debug function
+bool cExtractLogo::Save(const MarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber = -1, const char *debugText = NULL) { // framenumber >= 0: save from debug function
     if (!maContext) return false;
     if (!ptr_actLogoInfo) return false;
     if ((logoHeight <= 0) || (logoWidth <= 0)) return false;
@@ -210,7 +210,7 @@ bool cExtractLogo::Save(const MarkAdContext *maContext, const logoInfo *ptr_actL
 }
 
 
-void cExtractLogo::CutOut(logoInfo *logoInfo, int cutPixelH, int cutPixelV, int *logoHeight, int *logoWidth, const int corner) {
+void cExtractLogo::CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, int *logoHeight, int *logoWidth, const int corner) {
     if (!logoInfo) return;
     if (!logoHeight) return;
     if (!logoWidth) return;
@@ -432,7 +432,7 @@ bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoH
 }
 
 
-bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner) {
+bool cExtractLogo::Resize(const MarkAdContext *maContext, sLogoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner) {
     if (!maContext) return false;
     if (!bestLogoInfo) return false;
     if (!logoHeight) return false;
@@ -674,7 +674,7 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, logoInfo *bestLogoInfo
 // used before picture is stored in logo cantidates list
 // return: true if valid
 //
-bool cExtractLogo::CheckValid(const MarkAdContext *maContext, const logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
+bool cExtractLogo::CheckValid(const MarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
 #define WHITEHORIZONTAL_BIG 10
 #define WHITEHORIZONTAL_SMALL 7 // reduced from 8 to 7
 #define WHITEVERTICAL_BIG 10
@@ -771,7 +771,7 @@ bool cExtractLogo::CheckValid(const MarkAdContext *maContext, const logoInfo *pt
 }
 
 
-int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
+int cExtractLogo::Compare(const MarkAdContext *maContext, sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
     if (!maContext) return 0;
     if (!ptr_actLogoInfo) return 0;
     if ((logoHeight <= 0) || (logoWidth <= 0)) return 0;
@@ -783,8 +783,8 @@ int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoI
     int hits=0;
 
     if (maContext->Config->autoLogo == 1) { // use packed logos
-        for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
-            logoInfo actLogo = {};
+        for (std::vector<sLogoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
+            sLogoInfo actLogo = {};
             UnpackLogoInfo(&actLogo, &(*actLogoPacked));
             if (maContext->Video.Logo.isRotating) {
                 if (CompareLogoPairRotating(&actLogo, ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
@@ -801,7 +801,7 @@ int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoI
         }
     }
     if (maContext->Config->autoLogo == 2){  // use unpacked logos
-        for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
+        for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
             if (maContext->Video.Logo.isRotating) {
                 if (CompareLogoPairRotating(&(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
                     hits++;
@@ -820,7 +820,7 @@ int cExtractLogo::Compare(const MarkAdContext *maContext, logoInfo *ptr_actLogoI
 }
 
 
-bool cExtractLogo::CompareLogoPairRotating(logoInfo *logo1, logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner) {
+bool cExtractLogo::CompareLogoPairRotating(sLogoInfo *logo1, sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner) {
     if (!logo1) return false;
     if (!logo2) return false;
     if ((corner < 0) || (corner >= CORNERS)) return false;
@@ -864,7 +864,7 @@ bool cExtractLogo::CompareLogoPairRotating(logoInfo *logo1, logoInfo *logo2, con
 }
 
 
-bool cExtractLogo::CompareLogoPair(const logoInfo *logo1, const logoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0, int match12, int *rate0) {
+bool cExtractLogo::CompareLogoPair(const sLogoInfo *logo1, const sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0, int match12, int *rate0) {
     if (!logo1) return false;
     if (!logo2) return false;
     if ((corner < 0) || (corner >= CORNERS)) return false;
@@ -919,7 +919,7 @@ int cExtractLogo::DeleteFrames(const MarkAdContext *maContext, const int from, c
     dsyslog("cExtractLogo::DeleteFrames(): delete frames from %d to %d", from, to);
     for (int corner = 0; corner < CORNERS; corner++) {
         if (maContext->Config->autoLogo == 1) { // use packed logos
-            for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
+            for (std::vector<sLogoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
                 if (abortNow) return 0;
                 if (actLogoPacked->iFrameNumber < from) continue;
                 if (actLogoPacked->iFrameNumber <= to) {
@@ -931,7 +931,7 @@ int cExtractLogo::DeleteFrames(const MarkAdContext *maContext, const int from, c
             }
         }
         if (maContext->Config->autoLogo == 2) {  // use unpacked logos
-            for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
+            for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
                 if (abortNow) return 0;
                 if (actLogo->iFrameNumber < from) continue;
                 if (actLogo->iFrameNumber <= to) {
@@ -1043,7 +1043,7 @@ bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecode
 }
 
 
-void cExtractLogo::PackLogoInfo(const logoInfo *logoInfo, logoInfoPacked *logoInfoPacked) {
+void cExtractLogo::PackLogoInfo(const sLogoInfo *logoInfo, sLogoInfoPacked *logoInfoPacked) {
     if ( !logoInfo ) return;
     if ( !logoInfoPacked) return;
 
@@ -1066,7 +1066,7 @@ void cExtractLogo::PackLogoInfo(const logoInfo *logoInfo, logoInfoPacked *logoIn
 }
 
 
-void cExtractLogo::UnpackLogoInfo(logoInfo *logoInfo, const logoInfoPacked *logoInfoPacked) {
+void cExtractLogo::UnpackLogoInfo(sLogoInfo *logoInfo, const sLogoInfoPacked *logoInfoPacked) {
     if (!logoInfo) return;
     if (!logoInfoPacked) return;
 
@@ -1088,7 +1088,7 @@ void cExtractLogo::UnpackLogoInfo(logoInfo *logoInfo, const logoInfoPacked *logo
 }
 
 
-void cExtractLogo::RemovePixelDefects(const MarkAdContext *maContext, logoInfo *logoInfo, const int logoHeight, const int logoWidth, const int corner) {
+void cExtractLogo::RemovePixelDefects(const MarkAdContext *maContext, sLogoInfo *logoInfo, const int logoHeight, const int logoWidth, const int corner) {
     if (!maContext) return;
     if (!logoInfo) return;
     if ((corner < 0) || (corner >= CORNERS)) return;
@@ -1346,7 +1346,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
 #endif
                         area->corner = corner;
                         ptr_Logo->Detect(0, iFrameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
-                        logoInfo actLogoInfo = {};
+                        sLogoInfo actLogoInfo = {};
                         actLogoInfo.iFrameNumber = iFrameNumber;
                         memcpy(actLogoInfo.sobel,area->sobel, sizeof(area->sobel));
                         if (CheckValid(maContext, &actLogoInfo, logoHeight, logoWidth, corner)) {
@@ -1354,7 +1354,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                             actLogoInfo.hits = Compare(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
 
                             if (maContext->Config->autoLogo == 1) { // use packed logos
-                                logoInfoPacked actLogoInfoPacked = {};
+                                sLogoInfoPacked actLogoInfoPacked = {};
                                 PackLogoInfo(&actLogoInfo, &actLogoInfoPacked);
                                 try { logoInfoVectorPacked[corner].push_back(actLogoInfoPacked); }  // this allocates a lot of memory
                                 catch(std::bad_alloc &e) {
@@ -1362,7 +1362,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                                     retStatus = false;
                                     break;
                                 }
-                                ALLOC((sizeof(logoInfoPacked)), "logoInfoVectorPacked");
+                                ALLOC((sizeof(sLogoInfoPacked)), "logoInfoVectorPacked");
                             }
                             if (maContext->Config->autoLogo == 2){  // use unpacked logos
                                 try { logoInfoVector[corner].push_back(actLogoInfo); }  // this allocates a lot of memory
@@ -1371,7 +1371,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                                     retStatus = false;
                                     break;
                                 }
-                                ALLOC((sizeof(logoInfo)), "logoInfoVector");
+                                ALLOC((sizeof(sLogoInfo)), "logoInfoVector");
                             }
                         }
                     }
@@ -1412,12 +1412,12 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
     }
     if (retStatus) {
         dsyslog("cExtractLogo::SearchLogo(): %d valid frames of %d frames read, got enough iFrames at frame (%d), start analyze", iFrameCountValid, iFrameCountAll, ptr_cDecoder->GetFrameNumber());
-        logoInfoPacked actLogoInfoPacked[CORNERS] = {};
-        logoInfo actLogoInfo[CORNERS] = {};
+        sLogoInfoPacked actLogoInfoPacked[CORNERS] = {};
+        sLogoInfo actLogoInfo[CORNERS] = {};
         for (int corner = 0; corner < CORNERS; corner++) {
             if (maContext->Config->autoLogo == 1) { // use packed logos
                 actLogoInfoPacked[corner] = {};
-                for (std::vector<logoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
+                for (std::vector<sLogoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
                     if (actLogoPacked->hits > actLogoInfoPacked[corner].hits) {
                         actLogoInfoPacked[corner] = *actLogoPacked;
                     }
@@ -1425,7 +1425,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                 dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars out of %3ld valid frames at %s", actLogoInfoPacked[corner].iFrameNumber, actLogoInfoPacked[corner].hits, logoInfoVectorPacked[corner].size(), aCorner[corner]);
             }
             if (maContext->Config->autoLogo == 2) { // use unpacked logos
-                for (std::vector<logoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
+                for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
                     if (actLogo->hits > actLogoInfo[corner].hits) {
                         actLogoInfo[corner] = *actLogo;
                     }
@@ -1435,15 +1435,15 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
         }
 
         // find best and second best corner
-        logoInfo bestLogoInfo = {};
-        logoInfo secondBestLogoInfo = {};
+        sLogoInfo bestLogoInfo = {};
+        sLogoInfo secondBestLogoInfo = {};
         int bestLogoCorner = -1;
         int secondBestLogoCorner = -1;
         int sumHits = 0;
 
         if (maContext->Config->autoLogo == 1) { // use packed logos
-            logoInfoPacked bestLogoInfoPacked = {};
-            logoInfoPacked secondBestLogoInfoPacked = {};
+            sLogoInfoPacked bestLogoInfoPacked = {};
+            sLogoInfoPacked secondBestLogoInfoPacked = {};
             for (int corner = 0; corner < CORNERS; corner++) {  // search for the best hits of each corner
                 sumHits += actLogoInfoPacked[corner].hits;
                 if (actLogoInfoPacked[corner].hits > bestLogoInfoPacked.hits) {
