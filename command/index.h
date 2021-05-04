@@ -33,12 +33,22 @@ class cIndex {
     private:
         int GetLastFrameNumber();
 
-        struct indexType {
-            int fileNumber = 0;
-            int frameNumber = 0;
-            int64_t pts_time_ms = 0;
+/**
+ * element of the video index
+ */
+        struct sIndexElement {
+            int fileNumber = 0;      //!< number of TS file
+                                     //!<
+
+            int frameNumber = 0;     //!< video frame number
+                                     //!<
+
+            int64_t pts_time_ms = 0; //!< presentation timestamp of the frame
+                                     //!<
+
         };
-        std::vector<indexType> indexVector;
+
+        std::vector<sIndexElement> indexVector;
 
 /**
  * ring buffer element to store frame presentation timestamp
