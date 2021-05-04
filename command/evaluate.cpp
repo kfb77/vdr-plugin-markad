@@ -25,7 +25,7 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, clMarks *
 #define LOGO_CHANGE_IS_BROADCAST_MIN 240  // in s
 
     dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): start with iStart %d, chkSTART %d, iStopA %d", iStart, chkSTART, iStopA);
-    logoStopStartPairType newPair;
+    sLogoStopStartPair newPair;
 
     clMark *mark = marks->GetFirst();
     while (mark) {
@@ -33,7 +33,7 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, clMarks *
         if ((mark->type == MT_LOGOSTART) && (newPair.stopPosition >= 0)) {
             newPair.startPosition = mark->position;
             logoPairVector.push_back(newPair);
-            ALLOC(sizeof(logoStopStartPairType), "logoPairVector");
+            ALLOC(sizeof(sLogoStopStartPair), "logoPairVector");
             // reset for next pair
             newPair.stopPosition = -1;
             newPair.startPosition = -1;
@@ -42,7 +42,7 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, clMarks *
     }
 
 // evaluate stop/start pairs
-    for (std::vector<logoStopStartPairType>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+    for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
         // check for info logo section
         isInfoLogo(blackMarks, &(*logoPairIterator), framesPerSecond);
 
@@ -105,13 +105,13 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, clMarks *
     // check section of stop/start pairs
     // search for part between advertising and broadcast, keep this mark, because it contains the start mark of the broadcast
     //
-    for (std::vector<logoStopStartPairType>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+    for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
         if (logoPairIterator->isAdvertising == 1) {  // advertising pair
-            std::vector<logoStopStartPairType>::iterator nextLogoPairIterator = logoPairIterator;
+            std::vector<sLogoStopStartPair>::iterator nextLogoPairIterator = logoPairIterator;
             ++nextLogoPairIterator;
             if (nextLogoPairIterator != logoPairVector.end()) {
                 if ((nextLogoPairIterator->isLogoChange == 0) && (nextLogoPairIterator->isStartMarkInBroadcast  == 0)){ // unknown pair
-                    std::vector<logoStopStartPairType>::iterator next2LogoPairIterator = nextLogoPairIterator;
+                    std::vector<sLogoStopStartPair>::iterator next2LogoPairIterator = nextLogoPairIterator;
                     ++next2LogoPairIterator;
                     if (next2LogoPairIterator != logoPairVector.end()) {
                         if (next2LogoPairIterator->isStartMarkInBroadcast  == 1) { // pair with bradcast start mark
@@ -119,7 +119,7 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, clMarks *
                             nextLogoPairIterator->isLogoChange = -1;
                         }
                         if ((next2LogoPairIterator->isLogoChange == 0) && (next2LogoPairIterator->isStartMarkInBroadcast  == 0)) { // unknown pair
-                            std::vector<logoStopStartPairType>::iterator next3LogoPairIterator = next2LogoPairIterator;
+                            std::vector<sLogoStopStartPair>::iterator next3LogoPairIterator = next2LogoPairIterator;
                             ++next3LogoPairIterator;
                             if (next3LogoPairIterator != logoPairVector.end()) {
                                 if (next3LogoPairIterator->isStartMarkInBroadcast  == 1) { // pair with bradcast start mark
@@ -133,7 +133,7 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, clMarks *
             }
         }
     }
-    for (std::vector<logoStopStartPairType>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+    for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
         dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): add stop (%d) start (%d) pair:", logoPairIterator->stopPosition, logoPairIterator->startPosition);
         dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isLogoChange           %2d", logoPairIterator->isLogoChange);
         dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isAdvertising          %2d", logoPairIterator->isAdvertising);
@@ -148,7 +148,7 @@ cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
 #ifdef DEBUG_MEM
     int size =  logoPairVector.size();
     for (int i = 0 ; i < size; i++) {
-        FREE(sizeof(logoStopStartPairType), "logoPairVector");
+        FREE(sizeof(sLogoStopStartPair), "logoPairVector");
     }
 #endif
      logoPairVector.clear();
@@ -157,7 +157,7 @@ cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
 
 // check if stop/start pair could be a info logo section
 //
-void cEvaluateLogoStopStartPair::isInfoLogo(clMarks *blackMarks, logoStopStartPairType *logoStopStartPair, const int framesPerSecond) {
+void cEvaluateLogoStopStartPair::isInfoLogo(clMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond) {
     if (framesPerSecond <= 0) return;
 #define LOGO_INTRODUCTION_STOP_START_MIN 6  // min time in s of a info logo section, bigger values than in InfoLogo becase of seek to iFrame, changed from 8 to 7 to 6
 #define LOGO_INTRODUCTION_STOP_START_MAX 17  // max time in s of a info logo section, changed from 17
@@ -267,7 +267,7 @@ bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPositi
 
 
 void cEvaluateLogoStopStartPair::SetIsInfoLogo(const int stopPosition, const int startPosition) {
-    for (std::vector<logoStopStartPairType>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+    for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
         if ((logoPairIterator->stopPosition == stopPosition) && (logoPairIterator->startPosition == startPosition)) {
             dsyslog("cEvaluateLogoStopStartPair::SetIsInfoLogo(): set isInfoLogo for stop (%d) start (%d) pair", logoPairIterator->stopPosition, logoPairIterator->startPosition);
             logoPairIterator->isLogoChange = 1;
@@ -279,7 +279,7 @@ void cEvaluateLogoStopStartPair::SetIsInfoLogo(const int stopPosition, const int
 
 
 bool cEvaluateLogoStopStartPair::IncludesInfoLogo(const int stopPosition, const int startPosition) {
-    for (std::vector<logoStopStartPairType>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+    for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
         if ((logoPairIterator->stopPosition >= stopPosition) && (logoPairIterator->startPosition <= startPosition)) {
             dsyslog("cEvaluateLogoStopStartPair::SetIsInfoLogo(): stop %d start %d is includes info logo for stop (%d) start (%d) pair", stopPosition, startPosition, logoPairIterator->stopPosition, logoPairIterator->startPosition);
             return true;
