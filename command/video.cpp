@@ -19,7 +19,7 @@ extern "C" {
 #include "logo.h"
 
 
-cMarkAdLogo::cMarkAdLogo(MarkAdContext *maContext, cIndex *recordingIndex) {
+cMarkAdLogo::cMarkAdLogo(sMarkAdContext *maContext, cIndex *recordingIndex) {
     macontext = maContext;
     recordingIndexMarkAdLogo = recordingIndex;
 
@@ -169,9 +169,9 @@ bool cMarkAdLogo::Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], c
 
     char *buf = NULL;
     if (debug == 0) {
-        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectRatio.Num,area.aspectRatio.Den, plane)==-1) return false;
+        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.AspectRatio.num, area.AspectRatio.den, plane)==-1) return false;
     }
-    else if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i_debug%d.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectRatio.Num,area.aspectRatio.Den, plane, debug)==-1) return false;
+    else if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i_debug%d.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.AspectRatio.num, area.AspectRatio.den, plane, debug)==-1) return false;
     ALLOC(strlen(buf)+1, "buf");
 
     // Open file
@@ -839,15 +839,15 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
 
 
     if (macontext->Config->logoExtraction == -1) {
-        if ((area.aspectRatio.Num != macontext->Video.Info.aspectRatio.Num) || (area.aspectRatio.Den != macontext->Video.Info.aspectRatio.Den)) {
-            dsyslog("cMarkAdLogo::Process(): aspect ratio changed from %i:%i to %i:%i, reload logo", area.aspectRatio.Num, area.aspectRatio.Den, macontext->Video.Info.aspectRatio.Num, macontext->Video.Info.aspectRatio.Den);
-            if (macontext->Info.checkedAspectRatio && (macontext->Info.aspectRatio.Num == 4) && (macontext->Info.aspectRatio.Den == 3) && (macontext->Video.Info.aspectRatio.Num == 16) && (macontext->Video.Info.aspectRatio.Den == 9)) {
+        if ((area.AspectRatio.num != macontext->Video.Info.AspectRatio.num) || (area.AspectRatio.den != macontext->Video.Info.AspectRatio.den)) {
+            dsyslog("cMarkAdLogo::Process(): aspect ratio changed from %i:%i to %i:%i, reload logo", area.AspectRatio.num, area.AspectRatio.den, macontext->Video.Info.AspectRatio.num, macontext->Video.Info.AspectRatio.den);
+            if (macontext->Info.checkedAspectRatio && (macontext->Info.AspectRatio.num == 4) && (macontext->Info.AspectRatio.den == 3) && (macontext->Video.Info.AspectRatio.num == 16) && (macontext->Video.Info.AspectRatio.den == 9)) {
                 dsyslog("cMarkAdLogo::Process(): recording is 4:3, current frame is 16:9, we do not need a logo");
                 macontext->Video.Options.ignoreLogoDetection = true;
             }
             else {
                 char *buf=NULL;
-                if (asprintf(&buf,"%s-A%i_%i", macontext->Info.ChannelName, macontext->Video.Info.aspectRatio.Num, macontext->Video.Info.aspectRatio.Den) != -1) {
+                if (asprintf(&buf,"%s-A%i_%i", macontext->Info.ChannelName, macontext->Video.Info.AspectRatio.num, macontext->Video.Info.AspectRatio.den) != -1) {
                     ALLOC(strlen(buf)+1, "buf");
                     area.corner = -1;
                     bool logoStatus = false;
@@ -869,7 +869,7 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
                         else {
                             if (macontext->Config->autoLogo > 0) {
                                 isyslog("no valid logo for %s in logo cache and recording directory, extract logo from recording",buf);
-                                cExtractLogo *ptr_cExtractLogo = new cExtractLogo(macontext->Video.Info.aspectRatio, recordingIndexMarkAdLogo);  // search logo from current frame
+                                cExtractLogo *ptr_cExtractLogo = new cExtractLogo(macontext->Video.Info.AspectRatio, recordingIndexMarkAdLogo);  // search logo from current frame
                                 ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
                                 if (ptr_cExtractLogo->SearchLogo(macontext, iFrameCurrent) > 0) dsyslog("cMarkAdLogo::Process(): no logo found in recording");
                                 else dsyslog("cMarkAdLogo::Process(): new logo for %s found in recording",buf);
@@ -888,7 +888,7 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
                         }
                     }
                     if (!logoStatus) {
-                        dsyslog("cMarkAdLogo::Process(): no valid logo found for aspect ratio %i:%i, disable logo detection", macontext->Video.Info.aspectRatio.Num, macontext->Video.Info.aspectRatio.Den);
+                        dsyslog("cMarkAdLogo::Process(): no valid logo found for aspect ratio %i:%i, disable logo detection", macontext->Video.Info.AspectRatio.num, macontext->Video.Info.AspectRatio.den);
                         macontext->Video.Options.ignoreLogoDetection = true;
                     }
                     FREE(strlen(buf)+1, "buf");
@@ -896,8 +896,8 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
                 }
                 else dsyslog("cMarkAdLogo::Process(): out of memory");
             }
-            area.aspectRatio.Num = macontext->Video.Info.aspectRatio.Num;
-            area.aspectRatio.Den = macontext->Video.Info.aspectRatio.Den;
+            area.AspectRatio.num = macontext->Video.Info.AspectRatio.num;
+            area.AspectRatio.den = macontext->Video.Info.AspectRatio.den;
         }
     }
     else {
@@ -915,8 +915,8 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
                 return LOGO_ERROR;
             }
         }
-        area.aspectRatio.Num = macontext->Video.Info.aspectRatio.Num;
-        area.aspectRatio.Den = macontext->Video.Info.aspectRatio.Den;
+        area.AspectRatio.num = macontext->Video.Info.AspectRatio.num;
+        area.AspectRatio.den = macontext->Video.Info.AspectRatio.den;
         area.corner = macontext->Config->logoExtraction;
         if (macontext->Config->logoWidth != -1) {
             LOGOWIDTH = macontext->Config->logoWidth;
@@ -932,7 +932,7 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
 
 // detect blackscreen
 //
-cMarkAdBlackScreen::cMarkAdBlackScreen(MarkAdContext *maContext) {
+cMarkAdBlackScreen::cMarkAdBlackScreen(sMarkAdContext *maContext) {
     macontext = maContext;
     Clear();
 }
@@ -994,7 +994,7 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
 }
 
 
-cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(MarkAdContext *maContext) {
+cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(sMarkAdContext *maContext) {
     macontext = maContext;
     Clear();
 }
@@ -1098,7 +1098,7 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *BorderIFrame) 
 }
 
 
-cMarkAdBlackBordersVert::cMarkAdBlackBordersVert(MarkAdContext *maContext) {
+cMarkAdBlackBordersVert::cMarkAdBlackBordersVert(sMarkAdContext *maContext) {
     macontext = maContext;
     Clear();
 }
@@ -1200,7 +1200,7 @@ int cMarkAdBlackBordersVert::Process(int FrameNumber, int *BorderIFrame) {
 }
 
 
-cMarkAdOverlap::cMarkAdOverlap(MarkAdContext *maContext) {
+cMarkAdOverlap::cMarkAdOverlap(sMarkAdContext *maContext) {
     macontext = maContext;
     histbuf[OV_BEFORE] = NULL;
     histbuf[OV_AFTER] = NULL;
@@ -1373,7 +1373,7 @@ sOverlapPos *cMarkAdOverlap::Process(const int FrameNumber, const int Frames, co
 }
 
 
-cMarkAdVideo::cMarkAdVideo(MarkAdContext *maContext, cIndex *recordingIndex) {
+cMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContext, cIndex *recordingIndex) {
     macontext = maContext;
     recordingIndexMarkAdVideo = recordingIndex;
 
@@ -1421,8 +1421,8 @@ cMarkAdVideo::~cMarkAdVideo() {
 
 void cMarkAdVideo::Clear(bool isRestart, bool inBroadCast) {
     if (! isRestart) {
-        aspectratio.Num=0;
-        aspectratio.Den=0;
+        aspectratio.num=0;
+        aspectratio.den=0;
         if (hborder) hborder->Clear();
         if (vborder) vborder->Clear();
     }
@@ -1436,15 +1436,15 @@ void cMarkAdVideo::resetmarks() {
 }
 
 
-bool cMarkAdVideo::addmark(int type, int position, MarkAdAspectRatio *before, MarkAdAspectRatio *after) {
+bool cMarkAdVideo::addmark(int type, int position, sMarkAdAspectRatio *before, sMarkAdAspectRatio *after) {
     if (marks.Count>marks.maxCount) return false;
     if (before) {
-        marks.Number[marks.Count].aspectRatioBefore.Num = before->Num;
-        marks.Number[marks.Count].aspectRatioBefore.Den = before->Den;
+        marks.Number[marks.Count].AspectRatioBefore.num = before->num;
+        marks.Number[marks.Count].AspectRatioBefore.den = before->den;
     }
     if (after) {
-        marks.Number[marks.Count].aspectRatioAfter.Num = after->Num;
-        marks.Number[marks.Count].aspectRatioAfter.Den = after->Den;
+        marks.Number[marks.Count].AspectRatioAfter.num = after->num;
+        marks.Number[marks.Count].AspectRatioAfter.den = after->den;
     }
     marks.Number[marks.Count].position = position;
     marks.Number[marks.Count].type = type;
@@ -1453,17 +1453,17 @@ bool cMarkAdVideo::addmark(int type, int position, MarkAdAspectRatio *before, Ma
 }
 
 
-bool cMarkAdVideo::aspectratiochange(const MarkAdAspectRatio &a, const MarkAdAspectRatio &b, bool &start) {
+bool cMarkAdVideo::aspectratiochange(const sMarkAdAspectRatio &a, const sMarkAdAspectRatio &b, bool &start) {
     start = false;
-    if ((a.Num == 0) || (a.Den == 0) || (b.Num == 0) || (b.Den == 0)) {
-        if (((a.Num == 4) || (b.Num == 4)) && ((a.Den == 3) || (b.Den == 3))) {
+    if ((a.num == 0) || (a.den == 0) || (b.num == 0) || (b.den == 0)) {
+        if (((a.num == 4) || (b.num == 4)) && ((a.den == 3) || (b.den == 3))) {
             start = true;
         }
         else {
             return false;
         }
     }
-    if ((a.Num != b.Num) && (a.Den != b.Den)) return true;
+    if ((a.num != b.num) && (a.den != b.den)) return true;
     return false;
 }
 
@@ -1479,7 +1479,7 @@ sOverlapPos *cMarkAdVideo::ProcessOverlap(const int FrameNumber, const int Frame
 }
 
 
-MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, const int frameCurrent) {
+sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, const int frameCurrent) {
     if ((iFrameCurrent < 0) || (frameCurrent < 0)) return NULL;
     if (iFrameBefore < 0) iFrameBefore = 0; // this could happen at the start of recording
 
@@ -1532,7 +1532,7 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
 
     if (!macontext->Video.Options.ignoreAspectRatio) {
         bool start;
-        if (aspectratiochange(macontext->Video.Info.aspectRatio, aspectratio, start)) {
+        if (aspectratiochange(macontext->Video.Info.AspectRatio, aspectratio, start)) {
             if ((logo->Status() == LOGO_VISIBLE) && (!start)) {
                 addmark(MT_LOGOSTOP, iFrameBefore);
                 logo->SetStatusLogoInvisible();
@@ -1552,27 +1552,27 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
             if (start && !macontext->Config->fullDecode) startFrame = iFrameBefore;
             else startFrame = frameCurrent;
 
-            if (((macontext->Info.aspectRatio.Num == 4) && (macontext->Info.aspectRatio.Den == 3)) ||
-                ((macontext->Info.aspectRatio.Num == 0) && (macontext->Info.aspectRatio.Den == 0))) {
-                if ((macontext->Video.Info.aspectRatio.Num==4) && (macontext->Video.Info.aspectRatio.Den==3)) {
-                    addmark(MT_ASPECTSTART, startFrame, &aspectratio, &macontext->Video.Info.aspectRatio);
+            if (((macontext->Info.AspectRatio.num == 4) && (macontext->Info.AspectRatio.den == 3)) ||
+                ((macontext->Info.AspectRatio.num == 0) && (macontext->Info.AspectRatio.den == 0))) {
+                if ((macontext->Video.Info.AspectRatio.num == 4) && (macontext->Video.Info.AspectRatio.den == 3)) {
+                    addmark(MT_ASPECTSTART, startFrame, &aspectratio, &macontext->Video.Info.AspectRatio);
                 }
                 else {
-                    addmark(MT_ASPECTSTOP, iFrameBefore, &aspectratio, &macontext->Video.Info.aspectRatio);
+                    addmark(MT_ASPECTSTOP, iFrameBefore, &aspectratio, &macontext->Video.Info.AspectRatio);
                 }
             }
             else {
-                if ((macontext->Video.Info.aspectRatio.Num == 16) && (macontext->Video.Info.aspectRatio.Den == 9)) {
-                    addmark(MT_ASPECTSTART, startFrame, &aspectratio, &macontext->Video.Info.aspectRatio);
+                if ((macontext->Video.Info.AspectRatio.num == 16) && (macontext->Video.Info.AspectRatio.den == 9)) {
+                    addmark(MT_ASPECTSTART, startFrame, &aspectratio, &macontext->Video.Info.AspectRatio);
                 }
                 else {
-                    addmark(MT_ASPECTSTOP, iFrameBefore, &aspectratio, &macontext->Video.Info.aspectRatio);
+                    addmark(MT_ASPECTSTOP, iFrameBefore, &aspectratio, &macontext->Video.Info.AspectRatio);
                 }
             }
         }
 
-        aspectratio.Num = macontext->Video.Info.aspectRatio.Num;
-        aspectratio.Den = macontext->Video.Info.aspectRatio.Den;
+        aspectratio.num = macontext->Video.Info.AspectRatio.num;
+        aspectratio.den = macontext->Video.Info.AspectRatio.den;
     }
 
     if (!macontext->Video.Options.ignoreLogoDetection) {

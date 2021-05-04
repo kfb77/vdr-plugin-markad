@@ -190,14 +190,13 @@ typedef struct sOverlapPos {
 } sOverlapPos;
 
 
-typedef struct MarkAdAspectRatio {
-    int Num=0;  //!< video aspectio ratio numerator
+typedef struct sMarkAdAspectRatio {
+    int num=0;  //!< video aspectio ratio numerator
                 //!<
 
-    int Den=0;  //!< video aspectio ratio denominator
+    int den=0;  //!< video aspectio ratio denominator
 
-} MarkAdAspectRatio; //!< video aspectio ratio
-                     //!<
+} sMarkAdAspectRatio;
 
 
 /**
@@ -216,18 +215,18 @@ typedef struct sMarkAdMark {
     int channelsAfter = 0; //!< audio channel count after mark (set if channel changed at this mark)
                            //!<
 
-    MarkAdAspectRatio aspectRatioBefore; //!< video aspect ratio before mark (set if video aspect ratio changed at this mark)
-                                         //!<
+    sMarkAdAspectRatio AspectRatioBefore; //!< video aspect ratio before mark (set if video aspect ratio changed at this mark)
+                                          //!<
 
-    MarkAdAspectRatio aspectRatioAfter; //!< video aspect ratio after mark (set if video aspect ratio changed at this mark)
-                                        //!<
+    sMarkAdAspectRatio AspectRatioAfter; //!< video aspect ratio after mark (set if video aspect ratio changed at this mark)
+                                         //!<
 } sMarkAdMark;
 
 
 /**
  * array of new marks to add
  */
-typedef struct MarkAdMarks {
+typedef struct sMarkAdMarks {
     static const int maxCount = 4; //!< maximum elements of the array
                                    //!<
     int Count; //!< current count of elements in the array
@@ -235,7 +234,7 @@ typedef struct MarkAdMarks {
 
     sMarkAdMark Number[maxCount]; //!< array of new marks to add
                                   //!<
-} MarkAdMarks;
+} sMarkAdMarks;
 
 
 #define MARKAD_PIDTYPE_VIDEO_H262 0x10
@@ -262,8 +261,8 @@ typedef struct sMarkAdContext {
         int tStart = 0;                   //!< offset of timer start to recording start (pre timer)
                                           //!<
 
-        MarkAdAspectRatio aspectRatio;   //!< set from info file and checked after chkSTART, valid for the recording
-                                         //!<
+        sMarkAdAspectRatio AspectRatio;   //!< set from info file and checked after chkSTART, valid for the recording
+                                          //!<
 
         bool checkedAspectRatio = false;  //!< <b>true:</b> current video aspect ratio is verified <br>
                                           //!< <b>false:</b> current video aspect ratio is not jet verified
@@ -327,8 +326,8 @@ typedef struct sMarkAdContext {
             int pixFmt; //!< pixel format (see libavutil/pixfmt.h)
                         //!<
 
-            MarkAdAspectRatio aspectRatio;  //!< current video aspect ratio, set by decoder for each frame
-                                            //!<
+            sMarkAdAspectRatio AspectRatio;  //!< current video aspect ratio, set by decoder for each frame
+                                             //!<
 
             double framesPerSecond; //!< frames per second of the recording
                                     //!<
@@ -386,6 +385,7 @@ typedef struct sMarkAdContext {
             bool ignoreDolbyDetection; //!< <b>true:</b> ignore audio channel count detection <br>
                                        //!< <b>false:</b> detect audio channel count changes
                                        //!<
+
         } Options; //!< audio detection options
                    //!<
 
@@ -424,5 +424,5 @@ typedef struct sMarkAdContext {
     } Audio;  //!< audio stream infos, options and data
               //!<
 
-} MarkAdContext;
+} sMarkAdContext;
 #endif

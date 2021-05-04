@@ -440,7 +440,7 @@ char *clMarks::TypeToText(const int type) {
 // move mark to new posiition
 // return pointer to new mark
 //
-clMark *clMarks::Move(MarkAdContext *maContext, clMark *mark, const int newPosition, const char* reason) {
+clMark *clMarks::Move(sMarkAdContext *maContext, clMark *mark, const int newPosition, const char* reason) {
     if (!mark) return NULL;
     if (!reason) return NULL;
 
@@ -484,7 +484,7 @@ void clMarks::RegisterIndex(cIndex *recordingIndex) {
 }
 
 
-char *clMarks::IndexToHMSF(const int Index, const MarkAdContext *maContext) {
+char *clMarks::IndexToHMSF(const int Index, const sMarkAdContext *maContext) {
     double FramesPerSecond = maContext->Video.Info.framesPerSecond;
     if (FramesPerSecond == 0.0) return NULL;
     char *indexToHMSF = NULL;
@@ -611,7 +611,7 @@ bool clMarks::Load(const char *Directory, const double FrameRate, const bool isT
 }
 
 
-bool clMarks::Save(const char *Directory, const MarkAdContext *maContext, const bool isTS, const bool force) {
+bool clMarks::Save(const char *Directory, const sMarkAdContext *maContext, const bool isTS, const bool force) {
     if (!Directory) return false;
     if (!maContext) return false;
     if (!first) return false;  // no marks to save

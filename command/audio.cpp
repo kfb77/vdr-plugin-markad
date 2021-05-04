@@ -17,7 +17,7 @@ extern "C"{
 }
 
 
-cMarkAdAudio::cMarkAdAudio(MarkAdContext *maContext, cIndex *recordingIndex) {
+cMarkAdAudio::cMarkAdAudio(sMarkAdContext *maContext, cIndex *recordingIndex) {
     macontext = maContext;
     recordingIndexAudio = recordingIndex;
     mark.position = 0;

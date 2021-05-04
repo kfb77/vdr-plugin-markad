@@ -38,7 +38,7 @@ class cAC3VolumeFilter {
 
 class cEncoder {
     public:
-        explicit cEncoder(MarkAdContext *macontext);
+        explicit cEncoder(sMarkAdContext *macontext);
         ~cEncoder();
         void Reset(const int Pass);
         bool OpenFile(const char *directory, cDecoder *pt_cDecoder);
@@ -53,7 +53,7 @@ class cEncoder {
         bool ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int streamIndex);
         bool CheckStats(const int max_b_frames);
 
-        MarkAdContext *maContext;
+        sMarkAdContext *maContext;
         int threadCount = 0;
         AVFormatContext *avctxIn = NULL;
         AVFormatContext *avctxOut = NULL;

@@ -76,53 +76,53 @@ enum {
  */
 typedef struct sAreaT {
 #ifdef VDRDEBUG
-    uchar source[PLANES][MAXPIXEL]; //!< original picture
-                                    //!<
+    uchar source[PLANES][MAXPIXEL];  //!< original picture
+                                     //!<
 
 #endif
-    uchar sobel[PLANES][MAXPIXEL];  //!< monochrome picture with edges (after sobel)
-                                    //!<
+    uchar sobel[PLANES][MAXPIXEL];   //!< monochrome picture with edges (after sobel)
+                                     //!<
 
-    uchar mask[PLANES][MAXPIXEL];   //!< monochrome mask of logo
-                                    //!<
+    uchar mask[PLANES][MAXPIXEL];    //!< monochrome mask of logo
+                                     //!<
 
-    uchar result[PLANES][MAXPIXEL]; //!< result of sobel + mask
-                                    //!<
+    uchar result[PLANES][MAXPIXEL];  //!< result of sobel + mask
+                                     //!<
 
-    int rPixel[PLANES];             //!< black pixel in result
-                                    //!<
+    int rPixel[PLANES];              //!< black pixel in result
+                                     //!<
 
-    int mPixel[PLANES];             //!< black pixel in mask
-                                    //!<
+    int mPixel[PLANES];              //!< black pixel in mask
+                                     //!<
 
-    int status;                     //!< logo status: on, off, uninitialized
-                                    //!<
+    int status;                      //!< logo status: on, off, uninitialized
+                                     //!<
 
-    int frameNumber;                //!< start/stop frame number
-                                    //!<
+    int frameNumber;                 //!< start/stop frame number
+                                     //!<
 
-    int counter;                    //!< since how many logo on, offs detected?
-                                    //!<
+    int counter;                     //!< since how many logo on, offs detected?
+                                     //!<
 
-    int corner;                     //!< corner of logo
-                                    //!<
+    int corner;                      //!< corner of logo
+                                     //!<
 
-    int intensity;                  //!< area intensity (higher -> brighter)
-                                    //!<
+    int intensity;                   //!< area intensity (higher -> brighter)
+                                     //!<
 
-    MarkAdAspectRatio aspectRatio;  //!< aspect ratio of the video
-                                    //!<
+    sMarkAdAspectRatio AspectRatio;  //!< aspect ratio of the video
+                                     //!<
 
-    bool valid[PLANES];             //!< <b>true:</b> logo mask data are valid <br>
-                                    //!< <b>false:</b> logo mask is not valid
-                                    //!<
+    bool valid[PLANES];              //!< <b>true:</b> logo mask data are valid <br>
+                                     //!< <b>false:</b> logo mask is not valid
+                                     //!<
 
 } sAreaT;
 
 
 class cMarkAdOverlap {
     private:
-        MarkAdContext *macontext;
+        sMarkAdContext *macontext;
         typedef int simpleHistogram[256];
         typedef struct {
             int framenumber;
@@ -141,7 +141,7 @@ class cMarkAdOverlap {
         sOverlapPos *Detect();
         void Clear();
     public:
-        explicit cMarkAdOverlap(MarkAdContext *maContext);
+        explicit cMarkAdOverlap(sMarkAdContext *maContext);
         ~cMarkAdOverlap();
         sOverlapPos *Process(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
 };
@@ -161,7 +161,7 @@ class cMarkAdLogo {
         sAreaT area;
         int GX[3][3];
         int GY[3][3];
-        MarkAdContext *macontext;
+        sMarkAdContext *macontext;
         bool pixfmt_info;
         bool isInitColourChange = false;
 
@@ -173,7 +173,7 @@ class cMarkAdLogo {
         void SaveFrameCorner(const int framenumber, const int debug);
         void LogoGreyToColour();
     public:
-        explicit cMarkAdLogo(MarkAdContext *maContext, cIndex *recordingIndex);
+        explicit cMarkAdLogo(sMarkAdContext *maContext, cIndex *recordingIndex);
         int Detect(const int frameBefore, const int frameCurrent, int *logoFrameNumber); // return: 1 = logo, 0 = unknown, -1 = no logo
         int Process(const int iFrameBefore, const int iFrameCurrent, const int frameCurrent, int *logoFrameNumber);
         int Status() {
@@ -194,9 +194,9 @@ class cMarkAdLogo {
 class cMarkAdBlackScreen {
     private:
         int blackScreenstatus;
-        MarkAdContext *macontext;
+        sMarkAdContext *macontext;
     public:
-        explicit cMarkAdBlackScreen(MarkAdContext *maContext);
+        explicit cMarkAdBlackScreen(sMarkAdContext *maContext);
         int Process(const int frameCurrent);
         void Clear();
 };
@@ -206,9 +206,9 @@ class cMarkAdBlackBordersHoriz {
     private:
         int borderstatus;
         int borderframenumber;
-        MarkAdContext *macontext;
+        sMarkAdContext *macontext;
     public:
-        explicit cMarkAdBlackBordersHoriz(MarkAdContext *maContext);
+        explicit cMarkAdBlackBordersHoriz(sMarkAdContext *maContext);
         int GetFirstBorderFrame();
         int Process(const int frameNumber, int *BorderFrameNumber);
         void SetStatusBorderInvisible() {
@@ -223,9 +223,9 @@ class cMarkAdBlackBordersVert {
     private:
         int borderstatus;
         int borderframenumber;
-        MarkAdContext *macontext;
+        sMarkAdContext *macontext;
     public:
-        explicit cMarkAdBlackBordersVert(MarkAdContext *maContext);
+        explicit cMarkAdBlackBordersVert(sMarkAdContext *maContext);
         int GetFirstBorderFrame();
         int Process(int FrameNumber, int *BorderFrameNumber);
         void SetStatusBorderInvisible() {
@@ -238,7 +238,7 @@ class cMarkAdBlackBordersVert {
 
 class cMarkAdVideo {
     public:
-        explicit cMarkAdVideo(MarkAdContext *maContext, cIndex *recordingIndex);
+        explicit cMarkAdVideo(sMarkAdContext *maContext, cIndex *recordingIndex);
         ~cMarkAdVideo();
         cMarkAdVideo(const cMarkAdVideo &origin) {   //  copy constructor, not used, only for formal reason
             macontext = origin.macontext;
@@ -259,19 +259,19 @@ class cMarkAdVideo {
             return *this;
         }
         sOverlapPos *ProcessOverlap(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
-        MarkAdMarks *Process(int iFrameBefore, const int iFrameCurrent, const int frameCurrent);
+        sMarkAdMarks *Process(int iFrameBefore, const int iFrameCurrent, const int frameCurrent);
         bool ReducePlanes(void);
         void Clear(bool isRestart, bool inBroadCast = false);
 
     private:
         void resetmarks();
-        bool addmark(int type, int position, MarkAdAspectRatio *before = NULL, MarkAdAspectRatio *after = NULL);
-        bool aspectratiochange(const MarkAdAspectRatio &a, const MarkAdAspectRatio &b, bool &start);
+        bool addmark(int type, int position, sMarkAdAspectRatio *before = NULL, sMarkAdAspectRatio *after = NULL);
+        bool aspectratiochange(const sMarkAdAspectRatio &a, const sMarkAdAspectRatio &b, bool &start);
 
         cIndex *recordingIndexMarkAdVideo = NULL;
-        MarkAdContext *macontext;
-        MarkAdMarks marks = {};
-        MarkAdAspectRatio aspectratio = {};
+        sMarkAdContext *macontext;
+        sMarkAdMarks marks = {};
+        sMarkAdAspectRatio aspectratio = {};
         cMarkAdBlackScreen *blackScreen;
         cMarkAdBlackBordersHoriz *hborder;
         cMarkAdBlackBordersVert *vborder;

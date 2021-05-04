@@ -149,7 +149,7 @@ bool cAC3VolumeFilter::GetFrame(AVFrame *avFrame) {
 
 
 
-cEncoder::cEncoder(MarkAdContext *macontext) {
+cEncoder::cEncoder(sMarkAdContext *macontext) {
     maContext = macontext;
     threadCount = maContext->Config->threads;
     if (threadCount < 1) threadCount = 1;

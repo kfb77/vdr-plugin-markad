@@ -32,9 +32,9 @@ extern bool abortNow;
 extern int logoSearchTime_ms;
 
 
-cExtractLogo::cExtractLogo(const MarkAdAspectRatio aspectRatio, cIndex *recordingIndex) {
-    logoAspectRatio.Num = aspectRatio.Num;
-    logoAspectRatio.Den = aspectRatio.Den;
+cExtractLogo::cExtractLogo(const sMarkAdAspectRatio AspectRatio, cIndex *recordingIndex) {
+    logoAspectRatio.num = AspectRatio.num;
+    logoAspectRatio.den = AspectRatio.den;
     recordingIndexLogo = recordingIndex;
 }
 
@@ -74,7 +74,7 @@ bool cExtractLogo::IsWhitePlane(const sLogoInfo *ptr_actLogoInfo, const int logo
 }
 
 
-void cExtractLogo::SetLogoSize(const MarkAdContext *maContext, int *logoHeight, int *logoWidth) {
+void cExtractLogo::SetLogoSize(const sMarkAdContext *maContext, int *logoHeight, int *logoWidth) {
     if (!maContext) return;
     if (!logoHeight) return;
     if (!logoWidth) return;
@@ -93,7 +93,7 @@ void cExtractLogo::SetLogoSize(const MarkAdContext *maContext, int *logoHeight, 
 // return: true if only some frames have have pixels in plane >=1, a channel with logo coulor change is detected
 //         false if almost all frames have pixel in plane >=1, this is realy a coloured logo
 //
-bool cExtractLogo::IsLogoColourChange(const MarkAdContext *maContext, const int corner) {
+bool cExtractLogo::IsLogoColourChange(const sMarkAdContext *maContext, const int corner) {
     if (!maContext) return false;
     if ((corner < 0) || (corner >= CORNERS)) return false;
 
@@ -131,7 +131,7 @@ bool cExtractLogo::IsLogoColourChange(const MarkAdContext *maContext, const int 
 }
 
 
-bool cExtractLogo::Save(const MarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber = -1, const char *debugText = NULL) { // framenumber >= 0: save from debug function
+bool cExtractLogo::Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber = -1, const char *debugText = NULL) { // framenumber >= 0: save from debug function
     if (!maContext) return false;
     if (!ptr_actLogoInfo) return false;
     if ((logoHeight <= 0) || (logoWidth <= 0)) return false;
@@ -167,17 +167,17 @@ bool cExtractLogo::Save(const MarkAdContext *maContext, const sLogoInfo *ptr_act
             }
             else dsyslog("cExtractLogo::Save(): %i pixel in plane %i", black, plane);
 
-            if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", maContext->Config->recDir, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane)==-1) return false;
+            if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", maContext->Config->recDir, maContext->Info.ChannelName, logoAspectRatio.num, logoAspectRatio.den, plane)==-1) return false;
             ALLOC(strlen(buf)+1, "buf");
             dsyslog("cExtractLogo::Save(): store logo in %s", buf);
-            isyslog("Logo size for Channel: %s %d:%d %dW %dH: %dW %dH %s", maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, maContext->Video.Info.width, maContext->Video.Info.height, logoWidth, logoHeight, aCorner[corner]);
+            isyslog("Logo size for Channel: %s %d:%d %dW %dH: %dW %dH %s", maContext->Info.ChannelName, logoAspectRatio.num, logoAspectRatio.den, maContext->Video.Info.width, maContext->Video.Info.height, logoWidth, logoHeight, aCorner[corner]);
         }
         else {  // debug function, store logo to /tmp
             if (debugText) {
-                if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i_%s.pgm", "/tmp/",framenumber, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane, debugText) == -1) return false;
+                if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i_%s.pgm", "/tmp/",framenumber, maContext->Info.ChannelName, logoAspectRatio.num, logoAspectRatio.den, plane, debugText) == -1) return false;
             }
             else {
-                if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i.pgm", "/tmp/",framenumber, maContext->Info.ChannelName, logoAspectRatio.Num, logoAspectRatio.Den, plane) == -1) return false;
+                if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i.pgm", "/tmp/",framenumber, maContext->Info.ChannelName, logoAspectRatio.num, logoAspectRatio.den, plane) == -1) return false;
             }
             ALLOC(strlen(buf)+1, "buf");
         }
@@ -279,7 +279,7 @@ void cExtractLogo::CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, int
 }
 
 
-bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoHeight, const int logoWidth, const int logoCorner) {
+bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logoHeight, const int logoWidth, const int logoCorner) {
     if (!maContext) return false;
     if ((logoHeight <= 0) || (logoWidth <= 0)) return false;
     struct logo_struct {
@@ -432,7 +432,7 @@ bool cExtractLogo::CheckLogoSize(const MarkAdContext *maContext, const int logoH
 }
 
 
-bool cExtractLogo::Resize(const MarkAdContext *maContext, sLogoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner) {
+bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner) {
     if (!maContext) return false;
     if (!bestLogoInfo) return false;
     if (!logoHeight) return false;
@@ -674,7 +674,7 @@ bool cExtractLogo::Resize(const MarkAdContext *maContext, sLogoInfo *bestLogoInf
 // used before picture is stored in logo cantidates list
 // return: true if valid
 //
-bool cExtractLogo::CheckValid(const MarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
+bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
 #define WHITEHORIZONTAL_BIG 10
 #define WHITEHORIZONTAL_SMALL 7 // reduced from 8 to 7
 #define WHITEVERTICAL_BIG 10
@@ -771,7 +771,7 @@ bool cExtractLogo::CheckValid(const MarkAdContext *maContext, const sLogoInfo *p
 }
 
 
-int cExtractLogo::Compare(const MarkAdContext *maContext, sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
+int cExtractLogo::Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
     if (!maContext) return 0;
     if (!ptr_actLogoInfo) return 0;
     if ((logoHeight <= 0) || (logoWidth <= 0)) return 0;
@@ -912,7 +912,7 @@ if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo 
 }
 
 
-int cExtractLogo::DeleteFrames(const MarkAdContext *maContext, const int from, const int to) {
+int cExtractLogo::DeleteFrames(const sMarkAdContext *maContext, const int from, const int to) {
     if (!maContext) return 0;
     if (from >= to) return 0;
     int deleteCount = 0;
@@ -947,7 +947,7 @@ int cExtractLogo::DeleteFrames(const MarkAdContext *maContext, const int from, c
 }
 
 
-int cExtractLogo::GetFirstFrame(const MarkAdContext *maContext) {
+int cExtractLogo::GetFirstFrame(const sMarkAdContext *maContext) {
     if (!maContext) return 0;
 
     int firstFrame = INT_MAX;
@@ -963,7 +963,7 @@ int cExtractLogo::GetFirstFrame(const MarkAdContext *maContext) {
 }
 
 
-int cExtractLogo::GetLastFrame(const MarkAdContext *maContext) {
+int cExtractLogo::GetLastFrame(const sMarkAdContext *maContext) {
     if (!maContext) return 0;
 
     int lastFrame = 0;
@@ -979,7 +979,7 @@ int cExtractLogo::GetLastFrame(const MarkAdContext *maContext) {
 }
 
 
-int cExtractLogo::CountFrames(const MarkAdContext *maContext) {
+int cExtractLogo::CountFrames(const sMarkAdContext *maContext) {
     if (!maContext) return 0;
 
     long unsigned int count = 0;
@@ -995,7 +995,7 @@ int cExtractLogo::CountFrames(const MarkAdContext *maContext) {
 }
 
 
-bool cExtractLogo::WaitForFrames(MarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame = 0) {
+bool cExtractLogo::WaitForFrames(sMarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame = 0) {
     if (!maContext) return false;
     if (!ptr_cDecoder) return false;
 
@@ -1088,7 +1088,7 @@ void cExtractLogo::UnpackLogoInfo(sLogoInfo *logoInfo, const sLogoInfoPacked *lo
 }
 
 
-void cExtractLogo::RemovePixelDefects(const MarkAdContext *maContext, sLogoInfo *logoInfo, const int logoHeight, const int logoWidth, const int corner) {
+void cExtractLogo::RemovePixelDefects(const sMarkAdContext *maContext, sLogoInfo *logoInfo, const int logoHeight, const int logoWidth, const int corner) {
     if (!maContext) return;
     if (!logoInfo) return;
     if ((corner < 0) || (corner >= CORNERS)) return;
@@ -1142,7 +1142,7 @@ void cExtractLogo::RemovePixelDefects(const MarkAdContext *maContext, sLogoInfo 
 }
 
 
-int cExtractLogo::AudioInBroadcast(const MarkAdContext *maContext, const int iFrameNumber) {
+int cExtractLogo::AudioInBroadcast(const sMarkAdContext *maContext, const int iFrameNumber) {
     if (!maContext) return 0;
 
 // AudioState 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
@@ -1181,9 +1181,9 @@ int cExtractLogo::AudioInBroadcast(const MarkAdContext *maContext, const int iFr
 }
 
 
-int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
+int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
     dsyslog("----------------------------------------------------------------------------");
-    dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d", startFrame, logoAspectRatio.Num, logoAspectRatio.Den);
+    dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d", startFrame, logoAspectRatio.num, logoAspectRatio.den);
 
     if (!maContext) {
         dsyslog("cExtractLogo::SearchLogo(): maContext not valid");
@@ -1201,7 +1201,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
     bool readNextFile = true;
 
     gettimeofday(&startTime, NULL);
-    MarkAdContext maContextSaveState = {};
+    sMarkAdContext maContextSaveState = {};
     maContextSaveState.Video = maContext->Video;     // save state of calling video context
     maContextSaveState.Audio = maContext->Audio;     // save state of calling audio context
 
@@ -1293,12 +1293,12 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
                         continue;
                     }
 
-                    if ((logoAspectRatio.Num == 0) || (logoAspectRatio.Den == 0)) {
-                        logoAspectRatio.Num = maContext->Video.Info.aspectRatio.Num;
-                        logoAspectRatio.Den = maContext->Video.Info.aspectRatio.Den;
-                        dsyslog("cExtractLogo::SearchLogo(): aspect ratio set to %d:%d", logoAspectRatio.Num, logoAspectRatio.Den);
+                    if ((logoAspectRatio.num == 0) || (logoAspectRatio.den == 0)) {
+                        logoAspectRatio.num = maContext->Video.Info.AspectRatio.num;
+                        logoAspectRatio.den = maContext->Video.Info.AspectRatio.den;
+                        dsyslog("cExtractLogo::SearchLogo(): aspect ratio set to %d:%d", logoAspectRatio.num, logoAspectRatio.den);
                     }
-                    if ((logoAspectRatio.Num != maContext->Video.Info.aspectRatio.Num) || (logoAspectRatio.Den != maContext->Video.Info.aspectRatio.Den)) {
+                    if ((logoAspectRatio.num != maContext->Video.Info.AspectRatio.num) || (logoAspectRatio.den != maContext->Video.Info.AspectRatio.den)) {
                         continue;
                     }
 

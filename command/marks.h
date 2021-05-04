@@ -65,7 +65,7 @@ class clMarks {
             }
         }
         clMark *Add(const int Type, const int Position, const char *Comment = NULL, const bool inBroadCast = false);
-        char *IndexToHMSF(const int Index, const MarkAdContext *maContext);
+        char *IndexToHMSF(const int Index, const sMarkAdContext *maContext);
         void DelWeakFromTo(const int from, const int to, const short int type);
         void DelFromTo(const int from, const int to, const short int type);
         void DelTill(const int Position, const bool FromStart = true);
@@ -74,7 +74,7 @@ class clMarks {
         void Del(clMark *Mark);
         void Del(const unsigned char Type);
         void Del(const int Position);
-        clMark *Move(MarkAdContext *maContext, clMark *mark, const int newPosition, const char* reason);
+        clMark *Move(sMarkAdContext *maContext, clMark *mark, const int newPosition, const char* reason);
         clMark *Get(const int Position);
         clMark *GetAround(const int Frames, const int Position, const int Type = 0xFF, const int Mask = 0xFF);
         clMark *GetPrev(const int Position, const int Type = 0xFF, const int Mask = 0xFF);
@@ -87,7 +87,7 @@ class clMarks {
         }
         bool Backup(const char *Directory, const bool isTS);
         bool Load(const char *Directory, const double FrameRate, const bool isTS);
-        bool Save(const char *Directory, const MarkAdContext *maContext, const bool isTS, const bool force);
+        bool Save(const char *Directory, const sMarkAdContext *maContext, const bool isTS, const bool force);
         int LoadVPS(const char *Directory, const char *type);
 
         cIndex *recordingIndexMarks = NULL;

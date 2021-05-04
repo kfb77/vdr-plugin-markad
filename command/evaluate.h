@@ -42,7 +42,7 @@ class cEvaluateLogoStopStartPair {
 
 class cDetectLogoStopStart {
     public:
-        cDetectLogoStopStart(MarkAdContext *maContext_, cDecoder *ptr_cDecoder_, cIndex *recordingIndex_);
+        cDetectLogoStopStart(sMarkAdContext *maContext_, cDecoder *ptr_cDecoder_, cIndex *recordingIndex_);
         ~cDetectLogoStopStart();
         bool Detect(int startFrame, int endFrame, const bool adInFrame);
         bool isInfoLogo();
@@ -56,7 +56,7 @@ class cDetectLogoStopStart {
         bool ClosingCreditChannel();
         bool AdInFrameWithLogoChannel();
         bool IntroductionLogoChannel();
-        MarkAdContext *maContext;
+        sMarkAdContext *maContext;
         cDecoder *ptr_cDecoder;
         cIndex *recordingIndex;
         int startPos = 0;

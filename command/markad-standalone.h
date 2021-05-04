@@ -151,7 +151,7 @@ class cMarkAdStandalone {
         cMarkAdVideo *video = NULL;
         cMarkAdAudio *audio = NULL;
         cOSDMessage *osd = NULL;
-        MarkAdContext macontext = {};
+        sMarkAdContext macontext = {};
         cIndex *recordingIndexMark = NULL;
         enum { mSTART = 0x1, mBEFORE, mAFTER };
         const char *directory;

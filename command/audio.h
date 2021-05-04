@@ -23,7 +23,7 @@ class cMarkAdAudio {
  *  @param maContext markad context
  *  @param recordingIndex recording index
  */
-        explicit cMarkAdAudio(MarkAdContext *maContext, cIndex *recordingIndex);
+        explicit cMarkAdAudio(sMarkAdContext *maContext, cIndex *recordingIndex);
         ~cMarkAdAudio();
 
 /**
@@ -61,7 +61,7 @@ class cMarkAdAudio {
  */
         bool ChannelChange(int channelsbefore, int channelsafter);
 
-        MarkAdContext *macontext;
+        sMarkAdContext *macontext;
         cIndex *recordingIndexAudio = NULL;
         sMarkAdMark mark;
         short int channels[MAXSTREAMS] = {0};

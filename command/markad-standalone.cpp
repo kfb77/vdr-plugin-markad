@@ -624,7 +624,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
         ALLOC(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
         ptr_cDecoderLogoChange->DecodeDir(directory);
 
-        cExtractLogo *ptr_cExtractLogoChange = new cExtractLogo(macontext.Video.Info.aspectRatio, recordingIndexMark);
+        cExtractLogo *ptr_cExtractLogoChange = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
         ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
 
         cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoderLogoChange, recordingIndexMark);
@@ -805,10 +805,10 @@ void cMarkAdStandalone::CheckStart() {
         }
     }
     if (begin && inBroadCast) { // set recording aspect ratio for logo search at the end of the recording
-        macontext.Info.aspectRatio.Num = macontext.Video.Info.aspectRatio.Num;
-        macontext.Info.aspectRatio.Den = macontext.Video.Info.aspectRatio.Den;
+        macontext.Info.AspectRatio.num = macontext.Video.Info.AspectRatio.num;
+        macontext.Info.AspectRatio.den = macontext.Video.Info.AspectRatio.den;
         macontext.Info.checkedAspectRatio = true;
-        isyslog("Video with aspectratio of %i:%i detected", macontext.Info.aspectRatio.Num, macontext.Info.aspectRatio.Den);
+        isyslog("Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
     }
     if (!begin && inBroadCast) {
         clMark *chStart = marks.GetNext(0, MT_CHANNELSTART);
@@ -825,10 +825,10 @@ void cMarkAdStandalone::CheckStart() {
 
 // try to find a aspect ratio mark
     if (!begin) {
-        if ((macontext.Info.aspectRatio.Num == 0) || (macontext.Video.Info.aspectRatio.Den == 0)) {
+        if ((macontext.Info.AspectRatio.num == 0) || (macontext.Video.Info.AspectRatio.den == 0)) {
             isyslog("no video aspect ratio found in vdr info file");
-            macontext.Info.aspectRatio.Num = macontext.Video.Info.aspectRatio.Num;
-            macontext.Info.aspectRatio.Den = macontext.Video.Info.aspectRatio.Den;
+            macontext.Info.AspectRatio.num = macontext.Video.Info.AspectRatio.num;
+            macontext.Info.AspectRatio.den = macontext.Video.Info.AspectRatio.den;
         }
         // check marks and correct if necessary
         clMark *aStart = marks.GetAround(chkSTART, chkSTART + 1, MT_ASPECTSTART);   // check if we have ascpect ratio START/STOP in start part
@@ -845,29 +845,29 @@ void cMarkAdStandalone::CheckStart() {
             earlyAspectChange = true;
         }
         bool wrongAspectInfo = false;
-        if ((macontext.Info.aspectRatio.Num == 16) && (macontext.Info.aspectRatio.Den == 9)) {
+        if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
             if ((aStart && aStopBefore)) {
                 dsyslog("cMarkAdStandalone::CheckStart(): found aspect ratio change 16:9 to 4:3 at (%d) to 16:9 at (%d), video info is 16:9, this must be wrong", aStopBefore->position, aStart->position);
                 wrongAspectInfo = true;
             }
-            if ((macontext.Video.Info.aspectRatio.Num == 4) && (macontext.Video.Info.aspectRatio.Den == 3) && inBroadCast) {
+            if ((macontext.Video.Info.AspectRatio.num == 4) && (macontext.Video.Info.AspectRatio.den == 3) && inBroadCast) {
                 dsyslog("cMarkAdStandalone::CheckStart(): vdr info tells 16:9 but we are in broadcast and found 4:3, vdr info file must be wrong");
                 wrongAspectInfo = true;
             }
         }
         // fix wrong aspect ratio from vdr info file
-        if (wrongAspectInfo || ((!earlyAspectChange) && ((macontext.Info.aspectRatio.Num != macontext.Video.Info.aspectRatio.Num) ||
-                                                         (macontext.Info.aspectRatio.Den != macontext.Video.Info.aspectRatio.Den)))) {
-            MarkAdAspectRatio newMarkAdAspectRatio;
-            newMarkAdAspectRatio.Num = 16;
-            newMarkAdAspectRatio.Den = 9;
-            if ((macontext.Info.aspectRatio.Num == 16) && (macontext.Info.aspectRatio.Den == 9)) {
-                newMarkAdAspectRatio.Num = 4;
-                newMarkAdAspectRatio.Den = 3;
+        if (wrongAspectInfo || ((!earlyAspectChange) && ((macontext.Info.AspectRatio.num != macontext.Video.Info.AspectRatio.num) ||
+                                                         (macontext.Info.AspectRatio.den != macontext.Video.Info.AspectRatio.den)))) {
+            sMarkAdAspectRatio newMarkAdAspectRatio;
+            newMarkAdAspectRatio.num = 16;
+            newMarkAdAspectRatio.den = 9;
+            if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
+                newMarkAdAspectRatio.num = 4;
+                newMarkAdAspectRatio.den = 3;
             }
-            isyslog("video aspect description in info (%d:%d) wrong, correct to (%d:%d)", macontext.Info.aspectRatio.Num, macontext.Info.aspectRatio.Den, newMarkAdAspectRatio.Num, newMarkAdAspectRatio.Den);
-            macontext.Info.aspectRatio.Num = newMarkAdAspectRatio.Num;
-            macontext.Info.aspectRatio.Den = newMarkAdAspectRatio.Den;
+            isyslog("video aspect description in info (%d:%d) wrong, correct to (%d:%d)", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den, newMarkAdAspectRatio.num, newMarkAdAspectRatio.den);
+            macontext.Info.AspectRatio.num = newMarkAdAspectRatio.num;
+            macontext.Info.AspectRatio.den = newMarkAdAspectRatio.den;
             // we have to invert MT_ASPECTSTART and MT_ASPECTSTOP and fix position
             clMark *aMark = marks.GetFirst();
             while (aMark) {
@@ -885,11 +885,11 @@ void cMarkAdStandalone::CheckStart() {
             }
         }
         if (macontext.Info.vPidType == MARKAD_PIDTYPE_VIDEO_H264) {
-            isyslog("HD Video with aspectratio of %i:%i detected", macontext.Info.aspectRatio.Num, macontext.Info.aspectRatio.Den);
+            isyslog("HD Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
         }
         else {
-            isyslog("SD Video with aspectratio of %i:%i detected", macontext.Info.aspectRatio.Num, macontext.Info.aspectRatio.Den);
-            if (((macontext.Info.aspectRatio.Num == 4) && (macontext.Info.aspectRatio.Den == 3))) {
+            isyslog("SD Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
+            if (((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3))) {
                 isyslog("logo/border detection disabled");
                 bDecodeVideo = false;
                 macontext.Video.Options.ignoreAspectRatio = false;
@@ -1745,13 +1745,13 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *Mark) {
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_ASPECTSTART:
-            if (!Mark->aspectRatioBefore.Num) {
-                if (asprintf(&comment, "aspectratio start with %i:%i (%i)*", Mark->aspectRatioAfter.Num, Mark->aspectRatioAfter.Den, Mark->position) == -1) comment = NULL;
+            if (!Mark->AspectRatioBefore.num) {
+                if (asprintf(&comment, "aspectratio start with %i:%i (%i)*", Mark->AspectRatioAfter.num, Mark->AspectRatioAfter.den, Mark->position) == -1) comment = NULL;
                 ALLOC(strlen(comment)+1, "comment");
             }
             else {
-                if (asprintf(&comment, "aspectratio change from %i:%i to %i:%i (%i)*", Mark->aspectRatioBefore.Num, Mark->aspectRatioBefore.Den,
-                         Mark->aspectRatioAfter.Num, Mark->aspectRatioAfter.Den, Mark->position) == -1) comment = NULL;
+                if (asprintf(&comment, "aspectratio change from %i:%i to %i:%i (%i)*", Mark->AspectRatioBefore.num, Mark->AspectRatioBefore.den,
+                         Mark->AspectRatioAfter.num, Mark->AspectRatioAfter.den, Mark->position) == -1) comment = NULL;
                 ALLOC(strlen(comment)+1, "comment");
                 if ((macontext.Config->autoLogo > 0) &&( Mark->position > 0) && bDecodeVideo) {
                     isyslog("logo detection reenabled at frame (%d), trying to find a logo from this position", Mark->position);
@@ -1761,8 +1761,8 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *Mark) {
             }
             break;
         case MT_ASPECTSTOP:
-            if (asprintf(&comment, "aspectratio change from %i:%i to %i:%i (%i)", Mark->aspectRatioBefore.Num, Mark->aspectRatioBefore.Den,
-                     Mark->aspectRatioAfter.Num, Mark->aspectRatioAfter.Den, Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "aspectratio change from %i:%i to %i:%i (%i)", Mark->AspectRatioBefore.num, Mark->AspectRatioBefore.den,
+                     Mark->AspectRatioAfter.num, Mark->AspectRatioAfter.den, Mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             if ((macontext.Config->autoLogo > 0) && (Mark->position > 0) && bDecodeVideo) {
                 isyslog("logo detection reenabled at frame (%d), trying to find a logo from this position", Mark->position);
@@ -2729,8 +2729,8 @@ bool cMarkAdStandalone::Reset(bool FirstPass) {
     if (FirstPass) {
         marks.DelAll();
     }
-    macontext.Video.Info.aspectRatio.Den = 0;
-    macontext.Video.Info.aspectRatio.Num = 0;
+    macontext.Video.Info.AspectRatio.den = 0;
+    macontext.Video.Info.AspectRatio.num = 0;
     memset(macontext.Audio.Info.Channels, 0, sizeof(macontext.Audio.Info.Channels));
 
     if (video) video->Clear(false);
@@ -2803,7 +2803,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
 #endif
 
             if (!bDecodeVideo) macontext.Video.Data.valid = false; // make video picture invalid, we do not need them
-            MarkAdMarks *vmarks = video->Process(iFrameBefore, iFrameCurrent, frameCurrent);
+            sMarkAdMarks *vmarks = video->Process(iFrameBefore, iFrameCurrent, frameCurrent);
             if (vmarks) {
                 for (int i = 0; i < vmarks->Count; i++) {
                     AddMark(&vmarks->Number[i]);
@@ -3011,15 +3011,15 @@ bool cMarkAdStandalone::SaveInfo() {
                     case 1:
                     case 5:
                         if (stream == stream_content) {
-                            if ((macontext.Info.aspectRatio.Num == 4) && (macontext.Info.aspectRatio.Den == 3)) {
+                            if ((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) {
                                 if (fprintf(w, "X %i %02i %s 4:3\n", stream_content, component_type_43 + component_type_add, lang) <= 0) err = true;
-                                macontext.Info.aspectRatio.Num = 0;
-                                macontext.Info.aspectRatio.Den = 0;
+                                macontext.Info.AspectRatio.num = 0;
+                                macontext.Info.AspectRatio.den = 0;
                             }
-                            else if ((macontext.Info.aspectRatio.Num == 16) && (macontext.Info.aspectRatio.Den == 9)) {
+                            else if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
                                 if (fprintf(w, "X %i %02X %s 16:9\n", stream_content, component_type_169 + component_type_add, lang) <= 0) err = true;
-                                macontext.Info.aspectRatio.Num = 0;
-                                macontext.Info.aspectRatio.Den = 0;
+                                macontext.Info.AspectRatio.num = 0;
+                                macontext.Info.AspectRatio.den = 0;
                             }
                             else {
                                 if (fprintf(w, "%s",line) <=0 ) err = true;
@@ -3082,10 +3082,10 @@ bool cMarkAdStandalone::SaveInfo() {
     if (lang[0] == 0) strcpy(lang, "und");
 
     if (stream_content) {
-        if ((macontext.Info.aspectRatio.Num == 4) && (macontext.Info.aspectRatio.Den == 3) && (!err)) {
+        if ((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3) && (!err)) {
             if (fprintf(w, "X %i %02i %s 4:3\n", stream_content, component_type_43 + component_type_add, lang) <= 0 ) err = true;
         }
-        if ((macontext.Info.aspectRatio.Num == 16) && (macontext.Info.aspectRatio.Den == 9) && (!err)) {
+        if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9) && (!err)) {
             if (fprintf(w, "X %i %02i %s 16:9\n", stream_content, component_type_169 + component_type_add, lang) <= 0) err = true;
         }
     }
@@ -3268,7 +3268,7 @@ bool cMarkAdStandalone::CheckLogo() {
             closedir(recDIR);
         }
         isyslog("no logo found in recording directory, trying to extract logo from recording");
-        ptr_cExtractLogo = new cExtractLogo(macontext.Info.aspectRatio, recordingIndexMark);
+        ptr_cExtractLogo = new cExtractLogo(macontext.Info.AspectRatio, recordingIndexMark);
         ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
         int startPos =  macontext.Info.tStart * 25;  // search logo from assumed start, we do not know the frame rate at this point, so we use 25
         if (startPos < 0) startPos = 0;  // consider late start of recording
@@ -3403,13 +3403,13 @@ bool cMarkAdStandalone::LoadInfo() {
                 if ((stream == 1) || (stream == 5)) {
                     if ((type != 1) && (type != 5) && (type != 9) && (type != 13)) {
                         isyslog("broadcast aspect ratio 16:9 (from vdr info)");
-                        macontext.Info.aspectRatio.Num = 16;
-                        macontext.Info.aspectRatio.Den = 9;
+                        macontext.Info.AspectRatio.num = 16;
+                        macontext.Info.AspectRatio.den = 9;
                     }
                     else {
                         isyslog("broadcast aspect ratio 4:3 (from vdr info)");
-                        macontext.Info.aspectRatio.Num = 4;
-                        macontext.Info.aspectRatio.Den = 3;
+                        macontext.Info.AspectRatio.num = 4;
+                        macontext.Info.AspectRatio.den = 3;
                     }
                 }
 
@@ -3430,7 +3430,7 @@ bool cMarkAdStandalone::LoadInfo() {
             }
         }
     }
-    if ((macontext.Info.aspectRatio.Num == 0) && (macontext.Info.aspectRatio.Den == 0)) isyslog("no broadcast aspect ratio found in vdr info");
+    if ((macontext.Info.AspectRatio.num == 0) && (macontext.Info.AspectRatio.den == 0)) isyslog("no broadcast aspect ratio found in vdr info");
     if (line) free(line);
 
     macontext.Info.timerVPS = isVPSTimer();
@@ -3487,8 +3487,8 @@ bool cMarkAdStandalone::LoadInfo() {
 
     if ((!length) && (!bLiveRecording)) {
         esyslog("cannot read broadcast length from info, marks can be wrong!");
-        macontext.Info.aspectRatio.Num = 0;
-        macontext.Info.aspectRatio.Den = 0;
+        macontext.Info.AspectRatio.num = 0;
+        macontext.Info.AspectRatio.den = 0;
         bDecodeVideo = macontext.Config->decodeVideo;
         macontext.Video.Options.ignoreAspectRatio = false;
     }

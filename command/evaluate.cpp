@@ -290,7 +290,7 @@ bool cEvaluateLogoStopStartPair::IncludesInfoLogo(const int stopPosition, const 
 
 
 
-cDetectLogoStopStart::cDetectLogoStopStart(MarkAdContext *maContext_, cDecoder *ptr_cDecoder_, cIndex *recordingIndex_) {
+cDetectLogoStopStart::cDetectLogoStopStart(sMarkAdContext *maContext_, cDecoder *ptr_cDecoder_, cIndex *recordingIndex_) {
     maContext = maContext_;
     ptr_cDecoder = ptr_cDecoder_;
     recordingIndex = recordingIndex_;
@@ -330,7 +330,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
         return false;
     }
 
-    MarkAdContext maContextSaveState = {};
+    sMarkAdContext maContextSaveState = {};
     maContextSaveState.Video = maContext->Video;     // save state of calling video context
     maContextSaveState.Audio = maContext->Audio;     // save state of calling audio context
 
@@ -346,7 +346,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
     ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
     sAreaT *area = ptr_Logo->GetArea();
 
-    cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext->Video.Info.aspectRatio, recordingIndex);
+    cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext->Video.Info.AspectRatio, recordingIndex);
     ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
 
     sLogoInfo *logo1[CORNERS];

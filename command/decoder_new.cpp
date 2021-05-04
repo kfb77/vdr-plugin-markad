@@ -382,7 +382,7 @@ AVPacket *cDecoder::GetPacket() {
 }
 
 
-bool cDecoder::SeekToFrame(MarkAdContext *maContext, int frame) {
+bool cDecoder::SeekToFrame(sMarkAdContext *maContext, int frame) {
     dsyslog("cDecoder::SeekToFrame(): (%d)", frame);
     if (!avctx) return false;
     if (!maContext) return false;
@@ -599,7 +599,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
 }
 
 
-bool cDecoder::GetFrameInfo(MarkAdContext *maContext, const bool full) {
+bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool full) {
     if (!maContext) return false;
     if (!avctx) return false;
 
@@ -674,14 +674,14 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext, const bool full) {
                     }
                     else dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio (%d:%d) at frame (%d)",sample_aspect_ratio_num, sample_aspect_ratio_den, framenumber);
                 }
-                if ((maContext->Video.Info.aspectRatio.Num != sample_aspect_ratio_num) ||
-                   ( maContext->Video.Info.aspectRatio.Den != sample_aspect_ratio_den)) {
+                if ((maContext->Video.Info.AspectRatio.num != sample_aspect_ratio_num) ||
+                   ( maContext->Video.Info.AspectRatio.den != sample_aspect_ratio_den)) {
                     if (msgGetFrameInfo) dsyslog("cDecoder::GetFrameInfo(): aspect ratio changed from (%d:%d) to (%d:%d) at frame %d",
-                                                                            maContext->Video.Info.aspectRatio.Num, maContext->Video.Info.aspectRatio.Den,
+                                                                            maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den,
                                                                             sample_aspect_ratio_num, sample_aspect_ratio_den,
                                                                             framenumber);
-                    maContext->Video.Info.aspectRatio.Num = sample_aspect_ratio_num;
-                    maContext->Video.Info.aspectRatio.Den = sample_aspect_ratio_den;
+                    maContext->Video.Info.AspectRatio.num = sample_aspect_ratio_num;
+                    maContext->Video.Info.AspectRatio.den = sample_aspect_ratio_den;
                 }
                 return true;
             }
@@ -848,7 +848,7 @@ int cDecoder::GetFirstMP2AudioStream() {
 // if not <before> we are called direct after mark position and return iFrame before first silence part
 // -1 if no silence part were found
 //
-int cDecoder::GetNextSilence(MarkAdContext *maContext, const int stopFrame, const bool isBeforeMark, const bool isStartMark) {
+int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, const bool isBeforeMark, const bool isStartMark) {
 #define SILENCE_LEVEL 25  // changed from 10 to 27 to 25
 #define SILENCE_COUNT 5   // low level counts twice
     struct silenceType {
