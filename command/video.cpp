@@ -60,7 +60,7 @@ void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
 }
 
 
-areaT * cMarkAdLogo::GetArea() {
+sAreaT * cMarkAdLogo::GetArea() {
    return &area;
 }
 
@@ -98,7 +98,7 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
 
     int width,height;
     char c;
-    if (fscanf(pFile, "P5\n#%1c%1i %4i\n%3d %3d\n255\n#", &c, &area.corner, &area.mpixel[plane], &width, &height) != 5) {
+    if (fscanf(pFile, "P5\n#%1c%1i %4i\n%3d %3d\n255\n#", &c, &area.corner, &area.mPixel[plane], &width, &height) != 5) {
         fclose(pFile);
         esyslog("format error in %s", file);
         return -2;
@@ -107,8 +107,8 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
 
     if (height == 255) {
         height = width;
-        width = area.mpixel[plane];
-        area.mpixel[plane] = 0;
+        width = area.mPixel[plane];
+        area.mPixel[plane] = 0;
     }
 
     if ((width <= 0) || (height <= 0) || (width > LOGO_MAXWIDTH) || (height > LOGO_MAXHEIGHT) || (area.corner < TOP_LEFT) || (area.corner > BOTTOM_RIGHT)) {
@@ -124,9 +124,9 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
     }
     fclose(pFile);
 
-    if (!area.mpixel[plane]) {
+    if (!area.mPixel[plane]) {
         for (int i = 0; i < width*height; i++) {
-            if (!area.mask[plane][i]) area.mpixel[plane]++;
+            if (!area.mask[plane][i]) area.mPixel[plane]++;
         }
     }
 
@@ -169,9 +169,9 @@ bool cMarkAdLogo::Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], c
 
     char *buf = NULL;
     if (debug == 0) {
-        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectratio.Num,area.aspectratio.Den, plane)==-1) return false;
+        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectRatio.Num,area.aspectRatio.Den, plane)==-1) return false;
     }
-    else if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i_debug%d.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectratio.Num,area.aspectratio.Den, plane, debug)==-1) return false;
+    else if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i_debug%d.pgm","/tmp/",framenumber, macontext->Info.ChannelName, area.aspectRatio.Num,area.aspectRatio.Den, plane, debug)==-1) return false;
     ALLOC(strlen(buf)+1, "buf");
 
     // Open file
@@ -515,7 +515,7 @@ bool cMarkAdLogo::SobelPlane(const int plane) {
     }
     int SUM;
     int sumX,sumY;
-    area.rpixel[plane] = 0;
+    area.rPixel[plane] = 0;
     if (!plane) area.intensity = 0;
     for (int Y = ystart; Y <= yend - 1; Y++) {
         for (int X = xstart; X <= xend - 1; X++) {
@@ -557,7 +557,7 @@ bool cMarkAdLogo::SobelPlane(const int plane) {
 
             area.result[plane][(X-xstart)+(Y-ystart)*width] = (area.mask[plane][(X-xstart)+(Y-ystart)*width] + val) & 255;
 
-            if (!area.result[plane][(X-xstart)+(Y-ystart)*width]) area.rpixel[plane]++;
+            if (!area.result[plane][(X-xstart)+(Y-ystart)*width]) area.rPixel[plane]++;
 #ifdef VDRDEBUG
             val=macontext->Video.Data.Plane[plane][X+(Y*macontext->Video.Data.PlaneLinesize[plane])];
             area.source[plane][(X-xstart)+(Y-ystart)*width] = val;
@@ -594,7 +594,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     bool onlyFillArea = ( *logoFrameNumber < 0 );
     bool extract = (macontext->Config->logoExtraction != -1);
     if (*logoFrameNumber == -2) extract = true;
-    int rpixel = 0, mpixel = 0;
+    int rPixel = 0, mPixel = 0;
     int processed = 0;
     *logoFrameNumber = -1;
     if (area.corner == -1) return LOGO_NOCHANGE;
@@ -616,9 +616,9 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
             if (!Save(frameCurrent, area.sobel, plane, 0)) dsyslog("cMarkAdLogo::Detect(): save logo from frame (%d) failed", frameCurrent);
         }
         else {
-//            tsyslog("plane %i area.rpixel[plane] %i area.mpixel[plane] %i", plane, area.rpixel[plane], area.mpixel[plane]);
-            rpixel += area.rpixel[plane];
-            mpixel += area.mpixel[plane];
+//            tsyslog("plane %i area.rPixel[plane] %i area.mPixel[plane] %i", plane, area.rPixel[plane], area.mPixel[plane]);
+            rPixel += area.rPixel[plane];
+            mPixel += area.mPixel[plane];
         }
     }
     if (extract || onlyFillArea) return LOGO_NOCHANGE;
@@ -632,7 +632,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 
 #ifdef DEBUG_LOGO_DETECTION
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
-    dsyslog("frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
+    dsyslog("frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
 #endif
     // if we only have one plane we are "vulnerable"
     // to very bright pictures, so ignore them...
@@ -644,19 +644,19 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         if (((area.intensity > MAX_AREA_INTENSITY) || // if we found no logo try to reduce brightness
             ((area.intensity >= 62) && (strcmp(macontext->Info.ChannelName, "NITRO") == 0))) &&  // workaround for NITRO, this channel has a very transparent logo, brightness reduction needed earlyer, changed from 80 to 76 to 62
              (area.intensity < 220) &&  // if we are to bright, this will not work, max changed from 200 to 220
-           ((((area.status == LOGO_INVISIBLE) || (area.status == LOGO_UNINITIALIZED)) && (rpixel < (mpixel * logo_vmark))) || // if we found the logo ignore area intensity
-           ((area.status == LOGO_VISIBLE) && (rpixel < (mpixel * LOGO_IMARK))))) {
+           ((((area.status == LOGO_INVISIBLE) || (area.status == LOGO_UNINITIALIZED)) && (rPixel < (mPixel * logo_vmark))) || // if we found the logo ignore area intensity
+           ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK))))) {
             contrast = ReduceBrightness(frameCurrent);
             if (contrast > 0) {  // we got a contrast
-                area.rpixel[0] = 0;
-                rpixel = 0;
-                mpixel = 0;
+                area.rPixel[0] = 0;
+                rPixel = 0;
+                mPixel = 0;
                 SobelPlane(0);
-                rpixel += area.rpixel[0];
-                mpixel += area.mpixel[0];
+                rPixel += area.rPixel[0];
+                mPixel += area.mPixel[0];
 #ifdef DEBUG_LOGO_DETECTION
                 dsyslog("cMarkAdLogo::Detect(): frame (%6d) corrected, new area intensity %d", frameCurrent, area.intensity);
-                dsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | s=%i | p=%i", frameCurrent, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
+                dsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | s=%i | p=%i", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
 #endif
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
                 if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) Save(frameCurrent, area.sobel, 0, 2);
@@ -664,7 +664,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 if ((area.status == LOGO_INVISIBLE) && (contrast < 25)) {  // if we have a very low contrast this could not be a new logo
                     return LOGO_NOCHANGE;
                 }
-                if ((area.status == LOGO_VISIBLE) && (contrast < 25) && (rpixel < (mpixel * LOGO_IMARK)) && (rpixel > (mpixel * LOGO_IMARK) / 3)){  // if we have a very low contrast and some matches this could be a logo on a very bright area
+                if ((area.status == LOGO_VISIBLE) && (contrast < 25) && (rPixel < (mPixel * LOGO_IMARK)) && (rPixel > (mPixel * LOGO_IMARK) / 3)){  // if we have a very low contrast and some matches this could be a logo on a very bright area
                     return LOGO_NOCHANGE;
                 }
             }
@@ -673,124 +673,124 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                     area.intensity = 0; // force detection of sepatation image
                 }
             }
-            if ((area.status == LOGO_VISIBLE) && (rpixel < (mpixel * LOGO_IMARK)) && (strcmp(macontext->Info.ChannelName, "NITRO") == 0)) return LOGO_NOCHANGE; // dont belive brightness reduction for NITRO, logo too transparent
+            if ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK)) && (strcmp(macontext->Info.ChannelName, "NITRO") == 0)) return LOGO_NOCHANGE; // dont belive brightness reduction for NITRO, logo too transparent
         }
         // if we have still no match, try to copy colour planes into grey planes
         // we can even try this if plane 0 is too bright, maybe plane 1 or 2 are better
         // for performance reason we do this only for the known channel
         if (((area.intensity > MAX_AREA_INTENSITY) ||              // we have no valid result
-             (((rpixel < (mpixel * logo_vmark)) &&                  // we have a valid result, but maybe we can find a new coloured logo
+             (((rPixel < (mPixel * logo_vmark)) &&                  // we have a valid result, but maybe we can find a new coloured logo
                  (area.status == LOGO_INVISIBLE)) ||
-               ((rpixel < (mpixel * LOGO_IMARK)) &&                  // we have a valid result, but maybe we can re-find a coloured logo
+               ((rPixel < (mPixel * LOGO_IMARK)) &&                  // we have a valid result, but maybe we can re-find a coloured logo
                  (area.status == LOGO_VISIBLE))))  &&
              (strcmp(macontext->Info.ChannelName, "DMAX") == 0)) { // and only on channel DMAX
             // save state
             int intensityOld = area.intensity;
-            int rpixelOld = rpixel;
-            int mpixelOld = mpixel;
+            int rPixelOld = rPixel;
+            int mPixelOld = mPixel;
 
             if (!isInitColourChange) {
                 LogoGreyToColour();
                 isInitColourChange = true;
             }
-            rpixel = 0;
-            mpixel = 0;
+            rPixel = 0;
+            mPixel = 0;
             for (int plane = 1; plane < PLANES; plane++) {
             // reset all planes
-                area.rpixel[plane] = 0;
+                area.rPixel[plane] = 0;
                 area.valid[plane] = true;
-                area.mpixel[plane] = area.mpixel[0] / 4;
+                area.mPixel[plane] = area.mPixel[0] / 4;
                 SobelPlane(plane);
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
                 if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) {
                     Save(frameCurrent, area.sobel, plane, 3);
                 }
 #endif
-                rpixel += area.rpixel[plane];
-                mpixel += area.mpixel[plane];
+                rPixel += area.rPixel[plane];
+                mPixel += area.mPixel[plane];
                 area.valid[plane] = false;
-                area.mpixel[plane] = 0;
-                area.rpixel[plane] = 0;
+                area.mPixel[plane] = 0;
+                area.rPixel[plane] = 0;
             }
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cMarkAdLogo::Detect(): frame (%6d) maybe logo had a colour change, try plane 1 and plan 2", frameCurrent);
-            dsyslog("frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
+            dsyslog("frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
 #endif
-            if (rpixel < (mpixel * LOGO_IMARK)) { // we found no coloured logo here, restore old state
+            if (rPixel < (mPixel * LOGO_IMARK)) { // we found no coloured logo here, restore old state
                 area.intensity = intensityOld;
-                rpixel = rpixelOld;
-                mpixel = mpixelOld;
+                rPixel = rPixelOld;
+                mPixel = mPixelOld;
             }
             else contrast = BRIGHTNESS_VALID;  // ignore bightness, we found a coloured logo
         }
         if ((area.intensity > MAX_AREA_INTENSITY) && // still too bright
            ((contrast == BRIGHTNESS_ERROR) || (contrast == BRIGHTNESS_UNINITIALIZED)) &&
-            (rpixel < (mpixel * logo_vmark))) {  // accept it, if we can see a logo
+            (rPixel < (mPixel * logo_vmark))) {  // accept it, if we can see a logo
             return LOGO_NOCHANGE;
         }
     }
     else {  // if we have more planes we can still have a problem with bright frames
-        if ((area.status == LOGO_VISIBLE) && (area.intensity > 150) && (rpixel < (mpixel * LOGO_IMARK))) return LOGO_NOCHANGE; // too bright, logo detection can be wrong
-        if ((((area.status == LOGO_UNINITIALIZED) && (rpixel < (mpixel * logo_vmark))) ||  // at start make sure we get at least a quick initial logo visible
-            ((area.status == LOGO_VISIBLE) && (rpixel < (mpixel * LOGO_IMARK)) && (rpixel > (mpixel * LOGO_IMARK * 0.75)))) &&  // we have a lot of machtes but not enough
+        if ((area.status == LOGO_VISIBLE) && (area.intensity > 150) && (rPixel < (mPixel * LOGO_IMARK))) return LOGO_NOCHANGE; // too bright, logo detection can be wrong
+        if ((((area.status == LOGO_UNINITIALIZED) && (rPixel < (mPixel * logo_vmark))) ||  // at start make sure we get at least a quick initial logo visible
+            ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK)) && (rPixel > (mPixel * LOGO_IMARK * 0.75)))) &&  // we have a lot of machtes but not enough
              (area.intensity > 120)) {
-            rpixel -= area.rpixel[0]; //  try without plane 0
-            mpixel -= area.mpixel[0];
+            rPixel -= area.rPixel[0]; //  try without plane 0
+            mPixel -= area.mPixel[0];
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
+            dsyslog("frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
 #endif
         }
     }
 
     int ret = LOGO_NOCHANGE;
     if (area.status == LOGO_UNINITIALIZED) { // Initialize
-        if (rpixel >= (mpixel * logo_vmark)) {
+        if (rPixel >= (mPixel * logo_vmark)) {
             area.status = ret = LOGO_VISIBLE;
         }
         else {
             area.status = LOGO_INVISIBLE;
         }
-        area.framenumber = frameCurrent;
+        area.frameNumber = frameCurrent;
         *logoFrameNumber = frameCurrent;
     }
 
-    if (rpixel >= (mpixel * logo_vmark)) {
+    if (rPixel >= (mPixel * logo_vmark)) {
         if (area.status == LOGO_INVISIBLE) {
             if (area.counter >= LOGO_VMAXCOUNT) {
                 area.status = ret = LOGO_VISIBLE;
-                *logoFrameNumber = area.framenumber;
+                *logoFrameNumber = area.frameNumber;
                 area.counter = 0;
             }
             else {
-                if (!area.counter) area.framenumber = frameCurrent;
+                if (!area.counter) area.frameNumber = frameCurrent;
                 area.counter++;
             }
         }
         else {
-            area.framenumber = frameCurrent;
+            area.frameNumber = frameCurrent;
             area.counter = 0;
         }
     }
 
-    if (rpixel < (mpixel * LOGO_IMARK)) {
+    if (rPixel < (mPixel * LOGO_IMARK)) {
         if (area.status == LOGO_VISIBLE) {
             if (area.counter >= LOGO_IMAXCOUNT) {
                 area.status = ret = LOGO_INVISIBLE;
-                *logoFrameNumber = area.framenumber;
+                *logoFrameNumber = area.frameNumber;
                 area.counter = 0;
             }
             else {
-                if (!area.counter) area.framenumber = frameBefore;
+                if (!area.counter) area.frameNumber = frameBefore;
                 area.counter++;
                 if (contrast >= 0) area.counter++;  // if we had optimzed the picture and still no match, this should be valid
-                if (rpixel < (mpixel*LOGO_IMARK/2)) area.counter++;   // good detect for logo invisible
-                if (rpixel < (mpixel*LOGO_IMARK/4)) area.counter++;   // good detect for logo invisible
-                if (rpixel == 0) {
+                if (rPixel < (mPixel * LOGO_IMARK / 2)) area.counter++;   // good detect for logo invisible
+                if (rPixel < (mPixel * LOGO_IMARK / 4)) area.counter++;   // good detect for logo invisible
+                if (rPixel == 0) {
                     area.counter++;   // very good detect for logo invisible
                     if (area.intensity <= 80) { // best detect, blackscreen without logo, increased from 30 to 70 to 80
                         dsyslog("cMarkAdLogo::Detect(): black screen without logo detected at frame (%d)", frameCurrent);
                         area.status = ret = LOGO_INVISIBLE;
-                        *logoFrameNumber = area.framenumber;
+                        *logoFrameNumber = area.frameNumber;
                         area.counter = 0;
                     }
                 }
@@ -801,12 +801,12 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         }
     }
 
-    if ((rpixel < (mpixel * logo_vmark)) && (rpixel > (mpixel * LOGO_IMARK))) {
+    if ((rPixel < (mPixel * logo_vmark)) && (rPixel > (mPixel * LOGO_IMARK))) {
         area.counter--;  // we are more uncertain of logo state
         if (area.counter < 0) area.counter = 0;
     }
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rpixel, mpixel, (mpixel * logo_vmark), (mpixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
+    dsyslog("frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
 #endif
     return ret;
@@ -839,8 +839,8 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
 
 
     if (macontext->Config->logoExtraction == -1) {
-        if ((area.aspectratio.Num != macontext->Video.Info.aspectRatio.Num) || (area.aspectratio.Den != macontext->Video.Info.aspectRatio.Den)) {
-            dsyslog("cMarkAdLogo::Process(): aspect ratio changed from %i:%i to %i:%i, reload logo", area.aspectratio.Num, area.aspectratio.Den, macontext->Video.Info.aspectRatio.Num, macontext->Video.Info.aspectRatio.Den);
+        if ((area.aspectRatio.Num != macontext->Video.Info.aspectRatio.Num) || (area.aspectRatio.Den != macontext->Video.Info.aspectRatio.Den)) {
+            dsyslog("cMarkAdLogo::Process(): aspect ratio changed from %i:%i to %i:%i, reload logo", area.aspectRatio.Num, area.aspectRatio.Den, macontext->Video.Info.aspectRatio.Num, macontext->Video.Info.aspectRatio.Den);
             if (macontext->Info.checkedAspectRatio && (macontext->Info.aspectRatio.Num == 4) && (macontext->Info.aspectRatio.Den == 3) && (macontext->Video.Info.aspectRatio.Num == 16) && (macontext->Video.Info.aspectRatio.Den == 9)) {
                 dsyslog("cMarkAdLogo::Process(): recording is 4:3, current frame is 16:9, we do not need a logo");
                 macontext->Video.Options.ignoreLogoDetection = true;
@@ -896,8 +896,8 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
                 }
                 else dsyslog("cMarkAdLogo::Process(): out of memory");
             }
-            area.aspectratio.Num = macontext->Video.Info.aspectRatio.Num;
-            area.aspectratio.Den = macontext->Video.Info.aspectRatio.Den;
+            area.aspectRatio.Num = macontext->Video.Info.aspectRatio.Num;
+            area.aspectRatio.Den = macontext->Video.Info.aspectRatio.Den;
         }
     }
     else {
@@ -915,8 +915,8 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
                 return LOGO_ERROR;
             }
         }
-        area.aspectratio.Num = macontext->Video.Info.aspectRatio.Num;
-        area.aspectratio.Den = macontext->Video.Info.aspectRatio.Den;
+        area.aspectRatio.Num = macontext->Video.Info.aspectRatio.Num;
+        area.aspectRatio.Den = macontext->Video.Info.aspectRatio.Den;
         area.corner = macontext->Config->logoExtraction;
         if (macontext->Config->logoWidth != -1) {
             LOGOWIDTH = macontext->Config->logoWidth;
@@ -1602,14 +1602,14 @@ MarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, co
 
 bool cMarkAdVideo::ReducePlanes() {
     if (!logo) return false;
-    areaT *area = logo->GetArea();
+    sAreaT *area = logo->GetArea();
     if (!area) return false;
     bool ret = false;
     for (int plane = 1; plane < PLANES; plane++) {
         if (area->valid[plane]) {
            area->valid[plane] = false;
-           area->mpixel[plane] = 0;
-           area->rpixel[plane] = 0;
+           area->mPixel[plane] = 0;
+           area->rPixel[plane] = 0;
            ret = true;
         }
     }

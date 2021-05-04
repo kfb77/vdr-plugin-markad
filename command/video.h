@@ -71,23 +71,53 @@ enum {
 
 #define MAXPIXEL LOGO_MAXWIDTH * LOGO_MAXHEIGHT
 
-typedef struct {
+/**
+ * corner area after sobel transformation
+ */
+typedef struct sAreaT {
 #ifdef VDRDEBUG
-    uchar source[PLANES][MAXPIXEL]; // original picture
+    uchar source[PLANES][MAXPIXEL]; //!< original picture
+                                    //!<
+
 #endif
-    uchar sobel[PLANES][MAXPIXEL];  // monochrome picture with edges (after sobel)
-    uchar mask[PLANES][MAXPIXEL];   // monochrome mask of logo
-    uchar result[PLANES][MAXPIXEL]; // result of sobel + mask
-    int rpixel[PLANES];             // black pixel in result
-    int mpixel[PLANES];             // black pixel in mask
-    int status;                // status = LOGO on, off, uninitialized
-    int framenumber;           // start/stop frame
-    int counter;               // how many logo on, offs detected?
-    int corner;                // which corner
-    int intensity;             // intensity (higher -> brighter)
-    MarkAdAspectRatio aspectratio; // aspectratio
-    bool valid[PLANES];             // logo mask valid?
-} areaT;
+    uchar sobel[PLANES][MAXPIXEL];  //!< monochrome picture with edges (after sobel)
+                                    //!<
+
+    uchar mask[PLANES][MAXPIXEL];   //!< monochrome mask of logo
+                                    //!<
+
+    uchar result[PLANES][MAXPIXEL]; //!< result of sobel + mask
+                                    //!<
+
+    int rPixel[PLANES];             //!< black pixel in result
+                                    //!<
+
+    int mPixel[PLANES];             //!< black pixel in mask
+                                    //!<
+
+    int status;                     //!< logo status: on, off, uninitialized
+                                    //!<
+
+    int frameNumber;                //!< start/stop frame number
+                                    //!<
+
+    int counter;                    //!< since how many logo on, offs detected?
+                                    //!<
+
+    int corner;                     //!< corner of logo
+                                    //!<
+
+    int intensity;                  //!< area intensity (higher -> brighter)
+                                    //!<
+
+    MarkAdAspectRatio aspectRatio;  //!< aspect ratio of the video
+                                    //!<
+
+    bool valid[PLANES];             //!< <b>true:</b> logo mask data are valid <br>
+                                    //!< <b>false:</b> logo mask is not valid
+                                    //!<
+
+} sAreaT;
 
 
 class cMarkAdOverlap {
@@ -128,7 +158,7 @@ class cMarkAdLogo {
         };
         int LOGOHEIGHT = 0; // max. 140
         int LOGOWIDTH = 0; // 192-288
-        areaT area;
+        sAreaT area;
         int GX[3][3];
         int GY[3][3];
         MarkAdContext *macontext;
@@ -157,7 +187,7 @@ class cMarkAdLogo {
         }
         void Clear(const bool isRestart = false, const bool inBroadCast = false);
         void SetLogoSize(const int width, const int height);
-        areaT *GetArea();
+        sAreaT *GetArea();
 };
 
 

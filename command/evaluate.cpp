@@ -344,7 +344,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
 
     cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, recordingIndex);
     ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
-    areaT *area = ptr_Logo->GetArea();
+    sAreaT *area = ptr_Logo->GetArea();
 
     cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext->Video.Info.aspectRatio, recordingIndex);
     ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");

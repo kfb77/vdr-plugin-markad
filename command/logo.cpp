@@ -1213,7 +1213,7 @@ int cExtractLogo::SearchLogo(MarkAdContext *maContext, int startFrame) {  // ret
     ALLOC(sizeof(*hborder), "hborder");
     cMarkAdBlackBordersVert *vborder = new cMarkAdBlackBordersVert(maContext);
     ALLOC(sizeof(*vborder), "vborder");
-    areaT *area = ptr_Logo->GetArea();
+    sAreaT *area = ptr_Logo->GetArea();
 
     if (!WaitForFrames(maContext, ptr_cDecoder)) {
         dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");
