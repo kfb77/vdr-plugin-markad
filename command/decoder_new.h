@@ -91,11 +91,22 @@ class cDecoder {
         int iFrameCount = 0;
         int64_t pts_time_ms_LastFile = 0;
         int64_t pts_time_ms_LastRead = 0;
-        struct structFrameData {
-            bool Valid=false; // flag, if true data is valid
-            uchar *Plane[PLANES] = {};  // picture planes (YUV420)
-            int PlaneLinesize[PLANES] = {}; // size int bytes of each picture plane line
-        } iFrameData;
+
+/**
+ * decoded frame data
+ */
+        struct sFrameData {
+            bool Valid = false;             //!< flag, if true data is valid
+                                            //!<
+
+            uchar *Plane[PLANES] = {};      //!< picture planes (YUV420)
+                                            //!<
+
+            int PlaneLinesize[PLANES] = {}; //!< size in bytes of each picture plane line
+                                            //!<
+
+        } frameData;
+
         bool msgDecodeFile = true;
         bool msgGetFrameInfo = true;
         int interlaced_frame = -1;

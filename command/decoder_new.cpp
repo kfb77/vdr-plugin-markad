@@ -341,7 +341,7 @@ int cDecoder::GetVideoRealFrameRate() {
 
 bool cDecoder::GetNextFrame() {
     if (!avctx) return false;
-    iFrameData.Valid = false;
+    frameData.Valid = false;
     av_packet_unref(&avpkt);
     if (av_read_frame(avctx, &avpkt) == 0 ) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -605,7 +605,7 @@ bool cDecoder::GetFrameInfo(MarkAdContext *maContext, const bool full) {
 
     AVFrame *avFrameRef = NULL;
 
-    iFrameData.Valid = false;
+    frameData.Valid = false;
     if (isVideoPacket()) {
         if (full || isVideoIFrame() || stateEAGAIN) {
             avFrameRef = DecodePacket(&avpkt);  // free in DecodePacket
