@@ -46,18 +46,6 @@ class clMark {
 
 class clMarks {
     private:
-        struct tIndexVDR {
-            int offset;
-            unsigned char type;
-            unsigned char number;
-            short reserved;
-        };
-        struct tIndexTS {
-            uint64_t offset: 40;
-            int reserved: 7;
-            int independent: 1;
-            uint16_t number: 16;
-        };
         char filename[1024];
         clMark *first,*last;
         int count;
