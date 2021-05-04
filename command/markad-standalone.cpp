@@ -2011,7 +2011,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
     if (!mark2) return false;
     if (!*mark2) return false;
 
-    OverlapPos *ptr_OverlapPos = NULL;
+    sOverlapPos *ptr_OverlapPos = NULL;
 
     if (!Reset(false)) {
         // reset all, but marks
@@ -2150,15 +2150,15 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
         }
         if (ptr_OverlapPos) {
             // found overlap
-            char *indexToHMSFbefore = marks.IndexToHMSF(ptr_OverlapPos->FrameNumberBefore, &macontext);
+            char *indexToHMSFbefore = marks.IndexToHMSF(ptr_OverlapPos->frameNumberBefore, &macontext);
             char *indexToHMSFmark1 = marks.IndexToHMSF((*mark1)->position, &macontext);
             char *indexToHMSFmark2 = marks.IndexToHMSF((*mark2)->position, &macontext);
-            char *indexToHMSFafter = marks.IndexToHMSF(ptr_OverlapPos->FrameNumberAfter, &macontext);
+            char *indexToHMSFafter = marks.IndexToHMSF(ptr_OverlapPos->frameNumberAfter, &macontext);
             if (indexToHMSFbefore && indexToHMSFmark1 && indexToHMSFmark2 && indexToHMSFafter) {
                 dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): found overlap from (%6d) at %s to (%6d) at %s are identical with",
-                            ptr_OverlapPos->FrameNumberBefore, indexToHMSFbefore, (*mark1)->position, indexToHMSFmark1);
+                            ptr_OverlapPos->frameNumberBefore, indexToHMSFbefore, (*mark1)->position, indexToHMSFmark1);
                 dsyslog("cMarkAdStandalone::ProcessMark2ndPass():                    (%6d) at %s to (%6d) at %s",
-                            (*mark2)->position, indexToHMSFmark2, ptr_OverlapPos->FrameNumberAfter, indexToHMSFafter);
+                            (*mark2)->position, indexToHMSFmark2, ptr_OverlapPos->frameNumberAfter, indexToHMSFafter);
             }
             if (indexToHMSFbefore) {
                 FREE(strlen(indexToHMSFbefore)+1, "indexToHMSF");
@@ -2176,8 +2176,8 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
                 FREE(strlen(indexToHMSFafter)+1, "indexToHMSF");
                 free(indexToHMSFafter);
             }
-            *mark1 = marks.Move(&macontext, *mark1, ptr_OverlapPos->FrameNumberBefore, "overlap");
-            *mark2 = marks.Move(&macontext, *mark2, ptr_OverlapPos->FrameNumberAfter, "overlap");
+            *mark1 = marks.Move(&macontext, *mark1, ptr_OverlapPos->frameNumberBefore, "overlap");
+            *mark2 = marks.Move(&macontext, *mark2, ptr_OverlapPos->frameNumberAfter, "overlap");
             marks.Save(directory, &macontext, isTS, false);
             return true;
         }

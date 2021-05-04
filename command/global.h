@@ -181,13 +181,13 @@ typedef struct config {
 /**
  * frame overlap start and stop positions
  */
-typedef struct OverlapPos {
-    int FrameNumberBefore; //!< frame number of overlaps start before mark position
+typedef struct sOverlapPos {
+    int frameNumberBefore; //!< frame number of overlaps start before mark position
                            //!<
 
-    int FrameNumberAfter; //!< frame number of overlaps stop after mark position
+    int frameNumberAfter; //!< frame number of overlaps stop after mark position
                           //!<
-} OverlapPos;
+} sOverlapPos;
 
 
 typedef struct MarkAdAspectRatio {

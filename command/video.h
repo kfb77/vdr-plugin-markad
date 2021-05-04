@@ -133,17 +133,17 @@ class cMarkAdOverlap {
         int histframes[2];
 
         int lastframenumber;
-        OverlapPos result;
+        sOverlapPos result;
         int similarCutOff;
         int similarMaxCnt;
         int areSimilar(simpleHistogram &hist1, simpleHistogram &hist2);
         void getHistogram(simpleHistogram &dest);
-        OverlapPos *Detect();
+        sOverlapPos *Detect();
         void Clear();
     public:
         explicit cMarkAdOverlap(MarkAdContext *maContext);
         ~cMarkAdOverlap();
-        OverlapPos *Process(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
+        sOverlapPos *Process(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
 };
 
 
@@ -258,7 +258,7 @@ class cMarkAdVideo {
             aspectratio = {};
             return *this;
         }
-        OverlapPos *ProcessOverlap(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
+        sOverlapPos *ProcessOverlap(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
         MarkAdMarks *Process(int iFrameBefore, const int iFrameCurrent, const int frameCurrent);
         bool ReducePlanes(void);
         void Clear(bool isRestart, bool inBroadCast = false);

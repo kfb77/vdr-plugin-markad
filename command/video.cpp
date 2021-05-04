@@ -1259,13 +1259,13 @@ int cMarkAdOverlap::areSimilar(simpleHistogram &hist1, simpleHistogram &hist2) {
 }
 
 
-OverlapPos *cMarkAdOverlap::Detect() {
-    if (result.FrameNumberBefore == -1) return NULL;
+sOverlapPos *cMarkAdOverlap::Detect() {
+    if (result.frameNumberBefore == -1) return NULL;
     int startAfterMark = 0;
     int simcnt = 0;
     int tmpindexAfterStartMark = 0;
     int tmpindexBeforeStopMark = 0;
-    result.FrameNumberBefore = -1;
+    result.frameNumberBefore = -1;
     int firstSimilarBeforeStopMark = 0;
     for (int indexBeforeStopMark = 0; indexBeforeStopMark < histcnt[OV_BEFORE]; indexBeforeStopMark++) {
 #ifdef DEBUG_OVERLAP
@@ -1294,9 +1294,9 @@ OverlapPos *cMarkAdOverlap::Detect() {
                     indexBeforeStopMark = firstSimilarBeforeStopMark;  // reset to first similar frame
                 }
                 if (simcnt > similarMaxCnt) {
-                    if ((histbuf[OV_BEFORE][tmpindexBeforeStopMark].framenumber > result.FrameNumberBefore) && (histbuf[OV_AFTER][tmpindexAfterStartMark].framenumber > result.FrameNumberAfter)) {
-                        result.FrameNumberBefore = histbuf[OV_BEFORE][tmpindexBeforeStopMark].framenumber;
-                        result.FrameNumberAfter = histbuf[OV_AFTER][tmpindexAfterStartMark].framenumber;
+                    if ((histbuf[OV_BEFORE][tmpindexBeforeStopMark].framenumber > result.frameNumberBefore) && (histbuf[OV_AFTER][tmpindexAfterStartMark].framenumber > result.frameNumberAfter)) {
+                        result.frameNumberBefore = histbuf[OV_BEFORE][tmpindexBeforeStopMark].framenumber;
+                        result.frameNumberAfter = histbuf[OV_AFTER][tmpindexAfterStartMark].framenumber;
                     }
                 }
                 else {
@@ -1306,10 +1306,10 @@ OverlapPos *cMarkAdOverlap::Detect() {
             }
           }
     }
-    if (result.FrameNumberBefore == -1) {
+    if (result.frameNumberBefore == -1) {
         if (simcnt > similarMaxCnt) {
-            result.FrameNumberBefore = histbuf[OV_BEFORE][tmpindexBeforeStopMark].framenumber;
-            result.FrameNumberAfter = histbuf[OV_AFTER][tmpindexAfterStartMark].framenumber;
+            result.frameNumberBefore = histbuf[OV_BEFORE][tmpindexBeforeStopMark].framenumber;
+            result.frameNumberAfter = histbuf[OV_AFTER][tmpindexAfterStartMark].framenumber;
         }
         else {
             return NULL;
@@ -1319,7 +1319,7 @@ OverlapPos *cMarkAdOverlap::Detect() {
 }
 
 
-OverlapPos *cMarkAdOverlap::Process(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264) {
+sOverlapPos *cMarkAdOverlap::Process(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264) {
 //    dsyslog("---cMarkAdOverlap::Process FrameNumber %i", FrameNumber);
 //    dsyslog("---cMarkAdOverlap::Process Frames %i", Frames);
 //    dsyslog("---cMarkAdOverlap::Process BeforeAd %i", BeforeAd);
@@ -1337,7 +1337,7 @@ OverlapPos *cMarkAdOverlap::Process(const int FrameNumber, const int Frames, con
 
     if (BeforeAd) {
         if ((histframes[OV_BEFORE]) && (histcnt[OV_BEFORE] >= histframes[OV_BEFORE])) {
-            if (result.FrameNumberBefore) {
+            if (result.frameNumberBefore) {
                 Clear();
             }
             else {
@@ -1361,7 +1361,7 @@ OverlapPos *cMarkAdOverlap::Process(const int FrameNumber, const int Frames, con
         }
 
         if (histcnt[OV_AFTER]>=histframes[OV_AFTER]-1) {
-            if (result.FrameNumberBefore) return NULL;
+            if (result.frameNumberBefore) return NULL;
             return Detect();
         }
         getHistogram(histbuf[OV_AFTER][histcnt[OV_AFTER]].histogram);
@@ -1468,7 +1468,7 @@ bool cMarkAdVideo::aspectratiochange(const MarkAdAspectRatio &a, const MarkAdAsp
 }
 
 
-OverlapPos *cMarkAdVideo::ProcessOverlap(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264) {
+sOverlapPos *cMarkAdVideo::ProcessOverlap(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264) {
     if (!FrameNumber) return NULL;
     if (!overlap) {
         overlap = new cMarkAdOverlap(macontext);
