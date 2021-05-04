@@ -23,7 +23,7 @@ cIndex::~cIndex() {
     }
     size = ptsRing.size();
     for (int i = 0 ; i < size; i++) {
-        FREE(sizeof(ptsRingType), "ptsRing");
+        FREE(sizeof(sPTS_RingbufferElement), "ptsRing");
     }
 #endif
     indexVector.clear();
@@ -206,16 +206,16 @@ int cIndex::GetIFrameRangeCount(int beginFrame, int endFrame) {
 
 void cIndex::AddPTS(const int frameNumber, const int64_t pts) {
     // add new frame timestamp to vector
-    ptsRingType newPTS;
+    sPTS_RingbufferElement newPTS;
     newPTS.frameNumber = frameNumber;
     newPTS.pts = pts;
     ptsRing.push_back(newPTS);
-    ALLOC(sizeof(ptsRingType), "ptsRing");
+    ALLOC(sizeof(sPTS_RingbufferElement), "ptsRing");
 
     // delete oldest entry
     if (ptsRing.size() > 20) {
         ptsRing.erase(ptsRing.begin());
-        FREE(sizeof(ptsRingType), "ptsRing");
+        FREE(sizeof(sPTS_RingbufferElement), "ptsRing");
     }
 
 }
@@ -227,7 +227,7 @@ int cIndex::GetFirstVideoFrameAfterPTS(const int64_t pts) {
         int64_t pts = INT64_MAX;
     } after;
 
-    for (std::vector<ptsRingType>::iterator ptsIterator = ptsRing.begin(); ptsIterator != ptsRing.end(); ++ptsIterator) { // get framenumber after
+    for (std::vector<sPTS_RingbufferElement>::iterator ptsIterator = ptsRing.begin(); ptsIterator != ptsRing.end(); ++ptsIterator) { // get framenumber after
         if (ptsIterator->pts < pts) {  // reset state if we found a frame with pts samaller than target
             after.frameNumber = -1;
             after.pts = INT64_MAX;

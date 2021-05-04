@@ -40,11 +40,19 @@ class cIndex {
         };
         std::vector<indexType> indexVector;
 
-        struct ptsRingType {
-            int frameNumber = 0;
-            int64_t pts = 0;
+/**
+ * ring buffer element to store frame presentation timestamp
+ */
+        struct sPTS_RingbufferElement {
+            int frameNumber = -1; //!< frame number
+                                  //!<
+
+            int64_t pts = 0;      //!<  presentation timestamp of the frame
+                                  //!<
+
         };
-        std::vector<ptsRingType> ptsRing;
+
+        std::vector<sPTS_RingbufferElement> ptsRing;
 
         int diff_ms_maxValid = 0;
 
