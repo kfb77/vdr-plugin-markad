@@ -468,9 +468,17 @@ bool cDetectLogoStopStart::isInfoLogo() {
         int endFinal = 0;
     } infoLogo;
     bool found = false;
+    int separatorFrame = -1;
 
     for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::isInfoLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+
+        int sumPixel = 0;
+        for (int corner = 0; corner < CORNERS; corner++) {
+            sumPixel += (*cornerResultIt).rate[corner];
+        }
+        if (sumPixel == 0) separatorFrame = (*cornerResultIt).frameNumber2;
+
         if ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 131) {  // changed from 400 to 340 to 300 to 265 to 235 to 131
             if (infoLogo.start == 0) infoLogo.start = (*cornerResultIt).frameNumber1;
             infoLogo.end = (*cornerResultIt).frameNumber2;
@@ -488,31 +496,37 @@ bool cDetectLogoStopStart::isInfoLogo() {
         infoLogo.startFinal = infoLogo.start;
         infoLogo.endFinal = infoLogo.end;
     }
-    // ignore short parts at start and end, this is fade in and fade out
-    int diffStart = 1000 * (infoLogo.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
-    int diffEnd = 1000 * (endPos - infoLogo.endFinal) / maContext->Video.Info.framesPerSecond;
-    int newStartPos = startPos;
-    int newEndPos = endPos;
-    dsyslog("cDetectLogoStopStart::isInfoLogo(): start diff %dms, end diff %dms", diffStart, diffEnd);
-    if (diffStart <= 2400) newStartPos = infoLogo.startFinal;  // changed from 250 to 960 to 1800 to 2400
-    if (diffEnd <= 1800) newEndPos = infoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
+    // check separator image
+    if (separatorFrame == endPos) {
+        dsyslog("cDetectLogoStopStart::isInfoLogo(): separator image at end frame found, this is a valid start mark");
+        found = false;
+    }
+    else {
+        // ignore short parts at start and end, this is fade in and fade out
+        int diffStart = 1000 * (infoLogo.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
+        int diffEnd = 1000 * (endPos - infoLogo.endFinal) / maContext->Video.Info.framesPerSecond;
+        int newStartPos = startPos;
+        int newEndPos = endPos;
+        dsyslog("cDetectLogoStopStart::isInfoLogo(): start diff %dms, end diff %dms", diffStart, diffEnd);
+        if (diffStart <= 2400) newStartPos = infoLogo.startFinal;  // changed from 250 to 960 to 1800 to 2400
+        if (diffEnd <= 1800) newEndPos = infoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
 #define INFO_LOGO_MIN_LENGTH 4
 #define INFO_LOGO_MAX_LENGTH 14
 #define INFO_LOGO_MIN_QUOTE 80
-    int quote = 100 * (infoLogo.endFinal - infoLogo.startFinal) / (newEndPos - newStartPos);
-    int length = (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
-    dsyslog("cDetectLogoStopStart::isInfoLogo(): info logo: start (%d), end (%d), length %ds (expect >=%ds and <=%ds), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
-//    if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE) && (diffStart < 1920)) {
-    if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE)) {
-        dsyslog("cDetectLogoStopStart::isInfoLogo(): found info logo");
-        found = true;
-    }
-    else dsyslog("cDetectLogoStopStart::isInfoLogo(): no info logo found");
+        int quote = 100 * (infoLogo.endFinal - infoLogo.startFinal) / (newEndPos - newStartPos);
+        int length = (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
+        dsyslog("cDetectLogoStopStart::isInfoLogo(): info logo: start (%d), end (%d), length %ds (expect >=%ds and <=%ds), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
+        if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE)) {
+            dsyslog("cDetectLogoStopStart::isInfoLogo(): found info logo");
+            found = true;
+        }
+        else dsyslog("cDetectLogoStopStart::isInfoLogo(): no info logo found");
 
-    // check if it is a closing credit, we may not delete this because it contains end mark
-    if (found && ClosingCredit() >= 0) {
-        dsyslog("cDetectLogoStopStart::isInfoLogo(): stop/start part is closing credit, no info logo");
-        found = false;
+        // check if it is a closing credit, we may not delete this because it contains end mark
+        if (found && ClosingCredit() >= 0) {
+            dsyslog("cDetectLogoStopStart::isInfoLogo(): stop/start part is closing credit, no info logo");
+            found = false;
+        }
     }
     return found;
 }
