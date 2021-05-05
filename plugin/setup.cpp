@@ -17,6 +17,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
     whilerecording = setup->whileRecording;
     whilereplaying = setup->whileReplaying;
     osdmsg = setup->OSDMessage;
+    svdrPort = setup->svdrPort;
     verbose = setup->Verbose;
     nomargins = setup->NoMargins;
     hidemainmenuentry = setup->HideMainMenuEntry;
@@ -62,6 +63,7 @@ void cSetupMarkAd::write(void) {
         Add(new cMenuEditBoolItem(tr("optimize marks (overlaps and logo marks adjustments"), &secondpass));
         Add(new cMenuEditBoolItem(tr("correct info file"), &saveinfo));
         Add(new cMenuEditBoolItem(tr("OSD message"), &osdmsg));
+        Add(new cMenuEditIntItem(tr("SVDR port number"), &svdrPort));
         Add(new cMenuEditBoolItem(tr("verbose logging"), &verbose));
         Add(new cMenuEditBoolItem(tr("log to recording directory"), &log2rec));
         Add(new cMenuEditBoolItem(tr("hide mainmenu entry"), &hidemainmenuentry));
@@ -124,6 +126,7 @@ void cSetupMarkAd::Store(void) {
     SetupStore("IgnoreMargins", nomargins);
     SetupStore("SecondPass", secondpass);
     SetupStore("OSDMessage", osdmsg);
+    SetupStore("svdrPort", svdrPort);
     SetupStore("Verbose", verbose);
     SetupStore("HideMainMenuEntry", hidemainmenuentry);
     SetupStore("Log2Rec", log2rec);
@@ -139,6 +142,7 @@ void cSetupMarkAd::Store(void) {
     setup->whileRecording = static_cast<bool>(whilerecording);
     setup->whileReplaying = static_cast<bool>(whilereplaying);
     setup->OSDMessage = static_cast<bool>(osdmsg);
+    setup->svdrPort = static_cast<int>(svdrPort);
     setup->SecondPass = static_cast<bool>(secondpass);
     setup->Verbose = static_cast<bool>(verbose);
     setup->NoMargins = static_cast<bool>(nomargins);

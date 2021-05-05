@@ -22,6 +22,7 @@ struct setup {
     bool whileRecording;
     bool whileReplaying;
     bool OSDMessage;
+    int  svdrPort = 6419;
     bool Verbose;
     bool GenIndex;
     bool NoMargins;
@@ -57,6 +58,7 @@ class cSetupMarkAd : public cMenuSetupPage {
         int whilerecording;
         int whilereplaying;
         int osdmsg;
+	int svdrPort = 6419;
         int verbose;
         int nomargins;
         int secondpass;

@@ -268,6 +268,7 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value) {
     else if (!strcasecmp(Name,"whileRecording")) setup.whileRecording = atoi(Value);
     else if (!strcasecmp(Name,"whileReplaying")) setup.whileReplaying = atoi(Value);
     else if (!strcasecmp(Name,"OSDMessage")) setup.OSDMessage = atoi(Value);
+    else if (!strcasecmp(Name,"svdrPort")) setup.svdrPort = atoi(Value);
     else if (!strcasecmp(Name,"GenIndex")) setup.GenIndex = atoi(Value);
     else if (!strcasecmp(Name,"Verbose")) setup.Verbose = atoi(Value);
     else if (!strcasecmp(Name,"IgnoreMargins")) setup.NoMargins = atoi(Value);

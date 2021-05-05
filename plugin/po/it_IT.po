@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
-"POT-Creation-Date: 2021-04-24 21:16+0200\n"
+"POT-Creation-Date: 2021-05-05 21:19+0200\n"
 "PO-Revision-Date: 2011-07-10 00:56+0100\n"
 "Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
 "Language-Team: Italian <vdr@linuxtv.org>\n"
@@ -105,6 +105,9 @@ msgstr "File info corretto"
 
 msgid "OSD message"
 msgstr "Messaggio OSD"
+
+msgid "SVDR port number"
+msgstr ""
 
 msgid "verbose logging"
 msgstr "Log dettagliato"

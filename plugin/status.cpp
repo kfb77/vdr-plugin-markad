@@ -527,8 +527,8 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
 
     char *autoLogoOption = NULL;
     if (setup->autoLogoConf >= 0) {
-        if(! asprintf(&autoLogoOption," --autologo=%i ", setup->autoLogoConf)) {
-            esyslog("markad: asprintf ouf of memory");
+        if(!asprintf(&autoLogoOption," --autologo=%i ", setup->autoLogoConf)) {
+            esyslog("markad: asprintf autoLogoOption ouf of memory");
             return false;
         }
         ALLOC(strlen(autoLogoOption)+1, "autoLogoOption");
@@ -542,12 +542,20 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
             ALLOC(strlen(autoLogoOption)+1, "autoLogoOption");
         }
     }
+    // prepare --svdrpport option
+    char *svdrPortOption = NULL;
+    if(!asprintf(&svdrPortOption, "-O --svdrpport=%d ", setup->svdrPort)) {
+        esyslog("markad: asprintf svdrPortOption ouf of memory");
+        return false;
+    }
+    ALLOC(strlen(svdrPortOption)+1, "svdrPortOption");
+
     cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->Verbose ? " -v " : "",
                                    setup->SaveInfo ? " -I " : "",
                                    setup->GenIndex ? " -G " : "",
-                                   setup->OSDMessage ? " -O --svdrpport=6419 " : "",
+                                   setup->OSDMessage ? svdrPortOption : "",
                                    setup->NoMargins ? " -i 4 " : "",
                                    setup->SecondPass ? "" : " --pass1only ",
                                    setup->Log2Rec ? " -R " : "",
@@ -563,6 +571,8 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
                                    FileName);
     FREE(strlen(autoLogoOption)+1, "autoLogoOption");
     free(autoLogoOption);
+    FREE(strlen(svdrPortOption)+1, "svdrPortOption");
+    free(svdrPortOption);
 
     usleep(1000000); // wait 1 second
     if (SystemExec(cmd) != -1) {
