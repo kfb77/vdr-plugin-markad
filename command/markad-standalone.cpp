@@ -2476,12 +2476,14 @@ void cMarkAdStandalone::Process3ndPass() {
                 free(indexToHMSFSearchEnd);
             }
             int adInFrameEndPosition = -1;
-            if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->IncludesInfoLogo(markLogo->position, searchEndPosition))) {
-                dsyslog("cMarkAdStandalone::Process3ndPass(): deleted info logo part in this range, this could not be a advertising in frame");
+            if (ptr_cDetectLogoStopStart->Detect(markLogo->position, searchEndPosition, true)) {
+                adInFrameEndPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(true);
             }
-            else {
-                if (ptr_cDetectLogoStopStart->Detect(markLogo->position, searchEndPosition, true)) {
-                    adInFrameEndPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(true);
+            if (adInFrameEndPosition >= 0) {
+                dsyslog("cMarkAdStandalone::Process3ndPass(): ad in frame between (%d) and (%d) found", markLogo->position, adInFrameEndPosition);
+                if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->IncludesInfoLogo(markLogo->position, adInFrameEndPosition))) {
+                    dsyslog("cMarkAdStandalone::Process3ndPass(): deleted info logo part in this range, this could not be a advertising in frame");
+                    adInFrameEndPosition = -1;
                 }
             }
             if (adInFrameEndPosition != -1) {  // if we found advertising in frame, use this
