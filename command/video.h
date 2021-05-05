@@ -124,11 +124,20 @@ class cMarkAdOverlap {
     private:
         sMarkAdContext *macontext;
         typedef int simpleHistogram[256];
-        typedef struct {
-            int framenumber;
-            simpleHistogram histogram;
-        } histbuffer;
-        histbuffer *histbuf[2];
+
+/**
+ * histogram buffer for overlap detection
+ */
+        typedef struct sHistBuffer {
+            int frameNumber;           //!< frame number
+                                       //!<
+
+            simpleHistogram histogram; //!< simple frame histogram
+                                       //!<
+
+        } sHistBuffer;
+
+        sHistBuffer *histbuf[2];
         int histcnt[2];
         int histframes[2];
 
