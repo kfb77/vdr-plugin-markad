@@ -13,10 +13,18 @@ VERSION = $(shell grep 'static const char \*VERSION *=' ../version.h | awk '{ pr
 
 # Use package data if installed...otherwise assume we're under the VDR source directory:
 PKGCFG = $(if $(VDRDIR),$(shell pkg-config --variable=$(1) $(VDRDIR)/vdr.pc),$(shell PKG_CONFIG_PATH="$$PKG_CONFIG_PATH:../../../.." pkg-config --variable=$(1) vdr))
+BINDIR = $(call PKGCFG,bindir)
+MANDIR = $(call PKGCFG,mandir)
 LIBDIR = $(call PKGCFG,libdir)
 LOCDIR = $(call PKGCFG,locdir)
 PLGCFG = $(call PKGCFG,plgcfg)
 CFGDIR = $(call PKGCFG,configdir)
+
+### set defaults
+BINDIR ?= /usr/bin
+LOCDIR ?= /usr/share/locale
+MANDIR ?= /usr/share/man
+
 
 ### The C++ compiler and options:
 CXX      ?= g++
@@ -104,9 +112,8 @@ $(DEPFILE): Makefile
 
 ### Internationalization (I18N):
 PODIR     = po
-LOCALEDIR = /usr/share/locale
 I18Npo    = $(wildcard $(PODIR)/*.po)
-I18Nmsgs  = $(addprefix  $(DESTDIR)$(LOCALEDIR)/, $(addsuffix /LC_MESSAGES/markad.mo, $(notdir $(foreach file, $(I18Npo), $(basename $(file))))))
+I18Nmsgs  = $(addprefix  $(DESTDIR)$(LOCDIR)/, $(addsuffix /LC_MESSAGES/markad.mo, $(notdir $(foreach file, $(I18Npo), $(basename $(file))))))
 I18Npot   = $(PODIR)/markad.pot
 
 %.mo: %.po
@@ -119,7 +126,7 @@ $(I18Npot): $(wildcard *.cpp *.h)
 	msgmerge -U --no-wrap --no-location --backup=none -q $@ $<
 	@touch $@
 
-$(I18Nmsgs): $(DESTDIR)$(LOCALEDIR)/%/LC_MESSAGES/markad.mo: $(PODIR)/%.mo
+$(I18Nmsgs): $(DESTDIR)$(LOCDIR)/%/LC_MESSAGES/markad.mo: $(PODIR)/%.mo
 	install -D -m644 $< $@
 
 .PHONY: i18n
@@ -130,14 +137,13 @@ markad: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 
 
-MANDIR	= $(DESTDIR)/usr/share/man
 install-doc:
-	@mkdir -p $(MANDIR)/man1
-	@gzip -c markad.1 > $(MANDIR)/man1/markad.1.gz
+	@mkdir -p $(DESTDIR)$(MANDIR)/man1
+	@gzip -c markad.1 > $(DESTDIR)$(MANDIR)/man1/markad.1.gz
 
 install: install-doc markad $(I18Nmsgs)
-	@mkdir -p $(DESTDIR)/usr/bin
-	install -D markad $(DESTDIR)/usr/bin/markad
+	@mkdir -p $(DESTDIR)$(BINDIR)
+	install -D markad $(DESTDIR)$(BINDIR)/markad
 	@mkdir -p $(DESTDIR)/var/lib/markad
 	install -D logos/* $(DESTDIR)/var/lib/markad
 	@echo markad installed
