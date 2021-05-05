@@ -460,6 +460,7 @@ bool cDetectLogoStopStart::isInfoLogo() {
        return false;
     }
 
+    dsyslog("cDetectLogoStopStart::isInfoLogo(): detect from (%d) to (%d)", startPos, endPos);
     struct infoLogoType {
         int start = 0;
         int end = 0;
@@ -490,13 +491,15 @@ bool cDetectLogoStopStart::isInfoLogo() {
     // ignore short parts at start and end, this is fade in and fade out
     int diffStart = 1000 * (infoLogo.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
     int diffEnd = 1000 * (endPos - infoLogo.endFinal) / maContext->Video.Info.framesPerSecond;
+    int newStartPos = startPos;
+    int newEndPos = endPos;
     dsyslog("cDetectLogoStopStart::isInfoLogo(): start diff %dms, end diff %dms", diffStart, diffEnd);
-    if (diffStart <= 2400) startPos = infoLogo.startFinal;  // changed from 250 to 960 to 1800 to 2400
-    if (diffEnd <= 1800) endPos = infoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
+    if (diffStart <= 2400) newStartPos = infoLogo.startFinal;  // changed from 250 to 960 to 1800 to 2400
+    if (diffEnd <= 1800) newEndPos = infoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
 #define INFO_LOGO_MIN_LENGTH 4
 #define INFO_LOGO_MAX_LENGTH 14
 #define INFO_LOGO_MIN_QUOTE 80
-    int quote = 100 * (infoLogo.endFinal - infoLogo.startFinal) / (endPos - startPos);
+    int quote = 100 * (infoLogo.endFinal - infoLogo.startFinal) / (newEndPos - newStartPos);
     int length = (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
     dsyslog("cDetectLogoStopStart::isInfoLogo(): info logo: start (%d), end (%d), length %ds (expect >=%ds and <=%ds), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
 //    if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE) && (diffStart < 1920)) {
@@ -507,8 +510,6 @@ bool cDetectLogoStopStart::isInfoLogo() {
     else dsyslog("cDetectLogoStopStart::isInfoLogo(): no info logo found");
 
     // check if it is a closing credit, we may not delete this because it contains end mark
-    length = (endPos - startPos) / maContext->Video.Info.framesPerSecond;
-    dsyslog("cDetectLogoStopStart::isInfoLogo(): length of stop/start part: %ds", length);
     if (found && ClosingCredit() >= 0) {
         dsyslog("cDetectLogoStopStart::isInfoLogo(): stop/start part is closing credit, no info logo");
         found = false;
@@ -659,6 +660,7 @@ int cDetectLogoStopStart::ClosingCredit() {
 
     if (!ClosingCreditChannel()) return -1;
 
+    dsyslog("cDetectLogoStopStart::ClosingCredit: detect from (%d) to (%d)", startPos,endPos);
     int closingCreditsFrame = -1;
     struct closingCredits {
         int start = 0;
