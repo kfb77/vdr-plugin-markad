@@ -375,14 +375,14 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
             status = false;
         }
         int frameNumber =  ptr_cDecoder->GetFrameNumber();
-        if (!ptr_cDecoder->isVideoPacket()) continue;
+        if (!ptr_cDecoder->IsVideoPacket()) continue;
         if (!ptr_cDecoder->GetFrameInfo(maContext, false)) {
-            if (ptr_cDecoder->isVideoIFrame()) // if we have interlaced video this is expected, we have to read the next half picture
+            if (ptr_cDecoder->IsVideoIFrame()) // if we have interlaced video this is expected, we have to read the next half picture
                 tsyslog("cDetectLogoStopStart::Detect(): GetFrameInfo() failed at frame (%d)", frameNumber);
                 continue;
         }
         compareInfoType compareInfo;
-        if (ptr_cDecoder->isVideoIFrame()) {
+        if (ptr_cDecoder->IsVideoIFrame()) {
             if (!maContext->Video.Data.valid) {
                 dsyslog("cDetectLogoStopStart::Detect(): faild to get video data of frame (%d)", frameNumber);
                 continue;

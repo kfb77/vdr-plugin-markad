@@ -331,7 +331,7 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
             if (index == bestAudioStream) streamMap[index] = 1;
         }
         else {
-            if (ptr_cDecoder->isVideoStream(index) || ptr_cDecoder->isAudioStream(index)) streamMap[index] = index;
+            if (ptr_cDecoder->IsVideoStream(index) || ptr_cDecoder->IsAudioStream(index)) streamMap[index] = index;
             else {
                 dsyslog("cEncoder::OpenFile(): stream %d is no audio and no video, ignoring", index);
                 streamMap[index] = -1;
@@ -392,12 +392,12 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
 
     codecCtxArrayOut[streamIndexOut]->time_base.num =  avCodecCtxIn->time_base.num;
     codecCtxArrayOut[streamIndexOut]->time_base.den = avCodecCtxIn->time_base.den;
-    if (ptr_cDecoder->isVideoStream(streamIndexIn)) {
+    if (ptr_cDecoder->IsVideoStream(streamIndexIn)) {
         codecCtxArrayOut[streamIndexOut]->pix_fmt = avCodecCtxIn->pix_fmt;
         codecCtxArrayOut[streamIndexOut]->height = avCodecCtxIn->height;
         codecCtxArrayOut[streamIndexOut]->width = avCodecCtxIn->width;
     }
-    else if (ptr_cDecoder->isAudioStream(streamIndexIn)) {
+    else if (ptr_cDecoder->IsAudioStream(streamIndexIn)) {
         codecCtxArrayOut[streamIndexOut]->sample_fmt = avCodecCtxIn->sample_fmt;
         codecCtxArrayOut[streamIndexOut]->channel_layout = avCodecCtxIn->channel_layout;
         codecCtxArrayOut[streamIndexOut]->sample_rate = avCodecCtxIn->sample_rate;
@@ -417,7 +417,7 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
     }
     dsyslog("cEncoder::ChangeEncoderCodec(): avcodec_open2 for output stream %i successful", streamIndexOut);
 
-    if (ptr_cDecoder->isAudioAC3Stream(streamIndexIn)) {
+    if (ptr_cDecoder->IsAudioAC3Stream(streamIndexIn)) {
         dsyslog("cEncoder::ChangeEncoderCodec(): AC3 input stream found %i, re-initialize volume filter for outpur stream %d", streamIndexIn, streamIndexOut);
         if (!ptr_cAC3VolumeFilter[streamIndexOut]) {
             dsyslog("cEncoder::ChangeEncoderCodec(): ptr_cAC3VolumeFilter not initialized for output stream %i", streamIndexOut);
@@ -536,7 +536,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
     }
 
     // set encoding parameter
-    if (ptr_cDecoder->isVideoStream(streamIndexIn)) {
+    if (ptr_cDecoder->IsVideoStream(streamIndexIn)) {
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d avg framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->avg_frame_rate.num, avctxIn->streams[streamIndexIn]->avg_frame_rate.den);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d real framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->r_frame_rate.num, avctxIn->streams[streamIndexIn]->r_frame_rate.den);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d keyint_min %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->keyint_min);
@@ -568,7 +568,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
         // calculate target mpeg2 video stream bit rate from recording
         int bit_rate = avctxIn->bit_rate; // overall recording bitrate
         for (unsigned int index = 0; index < avctxIn->nb_streams; index ++) {
-            if (codecCtxArrayIn[index] && !ptr_cDecoder->isVideoStream(index)) bit_rate -= codecCtxArrayIn[index]->bit_rate;  // audio streams bit rate
+            if (codecCtxArrayIn[index] && !ptr_cDecoder->IsVideoStream(index)) bit_rate -= codecCtxArrayIn[index]->bit_rate;  // audio streams bit rate
         }
         dsyslog("cEncoder::InitEncoderCodec(): target video bit rate %d", bit_rate);
 
@@ -632,7 +632,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
             }
         }
         // set interlaced
-        if (ptr_cDecoder->isInterlacedVideo()) {
+        if (ptr_cDecoder->IsInterlacedVideo()) {
             codecCtxArrayOut[streamIndexOut]->flags |= AV_CODEC_FLAG_INTERLACED_DCT;
             codecCtxArrayOut[streamIndexOut]->flags |= AV_CODEC_FLAG_INTERLACED_ME;
         }
@@ -654,7 +654,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d aspect ratio %d:%d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.num, codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.den);
     }
     else {
-        if (ptr_cDecoder->isAudioStream(streamIndexIn)) {
+        if (ptr_cDecoder->IsAudioStream(streamIndexIn)) {
             dsyslog("cEncoder::InitEncoderCodec(): input codec sample rate %d, timebase %d/%d for stream %d", codecCtxArrayIn[streamIndexIn]->sample_rate, codecCtxArrayIn[streamIndexIn]->time_base.num, codecCtxArrayIn[streamIndexIn]->time_base.den, streamIndexIn);
             codecCtxArrayOut[streamIndexOut]->time_base.num = codecCtxArrayIn[streamIndexIn]->time_base.num;
             codecCtxArrayOut[streamIndexOut]->time_base.den = codecCtxArrayIn[streamIndexIn]->time_base.den;
@@ -711,7 +711,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
     }
     else dsyslog("cEncoder::InitEncoderCodec(): avcodec_open2 for stream %i successful", streamIndexOut);
 
-    if (ptr_cDecoder->isAudioAC3Stream(streamIndexIn)) {
+    if (ptr_cDecoder->IsAudioAC3Stream(streamIndexIn)) {
         dsyslog("cEncoder::InitEncoderCodec(): AC3 input found at stream %i, initialize volume filter for output stream %d", streamIndexIn, streamIndexOut);
         if (ptr_cAC3VolumeFilter[streamIndexOut]) {
             dsyslog("cEncoder::InitEncoderCodec(): ptr_cAC3VolumeFilter is not NULL for output stream %i", streamIndexOut);
@@ -762,7 +762,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         dsyslog("cEncoder::WritePacket(): got no ptr_cDecoder from output file");
         return false;
     }
-    if ((pass == 1) && !ptr_cDecoder->isVideoPacket()) return true;  // first pass we only need to re-encode video stream
+    if ((pass == 1) && !ptr_cDecoder->IsVideoPacket()) return true;  // first pass we only need to re-encode video stream
     avctxIn = ptr_cDecoder->GetAVFormatContext();  // avctx changes at each input file
     int frameNumber =  ptr_cDecoder->GetFrameNumber();
 
@@ -819,7 +819,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
     }
 
     // set video start infos
-    if (ptr_cDecoder->isVideoPacket()) {
+    if (ptr_cDecoder->IsVideoPacket()) {
         if ((frameNumber - EncoderStatus.frameBefore) > 1) {  // first frame after stark mark position
             if (EncoderStatus.dtsInBefore[streamIndexIn] == 0) EncoderStatus.dtsInBefore[streamIndexIn] = avpktIn->dts - avpktIn->duration; // first frame has no before, init with dts of start mark
             dsyslog("cEncoder::WritePacket(): start cut at            frame (%6d)                 PTS %ld", frameNumber, avpktIn->pts);
@@ -846,16 +846,16 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
 
     // reencode packet if needed
     if ((streamIndexOut >= 0) &&  // only reencode if stream is in streamMap
-       ((maContext->Config->ac3ReEncode && ptr_cDecoder->isAudioAC3Packet()) || maContext->Config->fullEncode)) {
+       ((maContext->Config->ac3ReEncode && ptr_cDecoder->IsAudioAC3Packet()) || maContext->Config->fullEncode)) {
 
         // check valid stream index
         if (streamIndexOut >= static_cast<int>(avctxOut->nb_streams)) return false;
 
         // check encoder, it can be wrong if recording is damaged
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-        if (ptr_cDecoder->isAudioAC3Packet() && avctxOut->streams[streamIndexOut]->codecpar->codec_id != AV_CODEC_ID_AC3)
+        if (ptr_cDecoder->IsAudioAC3Packet() && avctxOut->streams[streamIndexOut]->codecpar->codec_id != AV_CODEC_ID_AC3)
 #else
-        if (ptr_cDecoder->isAudioAC3Packet() && avctxOut->streams[streamIndexOut]->codec->codec_id != AV_CODEC_ID_AC3)
+        if (ptr_cDecoder->IsAudioAC3Packet() && avctxOut->streams[streamIndexOut]->codec->codec_id != AV_CODEC_ID_AC3)
 #endif
         {
             dsyslog("cEncoder::WritePacket(): invalid encoder for AC3 packet of output stream %d at frame (%6d)", streamIndexOut, frameNumber);
@@ -888,7 +888,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         avFrame->pts = avFrame->pts - EncoderStatus.pts_dts_CutOffset; // correct pts after cut
 
         // libav encoder does not accept two frames with same pts
-        if (ptr_cDecoder->isVideoPacket()) {
+        if (ptr_cDecoder->IsVideoPacket()) {
             if (EncoderStatus.ptsOutBefore == avFrame->pts) {
                 dsyslog("cEncoder::WritePacket(): got duplicate pts from video decoder, change pts from %ld to %ld", avFrame->pts, avFrame->pts + 1);
                 avFrame->pts = EncoderStatus.ptsOutBefore + 1;
@@ -896,7 +896,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
             EncoderStatus.ptsOutBefore = avFrame->pts;
         }
 
-        if (ptr_cDecoder->isAudioAC3Packet()) {
+        if (ptr_cDecoder->IsAudioAC3Packet()) {
             // Check if the audio stream has changed channels
             if ((codecCtxArrayOut[streamIndexOut]->channel_layout != codecCtxArrayIn[streamIndexIn]->channel_layout) ||
                 (codecCtxArrayOut[streamIndexOut]->channels != codecCtxArrayIn[streamIndexIn]->channels)) {
@@ -926,7 +926,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
 #endif
         // resample by libav not suported planar audio
         AVFrame *avFrameOut = NULL;
-        if (ptr_cDecoder->isAudioPacket() && (codecCtxArrayIn[streamIndexIn]->sample_fmt == AV_SAMPLE_FMT_S16P)) {
+        if (ptr_cDecoder->IsAudioPacket() && (codecCtxArrayIn[streamIndexIn]->sample_fmt == AV_SAMPLE_FMT_S16P)) {
             avFrameOut = av_frame_alloc();
             if (!avFrameOut) {
                 dsyslog("cDecoder::WritePacket(): av_frame_alloc for avFrameOut ailed");
@@ -1082,7 +1082,7 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
     }
 #else
     int frame_ready=0;
-    if (ptr_cDecoder->isAudioPacket()) {
+    if (ptr_cDecoder->IsAudioPacket()) {
         rc=avcodec_encode_audio2(avCodecCtx, avpkt, avFrame, &frame_ready);
         if (rc < 0) {
             dsyslog("cEncoder::EncodeFrame(): avcodec_encode_audio2 of frame (%d) from stream %d failed with return code %i", ptr_cDecoder->GetFrameNumber(), avpkt->stream_index, rc);

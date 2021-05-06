@@ -1273,7 +1273,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                 retStatus=false;
             }
             if ((ptr_cDecoder->GetFrameInfo(maContext, false) && retStatus)) {
-                if (ptr_cDecoder->isVideoPacket()) {
+                if (ptr_cDecoder->IsVideoPacket()) {
                     iFrameNumber = ptr_cDecoder->GetFrameNumber();
                     if (iFrameNumber < startFrame) {
                         dsyslog("cExtractLogo::SearchLogo(): seek to frame %i", startFrame);

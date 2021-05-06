@@ -2108,13 +2108,13 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
             dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetNextFrame failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             return false;
         }
-        if (!ptr_cDecoder->isVideoPacket()) continue;
+        if (!ptr_cDecoder->IsVideoPacket()) continue;
         if (!ptr_cDecoder->GetFrameInfo(&macontext, false)) {
-            if (ptr_cDecoder->isVideoIFrame())  // if we have interlaced video this is expected, we have to read the next half picture
+            if (ptr_cDecoder->IsVideoIFrame())  // if we have interlaced video this is expected, we have to read the next half picture
                 tsyslog("cMarkAdStandalone::ProcessMark2ndPass() before mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             continue;
         }
-        if (ptr_cDecoder->isVideoIFrame()) {
+        if (ptr_cDecoder->IsVideoIFrame()) {
             ptr_OverlapPos = video->ProcessOverlap(ptr_cDecoder->GetFrameNumber(), iFrameCount, true, (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264));
         }
     }
@@ -2163,13 +2163,13 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
             dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetNextFrame failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             return false;
         }
-        if (!ptr_cDecoder->isVideoPacket()) continue;
+        if (!ptr_cDecoder->IsVideoPacket()) continue;
         if (!ptr_cDecoder->GetFrameInfo(&macontext, false)) {
-            if (ptr_cDecoder->isVideoIFrame())
+            if (ptr_cDecoder->IsVideoIFrame())
                 tsyslog("cMarkAdStandalone::ProcessMark2ndPass() after mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             continue;
         }
-        if (ptr_cDecoder->isVideoIFrame()) {
+        if (ptr_cDecoder->IsVideoIFrame()) {
             ptr_OverlapPos = video->ProcessOverlap(ptr_cDecoder->GetFrameNumber(), iFrameCount, false, (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264));
         }
         if (ptr_OverlapPos) {
@@ -2236,7 +2236,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
     // read and decode all video frames, we want to be sure we have a valid decoder state, this is a debug function, we dont care about performance
     while(mark && (ptr_cDecoder->DecodeDir(directory))) {
         while(mark && (ptr_cDecoder->GetNextFrame())) {
-            if (ptr_cDecoder->isVideoPacket()) {
+            if (ptr_cDecoder->IsVideoPacket()) {
                 if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) {
                     if (ptr_cDecoder->GetFrameNumber() >= writePosition) {
                         dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at frame (%5d) type 0x%X, write frame (%5d)", mark->position, mark->type, writePosition);
@@ -2777,13 +2777,13 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
         abortNow=true;
     }
     frameCurrent = ptr_cDecoder->GetFrameNumber();
-    if (ptr_cDecoder->isVideoIFrame()) {
+    if (ptr_cDecoder->IsVideoIFrame()) {
         iFrameBefore = iFrameCurrent;
         iFrameCurrent = frameCurrent;
     }
     if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) {
-        if (ptr_cDecoder->isVideoPacket()) {
-            if (ptr_cDecoder->isInterlacedVideo() && !macontext.Video.Info.interlaced && (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264) &&
+        if (ptr_cDecoder->IsVideoPacket()) {
+            if (ptr_cDecoder->IsInterlacedVideo() && !macontext.Video.Info.interlaced && (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264) &&
                                                      (ptr_cDecoder->GetVideoFramesPerSecond() == 25) && (ptr_cDecoder->GetVideoRealFrameRate() == 50)) {
                 dsyslog("change internal frame rate to handle H.264 interlaced video");
                 macontext.Video.Info.framesPerSecond *= 2;
@@ -2850,7 +2850,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 }
             }
         }
-        if (ptr_cDecoder->isVideoIFrame()) {  // check audio channels on next iFrame because audio changes are not at iFrame positions
+        if (ptr_cDecoder->IsVideoIFrame()) {  // check audio channels on next iFrame because audio changes are not at iFrame positions
             sMarkAdMark *amark = audio->Process();  // class audio will take frame number of channel change from macontext->Audio.Info.frameChannelChange
             if (amark) AddMark(amark);
         }
