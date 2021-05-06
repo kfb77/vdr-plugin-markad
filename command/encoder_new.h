@@ -21,14 +21,37 @@ extern "C" {
 
 #define VOLUME 3dB
 
-
+/**
+ * libav volume filter class
+ */
 class cAC3VolumeFilter {
     public:
         cAC3VolumeFilter();
         ~cAC3VolumeFilter();
+
+/**
+ * init libav volume filter
+ * @param  channel_layout audio channel layout
+ * @param  sample_fmt     audio sample format
+ * @param  sample_rate    samples per second
+ * @return true if volume filter graph was successful created, false otherwise
+ */
         bool Init(const uint64_t channel_layout, const enum AVSampleFormat sample_fmt, const int sample_rate);
+
+ /**
+  * send frame to volume filter graph
+  * @param avFrame audio frame
+  * @return true if successful, false otherwise
+  */
         bool SendFrame(AVFrame *avFrame);
+
+ /**
+  * receive frame from volume filter graph
+  * @param avFrame audio frame
+  * @return true if successful, false otherwise
+  */
         bool GetFrame(AVFrame *avFrame);
+
     private:
         AVFilterGraph *filterGraph = NULL;
         AVFilterContext *filterSrc = NULL;
