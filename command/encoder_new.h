@@ -65,27 +65,48 @@ class cEncoder {
         int64_t ptsAfterCut = 0;
         bool stateEAGAIN = false;
         cAC3VolumeFilter *ptr_cAC3VolumeFilter[MAXSTREAMS] = {NULL};
-        struct cutStatusType {
-            int64_t videoStartPTS = INT64_MAX;
-            int frameBefore = -2;
-            int64_t *ptsInBefore = NULL;
-            int64_t ptsOutBefore = -1;
-            int64_t *dtsInBefore = NULL;
-            int64_t pts_dts_CutOffset = 0; // offset from the cut out frames
-            int64_t *pts_dts_CyclicalOffset = NULL;  // offset from pts/dts cyclicle, multiple of 0x200000000
-        } cutStatus;
+
+
+/**
+ * encoder status
+ */
+        struct sEncoderStatus {
+            int64_t videoStartPTS = INT64_MAX;       //!< decoded presentation timestamp of of the video stream from first mark
+                                                     //!<
+
+            int frameBefore = -2;                    //!< decoded frame number before current frame
+                                                     //!<
+
+            int64_t *ptsInBefore = NULL;             //!< presentation timestamp of the previous frame from each input stream
+                                                     //!<
+
+            int64_t *dtsInBefore = NULL;             //!< decoding timestamp of the previous frame from each input stream
+                                                     //!<
+
+            int64_t ptsOutBefore = -1;               //!< presentation timestamp of the previous frame from video output stream
+                                                     //!<
+
+            int64_t pts_dts_CutOffset = 0;           //!< offset from the cuted out frames
+                                                     //!<
+
+            int64_t *pts_dts_CyclicalOffset = NULL;  //!< offset from pts/dts cyclicle of each frame, multiple of 0x200000000
+                                                     //!<
+
+        } EncoderStatus;
+
         int *streamMap = NULL;
         int pass = 0;
+
 
 /**
  * statistic data for 2 pass encoding
  */
         struct sAVstatsIn {
             char *data = NULL; //!< statistic data generated from encoder
-	                       //!<
+                               //!<
 
             long int size = 0; //!< size of statistic data
-	                       //!<
+                               //!<
 
         } stats_in;
 
