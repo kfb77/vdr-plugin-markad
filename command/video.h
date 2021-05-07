@@ -110,7 +110,7 @@ typedef struct sAreaT {
     int intensity;                   //!< area intensity (higher -> brighter)
                                      //!<
 
-    sMarkAdAspectRatio AspectRatio;  //!< aspect ratio of the video
+    sAspectRatio AspectRatio;        //!< aspect ratio of the video
                                      //!<
 
     bool valid[PLANES];              //!< <b>true:</b> logo mask data are valid <br>
@@ -274,13 +274,13 @@ class cMarkAdVideo {
 
     private:
         void resetmarks();
-        bool addmark(int type, int position, sMarkAdAspectRatio *before = NULL, sMarkAdAspectRatio *after = NULL);
-        bool aspectratiochange(const sMarkAdAspectRatio &a, const sMarkAdAspectRatio &b, bool &start);
+        bool addmark(int type, int position, sAspectRatio *before = NULL, sAspectRatio *after = NULL);
+        bool aspectratiochange(const sAspectRatio &a, const sAspectRatio &b, bool &start);
 
         cIndex *recordingIndexMarkAdVideo = NULL;
         sMarkAdContext *macontext;
         sMarkAdMarks marks = {};
-        sMarkAdAspectRatio aspectratio = {};
+        sAspectRatio aspectratio = {};
         cMarkAdBlackScreen *blackScreen;
         cMarkAdBlackBordersHoriz *hborder;
         cMarkAdBlackBordersVert *vborder;

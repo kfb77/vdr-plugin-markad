@@ -1436,7 +1436,7 @@ void cMarkAdVideo::resetmarks() {
 }
 
 
-bool cMarkAdVideo::addmark(int type, int position, sMarkAdAspectRatio *before, sMarkAdAspectRatio *after) {
+bool cMarkAdVideo::addmark(int type, int position, sAspectRatio *before, sAspectRatio *after) {
     if (marks.Count>marks.maxCount) return false;
     if (before) {
         marks.Number[marks.Count].AspectRatioBefore.num = before->num;
@@ -1453,7 +1453,7 @@ bool cMarkAdVideo::addmark(int type, int position, sMarkAdAspectRatio *before, s
 }
 
 
-bool cMarkAdVideo::aspectratiochange(const sMarkAdAspectRatio &a, const sMarkAdAspectRatio &b, bool &start) {
+bool cMarkAdVideo::aspectratiochange(const sAspectRatio &a, const sAspectRatio &b, bool &start) {
     start = false;
     if ((a.num == 0) || (a.den == 0) || (b.num == 0) || (b.den == 0)) {
         if (((a.num == 4) || (b.num == 4)) && ((a.den == 3) || (b.den == 3))) {

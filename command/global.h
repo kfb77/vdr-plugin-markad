@@ -190,13 +190,17 @@ typedef struct sOverlapPos {
 } sOverlapPos;
 
 
-typedef struct sMarkAdAspectRatio {
-    int num=0;  //!< video aspectio ratio numerator
-                //!<
+/**
+ * video aspect ratio (DAR or PAR)
+ */
+typedef struct sAspectRatio {
+    int num = 0;  //!< video aspectio ratio numerator
+                  //!<
 
-    int den=0;  //!< video aspectio ratio denominator
+    int den = 0;  //!< video aspectio ratio denominator
+                  //!<
 
-} sMarkAdAspectRatio;
+} sAspectRatio;
 
 
 /**
@@ -215,10 +219,10 @@ typedef struct sMarkAdMark {
     int channelsAfter = 0; //!< audio channel count after mark (set if channel changed at this mark)
                            //!<
 
-    sMarkAdAspectRatio AspectRatioBefore; //!< video aspect ratio before mark (set if video aspect ratio changed at this mark)
+    sAspectRatio AspectRatioBefore; //!< video aspect ratio before mark (set if video aspect ratio changed at this mark)
                                           //!<
 
-    sMarkAdAspectRatio AspectRatioAfter; //!< video aspect ratio after mark (set if video aspect ratio changed at this mark)
+    sAspectRatio AspectRatioAfter; //!< video aspect ratio after mark (set if video aspect ratio changed at this mark)
                                          //!<
 } sMarkAdMark;
 
@@ -261,7 +265,7 @@ typedef struct sMarkAdContext {
         int tStart = 0;                   //!< offset of timer start to recording start (pre timer)
                                           //!<
 
-        sMarkAdAspectRatio AspectRatio;   //!< set from info file and checked after chkSTART, valid for the recording
+        sAspectRatio AspectRatio;   //!< set from info file and checked after chkSTART, valid for the recording
                                           //!<
 
         bool checkedAspectRatio = false;  //!< <b>true:</b> current video aspect ratio is verified <br>
@@ -326,7 +330,7 @@ typedef struct sMarkAdContext {
             int pixFmt; //!< pixel format (see libavutil/pixfmt.h)
                         //!<
 
-            sMarkAdAspectRatio AspectRatio;  //!< current video aspect ratio, set by decoder for each frame
+            sAspectRatio AspectRatio;  //!< current video aspect ratio, set by decoder for each frame
                                              //!<
 
             double framesPerSecond; //!< frames per second of the recording

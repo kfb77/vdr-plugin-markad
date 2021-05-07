@@ -622,20 +622,20 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool full) {
                         maContext->Video.Data.valid = true;
                     }
                 }
-
-                int sample_aspect_ratio_num = avFrameRef->sample_aspect_ratio.num;
-                int sample_aspect_ratio_den = avFrameRef->sample_aspect_ratio.den;
-                if ((sample_aspect_ratio_num == 0) || (sample_aspect_ratio_den == 0)) {
-                    dsyslog("cDecoder::GetFrameInfo(): invalid aspect ratio (%d:%d) at frame (%d)", sample_aspect_ratio_num, sample_aspect_ratio_den, currFrameNumber);
+                sAspectRatio DAR;
+                DAR.num = avFrameRef->sample_aspect_ratio.num;
+                DAR.den = avFrameRef->sample_aspect_ratio.den;
+                if ((DAR.num == 0) || (DAR.den == 0)) {
+                    dsyslog("cDecoder::GetFrameInfo(): invalid aspect ratio (%d:%d) at frame (%d)", DAR.num, DAR.den, currFrameNumber);
                     maContext->Video.Data.valid = false;
                     return false;
                 }
-                if ((sample_aspect_ratio_num == 1) && (sample_aspect_ratio_den == 1)) {
+                if ((DAR.num == 1) && (DAR.den == 1)) {
                     if ((avFrameRef->width == 1280) && (avFrameRef->height  ==  720) ||   // HD ready
                         (avFrameRef->width == 1920) && (avFrameRef->height  == 1080) ||   // full HD
                         (avFrameRef->width == 3840) && (avFrameRef->height  == 2160)) {   // UHD
-                        sample_aspect_ratio_num = 16;
-                        sample_aspect_ratio_den = 9;
+                        DAR.num = 16;
+                        DAR.den = 9;
                     }
                     else {
                         dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio to video width %d hight %d at frame %d)",avFrameRef->width,avFrameRef->height,currFrameNumber);
@@ -644,44 +644,46 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool full) {
                     }
                 }
                 else {
-                    if ((sample_aspect_ratio_num == 64) && (sample_aspect_ratio_den == 45)) {  // // generic PAR MPEG-2 for PAL
-                        sample_aspect_ratio_num = 16;
-                        sample_aspect_ratio_den =  9;
+                    if ((DAR.num == 64) && (DAR.den == 45)) {  // // generic PAR MPEG-2 for PAL
+                        DAR.num = 16;
+                        DAR.den =  9;
                     }
-                    else if ((sample_aspect_ratio_num == 16) && (sample_aspect_ratio_den == 11)) {  // // generic PAR MPEG-4 for PAL
-                        sample_aspect_ratio_num = 16;
-                        sample_aspect_ratio_den =  9;
+                    else if ((DAR.num == 16) && (DAR.den == 11)) {  // // generic PAR MPEG-4 for PAL
+                        DAR.num = 16;
+                        DAR.den =  9;
                     }
-                    else if ((sample_aspect_ratio_num == 32) && (sample_aspect_ratio_den == 17)) {
-                         sample_aspect_ratio_num = 16;
-                         sample_aspect_ratio_den =  9;
+                    else if ((DAR.num == 32) && (DAR.den == 17)) {
+                         DAR.num = 16;
+                         DAR.den =  9;
                     }
-                    else if ((sample_aspect_ratio_num == 16) && (sample_aspect_ratio_den == 15)) {  // generic PAR MPEG-2 for PAL
-                        sample_aspect_ratio_num = 4;
-                        sample_aspect_ratio_den = 3;
+                    else if ((DAR.num == 16) && (DAR.den == 15)) {  // generic PAR MPEG-2 for PAL
+                        DAR.num = 4;
+                        DAR.den = 3;
                     }
-                    else if ((sample_aspect_ratio_num == 12) && (sample_aspect_ratio_den == 11)) {  // generic PAR MPEG-4 for PAL
-                        sample_aspect_ratio_num = 4;
-                        sample_aspect_ratio_den = 3;
+                    else if ((DAR.num == 12) && (DAR.den == 11)) {  // generic PAR MPEG-4 for PAL
+                        DAR.num = 4;
+                        DAR.den = 3;
                     }
-                    else if ((sample_aspect_ratio_num == 4) && (sample_aspect_ratio_den == 3)) {
-//                      sample_aspect_ratio_num =4;
-//                      sample_aspect_ratio_den =3;
+                    else if ((DAR.num == 4) && (DAR.den == 3)) {
+                            if ((avFrameRef->width == 1440) && (avFrameRef->height  == 1080)) { // H.264 1440x1080 PAR 4:3 -> DAR 16:9
+                                DAR.num = 16;
+                                DAR.den =  9;
+                            }
                     }
-                    else if ((sample_aspect_ratio_num == 3) && (sample_aspect_ratio_den == 2)) {  // H.264 1280x1080
-                        sample_aspect_ratio_num = 16;
-                        sample_aspect_ratio_den =  9;
+                    else if ((DAR.num == 3) && (DAR.den == 2)) {  // H.264 1280x1080
+                        DAR.num = 16;
+                        DAR.den =  9;
                     }
-                    else dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio (%d:%d) at frame (%d)",sample_aspect_ratio_num, sample_aspect_ratio_den, currFrameNumber);
+                    else dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio (%d:%d) at frame (%d)",DAR.num, DAR.den, currFrameNumber);
                 }
-                if ((maContext->Video.Info.AspectRatio.num != sample_aspect_ratio_num) ||
-                   ( maContext->Video.Info.AspectRatio.den != sample_aspect_ratio_den)) {
+                if ((maContext->Video.Info.AspectRatio.num != DAR.num) ||
+                   ( maContext->Video.Info.AspectRatio.den != DAR.den)) {
                     if (msgGetFrameInfo) dsyslog("cDecoder::GetFrameInfo(): aspect ratio changed from (%d:%d) to (%d:%d) at frame %d",
                                                                             maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den,
-                                                                            sample_aspect_ratio_num, sample_aspect_ratio_den,
+                                                                            DAR.num, DAR.den,
                                                                             currFrameNumber);
-                    maContext->Video.Info.AspectRatio.num = sample_aspect_ratio_num;
-                    maContext->Video.Info.AspectRatio.den = sample_aspect_ratio_den;
+                    maContext->Video.Info.AspectRatio.num = DAR.num;
+                    maContext->Video.Info.AspectRatio.den = DAR.den;
                 }
                 return true;
             }

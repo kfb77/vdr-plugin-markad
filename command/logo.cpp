@@ -32,7 +32,7 @@ extern bool abortNow;
 extern int logoSearchTime_ms;
 
 
-cExtractLogo::cExtractLogo(const sMarkAdAspectRatio AspectRatio, cIndex *recordingIndex) {
+cExtractLogo::cExtractLogo(const sAspectRatio AspectRatio, cIndex *recordingIndex) {
     logoAspectRatio.num = AspectRatio.num;
     logoAspectRatio.den = AspectRatio.den;
     recordingIndexLogo = recordingIndex;

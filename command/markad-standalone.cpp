@@ -858,7 +858,7 @@ void cMarkAdStandalone::CheckStart() {
         // fix wrong aspect ratio from vdr info file
         if (wrongAspectInfo || ((!earlyAspectChange) && ((macontext.Info.AspectRatio.num != macontext.Video.Info.AspectRatio.num) ||
                                                          (macontext.Info.AspectRatio.den != macontext.Video.Info.AspectRatio.den)))) {
-            sMarkAdAspectRatio newMarkAdAspectRatio;
+            sAspectRatio newMarkAdAspectRatio;
             newMarkAdAspectRatio.num = 16;
             newMarkAdAspectRatio.den = 9;
             if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {

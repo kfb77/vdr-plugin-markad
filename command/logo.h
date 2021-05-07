@@ -42,7 +42,7 @@ struct sLogoInfo {
 
 class cExtractLogo {
     public:
-        explicit cExtractLogo(const sMarkAdAspectRatio aspectRatio, cIndex *recordingIndex);
+        explicit cExtractLogo(const sAspectRatio aspectRatio, cIndex *recordingIndex);
         ~cExtractLogo();
         int SearchLogo(sMarkAdContext *maContext, int startFrame);
         void SetLogoSize(const sMarkAdContext *maContext, int *logoHeight, int *logoWidth);
@@ -73,7 +73,7 @@ class cExtractLogo {
                                      //!< <b>false:</b> data planes are not valid
                                      //!<
 
-            sMarkAdAspectRatio aspectratio = {}; //!< video aspect ratio
+            sAspectRatio aspectratio = {}; //!< video aspect ratio
                                                 //!<
 
         };
@@ -101,7 +101,7 @@ class cExtractLogo {
         std::vector<sLogoInfo> logoInfoVector[CORNERS];
         std::vector<sLogoInfoPacked> logoInfoVectorPacked[CORNERS];
         int recordingFrameCount = 0;
-        sMarkAdAspectRatio logoAspectRatio = {};
+        sAspectRatio logoAspectRatio = {};
         int AudioState = 0;  // 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
         int iFrameCountValid = 0;
         const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" };
