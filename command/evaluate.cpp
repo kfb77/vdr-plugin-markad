@@ -680,7 +680,7 @@ int cDetectLogoStopStart::ClosingCredit() {
     } closingCredits;
 
 #define CLOSING_CREDITS_LENGTH_MIN 9
-    int minLength = (endPos - startPos) / maContext->Video.Info.framesPerSecond - 1;
+    int minLength = ((endPos - startPos) / maContext->Video.Info.framesPerSecond) - 2;  // 2s buffer for change from closing credit to logo start
     if (minLength > CLOSING_CREDITS_LENGTH_MIN) minLength = CLOSING_CREDITS_LENGTH_MIN;
     dsyslog("cDetectLogoStopStart::ClosingCredit: min length %d", minLength);
 
@@ -708,11 +708,14 @@ int cDetectLogoStopStart::ClosingCredit() {
         }
     }
     // check if it is a closing credit
-    int offset = 1000 * (closingCredits.start - startPos) / maContext->Video.Info.framesPerSecond;
+    int startOffset = 1000 * (closingCredits.start - startPos) / maContext->Video.Info.framesPerSecond;
+    int endOffset  = 1000 * (endPos - closingCredits.end) / maContext->Video.Info.framesPerSecond;
     int length = (closingCredits.end - closingCredits.start) / maContext->Video.Info.framesPerSecond;
-    dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: start (%d) end (%d) offset %dms length %ds", closingCredits.start, closingCredits.end, offset, length);
-    if ((offset <= 1440) && (length < 19) && // do not reduce offset
-           ((length >= CLOSING_CREDITS_LENGTH_MIN) || (closingCredits.end == endPos))) { // if we check from info logo, we would not have the complete part, so it should go to end
+    dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: start (%d) end (%d), offset start %dms end %dms, length %ds",
+                                                                                                          closingCredits.start, closingCredits.end, startOffset, endOffset, length);
+
+    if ((startOffset <= 1440) && (length < 19) && // do not reduce offset
+           ((length >= CLOSING_CREDITS_LENGTH_MIN) || (endOffset <= 1440))) { // if we check from info logo, we would not have the complete part, so it should go nearly to end
         dsyslog("cDetectLogoStopStart::ClosingCredit(): this is a closing credits, pair contains a valid mark");
         closingCreditsFrame = closingCredits.end;
     }
