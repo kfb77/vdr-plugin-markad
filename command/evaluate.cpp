@@ -382,42 +382,40 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
                 continue;
         }
         compareInfoType compareInfo;
-        if (ptr_cDecoder->IsVideoIFrame()) {
-            if (!maContext->Video.Data.valid) {
-                dsyslog("cDetectLogoStopStart::Detect(): faild to get video data of frame (%d)", frameNumber);
-                continue;
-            }
-            for (int corner = 0; corner < CORNERS; corner++) {
-                area->corner = corner;
-                int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
+        if (!maContext->Video.Data.valid) {
+            dsyslog("cDetectLogoStopStart::Detect(): faild to get video data of i-frame (%d)", frameNumber);
+            continue;
+        }
+        for (int corner = 0; corner < CORNERS; corner++) {
+            area->corner = corner;
+            int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
                                             //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
 #ifdef DEBUG_COMPARE_FRAME_RANGE
-                if (corner == DEBUG_COMPARE_FRAME_RANGE) iFrameNumberNext = -2;
+            if (corner == DEBUG_COMPARE_FRAME_RANGE) iFrameNumberNext = -2;
 #endif
-                ptr_Logo->Detect(0, frameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
-                logo2[corner] = new sLogoInfo;
-                ALLOC(sizeof(*logo2[corner]), "logo");
-                logo2[corner]->iFrameNumber = frameNumber;
-                memcpy(logo2[corner]->sobel, area->sobel, sizeof(area->sobel));
+            ptr_Logo->Detect(0, frameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
+            logo2[corner] = new sLogoInfo;
+            ALLOC(sizeof(*logo2[corner]), "logo");
+            logo2[corner]->iFrameNumber = frameNumber;
+            memcpy(logo2[corner]->sobel, area->sobel, sizeof(area->sobel));
 #define RATE_0_MIN     250
 #define RATE_12_MIN    950
-                if (logo1[corner]->iFrameNumber >= 0) {  // we have a logo pair
-                    if (ptr_cExtractLogo->CompareLogoPair(logo1[corner], logo2[corner], logoHeight, logoWidth, corner, RATE_0_MIN, RATE_12_MIN, &compareInfo.rate[corner])) {
-                    }
+            if (logo1[corner]->iFrameNumber >= 0) {  // we have a logo pair
+                if (ptr_cExtractLogo->CompareLogoPair(logo1[corner], logo2[corner], logoHeight, logoWidth, corner, RATE_0_MIN, RATE_12_MIN, &compareInfo.rate[corner])) {
                 }
-                if (corner == 0) {  // set current frame numbers, needed only once
-                    compareInfo.frameNumber1 = logo1[corner]->iFrameNumber;
-                    compareInfo.frameNumber2 = logo2[corner]->iFrameNumber;
-               }
+            }
+            if (corner == 0) {  // set current frame numbers, needed only once
+                compareInfo.frameNumber1 = logo1[corner]->iFrameNumber;
+                compareInfo.frameNumber2 = logo2[corner]->iFrameNumber;
+            }
 
-                FREE(sizeof(*logo1[corner]), "logo");
-                delete logo1[corner];
-                logo1[corner] = logo2[corner];
-            }
-            if (compareInfo.frameNumber1 >= 0) {  // got valid pair
-                compareResult.push_back(compareInfo);
-                ALLOC((sizeof(compareInfoType)), "compareResult");
-            }
+            FREE(sizeof(*logo1[corner]), "logo");
+            delete logo1[corner];
+            logo1[corner] = logo2[corner];
+        }
+        if (compareInfo.frameNumber1 >= 0) {  // got valid pair
+            compareResult.push_back(compareInfo);
+            ALLOC((sizeof(compareInfoType)), "compareResult");
         }
     }
     FREE(sizeof(*ptr_Logo), "ptr_Logo");

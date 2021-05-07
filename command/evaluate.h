@@ -69,7 +69,12 @@ class cDetectLogoStopStart {
     private:
         bool isInfoLogoChannel();
         bool isLogoChangeChannel();
+
+/** check if channel could have closing credits without logo
+ * @return true if channel could have closing credits without logo, false otherwise
+ */
         bool ClosingCreditChannel();
+
         bool AdInFrameWithLogoChannel();
         bool IntroductionLogoChannel();
         sMarkAdContext *maContext;
