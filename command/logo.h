@@ -83,7 +83,17 @@ class cExtractLogo {
         int Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
         bool CompareLogoPairRotating(sLogoInfo *logo1, sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner);
         void CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, int *logoHeight, int *logoWidth, const int corner);
+
+/**
+ * check if found logo size and corner is valid
+ * @param maContext  markad context
+ * @param logoHeight logo height
+ * @param logoWidth  logo width
+ * @logoCorner       corner of logo
+ * @return true if logo size and corner is valid, flase otherwise
+ */
         bool CheckLogoSize(const sMarkAdContext *maContext, const int logoHeight, const int logoWidth, const int logoCorner);
+
         bool Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner);
         bool IsWhitePlane(const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
         bool IsLogoColourChange(const sMarkAdContext *maContext, const int corner);

@@ -397,6 +397,12 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
             if (logo.heightMin == 0) logo.heightMin =  66; // SRF_zwei_HD
             if (logo.heightMax == 0) logo.heightMax = 134; // arte_HD                 16:9 1280W  720H:->  88W 134H TOP_LEFT
             break;
+        case 1440:
+            if (logo.widthMin  == 0) logo.widthMin  = 184; //
+            if (logo.widthMax  == 0) logo.widthMax  = 184; //
+            if (logo.heightMin == 0) logo.heightMin = 112; //
+            if (logo.heightMax == 0) logo.heightMax = 112; //
+            break;
         case 1920:
             if (logo.widthMin  == 0) logo.widthMin  = 256; // ServusTV_HD_Deutschland
             if (logo.widthMax  == 0) logo.widthMax  = 336; // ANIXE_HD
