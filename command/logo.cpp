@@ -326,6 +326,10 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "n-tv") == 0) {             // n-tv: 224W 60H BOTTOM_RIGHT
         logo.widthMax  = INT_MAX;  // news ticker
     }
+    if (strcmp(maContext->Info.ChannelName, "n-tv_HD") == 0) {
+        logo.widthMin  = 210;  // news ticker with logo BOTTOM_RIGHT but "HD" on TOP_LEFT is easier to detect
+        logo.heightMin =  72;
+    }
     if (strcmp(maContext->Info.ChannelName, "ProSieben") == 0) { // ProSieben 16:9:  84W 66H TOP_RIGHT
                                                                  // ProSieben  4:3: 100W 66H TOP_RIGHT
         logo.widthMax  =  100;
