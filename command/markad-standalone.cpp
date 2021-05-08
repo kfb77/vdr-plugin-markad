@@ -650,7 +650,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
             }
             if (ptr_cDetectLogoStopStart->Detect(stopPosition, startPosition, false)) {
                 // check info logo before logo mark position
-                if ((isInfoLogo >= 0) && ptr_cDetectLogoStopStart->isInfoLogo()) {
+                if ((isInfoLogo >= 0) && ptr_cDetectLogoStopStart->IsInfoLogo()) {
                     // found info logo part
                     if (indexToHMSFStop && indexToHMSFStart) {
                         dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);

@@ -61,14 +61,27 @@ class cDetectLogoStopStart {
         cDetectLogoStopStart(sMarkAdContext *maContext_, cDecoder *ptr_cDecoder_, cIndex *recordingIndex_);
         ~cDetectLogoStopStart();
         bool Detect(int startFrame, int endFrame, const bool adInFrame);
-        bool isInfoLogo();
+
+/** detect if current logo stop/start pair contains a info logo
+ * @return true if part is info logo, false otherwise
+ */
+        bool IsInfoLogo();
+
         bool isLogoChange();
         int ClosingCredit();
         int AdInFrameWithLogo(const bool isStartMark);
         int IntroductionLogo();
     private:
-        bool isInfoLogoChannel();
-        bool isLogoChangeChannel();
+
+/** check if channel could have info logos
+ * @return true if channel could have info logos, false otherwise
+ */
+        bool IsInfoLogoChannel();
+
+/** check if channel could have logo changes
+ * @return true if channel could have logo changes, false otherwise
+ */
+        bool IsLogoChangeChannel();
 
 /** check if channel could have closing credits without logo
  * @return true if channel could have closing credits without logo, false otherwise

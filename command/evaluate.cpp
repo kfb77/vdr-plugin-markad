@@ -325,7 +325,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
     }
 
     // check if we have anything todo with this channel
-    if (!isInfoLogoChannel() && !isLogoChangeChannel() && !ClosingCreditChannel() && !AdInFrameWithLogoChannel() && !IntroductionLogoChannel()) {
+    if (!IsInfoLogoChannel() && !IsLogoChangeChannel() && !ClosingCreditChannel() && !AdInFrameWithLogoChannel() && !IntroductionLogoChannel()) {
         dsyslog("cDetectLogoStopStart::Detect(): channel not in list for special logo detection");
         return false;
     }
@@ -434,7 +434,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
 }
 
 
-bool cDetectLogoStopStart::isInfoLogoChannel() {
+bool cDetectLogoStopStart::IsInfoLogoChannel() {
     if (!maContext) return false;
     // for performance reason only known and tested channels
     if ((strcmp(maContext->Info.ChannelName, "kabel_eins") != 0) &&
@@ -448,28 +448,28 @@ bool cDetectLogoStopStart::isInfoLogoChannel() {
 }
 
 
-bool cDetectLogoStopStart::isInfoLogo() {
+bool cDetectLogoStopStart::IsInfoLogo() {
     if (!maContext) return false;
     if (!ptr_cDecoder) return false;
     if (compareResult.empty()) return false;
 
-    if (!isInfoLogoChannel()) {
-       dsyslog("cDetectLogoStopStart::isInfoLogo(): skip this channel");
+    if (!IsInfoLogoChannel()) {
+       dsyslog("cDetectLogoStopStart::IsInfoLogo(): skip this channel");
        return false;
     }
 
-    dsyslog("cDetectLogoStopStart::isInfoLogo(): detect from (%d) to (%d)", startPos, endPos);
-    struct infoLogoType {
+    dsyslog("cDetectLogoStopStart::IsInfoLogo(): detect from (%d) to (%d)", startPos, endPos);
+    struct sInfoLogo {
         int start = 0;
         int end = 0;
         int startFinal = 0;
         int endFinal = 0;
-    } infoLogo;
+    } InfoLogo;
     bool found = false;
     int separatorFrame = -1;
 
     for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
-        dsyslog("cDetectLogoStopStart::isInfoLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
 
         int sumPixel = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
@@ -477,52 +477,52 @@ bool cDetectLogoStopStart::isInfoLogo() {
         }
         if (sumPixel == 0) separatorFrame = (*cornerResultIt).frameNumber2;
 
-        if ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 131) {  // changed from 400 to 340 to 300 to 265 to 235 to 131
-            if (infoLogo.start == 0) infoLogo.start = (*cornerResultIt).frameNumber1;
-            infoLogo.end = (*cornerResultIt).frameNumber2;
+        if ((*cornerResultIt).rate[maContext->Video.Logo.corner] > 210) {  // do not rededuce to prevent false positiv
+            if (InfoLogo.start == 0) InfoLogo.start = (*cornerResultIt).frameNumber1;
+            InfoLogo.end = (*cornerResultIt).frameNumber2;
         }
         else {
-            if ((infoLogo.end - infoLogo.start) > (infoLogo.endFinal - infoLogo.startFinal)) {
-                infoLogo.startFinal = infoLogo.start;
-                infoLogo.endFinal = infoLogo.end;
+            if ((InfoLogo.end - InfoLogo.start) > (InfoLogo.endFinal - InfoLogo.startFinal)) {
+                InfoLogo.startFinal = InfoLogo.start;
+                InfoLogo.endFinal = InfoLogo.end;
             }
-            infoLogo.start = 0;  // reset state
-            infoLogo.end = 0;
+            InfoLogo.start = 0;  // reset state
+            InfoLogo.end = 0;
         }
     }
-    if ((infoLogo.end - infoLogo.start) > (infoLogo.endFinal - infoLogo.startFinal)) {
-        infoLogo.startFinal = infoLogo.start;
-        infoLogo.endFinal = infoLogo.end;
+    if ((InfoLogo.end - InfoLogo.start) > (InfoLogo.endFinal - InfoLogo.startFinal)) {
+        InfoLogo.startFinal = InfoLogo.start;
+        InfoLogo.endFinal = InfoLogo.end;
     }
     // check separator image
     if (separatorFrame == endPos) {
-        dsyslog("cDetectLogoStopStart::isInfoLogo(): separator image at end frame found, this is a valid start mark");
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator image at end frame found, this is a valid start mark");
         found = false;
     }
     else {
         // ignore short parts at start and end, this is fade in and fade out
-        int diffStart = 1000 * (infoLogo.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
-        int diffEnd = 1000 * (endPos - infoLogo.endFinal) / maContext->Video.Info.framesPerSecond;
+        int diffStart = 1000 * (InfoLogo.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
+        int diffEnd = 1000 * (endPos - InfoLogo.endFinal) / maContext->Video.Info.framesPerSecond;
         int newStartPos = startPos;
         int newEndPos = endPos;
-        dsyslog("cDetectLogoStopStart::isInfoLogo(): start diff %dms, end diff %dms", diffStart, diffEnd);
-        if (diffStart <= 2400) newStartPos = infoLogo.startFinal;  // changed from 250 to 960 to 1800 to 2400
-        if (diffEnd <= 1800) newEndPos = infoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): start diff %dms, end diff %dms", diffStart, diffEnd);
+        if (diffStart <= 2400) newStartPos = InfoLogo.startFinal;  // changed from 250 to 960 to 1800 to 2400
+        if (diffEnd <= 1800) newEndPos = InfoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
 #define INFO_LOGO_MIN_LENGTH 4
 #define INFO_LOGO_MAX_LENGTH 14
 #define INFO_LOGO_MIN_QUOTE 72 // changed from 80 to 72
-        int quote = 100 * (infoLogo.endFinal - infoLogo.startFinal) / (newEndPos - newStartPos);
-        int length = (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
-        dsyslog("cDetectLogoStopStart::isInfoLogo(): info logo: start (%d), end (%d), length %ds (expect >=%ds and <=%ds), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
+        int quote = 100 * (InfoLogo.endFinal - InfoLogo.startFinal) / (newEndPos - newStartPos);
+        int length = (InfoLogo.endFinal - InfoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo: start (%d), end (%d), length %ds (expect >=%ds and <=%ds), quote %d%% (expect >= %d%%)", InfoLogo.startFinal, InfoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
         if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE)) {
-            dsyslog("cDetectLogoStopStart::isInfoLogo(): found info logo");
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): found info logo");
             found = true;
         }
-        else dsyslog("cDetectLogoStopStart::isInfoLogo(): no info logo found");
+        else dsyslog("cDetectLogoStopStart::IsInfoLogo(): no info logo found");
 
         // check if it is a closing credit, we may not delete this because it contains end mark
         if (found && ClosingCredit() >= 0) {
-            dsyslog("cDetectLogoStopStart::isInfoLogo(): stop/start part is closing credit, no info logo");
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): stop/start part is closing credit, no info logo");
             found = false;
         }
     }
@@ -530,7 +530,7 @@ bool cDetectLogoStopStart::isInfoLogo() {
 }
 
 
-bool cDetectLogoStopStart::isLogoChangeChannel() {
+bool cDetectLogoStopStart::IsLogoChangeChannel() {
     // for performance reason only known and tested channels
     if (!maContext) return false;
     if (strcmp(maContext->Info.ChannelName, "TELE_5") != 0) {  // has logo changes
@@ -553,7 +553,7 @@ bool cDetectLogoStopStart::isLogoChange() {
     if (!recordingIndex) return false;
     if (compareResult.empty()) return false;
 
-    if (!isLogoChangeChannel()) {
+    if (!IsLogoChangeChannel()) {
         dsyslog("cDetectLogoStopStart::isLogoChange(): skip this channel");
         return false;
     }
