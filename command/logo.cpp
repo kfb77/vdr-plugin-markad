@@ -375,6 +375,9 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "WELT") == 0) { // WELT: 222W 60H BOTTOM_LEFT
         logo.widthMax  = INT_MAX;  // news ticker
     }
+    if (strcmp(maContext->Info.ChannelName, "WELT_HD") == 0) { // WELT: 222W 60H BOTTOM_LEFT
+        logo.widthMax  = INT_MAX;  // news ticker
+    }
     if (strcmp(maContext->Info.ChannelName, "Welt_der_Wunder") == 0) { // Welt_der_Wunder         16:9  720W  576H:->  94W 108H TOP_LEFT
                                                                        // Welt_der_Wunder         16:9  720W  576H:->  96W 112H TOP_LEFT
         logo.widthMin  =  94;
