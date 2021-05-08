@@ -1413,7 +1413,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
         }
     }
 
-    if (!retStatus && (iFrameCountAll < MAXREADFRAMES) && ((iFrameCountAll > MAXREADFRAMES / 2) || (iFrameCountValid > 800))) {  // reached end of recording before we got 1000 valid frames
+    if (!retStatus && (iFrameCountAll < MAXREADFRAMES) && ((iFrameCountAll > MAXREADFRAMES / 2) || (iFrameCountValid > 700))) {  // reached end of recording before we got 1000 valid frames
         dsyslog("cExtractLogo::SearchLogo(): end of recording reached at frame (%d), read (%d) iFrames and got (%d) valid iFrames, try anyway", iFrameNumber, iFrameCountAll, iFrameCountValid);
         retStatus = true;
     }
