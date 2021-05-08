@@ -757,12 +757,12 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     if (isStartMark) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): start search advertising in frame between logo start mark (%d) and (%d)", startPos, endPos);
     else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): start search advertising in frame between (%d) and logo stop mark at (%d)", startPos, endPos);
 
-    struct adInFrame {
-        int start = 0;
-        int end = 0;
-        int startFinal = 0;
-        int endFinal = 0;
-    } adInFrame;
+    struct sAdInFrame {
+        int start = -1;
+        int end = -1;
+        int startFinal = -1;
+        int endFinal = -1;
+    } AdInFrame;
     int retFrame = -1;
 
 #define START_OFFSET_MAX 4
@@ -782,23 +782,34 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
             }
         }
         if ((similarCornersLow >= 3) && (similarCornersHigh >= 2)) {  // at least 3 corners has low match and 2 corner with high match
-            if (adInFrame.start == 0) adInFrame.start = (*cornerResultIt).frameNumber1;
-            adInFrame.end = (*cornerResultIt).frameNumber2;
+            if (AdInFrame.start == -1) AdInFrame.start = (*cornerResultIt).frameNumber1;
+            AdInFrame.end = (*cornerResultIt).frameNumber2;
         }
         else {
-            if ((adInFrame.start != 0) && (adInFrame.end != 0)) {  // we have a new pair
-                int startOffset = (adInFrame.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
-                if ((adInFrame.end - adInFrame.start) > (adInFrame.endFinal - adInFrame.startFinal) ||
-                    (!isStartMark && (startOffset < 1))) { // a valid ad in frame before stop mark has a start offset, dop invalid pair
-                    if (!isStartMark || (((adInFrame.start - startPos) / maContext->Video.Info.framesPerSecond) < START_OFFSET_MAX)) { // ignore pair with invalid offset
-                        adInFrame.startFinal = adInFrame.start;
-                        adInFrame.endFinal = adInFrame.end;
+            if ((AdInFrame.start != -1) && (AdInFrame.end != -1)) {  // we have a new pair
+                int startOffset = (AdInFrame.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
+                if ((AdInFrame.end - AdInFrame.start) > (AdInFrame.endFinal - AdInFrame.startFinal) ||
+                    (!isStartMark && (startOffset < 1))) { // a valid ad in frame before stop mark has a start offset, drop invalid pair
+                    if (!isStartMark || (((AdInFrame.start - startPos) / maContext->Video.Info.framesPerSecond) < START_OFFSET_MAX)) { // ignore pair with invalid offset
+                        AdInFrame.startFinal = AdInFrame.start;
+                        AdInFrame.endFinal = AdInFrame.end;
                     }
                 }
-                adInFrame.start = 0;  // reset state
-                adInFrame.end = 0;
+                AdInFrame.start = -1;  // reset state
+                AdInFrame.end = -1;
             }
         }
+    }
+    if ((AdInFrame.end - AdInFrame.start) > (AdInFrame.endFinal - AdInFrame.startFinal)) {  // in case of ad in frame go to end position
+        if (!isStartMark || (((AdInFrame.start - startPos) / maContext->Video.Info.framesPerSecond) < START_OFFSET_MAX)) {  // ignore pair with invalid start offset
+            AdInFrame.startFinal = AdInFrame.start;
+            AdInFrame.endFinal = AdInFrame.end;
+        }
+    }
+    // check if we found any matching part
+    if ((AdInFrame.startFinal == -1) || (AdInFrame.endFinal == -1)) {
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): no match found");
+        return -1;
     }
     // check if we have more than one logo
     int countLogo = 0;
@@ -815,29 +826,25 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     }
     if (countLogo > 0) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): found more than one logo, this is not a advertising in frame");
+        return -1;
     }
-    else {
-        if ((adInFrame.end - adInFrame.start) > (adInFrame.endFinal - adInFrame.startFinal)) {  // in case of ad in frame go to end position
-            if (!isStartMark || (((adInFrame.start - startPos) / maContext->Video.Info.framesPerSecond) < START_OFFSET_MAX)) {  // ignore pair with invalid start offset
-                adInFrame.startFinal = adInFrame.start;
-                adInFrame.endFinal = adInFrame.end;
-            }
+    int startOffset = (AdInFrame.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
+    int stopOffset = (endPos - AdInFrame.endFinal) / maContext->Video.Info.framesPerSecond;
+    int length = 1000 * (AdInFrame.endFinal - AdInFrame.startFinal) / maContext->Video.Info.framesPerSecond;
+    dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start offset %ds start (%d), end (%d) stop offset %ds, length %dms (expect >=8s and <=30s)",
+                                                                                                        startOffset, AdInFrame.startFinal, AdInFrame.endFinal, stopOffset, length);
+    if ((length > 8280) && (length <= 30000)) { // do not reduce min to prevent false positive, do not increase to detect 10s ad in frame
+                                                // minor change from 8000 to 8280
+        if ((isStartMark && startOffset < START_OFFSET_MAX) ||  // an ad in frame with logo after start mark must be near start mark, changed from 5 to 4
+           (!isStartMark && stopOffset  < 5)) {  // an ad in frame with logo before stop mark must be near stop mark
+            dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): this is a advertising in frame with logo");
+            if (isStartMark) retFrame = AdInFrame.endFinal;
+            else retFrame = AdInFrame.startFinal;
         }
-        int startOffset = (adInFrame.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
-        int stopOffset = (endPos - adInFrame.endFinal) / maContext->Video.Info.framesPerSecond;
-        int length = (adInFrame.endFinal - adInFrame.startFinal) / maContext->Video.Info.framesPerSecond;
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start offset %ds start (%d), end (%d) stop offset %ds, length %ds (expect >=8s and <=30s)", startOffset, adInFrame.startFinal, adInFrame.endFinal, stopOffset, length);
-        if ((length >= 8) && (length <= 30)) { // do not reduce min to prevent false positive, do not increase to detect 10s ad in frame
-            if ((isStartMark && startOffset < START_OFFSET_MAX) ||  // an ad in frame with logo after start mark must be near start mark, changed from 5 to 4
-               (!isStartMark && stopOffset  < 5)) {  // an ad in frame with logo before stop mark must be near stop mark
-                dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): this is a advertising in frame with logo");
-                if (isStartMark) retFrame = adInFrame.endFinal;
-                else retFrame = adInFrame.startFinal;
-            }
-            else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): offset not valid, this is not a advertising in frame with logo");
-        }
-        else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): length not valid, this is not a advertising in frame with logo");
+        else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): offset not valid, this is not a advertising in frame with logo");
     }
+    else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): length not valid, this is not a advertising in frame with logo");
+
     return retFrame;
 }
 
