@@ -506,7 +506,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         int newStartPos = startPos;
         int newEndPos = endPos;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): start diff %dms, end diff %dms", diffStart, diffEnd);
-        if (diffStart <= 2400) newStartPos = InfoLogo.startFinal;  // changed from 250 to 960 to 1800 to 2400
+        if (diffStart < 1920) newStartPos = InfoLogo.startFinal;  // do not increase
         if (diffEnd <= 1800) newEndPos = InfoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
 #define INFO_LOGO_MIN_LENGTH 4
 #define INFO_LOGO_MAX_LENGTH 14
