@@ -154,7 +154,7 @@ class cDecoder {
  */
         bool GetFrameInfo(sMarkAdContext *maContext, const bool full);
 
-/* check if stream is video stream
+/** check if stream is video stream
  * @param stream index
  * @return true if video stream, false otherwise
  */

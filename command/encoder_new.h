@@ -58,14 +58,47 @@ class cAC3VolumeFilter {
         AVFilterContext *filterSink = NULL;
 };
 
-
+/**
+ * main encoder class
+ */
 class cEncoder {
     public:
+
+/**
+ * contructor
+ * @param macontext markad context
+ */
         explicit cEncoder(sMarkAdContext *macontext);
+
         ~cEncoder();
+
+/**
+ * reset encoder state and start write file from begin
+ * @param Pass 0 for only one pass planed, 1 first pass of 2 pass encoding, 2 second pass of 2 pass encoding)
+ */
+
         void Reset(const int Pass);
-        bool OpenFile(const char *directory, cDecoder *pt_cDecoder);
+
+/**
+ * open output file
+ * @param directory    output directory
+ * @param ptr_cDecoder encoder class
+ * @return true if successful, false otherwise
+ */
+        bool OpenFile(const char *directory, cDecoder *ptr_cDecoder);
+
+/** write packet to output file
+ * @param pktIn packet from input stream
+ * @param ptr_cDecoder decoder class
+ * @return true if sucessful, flase otherwise
+ */
         bool WritePacket(AVPacket *pktIn, cDecoder *ptr_cDecoder);
+
+/**
+ * close output file
+ * @param ptr_cDecoder decoder class
+ * @return true if sucessful, false otherwise
+ */
         bool CloseFile(cDecoder *ptr_cDecoder);
 
     private:
