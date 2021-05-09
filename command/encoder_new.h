@@ -74,10 +74,10 @@ class cEncoder {
 
 /**
  * reset encoder state and start write file from begin
- * @param Pass 0 for only one pass planed, 1 first pass of 2 pass encoding, 2 second pass of 2 pass encoding)
+ * @param passEncoder 0 for only one pass planed, 1 first pass of 2 pass encoding, 2 second pass of 2 pass encoding)
  */
 
-        void Reset(const int Pass);
+        void Reset(const int passEncoder);
 
 /**
  * open output file

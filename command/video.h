@@ -122,7 +122,7 @@ typedef struct sAreaT {
 
 class cMarkAdOverlap {
     private:
-        sMarkAdContext *macontext;
+        sMarkAdContext *maContext = NULL;
         typedef int simpleHistogram[256];
 
 /**
@@ -150,7 +150,7 @@ class cMarkAdOverlap {
         sOverlapPos *Detect();
         void Clear();
     public:
-        explicit cMarkAdOverlap(sMarkAdContext *maContext);
+        explicit cMarkAdOverlap(sMarkAdContext *maContextParam);
         ~cMarkAdOverlap();
         sOverlapPos *Process(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
 };
@@ -170,7 +170,7 @@ class cMarkAdLogo {
         sAreaT area;
         int GX[3][3];
         int GY[3][3];
-        sMarkAdContext *macontext;
+        sMarkAdContext *maContext = NULL;
         bool pixfmt_info;
         bool isInitColourChange = false;
 
@@ -203,9 +203,9 @@ class cMarkAdLogo {
 class cMarkAdBlackScreen {
     private:
         int blackScreenstatus;
-        sMarkAdContext *macontext;
+        sMarkAdContext *maContext = NULL;
     public:
-        explicit cMarkAdBlackScreen(sMarkAdContext *maContext);
+        explicit cMarkAdBlackScreen(sMarkAdContext *maContextParam);
         int Process(const int frameCurrent);
         void Clear();
 };
@@ -215,9 +215,9 @@ class cMarkAdBlackBordersHoriz {
     private:
         int borderstatus;
         int borderframenumber;
-        sMarkAdContext *macontext;
+        sMarkAdContext *maContext = NULL;
     public:
-        explicit cMarkAdBlackBordersHoriz(sMarkAdContext *maContext);
+        explicit cMarkAdBlackBordersHoriz(sMarkAdContext *maContextParam);
         int GetFirstBorderFrame();
         int Process(const int frameNumber, int *BorderFrameNumber);
         void SetStatusBorderInvisible() {
@@ -232,9 +232,9 @@ class cMarkAdBlackBordersVert {
     private:
         int borderstatus;
         int borderframenumber;
-        sMarkAdContext *macontext;
+        sMarkAdContext *maContext = NULL;
     public:
-        explicit cMarkAdBlackBordersVert(sMarkAdContext *maContext);
+        explicit cMarkAdBlackBordersVert(sMarkAdContext *maContextParam);
         int GetFirstBorderFrame();
         int Process(int FrameNumber, int *BorderFrameNumber);
         void SetStatusBorderInvisible() {
@@ -250,7 +250,7 @@ class cMarkAdVideo {
         explicit cMarkAdVideo(sMarkAdContext *maContext, cIndex *recordingIndex);
         ~cMarkAdVideo();
         cMarkAdVideo(const cMarkAdVideo &origin) {   //  copy constructor, not used, only for formal reason
-            macontext = origin.macontext;
+            maContext = origin.maContext;
             blackScreen = NULL;
             hborder = NULL;
             vborder = NULL;
@@ -258,13 +258,13 @@ class cMarkAdVideo {
             overlap = NULL;
         };
         cMarkAdVideo &operator =(const cMarkAdVideo *origin) {  // operator=, not used, only for formal reason
-            macontext = origin->macontext;
+            maContext = origin->maContext;
             blackScreen = NULL;
             hborder = NULL;
             vborder = NULL;
             logo = NULL;
             overlap = NULL;
-            aspectratio = {};
+            aspectRatio = {};
             return *this;
         }
         sOverlapPos *ProcessOverlap(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
@@ -274,17 +274,35 @@ class cMarkAdVideo {
 
     private:
         void resetmarks();
-        bool addmark(int type, int position, sAspectRatio *before = NULL, sAspectRatio *after = NULL);
-        bool aspectratiochange(const sAspectRatio &a, const sAspectRatio &b, bool &start);
 
-        cIndex *recordingIndexMarkAdVideo = NULL;
-        sMarkAdContext *macontext;
-        sMarkAdMarks marks = {};
-        sAspectRatio aspectratio = {};
-        cMarkAdBlackScreen *blackScreen;
-        cMarkAdBlackBordersHoriz *hborder;
-        cMarkAdBlackBordersVert *vborder;
-        cMarkAdLogo *logo;
-        cMarkAdOverlap *overlap;
+        bool addmark(int type, int position, sAspectRatio *before = NULL, sAspectRatio *after = NULL);
+
+/**
+ * check if video aspect ratio changes between the two aspect ratios
+ * @param[in]  AspectRatioA first video aspact ratio
+ * @param[in]  AspectRatioB second video aspect ratio
+ * @param[out] start true if aspect ratio change to 4:3 at video decoding start, from 0:0 (unknown) to 4:3
+ * @return true if aspect ratio changed, false otherwise
+ */
+        bool AspectRatioChange(const sAspectRatio &AspectRatioA, const sAspectRatio &AspectRatioB, bool &start);
+
+        cIndex *recordingIndexMarkAdVideo = NULL; //!< recording index
+                                                  //!<
+        sMarkAdContext *maContext = NULL;         //!< markad context
+                                                  //!<
+        sMarkAdMarks marks = {};                  //!< array of marks to add to list
+                                                  //!<
+        sAspectRatio aspectRatio = {};            //!< video display aspect ratio (DAR)
+                                                  //!<
+        cMarkAdBlackScreen *blackScreen;          //!< pointer to class cMarkAdBlackScreen
+                                                  //!<
+        cMarkAdBlackBordersHoriz *hborder;        //!< pointer to class cMarkAdBlackBordersHoriz
+                                                  //!<
+        cMarkAdBlackBordersVert *vborder;         //!< pointer to class cMarkAdBlackBordersVert
+                                                  //!<
+        cMarkAdLogo *logo;                        //!< pointer to class cMarkAdLogo
+                                                  //!<
+        cMarkAdOverlap *overlap;                  //!< pointer to class cMarkAdOverlap
+                                                  //!<
 };
 #endif

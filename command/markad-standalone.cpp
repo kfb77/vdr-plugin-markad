@@ -136,12 +136,12 @@ void syslog_with_tid(int priority, const char *format, ...) {
 }
 
 
-cOSDMessage::cOSDMessage(const char *Host, int Port) {
+cOSDMessage::cOSDMessage(const char *hostName, int portNumber) {
     msg=NULL;
-    host=strdup(Host);
+    host = strdup(hostName);
     ALLOC(strlen(host)+1, "host");
-    port = Port;
-    send(this);
+    port = portNumber;
+    SendMessage(this);
 }
 
 
@@ -158,7 +158,7 @@ cOSDMessage::~cOSDMessage() {
 }
 
 
-bool cOSDMessage::readreply(int fd, char **reply) {
+bool cOSDMessage::ReadReply(int fd, char **reply) {
     usleep(400000);
     char c = ' ';
     int repsize = 0;
@@ -198,7 +198,7 @@ bool cOSDMessage::readreply(int fd, char **reply) {
 }
 
 
-void *cOSDMessage::send(void *posd) {
+void *cOSDMessage::SendMessage(void *posd) {
     cOSDMessage *osd = static_cast<cOSDMessage *>(posd);
 
     struct hostent *host = gethostbyname(osd->host);
@@ -223,7 +223,7 @@ void *cOSDMessage::send(void *posd) {
     }
 
     char *reply = NULL;
-    if (!osd->readreply(sock, &reply)) {
+    if (!osd->ReadReply(sock, &reply)) {
         if (reply) free(reply);
         close(sock);
         return NULL;
@@ -236,7 +236,7 @@ void *cOSDMessage::send(void *posd) {
         if (ret != (ssize_t) - 1) ret = write(sock,osd->msg,strlen(osd->msg));
         if (ret != (ssize_t) - 1) ret = write(sock, "\r\n", 2);
 
-        if (!osd->readreply(sock) || (ret == (ssize_t) - 1)) {
+        if (!osd->ReadReply(sock) || (ret == (ssize_t) - 1)) {
             close(sock);
             return NULL;
         }
@@ -258,7 +258,7 @@ void *cOSDMessage::send(void *posd) {
         }
     }
     ret=write(sock, "QUIT\r\n", 6);
-    if (ret != (ssize_t) - 1) osd->readreply(sock);
+    if (ret != (ssize_t) - 1) osd->ReadReply(sock);
     close(sock);
     return NULL;
 }
@@ -276,7 +276,7 @@ int cOSDMessage::Send(const char *format, ...) {
     ALLOC(strlen(msg)+1, "msg");
     va_end(ap);
 
-    if (pthread_create(&tid, NULL, (void *(*) (void *))&send, (void *) this) != 0 ) return -1;
+    if (pthread_create(&tid, NULL, (void *(*) (void *))&SendMessage, (void *) this) != 0 ) return -1;
     return 0;
 }
 

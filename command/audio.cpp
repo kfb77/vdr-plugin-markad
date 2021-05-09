@@ -43,17 +43,17 @@ void cMarkAdAudio::ResetMark() {
 }
 
 
-void cMarkAdAudio::SetMark(const int type, const int position, const int channelsbefore, const int channelsafter) {
-    mark.channelsBefore = channelsbefore;
-    mark.channelsAfter = channelsafter;
+void cMarkAdAudio::SetMark(const int type, const int position, const int channelsBefore, const int channelsAfter) {
+    mark.channelsBefore = channelsBefore;
+    mark.channelsAfter = channelsAfter;
     mark.position = position;
     mark.type = type;
 }
 
 
-bool cMarkAdAudio::ChannelChange(int channelsbefore, int channelsafter) {
-    if ((channelsbefore == 0) || (channelsafter == 0)) return false;
-    if (channelsbefore != channelsafter) return true;
+bool cMarkAdAudio::ChannelChange(int channelsBefore, int channelsAfter) {
+    if ((channelsBefore == 0) || (channelsAfter == 0)) return false;
+    if (channelsBefore != channelsAfter) return true;
     return false;
 }
 

@@ -56,7 +56,7 @@ class cDecoder {
  * @param threads        count threads of ffmpeg decoder
  * @param RecordingIndex recording index class
  */
-        explicit cDecoder(int threads, cIndex *RecordingIndex);
+        explicit cDecoder(int threads, cIndex *recordingIndex);
 
         ~cDecoder();
 

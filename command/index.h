@@ -14,20 +14,75 @@
 
 #include "global.h"
 
-
+/**
+ * recording index class
+ * store offset from start in ms of each i-frame
+ */
 class cIndex {
     public:
         cIndex();
         ~cIndex();
-        int64_t GetLastTime();
-        void Add(int fileNumber, int frameNumber, int64_t pts_time_ms);
-//        int GetIFrameNear(int frame);
-        int GetIFrameBefore(int frame);
-        int GetIFrameAfter(int frame);
-        int64_t GetTimeFromFrame(int frame);
+
+/**
+ * get last stored offset in ms
+ * @return offset in ms of last stored i-frame
+ */
+        int GetLastTime();
+
+/**
+ * add new frame to index
+ * @param fileNumber  number of ts file
+ * @param frameNumber number of frame
+ * @param pts_time_ms presentation timestamp of frame
+ */
+        void Add(int fileNumber, int frameNumber, int timeOffset_ms);
+
+/**
+ * get i-frame before frameNumber
+ * @param frameNumber number of frame
+ * @return number of i-frame before frameNumber
+ */
+        int GetIFrameBefore(int frameNumber);
+
+/**
+ * get i-frame after frameNumber
+ * @param frameNumber number of frame
+ * @return number of i-frame after frameNumber
+ */
+        int GetIFrameAfter(int frameNumber);
+
+/**
+ * get offset time from recoring start in ms
+ * @param frameNumber number of the frame
+ * @return offset time from recoring start in ms
+ */
+        int GetTimeFromFrame(int frameNumber);
+
+/**
+ * get frame number to offset of recording start
+ * @param offset from recording start in ms
+ * @return frame number to offset of recording start
+ */
         int GetFrameFromOffset(int offset_ms);
+
+/**
+ * get number of i-frames between beginFrame and endFrame
+ * @param beginFrame frame number start of the range
+ * @param endFrame   frame number end of the range
+ * return number of i-frames between beginFrame and endFrame
+ */
         int GetIFrameRangeCount(int beginFrame, int endFrame);
+
+/**
+ * add frame to frame number and PTS buffer
+ * @param frameNumber number of the frame
+ * @param pts         presentation timestamp of the frame
+ */
         void AddPTS(const int frameNumber, const int64_t pts);
+
+/* get first frame number after given presentation timestamp
+ * @param pts  presentation timestamp
+ */
         int GetFirstVideoFrameAfterPTS(const int64_t pts);
 
     private:
@@ -37,14 +92,14 @@ class cIndex {
  * element of the video index
  */
         struct sIndexElement {
-            int fileNumber = 0;      //!< number of TS file
-                                     //!<
+            int fileNumber = 0;        //!< number of TS file
+                                       //!<
 
-            int frameNumber = 0;     //!< video frame number
-                                     //!<
+            int frameNumber = 0;       //!< video frame number
+                                       //!<
 
-            int64_t pts_time_ms = 0; //!< presentation timestamp of the frame
-                                     //!<
+            int timeOffset_ms = 0; //!< time offset from start of the recording in ms
+                                       //!<
 
         };
 

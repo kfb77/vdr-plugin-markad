@@ -176,13 +176,13 @@ cEncoder::~cEncoder() {
 }
 
 
-void cEncoder::Reset(const int Pass) {
+void cEncoder::Reset(const int passEncoder) {
     EncoderStatus.videoStartPTS = INT64_MAX;
     EncoderStatus.frameBefore = -2;
     EncoderStatus.ptsOutBefore = -1;
     EncoderStatus.pts_dts_CutOffset = 0; // offset from the cut out frames
     EncoderStatus.pts_dts_CyclicalOffset = NULL;  // offset from pts/dts cyclicle, multiple of 0x200000000
-    pass = Pass;
+    pass = passEncoder;
 #ifdef DEBUG_CUT
     packet_out = 0;
 #endif

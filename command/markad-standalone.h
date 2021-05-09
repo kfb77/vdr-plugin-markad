@@ -32,18 +32,40 @@ extern "C" {
 #define MAXRANGE 120 /* range to search for start/stop marks in seconds */
 
 
+/**
+ * send OSD message to VDR
+ */
 class cOSDMessage {
-    private:
-        const char *host;
-        int port;
-        char *msg;
-        pthread_t tid = 0;
-        static void *send(void *osd);
-        bool readreply(int fd, char **reply=NULL);
     public:
-        int Send(const char *format, ...);
-        cOSDMessage(const char *Host, int Port);
+
+/** constuctor
+ * @param hostName   name or IP address of VDR
+ * @param portNumber port number for OSD messages
+ */
+        cOSDMessage(const char *hostName, int portNumber);
+
         ~cOSDMessage();
+
+/**
+ * send message to VDR OSD
+ * @param format message format
+ * @return 0 for success, -1 otherwise
+ */
+        int Send(const char *format, ...);
+
+    private:
+        const char *host;                            //!< VDR host name or IP address
+                                                     //!<
+        int port;                                    //!< VDR port number to send OSD messages
+                                                     //!<
+        char *msg = NULL;                            //!< OSD message
+                                                     //!<
+        pthread_t tid = 0;                           //!< thread id of the OSD message
+                                                     //!<
+        static void *SendMessage(void *osd);         //!< send OSD message
+                                                     //!<
+        bool ReadReply(int fd, char **reply = NULL); //!< read reply from OSD
+                                                     //!<
 };
 
 

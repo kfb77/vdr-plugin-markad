@@ -51,7 +51,7 @@ class cMarkAdAudio {
  *  @param channelsbefore number of channels before change
  *  @param channelsafter  number of channels after change
  */
-        void SetMark(const int type, const int position, const int channelsbefore, const int channelsafter);
+        void SetMark(const int type, const int position, const int channelsBefore, const int channelsAfter);
 
 /**
  *  detect if there is a change of the audio channel count
@@ -59,7 +59,7 @@ class cMarkAdAudio {
  *  @param channelsafter  number of channels now
  *  @return true if channel count are different, false if not
  */
-        bool ChannelChange(int channelsbefore, int channelsafter);
+        bool ChannelChange(int channelsBefore, int channelsAfter);
 
         sMarkAdContext *macontext;
         cIndex *recordingIndexAudio = NULL;

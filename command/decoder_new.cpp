@@ -48,7 +48,7 @@ void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_lis
 }
 
 
-cDecoder::cDecoder(int threads, cIndex *RecordingIndex) {
+cDecoder::cDecoder(int threads, cIndex *recordingIndex) {
     av_log_set_level(AVLOGLEVEL);
     av_log_set_callback(AVlog);
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
@@ -59,7 +59,7 @@ cDecoder::cDecoder(int threads, cIndex *RecordingIndex) {
     if (threads > 16) threads = 16;
     dsyslog("cDecoder::cDecoder(): init with %i threads", threads);
     threadCount = threads;
-    recordingIndexDecoder = RecordingIndex;
+    recordingIndexDecoder = recordingIndex;
 }
 
 

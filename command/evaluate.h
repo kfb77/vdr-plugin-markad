@@ -42,12 +42,51 @@ class cEvaluateLogoStopStartPair {
 
         };
 
+/**
+ * contructor for class to evalualte logo stop/start pairs
+ * @param marks           object with all marks
+ * @param blackMarks      object with all black screen marks
+ * @param framesPerSecond video frame rate
+ * @param iStart          assumed start frame position
+ * @param chkSTART        frame postion to check start part
+ * @param iStopA          assumed end mark position
+ */
         cEvaluateLogoStopStartPair(clMarks *marks, clMarks *blackMarks, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA);
+
         ~cEvaluateLogoStopStartPair();
-        void isInfoLogo(clMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond);
+
+/**
+ * check if logo stop/start pair could be an info logo part
+ * @param blackMarks        object with all black screen marks
+ * @param logoStopStartPair structure of logo/stop start pair, result is stored here
+ * @framesPerSecond         video frame rate
+ */
+        void IsInfoLogo(clMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond);
+
+/**
+ * get next logo stop/start pair
+ * @param stopPosition  frame number of logo stop mark
+ * @param startPosition frame number of logo start mark
+ * @param isLogoChange  -1 no logo change, 0 unknown, 1 is logo change
+ * @param isInfoLogo    -1 pair is no introduction sequence, 0 unknown, 1 pair is introduction sequence
+ * @return true if there is a next logo stop/start pair, false otherwise
+ */
         bool GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo);
+
+/**
+ * set info logo status to "1 is logo change"
+ * @param stopPosition  frame number of the logo stop mark
+ * @param startPosition frame number of the logo start mark
+ */
         void SetIsInfoLogo(const int stopPosition, const int startPosition);
+
+/** check of there is a info logo part between a logo stop/start pair
+ * @param stopPosition  frame number of logo stop mark
+ * @param startPosition frame number of logo start mark
+ * @return true, if there is a info logo part between a logo stop/start pair
+ */
         bool IncludesInfoLogo(const int stopPosition, const int startPosition);
+
         int GetLastClosingCreditsStart();
 
     private:
@@ -79,6 +118,10 @@ class cDetectLogoStopStart {
  */
         int AdInFrameWithLogo(const bool isStartMark);
 
+/**
+ * check if current range is a introduction logo
+ * @return last frame of the introduction logo after logo start mark
+ */
         int IntroductionLogo();
     private:
 
