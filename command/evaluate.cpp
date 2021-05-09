@@ -508,6 +508,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): start diff %dms, end diff %dms", diffStart, diffEnd);
         if (diffStart < 1920) newStartPos = InfoLogo.startFinal;  // do not increase
         if (diffEnd <= 1800) newEndPos = InfoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): final range start (%d) end (%d)", newStartPos, newEndPos);
 #define INFO_LOGO_MIN_LENGTH 4
 #define INFO_LOGO_MAX_LENGTH 14
 #define INFO_LOGO_MIN_QUOTE 72 // changed from 80 to 72
@@ -831,7 +832,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     int startOffset = (AdInFrame.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
     int stopOffset = (endPos - AdInFrame.endFinal) / maContext->Video.Info.framesPerSecond;
     int length = 1000 * (AdInFrame.endFinal - AdInFrame.startFinal) / maContext->Video.Info.framesPerSecond;
-    dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start offset %ds start (%d), end (%d) stop offset %ds, length %dms (expect >=8s and <=30s)",
+    dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start offset %ds start (%d), end (%d) stop offset %ds, length %dms (expect >8280ms and <=30s)",
                                                                                                         startOffset, AdInFrame.startFinal, AdInFrame.endFinal, stopOffset, length);
     if ((length > 8280) && (length <= 30000)) { // do not reduce min to prevent false positive, do not increase to detect 10s ad in frame
                                                 // minor change from 8000 to 8280

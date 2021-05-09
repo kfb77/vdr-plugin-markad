@@ -2524,7 +2524,7 @@ void cMarkAdStandalone::Process3ndPass() {
             int searchStartPosition = markLogo->position - (35 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
             char *indexToHMSFStopMark = marks.IndexToHMSF(markLogo->position, &macontext);
             char *indexToHMSFSearchPosition = marks.IndexToHMSF(searchStartPosition, &macontext);
-            if (indexToHMSFStopMark && indexToHMSFSearchPosition) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo before logo stop mark (%d) at %s from position %d at %s", markLogo->position, indexToHMSFStopMark, searchStartPosition, indexToHMSFSearchPosition);
+            if (indexToHMSFStopMark && indexToHMSFSearchPosition) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo from frame (%d) at %s to logo stop mark (%d) at %s", searchStartPosition, indexToHMSFSearchPosition, markLogo->position, indexToHMSFStopMark);
             if (indexToHMSFStopMark) {
                 FREE(strlen(indexToHMSFStopMark)+1, "indexToHMSF");
                 free(indexToHMSFStopMark);
