@@ -2317,7 +2317,6 @@ void cMarkAdStandalone::MarkadCut() {
             esyslog("got invalid stop mark at (%i) type 0x%X", stopMark->position, stopMark->type);
             return;
         }
-        int stopPosition = stopMark->position;
 
         // open output file
         ptr_cDecoder->SeekToFrame(&macontext, startPosition);  // seek to start posiition to get correct input video parameter
@@ -2335,11 +2334,11 @@ void cMarkAdStandalone::MarkadCut() {
                 int frameNumber = ptr_cDecoder->GetFrameNumber();
                 if  (frameNumber < startPosition) {  // go to start frame
                     LogSeparator();
-                    dsyslog("cMarkAdStandalone::MarkadCut(): decoding from frame (%d) for start mark (%d) to frame (%d) for stop mark (%d)", startPosition, startMark->position, stopPosition, stopMark->position);
+                    dsyslog("cMarkAdStandalone::MarkadCut(): decoding from frame (%d) for start mark (%d) to frame (%d) in pass %d", startPosition, startMark->position, stopMark->position, pass);
                     ptr_cDecoder->SeekToFrame(&macontext, startPosition);
                     frameNumber = ptr_cDecoder->GetFrameNumber();
                 }
-                if  (frameNumber > stopPosition) {  // stop mark reached
+                if  (frameNumber > stopMark->position) {  // stop mark reached
                     if (stopMark->Next() && stopMark->Next()->Next()) {  // next mark pair
                         startMark = stopMark->Next();
                         if ((startMark->type & 0x0F) != MT_START) {
@@ -2356,8 +2355,6 @@ void cMarkAdStandalone::MarkadCut() {
                             esyslog("got invalid stop mark at (%i) type 0x%X", stopMark->position, stopMark->type);
                             return;
                         }
-                        stopPosition = stopMark->position;
-
                     }
                     else break;
                     continue;
