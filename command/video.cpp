@@ -1395,7 +1395,7 @@ cMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContextParam, cIndex *recordingInde
 
 
 cMarkAdVideo::~cMarkAdVideo() {
-    resetmarks();
+    ResetMarks();
     if (blackScreen) {
         FREE(sizeof(*blackScreen), "blackScreen");
         delete blackScreen;
@@ -1431,12 +1431,12 @@ void cMarkAdVideo::Clear(bool isRestart, bool inBroadCast) {
 }
 
 
-void cMarkAdVideo::resetmarks() {
+void cMarkAdVideo::ResetMarks() {
     marks={};
 }
 
 
-bool cMarkAdVideo::addmark(int type, int position, sAspectRatio *before, sAspectRatio *after) {
+bool cMarkAdVideo::AddMark(int type, int position, sAspectRatio *before, sAspectRatio *after) {
     if (marks.Count>marks.maxCount) return false;
     if (before) {
         marks.Number[marks.Count].AspectRatioBefore.num = before->num;
@@ -1468,14 +1468,14 @@ bool cMarkAdVideo::AspectRatioChange(const sAspectRatio &AspectRatioA, const sAs
 }
 
 
-sOverlapPos *cMarkAdVideo::ProcessOverlap(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264) {
-    if (!FrameNumber) return NULL;
+sOverlapPos *cMarkAdVideo::ProcessOverlap(const int frameNumber, const int frameCount, const bool beforeAd, const bool isH264) {
+    if (!frameNumber) return NULL;
     if (!overlap) {
         overlap = new cMarkAdOverlap(maContext);
         ALLOC(sizeof(*overlap), "overlap");
     }
     if (!overlap) return NULL;
-    return overlap->Process(FrameNumber, Frames, BeforeAd, H264);
+    return overlap->Process(frameNumber, frameCount, beforeAd, isH264);
 }
 
 
@@ -1486,18 +1486,18 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
     int useFrame;
     if (maContext->Config->fullDecode) useFrame = frameCurrent;
     else useFrame = iFrameCurrent;
-    resetmarks();
+    ResetMarks();
 
     if ((frameCurrent > 0) && !maContext->Video.Options.ignoreBlackScreenDetection) { // first frame can be invalid result
         int blackret;
         blackret = blackScreen->Process(useFrame);
         if (blackret > 0) {
-            if (maContext->Config->fullDecode) addmark(MT_NOBLACKSTART, useFrame - 1);  // frame before is last frame with blackscreen
-            else addmark(MT_NOBLACKSTART, useFrame); // with iFrames only we must set mark on first frame after blackscreen to avoid start and stop on same iFrame
+            if (maContext->Config->fullDecode) AddMark(MT_NOBLACKSTART, useFrame - 1);  // frame before is last frame with blackscreen
+            else AddMark(MT_NOBLACKSTART, useFrame); // with iFrames only we must set mark on first frame after blackscreen to avoid start and stop on same iFrame
         }
         else {
             if (blackret < 0) {
-                addmark(MT_NOBLACKSTOP, useFrame);
+                AddMark(MT_NOBLACKSTOP, useFrame);
             }
         }
     }
@@ -1506,11 +1506,11 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
         int hborderframenumber;
         hret = hborder->Process(useFrame, &hborderframenumber);  // we get start frame of hborder back
         if ((hret == HBORDER_VISIBLE) && (hborderframenumber >= 0)) {
-            addmark(MT_HBORDERSTART, hborderframenumber);
+            AddMark(MT_HBORDERSTART, hborderframenumber);
         }
         if ((hret == HBORDER_INVISIBLE) && (hborderframenumber >= 0)) {
-            if (maContext->Config->fullDecode)  addmark(MT_HBORDERSTOP, useFrame - 1);
-            else addmark(MT_HBORDERSTOP, iFrameBefore);  // we use iFrame before current frame as stop mark, this was the last frame with hborder
+            if (maContext->Config->fullDecode)  AddMark(MT_HBORDERSTOP, useFrame - 1);
+            else AddMark(MT_HBORDERSTOP, iFrameBefore);  // we use iFrame before current frame as stop mark, this was the last frame with hborder
         }
     }
     else if (hborder) hborder->Clear();
@@ -1521,11 +1521,11 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
         vret = vborder->Process(useFrame, &vborderframenumber);
         if ((vret == VBORDER_VISIBLE) && (vborderframenumber >= 0)) {
             if (hret == HBORDER_VISIBLE) dsyslog("cMarkAdVideo::Process(); hborder and vborder detected, ignore this, it is a very long black screen");
-            else addmark(MT_VBORDERSTART, vborderframenumber);
+            else AddMark(MT_VBORDERSTART, vborderframenumber);
         }
         if ((vret == VBORDER_INVISIBLE) && (vborderframenumber >= 0)) {
-            if (maContext->Config->fullDecode) addmark(MT_VBORDERSTOP, useFrame - 1);
-            else addmark(MT_VBORDERSTOP, iFrameBefore);
+            if (maContext->Config->fullDecode) AddMark(MT_VBORDERSTOP, useFrame - 1);
+            else AddMark(MT_VBORDERSTOP, iFrameBefore);
         }
     }
     else if (vborder) vborder->Clear();
@@ -1534,17 +1534,17 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
         bool start;
         if (AspectRatioChange(maContext->Video.Info.AspectRatio, aspectRatio, start)) {
             if ((logo->Status() == LOGO_VISIBLE) && (!start)) {
-                addmark(MT_LOGOSTOP, iFrameBefore);
+                AddMark(MT_LOGOSTOP, iFrameBefore);
                 logo->SetStatusLogoInvisible();
             }
 
             if ((vret == VBORDER_VISIBLE) && (!start)) {
-                addmark(MT_VBORDERSTOP, iFrameBefore);
+                AddMark(MT_VBORDERSTOP, iFrameBefore);
                 vborder->SetStatusBorderInvisible();
             }
 
             if ((hret == HBORDER_VISIBLE) && (!start)) {
-                addmark(MT_HBORDERSTOP, iFrameBefore);
+                AddMark(MT_HBORDERSTOP, iFrameBefore);
                 hborder->SetStatusBorderInvisible();
             }
 
@@ -1555,18 +1555,18 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
             if (((maContext->Info.AspectRatio.num == 4) && (maContext->Info.AspectRatio.den == 3)) ||
                 ((maContext->Info.AspectRatio.num == 0) && (maContext->Info.AspectRatio.den == 0))) {
                 if ((maContext->Video.Info.AspectRatio.num == 4) && (maContext->Video.Info.AspectRatio.den == 3)) {
-                    addmark(MT_ASPECTSTART, startFrame, &aspectRatio, &maContext->Video.Info.AspectRatio);
+                    AddMark(MT_ASPECTSTART, startFrame, &aspectRatio, &maContext->Video.Info.AspectRatio);
                 }
                 else {
-                    addmark(MT_ASPECTSTOP, iFrameBefore, &aspectRatio, &maContext->Video.Info.AspectRatio);
+                    AddMark(MT_ASPECTSTOP, iFrameBefore, &aspectRatio, &maContext->Video.Info.AspectRatio);
                 }
             }
             else {
                 if ((maContext->Video.Info.AspectRatio.num == 16) && (maContext->Video.Info.AspectRatio.den == 9)) {
-                    addmark(MT_ASPECTSTART, startFrame, &aspectRatio, &maContext->Video.Info.AspectRatio);
+                    AddMark(MT_ASPECTSTART, startFrame, &aspectRatio, &maContext->Video.Info.AspectRatio);
                 }
                 else {
-                    addmark(MT_ASPECTSTOP, iFrameBefore, &aspectRatio, &maContext->Video.Info.AspectRatio);
+                    AddMark(MT_ASPECTSTOP, iFrameBefore, &aspectRatio, &maContext->Video.Info.AspectRatio);
                 }
             }
         }
@@ -1580,10 +1580,10 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
         int lret=logo->Process(iFrameBefore, iFrameCurrent, frameCurrent, &logoframenumber);
         if ((lret >= -1) && (lret != 0) && (logoframenumber != -1)) {
             if (lret > 0) {
-                addmark(MT_LOGOSTART, logoframenumber);
+                AddMark(MT_LOGOSTART, logoframenumber);
             }
             else {
-                addmark(MT_LOGOSTOP, logoframenumber);
+                AddMark(MT_LOGOSTOP, logoframenumber);
             }
         }
     }

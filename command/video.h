@@ -229,10 +229,6 @@ class cMarkAdBlackBordersHoriz {
 
 
 class cMarkAdBlackBordersVert {
-    private:
-        int borderstatus;
-        int borderframenumber;
-        sMarkAdContext *maContext = NULL;
     public:
         explicit cMarkAdBlackBordersVert(sMarkAdContext *maContextParam);
         int GetFirstBorderFrame();
@@ -242,14 +238,32 @@ class cMarkAdBlackBordersVert {
             borderframenumber = -1;
         }
         void Clear();
+
+    private:
+        int borderstatus;
+        int borderframenumber;
+        sMarkAdContext *maContext = NULL;
 };
 
 
+/**
+ * check packet for video based marks
+ */
 class cMarkAdVideo {
     public:
+
+/**
+ * constructor of class to check packet for video based marks
+ * @param maContext      markad context
+ * @param recordingIndex recording index
+ */
         explicit cMarkAdVideo(sMarkAdContext *maContext, cIndex *recordingIndex);
         ~cMarkAdVideo();
-        cMarkAdVideo(const cMarkAdVideo &origin) {   //  copy constructor, not used, only for formal reason
+
+/**
+ * copy constructor, not used, only for formal reason
+ */
+        cMarkAdVideo(const cMarkAdVideo &origin) {
             maContext = origin.maContext;
             blackScreen = NULL;
             hborder = NULL;
@@ -257,7 +271,11 @@ class cMarkAdVideo {
             logo = NULL;
             overlap = NULL;
         };
-        cMarkAdVideo &operator =(const cMarkAdVideo *origin) {  // operator=, not used, only for formal reason
+
+/**
+ * operator=, not used, only for formal reason
+ */
+        cMarkAdVideo &operator =(const cMarkAdVideo *origin) {
             maContext = origin->maContext;
             blackScreen = NULL;
             hborder = NULL;
@@ -267,15 +285,55 @@ class cMarkAdVideo {
             aspectRatio = {};
             return *this;
         }
-        sOverlapPos *ProcessOverlap(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
+
+/**
+ * check if there are simail frames before stop mark and after start marks (overlaps)
+ * @param frameNumber current frame number
+ * @param frameCount  count frames to check for overlap
+ * @param beforeAd    true if called before stop mark, flase if called after start mark
+ * @param isH264      true if H.264 codec, false otherwise
+ * @return start and end frame of overlapping frames
+ */
+        sOverlapPos *ProcessOverlap(const int frameNumber, const int frameCount, const bool beforeAd, const bool isH264);
+
+/**
+ * detect video packet based marks
+ * @param iFrameBefore  number of i-frame before last i-frame frame
+ * @param iFrameCurrent number of last i-frame
+ * @param frameCurrent  current frame number
+ * @return array of detected marks from this video packet
+ */
         sMarkAdMarks *Process(int iFrameBefore, const int iFrameCurrent, const int frameCurrent);
+
+/**
+ * reduce logo detection to plane 0
+ * @return true if we found a valid plane >= 1 to switch off
+ */
         bool ReducePlanes(void);
+
+/**
+ * reset all video based detection of marks
+ * @param isRestart   ture if called after restart of video based detection at start of the end part of the recording, false otherwise
+ * @param inBroadCast true if called in broadcast, false if called in advertising
+ */
         void Clear(bool isRestart, bool inBroadCast = false);
 
     private:
-        void resetmarks();
 
-        bool addmark(int type, int position, sAspectRatio *before = NULL, sAspectRatio *after = NULL);
+/**
+ * reset array of new marks
+ */
+        void ResetMarks();
+
+/**
+ * add a new mark to array of new marks
+ * @param type     type of the mark
+ * @param position frame number
+ * @param before   video aspect ratio before mark position
+ * @param after    video aspect ratio after mark position
+ * @return true if free position in new mark array found, false otherwise
+ */
+        bool AddMark(int type, int position, sAspectRatio *before = NULL, sAspectRatio *after = NULL);
 
 /**
  * check if video aspect ratio changes between the two aspect ratios
