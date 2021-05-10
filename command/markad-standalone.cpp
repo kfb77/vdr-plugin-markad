@@ -4633,7 +4633,7 @@ int main(int argc, char *argv[]) {
         }
         dsyslog("parameter --autologo is set to %i",config.autoLogo);
         if (config.fullDecode) {
-            dsyslog("parameter --fulldeode is set");
+            dsyslog("parameter --fulldecode is set");
         }
         if (config.fullEncode) {
             dsyslog("parameter --fullencode is set");
