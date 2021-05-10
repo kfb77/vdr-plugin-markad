@@ -369,6 +369,9 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.heightMax =  76;
         logo.corner    = BOTTOM_RIGHT;
     }
+    if (strcmp(maContext->Info.ChannelName, "TOGGO_plus") == 0) {
+        logo.heightMin =  56;
+    }
     if (strcmp(maContext->Info.ChannelName, "VOX") == 0) { // VOX: 108W 70H TOP_LEFT
         logo.heightMin =  70;
     }
