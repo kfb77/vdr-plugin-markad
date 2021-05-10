@@ -330,8 +330,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMax  = INT_MAX;  // news ticker
     }
     if (strcmp(maContext->Info.ChannelName, "n-tv_HD") == 0) {
-        logo.widthMin  = 210;  // news ticker with logo BOTTOM_RIGHT but "HD" on TOP_LEFT is easier to detect
-        logo.heightMin =  72;
+        logo.widthMax  = 394;
     }
     if (strcmp(maContext->Info.ChannelName, "ProSieben") == 0) { // ProSieben 16:9:  84W 66H TOP_RIGHT
                                                                  // ProSieben  4:3: 100W 66H TOP_RIGHT
@@ -738,15 +737,16 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
                 return false;
             }
         }
-        for (int i = 0 ; i < WHITEHORIZONTAL_SMALL * logoWidth; i++) { // a valid bottom logo should have at least a small white top part in plane 0
-            if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
+        if (strcmp(maContext->Info.ChannelName, "n-tv_HD") != 0) {  // this channel has a news ticket with info banner above, we will not find a small white top part
+            for (int i = 0 ; i < WHITEHORIZONTAL_SMALL * logoWidth; i++) { // a valid bottom logo should have at least a small white top part in plane 0
+                if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                 if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no small white top part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                    if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no small white top part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
 #endif
-                return false;
+                    return false;
+                }
             }
         }
-
     }
 
     if ((corner == TOP_LEFT) || (corner == BOTTOM_LEFT)) { // a valid left logo should have white left part in pane 0

@@ -18,7 +18,7 @@
 #define LOGO_DEFWIDTH    230
 
 #define LOGO_DEFHDHEIGHT 220  // changed from 190 to 220 for 13th_Street_HD
-#define LOGO_DEFHDWIDTH  340
+#define LOGO_DEFHDWIDTH  400  // changed from 340 to 400 for ntv_hd
 
 #define LOGO_VMAXCOUNT 3  // count of IFrames for detection of "logo visible"
 #define LOGO_IMAXCOUNT 4  // count of IFrames for detection of "logo invisible", reduced from 5 to 4
