@@ -300,6 +300,9 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "arte_HD") == 0) {          // arte_HD                 16:9 1280W  720H:->  88W 134H TOP_LEFT
         logo.widthMin  = 88;
     }
+    if (strcmp(maContext->Info.ChannelName, "Deluxe_Music_HD") == 0) {
+        logo.widthMax  = 334;
+    }
     if (strcmp(maContext->Info.ChannelName, "Disney_Channel") == 0) {   // Disney_Channel:         16:9  720W  576H:-> 110W  70-72H TOP_LEFT
         logo.widthMin  = 110;
         logo.heightMin =  70;
@@ -519,7 +522,8 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                     cutLine = line;
                 }
             }
-            if (topBlackLineOfLogo < cutLine) {
+            int quoteAfterCut = 100 * cutLine / *logoHeight;
+            if ((topBlackLineOfLogo < cutLine) && (quoteAfterCut > 64)) {  // we may not cut off too much, this could not be text under logo, this is something on top of the logo
                 if (cutLine >= LOGO_MIN_LETTERING_H) {
                     if ((((rightBlackPixel - leftBlackPixel) >= 38) && ((*logoHeight - cutLine) > 8)) || // cut our "love your" from TLC with 38 pixel width, do not cut out lines in the logo
                        (((rightBlackPixel - leftBlackPixel) <= 20) && ((*logoHeight - cutLine) <= 8))) { // cut out small pixel errors
