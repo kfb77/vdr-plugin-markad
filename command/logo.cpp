@@ -430,7 +430,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
             if (logo.heightMax == 0) logo.heightMax = 140; // DMAX_HD                 16:9 1440W 1080H:-> 250W 140H TOP_LEFT
             break;
         case 1920:
-            if (logo.widthMin  == 0) logo.widthMin  = 256; // ServusTV_HD_Deutschland 16:9 1920W 1080H:-> 258W 148H TOP_RIGHT
+            if (logo.widthMin  == 0) logo.widthMin  = 204; // SAT_1_HD                16:9 1920W 1080H:-> 204W 132H TOP_RIGHT
             if (logo.widthMax  == 0) logo.widthMax  = 394; // n-tv_HD                 16:9 1920W 1080H:-> 394W 110H BOTTOM_RIGHT
                                                            // n-tv_HD                 16:9 1920W 1080H:-> 394W 122H BOTTOM_RIGHT
             if (logo.heightMin == 0) logo.heightMin =  96; // münchen_tv_HD           16:9 1920W 1080H:-> 336W  96H TOP_LEFT
@@ -822,7 +822,7 @@ int cExtractLogo::Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLog
             sLogoInfo actLogo = {};
             UnpackLogoInfo(&actLogo, &(*actLogoPacked));
             if (maContext->Video.Logo.isRotating) {
-                if (CompareLogoPairRotating(&actLogo, ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
+                if (CompareLogoPairRotating(maContext, &actLogo, ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
                     hits++;
                     actLogoPacked->hits++;
                 }
@@ -838,7 +838,7 @@ int cExtractLogo::Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLog
     if (maContext->Config->autoLogo == 2){  // use unpacked logos
         for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
             if (maContext->Video.Logo.isRotating) {
-                if (CompareLogoPairRotating(&(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
+                if (CompareLogoPairRotating(maContext, &(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
                     hits++;
                     actLogo->hits++;
                 }
@@ -855,21 +855,42 @@ int cExtractLogo::Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLog
 }
 
 
-bool cExtractLogo::CompareLogoPairRotating(sLogoInfo *logo1, sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner) {
+/**
+ * special detection for rotating logos
+ */
+bool cExtractLogo::CompareLogoPairRotating(const sMarkAdContext *maContext, sLogoInfo *logo1, sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner) {
     if (!logo1) return false;
     if (!logo2) return false;
     if ((corner < 0) || (corner >= CORNERS)) return false;
 // TODO do not hardcode the logo range
-#define LOGO_START_LINE 18 // change from 30 to 18 for santa claus hat
-#define LOGO_END_LINE 75
-#define LOGO_START_COLUMN 143 // change from 150 to 143 for santa claus hat
-#define LOGO_END_COLUMN 185
+    int logoStartLine   = 0;
+    int logoEndLine     = 0;
+    int logoStartColumn = 0;
+    int logoEndColumn   = 0;
+    if (strcmp(maContext->Info.ChannelName, "SAT_1") == 0) {
+        logoStartLine   =  18;
+        logoEndLine     =  75;
+        logoStartColumn = 143;
+        logoEndColumn   = 185;
+    }
+    else {
+        if (strcmp(maContext->Info.ChannelName, "SAT_1_HD") == 0) { // TODO
+            logoStartLine   =  60;
+            logoEndLine     = 133;
+            logoStartColumn = 196;
+            logoEndColumn   = 318;
+        }
+        else {
+            dsyslog("cExtractLogo::CompareLogoPairRotating(): channel unknown");
+            return false;
+        }
+    }
 // check if pixel in both frames are only in the corner but let the pixel be different
     if (corner != TOP_RIGHT) return false; // to optimze performance, only check TOP_RIGHT (SAT.1)
 // we use only logo with pixel in the expected logo range
     for (int line = 0; line < logoHeight; line++) {
         for (int column = 0; column < logoWidth; column++) {
-            if ((line >= LOGO_START_LINE) && (line < LOGO_END_LINE) && (column >= LOGO_START_COLUMN) && (column < LOGO_END_COLUMN)) continue;
+            if ((line >= logoStartLine) && (line < logoEndLine) && (column >= logoStartColumn) && (column < logoEndColumn)) continue;
             if (logo1->sobel[0][line * logoWidth + column] == 0) {
 #ifdef DEBUG_LOGO_CORNER
                 dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo1 (%5i) pixel out of valid range: line %3i column %3i", logo1->iFrameNumber, line, column);
@@ -889,8 +910,8 @@ bool cExtractLogo::CompareLogoPairRotating(sLogoInfo *logo1, sLogoInfo *logo2, c
     dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo2 (%5i) valid", logo2->iFrameNumber);
 #endif
 // merge pixel in logo range
-    for (int line = LOGO_START_LINE; line <= LOGO_END_LINE; line++) {
-        for (int column = LOGO_START_COLUMN; column <= LOGO_END_COLUMN; column++) {
+    for (int line = logoStartLine; line <= logoEndLine; line++) {
+        for (int column = logoStartColumn; column <= logoEndColumn; column++) {
             logo1->sobel[0][line * logoWidth + column] &= logo2->sobel[0][line * logoWidth + column];
             logo2->sobel[0][line * logoWidth + column] &= logo1->sobel[0][line * logoWidth + column];
         }
