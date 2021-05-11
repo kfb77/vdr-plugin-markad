@@ -394,6 +394,9 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMin  = 217;
         logo.heightMax = 195;
     }
+    if (strcmp(maContext->Info.ChannelName, "münchen_tv_HD") == 0) {
+        logo.widthMax  = 396;
+    }
 
 // set default values
     switch (maContext->Video.Info.width) {
