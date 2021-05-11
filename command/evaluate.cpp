@@ -397,7 +397,15 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
             logo2[corner] = new sLogoInfo;
             ALLOC(sizeof(*logo2[corner]), "logo");
             logo2[corner]->iFrameNumber = frameNumber;
-            memcpy(logo2[corner]->sobel, area->sobel, sizeof(area->sobel));
+
+            // alloc memory and copy sobel transformed corner picture
+            logo2[corner]->sobel = new uchar*[PLANES];
+            for (int plane = 0; plane < PLANES; plane++) {
+                logo2[corner]->sobel[plane] = new uchar[MAXPIXEL];
+                memcpy(logo2[corner]->sobel[plane], area->sobel[plane], sizeof(uchar) * MAXPIXEL);
+            }
+            ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "logo[corner]->sobel");
+
 #define RATE_0_MIN     250
 #define RATE_12_MIN    950
             if (logo1[corner]->iFrameNumber >= 0) {  // we have a logo pair
@@ -409,8 +417,17 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
                 compareInfo.frameNumber2 = logo2[corner]->iFrameNumber;
             }
 
+            // free memory
+            if (logo1[corner]->sobel) {  // at first iteration logo1[corner]->sobel is not allocated
+                for (int plane = 0; plane < PLANES; plane++) {
+                    delete logo1[corner]->sobel[plane];
+                }
+                delete logo1[corner]->sobel;
+                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "logo[corner]->sobel");
+            }
             FREE(sizeof(*logo1[corner]), "logo");
             delete logo1[corner];
+
             logo1[corner] = logo2[corner];
         }
         if (compareInfo.frameNumber1 >= 0) {  // got valid pair
@@ -420,7 +437,16 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
     }
     FREE(sizeof(*ptr_Logo), "ptr_Logo");
     delete ptr_Logo;
+
+    // free memory of last logo
     for (int corner = 0; corner < CORNERS; corner++) {
+        if (logo1[corner]->sobel) {
+            for (int plane = 0; plane < PLANES; plane++) {
+                delete logo1[corner]->sobel[plane];
+            }
+            delete logo1[corner]->sobel;
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "logo[corner]->sobel");
+        }
         FREE(sizeof(*logo1[corner]), "logo");
         delete logo1[corner];
     }

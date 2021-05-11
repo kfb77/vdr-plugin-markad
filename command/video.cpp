@@ -50,7 +50,22 @@ cMarkAdLogo::cMarkAdLogo(sMarkAdContext *maContextParam, cIndex *recordingIndex)
 }
 
 
+cMarkAdLogo::~cMarkAdLogo() {
+    Clear(false, false); // free memory for sobel plane
+
+}
+
+
 void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
+    // free memory for sobel plane
+    if (area.sobel) {
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.sobel");
+        for (int plane = 0; plane < PLANES; plane++) {
+            delete area.sobel[plane];
+        }
+        delete area.sobel;
+        area.sobel = NULL;
+    }
     area = {};
     if (isRestart) { // reset valid logo status after restart
         if (inBroadCast) area.status = LOGO_VISIBLE;
@@ -78,6 +93,7 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
         dsyslog("cMarkAdLogo::Load(): plane %d not valid", plane);
         return -3;
     }
+
     dsyslog("cMarkAdLogo::Load(): try to find logo %s plane %d in %s", file, plane, directory);
 
     char *path;
@@ -148,7 +164,7 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
 // debug > 0: save was called by debug statements, add debug identifier to filename
 // return: true if successful
 //
-bool cMarkAdLogo::Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], const short int plane, const int debug) {
+bool cMarkAdLogo::Save(const int framenumber, uchar **picture, const short int plane, const int debug) {
     if (!maContext) return false;
     if ((plane<0) || (plane >= PLANES)) return false;
     if (!maContext->Info.ChannelName) return false;
@@ -485,6 +501,15 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int framenumber)
 bool cMarkAdLogo::SobelPlane(const int plane) {
     if ((plane < 0) || (plane >= PLANES)) return false;
     if (!maContext->Video.Data.PlaneLinesize[plane]) return false;
+
+    // alloc memory for sobel plane
+    if (!area.sobel) {
+        area.sobel = new uchar*[PLANES];
+        for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
+            area.sobel[planeTMP] = new uchar[MAXPIXEL];
+        }
+        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.sobel");
+    }
 
     if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
         if (maContext->Video.Info.width > 720){
@@ -831,7 +856,6 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
         dsyslog("cMarkAdLogo::Process(): ChannelName missing");
         return LOGO_ERROR;
     }
-
 
     if (maContext->Config->logoExtraction == -1) {
         if ((area.AspectRatio.num != maContext->Video.Info.AspectRatio.num) || (area.AspectRatio.den != maContext->Video.Info.AspectRatio.den)) {
@@ -1382,7 +1406,7 @@ cMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContextParam, cIndex *recordingInde
     ALLOC(sizeof(*vborder), "vborder");
 
     logo = new cMarkAdLogo(maContext, recordingIndexMarkAdVideo);
-    ALLOC(sizeof(*logo), "logo");
+    ALLOC(sizeof(*logo), "cMarkAdVideo_logo");
 
     overlap = NULL;
     Clear(false);
@@ -1404,7 +1428,7 @@ cMarkAdVideo::~cMarkAdVideo() {
         delete vborder;
     }
     if (logo) {
-        FREE(sizeof(*logo), "logo");
+        FREE(sizeof(*logo), "cMarkAdVideo_logo");
         delete logo;
     }
     if (overlap) {

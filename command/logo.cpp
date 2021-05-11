@@ -51,7 +51,24 @@ cExtractLogo::~cExtractLogo() {
             FREE(sizeof(sLogoInfoPacked), "logoInfoVectorPacked");
         }
 #endif
+        // free memory of sobel plane vector
+        for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
+            for (int plane = 0; plane < PLANES; plane++) {
+                delete actLogo->sobel[plane];
+            }
+            delete actLogo->sobel;
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "actLogoInfo.sobel");
+        }
         logoInfoVector[corner].clear();
+
+        // free memory of packed sobel plane vector
+        for (std::vector<sLogoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
+            for (int plane = 0; plane < PLANES; plane++) {
+                delete actLogoPacked->sobel[plane];
+            }
+            delete actLogoPacked->sobel;
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL / 8, "actLogoInfoPacked.sobel");
+        }
         logoInfoVectorPacked[corner].clear();
     }
 }
@@ -113,6 +130,12 @@ bool cExtractLogo::IsLogoColourChange(const sMarkAdContext *maContext, const int
                 sLogoInfo actLogo = {};
                 UnpackLogoInfo(&actLogo, &(*actLogoPacked));
                 if (IsWhitePlane(&actLogo, logoHeight, logoWidth, plane)) countWhite[plane - 1]++;
+                // free memory of unpacked sobel plane
+                for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
+                    delete actLogo.sobel[planeTMP];
+                }
+                delete actLogo.sobel;
+                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "actLogoInfo.sobel");
            }
         }
         if (maContext->Config->autoLogo == 2){  // use unpacked logos
@@ -843,6 +866,13 @@ int cExtractLogo::Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLog
                     actLogoPacked->hits++;
                 }
             }
+            // free memory of unpacked sobel plane
+            for (int plane = 0; plane < PLANES; plane++) {
+                delete actLogo.sobel[plane];
+            }
+            delete actLogo.sobel;
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "actLogoInfo.sobel");
+
         }
     }
     if (maContext->Config->autoLogo == 2){  // use unpacked logos
@@ -989,6 +1019,14 @@ int cExtractLogo::DeleteFrames(const sMarkAdContext *maContext, const int from, 
                 if (abortNow) return 0;
                 if (actLogoPacked->iFrameNumber < from) continue;
                 if (actLogoPacked->iFrameNumber <= to) {
+                    // free memory of sobel planes
+                    for (int plane = 0; plane < PLANES; plane++) {
+                        delete actLogoPacked->sobel[plane];
+                    }
+                    delete actLogoPacked->sobel;
+                    FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL / 8, "actLogoInfoPacked.sobel");
+
+                    // delete vector element
                     FREE(sizeof(*actLogoPacked), "logoInfoVectorPacked");
                     logoInfoVectorPacked[corner].erase(actLogoPacked--);  // "erase" increments the iterator, "for" also does, that is 1 to much
                     deleteCount++;
@@ -1001,6 +1039,14 @@ int cExtractLogo::DeleteFrames(const sMarkAdContext *maContext, const int from, 
                 if (abortNow) return 0;
                 if (actLogo->iFrameNumber < from) continue;
                 if (actLogo->iFrameNumber <= to) {
+                    // free memory of sobel planes
+                    for (int plane = 0; plane < PLANES; plane++) {
+                        delete actLogo->sobel[plane];
+                    }
+                    delete actLogo->sobel;
+                    FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "actLogoInfo.sobel");
+
+                    // delete vector element
                     FREE(sizeof(*actLogo), "logoInfoVector");
                     logoInfoVector[corner].erase(actLogo--);    // "erase" increments the iterator, "for" also does, that is 1 to much
                     deleteCount++;
@@ -1115,8 +1161,10 @@ void cExtractLogo::PackLogoInfo(const sLogoInfo *logoInfo, sLogoInfoPacked *logo
 
     logoInfoPacked->iFrameNumber = logoInfo->iFrameNumber;
     logoInfoPacked->hits = logoInfo->hits;
+    logoInfoPacked->sobel = new uchar*[PLANES];
     for (int plane = 0; plane < PLANES; plane++) {
         logoInfoPacked->valid[plane] = logoInfo->valid[plane];
+        logoInfoPacked->sobel[plane] = new uchar[MAXPIXEL / 8];  // alloc memory and copy planes
         for (int i = 0; i < MAXPIXEL / 8; i++) {
             logoInfoPacked->sobel[plane][i] = 0;
             if (logoInfo->sobel[plane][i*8+0] > 0) logoInfoPacked->sobel[plane][i] += 1;
@@ -1129,16 +1177,20 @@ void cExtractLogo::PackLogoInfo(const sLogoInfo *logoInfo, sLogoInfoPacked *logo
             if (logoInfo->sobel[plane][i*8+7] > 0) logoInfoPacked->sobel[plane][i] += 128;
         }
     }
+    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL / 8, "actLogoInfoPacked.sobel");
 }
 
 
 void cExtractLogo::UnpackLogoInfo(sLogoInfo *logoInfo, const sLogoInfoPacked *logoInfoPacked) {
     if (!logoInfo) return;
     if (!logoInfoPacked) return;
+    if (!logoInfoPacked->sobel) return; // nothing to unpack
 
-    logoInfo->iFrameNumber=logoInfoPacked->iFrameNumber;
-    logoInfo->hits=logoInfoPacked->hits;
+    logoInfo->iFrameNumber = logoInfoPacked->iFrameNumber;
+    logoInfo->hits = logoInfoPacked->hits;
+    logoInfo->sobel = new uchar*[PLANES];
     for (int plane = 0; plane < PLANES; plane++) {
+        logoInfo->sobel[plane] = new uchar[MAXPIXEL];  // alloc memory and copy planes
         logoInfo->valid[plane] = logoInfoPacked->valid[plane];
         for (int i = 0; i < MAXPIXEL / 8; i++) {
             if (logoInfoPacked->sobel[plane][i] & 1) logoInfo->sobel[plane][i*8+0] = 255; else logoInfo->sobel[plane][i*8+0] = 0;
@@ -1151,6 +1203,7 @@ void cExtractLogo::UnpackLogoInfo(sLogoInfo *logoInfo, const sLogoInfoPacked *lo
             if (logoInfoPacked->sobel[plane][i] & 128) logoInfo->sobel[plane][i*8+7] = 255; else logoInfo->sobel[plane][i*8+7] = 0;
         }
     }
+    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "actLogoInfo.sobel");
 }
 
 
@@ -1273,12 +1326,16 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
 
     cDecoder *ptr_cDecoder = new cDecoder(maContext->Config->threads, recordingIndexLogo);
     ALLOC(sizeof(*ptr_cDecoder), "ptr_cDecoder");
+
     cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, recordingIndexLogo);
     ALLOC(sizeof(*ptr_Logo), "SearchLogo-ptr_Logo");
+
     cMarkAdBlackBordersHoriz *hborder = new cMarkAdBlackBordersHoriz(maContext);
     ALLOC(sizeof(*hborder), "hborder");
+
     cMarkAdBlackBordersVert *vborder = new cMarkAdBlackBordersVert(maContext);
     ALLOC(sizeof(*vborder), "vborder");
+
     sAreaT *area = ptr_Logo->GetArea();
 
     if (!WaitForFrames(maContext, ptr_cDecoder)) {
@@ -1414,7 +1471,15 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                         ptr_Logo->Detect(0, iFrameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
                         sLogoInfo actLogoInfo = {};
                         actLogoInfo.iFrameNumber = iFrameNumber;
-                        memcpy(actLogoInfo.sobel,area->sobel, sizeof(area->sobel));
+
+//                      // alloc memory and copy planes
+                        actLogoInfo.sobel = new uchar*[PLANES];
+                        for (int plane = 0; plane < PLANES; plane++) {
+                            actLogoInfo.sobel[plane] = new uchar[MAXPIXEL];
+                            memcpy(actLogoInfo.sobel[plane], area->sobel[plane], sizeof(uchar) * MAXPIXEL);
+                        }
+                        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "actLogoInfo.sobel");
+
                         if (CheckValid(maContext, &actLogoInfo, logoHeight, logoWidth, corner)) {
                             RemovePixelDefects(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
                             actLogoInfo.hits = Compare(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
@@ -1429,6 +1494,12 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                                     break;
                                 }
                                 ALLOC((sizeof(sLogoInfoPacked)), "logoInfoVectorPacked");
+                                // free memory of unpacked sobel plane
+                                for (int plane = 0; plane < PLANES; plane++) {
+                                    delete actLogoInfo.sobel[plane];
+                                }
+                                delete actLogoInfo.sobel;
+                                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "actLogoInfo.sobel");
                             }
                             if (maContext->Config->autoLogo == 2){  // use unpacked logos
                                 try { logoInfoVector[corner].push_back(actLogoInfo); }  // this allocates a lot of memory
@@ -1439,6 +1510,14 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                                 }
                                 ALLOC((sizeof(sLogoInfo)), "logoInfoVector");
                             }
+                        }
+                        else {  // corner sobel transformed picture not valid
+                            // free memory of sobel planes
+                            for (int plane = 0; plane < PLANES; plane++) {
+                                delete actLogoInfo.sobel[plane];
+                            }
+                            delete actLogoInfo.sobel;
+                            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "actLogoInfo.sobel");
                         }
                     }
                     if (iFrameCountValid > 1000) {
@@ -1507,6 +1586,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
         int secondBestLogoCorner = -1;
         int sumHits = 0;
 
+
         if (maContext->Config->autoLogo == 1) { // use packed logos
             sLogoInfoPacked bestLogoInfoPacked = {};
             sLogoInfoPacked secondBestLogoInfoPacked = {};
@@ -1523,8 +1603,24 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                     secondBestLogoCorner = corner;
                 }
             }
+            // unpack best logo
             UnpackLogoInfo(&bestLogoInfo, &bestLogoInfoPacked);
+            // free memory of sobel planes, we not need them now
+            for (int plane = 0; plane < PLANES; plane++) {
+                delete bestLogoInfo.sobel[plane];
+            }
+            delete bestLogoInfo.sobel;
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "actLogoInfo.sobel");
+
+            // unpack second best logo
             UnpackLogoInfo(&secondBestLogoInfo, &secondBestLogoInfoPacked);
+            // free memory of sobel planes, we not need them now
+            for (int plane = 0; plane < PLANES; plane++) {
+                delete secondBestLogoInfo.sobel[plane];
+            }
+            delete secondBestLogoInfo.sobel;
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "actLogoInfo.sobel");
+
         }
 
         if (maContext->Config->autoLogo == 2) { // use unpacked logos

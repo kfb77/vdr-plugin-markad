@@ -25,14 +25,14 @@
  * logo after sobel transformation
  */
 struct sLogoInfo {
-    int iFrameNumber = -1;  //!< frame number of the logo
-                            //!<
+    int iFrameNumber = -1;   //!< frame number of the logo
+                             //!<
 
-    int hits = 0;  //!< number of similar other logos
-                   //!<
+    int hits = 0;            //!< number of similar other logos
+                             //!<
 
-    uchar sobel[PLANES][MAXPIXEL] = {};  //!< video data plane data
-                                         //!<
+    uchar **sobel = NULL;    //!< sobel transformed corner picture data
+                             //!<
 
     bool valid[PLANES] = {}; //!< <b>true:</b> data planes contain valid data <br>
                              //!< <b>false:</b> data planes are not valid
@@ -53,28 +53,28 @@ class cExtractLogo {
             abort = true;
         };
     private:
-        struct compareInfoType {  // TODO remove
+        struct compareInfoType {
             int frameNumber1 = 0;
             int frameNumber2 = 0;
             int rate[CORNERS] = {0};
         };
         typedef std::vector<compareInfoType> compareResultType;
         struct sLogoInfoPacked {
-            int iFrameNumber = -1; //!< frame number of the logo
-                                   //!<
+            int iFrameNumber = -1;         //!< frame number of the logo
+                                           //!<
 
-            int hits = 0; //!< number of similar other logos
-                          //!<
+            int hits = 0;                  //!< number of similar other logos
+                                           //!<
 
-            uchar sobel[PLANES][MAXPIXEL / 8] = {}; //!< video data plane data
-                                                    //!<
+            uchar **sobel = NULL;          //!< sobel transformed corner picture data, 8 pixel in one byte
+                                           //!<
 
-            bool valid[PLANES] = {}; //!< <b>true:</b> data planes contain valid data <br>
-                                     //!< <b>false:</b> data planes are not valid
-                                     //!<
+            bool valid[PLANES] = {};       //!< <b>true:</b> data planes contain valid data <br>
+                                           //!< <b>false:</b> data planes are not valid
+                                           //!<
 
             sAspectRatio aspectratio = {}; //!< video aspect ratio
-                                                //!<
+                                           //!<
 
         };
 

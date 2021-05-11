@@ -75,7 +75,7 @@ enum {
  * corner area after sobel transformation
  */
 typedef struct sAreaT {
-    uchar sobel[PLANES][MAXPIXEL];   //!< monochrome picture with edges (after sobel)
+    uchar **sobel = NULL;            //!< monochrome picture from edge after sobel transformation, memory will be alocated after we know video resolution
                                      //!<
 
     uchar mask[PLANES][MAXPIXEL];    //!< monochrome mask of logo
@@ -152,6 +152,25 @@ class cMarkAdOverlap {
 
 
 class cMarkAdLogo {
+    public:
+        explicit cMarkAdLogo(sMarkAdContext *maContext, cIndex *recordingIndex);
+	~cMarkAdLogo();
+
+        int Detect(const int frameBefore, const int frameCurrent, int *logoFrameNumber); // return: 1 = logo, 0 = unknown, -1 = no logo
+        int Process(const int iFrameBefore, const int iFrameCurrent, const int frameCurrent, int *logoFrameNumber);
+        int Status() {
+            return area.status;
+        }
+        void SetStatusLogoInvisible() {
+            if (area.status == LOGO_VISIBLE) area.status = LOGO_INVISIBLE;
+        }
+        void SetStatusUninitialized() {
+            area.status = LOGO_UNINITIALIZED;
+        }
+        void Clear(const bool isRestart = false, const bool inBroadCast = false);
+        void SetLogoSize(const int width, const int height);
+        sAreaT *GetArea();
+
     private:
         cIndex *recordingIndexMarkAdLogo = NULL;
         enum {
@@ -173,25 +192,9 @@ class cMarkAdLogo {
         int ReduceBrightness(const int framenumber);
         bool SobelPlane(const int plane); // do sobel operation on plane
         int Load(const char *directory, const char *file, const int plane);
-        bool Save(const int framenumber, uchar picture[PLANES][MAXPIXEL], const short int plane, const int debug);
+        bool Save(const int framenumber, uchar **picture, const short int plane, const int debug);
         void SaveFrameCorner(const int framenumber, const int debug);
         void LogoGreyToColour();
-    public:
-        explicit cMarkAdLogo(sMarkAdContext *maContext, cIndex *recordingIndex);
-        int Detect(const int frameBefore, const int frameCurrent, int *logoFrameNumber); // return: 1 = logo, 0 = unknown, -1 = no logo
-        int Process(const int iFrameBefore, const int iFrameCurrent, const int frameCurrent, int *logoFrameNumber);
-        int Status() {
-            return area.status;
-        }
-        void SetStatusLogoInvisible() {
-            if (area.status == LOGO_VISIBLE) area.status = LOGO_INVISIBLE;
-        }
-        void SetStatusUninitialized() {
-            area.status = LOGO_UNINITIALIZED;
-        }
-        void Clear(const bool isRestart = false, const bool inBroadCast = false);
-        void SetLogoSize(const int width, const int height);
-        sAreaT *GetArea();
 };
 
 
