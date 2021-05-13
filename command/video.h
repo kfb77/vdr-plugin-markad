@@ -75,11 +75,6 @@ enum {
  * corner area after sobel transformation
  */
 typedef struct sAreaT {
-#ifdef VDRDEBUG
-    uchar source[PLANES][MAXPIXEL];  //!< original picture
-                                     //!<
-
-#endif
     uchar sobel[PLANES][MAXPIXEL];   //!< monochrome picture with edges (after sobel)
                                      //!<
 

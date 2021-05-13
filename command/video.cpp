@@ -558,11 +558,6 @@ bool cMarkAdLogo::SobelPlane(const int plane) {
             area.result[plane][(X-xstart)+(Y-ystart)*width] = (area.mask[plane][(X-xstart)+(Y-ystart)*width] + val) & 255;
 
             if (!area.result[plane][(X-xstart)+(Y-ystart)*width]) area.rPixel[plane]++;
-#ifdef VDRDEBUG
-            val=maContext->Video.Data.Plane[plane][X+(Y*maContext->Video.Data.PlaneLinesize[plane])];
-            area.source[plane][(X-xstart)+(Y-ystart)*width] = val;
-#endif
-
         }
     }
     if (!plane) area.intensity /= (LOGOHEIGHT*width);
