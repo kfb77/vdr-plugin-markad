@@ -4,7 +4,7 @@
 VIDEO="/srv/vdr/video"
 
 if [ "$1" == '-v' ]; then
-	grep -r "INFO:  Logo size for Channel:" --include "markad.log" $VIDEO | awk '{printf "%23-s %4s %5s %6s-> %4s %4s %s %s\n", $11, $12, $13, $14, $15, $16, $17, $1}' | awk 'BEGIN{FS=OFS="/"}{NF--; print}' | sort
+	grep -r "INFO:  Logo size for Channel:" --include "markad.log" $VIDEO | awk '{printf "%23-s %4s %5s %6s-> %5s %4s %s %s\n", $11, $12, $13, $14, $15, $16, $17, $1}' | awk 'BEGIN{FS=OFS="/"}{NF--; print}' | sort
 else
-	grep -r "INFO:  Logo size for Channel:" --include "markad.log" $VIDEO | awk '{printf "%23-s %4s %5s %6s-> %4s %4s %s\n", $11, $12, $13, $14, $15, $16, $17}' | awk '{!seen[$0]++}END{for (i in seen) printf "%4d %s\n",seen[i], i}' | sort -k 2 -b
+	grep -r "INFO:  Logo size for Channel:" --include "markad.log" $VIDEO | awk '{printf "%23-s %4s %5s %6s-> %5s %4s %s\n", $11, $12, $13, $14, $15, $16, $17}' | awk '{!seen[$0]++}END{for (i in seen) printf "%4d %s\n",seen[i], i}' | sort -k 2 -b
 fi

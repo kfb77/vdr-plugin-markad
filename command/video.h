@@ -109,9 +109,12 @@ class cLogoSize {
     public:
         cLogoSize();
         ~cLogoSize();
-        sLogoSize GetDefaultLogoSize(const sMarkAdContext *maContext);
-        sLogoSize GetMaxLogoSize(const sMarkAdContext *maContext);
-        int GetMaxLogoPixel(const sMarkAdContext *maContext);
+        sLogoSize GetDefaultLogoSize(const int width);
+        sLogoSize GetMaxLogoSize(const int width);
+        int GetMaxLogoPixel(const int width);
+
+    private:
+        int videoWidth = 0;
 };
 
 

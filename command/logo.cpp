@@ -43,7 +43,7 @@ cExtractLogo::cExtractLogo(sMarkAdContext *maContext, const sAspectRatio AspectR
 
 cExtractLogo::~cExtractLogo() {
 #ifdef DEBUG_MEM
-    int maxPixel = GetMaxLogoPixel(maContextLogoSize);
+    int maxLogoPixel = GetMaxLogoPixel(maContextLogoSize->Video.Info.width);
 #endif
     for (int corner = 0; corner < CORNERS; corner++) {  // free memory of all corners
 #ifdef DEBUG_MEM
@@ -62,7 +62,7 @@ cExtractLogo::~cExtractLogo() {
                 delete actLogo->sobel[plane];
             }
             delete actLogo->sobel;
-            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxPixel, "actLogoInfo.sobel");
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
         }
         logoInfoVector[corner].clear();
 
@@ -72,7 +72,7 @@ cExtractLogo::~cExtractLogo() {
                 delete actLogoPacked->sobel[plane];
             }
             delete actLogoPacked->sobel;
-            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxPixel / 8, "actLogoInfoPacked.sobel");
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel / 8, "actLogoInfoPacked.sobel");
         }
         logoInfoVectorPacked[corner].clear();
     }
@@ -100,7 +100,7 @@ void cExtractLogo::SetLogoSize(const sMarkAdContext *maContext, int *logoHeight,
     if (!maContext) return;
     if (!logoHeight) return;
     if (!logoWidth) return;
-    sLogoSize DefaultLogoSize = GetDefaultLogoSize(maContext);
+    sLogoSize DefaultLogoSize = GetDefaultLogoSize(maContext->Video.Info.width);
     *logoHeight = DefaultLogoSize.height;
     *logoWidth = DefaultLogoSize.width;
 }
@@ -120,7 +120,7 @@ bool cExtractLogo::IsLogoColourChange(const sMarkAdContext *maContext, const int
     logoHeight /= 2;  // we use plane 1 to check
     logoWidth /= 2;
 #ifdef DEBUG_MEM
-    int maxPixel = GetMaxLogoPixel(maContext);
+    int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
 #endif
 
     int count = 0;
@@ -138,7 +138,7 @@ bool cExtractLogo::IsLogoColourChange(const sMarkAdContext *maContext, const int
                     delete actLogo.sobel[planeTMP];
                 }
                 delete actLogo.sobel;
-                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxPixel, "actLogoInfo.sobel");
+                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
            }
         }
         if (maContext->Config->autoLogo == 2){  // use unpacked logos
@@ -434,43 +434,49 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
 // set default values
     switch (maContext->Video.Info.width) {
         case 544:
-            if (logo.widthMin  == 0) logo.widthMin  =  95; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
-            if (logo.widthMax  == 0) logo.widthMax  =  97; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
-            if (logo.heightMin == 0) logo.heightMin =  89; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
-            if (logo.heightMax == 0) logo.heightMax =  91; // DMAX_Austria            16:9  544W  576H:->  96W  90H TOP_LEFT
+            if (logo.widthMin  == 0) logo.widthMin  =  95; // DMAX_Austria            16:9  544W  576H:->   96W  90H TOP_LEFT
+            if (logo.widthMax  == 0) logo.widthMax  =  97; // DMAX_Austria            16:9  544W  576H:->   96W  90H TOP_LEFT
+            if (logo.heightMin == 0) logo.heightMin =  89; // DMAX_Austria            16:9  544W  576H:->   96W  90H TOP_LEFT
+            if (logo.heightMax == 0) logo.heightMax =  91; // DMAX_Austria            16:9  544W  576H:->   96W  90H TOP_LEFT
             break;
         case 720:
-            if (logo.widthMin  == 0) logo.widthMin  =  76; // SAT_1                   16:9  720W  576H:->  76W  72H TOP_RIGHT
-            if (logo.widthMax  == 0) logo.widthMax  = 146; // N24_DOKU                16:9  720W  576H:-> 146W  82H TOP_RIGHT
-                                                           // Nickelodeon             16:9  720W  576H:-> 146W  88H TOP_LEFT
-                                                           // NICK_MTV+               16:9  720W  576H:-> 146W  88H TOP_LEFT
-                                                           // SIXX                     4:3  720W  576H:-> 146W  70H TOP_RIGHT
-            if (logo.heightMin == 0) logo.heightMin =  60; // n-tv                    16:9  720W  576H:-> 224W  60H BOTTOM_RIGHT
-                                                           // RTL_Television          16:9  720W  576H:-> 104W  60H TOP_LEFT
-                                                           // SAT_1_Gold               4:3  720W  576H:-> 140W  60H TOP_RIGHT
-                                                           // TLC                     16:9  720W  576H:->  94W  60H TOP_LEFT
-                                                           // WELT                    16:9  720W  576H:-> 222W  60H BOTTOM_LEFT
-            if (logo.heightMax == 0) logo.heightMax =  88; // Nickelodeon             16:9  720W  576H:-> 144W  88H TOP_LEFT
-                                                           // NICK_MTV+               16:9  720W  576H:-> 146W  88H TOP_LEFT
+            if (logo.widthMin  == 0) logo.widthMin  =  76; // SAT_1                   16:9  720W  576H:->   76W  72H TOP_RIGHT
+            if (logo.widthMax  == 0) logo.widthMax  = 146; // N24_DOKU                16:9  720W  576H:->  146W  82H TOP_RIGHT
+                                                           // Nickelodeon             16:9  720W  576H:->  146W  88H TOP_LEFT
+                                                           // NICK_MTV+               16:9  720W  576H:->  146W  88H TOP_LEFT
+                                                           // SIXX                     4:3  720W  576H:->  146W  70H TOP_RIGHT
+            if (logo.heightMin == 0) logo.heightMin =  60; // n-tv                    16:9  720W  576H:->  224W  60H BOTTOM_RIGHT
+                                                           // RTL_Television          16:9  720W  576H:->  104W  60H TOP_LEFT
+                                                           // SAT_1_Gold               4:3  720W  576H:->  140W  60H TOP_RIGHT
+                                                           // TLC                     16:9  720W  576H:->   94W  60H TOP_LEFT
+                                                           // WELT                    16:9  720W  576H:->  222W  60H BOTTOM_LEFT
+            if (logo.heightMax == 0) logo.heightMax =  88; // Nickelodeon             16:9  720W  576H:->  144W  88H TOP_LEFT
+                                                           // NICK_MTV+               16:9  720W  576H:->  146W  88H TOP_LEFT
             break;
         case 1280:
-            if (logo.widthMin  == 0) logo.widthMin  = 132; // BR_Fernsehen_Süd_HD     16:9 1280W  720H:-> 132W  84H TOP_LEFT
-            if (logo.widthMax  == 0) logo.widthMax  = 254; // ANIXE+                  16:9 1280W 1080H:-> 254W 170H TOP_LEFT
-            if (logo.heightMin == 0) logo.heightMin =  66; // SRF_zwei_HD             16:9 1280W  720H:-> 172W  66H TOP_RIGHT
-            if (logo.heightMax == 0) logo.heightMax = 134; // arte_HD                 16:9 1280W  720H:->  88W 134H TOP_LEFT
+            if (logo.widthMin  == 0) logo.widthMin  =  132; // BR_Fernsehen_Süd_HD     16:9 1280W  720H:->  132W  84H TOP_LEFT
+            if (logo.widthMax  == 0) logo.widthMax  =  254; // ANIXE+                  16:9 1280W 1080H:->  254W 170H TOP_LEFT
+            if (logo.heightMin == 0) logo.heightMin =   66; // SRF_zwei_HD             16:9 1280W  720H:->  172W  66H TOP_RIGHT
+            if (logo.heightMax == 0) logo.heightMax =  134; // arte_HD                 16:9 1280W  720H:->   88W 134H TOP_LEFT
             break;
         case 1440:
-            if (logo.widthMin  == 0) logo.widthMin  = 184; // WELT_HD                 16:9 1440W 1080H:-> 396W 116H BOTTOM_LEFT
-            if (logo.widthMax  == 0) logo.widthMax  = 250; // DMAX_HD                 16:9 1440W 1080H:-> 250W 140H TOP_LEFT
-            if (logo.heightMin == 0) logo.heightMin = 112; // WELT_HD                 16:9 1440W 1080H:-> 396W 116H BOTTOM_LEFT
-            if (logo.heightMax == 0) logo.heightMax = 140; // DMAX_HD                 16:9 1440W 1080H:-> 250W 140H TOP_LEFT
+            if (logo.widthMin  == 0) logo.widthMin  =  184; // WELT_HD                 16:9 1440W 1080H:->  396W 116H BOTTOM_LEFT
+            if (logo.widthMax  == 0) logo.widthMax  =  250; // DMAX_HD                 16:9 1440W 1080H:->  250W 140H TOP_LEFT
+            if (logo.heightMin == 0) logo.heightMin =  112; // WELT_HD                 16:9 1440W 1080H:->  396W 116H BOTTOM_LEFT
+            if (logo.heightMax == 0) logo.heightMax =  140; // DMAX_HD                 16:9 1440W 1080H:->  250W 140H TOP_LEFT
             break;
         case 1920:
-            if (logo.widthMin  == 0) logo.widthMin  = 204; // SAT_1_HD                16:9 1920W 1080H:-> 204W 132H TOP_RIGHT
-            if (logo.widthMax  == 0) logo.widthMax  = 394; // n-tv_HD                 16:9 1920W 1080H:-> 394W 110H BOTTOM_RIGHT
-                                                           // n-tv_HD                 16:9 1920W 1080H:-> 394W 122H BOTTOM_RIGHT
-            if (logo.heightMin == 0) logo.heightMin =  96; // münchen_tv_HD           16:9 1920W 1080H:-> 336W  96H TOP_LEFT
-            if (logo.heightMax == 0) logo.heightMax = 180; // ANIXE_HD                16:9 1920W 1080H:-> 336W 180H TOP_LEFT
+            if (logo.widthMin  == 0) logo.widthMin  =  204; // SAT_1_HD                16:9 1920W 1080H:->  204W 132H TOP_RIGHT
+            if (logo.widthMax  == 0) logo.widthMax  =  394; // n-tv_HD                 16:9 1920W 1080H:->  394W 110H BOTTOM_RIGHT
+                                                            // n-tv_HD                 16:9 1920W 1080H:->  394W 122H BOTTOM_RIGHT
+            if (logo.heightMin == 0) logo.heightMin =   96; // münchen_tv_HD           16:9 1920W 1080H:->  336W  96H TOP_LEFT
+            if (logo.heightMax == 0) logo.heightMax =  180; // ANIXE_HD                16:9 1920W 1080H:->  336W 180H TOP_LEFT
+            break;
+        case 3840:
+            if (logo.widthMin  == 0) logo.widthMin  = 1412; // RTL_UHD                 16:9 3840W 2160H:-> 1412W 218H TOP_LEFT
+            if (logo.widthMax  == 0) logo.widthMax  = 1412; // RTL_UHD                 16:9 3840W 2160H:-> 1412W 218H TOP_LEFT
+            if (logo.heightMin == 0) logo.heightMin =  218; // RTL_UHD                 16:9 3840W 2160H:-> 1412W 218H TOP_LEFT
+            if (logo.heightMax == 0) logo.heightMax =  218; // RTL_UHD                 16:9 3840W 2160H:-> 1412W 218H TOP_LEFT
             break;
         default:
             dsyslog("cExtractLogo::CheckLogoSize(): no logo size rules for %dx%d", maContext->Video.Info.width, maContext->Video.Info.height);
@@ -514,7 +520,9 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
     int logoHeightBeforeResize = *logoHeight;
     int logoWidthBeforeResize = *logoWidth;
     int acceptFalsePixelH = *logoWidth / 30;  // reduced from 60 to 20, increased to 30 for vertical logo of arte HD
-    int acceptFalsePixelV = *logoHeight / 20; // reduced from 30 to 20
+    int acceptFalsePixelV;
+    if (maContext->Video.Info.width < 3840) acceptFalsePixelV = *logoHeight / 20; // reduced from 30 to 20
+    else acceptFalsePixelV = *logoHeight / 30; // UDH has thin logo structure
 
     for (int repeat = 1; repeat <= 2; repeat++) {
         if ((*logoWidth <= 0) || (*logoHeight <= 0)) {
@@ -854,7 +862,7 @@ int cExtractLogo::Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLog
     int hits=0;
 
 #ifdef DEBUG_MEM
-    int maxPixel = GetMaxLogoPixel(maContext);
+    int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
 #endif
 
     if (maContext->Config->autoLogo == 1) { // use packed logos
@@ -878,7 +886,7 @@ int cExtractLogo::Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLog
                 delete actLogo.sobel[plane];
             }
             delete actLogo.sobel;
-            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxPixel, "actLogoInfo.sobel");
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
 
         }
     }
@@ -1019,9 +1027,6 @@ int cExtractLogo::DeleteFrames(const sMarkAdContext *maContext, const int from, 
     if (!maContext) return 0;
     if (from >= to) return 0;
     int deleteCount = 0;
-#ifdef DEBUG_MEM
-    int maxPixel = GetMaxLogoPixel(maContext);
-#endif
     dsyslog("cExtractLogo::DeleteFrames(): delete frames from %d to %d", from, to);
     for (int corner = 0; corner < CORNERS; corner++) {
         if (maContext->Config->autoLogo == 1) { // use packed logos
@@ -1034,7 +1039,10 @@ int cExtractLogo::DeleteFrames(const sMarkAdContext *maContext, const int from, 
                         delete actLogoPacked->sobel[plane];
                     }
                     delete actLogoPacked->sobel;
-                    FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxPixel / 8, "actLogoInfoPacked.sobel");
+#ifdef DEBUG_MEM
+                    int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
+#endif
+                    FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel / 8, "actLogoInfoPacked.sobel");
 
                     // delete vector element
                     FREE(sizeof(*actLogoPacked), "logoInfoVectorPacked");
@@ -1054,7 +1062,10 @@ int cExtractLogo::DeleteFrames(const sMarkAdContext *maContext, const int from, 
                         delete actLogo->sobel[plane];
                     }
                     delete actLogo->sobel;
-                    FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxPixel, "actLogoInfo.sobel");
+#ifdef DEBUG_MEM
+                    int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
+#endif
+                    FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
 
                     // delete vector element
                     FREE(sizeof(*actLogo), "logoInfoVector");
@@ -1169,14 +1180,14 @@ void cExtractLogo::PackLogoInfo(const sLogoInfo *logoInfo, sLogoInfoPacked *logo
     if ( !logoInfo ) return;
     if ( !logoInfoPacked) return;
 
-    int maxPixel = GetMaxLogoPixel(maContextLogoSize);
+    int maxLogoPixel = GetMaxLogoPixel(maContextLogoSize->Video.Info.width);
     logoInfoPacked->iFrameNumber = logoInfo->iFrameNumber;
     logoInfoPacked->hits = logoInfo->hits;
     logoInfoPacked->sobel = new uchar*[PLANES];
     for (int plane = 0; plane < PLANES; plane++) {
         logoInfoPacked->valid[plane] = logoInfo->valid[plane];
-        logoInfoPacked->sobel[plane] = new uchar[maxPixel / 8];  // alloc memory and copy planes
-        for (int i = 0; i < maxPixel / 8; i++) {
+        logoInfoPacked->sobel[plane] = new uchar[maxLogoPixel / 8];  // alloc memory and copy planes
+        for (int i = 0; i < maxLogoPixel / 8; i++) {
             logoInfoPacked->sobel[plane][i] = 0;
             if (logoInfo->sobel[plane][i*8+0] > 0) logoInfoPacked->sobel[plane][i] += 1;
             if (logoInfo->sobel[plane][i*8+1] > 0) logoInfoPacked->sobel[plane][i] += 2;
@@ -1188,7 +1199,7 @@ void cExtractLogo::PackLogoInfo(const sLogoInfo *logoInfo, sLogoInfoPacked *logo
             if (logoInfo->sobel[plane][i*8+7] > 0) logoInfoPacked->sobel[plane][i] += 128;
         }
     }
-    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxPixel / 8, "actLogoInfoPacked.sobel");
+    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel / 8, "actLogoInfoPacked.sobel");
 }
 
 
@@ -1197,14 +1208,14 @@ void cExtractLogo::UnpackLogoInfo(sLogoInfo *logoInfo, const sLogoInfoPacked *lo
     if (!logoInfoPacked) return;
     if (!logoInfoPacked->sobel) return; // nothing to unpack
 
-    int maxPixel = GetMaxLogoPixel(maContextLogoSize);
+    int maxLogoPixel = GetMaxLogoPixel(maContextLogoSize->Video.Info.width);
     logoInfo->iFrameNumber = logoInfoPacked->iFrameNumber;
     logoInfo->hits = logoInfoPacked->hits;
     logoInfo->sobel = new uchar*[PLANES];
     for (int plane = 0; plane < PLANES; plane++) {
-        logoInfo->sobel[plane] = new uchar[maxPixel];  // alloc memory and copy planes
+        logoInfo->sobel[plane] = new uchar[maxLogoPixel];  // alloc memory and copy planes
         logoInfo->valid[plane] = logoInfoPacked->valid[plane];
-        for (int i = 0; i < maxPixel / 8; i++) {
+        for (int i = 0; i < maxLogoPixel / 8; i++) {
             if (logoInfoPacked->sobel[plane][i] & 1) logoInfo->sobel[plane][i*8+0] = 255; else logoInfo->sobel[plane][i*8+0] = 0;
             if (logoInfoPacked->sobel[plane][i] & 2) logoInfo->sobel[plane][i*8+1] = 255; else logoInfo->sobel[plane][i*8+1] = 0;
             if (logoInfoPacked->sobel[plane][i] & 4) logoInfo->sobel[plane][i*8+2] = 255; else logoInfo->sobel[plane][i*8+2] = 0;
@@ -1215,7 +1226,7 @@ void cExtractLogo::UnpackLogoInfo(sLogoInfo *logoInfo, const sLogoInfoPacked *lo
             if (logoInfoPacked->sobel[plane][i] & 128) logoInfo->sobel[plane][i*8+7] = 255; else logoInfo->sobel[plane][i*8+7] = 0;
         }
     }
-    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxPixel, "actLogoInfo.sobel");
+    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
 }
 
 
@@ -1330,8 +1341,8 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
     int logoWidth = 0;
     bool retStatus = true;
     bool readNextFile = true;
+    int maxLogoPixel = 0;
 
-    int maxPixel = GetMaxLogoPixel(maContext);
 
     gettimeofday(&startTime, NULL);
     sMarkAdContext maContextSaveState = {};
@@ -1397,6 +1408,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
 
         while(ptr_cDecoder->GetNextFrame()) {
             if (abortNow) return -1;
+
             // write an early start mark for running recordings
             if (maContext->Info.isRunningRecording && !maContext->Info.isStartMarkSaved && (iFrameNumber >= (maContext->Info.tStart * maContext->Video.Info.framesPerSecond))) {
                 dsyslog("cExtractLogo::SearchLogo(): recording is aktive, read frame (%d), now save dummy start mark at pre timer position %ds", iFrameNumber, maContext->Info.tStart);
@@ -1412,6 +1424,8 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
             if ((ptr_cDecoder->GetFrameInfo(maContext, false) && retStatus)) {
                 if (ptr_cDecoder->IsVideoPacket()) {
                     iFrameNumber = ptr_cDecoder->GetFrameNumber();
+                    if (maxLogoPixel == 0) maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
+
                     if (iFrameNumber < startFrame) {
                         dsyslog("cExtractLogo::SearchLogo(): seek to frame %i", startFrame);
                         if (!WaitForFrames(maContext, ptr_cDecoder, startFrame)) {
@@ -1486,13 +1500,13 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                         sLogoInfo actLogoInfo = {};
                         actLogoInfo.iFrameNumber = iFrameNumber;
 
-//                      // alloc memory and copy planes
+                        // alloc memory and copy planes
                         actLogoInfo.sobel = new uchar*[PLANES];
                         for (int plane = 0; plane < PLANES; plane++) {
-                            actLogoInfo.sobel[plane] = new uchar[maxPixel];
-                            memcpy(actLogoInfo.sobel[plane], area->sobel[plane], sizeof(uchar) * maxPixel);
+                            actLogoInfo.sobel[plane] = new uchar[maxLogoPixel];
+                            memcpy(actLogoInfo.sobel[plane], area->sobel[plane], sizeof(uchar) * maxLogoPixel);
                         }
-                        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxPixel, "actLogoInfo.sobel");
+                        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
 
                         if (CheckValid(maContext, &actLogoInfo, logoHeight, logoWidth, corner)) {
                             RemovePixelDefects(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
@@ -1513,7 +1527,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                                     delete actLogoInfo.sobel[plane];
                                 }
                                 delete actLogoInfo.sobel;
-                                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxPixel, "actLogoInfo.sobel");
+                                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
                             }
                             if (maContext->Config->autoLogo == 2){  // use unpacked logos
                                 try { logoInfoVector[corner].push_back(actLogoInfo); }  // this allocates a lot of memory
@@ -1531,7 +1545,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                                 delete actLogoInfo.sobel[plane];
                             }
                             delete actLogoInfo.sobel;
-                            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxPixel, "actLogoInfo.sobel");
+                            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
                         }
                     }
                     if (iFrameCountValid > 1000) {
@@ -1624,7 +1638,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                 delete bestLogoInfo.sobel[plane];
             }
             delete bestLogoInfo.sobel;
-            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxPixel, "actLogoInfo.sobel");
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
 
             // unpack second best logo
             UnpackLogoInfo(&secondBestLogoInfo, &secondBestLogoInfoPacked);
@@ -1633,7 +1647,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                 delete secondBestLogoInfo.sobel[plane];
             }
             delete secondBestLogoInfo.sobel;
-            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxPixel, "actLogoInfo.sobel");
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
 
         }
 
@@ -1695,22 +1709,27 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
         }
 
         if (retStatus) {
-            if (!this->Save(maContext, &bestLogoInfo, logoHeight, logoWidth, bestLogoCorner)) {
+            if (!Save(maContext, &bestLogoInfo, logoHeight, logoWidth, bestLogoCorner)) {
                 dsyslog("cExtractLogo::SearchLogo(): logo save failed");
                 retStatus = false;
             }
         }
     }
+    FREE(sizeof(*ptr_Logo), "SearchLogo-ptr_Logo");  // new cMarkAdLogo(maContext, recordingIndexLogo);
+    delete ptr_Logo;
+
+    // restore maContext
     maContext->Video = maContextSaveState.Video;     // restore state of calling video context
     maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
+
+    // delete all used classes
     FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
     delete ptr_cDecoder;
-    FREE(sizeof(*ptr_Logo), "SearchLogo-ptr_Logo");
-    delete ptr_Logo;
     FREE(sizeof(*hborder), "hborder");
     delete hborder;
     FREE(sizeof(*vborder), "vborder");
     delete vborder;
+
     if (retStatus) dsyslog("cExtractLogo::SearchLogo(): finished successfully, last frame %i", iFrameNumber);
     else dsyslog("cExtractLogo::SearchLogo(): failed, last frame %i", iFrameNumber);
     dsyslog("----------------------------------------------------------------------------");
