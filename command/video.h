@@ -81,7 +81,7 @@ typedef struct sAreaT {
     uchar **mask = NULL;             //!< monochrome mask of logo, memory will be alocated after we know video resolution
                                      //!<
 
-    uchar result[PLANES][MAXPIXEL];  //!< result of sobel + mask
+    uchar **result = NULL;           //!< result of sobel + mask, memory will be alocated after we know video resolution
                                      //!<
 
     int rPixel[PLANES];              //!< black pixel in result

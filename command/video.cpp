@@ -75,6 +75,15 @@ void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
         delete area.mask;
         area.mask = NULL;
     }
+    // free memory for sobel result
+    if (area.result) {
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.result");
+        for (int plane = 0; plane < PLANES; plane++) {
+            delete area.result[plane];
+        }
+        delete area.result;
+        area.result = NULL;
+    }
     area = {};
 
     if (isRestart) { // reset valid logo status after restart
@@ -542,6 +551,14 @@ bool cMarkAdLogo::SobelPlane(const int plane) {
             area.mask[planeTMP] = new uchar[MAXPIXEL];
         }
         ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.mask");
+    }
+    // alloc memory for mask result (machtes)
+    if (!area.result) {
+        area.result = new uchar*[PLANES];
+        for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
+            area.result[planeTMP] = new uchar[MAXPIXEL];
+        }
+        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.result");
     }
 
     if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
