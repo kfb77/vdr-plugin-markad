@@ -40,7 +40,7 @@ struct sLogoInfo {
 };
 
 
-class cExtractLogo {
+class cExtractLogo : public cLogoSize {
     public:
         explicit cExtractLogo(const sAspectRatio aspectRatio, cIndex *recordingIndex);
         ~cExtractLogo();

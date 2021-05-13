@@ -115,6 +115,16 @@ typedef struct sAreaT {
 } sAreaT;
 
 
+
+class cLogoSize {
+    public:
+        cLogoSize();
+        ~cLogoSize();
+        sLogoSize GetDefaultLogoSize(const sMarkAdContext *maContext);
+        sLogoSize GetMaxLogoSize(const sMarkAdContext *maContext);
+};
+
+
 class cMarkAdOverlap {
     private:
         sMarkAdContext *maContext = NULL;
@@ -154,7 +164,7 @@ class cMarkAdOverlap {
 class cMarkAdLogo {
     public:
         explicit cMarkAdLogo(sMarkAdContext *maContext, cIndex *recordingIndex);
-	~cMarkAdLogo();
+        ~cMarkAdLogo();
 
         int Detect(const int frameBefore, const int frameCurrent, int *logoFrameNumber); // return: 1 = logo, 0 = unknown, -1 = no logo
         int Process(const int iFrameBefore, const int iFrameCurrent, const int frameCurrent, int *logoFrameNumber);

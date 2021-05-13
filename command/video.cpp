@@ -19,6 +19,81 @@ extern "C" {
 #include "logo.h"
 
 
+
+cLogoSize::cLogoSize() {
+}
+
+
+cLogoSize::~cLogoSize() {
+}
+
+
+sLogoSize cLogoSize::GetDefaultLogoSize(const sMarkAdContext *maContext) {
+    sLogoSize logoSize;
+    switch (maContext->Video.Info.width) {
+        case 544:
+            logoSize.width  = 230;
+            logoSize.height = 130;
+            break;
+        case 720:
+            logoSize.width  = 230;
+            logoSize.height = 130;
+            break;
+        case 1280:
+            logoSize.width  = 400;
+            logoSize.height = 200;
+            break;
+        case 1440:
+            logoSize.width  = 400;
+            logoSize.height = 200;
+            break;
+        case 1920:
+            logoSize.width  = 400;
+            logoSize.height = 200;
+            break;
+        default:
+            dsyslog("cLogoSize::GetDefaultLogoSize() no default logo size rule for %dx%d", maContext->Video.Info.width, maContext->Video.Info.height);
+            logoSize.width  = 400;
+            logoSize.height = 200;
+            break;
+    }
+    return logoSize;
+}
+
+
+sLogoSize cLogoSize::GetMaxLogoSize(const sMarkAdContext *maContext) {
+    sLogoSize logoSize;
+    switch (maContext->Video.Info.width) {
+        case 544:
+            logoSize.width  = 480;
+            logoSize.height = 250;
+            break;
+        case 720:
+            logoSize.width  = 480;
+            logoSize.height = 250;
+            break;
+        case 1280:
+            logoSize.width  = 480;
+            logoSize.height = 250;
+            break;
+        case 1440:
+            logoSize.width  = 480;
+            logoSize.height = 250;
+            break;
+        case 1920:
+            logoSize.width  = 480;
+            logoSize.height = 250;
+            break;
+        default:
+            dsyslog("cLogoSize::GetDefaultLogoSize() no max logo size rule for %dx%d", maContext->Video.Info.width, maContext->Video.Info.height);
+            logoSize.width  = 480;
+            logoSize.height = 250;
+            break;
+    }
+    return logoSize;
+}
+
+
 cMarkAdLogo::cMarkAdLogo(sMarkAdContext *maContextParam, cIndex *recordingIndex) {
     maContext = maContextParam;
     recordingIndexMarkAdLogo = recordingIndex;

@@ -72,6 +72,15 @@
 #define MT_ALL            (unsigned char) 0xFF
 
 
+typedef struct sLogoSize {
+    int width = 0;  //!< width for logo extractions
+                    //!
+
+    int height = 0; //!< height for logo extraction
+                    //!<
+} sLogoSize;
+
+
 typedef struct sMarkAdConfig {
     char logFile[20] = {};  //!< name of the markad log file
                             //!<
