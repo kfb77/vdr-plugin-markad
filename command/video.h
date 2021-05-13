@@ -78,7 +78,7 @@ typedef struct sAreaT {
     uchar **sobel = NULL;            //!< monochrome picture from edge after sobel transformation, memory will be alocated after we know video resolution
                                      //!<
 
-    uchar mask[PLANES][MAXPIXEL];    //!< monochrome mask of logo
+    uchar **mask = NULL;             //!< monochrome mask of logo, memory will be alocated after we know video resolution
                                      //!<
 
     uchar result[PLANES][MAXPIXEL];  //!< result of sobel + mask
@@ -87,7 +87,7 @@ typedef struct sAreaT {
     int rPixel[PLANES];              //!< black pixel in result
                                      //!<
 
-    int mPixel[PLANES];              //!< black pixel in mask
+    int mPixel[PLANES] = {0};        //!< black pixel in mask
                                      //!<
 
     int status;                      //!< logo status: on, off, uninitialized

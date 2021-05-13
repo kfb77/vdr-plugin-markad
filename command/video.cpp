@@ -66,7 +66,17 @@ void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
         delete area.sobel;
         area.sobel = NULL;
     }
+    // free memory for sobel masks
+    if (area.mask) {
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.mask");
+        for (int plane = 0; plane < PLANES; plane++) {
+            delete area.mask[plane];
+        }
+        delete area.mask;
+        area.mask = NULL;
+    }
     area = {};
+
     if (isRestart) { // reset valid logo status after restart
         if (inBroadCast) area.status = LOGO_VISIBLE;
         else area.status = LOGO_INVISIBLE;
@@ -93,7 +103,6 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
         dsyslog("cMarkAdLogo::Load(): plane %d not valid", plane);
         return -3;
     }
-
     dsyslog("cMarkAdLogo::Load(): try to find logo %s plane %d in %s", file, plane, directory);
 
     char *path;
@@ -133,15 +142,31 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
         return -2;
     }
 
-    if (fread(&area.mask[plane], 1, width*height, pFile) != (size_t) (width*height)) {
+    // alloc memory for mask planes (logo)
+    if (area.mask) {
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.mask");
+        for (int plane = 0; plane < PLANES; plane++) {
+            delete area.mask[plane];
+        }
+        delete area.mask;
+        area.mask = NULL;
+    }
+    area.mask = new uchar*[PLANES];
+    for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
+        area.mask[planeTMP] = new uchar[MAXPIXEL];
+    }
+    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.mask");
+
+    // read logo from file
+    if (fread(area.mask[plane], 1, width * height, pFile) != (size_t)(width * height)) {
         fclose(pFile);
         esyslog("format error in %s", file);
         return -2;
     }
     fclose(pFile);
 
-    if (!area.mPixel[plane]) {
-        for (int i = 0; i < width*height; i++) {
+    if (area.mPixel[plane] == 0) {
+        for (int i = 0; i < width * height; i++) {
             if (!area.mask[plane][i]) area.mPixel[plane]++;
         }
     }
@@ -502,13 +527,21 @@ bool cMarkAdLogo::SobelPlane(const int plane) {
     if ((plane < 0) || (plane >= PLANES)) return false;
     if (!maContext->Video.Data.PlaneLinesize[plane]) return false;
 
-    // alloc memory for sobel plane
+    // alloc memory for sobel transformed planes
     if (!area.sobel) {
         area.sobel = new uchar*[PLANES];
         for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
             area.sobel[planeTMP] = new uchar[MAXPIXEL];
         }
         ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.sobel");
+    }
+    // alloc memory for mask planes (logo)
+    if (!area.mask) {
+        area.mask = new uchar*[PLANES];
+        for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
+            area.mask[planeTMP] = new uchar[MAXPIXEL];
+        }
+        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.mask");
     }
 
     if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
