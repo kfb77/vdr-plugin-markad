@@ -42,7 +42,7 @@ struct sLogoInfo {
 
 class cExtractLogo : public cLogoSize {
     public:
-        explicit cExtractLogo(const sAspectRatio aspectRatio, cIndex *recordingIndex);
+        explicit cExtractLogo(sMarkAdContext *maContext, const sAspectRatio aspectRatio, cIndex *recordingIndex);
         ~cExtractLogo();
         int SearchLogo(sMarkAdContext *maContext, int startFrame);
         void SetLogoSize(const sMarkAdContext *maContext, int *logoHeight, int *logoWidth);
@@ -107,6 +107,7 @@ class cExtractLogo : public cLogoSize {
         void RemovePixelDefects(const sMarkAdContext *maContext, sLogoInfo *logoInfo, const int logoHeight, const int logoWidth, const int corner);
         int AudioInBroadcast(const sMarkAdContext *maContext, const int iFrameNumber);   // 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
 
+        sMarkAdContext *maContextLogoSize = NULL;
         cIndex *recordingIndexLogo = NULL;
         std::vector<sLogoInfo> logoInfoVector[CORNERS];
         std::vector<sLogoInfoPacked> logoInfoVectorPacked[CORNERS];

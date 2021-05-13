@@ -624,7 +624,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
         ALLOC(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
         ptr_cDecoderLogoChange->DecodeDir(directory);
 
-        cExtractLogo *ptr_cExtractLogoChange = new cExtractLogo(macontext.Video.Info.AspectRatio, recordingIndexMark);
+        cExtractLogo *ptr_cExtractLogoChange = new cExtractLogo(&macontext, macontext.Video.Info.AspectRatio, recordingIndexMark);
         ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
 
         cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoderLogoChange, recordingIndexMark);
@@ -3294,7 +3294,7 @@ bool cMarkAdStandalone::CheckLogo() {
             closedir(recDIR);
         }
         isyslog("no logo found in recording directory, trying to extract logo from recording");
-        ptr_cExtractLogo = new cExtractLogo(macontext.Info.AspectRatio, recordingIndexMark);
+        ptr_cExtractLogo = new cExtractLogo(&macontext, macontext.Info.AspectRatio, recordingIndexMark);
         ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
         int startPos =  macontext.Info.tStart * 25;  // search logo from assumed start, we do not know the frame rate at this point, so we use 25
         if (startPos < 0) startPos = 0;  // consider late start of recording
@@ -3975,10 +3975,6 @@ int usage(int svdrpport) {
            "                  extracts logo to /tmp as pgm files (must be renamed)\n"
            "                  <direction>  0 = top left,    1 = top right\n"
            "                               2 = bottom left, 3 = bottom right\n"
-           "                  [width]  range from 50 to %3i, default %3i (SD)\n"
-           "                                                 default %3i (HD)\n"
-           "                  [height] range from 20 to %3i, default %3i (SD)\n"
-           "                                                 default %3i (HD)\n"
            "-O              --OSD\n"
            "                  markad sends an OSD-Message for start and end\n"
            "-R              --log2rec\n"
@@ -4045,8 +4041,7 @@ int usage(int svdrpport) {
            "edited                       markad started by vdr in edit function and exits immediately\n"
            "\n<record>                     is the name of the directory where the recording\n"
            "                             is stored\n\n",
-           LOGO_MAXWIDTH,LOGO_DEFWIDTH,LOGO_DEFHDWIDTH,
-           LOGO_MAXHEIGHT,LOGO_DEFHEIGHT,LOGO_DEFHDHEIGHT,svdrpport
+           svdrpport
           );
     return -1;
 }
@@ -4275,17 +4270,9 @@ int main(int argc, char *argv[]) {
                             break;
                         case 1:
                             config.logoWidth = atoi(tok);
-                            if ((config.logoWidth < 50) || (config.logoWidth > LOGO_MAXWIDTH)) {
-                                fprintf(stderr, "markad: invalid width value: %s\n", tok);
-                                return 2;
-                            }
                             break;
                         case 2:
                             config.logoHeight = atoi(tok);
-                            if ((config.logoHeight < 20) || (config.logoHeight > LOGO_MAXHEIGHT)) {
-                                fprintf(stderr, "markad: invalid height value: %s\n", tok);
-                                return 2;
-                            }
                             break;
                          default:
                             break;

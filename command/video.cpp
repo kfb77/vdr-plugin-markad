@@ -93,6 +93,11 @@ sLogoSize cLogoSize::GetMaxLogoSize(const sMarkAdContext *maContext) {
     return logoSize;
 }
 
+int cLogoSize::GetMaxLogoPixel(const sMarkAdContext *maContext) {
+    sLogoSize maxLogoSize = GetMaxLogoSize(maContext);
+    return maxLogoSize.height * maxLogoSize.width;
+}
+
 
 cMarkAdLogo::cMarkAdLogo(sMarkAdContext *maContextParam, cIndex *recordingIndex) {
     maContext = maContextParam;
@@ -132,9 +137,13 @@ cMarkAdLogo::~cMarkAdLogo() {
 
 
 void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
+#ifdef DEBUG_MEM
+    int maxLogoPixel = GetMaxLogoPixel(maContext);
+#endif
+
     // free memory for sobel plane
     if (area.sobel) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.sobel");
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.sobel");
         for (int plane = 0; plane < PLANES; plane++) {
             delete area.sobel[plane];
         }
@@ -143,7 +152,7 @@ void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
     }
     // free memory for sobel masks
     if (area.mask) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.mask");
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
         for (int plane = 0; plane < PLANES; plane++) {
             delete area.mask[plane];
         }
@@ -152,7 +161,7 @@ void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
     }
     // free memory for sobel result
     if (area.result) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.result");
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.result");
         for (int plane = 0; plane < PLANES; plane++) {
             delete area.result[plane];
         }
@@ -219,16 +228,17 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
         width = area.mPixel[plane];
         area.mPixel[plane] = 0;
     }
-
-    if ((width <= 0) || (height <= 0) || (width > LOGO_MAXWIDTH) || (height > LOGO_MAXHEIGHT) || (area.corner < TOP_LEFT) || (area.corner > BOTTOM_RIGHT)) {
+    sLogoSize maxLogoSize = GetMaxLogoSize(maContext);
+    if ((width <= 0) || (height <= 0) || (width > maxLogoSize.width) || (height > maxLogoSize.height) || (area.corner < TOP_LEFT) || (area.corner > BOTTOM_RIGHT)) {
         fclose(pFile);
         esyslog("format error in %s", file);
         return -2;
     }
 
     // alloc memory for mask planes (logo)
+    int maxLogoPixel = GetMaxLogoPixel(maContext);
     if (area.mask) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.mask");
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
         for (int plane = 0; plane < PLANES; plane++) {
             delete area.mask[plane];
         }
@@ -237,9 +247,9 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
     }
     area.mask = new uchar*[PLANES];
     for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-        area.mask[planeTMP] = new uchar[MAXPIXEL];
+        area.mask[planeTMP] = new uchar[maxLogoPixel];
     }
-    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.mask");
+    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
 
     // read logo from file
     if (fread(area.mask[plane], 1, width * height, pFile) != (size_t)(width * height)) {
@@ -612,28 +622,29 @@ bool cMarkAdLogo::SobelPlane(const int plane) {
     if (!maContext->Video.Data.PlaneLinesize[plane]) return false;
 
     // alloc memory for sobel transformed planes
+    int maxLogoPixel = GetMaxLogoPixel(maContext);
     if (!area.sobel) {
         area.sobel = new uchar*[PLANES];
         for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-            area.sobel[planeTMP] = new uchar[MAXPIXEL];
+            area.sobel[planeTMP] = new uchar[maxLogoPixel];
         }
-        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.sobel");
+        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.sobel");
     }
     // alloc memory for mask planes (logo)
     if (!area.mask) {
         area.mask = new uchar*[PLANES];
         for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-            area.mask[planeTMP] = new uchar[MAXPIXEL];
+            area.mask[planeTMP] = new uchar[maxLogoPixel];
         }
-        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.mask");
+        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
     }
     // alloc memory for mask result (machtes)
     if (!area.result) {
         area.result = new uchar*[PLANES];
         for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-            area.result[planeTMP] = new uchar[MAXPIXEL];
+            area.result[planeTMP] = new uchar[maxLogoPixel];
         }
-        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MAXPIXEL, "area.result");
+        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.result");
     }
 
     if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
@@ -1013,7 +1024,7 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
                         else {
                             if (maContext->Config->autoLogo > 0) {
                                 isyslog("no valid logo for %s in logo cache and recording directory, extract logo from recording",buf);
-                                cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext->Video.Info.AspectRatio, recordingIndexMarkAdLogo);  // search logo from current frame
+                                cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext, maContext->Video.Info.AspectRatio, recordingIndexMarkAdLogo);  // search logo from current frame
                                 ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
                                 if (ptr_cExtractLogo->SearchLogo(maContext, iFrameCurrent) > 0) dsyslog("cMarkAdLogo::Process(): no logo found in recording");
                                 else dsyslog("cMarkAdLogo::Process(): new logo for %s found in recording",buf);

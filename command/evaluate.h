@@ -13,6 +13,7 @@ extern "C" {
 }
 #include "global.h"
 #include "marks.h"
+#include "video.h"
 
 
 class cEvaluateLogoStopStartPair {
@@ -95,7 +96,7 @@ class cEvaluateLogoStopStartPair {
 };
 
 
-class cDetectLogoStopStart {
+class cDetectLogoStopStart : cLogoSize {
     public:
         cDetectLogoStopStart(sMarkAdContext *maContext_, cDecoder *ptr_cDecoder_, cIndex *recordingIndex_);
         ~cDetectLogoStopStart();

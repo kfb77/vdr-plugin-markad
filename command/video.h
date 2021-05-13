@@ -11,9 +11,6 @@
 #include "global.h"
 #include "index.h"
 
-#define LOGO_MAXHEIGHT   250
-#define LOGO_MAXWIDTH    480
-
 #define LOGO_DEFHEIGHT   130  // increased from 100 to 130
 #define LOGO_DEFWIDTH    230
 
@@ -69,8 +66,6 @@ enum {
 };
 
 
-#define MAXPIXEL LOGO_MAXWIDTH * LOGO_MAXHEIGHT
-
 /**
  * corner area after sobel transformation
  */
@@ -122,6 +117,7 @@ class cLogoSize {
         ~cLogoSize();
         sLogoSize GetDefaultLogoSize(const sMarkAdContext *maContext);
         sLogoSize GetMaxLogoSize(const sMarkAdContext *maContext);
+        int GetMaxLogoPixel(const sMarkAdContext *maContext);
 };
 
 
@@ -161,7 +157,7 @@ class cMarkAdOverlap {
 };
 
 
-class cMarkAdLogo {
+class cMarkAdLogo : cLogoSize {
     public:
         explicit cMarkAdLogo(sMarkAdContext *maContext, cIndex *recordingIndex);
         ~cMarkAdLogo();
