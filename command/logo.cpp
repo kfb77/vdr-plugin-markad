@@ -100,14 +100,9 @@ void cExtractLogo::SetLogoSize(const sMarkAdContext *maContext, int *logoHeight,
     if (!maContext) return;
     if (!logoHeight) return;
     if (!logoWidth) return;
-    if (maContext->Video.Info.width > 720){
-        *logoHeight = LOGO_DEFHDHEIGHT;
-        *logoWidth = LOGO_DEFHDWIDTH;
-    }
-    else {
-        *logoHeight = LOGO_DEFHEIGHT;
-        *logoWidth = LOGO_DEFWIDTH;
-    }
+    sLogoSize DefaultLogoSize = GetDefaultLogoSize(maContext);
+    *logoHeight = DefaultLogoSize.height;
+    *logoWidth = DefaultLogoSize.width;
 }
 
 

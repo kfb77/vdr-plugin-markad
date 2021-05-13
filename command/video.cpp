@@ -94,8 +94,8 @@ sLogoSize cLogoSize::GetMaxLogoSize(const sMarkAdContext *maContext) {
 }
 
 int cLogoSize::GetMaxLogoPixel(const sMarkAdContext *maContext) {
-    sLogoSize maxLogoSize = GetMaxLogoSize(maContext);
-    return maxLogoSize.height * maxLogoSize.width;
+    sLogoSize MaxLogoSize = GetMaxLogoSize(maContext);
+    return MaxLogoSize.height * MaxLogoSize.width;
 }
 
 
@@ -138,12 +138,12 @@ cMarkAdLogo::~cMarkAdLogo() {
 
 void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
 #ifdef DEBUG_MEM
-    int maxLogoPixel = GetMaxLogoPixel(maContext);
+    int MaxLogoPixel = GetMaxLogoPixel(maContext);
 #endif
 
     // free memory for sobel plane
     if (area.sobel) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.sobel");
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MaxLogoPixel, "area.sobel");
         for (int plane = 0; plane < PLANES; plane++) {
             delete area.sobel[plane];
         }
@@ -152,7 +152,7 @@ void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
     }
     // free memory for sobel masks
     if (area.mask) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MaxLogoPixel, "area.mask");
         for (int plane = 0; plane < PLANES; plane++) {
             delete area.mask[plane];
         }
@@ -161,7 +161,7 @@ void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
     }
     // free memory for sobel result
     if (area.result) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.result");
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MaxLogoPixel, "area.result");
         for (int plane = 0; plane < PLANES; plane++) {
             delete area.result[plane];
         }
@@ -228,17 +228,17 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
         width = area.mPixel[plane];
         area.mPixel[plane] = 0;
     }
-    sLogoSize maxLogoSize = GetMaxLogoSize(maContext);
-    if ((width <= 0) || (height <= 0) || (width > maxLogoSize.width) || (height > maxLogoSize.height) || (area.corner < TOP_LEFT) || (area.corner > BOTTOM_RIGHT)) {
+    sLogoSize MaxLogoSize = GetMaxLogoSize(maContext);
+    if ((width <= 0) || (height <= 0) || (width > MaxLogoSize.width) || (height > MaxLogoSize.height) || (area.corner < TOP_LEFT) || (area.corner > BOTTOM_RIGHT)) {
         fclose(pFile);
         esyslog("format error in %s", file);
         return -2;
     }
 
     // alloc memory for mask planes (logo)
-    int maxLogoPixel = GetMaxLogoPixel(maContext);
+    int MaxLogoPixel = GetMaxLogoPixel(maContext);
     if (area.mask) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MaxLogoPixel, "area.mask");
         for (int plane = 0; plane < PLANES; plane++) {
             delete area.mask[plane];
         }
@@ -247,9 +247,9 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
     }
     area.mask = new uchar*[PLANES];
     for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-        area.mask[planeTMP] = new uchar[maxLogoPixel];
+        area.mask[planeTMP] = new uchar[MaxLogoPixel];
     }
-    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
+    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MaxLogoPixel, "area.mask");
 
     // read logo from file
     if (fread(area.mask[plane], 1, width * height, pFile) != (size_t)(width * height)) {
@@ -622,40 +622,35 @@ bool cMarkAdLogo::SobelPlane(const int plane) {
     if (!maContext->Video.Data.PlaneLinesize[plane]) return false;
 
     // alloc memory for sobel transformed planes
-    int maxLogoPixel = GetMaxLogoPixel(maContext);
+    int MaxLogoPixel = GetMaxLogoPixel(maContext);
     if (!area.sobel) {
         area.sobel = new uchar*[PLANES];
         for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-            area.sobel[planeTMP] = new uchar[maxLogoPixel];
+            area.sobel[planeTMP] = new uchar[MaxLogoPixel];
         }
-        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.sobel");
+        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MaxLogoPixel, "area.sobel");
     }
     // alloc memory for mask planes (logo)
     if (!area.mask) {
         area.mask = new uchar*[PLANES];
         for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-            area.mask[planeTMP] = new uchar[maxLogoPixel];
+            area.mask[planeTMP] = new uchar[MaxLogoPixel];
         }
-        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
+        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MaxLogoPixel, "area.mask");
     }
     // alloc memory for mask result (machtes)
     if (!area.result) {
         area.result = new uchar*[PLANES];
         for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-            area.result[planeTMP] = new uchar[maxLogoPixel];
+            area.result[planeTMP] = new uchar[MaxLogoPixel];
         }
-        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.result");
+        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MaxLogoPixel, "area.result");
     }
 
     if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
-        if (maContext->Video.Info.width > 720){
-            LOGOHEIGHT = LOGO_DEFHDHEIGHT;
-            LOGOWIDTH = LOGO_DEFHDWIDTH;
-        }
-        else {
-            LOGOHEIGHT = LOGO_DEFHEIGHT;
-            LOGOWIDTH = LOGO_DEFWIDTH;
-        }
+        sLogoSize DefaultLogoSize = GetDefaultLogoSize(maContext);
+        LOGOHEIGHT = DefaultLogoSize.height;
+        LOGOWIDTH = DefaultLogoSize.width;
     }
     if ((maContext->Video.Info.pixFmt != 0) && (maContext->Video.Info.pixFmt != 12)) {
         if (!pixfmt_info) {
@@ -1057,18 +1052,9 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
     }
     else {
         if ((LOGOWIDTH == 0) || (LOGOHEIGHT == 0)) {
-            if ((maContext->Info.vPidType == MARKAD_PIDTYPE_VIDEO_H264) || (maContext->Info.vPidType == MARKAD_PIDTYPE_VIDEO_H265)) {
-                LOGOHEIGHT = LOGO_DEFHDHEIGHT;
-                LOGOWIDTH = LOGO_DEFHDWIDTH;
-            }
-            else if (maContext->Info.vPidType == MARKAD_PIDTYPE_VIDEO_H262) {
-                LOGOHEIGHT = LOGO_DEFHEIGHT;
-                LOGOWIDTH = LOGO_DEFWIDTH;
-            }
-            else {
-                dsyslog("cMarkAdLogo::cMarkAdLogo maContext->Info.vPidType %i not valid", maContext->Info.vPidType);
-                return LOGO_ERROR;
-            }
+            sLogoSize DefaultLogoSize = GetDefaultLogoSize(maContext);
+            LOGOHEIGHT = DefaultLogoSize.height;
+            LOGOWIDTH = DefaultLogoSize.width;
         }
         area.AspectRatio.num = maContext->Video.Info.AspectRatio.num;
         area.AspectRatio.den = maContext->Video.Info.AspectRatio.den;

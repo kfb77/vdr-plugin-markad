@@ -323,7 +323,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
 #endif
         compareResult.clear();
     }
-    int maxLogoPixel = GetMaxLogoPixel(maContext);
+    int MaxLogoPixel = GetMaxLogoPixel(maContext);
 
     // check if we have anything todo with this channel
     if (!IsInfoLogoChannel() && !IsLogoChangeChannel() && !ClosingCreditChannel() && !AdInFrameWithLogoChannel() && !IntroductionLogoChannel()) {
@@ -402,10 +402,10 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
             // alloc memory and copy sobel transformed corner picture
             logo2[corner]->sobel = new uchar*[PLANES];
             for (int plane = 0; plane < PLANES; plane++) {
-                logo2[corner]->sobel[plane] = new uchar[maxLogoPixel];
-                memcpy(logo2[corner]->sobel[plane], area->sobel[plane], sizeof(uchar) * maxLogoPixel);
+                logo2[corner]->sobel[plane] = new uchar[MaxLogoPixel];
+                memcpy(logo2[corner]->sobel[plane], area->sobel[plane], sizeof(uchar) * MaxLogoPixel);
             }
-            ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "logo[corner]->sobel");
+            ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * MaxLogoPixel, "logo[corner]->sobel");
 
 #define RATE_0_MIN     250
 #define RATE_12_MIN    950
@@ -424,7 +424,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
                     delete logo1[corner]->sobel[plane];
                 }
                 delete logo1[corner]->sobel;
-                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "logo[corner]->sobel");
+                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MaxLogoPixel, "logo[corner]->sobel");
             }
             FREE(sizeof(*logo1[corner]), "logo");
             delete logo1[corner];
@@ -446,7 +446,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
                 delete logo1[corner]->sobel[plane];
             }
             delete logo1[corner]->sobel;
-            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "logo[corner]->sobel");
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * MaxLogoPixel, "logo[corner]->sobel");
         }
         FREE(sizeof(*logo1[corner]), "logo");
         delete logo1[corner];
