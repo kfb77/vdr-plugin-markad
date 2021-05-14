@@ -188,10 +188,14 @@ class cMarkAdStandalone {
         int iFrameBefore = -1;
         int iFrameCurrent = -1;
         int frameCurrent = -1;
-        int framecnt1 = 0; // 1nd pass (detect marks)
-        int framecnt2 = 0; // 2nd pass (overlap)
-        int framecnt3 = 0; // 3nd pass (silence)
-        int framecnt4 = 0; // 3nd pass (cut)
+        int framecnt1 = 0;                                             //!< processed frames of 1nd pass (detect marks)
+                                                                       //!<
+        int framecnt2 = 0;                                             //!< processed frames of 2nd pass (overlap)
+                                                                       //!<
+        int framecnt3 = 0;                                             //!< processed frames of 3nd pass (silence)
+                                                                       //!<
+        int framecnt4 = 0;                                             //!< processed frames of 4nd pass (cut)
+                                                                       //!<
         bool gotendmark = false;
         int waittime = 0;
         int iwaittime = 0;
@@ -202,22 +206,39 @@ class cMarkAdStandalone {
         bool bDecodeVideo = false;
         bool bDecodeAudio = false;
         bool bIgnoreTimerInfo = false;
-        bool bLiveRecording = false;
-        time_t startTime = 0;  // starttime of broadcast
-        int length = 0;        // length of broadcast in seconds
-        int iStart = 0;        // pretimer in frames (negative if unset)
-        int iStop = 0;         // endposition in frames (negative if unset)
-        int iStartA = 0;       // assumed startposition in frames
-        int iStopA = 0;        // assumed endposition in frames (negative if unset)
-        bool iStopinBroadCast = false;    // in broadcast @ iStop position?
-        int chkSTART = 0;
-        int chkSTOP = 0;
-        bool inBroadCast = false;  // are we in a broadcast (or ad)?
-        char *indexFile = NULL;
-        int sleepcnt = 0;
-        clMarks marks;
-        clMarks blackMarks;
-        cDecoder *ptr_cDecoderLogoChange = NULL;
-        cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = NULL;
+        bool bLiveRecording = false;                                   //!< true if markad was started during recording, false otherwise
+                                                                       //!<
+        time_t startTime = 0;                                          //!< start time of the broadcast
+                                                                       //!<
+        int length = 0;                                                //!< length of broadcast in seconds
+                                                                       //!<
+        int iStart = 0;                                                //!< pretimer (recording start before bradcast start) in frames (negative if unset)
+                                                                       //!<
+        int iStop = 0;                                                 //!< end frame position (negative if unset)
+                                                                       //!<
+        int iStartA = 0;                                               //!< assumed start frame position
+                                                                       //!<
+        int iStopA = 0;                                                //!< assumed end frame position (negative if unset)
+                                                                       //!<
+        bool iStopinBroadCast = false;                                 //!< true if we are in broadcast at iStop position, false otherwise
+                                                                       //!<
+        int chkSTART = 0;                                              //!< frame number to check for start mark
+                                                                       //!<
+        int chkSTOP = 0;                                               //!< frame number to check for end mark
+                                                                       //!<
+        bool inBroadCast = false;                                      //!< true if are we in a broadcast, false if we are in advertising
+                                                                       //!<
+        char *indexFile = NULL;                                        //!< file name of the vdr index file
+                                                                       //!<
+        int sleepcnt = 0;                                              //!< count of sleeps to wait for new frames when decode during recording
+                                                                       //!<
+        clMarks marks;                                                 //!< objects with all marks
+                                                                       //!<
+        clMarks blackMarks;                                            //!< objects with all blackscreen marks
+                                                                       //!<
+        cDecoder *ptr_cDecoderLogoChange = NULL;                       //!< pointer to class cDecoder, used as second instance to detect logo changes
+                                                                       //!<
+        cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = NULL;  //!< pointer to class cEvaluateLogoStopStartPair
+                                                                       //!<
 };
 #endif
