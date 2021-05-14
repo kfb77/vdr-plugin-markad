@@ -951,6 +951,12 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         avpktOut.data = NULL;
         avpktOut.size = 0;
         avFrame->pict_type = AV_PICTURE_TYPE_NONE;  // encoder decides picture type
+        if ((EncoderStatus.videoEncodeError) && ptr_cDecoder->IsVideoPacket()) {
+            // prevent "AVlog(): Assertion pict_type == rce->new_pict_type failed at src/libavcodec/ratecontrol.c:939" with ffmpeg 4.2.2
+            dsyslog("cEncoder::WritePacket(): recover from encoding error and force i-frame (%d)", frameNumber);
+            avFrame->pict_type = AV_PICTURE_TYPE_I;
+            EncoderStatus.videoEncodeError = false;
+        }
         if (codecCtxArrayOut[streamIndexOut]) {
             if (!EncodeFrame(ptr_cDecoder, codecCtxArrayOut[streamIndexOut], avFrame, &avpktOut)) {
                 av_packet_unref(&avpktOut);
@@ -1009,7 +1015,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         avpktOut.pos = -1;   // byte position in stream unknown
 #ifdef DEBUG_CUT
         if (streamIndexIn == DEBUG_CUT) {
-            dsyslog("cEncoder::WritePacket(): stream index %d packet  (%6d): write packet (%6d) iFrame %d", avpktOut.stream_index, frameNumber, packet_out, ptr_cDecoder->isVideoIFrame());
+            dsyslog("cEncoder::WritePacket(): stream index %d packet  (%6d): write packet (%6d) iFrame %d", avpktOut.stream_index, frameNumber, packet_out, ptr_cDecoder->IsVideoIFrame());
             packet_out++;
         }
 #endif
@@ -1059,6 +1065,7 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
                 default:
                     dsyslog("cEncoder::EncodeFrame(): avcodec_send_frame() encode of frame (%d) failed with return code %i", ptr_cDecoder->GetFrameNumber(), rc);
                     avcodec_flush_buffers(avCodecCtx);
+                    EncoderStatus.videoEncodeError = true;
                     break;
             }
             return false;  // ignore send errors if we only empty encoder

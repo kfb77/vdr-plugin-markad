@@ -147,6 +147,7 @@ class cEncoder {
 
             int64_t *pts_dts_CyclicalOffset = NULL;  //!< offset from pts/dts cyclicle of each frame, multiple of 0x200000000
                                                      //!<
+            bool videoEncodeError = false;
 
         } EncoderStatus;
 
