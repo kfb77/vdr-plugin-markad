@@ -52,7 +52,7 @@ sLogoSize cLogoSize::GetDefaultLogoSize(const int width) {
             break;
         case 1920:
             logoSize.width  =  400;
-            logoSize.height =  200;
+            logoSize.height =  210;
             break;
         case 3840:
             logoSize.width  = 1500;
@@ -71,35 +71,12 @@ sLogoSize cLogoSize::GetDefaultLogoSize(const int width) {
 sLogoSize cLogoSize::GetMaxLogoSize(const int width) {
     sLogoSize logoSize;
     if (videoWidth == 0) videoWidth = width;
-    switch (videoWidth) {
-        case 544:
-            logoSize.width  = 480;
-            logoSize.height = 250;
-            break;
-        case 720:
-            logoSize.width  = 480;
-            logoSize.height = 250;
-            break;
-        case 1280:
-            logoSize.width  = 480;
-            logoSize.height = 250;
-            break;
-        case 1440:
-            logoSize.width  = 480;
-            logoSize.height = 250;
-            break;
-        case 1920:
-            logoSize.width  = 480;
-            logoSize.height = 250;
-            break;
-        default:
-            sLogoSize DefaultLogoSize = GetDefaultLogoSize(width);
-            logoSize.width  = DefaultLogoSize.width  * 1.1;
-            logoSize.height = DefaultLogoSize.height * 1.1;
-            break;
-    }
+    sLogoSize DefaultLogoSize = GetDefaultLogoSize(width);
+    logoSize.width  = DefaultLogoSize.width  * 1.1;
+    logoSize.height = DefaultLogoSize.height * 1.1;
     return logoSize;
 }
+
 
 int cLogoSize::GetMaxLogoPixel(const int width) {
     sLogoSize MaxLogoSize = GetMaxLogoSize(width);
