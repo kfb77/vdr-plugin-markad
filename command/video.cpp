@@ -19,6 +19,8 @@ extern "C" {
 #include "logo.h"
 
 
+// global variables
+extern bool abortNow;
 
 cLogoSize::cLogoSize() {
 }
@@ -1068,11 +1070,22 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
         area.AspectRatio.num = maContext->Video.Info.AspectRatio.num;
         area.AspectRatio.den = maContext->Video.Info.AspectRatio.den;
         area.corner = maContext->Config->logoExtraction;
+        sLogoSize MaxLogoSize = GetMaxLogoSize(maContext->Video.Info.width);
         if (maContext->Config->logoWidth != -1) {
-            LOGOWIDTH = maContext->Config->logoWidth;
+            if (MaxLogoSize.width >= maContext->Config->logoWidth) LOGOWIDTH = maContext->Config->logoWidth;
+            else {
+                esyslog("configured logo width of %d exceeds max logo width %d", maContext->Config->logoWidth, MaxLogoSize.width);
+                abortNow = true;
+                return LOGO_ERROR;
+            }
         }
         if (maContext->Config->logoHeight != -1) {
-            LOGOHEIGHT = maContext->Config->logoHeight;
+            if (MaxLogoSize.height >= maContext->Config->logoHeight) LOGOHEIGHT = maContext->Config->logoHeight;
+            else {
+                esyslog("configured logo height of %d exceeds max logo height %d", maContext->Config->logoHeight, MaxLogoSize.height);
+                abortNow = true;
+                return LOGO_ERROR;
+            }
         }
     }
     if (maContext->Config->fullDecode)  return Detect(frameCurrent - 1,  frameCurrent, logoFrameNumber);
