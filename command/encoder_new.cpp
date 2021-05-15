@@ -775,7 +775,8 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
 #ifdef DEBUG_CUT
     if (streamIndexIn == DEBUG_CUT) {
         dsyslog("cEncoder::WritePacket(): ----------------------------------------------------------------------------------------------------------------------");
-        dsyslog("cEncoder::WritePacket(): stream index %d packet  (%6d): input", streamIndexIn, frameNumber);
+        dsyslog("cEncoder::WritePacket(): stream index %d packet  (%6d): input PTS %10ld DTS %10ld", streamIndexIn, frameNumber, avpktIn->pts, avpktIn->dts);
+        dsyslog("cEncoder::WritePacket():                                   diff PTS %10ld", avpktIn->pts - inputPacketPTSbefore[streamIndexOut]);
         inputPacketPTSbefore[streamIndexOut] = avpktIn->pts;
     }
 #endif
@@ -814,6 +815,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
 #else
             dsyslog("cEncoder::WritePacket():                                                                 dts this packet %10" PRId64 ", duration %d", avpktIn->dts, avpktIn->duration);
 #endif
+        EncoderStatus.frameBefore = frameNumber;
         return true;
         }
     }
@@ -887,11 +889,17 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio = avFrame->sample_aspect_ratio; // set encoder pixel aspect ratio to decoded frames aspect ratio
         avFrame->pts = avFrame->pts - EncoderStatus.pts_dts_CutOffset; // correct pts after cut
 
-        // libav encoder does not accept two frames with same pts
         if (ptr_cDecoder->IsVideoPacket()) {
+            // libav encoder does not accept two frames with same pts
             if (EncoderStatus.ptsOutBefore == avFrame->pts) {
                 dsyslog("cEncoder::WritePacket(): got duplicate pts from video decoder, change pts from %ld to %ld", avFrame->pts, avFrame->pts + 1);
                 avFrame->pts = EncoderStatus.ptsOutBefore + 1;
+            }
+            // check monotonically increasing pts in frame after decoding
+            // prevent "AVlog(): Assertion pict_type == rce->new_pict_type failed at src/libavcodec/ratecontrol.c:939" with ffmpeg 4.2.2
+            if (EncoderStatus.ptsOutBefore > avFrame->pts) {
+                dsyslog("cEncoder::WritePacket(): got non monotonically increasing pts %ld from video decoder, pts before was %ld", avFrame->pts, EncoderStatus.ptsOutBefore);
+                return false;
             }
             EncoderStatus.ptsOutBefore = avFrame->pts;
         }
@@ -941,6 +949,8 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
 #ifdef DEBUG_CUT
         if (streamIndexIn == DEBUG_CUT) {
             dsyslog("cEncoder::WritePacket(): stream index %d frame   (%6d): encode frame", streamIndexOut, frameNumber);
+            dsyslog("cEncoder::WritePacket(): stream index %d frame   (%6d): PTS %10ld", streamIndexOut, frameNumber, avFrame->pts);
+            dsyslog("                                                 diff before %10ld", avFrame->pts - beforeEncodeFramePTSbefore[streamIndexOut]);
             beforeEncodeFramePTSbefore[streamIndexOut] = avFrame->pts;
         }
 #endif
