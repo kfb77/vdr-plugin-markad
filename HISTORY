@@ -1,11 +1,18 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-05-15: Version 3.0.3
+- some optimation in logo extraction (especially for HD and UHD recordings)
+- reduced memory and cpu usage when searching for logo in recording
+- declare parameter --autologo=1 as deprecated, use --autologo=2
+- add some code documentation
+- some minor bug fixes and optimizations, see git
+
 2021-05-08: Version 3.0.2
 - make svdr port configurable from vdr menue
 - markad Makefile: use bindir, mandir and locdir from vdr.pc as prefix
 - fix H.264 1440x1080 PAR 4:3 -> DAR 16:9
-- add some code ducumentation
+- add some code documentation
 - rename some variables
 - some minor bug fixes and optimizations, see git
 
