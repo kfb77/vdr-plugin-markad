@@ -2037,12 +2037,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
     if (!*mark2) return false;
 
     sOverlapPos *ptr_OverlapPos = NULL;
-
-    if (!Reset(false)) {
-        // reset all, but marks
-        esyslog("failed resetting state");
-        return false;
-    }
+    Reset();
 
 // calculate overlap check positions
 #define OVERLAP_CHECK_BEFORE 120  // start 2 min before stop mark
@@ -2743,25 +2738,19 @@ void cMarkAdStandalone::Process2ndPass() {
 }
 
 
-bool cMarkAdStandalone::Reset(bool FirstPass) {
-    bool ret = true;
-    if (FirstPass) framecnt1 = 0;
+void cMarkAdStandalone::Reset() {
     iFrameBefore = -1;
     iFrameCurrent = -1;
     frameCurrent = -1;
     gotendmark = false;
     chkSTART = chkSTOP = INT_MAX;
-
-    if (FirstPass) {
-        marks.DelAll();
-    }
     macontext.Video.Info.AspectRatio.den = 0;
     macontext.Video.Info.AspectRatio.num = 0;
     memset(macontext.Audio.Info.Channels, 0, sizeof(macontext.Audio.Info.Channels));
 
     if (video) video->Clear(false);
     if (audio) audio->Clear();
-    return ret;
+    return;
 }
 
 

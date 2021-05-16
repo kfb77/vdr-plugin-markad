@@ -147,8 +147,22 @@ class cMarkAdStandalone {
         char *IndexToHMSF(int Index);
         void AddMark(sMarkAdMark *Mark);
         void AddMarkVPS(const int offset, const int type, const bool isPause);
-        bool Reset(bool FirstPass=true);
+
+/**
+ * reset frame counter, video and audio status
+ */
+        void Reset();
+
+/**
+ * check if the index is more advanced than our framecounter <br>
+ * If not we wait. If we wait too much, we discard this check.
+ */
         void CheckIndexGrowing();
+
+/**
+ * check if 00001.ts exists in recording directory
+ * @return true if 00001.ts exists in recording directory, false otherwise
+ */
         bool CheckTS();
         bool CheckLogo();
         void CheckMarks();
