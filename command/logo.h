@@ -59,24 +59,6 @@ class cExtractLogo : public cLogoSize {
             int rate[CORNERS] = {0};
         };
         typedef std::vector<compareInfoType> compareResultType;
-        struct sLogoInfoPacked {
-            int iFrameNumber = -1;         //!< frame number of the logo
-                                           //!<
-
-            int hits = 0;                  //!< number of similar other logos
-                                           //!<
-
-            uchar **sobel = NULL;          //!< sobel transformed corner picture data, 8 pixel in one byte
-                                           //!<
-
-            bool valid[PLANES] = {};       //!< <b>true:</b> data planes contain valid data <br>
-                                           //!< <b>false:</b> data planes are not valid
-                                           //!<
-
-            sAspectRatio aspectratio = {}; //!< video aspect ratio
-                                           //!<
-
-        };
 
         bool Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber,  const char *debugText);
         bool CheckValid(const sMarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
@@ -99,8 +81,6 @@ class cExtractLogo : public cLogoSize {
         bool IsLogoColourChange(const sMarkAdContext *maContext, const int corner);
         int DeleteFrames(const sMarkAdContext *maContext, const int from, const int to);
         bool WaitForFrames(sMarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame);
-        void PackLogoInfo(const sLogoInfo *logoInfo, sLogoInfoPacked *logoInfoPacked);
-        void UnpackLogoInfo(sLogoInfo *logoInfo, const sLogoInfoPacked *logoInfoPacked);
         int GetFirstFrame(const sMarkAdContext *maContext);
         int GetLastFrame(const sMarkAdContext *maContext);
         int CountFrames(const sMarkAdContext *maContext);
@@ -110,7 +90,6 @@ class cExtractLogo : public cLogoSize {
         sMarkAdContext *maContextLogoSize = NULL;
         cIndex *recordingIndexLogo = NULL;
         std::vector<sLogoInfo> logoInfoVector[CORNERS];
-        std::vector<sLogoInfoPacked> logoInfoVectorPacked[CORNERS];
         int recordingFrameCount = 0;
         sAspectRatio logoAspectRatio = {};
         int AudioState = 0;  // 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel

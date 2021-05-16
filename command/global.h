@@ -129,7 +129,7 @@ typedef struct sMarkAdConfig {
     bool ac3ReEncode = false; //!< re-encode AC3 stream and adapt audio volume
                               //!<
 
-    int autoLogo = 2;   //!< 0 = off, 1 = on, use less memory but a lot of cpu, 2 use a lot of memory but runs faster
+    int autoLogo = 2;   //!< 0 = off, 1 = deprecated, 2 = on
                         //!<
 
     const char *recDir; //!< name of the recording directory

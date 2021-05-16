@@ -51,10 +51,6 @@ cExtractLogo::~cExtractLogo() {
         for (int i = 0 ; i < size; i++) {
             FREE(sizeof(sLogoInfo), "logoInfoVector");
         }
-        size = logoInfoVectorPacked[corner].size();
-        for (int i = 0 ; i < size; i++) {
-            FREE(sizeof(sLogoInfoPacked), "logoInfoVectorPacked");
-        }
 #endif
         // free memory of sobel plane vector
         for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
@@ -65,16 +61,6 @@ cExtractLogo::~cExtractLogo() {
             FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
         }
         logoInfoVector[corner].clear();
-
-        // free memory of packed sobel plane vector
-        for (std::vector<sLogoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
-            for (int plane = 0; plane < PLANES; plane++) {
-                delete actLogoPacked->sobel[plane];
-            }
-            delete actLogoPacked->sobel;
-            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel / 8, "actLogoInfoPacked.sobel");
-        }
-        logoInfoVectorPacked[corner].clear();
     }
 }
 
@@ -119,33 +105,14 @@ bool cExtractLogo::IsLogoColourChange(const sMarkAdContext *maContext, const int
     SetLogoSize(maContext, &logoHeight, &logoWidth);
     logoHeight /= 2;  // we use plane 1 to check
     logoWidth /= 2;
-#ifdef DEBUG_MEM
-    int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
-#endif
 
     int count = 0;
     int countWhite[2] = {};
 
     for (int plane = 1; plane < PLANES; plane++) {
-        if (maContext->Config->autoLogo == 1) { // use packed logos
-            for (std::vector<sLogoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
-                if (plane == 1) count++;
-                sLogoInfo actLogo = {};
-                UnpackLogoInfo(&actLogo, &(*actLogoPacked));
-                if (IsWhitePlane(&actLogo, logoHeight, logoWidth, plane)) countWhite[plane - 1]++;
-                // free memory of unpacked sobel plane
-                for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-                    delete actLogo.sobel[planeTMP];
-                }
-                delete actLogo.sobel;
-                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
-           }
-        }
-        if (maContext->Config->autoLogo == 2){  // use unpacked logos
-            for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
-                if (plane == 1) count++;
-                if (IsWhitePlane(&(*actLogo), logoHeight, logoWidth, plane)) countWhite[plane - 1]++;
-            }
+        for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
+            if (plane == 1) count++;
+            if (IsWhitePlane(&(*actLogo), logoHeight, logoWidth, plane)) countWhite[plane - 1]++;
         }
     }
     if (count > 0) {
@@ -861,48 +828,17 @@ int cExtractLogo::Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLog
     }
     int hits=0;
 
-#ifdef DEBUG_MEM
-    int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
-#endif
-
-    if (maContext->Config->autoLogo == 1) { // use packed logos
-        for (std::vector<sLogoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
-            sLogoInfo actLogo = {};
-            UnpackLogoInfo(&actLogo, &(*actLogoPacked));
-            if (maContext->Video.Logo.isRotating) {
-                if (CompareLogoPairRotating(maContext, &actLogo, ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
-                    hits++;
-                    actLogoPacked->hits++;
-                }
+    for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
+        if (maContext->Video.Logo.isRotating) {
+            if (CompareLogoPairRotating(maContext, &(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
+                hits++;
+                actLogo->hits++;
             }
-            else {
-                if (CompareLogoPair(&actLogo, ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
-                    hits++;
-                    actLogoPacked->hits++;
-                }
-            }
-            // free memory of unpacked sobel plane
-            for (int plane = 0; plane < PLANES; plane++) {
-                delete actLogo.sobel[plane];
-            }
-            delete actLogo.sobel;
-            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
-
         }
-    }
-    if (maContext->Config->autoLogo == 2){  // use unpacked logos
-        for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
-            if (maContext->Video.Logo.isRotating) {
-                if (CompareLogoPairRotating(maContext, &(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
-                    hits++;
-                    actLogo->hits++;
-                }
-            }
-            else {
-                if (CompareLogoPair(&(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
-                    hits++;
-                    actLogo->hits++;
-                }
+        else {
+            if (CompareLogoPair(&(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
+                hits++;
+                actLogo->hits++;
             }
         }
     }
@@ -1029,51 +965,26 @@ int cExtractLogo::DeleteFrames(const sMarkAdContext *maContext, const int from, 
     int deleteCount = 0;
     dsyslog("cExtractLogo::DeleteFrames(): delete frames from %d to %d", from, to);
     for (int corner = 0; corner < CORNERS; corner++) {
-        if (maContext->Config->autoLogo == 1) { // use packed logos
-            for (std::vector<sLogoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
-                if (abortNow) return 0;
-                if (actLogoPacked->iFrameNumber < from) continue;
-                if (actLogoPacked->iFrameNumber <= to) {
-                    // free memory of sobel planes
-                    for (int plane = 0; plane < PLANES; plane++) {
-                        delete actLogoPacked->sobel[plane];
-                    }
-                    delete actLogoPacked->sobel;
-#ifdef DEBUG_MEM
-                    int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
-#endif
-                    FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel / 8, "actLogoInfoPacked.sobel");
-
-                    // delete vector element
-                    FREE(sizeof(*actLogoPacked), "logoInfoVectorPacked");
-                    logoInfoVectorPacked[corner].erase(actLogoPacked--);  // "erase" increments the iterator, "for" also does, that is 1 to much
-                    deleteCount++;
+        for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
+            if (abortNow) return 0;
+            if (actLogo->iFrameNumber < from) continue;
+            if (actLogo->iFrameNumber <= to) {
+                // free memory of sobel planes
+                for (int plane = 0; plane < PLANES; plane++) {
+                    delete actLogo->sobel[plane];
                 }
-                else break;
-            }
-        }
-        if (maContext->Config->autoLogo == 2) {  // use unpacked logos
-            for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
-                if (abortNow) return 0;
-                if (actLogo->iFrameNumber < from) continue;
-                if (actLogo->iFrameNumber <= to) {
-                    // free memory of sobel planes
-                    for (int plane = 0; plane < PLANES; plane++) {
-                        delete actLogo->sobel[plane];
-                    }
-                    delete actLogo->sobel;
+                delete actLogo->sobel;
 #ifdef DEBUG_MEM
-                    int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
+                int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
 #endif
-                    FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
+                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
 
-                    // delete vector element
-                    FREE(sizeof(*actLogo), "logoInfoVector");
-                    logoInfoVector[corner].erase(actLogo--);    // "erase" increments the iterator, "for" also does, that is 1 to much
-                    deleteCount++;
-                }
-                else break;
+                // delete vector element
+                FREE(sizeof(*actLogo), "logoInfoVector");
+                logoInfoVector[corner].erase(actLogo--);    // "erase" increments the iterator, "for" also does, that is 1 to much
+                deleteCount++;
             }
+            else break;
         }
    }
    return deleteCount/4;  // 4 corner
@@ -1085,12 +996,7 @@ int cExtractLogo::GetFirstFrame(const sMarkAdContext *maContext) {
 
     int firstFrame = INT_MAX;
     for (int corner = 0; corner < CORNERS; corner++) {
-        if (maContext->Config->autoLogo == 1) { // use packed logos
-            if (!logoInfoVectorPacked[corner].empty() && logoInfoVectorPacked[corner].front().iFrameNumber < firstFrame) firstFrame = logoInfoVectorPacked[corner].front().iFrameNumber;
-        }
-        if (maContext->Config->autoLogo == 2) {  // use unpacked logos
-            if (!logoInfoVector[corner].empty() && logoInfoVector[corner].front().iFrameNumber < firstFrame) firstFrame = logoInfoVector[corner].front().iFrameNumber;
-        }
+        if (!logoInfoVector[corner].empty() && logoInfoVector[corner].front().iFrameNumber < firstFrame) firstFrame = logoInfoVector[corner].front().iFrameNumber;
     }
     return firstFrame;
 }
@@ -1101,12 +1007,7 @@ int cExtractLogo::GetLastFrame(const sMarkAdContext *maContext) {
 
     int lastFrame = 0;
     for (int corner = 0; corner < CORNERS; corner++) {
-        if (maContext->Config->autoLogo == 1) { // use packed logos
-            if (!logoInfoVectorPacked[corner].empty() && logoInfoVectorPacked[corner].back().iFrameNumber > lastFrame) lastFrame = logoInfoVectorPacked[corner].back().iFrameNumber;
-        }
-        if (maContext->Config->autoLogo == 2) {  // use unpacked logos
-            if (!logoInfoVector[corner].empty() && logoInfoVector[corner].back().iFrameNumber > lastFrame) lastFrame = logoInfoVector[corner].back().iFrameNumber;
-        }
+        if (!logoInfoVector[corner].empty() && logoInfoVector[corner].back().iFrameNumber > lastFrame) lastFrame = logoInfoVector[corner].back().iFrameNumber;
     }
     return lastFrame;
 }
@@ -1117,12 +1018,7 @@ int cExtractLogo::CountFrames(const sMarkAdContext *maContext) {
 
     long unsigned int count = 0;
     for (int corner = 0; corner < CORNERS; corner++) {
-        if (maContext->Config->autoLogo == 1) { // use packed logos
-            if (!logoInfoVectorPacked[corner].empty() && logoInfoVectorPacked[corner].size() > count) count = logoInfoVectorPacked[corner].size();
-        }
-        if (maContext->Config->autoLogo == 2) {  // use unpacked logos
-            if (!logoInfoVector[corner].empty() && logoInfoVector[corner].size() > count) count = logoInfoVector[corner].size();
-        }
+        if (!logoInfoVector[corner].empty() && logoInfoVector[corner].size() > count) count = logoInfoVector[corner].size();
     }
     return count;
 }
@@ -1173,60 +1069,6 @@ bool cExtractLogo::WaitForFrames(sMarkAdContext *maContext, cDecoder *ptr_cDecod
     FREE(strlen(indexFile)+1, "indexFile");
     free(indexFile);
     return ret;
-}
-
-
-void cExtractLogo::PackLogoInfo(const sLogoInfo *logoInfo, sLogoInfoPacked *logoInfoPacked) {
-    if ( !logoInfo ) return;
-    if ( !logoInfoPacked) return;
-
-    int maxLogoPixel = GetMaxLogoPixel(maContextLogoSize->Video.Info.width);
-    logoInfoPacked->iFrameNumber = logoInfo->iFrameNumber;
-    logoInfoPacked->hits = logoInfo->hits;
-    logoInfoPacked->sobel = new uchar*[PLANES];
-    for (int plane = 0; plane < PLANES; plane++) {
-        logoInfoPacked->valid[plane] = logoInfo->valid[plane];
-        logoInfoPacked->sobel[plane] = new uchar[maxLogoPixel / 8];  // alloc memory and copy planes
-        for (int i = 0; i < maxLogoPixel / 8; i++) {
-            logoInfoPacked->sobel[plane][i] = 0;
-            if (logoInfo->sobel[plane][i*8+0] > 0) logoInfoPacked->sobel[plane][i] += 1;
-            if (logoInfo->sobel[plane][i*8+1] > 0) logoInfoPacked->sobel[plane][i] += 2;
-            if (logoInfo->sobel[plane][i*8+2] > 0) logoInfoPacked->sobel[plane][i] += 4;
-            if (logoInfo->sobel[plane][i*8+3] > 0) logoInfoPacked->sobel[plane][i] += 8;
-            if (logoInfo->sobel[plane][i*8+4] > 0) logoInfoPacked->sobel[plane][i] += 16;
-            if (logoInfo->sobel[plane][i*8+5] > 0) logoInfoPacked->sobel[plane][i] += 32;
-            if (logoInfo->sobel[plane][i*8+6] > 0) logoInfoPacked->sobel[plane][i] += 64;
-            if (logoInfo->sobel[plane][i*8+7] > 0) logoInfoPacked->sobel[plane][i] += 128;
-        }
-    }
-    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel / 8, "actLogoInfoPacked.sobel");
-}
-
-
-void cExtractLogo::UnpackLogoInfo(sLogoInfo *logoInfo, const sLogoInfoPacked *logoInfoPacked) {
-    if (!logoInfo) return;
-    if (!logoInfoPacked) return;
-    if (!logoInfoPacked->sobel) return; // nothing to unpack
-
-    int maxLogoPixel = GetMaxLogoPixel(maContextLogoSize->Video.Info.width);
-    logoInfo->iFrameNumber = logoInfoPacked->iFrameNumber;
-    logoInfo->hits = logoInfoPacked->hits;
-    logoInfo->sobel = new uchar*[PLANES];
-    for (int plane = 0; plane < PLANES; plane++) {
-        logoInfo->sobel[plane] = new uchar[maxLogoPixel];  // alloc memory and copy planes
-        logoInfo->valid[plane] = logoInfoPacked->valid[plane];
-        for (int i = 0; i < maxLogoPixel / 8; i++) {
-            if (logoInfoPacked->sobel[plane][i] & 1) logoInfo->sobel[plane][i*8+0] = 255; else logoInfo->sobel[plane][i*8+0] = 0;
-            if (logoInfoPacked->sobel[plane][i] & 2) logoInfo->sobel[plane][i*8+1] = 255; else logoInfo->sobel[plane][i*8+1] = 0;
-            if (logoInfoPacked->sobel[plane][i] & 4) logoInfo->sobel[plane][i*8+2] = 255; else logoInfo->sobel[plane][i*8+2] = 0;
-            if (logoInfoPacked->sobel[plane][i] & 8) logoInfo->sobel[plane][i*8+3] = 255; else logoInfo->sobel[plane][i*8+3] = 0;
-            if (logoInfoPacked->sobel[plane][i] & 16) logoInfo->sobel[plane][i*8+4] = 255; else logoInfo->sobel[plane][i*8+4] = 0;
-            if (logoInfoPacked->sobel[plane][i] & 32) logoInfo->sobel[plane][i*8+5] = 255; else logoInfo->sobel[plane][i*8+5] = 0;
-            if (logoInfoPacked->sobel[plane][i] & 64) logoInfo->sobel[plane][i*8+6] = 255; else logoInfo->sobel[plane][i*8+6] = 0;
-            if (logoInfoPacked->sobel[plane][i] & 128) logoInfo->sobel[plane][i*8+7] = 255; else logoInfo->sobel[plane][i*8+7] = 0;
-        }
-    }
-    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
 }
 
 
@@ -1512,32 +1354,13 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                             RemovePixelDefects(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
                             actLogoInfo.hits = Compare(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
 
-                            if (maContext->Config->autoLogo == 1) { // use packed logos
-                                sLogoInfoPacked actLogoInfoPacked = {};
-                                PackLogoInfo(&actLogoInfo, &actLogoInfoPacked);
-                                try { logoInfoVectorPacked[corner].push_back(actLogoInfoPacked); }  // this allocates a lot of memory
-                                catch(std::bad_alloc &e) {
-                                    dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %d", iFrameNumber);
-                                    retStatus = false;
-                                    break;
-                                }
-                                ALLOC((sizeof(sLogoInfoPacked)), "logoInfoVectorPacked");
-                                // free memory of unpacked sobel plane
-                                for (int plane = 0; plane < PLANES; plane++) {
-                                    delete actLogoInfo.sobel[plane];
-                                }
-                                delete actLogoInfo.sobel;
-                                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
+                            try { logoInfoVector[corner].push_back(actLogoInfo); }  // this allocates a lot of memory
+                            catch(std::bad_alloc &e) {
+                                dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %d", iFrameNumber);
+                                retStatus = false;
+                                break;
                             }
-                            if (maContext->Config->autoLogo == 2){  // use unpacked logos
-                                try { logoInfoVector[corner].push_back(actLogoInfo); }  // this allocates a lot of memory
-                                catch(std::bad_alloc &e) {
-                                    dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %d", iFrameNumber);
-                                    retStatus = false;
-                                    break;
-                                }
-                                ALLOC((sizeof(sLogoInfo)), "logoInfoVector");
-                            }
+                            ALLOC((sizeof(sLogoInfo)), "logoInfoVector");
                         }
                         else {  // corner sobel transformed picture not valid
                             // free memory of sobel planes
@@ -1585,26 +1408,14 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
     }
     if (retStatus) {
         dsyslog("cExtractLogo::SearchLogo(): %d valid frames of %d frames read, got enough iFrames at frame (%d), start analyze", iFrameCountValid, iFrameCountAll, ptr_cDecoder->GetFrameNumber());
-        sLogoInfoPacked actLogoInfoPacked[CORNERS] = {};
         sLogoInfo actLogoInfo[CORNERS] = {};
         for (int corner = 0; corner < CORNERS; corner++) {
-            if (maContext->Config->autoLogo == 1) { // use packed logos
-                actLogoInfoPacked[corner] = {};
-                for (std::vector<sLogoInfoPacked>::iterator actLogoPacked = logoInfoVectorPacked[corner].begin(); actLogoPacked != logoInfoVectorPacked[corner].end(); ++actLogoPacked) {
-                    if (actLogoPacked->hits > actLogoInfoPacked[corner].hits) {
-                        actLogoInfoPacked[corner] = *actLogoPacked;
-                    }
+            for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
+                if (actLogo->hits > actLogoInfo[corner].hits) {
+                    actLogoInfo[corner] = *actLogo;
                 }
-                dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars out of %3ld valid frames at %s", actLogoInfoPacked[corner].iFrameNumber, actLogoInfoPacked[corner].hits, logoInfoVectorPacked[corner].size(), aCorner[corner]);
             }
-            if (maContext->Config->autoLogo == 2) { // use unpacked logos
-                for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
-                    if (actLogo->hits > actLogoInfo[corner].hits) {
-                        actLogoInfo[corner] = *actLogo;
-                    }
-                }
-                dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars out of %3ld valid frames at %s", actLogoInfo[corner].iFrameNumber, actLogoInfo[corner].hits, logoInfoVector[corner].size(), aCorner[corner]);
-            }
+            dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars out of %3ld valid frames at %s", actLogoInfo[corner].iFrameNumber, actLogoInfo[corner].hits, logoInfoVector[corner].size(), aCorner[corner]);
         }
 
         // find best and second best corner
@@ -1614,56 +1425,17 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
         int secondBestLogoCorner = -1;
         int sumHits = 0;
 
-
-        if (maContext->Config->autoLogo == 1) { // use packed logos
-            sLogoInfoPacked bestLogoInfoPacked = {};
-            sLogoInfoPacked secondBestLogoInfoPacked = {};
-            for (int corner = 0; corner < CORNERS; corner++) {  // search for the best hits of each corner
-                sumHits += actLogoInfoPacked[corner].hits;
-                if (actLogoInfoPacked[corner].hits > bestLogoInfoPacked.hits) {
-                    bestLogoInfoPacked = actLogoInfoPacked[corner];
-                    bestLogoCorner = corner;
-                }
+        for (int corner = 0; corner < CORNERS; corner++) {  // search for the best hits of each corner
+            sumHits += actLogoInfo[corner].hits;
+            if (actLogoInfo[corner].hits > bestLogoInfo.hits) {
+                bestLogoInfo = actLogoInfo[corner];
+                bestLogoCorner = corner;
             }
-            for (int corner = 0; corner < CORNERS; corner++) {  // search for second best hits of each corner
-                if ((actLogoInfoPacked[corner].hits > secondBestLogoInfo.hits) && (actLogoInfoPacked[corner].hits < bestLogoInfoPacked.hits)) {
-                    secondBestLogoInfoPacked = actLogoInfoPacked[corner];
-                    secondBestLogoCorner = corner;
-                }
-            }
-            // unpack best logo
-            UnpackLogoInfo(&bestLogoInfo, &bestLogoInfoPacked);
-            // free memory of sobel planes, we not need them now
-            for (int plane = 0; plane < PLANES; plane++) {
-                delete bestLogoInfo.sobel[plane];
-            }
-            delete bestLogoInfo.sobel;
-            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
-
-            // unpack second best logo
-            UnpackLogoInfo(&secondBestLogoInfo, &secondBestLogoInfoPacked);
-            // free memory of sobel planes, we not need them now
-            for (int plane = 0; plane < PLANES; plane++) {
-                delete secondBestLogoInfo.sobel[plane];
-            }
-            delete secondBestLogoInfo.sobel;
-            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
-
         }
-
-        if (maContext->Config->autoLogo == 2) { // use unpacked logos
-            for (int corner = 0; corner < CORNERS; corner++) {  // search for the best hits of each corner
-                sumHits += actLogoInfo[corner].hits;
-                if (actLogoInfo[corner].hits > bestLogoInfo.hits) {
-                    bestLogoInfo = actLogoInfo[corner];
-                    bestLogoCorner = corner;
-                }
-            }
-            for (int corner = 0; corner < CORNERS; corner++) {  // search for second best hits of each corner
-                if ((actLogoInfo[corner].hits > secondBestLogoInfo.hits) && (corner != bestLogoCorner)) {
-                    secondBestLogoInfo = actLogoInfo[corner];
-                    secondBestLogoCorner = corner;
-                }
+        for (int corner = 0; corner < CORNERS; corner++) {  // search for second best hits of each corner
+            if ((actLogoInfo[corner].hits > secondBestLogoInfo.hits) && (corner != bestLogoCorner)) {
+                secondBestLogoInfo = actLogoInfo[corner];
+                secondBestLogoCorner = corner;
             }
         }
 

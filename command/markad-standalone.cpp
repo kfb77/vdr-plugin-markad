@@ -4021,9 +4021,7 @@ int usage(int svdrpport) {
            "                  requires --cut\n"
            "                --autologo=<option>\n"
            "                  <option>   0 = disable, only use logos from logo cache directory\n"
-           "                             1 = enable, find logo from recording and store it in the recording directory\n"
-           "                                 memory usage optimized operation mode, but runs slow\n"
-           "                                 this value of the parameter is deprecated and will removed in the next version, use --autologo=2 instead\n"
+	   "                             1 = deprecated, do not use\n"
            "                             2 = enable, find logo from recording and store it in the recording directory (default)\n"
            "                                 speed optimized operation mode, use it only on systems with >= 1 GB main memory\n"
            "                --fulldecode\n"
@@ -4395,7 +4393,10 @@ int main(int argc, char *argv[]) {
                     fprintf(stderr, "markad: invalid autologo value: %s\n", optarg);
                     return 2;
                 }
-                if (config.autoLogo == 1) fprintf(stderr,"markad: --autologo=1 this value of the parameter is deprecated and will removed in the next version, use --autologo=2 instead\n");
+                if (config.autoLogo == 1) {
+                    fprintf(stderr,"markad: --autologo=1 is removed, will use --autologo=2 instead, please update your configuration\n");
+                    config.autoLogo = 2;
+                }
                 break;
             case 17: // --fulldecode
                 config.fullDecode = true;
