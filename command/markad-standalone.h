@@ -89,10 +89,6 @@ class cMarkAdStandalone {
             gotendmark = origin.gotendmark;
             waittime = origin.waittime;
             iwaittime = origin.iwaittime;
-            noticeVDR_VID = origin.noticeVDR_VID;
-            noticeVDR_AC3 = origin.noticeVDR_AC3;
-            noticeHEADER = origin.noticeHEADER;
-            noticeFILLER = origin.noticeFILLER;
             bDecodeVideo = origin.bDecodeVideo;
             bDecodeAudio = origin.bDecodeAudio;
             bIgnoreTimerInfo = origin.bIgnoreTimerInfo;
@@ -120,10 +116,6 @@ class cMarkAdStandalone {
             gotendmark = origin->gotendmark;
             waittime = origin->waittime;
             iwaittime = origin->iwaittime;
-            noticeVDR_VID = origin->noticeVDR_VID;
-            noticeVDR_AC3 = origin->noticeVDR_AC3;
-            noticeHEADER = origin->noticeHEADER;
-            noticeFILLER = origin->noticeFILLER;
             bDecodeVideo = origin->bDecodeVideo;
             bDecodeAudio = origin->bDecodeAudio;
             bIgnoreTimerInfo = origin->bIgnoreTimerInfo;
@@ -183,11 +175,15 @@ class cMarkAdStandalone {
         void RemovePidfile();
         bool duplicate = false; // are we a dup?
         bool isTS = false;
-        bool isREEL = false;
-        int MaxFiles = 0;
-        int iFrameBefore = -1;
-        int iFrameCurrent = -1;
-        int frameCurrent = -1;
+        bool isREEL = false;                                           //!< true if markad runs on a Reelbox VDR (VDR info file is info.txt), false otherwise
+                                                                       //!<
+        int MaxFiles = 0;                                              //!< maximum number of ts files
+        int iFrameBefore = -1;                                         //!< i-frame number before last processed i-frame number
+                                                                       //!<
+        int iFrameCurrent = -1;                                        //!< last processed i-frame number
+                                                                       //!<
+        int frameCurrent = -1;                                         //!< current processed frame number
+                                                                       //!<
         int framecnt1 = 0;                                             //!< processed frames of 1nd pass (detect marks)
                                                                        //!<
         int framecnt2 = 0;                                             //!< processed frames of 2nd pass (overlap)
@@ -196,16 +192,18 @@ class cMarkAdStandalone {
                                                                        //!<
         int framecnt4 = 0;                                             //!< processed frames of 4nd pass (cut)
                                                                        //!<
-        bool gotendmark = false;
-        int waittime = 0;
-        int iwaittime = 0;
-        bool noticeVDR_VID = false;
-        bool noticeVDR_AC3 = false;
-        bool noticeHEADER = false;
-        bool noticeFILLER = false ;
-        bool bDecodeVideo = false;
-        bool bDecodeAudio = false;
-        bool bIgnoreTimerInfo = false;
+        bool gotendmark = false;                                       //!< true if a valid end mark was found, false otherwise
+                                                                       //!<
+        int waittime = 0;                                              //!< time waited for more frames if markad runs during recording
+                                                                       //!<
+        int iwaittime = 0;                                             //!< time waited for continuation of interrupted recording
+                                                                       //!<
+        bool bDecodeVideo = false;                                     //!< true if configured to decode video, false otherwise
+                                                                       //!<
+        bool bDecodeAudio = false;                                     //!< true if configured to decode audio, false otherwise
+                                                                       //!<
+        bool bIgnoreTimerInfo = false;                                 //!< true if confugured to ignore timer infos from info file, false otherwise
+                                                                       //!<
         bool bLiveRecording = false;                                   //!< true if markad was started during recording, false otherwise
                                                                        //!<
         time_t startTime = 0;                                          //!< start time of the broadcast

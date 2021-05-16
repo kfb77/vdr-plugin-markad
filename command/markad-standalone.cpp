@@ -3645,11 +3645,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, sMarkAdConfig *confi
     audio = NULL;
     osd = NULL;
 
-    noticeVDR_VID = false;
-    noticeVDR_AC3 = false;
-    noticeHEADER = false;
-    noticeFILLER = false;
-
     length = 0;
     sleepcnt = 0;
     waittime = iwaittime = 0;
