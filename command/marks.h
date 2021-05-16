@@ -85,9 +85,9 @@ class clMarks {
         clMark *GetLast() {
             return last;
         }
-        bool Backup(const char *Directory, const bool isTS);
-        bool Load(const char *Directory, const double FrameRate, const bool isTS);
-        bool Save(const char *Directory, const sMarkAdContext *maContext, const bool isTS, const bool force);
+        bool Backup(const char *Directory);
+        bool Load(const char *Directory, const double FrameRate);
+        bool Save(const char *Directory, const sMarkAdContext *maContext, const bool force);
         int LoadVPS(const char *Directory, const char *type);
 
         cIndex *recordingIndexMarks = NULL;

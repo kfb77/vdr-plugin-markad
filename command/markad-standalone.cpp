@@ -1242,7 +1242,7 @@ void cMarkAdStandalone::CheckStart() {
     }
 
     iStart = 0;
-    marks.Save(directory, &macontext, isTS, false);
+    marks.Save(directory, &macontext, false);
     DebugMarks();     //  only for debugging
     LogSeparator();
     return;
@@ -1885,7 +1885,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *Mark) {
     }
 
 // save marks
-    if (iStart == 0) marks.Save(directory, &macontext, isTS, false);  // save after start mark is valid
+    if (iStart == 0) marks.Save(directory, &macontext, false);  // save after start mark is valid
 }
 
 
@@ -2203,7 +2203,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
             }
             *mark1 = marks.Move(&macontext, *mark1, ptr_OverlapPos->frameNumberBefore, "overlap");
             *mark2 = marks.Move(&macontext, *mark2, ptr_OverlapPos->frameNumberAfter, "overlap");
-            marks.Save(directory, &macontext, isTS, false);
+            marks.Save(directory, &macontext, false);
             return true;
         }
     }
@@ -2683,7 +2683,7 @@ void cMarkAdStandalone::Process3ndPass() {
         mark=mark->Next();
     }
 
-    if (save) marks.Save(directory, &macontext, isTS, false);
+    if (save) marks.Save(directory, &macontext, false);
     return;
 }
 
@@ -2705,7 +2705,7 @@ void cMarkAdStandalone::Process2ndPass() {
     }
 
     if (!marks.Count()) {
-        marks.Load(directory, macontext.Video.Info.framesPerSecond, isTS);
+        marks.Load(directory, macontext.Video.Info.framesPerSecond);
     }
     clMark *p1 = NULL,*p2 = NULL;
 
@@ -2862,7 +2862,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
 void cMarkAdStandalone::ProcessFiles() {
     if (abortNow) return;
 
-    if (macontext.Config->backupMarks) marks.Backup(directory,isTS);
+    if (macontext.Config->backupMarks) marks.Backup(directory);
 
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::ProcessFiles(): start processing files");
@@ -2910,7 +2910,7 @@ void cMarkAdStandalone::ProcessFiles() {
                 dsyslog("cMarkAdStandalone::ProcessFiles(): recording is aktive, read frame (%d), now save dummy start mark at pre timer position %ds", ptr_cDecoder->GetFrameNumber(), macontext.Info.tStart);
                 clMarks marksTMP;
                 marksTMP.Add(MT_ASSUMEDSTART, ptr_cDecoder->GetFrameNumber(), "timer start", true);
-                marksTMP.Save(macontext.Config->recDir, &macontext, true, true);
+                marksTMP.Save(macontext.Config->recDir, &macontext, true);
                 macontext.Info.isStartMarkSaved = true;
             }
 
@@ -2941,7 +2941,7 @@ void cMarkAdStandalone::ProcessFiles() {
             tempmark.position = iFrameCurrent;
             AddMark(&tempmark);
         }
-        if (marks.Save(directory, &macontext, isTS, false)) {
+        if (marks.Save(directory, &macontext, false)) {
             if (length && startTime)
                     if (macontext.Config->saveInfo) SaveInfo();
 
@@ -2968,7 +2968,7 @@ bool cMarkAdStandalone::SaveInfo() {
         if (asprintf(&src, "%s/info.txt", directory) == -1) return false;
     }
     else {
-        if (asprintf(&src, "%s/info%s", directory, isTS ? "" : ".vdr") == -1) return false;
+        if (asprintf(&src, "%s/info", directory) == -1) return false;
     }
     ALLOC(strlen(src)+1, "src");
 
@@ -3327,7 +3327,7 @@ bool cMarkAdStandalone::CheckLogo() {
 
 bool cMarkAdStandalone::LoadInfo() {
     char *buf;
-    if (asprintf(&buf, "%s/info%s", directory, isTS ? "" : ".vdr") == -1) return false;
+    if (asprintf(&buf, "%s/info", directory) == -1) return false;
     ALLOC(strlen(buf)+1, "buf");
 
     if (macontext.Config->before) {
@@ -3528,10 +3528,7 @@ bool cMarkAdStandalone::LoadInfo() {
 }
 
 
-bool cMarkAdStandalone::CheckTS()
-{
-    MaxFiles = 0;
-    isTS = false;
+bool cMarkAdStandalone::CheckTS() {
     if (!directory) return false;
     char *buf;
     if (asprintf(&buf, "%s/00001.ts", directory) == -1) return false;
@@ -3543,28 +3540,10 @@ bool cMarkAdStandalone::CheckTS()
             free(buf);
             return false;
         }
-        FREE(strlen(buf)+1, "buf");
-        free(buf);
         buf=NULL;
-        if (asprintf(&buf,"%s/001.vdr",directory) == -1) return false;
-        ALLOC(strlen(buf)+1, "buf");
-        if (stat(buf,&statbuf) == -1) {
-            FREE(strlen(buf)+1, "buf");
-            free(buf);
-            return false;
-        }
-        FREE(strlen(buf)+1, "buf");
-        free(buf);
-        // .VDR detected
-        isTS = false;
-        MaxFiles = 999;
-        return true;
     }
     FREE(strlen(buf)+1, "buf");
     free(buf);
-    // .TS detected
-    isTS = true;
-    MaxFiles = 65535;
     return true;
 }
 
@@ -3762,14 +3741,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, sMarkAdConfig *confi
         return;
     }
 
-    if (isTS) {
-        if (asprintf(&indexFile, "%s/index", Directory) == -1) indexFile = NULL;
-        ALLOC(strlen(indexFile)+1, "indexFile");
-    }
-    else {
-        if (asprintf(&indexFile, "%s/index.vdr", Directory) == -1) indexFile = NULL;
-        ALLOC(strlen(indexFile)+1, "indexFile");
-    }
+    if (asprintf(&indexFile, "%s/index", Directory) == -1) indexFile = NULL;
+    ALLOC(strlen(indexFile)+1, "indexFile");
 
     if (!LoadInfo()) {
         if (bDecodeVideo) {
@@ -3831,7 +3804,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, sMarkAdConfig *confi
 
 
 cMarkAdStandalone::~cMarkAdStandalone() {
-    marks.Save(directory, &macontext, isTS, true);
+    marks.Save(directory, &macontext, true);
     if ((!abortNow) && (!duplicate)) {
         LogSeparator();
         dsyslog("time for decoding:              %3ds %3dms", decodeTime_us / 1000000, (decodeTime_us % 1000000) / 1000);

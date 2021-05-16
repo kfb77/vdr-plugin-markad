@@ -512,14 +512,14 @@ char *clMarks::IndexToHMSF(const int Index, const sMarkAdContext *maContext) {
 }
 
 
-bool clMarks::Backup(const char *Directory, const bool isTS) {
+bool clMarks::Backup(const char *Directory) {
     char *fpath = NULL;
-    if (asprintf(&fpath, "%s/%s%s", Directory, filename, isTS ? "" : ".vdr") == -1) return false;
+    if (asprintf(&fpath, "%s/%s", Directory, filename) == -1) return false;
     ALLOC(strlen(fpath)+1, "fpath");
 
     // make backup of old marks, filename convention taken from noad
     char *bpath = NULL;
-    if (asprintf(&bpath, "%s/%s0%s", Directory, filename, isTS ? "" : ".vdr") == -1) {
+    if (asprintf(&bpath, "%s/%s0", Directory, filename) == -1) {
         FREE(strlen(fpath)+1, "fpath");
         free(fpath);
         return false;
@@ -566,9 +566,9 @@ int clMarks::LoadVPS(const char *Directory, const char *type) {
 }
 
 
-bool clMarks::Load(const char *Directory, const double FrameRate, const bool isTS) {
+bool clMarks::Load(const char *Directory, const double FrameRate) {
     char *fpath = NULL;
-    if (asprintf(&fpath, "%s/%s%s", Directory, filename, isTS ? "" : ".vdr") == -1) return false;
+    if (asprintf(&fpath, "%s/%s", Directory, filename) == -1) return false;
     ALLOC(strlen(fpath)+1, "fpath");
 
     FILE *mf;
@@ -611,7 +611,7 @@ bool clMarks::Load(const char *Directory, const double FrameRate, const bool isT
 }
 
 
-bool clMarks::Save(const char *Directory, const sMarkAdContext *maContext, const bool isTS, const bool force) {
+bool clMarks::Save(const char *Directory, const sMarkAdContext *maContext, const bool force) {
     if (!Directory) return false;
     if (!maContext) return false;
     if (!first) return false;  // no marks to save
@@ -622,7 +622,7 @@ bool clMarks::Save(const char *Directory, const sMarkAdContext *maContext, const
     dsyslog("clMarks::Save(): save marks, isRunningRecording=%d force=%d", maContext->Info.isRunningRecording, force);
 
     char *fpath = NULL;
-    if (asprintf(&fpath, "%s/%s%s", Directory, filename, isTS ? "" : ".vdr") == -1) return false;
+    if (asprintf(&fpath, "%s/%s", Directory, filename) == -1) return false;
     ALLOC(strlen(fpath)+1, "fpath");
 
     FILE *mf;
@@ -653,7 +653,7 @@ bool clMarks::Save(const char *Directory, const sMarkAdContext *maContext, const
     if (getuid() == 0 || geteuid() != 0) {
         // if we are root, set fileowner to owner of 001.vdr/00001.ts file
         char *spath = NULL;
-        if (asprintf(&spath, "%s/%s", Directory, isTS ? "00001.ts" : "001.vdr") != -1) {
+        if (asprintf(&spath, "%s/00001.ts", Directory) != -1) {
             ALLOC(strlen(spath)+1, "spath");
             struct stat statbuf;
             if (!stat(spath, &statbuf)) {

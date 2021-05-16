@@ -1256,7 +1256,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                 dsyslog("cExtractLogo::SearchLogo(): recording is aktive, read frame (%d), now save dummy start mark at pre timer position %ds", iFrameNumber, maContext->Info.tStart);
                 clMarks marksTMP;
                 marksTMP.Add(MT_ASSUMEDSTART, iFrameNumber, "timer start", true);
-                marksTMP.Save(maContext->Config->recDir, maContext, true, true);
+                marksTMP.Save(maContext->Config->recDir, maContext, true);
                 maContext->Info.isStartMarkSaved = true;
             }
             if (!WaitForFrames(maContext, ptr_cDecoder)) {

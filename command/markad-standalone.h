@@ -81,7 +81,6 @@ class cMarkAdStandalone {
             audio = NULL;
             osd = NULL;
             duplicate = origin.duplicate,
-            isTS = origin.isTS;
             isREEL = origin.isREEL;
             MaxFiles = origin.MaxFiles;
             framecnt1 = origin.framecnt1;
@@ -107,7 +106,6 @@ class cMarkAdStandalone {
             audio = NULL;
             osd = NULL;
             duplicate = origin->duplicate,
-            isTS = origin->isTS;
             isREEL = origin->isREEL;
             MaxFiles = origin->MaxFiles;
             framecnt1 = origin->framecnt1;
@@ -174,10 +172,10 @@ class cMarkAdStandalone {
         bool CreatePidfile();
         void RemovePidfile();
         bool duplicate = false; // are we a dup?
-        bool isTS = false;
         bool isREEL = false;                                           //!< true if markad runs on a Reelbox VDR (VDR info file is info.txt), false otherwise
                                                                        //!<
-        int MaxFiles = 0;                                              //!< maximum number of ts files
+        int MaxFiles = 65535;                                          //!< maximum number of ts files
+	                                                               //!<
         int iFrameBefore = -1;                                         //!< i-frame number before last processed i-frame number
                                                                        //!<
         int iFrameCurrent = -1;                                        //!< last processed i-frame number
