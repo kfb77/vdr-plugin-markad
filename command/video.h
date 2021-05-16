@@ -1,5 +1,6 @@
-/*
- * video.h: A program for the Video Disk Recorder
+/**
+ * @file video.h
+ * A program for the Video Disk Recorder
  *
  * See the README file for copyright information and how to reach the author.
  *
@@ -19,7 +20,11 @@
 #define MIN_H_BORDER_SECS 60
 #define MIN_V_BORDER_SECS 70  // keep it greater than MIN_H_BORDER_SECS fot detecting long black screens
 
-enum {
+
+/**
+ * logo detection status
+ */
+enum eLogoStatus {
     LOGO_ERROR = -3,
     LOGO_UNINITIALIZED = -2,
     LOGO_INVISIBLE = -1,
@@ -52,12 +57,6 @@ enum {
     OV_AFTER = 1
 };
 
-enum {
-    BRIGHTNESS_VALID = 0,
-    BRIGHTNESS_SEPARATOR = -1,
-    BRIGHTNESS_ERROR = -2,
-    BRIGHTNESS_UNINITIALIZED = -3
-};
 
 
 /**
@@ -104,24 +103,91 @@ typedef struct sAreaT {
 } sAreaT;
 
 
-
+/**
+ * calculate logo default and maximum size dependent on video resolution
+ */
 class cLogoSize {
     public:
         cLogoSize();
         ~cLogoSize();
+
+/**
+ * calculate default logo size dependent on video resolution, used to extract logo from recording
+ * @param width video width in pixel
+ * @return default logo width and heigth in pixel
+ */
         sLogoSize GetDefaultLogoSize(const int width);
+
+/**
+ * calculatate maximum logo size dependent on video resolution
+ * @param width video width in pixel
+ * @return maximum valid logo width and heigth in pixel
+ */
         sLogoSize GetMaxLogoSize(const int width);
+
+/**
+ * get maximum pixel count of a logo dependent on video resolution
+ * @param width video width
+ * @return maximum pixel count of the logo
+ */
         int GetMaxLogoPixel(const int width);
 
     private:
-        int videoWidth = 0;
+        int videoWidth = 0;  //!< video width
+                             //!<
 };
 
 
 class cMarkAdOverlap {
+    public:
+
+/**
+ * constructor of overlap detection
+ * @param maContextParam markad context
+ */
+        explicit cMarkAdOverlap(sMarkAdContext *maContextParam);
+
+        ~cMarkAdOverlap();
+
+/**
+ * process overlap detection
+ * @param frameNumber current frame number
+ * @param frames      number of frames processed
+ * @param beforeAd    true if called with a frame before advertising, false otherwise
+ * @param h264        true if HD video, false otherwise
+ * @return new stop and start mark position
+ */
+        sOverlapPos *Process(const int frameNumber, const int frames, const bool beforeAd, const bool h264);
+
     private:
-        sMarkAdContext *maContext = NULL;
-        typedef int simpleHistogram[256];
+
+        typedef int simpleHistogram[256];     //!< histogram array
+                                              //!<
+
+/**
+ * check if two histogram are similar
+ * @param hist1 histogram 1
+ * @param hist2 histogram 2
+ * @return different pixels if similar, <0 otherwise
+ */
+        int AreSimilar(simpleHistogram &hist1, simpleHistogram &hist2);
+
+/**
+ * get a simple histogram of current frame
+ * @param[in,out] dest histogram
+ */
+        void GetHistogram(simpleHistogram &dest);
+
+/**
+ * detect overlaps before and after advertising
+ * @return new stop and start mark position
+ */
+        sOverlapPos *Detect();
+
+/**
+ * reset state of overlap detection
+ */
+        void Clear();
 
 /**
  * histogram buffer for overlap detection
@@ -135,115 +201,314 @@ class cMarkAdOverlap {
 
         } sHistBuffer;
 
-        sHistBuffer *histbuf[2];
-        int histcnt[2];
-        int histframes[2];
+        sMarkAdContext *maContext = NULL;  //!< markad context
 
-        int lastframenumber;
-        sOverlapPos result;
-        int similarCutOff;
-        int similarMaxCnt;
-        int areSimilar(simpleHistogram &hist1, simpleHistogram &hist2);
-        void getHistogram(simpleHistogram &dest);
-        sOverlapPos *Detect();
-        void Clear();
-    public:
-        explicit cMarkAdOverlap(sMarkAdContext *maContextParam);
-        ~cMarkAdOverlap();
-        sOverlapPos *Process(const int FrameNumber, const int Frames, const bool BeforeAd, const bool H264);
+        sHistBuffer *histbuf[2];           //!< simple frame histogram with frame number
+                                           //!<
+        int histcnt[2];                    //!< count of prcessed frame histograms
+                                           //!<
+        int histframes[2];                 //!< frame number of histogram buffer content
+                                           //!<
+        int lastFrameNumber;               //!< last processed frame number
+                                           //!<
+        sOverlapPos Result;                //!< start and stop position of overlap
+                                           //!<
+        int similarCutOff;                 //!< maximum different pixel to treat picture as similar, depends on resulution
+                                           //!<
+        int similarMaxCnt;                 //!< current maximum similar frames found before stop mark and after start mark
+                                           //!<
 };
 
 
 class cMarkAdLogo : cLogoSize {
     public:
+
+/**
+ * class to detect logo
+ * @param maContext      markad context
+ * @param recordingIndex recording index
+ */
         explicit cMarkAdLogo(sMarkAdContext *maContext, cIndex *recordingIndex);
+
         ~cMarkAdLogo();
 
+/**
+ * detect logo status
+ * @param[in]  frameBefore     frame number before
+ * @param[in]  frameCurrent    current frame number
+ * @param[out] logoFrameNumber frame number of logo change
+ * @return 1 = logo, 0 = unknown, -1 = no logo
+ */
         int Detect(const int frameBefore, const int frameCurrent, int *logoFrameNumber); // return: 1 = logo, 0 = unknown, -1 = no logo
+
+/**
+ * process logo detection of current frame
+ * @param[in]  iFrameBefore    i-frame before last i-frame
+ * @param[in]  iFrameCurrent   last i-frame
+ * @param[in]  frameCurrent    current frame number
+ * @param[out] logoFrameNumber frame number of detected logo state change
+ * @return #eLogoStatus
+ */
         int Process(const int iFrameBefore, const int iFrameCurrent, const int frameCurrent, int *logoFrameNumber);
+
+/**
+ * get logo detection status of area
+ * @return #eLogoStatus
+ */
         int Status() {
             return area.status;
         }
+
+/**
+ * set logo dection status of area to LOGO_INVISIBLE
+ */
         void SetStatusLogoInvisible() {
             if (area.status == LOGO_VISIBLE) area.status = LOGO_INVISIBLE;
         }
+
+/**
+ * set logo dection status of area to LOGO_UNINITIALIZED
+ */
         void SetStatusUninitialized() {
             area.status = LOGO_UNINITIALIZED;
         }
+
+/**
+ * clear status and free memory
+ * @param isRestart   true if called from logo detection restart at pass 1, false otherwise
+ * @param inBroadCast true if called while processing in broadcast, false if called in advertising
+ */
         void Clear(const bool isRestart = false, const bool inBroadCast = false);
+
+/**
+ * set logo size
+ * @param width  logo width in pixel
+ * @param height logo height in pixel
+ */
         void SetLogoSize(const int width, const int height);
+
+/**
+ * get pointer to logo area
+ * @return pointer to logo area
+ */
         sAreaT *GetArea();
 
     private:
-        cIndex *recordingIndexMarkAdLogo = NULL;
+
+/**
+ * enumeration for ReduceBrightness function return codes
+ */
+        enum eBrightness {
+            BRIGHTNESS_VALID = 0,
+            BRIGHTNESS_SEPARATOR = -1,
+            BRIGHTNESS_ERROR = -2,
+            BRIGHTNESS_UNINITIALIZED = -3
+        };
+
+/**
+ * calculate coordinates of logo position
+ * @param[out] xstart x position of logo start
+ * @param[out] xend   x position of logo end
+ * @param[out] ystart y position of logo start
+ * @param[out] yend   y position of logo end
+ * @param[in]  plane  plane number
+ * @return true if sucessful, false otherwise
+ */
+        bool SetCoorginates(int *xstart, int *xend, int *ystart, int *yend, const int plane);
+
+/**
+ * reduce brightness of logo corner
+ * @param frameNumber frame number, only used to debug
+ * @return return code #eBrightness value
+ */
+        int ReduceBrightness(const int frameNumber);
+
+/**
+ * sobel transform one plane of the picture
+ * @param plane plane number
+ * @return true if successful, false otherwise
+ */
+        bool SobelPlane(const int plane);
+
+/**
+ * load logo from file in directory
+ * @param directory source directory
+ * @param file file name
+ * @param plane plane number
+ * @return 0 on success, -1 file not found, -2 format error in logo file
+ */
+        int Load(const char *directory, const char *file, const int plane);
+
+/**
+ * save the area.corner picture after sobel transformation to /tmp
+ * @param frameNumber frame number
+ * @param picture picture to save
+ * @param plane number
+ * @param debug = 0: save was called by --extract function, > 0: save was called by debug statements, add debug identifier to filename
+ * return: true if successful, false otherwise
+ */
+        bool Save(const int frameNumber, uchar **picture, const short int plane, const int debug);
+
+/**
+ * save the original corner picture /tmp and add debug identifier to filename
+ * @param frameNumber frame number
+ * @param debug debug identifier
+ * @return: true if successful, false otherwise
+ */
+        void SaveFrameCorner(const int frameNumber, const int debug);
+
+/**
+ * copy all black pixels from logo pane 0 into plan 1 and plane 2,
+ * we need this for channels with usually grey logos, but at start and end they can be red (DMAX)
+ */
+        void LogoGreyToColour();
+
         enum {
             TOP_LEFT,
             TOP_RIGHT,
             BOTTOM_LEFT,
             BOTTOM_RIGHT
         };
-        int LOGOHEIGHT = 0; // max. 140
-        int LOGOWIDTH = 0; // 192-288
-        sAreaT area;
-        int GX[3][3];
-        int GY[3][3];
-        sMarkAdContext *maContext = NULL;
-        bool pixfmt_info;
-        bool isInitColourChange = false;
 
-        bool SetCoorginates(int *xstart, int *xend, int *ystart, int *yend, const int plane);
-        int ReduceBrightness(const int framenumber);
-        bool SobelPlane(const int plane); // do sobel operation on plane
-        int Load(const char *directory, const char *file, const int plane);
-        bool Save(const int framenumber, uchar **picture, const short int plane, const int debug);
-        void SaveFrameCorner(const int framenumber, const int debug);
-        void LogoGreyToColour();
+        cIndex *recordingIndexMarkAdLogo = NULL;  //!< recording index
+                                                  //!<
+        int logoHeight = 0;                       //!< logo height
+                                                  //!<
+        int logoWidth = 0;                        //!< logo width
+                                                  //!<
+        sAreaT area;                              //!< pixels of logo area
+                                                  //!<
+        int GX[3][3];                             //!< GX Sobel mask
+                                                  //!<
+        int GY[3][3];                             //!< GY Sobel mask
+                                                  //!<
+        sMarkAdContext *maContext = NULL;         //!< markad context
+                                                  //!<
+        bool pixfmt_info = false;                 //!< true if unknown pixel error message was logged, false otherwise
+                                                  //!<
+        bool isInitColourChange = false;          //!< true if trnasformation of grey logo to coloured logo is done
+                                                  //!<
 };
 
 
 class cMarkAdBlackScreen {
-    private:
-        int blackScreenstatus;
-        sMarkAdContext *maContext = NULL;
     public:
+
+/**
+ * class to detect black screen
+ * @param maContextParam markad context
+ */
         explicit cMarkAdBlackScreen(sMarkAdContext *maContextParam);
+
+/**
+ * process black screen detection
+ * @param frameCurrent current frame number
+ * @return black screen status
+ */
         int Process(const int frameCurrent);
+
+/**
+ * clear blackscreen detection status
+ */
         void Clear();
+
+    private:
+        int blackScreenstatus;             //!< status of black screen detection
+                                           //!<
+        sMarkAdContext *maContext = NULL;  //!< markad context
+                                           //!<
 };
 
 
 class cMarkAdBlackBordersHoriz {
-    private:
-        int borderstatus;
-        int borderframenumber;
-        sMarkAdContext *maContext = NULL;
     public:
+
+/**
+ * constructor of class to detect horizental border
+ * @param maContextParam markad context
+ */
         explicit cMarkAdBlackBordersHoriz(sMarkAdContext *maContextParam);
+
+/**
+ * get first frame number with border
+ * @return first frame number with border
+ */
         int GetFirstBorderFrame();
-        int Process(const int frameNumber, int *BorderFrameNumber);
+
+/**
+ * process horizontal border detection of current frame
+ * @param frameNumber current frame number
+ * @param borderFrame frame number of detected border
+ * @return border detection status
+ */
+        int Process(const int frameNumber, int *borderFrame);
+
+/**
+ * set horizontal border status to VBORDER_INVISIBLE
+ */
         void SetStatusBorderInvisible() {
             borderstatus = HBORDER_INVISIBLE;
             borderframenumber = -1;
         }
+
+/**
+ * clear horizontal border detection status
+ */
         void Clear();
+
+    private:
+        int borderstatus;                 //!< status of horizontal border detection
+                                          //!<
+        int borderframenumber;            //!< frame number of detected horizontal border
+                                          //!<
+        sMarkAdContext *maContext = NULL; //!< markad context
+                                          //!<
 };
 
 
 class cMarkAdBlackBordersVert {
     public:
+
+/**
+ * constructor of class to detect vertical border
+ * @param maContextParam markad context
+ */
         explicit cMarkAdBlackBordersVert(sMarkAdContext *maContextParam);
+
+/**
+ * get first frame number with border
+ * @return first frame number with border
+ */
         int GetFirstBorderFrame();
-        int Process(int FrameNumber, int *BorderFrameNumber);
+
+/**
+ * process vertical border detection of current frame
+ * @param frameNumber current frame number
+ * @param borderFrame frame number of detected border
+ * @return border detection status
+ */
+        int Process(int frameNumber, int *borderFrame);
+
+/**
+ * set vertical border status to VBORDER_INVISIBLE
+ */
         void SetStatusBorderInvisible() {
             borderstatus = VBORDER_INVISIBLE;
             borderframenumber = -1;
         }
+
+/**
+ * clear vertical border detection status
+ */
         void Clear();
 
     private:
-        int borderstatus;
-        int borderframenumber;
-        sMarkAdContext *maContext = NULL;
+        int borderstatus;                  //!< status of vertical border detection
+                                           //!<
+        int borderframenumber;             //!< frame number of detected vertical border
+                                           //!<
+        sMarkAdContext *maContext = NULL;  //!< markad context
+                                           //!<
 };
 
 

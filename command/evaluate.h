@@ -52,7 +52,7 @@ class cEvaluateLogoStopStartPair {
  * @param chkSTART        frame postion to check start part
  * @param iStopA          assumed end mark position
  */
-        cEvaluateLogoStopStartPair(clMarks *marks, clMarks *blackMarks, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA);
+        cEvaluateLogoStopStartPair(cMarks *marks, cMarks *blackMarks, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA);
 
         ~cEvaluateLogoStopStartPair();
 
@@ -62,7 +62,7 @@ class cEvaluateLogoStopStartPair {
  * @param logoStopStartPair structure of logo/stop start pair, result is stored here
  * @framesPerSecond         video frame rate
  */
-        void IsInfoLogo(clMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond);
+        void IsInfoLogo(cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond);
 
 /**
  * get next logo stop/start pair

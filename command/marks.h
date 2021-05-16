@@ -14,47 +14,40 @@
 #include "index.h"
 
 
-class clMark {
+class cMark {
     private:
-        clMark *next;
-        clMark *prev;
+        cMark *next;
+        cMark *prev;
     public:
         int type;
         int position;
         char *comment = NULL;
         bool inBroadCast = false;
-        clMark(const int Type = 0, const int Position = 0, const char *Comment = NULL, const bool InBroadCast = false);
-        ~clMark();
-        clMark *Next() {
+        cMark(const int Type = 0, const int Position = 0, const char *Comment = NULL, const bool InBroadCast = false);
+        ~cMark();
+        cMark *Next() {
             return next;
         };
-        clMark *Prev() {
+        cMark *Prev() {
             return prev;
         };
-        void Set(clMark *Prev, clMark *Next) {
+        void Set(cMark *Prev, cMark *Next) {
             prev=Prev;
             next=Next;
         }
-        void SetNext(clMark *Next) {
+        void SetNext(cMark *Next) {
             next=Next;
         }
-        void SetPrev(clMark *Prev) {
+        void SetPrev(cMark *Prev) {
             prev=Prev;
         }
 };
 
 
-class clMarks {
-    private:
-        char filename[1024];
-        clMark *first,*last;
-        int count;
-        int savedcount = 0;
-        int indexfd;
-        char *TypeToText(const int type);
+class cMarks {
     public:
-        clMarks();
-        ~clMarks();
+        cMarks();
+        ~cMarks();
         void RegisterIndex(cIndex *recordingIndex);
         int Count(const int Type = 0xFF, const int Mask = 0xFF);
         void SetFileName(const char *FileName) {
@@ -64,37 +57,64 @@ class clMarks {
 
             }
         }
-        clMark *Add(const int Type, const int Position, const char *Comment = NULL, const bool inBroadCast = false);
+        cMark *Add(const int Type, const int Position, const char *Comment = NULL, const bool inBroadCast = false);
         char *IndexToHMSF(const int Index, const sMarkAdContext *maContext);
         void DelWeakFromTo(const int from, const int to, const short int type);
         void DelFromTo(const int from, const int to, const short int type);
         void DelTill(const int Position, const bool FromStart = true);
         void DelFrom(const int Position);
         void DelAll();
-        void Del(clMark *Mark);
+        void Del(cMark *Mark);
         void Del(const unsigned char Type);
         void Del(const int Position);
-        clMark *Move(sMarkAdContext *maContext, clMark *mark, const int newPosition, const char* reason);
-        clMark *Get(const int Position);
-        clMark *GetAround(const int Frames, const int Position, const int Type = 0xFF, const int Mask = 0xFF);
-        clMark *GetPrev(const int Position, const int Type = 0xFF, const int Mask = 0xFF);
-        clMark *GetNext(const int Position, const int Type = 0xFF, const int Mask = 0xFF);
-        clMark *GetFirst() {
+        cMark *Move(sMarkAdContext *maContext, cMark *mark, const int newPosition, const char* reason);
+        cMark *Get(const int Position);
+        cMark *GetAround(const int Frames, const int Position, const int Type = 0xFF, const int Mask = 0xFF);
+        cMark *GetPrev(const int Position, const int Type = 0xFF, const int Mask = 0xFF);
+        cMark *GetNext(const int Position, const int Type = 0xFF, const int Mask = 0xFF);
+        cMark *GetFirst() {
             return first;
         }
-        clMark *GetLast() {
+        cMark *GetLast() {
             return last;
         }
-        bool Backup(const char *Directory);
-        bool Load(const char *Directory, const double FrameRate);
-        bool Save(const char *Directory, const sMarkAdContext *maContext, const bool force);
-        int LoadVPS(const char *Directory, const char *type);
+        bool Backup(const char *directory);
+        bool Load(const char *directory, const double FrameRate);
 
-        cIndex *recordingIndexMarks = NULL;
-#define IERR_NOTFOUND 1
-#define IERR_TOOSHORT 2
-#define IERR_SEEK 3
-#define IERR_READ 4
-#define IERR_FRAME 5
+/**
+ * save marks to recording directory
+ * @param directory recording directory
+ * @param maContext markad context
+ * @param force     true if to save in any cases, false if only save when not running recording
+ * @return true if successfuly saved, false otherwise
+ */
+        bool Save(const char *directory, const sMarkAdContext *maContext, const bool force);
+
+/**
+ * get offset of first mark wtih type from markad.vps in recording directory
+ * @param directory recording directory
+ * @param type VPS mark type
+ * @return offset from recording start in seconds
+ */
+        int LoadVPS(const char *directory, const char *type);
+
+    private:
+/**
+ * convert mark type to text
+ * @param type type of the mark
+ * @return text of the mark type
+ */
+        char *TypeToText(const int type);
+
+        cIndex *recordingIndexMarks = NULL;  //!< recording index
+                                             //!<
+        char filename[1024];                 //!< name of marks file (default: marks)
+                                             //!<
+        cMark *first;                        //!< pointer to first mark
+                                             //!<
+        cMark *last;                         //!< pointer to last mark
+                                             //!<
+        int count;                           //!< number of current marks
+                                             //!<
 };
 #endif

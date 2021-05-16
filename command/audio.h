@@ -48,22 +48,26 @@ class cMarkAdAudio {
  *  prepare mark to add
  *  @param type           type of the mark (MT_CHANNELSTART or MT_CHANNELSTOP)
  *  @param position frame number of the mark
- *  @param channelsbefore number of channels before change
- *  @param channelsafter  number of channels after change
+ *  @param channelsBefore number of channels before change
+ *  @param channelsAfter  number of channels after change
  */
         void SetMark(const int type, const int position, const int channelsBefore, const int channelsAfter);
 
 /**
  *  detect if there is a change of the audio channel count
- *  @param channelsbefore number of channels before
- *  @param channelsafter  number of channels now
+ *  @param channelsBefore number of channels before
+ *  @param channelsAfter  number of channels now
  *  @return true if channel count are different, false if not
  */
         bool ChannelChange(int channelsBefore, int channelsAfter);
 
-        sMarkAdContext *macontext;
-        cIndex *recordingIndexAudio = NULL;
-        sMarkAdMark mark;
-        short int channels[MAXSTREAMS] = {0};
+        sMarkAdContext *macontext;             //!< markad context
+                                               //!<
+        cIndex *recordingIndexAudio = NULL;    //!< recording index
+                                               //!<
+        sMarkAdMark mark;                      //!< new mark to add
+                                               //!<
+        short int channels[MAXSTREAMS] = {0};  //!< count of audio channels per stream
+                                               //!<
 };
 #endif

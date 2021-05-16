@@ -21,7 +21,7 @@ extern "C" {
 }
 
 
-clMark::clMark(const int Type, const int Position, const char *Comment, const bool InBroadCast) {
+cMark::cMark(const int Type, const int Position, const char *Comment, const bool InBroadCast) {
     type = Type;
     position = Position;
     inBroadCast = InBroadCast;
@@ -36,7 +36,7 @@ clMark::clMark(const int Type, const int Position, const char *Comment, const bo
 }
 
 
-clMark::~clMark() {
+cMark::~cMark() {
     if (comment) {
         FREE(strlen(comment)+1, "comment");
         free(comment);
@@ -44,27 +44,24 @@ clMark::~clMark() {
 }
 
 
-clMarks::clMarks() {
+cMarks::cMarks() {
     strcpy(filename, "marks");
     first = last = NULL;
-    savedcount = 0;
     count = 0;
-    indexfd = -1;
 }
 
 
-clMarks::~clMarks() {
+cMarks::~cMarks() {
     DelAll();
-    if (indexfd != -1) close(indexfd);
 }
 
 
-int clMarks::Count(const int Type, const int Mask) {
+int cMarks::Count(const int Type, const int Mask) {
     if (Type == 0xFF) return count;
     if (!first) return 0;
 
     int ret = 0;
-    clMark *mark = first;
+    cMark *mark = first;
     while (mark) {
         if ((mark->type & Mask) == Type) ret++;
         mark = mark->Next();
@@ -73,10 +70,10 @@ int clMarks::Count(const int Type, const int Mask) {
 }
 
 
-void clMarks::Del(const int Position) {
+void cMarks::Del(const int Position) {
     if (!first) return; // no elements yet
 
-    clMark *next, *mark = first;
+    cMark *next, *mark = first;
     while (mark) {
         next = mark->Next();
         if (mark->position == Position) {
@@ -88,10 +85,10 @@ void clMarks::Del(const int Position) {
 }
 
 
-void clMarks::Del(const unsigned char Type) {
+void cMarks::Del(const unsigned char Type) {
     if (!first) return; // no elements yet
 
-    clMark *next, *mark = first;
+    cMark *next, *mark = first;
     while (mark) {
         next = mark->Next();
         if (mark->type == Type) Del(mark);
@@ -100,12 +97,12 @@ void clMarks::Del(const unsigned char Type) {
 }
 
 
-void clMarks::DelWeakFromTo(const int from, const int to, const short int type) {
-    clMark *mark = first;
+void cMarks::DelWeakFromTo(const int from, const int to, const short int type) {
+    cMark *mark = first;
     while (mark) {
         if (mark->position >= to) return;
         if ((mark->position > from) && (mark->type < (type & 0xF0))) {
-            clMark *tmpMark = mark->Next();
+            cMark *tmpMark = mark->Next();
             Del(mark);
             mark = tmpMark;
         }
@@ -117,12 +114,12 @@ void clMarks::DelWeakFromTo(const int from, const int to, const short int type) 
 // delete all marks <from> <to> of <type>
 // include <from> and <to>
 //
-void clMarks::DelFromTo(const int from, const int to, const short int type) {
-    clMark *mark = first;
+void cMarks::DelFromTo(const int from, const int to, const short int type) {
+    cMark *mark = first;
     while (mark) {
         if (mark->position > to) return;
         if ((mark->position >= from) && ((mark->type & 0xF0) == type)) {
-            clMark *tmpMark = mark->Next();
+            cMark *tmpMark = mark->Next();
             Del(mark);
             mark = tmpMark;
         }
@@ -135,8 +132,8 @@ void clMarks::DelFromTo(const int from, const int to, const short int type) {
 // <FromStart> = false: delete all marks from <Position> to end
 // blackscreen marks were moved to blackscreen list
 //
-void clMarks::DelTill(const int Position, const bool FromStart) {
-    clMark *next, *mark = first;
+void cMarks::DelTill(const int Position, const bool FromStart) {
+    cMark *next, *mark = first;
     if (!FromStart) {
         while (mark) {
             if (mark->position > Position) break;
@@ -158,23 +155,23 @@ void clMarks::DelTill(const int Position, const bool FromStart) {
 }
 
 
-void clMarks::DelFrom(const int Position) {
-    clMark *mark = first;
+void cMarks::DelFrom(const int Position) {
+    cMark *mark = first;
     while (mark) {
         if (mark->position > Position) break;
         mark = mark->Next();
     }
 
     while (mark) {
-        clMark * next = mark->Next();
+        cMark * next = mark->Next();
         Del(mark);
         mark = next;
     }
 }
 
 
-void clMarks::DelAll() {
-    clMark *next, *mark = first;
+void cMarks::DelAll() {
+    cMark *next, *mark = first;
     while (mark) {
         next = mark->Next();
         Del(mark);
@@ -185,7 +182,7 @@ void clMarks::DelAll() {
 }
 
 
-void clMarks::Del(clMark *Mark) {
+void cMarks::Del(cMark *Mark) {
     if (!Mark) return;
 
     if (first == Mark) {
@@ -216,10 +213,10 @@ void clMarks::Del(clMark *Mark) {
 }
 
 
-clMark *clMarks::Get(const int Position) {
+cMark *cMarks::Get(const int Position) {
     if (!first) return NULL; // no elements yet
 
-    clMark *mark = first;
+    cMark *mark = first;
     while (mark) {
         if (Position == mark->position) break;
         mark = mark->Next();
@@ -228,12 +225,12 @@ clMark *clMarks::Get(const int Position) {
 }
 
 
-clMark *clMarks::GetAround(const int Frames, const int Position, const int Type, const int Mask) {
-    clMark *m0 = Get(Position);
+cMark *cMarks::GetAround(const int Frames, const int Position, const int Type, const int Mask) {
+    cMark *m0 = Get(Position);
     if (m0 && (m0->position == Position) && ((m0->type & Mask) == (Type & Mask))) return m0;
 
-    clMark *m1 = GetPrev(Position, Type, Mask);
-    clMark *m2 = GetNext(Position, Type, Mask);
+    cMark *m1 = GetPrev(Position, Type, Mask);
+    cMark *m2 = GetNext(Position, Type, Mask);
     if (!m1 && !m2) return NULL;
 
     if (!m1 && m2) {
@@ -255,17 +252,17 @@ clMark *clMarks::GetAround(const int Frames, const int Position, const int Type,
         }
     }
     else {
-        dsyslog("clMarks::GetAround(): invalid marks found");
+        dsyslog("cMarks::GetAround(): invalid marks found");
         return NULL;
     }
 }
 
 
-clMark *clMarks::GetPrev(const int Position, const int Type, const int Mask) {
+cMark *cMarks::GetPrev(const int Position, const int Type, const int Mask) {
     if (!first) return NULL; // no elements yet
 
     // first advance
-    clMark *mark = first;
+    cMark *mark = first;
     while (mark) {
         if (mark->position >= Position) break;
         mark = mark->Next();
@@ -286,9 +283,9 @@ clMark *clMarks::GetPrev(const int Position, const int Type, const int Mask) {
 }
 
 
-clMark *clMarks::GetNext(const int Position, const int Type, const int Mask) {
+cMark *cMarks::GetNext(const int Position, const int Type, const int Mask) {
     if (!first) return NULL; // no elements yet
-    clMark *mark = first;
+    cMark *mark = first;
     while (mark) {
         if (Type == 0xFF) {
             if (mark->position > Position) break;
@@ -303,8 +300,8 @@ clMark *clMarks::GetNext(const int Position, const int Type, const int Mask) {
 }
 
 
-clMark *clMarks::Add(const int Type, const int Position, const char *Comment, const bool inBroadCast) {
-    clMark *newmark;
+cMark *cMarks::Add(const int Type, const int Position, const char *Comment, const bool inBroadCast) {
+    cMark *newmark;
 
     if ((newmark = Get(Position))) {
         dsyslog("duplicate mark on position %i type 0x%X and type 0x%x", Position, Type, newmark->type);
@@ -326,7 +323,7 @@ clMark *clMarks::Add(const int Type, const int Position, const char *Comment, co
         return newmark;
     }
 
-    newmark = new clMark(Type, Position, Comment, inBroadCast);
+    newmark = new cMark(Type, Position, Comment, inBroadCast);
     if (!newmark) return NULL;
     ALLOC(sizeof(*newmark), "mark");
 
@@ -337,7 +334,7 @@ clMark *clMarks::Add(const int Type, const int Position, const char *Comment, co
         return newmark;
     }
     else {
-        clMark *mark = first;
+        cMark *mark = first;
         while (mark) {
             if (!mark->Next()) {
                 if (Position > mark->position) {
@@ -394,7 +391,7 @@ clMark *clMarks::Add(const int Type, const int Position, const char *Comment, co
 // define text to mark type, used in marks file
 // return pointer to text
 //
-char *clMarks::TypeToText(const int type) {
+char *cMarks::TypeToText(const int type) {
     char *text = NULL;
     switch (type & 0xF0) {
         case MT_LOGOCHANGE:
@@ -440,13 +437,13 @@ char *clMarks::TypeToText(const int type) {
 // move mark to new posiition
 // return pointer to new mark
 //
-clMark *clMarks::Move(sMarkAdContext *maContext, clMark *mark, const int newPosition, const char* reason) {
+cMark *cMarks::Move(sMarkAdContext *maContext, cMark *mark, const int newPosition, const char* reason) {
     if (!mark) return NULL;
     if (!reason) return NULL;
 
     char *comment = NULL;
     char *indexToHMSF = IndexToHMSF(mark->position, maContext);
-    clMark *newMark = NULL;
+    cMark *newMark = NULL;
     char* typeText = TypeToText(mark->type);
 
     if (indexToHMSF && typeText) {
@@ -479,12 +476,12 @@ clMark *clMarks::Move(sMarkAdContext *maContext, clMark *mark, const int newPosi
 }
 
 
-void clMarks::RegisterIndex(cIndex *recordingIndex) {
+void cMarks::RegisterIndex(cIndex *recordingIndex) {
     recordingIndexMarks = recordingIndex;
 }
 
 
-char *clMarks::IndexToHMSF(const int Index, const sMarkAdContext *maContext) {
+char *cMarks::IndexToHMSF(const int Index, const sMarkAdContext *maContext) {
     double FramesPerSecond = maContext->Video.Info.framesPerSecond;
     if (FramesPerSecond == 0.0) return NULL;
     char *indexToHMSF = NULL;
@@ -496,7 +493,7 @@ char *clMarks::IndexToHMSF(const int Index, const sMarkAdContext *maContext) {
             f = int(modf(float(pts_time_ms) / 1000, &Seconds) * 100); // convert ms to 1/100 s
         }
         else {
-            dsyslog("clMarks::IndexToHMSF(): failed to get time from frame (%d)", Index);
+            dsyslog("cMarks::IndexToHMSF(): failed to get time from frame (%d)", Index);
         }
     }
     else {
@@ -512,14 +509,14 @@ char *clMarks::IndexToHMSF(const int Index, const sMarkAdContext *maContext) {
 }
 
 
-bool clMarks::Backup(const char *Directory) {
+bool cMarks::Backup(const char *directory) {
     char *fpath = NULL;
-    if (asprintf(&fpath, "%s/%s", Directory, filename) == -1) return false;
+    if (asprintf(&fpath, "%s/%s", directory, filename) == -1) return false;
     ALLOC(strlen(fpath)+1, "fpath");
 
     // make backup of old marks, filename convention taken from noad
     char *bpath = NULL;
-    if (asprintf(&bpath, "%s/%s0", Directory, filename) == -1) {
+    if (asprintf(&bpath, "%s/%s0", directory, filename) == -1) {
         FREE(strlen(fpath)+1, "fpath");
         free(fpath);
         return false;
@@ -535,16 +532,16 @@ bool clMarks::Backup(const char *Directory) {
 }
 
 
-int clMarks::LoadVPS(const char *Directory, const char *type) {
-    if (!Directory) return -1;
+int cMarks::LoadVPS(const char *directory, const char *type) {
+    if (!directory) return -1;
     if (!type) return -1;
 
     char *fpath = NULL;
-    if (asprintf(&fpath, "%s/%s", Directory, "markad.vps") == -1) return -1;
+    if (asprintf(&fpath, "%s/%s", directory, "markad.vps") == -1) return -1;
     FILE *mf;
     mf = fopen(fpath, "r+");
     if (!mf) {
-        dsyslog("clMarks::LoadVPS(): %s not found", fpath);
+        dsyslog("cMarks::LoadVPS(): %s not found", fpath);
         free(fpath);
         return -1;
     }
@@ -566,9 +563,9 @@ int clMarks::LoadVPS(const char *Directory, const char *type) {
 }
 
 
-bool clMarks::Load(const char *Directory, const double FrameRate) {
+bool cMarks::Load(const char *directory, const double FrameRate) {
     char *fpath = NULL;
-    if (asprintf(&fpath, "%s/%s", Directory, filename) == -1) return false;
+    if (asprintf(&fpath, "%s/%s", directory, filename) == -1) return false;
     ALLOC(strlen(fpath)+1, "fpath");
 
     FILE *mf;
@@ -611,18 +608,18 @@ bool clMarks::Load(const char *Directory, const double FrameRate) {
 }
 
 
-bool clMarks::Save(const char *Directory, const sMarkAdContext *maContext, const bool force) {
-    if (!Directory) return false;
+bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const bool force) {
+    if (!directory) return false;
     if (!maContext) return false;
     if (!first) return false;  // no marks to save
     if (!maContext->Info.isRunningRecording && !force) {
-//        dsyslog("clMarks::Save(): save marks later, isRunningRecording=%d force=%d", maContext->Info.isRunningRecording, force);
+//        dsyslog("cMarks::Save(): save marks later, isRunningRecording=%d force=%d", maContext->Info.isRunningRecording, force);
         return false;
     }
-    dsyslog("clMarks::Save(): save marks, isRunningRecording=%d force=%d", maContext->Info.isRunningRecording, force);
+    dsyslog("cMarks::Save(): save marks, isRunningRecording=%d force=%d", maContext->Info.isRunningRecording, force);
 
     char *fpath = NULL;
-    if (asprintf(&fpath, "%s/%s", Directory, filename) == -1) return false;
+    if (asprintf(&fpath, "%s/%s", directory, filename) == -1) return false;
     ALLOC(strlen(fpath)+1, "fpath");
 
     FILE *mf;
@@ -634,7 +631,7 @@ bool clMarks::Save(const char *Directory, const sMarkAdContext *maContext, const
         return false;
     }
 
-    clMark *mark = first;
+    cMark *mark = first;
     while (mark) {
         if (((mark->type & 0xF0) == MT_BLACKCHANGE) && (mark->position != first->position) && (mark->position != last->position)) { // do not save blackscreen marks expect start and end mark
             mark = mark->Next();
@@ -653,7 +650,7 @@ bool clMarks::Save(const char *Directory, const sMarkAdContext *maContext, const
     if (getuid() == 0 || geteuid() != 0) {
         // if we are root, set fileowner to owner of 001.vdr/00001.ts file
         char *spath = NULL;
-        if (asprintf(&spath, "%s/00001.ts", Directory) != -1) {
+        if (asprintf(&spath, "%s/00001.ts", directory) != -1) {
             ALLOC(strlen(spath)+1, "spath");
             struct stat statbuf;
             if (!stat(spath, &statbuf)) {

@@ -338,10 +338,10 @@ void cMarkAdStandalone::CheckStop() {
 
 // try MT_CHANNELSTOP
     int delta = macontext.Video.Info.framesPerSecond * MAXRANGE;
-    clMark *end = marks.GetAround(3 * delta, iStopA, MT_CHANNELSTOP);      // try if we can get a good stop mark, start with MT_ASPECTSTOP
+    cMark *end = marks.GetAround(3 * delta, iStopA, MT_CHANNELSTOP);      // try if we can get a good stop mark, start with MT_ASPECTSTOP
     if (end) {
         dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTOP found at frame %i", end->position);
-        clMark *cStart = marks.GetPrev(end->position, MT_CHANNELSTART);      // if there is short befor a channel start, this stop mark belongs to next recording
+        cMark *cStart = marks.GetPrev(end->position, MT_CHANNELSTART);      // if there is short befor a channel start, this stop mark belongs to next recording
         if (cStart) {
             if ((end->position - cStart->position) < delta) {
                 dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTART found short before at frame %i with delta %ds, MT_CHANNELSTOP is not valid, try to find stop mark short before", cStart->position, static_cast<int> ((end->position - cStart->position) / macontext.Video.Info.framesPerSecond));
@@ -349,7 +349,7 @@ void cMarkAdStandalone::CheckStop() {
                 if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTOP found short before at frame (%d)", end->position);
             }
             else {
-                clMark *cStartFirst = marks.GetNext(0, MT_CHANNELSTART);  // get first channel start mark
+                cMark *cStartFirst = marks.GetNext(0, MT_CHANNELSTART);  // get first channel start mark
                 if (cStartFirst) {
                     int deltaC = (end->position - cStartFirst->position) / macontext.Video.Info.framesPerSecond;
                     if (deltaC < 305) {  // changed from 300 to 305
@@ -374,7 +374,7 @@ void cMarkAdStandalone::CheckStop() {
         end = marks.GetAround(5 * delta, iStopA, MT_HBORDERSTOP);         // increased from 3 to 5
         if (end) {
             dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTOP found at frame %i", end->position);
-            clMark *prevHStart = marks.GetPrev(end->position, MT_HBORDERSTART);
+            cMark *prevHStart = marks.GetPrev(end->position, MT_HBORDERSTART);
             if (prevHStart && (prevHStart->position > iStopA)) {
                 dsyslog("cMarkAdStandalone::CheckStop(): previous hborder start mark (%d) is before assumed stop (%d), hborder stop mark (%d) is invalid", prevHStart->position, iStopA, end->position);
                 end = NULL;
@@ -388,7 +388,7 @@ void cMarkAdStandalone::CheckStop() {
         end = marks.GetAround(3*delta, iStopA, MT_VBORDERSTOP);
         if (end) {
             dsyslog("cMarkAdStandalone::CheckStop(): MT_VBORDERSTOP found at frame %i", end->position);
-            clMark *prevVStart = marks.GetPrev(end->position, MT_VBORDERSTART);
+            cMark *prevVStart = marks.GetPrev(end->position, MT_VBORDERSTART);
             if (prevVStart) {
                 int deltaV = (end->position - prevVStart->position) / macontext.Video.Info.framesPerSecond;
                 if (deltaV < 240) {  // start/stop is too short, this is the next recording
@@ -409,7 +409,7 @@ void cMarkAdStandalone::CheckStop() {
             end = marks.GetAround(MAX_LOGO_END_MARK_FACTOR * delta, iStopA, MT_LOGOSTOP);
             if (end) {
                 dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame %i", end->position);
-                clMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
+                cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
                 if (prevLogoStart) {
                     int deltaLogoStart = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
                     if (deltaLogoStart < 9) { // changed from 12 to 10 to 9 because of SIXX and SAT.1 has short logo change at the end of recording
@@ -434,8 +434,8 @@ void cMarkAdStandalone::CheckStop() {
         }
         if (end) {
             // detect very short logo stop/start before assumed stop mark, they are text previews over the logo (e.g. SAT.1)
-            clMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
-            clMark *prevLogoStop  = marks.GetPrev(end->position, MT_LOGOSTOP);
+            cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
+            cMark *prevLogoStop  = marks.GetPrev(end->position, MT_LOGOSTOP);
             if (prevLogoStart && prevLogoStop) {
                 int deltaLogoStart = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
                 int deltaLogoPrevStartStop = (prevLogoStart->position - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
@@ -468,14 +468,14 @@ void cMarkAdStandalone::CheckStop() {
         else dsyslog("cMarkAdStandalone::CheckStop(): no end mark found");
     }
 
-    clMark *lastStart = marks.GetAround(INT_MAX, frameCurrent, MT_START, 0x0F);
+    cMark *lastStart = marks.GetAround(INT_MAX, frameCurrent, MT_START, 0x0F);
     if (end) {
         dsyslog("cMarkAdStandalone::CheckStop(): found end mark at (%i)", end->position);
-        clMark *mark = marks.GetFirst();
+        cMark *mark = marks.GetFirst();
         while (mark) {
             if ((mark->position >= iStopA-macontext.Video.Info.framesPerSecond*MAXRANGE) && (mark->position < end->position) && ((mark->type & 0xF0) < (end->type & 0xF0))) { // delete all weak marks
                 dsyslog("cMarkAdStandalone::CheckStop(): found stronger end mark delete mark (%i)", mark->position);
-                clMark *tmp = mark;
+                cMark *tmp = mark;
                 mark = mark->Next();
                 marks.Del(tmp);
                 continue;
@@ -484,7 +484,7 @@ void cMarkAdStandalone::CheckStop() {
         }
 
         if ((end->type == MT_NOBLACKSTOP) && (end->position < iStopA)) {        // if stop mark is MT_NOBLACKSTOP and it is not after iStopA try next, better save than sorry
-           clMark *end2 = marks.GetAround(delta, end->position + 2*delta, MT_STOP, 0x0F);
+           cMark *end2 = marks.GetAround(delta, end->position + 2*delta, MT_STOP, 0x0F);
            if (end2) {
                dsyslog("cMarkAdStandalone::CheckStop(): stop mark is week, use next stop mark at (%i)", end2->position);
                end = end2;
@@ -514,9 +514,9 @@ void cMarkAdStandalone::CheckStop() {
     }
     else {  // no valid stop mark found
         // try if there is any late MT_ASPECTSTOP
-        clMark *aFirstStart = marks.GetNext(0, MT_ASPECTSTART);
+        cMark *aFirstStart = marks.GetNext(0, MT_ASPECTSTART);
         if (aFirstStart) {
-            clMark *aLastStop = marks.GetPrev(INT_MAX, MT_ASPECTSTOP);
+            cMark *aLastStop = marks.GetPrev(INT_MAX, MT_ASPECTSTOP);
             if (aLastStop && (aLastStop->position > iStopA)) {
                 dsyslog("cMarkAdStandalone::CheckStop(): start mark is MT_ASPECTSTART (%d) found very late MT_ASPECTSTOP at (%d)", aFirstStart->position, aLastStop->position);
                 end = aLastStop;
@@ -534,12 +534,12 @@ void cMarkAdStandalone::CheckStop() {
 
     // delete all black sceen marks expect start or end mark
     dsyslog("cMarkAdStandalone::CheckStop(): move all black screen marks except start and end mark to black screen list");
-    clMark *mark = marks.GetFirst();
+    cMark *mark = marks.GetFirst();
     while (mark) {
         if (mark != marks.GetFirst()) {
             if (mark == marks.GetLast()) break;
             if ((mark->type & 0xF0) == MT_BLACKCHANGE) {
-                clMark *tmp = mark;
+                cMark *tmp = mark;
                 mark = mark->Next();
                 marks.Del(tmp);
                 continue;
@@ -563,7 +563,7 @@ void cMarkAdStandalone::CheckStop() {
 // <stopMark> last logo or hborder stop mark
 // return: true if closing credits was found and last logo stop mark position was changed
 //
-bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(clMark *stopMark) {
+bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     if (!stopMark) return false;
     dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits without logo after position (%d)", stopMark->position);
 
@@ -714,7 +714,7 @@ void cMarkAdStandalone::CheckStart() {
     int hBorderStopPosition = 0;
     int delta = macontext.Video.Info.framesPerSecond * MAXRANGE;
 
-    clMark *begin = marks.GetAround(delta, 1, MT_RECORDINGSTART);  // do we have an incomplete recording ?
+    cMark *begin = marks.GetAround(delta, 1, MT_RECORDINGSTART);  // do we have an incomplete recording ?
     if (begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): found MT_RECORDINGSTART (%i), use this as start mark for the incomplete recording", begin->position);
     }
@@ -811,8 +811,8 @@ void cMarkAdStandalone::CheckStart() {
         isyslog("Video with aspectratio of %i:%i detected", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
     }
     if (!begin && inBroadCast) {
-        clMark *chStart = marks.GetNext(0, MT_CHANNELSTART);
-        clMark *chStop = marks.GetPrev(INT_MAX, MT_CHANNELSTOP);
+        cMark *chStart = marks.GetNext(0, MT_CHANNELSTART);
+        cMark *chStop = marks.GetPrev(INT_MAX, MT_CHANNELSTOP);
         if (chStart && chStop && (chStart->position > chStop->position)) {
             dsyslog("cMarkAdStandalone::CheckStart(): channel start after channel stop found, delete all weak marks inbetween");
             marks.DelWeakFromTo(chStop->position, chStart->position, MT_CHANNELCHANGE);
@@ -831,9 +831,9 @@ void cMarkAdStandalone::CheckStart() {
             macontext.Info.AspectRatio.den = macontext.Video.Info.AspectRatio.den;
         }
         // check marks and correct if necessary
-        clMark *aStart = marks.GetAround(chkSTART, chkSTART + 1, MT_ASPECTSTART);   // check if we have ascpect ratio START/STOP in start part
-        clMark *aStopAfter = NULL;
-        clMark *aStopBefore = NULL;
+        cMark *aStart = marks.GetAround(chkSTART, chkSTART + 1, MT_ASPECTSTART);   // check if we have ascpect ratio START/STOP in start part
+        cMark *aStopAfter = NULL;
+        cMark *aStopBefore = NULL;
         if (aStart) {
             aStopAfter = marks.GetNext(aStart->position, MT_ASPECTSTOP);
             aStopBefore = marks.GetPrev(aStart->position, MT_ASPECTSTOP);
@@ -869,7 +869,7 @@ void cMarkAdStandalone::CheckStart() {
             macontext.Info.AspectRatio.num = newMarkAdAspectRatio.num;
             macontext.Info.AspectRatio.den = newMarkAdAspectRatio.den;
             // we have to invert MT_ASPECTSTART and MT_ASPECTSTOP and fix position
-            clMark *aMark = marks.GetFirst();
+            cMark *aMark = marks.GetFirst();
             while (aMark) {
                 if (aMark->type == MT_ASPECTSTART) {
                     aMark->type = MT_ASPECTSTOP;
@@ -913,7 +913,7 @@ void cMarkAdStandalone::CheckStart() {
                         macontext.Video.Options.ignoreVborder = true;
                    }
                    else { // if there is a MT_ASPECTSTOP, delete all marks after this position
-                       clMark *aStopNext = marks.GetNext(begin->position, MT_ASPECTSTOP);
+                       cMark *aStopNext = marks.GetNext(begin->position, MT_ASPECTSTOP);
                        if (aStopNext) {
                            dsyslog("cMarkAdStandalone::CheckStart(): found MT_ASPECTSTOP (%i), delete all weaker marks after", aStopNext->position);
                            marks.DelWeakFromTo(aStopNext->position, INT_MAX, aStopNext->type);
@@ -928,7 +928,7 @@ void cMarkAdStandalone::CheckStart() {
                 }
                 else {
                     dsyslog("cMarkAdStandalone::CheckStart(): no MT_ASPECTSTART found");   // previous is 4:3 too, try another start mark
-                    clMark *begin2 = marks.GetAround(iStartA, iStartA + delta, MT_START, 0x0F);
+                    cMark *begin2 = marks.GetAround(iStartA, iStartA + delta, MT_START, 0x0F);
                     if (begin2) {
                         dsyslog("cMarkAdStandalone::CheckStart(): using mark at position (%i) as start mark", begin2->position);
                         begin = begin2;
@@ -939,7 +939,7 @@ void cMarkAdStandalone::CheckStart() {
                 begin = marks.GetAround(delta * 3, iStartA, MT_ASPECTSTART);
                 if (begin) {
                     dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTART found at (%i) because previous recording was 4:3", begin->position);
-                    clMark *begin3 = marks.GetAround(delta, begin->position, MT_VBORDERSTART);  // do not use this mark if there is a later vborder start mark
+                    cMark *begin3 = marks.GetAround(delta, begin->position, MT_VBORDERSTART);  // do not use this mark if there is a later vborder start mark
                     if (begin3 && (begin3->position >  begin->position)) {
                         dsyslog("cMarkAdStandalone::CheckStart(): found later MT_VBORDERSTAT, do not use MT_ASPECTSTART");
                         begin = NULL;
@@ -959,11 +959,11 @@ void cMarkAdStandalone::CheckStart() {
 
 // try to find a horizontal border mark
     if (!begin) {
-        clMark *hStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTART); // do not find initial vborder start from previous recording
+        cMark *hStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTART); // do not find initial vborder start from previous recording
         if (!hStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no horizontal border at start found, ignore horizontal border detection");
             macontext.Video.Options.ignoreHborder = true;
-            clMark *hStop = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTOP);
+            cMark *hStop = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTOP);
             if (hStop) {
                 int pos = hStop->position;
                 char *comment = NULL;
@@ -978,7 +978,7 @@ void cMarkAdStandalone::CheckStart() {
         }
         else { // we found a hborder start mark
             dsyslog("cMarkAdStandalone::CheckStart(): horizontal border start found at (%i)", hStart->position);
-            clMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);  // if there is a MT_HBORDERSTOP short after the MT_HBORDERSTART, MT_HBORDERSTART is not valid
+            cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);  // if there is a MT_HBORDERSTOP short after the MT_HBORDERSTART, MT_HBORDERSTART is not valid
             if ( hStop && ((hStop->position - hStart->position) < (2 * delta))) {
                 dsyslog("cMarkAdStandalone::CheckStart(): horizontal border STOP (%i) short after horizontal border START (%i) found, this is not valid, delete marks", hStop->position, hStart->position);
                 hBorderStopPosition = hStop->position;  // maybe we can use it as start mark if we found nothing else
@@ -1004,11 +1004,11 @@ void cMarkAdStandalone::CheckStart() {
 
 // try to find a vertical border mark
     if (!begin) {
-        clMark *vStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_VBORDERSTART);  // do not find initial vborder start from previous recording
+        cMark *vStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_VBORDERSTART);  // do not find initial vborder start from previous recording
         if (!vStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no vertical border at start found, ignore vertical border detection");
             macontext.Video.Options.ignoreVborder = true;
-            clMark *vStop = marks.GetAround(iStartA + delta, iStartA + delta, MT_VBORDERSTOP);
+            cMark *vStop = marks.GetAround(iStartA + delta, iStartA + delta, MT_VBORDERSTOP);
             if (vStop) {
                 int pos = vStop->position;
                 char *comment = NULL;
@@ -1023,9 +1023,9 @@ void cMarkAdStandalone::CheckStart() {
         }
         else {
             dsyslog("cMarkAdStandalone::CheckStart(): vertical border start found at (%i)", vStart->position);
-            clMark *vStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is not valid
+            cMark *vStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is not valid
             if (vStop) {
-                clMark *vNextStart = marks.GetNext(vStop->position, MT_VBORDERSTART);
+                cMark *vNextStart = marks.GetNext(vStop->position, MT_VBORDERSTART);
                 int markDiff = static_cast<int> (vStop->position - vStart->position) / macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::CheckStart(): vertical border stop found at (%d), %ds after vertical border start", vStop->position, markDiff);
                 if ((markDiff <= 122) ||    // found 96s opening credits with vborder, found 122s of recording before
@@ -1053,7 +1053,7 @@ void cMarkAdStandalone::CheckStart() {
 // try to find a logo mark
     if (!begin) {
         RemoveLogoChangeMarks();
-        clMark *lStart = marks.GetAround(iStartA + (2 * delta), iStartA, MT_LOGOSTART);   // increase from 1
+        cMark *lStart = marks.GetAround(iStartA + (2 * delta), iStartA, MT_LOGOSTART);   // increase from 1
         if (!lStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no logo start mark found");
         }
@@ -1065,7 +1065,7 @@ void cMarkAdStandalone::CheckStart() {
                 free(indexToHMSF);
             }
             if (lStart->position  < (iStart / 8)) {  // start mark is too early, try to find a later mark
-                clMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
+                cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
                 if (lNextStart && (lNextStart->position  > (iStart / 8)) && ((lNextStart->position - lStart->position) < (5 * delta))) {  // found later logo start mark
                     char *indexToHMSFStart = marks.IndexToHMSF(lNextStart->position, &macontext);
                     if (indexToHMSFStart) {
@@ -1078,7 +1078,7 @@ void cMarkAdStandalone::CheckStart() {
             }
             bool isInvalid = true;
             while (isInvalid) {
-                clMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
+                cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
                 if (lStop) {  // there is a next stop mark in the start range
                     int distanceStartStop = (lStop->position - lStart->position) / macontext.Video.Info.framesPerSecond;
                     if (distanceStartStop < 55) {  // very short logo part, lStart is possible wrong, do not increase, first ad can be early
@@ -1090,7 +1090,7 @@ void cMarkAdStandalone::CheckStart() {
                             FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                             free(indexToHMSF);
                         }
-                        clMark *lNextStart = marks.GetNext(lStop->position, MT_LOGOSTART); // get next logo start mark
+                        cMark *lNextStart = marks.GetNext(lStop->position, MT_LOGOSTART); // get next logo start mark
                         if (lNextStart) {  // now we have logo start/stop/start, this can be a preview before broadcast start
                             indexToHMSF = marks.IndexToHMSF(lNextStart->position, &macontext);
                             int distanceStopNextStart = (lNextStart->position - lStop->position) / macontext.Video.Info.framesPerSecond;
@@ -1193,10 +1193,10 @@ void cMarkAdStandalone::CheckStart() {
         }
 
         dsyslog("cMarkAdStandalone::CheckStart(): delete all black screen marks except start mark");
-        clMark *mark = marks.GetFirst();   // delete all black screen marks because they are weak, execpt the start mark
+        cMark *mark = marks.GetFirst();   // delete all black screen marks because they are weak, execpt the start mark
         while (mark) {
             if (((mark->type & 0xF0) == MT_BLACKCHANGE) && (mark->position > begin->position) ) {
-                clMark *tmp = mark;
+                cMark *tmp = mark;
                 mark = mark->Next();
                 marks.Del(tmp);  // delete mark from normal list
                 continue;
@@ -1226,7 +1226,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // count logo STOP/START pairs
     int countStopStart = 0;
-    clMark *mark = marks.GetFirst();
+    cMark *mark = marks.GetFirst();
     while (mark) {
         if ((mark->type == MT_LOGOSTOP) && mark->Next() && (mark->Next()->type == MT_LOGOSTART)) {
             countStopStart++;
@@ -1260,7 +1260,7 @@ void cMarkAdStandalone::LogSeparator(const bool main) {
 void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
     dsyslog("*************************************************************");
     dsyslog("cMarkAdStandalone::DebugMarks(): current marks:");
-    clMark *mark = marks.GetFirst();
+    cMark *mark = marks.GetFirst();
     while (mark) {
         char *indexToHMSF = marks.IndexToHMSF(mark->position, &macontext);
         if (indexToHMSF) {
@@ -1287,18 +1287,18 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
 
 void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no sense
     LogSeparator(true);
-    clMark *mark = NULL;
+    cMark *mark = NULL;
 
 // delete logo and border marks if we have channel marks
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): delete logo marks if we have channel or border marks");
     DebugMarks();     //  only for debugging
-    clMark *channelStart = marks.GetNext(0, MT_CHANNELSTART);
-    clMark *channelStop = marks.GetNext(0, MT_CHANNELSTOP);
-    clMark *hborderStart = marks.GetNext(0, MT_HBORDERSTART);
-    clMark *hborderStop = marks.GetNext(0, MT_HBORDERSTOP);
-    clMark *vborderStart = marks.GetNext(0, MT_VBORDERSTART);
-    clMark *vborderStop = marks.GetNext(0, MT_VBORDERSTOP);
+    cMark *channelStart = marks.GetNext(0, MT_CHANNELSTART);
+    cMark *channelStop = marks.GetNext(0, MT_CHANNELSTOP);
+    cMark *hborderStart = marks.GetNext(0, MT_HBORDERSTART);
+    cMark *hborderStop = marks.GetNext(0, MT_HBORDERSTOP);
+    cMark *vborderStart = marks.GetNext(0, MT_VBORDERSTART);
+    cMark *vborderStop = marks.GetNext(0, MT_VBORDERSTOP);
     if (hborderStart && hborderStop) {
         int hDelta = (hborderStop->position - hborderStart->position) / macontext.Video.Info.framesPerSecond;
         if (hDelta < 120) {
@@ -1321,7 +1321,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             if (mark != marks.GetFirst()) {
                 if (mark == marks.GetLast()) break;
                 if ((mark->type == MT_LOGOSTART) || (mark->type == MT_LOGOSTOP)) {
-                    clMark *tmp = mark;
+                    cMark *tmp = mark;
                     mark = mark->Next();
                     dsyslog("cMarkAdStandalone::CheckMarks(): delete logo mark (%i)", tmp->position);
                     marks.Del(tmp);
@@ -1341,7 +1341,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         if (mark != marks.GetFirst()) {
             if (mark == marks.GetLast()) break;
             if ((mark->type & 0xF0) == MT_BLACKCHANGE) {
-                clMark *tmp = mark;
+                cMark *tmp = mark;
                 mark = mark->Next();
                 dsyslog("cMarkAdStandalone::CheckMarks(): delete black screen mark (%i)", tmp->position);
                 marks.Del(tmp);
@@ -1362,7 +1362,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             if (diff <= 880 ) {  // changed from 500 to 880
                 if (mark->Next()->Next() && (mark->Next()->Next()->type == MT_LOGOSTOP)) {
                     int length = (mark->Next()->Next()->position - mark->Next()->position) /  macontext.Video.Info.framesPerSecond;
-                    clMark *tmp = mark->Next()->Next();
+                    cMark *tmp = mark->Next()->Next();
                     if (length <= 423) {  // do not delete a short stop/start before a long broadcast part, this pair contains start mark,
                                           // changed from < 290 to <= 423 (with length 200)
                         dsyslog("cMarkAdStandalone::CheckMarks(): very short logo stop (%d) and logo start (%d) pair, diff %dms, length after %ds, deleting", mark->position, mark->Next()->position, diff, length);
@@ -1387,10 +1387,10 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     while (mark) {
 // check logo marks
         if ((mark->type == MT_LOGOSTART) && (mark->position != marks.GetFirst()->position)) {  // not start or end mark
-            clMark *stopMark = marks.GetNext(mark->position, MT_LOGOSTOP);
+            cMark *stopMark = marks.GetNext(mark->position, MT_LOGOSTOP);
             if (stopMark && (stopMark->type == MT_LOGOSTOP) && (stopMark->position != marks.GetLast()->position)) { // next logo stop mark not end mark
-                clMark *stopBefore = marks.GetPrev(mark->position, MT_LOGOSTOP);
-                clMark *startAfter= marks.GetNext(stopMark->position, MT_LOGOSTART);
+                cMark *stopBefore = marks.GetPrev(mark->position, MT_LOGOSTOP);
+                cMark *startAfter= marks.GetNext(stopMark->position, MT_LOGOSTART);
                 if (stopBefore && startAfter) {  // if advertising before is long this is the really the next start mark
                     int lengthAdBefore = static_cast<int> (1000 * (mark->position - stopBefore->position) / macontext.Video.Info.framesPerSecond);
                     int lengthAdAfter = static_cast<int> (1000 * (startAfter->position - stopMark->position) / macontext.Video.Info.framesPerSecond);
@@ -1404,7 +1404,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                                                                                        // min changed from 7000 to 5000 to 1000
                             if (lengthPreview <= 110) {  // max preview found was 110s
                                 isyslog("found preview between logo mark (%d) and logo mark (%d) in advertisement, deleting marks", mark->position, stopMark->position);
-                                clMark *tmp = startAfter;
+                                cMark *tmp = startAfter;
                                 marks.Del(mark);
                                 marks.Del(stopMark);
                                 mark = tmp;
@@ -1431,17 +1431,17 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     mark = marks.GetFirst();
     while (mark) {
         if ((mark->type == MT_HBORDERSTART) && (mark->position != marks.GetFirst()->position) && mark->Next()) {  // not start or end mark
-            clMark *bStop = marks.GetNext(mark->position, MT_HBORDERSTOP);
+            cMark *bStop = marks.GetNext(mark->position, MT_HBORDERSTOP);
             if (bStop && (bStop->position != marks.GetLast()->position)) { // next mark not end mark
                 int lengthAd = static_cast<int> ((bStop->position - mark->position) / macontext.Video.Info.framesPerSecond);
                 if (lengthAd < 130) { // increased from 70 to 130
                     isyslog("found advertisement of length %is between hborder mark (%i) and hborder mark (%i), deleting marks", lengthAd, mark->position, bStop->position);
-                    clMark *logoStart = marks.GetNext(mark->position, MT_LOGOSTART);
+                    cMark *logoStart = marks.GetNext(mark->position, MT_LOGOSTART);
                     if (logoStart && (logoStart->position <= bStop->position)) { // if there is a logo start between hborder start and bhorder end, it is the logo start of the preview, this is invalid
                         dsyslog("cMarkAdStandalone::CheckMarks(): invalid logo start mark between hborder start/stop, delete (%d)", logoStart->position);
                         marks.Del(logoStart);
                     }
-                    clMark *tmp = mark;
+                    cMark *tmp = mark;
                     mark = mark->Next();  // this can be the border stop mark or any other mark in between
                     if (mark->position == bStop->position) mark = mark->Next();  // there can be other marks in between
                     marks.Del(tmp);
@@ -1465,9 +1465,9 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     // check logo end marks
     mark = marks.GetLast();
     if (mark && (mark->type == MT_LOGOSTOP)) {  // last mark is a logo stop mark
-        clMark *markStart = marks.GetPrev(mark->position);
+        cMark *markStart = marks.GetPrev(mark->position);
         if (markStart && (markStart->type == MT_LOGOSTART) && ((mark->position - markStart->position) < (15 * macontext.Video.Info.framesPerSecond))) { // logo start mark is short before
-            clMark *markStop = marks.GetPrev(markStart->position);
+            cMark *markStop = marks.GetPrev(markStart->position);
             if (markStop && (markStop->type == MT_LOGOSTOP) && ((markStart->position - markStop->position) < (25 * macontext.Video.Info.framesPerSecond))) { // logo stop maek is short before start mark, use this as end mark and delete rest
                 dsyslog("cMarkAdStandalone::CheckMarks(): short logo STOP/START/STOP sequence at the end, delete last pair");
                 marks.Del(mark->position);
@@ -1485,7 +1485,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.framesPerSecond;
             if ((mark->Next()->position - mark->position) <= MARKDIFF) {
                 isyslog("mark distance between logo START and STOP too short %.1fs, deleting (%i,%i)", distance, mark->position, mark->Next()->position);
-                clMark *tmp = mark;
+                cMark *tmp = mark;
                 mark = mark->Next()->Next();
                 marks.Del(tmp->Next());
                 marks.Del(tmp);
@@ -1498,7 +1498,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             if ((mark->Next()->position - mark->position) <= MARKDIFF) {
                 double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.framesPerSecond;
                 isyslog("mark distance between logo STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
-                clMark *tmp = mark;
+                cMark *tmp = mark;
                 mark = mark->Next()->Next();
                 marks.Del(tmp->Next());
                 marks.Del(tmp);
@@ -1510,7 +1510,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             if ((mark->Next()->position - mark->position) <= MARKDIFF) {
                 double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.framesPerSecond;
                 isyslog("mark distance between horizontal STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
-                clMark *tmp = mark;
+                cMark *tmp = mark;
                 mark = mark->Next()->Next();
                 marks.Del(tmp->Next());
                 marks.Del(tmp);
@@ -1522,7 +1522,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             if ((mark->Next()->position - mark->position) <= MARKDIFF) {
                 double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.framesPerSecond;
                 isyslog("mark distance between vertical STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
-                clMark *tmp = mark;
+                cMark *tmp = mark;
                 mark = mark->Next()->Next();
                 marks.Del(tmp->Next());
                 marks.Del(tmp);
@@ -1539,7 +1539,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     while (mark) {
         if (((mark->type & 0x0F) == MT_STOP) && (mark == marks.GetFirst())){
             dsyslog("Start with STOP mark, delete first mark");
-            clMark *tmp = mark;
+            cMark *tmp = mark;
             mark = mark->Next();
             marks.Del(tmp);
             continue;
@@ -1551,7 +1551,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         }
         if (((mark->type & 0x0F)==MT_STOP) && (mark->Next()) && ((mark->Next()->type & 0x0F)==MT_STOP)) {  // two stop marks, delete second
             dsyslog("cMarkAdStandalone::CheckMarks(): stop mark (%i) followed by stop mark (%i) delete first", mark->position, mark->Next()->position);
-            clMark *tmp=mark;
+            cMark *tmp=mark;
             mark = mark->Next();
             marks.Del(tmp);
             continue;
@@ -1615,7 +1615,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                     continue;
                 }
                 if (mark->Next()->type == MT_VPSSTART) {
-                    clMark *tmp=mark;
+                    cMark *tmp=mark;
                     mark = mark->Next();
                     marks.Del(tmp);
                     continue;
@@ -1628,7 +1628,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                     continue;
                 }
                 if (mark->Next()->type == MT_VPSSTOP) {
-                    clMark *tmp=mark;
+                    cMark *tmp=mark;
                     mark = mark->Next();
                     marks.Del(tmp);
                     continue;
@@ -1658,7 +1658,7 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
     if (vpsFrame < 0) {
         dsyslog("cMarkAdStandalone::AddMarkVPS(): failed to get frame from offset %d", offset);
     }
-    clMark *mark = NULL;
+    cMark *mark = NULL;
     char *comment = NULL;
     char *timeText = NULL;
     if (!isPause) {
@@ -1709,7 +1709,7 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
                 marks.DelWeakFromTo(0, vpsFrame, 0xFF);
             }
             else if ((type == MT_STOP) && isPause) {  // delete all marks between vps start and vps pause start
-                clMark *startVPS = marks.GetFirst();
+                cMark *startVPS = marks.GetFirst();
                 if (startVPS && (startVPS->type == MT_VPSSTART)) {
                     marks.DelWeakFromTo(startVPS->position, vpsFrame, MT_VPSCHANGE);
                 }
@@ -1721,87 +1721,87 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
 }
 
 
-void cMarkAdStandalone::AddMark(sMarkAdMark *Mark) {
-    if (!Mark) return;
-    if (!Mark->type) return;
+void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
+    if (!mark) return;
+    if (!mark->type) return;
     if ((macontext.Config) && (macontext.Config->logoExtraction != -1)) return;
     if (gotendmark) return;
 
     char *comment = NULL;
-    switch (Mark->type) {
+    switch (mark->type) {
         case MT_ASSUMEDSTART:
-            if (asprintf(&comment, "assuming start (%i)*", Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "assuming start (%i)*", mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_ASSUMEDSTOP:
-            if (asprintf(&comment, "assuming stop (%i)", Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "assuming stop (%i)", mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_NOBLACKSTART:
-            if (asprintf(&comment, "detected end of black screen (%i)*", Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "detected end of black screen (%i)*", mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_NOBLACKSTOP:
-            if (asprintf(&comment, "detected start of black screen (%i)", Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "detected start of black screen (%i)", mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_LOGOSTART:
-            if (asprintf(&comment, "detected logo start (%i)*", Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "detected logo start (%i)*", mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_LOGOSTOP:
-            if (asprintf(&comment, "detected logo stop (%i)", Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "detected logo stop (%i)", mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_HBORDERSTART:
-            if (asprintf(&comment, "detected start of horiz. borders (%i)*", Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "detected start of horiz. borders (%i)*", mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_HBORDERSTOP:
-            if (asprintf(&comment, "detected stop of horiz. borders (%i)", Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "detected stop of horiz. borders (%i)", mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_VBORDERSTART:
-            if (asprintf(&comment, "detected start of vert. borders (%i)*", Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "detected start of vert. borders (%i)*", mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_VBORDERSTOP:
-            if (asprintf(&comment, "detected stop of vert. borders (%i)", Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "detected stop of vert. borders (%i)", mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_ASPECTSTART:
-            if (!Mark->AspectRatioBefore.num) {
-                if (asprintf(&comment, "aspectratio start with %i:%i (%i)*", Mark->AspectRatioAfter.num, Mark->AspectRatioAfter.den, Mark->position) == -1) comment = NULL;
+            if (!mark->AspectRatioBefore.num) {
+                if (asprintf(&comment, "aspectratio start with %i:%i (%i)*", mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position) == -1) comment = NULL;
                 ALLOC(strlen(comment)+1, "comment");
             }
             else {
-                if (asprintf(&comment, "aspectratio change from %i:%i to %i:%i (%i)*", Mark->AspectRatioBefore.num, Mark->AspectRatioBefore.den,
-                         Mark->AspectRatioAfter.num, Mark->AspectRatioAfter.den, Mark->position) == -1) comment = NULL;
+                if (asprintf(&comment, "aspectratio change from %i:%i to %i:%i (%i)*", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den,
+                         mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position) == -1) comment = NULL;
                 ALLOC(strlen(comment)+1, "comment");
-                if ((macontext.Config->autoLogo > 0) &&( Mark->position > 0) && bDecodeVideo) {
-                    isyslog("logo detection reenabled at frame (%d), trying to find a logo from this position", Mark->position);
+                if ((macontext.Config->autoLogo > 0) &&( mark->position > 0) && bDecodeVideo) {
+                    isyslog("logo detection reenabled at frame (%d), trying to find a logo from this position", mark->position);
                     macontext.Video.Options.ignoreLogoDetection = false;
                     macontext.Video.Options.ignoreBlackScreenDetection = false;
                 }
             }
             break;
         case MT_ASPECTSTOP:
-            if (asprintf(&comment, "aspectratio change from %i:%i to %i:%i (%i)", Mark->AspectRatioBefore.num, Mark->AspectRatioBefore.den,
-                     Mark->AspectRatioAfter.num, Mark->AspectRatioAfter.den, Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "aspectratio change from %i:%i to %i:%i (%i)", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den,
+                     mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
-            if ((macontext.Config->autoLogo > 0) && (Mark->position > 0) && bDecodeVideo) {
-                isyslog("logo detection reenabled at frame (%d), trying to find a logo from this position", Mark->position);
+            if ((macontext.Config->autoLogo > 0) && (mark->position > 0) && bDecodeVideo) {
+                isyslog("logo detection reenabled at frame (%d), trying to find a logo from this position", mark->position);
                 macontext.Video.Options.ignoreLogoDetection = false;
                 macontext.Video.Options.ignoreBlackScreenDetection = false;
             }
             break;
         case MT_CHANNELSTART:
             macontext.Audio.Info.channelChange = true;
-            if (asprintf(&comment, "audio channel change from %i to %i (%i)*", Mark->channelsBefore, Mark->channelsAfter, Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "audio channel change from %i to %i (%i)*", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_CHANNELSTOP:
-            if ((Mark->position > chkSTART) && (Mark->position < iStopA / 2) && !macontext.Audio.Info.channelChange) {
+            if ((mark->position > chkSTART) && (mark->position < iStopA / 2) && !macontext.Audio.Info.channelChange) {
                 dsyslog("cMarkAdStandalone::AddMark(): first audio channel change is after chkSTART, disable logo/border/aspect detection now");
                 if (iStart == 0) marks.DelWeakFromTo(marks.GetFirst()->position, INT_MAX, MT_CHANNELCHANGE); // only if we heve selected a start mark
                 bDecodeVideo = false;
@@ -1810,33 +1810,33 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *Mark) {
                 macontext.Video.Options.ignoreBlackScreenDetection = true;
             }
             macontext.Audio.Info.channelChange = true;
-            if (asprintf(&comment, "audio channel change from %i to %i (%i)", Mark->channelsBefore, Mark->channelsAfter, Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "audio channel change from %i to %i (%i)", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_RECORDINGSTART:
-            if (asprintf(&comment, "start of recording (%i)", Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "start of recording (%i)", mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         case MT_RECORDINGSTOP:
-            if (asprintf(&comment, "stop of recording (%i)",Mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "stop of recording (%i)",mark->position) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
             break;
         default:
-            dsyslog("cMarkAdStandalone::AddMark(): unknown mark type 0x%X", Mark->type);
+            dsyslog("cMarkAdStandalone::AddMark(): unknown mark type 0x%X", mark->type);
     }
 
-    clMark *prev = marks.GetLast();
+    cMark *prev = marks.GetLast();
     if (prev) {
-        if (((prev->type & 0x0F) == (Mark->type & 0x0F)) && ((prev->type & 0xF0) != (Mark->type & 0xF0))) { // do not delete same mark type
+        if (((prev->type & 0x0F) == (mark->type & 0x0F)) && ((prev->type & 0xF0) != (mark->type & 0xF0))) { // do not delete same mark type
             int markDiff;
             if (iStart != 0) markDiff = static_cast<int> (macontext.Video.Info.framesPerSecond * 2);  // before chkStart: let more marks untouched, we need them for start detection
             else markDiff = static_cast<int> (macontext.Video.Info.framesPerSecond * 30);
-            int diff = abs(Mark->position-prev->position);
+            int diff = abs(mark->position-prev->position);
             if (diff < markDiff) {
-                if (prev->type > Mark->type) {
-                    isyslog("previous mark (%i) type 0x%X stronger than actual mark, deleting (%i) type 0x%X", prev->position, prev->type, Mark->position, Mark->type);
-                    if ((Mark->type & 0xF0) == MT_BLACKCHANGE) {
-                        blackMarks.Add(Mark->type, Mark->position, NULL, false); // add mark to blackscreen list
+                if (prev->type > mark->type) {
+                    isyslog("previous mark (%i) type 0x%X stronger than actual mark, deleting (%i) type 0x%X", prev->position, prev->type, mark->position, mark->type);
+                    if ((mark->type & 0xF0) == MT_BLACKCHANGE) {
+                        blackMarks.Add(mark->type, mark->position, NULL, false); // add mark to blackscreen list
                     }
                     if (comment) {
                         FREE(strlen(comment)+1, "comment");
@@ -1845,7 +1845,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *Mark) {
                     return;
                 }
                 else {
-                    isyslog("actual mark (%i) type 0x%X stronger then previous mark, deleting %i type 0x%X", Mark->position, Mark->type, prev->position, prev->type);
+                    isyslog("actual mark (%i) type 0x%X stronger then previous mark, deleting %i type 0x%X", mark->position, mark->type, prev->position, prev->type);
                     if ((prev->type & 0xF0) == MT_BLACKCHANGE) {
                         blackMarks.Add(prev->type, prev->position, NULL, false); // add mark to blackscreen list
                     }
@@ -1856,9 +1856,9 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *Mark) {
     }
 
 // set inBroadCast status
-    if ((Mark->type & 0xF0) != MT_BLACKCHANGE){ //  dont use BLACKSCEEN to detect if we are in broadcast
-        if (!((Mark->type <= MT_ASPECTSTART) && (marks.GetPrev(Mark->position, MT_CHANNELSTOP) && marks.GetPrev(Mark->position, MT_CHANNELSTART)))) { // if there are MT_CHANNELSTOP and MT_CHANNELSTART marks, wait for MT_CHANNELSTART
-            if ((Mark->type & 0x0F) == MT_START) {
+    if ((mark->type & 0xF0) != MT_BLACKCHANGE){ //  dont use BLACKSCEEN to detect if we are in broadcast
+        if (!((mark->type <= MT_ASPECTSTART) && (marks.GetPrev(mark->position, MT_CHANNELSTOP) && marks.GetPrev(mark->position, MT_CHANNELSTART)))) { // if there are MT_CHANNELSTOP and MT_CHANNELSTART marks, wait for MT_CHANNELSTART
+            if ((mark->type & 0x0F) == MT_START) {
                 inBroadCast = true;
             }
             else {
@@ -1868,17 +1868,17 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *Mark) {
     }
 
 // add mark
-    char *indexToHMSF = marks.IndexToHMSF(Mark->position, &macontext);
+    char *indexToHMSF = marks.IndexToHMSF(mark->position, &macontext);
     if (indexToHMSF) {
         if (comment) {
-            if ((Mark->type & 0xF0) == MT_BLACKCHANGE) dsyslog("%s at %s inBroadCast: %i",comment, indexToHMSF, inBroadCast);
+            if ((mark->type & 0xF0) == MT_BLACKCHANGE) dsyslog("%s at %s inBroadCast: %i",comment, indexToHMSF, inBroadCast);
             else isyslog("%s at %s inBroadCast: %i",comment, indexToHMSF, inBroadCast);
         }
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
-    if ((Mark->type & 0xF0) == MT_BLACKCHANGE) blackMarks.Add(Mark->type, Mark->position, NULL, inBroadCast);
-    marks.Add(Mark->type, Mark->position, comment, inBroadCast);
+    if ((mark->type & 0xF0) == MT_BLACKCHANGE) blackMarks.Add(mark->type, mark->position, NULL, inBroadCast);
+    marks.Add(mark->type, mark->position, comment, inBroadCast);
     if (comment) {
         FREE(strlen(comment)+1, "comment");
         free(comment);
@@ -2029,7 +2029,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
 }
 
 
-bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
+bool cMarkAdStandalone::ProcessMark2ndPass(cMark **mark1, cMark **mark2) {
     if (!ptr_cDecoder) return false;
     if (!mark1) return false;
     if (!*mark1) return false;
@@ -2051,7 +2051,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
 #define OVERLAP_CHECK_AFTER 300  // start 5 min after start mark
     int fRangeEnd = (*mark2)->position + (macontext.Video.Info.framesPerSecond * OVERLAP_CHECK_AFTER);
 
-    clMark *prevStart = marks.GetPrev((*mark1)->position, MT_START, 0x0F);
+    cMark *prevStart = marks.GetPrev((*mark1)->position, MT_START, 0x0F);
     if (prevStart) {
         if (fRangeBegin <= (prevStart->position + ((OVERLAP_CHECK_AFTER + 1) * macontext.Video.Info.framesPerSecond))) { // previous start mark less than OVERLAP_CHECK_AFTER away, prevent overlapping check
             dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): previous stop mark at (%d) very near, unable to check overlap", prevStart->position);
@@ -2059,7 +2059,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(clMark **mark1, clMark **mark2) {
         }
     }
 
-    clMark *nextStop = marks.GetNext((*mark2)->position, MT_STOP, 0x0F);
+    cMark *nextStop = marks.GetNext((*mark2)->position, MT_STOP, 0x0F);
     if (nextStop) {
         if (nextStop->position != marks.GetLast()->position) {
             if (fRangeEnd >= (nextStop->position - ((OVERLAP_CHECK_BEFORE + OVERLAP_CHECK_AFTER + 1) * macontext.Video.Info.framesPerSecond))) { // next start mark less than OVERLAP_CHECK_AFTER + OVERLAP_CHECK_BEFORE away, prevent overlapping check
@@ -2211,7 +2211,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
     if (!ptr_cDecoder) return;
 
     ptr_cDecoder->Reset();
-    clMark *mark = marks.GetFirst();
+    cMark *mark = marks.GetFirst();
     if (!macontext.Config->fullDecode) {
         while (mark) {
             if (mark->position != recordingIndexMark->GetIFrameBefore(mark->position)) dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at (%d) type 0x%X is not a iFrame position", mark->position, mark->type);
@@ -2298,7 +2298,7 @@ void cMarkAdStandalone::MarkadCut() {
         ptr_cEncoder->Reset(pass);
 
         // set start and end mark of first part
-        clMark *startMark = marks.GetFirst();
+        cMark *startMark = marks.GetFirst();
         if ((startMark->type & 0x0F) != MT_START) {
             esyslog("got invalid start mark at (%i) type 0x%X", startMark->position, startMark->type);
             return;
@@ -2308,7 +2308,7 @@ void cMarkAdStandalone::MarkadCut() {
         else startPosition = recordingIndexMark->GetIFrameAfter(startMark->position);  // go after mark position to prevent last picture of ad
         if (startPosition < 0) startPosition = startMark->position;
 
-        clMark *stopMark = startMark->Next();
+        cMark *stopMark = startMark->Next();
         if ((stopMark->type & 0x0F) != MT_STOP) {
             esyslog("got invalid stop mark at (%i) type 0x%X", stopMark->position, stopMark->type);
             return;
@@ -2414,7 +2414,7 @@ void cMarkAdStandalone::Process3ndPass() {
     bool save = false;
 // check last logo stop mark if closing credits follows
     if (ptr_cDecoder) {  // we use file position from 2ndPass call
-        clMark *lastStop = marks.GetLast();
+        cMark *lastStop = marks.GetLast();
         if (lastStop && ((lastStop->type == MT_LOGOSTOP) ||  (lastStop->type == MT_HBORDERSTOP))) {
             dsyslog("cMarkAdStandalone::Process3ndPass(): search for closing credits");
             if (MoveLastStopAfterClosingCredits(lastStop)) {
@@ -2435,7 +2435,7 @@ void cMarkAdStandalone::Process3ndPass() {
     cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoder, recordingIndexMark);
     ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
-    clMark *markLogo = marks.GetFirst();
+    cMark *markLogo = marks.GetFirst();
     while (markLogo) {
         if (markLogo->type == MT_LOGOSTART) {
             char *indexToHMSFStartMark = marks.IndexToHMSF(markLogo->position, &macontext);
@@ -2489,8 +2489,8 @@ void cMarkAdStandalone::Process3ndPass() {
                     bool moved = false;
                     // check blackscreen between introduction logo and logo start
                     int innerDiff = 0;
-                    clMark *blackMarkStart = blackMarks.GetNext(introductionStartPosition, MT_NOBLACKSTART);
-                    clMark *blackMarkStop = blackMarks.GetNext(introductionStartPosition, MT_NOBLACKSTOP);
+                    cMark *blackMarkStart = blackMarks.GetNext(introductionStartPosition, MT_NOBLACKSTART);
+                    cMark *blackMarkStop = blackMarks.GetNext(introductionStartPosition, MT_NOBLACKSTOP);
                     if (blackMarkStart && blackMarkStop && (blackMarkStart->position <= markLogo->position) && (blackMarkStop->position <= markLogo->position)) {
                         innerDiff = blackMarkStart->position - blackMarkStop->position;
                         dsyslog("cMarkAdStandalone::Process3ndPass(): found blackscreen start (%d) and stop (%d) between introduction logo (%d) and start mark (%d), distance %d", blackMarkStop->position, blackMarkStart->position, introductionStartPosition, markLogo->position, innerDiff);
@@ -2556,7 +2556,7 @@ void cMarkAdStandalone::Process3ndPass() {
     ptr_cDecoder->DecodeDir(directory);
 
     char *indexToHMSF = NULL;
-    clMark *mark = marks.GetFirst();
+    cMark *mark = marks.GetFirst();
     while (mark) {
         if (indexToHMSF) {
            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
@@ -2635,7 +2635,7 @@ void cMarkAdStandalone::Process3ndPass() {
     mark = marks.GetFirst();
     while (mark) {
         if (mark->type == MT_LOGOSTART) {
-            clMark *blackMark = blackMarks.GetAround(BLACKSCREEN_RANGE * macontext.Video.Info.framesPerSecond, mark->position, MT_NOBLACKSTART); // blacksceen belongs to previous broadcast, use first frame after
+            cMark *blackMark = blackMarks.GetAround(BLACKSCREEN_RANGE * macontext.Video.Info.framesPerSecond, mark->position, MT_NOBLACKSTART); // blacksceen belongs to previous broadcast, use first frame after
             if (blackMark) {
                 int distance = mark->position - blackMark->position;
                 int distance_s = distance / macontext.Video.Info.framesPerSecond;
@@ -2650,7 +2650,7 @@ void cMarkAdStandalone::Process3ndPass() {
             else dsyslog("cMarkAdStandalone::Process3ndPass(): no black screen mark found before logo start mark (%d)", mark->position);
         }
         if (mark->type == MT_LOGOSTOP) {
-            clMark *blackMark = blackMarks.GetAround(BLACKSCREEN_RANGE * macontext.Video.Info.framesPerSecond, mark->position, MT_NOBLACKSTART);
+            cMark *blackMark = blackMarks.GetAround(BLACKSCREEN_RANGE * macontext.Video.Info.framesPerSecond, mark->position, MT_NOBLACKSTART);
             if (blackMark) {
                 int distance = blackMark->position - mark->position;
                 int distance_s = distance / macontext.Video.Info.framesPerSecond;
@@ -2702,7 +2702,7 @@ void cMarkAdStandalone::Process2ndPass() {
     if (!marks.Count()) {
         marks.Load(directory, macontext.Video.Info.framesPerSecond);
     }
-    clMark *p1 = NULL,*p2 = NULL;
+    cMark *p1 = NULL,*p2 = NULL;
 
     if (ptr_cDecoder) {
         ptr_cDecoder->Reset();
@@ -2897,7 +2897,7 @@ void cMarkAdStandalone::ProcessFiles() {
             // write an early start mark for running recordings
             if (macontext.Info.isRunningRecording && !macontext.Info.isStartMarkSaved && (ptr_cDecoder->GetFrameNumber() >= (macontext.Info.tStart * macontext.Video.Info.framesPerSecond))) {
                 dsyslog("cMarkAdStandalone::ProcessFiles(): recording is aktive, read frame (%d), now save dummy start mark at pre timer position %ds", ptr_cDecoder->GetFrameNumber(), macontext.Info.tStart);
-                clMarks marksTMP;
+                cMarks marksTMP;
                 marksTMP.Add(MT_ASSUMEDSTART, ptr_cDecoder->GetFrameNumber(), "timer start", true);
                 marksTMP.Save(macontext.Config->recDir, &macontext, true);
                 macontext.Info.isStartMarkSaved = true;
@@ -2940,11 +2940,11 @@ void cMarkAdStandalone::ProcessFiles() {
 }
 
 
-bool cMarkAdStandalone::SetFileUID(char *File) {
-    if (!File) return false;
+bool cMarkAdStandalone::SetFileUID(char *file) {
+    if (!file) return false;
     struct stat statbuf;
     if (!stat(directory, &statbuf)) {
-        if (chown(File, statbuf.st_uid, statbuf.st_gid) == -1) return false;
+        if (chown(file, statbuf.st_uid, statbuf.st_gid) == -1) return false;
     }
     return true;
 }
@@ -3145,7 +3145,7 @@ bool cMarkAdStandalone::SaveInfo() {
 }
 
 
-bool cMarkAdStandalone::isVPSTimer() {
+bool cMarkAdStandalone::IsVPSTimer() {
     if (!directory) return false;
     bool timerVPS = false;
 
@@ -3180,7 +3180,7 @@ bool cMarkAdStandalone::isVPSTimer() {
 }
 
 
-time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd) {
+time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
     // get recording start from atime of directory (if the volume is mounted with noatime)
     struct mntent *ent;
     struct stat statbuf;
@@ -3204,23 +3204,23 @@ time_t cMarkAdStandalone::GetBroadcastStart(time_t start, int fd) {
     }
     endmntent(mounts);
 
-    if (useatime) dsyslog("cMarkAdStandalone::GetBroadcastStart(): mount option noatime is set, use atime from directory %s to get creation time", directory);
-    else dsyslog("cMarkAdStandalone::GetBroadcastStart(): mount option noatime is not set");
+    if (useatime) dsyslog("cMarkAdStandalone::GetRecordingStart(): mount option noatime is set, use atime from directory %s to get creation time", directory);
+    else dsyslog("cMarkAdStandalone::GetRecordingStart(): mount option noatime is not set");
 
     if ((useatime) && (stat(directory, &statbuf) != -1)) {
         if (fabs(difftime(start,statbuf.st_atime)) < 60 * 60 * 12) {  // do not beleave recordings > 12h
-            dsyslog("cMarkAdStandalone::GetBroadcastStart(): got recording start from directory creation time");
+            dsyslog("cMarkAdStandalone::GetRecordingStart(): got recording start from directory creation time");
             return statbuf.st_atime;
         }
-        dsyslog("cMarkAdStandalone::GetBroadcastStart(): got no valid directory creation time, maybe recording was copied %s", strtok(ctime(&statbuf.st_atime), "\n"));
-        dsyslog("cMarkAdStandalone::GetBroadcastStart(): broadcast start time from vdr info file                          %s", strtok(ctime(&start), "\n"));
+        dsyslog("cMarkAdStandalone::GetRecordingStart(): got no valid directory creation time, maybe recording was copied %s", strtok(ctime(&statbuf.st_atime), "\n"));
+        dsyslog("cMarkAdStandalone::GetRecordingStart(): broadcast start time from vdr info file                          %s", strtok(ctime(&start), "\n"));
     }
 
     // try to get from mtime
     // (and hope info.vdr has not changed after the start of the recording)
     if (fstat(fd,&statbuf) != -1) {
         if (fabs(difftime(start, statbuf.st_mtime)) < 7200) {
-            dsyslog("cMarkAdStandalone::GetBroadcastStart(): getting recording start from VDR info file modification time     %s", strtok(ctime(&statbuf.st_mtime), "\n"));
+            dsyslog("cMarkAdStandalone::GetRecordingStart(): getting recording start from VDR info file modification time     %s", strtok(ctime(&statbuf.st_mtime), "\n"));
             return (time_t) statbuf.st_mtime;
         }
     }
@@ -3448,10 +3448,10 @@ bool cMarkAdStandalone::LoadInfo() {
     if ((macontext.Info.AspectRatio.num == 0) && (macontext.Info.AspectRatio.den == 0)) isyslog("no broadcast aspect ratio found in vdr info");
     if (line) free(line);
 
-    macontext.Info.timerVPS = isVPSTimer();
+    macontext.Info.timerVPS = IsVPSTimer();
     if ((length) && (startTime)) {
         if (!bIgnoreTimerInfo) {
-            time_t rStart = GetBroadcastStart(startTime, fileno(f));
+            time_t rStart = GetRecordingStart(startTime, fileno(f));
             if (rStart) {
                 dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
                 dsyslog("cMarkAdStandalone::LoadInfo():     timer start at %s", strtok(ctime(&startTime), "\n"));
@@ -3599,9 +3599,9 @@ void cMarkAdStandalone::RemovePidfile() {
 // const char cMarkAdStandalone::frametypes[8]={'?','I','P','B','D','S','s','b'};
 
 
-cMarkAdStandalone::cMarkAdStandalone(const char *Directory, sMarkAdConfig *config, cIndex *recordingIndex) {
+cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *config, cIndex *recordingIndex) {
     setlocale(LC_MESSAGES, "");
-    directory = Directory;
+    directory = directoryParam;
     gotendmark = false;
     inBroadCast = false;
     iStopinBroadCast = false;
@@ -3674,7 +3674,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, sMarkAdConfig *confi
         free(libver);
     }
     tsyslog("libavcodec config: %s",avcodec_configuration());
-    isyslog("on %s", Directory);
+    isyslog("on %s", directory);
 
     if (!bDecodeAudio) {
         isyslog("audio decoding disabled by user");
@@ -3730,7 +3730,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, sMarkAdConfig *confi
         return;
     }
 
-    if (asprintf(&indexFile, "%s/index", Directory) == -1) indexFile = NULL;
+    if (asprintf(&indexFile, "%s/index", directory) == -1) indexFile = NULL;
     ALLOC(strlen(indexFile)+1, "indexFile");
 
     if (!LoadInfo()) {
@@ -3760,7 +3760,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *Directory, sMarkAdConfig *confi
         ptitle = title;
     }
     else {
-        ptitle = (char *) Directory;
+        ptitle = (char *) directory;
     }
 
     if (config->osd) {

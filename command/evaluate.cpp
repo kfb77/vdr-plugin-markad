@@ -12,7 +12,7 @@
 
 // evaluate logo stop/start pairs
 // used by logo change detection
-cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, clMarks *blackMarks, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA) {
+cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(cMarks *marks, cMarks *blackMarks, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA) {
     if (!marks) return;
 
 #define LOGO_CHANGE_NEXT_STOP_MIN   7  // in s, do not increase, 7s is the shortest found distance between two logo changes
@@ -27,7 +27,7 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, clMarks *
     dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): start with iStart %d, chkSTART %d, iStopA %d", iStart, chkSTART, iStopA);
     sLogoStopStartPair newPair;
 
-    clMark *mark = marks->GetFirst();
+    cMark *mark = marks->GetFirst();
     while (mark) {
         if (mark->type == MT_LOGOSTOP) newPair.stopPosition = mark->position;
         if ((mark->type == MT_LOGOSTART) && (newPair.stopPosition >= 0)) {
@@ -47,14 +47,14 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(clMarks *marks, clMarks *
         IsInfoLogo(blackMarks, &(*logoPairIterator), framesPerSecond);
 
         // mark after pair
-        clMark *markStop_AfterPair = marks->GetNext(logoPairIterator->stopPosition, MT_LOGOSTOP);
+        cMark *markStop_AfterPair = marks->GetNext(logoPairIterator->stopPosition, MT_LOGOSTOP);
 
         // check length of stop/start logo pair
         int deltaStopStart = (logoPairIterator->startPosition - logoPairIterator->stopPosition ) / framesPerSecond;
         if ((deltaStopStart < LOGO_CHANGE_STOP_START_MIN) &&  (logoPairIterator->isInfoLogo == -1)) { // do not change posible logo info parts
             dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: delta too small %ds (expect >=%ds)", logoPairIterator->stopPosition, logoPairIterator->startPosition, deltaStopStart, LOGO_CHANGE_STOP_START_MIN);
             // maybe we have a wrong start/stop pait inbetween, try next start mark
-            clMark *markNextStart = marks->GetNext(logoPairIterator->startPosition, MT_LOGOSTART);
+            cMark *markNextStart = marks->GetNext(logoPairIterator->startPosition, MT_LOGOSTART);
             if (markNextStart) {
                 int deltaStopStartNew = (markNextStart->position - logoPairIterator->stopPosition ) / framesPerSecond;
                 if (deltaStopStartNew > LOGO_CHANGE_STOP_START_MAX) {
@@ -157,7 +157,7 @@ cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
 
 // check if stop/start pair could be a info logo section
 //
-void cEvaluateLogoStopStartPair::IsInfoLogo(clMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond) {
+void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond) {
     if (framesPerSecond <= 0) return;
 #define LOGO_INTRODUCTION_STOP_START_MIN 6  // min time in s of a info logo section, bigger values than in InfoLogo becase of seek to iFrame, changed from 8 to 7 to 6
 #define LOGO_INTRODUCTION_STOP_START_MAX 17  // max time in s of a info logo section, changed from 17
@@ -166,8 +166,8 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(clMarks *blackMarks, sLogoStopStartP
 
         // check blackscreen before stop/start
         // if direct before logo stop is a blackscreen mark stop/start pair, this logo stop is a valid stop mark
-        clMark *blackStop = blackMarks->GetPrev(logoStopStartPair->stopPosition + 1, MT_NOBLACKSTOP);  // blackscreen can stop at the same position as logo stop
-        clMark *blackStart = blackMarks->GetPrev(logoStopStartPair->stopPosition + 1, MT_NOBLACKSTART); // blackscreen can start at the same position as logo stop
+        cMark *blackStop = blackMarks->GetPrev(logoStopStartPair->stopPosition + 1, MT_NOBLACKSTOP);  // blackscreen can stop at the same position as logo stop
+        cMark *blackStart = blackMarks->GetPrev(logoStopStartPair->stopPosition + 1, MT_NOBLACKSTART); // blackscreen can start at the same position as logo stop
         if ( blackStop && blackStart) {
             int diff = 1000 * (logoStopStartPair->stopPosition - blackStart->position) / framesPerSecond;
             int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;

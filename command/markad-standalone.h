@@ -71,8 +71,19 @@ class cOSDMessage {
 
 class cMarkAdStandalone {
     public:
-        cMarkAdStandalone(const char *Directory, sMarkAdConfig *config, cIndex *recordingIndex);
+
+/**
+ * markad main constuctor
+ * @param directoryParam recording directory
+ * @param config         markad context configuration
+ * @param recordingIndex recording index
+ */
+        cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *config, cIndex *recordingIndex);
         ~cMarkAdStandalone();
+
+/**
+ * copy constructor, not used, only for formal reason
+ */
         cMarkAdStandalone(const cMarkAdStandalone &origin) {   //  copy constructor, not used, only for formal reason
             strcpy(title,origin.title);
             ptitle = title;
@@ -98,7 +109,11 @@ class cMarkAdStandalone {
             indexFile = origin.indexFile;
             sleepcnt = origin.sleepcnt;
         };
-        cMarkAdStandalone &operator =(const cMarkAdStandalone *origin) {   // operator=, not used, only for formal reason
+
+/**
+ * operator=, not used, only for formal reason
+ */
+        cMarkAdStandalone &operator =(const cMarkAdStandalone *origin) {
             strcpy(title,origin->title);
             ptitle = title;
             directory = origin->directory;
@@ -125,27 +140,90 @@ class cMarkAdStandalone {
             sleepcnt = origin->sleepcnt;
             return *this;
         }
+
+/**
+ * process all ts files and detect marks
+ */
         void ProcessFiles();
+
+/**
+ * process second pass, detect overlaps
+ */
         void Process2ndPass();
+
+/**
+ * process 3nd pass, optimze logo marks
+ */
         void Process3ndPass();
+
+/**
+ * cut recording based on detected marks
+ */
         void MarkadCut();
+
 #ifdef DEBUG_MARK_FRAMES
         void DebugMarkFrames();
 #endif
 
     private:
-        void CheckStop();
-        bool MoveLastStopAfterClosingCredits(clMark *stopMark);
-        void RemoveLogoChangeMarks();
+
+/**
+ * check for start mark
+ */
         void CheckStart();
+
+/**
+ * check for end mark
+ */
+        void CheckStop();
+
+/**
+ * move search for closing credits and move last logo stop mark after this
+ * @return true if closing credits are found, false otherwise
+ */
+        bool MoveLastStopAfterClosingCredits(cMark *stopMark);
+
+/**
+ * remove all logo marks based on logo changes
+ */
+        void RemoveLogoChangeMarks();
+
+/**
+ * calculate position to check for start and end mark
+ * @param startframe frame position of pre-timer
+ */
         void CalculateCheckPositions(int startframe);
-        bool isVPSTimer();
-        time_t GetBroadcastStart(time_t start, int fd);
+
+/**
+ * check if timer is VPS controlled
+ * @return true if timer is VPS controlled, false otherwise
+ */
+        bool IsVPSTimer();
+
+/**
+ * get start time of the recording
+ * @param start timer start time of the broadcast
+ * @param fd stream pointer to VDR info file
+ * @return time of recording start
+ */
+        time_t GetRecordingStart(time_t start, int fd);
+
 #if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_MARK_FRAMES)
         void SaveFrame(const int frame, const char *path = NULL, const char *suffix = NULL);
 #endif
-        char *IndexToHMSF(int Index);
-        void AddMark(sMarkAdMark *Mark);
+
+/**
+ * add a mark to marks object
+ * @param mark to add to object
+ */
+        void AddMark(sMarkAdMark *mark);
+
+/**
+ * add or replace marks by VPS events if we have not found stronger marks than black screen marks
+ * @param offset  offset from recording start of the VPS event
+ * @param type    MT_START or MT_STOP
+ * @param isPause true if event is VPS pause, false otherwise
+ */
         void AddMarkVPS(const int offset, const int type, const bool isPause);
 
 /**
@@ -164,32 +242,99 @@ class cMarkAdStandalone {
  * @return true if 00001.ts exists in recording directory, false otherwise
  */
         bool CheckTS();
+
+/**
+ * check if we have a logo <br>
+ * - in the logo cache directory <br>
+ * - in the recording directory <br>
+ * - extract self from the recording
+ * @return true if we found a logo, false otherwise
+ */
         bool CheckLogo();
+
+/**
+ * cleanup marks that make no sense
+ */
         void CheckMarks();
+
+/**
+ * write a separator line to log file
+ * @param main true write "=", false write "-"
+ */
         void LogSeparator(const bool main = false);
+
+/**
+ * write all curent detected mark to log file
+ */
         void DebugMarks();
+
+/**
+ * log VDR info file
+ * @return true if successful, false otherwise
+ */
         bool LoadInfo();
+
+/**
+ * save VDR info file
+ * @return true if successful, false otherwise
+ */
         bool SaveInfo();
-        bool SetFileUID(char *File);
-        bool ProcessMark2ndPass(clMark **Mark1, clMark **Mark2);
+
+/**
+ * set user id of created files in recording directory
+ * @param file filename
+ * @return true if successful, false otherwise
+ */
+        bool SetFileUID(char *file);
+
+/**
+ * process overlap detection with stop/start pair
+ * @param[in, out] mark1 stop mark before advertising, set to start position of detected overlap
+ * @param[in, out] mark2 start mark after advertising, set to end position of detected overlap
+ * @return true if overlap was detected, false otherwise
+ */
+        bool ProcessMark2ndPass(cMark **mark1, cMark **mark2);
+
+/**
+ * process next frame
+ * @param ptr_cDecoder pointer to decoder class
+ * @return true if successful, false otherwise
+ */
         bool ProcessFrame(cDecoder *ptr_cDecoder);
 
-        cMarkAdVideo *video = NULL;
-        cMarkAdAudio *audio = NULL;
-        cOSDMessage *osd = NULL;
-        sMarkAdContext macontext = {};
-        cIndex *recordingIndexMark = NULL;
-        enum { mSTART = 0x1, mBEFORE, mAFTER };
-        const char *directory;
-        char title[80];
-        char *ptitle = NULL;
+/**
+ * create markad.pid file
+ */
         bool CreatePidfile();
+
+/**
+ * remove markad.pid file
+ */
         void RemovePidfile();
-        bool duplicate = false; // are we a dup?
-        bool isREEL = false;                                           //!< true if markad runs on a Reelbox VDR (VDR info file is info.txt), false otherwise
+
+
+        cMarkAdVideo *video = NULL;                                    //!< detect video marks for current frame
+                                                                       //!<
+        cMarkAdAudio *audio = NULL;                                    //!< detect audio marks for current frame
+                                                                       //!<
+        cOSDMessage *osd = NULL;                                       //!< OSD message text
+                                                                       //!<
+        sMarkAdContext macontext = {};                                 //!< markad context
+                                                                       //!<
+        cIndex *recordingIndexMark = NULL;                             //!< pointer to recording index class
+                                                                       //!<
+        const char *directory;                                         //!< recording directory
+                                                                       //!<
+        char title[80];                                                //!< recoring title from info file
+                                                                       //!<
+        char *ptitle = NULL;                                           //!< title of OSD message
+                                                                       //!<
+        bool duplicate = false;                                        //!< true if another markad is running on the same recording
+                                                                       //!<
+        bool isREEL = false;                                           //!< true if markad runs on a Reelbox VDR BM2LTS (VDR info file is info.txt), false otherwise
                                                                        //!<
         int MaxFiles = 65535;                                          //!< maximum number of ts files
-	                                                               //!<
+                                                                       //!<
         int iFrameBefore = -1;                                         //!< i-frame number before last processed i-frame number
                                                                        //!<
         int iFrameCurrent = -1;                                        //!< last processed i-frame number
@@ -238,13 +383,13 @@ class cMarkAdStandalone {
                                                                        //!<
         bool inBroadCast = false;                                      //!< true if are we in a broadcast, false if we are in advertising
                                                                        //!<
-        char *indexFile = NULL;                                        //!< file name of the vdr index file
+        char *indexFile = NULL;                                        //!< file name of the VDR index file
                                                                        //!<
         int sleepcnt = 0;                                              //!< count of sleeps to wait for new frames when decode during recording
                                                                        //!<
-        clMarks marks;                                                 //!< objects with all marks
+        cMarks marks;                                                 //!< objects with all marks
                                                                        //!<
-        clMarks blackMarks;                                            //!< objects with all blackscreen marks
+        cMarks blackMarks;                                            //!< objects with all blackscreen marks
                                                                        //!<
         cDecoder *ptr_cDecoderLogoChange = NULL;                       //!< pointer to class cDecoder, used as second instance to detect logo changes
                                                                        //!<
