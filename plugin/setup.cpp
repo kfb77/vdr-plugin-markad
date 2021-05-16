@@ -34,7 +34,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
     processTexts[PROCESS_NEVER] = tr("never");
 
     autoLogoTexts[0] = tr("disable");
-    autoLogoTexts[1] = tr("enable for low memory systems");
+    autoLogoTexts[1] = tr("deprecated, do not use");
     autoLogoTexts[2] = tr("enable");
 
     lpos = 0;

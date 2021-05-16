@@ -39,7 +39,7 @@ struct setup {
     bool MarkadCut = false;
     bool ac3ReEncode = false;
     int autoLogoConf = -1;
-    int autoLogoMenue = 0;
+    int autoLogoMenue = 2;
     bool fulldecode = false;
     const char *PluginName;
 };
@@ -58,7 +58,7 @@ class cSetupMarkAd : public cMenuSetupPage {
         int whilerecording;
         int whilereplaying;
         int osdmsg;
-	int svdrPort = 6419;
+        int svdrPort = 6419;
         int verbose;
         int nomargins;
         int secondpass;
