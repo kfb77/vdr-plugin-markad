@@ -82,7 +82,7 @@ bool cExtractLogo::IsWhitePlane(const sLogoInfo *ptr_actLogoInfo, const int logo
 }
 
 
-void cExtractLogo::SetLogoSize(const sMarkAdContext *maContext, int *logoHeight, int *logoWidth) {
+void cExtractLogo::GetLogoSize(const sMarkAdContext *maContext, int *logoHeight, int *logoWidth) {
     if (!maContext) return;
     if (!logoHeight) return;
     if (!logoWidth) return;
@@ -102,7 +102,7 @@ bool cExtractLogo::IsLogoColourChange(const sMarkAdContext *maContext, const int
 
     int logoHeight = 0;
     int logoWidth = 0;
-    SetLogoSize(maContext, &logoHeight, &logoWidth);
+    GetLogoSize(maContext, &logoHeight, &logoWidth);
     logoHeight /= 2;  // we use plane 1 to check
     logoWidth /= 2;
 
@@ -1245,7 +1245,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
         maContext->Video.Info.height = ptr_cDecoder->GetVideoHeight();
         maContext->Video.Info.width = ptr_cDecoder->GetVideoWidth();
         dsyslog("cExtractLogo::SearchLogo(): video resolution %dx%d", maContext->Video.Info.width, maContext->Video.Info.height);
-        SetLogoSize(maContext, &logoHeight, &logoWidth);
+        GetLogoSize(maContext, &logoHeight, &logoWidth);
         dsyslog("cExtractLogo::SearchLogo(): logo size %dx%d", logoWidth, logoHeight);
 
         while(ptr_cDecoder->GetNextFrame()) {

@@ -72,6 +72,9 @@
 #define MT_ALL            (unsigned char) 0xFF
 
 
+/**
+ * logo size structure
+ */
 typedef struct sLogoSize {
     int width = 0;  //!< width for logo extractions
                     //!
@@ -81,6 +84,9 @@ typedef struct sLogoSize {
 } sLogoSize;
 
 
+/**
+ * markad configuration structure
+ */
 typedef struct sMarkAdConfig {
     char logFile[20] = {};  //!< name of the markad log file
                             //!<
@@ -258,10 +264,16 @@ typedef struct sMarkAdMarks {
 #define MARKAD_PIDTYPE_AUDIO_MP2  0x21
 
 
+/**
+ * markad context structure
+ */
 typedef struct sMarkAdContext {
     sMarkAdConfig *Config; //!< markad configuration
                            //!<
 
+/**
+ * global markad state structure
+ */
     struct sInfo {
         bool isRunningRecording = false;  //!< <b>true:</b> markad is running during recording <br>
                                           //!< <b>false:</b>  markad is running after recording
@@ -298,7 +310,13 @@ typedef struct sMarkAdContext {
     } Info; //!< global markad state infos
             //!<
 
+/**
+ * video structure
+ */
     struct sVideo {
+/**
+ * video detection options structure
+ */
         struct sOptions {
 
             bool ignoreAspectRatio = false; //!< <b>true:</b>  ignore video aspect ratio detection, set if we found audio channel changes or H.264 video <br>
@@ -357,6 +375,9 @@ typedef struct sMarkAdContext {
         } Info; //!< video stream infos
                 //!<
 
+/**
+ * logo info structure
+ */
         struct sLogo {
             int width = 0;  //!< width of logo
                             //!<
@@ -393,7 +414,13 @@ typedef struct sMarkAdContext {
     } Video; //!< video stream infos
              //!<
 
+/**
+ * audio structure
+ */
     struct sAudio {
+/**
+ * audio detection options structure
+ */
         struct sOptions {
             bool ignoreDolbyDetection; //!< <b>true:</b> ignore audio channel count detection <br>
                                        //!< <b>false:</b> detect audio channel count changes
@@ -402,6 +429,9 @@ typedef struct sMarkAdContext {
         } Options; //!< audio detection options
                    //!<
 
+/**
+ * audio stream info structure
+ */
         struct sInfo {
             short int Channels[MAXSTREAMS] = {0}; //!< number of audio channels from each AC3 streams
                                                   //!<
@@ -421,6 +451,9 @@ typedef struct sMarkAdContext {
         } Info; //!< audio stream infos
                 //!<
 
+/**
+ * audio data structure
+ */
         struct sData {
             bool Valid;  //!< <b>true:</b> audio sample buffer contains valid data <br>
                          //!< <b>false:</b> audio sample buffer is not valid

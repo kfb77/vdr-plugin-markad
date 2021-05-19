@@ -301,7 +301,7 @@ cDetectLogoStopStart::~cDetectLogoStopStart() {
 #ifdef DEBUG_MEM
     int size = compareResult.size();
     for (int i = 0 ; i < size; i++) {
-        FREE(sizeof(compareInfoType), "compareResult");
+        FREE(sizeof(sCompareInfo), "compareResult");
     }
 #endif
     compareResult.clear();
@@ -318,7 +318,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
 #ifdef DEBUG_MEM
         int size = compareResult.size();
         for (int i = 0 ; i < size; i++) {
-            FREE(sizeof(compareInfoType), "compareResult");
+            FREE(sizeof(sCompareInfo), "compareResult");
         }
 #endif
         compareResult.clear();
@@ -359,7 +359,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
 
     int logoHeight = 0;
     int logoWidth  = 0;
-    ptr_cExtractLogo->SetLogoSize(maContext, &logoHeight, &logoWidth);
+    ptr_cExtractLogo->GetLogoSize(maContext, &logoHeight, &logoWidth);
     if (adInFrame) { // do check for frame
         logoWidth *= 0.32;   // less width to ignore content in frame
         dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", logoWidth, logoHeight);
@@ -382,7 +382,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
                 tsyslog("cDetectLogoStopStart::Detect(): GetFrameInfo() failed at frame (%d)", frameNumber);
                 continue;
         }
-        compareInfoType compareInfo;
+        sCompareInfo compareInfo;
         if (!maContext->Video.Data.valid) {
             dsyslog("cDetectLogoStopStart::Detect(): faild to get video data of i-frame (%d)", frameNumber);
             continue;
@@ -433,7 +433,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
         }
         if (compareInfo.frameNumber1 >= 0) {  // got valid pair
             compareResult.push_back(compareInfo);
-            ALLOC((sizeof(compareInfoType)), "compareResult");
+            ALLOC((sizeof(sCompareInfo)), "compareResult");
         }
     }
     FREE(sizeof(*ptr_Logo), "ptr_Logo");
@@ -495,7 +495,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     bool found = false;
     int separatorFrame = -1;
 
-    for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
+    for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
 
         int sumPixel = 0;
@@ -602,7 +602,7 @@ bool cDetectLogoStopStart::isLogoChange() {
     int matchNoLogoCorner = 0;
     bool isSeparationImageNoPixel = false;
     bool isSeparationImageLowPixel = false;
-    for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
+    for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::isLogoChange(): frame (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
         // calculate possible preview fixed images
         if (((*cornerResultIt).rate[0] >= 500) && ((*cornerResultIt).rate[1] >= 500) && ((*cornerResultIt).rate[2] >= 500) && ((*cornerResultIt).rate[3] >= 500)) {
@@ -712,7 +712,7 @@ int cDetectLogoStopStart::ClosingCredit() {
     if (minLength > CLOSING_CREDITS_LENGTH_MIN) minLength = CLOSING_CREDITS_LENGTH_MIN;
     dsyslog("cDetectLogoStopStart::ClosingCredit: min length %d", minLength);
 
-    for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
+    for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::ClosingCredit: frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
         int similarCorners = 0;
         int noPixelCount = 0;
@@ -796,7 +796,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
 #define START_OFFSET_MAX 4
     int isCornerLogo[CORNERS] = {0};
     int countFrames = 0;
-    for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
+    for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
         // calculate possible advertising in frame
         int similarCornersLow  = 0;
@@ -907,7 +907,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
     } introductionLogo;
     int retFrame = -1;
 
-    for(std::vector<compareInfoType>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
+    for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
 
         if ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 155) {

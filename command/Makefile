@@ -150,3 +150,6 @@ install: install-doc markad $(I18Nmsgs)
 
 clean:
 	@-rm -f $(OBJS) $(DEPFILE) markad *.so *.so.* *.tgz core* *~ $(PODIR)/*.mo $(PODIR)/*.pot
+
+doxygen:
+	doxygen doxygen.conf

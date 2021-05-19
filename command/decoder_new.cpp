@@ -207,7 +207,7 @@ bool cDecoder::DecodeFile(const char * filename) {
         }
     }
     msgDecodeFile=false;
-    if (fileNumber <= 1) pts_time_ms_LastFile = 0;
+    if (fileNumber <= 1) offsetTime_ms_LastFile = 0;
     return true;
 }
 
@@ -358,21 +358,21 @@ bool cDecoder::GetNextFrame() {
                 int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
                 if ( tmp_pts < 0 ) { tmp_pts += 0x200000000; }   // libavodec restart at 0 if pts greater than 0x200000000
                 pts_time_ms = tmp_pts*av_q2d(avctx->streams[avpkt.stream_index]->time_base) * 1000;
-                pts_time_ms_LastRead = pts_time_ms_LastFile + pts_time_ms;
+                offsetTime_ms_LastRead = offsetTime_ms_LastFile + pts_time_ms;
             }
             if (IsVideoIFrame()) {
                 iFrameCount++;
                 // store a iframe number pts offset in ms index
                 if (pts_time_ms >= 0) {
-                    recordingIndexDecoder->Add(fileNumber, currFrameNumber, pts_time_ms_LastFile + pts_time_ms);
+                    recordingIndexDecoder->Add(fileNumber, currFrameNumber, offsetTime_ms_LastFile + pts_time_ms);
                 }
                 else dsyslog("cDecoder::GetNextFrame(): failed to get pts for frame %d", currFrameNumber);
             }
         }
         return true;
     }
-    pts_time_ms_LastFile = pts_time_ms_LastRead;
-    dsyslog("cDecoder::GetNextFrame(): last frame of filenumber %d is (%d), end time %" PRId64 "ms (%3d:%02dmin)", fileNumber, currFrameNumber, pts_time_ms_LastFile, static_cast<int> (pts_time_ms_LastFile / 1000 / 60), static_cast<int> (pts_time_ms_LastFile / 1000) % 60);
+    offsetTime_ms_LastFile = offsetTime_ms_LastRead;
+    dsyslog("cDecoder::GetNextFrame(): last frame of filenumber %d is (%d), end time %" PRId64 "ms (%3d:%02dmin)", fileNumber, currFrameNumber, offsetTime_ms_LastFile, static_cast<int> (offsetTime_ms_LastFile / 1000 / 60), static_cast<int> (offsetTime_ms_LastFile / 1000) % 60);
     return false;
 }
 
@@ -407,6 +407,7 @@ bool cDecoder::SeekToFrame(sMarkAdContext *maContext, int frameNumber) {
             avcodec_flush_buffers(codecCtxArray[streamIndex]);
         }
     }
+
     while (currFrameNumber < frameNumber) {
         if (!this->GetNextFrame()) {
             if (!this->DecodeDir(recordingDir)) {
@@ -414,7 +415,7 @@ bool cDecoder::SeekToFrame(sMarkAdContext *maContext, int frameNumber) {
                 return false;
             }
         }
-        if (currFrameNumber >= iFrameBefore) GetFrameInfo(maContext, false);  // preload decoder buffer for interlaced video
+        if (currFrameNumber >= iFrameBefore) GetFrameInfo(maContext, false);  // preload decoder buffer
     }
     dsyslog("cDecoder::SeekToFrame(): successful");
     return true;

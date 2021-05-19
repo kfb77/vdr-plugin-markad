@@ -33,7 +33,7 @@ class cIndex {
  * add new frame to index
  * @param fileNumber  number of ts file
  * @param frameNumber number of frame
- * @param pts_time_ms presentation timestamp of frame
+ * @param timeOffset_ms offset in ms from recording start
  */
         void Add(int fileNumber, int frameNumber, int timeOffset_ms);
 
@@ -60,7 +60,7 @@ class cIndex {
 
 /**
  * get frame number to offset of recording start
- * @param offset from recording start in ms
+ * @param offset_ms offset from recording start in ms
  * @return frame number to offset of recording start
  */
         int GetFrameFromOffset(int offset_ms);
@@ -80,46 +80,47 @@ class cIndex {
  */
         void AddPTS(const int frameNumber, const int64_t pts);
 
-/* get first frame number after given presentation timestamp
+/** get first frame number after given presentation timestamp
  * @param pts  presentation timestamp
+ * @return first frame number after given presentation timestamp
  */
         int GetFirstVideoFrameAfterPTS(const int64_t pts);
 
     private:
+/**
+ * get last stored frame number of the recording index
+ * @return last stored frame number of the recording index
+ */
         int GetLastFrameNumber();
 
 /**
  * element of the video index
  */
         struct sIndexElement {
-            int fileNumber = 0;        //!< number of TS file
-                                       //!<
+            int fileNumber = 0;                     //!< number of TS file
+                                                    //!<
 
-            int frameNumber = 0;       //!< video frame number
-                                       //!<
+            int frameNumber = 0;                    //!< video frame number
+                                                    //!<
 
-            int timeOffset_ms = 0; //!< time offset from start of the recording in ms
-                                       //!<
-
+            int timeOffset_ms = 0;                  //!< time offset from start of the recording in ms
+                                                    //!<
         };
-
-        std::vector<sIndexElement> indexVector;
-
+        std::vector<sIndexElement> indexVector;     //!< recording index
+                                                    //!<
 /**
  * ring buffer element to store frame presentation timestamp
  */
         struct sPTS_RingbufferElement {
-            int frameNumber = -1; //!< frame number
-                                  //!<
-
-            int64_t pts = 0;      //!<  presentation timestamp of the frame
-                                  //!<
-
+            int frameNumber = -1;                    //!< frame number
+                                                     //!<
+            int64_t pts = 0;                         //!<  presentation timestamp of the frame
+                                                     //!<
         };
-
-        std::vector<sPTS_RingbufferElement> ptsRing;
-
-        int diff_ms_maxValid = 0;
+        std::vector<sPTS_RingbufferElement> ptsRing; //!< ring buffer for PTS per frameA
+                                                     //!<
+        int diff_ms_maxValid = 0;                    //!< maximal valid time difference between two i-frames
+                                                     //!<
 
 };
 #endif

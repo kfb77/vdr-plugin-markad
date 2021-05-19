@@ -21,12 +21,12 @@ extern "C" {
 }
 
 
-cMark::cMark(const int Type, const int Position, const char *Comment, const bool InBroadCast) {
-    type = Type;
-    position = Position;
-    inBroadCast = InBroadCast;
-    if (Comment) {
-        comment = strdup(Comment);
+cMark::cMark(const int typeParam, const int positionParam, const char *commentParam, const bool inBroadCastParam) {
+    type = typeParam;
+    position = positionParam;
+    inBroadCast = inBroadCastParam;
+    if (commentParam) {
+        comment = strdup(commentParam);
         ALLOC(strlen(comment)+1, "comment");
     }
     else comment = NULL;
@@ -56,42 +56,30 @@ cMarks::~cMarks() {
 }
 
 
-int cMarks::Count(const int Type, const int Mask) {
-    if (Type == 0xFF) return count;
+int cMarks::Count(const int type, const int mask) {
+    if (type == 0xFF) return count;
     if (!first) return 0;
 
     int ret = 0;
     cMark *mark = first;
     while (mark) {
-        if ((mark->type & Mask) == Type) ret++;
+        if ((mark->type & mask) == type) ret++;
         mark = mark->Next();
     }
     return ret;
 }
 
 
-void cMarks::Del(const int Position) {
+void cMarks::Del(const int position) {
     if (!first) return; // no elements yet
 
     cMark *next, *mark = first;
     while (mark) {
         next = mark->Next();
-        if (mark->position == Position) {
+        if (mark->position == position) {
             Del(mark);
             return;
         }
-        mark = next;
-    }
-}
-
-
-void cMarks::Del(const unsigned char Type) {
-    if (!first) return; // no elements yet
-
-    cMark *next, *mark = first;
-    while (mark) {
-        next = mark->Next();
-        if (mark->type == Type) Del(mark);
         mark = next;
     }
 }
@@ -130,20 +118,19 @@ void cMarks::DelFromTo(const int from, const int to, const short int type) {
 
 // <FromStart> = true: delete all marks from start to <Position>
 // <FromStart> = false: delete all marks from <Position> to end
-// blackscreen marks were moved to blackscreen list
 //
-void cMarks::DelTill(const int Position, const bool FromStart) {
+void cMarks::DelTill(const int position, const bool fromStart) {
     cMark *next, *mark = first;
-    if (!FromStart) {
+    if (!fromStart) {
         while (mark) {
-            if (mark->position > Position) break;
+            if (mark->position > position) break;
             mark = mark->Next();
         }
     }
     while (mark) {
         next = mark->Next();
-        if (FromStart) {
-            if (mark->position < Position) {
+        if (fromStart) {
+            if (mark->position < position) {
                 Del(mark);
             }
         }
@@ -155,10 +142,10 @@ void cMarks::DelTill(const int Position, const bool FromStart) {
 }
 
 
-void cMarks::DelFrom(const int Position) {
+void cMarks::DelFrom(const int position) {
     cMark *mark = first;
     while (mark) {
-        if (mark->position > Position) break;
+        if (mark->position > position) break;
         mark = mark->Next();
     }
 
@@ -182,12 +169,12 @@ void cMarks::DelAll() {
 }
 
 
-void cMarks::Del(cMark *Mark) {
-    if (!Mark) return;
+void cMarks::Del(cMark *mark) {
+    if (!mark) return;
 
-    if (first == Mark) {
+    if (first == mark) {
         // we are the first mark
-        first = Mark->Next();
+        first = mark->Next();
         if (first) {
             first->SetPrev(NULL);
         }
@@ -196,58 +183,58 @@ void cMarks::Del(cMark *Mark) {
         }
     }
     else {
-        if (Mark->Next() && (Mark->Prev())) {
+        if (mark->Next() && (mark->Prev())) {
             // there is a next and prev object
-            Mark->Prev()->SetNext(Mark->Next());
-            Mark->Next()->SetPrev(Mark->Prev());
+            mark->Prev()->SetNext(mark->Next());
+            mark->Next()->SetPrev(mark->Prev());
         }
         else {
             // we are the last
-            Mark->Prev()->SetNext(NULL);
-            last=Mark->Prev();
+            mark->Prev()->SetNext(NULL);
+            last=mark->Prev();
         }
     }
-    FREE(sizeof(*Mark), "mark");
-    delete Mark;
+    FREE(sizeof(*mark), "mark");
+    delete mark;
     count--;
 }
 
 
-cMark *cMarks::Get(const int Position) {
+cMark *cMarks::Get(const int position) {
     if (!first) return NULL; // no elements yet
 
     cMark *mark = first;
     while (mark) {
-        if (Position == mark->position) break;
+        if (position == mark->position) break;
         mark = mark->Next();
     }
     return mark;
 }
 
 
-cMark *cMarks::GetAround(const int Frames, const int Position, const int Type, const int Mask) {
-    cMark *m0 = Get(Position);
-    if (m0 && (m0->position == Position) && ((m0->type & Mask) == (Type & Mask))) return m0;
+cMark *cMarks::GetAround(const int frames, const int position, const int type, const int mask) {
+    cMark *m0 = Get(position);
+    if (m0 && (m0->position == position) && ((m0->type & mask) == (type & mask))) return m0;
 
-    cMark *m1 = GetPrev(Position, Type, Mask);
-    cMark *m2 = GetNext(Position, Type, Mask);
+    cMark *m1 = GetPrev(position, type, mask);
+    cMark *m2 = GetNext(position, type, mask);
     if (!m1 && !m2) return NULL;
 
     if (!m1 && m2) {
-        if (abs(Position - m2->position) > Frames) return NULL;
+        if (abs(position - m2->position) > frames) return NULL;
         else return m2;
     }
     if (m1 && !m2) {
-        if (abs(Position - m1->position) > Frames) return NULL;
+        if (abs(position - m1->position) > frames) return NULL;
         return m1;
     }
     if (m1 && m2) {
-        if (abs(m1->position - Position) > abs(m2->position - Position)) {
-            if (abs(Position - m2->position) > Frames) return NULL;
+        if (abs(m1->position - position) > abs(m2->position - position)) {
+            if (abs(position - m2->position) > frames) return NULL;
             else return m2;
         }
         else {
-            if (abs(Position - m1->position) > Frames) return NULL;
+            if (abs(position - m1->position) > frames) return NULL;
             return m1;
         }
     }
@@ -258,16 +245,16 @@ cMark *cMarks::GetAround(const int Frames, const int Position, const int Type, c
 }
 
 
-cMark *cMarks::GetPrev(const int Position, const int Type, const int Mask) {
+cMark *cMarks::GetPrev(const int position, const int type, const int mask) {
     if (!first) return NULL; // no elements yet
 
     // first advance
     cMark *mark = first;
     while (mark) {
-        if (mark->position >= Position) break;
+        if (mark->position >= position) break;
         mark = mark->Next();
     }
-    if (Type == 0xFF) {
+    if (type == 0xFF) {
         if (mark) return mark->Prev();
         return last;
     }
@@ -275,7 +262,7 @@ cMark *cMarks::GetPrev(const int Position, const int Type, const int Mask) {
         if (!mark) mark = last;
         else mark = mark->Prev();
         while (mark) {
-            if ((mark->type & Mask) == Type) break;
+            if ((mark->type & mask) == type) break;
             mark = mark->Prev();
         }
         return mark;
@@ -283,15 +270,15 @@ cMark *cMarks::GetPrev(const int Position, const int Type, const int Mask) {
 }
 
 
-cMark *cMarks::GetNext(const int Position, const int Type, const int Mask) {
+cMark *cMarks::GetNext(const int position, const int type, const int mask) {
     if (!first) return NULL; // no elements yet
     cMark *mark = first;
     while (mark) {
-        if (Type == 0xFF) {
-            if (mark->position > Position) break;
+        if (type == 0xFF) {
+            if (mark->position > position) break;
         }
         else {
-            if ((mark->position > Position) && ((mark->type & Mask) == Type)) break;
+            if ((mark->position > position) && ((mark->type & mask) == type)) break;
         }
         mark = mark->Next();
     }
@@ -300,30 +287,30 @@ cMark *cMarks::GetNext(const int Position, const int Type, const int Mask) {
 }
 
 
-cMark *cMarks::Add(const int Type, const int Position, const char *Comment, const bool inBroadCast) {
+cMark *cMarks::Add(const int type, const int position, const char *comment, const bool inBroadCast) {
     cMark *newmark;
 
-    if ((newmark = Get(Position))) {
-        dsyslog("duplicate mark on position %i type 0x%X and type 0x%x", Position, Type, newmark->type);
-        if (Type == newmark->type) return NULL;  // same type at same position, ignore add
-        if ((Type & 0xF0) == (newmark->type & 0xF0)) {  // start and stop mark of same type at same position, delete both
+    if ((newmark = Get(position))) {
+        dsyslog("duplicate mark on position %i type 0x%X and type 0x%x", position, type, newmark->type);
+        if (type == newmark->type) return NULL;  // same type at same position, ignore add
+        if ((type & 0xF0) == (newmark->type & 0xF0)) {  // start and stop mark of same type at same position, delete both
             Del(newmark->position);
             return NULL;
         }
-        if (Type > newmark->type){   // keep the stronger mark
-            if (newmark->comment && Comment) {
+        if (type > newmark->type){   // keep the stronger mark
+            if (newmark->comment && comment) {
                 FREE(strlen(newmark->comment)+1, "comment");
                 free(newmark->comment);
-                newmark->comment=strdup(Comment);
+                newmark->comment=strdup(comment);
                 ALLOC(strlen(newmark->comment)+1, "comment");
             }
-            newmark->type = Type;
+            newmark->type = type;
             newmark->inBroadCast = inBroadCast;
         }
         return newmark;
     }
 
-    newmark = new cMark(Type, Position, Comment, inBroadCast);
+    newmark = new cMark(type, position, comment, inBroadCast);
     if (!newmark) return NULL;
     ALLOC(sizeof(*newmark), "mark");
 
@@ -337,7 +324,7 @@ cMark *cMarks::Add(const int Type, const int Position, const char *Comment, cons
         cMark *mark = first;
         while (mark) {
             if (!mark->Next()) {
-                if (Position > mark->position) {
+                if (position > mark->position) {
                     // add as last element
                     newmark->Set(mark, NULL);
                     mark->SetNext(newmark);
@@ -361,7 +348,7 @@ cMark *cMarks::Add(const int Type, const int Position, const char *Comment, cons
                 }
             }
             else {
-                if ((Position > mark->position) && (Position < mark->Next()->position)) {
+                if ((position > mark->position) && (position < mark->Next()->position)) {
                     // add between two marks
                     newmark->Set(mark, mark->Next());
                     mark->SetNext(newmark);
@@ -369,7 +356,7 @@ cMark *cMarks::Add(const int Type, const int Position, const char *Comment, cons
                     break;
                 }
                 else {
-                    if ((Position < mark->position) && (mark == first)) {
+                    if ((position < mark->position) && (mark == first)) {
                         // add as first mark
                         first = newmark;
                         mark->SetPrev(newmark);
@@ -481,23 +468,23 @@ void cMarks::RegisterIndex(cIndex *recordingIndex) {
 }
 
 
-char *cMarks::IndexToHMSF(const int Index, const sMarkAdContext *maContext) {
+char *cMarks::IndexToHMSF(const int frameNumber, const sMarkAdContext *maContext) {
     double FramesPerSecond = maContext->Video.Info.framesPerSecond;
     if (FramesPerSecond == 0.0) return NULL;
     char *indexToHMSF = NULL;
     double Seconds;
     int f = 0;
     if (recordingIndexMarks && ((maContext->Info.vPidType == MARKAD_PIDTYPE_VIDEO_H264) || (maContext->Info.vPidType == MARKAD_PIDTYPE_VIDEO_H265))) {
-        int64_t pts_time_ms = recordingIndexMarks->GetTimeFromFrame(Index);
+        int64_t pts_time_ms = recordingIndexMarks->GetTimeFromFrame(frameNumber);
         if (pts_time_ms >= 0) {
             f = int(modf(float(pts_time_ms) / 1000, &Seconds) * 100); // convert ms to 1/100 s
         }
         else {
-            dsyslog("cMarks::IndexToHMSF(): failed to get time from frame (%d)", Index);
+            dsyslog("cMarks::IndexToHMSF(): failed to get time from frame (%d)", frameNumber);
         }
     }
     else {
-        f = int(modf((Index + 0.5) / FramesPerSecond, &Seconds) * FramesPerSecond + 1);
+        f = int(modf((frameNumber + 0.5) / FramesPerSecond, &Seconds) * FramesPerSecond + 1);
     }
     int s = int(Seconds);
     int m = s / 60 % 60;

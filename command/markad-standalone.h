@@ -69,6 +69,9 @@ class cOSDMessage {
 };
 
 
+/**
+ * markad main class
+ */
 class cMarkAdStandalone {
     public:
 

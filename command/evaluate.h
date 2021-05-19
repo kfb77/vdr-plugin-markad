@@ -16,6 +16,9 @@ extern "C" {
 #include "video.h"
 
 
+/**
+ * class to evaluate logo stop/start pair
+ */
 class cEvaluateLogoStopStartPair {
     public:
 
@@ -60,7 +63,7 @@ class cEvaluateLogoStopStartPair {
  * check if logo stop/start pair could be an info logo part
  * @param blackMarks        object with all black screen marks
  * @param logoStopStartPair structure of logo/stop start pair, result is stored here
- * @framesPerSecond         video frame rate
+ * @param framesPerSecond         video frame rate
  */
         void IsInfoLogo(cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond);
 
@@ -88,18 +91,36 @@ class cEvaluateLogoStopStartPair {
  */
         bool IncludesInfoLogo(const int stopPosition, const int startPosition);
 
-        int GetLastClosingCreditsStart();
-
     private:
-        std::vector<sLogoStopStartPair> logoPairVector;
-        std::vector<sLogoStopStartPair>::iterator nextLogoPairIterator;
+        std::vector<sLogoStopStartPair> logoPairVector;                 //!< logo stop/start pair vector
+                                                                        //!<
+        std::vector<sLogoStopStartPair>::iterator nextLogoPairIterator; //!< iterator for logo stop/start pair vector
+                                                                        //!<
 };
 
 
+/**
+ * class to calculate logo size
+ */
 class cDetectLogoStopStart : cLogoSize {
     public:
+/**
+ * contructor for class to dectect special logo stop/start pair
+ * @param maContext_      markad context
+ * @param ptr_cDecoder_   decoder
+ * @param recordingIndex_ recording index
+ */
         cDetectLogoStopStart(sMarkAdContext *maContext_, cDecoder *ptr_cDecoder_, cIndex *recordingIndex_);
+
         ~cDetectLogoStopStart();
+
+/**
+ * compare all frames in range and calculate similar rate
+ * @param startFrame start frame number
+ * @param endFrame   end frame number
+ * @param adInFrame true if compare for advertising in frame without logo, false otherwise
+ * @return true if successful, false otherwise
+ */
         bool Detect(int startFrame, int endFrame, const bool adInFrame);
 
 /**
@@ -108,7 +129,16 @@ class cDetectLogoStopStart : cLogoSize {
  */
         bool IsInfoLogo();
 
+/**
+ * check for info logo
+ * @return true if info logo, false otherwise
+ */
         bool isLogoChange();
+
+/**
+ * check for closing credits without logo
+ * @return frame number of end of closinf credits
+ */
         int ClosingCredit();
 
 /**
@@ -124,8 +154,8 @@ class cDetectLogoStopStart : cLogoSize {
  * @return last frame of the introduction logo after logo start mark
  */
         int IntroductionLogo();
-    private:
 
+    private:
 /**
  * check if channel could have info logos
  * @return true if channel could have info logos, false otherwise
@@ -150,20 +180,35 @@ class cDetectLogoStopStart : cLogoSize {
  */
         bool AdInFrameWithLogoChannel();
 
-
+/**
+ * check for introduction logo
+ * @return true if introduction logo detected, false otherwise
+ */
         bool IntroductionLogoChannel();
-        sMarkAdContext *maContext;
-        cDecoder *ptr_cDecoder;
-        cIndex *recordingIndex;
-        int startPos = 0;
-        int endPos   = 0;
-        struct compareInfoType {
-            int frameNumber1 = 0;
-            int frameNumber2 = 0;
-            int rate[CORNERS] = {0};
+
+        sMarkAdContext *maContext;               //!< markad context
+                                                 //!<
+        cDecoder *ptr_cDecoder;                  //!< decoder
+                                                 //!<
+        cIndex *recordingIndex;                  //!< recording index
+                                                 //!<
+        int startPos = 0;                        //!< frame number of start position to compare
+                                                 //!<
+        int endPos   = 0;                        //!< frame number of end position to compare
+                                                 //!<
+/**
+ * compare two frames
+ */
+        struct sCompareInfo {
+            int frameNumber1 = 0;                //!< frame number 1
+            int frameNumber2 = 0;                //!< frame number 2
+                                                 //!<
+            int rate[CORNERS] = {0};             //!< similar rate of frame pair per corner
+                                                 //!<
         };
-        typedef std::vector<compareInfoType> compareResultType;
-        compareResultType compareResult;
-        const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" };
+        std::vector<sCompareInfo> compareResult; //!< vector of frame compare results
+                                                 //!<
+        const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" };  //!< array to convert corner anum to text
+                                                                                                    //!<
 };
 #endif

@@ -53,9 +53,12 @@ class cAC3VolumeFilter {
         bool GetFrame(AVFrame *avFrame);
 
     private:
-        AVFilterGraph *filterGraph = NULL;
-        AVFilterContext *filterSrc = NULL;
-        AVFilterContext *filterSink = NULL;
+        AVFilterGraph *filterGraph = NULL;   //!< filter graph
+                                             //!<
+        AVFilterContext *filterSrc = NULL;   //!< filter source
+                                             //!<
+        AVFilterContext *filterSink = NULL;  //!< filter sink
+                                             //!<
 };
 
 /**
@@ -102,26 +105,81 @@ class cEncoder {
         bool CloseFile(cDecoder *ptr_cDecoder);
 
     private:
+/** encode frame
+ * @param ptr_cDecoder decoder
+ * @param avCodexCtx   codec context
+ * @param avFrame      decodes frame
+ * @param avpkt        encoded packet
+ */
         bool EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodexCtx, AVFrame *avFrame, AVPacket *avpkt);
+
+/**
+ * init encoder codec
+ * @param ptr_cDecoder   decoder
+ * @param directory      recording directory
+ * @param streamIndexIn  input stream index
+ * @param streamIndexOut output stream index
+ * @return true if successful, false otherwise
+ */
         bool InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, const unsigned int streamIndexIn, const unsigned int streamIndexOut);
+
+/**
+ * change audio encoder channel count
+ * @param ptr_cDecoder   decoder
+ * @param streamIndexIn  stream index input stream
+ * @param streamIndexOut stream index output stream
+ * @param avCodecCtxIn   input stream codec context
+ * @return true if successful, false otherwise
+ */
         bool ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexIn, const int streamIndexOut, AVCodecContext *avCodecCtxIn);
+
+/**
+ * save video frame as picture, used for debugging
+ * @param frame   frame number
+ * @param avFrame frame data
+ */
         void SaveFrame(const int frame, AVFrame *avFrame);
+
+/**
+ * resamle audio frame
+ * @param[in] avFrameIn   input frame
+ * @param[out] avFrameOut output frame
+ * @param streamIndex     stream index
+ * @return true if successful, false otherwise
+ */
         bool ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int streamIndex);
+
+/**
+ * check statistic data after first pass, ffmpeg assert if something is invalid
+ * @param max_b_frames number of maximum b-frames
+ * @return true of valid, false otherwise
+ */
         bool CheckStats(const int max_b_frames);
 
-        sMarkAdContext *maContext;
-        int threadCount = 0;
-        AVFormatContext *avctxIn = NULL;
-        AVFormatContext *avctxOut = NULL;
-        AVCodecContext **codecCtxArrayIn = NULL;
-        AVCodecContext **codecCtxArrayOut = NULL;
-        SwrContext **swrArray = NULL;
-        int64_t ptsBefore = 0;
-        int64_t ptsBeforeCut = INT64_MAX;
-        int64_t ptsAfterCut = 0;
-        bool stateEAGAIN = false;
-        cAC3VolumeFilter *ptr_cAC3VolumeFilter[MAXSTREAMS] = {NULL};
-
+        sMarkAdContext *maContext;                                    //!< markad context
+                                                                      //!<
+        int threadCount = 0;                                          //!< encoder thread count
+                                                                      //!<
+        AVFormatContext *avctxIn = NULL;                              //!< avformat context for input
+                                                                      //!<
+        AVFormatContext *avctxOut = NULL;                             //!< avformat context for output
+                                                                      //!<
+        AVCodecContext **codecCtxArrayIn = NULL;                      //!< avcodec context for each input stream
+                                                                      //!<
+        AVCodecContext **codecCtxArrayOut = NULL;                     //!< avcodec context for each output stream
+                                                                      //!<
+        SwrContext **swrArray = NULL;                                 //!< array of libswresample (lswr) for audiosample format conversion
+                                                                      //!<
+        int64_t ptsBefore = 0;                                        //!< presentation timestamp of frame before
+                                                                      //!<
+        int64_t ptsBeforeCut = INT64_MAX;                             //!< presentation timestamp of frame before cut mark
+                                                                      //!<
+        int64_t ptsAfterCut = 0;                                      //!< presentation timestamp of frame after cut mark
+                                                                      //!<
+        bool stateEAGAIN = false;                                     //!< true if encoder needs more frame, false otherwise
+                                                                      //!<
+        cAC3VolumeFilter *ptr_cAC3VolumeFilter[MAXSTREAMS] = {NULL};  //!< AC3 volume filter
+                                                                      //!<
 
 /**
  * encoder status
@@ -129,43 +187,37 @@ class cEncoder {
         struct sEncoderStatus {
             int64_t videoStartPTS = INT64_MAX;       //!< decoded presentation timestamp of of the video stream from first mark
                                                      //!<
-
             int frameBefore = -2;                    //!< decoded frame number before current frame
                                                      //!<
-
             int64_t *ptsInBefore = NULL;             //!< presentation timestamp of the previous frame from each input stream
                                                      //!<
-
             int64_t *dtsInBefore = NULL;             //!< decoding timestamp of the previous frame from each input stream
                                                      //!<
-
             int64_t ptsOutBefore = -1;               //!< presentation timestamp of the previous frame from video output stream
                                                      //!<
 
             int64_t pts_dts_CutOffset = 0;           //!< offset from the cuted out frames
                                                      //!<
-
             int64_t *pts_dts_CyclicalOffset = NULL;  //!< offset from pts/dts cyclicle of each frame, multiple of 0x200000000
                                                      //!<
-            bool videoEncodeError = false;
-
-        } EncoderStatus;
-
-        int *streamMap = NULL;
-        int pass = 0;
-
-
+            bool videoEncodeError = false;           //!< true if we got an encoder error, false otherwise
+                                                     //!<
+        } EncoderStatus;                             //!< encoder status
+                                                     //!<
+        int *streamMap = NULL;                       //!< input stream to output stream map
+                                                     //!<
+        int pass = 0;                                //!< encoding pass
+                                                     //!<
 /**
- * statistic data for 2 pass encoding
+ * structure for statistic data for 2 pass encoding
  */
         struct sAVstatsIn {
             char *data = NULL; //!< statistic data generated from encoder
                                //!<
-
             long int size = 0; //!< size of statistic data
                                //!<
-
-        } stats_in;
+        } stats_in;            //!< variable for statistic data for 2 pass encoding
+                               //!<
 
 #ifdef DEBUG_CUT
        int64_t inputPacketPTSbefore[MAXSTREAMS] = {0};

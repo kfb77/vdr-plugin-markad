@@ -55,7 +55,7 @@ class cDecoder {
 /**
  * cDecoder constructor
  * @param threads        count threads of ffmpeg decoder
- * @param RecordingIndex recording index class
+ * @param recordingIndex recording index class
  */
         explicit cDecoder(int threads, cIndex *recordingIndex);
 
@@ -70,7 +70,7 @@ class cDecoder {
 
 /**
  * setup decoder codec context for current file
- * @param file name
+ * @param filename file name
  * @return true if setup was succesful, false otherwiese
  */
         bool DecodeFile(const char * filename);
@@ -133,11 +133,13 @@ class cDecoder {
  */
         AVPacket *GetPacket();
 
+/// seek decoder read position
 /**
- * seek read position
+ * only seek forward <br>
+ * seek to i-frame before and start decode to fill decoder buffer
  * @param maContext   markad context
  * @param frameNumber frame number to seek
- * return true if successful, false otherwise
+ * @return true if successful, false otherwise
  */
         bool SeekToFrame(sMarkAdContext *maContext, int frameNumber);
 
@@ -156,7 +158,7 @@ class cDecoder {
         bool GetFrameInfo(sMarkAdContext *maContext, const bool full);
 
 /** check if stream is video stream
- * @param stream index
+ * @param streamIndex stream index
  * @return true if video stream, false otherwise
  */
         bool IsVideoStream(const unsigned int streamIndex);
@@ -231,43 +233,63 @@ class cDecoder {
         int GetNextSilence(sMarkAdContext *maContext, const int stopFrame, const bool isBeforeMark, const bool isStartMark);
 
     private:
-        cIndex *recordingIndexDecoder = NULL;
-        char *recordingDir = NULL;
-        int fileNumber = 0;
-        int threadCount = 0;
-        AVFormatContext *avctx = NULL;
-        AVPacket avpkt = {};
-        AVFrame *avFrame = NULL;
-#if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100) // ffmpeg 4.5
-        const AVCodec *codec = NULL;
-#else
-        AVCodec *codec = NULL;
-#endif
-        AVCodecContext **codecCtxArray = NULL;
-        int currFrameNumber = -1;
-        int iFrameCount = 0;
-        int64_t pts_time_ms_LastFile = 0;
-        int64_t pts_time_ms_LastRead = 0;
+/**
+ * get index of first MP2 audio stream
+ * @return index of first MP2 audio stream
+ */
+        int GetFirstMP2AudioStream();
 
+        cIndex *recordingIndexDecoder = NULL;  //!< recording index
+                                               //!<
+        char *recordingDir = NULL;             //!< name of recording directory
+                                               //!<
+        int fileNumber = 0;                    //!< current ts file number
+                                               //!<
+        int threadCount = 0;                   //!< thread count of decoder
+                                               //!<
+        AVFormatContext *avctx = NULL;         //!< avformat context
+                                               //!<
+        AVPacket avpkt = {};                   //!< packet
+                                               //!<
+        AVFrame *avFrame = NULL;               //!< frame
+                                               //!<
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100) // ffmpeg 4.5
+        const AVCodec *codec = NULL;           //!< codec
+                                               //!<
+#else
+        AVCodec *codec = NULL;                 //!< codec
+                                               //!<
+#endif
+        AVCodecContext **codecCtxArray = NULL; //!< codec context per stream
+                                               //!<
+        int currFrameNumber = -1;              //!< current decoded frame number
+                                               //!<
+        int iFrameCount = 0;                   //!< count of decoed i-frames
+                                               //!<
+        int64_t offsetTime_ms_LastFile = 0;    //!< offset from recording start of last file in ms
+                                               //!<
+        int64_t offsetTime_ms_LastRead = 0;    //!< offset from recodring start of last frame in ms
+                                               //!<
 /**
  * decoded frame data
  */
         struct sFrameData {
-            bool Valid = false;             //!< flag, if true data is valid
-                                            //!<
+            bool Valid = false;                //!< flag, if true data is valid
+                                               //!<
+            uchar *Plane[PLANES] = {};         //!< picture planes (YUV420)
+                                               //!<
+            int PlaneLinesize[PLANES] = {};    //!< size in bytes of each picture plane line
+                                               //!<
+        } FrameData;                           //!< decoded frame picture data
+                                               //!<
 
-            uchar *Plane[PLANES] = {};      //!< picture planes (YUV420)
-                                            //!<
-
-            int PlaneLinesize[PLANES] = {}; //!< size in bytes of each picture plane line
-                                            //!<
-
-        } FrameData;
-
-        bool msgDecodeFile = true;
-        bool msgGetFrameInfo = true;
-        int interlaced_frame = -1;
-        bool stateEAGAIN = false;
-        int GetFirstMP2AudioStream();
+        bool msgDecodeFile = true;             //!< true if we will send decoder codec log message, false otherwise
+                                               //!<
+        bool msgGetFrameInfo = true;           //!< true if we will send frame info log message, false otherwise
+                                               //!<
+        int interlaced_frame = -1;             //!< -1 undefined, 0 the content of the picture is progressive, 1 the content of the picture is interlaced
+                                               //!<
+        bool stateEAGAIN = false;              //!< true if decoder needs more frames, false otherwise
+                                               //!<
 };
 #endif

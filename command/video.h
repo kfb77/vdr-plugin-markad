@@ -12,13 +12,19 @@
 #include "global.h"
 #include "index.h"
 
-#define LOGO_VMAXCOUNT 3  // count of IFrames for detection of "logo visible"
-#define LOGO_IMAXCOUNT 4  // count of IFrames for detection of "logo invisible", reduced from 5 to 4
-#define LOGO_VMARK 0.5    // percantage of pixels for visible
-#define LOGO_IMARK 0.15   // percentage of pixels for invisible
+#define LOGO_VMAXCOUNT 3      //!< count of IFrames for detection of "logo visible"
+                              //!<
+#define LOGO_IMAXCOUNT 4      //!< count of IFrames for detection of "logo invisible", reduced from 5 to 4
+                              //!<
+#define LOGO_VMARK 0.5        //!< percantage of pixels for visible
+                              //!<
+#define LOGO_IMARK 0.15       //!< percentage of pixels for invisible
+                              //!<
 
-#define MIN_H_BORDER_SECS 60
-#define MIN_V_BORDER_SECS 70  // keep it greater than MIN_H_BORDER_SECS fot detecting long black screens
+#define MIN_H_BORDER_SECS 60  //!< minimum lenght of horizontal border
+                              //!<
+#define MIN_V_BORDER_SECS 70  //!< minimum lenght of horizontal border <br>
+                              //!< keep it greater than MIN_H_BORDER_SECS for detecting long black screens
 
 
 /**
@@ -138,6 +144,9 @@ class cLogoSize {
 };
 
 
+/**
+ * class to detect overlaping scenes before and after advertising
+ */
 class cMarkAdOverlap {
     public:
 
@@ -220,6 +229,9 @@ class cMarkAdOverlap {
 };
 
 
+/**
+ * class to detect logo in recording
+ */
 class cMarkAdLogo : cLogoSize {
     public:
 
@@ -391,6 +403,9 @@ class cMarkAdLogo : cLogoSize {
 };
 
 
+/**
+ * class to detect black screen
+ */
 class cMarkAdBlackScreen {
     public:
 
@@ -420,6 +435,9 @@ class cMarkAdBlackScreen {
 };
 
 
+/**
+ * cladd to detect horizental border
+ */
 class cMarkAdBlackBordersHoriz {
     public:
 
@@ -466,6 +484,9 @@ class cMarkAdBlackBordersHoriz {
 };
 
 
+/**
+ * class to detect vertical border
+ */
 class cMarkAdBlackBordersVert {
     public:
 
