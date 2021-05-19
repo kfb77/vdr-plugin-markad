@@ -2699,9 +2699,6 @@ void cMarkAdStandalone::Process2ndPass() {
         macontext.Video.Info.framesPerSecond = 25;
     }
 
-    if (!marks.Count()) {
-        marks.Load(directory, macontext.Video.Info.framesPerSecond);
-    }
     cMark *p1 = NULL,*p2 = NULL;
 
     if (ptr_cDecoder) {

@@ -563,51 +563,6 @@ int cMarks::LoadVPS(const char *directory, const char *type) {
 }
 
 
-bool cMarks::Load(const char *directory, const double FrameRate) {
-    char *fpath = NULL;
-    if (asprintf(&fpath, "%s/%s", directory, filename) == -1) return false;
-    ALLOC(strlen(fpath)+1, "fpath");
-
-    FILE *mf;
-    mf = fopen(fpath, "r+");
-    FREE(strlen(fpath)+1, "fpath");
-    free(fpath);
-    if (!mf) return false;
-
-    char *line = NULL;
-    size_t length;
-    int h, m, s, f;
-
-    while (getline(&line, &length, mf) != -1) {
-        char descr[256] = "";
-        f = 1;
-        int n = sscanf(line, "%3d:%02d:%02d.%02d %80c", &h, &m, &s, &f, (char *) &descr);
-        if (n == 1) {
-            Add(0, h);
-        }
-        if (n >= 3) {
-            int pos = int(round((h * 3600 + m * 60 + s) * FrameRate)) + f - 1;
-            if (n <= 4) {
-                Add(0, pos);
-            }
-            else {
-                char *lf = strchr(descr, 10);
-                if (lf) *lf = 0;
-                char *cr = strchr(descr, 13);
-                if (cr) *cr = 0;
-                Add(0, pos, descr);
-            }
-        }
-    }
-    if (line) {
-        FREE(strlen(line)+1, "line");
-        free(line);
-    }
-    fclose(mf);
-    return true;
-}
-
-
 bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const bool force) {
     if (!directory) return false;
     if (!maContext) return false;

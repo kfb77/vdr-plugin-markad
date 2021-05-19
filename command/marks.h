@@ -79,7 +79,6 @@ class cMarks {
             return last;
         }
         bool Backup(const char *directory);
-        bool Load(const char *directory, const double FrameRate);
 
 /**
  * save marks to recording directory
