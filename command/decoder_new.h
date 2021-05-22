@@ -34,6 +34,7 @@ extern "C"{
 
 
 // libavcodec versions of some distributions
+// #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(  1<<8)+100)   ffmpeg 4.5
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 35<<8)+100)   Ubuntu 20.04 and Debian Buster
 // #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   Ubuntu 18.04
@@ -237,7 +238,11 @@ class cDecoder {
         AVFormatContext *avctx = NULL;
         AVPacket avpkt = {};
         AVFrame *avFrame = NULL;
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100) // ffmpeg 4.5
+        const AVCodec *codec = NULL;
+#else
         AVCodec *codec = NULL;
+#endif
         AVCodecContext **codecCtxArray = NULL;
         int currFrameNumber = -1;
         int iFrameCount = 0;

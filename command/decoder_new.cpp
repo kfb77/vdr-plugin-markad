@@ -168,10 +168,10 @@ bool cDecoder::DecodeFile(const char * filename) {
     for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         AVCodecID codec_id = avctx->streams[streamIndex]->codecpar->codec_id;
-        codec=avcodec_find_decoder(codec_id);
+        codec = avcodec_find_decoder(codec_id);
 #else
         AVCodecID codec_id = avctx->streams[streamIndex]->codec->codec_id;
-        codec=avcodec_find_decoder(codec_id);
+        codec = avcodec_find_decoder(codec_id);
 #endif
         if (!codec) {
             if (codec_id == 100359) {  // not supported by libavcodec

@@ -379,7 +379,9 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
     if (!avCodecCtxIn) return false;
 
     avcodec_close(codecCtxArrayOut[streamIndexOut]);
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100)  // ffmpeg 4.5
+    const AVCodec *codec = avcodec_find_encoder(avctxIn->streams[streamIndexIn]->codecpar->codec_id);
+#elif LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     AVCodec *codec = avcodec_find_encoder(avctxIn->streams[streamIndexIn]->codecpar->codec_id);
 #else
     AVCodec *codec = avcodec_find_encoder(avctxIn->streams[streamIndexIn]->codec->codec_id);
@@ -495,7 +497,10 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
         return false;
     }
 
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100) // ffmpeg 4.5
+    AVCodecID codec_id = avctxIn->streams[streamIndexIn]->codecpar->codec_id;
+    const AVCodec *codec = avcodec_find_encoder(codec_id);
+#elif LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     AVCodecID codec_id = avctxIn->streams[streamIndexIn]->codecpar->codec_id;
     AVCodec *codec = avcodec_find_encoder(codec_id);
 #else
