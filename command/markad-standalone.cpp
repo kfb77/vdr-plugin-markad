@@ -163,7 +163,6 @@ bool cOSDMessage::ReadReply(int fd, char **reply) {
     char c = ' ';
     int repsize = 0;
     int msgsize = 0;
-    bool skip = false;
     if (reply) *reply = NULL;
     do {
         struct pollfd fds;
@@ -175,7 +174,7 @@ bool cOSDMessage::ReadReply(int fd, char **reply) {
         if (ret <= 0) return false;
         if (fds.revents != POLLIN) return false;
         if (read(fd, &c, 1) < 0) return false;
-        if ((reply) && (!skip) && (c != 10) && (c != 13)) {
+        if ((reply) && (c != 10) && (c != 13)) {
             msgsize++;
             while ((msgsize + 5) > repsize) {
                 repsize += 80;
@@ -183,7 +182,7 @@ bool cOSDMessage::ReadReply(int fd, char **reply) {
                 if (!tmp) {
                     free(*reply);
                     *reply = NULL;
-                    skip = true;
+                    return false;
                 }
                 else {
                     *reply = tmp;
