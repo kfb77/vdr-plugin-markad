@@ -60,7 +60,7 @@ class cEvaluateLogoStopStartPair {
         ~cEvaluateLogoStopStartPair();
 
 /**
- * check if logo stop/start pair could be an info logo part
+ * check if logo stop/start pair could be an info logo
  * @param blackMarks        object with all black screen marks
  * @param logoStopStartPair structure of logo/stop start pair, result is stored here
  * @param framesPerSecond         video frame rate
