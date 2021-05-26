@@ -549,7 +549,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber)
 #endif
         return BRIGHTNESS_ERROR; // nothing we can work with
     }
-    if (contrastLogo > 116) { // this could not be the contrast of the logo area because it would be detected without calling ReduceBrightness(), changed from 90 to 116
+    if (contrastLogo > 133) { // this could not be the contrast of the logo area because it would be detected without calling ReduceBrightness(), changed from 90 to 116 to 133
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): contrast in logo area too high");
 #endif
