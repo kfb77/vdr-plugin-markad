@@ -339,7 +339,7 @@ int cDecoder::GetVideoRealFrameRate() {
 }
 
 
-bool cDecoder::GetNextFrame() {
+bool cDecoder::GetNextPacket() {
     if (!avctx) return false;
     FrameData.Valid = false;
     av_packet_unref(&avpkt);
@@ -353,26 +353,27 @@ bool cDecoder::GetNextFrame() {
             currFrameNumber++;
             // store frame number and pts in a ring buffer
             recordingIndexDecoder->AddPTS(currFrameNumber, avpkt.pts);
-            int64_t pts_time_ms = -1;
+            int64_t offsetTime_ms = -1;
             if (avpkt.pts != AV_NOPTS_VALUE) {
                 int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
                 if ( tmp_pts < 0 ) { tmp_pts += 0x200000000; }   // libavodec restart at 0 if pts greater than 0x200000000
-                pts_time_ms = tmp_pts*av_q2d(avctx->streams[avpkt.stream_index]->time_base) * 1000;
-                offsetTime_ms_LastRead = offsetTime_ms_LastFile + pts_time_ms;
+                offsetTime_ms = 1000 * tmp_pts * av_q2d(avctx->streams[avpkt.stream_index]->time_base);
+                offsetTime_ms_LastRead = offsetTime_ms_LastFile + offsetTime_ms;
             }
             if (IsVideoIFrame()) {
                 iFrameCount++;
                 // store a iframe number pts offset in ms index
-                if (pts_time_ms >= 0) {
-                    recordingIndexDecoder->Add(fileNumber, currFrameNumber, offsetTime_ms_LastFile + pts_time_ms);
+                if (offsetTime_ms >= 0) {
+                    recordingIndexDecoder->Add(fileNumber, currFrameNumber, offsetTime_ms_LastFile + offsetTime_ms);
                 }
-                else dsyslog("cDecoder::GetNextFrame(): failed to get pts for frame %d", currFrameNumber);
+                else dsyslog("cDecoder::GetNextPacket(): failed to get pts for frame %d", currFrameNumber);
             }
         }
         return true;
     }
+    // end of file reached
     offsetTime_ms_LastFile = offsetTime_ms_LastRead;
-    dsyslog("cDecoder::GetNextFrame(): last frame of filenumber %d is (%d), end time %" PRId64 "ms (%3d:%02dmin)", fileNumber, currFrameNumber, offsetTime_ms_LastFile, static_cast<int> (offsetTime_ms_LastFile / 1000 / 60), static_cast<int> (offsetTime_ms_LastFile / 1000) % 60);
+    dsyslog("cDecoder::GetNextPacket(): last frame of filenumber %d is (%d), end time %" PRId64 "ms (%3d:%02dmin)", fileNumber, currFrameNumber, offsetTime_ms_LastFile, static_cast<int> (offsetTime_ms_LastFile / 1000 / 60), static_cast<int> (offsetTime_ms_LastFile / 1000) % 60);
     return false;
 }
 
@@ -409,7 +410,7 @@ bool cDecoder::SeekToFrame(sMarkAdContext *maContext, int frameNumber) {
     }
 
     while (currFrameNumber < frameNumber) {
-        if (!this->GetNextFrame()) {
+        if (!this->GetNextPacket()) {
             if (!this->DecodeDir(recordingDir)) {
                 dsyslog("cDecoder::SeekFrame(): failed for frame (%d) at frame (%d)", frameNumber, currFrameNumber);
                 return false;
@@ -880,7 +881,7 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
 
     dsyslog("cDecoder::GetNextSilence(): using stream index %i from frame (%d) to frame (%d)", streamIndex, GetFrameNumber(), stopFrame);
     while (GetFrameNumber() < stopFrame) {
-        if (!GetNextFrame()) {
+        if (!GetNextPacket()) {
             if (!DecodeDir(recordingDir)) break;
         }
         if (IsVideoPacket()) {  // store video PTS of each video frame

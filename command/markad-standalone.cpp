@@ -2099,8 +2099,8 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMark **mark1, cMark **mark2) {
 // preload frames before stop mark
     while (ptr_cDecoder->GetFrameNumber() <= (*mark1)->position ) {
         if (abortNow) return false;
-        if (!ptr_cDecoder->GetNextFrame()) {
-            dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetNextFrame failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
+        if (!ptr_cDecoder->GetNextPacket()) {
+            dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetNextPacket failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             return false;
         }
         if (!ptr_cDecoder->IsVideoPacket()) continue;
@@ -2154,8 +2154,8 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMark **mark1, cMark **mark2) {
 // process frames after start mark and detect overlap
     while (ptr_cDecoder->GetFrameNumber() <= fRangeEnd ) {
         if (abortNow) return false;
-        if (!ptr_cDecoder->GetNextFrame()) {
-            dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetNextFrame failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
+        if (!ptr_cDecoder->GetNextPacket()) {
+            dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetNextPacket failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             return false;
         }
         if (!ptr_cDecoder->IsVideoPacket()) continue;
@@ -2230,7 +2230,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
 
     // read and decode all video frames, we want to be sure we have a valid decoder state, this is a debug function, we dont care about performance
     while(mark && (ptr_cDecoder->DecodeDir(directory))) {
-        while(mark && (ptr_cDecoder->GetNextFrame())) {
+        while(mark && (ptr_cDecoder->GetNextPacket())) {
             if (ptr_cDecoder->IsVideoPacket()) {
                 if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) {
                     if (ptr_cDecoder->GetFrameNumber() >= writePosition) {
@@ -2325,7 +2325,7 @@ void cMarkAdStandalone::MarkadCut() {
 
         // process input file
         while(ptr_cDecoder->DecodeDir(directory)) {
-            while(ptr_cDecoder->GetNextFrame()) {
+            while(ptr_cDecoder->GetNextPacket()) {
                 int frameNumber = ptr_cDecoder->GetFrameNumber();
                 if  (frameNumber < startPosition) {  // go to start frame
                     LogSeparator();
@@ -2881,7 +2881,7 @@ void cMarkAdStandalone::ProcessFiles() {
 
             CalculateCheckPositions(macontext.Info.tStart * macontext.Video.Info.framesPerSecond);
         }
-        while(ptr_cDecoder && ptr_cDecoder->GetNextFrame()) {
+        while(ptr_cDecoder && ptr_cDecoder->GetNextPacket()) {
             if (abortNow) {
                 if (ptr_cDecoder) {
                     FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");

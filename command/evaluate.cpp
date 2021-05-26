@@ -371,8 +371,8 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
         status = false;
     }
     while (status && (ptr_cDecoder->GetFrameNumber() < endFrame)) {
-        if (!ptr_cDecoder->GetNextFrame()) {
-            dsyslog("cDetectLogoStopStart::Detect(): GetNextFrame() failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
+        if (!ptr_cDecoder->GetNextPacket()) {
+            dsyslog("cDetectLogoStopStart::Detect(): GetNextPacket() failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             status = false;
         }
         int frameNumber =  ptr_cDecoder->GetFrameNumber();

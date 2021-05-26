@@ -1248,7 +1248,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
         GetLogoSize(maContext, &logoHeight, &logoWidth);
         dsyslog("cExtractLogo::SearchLogo(): logo size %dx%d", logoWidth, logoHeight);
 
-        while(ptr_cDecoder->GetNextFrame()) {
+        while(ptr_cDecoder->GetNextPacket()) {
             if (abortNow) return -1;
 
             // write an early start mark for running recordings

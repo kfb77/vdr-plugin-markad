@@ -121,11 +121,15 @@ class cDecoder {
  */
         int GetVideoRealFrameRate();
 
+/// read next frame from current input ts file
 /**
- * read next frame from current file
- * @return true if successful, false otherwise (e.g. end of file)
+ * increase frame counter if video frame <br>
+ * increase i-frame counter if video i-frame <br>
+ * add presentation timestamp for each frame to ring buffer <br>
+ * add offset from recording start for each i-frame to recording index <br>
+ * @return true if successful, false if av_read_frame failed (e.g. end of file)
  */
-        bool GetNextFrame();
+        bool GetNextPacket();
 
 /**
  * get current packet
@@ -150,10 +154,14 @@ class cDecoder {
  */
         AVFrame *DecodePacket(AVPacket *avpkt);
 
+/// decode video packets and get audio/video infos
 /**
- * decode current packet, get all global frame infos, fill data planes
- * @param maContext markad context
- * @param full      true if we do full decoding of all frames, false if we decode only i-frames
+ * decode video packets (audio frames are not decoded) <br>
+ * get aspect ratio for video frames <br>
+ * get audio channels for audio packets <br>
+ * fill video data planes
+ * @param[in,out] maContext markad context
+ * @param[in]     full      true if we do full decoding of all video frames, false if we decode only i-frames
  */
         bool GetFrameInfo(sMarkAdContext *maContext, const bool full);
 
@@ -218,7 +226,7 @@ class cDecoder {
 /** get number of i-frames between to frames
  * @param beginFrame
  * @param endFrame
- * @return get number ofg i-frames between beginFrame and endFrame
+ * @return get number of i-frames between beginFrame and endFrame
  */
         int GetIFrameRangeCount(int beginFrame, int endFrame);
 
