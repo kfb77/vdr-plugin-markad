@@ -318,6 +318,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "RTL_Television") == 0) {   // RTL_Television          16:9  720W  576H:->  104W  60H TOP_LEFT (normal RTL logo)
                                                                         // RTL_Television          16:9  720W  576H:->  142W  60H TOP_LEFT ( RTL live logo)
         logo.widthMax  = 142 ;
+        logo.heightMax =  60 ;
     }
     if (strcmp(maContext->Info.ChannelName, "RTL2") == 0) {             // RTL2                    16:9  720W  576H:->   82W  78H BOTTOM_RIGHT (new logo)
                                                                         // RTL2                    16:9  720W  576H:->  108W 108H BOTTOM_RIGHT (old logo)
