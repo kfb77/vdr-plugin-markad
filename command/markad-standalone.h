@@ -296,7 +296,7 @@ class cMarkAdStandalone {
  * @param[in, out] mark2 start mark after advertising, set to end position of detected overlap
  * @return true if overlap was detected, false otherwise
  */
-        bool ProcessMark2ndPass(cMark **mark1, cMark **mark2);
+        bool ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark1, cMark **mark2);
 
 /**
  * process next frame

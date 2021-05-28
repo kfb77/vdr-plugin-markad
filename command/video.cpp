@@ -1354,6 +1354,9 @@ cMarkAdOverlap::~cMarkAdOverlap() {
 
 
 void cMarkAdOverlap::Clear() {
+#ifdef DEBUG_OVERLAP
+    dsyslog("cMarkAdOverlap::Clear(): clear histogram buffers");
+#endif
     histcnt[OV_BEFORE] = 0;
     histcnt[OV_AFTER] = 0;
     histframes[OV_BEFORE] = 0;
@@ -1371,7 +1374,6 @@ void cMarkAdOverlap::Clear() {
     memset(&Result, 0, sizeof(Result));
     similarCutOff = 0;
     similarMaxCnt = 0;
-
     lastFrameNumber = -1;
 }
 
@@ -1459,34 +1461,24 @@ sOverlapPos *cMarkAdOverlap::Detect() {
 }
 
 
-sOverlapPos *cMarkAdOverlap::Process(const int frameNumber, const int frames, const bool beforeAd, const bool h264) {
-//    dsyslog("---cMarkAdOverlap::Process FrameNumber %i", FrameNumber);
-//    dsyslog("---cMarkAdOverlap::Process Frames %i", Frames);
-//    dsyslog("---cMarkAdOverlap::Process BeforeAd %i", BeforeAd);
-//    dsyslog("---cMarkAdOverlap::Process H264 %i", H264);
-//    dsyslog("---cMarkAdOverlap::Process lastFrameNumber %i", lastFrameNumber);
-//    dsyslog("---cMarkAdOverlap::Process histcnt[OV_BEFORE] %i", histcnt[OV_BEFORE]);
-//    dsyslog("---cMarkAdOverlap::Process histcnt[OV_AFTER] %i", histcnt[OV_AFTER]);
+sOverlapPos *cMarkAdOverlap::Process(const int frameNumber, const int frameCount, const bool beforeAd, const bool h264) {
+#ifdef DEBUG_OVERLAP
+    dsyslog("------------------------------------------------------------------------------------------------");
+    dsyslog("cMarkAdVideo::ProcessOverlap(): frameNumber %d, frameCount %d, beforeAd %d, isH264 %d", frameNumber, frameCount, beforeAd, h264);
+#endif
     if ((lastFrameNumber > 0) && (!similarMaxCnt)) {
         similarCutOff = 49000; // lower is harder! reduced from 50000 to 49000
-//        if (H264) similarCutOff*=6;
         if (h264) similarCutOff *= 4;       // reduce false similar detection in H.264 streams
-//        similarMaxCnt=4;
         similarMaxCnt = 10;
     }
 
     if (beforeAd) {
-        if ((histframes[OV_BEFORE]) && (histcnt[OV_BEFORE] >= histframes[OV_BEFORE])) {
-            if (Result.frameNumberBefore) {
-                Clear();
-            }
-            else {
-                return NULL;
-            }
-        }
+#ifdef DEBUG_OVERLAP
+        dsyslog("cMarkAdVideo::ProcessOverlap(): preload histogram with frames before stop mark");
+#endif
         if (!histbuf[OV_BEFORE]) {
-            histframes[OV_BEFORE] = frames;
-            histbuf[OV_BEFORE] = new sHistBuffer[frames + 1];
+            histframes[OV_BEFORE] = frameCount;
+            histbuf[OV_BEFORE] = new sHistBuffer[frameCount + 1];
             ALLOC(sizeof(*histbuf[OV_BEFORE]), "histbuf");
         }
         GetHistogram(histbuf[OV_BEFORE][histcnt[OV_BEFORE]].histogram);
@@ -1494,14 +1486,20 @@ sOverlapPos *cMarkAdOverlap::Process(const int frameNumber, const int frames, co
         histcnt[OV_BEFORE]++;
     }
     else {
+#ifdef DEBUG_OVERLAP
+        dsyslog("cMarkAdVideo::ProcessOverlap(): preload histogram with frames after start mark");
+#endif
         if (!histbuf[OV_AFTER]) {
-            histframes[OV_AFTER] = frames;
-            histbuf[OV_AFTER] = new sHistBuffer[frames + 1];
+            histframes[OV_AFTER] = frameCount;
+            histbuf[OV_AFTER] = new sHistBuffer[frameCount + 1];
             ALLOC(sizeof(*histbuf[OV_AFTER]), "histbuf");
         }
 
-        if (histcnt[OV_AFTER]>=histframes[OV_AFTER] - 1) {
-            if (Result.frameNumberBefore) return NULL;
+        if (histcnt[OV_AFTER] >= histframes[OV_AFTER] - 1) {
+            if (Result.frameNumberBefore != 0) return NULL;
+#ifdef DEBUG_OVERLAP
+        dsyslog("cMarkAdVideo::ProcessOverlap(): compare frames");
+#endif
             return Detect();
         }
         GetHistogram(histbuf[OV_AFTER][histcnt[OV_AFTER]].histogram);
@@ -1529,7 +1527,6 @@ cMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContextParam, cIndex *recordingInde
     logo = new cMarkAdLogo(maContext, recordingIndexMarkAdVideo);
     ALLOC(sizeof(*logo), "cMarkAdVideo_logo");
 
-    overlap = NULL;
     Clear(false);
 }
 
@@ -1551,10 +1548,6 @@ cMarkAdVideo::~cMarkAdVideo() {
     if (logo) {
         FREE(sizeof(*logo), "cMarkAdVideo_logo");
         delete logo;
-    }
-    if (overlap) {
-        FREE(sizeof(*overlap), "overlap");
-        delete overlap;
     }
 }
 
@@ -1605,17 +1598,6 @@ bool cMarkAdVideo::AspectRatioChange(const sAspectRatio &AspectRatioA, const sAs
     }
     if ((AspectRatioA.num != AspectRatioB.num) && (AspectRatioA.den != AspectRatioB.den)) return true;
     return false;
-}
-
-
-sOverlapPos *cMarkAdVideo::ProcessOverlap(const int frameNumber, const int frameCount, const bool beforeAd, const bool isH264) {
-    if (!frameNumber) return NULL;
-    if (!overlap) {
-        overlap = new cMarkAdOverlap(maContext);
-        ALLOC(sizeof(*overlap), "overlap");
-    }
-    if (!overlap) return NULL;
-    return overlap->Process(frameNumber, frameCount, beforeAd, isH264);
 }
 
 

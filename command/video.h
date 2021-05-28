@@ -158,15 +158,17 @@ class cMarkAdOverlap {
 
         ~cMarkAdOverlap();
 
+/// process overlap detection
 /**
- * process overlap detection
+ * if beforeAd == true preload frames before stop mark in histogram buffer array, otherwise preload frames after start mark <br>
+ * if we got frameCount, start compare
  * @param frameNumber current frame number
- * @param frames      number of frames processed
+ * @param frameCount  number of frames to process
  * @param beforeAd    true if called with a frame before advertising, false otherwise
  * @param h264        true if HD video, false otherwise
- * @return new stop and start mark position
+ * @return new stop and start mark position if overlap found, NULL otherwise
  */
-        sOverlapPos *Process(const int frameNumber, const int frames, const bool beforeAd, const bool h264);
+        sOverlapPos *Process(const int frameNumber, const int frameCount, const bool beforeAd, const bool h264);
 
     private:
 
@@ -556,7 +558,7 @@ class cMarkAdVideo {
             hborder = NULL;
             vborder = NULL;
             logo = NULL;
-            overlap = NULL;
+//            overlap = NULL;
         };
 
 /**
@@ -568,20 +570,10 @@ class cMarkAdVideo {
             hborder = NULL;
             vborder = NULL;
             logo = NULL;
-            overlap = NULL;
+//            overlap = NULL;
             aspectRatio = {};
             return *this;
         }
-
-/**
- * check if there are simail frames before stop mark and after start marks (overlaps)
- * @param frameNumber current frame number
- * @param frameCount  count frames to check for overlap
- * @param beforeAd    true if called before stop mark, flase if called after start mark
- * @param isH264      true if H.264 codec, false otherwise
- * @return start and end frame of overlapping frames
- */
-        sOverlapPos *ProcessOverlap(const int frameNumber, const int frameCount, const bool beforeAd, const bool isH264);
 
 /**
  * detect video packet based marks
@@ -647,7 +639,7 @@ class cMarkAdVideo {
                                                   //!<
         cMarkAdLogo *logo;                        //!< pointer to class cMarkAdLogo
                                                   //!<
-        cMarkAdOverlap *overlap;                  //!< pointer to class cMarkAdOverlap
+//        cMarkAdOverlap *overlap;                  //!< pointer to class cMarkAdOverlap
                                                   //!<
 };
 #endif

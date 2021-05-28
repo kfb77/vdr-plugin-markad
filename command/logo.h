@@ -72,7 +72,7 @@ class cExtractLogo : public cLogoSize {
         void GetLogoSize(const sMarkAdContext *maContext, int *logoHeight, int *logoWidth);
 
 /**
- * compair logo pair
+ * compare logo pair
  * @param logo1      pixel map of logo 1
  * @param logo2      pixel map of logo 2
  * @param logoHeight logo height
@@ -120,7 +120,7 @@ class cExtractLogo : public cLogoSize {
         bool CheckValid(const sMarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
 
 /**
- * compair logo with all other in list
+ * compare logo with all other in list
  * @param maContext       markad context
  * @param ptr_actLogoInfo pixel map of logo
  * @param logoHeight      logo height
@@ -131,7 +131,7 @@ class cExtractLogo : public cLogoSize {
         int Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
 
 /**
- * compair rotating logo pair
+ * compare rotating logo pair
  * @param maContext  markad context
  * @param logo1      pixel map of logo 1
  * @param logo2      pixel map of logo 2

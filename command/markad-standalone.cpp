@@ -2028,12 +2028,13 @@ void cMarkAdStandalone::CheckIndexGrowing()
 }
 
 
-bool cMarkAdStandalone::ProcessMark2ndPass(cMark **mark1, cMark **mark2) {
+bool cMarkAdStandalone::ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark1, cMark **mark2) {
     if (!ptr_cDecoder) return false;
     if (!mark1) return false;
     if (!*mark1) return false;
     if (!mark2) return false;
     if (!*mark2) return false;
+
 
     sOverlapPos *ptr_OverlapPos = NULL;
     Reset();
@@ -2094,7 +2095,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMark **mark1, cMark **mark2) {
         dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetIFrameRangeCount failed at range (%d,%d))", fRangeBegin, (*mark1)->position);
         return false;
     }
-    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): %d iFrames to preload between start of check (%d) and stop mark (%d)", iFrameCount, fRangeBegin, (*mark1)->position);
+    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): %d i-frames to preload between start of check (%d) and stop mark (%d)", iFrameCount, fRangeBegin, (*mark1)->position);
 
 // preload frames before stop mark
     while (ptr_cDecoder->GetFrameNumber() <= (*mark1)->position ) {
@@ -2110,7 +2111,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMark **mark1, cMark **mark2) {
             continue;
         }
         if (ptr_cDecoder->IsVideoIFrame()) {
-            ptr_OverlapPos = video->ProcessOverlap(ptr_cDecoder->GetFrameNumber(), iFrameCount, true, (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264));
+            ptr_OverlapPos = overlap->Process(ptr_cDecoder->GetFrameNumber(), iFrameCount, true, (macontext.Info.vPidType == MARKAD_PIDTYPE_VIDEO_H264));
         }
     }
 
@@ -2165,7 +2166,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMark **mark1, cMark **mark2) {
             continue;
         }
         if (ptr_cDecoder->IsVideoIFrame()) {
-            ptr_OverlapPos = video->ProcessOverlap(ptr_cDecoder->GetFrameNumber(), iFrameCount, false, (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264));
+            ptr_OverlapPos = overlap->Process(ptr_cDecoder->GetFrameNumber(), iFrameCount, false, (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264));
         }
         if (ptr_OverlapPos) {
             // found overlap
@@ -2715,9 +2716,16 @@ void cMarkAdStandalone::Process2ndPass() {
         while ((p1) && (p2)) {
             if (ptr_cDecoder) {
                 dsyslog("cMarkAdStandalone::Process2ndPass(): ->->->->-> check overlap before stop frame (%d) and after start frame (%d)", p1->position, p2->position);
-                if (!ProcessMark2ndPass(&p1, &p2)) {
+                // init overlap detection object
+                cMarkAdOverlap *overlap = new cMarkAdOverlap(&macontext);
+                ALLOC(sizeof(*overlap), "overlap");
+                // detect overlap before stop and after start
+                if (!ProcessMark2ndPass(overlap, &p1, &p2)) {
                     dsyslog("cMarkAdStandalone::Process2ndPass(): no overlap found for marks before frames (%d) and after (%d)", p1->position, p2->position);
                 }
+                // free overlap detection object
+                FREE(sizeof(*overlap), "overlap");
+                delete overlap;
             }
             p1 = p2->Next();
             if (p1) {
