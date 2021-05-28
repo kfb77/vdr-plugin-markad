@@ -288,37 +288,37 @@ cMark *cMarks::GetNext(const int position, const int type, const int mask) {
 
 
 cMark *cMarks::Add(const int type, const int position, const char *comment, const bool inBroadCast) {
-    cMark *newmark;
 
-    if ((newmark = Get(position))) {
-        dsyslog("duplicate mark on position %i type 0x%X and type 0x%x", position, type, newmark->type);
-        if (type == newmark->type) return NULL;  // same type at same position, ignore add
-        if ((type & 0xF0) == (newmark->type & 0xF0)) {  // start and stop mark of same type at same position, delete both
-            Del(newmark->position);
+    cMark *dupMark;
+    if ((dupMark = Get(position))) {
+        dsyslog("cMarks::Add(): duplicate mark on position %i type 0x%X and type 0x%X", position, type, dupMark->type);
+        if (type == dupMark->type) return dupMark;      // same type at same position, ignore add
+        if ((type & 0xF0) == (dupMark->type & 0xF0)) {  // start and stop mark of same type at same position, delete both
+            Del(dupMark->position);
             return NULL;
         }
-        if (type > newmark->type){   // keep the stronger mark
-            if (newmark->comment && comment) {
-                FREE(strlen(newmark->comment)+1, "comment");
-                free(newmark->comment);
-                newmark->comment=strdup(comment);
-                ALLOC(strlen(newmark->comment)+1, "comment");
+        if (type > dupMark->type){   // keep the stronger mark
+            if (dupMark->comment && comment) {
+                FREE(strlen(dupMark->comment)+1, "comment");
+                free(dupMark->comment);
+                dupMark->comment = strdup(comment);
+                ALLOC(strlen(dupMark->comment)+1, "comment");
             }
-            newmark->type = type;
-            newmark->inBroadCast = inBroadCast;
+            dupMark->type = type;
+            dupMark->inBroadCast = inBroadCast;
         }
-        return newmark;
+        return dupMark;
     }
 
-    newmark = new cMark(type, position, comment, inBroadCast);
-    if (!newmark) return NULL;
-    ALLOC(sizeof(*newmark), "mark");
+    cMark *newMark = new cMark(type, position, comment, inBroadCast);
+    if (!newMark) return NULL;
+    ALLOC(sizeof(*newMark), "mark");
 
     if (!first) {
         //first element
-        first = last = newmark;
+        first = last = newMark;
         count++;
-        return newmark;
+        return newMark;
     }
     else {
         cMark *mark = first;
@@ -326,23 +326,23 @@ cMark *cMarks::Add(const int type, const int position, const char *comment, cons
             if (!mark->Next()) {
                 if (position > mark->position) {
                     // add as last element
-                    newmark->Set(mark, NULL);
-                    mark->SetNext(newmark);
-                    last = newmark;
+                    newMark->Set(mark, NULL);
+                    mark->SetNext(newMark);
+                    last = newMark;
                     break;
                 }
                 else {
                     // add before
                     if (!mark->Prev()) {
                         // add as first element
-                        newmark->Set(NULL, mark);
-                        mark->SetPrev(newmark);
-                        first = newmark;
+                        newMark->Set(NULL, mark);
+                        mark->SetPrev(newMark);
+                        first = newMark;
                         break;
                     }
                     else {
-                        newmark->Set(mark->Prev(), mark);
-                        mark->SetPrev(newmark);
+                        newMark->Set(mark->Prev(), mark);
+                        mark->SetPrev(newMark);
                         break;
                     }
                 }
@@ -350,17 +350,17 @@ cMark *cMarks::Add(const int type, const int position, const char *comment, cons
             else {
                 if ((position > mark->position) && (position < mark->Next()->position)) {
                     // add between two marks
-                    newmark->Set(mark, mark->Next());
-                    mark->SetNext(newmark);
-                    newmark->Next()->SetPrev(newmark);
+                    newMark->Set(mark, mark->Next());
+                    mark->SetNext(newMark);
+                    newMark->Next()->SetPrev(newMark);
                     break;
                 }
                 else {
                     if ((position < mark->position) && (mark == first)) {
                         // add as first mark
-                        first = newmark;
-                        mark->SetPrev(newmark);
-                        newmark->SetNext(mark);
+                        first = newMark;
+                        mark->SetPrev(newMark);
+                        newMark->SetNext(mark);
                         break;
                     }
                 }
@@ -369,7 +369,7 @@ cMark *cMarks::Add(const int type, const int position, const char *comment, cons
         }
         if (!mark)return NULL;
         count++;
-        return newmark;
+        return newMark;
     }
     return NULL;
 }
