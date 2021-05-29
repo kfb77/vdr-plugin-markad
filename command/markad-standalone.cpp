@@ -608,7 +608,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
             FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
             delete evaluateLogoStopStartPair;
         }
-        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(&marks, &blackMarks, macontext.Video.Info.framesPerSecond, iStart, chkSTART, iStopA);
+        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(&macontext, &marks, &blackMarks, iStart, chkSTART, iStopA);
         ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
 
         char *indexToHMSFStop = NULL;

@@ -292,8 +292,9 @@ class cMarkAdStandalone {
 
 /**
  * process overlap detection with stop/start pair
- * @param[in, out] mark1 stop mark before advertising, set to start position of detected overlap
- * @param[in, out] mark2 start mark after advertising, set to end position of detected overlap
+ * @param[in]      overlap overlap detection object
+ * @param[in, out] mark1   stop mark before advertising, set to start position of detected overlap
+ * @param[in, out] mark2   start mark after advertising, set to end position of detected overlap
  * @return true if overlap was detected, false otherwise
  */
         bool ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark1, cMark **mark2);

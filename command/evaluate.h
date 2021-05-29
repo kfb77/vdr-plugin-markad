@@ -15,11 +15,48 @@ extern "C" {
 #include "marks.h"
 #include "video.h"
 
+/**
+ * class to evalute channel special logos types
+ */
+class cEvaluateChannel {
+    public:
+
+/**
+ * check if channel could have info logos
+ * @return true if channel could have info logos, false otherwise
+ */
+        bool IsInfoLogoChannel(char *channelName);
+
+/**
+ * check if channel could have logo changes
+ * @return true if channel could have logo changes, false otherwise
+ */
+        bool IsLogoChangeChannel(char *channelName);
+
+/**
+ * check if channel could have closing credits without logo
+ * @return true if channel could have closing credits without logo, false otherwise
+ */
+        bool ClosingCreditChannel(char *channelName);
+
+/**
+ * check if channel could have advertising in frame with logo
+ * @return true if channel advertising in frame with logo, false otherwise
+ */
+        bool AdInFrameWithLogoChannel(char *channelName);
+
+/**
+ * check for introduction logo
+ * @return true if introduction logo detected, false otherwise
+ */
+        bool IntroductionLogoChannel(char *channelName);
+};
+
 
 /**
  * class to evaluate logo stop/start pair
  */
-class cEvaluateLogoStopStartPair {
+class cEvaluateLogoStopStartPair : public cEvaluateChannel {
     public:
 
 /**
@@ -48,16 +85,27 @@ class cEvaluateLogoStopStartPair {
 
 /**
  * contructor for class to evalualte logo stop/start pairs
+ * @param maContext       markad context
  * @param marks           object with all marks
  * @param blackMarks      object with all black screen marks
- * @param framesPerSecond video frame rate
  * @param iStart          assumed start frame position
  * @param chkSTART        frame postion to check start part
  * @param iStopA          assumed end mark position
  */
-        cEvaluateLogoStopStartPair(cMarks *marks, cMarks *blackMarks, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA);
+        cEvaluateLogoStopStartPair(sMarkAdContext *maContext, cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA);
 
         ~cEvaluateLogoStopStartPair();
+
+/**
+ * check if logo stop/start pair could be a logo change
+ * @param[in]     marks             object with all marks
+ * @param[in,out] logoStopStartPair structure of logo/stop start pair, result is stored here, isLogoChange is set to -1 if the part is no logo change
+ * @param[in]     framesPerSecond   video frame rate
+ * @param[in]     iStart            assumed start mark position
+ * @param[in]     chkSTART          search for start mark position
+ * @param[in]     iStopA            assumed stop mark position
+ */
+     void IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA);
 
 /**
  * check if logo stop/start pair could be an info logo
@@ -102,7 +150,7 @@ class cEvaluateLogoStopStartPair {
 /**
  * class to calculate logo size
  */
-class cDetectLogoStopStart : cLogoSize {
+class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
     public:
 /**
  * contructor for class to dectect special logo stop/start pair
@@ -156,35 +204,6 @@ class cDetectLogoStopStart : cLogoSize {
         int IntroductionLogo();
 
     private:
-/**
- * check if channel could have info logos
- * @return true if channel could have info logos, false otherwise
- */
-        bool IsInfoLogoChannel();
-
-/**
- * check if channel could have logo changes
- * @return true if channel could have logo changes, false otherwise
- */
-        bool IsLogoChangeChannel();
-
-/**
- * check if channel could have closing credits without logo
- * @return true if channel could have closing credits without logo, false otherwise
- */
-        bool ClosingCreditChannel();
-
-/**
- * check if channel could have advertising in frame with logo
- * @return true if channel advertising in frame with logo, false otherwise
- */
-        bool AdInFrameWithLogoChannel();
-
-/**
- * check for introduction logo
- * @return true if introduction logo detected, false otherwise
- */
-        bool IntroductionLogoChannel();
 
         sMarkAdContext *maContext;               //!< markad context
                                                  //!<
