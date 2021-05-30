@@ -21,6 +21,10 @@ extern "C" {
 }
 
 
+// global variable
+extern bool abortNow;
+
+
 cMark::cMark(const int typeParam, const int positionParam, const char *commentParam, const bool inBroadCastParam) {
     type = typeParam;
     position = positionParam;
@@ -554,6 +558,8 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
     if (!directory) return false;
     if (!maContext) return false;
     if (!first) return false;  // no marks to save
+    if (abortNow) return false;  // do not save marks if aborted
+
     if (!maContext->Info.isRunningRecording && !force) {
 //        dsyslog("cMarks::Save(): save marks later, isRunningRecording=%d force=%d", maContext->Info.isRunningRecording, force);
         return false;
