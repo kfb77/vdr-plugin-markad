@@ -931,7 +931,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
 int cDetectLogoStopStart::IntroductionLogo() {
     if (!maContext) return -1;
     if (!ptr_cDecoder) return -1;
-    if (compareResult.empty()) return false;
+    if (compareResult.empty()) return -1;
 
 // for performance reason only for known and tested channels for now
     if (!IntroductionLogoChannel(maContext->Info.ChannelName)) {
