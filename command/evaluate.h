@@ -1,5 +1,6 @@
-/*
- * evaluate.cpp.h: A program for the Video Disk Recorder
+/**
+ * @file evaluate.h
+ * A program for the Video Disk Recorder
  *
  * See the README file for copyright information and how to reach the author.
  *
@@ -14,6 +15,17 @@ extern "C" {
 #include "global.h"
 #include "marks.h"
 #include "video.h"
+
+/**
+ * evaluate stop/start pair status
+ */
+enum eEvaluateStatus {
+    STATUS_NO      = -1,
+    STATUS_UNKNOWN =  0,
+    STATUS_YES     =  1
+};
+
+
 
 /**
  * class to evalute channel special logos types
@@ -63,24 +75,18 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
  * logo stop / start pair
  */
         struct sLogoStopStartPair {
-            int stopPosition = -1;           //!< frame number of logo stop mark
-                                             //!<
-
-            int startPosition = -1;          //!< frame number of logo start mark
-                                             //!<
-
-            int isLogoChange = 0;            //!< -1 no logo change, 0 unknown, 1 is logo change
-                                             //!<
-
-            int isAdvertising = 0;           //!< -1 pair is no advertising, 0 unknown, 1 pair is advertising
-                                             //!<
-
-            int isStartMarkInBroadcast = 0;  //!< -1 start mark does not contain to broadcast, 0 unknown, 1 start mark contains to broadcast
-                                             //!<
-
-            int isInfoLogo = 0;              //!< -1 pair is no introduction sequence, 0 unknown, 1 pair is introduction sequence
-                                             //!<
-
+            int stopPosition = -1;                        //!< frame number of logo stop mark
+                                                          //!<
+            int startPosition = -1;                       //!< frame number of logo start mark
+                                                          //!<
+            int isLogoChange = STATUS_UNKNOWN;            //!< status value #eEvaluateStatus
+                                                          //!<
+            int isAdvertising = STATUS_UNKNOWN;           //!< status value #eEvaluateStatus
+                                                          //!<
+            int isStartMarkInBroadcast = STATUS_UNKNOWN;  //!< status value #eEvaluateStatus
+                                                          //!<
+            int isInfoLogo = STATUS_UNKNOWN;              //!< status value #eEvaluateStatus
+                                                          //!<
         };
 
 /**

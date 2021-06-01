@@ -29,16 +29,14 @@ void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_lis
         int length = strlen(logMsg) + 1;
         ALLOC(length, "logMsg");
 #endif
-
         if (logMsg[strlen(logMsg) - 1] == '\n') logMsg[strlen(logMsg) - 1] = 0;
 
         if ((strcmp(logMsg, "co located POCs unavailable") == 0) || // this will happen with h.264 coding because of partitial decoding
             (strcmp(logMsg, "mmco: unref short failure") == 0) ||
             (strcmp(logMsg, "number of reference frames (0+5) exceeds max (4; probably corrupt input), discarding one") == 0)) {
-                tsyslog("AVlog(): %s",logMsg);
+                tsyslog("AVlog(): %s", logMsg);
         }
-        else dsyslog("AVlog(): %s",logMsg);
-
+        else dsyslog("AVlog(): %s", logMsg);
 #ifdef DEBUG_MEM
         FREE(length, "logMsg");
 #endif
@@ -89,18 +87,18 @@ cDecoder::~cDecoder() {
 }
 
 
-bool cDecoder::DecodeDir(const char * recDir) {
+bool cDecoder::DecodeDir(const char *recDir) {
     if (!recDir) return false;
     char *filename;
-    if ( ! recordingDir ) {
-        if (asprintf(&recordingDir,"%s",recDir)==-1) {
+    if (!recordingDir) {
+        if (asprintf(&recordingDir,"%s", recDir) == -1) {
             dsyslog("cDecoder::DecodeDir(): failed to allocate string, out of memory?");
             return false;
         }
         ALLOC(strlen(recordingDir), "recordingDir");
     }
     fileNumber++;
-    if (asprintf(&filename,"%s/%05i.ts",recDir,fileNumber)==-1) {
+    if (asprintf(&filename, "%s/%05i.ts", recDir, fileNumber) == -1) {
         dsyslog("cDecoder::DecodeDir(): failed to allocate string, out of memory?");
         return false;
     }
@@ -113,9 +111,9 @@ bool cDecoder::DecodeDir(const char * recDir) {
 
 
 void cDecoder::Reset(){
-    fileNumber=0;
-    currFrameNumber=-1;
-    msgGetFrameInfo=false;
+    fileNumber = 0;
+    currFrameNumber = -1;
+    msgGetFrameInfo = false;
 }
 
 
@@ -129,14 +127,14 @@ AVCodecContext **cDecoder::GetAVCodecContext() {
 }
 
 
-bool cDecoder::DecodeFile(const char * filename) {
+bool cDecoder::DecodeFile(const char *filename) {
     if (!filename) return false;
     AVFormatContext *avctxNextFile = NULL;
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(35<<8)+100)
     av_register_all();
 #endif
     if (avformat_open_input(&avctxNextFile, filename, NULL, NULL) == 0) {
-        dsyslog("cDecoder::DecodeFile(): start decode file %s",filename);
+        dsyslog("cDecoder::DecodeFile(): start decode file %s", filename);
         if (avctx) avformat_close_input(&avctx);
         avctx = avctxNextFile;
     }
@@ -206,7 +204,7 @@ bool cDecoder::DecodeFile(const char * filename) {
             return false;
         }
     }
-    msgDecodeFile=false;
+    msgDecodeFile = false;
     if (fileNumber <= 1) offsetTime_ms_LastFile = 0;
     return true;
 }
