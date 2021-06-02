@@ -1351,6 +1351,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     }
 
 // delete very short logo stop/start pairs
+// contains start mark, do not delete
+// diff 880 lengthAfter 203
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): delete very short logo stop/start pairs");
     DebugMarks();     //  only for debugging
@@ -1358,19 +1360,18 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     while (mark) {
         if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
             int diff = 1000 * (mark->Next()->position - mark->position) /  macontext.Video.Info.framesPerSecond;
-            if (diff <= 880 ) {  // changed from 500 to 880
+            if (diff <= 880 ) {
                 if (mark->Next()->Next() && (mark->Next()->Next()->type == MT_LOGOSTOP)) {
-                    int length = (mark->Next()->Next()->position - mark->Next()->position) /  macontext.Video.Info.framesPerSecond;
-                    cMark *tmp = mark->Next()->Next();
-                    if (length <= 423) {  // do not delete a short stop/start before a long broadcast part, this pair contains start mark,
-                                          // changed from < 290 to <= 423 (with length 200)
-                        dsyslog("cMarkAdStandalone::CheckMarks(): very short logo stop (%d) and logo start (%d) pair, diff %dms, length after %ds, deleting", mark->position, mark->Next()->position, diff, length);
+                    int lengthAfter = (mark->Next()->Next()->position - mark->Next()->position) /  macontext.Video.Info.framesPerSecond;
+                    if (lengthAfter < 203) {  // do not delete a short stop/start before a long broadcast part, this pair contains start mark,
+                        cMark *tmp = mark->Next()->Next();
+                        dsyslog("cMarkAdStandalone::CheckMarks(): very short logo stop (%d) and logo start (%d) pair, diff %dms, length after %ds, deleting", mark->position, mark->Next()->position, diff, lengthAfter);
                         marks.Del(mark->Next());
                         marks.Del(mark);
                         mark = tmp;
                         continue;
                     }
-                    else dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%d) and logo start (%d) pair, diff %dms, length %ds, long broadcast after, this can be a start mark", mark->position, mark->Next()->position, diff, length);
+                    else dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%d) and logo start (%d) pair, diff %dms, length %ds, long broadcast after, this can be a start mark", mark->position, mark->Next()->position, diff, lengthAfter);
                 }
             }
             else dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%d) and logo start (%d) pair, diff %dms long enough", mark->position, mark->Next()->position, diff);
