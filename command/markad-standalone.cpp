@@ -768,7 +768,7 @@ void cMarkAdStandalone::CheckStart() {
                     marks.Del(MT_ASPECTSTOP);
 
                     // start mark must be around iStartA
-                    begin=marks.GetAround(delta * 3, iStartA, MT_CHANNELSTART);  // decrease from 4
+                    begin = marks.GetAround(delta * 3, iStartA, MT_CHANNELSTART);  // decrease from 4
                     if (!begin) {          // previous recording had also 6 channels, try other marks
                         dsyslog("cMarkAdStandalone::CheckStart(): no audio channel start mark found");
                     }
@@ -820,6 +820,14 @@ void cMarkAdStandalone::CheckStart() {
     if (!begin && !inBroadCast) {
         dsyslog("cMarkAdStandalone::CheckStart(): we are not in broadcast at frame (%d), trying to find channel start mark anyway", frameCurrent);
         begin = marks.GetAround(delta*4, iStartA, MT_CHANNELSTART);
+        // check if the start mark is from previous recording
+        if (begin) {
+            cMark *lastChannelStop = marks.GetPrev(INT_MAX, MT_CHANNELSTOP);
+            if (lastChannelStop && (lastChannelStop->position <= chkSTART)) {
+                dsyslog("cMarkAdStandalone::CheckStart(): last channel stop mark at frame (%d) is too early, ignore channel marks are from previous recording", lastChannelStop->position);
+                begin = NULL;
+            }
+        }
     }
 
 // try to find a aspect ratio mark
