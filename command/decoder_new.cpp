@@ -699,14 +699,14 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool full) {
             }
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
             if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codecpar->channels) {
-                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d) PTS %ld", avpkt.stream_index,
+                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d) PTS %" PRId64, avpkt.stream_index,
                                                                                                         maContext->Audio.Info.Channels[avpkt.stream_index],
                                                                                                         avctx->streams[avpkt.stream_index]->codecpar->channels,
                                                                                                         currFrameNumber, avpkt.pts);
                 maContext->Audio.Info.Channels[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codecpar->channels;
 #else
             if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codec->channels) {
-                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d) PTS %ld", avpkt.stream_index,
+                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d) PTS %" PRId64, avpkt.stream_index,
                                                                                                         maContext->Audio.Info.Channels[avpkt.stream_index],
                                                                                                         avctx->streams[avpkt.stream_index]->codec->channels,
                                                                                                         currFrameNumber, avpkt.pts);
@@ -883,7 +883,7 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
             if (!DecodeDir(recordingDir)) break;
         }
         if (IsVideoPacket()) {  // store video PTS of each video frame
-//            dsyslog("cDecoder::GetNextSilence(): index %i video frame (%d) pts %ld", streamIndex, GetFrameNumber(), avpkt.pts);
+//            dsyslog("cDecoder::GetNextSilence(): index %i video frame (%d) pts %" PRId64, streamIndex, GetFrameNumber(), avpkt.pts);
             videoFrame.frameNumber = GetFrameNumber();
             videoFrame.pts = avpkt.pts;
             videoFrameVector.push_back(videoFrame);
@@ -916,7 +916,7 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
                         }
                         silence.endTmp = frameNumber;
                         silence.endTmpPTS = avpkt.pts;
-                        dsyslog("cDecoder::GetNextSilence(): stream %d frame (%5d) level %2d silenceCount %2d, pts %ld", avpkt.stream_index, frameNumber, normLevel, silence.countTmp, silence.endTmpPTS);
+                        dsyslog("cDecoder::GetNextSilence(): stream %d frame (%5d) level %2d silenceCount %2d, pts %" PRId64, avpkt.stream_index, frameNumber, normLevel, silence.countTmp, silence.endTmpPTS);
 
                     }
                     else {
@@ -1001,7 +1001,7 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
             else              silenceFrame = recordingIndexDecoder->GetIFrameAfter(videoFrame.frameNumber);
         }
         else silenceFrame = videoFrame.frameNumber;
-        dsyslog("cDecoder::GetNextSilence(): found silence part in stream %d between audio frame (%d) and (%d), video frame (%d) PTS %ld, return frame (%d)", streamIndex, silence.startFrame, silence.endFrame, videoFrame.frameNumber, videoFrame.pts, silenceFrame);
+        dsyslog("cDecoder::GetNextSilence(): found silence part in stream %d between audio frame (%d) and (%d), video frame (%d) PTS %" PRId64 ", return frame (%d)", streamIndex, silence.startFrame, silence.endFrame, videoFrame.frameNumber, videoFrame.pts, silenceFrame);
     }
     else {
 #ifdef DEBUG_MEM

@@ -546,9 +546,9 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d real framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->r_frame_rate.num, avctxIn->streams[streamIndexIn]->r_frame_rate.den);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d keyint_min %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->keyint_min);
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-        dsyslog("cEncoder::InitEncoderCodec(): video input format stream %d  bit_rate %ld", streamIndexIn, avctxIn->bit_rate);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d bit_rate %ld", streamIndexIn, codecCtxArrayIn[streamIndexIn]->bit_rate);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d rc_max_rate %ld", streamIndexIn, codecCtxArrayIn[streamIndexIn]->rc_max_rate);
+        dsyslog("cEncoder::InitEncoderCodec(): video input format stream %d  bit_rate %" PRId64, streamIndexIn, avctxIn->bit_rate);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d bit_rate %" PRId64, streamIndexIn, codecCtxArrayIn[streamIndexIn]->bit_rate);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d rc_max_rate %" PRId64, streamIndexIn, codecCtxArrayIn[streamIndexIn]->rc_max_rate);
 #else
         dsyslog("cEncoder::InitEncoderCodec(): video input format stream %d  bit_rate %d", streamIndexIn, avctxIn->bit_rate);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d bit_rate %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->bit_rate);
@@ -645,8 +645,8 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d keyint_min %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->keyint_min);
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d max_b_frames %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->max_b_frames);
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d bit_rate %ld", streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate);
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d rc_max_rate %ld", streamIndexOut, codecCtxArrayOut[streamIndexOut]->rc_max_rate);
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d bit_rate %" PRId64, streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate);
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d rc_max_rate %" PRId64, streamIndexOut, codecCtxArrayOut[streamIndexOut]->rc_max_rate);
 #else
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d bit_rate %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate);
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d rc_max_rate %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->rc_max_rate);
@@ -681,7 +681,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
             }
             else codecCtxArrayOut[streamIndexOut]->sample_fmt = codecCtxArrayIn[streamIndexIn]->sample_fmt;
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-            dsyslog("cEncoder::InitEncoderCodec(): audio output codec parameter for stream %d: bit_rate %ld", streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate);
+            dsyslog("cEncoder::InitEncoderCodec(): audio output codec parameter for stream %d: bit_rate %" PRId64, streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate);
 #else
             dsyslog("cEncoder::InitEncoderCodec(): audio output codec parameter for stream %d: bit_rate %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate);
 #endif
@@ -798,7 +798,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         return false;
     }
     if ((avpktIn->dts > EncoderStatus.dtsInBefore[streamIndexIn] + 0x100000000) && (EncoderStatus.dtsInBefore[streamIndexIn] > 0)){ // maybe input stream is faulty
-        dsyslog("cEncoder::WritePacket(): invalid dts %ld (dts before was %ld) in input stream %d at frame (%d), ignore packet", avpktIn->dts, EncoderStatus.dtsInBefore[streamIndexIn], streamIndexIn, frameNumber);
+        dsyslog("cEncoder::WritePacket(): invalid dts %" PRId64 " (dts before was %" PRId64 ") in input stream %d at frame (%d), ignore packet", avpktIn->dts, EncoderStatus.dtsInBefore[streamIndexIn], streamIndexIn, frameNumber);
         EncoderStatus.frameBefore = frameNumber;
         return false;
     }
@@ -809,7 +809,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
     if (EncoderStatus.dtsInBefore[streamIndexIn] >= avpktIn->dts) { // dts should monotonically increasing
         if (avpktIn->dts - avpktIn->duration - EncoderStatus.dtsInBefore[streamIndexIn] == -0x200000000) {
             EncoderStatus.pts_dts_CyclicalOffset[streamIndexIn] += 0x200000000;
-            dsyslog("cEncoder::WritePacket(): dts and pts cyclicle in input stream %d at frame (%d), offset now 0x%lX", streamIndexIn, frameNumber, EncoderStatus.pts_dts_CyclicalOffset[streamIndexIn]);
+            dsyslog("cEncoder::WritePacket(): dts and pts cyclicle in input stream %d at frame (%d), offset now 0x%" PRId64 "X", streamIndexIn, frameNumber, EncoderStatus.pts_dts_CyclicalOffset[streamIndexIn]);
             avpktIn->dts += 0x200000000;
             avpktIn->pts += 0x200000000;
         }
@@ -829,10 +829,10 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
     if (ptr_cDecoder->IsVideoPacket()) {
         if ((frameNumber - EncoderStatus.frameBefore) > 1) {  // first frame after stark mark position
             if (EncoderStatus.dtsInBefore[streamIndexIn] == 0) EncoderStatus.dtsInBefore[streamIndexIn] = avpktIn->dts - avpktIn->duration; // first frame has no before, init with dts of start mark
-            dsyslog("cEncoder::WritePacket(): start cut at            frame (%6d)                 PTS %ld", frameNumber, avpktIn->pts);
+            dsyslog("cEncoder::WritePacket(): start cut at            frame (%6d)                 PTS %" PRId64, frameNumber, avpktIn->pts);
             EncoderStatus.videoStartPTS = avpktIn->pts;
             EncoderStatus.pts_dts_CutOffset += (avpktIn->dts - EncoderStatus.dtsInBefore[streamIndexIn] - avpktIn->duration);
-            dsyslog("cEncoder::WritePacket(): new dts/pts offset %ld", EncoderStatus.pts_dts_CutOffset);
+            dsyslog("cEncoder::WritePacket(): new dts/pts offset %" PRId64, EncoderStatus.pts_dts_CutOffset);
         }
     }
     EncoderStatus.frameBefore = frameNumber;
@@ -841,7 +841,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
     if (avpktIn->pts < EncoderStatus.videoStartPTS) {
 #ifdef DEBUG_CUT
     if (streamIndexIn == DEBUG_CUT) {
-        dsyslog("cEncoder::WritePacket(): input  stream index %d frame   (%6d)                 PTS %ld is lower then video start pts %ld, drop packet", streamIndexIn, frameNumber, avpktIn->pts, EncoderStatus.videoStartPTS);
+        dsyslog("cEncoder::WritePacket(): input  stream index %d frame   (%6d)                 PTS %" PRId64 " is lower then video start pts %" PRId64 ", drop packet", streamIndexIn, frameNumber, avpktIn->pts, EncoderStatus.videoStartPTS);
     }
 #endif
         return true;
@@ -897,13 +897,13 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         if (ptr_cDecoder->IsVideoPacket()) {
             // libav encoder does not accept two frames with same pts
             if (EncoderStatus.ptsOutBefore == avFrame->pts) {
-                dsyslog("cEncoder::WritePacket(): got duplicate pts from video decoder, change pts from %ld to %ld", avFrame->pts, avFrame->pts + 1);
+                dsyslog("cEncoder::WritePacket(): got duplicate pts from video decoder, change pts from %" PRId64 " to %" PRId64, avFrame->pts, avFrame->pts + 1);
                 avFrame->pts = EncoderStatus.ptsOutBefore + 1;
             }
             // check monotonically increasing pts in frame after decoding
             // prevent "AVlog(): Assertion pict_type == rce->new_pict_type failed at src/libavcodec/ratecontrol.c:939" with ffmpeg 4.2.2
             if (EncoderStatus.ptsOutBefore > avFrame->pts) {
-                dsyslog("cEncoder::WritePacket(): got non monotonically increasing pts %ld from video decoder, pts before was %ld", avFrame->pts, EncoderStatus.ptsOutBefore);
+                dsyslog("cEncoder::WritePacket(): got non monotonically increasing pts %" PRId64 " from video decoder, pts before was %" PRId64, avFrame->pts, EncoderStatus.ptsOutBefore);
                 return false;
             }
             EncoderStatus.ptsOutBefore = avFrame->pts;
@@ -1023,7 +1023,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
                 ALLOC(stats_in.size, "stats_in");
             }
 #ifdef DEBUG_CUT
-            if (codecCtxArrayOut[streamIndexOut]->stats_out) dsyslog("cEncoder::WritePacket(): output stream %d frame %d stats_in length %ld", streamIndexOut, frameNumber, stats_in.size);
+            if (codecCtxArrayOut[streamIndexOut]->stats_out) dsyslog("cEncoder::WritePacket(): output stream %d frame %d stats_in length %" PRId64, streamIndexOut, frameNumber, stats_in.size);
 #endif
         }
         avpktOut.stream_index = streamIndexOut;

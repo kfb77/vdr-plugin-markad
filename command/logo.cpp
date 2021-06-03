@@ -1058,7 +1058,7 @@ bool cExtractLogo::WaitForFrames(sMarkAdContext *maContext, cDecoder *ptr_cDecod
         char indexTime[50] = {0};
         strftime(systemTime, sizeof(systemTime), "%d-%m-%Y %H:%M:%S", localtime(&now));
         strftime(indexTime, sizeof(indexTime), "%d-%m-%Y %H:%M:%S", localtime(&indexStatus.st_mtime));
-        dsyslog("cExtractLogo::WaitForFrames(): index file size %ld bytes, system time %s index time %s, wait %ds", indexStatus.st_size, systemTime, indexTime, WAITTIME);
+        dsyslog("cExtractLogo::WaitForFrames(): index file size %" PRId64 " bytes, system time %s index time %s, wait %ds", indexStatus.st_size, systemTime, indexTime, WAITTIME);
         if ((difftime(now, indexStatus.st_mtime)) >= 2 * WAITTIME) {
             dsyslog("cExtractLogo::isRunningRecording(): index not growing at frame (%d), old or interrupted recording", ptr_cDecoder->GetFrameNumber());
             ret = false;
@@ -1416,7 +1416,11 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                     actLogoInfo[corner] = *actLogo;
                 }
             }
+#if defined(__x86_64)
             dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars out of %3ld valid frames at %s", actLogoInfo[corner].iFrameNumber, actLogoInfo[corner].hits, logoInfoVector[corner].size(), aCorner[corner]);
+#else
+            dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars out of %3d valid frames at %s", actLogoInfo[corner].iFrameNumber, actLogoInfo[corner].hits, logoInfoVector[corner].size(), aCorner[corner]);
+#endif
         }
 
         // find best and second best corner

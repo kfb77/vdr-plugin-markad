@@ -239,6 +239,6 @@ int cIndex::GetFirstVideoFrameAfterPTS(const int64_t pts) {
             }
         }
     }
-    dsyslog("cIndex::GetFirstVideoFrameAfterPTS(): found video frame (%d) PTS %ld after PTS %ld", after.frameNumber, after.pts, pts);
+    dsyslog("cIndex::GetFirstVideoFrameAfterPTS(): found video frame (%d) PTS %" PRId64 " after PTS %" PRId64, after.frameNumber, after.pts, pts);
     return after.frameNumber;
 }
