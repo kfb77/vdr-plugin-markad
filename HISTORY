@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-06-03: Version 3.0.4
+- remove parameter autologo=1, use autolog=2 instead
+- remove support of info.vdr file
+- fix compile error with ffmpeg 4.5
+- do not save marks if aborted
+
 2021-05-15: Version 3.0.3
 - some optimation in logo extraction (especially for HD and UHD recordings)
 - reduced memory and cpu usage when searching for logo in recording
