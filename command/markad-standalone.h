@@ -212,6 +212,12 @@ class cMarkAdStandalone {
         time_t GetRecordingStart(time_t start, int fd);
 
 #if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_MARK_FRAMES)
+/**
+ * save frame, used for debug
+ * @param frame  frame number
+ * @param path   target path
+ * @param suffix fine name suffix
+ */
         void SaveFrame(const int frame, const char *path = NULL, const char *suffix = NULL);
 #endif
 

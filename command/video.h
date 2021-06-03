@@ -332,10 +332,11 @@ class cMarkAdLogo : cLogoSize {
 
 /**
  * reduce brightness of logo corner
- * @param frameNumber frame number, only used to debug
- * @return return code #eBrightness value
+ * @param[in]  frameNumber     frame number, only used to debug
+ * @param[out] contrastReduced logo area brightness after reduction if sucessful, otherwise unchanged
+ * @return logo area brightness before reduction if sucessful, otherwise return code #eBrightness value
  */
-        int ReduceBrightness(const int frameNumber);
+        int ReduceBrightness(const int frameNumber, int *contrastReduced);
 
 /**
  * sobel transform one plane of the picture

@@ -403,7 +403,7 @@ void cMarkAdLogo::SaveFrameCorner(const int frameNumber, const int debug) {
 //        BRIGHTNESS_SEPARATOR:                   possible separation image detected
 //        BRIGHTNESS_ERROR:                       if correction not possible
 //
-int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber) {  // framenaumer used only for debugging
+int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber, int *contrastReduced) {  // frameNumber used only for debugging
     int xstart, xend, ystart, yend;
     if (!SetCoorginates(&xstart, &xend, &ystart, &yend, 0)) return BRIGHTNESS_ERROR;
 
@@ -593,13 +593,13 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber)
 #endif
         }
     }
+    *contrastReduced = maxPixel - minPixel;
 #ifdef DEBUG_LOGO_DETECTION
     int brightnessReduced = sumPixel / ((yend - ystart) * (xend - xstart));
-    int contrastReduced = maxPixel - minPixel;
-    dsyslog("cMarkAdLogo::ReduceBrightness(): after brightness correction: contrast %3d, brightness %3d", contrastReduced, brightnessReduced);
+    dsyslog("cMarkAdLogo::ReduceBrightness(): after brightness correction: contrast %3d, brightness %3d", *contrastReduced, brightnessReduced);
 #endif
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-    if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) SaveFrameCorner(framenumber, 2);
+    if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) SaveFrameCorner(frameNumber, 2);
 #endif
     return contrastLogo;
 }
@@ -776,6 +776,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     // if we only have one plane we are "vulnerable"
     // to very bright pictures, so ignore them...
     int contrast = BRIGHTNESS_UNINITIALIZED;
+    int contrastReduced = -1;
     if (processed == 1) {
 #define MAX_AREA_INTENSITY 80  // change from 128 to 127 to 126 to 125 to 114 to 100 to 98 to 94 to 80
                                // notice: there can be very bright logo parts in dark areas, this will result in a lower brightness
@@ -785,7 +786,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
              (area.intensity < 220) &&  // if we are to bright, this will not work, max changed from 200 to 220
            ((((area.status == LOGO_INVISIBLE) || (area.status == LOGO_UNINITIALIZED)) && (rPixel < (mPixel * logo_vmark))) || // if we found the logo ignore area intensity
            ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK))))) {
-            contrast = ReduceBrightness(frameCurrent);
+            contrast = ReduceBrightness(frameCurrent, &contrastReduced);
             if (contrast > 0) {  // we got a contrast
                 area.rPixel[0] = 0;
                 rPixel = 0;
@@ -812,7 +813,8 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                     area.intensity = 0; // force detection of sepatation image
                 }
             }
-            if ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK)) && (strcmp(maContext->Info.ChannelName, "NITRO") == 0)) return LOGO_NOCHANGE; // dont belive brightness reduction for NITRO, logo too transparent
+            // dont belive brightness reduction for NITRO if we got a low contrast, logo too transparent, changed from 217
+            if ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK)) && (contrastReduced < 217) && (strcmp(maContext->Info.ChannelName, "NITRO") == 0)) return LOGO_NOCHANGE;
         }
         // if we have still no match, try to copy colour planes into grey planes
         // we can even try this if plane 0 is too bright, maybe plane 1 or 2 are better
