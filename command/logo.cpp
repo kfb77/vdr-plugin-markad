@@ -295,6 +295,9 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "DMAX") == 0) {             // DMAX                    16:9  720W  576H:->  126W  74H TOP_LEFT
         logo.widthMin  = 126;
     }
+    if (strcmp(maContext->Info.ChannelName, "kabel_eins") == 0) {       // kabel_eins              16:9  720W  576H:->   86W  72H TOP_RIGHT
+        logo.widthMax  =  86;
+    }
     if (strcmp(maContext->Info.ChannelName, "kabel_eins_Doku") == 0) {  // kabel_eins_Doku         16:9  720W  576H:->  130W  64H TOP_RIGHT
                                                                         // kabel_eins_Doku         16:9  720W  576H:->  132W  64H TOP_RIGHT
         logo.widthMax  = 132;
@@ -321,11 +324,13 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.heightMax =  60 ;
     }
     if (strcmp(maContext->Info.ChannelName, "RTL2") == 0) {             // RTL2                    16:9  720W  576H:->   82W  78H BOTTOM_RIGHT (new logo)
+                                                                        // RTL2                    16:9  720W  576H:->   82W  80H BOTTOM_RIGHT (new Logo)
                                                                         // RTL2                    16:9  720W  576H:->  108W 108H BOTTOM_RIGHT (old logo)
-        logo.widthMin  =  81;
-        logo.widthMax  = 109;
-        logo.heightMin =  77;
-        logo.heightMax = 109;
+        logo.widthMin  =  82;
+        logo.widthMax  = 108;
+        logo.heightMin =  78;
+        logo.heightMax = 108;
+        logo.corner    = BOTTOM_RIGHT;
     }
     if (strcmp(maContext->Info.ChannelName, "RTLplus") == 0) {          // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
         logo.widthMin  = 168;
@@ -1465,7 +1470,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
             }
             else {
                 dsyslog("cExtractLogo::SearchLogo(): resize logo from best corner failed");
-                if (secondBestLogoInfo.hits >= 40) { // reduced from 50 to 40
+                if (secondBestLogoInfo.hits >= 38) { // reduced from 50 to 40 to 38
                     dsyslog("cExtractLogo::SearchLogo(): try with second best corner %s at frame %d with %d similars", aCorner[secondBestLogoCorner], secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
                     if (this->Resize(maContext, &secondBestLogoInfo, &logoHeight, &logoWidth, secondBestLogoCorner)) {
                         bestLogoInfo = secondBestLogoInfo;
