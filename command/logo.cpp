@@ -330,7 +330,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMax  = 108;
         logo.heightMin =  78;
         logo.heightMax = 108;
-        logo.corner    = BOTTOM_RIGHT;
+//        logo.corner    = BOTTOM_RIGHT;
     }
     if (strcmp(maContext->Info.ChannelName, "RTLplus") == 0) {          // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
         logo.widthMin  = 168;
@@ -558,7 +558,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 if (cutLine >= LOGO_MIN_LETTERING_H) {
                     if ((((rightBlackPixel - leftBlackPixel) >= 38) && ((*logoHeight - cutLine) > 8)) || // cut our "love your" from TLC with 38 pixel width, do not cut out lines in the logo
                        (((rightBlackPixel - leftBlackPixel) <= 20) && ((*logoHeight - cutLine) <= 8))) { // cut out small pixel errors
-                        dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, *logoHeight - cutLine, leftBlackPixel, rightBlackPixel);
+                        dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, qoute %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, *logoHeight - cutLine, leftBlackPixel, rightBlackPixel, quoteAfterCut);
                         CutOut(bestLogoInfo, *logoHeight - cutLine, 0, logoHeight, logoWidth, bestLogoCorner);
                     }
                     else dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, width is invalid", cutLine, rightBlackPixel - leftBlackPixel, *logoHeight - cutLine, leftBlackPixel, rightBlackPixel);
@@ -617,9 +617,10 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                     cutLine = line;
                 }
             }
-            if (topBlackLineOfLogo > cutLine) {
+            int quoteAfterCut = 100 * (*logoHeight - cutLine) / *logoHeight; // we may not cut off too much, this could not be text under logo, this is something on top of the logo e.g. RTL2
+            if ((topBlackLineOfLogo > cutLine) && (quoteAfterCut > 52)) {  // changed from 48 to 52
                 if ((cutLine >= LOGO_MIN_LETTERING_H) && (cutLine < LOGO_MAX_LETTERING_H)) {
-                    dsyslog("cExtractLogo::Resize(): found text above logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, cutLine, leftBlackPixel, rightBlackPixel);
+                    dsyslog("cExtractLogo::Resize(): found text above logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, quote %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, cutLine, leftBlackPixel, rightBlackPixel, quoteAfterCut);
                     CutOut(bestLogoInfo, cutLine, 0, logoHeight, logoWidth, bestLogoCorner);
                 }
                 else dsyslog("cExtractLogo::Resize(): cutline at %d not valid (expect >=%d and <%d)", cutLine, LOGO_MIN_LETTERING_H, LOGO_MAX_LETTERING_H);
@@ -1084,7 +1085,7 @@ void cExtractLogo::RemovePixelDefects(const sMarkAdContext *maContext, sLogoInfo
     if ((corner < 0) || (corner >= CORNERS)) return;
 
 #if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 1
-    Save(maContext, logoInfo, logoHeight, logoWidth, corner, logoInfo->iFrameNumber);
+    if ((corner == DEBUG_LOGO_CORNER) Save(maContext, logoInfo, logoHeight, logoWidth, corner, logoInfo->iFrameNumber);
 #endif
 
     for (int plane = 0; plane < PLANES; plane++) {
@@ -1127,7 +1128,7 @@ void cExtractLogo::RemovePixelDefects(const sMarkAdContext *maContext, sLogoInfo
         }
     }
 #if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 2
-    Save(maContext, logoInfo, logoHeight, logoWidth, corner, logoInfo->iFrameNumber);
+    if (corner == DEBUG_LOGO_CORNER) Save(maContext, logoInfo, logoHeight, logoWidth, corner, logoInfo->iFrameNumber);
 #endif
 }
 
