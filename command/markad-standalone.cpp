@@ -2538,6 +2538,13 @@ void cMarkAdStandalone::Process3ndPass() {
                 FREE(strlen(indexToHMSFSearchPosition)+1, "indexToHMSF");
                 free(indexToHMSFSearchPosition);
             }
+            // short start/stop pair can result in overlapping checks
+            if (ptr_cDecoder->GetFrameNumber() > searchStartPosition) {
+                dsyslog("cMarkAdStandalone::Process3ndPass(): current framenumber (%d) greater than framenumber to seek (%d), restart decoder", ptr_cDecoder->GetFrameNumber(), searchStartPosition);
+                ptr_cDecoder->Reset();
+                ptr_cDecoder->DecodeDir(directory);
+            }
+            // detect frames
             if (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position, true)) {
                 int newStopPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(false);
                 if (newStopPosition != -1) {
@@ -3991,7 +3998,7 @@ int usage(int svdrpport) {
            "                  requires --cut\n"
            "                --autologo=<option>\n"
            "                  <option>   0 = disable, only use logos from logo cache directory\n"
-	   "                             1 = deprecated, do not use\n"
+           "                             1 = deprecated, do not use\n"
            "                             2 = enable, find logo from recording and store it in the recording directory (default)\n"
            "                                 speed optimized operation mode, use it only on systems with >= 1 GB main memory\n"
            "                --fulldecode\n"

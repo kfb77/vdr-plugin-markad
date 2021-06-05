@@ -465,7 +465,6 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
         dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", logoWidth, logoHeight);
         ptr_Logo->SetLogoSize(logoWidth, logoHeight);
     }
-
     if (!ptr_cDecoder->SeekToFrame(maContext, startFrame)) {
         dsyslog("cDetectLogoStopStart::Detect(): SeekToFrame (%d) failed", startFrame);
         status = false;
