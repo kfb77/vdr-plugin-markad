@@ -505,12 +505,19 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast  90, brightness 183
 // contrast  13, brightness 128
 //
-// logo in bright area
+// logo detected, take it as valid
+// contrast  80, brightness 169
+//
+// not detected logo in bright area, take it as invalid
+// contrast 132, brightness 135
+//
 // contrast 112, brightness 168
 // contrast 109, brightness 185
 // contrast 108, brightness 175
 // contrast 108, brightness 145
 // contrast 106, brightness 153
+// contrast  95, brightness 162
+//
 // contrast  90, brightness 172
 // contrast  89, brightness 187
 // contrast  81, brightness 206
@@ -518,9 +525,15 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast  76, brightness 190
 // contrast  73, brightness 191
 // contrast  72, brightness 194
+// contrast  72, brightness 168  TODO
+// contrast  69, brightness 169  TODO
+// contrast  67, brightness 170
 // contrast  67, brightness 187
 // contrast  64, brightness 173
 // contrast  62, brightness 186
+// contrast  61, brightness 182
+//
+// contrast  57, brightness 200
 // contrast  55, brightness 204
 // contrast  55, brightness 201
 // contrast  54, brightness 207
@@ -538,6 +551,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast  33, brightness 221
 // contrast  33, brightness 219
 // contrast  33, brightness 219
+//
 // contrast  20, brightness 204
 // contrast  17, brightness 206
 // contrast  13, brightness 207
@@ -562,9 +576,10 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
         return BRIGHTNESS_ERROR; // nothing we can work with
     }
     // build the curve
-    if (((contrastLogo >= 106) && (brightnessLogo >= 145)) ||
-        ((contrastLogo >=  62) && (brightnessLogo >= 172)) ||  // changed from 197 to 190 to 187 to 173 to 172, changed from 79 to 72 to 67 to 64 to 62
-        ((contrastLogo >=  30) && (brightnessLogo >= 201))) {
+    if (((contrastLogo >= 132) && (brightnessLogo >= 135)) ||
+        ((contrastLogo >=  95) && (brightnessLogo >= 145)) ||  // changed from 106 to 95
+        ((contrastLogo >=  61) && (brightnessLogo >= 170)) ||  // 170 do not reduce, changed from 79 to 72 to 67 to 64 to 62 to 61
+        ((contrastLogo >=  30) && (brightnessLogo >= 200))) {  // changed from 201 to 200
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): contrast/brightness pair in logo area invalid");
 #endif
