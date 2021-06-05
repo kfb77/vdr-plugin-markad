@@ -762,6 +762,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
                 if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200) && !onlyFillArea) {
                     Save(frameCurrent, area.sobel, plane, 1);
+                    Save(frameCurrent, area.result, plane, 9);
                 }
 #endif
             }
