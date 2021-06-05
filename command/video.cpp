@@ -557,24 +557,41 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast  13, brightness 207
 // contrast   3, brightness 206
 // contrast   9, brightness 205
-    if ((contrastLogo < 30) && (brightnessLogo >= 204)) {   // low contrast in bright area, we can not work with this
+
+    // low contrast in bright area, we can not work with this
+    if ((contrastLogo < 30) && (brightnessLogo >= 204)) {
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): contrast in logo area too low");
 #endif
         return BRIGHTNESS_ERROR; // nothing we can work with
     }
-    if (contrastLogo > 133) { // this could not be the contrast of the logo area because it would be detected without calling ReduceBrightness(), changed from 90 to 116 to 133
+
+    // very high contrast with not very high brightness in logo area, trust detection
+    // contrast 163, brightness 101
+    // contrast 159, brightness 112
+    if ((contrastLogo >= 159) && (brightnessLogo <= 112)) {
+#ifdef DEBUG_LOGO_DETECTION
+        dsyslog("cMarkAdLogo::ReduceBrightness(): very high contrast with not very high brightness in logo area, trust detection");
+#endif
+        return BRIGHTNESS_VALID; // if the is a logo we have detected it
+    }
+
+    // this could not be the contrast of the logo area because it would be detected without calling ReduceBrightness()
+    if (contrastLogo > 133) { // changed from 90 to 116 to 133
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): contrast in logo area too high");
 #endif
         return BRIGHTNESS_ERROR; // nothing we can work with
     }
-    if (brightnessLogo >= 221) { // this is too bright, nothing we can work with, changed from 227 to 223 to 221
+
+    // this is too bright, nothing we can work with
+    if (brightnessLogo >= 221) { // changed from 227 to 223 to 221
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): brightness in logo area to high");
 #endif
         return BRIGHTNESS_ERROR; // nothing we can work with
     }
+
     // build the curve
     if (((contrastLogo >= 132) && (brightnessLogo >= 135)) ||
         ((contrastLogo >=  95) && (brightnessLogo >= 145)) ||  // changed from 106 to 95
@@ -803,7 +820,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
            ((((area.status == LOGO_INVISIBLE) || (area.status == LOGO_UNINITIALIZED)) && (rPixel < (mPixel * logo_vmark))) || // if we found the logo ignore area intensity
            ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK))))) {
             contrast = ReduceBrightness(frameCurrent, &contrastReduced);
-            if (contrast > 0) {  // we got a contrast
+            if (contrast > BRIGHTNESS_VALID) {  // we got a new contrast, redo logo detection
                 area.rPixel[0] = 0;
                 rPixel = 0;
                 mPixel = 0;
