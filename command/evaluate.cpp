@@ -962,7 +962,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
             introductionLogo.start = 0;  // reset state
             introductionLogo.end = 0;
         }
-        if ((firstLowFrame == -1) &&  ((*cornerResultIt).rate[maContext->Video.Logo.corner] < 607)) { // we expect a low match a the start of the introduction logo part, changed from 940 to 938 to 774 to 607
+        if ((firstLowFrame == -1) &&  ((*cornerResultIt).rate[maContext->Video.Logo.corner] < 315)) { // we expect a low match a the start of the introduction logo part, changed from 940 to 938 to 774 to 607 to 315
             firstLowFrame = (*cornerResultIt).frameNumber2;
         }
     }
@@ -972,10 +972,13 @@ int cDetectLogoStopStart::IntroductionLogo() {
     }
     int diff = (endPos - introductionLogo.endFinal) / maContext->Video.Info.framesPerSecond;
     int length = (introductionLogo.endFinal - introductionLogo.startFinal) / maContext->Video.Info.framesPerSecond;
-#define INTRODUCTION_MIN_LENGTH 5  // changed from 6 to 5
-#define INTRODUCTION_MAX_DIFF 4
-    dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), length %ds (expect >=%ds, diff to start mark %d (expect <=%d), first low match (%d)", introductionLogo.startFinal, introductionLogo.endFinal, length, INTRODUCTION_MIN_LENGTH, diff, INTRODUCTION_MAX_DIFF, firstLowFrame);
-    if ((length >= INTRODUCTION_MIN_LENGTH) && (diff <= INTRODUCTION_MAX_DIFF) && (introductionLogo.endFinal > firstLowFrame)) {
+#define INTRODUCTION_MIN_LENGTH     5     // changed from 6 to 5
+#define INTRODUCTION_MAX_DIFF       4
+#define INTRODUCTION_MAX_LOW_OFFSET 0.9   // factor of end position, first low match from start of the introduction logo must be before
+    int maxLowFrame = introductionLogo.endFinal - ((introductionLogo.endFinal - introductionLogo.startFinal) * INTRODUCTION_MAX_LOW_OFFSET);
+    dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), length %ds (expect >=%ds, diff to start mark %d (expect <=%d)", introductionLogo.startFinal, introductionLogo.endFinal, length, INTRODUCTION_MIN_LENGTH, diff, INTRODUCTION_MAX_DIFF);
+    dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: first low match (%d) (expect <= %d)", firstLowFrame, maxLowFrame);
+    if ((length >= INTRODUCTION_MIN_LENGTH) && (diff <= INTRODUCTION_MAX_DIFF) && (firstLowFrame <= maxLowFrame)) {
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): found introduction logo start at (%d)", introductionLogo.startFinal);
         retFrame = introductionLogo.startFinal;
     }
