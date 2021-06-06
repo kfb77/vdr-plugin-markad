@@ -2526,7 +2526,8 @@ void cMarkAdStandalone::Process3ndPass() {
         if ((markLogo->type == MT_LOGOSTOP) && (marks.GetNext(markLogo->position, MT_STOP, 0x0F))) { // do not test logo end mark, ad in frame with logo and closing credits without logo looks the same
             // check for advertising in frame with logo before logo stop mark position
             LogSeparator(false);
-            int searchStartPosition = markLogo->position - (35 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
+            int searchStartPosition = markLogo->position - (45 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s, changed from 35 to 45
+                                                                                                        // somtimes there is a closing credit in frame with logo before
             char *indexToHMSFStopMark = marks.IndexToHMSF(markLogo->position, &macontext);
             char *indexToHMSFSearchPosition = marks.IndexToHMSF(searchStartPosition, &macontext);
             if (indexToHMSFStopMark && indexToHMSFSearchPosition) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo from frame (%d) at %s to logo stop mark (%d) at %s", searchStartPosition, indexToHMSFSearchPosition, markLogo->position, indexToHMSFStopMark);
