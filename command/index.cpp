@@ -143,7 +143,7 @@ int cIndex::GetTimeFromFrame(int frameNumber) {
         dsyslog("cIndex::GetTimeFromFrame(): frame index not initialized");
         return -1;
     }
-    int before_pts = 0;
+    int before_ms = 0;
     int before_iFrame = 0;
 
     for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
@@ -153,7 +153,7 @@ int cIndex::GetTimeFromFrame(int frameNumber) {
         }
         if (frameIterator->frameNumber > frameNumber) {
             if (abs(frameNumber - before_iFrame) < abs(frameNumber - frameIterator->frameNumber)) {
-                return before_pts;
+                return before_ms;
             }
             else {
                 return frameIterator->timeOffset_ms;
@@ -161,11 +161,11 @@ int cIndex::GetTimeFromFrame(int frameNumber) {
         }
         else {
             before_iFrame = frameIterator->frameNumber;
-            before_pts = frameIterator->timeOffset_ms;
+            before_ms = frameIterator->timeOffset_ms;
         }
     }
     if (frameNumber > (indexVector.back().frameNumber - 30)) {  // we are after last iFrame but before next iFrame, possible not read jet, use last iFrame
-        return indexVector.back().frameNumber;
+        return indexVector.back().timeOffset_ms;
     }
     dsyslog("cIndex::GetTimeFromFrame(): could not find time for frame (%d), last frame in index list (%d)", frameNumber, indexVector.back().frameNumber);
     return -1;

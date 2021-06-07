@@ -479,9 +479,9 @@ char *cMarks::IndexToHMSF(const int frameNumber, const sMarkAdContext *maContext
     double Seconds;
     int f = 0;
     if (recordingIndexMarks && ((maContext->Info.vPidType == MARKAD_PIDTYPE_VIDEO_H264) || (maContext->Info.vPidType == MARKAD_PIDTYPE_VIDEO_H265))) {
-        int64_t pts_time_ms = recordingIndexMarks->GetTimeFromFrame(frameNumber);
-        if (pts_time_ms >= 0) {
-            f = int(modf(float(pts_time_ms) / 1000, &Seconds) * 100); // convert ms to 1/100 s
+        int time_ms = recordingIndexMarks->GetTimeFromFrame(frameNumber);
+        if (time_ms >= 0) {
+            f = int(modf(float(time_ms) / 1000, &Seconds) * 100); // convert ms to 1/100 s
         }
         else {
             dsyslog("cMarks::IndexToHMSF(): failed to get time from frame (%d)", frameNumber);
