@@ -1035,12 +1035,20 @@ void cMarkAdStandalone::CheckStart() {
                 cMark *vNextStart = marks.GetNext(vStop->position, MT_VBORDERSTART);
                 int markDiff = static_cast<int> (vStop->position - vStart->position) / macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::CheckStart(): vertical border stop found at (%d), %ds after vertical border start", vStop->position, markDiff);
-                if ((markDiff <= 122) ||    // found 96s opening credits with vborder, found 122s of recording before
-                   ((frameCurrent > iStopA) && !vNextStart)) {  // we have only start/stop vborder in start part, this is the opening or closing credits or recording before
-                    isyslog("vertical border STOP at (%d) %ds after vertical border START (%i) in start part found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
-                    marks.Del(vStop);
-                    marks.Del(vStart);
-                    vStart = NULL;
+                if (vNextStart) {
+                    dsyslog("cMarkAdStandalone::CheckStart(): vertical border start (%d) after vertical border stop (%d) found, start mark at (%d) is valid", vNextStart->position, vStop->position, vStart->position);
+                }
+                else {
+		    // 228s opening credits with vborder -> invalid TODO
+		    //  96s opening credits with vborder -> invalid
+		    // 151s advertising in start area    -> valid
+                    if ((markDiff <= 122) ||
+                        (frameCurrent > iStopA)) {  // we have only start/stop vborder in start part, this is the opening or closing credits or recording before
+                        isyslog("vertical border STOP at (%d) %ds after vertical border START (%i) in start part found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
+                        marks.Del(vStop);
+                        marks.Del(vStart);
+                        vStart = NULL;
+                    }
                 }
             }
             if (vStart) {
