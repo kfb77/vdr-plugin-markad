@@ -903,16 +903,22 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
             return LOGO_NOCHANGE;
         }
     }
-    else {  // if we have more planes we can still have a problem with bright frames
-        if ((area.status == LOGO_VISIBLE) && (area.intensity > 150) && (rPixel < (mPixel * LOGO_IMARK))) return LOGO_NOCHANGE; // too bright, logo detection can be wrong
+    else {  // if we have more planes we can still have a problem with coloured logo on same colored background
+        if ((area.status == LOGO_VISIBLE) && (area.intensity > 142) && (rPixel < (mPixel * LOGO_IMARK))) return LOGO_NOCHANGE; // too bright, logo detection can be wrong, changed from 150 to 142
         if ((((area.status == LOGO_UNINITIALIZED) && (rPixel < (mPixel * logo_vmark))) ||  // at start make sure we get at least a quick initial logo visible
-            ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK)) && (rPixel > (mPixel * LOGO_IMARK * 0.75)))) &&  // we have a lot of machtes but not enough
-             (area.intensity > 120)) {
-            rPixel -= area.rPixel[0]; //  try without plane 0
-            mPixel -= area.mPixel[0];
+            ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK)) && (rPixel > (mPixel * LOGO_IMARK * 0.7)))) &&  // we have a lot of machtes but not enough
+                                                                                                                               // changed from 0.75 to 0.7
+             (area.intensity > 50)) {  // changed from 120 to 50
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
+            dsyslog("cMarkAdLogo::Detect(): result plane 0 %d, plane 1 %d, plane 2 %d", area.rPixel[0], area.rPixel[1], area.rPixel[2]);
 #endif
+            if ((area.rPixel[1] + area.rPixel[2]) > 0) {  // if we have no result in plane 1/2, do not use it
+                rPixel -= area.rPixel[0]; //  try without plane 0
+                mPixel -= area.mPixel[0];
+#ifdef DEBUG_LOGO_DETECTION
+                dsyslog("frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
+#endif
+            }
         }
     }
 
