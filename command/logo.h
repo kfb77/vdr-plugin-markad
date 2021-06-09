@@ -185,12 +185,13 @@ class cExtractLogo : public cLogoSize {
         bool IsWhitePlane(const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
 
 /**
- * check of logo changed colour
+ * check of logo had a changed colour
  * @param maContext markad context
  * @param corner    logo corner
+ * @param plane     plane number
  * @return true if logo changed colour, false otherwise
  */
-        bool IsLogoColourChange(const sMarkAdContext *maContext, const int corner);
+        bool IsLogoColourChange(const sMarkAdContext *maContext, const int corner, const int plane);
 
 /**
  * delete frames from logo list
