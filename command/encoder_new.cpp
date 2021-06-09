@@ -734,10 +734,16 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
 }
 
 
-// resamle audio frame from AV_SAMPLE_FMT_S16P to AV_SAMPLE_FMT_S16
+// resample audio frame from AV_SAMPLE_FMT_S16P to AV_SAMPLE_FMT_S16
 //
 bool cEncoder::ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int streamIndex) {
     if (!swrArray[streamIndex]) return false;
+    if (!avFrameIn->extended_data) return false;
+
+    if (avFrameIn->channels != 2) {
+        dsyslog("cEncoder::ReSampleAudio(): %d MP2 audio channels not supported", avFrameIn->channels);
+        return false;
+    }
     int ret = av_samples_alloc(avFrameOut->extended_data, avFrameOut->linesize, avFrameIn->channels, avFrameIn->nb_samples, AV_SAMPLE_FMT_S16, 0);
     if (ret < 0) {
         dsyslog("cEncoder::ReSampleAudio(): Could not allocate source samples");
@@ -946,7 +952,12 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
                 return NULL;
             }
             ALLOC(sizeof(*avFrameOut), "avFrameOut");
-            ReSampleAudio(avFrame, avFrameOut, streamIndexOut);
+            if (!ReSampleAudio(avFrame, avFrameOut, streamIndexOut)) {
+                dsyslog("cEncoder::WriteFrame(): ReSampleAudio failed");
+                FREE(sizeof(*avFrameOut), "avFrameOut");
+                av_frame_free(&avFrameOut);
+                return false;
+            }
             avFrame = avFrameOut;
         }
 

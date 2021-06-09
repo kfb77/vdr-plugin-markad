@@ -148,7 +148,7 @@ class cDecoder {
         bool SeekToFrame(sMarkAdContext *maContext, int frameNumber);
 
 /**
- * decode packet
+ * decode audio or packet
  * @param avpkt packet to decode
  * @return decoded frame
  */
