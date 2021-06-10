@@ -1299,7 +1299,8 @@ int cMarkAdBlackBordersVert::GetFirstBorderFrame() {
 
 int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
 #define CHECKWIDTH 32
-#define BRIGHTNESS_V 20
+#define BRIGHTNESS_V_SURE  21  // changed from 20 to 21
+#define BRIGHTNESS_V_MAYBE 26  // some channel have logo in border, so we will get a higher value
 #define HOFFSET 50
 #define VOFFSET_ 120
     if (!maContext) {
@@ -1321,6 +1322,8 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
         dsyslog("Video.Data.PlaneLinesize[0] missing");
         return VBORDER_ERROR;
     }
+
+    // check left border
     int end = maContext->Video.Data.PlaneLinesize[0] * (maContext->Video.Info.height - VOFFSET_);
     int i = VOFFSET_ * maContext->Video.Data.PlaneLinesize[0];
     while (i < end) {
@@ -1332,7 +1335,8 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
     }
     valLeft /= cnt;
 
-    if (valLeft <= BRIGHTNESS_V) {
+    if (valLeft <= BRIGHTNESS_V_MAYBE) {
+        // check right border
         cnt = 0;
         i = VOFFSET_ * maContext->Video.Data.PlaneLinesize[0];
         int w = maContext->Video.Info.width - HOFFSET - CHECKWIDTH;
@@ -1345,11 +1349,12 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
         }
         valRight /= cnt;
     }
+    else valLeft = INT_MAX;
 
 #ifdef DEBUG_VBORDER
     dsyslog("cMarkAdBlackBordersVert(): frame (%5d) valLeft %d valRight %d", frameNumber, valLeft, valRight);
 #endif
-    if ((valLeft<= BRIGHTNESS_V) && (valRight <= BRIGHTNESS_V)) {
+    if (((valLeft <= BRIGHTNESS_V_MAYBE) && (valRight <= BRIGHTNESS_V_SURE)) || ((valLeft <= BRIGHTNESS_V_SURE) && (valRight <= BRIGHTNESS_V_MAYBE))) {
         if (borderframenumber == -1) {
             borderframenumber = frameNumber;
         }
