@@ -765,16 +765,17 @@ int cDetectLogoStopStart::ClosingCredit() {
     if (!ClosingCreditChannel(maContext->Info.ChannelName)) return -1;
 
     dsyslog("cDetectLogoStopStart::ClosingCredit: detect from (%d) to (%d)", startPos,endPos);
-    int closingCreditsFrame = -1;
-    struct closingCredits {
-        int start = 0;
-        int end = 0;
-    } closingCredits;
 
 #define CLOSING_CREDITS_LENGTH_MIN 9
     int minLength = ((endPos - startPos) / maContext->Video.Info.framesPerSecond) - 2;  // 2s buffer for change from closing credit to logo start
     if (minLength > CLOSING_CREDITS_LENGTH_MIN) minLength = CLOSING_CREDITS_LENGTH_MIN;
     dsyslog("cDetectLogoStopStart::ClosingCredit: min length %d", minLength);
+
+    int closingCreditsFrame = -1;
+    struct closingCredits {
+        int start = 0;
+        int end = 0;
+    } closingCredits;
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::ClosingCredit: frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
@@ -807,7 +808,10 @@ int cDetectLogoStopStart::ClosingCredit() {
                                                                                                           closingCredits.start, closingCredits.end, startOffset, endOffset, length);
 
     if ((startOffset <= 1440) && (length < 19) && // do not reduce offset
-           ((length >= CLOSING_CREDITS_LENGTH_MIN) || (endOffset <= 1440))) { // if we check from info logo, we would not have the complete part, so it should go nearly to end
+           ((length >= CLOSING_CREDITS_LENGTH_MIN) || (endOffset <= 1920))) { // if we check from info logo:
+                                                                              // - we would not have the complete part, so it should go nearly to end
+                                                                              // - we also should detect ad in frame
+                                                                              // changed from 1440 to 1920
         dsyslog("cDetectLogoStopStart::ClosingCredit(): this is a closing credits, pair contains a valid mark");
         closingCreditsFrame = closingCredits.end;
     }
