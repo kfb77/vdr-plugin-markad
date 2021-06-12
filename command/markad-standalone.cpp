@@ -1046,9 +1046,9 @@ void cMarkAdStandalone::CheckStart() {
                     dsyslog("cMarkAdStandalone::CheckStart(): vertical border start (%d) after vertical border stop (%d) found, start mark at (%d) is valid", vNextStart->position, vStop->position, vStart->position);
                 }
                 else {
-		    // 228s opening credits with vborder -> invalid TODO
-		    //  96s opening credits with vborder -> invalid
-		    // 151s advertising in start area    -> valid
+                    // 228s opening credits with vborder -> invalid TODO
+                    //  96s opening credits with vborder -> invalid
+                    // 151s advertising in start area    -> valid
                     if ((markDiff <= 122) ||
                         (frameCurrent > iStopA)) {  // we have only start/stop vborder in start part, this is the opening or closing credits or recording before
                         isyslog("vertical border STOP at (%d) %ds after vertical border START (%i) in start part found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
@@ -2466,7 +2466,7 @@ void cMarkAdStandalone::Process3ndPass() {
 
             // check for introduction logo before logo mark position
             LogSeparator(false);
-            int searchStartPosition = markLogo->position - (12 * macontext.Video.Info.framesPerSecond); // introduction logos are usually 10s
+            int searchStartPosition = markLogo->position - (30 * macontext.Video.Info.framesPerSecond); // introduction logos are usually 10s, somettimes longer, changed from 12 to 30
             if (searchStartPosition < 0) searchStartPosition = 0;
             char *indexToHMSFSearchStart = marks.IndexToHMSF(searchStartPosition, &macontext);
             if (indexToHMSFStartMark && indexToHMSFSearchStart) dsyslog("cMarkAdStandalone::Process3ndPass(): search introduction logo from position (%d) at %s to logo start mark (%d) at %s", searchStartPosition, indexToHMSFSearchStart, markLogo->position, indexToHMSFStartMark);

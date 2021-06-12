@@ -951,6 +951,10 @@ int cDetectLogoStopStart::IntroductionLogo() {
     int firstLowFrame = -1;
     int retFrame = -1;
 
+#define INTRODUCTION_MIN_LENGTH     5     // changed from 6 to 5
+#define INTRODUCTION_MAX_DIFF       4
+#define INTRODUCTION_MAX_LOW_OFFSET 0.9   // factor of end position, first low match from start of the introduction logo must be before
+
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
 
@@ -959,7 +963,8 @@ int cDetectLogoStopStart::IntroductionLogo() {
             introductionLogo.end = (*cornerResultIt).frameNumber2;
         }
         else {
-            if ((introductionLogo.end - introductionLogo.start) > (introductionLogo.endFinal - introductionLogo.startFinal)) {
+            if ((((introductionLogo.end - introductionLogo.start) / maContext->Video.Info.framesPerSecond) >= INTRODUCTION_MIN_LENGTH) &&  // if min length reached
+                                                                                    (introductionLogo.end > introductionLogo.endFinal)) {  // and later part, use this
                 introductionLogo.startFinal = introductionLogo.start;
                 introductionLogo.endFinal = introductionLogo.end;
             }
@@ -969,16 +974,14 @@ int cDetectLogoStopStart::IntroductionLogo() {
         if ((firstLowFrame == -1) &&  ((*cornerResultIt).rate[maContext->Video.Logo.corner] < 315)) { // we expect a low match a the start of the introduction logo part, changed from 940 to 938 to 774 to 607 to 315
             firstLowFrame = (*cornerResultIt).frameNumber2;
         }
-    }
-    if ((introductionLogo.end - introductionLogo.start) > (introductionLogo.endFinal - introductionLogo.startFinal)) {
+   }
+   if ((((introductionLogo.end - introductionLogo.start) / maContext->Video.Info.framesPerSecond) >= INTRODUCTION_MIN_LENGTH) &&  // if min length reached
+                                                                           (introductionLogo.end > introductionLogo.endFinal)) {  // and later part, use this
         introductionLogo.startFinal = introductionLogo.start;
         introductionLogo.endFinal = introductionLogo.end;
     }
     int diff = (endPos - introductionLogo.endFinal) / maContext->Video.Info.framesPerSecond;
     int length = (introductionLogo.endFinal - introductionLogo.startFinal) / maContext->Video.Info.framesPerSecond;
-#define INTRODUCTION_MIN_LENGTH     5     // changed from 6 to 5
-#define INTRODUCTION_MAX_DIFF       4
-#define INTRODUCTION_MAX_LOW_OFFSET 0.9   // factor of end position, first low match from start of the introduction logo must be before
     int maxLowFrame = introductionLogo.endFinal - ((introductionLogo.endFinal - introductionLogo.startFinal) * INTRODUCTION_MAX_LOW_OFFSET);
     dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), length %ds (expect >=%ds, diff to start mark %d (expect <=%d)", introductionLogo.startFinal, introductionLogo.endFinal, length, INTRODUCTION_MIN_LENGTH, diff, INTRODUCTION_MAX_DIFF);
     dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: first low match (%d) (expect <= %d)", firstLowFrame, maxLowFrame);
