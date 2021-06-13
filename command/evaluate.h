@@ -202,10 +202,10 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
         bool IsInfoLogo();
 
 /**
- * check for info logo
- * @return true if info logo, false otherwise
+ * check for logo change
+ * @return true if part contains a logo change, false otherwise
  */
-        bool isLogoChange();
+        bool IsLogoChange();
 
 /**
  * check for closing credits without logo

@@ -657,7 +657,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
                     evaluateLogoStopStartPair->SetIsInfoLogo(stopPosition, startPosition);
                     marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
                 }
-                if ((isLogoChange >= 0) && ptr_cDetectLogoStopStart->isLogoChange()) {
+                if ((isLogoChange >= 0) && ptr_cDetectLogoStopStart->IsLogoChange()) {
                     if (indexToHMSFStop && indexToHMSFStart) {
                         isyslog("logo has changed between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
                     }

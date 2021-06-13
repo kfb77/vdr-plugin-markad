@@ -676,7 +676,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 // return: true  if the given part is detected as logo change part
 //         false if not
 //
-bool cDetectLogoStopStart::isLogoChange() {
+bool cDetectLogoStopStart::IsLogoChange() {
     if (!maContext) return false;
     if (!ptr_cDecoder) return false;
     if (!recordingIndex) return false;
