@@ -199,9 +199,10 @@ cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
 void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA) {
 #define LOGO_CHANGE_STOP_START_MIN  6760  // min time in ms of a logo change section, chaned from 10000 to 9400 to 6760
 #define LOGO_CHANGE_STOP_START_MAX 21000  // max time in ms of a logo change section
-    // check length of stop/start logo pair
+    // check min length of stop/start logo pair
     int deltaStopStart = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition ) / framesPerSecond;
-    if ((deltaStopStart < LOGO_CHANGE_STOP_START_MIN) &&  (logoStopStartPair->isInfoLogo == STATUS_NO)) { // do not change posible logo info parts
+    dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ????? stop (%d) start (%d) pair: min length %dms (expect >=%dms <=%dms)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, deltaStopStart, LOGO_CHANGE_STOP_START_MIN, LOGO_CHANGE_STOP_START_MAX);
+    if (deltaStopStart < LOGO_CHANGE_STOP_START_MIN) {
         dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ----- stop (%d) start (%d) pair: delta too small %dms (expect >=%dms)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, deltaStopStart, LOGO_CHANGE_STOP_START_MIN);
         // maybe we have a wrong start/stop pait inbetween, try next start mark
         cMark *markNextStart = marks->GetNext(logoStopStartPair->startPosition, MT_LOGOSTART);
@@ -221,6 +222,8 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
             return;
         }
     }
+
+    // check max length of stop/start logo pair
     if (deltaStopStart > LOGO_CHANGE_STOP_START_MAX) {
         dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():          ----- stop (%d) start (%d) pair: delta too big %dms (expect <=%dms)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, deltaStopStart, LOGO_CHANGE_STOP_START_MAX);
         logoStopStartPair->isLogoChange = STATUS_NO;
@@ -241,6 +244,7 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
         }
         else { // we are called by CheckStop()
             if (logoStopStartPair->stopPosition < iStopA) {
+                dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ----- stop (%d) start (%d) pair: last stop/start pair before assumed stop (%d), do not delete", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, iStopA);
                 logoStopStartPair->isLogoChange = STATUS_NO; // this is the last stop mark and it is before assumed end mark, this is the end mark
                 return;
             }
