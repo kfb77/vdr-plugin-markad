@@ -177,6 +177,7 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(sMarkAdContext *maContext
         dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isAdvertising          %2d", logoPairIterator->isAdvertising);
         dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isStartMarkInBroadcast %2d", logoPairIterator->isStartMarkInBroadcast);
         dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isInfoLogo             %2d", logoPairIterator->isInfoLogo);
+        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isClosingCredits       %2d", logoPairIterator->isClosingCredits);
     }
     nextLogoPairIterator = logoPairVector.begin();
 }
@@ -369,11 +370,38 @@ void cEvaluateLogoStopStartPair::SetIsInfoLogo(const int stopPosition, const int
     for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
         if ((logoPairIterator->stopPosition == stopPosition) && (logoPairIterator->startPosition == startPosition)) {
             dsyslog("cEvaluateLogoStopStartPair::SetIsInfoLogo(): set isInfoLogo for stop (%d) start (%d) pair", logoPairIterator->stopPosition, logoPairIterator->startPosition);
-            logoPairIterator->isLogoChange = 1;
+            logoPairIterator->isLogoChange = STATUS_YES;
             return;
         }
     }
     dsyslog("cEvaluateLogoStopStartPair::SetIsInfoLogo(): stop (%d) start (%d) pair not found", stopPosition, startPosition);
+}
+
+
+// set isClosingCredits to STAUS_YES
+// stopPosition / startPosition do not need exact match, they must be inbetween stop/start pair
+void cEvaluateLogoStopStartPair::SetIsClosingCredits(const int stopPosition, const int startPosition) {
+    for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+        if ((logoPairIterator->stopPosition <= stopPosition) && (logoPairIterator->startPosition >= startPosition)) {
+            dsyslog("cEvaluateLogoStopStartPair::SetIsClosingCredits(): set isClosingCredits for stop (%d) start (%d) pair", logoPairIterator->stopPosition, logoPairIterator->startPosition);
+            logoPairIterator->isClosingCredits = STATUS_YES;
+            return;
+        }
+    }
+    dsyslog("cEvaluateLogoStopStartPair::SetIsClosingCredits(): stop (%d) start (%d) pair not found", stopPosition, startPosition);
+}
+
+
+bool cEvaluateLogoStopStartPair::GetIsClosingCredits(const int startPosition) {
+    for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+        if (logoPairIterator->startPosition == startPosition) {
+            dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCredits(): isClosingCredits for start (%d) mark: %d", logoPairIterator->startPosition, logoPairIterator->isClosingCredits);
+            if (logoPairIterator->isClosingCredits == STATUS_YES) return true;
+            else return false;
+        }
+    }
+    dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCredits(): start (%d) mark not found", startPosition);
+    return false;
 }
 
 
@@ -389,10 +417,11 @@ bool cEvaluateLogoStopStartPair::IncludesInfoLogo(const int stopPosition, const 
 
 
 
-cDetectLogoStopStart::cDetectLogoStopStart(sMarkAdContext *maContext_, cDecoder *ptr_cDecoder_, cIndex *recordingIndex_) {
-    maContext = maContext_;
-    ptr_cDecoder = ptr_cDecoder_;
-    recordingIndex = recordingIndex_;
+cDetectLogoStopStart::cDetectLogoStopStart(sMarkAdContext *maContextParam, cDecoder *ptr_cDecoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam) {
+    maContext = maContextParam;
+    ptr_cDecoder = ptr_cDecoderParam;
+    recordingIndex = recordingIndexParam;
+    evaluateLogoStopStartPair = evaluateLogoStopStartPairParam;
 }
 
 
@@ -437,11 +466,9 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
 
 
     bool status = true;
-    startFrame = recordingIndex->GetIFrameAfter(startFrame);
-    endFrame = recordingIndex->GetIFrameBefore(endFrame);
-    dsyslog("cDetectLogoStopStart::Detect(): detect from iFrame (%d) to iFrame (%d)", startFrame, endFrame);
-    startPos = startFrame;
-    endPos = endFrame;
+    startPos = recordingIndex->GetIFrameAfter(startFrame);
+    endPos = recordingIndex->GetIFrameBefore(endFrame);
+    dsyslog("cDetectLogoStopStart::Detect(): detect from iFrame (%d) to iFrame (%d)", startPos, endPos);
 
     cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, recordingIndex);
     ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
@@ -465,11 +492,11 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
         dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", logoWidth, logoHeight);
         ptr_Logo->SetLogoSize(logoWidth, logoHeight);
     }
-    if (!ptr_cDecoder->SeekToFrame(maContext, startFrame)) {
-        dsyslog("cDetectLogoStopStart::Detect(): SeekToFrame (%d) failed", startFrame);
+    if (!ptr_cDecoder->SeekToFrame(maContext, startPos)) {
+        dsyslog("cDetectLogoStopStart::Detect(): SeekToFrame (%d) failed", startPos);
         status = false;
     }
-    while (status && (ptr_cDecoder->GetFrameNumber() < endFrame)) {
+    while (status && (ptr_cDecoder->GetFrameNumber() < endPos)) {
         if (!ptr_cDecoder->GetNextPacket()) {
             dsyslog("cDetectLogoStopStart::Detect(): GetNextPacket() failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             status = false;
@@ -633,13 +660,16 @@ bool cDetectLogoStopStart::IsInfoLogo() {
             found = true;
         }
         else dsyslog("cDetectLogoStopStart::IsInfoLogo(): no info logo found");
+    }
 
-        // check if it is a closing credit, we may not delete this because it contains end mark
-        if (found && ClosingCredit() >= 0) {
+    // check if it is a closing credit, we may not delete this because it contains end mark
+    if (found) {
+        if (ClosingCredit() >= 0) {
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): stop/start part is closing credit, no info logo");
             found = false;
         }
     }
+    else if (evaluateLogoStopStartPair) ClosingCredit(); // we have to check for closing credits anyway, because we are called in start part and need this info to select start mark
     return found;
 }
 
@@ -816,6 +846,8 @@ int cDetectLogoStopStart::ClosingCredit() {
         closingCreditsFrame = closingCredits.end;
     }
     else dsyslog("cDetectLogoStopStart::ClosingCredit(): no closing credits found");
+
+    if (evaluateLogoStopStartPair && (closingCreditsFrame >= 0)) evaluateLogoStopStartPair->SetIsClosingCredits(startPos, endPos);
     return closingCreditsFrame;
 }
 

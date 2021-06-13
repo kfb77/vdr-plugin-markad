@@ -79,13 +79,15 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
                                                           //!<
             int startPosition = -1;                       //!< frame number of logo start mark
                                                           //!<
-            int isLogoChange = STATUS_UNKNOWN;            //!< status value #eEvaluateStatus
+            int isLogoChange = STATUS_UNKNOWN;            //!< status of logo chnage, value #eEvaluateStatus
                                                           //!<
-            int isAdvertising = STATUS_UNKNOWN;           //!< status value #eEvaluateStatus
+            int isAdvertising = STATUS_UNKNOWN;           //!< status of advertising, value #eEvaluateStatus
                                                           //!<
-            int isStartMarkInBroadcast = STATUS_UNKNOWN;  //!< status value #eEvaluateStatus
+            int isStartMarkInBroadcast = STATUS_UNKNOWN;  //!< status of in broadacst, value #eEvaluateStatus
                                                           //!<
-            int isInfoLogo = STATUS_UNKNOWN;              //!< status value #eEvaluateStatus
+            int isInfoLogo = STATUS_UNKNOWN;              //!< status of info logo, value #eEvaluateStatus
+                                                          //!<
+            int isClosingCredits = STATUS_UNKNOWN;        //!< status of closing credits, value #eEvaluateStatus
                                                           //!<
         };
 
@@ -132,11 +134,26 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
         bool GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo);
 
 /**
- * set info logo status to "1 is logo change"
+ * set info logo status to STATUS_YES
  * @param stopPosition  frame number of the logo stop mark
  * @param startPosition frame number of the logo start mark
  */
         void SetIsInfoLogo(const int stopPosition, const int startPosition);
+
+/**
+ * set closing credits status to STATUS_YES <br>
+ * stopPosition / startPosition do not need exact match, they must be inbetween stop/start pair
+ * @param stopPosition  frame number of the logo stop mark
+ * @param startPosition frame number of the logo start mark
+ */
+        void SetIsClosingCredits(const int stopPosition, const int startPosition);
+
+/**
+ * get closing credits status
+ * @param startPosition frame number of the logo start mark
+ * @return true if startPosition found and isClosingCredits is STATUS_YES, false otherwise
+ */
+        bool GetIsClosingCredits(const int startPosition);
 
 /** check of there is a info logo part between a logo stop/start pair
  * @param stopPosition  frame number of logo stop mark
@@ -160,11 +177,12 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
     public:
 /**
  * contructor for class to dectect special logo stop/start pair
- * @param maContext_      markad context
- * @param ptr_cDecoder_   decoder
- * @param recordingIndex_ recording index
+ * @param maContextParam                 markad context
+ * @param ptr_cDecoderParam              decoder
+ * @param recordingIndexParam            recording index
+ * @param evaluateLogoStopStartPairParam class to evalute logo stop/start pairs
  */
-        cDetectLogoStopStart(sMarkAdContext *maContext_, cDecoder *ptr_cDecoder_, cIndex *recordingIndex_);
+        cDetectLogoStopStart(sMarkAdContext *maContextParam, cDecoder *ptr_cDecoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam);
 
         ~cDetectLogoStopStart();
 
@@ -211,16 +229,18 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
 
     private:
 
-        sMarkAdContext *maContext;               //!< markad context
-                                                 //!<
-        cDecoder *ptr_cDecoder;                  //!< decoder
-                                                 //!<
-        cIndex *recordingIndex;                  //!< recording index
-                                                 //!<
-        int startPos = 0;                        //!< frame number of start position to compare
-                                                 //!<
-        int endPos   = 0;                        //!< frame number of end position to compare
-                                                 //!<
+        sMarkAdContext *maContext;                              //!< markad context
+                                                                //!<
+        cDecoder *ptr_cDecoder;                                 //!< decoder
+                                                                //!<
+        cIndex *recordingIndex;                                 //!< recording index
+                                                                //!<
+        cEvaluateLogoStopStartPair *evaluateLogoStopStartPair;  //!< class to evalute logo stop/start pairs
+                                                                //!<
+        int startPos = 0;                                       //!< frame number of start position to compare
+                                                                //!<
+        int endPos   = 0;                                       //!< frame number of end position to compare
+                                                                //!<
 /**
  * compare two frames
  */

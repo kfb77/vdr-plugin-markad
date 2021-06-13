@@ -557,7 +557,7 @@ void cMarkAdStandalone::CheckStop() {
 }
 
 
-// check if stop mark is start of closing credits without logo or hborder
+// check if last stop mark is start of closing credits without logo or hborder
 // move stop mark to end of closing credit
 // <stopMark> last logo or hborder stop mark
 // return: true if closing credits was found and last logo stop mark position was changed
@@ -566,7 +566,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     if (!stopMark) return false;
     dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits without logo after position (%d)", stopMark->position);
 
-    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoder, recordingIndexMark);
+    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoder, recordingIndexMark, NULL);
     ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
     int endPos = stopMark->position + (25 * macontext.Video.Info.framesPerSecond);  // try till 15s after stopMarkPosition
@@ -626,7 +626,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
         cExtractLogo *ptr_cExtractLogoChange = new cExtractLogo(&macontext, macontext.Video.Info.AspectRatio, recordingIndexMark);
         ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
 
-        cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoderLogoChange, recordingIndexMark);
+        cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoderLogoChange, recordingIndexMark, evaluateLogoStopStartPair);
         ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
         // loop through all logo stop/start pairs
@@ -1100,6 +1100,10 @@ void cMarkAdStandalone::CheckStart() {
             }
             bool isInvalid = true;
             while (isInvalid) {
+                // if the logo start mark belongs to closing credits logo stop/start pair, treat it as valid
+                if (evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(lStart->position)) break;
+
+                // check next logo stop/start pair
                 cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
                 if (lStop) {  // there is a next stop mark in the start range
                     int distanceStartStop = (lStop->position - lStart->position) / macontext.Video.Info.framesPerSecond;
@@ -2456,7 +2460,7 @@ void cMarkAdStandalone::Process3ndPass() {
     ptr_cDecoder->Reset();
     ptr_cDecoder->DecodeDir(directory);
 
-    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoder, recordingIndexMark);
+    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoder, recordingIndexMark, NULL);
     ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
     cMark *markLogo = marks.GetFirst();
