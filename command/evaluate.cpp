@@ -108,7 +108,7 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(sMarkAdContext *maContext
         else logoPairIterator->isInfoLogo = STATUS_NO;
 
         // check for logo change section
-        if (IsLogoChangeChannel(maContext->Info.ChannelName)) IsLogoChange(marks, &(*logoPairIterator), maContext->Video.Info.framesPerSecond, iStart, chkSTART, iStopA);
+        if (IsLogoChangeChannel(maContext->Info.ChannelName)) IsLogoChange(marks, &(*logoPairIterator), maContext->Video.Info.framesPerSecond, iStart, chkSTART);
         else logoPairIterator->isLogoChange = STATUS_NO;
 
         // mark after pair
@@ -129,9 +129,6 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(sMarkAdContext *maContext
                 int diff = (chkSTART - logoPairIterator->stopPosition) / maContext->Video.Info.framesPerSecond; // difference to current processed frame
                 if (diff > LOGO_CHANGE_IS_BROADCAST_MIN) delta_Stop_AfterPair = diff;     // still no stop mark but we are in broadcast
                 else delta_Stop_AfterPair = LOGO_CHANGE_NEXT_STOP_MIN; // we can not ignore early stop start pairs because they can be logo changed short after start
-            }
-            else { // we are called by CheckStop()
-                if (logoPairIterator->stopPosition < iStopA) logoPairIterator->isLogoChange = STATUS_NO; // this is the last stop mark and it is before assumed end mark, this is the end mark
             }
         }
         if (delta_Stop_AfterPair >= LOGO_CHANGE_IS_BROADCAST_MIN) {
@@ -196,7 +193,7 @@ cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
 
 // check if stop/start pair could be a logo change
 //
-void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA) {
+void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart, const int chkSTART) {
 #define LOGO_CHANGE_STOP_START_MIN  6760  // min time in ms of a logo change section, chaned from 10000 to 9400 to 6760
 #define LOGO_CHANGE_STOP_START_MAX 21000  // max time in ms of a logo change section
     // check min length of stop/start logo pair
@@ -241,13 +238,6 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
             int diff = (chkSTART - logoStopStartPair->stopPosition) / framesPerSecond; // difference to current processed frame
             if (diff > LOGO_CHANGE_IS_BROADCAST_MIN) delta_Stop_AfterPair = diff;     // still no stop mark but we are in broadcast
             else delta_Stop_AfterPair = LOGO_CHANGE_NEXT_STOP_MIN; // we can not ignore early stop start pairs because they can be logo changed short after start
-        }
-        else { // we are called by CheckStop()
-            if (logoStopStartPair->stopPosition < iStopA) {
-                dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ----- stop (%d) start (%d) pair: last stop/start pair before assumed stop (%d), do not delete", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, iStopA);
-                logoStopStartPair->isLogoChange = STATUS_NO; // this is the last stop mark and it is before assumed end mark, this is the end mark
-                return;
-            }
         }
     }
     if ((delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair < LOGO_CHANGE_NEXT_STOP_MIN)) {

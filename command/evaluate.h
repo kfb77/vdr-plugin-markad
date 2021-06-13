@@ -113,7 +113,7 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
  * @param[in]     chkSTART          search for start mark position
  * @param[in]     iStopA            assumed stop mark position
  */
-     void IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart, const int chkSTART, const int iStopA);
+     void IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart, const int chkSTART);
 
 /**
  * check if logo stop/start pair could be an info logo
