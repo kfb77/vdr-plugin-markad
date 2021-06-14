@@ -2688,17 +2688,18 @@ void cMarkAdStandalone::Process3ndPass() {
         if (mark->type == MT_LOGOSTOP) {
             cMark *blackMark = blackMarks.GetAround(BLACKSCREEN_RANGE * macontext.Video.Info.framesPerSecond / 1000, mark->position, MT_NOBLACKSTART);
             if (blackMark) {
-                int distance = blackMark->position - mark->position;
-                int distance_ms = distance / macontext.Video.Info.framesPerSecond;
-                if (distance == 0) { // found blackscreen at same position
-                    mark=mark->Next();
-                    continue;
-                }
                 int newPos;
                 if (!macontext.Config->fullDecode) {
-                    newPos =  recordingIndexMark->GetIFrameBefore(blackMark->position); // MT_NOBLACKSSTART is th "only iFrame decoding" is first frame afer blackscreen, get last frame of blackscreen, blacksceen at stop mark belongs to broasdact
+                    newPos =  recordingIndexMark->GetIFrameBefore(blackMark->position); // MT_NOBLACKSSTART with "only iFrame decoding" is the first frame afer blackscreen, get last frame of blackscreen, blacksceen at stop mark belongs to broasdact
                 }
-                else newPos = blackMark->position;
+                else newPos = blackMark->position - 1; // MT_NOBLACKSTART is first frame after blackscreen, go one back
+
+                int distance =  newPos - mark->position;
+                int distance_ms = distance / macontext.Video.Info.framesPerSecond;
+                if (distance == 0) { // found blackscreen at same position
+                    mark = mark->Next();
+                    continue;
+                }
                 if (distance > 0)  { // blackscreen is after logo stop mark
                     dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d) %ds (expect >0 and <=%ds) after logo stop mark (%d), move mark", newPos, distance, distance_ms, BLACKSCREEN_RANGE, mark->position);
                 }
@@ -2711,7 +2712,7 @@ void cMarkAdStandalone::Process3ndPass() {
             }
             else dsyslog("cMarkAdStandalone::Process3ndPass(): no black screen mark found after logo stop mark (%d)", mark->position);
         }
-        mark=mark->Next();
+        mark = mark->Next();
     }
 
     if (save) marks.Save(directory, &macontext, false);

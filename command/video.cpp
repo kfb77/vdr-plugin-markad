@@ -1660,7 +1660,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
         int blackret;
         blackret = blackScreen->Process(useFrame);
         if (blackret > 0) {
-            if (maContext->Config->fullDecode) AddMark(MT_NOBLACKSTART, useFrame - 1);  // frame before is last frame with blackscreen
+            if (maContext->Config->fullDecode) AddMark(MT_NOBLACKSTART, useFrame);  // first frame without blackscreen is start mark position
             else AddMark(MT_NOBLACKSTART, useFrame); // with iFrames only we must set mark on first frame after blackscreen to avoid start and stop on same iFrame
         }
         else {
