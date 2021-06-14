@@ -254,7 +254,8 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
 void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond) {
     if (framesPerSecond <= 0) return;
 #define LOGO_INFO_STOP_START_MIN 4480  // min time in ms of a info logo section, bigger values than in InfoLogo becase of seek to iFrame, changed from 5000 to 4480
-#define LOGO_INFO_STOP_START_MAX 17000  // max time in s of a info logo section, changed from 17
+#define LOGO_INFO_STOP_START_MAX 17000  // max time in ms of a info logo section
+#define LOGO_INFO_BLACKSCREEN_BEFORE_DIFF_MAX 40  // max time in ms no blackscreen allowed before stop mark
     int length = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / framesPerSecond;
     if ((length <= LOGO_INFO_STOP_START_MAX) && (length >= LOGO_INFO_STOP_START_MIN)) {
 
@@ -265,8 +266,8 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *blackMarks, sLogoStopStartPa
         if ( blackStop && blackStart) {
             int diff = 1000 * (logoStopStartPair->stopPosition - blackStart->position) / framesPerSecond;
             int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;
-            dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen before (%d) and (%d) length %dms, diff %dms", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position, lengthBlack, diff);
-            if ((lengthBlack >= 1080) && (diff <= 40)) { // changed from 1700 to 1080, changed from 10 to 40
+            dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen before (%d) and (%d) length %dms, diff %dms (expect <=%dms", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position, lengthBlack, diff, LOGO_INFO_BLACKSCREEN_BEFORE_DIFF_MAX);
+            if ((lengthBlack >= 1080) && (diff <= LOGO_INFO_BLACKSCREEN_BEFORE_DIFF_MAX)) { // changed from 1700 to 1080
                 dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ----- stop (%d) start (%d) pair: blacksceen pair long and near, no info logo part", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
                 logoStopStartPair->isInfoLogo = STATUS_NO;
                 return;
