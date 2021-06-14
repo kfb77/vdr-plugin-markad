@@ -421,7 +421,10 @@ class cMarkAdBlackScreen {
 /**
  * process black screen detection
  * @param frameCurrent current frame number
- * @return black screen status
+ * @return black screen status: <br>
+ *         -1 blackscreen start (notice: this is a STOP mark) <br>
+ *          0 no status change <br>
+ *          1 blackscreen end (notice: this is a START mark)
  */
         int Process(const int frameCurrent);
 

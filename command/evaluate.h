@@ -111,7 +111,6 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
  * @param[in]     framesPerSecond   video frame rate
  * @param[in]     iStart            assumed start mark position
  * @param[in]     chkSTART          search for start mark position
- * @param[in]     iStopA            assumed stop mark position
  */
      void IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart, const int chkSTART);
 
