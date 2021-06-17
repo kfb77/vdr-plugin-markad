@@ -1387,7 +1387,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     while (mark) {
         if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
             int diff = 1000 * (mark->Next()->position - mark->position) /  macontext.Video.Info.framesPerSecond;
-            if (diff <= 880 ) {
+            if (diff < 1000 ) { // do not increase because of very short real logo interuption between broacast and preview
                 if (mark->Next()->Next() && (mark->Next()->Next()->type == MT_LOGOSTOP)) {
                     int lengthAfter = (mark->Next()->Next()->position - mark->Next()->position) /  macontext.Video.Info.framesPerSecond;
                     if (lengthAfter < 203) {  // do not delete a short stop/start before a long broadcast part, this pair contains start mark,
