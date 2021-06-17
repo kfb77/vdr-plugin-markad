@@ -385,6 +385,11 @@ cMark *cMarks::Add(const int type, const int position, const char *comment, cons
 char *cMarks::TypeToText(const int type) {
     char *text = NULL;
     switch (type & 0xF0) {
+        case MT_BLACKCHANGE:
+            if (asprintf(&text, "black screen") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            break;
         case MT_LOGOCHANGE:
             if (asprintf(&text, "logo") != -1) {
                 ALLOC(strlen(text)+1, "text");
