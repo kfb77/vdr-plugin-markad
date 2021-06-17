@@ -1429,7 +1429,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                                                                                        // previews can be at start of advertising (e.g. DMAX)
                                                                                        // max changed from 500000 to 560000 to 585000
                                                                                        // min changed from 7000 to 5000 to 1000
-                            if (lengthPreview <= 110) {  // max preview found was 110s
+                            if (lengthPreview <= 111) {  // changed from 110 to 111
                                 isyslog("found preview between logo mark (%d) and logo mark (%d) in advertisement, deleting marks", mark->position, stopMark->position);
                                 cMark *tmp = startAfter;
                                 marks.Del(mark);
