@@ -255,7 +255,11 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *blackMarks, sLogoStopStartPa
     if (framesPerSecond <= 0) return;
 #define LOGO_INFO_STOP_START_MIN 4480  // min time in ms of a info logo section, bigger values than in InfoLogo becase of seek to iFrame, changed from 5000 to 4480
 #define LOGO_INFO_STOP_START_MAX 17640 // max time in ms of a info logo section, changed from 17000 to 17640
-#define LOGO_INFO_BLACKSCREEN_BEFORE_DIFF_MAX 40  // max time in ms no blackscreen allowed before stop mark
+#define LOGO_INFO_SHORT_BLACKSCREEN_BEFORE_DIFF_MAX  40  // max time in ms no short blackscreen allowed before stop mark
+#define LOGO_INFO_SHORT_BLACKSCREEN_LENGTH         1080  // length of a short blackscreen
+#define LOGO_INFO_LONG_BLACKSCREEN_BEFORE_DIFF_MAX 1920  // max time in ms no long blackscreen allowed before stop mark
+#define LOGO_INFO_LONG_BLACKSCREEN_LENGTH          5000  // length of a long blackscreen
+
     int length = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / framesPerSecond;
     if ((length <= LOGO_INFO_STOP_START_MAX) && (length >= LOGO_INFO_STOP_START_MIN)) {
 
@@ -266,9 +270,14 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *blackMarks, sLogoStopStartPa
         if ( blackStop && blackStart) {
             int diff = 1000 * (logoStopStartPair->stopPosition - blackStart->position) / framesPerSecond;
             int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;
-            dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen before (%d) and (%d) length %dms, diff %dms (expect <=%dms", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position, lengthBlack, diff, LOGO_INFO_BLACKSCREEN_BEFORE_DIFF_MAX);
-            if ((lengthBlack >= 1080) && (diff <= LOGO_INFO_BLACKSCREEN_BEFORE_DIFF_MAX)) { // changed from 1700 to 1080
-                dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ----- stop (%d) start (%d) pair: blacksceen pair long and near, no info logo part", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
+            dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen before (%d) and (%d) length %dms, diff %dms (expect <=%dms", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position, lengthBlack, diff, LOGO_INFO_SHORT_BLACKSCREEN_BEFORE_DIFF_MAX);
+            if ((lengthBlack >= LOGO_INFO_SHORT_BLACKSCREEN_LENGTH) && (diff <= LOGO_INFO_SHORT_BLACKSCREEN_BEFORE_DIFF_MAX)) {
+                dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ----- stop (%d) start (%d) pair: short blacksceen pair found, no info logo part", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
+                logoStopStartPair->isInfoLogo = STATUS_NO;
+                return;
+            }
+            if ((lengthBlack >= LOGO_INFO_LONG_BLACKSCREEN_LENGTH) && (diff <= LOGO_INFO_LONG_BLACKSCREEN_BEFORE_DIFF_MAX)) {
+                dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ----- stop (%d) start (%d) pair: long blacksceen pair found, no info logo part", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
                 logoStopStartPair->isInfoLogo = STATUS_NO;
                 return;
             }
@@ -789,12 +798,12 @@ int cDetectLogoStopStart::ClosingCredit() {
 
     if (!ClosingCreditChannel(maContext->Info.ChannelName)) return -1;
 
-    dsyslog("cDetectLogoStopStart::ClosingCredit: detect from (%d) to (%d)", startPos,endPos);
+    dsyslog("cDetectLogoStopStart::ClosingCredit(): detect from (%d) to (%d)", startPos,endPos);
 
 #define CLOSING_CREDITS_LENGTH_MIN 9
     int minLength = ((endPos - startPos) / maContext->Video.Info.framesPerSecond) - 2;  // 2s buffer for change from closing credit to logo start
     if (minLength > CLOSING_CREDITS_LENGTH_MIN) minLength = CLOSING_CREDITS_LENGTH_MIN;
-    dsyslog("cDetectLogoStopStart::ClosingCredit: min length %d", minLength);
+    dsyslog("cDetectLogoStopStart::ClosingCredit(): min length %d", minLength);
 
     int closingCreditsFrame = -1;
 
@@ -811,7 +820,7 @@ int cDetectLogoStopStart::ClosingCredit() {
     } ClosingImage;
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
-        dsyslog("cDetectLogoStopStart::ClosingCredit: frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+        dsyslog("cDetectLogoStopStart::ClosingCredit(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
         int similarCorners = 0;
         int equalCorners = 0;
         int noPixelCount = 0;
