@@ -1045,13 +1045,14 @@ void cMarkAdStandalone::CheckStart() {
                 if (vNextStart) {
                     dsyslog("cMarkAdStandalone::CheckStart(): vertical border start (%d) after vertical border stop (%d) found, start mark at (%d) is valid", vNextStart->position, vStop->position, vStart->position);
                 }
-                else {
+                else { // we have only start/stop vborder in start part, this can be the closing credits of recording before
+                    dsyslog("cMarkAdStandalone::CheckStart(): no vertical border start found after start (%d) and stop (%d)", vStart->position, vStop->position);
                     // 228s opening credits with vborder -> invalid TODO
                     //  96s opening credits with vborder -> invalid
                     // 151s advertising in start area    -> valid
-                    if ((markDiff <= 122) ||
-                        (frameCurrent > iStopA)) {  // we have only start/stop vborder in start part, this is the opening or closing credits or recording before
-                        isyslog("vertical border STOP at (%d) %ds after vertical border START (%i) in start part found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
+                    if ((markDiff <= 122) ||         // too short for a broadcast part
+                        (frameCurrent > iStopA)) { // we got not in broadcast at chkSTART with a vborder mark
+                        isyslog("vertical border stop at (%d) %ds after vertical border start (%i) in start part found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
                         marks.Del(vStop);
                         marks.Del(vStart);
                         vStart = NULL;
