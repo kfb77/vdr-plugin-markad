@@ -375,8 +375,23 @@ void cMarkAdStandalone::CheckStop() {
             dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTOP found at frame %i", end->position);
             cMark *prevHStart = marks.GetPrev(end->position, MT_HBORDERSTART);
             if (prevHStart && (prevHStart->position > iStopA)) {
-                dsyslog("cMarkAdStandalone::CheckStop(): previous hborder start mark (%d) is before assumed stop (%d), hborder stop mark (%d) is invalid", prevHStart->position, iStopA, end->position);
-                end = NULL;
+                dsyslog("cMarkAdStandalone::CheckStop(): previous hborder start mark (%d) is after assumed stop (%d), hborder stop mark (%d) is invalid", prevHStart->position, iStopA, end->position);
+                // check if we got first hborder stop of next broadcast
+                cMark *hBorderStopPrev = marks.GetPrev(end->position, MT_HBORDERSTOP);
+                if (hBorderStopPrev) {
+                    int diff = (iStopA - hBorderStopPrev->position) / macontext.Video.Info.framesPerSecond;
+                    if (diff <= 476) { // maybe recording length is wrong
+                        dsyslog("cMarkAdStandalone::CheckStop(): previous hborder stop mark (%d) is %ds before assumed stop, take this as stop mark", hBorderStopPrev->position, diff);
+                        end = hBorderStopPrev;
+                    }
+                    else {
+                        dsyslog("cMarkAdStandalone::CheckStop(): previous hborder stop mark (%d) is %ds before assumed stop, not valid", hBorderStopPrev->position, diff);
+                        end = NULL;
+                    }
+                }
+                else {
+                    end = NULL;
+                }
             }
         }
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_HBORDERSTOP mark found");
