@@ -415,7 +415,7 @@ void cMarkAdStandalone::CheckStop() {
     }
 
 // try MT_LOGOSTOP
-#define MAX_LOGO_END_MARK_FACTOR 3
+#define MAX_LOGO_END_MARK_FACTOR 3 // do not increase, we will get a false end mark on some recordings
     if (!end) {  // try any logo stop
         // delete possible logo end marks with very near logo start mark before
         bool isInvalid = true;
@@ -426,7 +426,8 @@ void cMarkAdStandalone::CheckStop() {
                 cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
                 if (prevLogoStart) {
                     int deltaLogoStart = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
-                    if (deltaLogoStart < 9) { // changed from 12 to 10 to 9 because of SIXX and SAT.1 has short logo change at the end of recording
+                    if (deltaLogoStart < 9) { // do not increase because of SIXX and SAT.1 has very short logo change at the end of recording, which are sometimes not detected
+                                              // sometimes we can not detect it at the end of the broadcast as info logo because text changes (noch eine Folge -> <Name der Folge>)
                         dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d) is invalid, logo start mark (%d) only %ds before", end->position, prevLogoStart->position, deltaLogoStart);
                         marks.Del(end);
                         marks.Del(prevLogoStart);
@@ -470,7 +471,7 @@ void cMarkAdStandalone::CheckStop() {
                     dsyslog("cMarkAdStandalone::CheckStop(): logo stop before too near %ds (expect >=%ds), use (%d) as stop mark", deltaLogo, CHECK_STOP_BEFORE_MIN, prevLogoStop->position);
                     end = prevLogoStop;
                 }
-                else dsyslog("cMarkAdStandalone::CheckStop(): logo stop before at (%d) too far away %ds (expect >=%ds), no alternative", prevLogoStop->position, deltaLogo, CHECK_STOP_BEFORE_MIN);
+                else dsyslog("cMarkAdStandalone::CheckStop(): logo stop before at (%d) too far away %ds (expect <%ds), no alternative", prevLogoStop->position, deltaLogo, CHECK_STOP_BEFORE_MIN);
             }
         }
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_LOGOSTOP mark found");
