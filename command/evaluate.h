@@ -194,14 +194,17 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
  */
         bool Detect(int startFrame, int endFrame, const bool adInFrame);
 
+/// detect if current logo stop/start pair contains a info logo
 /**
- * detect if current logo stop/start pair contains a info logo
+ * a info logo is a static alternate logo (e.g. telexext info) <br>
+ * fade in/out is possible
  * @return true if part is info logo, false otherwise
  */
         bool IsInfoLogo();
 
+/// check for logo change
 /**
- * check for logo change
+ * logo change parts contains dynamic changing alternative logos (used only by TELE5)
  * @return true if part contains a logo change, false otherwise
  */
         bool IsLogoChange();

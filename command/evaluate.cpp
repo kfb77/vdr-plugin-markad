@@ -490,7 +490,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
 
     int logoHeight = 0;
     int logoWidth  = 0;
-    ptr_cExtractLogo->GetLogoSize(maContext, &logoHeight, &logoWidth);
+    ptr_cExtractLogo->GetLogoSize(maContext, &logoHeight, &logoWidth);  // default logo size of this resolution, not real logo size, info logos are greater than real logo
     if (adInFrame) { // do check for frame
         logoWidth *= 0.32;   // less width to ignore content in frame
         dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", logoWidth, logoHeight);
