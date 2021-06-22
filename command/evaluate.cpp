@@ -17,6 +17,7 @@ bool cEvaluateChannel::IsInfoLogoChannel(char *channelName) {
         (strcmp(channelName, "DMAX") != 0) &&
         (strcmp(channelName, "SIXX") != 0) &&
         (strcmp(channelName, "SAT_1") != 0) &&
+        (strcmp(channelName, "WELT") != 0) &&
         (strcmp(channelName, "RTL2") != 0)) {
        return false;
     }
