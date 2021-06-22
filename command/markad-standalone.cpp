@@ -447,8 +447,20 @@ void cMarkAdStandalone::CheckStop() {
                 isInvalid = false;
             }
         }
+        // detect very short channel start before, in this case logo stop is invalid
         if (end) {
-            // detect very short logo stop/start before assumed stop mark, they are text previews over the logo (e.g. SAT.1)
+            cMark *prevChannelStart = marks.GetPrev(end->position, MT_CHANNELSTART);
+            if (prevChannelStart) {
+               int deltaChannelStart = (end->position - prevChannelStart->position) / macontext.Video.Info.framesPerSecond;
+               if (deltaChannelStart <= 20) {
+                   dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d) is invalid, channel start mark (%d) only %ds before", end->position, prevChannelStart->position, deltaChannelStart);
+                   end = NULL;
+                }
+            }
+        }
+
+        // detect very short logo stop/start before assumed stop mark, they are text previews over the logo (e.g. SAT.1)
+        if (end) {
             cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
             cMark *prevLogoStop  = marks.GetPrev(end->position, MT_LOGOSTOP);
             if (prevLogoStart && prevLogoStop) {
