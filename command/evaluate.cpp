@@ -304,7 +304,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *blackMarks, sLogoStopStartPa
             int diff = 1000 * (blackStart->position - logoStopStartPair->startPosition) / framesPerSecond;
             int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;
             dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen around stop (%d) and (%d) length %dms, diff %dms", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position, lengthBlack, diff);
-            if ((lengthBlack > 1200) && (diff < 1200)) {
+            if ((lengthBlack >= 1160) && (diff < 1200)) {  // changed from 1200 to 1160
                 dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ----- stop (%d) start (%d) pair: blacksceen pair long and near, no info logo part", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
                 logoStopStartPair->isInfoLogo = STATUS_NO;
                 return;
