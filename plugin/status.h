@@ -72,7 +72,7 @@ class cStatusMarkAd : public cStatus {
         int actpos;
         bool getPid(int Position);
         bool getStatus(int Position);
-        int Recording();
+        int RunningRecording();
         bool Replaying();
         int Get(const char *FileName, const char *Name = NULL);
         int Add(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, bool timerVPS);

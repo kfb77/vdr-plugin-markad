@@ -487,14 +487,22 @@ cStatusMarkAd::~cStatusMarkAd() {
 }
 
 
-int cStatusMarkAd::Recording() {
+int cStatusMarkAd::RunningRecording() {
     int cnt = 0;
     for (int i = 0; i < cDevice::NumDevices(); i++) {
         cDevice *dev = cDevice::GetDevice(i);
         if (dev) {
-            if (dev->Receiving()) cnt++;
+            if (dev->Receiving()) {
+                cnt++;
+#ifdef DEBUG_PAUSE_CONTINUE
+                dsyslog("markad: cStatusMarkAd::RunningRecording(): at least one recording running on device %d", i);
+#endif
+            }
         }
     }
+#ifdef DEBUG_PAUSE_CONTINUE
+    dsyslog("markad: cStatusMarkAd::RunningRecording(): %d devices with at least one running recordings", cnt);
+#endif
     return cnt;
 }
 
@@ -510,14 +518,19 @@ bool cStatusMarkAd::Replaying() {
 }
 
 
+#ifdef DEBUG_PAUSE_CONTINUE
+void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSED(Name), const char *FileName, bool On) {
+    dsyslog("markad: cStatusMarkAd::Replaying called, %s recording %s", On ? "start" : "stop", FileName ? FileName : "<NULL>");
+#else
 void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSED(Name), const char *UNUSED(FileName), bool On) {
+#endif
     if (setup->ProcessDuring != PROCESS_AFTER) return;
     if (setup->whileReplaying) return;
     if (On) {
         Pause(NULL);
     }
     else {
-        if (!Recording()) Continue(NULL);
+        if (!RunningRecording()) Continue(NULL);
     }
 }
 
@@ -576,17 +589,19 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
 
     usleep(1000000); // wait 1 second
     if (SystemExec(cmd) != -1) {
-        dsyslog("markad: executing %s", *cmd);
+        dsyslog("markad: cStatusMarkAd::Start(): executing %s", *cmd);
         usleep(200000);
-        int pos=Add(FileName, Name, eventID, timerStartTime, timerStopTime, timerVPS);
-        if (getPid(pos) && getStatus(pos)) {
+        int pos = Add(FileName, Name, eventID, timerStartTime, timerStopTime, timerVPS);
+        bool gotPID = getPid(pos); // will set recs[pos].Pid
+        dsyslog("markad: cStatusMarkAd::Start(): index %d, pid %d, filename %s: running markad stored in list", pos, recs[pos].Pid, FileName ? FileName : "<NULL>");
+        if (gotPID && getStatus(pos)) {
             if (setup->ProcessDuring == PROCESS_AFTER) {
                 if (!direct) {
                     if (!setup->whileRecording) Pause(NULL);
                     else Pause(FileName);
                 }
                 else {
-                    if (!setup->whileRecording && Recording()) Pause(FileName);
+                    if (!setup->whileRecording && RunningRecording()) Pause(FileName);
                     if (!setup->whileReplaying && Replaying()) Pause(FileName);
                 }
             }
@@ -675,6 +690,16 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
 
     if (On) {
         dsyslog("markad: cStatusMarkAd::Recording(): recording <%s> [%s] started", Name, FileName);
+#ifdef DEBUG_PAUSE_CONTINUE
+        RunningRecording();
+#endif
+        // check if markad is running for the same recording, this can happen if we have a short recording interuption
+        int runningPos = Get(FileName, NULL);
+        if (runningPos >= 0) {
+        isyslog("markad: is running on the same recording %s", FileName);
+            Remove(runningPos, true);
+        }
+
         tEventID eventID = 0;
         time_t timerStartTime = 0;
         time_t timerStopTime = 0;
@@ -683,8 +708,8 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         SaveVPSTimer(FileName, timerVPS);
 
         if ((setup->ProcessDuring == PROCESS_NEVER) && setup->useVPS) {  // markad start disabled per config menue, add recording for VPS detection
-            int pos=Add(FileName, Name, eventID, timerStartTime, timerStopTime, timerVPS);
-            dsyslog("markad: cStatusMarkAd::Recording(): added recording <%s> event ID %u at position %i only for VPS detection", Name, eventID, pos);
+            int pos = Add(FileName, Name, eventID, timerStartTime, timerStopTime, timerVPS);
+            if (pos >= 0) dsyslog("markad: cStatusMarkAd::Recording(): added recording <%s> event ID %u at index %i only for VPS detection", Name, eventID, pos);
             return;
         }
         if (setup->ProcessDuring == PROCESS_NEVER) {
@@ -707,26 +732,34 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         }
     }
     else {
-        dsyslog("markad: cStatusMarkAd::Recording(): recording <%s> [%s] stopped", Name, FileName);
+#ifdef DEBUG_PAUSE_CONTINUE
+        dsyslog("markad: cStatusMarkAd::Recording(): setup->ProcessDuring %d, setup->whileRecording %d, setup->whileReplaying %d", setup->ProcessDuring, setup->whileRecording, setup->whileReplaying);
+#endif
         int pos = Get(FileName, Name);
-        if (((setup->ProcessDuring == PROCESS_DURING) || (setup->ProcessDuring == PROCESS_NEVER)) && ( pos >= 0)) { // PROCESS_NEVER: recording maybe in list from vps detection
-            dsyslog("markad: cStatusMarkAd::Recording(): remove recording <%s> [%s] from list", Name, FileName);
-            Remove(pos, false);
-        }
+        if (pos >= 0) {
+            dsyslog("markad: cStatusMarkAd::Recording(): index %d, pid %d, filename %s: recording stopped", pos, recs[pos].Pid, FileName);
+            if ((setup->ProcessDuring == PROCESS_DURING) || (setup->ProcessDuring == PROCESS_NEVER)) { // PROCESS_NEVER: recording maybe in list from vps detection
+                dsyslog("markad: cStatusMarkAd::Recording(): remove recording <%s> [%s] from list", Name, FileName);
+                Remove(pos, false);
+            }
 
-        if (setup->ProcessDuring == PROCESS_AFTER) {
-            if (!setup->whileRecording) {
-                if (!setup->whileReplaying) {
-                    if (!Recording() && !Replaying()) Continue(NULL);
+            if (setup->ProcessDuring == PROCESS_AFTER) {
+                if (!setup->whileRecording) {
+                    if (!setup->whileReplaying) {
+                        if (!RunningRecording() && !Replaying()) Continue(NULL);
+                    }
+                    else {
+                        int recordingCount = RunningRecording();
+                        if (recordingCount == 0) Continue(NULL);
+                        else dsyslog("markad: cStatusMarkAd::Recording(): resume not possible, still %d decives with running recordings", recordingCount);
+                    }
                 }
                 else {
-                    if (!Recording()) Continue(NULL);
-                }
-            }
-            else {
-                Continue(FileName);
-            }
+                    Continue(FileName);
+               }
+           }
         }
+        else dsyslog("markad: cStatusMarkAd::Recording(): unknown recording %s stopped", FileName);
     }
 }
 
@@ -825,7 +858,7 @@ bool cStatusMarkAd::getStatus(int Position) {
     FILE *fstat = fopen(procname, "r");
     if (fstat) {
         // found a running markad
-        ret=fscanf(fstat, "%*10d %*255s %c", &recs[Position].Status);
+        ret = fscanf(fstat, "%*10d %*255s %c", &recs[Position].Status);
         fclose(fstat);
     }
     else {
@@ -835,6 +868,9 @@ bool cStatusMarkAd::getStatus(int Position) {
             Remove(Position);
         }
     }
+#ifdef DEBUG_PAUSE_CONTINUE
+    if (ret != 1) dsyslog("markad: cStatusMarkAd::getStatus(): markad terminated for index %i, recording %s", Position, recs[Position].FileName ? recs[Position].FileName : "<NULL>");
+#endif
     return (ret == 1);
 }
 
@@ -936,14 +972,15 @@ void cStatusMarkAd::Remove(const char *Name, bool Kill) {
 
 
 void cStatusMarkAd::Remove(int pos, bool Kill) {
+    if (pos < 0) return;
+    dsyslog("markad: cStatusMarkAd::Remove(): index %d, pid %d, filename %s: remove from list", pos, recs[pos].Pid, recs[pos].FileName ? recs[pos].FileName : "<NULL>");
     if (recs[pos].FileName) {
-        dsyslog("markad: cStatusMarkAd::Remove(): remove %s from position %i", recs[pos].FileName, pos);
         if (recs[pos].runningStatus == 4) isyslog("markad: got no VPS stop event for %s", recs[pos].FileName);
         FREE(strlen(recs[pos].FileName)+1, "recs[pos].FileName");
         free(recs[pos].FileName);
+        recs[pos].FileName = NULL;
     }
 
-    recs[pos].FileName = NULL;
     if (recs[pos].Name) {
         FREE(strlen(recs[pos].Name)+1, "recs[pos].Name");
         free(recs[pos].Name);
@@ -952,11 +989,11 @@ void cStatusMarkAd::Remove(int pos, bool Kill) {
     if ((Kill) && (recs[pos].Pid)) {
         if (getStatus(pos)) {
             if ((recs[pos].Status == 'R') || (recs[pos].Status == 'S')) {
-                dsyslog("markad: cStatusMarkAd::Remove(): terminating pid %i", recs[pos].Pid);
+                dsyslog("markad: cStatusMarkAd::Remove(): index %d, pid %d: terminating markad process", pos, recs[pos].Pid);
                 kill(recs[pos].Pid, SIGTERM);
             }
             else {
-                dsyslog("markad: cStatusMarkAd::Remove(): killing pid %i", recs[pos].Pid);
+                dsyslog("markad: cStatusMarkAd::Remove(): index %d, pid %d: killing markad process", pos, recs[pos].Pid);
                 kill(recs[pos].Pid, SIGKILL);
             }
         }
@@ -1055,7 +1092,7 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID ev
             char timerStop[20] = {0};
             strftime(timerStop, 20, "%d.%m.%Y %H:%M:%S", &stop);
             char *log = NULL;
-            if ((recs[pos].epgEventLog) && (asprintf(&log, "position %i, eventID %7u, start %s, stop %s", pos, eventID, timerStart, timerStop) != -1)) recs[pos].epgEventLog->Log(log);
+            if ((recs[pos].epgEventLog) && (asprintf(&log, "index %i, eventID %7u, start %s, stop %s", pos, eventID, timerStart, timerStop) != -1)) recs[pos].epgEventLog->Log(log);
             if (log) free(log);
 
             return pos;
@@ -1066,16 +1103,19 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID ev
 
 
 void cStatusMarkAd::Pause(const char *FileName) {
+#ifdef DEBUG_PAUSE_CONTINUE
+    dsyslog("markad: cStatusMarkAd::Pause(): called with filename %s", FileName ? FileName : "<NULL>");
+#endif
     for (int i = 0; i < (MAXDEVICES * MAXRECEIVERS); i++) {
         if (FileName) {
             if ((recs[i].FileName) && (!strcmp(recs[i].FileName,FileName)) && (recs[i].Pid) && (!recs[i].ChangedbyUser)) {
-                dsyslog("markad: pausing pid %i", recs[i].Pid);
+                dsyslog("markad: cStatusMarkAd::Pause(): index %d, pid %d, filename %s: pause markad process", i, recs[i].Pid, FileName);
                 kill(recs[i].Pid, SIGTSTP);
             }
         }
         else {
             if ((recs[i].Pid) && (!recs[i].ChangedbyUser)) {
-                dsyslog("markad: pausing pid %i", recs[i].Pid);
+                dsyslog("markad: cStatusMarkAd::Pause(): index %d, pid %d, filename %s: pause markad process", i, recs[i].Pid, recs[i].FileName ? recs[i].FileName : "<NULL>");
                 kill(recs[i].Pid, SIGTSTP);
             }
         }
@@ -1084,16 +1124,19 @@ void cStatusMarkAd::Pause(const char *FileName) {
 
 
 void cStatusMarkAd::Continue(const char *FileName) {
+#ifdef DEBUG_PAUSE_CONTINUE
+    dsyslog("markad: cStatusMarkAd::Continue(): called with filename %s", FileName ? FileName : "<NULL>");
+#endif
     for (int i = 0; i < (MAXDEVICES*MAXRECEIVERS); i++) {
         if (FileName) {
             if ((recs[i].FileName) && (!strcmp(recs[i].FileName,FileName)) && (recs[i].Pid) && (!recs[i].ChangedbyUser) ) {
-                dsyslog("markad: resume pid %i", recs[i].Pid);
+                dsyslog("markad: cStatusMarkAd::Continue(): index %d, pid %i, filename %s: resume markad process", i, recs[i].Pid, recs[i].FileName);
                 kill(recs[i].Pid, SIGCONT);
             }
         }
         else {
             if ((recs[i].Pid) && (!recs[i].ChangedbyUser)) {
-                dsyslog("markad: resume pid %i", recs[i].Pid);
+                dsyslog("markad: cStatusMarkAd::Continue(): index %d, pid %d, filename %s: resume markad process", i, recs[i].Pid, recs[i].FileName ? recs[i].FileName : "<NULL>");
                 kill(recs[i].Pid, SIGCONT);
             }
         }

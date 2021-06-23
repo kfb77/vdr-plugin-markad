@@ -8,6 +8,9 @@
 #ifndef __debug_h_
 #define __debug_h_
 
+// debug pause und resume of markad process
+// #define DEBUG_PAUSE_CONTINUE
+
 #ifdef DEBUG_MEM
     #include <vdr/plugin.h>
 
