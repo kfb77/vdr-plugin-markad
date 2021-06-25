@@ -415,7 +415,7 @@ void cMarkAdStandalone::CheckStop() {
     }
 
 // try MT_LOGOSTOP
-#define MAX_LOGO_END_MARK_FACTOR 3 // do not increase, we will get a false end mark on some recordings
+#define MAX_LOGO_END_MARK_FACTOR 2.7 // changed from 3 to 2.7 to prevent too early logo stop marks
     if (!end) {  // try any logo stop
         // delete possible logo end marks with very near logo start mark before
         bool isInvalid = true;
