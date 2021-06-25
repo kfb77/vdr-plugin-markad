@@ -486,6 +486,35 @@ void cMarkAdStandalone::CheckStop() {
                 else dsyslog("cMarkAdStandalone::CheckStop(): logo stop before at (%d) too far away %ds (expect <%ds), no alternative", prevLogoStop->position, deltaLogo, CHECK_STOP_BEFORE_MIN);
             }
         }
+
+        // check if very eary logo end mark is end of preview
+        if (end) {
+            int beforeAssumed = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::CheckStop(): end mark (%d) %ds before assumed stop (%d)", end->position, beforeAssumed, iStopA);
+            if (beforeAssumed >= 218) {
+                cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
+                // ad before
+                cMark *prevLogoStop = NULL;
+                if (prevLogoStart) prevLogoStop = marks.GetPrev(prevLogoStart->position, MT_LOGOSTOP);
+                // broadcast after
+                cMark *nextLogoStart = marks.GetNext(end->position, MT_LOGOSTART);
+                cMark *nextLogoStop = NULL;
+                if (nextLogoStart) nextLogoStop = marks.GetNext(end->position, MT_LOGOSTOP);
+
+                if (prevLogoStart && prevLogoStop && nextLogoStart && !nextLogoStop) {
+                    int adBefore = (prevLogoStart->position - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::CheckStop(): advertising before from (%d) to (%d) %3ds", prevLogoStart->position, prevLogoStop->position, adBefore);
+                    int adAfter = (nextLogoStart->position - end->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::CheckStop(): advertising after  from (%d) to (%d) %3ds", end->position, nextLogoStart->position, adAfter);
+                    int broadcastBefore = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::CheckStop(): broadcast   before from (%d) to (%d) %3ds", prevLogoStart->position, end->position, broadcastBefore);
+                    if (adAfter <= 33) {
+                        dsyslog("cMarkAdStandalone::CheckStop(): advertising after logo end mark too short, mark not valid");
+                        end = NULL;
+                    }
+                }
+            }
+        }
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_LOGOSTOP mark found");
     }
 
