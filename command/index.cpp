@@ -213,7 +213,7 @@ void cIndex::AddPTS(const int frameNumber, const int64_t pts) {
     ALLOC(sizeof(sPTS_RingbufferElement), "ptsRing");
 
     // delete oldest entry
-    if (ptsRing.size() > 20) {
+    if (ptsRing.size() > 35) {  // changed from 20 to 35
         ptsRing.erase(ptsRing.begin());
         FREE(sizeof(sPTS_RingbufferElement), "ptsRing");
     }

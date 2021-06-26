@@ -80,7 +80,7 @@ class cIndex {
  */
         void AddPTS(const int frameNumber, const int64_t pts);
 
-/** get first frame number after given presentation timestamp
+/** get first video frame number after given presentation timestamp of AC3 frame PTS
  * @param pts  presentation timestamp
  * @return first frame number after given presentation timestamp
  */
