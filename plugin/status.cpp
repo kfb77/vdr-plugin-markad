@@ -489,19 +489,32 @@ cStatusMarkAd::~cStatusMarkAd() {
 
 int cStatusMarkAd::RunningRecording() {
     int cnt = 0;
-    for (int i = 0; i < cDevice::NumDevices(); i++) {
-        cDevice *dev = cDevice::GetDevice(i);
-        if (dev) {
-            if (dev->Receiving()) {
-                cnt++;
-#ifdef DEBUG_PAUSE_CONTINUE
-                dsyslog("markad: cStatusMarkAd::RunningRecording(): at least one recording running on device %d", i);
+#if APIVERSNUM>=20301
+    cStateKey StateKey;
+    if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
+        for (const cTimer *Timer = Timers->First(); Timer; Timer = Timers->Next(Timer))
+#else
+    for (cTimer *Timer = Timers.First(); Timer; Timer = Timers.Next(Timer))
 #endif
+        {
+#if APIVERSNUM>=20301
+            if (Timer->Local() && Timer->Recording()) {
+#else
+            if (Timer->Recording()) {
+#endif
+#ifdef DEBUG_PAUSE_CONTINUE
+                dsyslog("markad: cStatusMarkAd::RunningRecording(): running local recoring: %s", Timer->File());
+#endif
+                cnt++;
             }
         }
+#if APIVERSNUM>=20301
     }
+    StateKey.Remove();
+#endif
+
 #ifdef DEBUG_PAUSE_CONTINUE
-    dsyslog("markad: cStatusMarkAd::RunningRecording(): %d devices with at least one running recordings", cnt);
+    dsyslog("markad: cStatusMarkAd::RunningRecording(): %d local running recording(s)", cnt);
 #endif
     return cnt;
 }
@@ -751,7 +764,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
                     else {
                         int recordingCount = RunningRecording();
                         if (recordingCount == 0) Continue(NULL);
-                        else dsyslog("markad: cStatusMarkAd::Recording(): resume not possible, still %d decives with running recordings", recordingCount);
+                        else dsyslog("markad: cStatusMarkAd::Recording(): resume not possible, still %d running recording(s)", recordingCount);
                     }
                 }
                 else {
