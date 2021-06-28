@@ -880,11 +880,11 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
         dsyslog("cDecoder::GetNextSilence(): could not get stream index of MP2 audio stream");
         return -1;
     }
-    struct videoFrameType {
+    struct sVideoFrame {
         int frameNumber = -1;
         int64_t pts = -1;
     } videoFrame;
-    std::vector<videoFrameType> videoFrameVector;
+    std::vector<sVideoFrame> videoFrameVector;
 
     dsyslog("cDecoder::GetNextSilence(): using stream index %i from frame (%d) to frame (%d)", streamIndex, GetFrameNumber(), stopFrame);
     while (GetFrameNumber() < stopFrame) {
@@ -892,7 +892,9 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
             if (!DecodeDir(recordingDir)) break;
         }
         if (IsVideoPacket()) {  // store video PTS of each video frame
-//            dsyslog("cDecoder::GetNextSilence(): index %i video frame (%d) pts %" PRId64, streamIndex, GetFrameNumber(), avpkt.pts);
+#ifdef DEBUG_SILENCE
+            dsyslog("cDecoder::GetNextSilence(): stream index %i video frame (%d) pts %" PRId64, streamIndex, GetFrameNumber(), avpkt.pts);
+#endif
             videoFrame.frameNumber = GetFrameNumber();
             videoFrame.pts = avpkt.pts;
             videoFrameVector.push_back(videoFrame);
@@ -968,12 +970,17 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
     int silenceFrame = -1;
 
     if (silence.count >= SILENCE_COUNT) {
-        int64_t audioFramePTS = -1;
+        struct sAudioFrame {
+            int frameNumber = -1;
+            int64_t pts = -1;
+        } audioFrame;
         if (isStartMark) {
-            audioFramePTS = silence.endPTS;  // for start marks we use end of silence part
+            audioFrame.frameNumber = silence.endFrame; // for start marks we use end of silence part
+            audioFrame.pts         = silence.endPTS;
+
             videoFrame.pts = INT64_MAX;
             while (!videoFrameVector.empty()) {  // search video frame with pts after audio frame
-                if ((videoFrameVector.back().pts > audioFramePTS) && (videoFrameVector.back().pts < videoFrame.pts)) {
+                if ((videoFrameVector.back().pts > audioFrame.pts) && (videoFrameVector.back().pts < videoFrame.pts)) {
                     videoFrame.frameNumber =  videoFrameVector.back().frameNumber;
                     videoFrame.pts =  videoFrameVector.back().pts;
                 }
@@ -986,9 +993,11 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
             }
         }
         else {
-            audioFramePTS = silence.startPTS;  // for stop mark we use start of silence part
+            audioFrame.frameNumber = silence.startFrame;  // for stop mark we use start of silence part
+            audioFrame.pts         = silence.startPTS;
+
             while (!videoFrameVector.empty()) {  // search video frame with pts before audio frame
-                if ((videoFrameVector.back().pts < audioFramePTS) && (videoFrameVector.back().pts > videoFrame.pts)) {
+                if ((videoFrameVector.back().pts < audioFrame.pts) && (videoFrameVector.back().pts > videoFrame.pts)) {
                     videoFrame.frameNumber =  videoFrameVector.back().frameNumber;
                     videoFrame.pts =  videoFrameVector.back().pts;
                 }
@@ -1010,7 +1019,8 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
             else              silenceFrame = recordingIndexDecoder->GetIFrameAfter(videoFrame.frameNumber);
         }
         else silenceFrame = videoFrame.frameNumber;
-        dsyslog("cDecoder::GetNextSilence(): found silence part in stream %d between audio frame (%d) and (%d), video frame (%d) PTS %" PRId64 ", return frame (%d)", streamIndex, silence.startFrame, silence.endFrame, videoFrame.frameNumber, videoFrame.pts, silenceFrame);
+        dsyslog("cDecoder::GetNextSilence(): found silence part in stream %d between audio frame (%d) and (%d)", streamIndex, silence.startFrame, silence.endFrame);
+        dsyslog("cDecoder::GetNextSilence(): use audio frame (%d) PTS %" PRId64 ", video frame (%d) PTS %" PRId64 ", return frame (%d)", audioFrame.frameNumber, audioFrame.pts, videoFrame.frameNumber, videoFrame.pts, silenceFrame);
     }
     else {
 #ifdef DEBUG_MEM
