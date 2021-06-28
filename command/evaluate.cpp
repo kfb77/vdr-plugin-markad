@@ -739,7 +739,7 @@ bool cDetectLogoStopStart::IsLogoChange() {
             matchPicture += (*cornerResultIt).rate[corner];
             match[corner] += (*cornerResultIt).rate[corner];
             if (corner != maContext->Video.Logo.corner) {  // all but logo corner
-                matchNoLogoCorner+= (*cornerResultIt).rate[corner];
+                matchNoLogoCorner += (*cornerResultIt).rate[corner];
             }
         }
         if (matchPicture == -4) { // all 4 corners has no pixel
@@ -774,7 +774,7 @@ bool cDetectLogoStopStart::IsLogoChange() {
             noLogoQuote    = 100 * countNoLogoInLogoCorner / count;
         }
 #define LOGO_CHANGE_LIMIT static_cast<int>((matchNoLogoCorner / 3) * 1.3)
-#define LOGO_LOW_QUOTE_MIN  78 // changed from 75 to 76 to 78
+#define LOGO_LOW_QUOTE_MIN  80 // changed from 75 to 76 to 78 to 80
 #define LOGO_HIGH_QUOTE_MIN 86 // changed from 88 to 86
 #define LOGO_QUOTE_NO_LOGO 19
         dsyslog("cDetectLogoStopStart::isLogoChange(): logo corner high matches %d quote %d%% (expect >=%d%%), low matches %d quote %d%% (expect >=%d%%), noLogoQuote %d (expect <=%d))", highMatchCount, highMatchQuote, LOGO_HIGH_QUOTE_MIN, lowMatchCount, lowMatchQuote, LOGO_LOW_QUOTE_MIN, noLogoQuote, LOGO_QUOTE_NO_LOGO);
