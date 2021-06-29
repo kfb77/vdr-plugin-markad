@@ -61,12 +61,13 @@ bool cMarkAdAudio::ChannelChange(int channelsBefore, int channelsAfter) {
 sMarkAdMark *cMarkAdAudio::Process() {
     ResetMark();
     for (short int stream = 0; stream < MAXSTREAMS; stream++){
+        if ((macontext->Audio.Info.Channels[stream] != 0) && (channels[stream] == 0)) dsyslog("cMarkAdAudio::ChannelChange(): new audio stream %d start at frame (%d)", stream, macontext->Audio.Info.channelChangeFrame);
         if (ChannelChange(macontext->Audio.Info.Channels[stream], channels[stream])) {
             // we accept to cut out a little audio, we do not want to have a frame from ad
             if (macontext->Audio.Info.Channels[stream] > 2) {
                 if (macontext->Config->fullDecode) {
                     int markFrame = recordingIndexAudio->GetFirstVideoFrameAfterPTS(macontext->Audio.Info.channelChangePTS); // get video frame with pts before channel change
-		    markFrame = recordingIndexAudio->GetIFrameAfter(markFrame);  // we need next iFrame for start cut, make sure we will not have last pic of ad
+                    markFrame = recordingIndexAudio->GetIFrameAfter(markFrame);  // we need next iFrame for start cut, make sure we will not have last pic of ad
                     if (markFrame < 0) markFrame = macontext->Audio.Info.channelChangeFrame;
                     SetMark(MT_CHANNELSTART, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
                 }
