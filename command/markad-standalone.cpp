@@ -2424,6 +2424,7 @@ void cMarkAdStandalone::MarkadCut() {
     for (int pass = passMin; pass <= passMax; pass ++) {
         dsyslog("cMarkAdStandalone::MarkadCut(): start pass %d", pass);
         ptr_cDecoder->Reset();
+        ptr_cDecoder->DecodeDir(directory);
         ptr_cEncoder->Reset(pass);
 
         // set start and end mark of first part

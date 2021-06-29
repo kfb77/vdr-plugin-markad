@@ -63,17 +63,16 @@ cDecoder::cDecoder(int threads, cIndex *recordingIndex) {
 
 cDecoder::~cDecoder() {
     av_packet_unref(&avpkt);
-    if (avctx) {
+    if (avctx && codecCtxArray) {
         for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
             if (codecCtxArray[streamIndex]) {
                 FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
                 avcodec_free_context(&codecCtxArray[streamIndex]);
             }
         }
-        if (codecCtxArray) {
-            FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
-            free(codecCtxArray);
-        }
+        FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
+        free(codecCtxArray);
+
         avformat_close_input(&avctx);
     }
     if (recordingDir) {
@@ -129,12 +128,27 @@ AVCodecContext **cDecoder::GetAVCodecContext() {
 
 bool cDecoder::DecodeFile(const char *filename) {
     if (!filename) return false;
+    dsyslog("cDecoder::DecodeFile(): filename: %s", filename);
     AVFormatContext *avctxNextFile = NULL;
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(35<<8)+100)
     av_register_all();
 #endif
+    // free codec context before alloc for new file
+    if (codecCtxArray) {
+        for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
+            if (codecCtxArray[streamIndex]) {
+                FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
+                avcodec_free_context(&codecCtxArray[streamIndex]);
+            }
+        }
+        FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
+        free(codecCtxArray);
+        codecCtxArray = NULL;
+    }
+
+    // open first/next file
     if (avformat_open_input(&avctxNextFile, filename, NULL, NULL) == 0) {
-        dsyslog("cDecoder::DecodeFile(): start decode file %s", filename);
+        dsyslog("cDecoder::DecodeFile(): opened file %s", filename);
         if (avctx) avformat_close_input(&avctx);
         avctx = avctxNextFile;
     }
@@ -145,18 +159,6 @@ bool cDecoder::DecodeFile(const char *filename) {
     if (avformat_find_stream_info(avctx, NULL) < 0) {
         dsyslog("cDecoder::DecodeFile(): Could not get stream infos %s", filename);
         return false;
-    }
-
-    if (codecCtxArray) {   // free before aloc for new file
-        for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
-            if (codecCtxArray[streamIndex]) {
-                FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
-                avcodec_free_context(&codecCtxArray[streamIndex]);
-            }
-        }
-        FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
-        free(codecCtxArray);
-        codecCtxArray = NULL;
     }
 
     codecCtxArray = (AVCodecContext **) malloc(sizeof(AVCodecContext *) * avctx->nb_streams);
@@ -401,10 +403,16 @@ bool cDecoder::SeekToFrame(sMarkAdContext *maContext, int frameNumber) {
     }
 
     // flush decoder buffer
-    for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
-        if (codecCtxArray[streamIndex]) {
-            avcodec_flush_buffers(codecCtxArray[streamIndex]);
+    if (codecCtxArray) {
+        for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
+            if (codecCtxArray[streamIndex]) {
+                avcodec_flush_buffers(codecCtxArray[streamIndex]);
+            }
         }
+    }
+    else {
+        dsyslog("cDecoder::SeekToFrame(): codec context not valid");
+        return false;
     }
 
     while (currFrameNumber < frameNumber) {
@@ -413,6 +421,7 @@ bool cDecoder::SeekToFrame(sMarkAdContext *maContext, int frameNumber) {
                 dsyslog("cDecoder::SeekFrame(): failed for frame (%d) at frame (%d)", frameNumber, currFrameNumber);
                 return false;
             }
+            continue;
         }
         if (currFrameNumber >= iFrameBefore) GetFrameInfo(maContext, false);  // preload decoder buffer
     }
