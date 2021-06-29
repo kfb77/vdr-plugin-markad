@@ -1144,7 +1144,7 @@ void cMarkAdBlackScreen::Clear() {
 //          1 blackscreen end (notice: this is a START mark)
 //
 int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) {
-#define BLACKNESS 20  // maximum average brightness
+#define BLACKNESS 20  // maximum brightness to detect a blackscreen, +1 to detect end of blackscreen
     if (!maContext) return 0;
     if (!maContext->Video.Data.valid) return 0;
     if (maContext->Video.Info.framesPerSecond == 0) return 0;
@@ -1162,14 +1162,18 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
     }
     int end = maContext->Video.Info.height * maContext->Video.Info.width;
     int val = 0;
-    int maxBrightness = BLACKNESS * end;
+    // calulate limit with hysteresis
+    int maxBrightness;
+    if (blackScreenstatus == BLACKSCREEN_INVISIBLE) maxBrightness = BLACKNESS * end;
+    else maxBrightness = (BLACKNESS + 1) * end;
+
 #ifdef DEBUG_BLACKSCREEN
     int debugVal = 0;
     for (int x = 0; x < end; x++) {
         debugVal += maContext->Video.Data.Plane[0][x];
     }
     debugVal /= end;
-    dsyslog("cMarkAdBlackScreen::Process(): frame (%d) blackness %d (expect <%d)", frameCurrent, debugVal, BLACKNESS);
+    dsyslog("cMarkAdBlackScreen::Process(): frame (%d) blackness %d (expect <%d for start, >%d for end)", frameCurrent, debugVal, BLACKNESS, BLACKNESS);
 #endif
     for (int x = 0; x < end; x++) {
         val += maContext->Video.Data.Plane[0][x];
