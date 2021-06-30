@@ -40,6 +40,7 @@ bool cEvaluateChannel::ClosingCreditChannel(char *channelName) {
         (strcmp(channelName, "SAT_1") != 0) &&
         (strcmp(channelName, "SIXX") != 0) &&
         (strcmp(channelName, "Pro7_MAXX") != 0) &&
+        (strcmp(channelName, "RTL2") != 0) &&
         (strcmp(channelName, "ProSieben") != 0)) {
         return false;
     }
@@ -826,9 +827,9 @@ int cDetectLogoStopStart::ClosingCredit() {
         int equalCorners = 0;
         int noPixelCount = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
-            if ((*cornerResultIt).rate[corner] >=  220) similarCorners++;
-            if ((*cornerResultIt).rate[corner] == 1000) equalCorners++;
-            if ((*cornerResultIt).rate[corner] ==   -1) {
+            if ((*cornerResultIt).rate[corner] >= 220) similarCorners++;
+            if (((*cornerResultIt).rate[corner] >= 970) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;
+            if ((*cornerResultIt).rate[corner] ==  -1) {
                 similarCorners++;
                 noPixelCount++;
             }
