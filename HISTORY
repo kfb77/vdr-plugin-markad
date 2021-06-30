@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-06-30: Version 3.0.6
+- fix duplicate running markad after recording interruption
+- fix detecting running recordings
+- fix crash if audio channels changes with TS file change
+- some minor bug fixes and optimizations, see git
+
 2021-06-16: Version 3.0.5
 - fix compiler warnings on 32 bit systems
 - fix crash on encode malformed audio frame
