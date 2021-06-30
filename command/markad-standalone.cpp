@@ -1560,6 +1560,25 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         mark = mark->Next();
     }
 
+// check start marks
+// check for short start/stop pairs at the start
+    LogSeparator();
+    dsyslog("cMarkAdStandalone::CheckMarks(): check for short start/stop pairs at start");
+    DebugMarks();     //  only for debugging
+    mark = marks.GetFirst(); // this is the start mark
+    if (mark) {
+        cMark *markStop = marks.GetNext(mark->position, MT_STOP, 0x0F);
+        if (markStop) {
+            int diffStop = (markStop->position - mark->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
+            dsyslog("cMarkAdStandalone::CheckMarks(): first broadcast length %ds from (%d) to (%d)", diffStop, mark->position, markStop->position);
+            if (diffStop <= 8) {
+                dsyslog("cMarkAdStandalone::CheckMarks(): short STOP/START/STOP sequence at start, delete first pair");
+                marks.Del(mark->position);
+                marks.Del(markStop->position);
+            }
+        }
+    }
+
 // check logo or blackscreen end marks
 // check for short start/stop pairs at the end
     LogSeparator();
