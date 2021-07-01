@@ -3471,7 +3471,7 @@ bool cMarkAdStandalone::CheckLogo() {
         int startPos =  macontext.Info.tStart * 25;  // search logo from assumed start, we do not know the frame rate at this point, so we use 25
         if (startPos < 0) startPos = 0;  // consider late start of recording
         int endpos = ptr_cExtractLogo->SearchLogo(&macontext, startPos);
-        for (int retry = 2; retry <= 4; retry++) {  // reduced from 6 to 4
+        for (int retry = 2; retry <= 6; retry++) {  // do not reduce, we will not get some logos
             startPos += 5 * 60 * 25; // next try 5 min later
             if (endpos > 0) {
                 isyslog("no logo found in recording, retry in %ind recording part", retry);
