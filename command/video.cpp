@@ -827,12 +827,19 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     if (processed == 1) {
 #define MAX_AREA_INTENSITY 80  // change from 128 to 127 to 126 to 125 to 114 to 100 to 98 to 94 to 80
                                // notice: there can be very bright logo parts in dark areas, this will result in a lower brightness
-                               // we handle there cases in ReduceBrightness() when we detect contrast
-        if (((area.intensity > MAX_AREA_INTENSITY) || // if we found no logo try to reduce brightness
-            ((area.intensity >= 62) && (strcmp(maContext->Info.ChannelName, "NITRO") == 0))) &&  // workaround for NITRO, this channel has a very transparent logo, brightness reduction needed earlyer, changed from 80 to 76 to 62
+                               // we handle this cases in ReduceBrightness() when we detect contrast
+#define AREA_INTENSITY_NO_TRUST 70 // we do not trust very close result under this area intensity
+#define QUOTE_NO_TRUST 0.75        // at least this quote of matches we should have
+        if (((area.intensity > MAX_AREA_INTENSITY) ||                                            // if area is bright
+            // if we have a change from logo visable to logo invisable with very close result, verify it
+            ((area.intensity >= AREA_INTENSITY_NO_TRUST) && (area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK)) && (rPixel > (QUOTE_NO_TRUST * mPixel * LOGO_IMARK))) ||
+            ((area.intensity >= 62) && (strcmp(maContext->Info.ChannelName, "NITRO") == 0))) &&  // workaround for NITRO, this channel has a very transparent logo,
+                                                                                                 // brightness reduction needed earlyer, changed from 80 to 76 to 62
              (area.intensity < 220) &&  // if we are to bright, this will not work, max changed from 200 to 220
-           ((((area.status == LOGO_INVISIBLE) || (area.status == LOGO_UNINITIALIZED)) && (rPixel < (mPixel * logo_vmark))) || // if we found the logo ignore area intensity
-           ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK))))) {
+           ((((area.status == LOGO_INVISIBLE) || (area.status == LOGO_UNINITIALIZED)) && (rPixel < (mPixel * logo_vmark))) || // only status is no logo visable
+                                                                                                                              // and we have no clear result or
+           ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK))))) {                                            // status is logo and we found no logo
+            // reduce brightness and increase contrast
             contrast = ReduceBrightness(frameCurrent, &contrastReduced);
             if (contrast > BRIGHTNESS_VALID) {  // we got a new contrast, redo logo detection
                 area.rPixel[0] = 0;
@@ -851,7 +858,8 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 if ((area.status == LOGO_INVISIBLE) && (contrast < 25)) {  // if we have a very low contrast this could not be a new logo
                     return LOGO_NOCHANGE;
                 }
-                if ((area.status == LOGO_VISIBLE) && (contrast < 25) && (rPixel < (mPixel * LOGO_IMARK)) && (rPixel > (mPixel * LOGO_IMARK) / 3)){  // if we have a very low contrast and some matches this could be a logo on a very bright area
+                // if we have a very low contrast and some matches this could be a logo on a very bright area
+                if ((area.status == LOGO_VISIBLE) && (contrast < 25) && (rPixel < (mPixel * LOGO_IMARK)) && (rPixel > (mPixel * LOGO_IMARK) / 3)) {
                     return LOGO_NOCHANGE;
                 }
             }
@@ -859,6 +867,9 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 if ((contrast == BRIGHTNESS_SEPARATOR) && (area.status == LOGO_VISIBLE)) { // sepatation image detected
                     area.intensity = 0; // force detection of sepatation image
                 }
+                // we have a close result and can not reduce brightness, do not trust result
+                if ((contrast == BRIGHTNESS_ERROR) && (area.intensity >= AREA_INTENSITY_NO_TRUST) && (area.status == LOGO_VISIBLE) &&
+                    (rPixel < (mPixel * LOGO_IMARK)) && (rPixel > (QUOTE_NO_TRUST * mPixel * LOGO_IMARK))) return LOGO_NOCHANGE;
             }
             // dont belive brightness reduction for NITRO if we got a low contrast, logo too transparent, changed from 217
             if ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK)) && (contrastReduced < 217) && (strcmp(maContext->Info.ChannelName, "NITRO") == 0)) return LOGO_NOCHANGE;
