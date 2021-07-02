@@ -336,7 +336,12 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     }
     if (strcmp(maContext->Info.ChannelName, "SIXX") == 0) {             // SIXX                    16:9  720W  576H:->   98W  54H TOP_RIGHT (new logo)
                                                                         // SIXX                    16:9  720W  576H:->  108W  56H TOP_RIGHT (old logo)
+                                                                        // SIXX                    16:9  720W  576H:->  124W  70H TOP_RIGHT (2013 incomplete)
+                                                                        // SIXX                    16:9  720W  576H:->  134W  70H TOP_RIGHT (2013 complete)
+                                                                        // SIXX                     4:3  720W  576H:->  162W  70H TOP_RIGHT (old logo)
         logo.widthMin  =  98;
+        if ((logoAspectRatio.num == 4) && (logoAspectRatio.den == 3)) logo.widthMax  = 162;
+        else                                                          logo.widthMax  = 134;
         logo.heightMin =  54;
     }
     if (strcmp(maContext->Info.ChannelName, "SUPER_RTL") == 0) {        // SUPER_RTL               16:9  720W  576H:-> 160W  54H TOP_LEFT
@@ -370,14 +375,20 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     }
 
 // 1280x720
+    if (strcmp(maContext->Info.ChannelName, "ARD-alpha_HD") == 0) {     // ARD-alpha_HD            16:9 1280W  720H:->  206W  76H TOP_LEFT
+        logo.heightMax  = 76;
+    }
     if (strcmp(maContext->Info.ChannelName, "arte_HD") == 0) {          // arte_HD                 16:9 1280W  720H:->   88W 134H TOP_LEFT
-        logo.widthMin  = 88;
+        logo.widthMin  =  88;
+    }
+    if (strcmp(maContext->Info.ChannelName, "Das_Erste_HD") == 0) {     // Das_Erste_HD            16:9 1280W  720H:->  146W 114H TOP_RIGHT
+        logo.widthMax  = 146;
     }
     if (strcmp(maContext->Info.ChannelName, "EinsPlus_HD") == 0) {      // EinsPlus_HD             16:9 1280W  720H:->  334W  86H TOP_RIGHT
         logo.widthMax  = 335;
     }
     if (strcmp(maContext->Info.ChannelName, "hr-fernsehen_HD") == 0) {  // hr-fernsehen_HD         16:9 1280W  720H:->  198W  98H TOP_LEFT
-        logo.heightMax  =  98;
+        logo.heightMax =  98;
     }
 
 // 1280x1080
