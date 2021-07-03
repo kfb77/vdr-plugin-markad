@@ -255,8 +255,8 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
 //
 void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond) {
     if (framesPerSecond <= 0) return;
-#define LOGO_INFO_STOP_START_MIN 4480  // min time in ms of a info logo section, bigger values than in InfoLogo becase of seek to iFrame, changed from 5000 to 4480
-#define LOGO_INFO_STOP_START_MAX 17640 // max time in ms of a info logo section, changed from 17000 to 17640
+#define LOGO_INFO_STOP_START_MIN 3720  // min time in ms of a info logo section, bigger values than in InfoLogo becase of seek to iFrame, changed from 5000 to 4480 to 3720
+#define LOGO_INFO_STOP_START_MAX 17680 // max time in ms of a info logo section, changed from 17000 to 17640 to 17680
 #define LOGO_INFO_SHORT_BLACKSCREEN_BEFORE_DIFF_MAX  40  // max time in ms no short blackscreen allowed before stop mark
 #define LOGO_INFO_SHORT_BLACKSCREEN_LENGTH         1080  // length of a short blackscreen
 #define LOGO_INFO_LONG_BLACKSCREEN_BEFORE_DIFF_MAX 1920  // max time in ms no long blackscreen allowed before stop mark
@@ -669,7 +669,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         if (diffStart < 1920) newStartPos = InfoLogo.startFinal;  // do not increase
         if (diffEnd <= 1800) newEndPos = InfoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): final range start (%d) end (%d)", newStartPos, newEndPos);
-#define INFO_LOGO_MIN_LENGTH 3360  // changed from 4000 to 3360
+#define INFO_LOGO_MIN_LENGTH 2880  // changed from 4000 to 3360 to 2880
 #define INFO_LOGO_MAX_LENGTH 14400 // chnaged from 14000 to 14160 to 14400
 #define INFO_LOGO_MIN_QUOTE 70 // changed from 80 to 72 to 70
         int quote = 100 * (InfoLogo.endFinal - InfoLogo.startFinal) / (newEndPos - newStartPos);
