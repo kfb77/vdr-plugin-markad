@@ -843,12 +843,9 @@ int cDetectLogoStopStart::ClosingCredit() {
         int equalCorners = 0;
         int noPixelCount = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
-            if ((*cornerResultIt).rate[corner] >= 220) similarCorners++;
+            if (((*cornerResultIt).rate[corner] >= 220) || ((*cornerResultIt).rate[corner] == -1)) similarCorners++;
             if (((*cornerResultIt).rate[corner] >= 970) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;
-            if ((*cornerResultIt).rate[corner] ==  -1) {
-                similarCorners++;
-                noPixelCount++;
-            }
+            if ( (*cornerResultIt).rate[corner] ==  -1) noPixelCount++;
         }
         if ((similarCorners >= 3) && (noPixelCount < CORNERS)) {  // at least 3 corners has a match, at least one corner has pixel
             if (ClosingCredits.start == 0) ClosingCredits.start = (*cornerResultIt).frameNumber1;
