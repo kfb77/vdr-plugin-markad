@@ -611,6 +611,10 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         int startFinal = 0;
         int endFinal = 0;
     } InfoLogo;
+    struct sDarkScene {
+        int start = -1;
+        int end = -1;
+    } darkScene;
     bool found = false;
     int separatorFrame = -1;
 
@@ -618,10 +622,20 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
 
         int sumPixel = 0;
+        int sumPixelNonLogoCorner = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
             sumPixel += (*cornerResultIt).rate[corner];
+            if (corner != maContext->Video.Logo.corner) sumPixelNonLogoCorner += (*cornerResultIt).rate[corner];
         }
         if (sumPixel == 0) separatorFrame = (*cornerResultIt).frameNumber2;
+        if (sumPixelNonLogoCorner < 0) {
+            if (darkScene.start == -1) darkScene.start = (*cornerResultIt).frameNumber1;
+            darkScene.end   = (*cornerResultIt).frameNumber2;
+        }
+        else {
+            darkScene.start = -1;
+            darkScene.end = -1;
+        }
 
         if ((*cornerResultIt).rate[maContext->Video.Logo.corner] > 210) {  // do not rededuce to prevent false positiv
             if (InfoLogo.start == 0) InfoLogo.start = (*cornerResultIt).frameNumber1;
@@ -670,7 +684,9 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 
     // check if it is a closing credit, we may not delete this because it contains end mark
     if (found) {
-        if (ClosingCredit() >= 0) {
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): dark scene start (%d) end (%d)", darkScene.start, darkScene.end);
+        if (((darkScene.start != compareResult.front().frameNumber1) || (darkScene.end != compareResult.back().frameNumber2)) && //check closing credits not possible on complete dark scene
+            (ClosingCredit() >= 0)) {
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): stop/start part is closing credit, no info logo");
             found = false;
         }
