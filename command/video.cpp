@@ -929,13 +929,16 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         }
     }
     else {  // if we have more planes we can still have a problem with coloured logo on same colored background
-        if ((area.status == LOGO_VISIBLE) && (area.intensity > 142) && (rPixel < (mPixel * LOGO_IMARK))) return LOGO_NOCHANGE; // too bright, logo detection can be wrong, changed from 150 to 142
+        // too bright
+        if ((area.status == LOGO_VISIBLE) && (area.intensity >= 137) && (rPixel < (mPixel * LOGO_IMARK))) return LOGO_NOCHANGE; // too bright, logo detection can be wrong, changed from 150 to 142 to 137
+
+        // maybe coloured logo on same colored background, try without plane 0
         if ((((area.status == LOGO_UNINITIALIZED) && (rPixel < (mPixel * logo_vmark))) ||  // at start make sure we get at least a quick initial logo visible
-            ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK)) && (rPixel > (mPixel * LOGO_IMARK * 0.7)))) &&  // we have a lot of machtes but not enough
-                                                                                                                               // changed from 0.75 to 0.7
+            ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK)) && (rPixel > (mPixel * LOGO_IMARK * 0.5)))) &&  // we have a lot of machtes but not enough
+                                                                                                                               // changed from 0.75 to 0.7 to 0.5
              (area.intensity > 50)) {  // changed from 120 to 50
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cMarkAdLogo::Detect(): result plane 0 %d, plane 1 %d, plane 2 %d", area.rPixel[0], area.rPixel[1], area.rPixel[2]);
+            dsyslog("cMarkAdLogo::Detect(): result plane 0 %d (%d) , plane 1 %d (%d), plane 2 %d (%d)", area.rPixel[0], area.mPixel[0], area.rPixel[1], area.mPixel[1], area.rPixel[2], area.mPixel[2]);
 #endif
             if ((area.rPixel[1] + area.rPixel[2]) > 0) {  // if we have no result in plane 1/2, do not use it
                 rPixel -= area.rPixel[0]; //  try without plane 0
