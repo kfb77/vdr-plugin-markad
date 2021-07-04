@@ -887,10 +887,10 @@ int cDetectLogoStopStart::ClosingCredit() {
 
     dsyslog("cDetectLogoStopStart::ClosingCredit(): still imge:      start (%d) end (%d)", ClosingImage.startFinal, ClosingImage.endFinal);
     if ((startOffset <= 1440) && (length < 19) && // do not reduce offset
-           ((length >= CLOSING_CREDITS_LENGTH_MIN) || (endOffset <= 1920))) { // if we check from info logo:
+           ((length >= CLOSING_CREDITS_LENGTH_MIN) || (endOffset < 480))) { // if we check from info logo:
                                                                               // - we would not have the complete part, so it should go nearly to end
                                                                               // - we also should detect ad in frame
-                                                                              // changed from 1440 to 1920
+                                                                              // changed from <= 1440 to 1920 to < 1200 to 480
         dsyslog("cDetectLogoStopStart::ClosingCredit(): this is a closing credits, pair contains a valid mark");
         closingCreditsFrame = ClosingCredits.end;
     }
