@@ -1393,6 +1393,76 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     LogSeparator(true);
     cMark *mark = NULL;
 
+    // remove invalid marks
+    LogSeparator();
+    dsyslog("cMarkAdStandalone::CheckMarks(): remove invalid marks");
+    DebugMarks();     //  only for debugging
+    mark = marks.GetFirst();
+    while (mark) {
+        // if first mark is a stop mark, remove it
+        if (((mark->type & 0x0F) == MT_STOP) && (mark == marks.GetFirst())){
+            dsyslog("Start with STOP mark, delete first mark");
+            cMark *tmp = mark;
+            mark = mark->Next();
+            marks.Del(tmp);
+            continue;
+        }
+        // start followed by start or stop followed by stop
+        if ((((mark->type & 0x0F) == MT_STOP)  && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_STOP)) || // two stop or start marks, keep most used type, delete other
+            (((mark->type & 0x0F) == MT_START) && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_START))) {
+            if ((mark == marks.GetFirst()) && mark->Next()->position >  (macontext.Video.Info.framesPerSecond * (length + macontext.Config->astopoffs))) {
+                dsyslog("cMarkAdStandalone::CheckMarks(): double start mark as first marks, second start mark near end, this is start mark of the next recording, delete this");
+                marks.Del(mark->Next());
+            }
+            else {
+                int count1 = marks.Count(mark->type);
+                int count2 = marks.Count(mark->Next()->type);
+                dsyslog("cMarkAdStandalone::CheckMarks(): mark (%i) type count %d, followed by same mark (%i) type count %d", mark->position, count1, mark->Next()->position, count2);
+                if (count1 == count2) { // if equal, keep stronger type
+                    if (mark->type > mark->Next()->type) count1++;
+                    else                                 count2++;
+                }
+                if (count1 < count2) {
+                    dsyslog("cMarkAdStandalone::CheckMarks(): delete mark (%d)", mark->position);
+                    cMark *tmp = mark;
+                    mark = mark->Next();
+                    marks.Del(tmp);
+                    continue;
+                }
+                else {
+                    dsyslog("cMarkAdStandalone::CheckMarks(): delete stop mark (%d)", mark->Next()->position);
+                   marks.Del(mark->Next());
+                }
+            }
+        }
+
+        // if stop/start distance is too big, remove pair
+        if (((mark->type & 0x0F) == MT_STOP) && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_START)) {
+            int diff = (mark->Next()->position - mark->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::CheckMarks(): stop (%d) start (%d) length %d", mark->position, mark->Next()->position, diff);
+            if (diff > 3600) {
+                dsyslog("cMarkAdStandalone::CheckMarks(): delete invalid pair");
+                cMark *tmp = mark->Next()->Next();
+                marks.Del(mark->Next());
+                marks.Del(mark);
+                mark = tmp;
+                continue;
+            }
+        }
+
+        // if no stop mark at the end, add one
+        if (!inBroadCast || gotendmark) {  // in this case we will add a stop mark at the end of the recording
+            if (((mark->type & 0x0F) == MT_START) && (!mark->Next())) {      // delete start mark at the end
+                if (marks.GetFirst()->position != mark->position) {        // do not delete start mark
+                    dsyslog("cMarkAdStandalone::CheckMarks(): START mark at the end, deleting %i", mark->position);
+                    marks.Del(mark);
+                    break;
+                }
+            }
+        }
+        mark = mark->Next();
+    }
+
 // delete logo and border marks if we have channel marks
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): delete logo marks if we have channel or border marks");
@@ -1584,9 +1654,12 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     if (mark) {
         cMark *markStop = marks.GetNext(mark->position, MT_STOP, 0x0F);
         if (markStop) {
+            int maxDiff;
+            if (mark->type <= MT_NOBLACKSTART) maxDiff = 96;  // do not trust weak marks
+            else maxDiff = 8;
             int diffStop = (markStop->position - mark->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
             dsyslog("cMarkAdStandalone::CheckMarks(): first broadcast length %ds from (%d) to (%d)", diffStop, mark->position, markStop->position);
-            if (diffStop <= 8) {
+            if (diffStop <= maxDiff) {
                 dsyslog("cMarkAdStandalone::CheckMarks(): short STOP/START/STOP sequence at start, delete first pair");
                 marks.Del(mark->position);
                 marks.Del(markStop->position);
@@ -1683,42 +1756,6 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                 marks.Del(tmp->Next());
                 marks.Del(tmp);
                 continue;
-            }
-        }
-        mark = mark->Next();
-    }
-
-    LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckMarks(): remove invalid marks");
-    DebugMarks();     //  only for debugging
-    mark = marks.GetFirst();
-    while (mark) {
-        if (((mark->type & 0x0F) == MT_STOP) && (mark == marks.GetFirst())){
-            dsyslog("Start with STOP mark, delete first mark");
-            cMark *tmp = mark;
-            mark = mark->Next();
-            marks.Del(tmp);
-            continue;
-        }
-        if (((mark->type & 0x0F)==MT_START) && (mark->Next()) && ((mark->Next()->type & 0x0F)==MT_START)) {  // two start marks, delete second
-            dsyslog("cMarkAdStandalone::CheckMarks(): start mark (%i) followed by start mark (%i) delete second", mark->position, mark->Next()->position);
-            marks.Del(mark->Next());
-            continue;
-        }
-        if (((mark->type & 0x0F)==MT_STOP) && (mark->Next()) && ((mark->Next()->type & 0x0F)==MT_STOP)) {  // two stop marks, delete second
-            dsyslog("cMarkAdStandalone::CheckMarks(): stop mark (%i) followed by stop mark (%i) delete first", mark->position, mark->Next()->position);
-            cMark *tmp=mark;
-            mark = mark->Next();
-            marks.Del(tmp);
-            continue;
-        }
-        if (!inBroadCast || gotendmark) {  // in this case we will add a stop mark at the end of the recording
-            if (((mark->type & 0x0F) == MT_START) && (!mark->Next())) {      // delete start mark at the end
-                if (marks.GetFirst()->position != mark->position) {        // do not delete start mark
-                    dsyslog("cMarkAdStandalone::CheckMarks(): START mark at the end, deleting %i", mark->position);
-                    marks.Del(mark);
-                    break;
-                }
             }
         }
         mark = mark->Next();
