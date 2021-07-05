@@ -1051,11 +1051,9 @@ void cMarkAdStandalone::CheckStart() {
             dsyslog("cMarkAdStandalone::CheckStart(): horizontal border start found at (%i)", hStart->position);
             cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);  // if there is a MT_HBORDERSTOP short after the MT_HBORDERSTART, MT_HBORDERSTART is not valid
             if ( hStop && ((hStop->position - hStart->position) < (2 * delta))) {
-                dsyslog("cMarkAdStandalone::CheckStart(): horizontal border STOP (%i) short after horizontal border START (%i) found, this is not valid, delete marks", hStop->position, hStart->position);
+                dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop (%i) short after horizontal border start (%i) found, this is end of broadcast before, delete all marks before", hStop->position, hStart->position);
                 hBorderStopPosition = hStop->position;  // maybe we can use it as start mark if we found nothing else
-                marks.Del(hStart);
-                marks.Del(hStop);
-
+                marks.DelTill(hStop->position, true);
             }
             else {
                 if (hStart->position >= IGNORE_AT_START) {  // position < 5 is a hborder start from previous recording
