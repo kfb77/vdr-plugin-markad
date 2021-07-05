@@ -337,7 +337,7 @@ void cMarkAdStandalone::CheckStop() {
 
 // try MT_CHANNELSTOP
     int delta = macontext.Video.Info.framesPerSecond * MAXRANGE;
-    cMark *end = marks.GetAround(3 * delta, iStopA, MT_CHANNELSTOP);      // try if we can get a good stop mark, start with MT_ASPECTSTOP
+    cMark *end = marks.GetAround(3 * delta, iStopA, MT_CHANNELSTOP);   // do not increase, we will get mark from last ad stop
     if (end) {
         dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTOP found at frame %i", end->position);
         cMark *cStart = marks.GetPrev(end->position, MT_CHANNELSTART);      // if there is short befor a channel start, this stop mark belongs to next recording
@@ -360,11 +360,15 @@ void cMarkAdStandalone::CheckStop() {
         }
     }
     else dsyslog("cMarkAdStandalone::CheckStop(): no MT_CHANNELSTOP mark found");
+    if (end) marks.DelWeakFromTo(marks.GetFirst()->position + 1, end->position, MT_CHANNELCHANGE); // delete all weak marks, except start mark
 
 // try MT_ASPECTSTOP
     if (!end) {
-        end = marks.GetAround(3*delta, iStopA, MT_ASPECTSTOP);      // try MT_ASPECTSTOP
-        if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_ASPECTSTOP found at frame %i", end->position);
+        end = marks.GetAround(3 * delta, iStopA, MT_ASPECTSTOP);      // try MT_ASPECTSTOP
+        if (end && (macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) {
+            dsyslog("cMarkAdStandalone::CheckStop(): MT_ASPECTSTOP found at frame %i, delete all weak marks", end->position);
+            marks.DelWeakFromTo(marks.GetFirst()->position + 1, end->position, MT_ASPECTCHANGE); // delete all weak marks, except start mark
+        }
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_ASPECTSTOP mark found");
     }
 
@@ -404,11 +408,8 @@ void cMarkAdStandalone::CheckStop() {
             dsyslog("cMarkAdStandalone::CheckStop(): MT_VBORDERSTOP found at frame %i", end->position);
             cMark *prevVStart = marks.GetPrev(end->position, MT_VBORDERSTART);
             if (prevVStart) {
-                int deltaV = (end->position - prevVStart->position) / macontext.Video.Info.framesPerSecond;
-                if (deltaV < 240) {  // start/stop is too short, this is the next recording
-                    dsyslog("cMarkAdStandalone::CheckStop(): vertial border start/stop to short %ds, ignoring MT_VBORDERSTOP", deltaV);
-                    end = NULL;
-                }
+                dsyslog("cMarkAdStandalone::CheckStop(): vertial border start and stop found, delete weak marks except start mark");
+                marks.DelWeakFromTo(marks.GetFirst()->position + 1, INT_MAX, MT_VBORDERCHANGE);
             }
         }
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_VBORDERSTOP mark found");
@@ -1672,23 +1673,41 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     DebugMarks();     //  only for debugging
     mark = marks.GetLast();
     if (mark && ((mark->type & 0xF0) < MT_CHANNELCHANGE)) {  // trust only channel marks and better
+        int maxBeforeAssumed;           // max 5 min before assumed stop
+        switch(mark->type) {
+            case MT_ASSUMEDSTOP:
+                maxBeforeAssumed = 389; // try hard to get a better end mark
+                break;
+            case MT_NOBLACKSTOP:
+                maxBeforeAssumed = 389; // try a litte more to get end mark
+                break;
+            case MT_LOGOSTOP:
+                maxBeforeAssumed = 306;
+                break;
+            default:
+                maxBeforeAssumed = 300;                               // max 5 min before assumed stop
+                break;
+        }
+
         cMark *markPrev = marks.GetPrev(mark->position);
         if (markPrev) {
             int diffStart = (mark->position - markPrev->position) / macontext.Video.Info.framesPerSecond; // length of the last broadcast part, do not check it only depends on after timer
             dsyslog("cMarkAdStandalone::CheckMarks(): last broadcast length %ds from (%d) to (%d)", diffStart, markPrev->position, mark->position);
-            if (diffStart > 17) {  // if last broadcast is short, this could be not detected info logos short before end (SAT.1)
+            if (diffStart >= 15) { // changed from 17 to 15
                 cMark *markStop = marks.GetPrev(markPrev->position);
                 if (markStop) {
                     int diffStop = (markPrev->position - markStop->position) / macontext.Video.Info.framesPerSecond; // distance of the logo stop/start pair before last pair
                     dsyslog("cMarkAdStandalone::CheckMarks(): last advertising length %ds from (%d) to (%d)", diffStop, markStop->position, markPrev->position);
-                    if ((((diffStop < 11) || (diffStop) > 12)) && (diffStop > 0) && (diffStop <= 163)) {  // ad from 11s to 12s can be undetected info logo at the end (SAT.1 or RTL2)
-                        int iStopA = marks.GetFirst()->position + macontext.Video.Info.framesPerSecond * (length + macontext.Config->astopoffs);  // we have to recalculate iStopA
-                        int diffAssumed = (iStopA - markStop->position) / macontext.Video.Info.framesPerSecond; // distance from assumed stop
-                        dsyslog("cMarkAdStandalone::CheckMarks(): last stop mark (%d) %ds before assumed stop (%d)", markStop->position, diffAssumed, iStopA);
-                        if (diffAssumed < 300) { // changed from 389 to 300
-                            dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark before as end mark, assume too big recording length");
-                            marks.Del(mark->position);
-                            marks.Del(markPrev->position);
+                    if ((diffStop > 2) && (diffStop <= 163)) { // changed from 0 to 2 to avoid move to logo detection failure
+                        if ((mark->type != MT_LOGOSTOP) || (diffStop < 11) || (diffStop > 12)) { // ad from 11s to 12s can be undetected info logo at the end (SAT.1 or RTL2)
+                            int iStopA = marks.GetFirst()->position + macontext.Video.Info.framesPerSecond * (length + macontext.Config->astopoffs);  // we have to recalculate iStopA
+                            int diffAssumed = (iStopA - markStop->position) / macontext.Video.Info.framesPerSecond; // distance from assumed stop
+                            dsyslog("cMarkAdStandalone::CheckMarks(): last stop mark (%d) %ds before assumed stop (%d)", markStop->position, diffAssumed, iStopA);
+                            if (diffAssumed <= maxBeforeAssumed) {
+                                dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark before as end mark, assume too big recording length");
+                                marks.Del(mark->position);
+                                marks.Del(markPrev->position);
+                            }
                         }
                     }
                 }
