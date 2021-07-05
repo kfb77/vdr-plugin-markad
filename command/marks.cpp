@@ -89,6 +89,19 @@ void cMarks::Del(const int position) {
 }
 
 
+void cMarks::DelType(const int type, const int mask) {
+    cMark *mark = first;
+    while (mark) {
+        if ((mark->type & mask) == type) {
+            cMark *tmpMark = mark->Next();
+            Del(mark);
+            mark = tmpMark;
+        }
+        else mark = mark->Next();
+    }
+}
+
+
 void cMarks::DelWeakFromTo(const int from, const int to, const short int type) {
     cMark *mark = first;
     while (mark) {

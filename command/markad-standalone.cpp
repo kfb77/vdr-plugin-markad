@@ -887,6 +887,7 @@ void cMarkAdStandalone::CheckStart() {
             }
         }
     }
+    if (begin) marks.DelWeakFromTo(0, INT_MAX, MT_CHANNELCHANGE); // delete all weak marks
 
 // try to find a aspect ratio mark
     if (!begin) {
@@ -896,7 +897,7 @@ void cMarkAdStandalone::CheckStart() {
             macontext.Info.AspectRatio.den = macontext.Video.Info.AspectRatio.den;
         }
         // check marks and correct if necessary
-        cMark *aStart = marks.GetAround(chkSTART, chkSTART + 1, MT_ASPECTSTART);   // check if we have ascpect ratio START/STOP in start part
+        cMark *aStart = marks.GetAround(chkSTART, chkSTART + IGNORE_AT_START, MT_ASPECTSTART);   // check if we have ascpect ratio START/STOP in start part
         cMark *aStopAfter = NULL;
         cMark *aStopBefore = NULL;
         if (aStart) {
@@ -991,19 +992,19 @@ void cMarkAdStandalone::CheckStart() {
                         macontext.Video.Options.ignoreHborder = true;
                         macontext.Video.Options.ignoreVborder = true;
                    }
-                   else { // if there is a MT_ASPECTSTOP, delete all marks after this position
+                   else {
                        cMark *aStopNext = marks.GetNext(begin->position, MT_ASPECTSTOP);
-                       if (aStopNext) {
-                           dsyslog("cMarkAdStandalone::CheckStart(): found MT_ASPECTSTOP (%i), delete all weaker marks after", aStopNext->position);
-                           marks.DelWeakFromTo(aStopNext->position, INT_MAX, aStopNext->type);
-                       }
+                       if (aStopNext) dsyslog("cMarkAdStandalone::CheckStart(): found MT_ASPECTSTOP (%i)", aStopNext->position);
                        else {
                            dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTART is not valid (%i), ignoring", begin->position);
                            marks.Del(begin->position);  // delete invalid start mark to prevent to be selected again later
                            begin = NULL;
                        }
+                       if (begin && (begin->position <= IGNORE_AT_START)) {
+                           dsyslog("cMarkAdStandalone::CheckStart(): only got start aspect ratio, ignoring");
+                           begin = NULL;
+                       }
                    }
-
                 }
                 else dsyslog("cMarkAdStandalone::CheckStart(): no MT_ASPECTSTART found");   // previous is 4:3 too, search another start mark
             }
@@ -1018,7 +1019,7 @@ void cMarkAdStandalone::CheckStart() {
                     }
                     else {
                         begin3 = marks.GetAround(delta * 4, begin->position, MT_LOGOSTART);  // do not use this mark if there is a later logo start mark
-                        if (begin3 && (begin3->position >  begin->position)) {
+                        if (begin3 && (begin3->position > begin->position)) {
                             dsyslog("cMarkAdStandalone::CheckStart(): found later MT_LOGOSTART, do not use MT_ASPECTSTART");
                             begin = NULL;
                         }
@@ -1027,6 +1028,7 @@ void cMarkAdStandalone::CheckStart() {
             }
         }
         macontext.Info.checkedAspectRatio = true;
+        if (begin && (macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) marks.DelWeakFromTo(0, INT_MAX, MT_ASPECTCHANGE); // delete all weak marks
     }
 
 // try to find a horizontal border mark
@@ -1052,9 +1054,8 @@ void cMarkAdStandalone::CheckStart() {
             dsyslog("cMarkAdStandalone::CheckStart(): horizontal border start found at (%i)", hStart->position);
             cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);  // if there is a MT_HBORDERSTOP short after the MT_HBORDERSTART, MT_HBORDERSTART is not valid
             if ( hStop && ((hStop->position - hStart->position) < (2 * delta))) {
-                dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop (%i) short after horizontal border start (%i) found, this is end of broadcast before, delete all marks before", hStop->position, hStart->position);
+                dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop (%i) short after horizontal border start (%i) found, this is end of broadcast before or a preview", hStop->position, hStart->position); // do not delete weak marks here because it can only be from preview
                 hBorderStopPosition = hStop->position;  // maybe we can use it as start mark if we found nothing else
-                marks.DelTill(hStop->position, true);
             }
             else {
                 if (hStart->position >= IGNORE_AT_START) {  // position < 5 is a hborder start from previous recording
@@ -1067,6 +1068,10 @@ void cMarkAdStandalone::CheckStart() {
                 else {
                     dsyslog("cMarkAdStandalone::CheckStart(): delete too early horizontal border mark (%d)", hStart->position);
                     marks.Del(hStart->position);
+                    if (marks.Count(MT_HBORDERCHANGE, 0xF0) == 0) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): horizontal border since start, logo marks can not be valid");
+                        marks.DelType(MT_LOGOCHANGE, 0xF0);
+                    }
                 }
             }
         }
