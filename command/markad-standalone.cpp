@@ -1574,11 +1574,11 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                                                                                              mark->position, stopMark->position, lengthPreview, lengthAdBefore, lengthAdAfter);
                     if ((lengthAdBefore >= 1360) || (lengthAdAfter > 3200)) {  // check if we have ad before or after preview. if not it is a logo detection failure
                                                                                // changed from 1400 to 1360
-                        if ((lengthAdBefore >= 1000) && (lengthAdBefore <= 585000) && (lengthAdAfter >= 1200)) { // if advertising before is long this is the really the next start mark
+                        if ((lengthAdBefore >= 1000) && (lengthAdBefore <= 585000) && (lengthAdAfter >= 840)) { // if advertising before is long this is the really the next start mark
                                                                                                                  // previews can be at start of advertising (e.g. DMAX)
                                                                                                                  // before max changed from 500000 to 560000 to 585000
                                                                                                                  // before min changed from 7000 to 5000 to 1000
-                                                                                                                 // after min changed from 2020 to 1520 to 1200
+                                                                                                                 // after min changed from 2020 to 1520 to 1200 to 840
                             if (lengthPreview <= 111) {  // changed from 110 to 111
                                 isyslog("found preview between logo mark (%d) and logo mark (%d) in advertisement, deleting marks", mark->position, stopMark->position);
                                 cMark *tmp = startAfter;
