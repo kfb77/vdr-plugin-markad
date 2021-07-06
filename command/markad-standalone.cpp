@@ -1226,9 +1226,17 @@ void cMarkAdStandalone::CheckStart() {
         begin = marks.GetAround(iStartA + 3 * delta, iStartA, MT_START, 0x0F);  // increased from 2 to 3
         if (begin) {
             dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) type 0x%X after search for any type", begin->position, begin->type);
-            if ((begin->type == MT_NOBLACKSTART) && (begin->position > (iStartA + 2 * delta))) {
-                dsyslog("cMarkAdStandalone::CheckStart(): found only very late black screen start mark (%i), ignoring", begin->position);
-                begin = NULL;
+            if (begin->type == MT_NOBLACKSTART) {
+                int diff = 0;
+                cMark *blackStop = marks.GetPrev(begin->position, MT_NOBLACKSTOP);
+                if (blackStop) {
+                    diff = 1000 * (begin->position - blackStop->position) / macontext.Video.Info.framesPerSecond; // trust long blackscreen
+                    dsyslog("cMarkAdStandalone::CheckStart(): found found blackscreen from (%d) to (%d), length %dms", blackStop->position, begin->position, diff);
+                }
+                if ((diff < 800) && (begin->position > (iStartA + 2 * delta))) {
+                    dsyslog("cMarkAdStandalone::CheckStart(): found only very late and short black screen start mark (%i), ignoring", begin->position);
+                    begin = NULL;
+                }
             }
             else {
                 if ((begin->inBroadCast) || macontext.Video.Options.ignoreLogoDetection){  // test on inBroadCast because we have to take care of black screen marks in an ad
