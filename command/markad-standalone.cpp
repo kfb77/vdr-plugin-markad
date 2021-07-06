@@ -1227,12 +1227,7 @@ void cMarkAdStandalone::CheckStart() {
         if (begin) {
             dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) type 0x%X after search for any type", begin->position, begin->type);
             if ((begin->type == MT_NOBLACKSTART) && (begin->position > (iStartA + 2 * delta))) {
-                char *indexToHMSF = marks.IndexToHMSF(begin->position, &macontext);
-                if (indexToHMSF) {
-                    dsyslog("cMarkAdStandalone::CheckStart(): found only very late black screen start mark (%i), ignoring", begin->position);
-                    FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-                    free(indexToHMSF);
-                }
+                dsyslog("cMarkAdStandalone::CheckStart(): found only very late black screen start mark (%i), ignoring", begin->position);
                 begin = NULL;
             }
             else {
