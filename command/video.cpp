@@ -1226,7 +1226,7 @@ void cMarkAdBlackBordersHoriz::Clear() {
 
 
 int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
-#define CHECKHEIGHT 16  // changed from 20 to 16
+#define CHECKHEIGHT 8  // changed from 20 to 16 to 8
 #define BRIGHTNESS_H_SURE  22  // changed from 20 to 22
 #define BRIGHTNESS_H_MAYBE 39  // some channel have logo in border, so we will get a higher value, changed from 27 to 38 to 39
 #define VOFFSET 5
