@@ -365,9 +365,23 @@ void cMarkAdStandalone::CheckStop() {
 // try MT_ASPECTSTOP
     if (!end) {
         end = marks.GetAround(3 * delta, iStopA, MT_ASPECTSTOP);      // try MT_ASPECTSTOP
-        if (end && (macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) {
-            dsyslog("cMarkAdStandalone::CheckStop(): MT_ASPECTSTOP found at frame %i, delete all weak marks", end->position);
-            marks.DelWeakFromTo(marks.GetFirst()->position + 1, end->position, MT_ASPECTCHANGE); // delete all weak marks, except start mark
+        if (end) {
+            dsyslog("cMarkAdStandalone::CheckStop(): MT_ASPECTSTOP found at frame (%d)", end->position);
+            if ((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) {
+                dsyslog("cMarkAdStandalone::CheckStop(): delete all weak marks");
+                marks.DelWeakFromTo(marks.GetFirst()->position + 1, end->position, MT_ASPECTCHANGE); // delete all weak marks, except start mark
+            }
+            else { // 16:9 broadcast with 4:3 broadcast after, maybe ad between and we have a better logo stop mark
+                cMark *logoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
+                if (logoStop) {
+                    int diff = (end->position - logoStop->position) /  macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::CheckStop(): found logo stop (%d) %ds before aspect ratio end mark (%d)", logoStop->position, diff, end->position);
+                    if (diff <= 100) {
+                        dsyslog("cMarkAdStandalone::CheckStop(): advertising before, use logo stop mark");
+                        end = logoStop;
+                    }
+                }
+            }
         }
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_ASPECTSTOP mark found");
     }
