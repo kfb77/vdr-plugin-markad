@@ -1228,6 +1228,11 @@ void cMarkAdStandalone::CheckStart() {
             }
             else dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) too early, ignoring", lStart->position);
         }
+        if (begin) {
+            dsyslog("cMarkAdStandalone::CheckStart(): disable border detection");  // avoid false detection of border
+            macontext.Video.Options.ignoreHborder = true;
+            macontext.Video.Options.ignoreVborder = true;
+        }
     }
 
     if (begin && (begin->type != MT_RECORDINGSTART) && (begin->position <= IGNORE_AT_START)) {  // first frames are from previous recording
