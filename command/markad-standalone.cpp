@@ -2058,6 +2058,10 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     }
 
     cMark *prev = marks.GetLast();
+    while (prev) { // we do not want blackscreen marks
+        if ((prev->type & 0xF0) == MT_BLACKCHANGE) prev = prev->Prev();
+        else break;
+    }
     if (prev) {
         if (((prev->type & 0x0F) == (mark->type & 0x0F)) && ((prev->type & 0xF0) != (mark->type & 0xF0))) { // do not delete same mark type
             int markDiff;
