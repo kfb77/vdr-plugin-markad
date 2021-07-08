@@ -200,10 +200,29 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
 #define LOGO_CHANGE_STOP_START_MAX 21000  // max time in ms of a logo change section
     // check min length of stop/start logo pair
     int deltaStopStart = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition ) / framesPerSecond;
-    dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ????? stop (%d) start (%d) pair: min length %dms (expect >=%dms <=%dms)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, deltaStopStart, LOGO_CHANGE_STOP_START_MIN, LOGO_CHANGE_STOP_START_MAX);
-    if (deltaStopStart < LOGO_CHANGE_STOP_START_MIN) {
-        dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ----- stop (%d) start (%d) pair: delta too small %dms (expect >=%dms)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, deltaStopStart, LOGO_CHANGE_STOP_START_MIN);
-        // maybe we have a wrong start/stop pait inbetween, try next start mark
+    dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ????? stop (%d) start (%d) pair: length %dms (expect >=%dms <=%dms)",
+                                          logoStopStartPair->stopPosition, logoStopStartPair->startPosition, deltaStopStart, LOGO_CHANGE_STOP_START_MIN, LOGO_CHANGE_STOP_START_MAX);
+
+    // calculate next stop distance after stop/start pair
+    int delta_Stop_AfterPair = 0;
+    cMark *markStop_AfterPair = marks->GetNext(logoStopStartPair->stopPosition, MT_LOGOSTOP);
+    if (markStop_AfterPair) {  // we have a next logo stop
+        delta_Stop_AfterPair = (markStop_AfterPair->position - logoStopStartPair->startPosition) / framesPerSecond;
+    }
+    else {  // this is the last logo stop we have
+        if (iStart > 0) { // we were called by CheckStart, the next stop is not yet detected
+            int diff = (chkSTART - logoStopStartPair->stopPosition) / framesPerSecond; // difference to current processed frame
+            if (diff > LOGO_CHANGE_IS_BROADCAST_MIN) delta_Stop_AfterPair = diff;     // still no stop mark but we are in broadcast
+            else delta_Stop_AfterPair = LOGO_CHANGE_NEXT_STOP_MIN; // we can not ignore early stop start pairs because they can be logo changed short after start
+        }
+    }
+    dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ????? stop (%d) start (%d) pair: next stop delta %ds (expect >=%ds)",
+                                                                   logoStopStartPair->stopPosition, logoStopStartPair->startPosition, delta_Stop_AfterPair, LOGO_CHANGE_NEXT_STOP_MIN);
+
+    // maybe we have a wrong start/stop pair between
+    if ((deltaStopStart < LOGO_CHANGE_STOP_START_MIN) || ((delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair < LOGO_CHANGE_NEXT_STOP_MIN))) {
+        // try next start mark
+        dsyslog("cEvaluateLogoStopStartPair::IsLogoChange(): short pair or very near next start mark, try to merge with next pair");
         cMark *markNextStart = marks->GetNext(logoStopStartPair->startPosition, MT_LOGOSTART);
         if (markNextStart) {
             int deltaStopStartNew = 1000 * (markNextStart->position - logoStopStartPair->stopPosition ) / framesPerSecond;
@@ -211,7 +230,18 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
                 dsyslog("cEvaluateLogoStopStartPair::IsLogoChange(): next start mark (%d) too far away",  markNextStart->position);
             }
             else {
-                dsyslog("cEvaluateLogoStopStartPair::IsLogoChange(): replace start mark with next start mark (%d) new delta is now %dms",  markNextStart->position, deltaStopStartNew);
+                markStop_AfterPair = marks->GetNext(markNextStart->position, MT_LOGOSTOP);
+                if (markStop_AfterPair) {  // we have a next logo stop
+                    delta_Stop_AfterPair = (markStop_AfterPair->position - logoStopStartPair->startPosition) / framesPerSecond;
+                }
+                else {  // this is the last logo stop we have
+                    if (iStart > 0) { // we were called by CheckStart, the next stop is not yet detected
+                        int diff = (chkSTART - logoStopStartPair->stopPosition) / framesPerSecond; // difference to current processed frame
+                        if (diff > LOGO_CHANGE_IS_BROADCAST_MIN) delta_Stop_AfterPair = diff;     // still no stop mark but we are in broadcast
+                        else delta_Stop_AfterPair = LOGO_CHANGE_NEXT_STOP_MIN; // we can not ignore early stop start pairs because they can be logo changed short after start
+                    }
+                }
+                dsyslog("cEvaluateLogoStopStartPair::IsLogoChange(): replace start mark with next start mark (%d) new delta %dms, new distance %ds",  markNextStart->position, deltaStopStartNew, delta_Stop_AfterPair);
                 logoStopStartPair->startPosition = markNextStart->position;
                 deltaStopStart = deltaStopStartNew;
             }
@@ -230,18 +260,6 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
     }
 
     // check next stop distance after stop/start pair
-    int delta_Stop_AfterPair = 0;
-    cMark *markStop_AfterPair = marks->GetNext(logoStopStartPair->stopPosition, MT_LOGOSTOP);
-    if (markStop_AfterPair) {  // we have a next logo stop
-        delta_Stop_AfterPair = (markStop_AfterPair->position - logoStopStartPair->startPosition) / framesPerSecond;
-    }
-    else {  // this is the last logo stop we have
-        if (iStart > 0) { // we were called by CheckStart, the next stop is not yet detected
-            int diff = (chkSTART - logoStopStartPair->stopPosition) / framesPerSecond; // difference to current processed frame
-            if (diff > LOGO_CHANGE_IS_BROADCAST_MIN) delta_Stop_AfterPair = diff;     // still no stop mark but we are in broadcast
-            else delta_Stop_AfterPair = LOGO_CHANGE_NEXT_STOP_MIN; // we can not ignore early stop start pairs because they can be logo changed short after start
-        }
-    }
     if ((delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair < LOGO_CHANGE_NEXT_STOP_MIN)) {
         dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ----- stop (%d) start (%d) pair: stop mark after stop/start pair too fast %ds (expect >=%ds)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, delta_Stop_AfterPair, LOGO_CHANGE_NEXT_STOP_MIN);
         logoStopStartPair->isLogoChange = STATUS_NO;
