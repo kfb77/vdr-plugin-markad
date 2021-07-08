@@ -505,7 +505,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast  80, brightness 169
 //
 // no logo in bright area, take it as valid
-// contrast 122, brightness 163
+// contrast 122, brightness 163 TODO
 // contrast 116, brightness  93
 // contrast  90, brightness 183
 // contrast  13, brightness 128
@@ -518,6 +518,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast 131, brightness 151
 // contrast 128, brightness 159
 // contrast 126, brightness 160
+// contrast 115, brightness 142 NEW
 //
 // contrast 112, brightness 168
 // contrast 109, brightness 185
@@ -606,7 +607,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
     }
 
     // build the curve
-    if (((contrastLogo >= 126) && (brightnessLogo >= 151)) ||
+    if (((contrastLogo >= 115) && (brightnessLogo >= 142)) ||  // changed from 126 to 115, changed from 151 to 142
         ((contrastLogo >=  86) && (brightnessLogo >= 164)) ||  // changed from 106 to 95 to 86, changed from 145 to 164
         ((contrastLogo >=  64) && (brightnessLogo >= 174)) ||  // changed from 175 to 174
         ((contrastLogo >=  61) && (brightnessLogo >= 177)) ||  // 177 do not reduce, changed from 79 to 72 to 67 to 64 to 62 to 61
