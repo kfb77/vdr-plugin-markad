@@ -1332,7 +1332,7 @@ int cMarkAdBlackBordersVert::GetFirstBorderFrame() {
 
 int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
 #define CHECKWIDTH 32
-#define BRIGHTNESS_V_SURE  21  // changed from 20 to 21
+#define BRIGHTNESS_V_SURE  22  // changed from 20 to 21 to 22
 #define BRIGHTNESS_V_MAYBE 26  // some channel have logo in border, so we will get a higher value
 #define HOFFSET 50
 #define VOFFSET_ 120
