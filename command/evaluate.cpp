@@ -634,7 +634,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         int start = -1;
         int end = -1;
     } darkScene;
-    bool found = false;
+    bool found = true;
     int separatorFrame = -1;
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
@@ -673,12 +673,19 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         InfoLogo.startFinal = InfoLogo.start;
         InfoLogo.endFinal = InfoLogo.end;
     }
+
     // check separator image
-    if (separatorFrame == endPos) {
-        dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator image at end frame found, this is a valid start mark");
-        found = false;
+    if (separatorFrame >= 0) {
+        int diffSeparator = 1000 * (endPos - separatorFrame) / maContext->Video.Info.framesPerSecond;
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator image found (%d), %dms before end", separatorFrame, diffSeparator);
+        if (diffSeparator <= 480) {
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator image found, this is a valid start mark");
+            found = false;
+        }
     }
-    else {
+
+    // check info logo
+    if (found) {
         // ignore short parts at start and end, this is fade in and fade out
         int diffStart = 1000 * (InfoLogo.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
         int diffEnd = 1000 * (endPos - InfoLogo.endFinal) / maContext->Video.Info.framesPerSecond;
@@ -696,9 +703,11 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo: start (%d), end (%d), length %dms (expect >=%dms and <=%dms), quote %d%% (expect >= %d%%)", InfoLogo.startFinal, InfoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
         if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE)) {
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): found info logo");
-            found = true;
         }
-        else dsyslog("cDetectLogoStopStart::IsInfoLogo(): no info logo found");
+        else {
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): no info logo found");
+            found = false;
+        }
     }
 
     // check if it is a closing credit, we may not delete this because it contains end mark
