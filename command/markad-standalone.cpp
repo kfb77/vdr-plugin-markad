@@ -1667,21 +1667,6 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         mark = mark->Next();
     }
 
-// check blackscreen and assumed end mark if we have a double end mark
-    LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckMarks(): check blackscreen and assumed end mark if we have a double end mark");
-    DebugMarks();     //  only for debugging
-    mark = marks.GetLast();
-    if (mark && ((mark->type == MT_NOBLACKSTOP) || (mark->type == MT_ASSUMEDSTOP))) {  // last mark is a assumed stop mark
-        cMark *markPrev = marks.GetPrev(mark->position);
-        if (markPrev) {
-            if ((markPrev->type & 0x0F) == MT_STOP) {
-                dsyslog("cMarkAdStandalone::CheckMarks(): found stop mark before end mark, delete (%d)", mark->position);
-                marks.Del(mark->position);
-            }
-        }
-    }
-
 // check start marks
 // check for short start/stop pairs at the start
     LogSeparator();
