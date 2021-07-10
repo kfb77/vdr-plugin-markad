@@ -924,58 +924,69 @@ void cMarkAdStandalone::CheckStart() {
             dsyslog("cMarkAdStandalone::CheckStart(): found very early aspect ratio change at (%i) and (%i)", aStart->position, aStopAfter->position);
             earlyAspectChange = true;
         }
-        bool wrongAspectInfo = false;
-        if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {  // vdr info file tells 16:9 video
-            if (aStart && aStopBefore && (aStopBefore->position > 0)) { // found 16:9 -> 4:3 -> 16:9, this can not be a 16:9 video
-                dsyslog("cMarkAdStandalone::CheckStart(): found aspect ratio change 16:9 to 4:3 at (%d) to 16:9 at (%d), video info is 16:9, this must be wrong", aStopBefore->position, aStart->position);
-                wrongAspectInfo = true;
-            }
-            if (!wrongAspectInfo && (macontext.Video.Info.AspectRatio.num == 4) && (macontext.Video.Info.AspectRatio.den == 3) && inBroadCast) {
-                dsyslog("cMarkAdStandalone::CheckStart(): vdr info tells 16:9 but we are in broadcast and found 4:3, vdr info file must be wrong");
-                wrongAspectInfo = true;
-            }
-            if (aStart && !wrongAspectInfo) {
-                cMark *logoStopBefore = marks.GetPrev(aStart->position, MT_LOGOSTOP);
-                if (logoStopBefore) {
-                    int diff = (aStart->position - logoStopBefore->position) / macontext.Video.Info.framesPerSecond;
-                    if (diff <= 4) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): vdr info tells 16:9 but we found logo stop mark (%d) short before aspect ratio start mark (%d)", logoStopBefore->position, aStart->position);
-                        if (aStopBefore && aStopBefore->position == 0) { // this is 4:3 from previous recording, no valid mark
-                            dsyslog("cMarkAdStandalone::CheckStart(): delete invalid aspect stop mark at (%d)", aStopBefore->position);
-                            marks.Del(aStopBefore->position);
-                        }
-                        wrongAspectInfo = true;
-                    }
-                }
-            }
+
+        // check aspect ratio info from vdr info file
+        cMark *firstStop = marks.GetNext(0, MT_ASPECTSTOP);
+        if (!aStart && firstStop && (firstStop->position > (iStopA * 0.8))) {   // we have no start mark and a stop mark at the end, this is next recording
+            dsyslog("cMarkAdStandalone::CheckStart(): first aspectio ratio stop (%d) near assumed end mark, we are in next broadcast", firstStop->position);
         }
-        // fix wrong aspect ratio from vdr info file
-        if (wrongAspectInfo || ((!earlyAspectChange) && ((macontext.Info.AspectRatio.num != macontext.Video.Info.AspectRatio.num) ||
-                                                         (macontext.Info.AspectRatio.den != macontext.Video.Info.AspectRatio.den)))) {
-            sAspectRatio newMarkAdAspectRatio;
-            newMarkAdAspectRatio.num = 16;
-            newMarkAdAspectRatio.den = 9;
-            if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
-                newMarkAdAspectRatio.num = 4;
-                newMarkAdAspectRatio.den = 3;
-            }
-            isyslog("video aspect description in info (%d:%d) wrong, correct to (%d:%d)", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den, newMarkAdAspectRatio.num, newMarkAdAspectRatio.den);
-            macontext.Info.AspectRatio.num = newMarkAdAspectRatio.num;
-            macontext.Info.AspectRatio.den = newMarkAdAspectRatio.den;
-            // we have to invert MT_ASPECTSTART and MT_ASPECTSTOP and fix position
-            cMark *aMark = marks.GetFirst();
-            while (aMark) {
-                if (aMark->type == MT_ASPECTSTART) {
-                    aMark->type = MT_ASPECTSTOP;
-                    aMark->position = recordingIndexMark->GetIFrameBefore(aMark->position - 1);
+        else { // we have marks to work with
+            bool wrongAspectInfo = false;
+            if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {  // vdr info file tells 16:9 video
+                if (aStart && aStopBefore && (aStopBefore->position > 0)) { // found 16:9 -> 4:3 -> 16:9, this can not be a 16:9 video
+                    dsyslog("cMarkAdStandalone::CheckStart(): found aspect ratio change 16:9 to 4:3 at (%d) to 16:9 at (%d), video info is 16:9, this must be wrong",
+                                                                                                                                             aStopBefore->position, aStart->position);
+                    wrongAspectInfo = true;
                 }
-                else {
-                    if (aMark->type == MT_ASPECTSTOP) {
-                        aMark->type = MT_ASPECTSTART;
-                        aMark->position = recordingIndexMark->GetIFrameAfter(aMark->position + 1);
+                if (!wrongAspectInfo && (macontext.Video.Info.AspectRatio.num == 4) && (macontext.Video.Info.AspectRatio.den == 3) && inBroadCast) {
+                    dsyslog("cMarkAdStandalone::CheckStart(): vdr info tells 16:9 but we are in broadcast and found 4:3, vdr info file must be wrong");
+                    wrongAspectInfo = true;
+                }
+                if (aStart && !wrongAspectInfo) {
+                    cMark *logoStopBefore = marks.GetPrev(aStart->position, MT_LOGOSTOP);
+                    if (logoStopBefore) {
+                        int diff = (aStart->position - logoStopBefore->position) / macontext.Video.Info.framesPerSecond;
+                        if (diff <= 4) {
+                            dsyslog("cMarkAdStandalone::CheckStart(): vdr info tells 16:9 but we found logo stop mark (%d) short before aspect ratio start mark (%d)",
+                                                                                                                                          logoStopBefore->position, aStart->position);
+                            if (aStopBefore && aStopBefore->position == 0) { // this is 4:3 from previous recording, no valid mark
+                                dsyslog("cMarkAdStandalone::CheckStart(): delete invalid aspect stop mark at (%d)", aStopBefore->position);
+                                marks.Del(aStopBefore->position);
+                            }
+                            wrongAspectInfo = true;
+                        }
                     }
                 }
-                aMark = aMark->Next();
+            }
+
+            // fix wrong aspect ratio from vdr info file
+            if (wrongAspectInfo || ((!earlyAspectChange) && ((macontext.Info.AspectRatio.num != macontext.Video.Info.AspectRatio.num) ||
+                                                             (macontext.Info.AspectRatio.den != macontext.Video.Info.AspectRatio.den)))) {
+                sAspectRatio newMarkAdAspectRatio;
+                newMarkAdAspectRatio.num = 16;
+                newMarkAdAspectRatio.den = 9;
+                if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
+                    newMarkAdAspectRatio.num = 4;
+                    newMarkAdAspectRatio.den = 3;
+                }
+                isyslog("video aspect description in info (%d:%d) wrong, correct to (%d:%d)", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den, newMarkAdAspectRatio.num, newMarkAdAspectRatio.den);
+                macontext.Info.AspectRatio.num = newMarkAdAspectRatio.num;
+                macontext.Info.AspectRatio.den = newMarkAdAspectRatio.den;
+                // we have to invert MT_ASPECTSTART and MT_ASPECTSTOP and fix position
+                cMark *aMark = marks.GetFirst();
+                while (aMark) {
+                    if (aMark->type == MT_ASPECTSTART) {
+                        aMark->type = MT_ASPECTSTOP;
+                        aMark->position = recordingIndexMark->GetIFrameBefore(aMark->position - 1);
+                    }
+                    else {
+                        if (aMark->type == MT_ASPECTSTOP) {
+                            aMark->type = MT_ASPECTSTART;
+                            aMark->position = recordingIndexMark->GetIFrameAfter(aMark->position + 1);
+                        }
+                    }
+                    aMark = aMark->Next();
+                }
             }
         }
         if (macontext.Info.vPidType == MARKAD_PIDTYPE_VIDEO_H264) {
