@@ -2210,14 +2210,19 @@ void cMarkAdStandalone::CheckIndexGrowing()
         if (maxframes < (framecnt1 + 200)) {
             if ((difftime(time(NULL), statbuf.st_mtime)) >= WAITTIME) {
                 if (length && startTime) {
-                    if (time(NULL) > (startTime + (time_t) length)) {
-                        // "old" recording
-//                        tsyslog("assuming old recording, now>startTime+length");
+                    time_t endRecording = startTime + (time_t) length;
+                    if (time(NULL) > endRecording) {
+                        // no markad during recording
+//                        dsyslog("cMarkAdStandalone::CheckIndexGrowing(): assuming old recording, now > startTime + length");
                         return;
                     }
                     else {
                         sleepcnt = 0;
-                        if (!iwaittime) esyslog("recording interrupted, waiting for continuation...");
+                        if (!iwaittime) {
+                            dsyslog("cMarkAdStandalone::CheckIndexGrowing(): startTime %s length %d", strtok(ctime(&startTime), "\n"), length);
+                            dsyslog("cMarkAdStandalone::CheckIndexGrowing(): expected end: %s", strtok(ctime(&endRecording), "\n"));
+                            esyslog("recording interrupted, waiting for continuation...");
+                        }
                         iwaittime += WAITTIME;
                     }
                 }
@@ -3727,9 +3732,10 @@ bool cMarkAdStandalone::LoadInfo() {
                     }
                     if (macontext.Info.tStart < 0) {
                         if (length + macontext.Info.tStart > 0) {
-                            isyslog("missed broadcast start by %d:%02d min, length will be corrected", -macontext.Info.tStart / 60, -macontext.Info.tStart % 60);
                             startTime = rStart;
+                            isyslog("missed broadcast start by %d:%02d min, event length %5ds", -macontext.Info.tStart / 60, -macontext.Info.tStart % 60, length);
                             length += macontext.Info.tStart;
+                            isyslog("                                 corrected length %5ds", length);
                         }
                         else {
                             isyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
