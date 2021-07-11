@@ -560,7 +560,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
         ALLOC(strlen(autoLogoOption)+1, "autoLogoOption");
     }
     else {
-        if (setup->autoLogoMenue > 0) {
+        if (setup->autoLogoMenue >= 0) {
             if(! asprintf(&autoLogoOption, " --autologo=%i ", setup->autoLogoMenue)) {
                 esyslog("markad: asprintf ouf of memory");
                 return false;
