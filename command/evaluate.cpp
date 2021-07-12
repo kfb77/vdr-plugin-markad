@@ -872,7 +872,7 @@ int cDetectLogoStopStart::ClosingCredit() {
         int noPixelCount = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
             if (((*cornerResultIt).rate[corner] >= 220) || ((*cornerResultIt).rate[corner] == -1)) similarCorners++;
-            if (((*cornerResultIt).rate[corner] >= 899) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;  // changed from 970 to 899
+            if (((*cornerResultIt).rate[corner] >= 807) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;  // changed from 970 to 899 to 807
             if ( (*cornerResultIt).rate[corner] ==  -1) noPixelCount++;
         }
         if ((similarCorners >= 3) && (noPixelCount < CORNERS)) {  // at least 3 corners has a match, at least one corner has pixel
