@@ -885,7 +885,7 @@ void cMarkAdStandalone::CheckStart() {
         cMark *chStart = marks.GetNext(0, MT_CHANNELSTART);
         cMark *chStop = marks.GetPrev(INT_MAX, MT_CHANNELSTOP);
         if (chStart && chStop && (chStart->position > chStop->position)) {
-            dsyslog("cMarkAdStandalone::CheckStart(): channel start after channel stop found, delete all weak marks inbetween");
+            dsyslog("cMarkAdStandalone::CheckStart(): channel start after channel stop found, delete all weak marks between");
             marks.DelWeakFromTo(chStop->position, chStart->position, MT_CHANNELCHANGE);
         }
     }
@@ -901,7 +901,22 @@ void cMarkAdStandalone::CheckStart() {
             }
         }
     }
-    if (begin) marks.DelWeakFromTo(0, INT_MAX, MT_CHANNELCHANGE); // delete all weak marks
+    if (begin) marks.DelWeakFromTo(0, INT_MAX, MT_CHANNELCHANGE); // we have a channel start mark, delete all weak marks
+    else {                                                        // no channel start mark found, cleanup invalid channel stop marks
+        cMark *cStart = marks.GetNext(0, MT_CHANNELSTART);
+        cMark *cStop  = marks.GetNext(0, MT_CHANNELSTOP);
+        if (!cStart && cStop) {  // channel stop mark and no channel start mark
+            int pos = cStop->position;
+            char *comment = NULL;
+            dsyslog("cMarkAdStandalone::CheckStart(): channel stop without start mark found (%i), assume as start mark of the following recording, delete it", pos);
+            marks.Del(pos);
+            if (asprintf(&comment,"assumed start from channel stop (%d)", pos) == -1) comment = NULL;
+            ALLOC(strlen(comment)+1, "comment");
+            begin=marks.Add(MT_ASSUMEDSTART, pos, comment);
+            FREE(strlen(comment)+1, "comment");
+            free(comment);
+        }
+    }
 
 // try to find a aspect ratio mark
     if (!begin) {
