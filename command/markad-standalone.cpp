@@ -2089,13 +2089,13 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     }
     if (prev) {
         if (((prev->type & 0x0F) == (mark->type & 0x0F)) && ((prev->type & 0xF0) != (mark->type & 0xF0))) { // do not delete same mark type
-            int markDiff;
-            if (iStart != 0) markDiff = static_cast<int> (macontext.Video.Info.framesPerSecond * 2);  // before chkStart: let more marks untouched, we need them for start detection
-            else markDiff = static_cast<int> (macontext.Video.Info.framesPerSecond * 30);
-            int diff = abs(mark->position-prev->position);
+            int markDiff = 30;
+            if (iStart != 0) markDiff = 2;  // before chkStart: let more marks untouched, we need them for start detection
+            if (restartLogoDetectionDone) markDiff = 15; // we are in the end part, keep more marks to detect best end mark
+            int diff = (abs(mark->position - prev->position)) / macontext.Video.Info.framesPerSecond;
             if (diff < markDiff) {
                 if (prev->type > mark->type) {
-                    isyslog("previous mark (%i) type 0x%X stronger than actual mark, deleting (%i) type 0x%X", prev->position, prev->type, mark->position, mark->type);
+                    isyslog("previous mark (%i) type 0x%X stronger than actual mark with distance %ds, deleting (%i) type 0x%X", prev->position, prev->type, diff, mark->position, mark->type);
                     if ((mark->type & 0xF0) == MT_BLACKCHANGE) {
                         blackMarks.Add(mark->type, mark->position, NULL, false); // add mark to blackscreen list
                     }
@@ -2106,7 +2106,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
                     return;
                 }
                 else {
-                    isyslog("actual mark (%i) type 0x%X stronger then previous mark, deleting %i type 0x%X", mark->position, mark->type, prev->position, prev->type);
+                    isyslog("actual mark (%i) type 0x%X stronger then previous mark with distance %ds, deleting %i type 0x%X", mark->position, mark->type, diff, prev->position, prev->type);
                     if ((prev->type & 0xF0) == MT_BLACKCHANGE) {
                         blackMarks.Add(prev->type, prev->position, NULL, false); // add mark to blackscreen list
                     }
@@ -3056,7 +3056,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
         if (ptr_cDecoder->IsVideoPacket()) {
             if (ptr_cDecoder->IsInterlacedVideo() && !macontext.Video.Info.interlaced && (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264) &&
                                                      (ptr_cDecoder->GetVideoFramesPerSecond() == 25) && (ptr_cDecoder->GetVideoRealFrameRate() == 50)) {
-                dsyslog("change internal frame rate to handle H.264 interlaced video");
+                dsyslog("cMarkAdStandalone::ProcessFrame(): change internal frame rate to handle H.264 interlaced video");
                 macontext.Video.Info.framesPerSecond *= 2;
                 macontext.Video.Info.interlaced = true;
                 CalculateCheckPositions(macontext.Info.tStart * macontext.Video.Info.framesPerSecond);
@@ -3071,23 +3071,25 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
             }
 
             if (!macontext.Video.Data.valid) {
-                isyslog("cMarkAdStandalone::ProcessFrame faild to get video data of frame (%d)", ptr_cDecoder->GetFrameNumber());
+                isyslog("failed to get video data of frame (%d)", ptr_cDecoder->GetFrameNumber());
                 return false;
             }
 
-            if ( !restartLogoDetectionDone && (frameCurrent > (iStopA-macontext.Video.Info.framesPerSecond * 2 * MAXRANGE)) &&
-                                     ((macontext.Video.Options.ignoreBlackScreenDetection) || (macontext.Video.Options.ignoreLogoDetection))) {
-                isyslog("restart logo and black screen detection at frame (%d)", ptr_cDecoder->GetFrameNumber());
+            if (!restartLogoDetectionDone && (frameCurrent > (iStopA-macontext.Video.Info.framesPerSecond * 2 * MAXRANGE))) {
+                dsyslog("cMarkAdStandalone::ProcessFrame(): enter end part at frame (%d)", frameCurrent);
                 restartLogoDetectionDone = true;
-                bDecodeVideo = true;
-                macontext.Video.Options.ignoreBlackScreenDetection = false;   // use black sceen setection only to find end mark
-                if (macontext.Video.Options.ignoreLogoDetection == true) {
-                    if (macontext.Video.Info.hasBorder) { // we do not need logos, we have hborder
-                        dsyslog("cMarkAdStandalone::ProcessFrame(): we do not need to look for logos, we have a broadcast with border");
-                    }
-                    else {
-                        macontext.Video.Options.ignoreLogoDetection = false;
-                        if (video) video->Clear(true, inBroadCast);    // reset logo detector status
+                if ((macontext.Video.Options.ignoreBlackScreenDetection) || (macontext.Video.Options.ignoreLogoDetection)) {
+                    isyslog("restart logo and black screen detection at frame (%d)", ptr_cDecoder->GetFrameNumber());
+                    bDecodeVideo = true;
+                    macontext.Video.Options.ignoreBlackScreenDetection = false;   // use black sceen setection only to find end mark
+                    if (macontext.Video.Options.ignoreLogoDetection == true) {
+                        if (macontext.Video.Info.hasBorder) { // we do not need logos, we have hborder
+                            dsyslog("cMarkAdStandalone::ProcessFrame(): we do not need to look for logos, we have a broadcast with border");
+                        }
+                        else {
+                            macontext.Video.Options.ignoreLogoDetection = false;
+                            if (video) video->Clear(true, inBroadCast);    // reset logo detector status
+                        }
                     }
                 }
             }
