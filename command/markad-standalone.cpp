@@ -788,6 +788,15 @@ void cMarkAdStandalone::CheckStart() {
     cMark *begin = marks.GetAround(delta, 1, MT_RECORDINGSTART);  // do we have an incomplete recording ?
     if (begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): found MT_RECORDINGSTART (%i), use this as start mark for the incomplete recording", begin->position);
+        // delete short stop marks without start mark
+        cMark *stopMark = marks.GetNext(0, MT_CHANNELSTOP);
+        if (stopMark) {
+            int diff = stopMark->position / macontext.Video.Info.framesPerSecond;
+            if ((diff < 30) && (marks.Count(MT_CHANNELSTART) == 0)) {
+                dsyslog("cMarkAdStandalone::CheckStart(): delete stop mark (%d) without start mark", stopMark->position);
+                marks.Del(stopMark->position);
+            }
+        }
     }
 
 // try to find a audio channel mark
