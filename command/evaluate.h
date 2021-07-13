@@ -20,6 +20,7 @@ extern "C" {
  * evaluate stop/start pair status
  */
 enum eEvaluateStatus {
+    STATUS_ERROR   = -2,
     STATUS_NO      = -1,
     STATUS_UNKNOWN =  0,
     STATUS_YES     =  1
@@ -49,7 +50,7 @@ class cEvaluateChannel {
  * check if channel could have closing credits without logo
  * @return true if channel could have closing credits without logo, false otherwise
  */
-        bool ClosingCreditChannel(char *channelName);
+        bool ClosingCreditsChannel(char *channelName);
 
 /**
  * check if channel could have advertising in frame with logo
@@ -105,6 +106,13 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
         ~cEvaluateLogoStopStartPair();
 
 /**
+ * check if logo stop/start pair could be closing credits
+ * @param[in]     marks             object with all marks
+ * @param[in,out] logoStopStartPair structure of logo/stop start pair, result is stored here, isClosingCredits is set to -1 if the part is no logo change
+ */
+    void IsClosingCredits(cMarks *marks, sLogoStopStartPair *logoStopStartPair);
+
+/**
  * check if logo stop/start pair could be a logo change
  * @param[in]     marks             object with all marks
  * @param[in,out] logoStopStartPair structure of logo/stop start pair, result is stored here, isLogoChange is set to -1 if the part is no logo change
@@ -153,6 +161,14 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
  * @return true if startPosition found and isClosingCredits is STATUS_YES, false otherwise
  */
         bool GetIsClosingCredits(const int startPosition);
+
+/**
+ * get closing credits status
+ * @param stopPosition  frame number of logo stop mark
+ * @param startPosition frame number of logo start mark
+ * @return value of isClosingCredits
+ */
+        int GetIsClosingCredits(const int stopPosition, const int startPosition);
 
 /** check of there is a info logo part between a logo stop/start pair
  * @param stopPosition  frame number of logo stop mark

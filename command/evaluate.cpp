@@ -34,7 +34,7 @@ bool cEvaluateChannel::IsLogoChangeChannel(char *channelName) {
 }
 
 
-bool cEvaluateChannel::ClosingCreditChannel(char *channelName) {
+bool cEvaluateChannel::ClosingCreditsChannel(char *channelName) {
     // for performance reason only known and tested channels
     if ((strcmp(channelName, "kabel_eins") != 0) &&
         (strcmp(channelName, "SAT_1") != 0) &&
@@ -113,6 +113,11 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(sMarkAdContext *maContext
         if (IsLogoChangeChannel(maContext->Info.ChannelName)) IsLogoChange(marks, &(*logoPairIterator), maContext->Video.Info.framesPerSecond, iStart, chkSTART);
         else logoPairIterator->isLogoChange = STATUS_NO;
 
+        // check for closing credits section
+        if (ClosingCreditsChannel(maContext->Info.ChannelName)) IsClosingCredits(marks, &(*logoPairIterator));
+        else logoPairIterator->isClosingCredits = STATUS_NO;
+
+        // global informations about logo pairs
         // mark after pair
         cMark *markStop_AfterPair = marks->GetNext(logoPairIterator->stopPosition, MT_LOGOSTOP);
         int deltaStopStart = (logoPairIterator->startPosition - logoPairIterator->stopPosition ) / maContext->Video.Info.framesPerSecond;
@@ -190,6 +195,21 @@ cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
     }
 #endif
      logoPairVector.clear();
+}
+
+
+// check if stop/start pair could be closing credits
+//
+void cEvaluateLogoStopStartPair::IsClosingCredits(cMarks *marks, sLogoStopStartPair *logoStopStartPair) {
+    if (!marks) return;
+    if (!logoStopStartPair) return;
+    cMark *bStart = marks->GetPrev(logoStopStartPair->stopPosition, MT_HBORDERCHANGE, 0xF0);
+    if (bStart && (bStart->type == MT_HBORDERSTART)) {
+        dsyslog("cEvaluateLogoStopStartPair::IsClosingCredits():     ----- stop (%d) start (%d) pair: hborder start (%d) before, no closing credits",
+                                                                                                 logoStopStartPair->stopPosition, logoStopStartPair->startPosition, bStart->position);
+
+        logoStopStartPair->isClosingCredits = STATUS_NO;
+    }
 }
 
 
@@ -446,6 +466,19 @@ bool cEvaluateLogoStopStartPair::GetIsClosingCredits(const int startPosition) {
 }
 
 
+int cEvaluateLogoStopStartPair::GetIsClosingCredits(const int stopPosition, const int startPosition) {
+    for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+        if ((stopPosition >= logoPairIterator->stopPosition) && (startPosition <= logoPairIterator->startPosition)) {
+            dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCredits(): isClosingCredits for stop (%d) start (%d) pair: %d", logoPairIterator->stopPosition,
+                                                                                                                  logoPairIterator->startPosition, logoPairIterator->isClosingCredits);
+            return logoPairIterator->isClosingCredits;
+        }
+    }
+    dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCredits(): stop (%d) start (%d) pair not found", stopPosition, startPosition);
+    return STATUS_ERROR;
+}
+
+
 bool cEvaluateLogoStopStartPair::IncludesInfoLogo(const int stopPosition, const int startPosition) {
     for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
         if ((logoPairIterator->stopPosition >= stopPosition) && (logoPairIterator->startPosition <= startPosition)) {
@@ -495,7 +528,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
     int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
 
     // check if we have anything todo with this channel
-    if (!IsInfoLogoChannel(maContext->Info.ChannelName) && !IsLogoChangeChannel(maContext->Info.ChannelName) && !ClosingCreditChannel(maContext->Info.ChannelName)
+    if (!IsInfoLogoChannel(maContext->Info.ChannelName) && !IsLogoChangeChannel(maContext->Info.ChannelName) && !ClosingCreditsChannel(maContext->Info.ChannelName)
                                                         && !AdInFrameWithLogoChannel(maContext->Info.ChannelName) && !IntroductionLogoChannel(maContext->Info.ChannelName)) {
         dsyslog("cDetectLogoStopStart::Detect(): channel not in list for special logo detection");
         return false;
@@ -858,9 +891,13 @@ bool cDetectLogoStopStart::IsLogoChange() {
 int cDetectLogoStopStart::ClosingCredit() {
     if (!maContext) return -1;
 
-    if (!ClosingCreditChannel(maContext->Info.ChannelName)) return -1;
+    if (!ClosingCreditsChannel(maContext->Info.ChannelName)) return -1;
+    if (evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(startPos, endPos) == STATUS_NO) {
+        dsyslog("cDetectLogoStopStart::ClosingCredit(): already known no closing credits from (%d) to (%d)", startPos, endPos);
+        return -1;
+    }
 
-    dsyslog("cDetectLogoStopStart::ClosingCredit(): detect from (%d) to (%d)", startPos,endPos);
+    dsyslog("cDetectLogoStopStart::ClosingCredit(): detect from (%d) to (%d)", startPos, endPos);
 
 #define CLOSING_CREDITS_LENGTH_MIN 9
     int minLength = ((endPos - startPos) / maContext->Video.Info.framesPerSecond) - 2;  // 2s buffer for change from closing credit to logo start
