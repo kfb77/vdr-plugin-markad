@@ -2853,7 +2853,10 @@ void cMarkAdStandalone::Process3ndPass() {
             int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, mark->position, true, true);
             if ((beforeSilence >= 0) && (beforeSilence != mark->position)) {
                 dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo start at frame (%i)", beforeSilence);
-                mark = marks.Move(&macontext, mark, beforeSilence, "silence");
+                // search for blackscreen near silence to optimize mark positon
+                cMark *blackMark = blackMarks.GetAround(1 * macontext.Video.Info.framesPerSecond, beforeSilence, MT_NOBLACKSTART);
+                if (blackMark) mark = marks.Move(&macontext, mark, blackMark->position, "black screen near silence");
+                else mark = marks.Move(&macontext, mark, beforeSilence, "silence");
                 save = true;
                 continue;
             }
@@ -2871,7 +2874,7 @@ void cMarkAdStandalone::Process3ndPass() {
                 break;
             }
             int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, mark->position, true, false);
-            if (beforeSilence >= 0) dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo stop mark (%i) at iFrame (%i)", mark->position, beforeSilence);
+            if (beforeSilence >= 0) dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo stop mark (%i) at frame (%i)", mark->position, beforeSilence);
 
             // search after stop mark
             if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): detect audio silence after logo stop mark at frame (%6i) type 0x%X at %s range %i", mark->position, mark->type, indexToHMSF, silenceRange);
@@ -2892,9 +2895,12 @@ void cMarkAdStandalone::Process3ndPass() {
             }
 
             if ((afterSilence >= 0) && (afterSilence != mark->position)) {
-                if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): detect audio silence for mark at frame (%6i) type 0x%X at %s range %i", mark->position, mark->type, indexToHMSF, silenceRange);
+                if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence for mark at frame (%6i) type 0x%X at %s range %i", mark->position, mark->type, indexToHMSF, silenceRange);
                 dsyslog("cMarkAdStandalone::Process3ndPass(): use audio silence %s logo stop at iFrame (%i)", (before) ? "before" : "after", afterSilence);
-                mark = marks.Move(&macontext, mark, afterSilence, "silence");
+                // search for blackscreen near silence to optimize mark positon
+                cMark *blackMark = blackMarks.GetAround(1 * macontext.Video.Info.framesPerSecond, afterSilence, MT_NOBLACKSTART);
+                if (blackMark) mark = marks.Move(&macontext, mark, blackMark->position - 1, "black screen near silence"); // MT_NOBLACKSTART is first frame after black screen
+                else mark = marks.Move(&macontext, mark, afterSilence, "silence");
                 save = true;
                 continue;
             }
