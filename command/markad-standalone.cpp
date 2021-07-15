@@ -1080,7 +1080,7 @@ void cMarkAdStandalone::CheckStart() {
         if (begin && (macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) marks.DelWeakFromTo(0, INT_MAX, MT_ASPECTCHANGE); // delete all weak marks
     }
 
-// try to find a horizontal border mark
+// try to find a horizontal border mark (MT_HBORDERSTART)
     if (!begin) {
         cMark *hStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTART); // do not find initial vborder start from previous recording
         if (!hStart) {
@@ -1388,6 +1388,19 @@ void cMarkAdStandalone::CheckStart() {
             CalculateCheckPositions(iStart);
         }
     }
+
+    // now we have the final start mark, do fine tuning
+    if (begin && (begin->type == MT_HBORDERSTART)) { // we found a valid hborder start mark, check black screen because of closing credits from broadcast before
+        cMark *blackMark = blackMarks.GetNext(begin->position, MT_NOBLACKSTART);
+        if (blackMark) {
+            int diff =(blackMark->position - begin->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::CheckStart(): black screen (%d) after, distance %ds", blackMark->position, diff);
+            if (diff <= 6) {
+                dsyslog("cMarkAdStandalone::CheckStart(): move horizontal border (%d) to end of black screen (%d)", begin->position, blackMark->position);
+                marks.Move(&macontext, begin, blackMark->position, "black screen");
+            }
+        }
+   }
 
 // count logo STOP/START pairs
     int countStopStart = 0;
