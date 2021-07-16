@@ -81,18 +81,19 @@ const char *cPluginMarkAd::CommandLineHelp(void) {
            "                                 (default: /usr/bin)\n"
            "  -l DIR    --logocachedir=DIR   use DIR as location for markad logos\n"
            "                                 (default: /var/lib/markad)\n"
-           "            --loglevel=<level>   sets loglevel to the specified value\n"
-           "                                 <level> 1=error 2=info 3=debug 4=trace\n"
-           "            --astopoffs=<value>  (default is 100)\n"
-           "                                  assumed stop offset in seconds range from 0 to 240\n"
-           "            --cut                 cut video based on marks and store it in the recording directory)\n"
-           "            --ac3reencode         re-encode AC3 stream to fix low audio level of cutted video on same devices\n"
-           "                                  requires --cut\n"
-           "            --autologo=<option>   0 = disable, only use logos from logo cache directory (default)\n"
-           "                                  1 = enable, find logo from recording and store it in the recording directory\n"
-           "                                      memory usage optimized operation mode, but runs slow\n"
-           "                                  2 = enable, find logo from recording and store it in the recording directory\n"
-           "                                      speed optimized operation mode, but needs a lot of memonry, use it only > 1 GB memory\n";
+           "            --loglevel=<level>   sets log level of started markad process (standalone, not the plugin) to the specified value\n"
+           "                                 <level>: 1=error 2=info 3=debug 4=trace\n"
+           "            --astopoffs=<value>  assumed stop offset (to start + length of broadcast) in seconds, range from 0 to 240\n"
+           "                                 (default is 0)\n"
+           "            --cut                cut video based on marks and store it in the recording directory)\n"
+           "            --ac3reencode        re-encode AC3 stream to fix low audio level of cutted video on same devices\n"
+           "                                 requires --cut\n"
+           "            --autologo=<option>  0 = disable, only use logos from logo cache directory\n"
+           "                                 1 = deprecated, do not use\n"
+           "                                 2 = enable (default)\n"
+           "                                     if there is no suitable logo in the logo cache directroy markad will\n"
+           "                                     try to find the logo from recording and store it in the recording directory\n"
+           "                                     If this option is set you can not configure this feature from the VDR menue\n";
 }
 
 
@@ -192,12 +193,12 @@ bool cPluginMarkAd::Start(void) {
     lastcheck = 0;
     setup.PluginName = Name();
     if (loglevel) {
-        if(! asprintf(&setup.LogLevel, " --loglevel=%i ", loglevel)) esyslog("markad: asprintf ouf of memory");
+        if(! asprintf(&setup.LogLevel, " --loglevel=%i ", loglevel)) esyslog("markad: asprintf out of memory");
         ALLOC(strlen(setup.LogLevel)+1, "setup.LogLevel");
     }
 
     if (astopoffs >= 0) {
-        if(! asprintf(&setup.aStopOffs, " --astopoffs=%i ", astopoffs)) esyslog("markad: asprintf ouf of memory");
+        if(! asprintf(&setup.aStopOffs, " --astopoffs=%i ", astopoffs)) esyslog("markad: asprintf out of memory");
         ALLOC(strlen(setup.aStopOffs)+1, "setup.aStopOffs");
     }
     setup.MarkadCut = MarkadCut;
