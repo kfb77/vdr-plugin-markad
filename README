@@ -30,6 +30,9 @@ Command line options:
      -l DIR    --logocachedir=DIR    use DIR as location for markad logos
                                      (default: /var/lib/markad)
 
+               --loglevel=<level>    sets log level of started markad process (standalone, not the plugin) to the specified value
+                                     <level>: 1=error 2=info 3=debug 4=trace
+
                --astopoffs=SECONDS   assume stop of the recording SECONDS after the end of the EPG time.
                                      default is 0 s
                                      If end marks are to early, try to add some seconds
@@ -42,12 +45,10 @@ Command line options:
 
                --autologo=<option>   0 = disable, only use logos from logo cache directory
                                      1 = deprecated, do not use
-                                     2 = enable, if there is no suitable logo in the logo cache directroy (default)
-                                         find logo from recording and store it in the recording directory
-                                         speed optimized operation mode, but needs a lot of memonry, use it only > 1 GB memory
-                                     If this option is set you can not configure this feature from the VDR menue
-
-
+                                     2 = enable (default)
+                                         if there is no suitable logo in the logo cache directroy markad will
+                                         try to find the logo from recording and store it in the recording directory
+                                         If this option is set you can not configure this feature from the VDR menue
 
 --------------------------------------------------------------------------------------------------------------------------------------------------
 
