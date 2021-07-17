@@ -1082,32 +1082,18 @@ void cMarkAdStandalone::CheckStart() {
 
 // try to find a horizontal border mark (MT_HBORDERSTART)
     if (!begin) {
-        cMark *hStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTART); // do not find initial vborder start from previous recording
-        if (!hStart) {
-            dsyslog("cMarkAdStandalone::CheckStart(): no horizontal border at start found, ignore horizontal border detection");
-            macontext.Video.Options.ignoreHborder = true;
-            cMark *hStop = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTOP);
-            if (hStop) {
-                int pos = hStop->position;
-                char *comment = NULL;
-                dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop without start mark found (%i), assume as start mark of the following recording", pos);
-                marks.Del(pos);
-                if (asprintf(&comment,"assumed start from horizontal border stop (%d)", pos) == -1) comment = NULL;
-                ALLOC(strlen(comment)+1, "comment");
-                begin=marks.Add(MT_ASSUMEDSTART, pos, comment);
-                FREE(strlen(comment)+1, "comment");
-                free(comment);
-            }
-        }
-        else { // we found a hborder start mark
+        cMark *hStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTART);
+        if (hStart) { // we found a hborder start mark
             dsyslog("cMarkAdStandalone::CheckStart(): horizontal border start found at (%i)", hStart->position);
             cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);  // if there is a MT_HBORDERSTOP short after the MT_HBORDERSTART, MT_HBORDERSTART is not valid
             if ( hStop && ((hStop->position - hStart->position) < (2 * delta))) {
                 dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop (%i) short after horizontal border start (%i) found, this is end of broadcast before or a preview", hStop->position, hStart->position); // do not delete weak marks here because it can only be from preview
-                hBorderStopPosition = hStop->position;  // maybe we can use it as start mark if we found nothing else
+                hBorderStopPosition = hStop->position;  // maybe we can use this position as start mark if we found nothing else
+                dsyslog("cMarkAdStandalone::CheckStart(): delete horizontal border stop (%d) mark", hStop->position);
+                marks.Del(hStop->position); // delete hborder stop mark because we ignore hborder start mark
             }
             else {
-                if (hStart->position >= IGNORE_AT_START) {  // position < 5 is a hborder start from previous recording
+                if (hStart->position >= IGNORE_AT_START) {  // position < IGNORE_AT_START is a hborder start from previous recording
                     dsyslog("cMarkAdStandalone::CheckStart(): delete VBORDER marks if any");
                     marks.Del(MT_VBORDERSTART);
                     marks.Del(MT_VBORDERSTOP);
@@ -1122,6 +1108,22 @@ void cMarkAdStandalone::CheckStart() {
                         marks.DelType(MT_LOGOCHANGE, 0xF0);
                     }
                 }
+            }
+        }
+        else { // we found no hborder start mark
+            dsyslog("cMarkAdStandalone::CheckStart(): no horizontal border at start found, ignore horizontal border detection");
+            macontext.Video.Options.ignoreHborder = true;
+            cMark *hStop = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTOP);
+            if (hStop) {
+                int pos = hStop->position;
+                char *comment = NULL;
+                dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop without start mark found (%i), assume as start mark of the following recording", pos);
+                marks.Del(pos);
+                if (asprintf(&comment,"assumed start from horizontal border stop (%d)", pos) == -1) comment = NULL;
+                ALLOC(strlen(comment)+1, "comment");
+                begin=marks.Add(MT_ASSUMEDSTART, pos, comment);
+                FREE(strlen(comment)+1, "comment");
+                free(comment);
             }
         }
     }
