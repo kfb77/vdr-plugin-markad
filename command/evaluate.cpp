@@ -685,6 +685,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     } darkScene;
     bool found = true;
     int separatorFrame = -1;
+    int lowMatchCount = 0;
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
@@ -705,7 +706,10 @@ bool cDetectLogoStopStart::IsInfoLogo() {
             darkScene.end = -1;
         }
 
-        if ((*cornerResultIt).rate[maContext->Video.Logo.corner] > 210) {  // do not rededuce to prevent false positiv
+#define INFO_LOGO_MACTH_MIN 210
+        if (((*cornerResultIt).rate[maContext->Video.Logo.corner] > INFO_LOGO_MACTH_MIN) || // do not rededuce to prevent false positiv
+            ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 142) && (lowMatchCount == 0)) { // allow one lower match for the change from new logo to normal logo
+            if ((*cornerResultIt).rate[maContext->Video.Logo.corner] <= INFO_LOGO_MACTH_MIN) lowMatchCount++;
             if (InfoLogo.start == 0) InfoLogo.start = (*cornerResultIt).frameNumber1;
             InfoLogo.end = (*cornerResultIt).frameNumber2;
         }
