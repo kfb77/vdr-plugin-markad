@@ -2931,22 +2931,24 @@ void cMarkAdStandalone::Process3ndPass() {
 // try blacksceen mark
     LogSeparator(false);
     dsyslog("cMarkAdStandalone::Process3ndPass(): start search for blackscreen near logo marks");
-#define BLACKSCREEN_RANGE 5500 // in ms, changed from 6000 to 5500
+    int blackscreenRange = 4270;
+    if ((strcmp(macontext.Info.ChannelName, "TELE_5")      == 0) ||
+        (strcmp(macontext.Info.ChannelName, "Nickelodeon") == 0)) blackscreenRange = 5500; // logo fade in/out
     mark = marks.GetFirst();
     while (mark) {
         // logo start mark, use blackscreen before and after mark
         if (mark->type == MT_LOGOSTART) {
-            cMark *blackMark = blackMarks.GetAround(BLACKSCREEN_RANGE * macontext.Video.Info.framesPerSecond / 1000, mark->position, MT_NOBLACKSTART); // blacksceen belongs to previous broadcast, use first frame after
+            cMark *blackMark = blackMarks.GetAround(blackscreenRange * macontext.Video.Info.framesPerSecond / 1000, mark->position, MT_NOBLACKSTART); // blacksceen belongs to previous broadcast, use first frame after
             if (blackMark) {
                 int distance = mark->position - blackMark->position;
                 int distance_ms = 1000 * distance / macontext.Video.Info.framesPerSecond;
                 if (distance > 0)  { // blackscreen is before logo start mark
-                    dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d frames) %dms (expect >0 and <=%dms) before logo start mark (%d), move mark", blackMark->position, distance, distance_ms, BLACKSCREEN_RANGE, mark->position);
+                    dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d frames) %dms (expect >0 and <=%dms) before logo start mark (%d), move mark", blackMark->position, distance, distance_ms, blackscreenRange, mark->position);
                     mark = marks.Move(&macontext, mark, blackMark->position, "black screen");
                     save = true;
                     continue;
                 }
-                else dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d) %ds (expect >0 and <=%ds) before (-after) logo start mark (%d), keep mark", blackMark->position, distance, distance_ms, BLACKSCREEN_RANGE, mark->position);
+                else dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) distance (%d) %ds (expect >0 and <=%ds) before (-after) logo start mark (%d), keep mark", blackMark->position, distance, distance_ms, blackscreenRange, mark->position);
             }
             else dsyslog("cMarkAdStandalone::Process3ndPass(): no black screen mark found before logo start mark (%d)", mark->position);
         }
@@ -2956,8 +2958,8 @@ void cMarkAdStandalone::Process3ndPass() {
             cMark *blackMark = blackMarks.GetNext(mark->position, MT_NOBLACKSTART);
             if (blackMark) {
                 int diff_ms = 1000 * (blackMark->position - mark->position) / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) %dms (expect <=%ds) after logo stop mark (%d) found", blackMark->position, diff_ms, BLACKSCREEN_RANGE, mark->position);
-                if (diff_ms <= BLACKSCREEN_RANGE) {
+                dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) %dms (expect <=%ds) after logo stop mark (%d) found", blackMark->position, diff_ms, blackscreenRange, mark->position);
+                if (diff_ms <= blackscreenRange) {
                     int newPos;
                     if (!macontext.Config->fullDecode) {
                         newPos =  recordingIndexMark->GetIFrameBefore(blackMark->position); // MT_NOBLACKSSTART with "only iFrame decoding" is the first frame afer blackscreen, get last frame of blackscreen, blacksceen at stop mark belongs to broasdact
