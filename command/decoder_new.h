@@ -113,7 +113,7 @@ class cDecoder {
  * get average video frame rate taken from avctx->streams[i]->avg_frame_rate
  * @return average video frame rate (avg_frame_rate)
  */
-        int GetVideoFramesPerSecond();
+        int GetVideoAvgFrameRate();
 
 /**
  * get real video frame rate taken from avctx->streams[i]->r_frame_rate
@@ -291,8 +291,6 @@ class cDecoder {
         } FrameData;                           //!< decoded frame picture data
                                                //!<
 
-        bool msgDecodeFile = true;             //!< true if we will send decoder codec log message, false otherwise
-                                               //!<
         bool msgGetFrameInfo = true;           //!< true if we will send frame info log message, false otherwise
                                                //!<
         int interlaced_frame = -1;             //!< -1 undefined, 0 the content of the picture is progressive, 1 the content of the picture is interlaced

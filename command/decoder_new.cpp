@@ -184,7 +184,7 @@ bool cDecoder::DecodeFile(const char *filename) {
             }
         }
 
-        if (msgDecodeFile) dsyslog("cDecoder::DecodeFile(): using decoder for stream %i: codec id %5i -> %s", streamIndex, codec_id, codec->long_name);
+        dsyslog("cDecoder::DecodeFile(): using decoder for stream %i: codec id %5i -> %s", streamIndex, codec_id, codec->long_name);
         codecCtxArray[streamIndex]=avcodec_alloc_context3(codec);
         if (!codecCtxArray[streamIndex]) {
             dsyslog("cDecoder::DecodeFile(): avcodec_alloc_context3 failed");
@@ -210,7 +210,6 @@ bool cDecoder::DecodeFile(const char *filename) {
             dsyslog("cDecoder::DecodeFile(): real    framerate %d/%d", avctx->streams[streamIndex]->r_frame_rate.num, avctx->streams[streamIndex]->r_frame_rate.den);
         }
     }
-    msgDecodeFile = false;
     if (fileNumber <= 1) offsetTime_ms_LastFile = 0;
     return true;
 }
@@ -293,7 +292,7 @@ int cDecoder::GetVideoWidth() {
 }
 
 
-int cDecoder::GetVideoFramesPerSecond() {
+int cDecoder::GetVideoAvgFrameRate() {
     if (!avctx) return 0;
     for (unsigned int i=0; i<avctx->nb_streams; i++) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -304,7 +303,7 @@ int cDecoder::GetVideoFramesPerSecond() {
             return av_q2d(avctx->streams[i]->avg_frame_rate);
         }
     }
-    dsyslog("cDecoder::GetVideoFramesPerSecond(): could not find average frame rate");
+    dsyslog("cDecoder::GetVideoAvgFrameRate(): could not find average frame rate");
     return 0;
 }
 

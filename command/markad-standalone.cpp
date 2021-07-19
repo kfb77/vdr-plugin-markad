@@ -3079,7 +3079,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
     if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) {
         if (ptr_cDecoder->IsVideoPacket()) {
             if (ptr_cDecoder->IsInterlacedVideo() && !macontext.Video.Info.interlaced && (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264) &&
-                                                     (ptr_cDecoder->GetVideoFramesPerSecond() == 25) && (ptr_cDecoder->GetVideoRealFrameRate() == 50)) {
+                                                     (ptr_cDecoder->GetVideoAvgFrameRate() == 25) && (ptr_cDecoder->GetVideoRealFrameRate() == 50)) {
                 dsyslog("cMarkAdStandalone::ProcessFrame(): change internal frame rate to handle H.264 interlaced video");
                 macontext.Video.Info.framesPerSecond *= 2;
                 macontext.Video.Info.interlaced = true;
@@ -3187,7 +3187,7 @@ void cMarkAdStandalone::ProcessFiles() {
             macontext.Video.Info.width = ptr_cDecoder->GetVideoWidth();
             isyslog("video width: %i", macontext.Video.Info.width);
 
-            macontext.Video.Info.framesPerSecond = ptr_cDecoder->GetVideoFramesPerSecond();
+            macontext.Video.Info.framesPerSecond = ptr_cDecoder->GetVideoAvgFrameRate();
             isyslog("average frame rate %i frames per second", static_cast<int> (macontext.Video.Info.framesPerSecond));
             isyslog("real frame rate    %i frames per second", ptr_cDecoder->GetVideoRealFrameRate());
 
