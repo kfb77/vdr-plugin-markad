@@ -748,9 +748,9 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         if (diffStart < 1920) newStartPos = InfoLogo.startFinal;  // do not increase
         if (diffEnd <= 1800) newEndPos = InfoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): final range start (%d) end (%d)", newStartPos, newEndPos);
-#define INFO_LOGO_MIN_LENGTH 2880  // changed from 4000 to 3360 to 2880
-#define INFO_LOGO_MAX_LENGTH 14400 // chnaged from 14000 to 14160 to 14400
-#define INFO_LOGO_MIN_QUOTE 70 // changed from 80 to 72 to 70
+#define INFO_LOGO_MIN_LENGTH  2880  // changed from 4000 to 3360 to 2880
+#define INFO_LOGO_MAX_LENGTH 14520  // chnaged from 14000 to 14160 to 14400 to 14520
+#define INFO_LOGO_MIN_QUOTE     70  // changed from 80 to 72 to 70
         int quote = 100 * (InfoLogo.endFinal - InfoLogo.startFinal) / (newEndPos - newStartPos);
         int length = 1000 * (InfoLogo.endFinal - InfoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo: start (%d), end (%d), length %dms (expect >=%dms and <=%dms), quote %d%% (expect >= %d%%)", InfoLogo.startFinal, InfoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
