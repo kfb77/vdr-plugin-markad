@@ -1742,7 +1742,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                 maxBeforeAssumed = 389; // try hard to get a better end mark
                 break;
             case MT_NOBLACKSTOP:
-                maxBeforeAssumed = 389; // try a litte more to get end mark
+                maxBeforeAssumed = 351; // try a litte more to get end mark, changed from 389 to 351
                 break;
             case MT_LOGOSTOP:
                 maxBeforeAssumed = 306;
