@@ -205,6 +205,10 @@ bool cDecoder::DecodeFile(const char *filename) {
             dsyslog("cDecoder::DecodeFile(): avcodec_open2 failed");
             return false;
         }
+        if (IsVideoStream(streamIndex)) {
+            dsyslog("cDecoder::DecodeFile(): average framerate %d/%d", avctx->streams[streamIndex]->avg_frame_rate.num, avctx->streams[streamIndex]->avg_frame_rate.den);
+            dsyslog("cDecoder::DecodeFile(): real    framerate %d/%d", avctx->streams[streamIndex]->r_frame_rate.num, avctx->streams[streamIndex]->r_frame_rate.den);
+        }
     }
     msgDecodeFile = false;
     if (fileNumber <= 1) offsetTime_ms_LastFile = 0;
