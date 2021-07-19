@@ -376,7 +376,7 @@ void cMarkAdStandalone::CheckStop() {
                 if (logoStop) {
                     int diff = (end->position - logoStop->position) /  macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::CheckStop(): found logo stop (%d) %ds before aspect ratio end mark (%d)", logoStop->position, diff, end->position);
-                    if (diff <= 100) {
+                    if (diff <= 111) {  // changed from 100 to 111
                         dsyslog("cMarkAdStandalone::CheckStop(): advertising before, use logo stop mark");
                         end = logoStop;
                     }
