@@ -3078,8 +3078,10 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
     }
     if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) {
         if (ptr_cDecoder->IsVideoPacket()) {
-            if (ptr_cDecoder->IsInterlacedVideo() && !macontext.Video.Info.interlaced && (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264) &&
-                                                     (ptr_cDecoder->GetVideoAvgFrameRate() == 25) && (ptr_cDecoder->GetVideoRealFrameRate() == 50)) {
+            if ((ptr_cDecoder->GetFileNumber() == 1) &&  // found some Finnish H.264 interlaced recordings who changed real bite rate in second TS file header
+                                                         // frame rate can not change, ignore this and keep frame rate from first TS file
+                 ptr_cDecoder->IsInterlacedVideo() && !macontext.Video.Info.interlaced && (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264) &&
+                (ptr_cDecoder->GetVideoAvgFrameRate() == 25) && (ptr_cDecoder->GetVideoRealFrameRate() == 50)) {
                 dsyslog("cMarkAdStandalone::ProcessFrame(): change internal frame rate to handle H.264 interlaced video");
                 macontext.Video.Info.framesPerSecond *= 2;
                 macontext.Video.Info.interlaced = true;

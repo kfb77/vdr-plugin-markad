@@ -76,6 +76,12 @@ class cDecoder {
         bool DecodeFile(const char * filename);
 
 /**
+ * get currently in progress TS file number
+ * @return file number
+ */
+        int GetFileNumber();
+
+/**
  * reset decoder to first frame of first file
  */
         void Reset();

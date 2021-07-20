@@ -109,6 +109,11 @@ bool cDecoder::DecodeDir(const char *recDir) {
 }
 
 
+int cDecoder::GetFileNumber() {
+    return fileNumber;
+}
+
+
 void cDecoder::Reset(){
     fileNumber = 0;
     currFrameNumber = -1;
