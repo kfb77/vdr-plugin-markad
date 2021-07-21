@@ -344,10 +344,11 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         else                                                          logo.widthMax  = 134;
         logo.heightMin =  54;
     }
-    if (strcmp(maContext->Info.ChannelName, "SUPER_RTL") == 0) {        // SUPER_RTL               16:9  720W  576H:-> 160W  54H TOP_LEFT
-        logo.widthMin  = 160;
+    if (strcmp(maContext->Info.ChannelName, "SUPER_RTL") == 0) {        // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT
+	                                                                // SUPER_RTL PRIMETIME     16:9  720W  576H:->  160W  54H TOP_LEFT
+        logo.widthMin  =  98;
         logo.widthMax  = 160;
-        logo.heightMin =  54;
+        logo.heightMin =  48;
     }
     if (strcmp(maContext->Info.ChannelName, "TELE_5") == 0) {           // TELE_5                  16:9  720W  576H:->   72W  76H BOTTOM_RIGHT (new logo)
                                                                         // TELE_5                   4:3  720W  576H:->   94W  76H BOTTOM_RIGHT (new logo)
