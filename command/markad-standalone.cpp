@@ -1648,14 +1648,15 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                     int lengthPreview = static_cast<int> ((stopMark->position - mark->position) / macontext.Video.Info.framesPerSecond);
                     dsyslog("cMarkAdStandalone::CheckMarks(): start (%d) stop (%d): length %ds, length ad before %dms, length ad after %dms",
                                                                                              mark->position, stopMark->position, lengthPreview, lengthAdBefore, lengthAdAfter);
-                    if ((lengthAdBefore >= 1360) || (lengthAdAfter > 3200)) {  // check if we have ad before or after preview. if not it is a logo detection failure
-                                                                               // changed from 1400 to 1360
-                        if ((lengthAdBefore >= 520) && (lengthAdBefore <= 585000) && (lengthAdAfter >= 840)) { // if advertising before is long this is the really the next start mark
+                    if ((lengthAdBefore >= 1360) || (lengthAdAfter >= 2160)) {  // check if we have ad before or after preview. if not it is a logo detection failure
+                                                                                // changed from 1400 to 1360
+                                                                                // changed from 3200 to 2160
+                        if ((lengthAdBefore >= 520) && (lengthAdBefore <= 585000) && (lengthAdAfter >= 520)) { // if advertising before is long this is the really the next start mark
                                                                                                                  // previews can be at start of advertising (e.g. DMAX)
                                                                                                                  // before max changed from 500000 to 560000 to 585000
                                                                                                                  // before min changed from 7000 to 5000 to 1000 to 920 to 520
                                                                                                                  // found very short logo invisible betweewn broascast and first preview
-                                                                                                                 // after min changed from 2020 to 1520 to 1200 to 840
+                                                                                                                 // after min changed from 2020 to 1520 to 1200 to 840 to 560 to 520
                             if (lengthPreview <= 111) {  // changed from 110 to 111
                                 isyslog("found preview between logo mark (%d) and logo mark (%d) in advertisement, deleting marks", mark->position, stopMark->position);
                                 cMark *tmp = startAfter;
@@ -1667,7 +1668,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                             else dsyslog("cMarkAdStandalone::CheckMarks(): no preview between (%d) and (%d), length %ds not valid",
                                                                                                                                 mark->position, mark->Next()->position, lengthPreview);
                         }
-                        else dsyslog("cMarkAdStandalone::CheckMarks(): no preview between (%d) and (%d), length advertising before %ds or after %d is not valid",
+                        else dsyslog("cMarkAdStandalone::CheckMarks(): no preview between (%d) and (%d), length advertising before %ds or after %dms is not valid",
                                                                                                     mark->position, mark->Next()->position, lengthAdBefore, lengthAdAfter);
                     }
                     else dsyslog("cMarkAdStandalone::CheckMarks(): not long enought ad before and after preview, maybe logo detection failure");
