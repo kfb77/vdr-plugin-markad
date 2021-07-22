@@ -1469,7 +1469,7 @@ void cMarkAdOverlap::GetHistogram(simpleHistogram &dest) {
 }
 
 
-int cMarkAdOverlap::AreSimilar(simpleHistogram &hist1, simpleHistogram &hist2) { // return > 0 if similar, else <= 0
+int cMarkAdOverlap::AreSimilar(const simpleHistogram &hist1, const simpleHistogram &hist2) { // return > 0 if similar, else <= 0
     int similar = 0;
     for (int i = 0; i < 256; i++) {
         similar += abs(hist1[i] - hist2[i]);  // calculte difference, smaller is more similar

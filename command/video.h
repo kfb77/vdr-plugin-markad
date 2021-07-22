@@ -181,7 +181,7 @@ class cMarkAdOverlap {
  * @param hist2 histogram 2
  * @return different pixels if similar, <0 otherwise
  */
-        int AreSimilar(simpleHistogram &hist1, simpleHistogram &hist2);
+        int AreSimilar(const simpleHistogram &hist1, const simpleHistogram &hist2);
 
 /**
  * get a simple histogram of current frame
