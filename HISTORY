@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-07-22: Version 3.0.8
+- ignore change of real frame rate after first TS file
+  got invalid real frame rate from libav in second TS file in some Finnish recordings
+- some minor bug fixes and optimizations, see git
+
 2021-07-14: Version 3.0.7
 - optimize start and end mark selection
 - some minor bug fixes and optimizations, see git
