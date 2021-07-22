@@ -186,7 +186,7 @@ class cMarks {
 /**
  * delete all marks of given type
  * @param type mark type
- * @param binary mask for type
+ * @param mask binary mask for type
  */
         void DelType(const int type, const int mask);
 
