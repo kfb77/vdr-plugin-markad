@@ -1611,7 +1611,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     while (mark) {
         if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
             int diff = 1000 * (mark->Next()->position - mark->position) /  macontext.Video.Info.framesPerSecond;
-            if (diff < 920 ) { // do not increase because of very short real logo interuption between broacast and preview, changed from 1000 to 920
+            if (diff < 520 ) { // do not increase because of very short real logo interuption between broacast and preview, changed from 1000 to 920 to 520
                 if (mark->Next()->Next() && (mark->Next()->Next()->type == MT_LOGOSTOP)) {
                     int lengthAfter = (mark->Next()->Next()->position - mark->Next()->position) /  macontext.Video.Info.framesPerSecond;
                     if (lengthAfter < 203) {  // do not delete a short stop/start before a long broadcast part, this pair contains start mark,
@@ -1650,11 +1650,11 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                                                                                              mark->position, stopMark->position, lengthPreview, lengthAdBefore, lengthAdAfter);
                     if ((lengthAdBefore >= 1360) || (lengthAdAfter > 3200)) {  // check if we have ad before or after preview. if not it is a logo detection failure
                                                                                // changed from 1400 to 1360
-                        if ((lengthAdBefore >= 920) && (lengthAdBefore <= 585000) && (lengthAdAfter >= 840)) { // if advertising before is long this is the really the next start mark
+                        if ((lengthAdBefore >= 520) && (lengthAdBefore <= 585000) && (lengthAdAfter >= 840)) { // if advertising before is long this is the really the next start mark
                                                                                                                  // previews can be at start of advertising (e.g. DMAX)
                                                                                                                  // before max changed from 500000 to 560000 to 585000
-                                                                                                                 // before min changed from 7000 to 5000 to 1000 to 920
-                                                                                                                 // found 920ms short logo invisible betweewn broascast and first preview
+                                                                                                                 // before min changed from 7000 to 5000 to 1000 to 920 to 520
+                                                                                                                 // found very short logo invisible betweewn broascast and first preview
                                                                                                                  // after min changed from 2020 to 1520 to 1200 to 840
                             if (lengthPreview <= 111) {  // changed from 110 to 111
                                 isyslog("found preview between logo mark (%d) and logo mark (%d) in advertisement, deleting marks", mark->position, stopMark->position);
