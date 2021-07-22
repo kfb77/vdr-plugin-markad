@@ -1,13 +1,14 @@
 # This file is distributed under the same license as the markad package.
 # Rolf Ahrenberg, 2011
+# Ville-Pekka Vainio, 2021
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
 "POT-Creation-Date: 2021-05-16 10:20+0200\n"
-"PO-Revision-Date: 2011-02-27 02:27+0200\n"
-"Last-Translator: Rolf Ahrenberg\n"
+"PO-Revision-Date: 2021-07-23 01:07+0300\n"
+"Last-Translator: Ville-Pekka Vainio <vpvainio@iki.fi>\n"
 "Language-Team: Finnish <vdr@linuxtv.org>\n"
 "Language: fi\n"
 "MIME-Version: 1.0\n"
@@ -54,31 +55,31 @@ msgid "Continue"
 msgstr "Jatka"
 
 msgid "after"
-msgstr "jälkeen"
+msgstr "tallennuksen jälkeen"
 
 msgid "during"
-msgstr "aikana"
+msgstr "tallennuksen aikana"
 
 msgid "never"
-msgstr ""
+msgstr "ei koskaan"
 
 msgid "disable"
-msgstr ""
+msgstr "poissa käytöstä"
 
 msgid "deprecated, do not use"
-msgstr ""
+msgstr "vanhentunut, älä käytä"
 
 msgid "enable"
-msgstr ""
+msgstr "käytössä"
 
 msgid "execution"
-msgstr "Suorita tehtävä tallennuksen"
+msgstr "Suorita tehtävä"
 
 msgid "use VPS"
-msgstr ""
+msgstr "Käytä VPS:ää"
 
 msgid "log VPS events"
-msgstr ""
+msgstr "Kirjoita VPS-tapahtumat lokiin"
 
 msgid "  during another recording"
 msgstr "  toisen tallennuksen aikana"
@@ -90,13 +91,13 @@ msgid "scan only channels with logo"
 msgstr "Käytä vain logollisilla kanavilla"
 
 msgid "deferred shutdown"
-msgstr ""
+msgstr "Viivästetty sammutus"
 
 msgid "ignore timer margins"
 msgstr "Älä huomioi ajastinmarginaaleja"
 
 msgid "optimize marks (overlaps and logo marks adjustments"
-msgstr ""
+msgstr "Optimoi merkinnät (päällekkäisyydet ja logomerkintöjen hienosäätö)"
 
 msgid "correct info file"
 msgstr "Korjaa info-tiedosto"
@@ -105,7 +106,7 @@ msgid "OSD message"
 msgstr "Käytä kuvaruutuviestejä"
 
 msgid "SVDR port number"
-msgstr ""
+msgstr "SVDR-portin numero"
 
 msgid "verbose logging"
 msgstr "Käytä laajennettua lokikirjoitusta"
@@ -117,10 +118,10 @@ msgid "hide mainmenu entry"
 msgstr "Piilota valita päävalikosta"
 
 msgid "extract logos from recording"
-msgstr ""
+msgstr "Ota logot tallenteesta"
 
 msgid "full decode recording (WARNING: high cpu consumption)"
-msgstr ""
+msgstr "Tallenteen täysi dekoodaus (VAROITUS: käyttää paljon prosessoriaikaa)"
 
 msgid "show list"
 msgstr "Näytä lista"
