@@ -692,11 +692,13 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 
         int sumPixel = 0;
         int sumPixelNonLogoCorner = 0;
+        int countZero = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
+            if ((*cornerResultIt).rate[corner] == 0) countZero++;
             sumPixel += (*cornerResultIt).rate[corner];
             if (corner != maContext->Video.Logo.corner) sumPixelNonLogoCorner += (*cornerResultIt).rate[corner];
         }
-        if (sumPixel == 0) separatorFrame = (*cornerResultIt).frameNumber2;
+        if ((countZero >= 2) && (sumPixel <= 60)) separatorFrame = (*cornerResultIt).frameNumber2;  // changed from 0 to 15 to 100 to 60, do not increase
         if (sumPixelNonLogoCorner < 0) {
             if (darkScene.start == -1) darkScene.start = (*cornerResultIt).frameNumber1;
             darkScene.end   = (*cornerResultIt).frameNumber2;
