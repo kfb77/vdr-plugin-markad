@@ -4194,6 +4194,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         osd = NULL;
     }
     if (ptr_cDecoder) {
+        if (ptr_cDecoder->GetErrorCount() > 0) esyslog("decoding errors: %d", ptr_cDecoder->GetErrorCount());
         FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
         delete ptr_cDecoder;
         ptr_cDecoder = NULL;

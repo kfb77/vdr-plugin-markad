@@ -37,27 +37,9 @@ int cIndex::GetLastFrameNumber() {
 }
 
 
-int cIndex::GetLastTime() {
-     if (!indexVector.empty()) return indexVector.back().timeOffset_ms;
-     else return -1;
-}
-
-
 // add a new entry to the list of frame timestamps
 void cIndex::Add(int fileNumber, int frameNumber, int timeOffset_ms) {
      if (GetLastFrameNumber() < frameNumber) {
-// check value of increasing timestamp
-          int lastTime = GetLastTime();
-          if (lastTime >= 0) { // we have at least one frame stored
-              int diff_ms = static_cast<int> (timeOffset_ms - lastTime);
-              if (diff_ms_maxValid == 0) diff_ms_maxValid = diff_ms;
-              if (diff_ms_maxValid < 200) diff_ms_maxValid = 200;  // set minimum duration
-              if (diff_ms > diff_ms_maxValid * 5) esyslog("presentation timestamp in video stream at frame (%5d) increased %3ds %3dms, max valid is %3ds %3dms", frameNumber, diff_ms / 1000, diff_ms % 1000, diff_ms_maxValid / 1000, diff_ms_maxValid % 1000);
-              else if (diff_ms_maxValid < diff_ms) diff_ms_maxValid = diff_ms;
-#ifdef DEBUG_INDEX_BUILD
-             dsyslog("cIndex::Add(): file number %2d frame (%5d) pts_time_ms %8ld, increased %4dms, max valid %4dms", fileNumber, frameNumber, pts_time_ms, diff_ms, diff_ms_maxValid);
-#endif
-          }
         // add new frame timestamp to vector
          sIndexElement newIndex;
          newIndex.fileNumber = fileNumber;

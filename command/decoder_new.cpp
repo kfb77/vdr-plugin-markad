@@ -86,6 +86,11 @@ cDecoder::~cDecoder() {
 }
 
 
+int cDecoder::GetErrorCount() {
+    return decodeErrorCount;
+}
+
+
 bool cDecoder::DecodeDir(const char *recDir) {
     if (!recDir) return false;
     char *filename;
@@ -118,6 +123,7 @@ void cDecoder::Reset(){
     fileNumber = 0;
     currFrameNumber = -1;
     msgGetFrameInfo = false;
+    dtsBefore = -1;
 }
 
 
@@ -314,6 +320,7 @@ int cDecoder::GetVideoAvgFrameRate() {
 
 
 int cDecoder::GetVideoRealFrameRate() {
+    if (videoRealFrameRate > 0) return videoRealFrameRate;
     if (!avctx) return 0;
     for (unsigned int i=0; i<avctx->nb_streams; i++) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -322,7 +329,8 @@ int cDecoder::GetVideoRealFrameRate() {
         if (avctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
 #endif
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
-            return av_q2d(avctx->streams[i]->r_frame_rate);
+            videoRealFrameRate = av_q2d(avctx->streams[i]->r_frame_rate);
+            return videoRealFrameRate;
 #else
     #if LIBAVCODEC_VERSION_INT <= ((56<<16)+(1<<8)+0)    // Rasbian Jessie
             AVStream *st = avctx->streams[i];
@@ -335,9 +343,11 @@ int cDecoder::GetVideoRealFrameRate() {
                 r_frame_rate.num = st->time_base.den;
                 r_frame_rate.den = st->time_base.num;
             }
-            return av_q2d(r_frame_rate);
+            videoRealFrameRate = av_q2d(r_frame_rate);
+            return videoRealFrameRate;
     #else
-            return av_q2d(av_stream_get_r_frame_rate(avctx->streams[i]));
+            videoRealFrameRate = av_q2d(av_stream_get_r_frame_rate(avctx->streams[i]));
+            return videoRealFrameRate;
     #endif
 #endif
         }
@@ -359,6 +369,28 @@ bool cDecoder::GetNextPacket() {
 #endif
         {
             currFrameNumber++;
+
+            // check DTS continuity
+            if (dtsBefore != -1) {
+                int dtsDiff = 1000 * (avpkt.dts - dtsBefore) * avctx->streams[avpkt.stream_index]->time_base.num / avctx->streams[avpkt.stream_index]->time_base.den;
+                int     dtsStep = 1000 / GetVideoRealFrameRate();
+                if (dtsDiff > dtsStep) {  // some interlaced H.264 streams have some frames with half DTS
+                    if (currFrameNumber > decodeErrorFrame) {  // only count new frames
+                        decodeErrorCount++;
+                        decodeErrorFrame = currFrameNumber;
+                    }
+                    if (dtsDiff <= 0) { // ignore frames with negativ DTS difference
+                        dsyslog("cDecoder::GetNextPacket(): DTS continuity error at frame (%d), difference %dms should be %dms, ignore frame, decoding errors %d",
+                                                                                                                                   currFrameNumber, dtsDiff, dtsStep, decodeErrorCount);
+                        dtsBefore = avpkt.dts;  // store even wrong DTS to continue after error
+                        return true;  // false only on EOF
+                    }
+                    else dsyslog("cDecoder::GetNextPacket(): DTS continuity error at frame (%d), difference %dms should be %dms, decoding errors %d",
+                                                                                                                                    currFrameNumber,dtsDiff, dtsStep, decodeErrorCount);
+                }
+            }
+            dtsBefore = avpkt.dts;
+
             // store frame number and pts in a ring buffer
             recordingIndexDecoder->AddPTS(currFrameNumber, avpkt.pts);
             int64_t offsetTime_ms = -1;
@@ -382,6 +414,7 @@ bool cDecoder::GetNextPacket() {
     // end of file reached
     offsetTime_ms_LastFile = offsetTime_ms_LastRead;
     dsyslog("cDecoder::GetNextPacket(): last frame of filenumber %d is (%d), end time %" PRId64 "ms (%3d:%02dmin)", fileNumber, currFrameNumber, offsetTime_ms_LastFile, static_cast<int> (offsetTime_ms_LastFile / 1000 / 60), static_cast<int> (offsetTime_ms_LastFile / 1000) % 60);
+    if (decodeErrorFrame == currFrameNumber) decodeErrorCount--; // ignore malformed last frame of a file
     return false;
 }
 
@@ -596,7 +629,11 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
 #endif
     // check decoding error
     if (avFrame && (avFrame->decode_error_flags != 0)) {
-        dsyslog("cDecoder::DecodePacket(): decoding of frame (%d) from stream %i failed:  decode_error_flags %d", currFrameNumber, avpkt->stream_index, avFrame->decode_error_flags);
+        if (currFrameNumber > decodeErrorFrame) {  // only count new frames
+            decodeErrorFrame = currFrameNumber;
+            decodeErrorCount++;
+        }
+        dsyslog("cDecoder::DecodePacket(): decoding of frame (%d) from stream %i failed: decode_error_flags %d, decoding errors %d", currFrameNumber, avpkt->stream_index, avFrame->decode_error_flags, decodeErrorCount);
         FREE(sizeof(*avFrame), "avFrame");
         av_frame_free(&avFrame);
         avFrame = NULL;

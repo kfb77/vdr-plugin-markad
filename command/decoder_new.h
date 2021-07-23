@@ -62,6 +62,12 @@ class cDecoder {
         ~cDecoder();
 
 /**
+ * get number of decoding error
+ * @retun number of decoding errors
+ */
+        int GetErrorCount();
+
+/**
  * set decoder to first/next file of the directory
  * @param recDir name of the recording directory
  * @return true if first/next ts file found, false otherweise
@@ -302,6 +308,14 @@ class cDecoder {
         int interlaced_frame = -1;             //!< -1 undefined, 0 the content of the picture is progressive, 1 the content of the picture is interlaced
                                                //!<
         bool stateEAGAIN = false;              //!< true if decoder needs more frames, false otherwise
+                                               //!<
+        int videoRealFrameRate = 0;            //!< video stream real frame rate
+                                               //!<
+        int64_t dtsBefore = -1;                //!< DTS of frame before
+                                               //!<
+        int decodeErrorCount = 0;              //!< number of decoding errors
+                                               //!<
+        int decodeErrorFrame = -1;             //!< frame number of last decoding error
                                                //!<
 };
 #endif

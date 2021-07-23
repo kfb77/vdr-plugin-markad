@@ -24,12 +24,6 @@ class cIndex {
         ~cIndex();
 
 /**
- * get last stored offset in ms
- * @return offset in ms of last stored i-frame
- */
-        int GetLastTime();
-
-/**
  * add new frame to index
  * @param fileNumber  number of ts file
  * @param frameNumber number of frame
@@ -119,8 +113,5 @@ class cIndex {
         };
         std::vector<sPTS_RingbufferElement> ptsRing; //!< ring buffer for PTS per frameA
                                                      //!<
-        int diff_ms_maxValid = 0;                    //!< maximal valid time difference between two i-frames
-                                                     //!<
-
 };
 #endif
