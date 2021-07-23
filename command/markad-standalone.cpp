@@ -2933,8 +2933,10 @@ void cMarkAdStandalone::Process3ndPass() {
     LogSeparator(false);
     dsyslog("cMarkAdStandalone::Process3ndPass(): start search for blackscreen near logo marks");
     int blackscreenRange = 4270;
-    if ((strcmp(macontext.Info.ChannelName, "TELE_5")      == 0) ||
-        (strcmp(macontext.Info.ChannelName, "Nickelodeon") == 0)) blackscreenRange = 5500; // logo fade in/out
+    // logo fade in/out
+    if ((strcmp(macontext.Info.ChannelName, "TELE_5")         == 0) ||
+        (strcmp(macontext.Info.ChannelName, "Disney_Channel") == 0) ||
+        (strcmp(macontext.Info.ChannelName, "Nickelodeon")    == 0)) blackscreenRange = 5500;
     mark = marks.GetFirst();
     while (mark) {
         // logo start mark, use blackscreen before and after mark
