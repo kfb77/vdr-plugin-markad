@@ -728,7 +728,11 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool full) {
                         DAR.num = 16;
                         DAR.den =  9;
                     }
-                    else dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio (%d:%d) at frame (%d)",DAR.num, DAR.den, currFrameNumber);
+                    else {
+                        dsyslog("cDecoder::GetFrameInfo(): unknown aspect ratio (%d:%d) at frame (%d)",DAR.num, DAR.den, currFrameNumber);
+                        maContext->Video.Data.valid = false;
+                        return false;
+                    }
                 }
                 if ((maContext->Video.Info.AspectRatio.num != DAR.num) ||
                    ( maContext->Video.Info.AspectRatio.den != DAR.den)) {
