@@ -672,73 +672,35 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start mark pairs with special logo");
 
-    if ((marks.Count(MT_LOGOSTART) <= 1) || (marks.Count(MT_LOGOSTOP) == 0)) {
-        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): only %d logo start mark and %d logo stop marks found, do not delete any", marks.Count(MT_LOGOSTOP), marks.Count(MT_LOGOSTOP));
+    if (evaluateLogoStopStartPair) {  // we need a new clean instance of the object
+        FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+        delete evaluateLogoStopStartPair;
     }
-    else {
-        if (evaluateLogoStopStartPair) {  // we need a new clean instance of the object
-            FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
-            delete evaluateLogoStopStartPair;
-        }
-        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(&macontext, &marks, &blackMarks, iStart, chkSTART, iStopA);
-        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+    evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(&macontext, &marks, &blackMarks, iStart, chkSTART, iStopA);
+    ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
 
-        char *indexToHMSFStop = NULL;
-        char *indexToHMSFStart = NULL;
-        int stopPosition = 0;
-        int startPosition = 0;
-        int isLogoChange = 0;
-        int isInfoLogo = 0;
+    char *indexToHMSFStop = NULL;
+    char *indexToHMSFStart = NULL;
+    int stopPosition = 0;
+    int startPosition = 0;
+    int isLogoChange = 0;
+    int isInfoLogo = 0;
 
-        // alloc new objects
-        ptr_cDecoderLogoChange = new cDecoder(macontext.Config->threads, recordingIndexMark);
-        ALLOC(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
-        ptr_cDecoderLogoChange->DecodeDir(directory);
+    // alloc new objects
+    ptr_cDecoderLogoChange = new cDecoder(macontext.Config->threads, recordingIndexMark);
+    ALLOC(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
+    ptr_cDecoderLogoChange->DecodeDir(directory);
 
-        cExtractLogo *ptr_cExtractLogoChange = new cExtractLogo(&macontext, macontext.Video.Info.AspectRatio, recordingIndexMark);
-        ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
+    cExtractLogo *ptr_cExtractLogoChange = new cExtractLogo(&macontext, macontext.Video.Info.AspectRatio, recordingIndexMark);
+    ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
 
-        cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoderLogoChange, recordingIndexMark, evaluateLogoStopStartPair);
-        ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
+    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoderLogoChange, recordingIndexMark, evaluateLogoStopStartPair);
+    ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
-        // loop through all logo stop/start pairs
-        while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo)) {
-            LogSeparator();
-            // free from loop before
-            if (indexToHMSFStop) {
-                FREE(strlen(indexToHMSFStop)+1, "indexToHMSF");
-                free(indexToHMSFStop);
-            }
-            if (indexToHMSFStart) {
-                FREE(strlen(indexToHMSFStart)+1, "indexToHMSF");
-                free(indexToHMSFStart);
-            }
-            // get time of marks and log marks
-            indexToHMSFStop = marks.IndexToHMSF(stopPosition, &macontext);
-            indexToHMSFStart = marks.IndexToHMSF(startPosition, &macontext);
-            if (indexToHMSFStop && indexToHMSFStart) {
-                dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): check logo stop (%d) at %s and logo start (%d) at %s, isInfoLogo %d", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart, isInfoLogo);
-            }
-            if (ptr_cDetectLogoStopStart->Detect(stopPosition, startPosition, false)) {
-                // check info logo before logo mark position
-                if ((isInfoLogo >= 0) && ptr_cDetectLogoStopStart->IsInfoLogo()) {
-                    // found info logo part
-                    if (indexToHMSFStop && indexToHMSFStart) {
-                        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
-                    }
-                    evaluateLogoStopStartPair->SetIsInfoLogo(stopPosition, startPosition);
-                    marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
-                }
-                if ((isLogoChange >= 0) && ptr_cDetectLogoStopStart->IsLogoChange()) {
-                    if (indexToHMSFStop && indexToHMSFStart) {
-                        isyslog("logo has changed between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
-                    }
-                    marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
-                }
-            }
-        }
-
-        // delete last timer string
+    // loop through all logo stop/start pairs
+    while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo)) {
+        LogSeparator();
+        // free from loop before
         if (indexToHMSFStop) {
             FREE(strlen(indexToHMSFStop)+1, "indexToHMSF");
             free(indexToHMSFStop);
@@ -747,16 +709,48 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
             FREE(strlen(indexToHMSFStart)+1, "indexToHMSF");
             free(indexToHMSFStart);
         }
-
-        // free objects
-        FREE(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
-        delete ptr_cExtractLogoChange;
-        FREE(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
-        delete ptr_cDecoderLogoChange;
-        FREE(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
-        delete ptr_cDetectLogoStopStart;
-
+        // get time of marks and log marks
+        indexToHMSFStop = marks.IndexToHMSF(stopPosition, &macontext);
+        indexToHMSFStart = marks.IndexToHMSF(startPosition, &macontext);
+        if (indexToHMSFStop && indexToHMSFStart) {
+            dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): check logo stop (%d) at %s and logo start (%d) at %s, isInfoLogo %d", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart, isInfoLogo);
+        }
+        if (ptr_cDetectLogoStopStart->Detect(stopPosition, startPosition, false)) {
+            // check info logo before logo mark position
+            if ((isInfoLogo >= 0) && ptr_cDetectLogoStopStart->IsInfoLogo()) {
+                // found info logo part
+                if (indexToHMSFStop && indexToHMSFStart) {
+                    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
+                }
+                evaluateLogoStopStartPair->SetIsInfoLogo(stopPosition, startPosition);
+                marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
+            }
+            if ((isLogoChange >= 0) && ptr_cDetectLogoStopStart->IsLogoChange()) {
+                if (indexToHMSFStop && indexToHMSFStart) {
+                    isyslog("logo has changed between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
+                }
+                marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
+            }
+        }
     }
+
+    // delete last timer string
+    if (indexToHMSFStop) {
+        FREE(strlen(indexToHMSFStop)+1, "indexToHMSF");
+        free(indexToHMSFStop);
+    }
+    if (indexToHMSFStart) {
+        FREE(strlen(indexToHMSFStart)+1, "indexToHMSF");
+        free(indexToHMSFStart);
+    }
+
+    // free objects
+    FREE(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
+    delete ptr_cExtractLogoChange;
+    FREE(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
+    delete ptr_cDecoderLogoChange;
+    FREE(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
+    delete ptr_cDetectLogoStopStart;
 
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): marks after detect and remove logo stop/start mark pairs with special logo");
     DebugMarks();     //  only for debugging
