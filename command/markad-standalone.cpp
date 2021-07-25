@@ -2603,8 +2603,9 @@ void cMarkAdStandalone::MarkadCut() {
             return;
         }
 
+        bool nextFile = true;
         // process input file
-        while(ptr_cDecoder->DecodeDir(directory)) {
+        while(nextFile && ptr_cDecoder->DecodeDir(directory)) {
             while(ptr_cDecoder->GetNextPacket()) {
                 int frameNumber = ptr_cDecoder->GetFrameNumber();
                 if  (frameNumber < startPosition) {  // go to start frame
@@ -2631,7 +2632,10 @@ void cMarkAdStandalone::MarkadCut() {
                             return;
                         }
                     }
-                    else break;
+                    else {
+                        nextFile = false;
+                        break;
+                    }
                     continue;
                 }
                 // read packet
