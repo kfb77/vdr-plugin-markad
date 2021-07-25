@@ -474,7 +474,8 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast   0, brightness 235, plane 1: pixel diff   6, plane 2: pixel diff   6
 // contrast   4, brightness 232, plane 1: pixel diff   8, plane 2: pixel diff   6
 // contrast   6, brightness 230, plane 1: pixel diff  10, plane 2: pixel diff   6
-    if ((area.status == LOGO_VISIBLE) && (brightnessLogo < 230) && (contrastLogo <= 6)) {  // we have a very low contrast, now check full plane 1 and plane 2, change from 232 to 230
+    if ((area.status == LOGO_VISIBLE) && (brightnessLogo < 214) && (contrastLogo <= 6)) {  // we have a very low contrast, now check full plane 1 and plane 2, change from 232 to 230
+                                                                                           // changed from 230 to 214 for low pixel logos
         int diffPixel_12[2] = {0};
         for (int line =  1; line <  (maContext->Video.Info.height / 2) - 1; line++) {  // ignore first and last line, they have sometimes weird pixel
             for (int column = 1; column < (maContext->Video.Info.width / 2) - 2; column++) { // ignore first and last column, they have sometimes weird pixel
@@ -508,28 +509,24 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast  80, brightness 169
 //
 // no logo in bright area, take it as valid
-// contrast 122, brightness 163 TODO
 // contrast 116, brightness  93
 // contrast  90, brightness 183
 // contrast  13, brightness 128
 //
+// logo with more than 16/1000 pixel in logo corner
 // not detected logo in bright area, take it as invalid
-// contrast 132, brightness 135 TODO
 // contrast 131, brightness 155
 // contrast 131, brightness 157
 // contrast 131, brightness 152
 // contrast 131, brightness 151
 // contrast 128, brightness 159
 // contrast 126, brightness 160
-// contrast 115, brightness 142 NEW
+// contrast 115, brightness 142
 //
 // contrast 112, brightness 168
 // contrast 110, brightness 163
 // contrast 109, brightness 185
 // contrast 108, brightness 175
-// contrast 108, brightness 145 TODO
-// contrast 106, brightness 153 TODO
-// contrast  95, brightness 162 TODO
 // contrast  90, brightness 172
 // contrast  89, brightness 187
 // contrast  86, brightness 168
@@ -540,13 +537,9 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast  76, brightness 190
 // contrast  73, brightness 191
 // contrast  72, brightness 194
-// contrast  72, brightness 168 TODO
-// contrast  69, brightness 169 TODO
-// contrast  67, brightness 170 TODO
 // contrast  67, brightness 187
 //
 // contrast  64, brightness 175
-// contrast  64, brightness 173 TODO
 //
 // contrast  62, brightness 186
 // contrast  61, brightness 182
@@ -575,6 +568,39 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast  13, brightness 207
 // contrast   3, brightness 206
 // contrast   9, brightness 205
+//
+//
+// logo with 16/1000 or less pixel in logo corner (e.g. Kutonen_HD)
+// brightness reduction does not work very well if we have only a few pixel
+// not detected logo in bright area, take it as invalid
+//
+// contrast 111, brightness 146
+// contrast 106, brightness 156
+// contrast 106, brightness 154
+// contrast 106, brightness 152
+// contrast  94, brightness 145
+// contrast  92, brightness 157
+// contrast  85, brightness 157
+//
+// contrast  75, brightness 161
+// contrast  67, brightness 154
+// contrast  59, brightness 178
+// contrast  51, brightness 179
+//
+// contrast  47, brightness 184
+// contrast  45, brightness 176
+// contrast  40, brightness 188
+// contrast  39, brightness 189
+// contrast  38, brightness 191
+// contrast  37, brightness 193
+// contrast  35, brightness 181
+// contrast  34, brightness 180
+//
+// contrast  30, brightness 192
+// contrast  29, brightness 187
+// contrast  25, brightness 195
+// contrast  16, brightness 202
+
 
     // low contrast in bright area, we can not work with this
     if ((contrastLogo < 30) && (brightnessLogo >= 204)) {
@@ -610,16 +636,30 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
         return BRIGHTNESS_ERROR; // nothing we can work with
     }
 
-    // build the curve
-    if (((contrastLogo >= 115) && (brightnessLogo >= 142)) ||  // changed from 126 to 115, changed from 151 to 142
-        ((contrastLogo >=  86) && (brightnessLogo >= 163)) ||  // changed from 106 to 95 to 86, changed from 145 to 164 to 163
-        ((contrastLogo >=  64) && (brightnessLogo >= 174)) ||  // changed from 175 to 174
-        ((contrastLogo >=  61) && (brightnessLogo >= 177)) ||  // 177 do not reduce, changed from 79 to 72 to 67 to 64 to 62 to 61
-        ((contrastLogo >=  30) && (brightnessLogo >= 200))) {  // changed from 201 to 200
+    if (maContext->Video.Logo.pixelRatio > 16) { // normal logo
+        // build the curve
+        if (((contrastLogo >= 115) && (brightnessLogo >= 142)) ||  // changed from 126 to 115, changed from 151 to 142
+            ((contrastLogo >=  86) && (brightnessLogo >= 163)) ||  // changed from 106 to 95 to 86, changed from 145 to 164 to 163
+            ((contrastLogo >=  64) && (brightnessLogo >= 174)) ||  // changed from 175 to 174
+            ((contrastLogo >=  61) && (brightnessLogo >= 177)) ||  // 177 do not reduce, changed from 79 to 72 to 67 to 64 to 62 to 61
+            ((contrastLogo >=  30) && (brightnessLogo >= 200))) {  // changed from 201 to 200
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cMarkAdLogo::ReduceBrightness(): contrast/brightness pair in logo area invalid");
+            dsyslog("cMarkAdLogo::ReduceBrightness(): normal logo contrast/brightness pair in logo area invalid");
 #endif
-        return BRIGHTNESS_ERROR; //  nothing we can work with
+            return BRIGHTNESS_ERROR; //  nothing we can work with
+        }
+    }
+    else {  // logo with low pixel count
+        if (((contrastLogo >= 115) && (brightnessLogo >= 142)) ||
+            ((contrastLogo >=  86) && (brightnessLogo >= 145)) ||
+            ((contrastLogo >=  51) && (brightnessLogo >= 154)) ||
+            ((contrastLogo >=  34) && (brightnessLogo >= 176)) ||
+            ((contrastLogo >=  16) && (brightnessLogo >= 187))) {
+#ifdef DEBUG_LOGO_DETECTION
+            dsyslog("cMarkAdLogo::ReduceBrightness(): low pixel logo contrast/brightness pair in logo area invalid");
+#endif
+            return BRIGHTNESS_ERROR; //  nothing we can work with
+        }
     }
 
 // correct brightness and increase ontrast
@@ -838,6 +878,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         if (((area.intensity > MAX_AREA_INTENSITY) ||                                            // if area is bright
             // if we have a change from logo visable to logo invisable with very close result, verify it
             ((area.intensity >= AREA_INTENSITY_NO_TRUST) && (area.status == LOGO_VISIBLE) && (rPixel < (mPixel * LOGO_IMARK)) && (rPixel > (QUOTE_NO_TRUST * mPixel * LOGO_IMARK))) ||
+            ((area.intensity >= 56) && (maContext->Video.Logo.pixelRatio <= 16)) ||  // logo with low pixel count, check with lowe value
             ((area.intensity >= 62) && (strcmp(maContext->Info.ChannelName, "NITRO") == 0))) &&  // workaround for NITRO, this channel has a very transparent logo,
                                                                                                  // brightness reduction needed earlyer, changed from 80 to 76 to 62
              (area.intensity < 220) &&  // if we are to bright, this will not work, max changed from 200 to 220
@@ -872,6 +913,10 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 if ((contrast == BRIGHTNESS_SEPARATOR) && (area.status == LOGO_VISIBLE)) { // sepatation image detected
                     area.intensity = 0; // force detection of sepatation image
                 }
+
+                // we have a low pixel logo
+                if ((area.intensity >= 56) && (maContext->Video.Logo.pixelRatio <= 16)) return LOGO_NOCHANGE;
+
                 // we have a close result and can not reduce brightness, do not trust result
                 if ((contrast == BRIGHTNESS_ERROR) && (area.intensity >= AREA_INTENSITY_NO_TRUST) && (area.status == LOGO_VISIBLE) &&
                     (rPixel < (mPixel * LOGO_IMARK)) && (rPixel > (QUOTE_NO_TRUST * mPixel * LOGO_IMARK))) return LOGO_NOCHANGE;
