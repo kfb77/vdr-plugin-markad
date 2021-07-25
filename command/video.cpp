@@ -251,6 +251,9 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
         for (int i = 0; i < width * height; i++) {
             if (!area.mask[plane][i]) area.mPixel[plane]++;
         }
+        dsyslog("cMarkAdLogo::Load(): logo plane 0 has %d pixel", area.mPixel[plane]);
+        maContext->Video.Logo.pixelRatio = 1000 * area.mPixel[plane] / (width * height);
+        dsyslog("cMarkAdLogo::Load(): logo pixel ratio of plane 0 is: %d per mille", maContext->Video.Logo.pixelRatio);
     }
 
     if (plane == 0) {   // plane 0 is the largest -> use this values
