@@ -52,7 +52,7 @@ sLogoSize cLogoSize::GetDefaultLogoSize(const int width) {
             break;
         case 1920:
             logoSize.width  =  400;
-            logoSize.height =  210;
+            logoSize.height =  220;  // changed from 210 to 220
             break;
         case 3840:
             logoSize.width  = 1500;
