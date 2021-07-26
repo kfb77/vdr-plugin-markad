@@ -870,7 +870,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     int contrast = BRIGHTNESS_UNINITIALIZED;
     int contrastReduced = -1;
     if (processed == 1) {
-#define MAX_AREA_INTENSITY 80  // change from 128 to 127 to 126 to 125 to 114 to 100 to 98 to 94 to 80
+#define MAX_AREA_INTENSITY 75  // change from 128 to 127 to 126 to 125 to 114 to 100 to 98 to 94 to 80 to 75
                                // notice: there can be very bright logo parts in dark areas, this will result in a lower brightness
                                // we handle this cases in ReduceBrightness() when we detect contrast
 #define AREA_INTENSITY_NO_TRUST 70 // we do not trust very close result under this area intensity
