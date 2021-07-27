@@ -846,8 +846,8 @@ bool cDetectLogoStopStart::IsLogoChange() {
             isSeparationImageNoPixel = true; // we found a separation image at start
             dsyslog("cDetectLogoStopStart::isLogoChange(): separation image without pixel at all corners found");
         }
-        if ((matchPicture <= 98) && ((*cornerResultIt).frameNumber1 >= previewImage.end) && (previewImage.end != 0)) { // all 4 corner has only a few pixel, changed from 60 to 75 to 98
-            isSeparationImageLowPixel = true; // we found a separation image
+        if ((matchPicture <= 197) && ((*cornerResultIt).frameNumber1 >= previewImage.end) && (previewImage.end != 0)) { // all 4 corner has only a few pixel, changed from 98 to 197
+            isSeparationImageLowPixel = true; // we found a separation image after preview image
             dsyslog("cDetectLogoStopStart::isLogoChange(): separation image found with low pixel count found");
         }
     }
