@@ -698,7 +698,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
             sumPixel += (*cornerResultIt).rate[corner];
             if (corner != maContext->Video.Logo.corner) sumPixelNonLogoCorner += (*cornerResultIt).rate[corner];
         }
-        if ((countZero >= 2) && (sumPixel <= 60)) separatorFrame = (*cornerResultIt).frameNumber2;  // changed from 0 to 15 to 100 to 60, do not increase
+        if ((countZero >= 2) && (sumPixel <= 45)) separatorFrame = (*cornerResultIt).frameNumber2;  // changed from 0 to 15 to 100 to 60 to 45, too big values results in false detection of a dark scene, do not increase
         if (sumPixelNonLogoCorner < 0) {
             if (darkScene.start == -1) darkScene.start = (*cornerResultIt).frameNumber1;
             darkScene.end   = (*cornerResultIt).frameNumber2;
@@ -930,8 +930,8 @@ int cDetectLogoStopStart::ClosingCredit() {
         int equalCorners = 0;
         int noPixelCount = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
-            if (((*cornerResultIt).rate[corner] >= 220) || ((*cornerResultIt).rate[corner] == -1)) similarCorners++;
-            if (((*cornerResultIt).rate[corner] >= 807) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;  // changed from 970 to 899 to 807
+            if (((*cornerResultIt).rate[corner] >= 230) || ((*cornerResultIt).rate[corner] == -1)) similarCorners++; // prevent false positiv from static scenes, changed from 220 to 230
+            if (((*cornerResultIt).rate[corner] >= 807) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;   // changed from 970 to 899 to 807
             if ( (*cornerResultIt).rate[corner] ==  -1) noPixelCount++;
         }
         if ((similarCorners >= 3) && (noPixelCount < CORNERS)) {  // at least 3 corners has a match, at least one corner has pixel
