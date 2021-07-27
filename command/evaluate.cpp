@@ -873,12 +873,12 @@ bool cDetectLogoStopStart::IsLogoChange() {
             lowMatchQuote  = 100 * lowMatchCount  / count;
             noLogoQuote    = 100 * countNoLogoInLogoCorner / count;
         }
-#define LOGO_CHANGE_LIMIT static_cast<int>((matchNoLogoCorner / 3) * 1.3)
+#define LOGO_CHANGE_LIMIT static_cast<int>((matchNoLogoCorner / 3) * 1.15)  // chnaged from 1.3 to 1.15
 #define LOGO_LOW_QUOTE_MIN  80 // changed from 75 to 76 to 78 to 80
 #define LOGO_HIGH_QUOTE_MIN 86 // changed from 88 to 86
 #define LOGO_QUOTE_NO_LOGO 19
         dsyslog("cDetectLogoStopStart::isLogoChange(): logo corner high matches %d quote %d%% (expect >=%d%%), low matches %d quote %d%% (expect >=%d%%), noLogoQuote %d (expect <=%d))", highMatchCount, highMatchQuote, LOGO_HIGH_QUOTE_MIN, lowMatchCount, lowMatchQuote, LOGO_LOW_QUOTE_MIN, noLogoQuote, LOGO_QUOTE_NO_LOGO);
-        dsyslog("cDetectLogoStopStart::isLogoChange(): rate summery log corner %5d (expect >=%d), summery other corner %5d, avg other corners %d", match[maContext->Video.Logo.corner], LOGO_CHANGE_LIMIT, matchNoLogoCorner, static_cast<int>(matchNoLogoCorner / 3));
+        dsyslog("cDetectLogoStopStart::isLogoChange(): rate summery logo corner %5d (expect >=%d), summery other corner %5d, avg other corners %d", match[maContext->Video.Logo.corner], LOGO_CHANGE_LIMIT, matchNoLogoCorner, static_cast<int>(matchNoLogoCorner / 3));
         if ((lowMatchQuote >= LOGO_LOW_QUOTE_MIN) && (noLogoQuote <= LOGO_QUOTE_NO_LOGO) &&
                   ((match[maContext->Video.Logo.corner] > LOGO_CHANGE_LIMIT) || (highMatchQuote >= LOGO_HIGH_QUOTE_MIN))) {
             dsyslog("cDetectLogoStopStart::isLogoChange(): matches over limit, logo change found");
