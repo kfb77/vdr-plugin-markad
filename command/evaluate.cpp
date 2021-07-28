@@ -859,7 +859,7 @@ bool cDetectLogoStopStart::IsLogoChange() {
     dsyslog("cDetectLogoStopStart::isLogoChange(): preview image: start (%d) end (%d)", previewImage.start, previewImage.end);
     previewImage.length = (previewImage.end - previewImage.start) / maContext->Video.Info.framesPerSecond;
     dsyslog("cDetectLogoStopStart::isLogoChange(): preview image: length %ds", previewImage.length);
-    if ((isSeparationImageNoPixel || ((previewImage.length >= 1) && isSeparationImageLowPixel))) {  // changed from 3 to 2 to 1
+    if ((isSeparationImageNoPixel || ((previewImage.length > 1) && isSeparationImageLowPixel))) {  // changed from 3 to 2 to 1
         dsyslog("cDetectLogoStopStart::isLogoChange(): there is a separation images, pair can contain a valid start mark");
         status = false;
     }
