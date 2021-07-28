@@ -328,7 +328,6 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMax  = 108;
         logo.heightMin =  78;
         logo.heightMax = 108;
-//        logo.corner    = BOTTOM_RIGHT;
     }
     if (strcmp(maContext->Info.ChannelName, "RTLplus") == 0) {          // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
         logo.widthMin  = 168;
@@ -345,7 +344,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.heightMin =  54;
     }
     if (strcmp(maContext->Info.ChannelName, "SUPER_RTL") == 0) {        // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT
-	                                                                // SUPER_RTL PRIMETIME     16:9  720W  576H:->  160W  54H TOP_LEFT
+                                                                        // SUPER_RTL PRIMETIME     16:9  720W  576H:->  160W  54H TOP_LEFT
         logo.widthMin  =  98;
         logo.widthMax  = 160;
         logo.heightMin =  48;
@@ -379,11 +378,16 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "ARD-alpha_HD") == 0) {     // ARD-alpha_HD            16:9 1280W  720H:->  206W  76H TOP_LEFT
         logo.heightMax  = 76;
     }
-    if (strcmp(maContext->Info.ChannelName, "arte_HD") == 0) {          // arte_HD                 16:9 1280W  720H:->   88W 134H TOP_LEFT
+    if (strcmp(maContext->Info.ChannelName, "arte_HD") == 0) {          // arte_HD (vertical)      16:9 1280W  720H:->   88W 134H TOP_LEFT
+                                                                        // arte_HD (horizontal)    16:9 1280W  720H:->  210W  70H TOP_LEFT
         logo.widthMin  =  88;
+        logo.widthMax  =  210;
     }
     if (strcmp(maContext->Info.ChannelName, "Das_Erste_HD") == 0) {     // Das_Erste_HD            16:9 1280W  720H:->  146W 114H TOP_RIGHT
         logo.widthMax  = 146;
+    }
+    if (strcmp(maContext->Info.ChannelName, "Einsfestival_HD") == 0) {  // Einsfestival_HD         16:9 1280W  720H:->  298W  80H TOP_RIGHT
+        logo.widthMax  = 298;
     }
     if (strcmp(maContext->Info.ChannelName, "EinsPlus_HD") == 0) {      // EinsPlus_HD             16:9 1280W  720H:->  334W  86H TOP_RIGHT
         logo.widthMax  = 335;
