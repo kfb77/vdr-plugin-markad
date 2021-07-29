@@ -284,7 +284,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
     dsyslog("cMarkAdStandalone::CalculateCheckPositions(): startframe %i (%dmin %2ds)", startframe, static_cast<int>(startframe / macontext.Video.Info.framesPerSecond / 60), static_cast<int>(startframe / macontext.Video.Info.framesPerSecond) % 60);
 
     if (!length) {
-        esyslog("length of recording not found");
+        dsyslog("CalculateCheckPositions(): length of recording not found, set to 100h");
         length = 100 * 60 * 60; // try anyway, set to 100h
         startframe = macontext.Video.Info.framesPerSecond * 2 * 60;  // assume default pretimer of 2min
     }
@@ -3786,7 +3786,7 @@ bool cMarkAdStandalone::LoadInfo() {
                     if (macontext.Info.tStart < 0) {
                         if (length + macontext.Info.tStart > 0) {
                             startTime = rStart;
-                            isyslog("missed broadcast start by %d:%02d min, event length %5ds", -macontext.Info.tStart / 60, -macontext.Info.tStart % 60, length);
+                            isyslog("missed broadcast start by %02d:%02d min, event length %5ds", -macontext.Info.tStart / 60, -macontext.Info.tStart % 60, length);
                             length += macontext.Info.tStart;
                             isyslog("                                 corrected length %5ds", length);
                         }
