@@ -216,7 +216,7 @@ void cEvaluateLogoStopStartPair::IsClosingCredits(cMarks *marks, sLogoStopStartP
 // check if stop/start pair could be a logo change
 //
 void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart, const int chkSTART) {
-#define LOGO_CHANGE_STOP_START_MIN  6760  // min time in ms of a logo change section, chaned from 10000 to 9400 to 6760
+#define LOGO_CHANGE_STOP_START_MIN  5280  // min time in ms of a logo change section, chaned from 10000 to 9400 to 6760 to 5280
 #define LOGO_CHANGE_STOP_START_MAX 21000  // max time in ms of a logo change section
     // check min length of stop/start logo pair
     int deltaStopStart = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition ) / framesPerSecond;
