@@ -17,6 +17,10 @@ extern "C"{
     #include <libavformat/avformat.h>
     #include <libavformat/avio.h>
     #include <libavutil/file.h>
+
+    #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(3<<8)+102)
+        #include <libavutil/channel_layout.h>
+    #endif
 }
 
 
