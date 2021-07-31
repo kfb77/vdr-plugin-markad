@@ -1055,16 +1055,23 @@ void cMarkAdStandalone::CheckStart() {
                 begin = marks.GetAround(delta * 3, iStartA, MT_ASPECTSTART);
                 if (begin) {
                     dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTART found at (%i) because previous recording was 4:3", begin->position);
-                    cMark *begin3 = marks.GetAround(delta, begin->position, MT_VBORDERSTART);  // do not use this mark if there is a later vborder start mark
-                    if (begin3 && (begin3->position >  begin->position)) {
+                    cMark *vBorderStart = marks.GetAround(delta, begin->position, MT_VBORDERSTART);  // do not use this mark if there is a later vborder start mark
+                    if (vBorderStart && (vBorderStart->position >  begin->position)) {
                         dsyslog("cMarkAdStandalone::CheckStart(): found later MT_VBORDERSTAT, do not use MT_ASPECTSTART");
                         begin = NULL;
                     }
                     else {
-                        begin3 = marks.GetAround(delta * 4, begin->position, MT_LOGOSTART);  // do not use this mark if there is a later logo start mark
-                        if (begin3 && (begin3->position > begin->position)) {
-                            dsyslog("cMarkAdStandalone::CheckStart(): found later MT_LOGOSTART, do not use MT_ASPECTSTART");
-                            begin = NULL;
+                        cMark *logoStart = marks.GetAround(delta * 4, begin->position, MT_LOGOSTART);  // do not use this mark if there is a later logo start mark
+                        if (logoStart && (logoStart->position > begin->position)) {
+                            cMark *stopVBorder = marks.GetNext(begin->position, MT_VBORDERSTOP); // if we have vborder stop between aspect start and logo start mark
+                                                                                                 // logo start mark is invalid
+                            if (stopVBorder && (stopVBorder->position < logoStart->position)) {
+                                dsyslog("cMarkAdStandalone::CheckStart(): vborder stop found at (%d), between aspect stop (%d) and logo stop (%d), aspect start is valid", stopVBorder->position, begin->position, logoStart->position);
+                            }
+                            else {
+                                dsyslog("cMarkAdStandalone::CheckStart(): found later MT_LOGOSTART, do not use MT_ASPECTSTART");
+                                begin = NULL;
+                            }
                         }
                     }
                 }
@@ -1195,7 +1202,7 @@ void cMarkAdStandalone::CheckStart() {
             }
             if (lStart->position  < (iStart / 8)) {  // start mark is too early, try to find a later mark
                 cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
-                if (lNextStart && (lNextStart->position  > (iStart / 8)) && ((lNextStart->position - lStart->position) < (5 * delta))) {  // found later logo start mark
+                if (lNextStart && (lNextStart->position  > (iStart / 8)) && ((lNextStart->position - lStart->position) < (iStartA + (3 * delta)))) {  // found later logo start mark
                     char *indexToHMSFStart = marks.IndexToHMSF(lNextStart->position, &macontext);
                     if (indexToHMSFStart) {
                         dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lNextStart->position, indexToHMSFStart);
@@ -1214,9 +1221,8 @@ void cMarkAdStandalone::CheckStart() {
                 cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
                 if (lStop) {  // there is a next stop mark in the start range
                     int distanceStartStop = (lStop->position - lStart->position) / macontext.Video.Info.framesPerSecond;
-                    if (distanceStartStop < 55) {  // very short logo part, lStart is possible wrong, do not increase, first ad can be early
-                                                   // changed from 144 to 23 to prevent "Teletext Untertitel Tafel ..." make start mark wrong
-                                                   // change from 23 to 55, "Teletext Untertitel Tafel ..." should be now detected and ignored
+                    if (distanceStartStop < 20) {  // very short logo part, lStart is possible wrong, do not increase, first ad can be early
+                                                   // change from 55 to 20 because of too short logo change detected about 20s after start mark
                         indexToHMSF = marks.IndexToHMSF(lStop->position, &macontext);
                         if (indexToHMSF) {
                             dsyslog("cMarkAdStandalone::CheckStart(): logo stop mark found very short after start mark on position (%i) at %s, distance %ds", lStop->position, indexToHMSF, distanceStartStop);
@@ -1254,13 +1260,13 @@ void cMarkAdStandalone::CheckStart() {
             }
             if (lStart->position  >= (iStart / 8)) {
                 begin = lStart;   // found valid logo start mark
-                marks.Del(MT_HBORDERSTART);  // there could be hborder from an advertising in the recording
-                marks.Del(MT_HBORDERSTOP);
             }
             else dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) too early, ignoring", lStart->position);
         }
         if (begin) {
-            dsyslog("cMarkAdStandalone::CheckStart(): disable border detection");  // avoid false detection of border
+            dsyslog("cMarkAdStandalone::CheckStart(): disable border detection and delete border marks");  // avoid false detection of border
+            marks.DelType(MT_HBORDERCHANGE, 0xF0);  // there could be hborder from an advertising in the recording
+            marks.DelType(MT_VBORDERCHANGE, 0xF0);  // there could be hborder from an advertising in the recording
             macontext.Video.Options.ignoreHborder = true;
             macontext.Video.Options.ignoreVborder = true;
         }
@@ -1285,6 +1291,10 @@ void cMarkAdStandalone::CheckStart() {
                 }
                 if ((diff < 800) && (begin->position > (iStartA + 2 * delta))) {
                     dsyslog("cMarkAdStandalone::CheckStart(): found only very late and short black screen start mark (%i), ignoring", begin->position);
+                    begin = NULL;
+                }
+                if (begin && (begin->position < hBorderStopPosition)) {
+                    dsyslog("cMarkAdStandalone::CheckStart(): blackscreen start mark (%d) is before hborder stop mark (%d), ignoring", begin->position, hBorderStopPosition);
                     begin = NULL;
                 }
             }
