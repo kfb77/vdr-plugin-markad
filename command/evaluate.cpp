@@ -580,7 +580,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
         if (!ptr_cDecoder->GetFrameInfo(maContext, false)) {
             if (ptr_cDecoder->IsVideoIFrame()) // if we have interlaced video this is expected, we have to read the next half picture
                 tsyslog("cDetectLogoStopStart::Detect(): GetFrameInfo() failed at frame (%d)", frameNumber);
-                continue;
+            continue;
         }
         sCompareInfo compareInfo;
         if (!maContext->Video.Data.valid) {
