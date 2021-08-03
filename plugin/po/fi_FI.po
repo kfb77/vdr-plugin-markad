@@ -131,6 +131,3 @@ msgstr "Lista"
 
 msgid "back"
 msgstr "Takaisin"
-
-#~ msgid "detect overlaps"
-#~ msgstr "Tunnista päällekkäisyydet"

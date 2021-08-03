@@ -132,6 +132,3 @@ msgstr "Elenco"
 
 msgid "back"
 msgstr "Indietro"
-
-#~ msgid "detect overlaps"
-#~ msgstr "Rileva sovrapposizioni"

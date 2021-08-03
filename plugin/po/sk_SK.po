@@ -132,6 +132,3 @@ msgstr "zoznam"
 
 msgid "back"
 msgstr "späť"
-
-#~ msgid "detect overlaps"
-#~ msgstr "rozoznávanie presahov"

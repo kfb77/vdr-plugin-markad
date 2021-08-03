@@ -132,6 +132,3 @@ msgstr "Lista"
 
 msgid "back"
 msgstr "Atrás"
-
-#~ msgid "detect overlaps"
-#~ msgstr "Detectar solapamientos"
