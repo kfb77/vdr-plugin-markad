@@ -115,7 +115,7 @@ msgid "log to recording directory"
 msgstr "Kirjoita lokitiedosto tallennehakemistoon"
 
 msgid "hide mainmenu entry"
-msgstr "Piilota valita päävalikosta"
+msgstr "Piilota valinta päävalikosta"
 
 msgid "extract logos from recording"
 msgstr "Ota logot tallenteesta"
