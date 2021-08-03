@@ -720,6 +720,43 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 else break;
             }
             CutOut(bestLogoInfo, 0, whiteColumns, logoHeight, logoWidth, bestLogoCorner);
+
+            // search for at least 3 white columns to cut logos with text addon (e.g. "Neue Folge")
+            int countWhite = 0;
+            int cutColumn = 0;
+            int topBlackPixel =  INT_MAX;
+            int topBlackPixelBefore = INT_MAX;
+            int bottomBlackPixelBefore = 0;
+            int bottomBlackPixel = 0;
+            for (int column = *logoWidth - 1; column > 0; column--) {
+                bool isAllWhite = true;
+                topBlackPixel = topBlackPixelBefore;
+                bottomBlackPixel = bottomBlackPixelBefore;
+                for (int line = 0; line < *logoHeight; line++) {
+                    if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
+                        isAllWhite = false;
+                        if (line < topBlackPixelBefore) topBlackPixelBefore = line;
+                        if (line > bottomBlackPixelBefore) bottomBlackPixelBefore = line;
+                    }
+                }
+                if (isAllWhite) {
+                    countWhite++;
+                }
+                else {
+                    countWhite = 0;
+                    if (cutColumn > 0) break;
+                }
+                if (countWhite >= 3) {  // need at least 3 white column to detect as separator
+                    cutColumn = column;
+                }
+            }
+            if ((*logoWidth - cutColumn) < (*logoWidth * 0.5)) {  // do not cut out more than half of logo
+                if ((bottomBlackPixel - topBlackPixel) <= 19) {
+                    dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
+                    CutOut(bestLogoInfo, 0, *logoWidth - cutColumn, logoHeight, logoWidth, bestLogoCorner);
+                }
+                else dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel test: top %d bottom %d, text height %d is not valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
+            }
         }
         dsyslog("cExtractLogo::Resize(): logo size after %d. resize:  %3d width %3d height on corner %12s", repeat, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
     }
