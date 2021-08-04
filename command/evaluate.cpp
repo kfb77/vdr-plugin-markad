@@ -293,9 +293,11 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     if (framesPerSecond <= 0) return;
 #define LOGO_INFO_STOP_START_MIN 3720  // min time in ms of a info logo section, bigger values than in InfoLogo becase of seek to iFrame, changed from 5000 to 4480 to 3720
 #define LOGO_INFO_STOP_START_MAX 17680 // max time in ms of a info logo section, changed from 17000 to 17640 to 17680
-#define LOGO_INFO_SHORT_BLACKSCREEN_BEFORE_DIFF_MAX  40  // max time in ms no short blackscreen allowed before stop mark
-#define LOGO_INFO_SHORT_BLACKSCREEN_LENGTH         1080  // length of a short blackscreen
-#define LOGO_INFO_LONG_BLACKSCREEN_BEFORE_DIFF_MAX 1960  // max time in ms no long blackscreen allowed before stop mark, changed from 1920 to 1960
+#define LOGO_INFO_SHORT_BLACKSCREEN_BEFORE_DIFF_MAX 440  // max time in ms no short blackscreen allowed before stop mark, changed from 40 to 440 to 360 to 440
+                                                         // no not change, there are info logos direct after very short start logo (440ms before, length 1000ms)
+#define LOGO_INFO_SHORT_BLACKSCREEN_LENGTH         1000  // length of a short blackscreen, changed from 1080 to 1000
+
+#define LOGO_INFO_LONG_BLACKSCREEN_BEFORE_DIFF_MAX 2000  // max time in ms no long blackscreen allowed before stop mark, changed from 1920 to 1960 to 2000
 #define LOGO_INFO_LONG_BLACKSCREEN_LENGTH          5000  // length of a long blackscreen
 #define LOGO_INFO_BROADCAST_AFTER_MIN              1160  // min length of broadcast after info logo, changed from 4000 to 1160
 
@@ -332,7 +334,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     if (blackStop && blackStart && (logoStopStartPair->stopPosition >= blackStart->position)) {
         int diff = 1000 * (logoStopStartPair->stopPosition - blackStart->position) / framesPerSecond;
         int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;
-        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen before (%d) and (%d) length %dms, diff %dms (expect <=%dms)",
+        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen before (%d) and (%d) length %dms, diff %dms (expect <%dms)",
                                                                          logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position,
                                                                          lengthBlack, diff, LOGO_INFO_SHORT_BLACKSCREEN_BEFORE_DIFF_MAX);
         if ((lengthBlack >= LOGO_INFO_SHORT_BLACKSCREEN_LENGTH) && (diff <= LOGO_INFO_SHORT_BLACKSCREEN_BEFORE_DIFF_MAX)) {
@@ -671,21 +673,30 @@ bool cDetectLogoStopStart::IsInfoLogo() {
        dsyslog("cDetectLogoStopStart::IsInfoLogo(): skip this channel");
        return false;
     }
-
     dsyslog("cDetectLogoStopStart::IsInfoLogo(): detect from (%d) to (%d)", startPos, endPos);
+
+    // start and stop frame of assumed info logo section
     struct sInfoLogo {
         int start = 0;
         int end = 0;
         int startFinal = 0;
         int endFinal = 0;
     } InfoLogo;
-    struct sDarkScene {
+
+    // start and stop frame of detected zoomed still image
+    // this happens before start mark in adult warning info (e.g. SIXX)
+    struct sZoomedPicture {
         int start = -1;
         int end = -1;
-    } darkScene;
+        bool ongoing = true;
+    } zoomedPicture;
+
     bool found = true;
     int separatorFrame = -1;
     int lowMatchCount = 0;
+
+    int countFrames = 0;
+    int countDark   = 0;
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
@@ -693,20 +704,28 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         int sumPixel = 0;
         int sumPixelNonLogoCorner = 0;
         int countZero = 0;
+        int zoomedPictureCount = 0;
+        int darkCorner = 0;
+
         for (int corner = 0; corner < CORNERS; corner++) {
             if ((*cornerResultIt).rate[corner] == 0) countZero++;
+            if (((*cornerResultIt).rate[corner] >= 319) || ((*cornerResultIt).rate[corner] <= 0))zoomedPictureCount++;
             sumPixel += (*cornerResultIt).rate[corner];
             if (corner != maContext->Video.Logo.corner) sumPixelNonLogoCorner += (*cornerResultIt).rate[corner];
+            if (((*cornerResultIt).rate[corner] <=   0) && (corner != maContext->Video.Logo.corner)) darkCorner++;   // if we have no match, this can be a too dark corner
         }
-        if ((countZero >= 2) && (sumPixel <= 45)) separatorFrame = (*cornerResultIt).frameNumber2;  // changed from 0 to 15 to 100 to 60 to 45, too big values results in false detection of a dark scene, do not increase
-        if (sumPixelNonLogoCorner < 0) {
-            if (darkScene.start == -1) darkScene.start = (*cornerResultIt).frameNumber1;
-            darkScene.end   = (*cornerResultIt).frameNumber2;
+        // dark scene
+        countFrames++;
+        if (darkCorner == 3) countDark++;  // if all corners but logo corner has no match, this is a very dark scene
+
+        if ((countZero >= 2) && (sumPixel <= 45)) separatorFrame = (*cornerResultIt).frameNumber2;  // changed from 0 to 15 to 100 to 60 to 45, too big values results in false detection of a separation image, do not increase
+
+        // check zoomed picture
+        if (zoomedPicture.ongoing && (zoomedPictureCount == 4) && (countZero < 3)) {
+            if (zoomedPicture.start == -1) zoomedPicture.start = (*cornerResultIt).frameNumber1;
+            zoomedPicture.end = (*cornerResultIt).frameNumber2;
         }
-        else {
-            darkScene.start = -1;
-            darkScene.end = -1;
-        }
+        else if (zoomedPicture.start >= 0) zoomedPicture.ongoing = false;
 
 #define INFO_LOGO_MACTH_MIN 210
         if (((*cornerResultIt).rate[maContext->Video.Logo.corner] > INFO_LOGO_MACTH_MIN) || // do not rededuce to prevent false positiv
@@ -729,8 +748,21 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         InfoLogo.endFinal = InfoLogo.end;
     }
 
+    // check zoomed picture
+    if ((zoomedPicture.start >= 0) && (zoomedPicture.end >= 0)) {
+        int startDiff =  1000 * (zoomedPicture.start - startPos) / maContext->Video.Info.framesPerSecond;
+        int endDiff   =  1000 * (endPos - zoomedPicture.end)     / maContext->Video.Info.framesPerSecond;
+        if ((startDiff <= 960) && (endDiff <= 480)) {
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): zoomed picture found from (%d) to (%d), start offset %dms, end offset %dms",
+                                                                                                                zoomedPicture.start, zoomedPicture.end, startDiff, endDiff);
+            found = false;
+        }
+        else dsyslog("cDetectLogoStopStart::IsInfoLogo(): no zoomed picture  from (%d) to (%d), start offset %dms, end offset %dms",
+                                                                                                                zoomedPicture.start, zoomedPicture.end, startDiff, endDiff);
+    }
+
     // check separator image
-    if (separatorFrame >= 0) {
+    if ((separatorFrame >= 0) && (countDark != countFrames)) {  // on full dark scenes we can not detect separator image
         int diffSeparator = 1000 * (endPos - separatorFrame) / maContext->Video.Info.framesPerSecond;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator image found (%d), %dms before end", separatorFrame, diffSeparator);
         if (diffSeparator <= 480) {
@@ -767,9 +799,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 
     // check if it is a closing credit, we may not delete this because it contains end mark
     if (found) {
-        dsyslog("cDetectLogoStopStart::IsInfoLogo(): dark scene start (%d) end (%d)", darkScene.start, darkScene.end);
-        if (((darkScene.start != compareResult.front().frameNumber1) || (darkScene.end != compareResult.back().frameNumber2)) && //check closing credits not possible on complete dark scene
-            (ClosingCredit() >= 0)) {
+        if (ClosingCredit() >= 0) {
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): stop/start part is closing credit, no info logo");
             found = false;
         }
