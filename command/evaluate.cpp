@@ -1246,6 +1246,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
     } introductionLogo;
     int firstLowFrame = -1;
     int retFrame = -1;
+    int separatorFrame = -1;
 
 #define INTRODUCTION_MIN_LENGTH     5   // changed from 6 to 5
 #define INTRODUCTION_MAX_LENGTH    26
@@ -1271,7 +1272,27 @@ int cDetectLogoStopStart::IntroductionLogo() {
         if ((firstLowFrame == -1) &&  ((*cornerResultIt).rate[maContext->Video.Logo.corner] < 315)) { // we expect a low match a the start of the introduction logo part, changed from 940 to 938 to 774 to 607 to 315
             firstLowFrame = (*cornerResultIt).frameNumber2;
         }
+
+        // sepatation image
+        int sumPixel = 0;
+        int countZero = 0;
+        for (int corner = 0; corner < CORNERS; corner++) {
+            if ((*cornerResultIt).rate[corner] == 0) countZero++;
+            sumPixel += (*cornerResultIt).rate[corner];
+        }
+        if ((countZero >= 3) && (sumPixel <= 14)) separatorFrame = (*cornerResultIt).frameNumber2;
    }
+
+    // check separator image
+    if (separatorFrame >= 0) {
+        int diffSeparator = 1000 * (endPos - separatorFrame) / maContext->Video.Info.framesPerSecond;
+        dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator image found (%d), %dms before end", separatorFrame, diffSeparator);
+        if (diffSeparator <= 0) {
+            dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator image found, this is a valid start mark");
+            return -1;
+        }
+    }
+
    if ((((introductionLogo.end - introductionLogo.start) / maContext->Video.Info.framesPerSecond) >= INTRODUCTION_MIN_LENGTH) &&  // if min length reached
                                                                            (introductionLogo.end > introductionLogo.endFinal)) {  // and later part, use this
         introductionLogo.startFinal = introductionLogo.start;
