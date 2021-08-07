@@ -359,10 +359,10 @@ class cMarkAdLogo : cLogoSize {
  * @param frameNumber frame number
  * @param picture picture to save
  * @param plane number
- * @param debug = 0: save was called by --extract function, > 0: save was called by debug statements, add debug identifier to filename
+ * @param debug = NULL: save was called by --extract function, != NULL: save was called by debug statements, add debug identifier to filename
  * return: true if successful, false otherwise
  */
-        bool Save(const int frameNumber, uchar **picture, const short int plane, const int debug);
+        bool Save(const int frameNumber, uchar **picture, const short int plane, const char *debug);
 
 /**
  * save the original corner picture /tmp and add debug identifier to filename

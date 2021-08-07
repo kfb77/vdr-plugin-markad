@@ -274,7 +274,7 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
 // debug > 0: save was called by debug statements, add debug identifier to filename
 // return: true if successful
 //
-bool cMarkAdLogo::Save(const int frameNumber, uchar **picture, const short int plane, const int debug) {
+bool cMarkAdLogo::Save(const int frameNumber, uchar **picture, const short int plane, const char *debug) {
     if (!maContext) return false;
     if ((plane<0) || (plane >= PLANES)) return false;
     if (!maContext->Info.ChannelName) return false;
@@ -294,10 +294,12 @@ bool cMarkAdLogo::Save(const int frameNumber, uchar **picture, const short int p
     }
 
     char *buf = NULL;
-    if (debug == 0) {
-        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i.pgm","/tmp/",frameNumber, maContext->Info.ChannelName, area.AspectRatio.num, area.AspectRatio.den, plane)==-1) return false;
+    if (debug) {
+        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i_debug_%s.pgm", "/tmp/", frameNumber, maContext->Info.ChannelName, area.AspectRatio.num, area.AspectRatio.den, plane, debug)==-1) return false;
     }
-    else if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i_debug%d.pgm","/tmp/",frameNumber, maContext->Info.ChannelName, area.AspectRatio.num, area.AspectRatio.den, plane, debug)==-1) return false;
+    else {
+        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i.pgm", "/tmp/", frameNumber, maContext->Info.ChannelName, area.AspectRatio.num, area.AspectRatio.den, plane)==-1) return false;
+    }
     ALLOC(strlen(buf)+1, "buf");
 
     // Open file
@@ -368,7 +370,7 @@ bool cMarkAdLogo::SetCoorginates(int *xstart, int *xend, int *ystart, int *yend,
 }
 
 
-// save the original corner picture /tmp
+// save the original picture of the corner to /tmp
 // add debug identifier to filename
 // return: true if successful
 //
@@ -383,7 +385,9 @@ void cMarkAdLogo::SaveFrameCorner(const int frameNumber, const int debug) {
         int width = xend - xstart;
         int height = yend - ystart;
 
-//        dsyslog("cMarkAdLogo::SaveFrameCorner(): frameNumber (%5d) plane %d xstart %3d xend %3d ystart %3d yend %3d corner %d width %3d height %3d debug %d", frameNumber, plane, xstart, xend, ystart, yend, area.corner, width, height, debug);
+        if (plane == 0) dsyslog("cMarkAdLogo::SaveFrameCorner(): frameNumber (%5d) plane %d xstart %3d xend %3d ystart %3d yend %3d corner %d width %3d height %3d debug %d",
+                                                                                                  frameNumber, plane, xstart, xend, ystart, yend, area.corner, width, height, debug);
+
     // Open file
         sprintf(szFilename, "/tmp/frame%07d_C%d_P%d_D%02d.pgm", frameNumber, area.corner, plane, debug);
         pFile=fopen(szFilename, "wb");
@@ -740,6 +744,9 @@ bool cMarkAdLogo::SobelPlane(const int plane) {
     }
     int xstart, xend, ystart, yend;
     if (!SetCoorginates(&xstart, &xend, &ystart, &yend, plane)) return false;
+
+//    dsyslog("cMarkAdLogo::SobelPlane(): xstart %d, xend %d, ystart %d, yend %d", xstart, xend, ystart, yend);
+
     int boundary = 6;
     int cutval = 127;
     int width = logoWidth;
@@ -837,14 +844,15 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 processed++;
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
                 if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200) && !onlyFillArea) {
-                    Save(frameCurrent, area.sobel, plane, 1);
-                    Save(frameCurrent, area.result, plane, 9);
+                    Save(frameCurrent, area.sobel,  plane, "0area_sobel");
+                    Save(frameCurrent, area.mask,   plane, "1area_mask");
+                    Save(frameCurrent, area.result, plane, "2area_reslt");
                 }
 #endif
             }
         }
         if (extract) {
-            if (!Save(frameCurrent, area.sobel, plane, 0)) dsyslog("cMarkAdLogo::Detect(): save logo from frame (%d) failed", frameCurrent);
+            if (!Save(frameCurrent, area.sobel, plane, NULL)) dsyslog("cMarkAdLogo::Detect(): save logo from frame (%d) failed", frameCurrent);
         }
         else {
 //            tsyslog("plane %i area.rPixel[plane] %i area.mPixel[plane] %i", plane, area.rPixel[plane], area.mPixel[plane]);
@@ -899,7 +907,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 dsyslog("frame (%6i) rp=%5i | mp=%5i | mpV=%5.f | mpI=%5.f | i=%3i | c=%d | s=%i | p=%i", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * LOGO_IMARK), area.intensity, area.counter, area.status, processed);
 #endif
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-                if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) Save(frameCurrent, area.sobel, 0, 2);
+                if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) Save(frameCurrent, area.sobel, 0, "area_sobel_afterReduceBrightness");
 #endif
                 if ((area.status == LOGO_INVISIBLE) && (contrast < 25)) {  // if we have a very low contrast this could not be a new logo
                     return LOGO_NOCHANGE;
@@ -952,7 +960,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 SobelPlane(plane);
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
                 if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) {
-                    Save(frameCurrent, area.sobel, plane, 3);
+                    Save(frameCurrent, area.sobel, plane, "area.sobel_coloured");
                 }
 #endif
                 rPixel += area.rPixel[plane];
