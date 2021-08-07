@@ -1615,12 +1615,15 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     while (mark) {
         if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
             int diff = 1000 * (mark->Next()->position - mark->position) /  macontext.Video.Info.framesPerSecond;
-            if (diff < 520 ) { // do not increase because of very short real logo interuption between broacast and preview, changed from 1000 to 920 to 520
+            if (diff < 200 ) { // do not increase because of very short real logo interuption between broacast and preview, changed from 1000 to 920 to 520 to 200
                 if (mark->Next()->Next() && (mark->Next()->Next()->type == MT_LOGOSTOP)) {
+                    int lengthBefore = -1;
+                    if (mark->Prev() && (mark->Prev()->type == MT_LOGOSTART)) lengthBefore = (mark->position - mark->Prev()->position) /  macontext.Video.Info.framesPerSecond;
                     int lengthAfter = (mark->Next()->Next()->position - mark->Next()->position) /  macontext.Video.Info.framesPerSecond;
-                    if (lengthAfter < 203) {  // do not delete a short stop/start before a long broadcast part, this pair contains start mark,
+                    if ((lengthBefore < 816) && (lengthAfter < 139)) {  // do not delete a short stop/start before or after a long broadcast part
+                                                                        //  this pair contains start mark, lengthAfter changed from 203 to 139
                         cMark *tmp = mark->Next()->Next();
-                        dsyslog("cMarkAdStandalone::CheckMarks(): very short logo stop (%d) and logo start (%d) pair, diff %dms, length after %ds, deleting", mark->position, mark->Next()->position, diff, lengthAfter);
+                        dsyslog("cMarkAdStandalone::CheckMarks(): very short logo stop (%d) and logo start (%d) pair, length %dms, distance before %ds after %ds, deleting", mark->position, mark->Next()->position, diff, lengthBefore, lengthAfter);
                         marks.Del(mark->Next());
                         marks.Del(mark);
                         mark = tmp;
@@ -1643,6 +1646,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // check logo marks
         if ((mark->type == MT_LOGOSTART) && (mark->position != marks.GetFirst()->position)) {  // not start or end mark
             cMark *stopMark = marks.GetNext(mark->position, MT_LOGOSTOP);
+
             if (stopMark && (stopMark->type == MT_LOGOSTOP) && (stopMark->position != marks.GetLast()->position)) { // next logo stop mark not end mark
                 cMark *stopBefore = marks.GetPrev(mark->position, MT_LOGOSTOP);
                 cMark *startAfter= marks.GetNext(stopMark->position, MT_LOGOSTART);
@@ -1652,22 +1656,34 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                     int lengthPreview = static_cast<int> ((stopMark->position - mark->position) / macontext.Video.Info.framesPerSecond);
                     dsyslog("cMarkAdStandalone::CheckMarks(): start (%d) stop (%d): length %ds, length ad before %dms, length ad after %dms",
                                                                                              mark->position, stopMark->position, lengthPreview, lengthAdBefore, lengthAdAfter);
-                    if ((lengthAdBefore >= 1360) || (lengthAdAfter >= 2160)) {  // check if we have ad before or after preview. if not it is a logo detection failure
-                                                                                // changed from 1400 to 1360
-                                                                                // changed from 3200 to 2160
-                        if ((lengthAdBefore >= 520) && (lengthAdBefore <= 585000) && (lengthAdAfter >= 520)) { // if advertising before is long this is the really the next start mark
-                                                                                                                 // previews can be at start of advertising (e.g. DMAX)
-                                                                                                                 // before max changed from 500000 to 560000 to 585000
-                                                                                                                 // before min changed from 7000 to 5000 to 1000 to 920 to 520
-                                                                                                                 // found very short logo invisible betweewn broascast and first preview
-                                                                                                                 // after min changed from 2020 to 1520 to 1200 to 840 to 560 to 520
-                            if (lengthPreview <= 111) {  // changed from 110 to 111
-                                isyslog("found preview between logo mark (%d) and logo mark (%d) in advertisement, deleting marks", mark->position, stopMark->position);
-                                cMark *tmp = startAfter;
-                                marks.Del(mark);
-                                marks.Del(stopMark);
-                                mark = tmp;
-                                continue;
+                    if ((lengthAdBefore >= 800) || (lengthAdAfter >= 360)) {  // check if we have ad before or after preview. if not it is a logo detection failure
+                                                                              // before changed from 1400 to 1360 to 800 to 360
+                                                                              // after changed from 3200 to 2160 to 1560 to 800
+                        if (((lengthAdBefore >= 120) && (lengthAdBefore <= 585000) && (lengthAdAfter >= 200)) || // if advertising before is long this is the really the next start mark
+                                                                                                                // previews can be at start of advertising (e.g. DMAX)
+                                                                                                                // before min changed from 920 to 520 to 200 to 120
+                                                                                                                // before max changed from 500000 to 560000 to 585000
+                                                                                                                // found very short logo invisible betweewn broascast and first preview
+                                                                                                                // after min changed from 1200 to 840 to 560 to 520 to 200
+                            ((lengthAdBefore >= 354200) && (lengthAdAfter >= 80))) {   // accept very short logo interuption after long ad
+                                                                                       // this is between last preview and broadcast start
+                            if (lengthPreview <= 113) {  // changed from 110 to 111 to 113
+                                // check if this logo stop and next logo start are closing credits, in this case stop mark is valid
+                                bool isNextClosingCredits = evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(startAfter->position);
+                                if (!isNextClosingCredits || (stopMark->position != marks.GetLast()->position)) { // check valid only for last mark
+                                    // check if this logo start mark and previuos logo stop mark are closing credits with logo, in this case logo start mark is valid
+                                    bool isBeforeClosingCredits = evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(mark->position);
+                                    if (!isBeforeClosingCredits || (stopMark->position != marks.GetFirst()->position)) {
+                                        isyslog("found preview between logo mark (%d) and logo mark (%d) in advertisement, deleting marks", mark->position, stopMark->position);
+                                        cMark *tmp = startAfter;
+                                        marks.Del(mark);
+                                        marks.Del(stopMark);
+                                        mark = tmp;
+                                        continue;
+                                    }
+                                    else dsyslog("cMarkAdStandalone::CheckMarks(): long advertisement before and logo stop before and this logo start mark are closing credits, this pair contains a start mark");
+                                }
+                                else dsyslog("cMarkAdStandalone::CheckMarks(): next stop/start pair are closing credits, this pair contains a stop mark");
                             }
                             else dsyslog("cMarkAdStandalone::CheckMarks(): no preview between (%d) and (%d), length %ds not valid",
                                                                                                                                 mark->position, mark->Next()->position, lengthPreview);
