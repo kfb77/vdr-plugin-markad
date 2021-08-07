@@ -700,7 +700,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 }
 
 
-bool cMarkAdLogo::SobelPlane(const int plane) {
+bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
     if ((plane < 0) || (plane >= PLANES)) return false;
     if (!maContext->Video.Data.PlaneLinesize[plane]) return false;
 
@@ -747,7 +747,6 @@ bool cMarkAdLogo::SobelPlane(const int plane) {
 
 //    dsyslog("cMarkAdLogo::SobelPlane(): xstart %d, xend %d, ystart %d, yend %d", xstart, xend, ystart, yend);
 
-    int boundary = 6;
     int cutval = 127;
     int width = logoWidth;
     if (plane > 0) {
@@ -768,8 +767,8 @@ bool cMarkAdLogo::SobelPlane(const int plane) {
             sumY = 0;
 
             // image boundaries
-            if (Y < (ystart + boundary) || Y > (yend - boundary)) SUM = 0;
-            else if (X < (xstart + boundary) || X > (xend - boundary)) SUM = 0;
+            if (Y <= (ystart + boundary) || Y >= (yend - boundary)) SUM = 0;
+            else if (X <= (xstart + boundary) || X >= (xend - boundary)) SUM = 0;
             // convolution starts here
             else {
                 // X Gradient approximation
@@ -840,7 +839,9 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 
     for (int plane = 0; plane < PLANES; plane++) {
         if ((area.valid[plane]) || (extract) || (onlyFillArea)) {
-            if (SobelPlane(plane)) {
+            int boundary = 0;               // logo detection ignores lines in corner with sobel.mask (logo), we want to use full logo surface
+            if (onlyFillArea) boundary = 5; // called by cExtractLogo, need boundary to remove lines in corner
+            if (SobelPlane(plane, boundary)) {
                 processed++;
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
                 if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200) && !onlyFillArea) {
@@ -899,7 +900,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 area.rPixel[0] = 0;
                 rPixel = 0;
                 mPixel = 0;
-                SobelPlane(0);
+                SobelPlane(0, 0);
                 rPixel += area.rPixel[0];
                 mPixel += area.mPixel[0];
 #ifdef DEBUG_LOGO_DETECTION
@@ -957,7 +958,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 area.rPixel[plane] = 0;
                 area.valid[plane] = true;
                 area.mPixel[plane] = area.mPixel[0] / 4;
-                SobelPlane(plane);
+                SobelPlane(plane, 0);
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
                 if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) {
                     Save(frameCurrent, area.sobel, plane, "area.sobel_coloured");

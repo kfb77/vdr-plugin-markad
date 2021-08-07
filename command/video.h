@@ -341,9 +341,10 @@ class cMarkAdLogo : cLogoSize {
 /**
  * sobel transform one plane of the picture
  * @param plane plane number
+ * @param boundary count pixel of outer frame to ignore in sobel transformation, need for logo extraction to avoid corner lines
  * @return true if successful, false otherwise
  */
-        bool SobelPlane(const int plane);
+        bool SobelPlane(const int plane, int boundary);
 
 /**
  * load logo from file in directory
