@@ -1214,7 +1214,8 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     if ((length > 8280) && (length <= 30000)) { // do not reduce min to prevent false positive, do not increase to detect 10s ad in frame
                                                 // minor change from 8000 to 8280
         if ((isStartMark && startOffset < START_OFFSET_MAX) ||  // an ad in frame with logo after start mark must be near start mark, changed from 5 to 4
-           (!isStartMark && stopOffset  < 5)) {  // an ad in frame with logo before stop mark must be near stop mark
+           (!isStartMark && stopOffset  < 10)) {  // an ad in frame with logo before stop mark must be near stop mark, changed from 5 to 10
+                                                  // maybe we haen a preview direct after ad in frame and missed stop mark
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): this is a advertising in frame with logo");
             if (isStartMark) retFrame = AdInFrame.endFinal;
             else retFrame = AdInFrame.startFinal;
