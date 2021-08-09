@@ -1817,6 +1817,24 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     dsyslog("cMarkAdStandalone::CheckMarks(): remove logo and hborder detection failure marks");
     DebugMarks();     //  only for debugging
 
+    // first pass, delete all very short STOP START logo marks because they are logo detection failure
+    mark = marks.GetFirst();
+    while (mark) {
+        if ((mark->type == MT_LOGOSTOP) && (mark->Next()) && (mark->Next()->type == MT_LOGOSTART)) {
+            int diff = 1000 * (mark->Next()->position - mark->position) / macontext.Video.Info.framesPerSecond;
+            if (diff <= 360) {
+                dsyslog("cMarkAdStandalone::CheckMarks(): very short logo stop (%d) start (%d) length %dms, deleting", mark->position, mark->Next()->position, diff);
+                cMark *tmp = mark;
+                mark = mark->Next()->Next();
+                marks.Del(tmp->Next());
+                marks.Del(tmp);
+                continue;
+            }
+        }
+        mark = mark->Next();
+    }
+
+    // second pass, delete rest
     mark = marks.GetFirst();
     while (mark) {
         if ((mark->position > marks.GetFirst()->position) && (mark->type == MT_LOGOSTART) && mark->Next() && mark->Next()->type == MT_LOGOSTOP) {  // do not delete selected start mark
