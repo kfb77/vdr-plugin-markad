@@ -1737,15 +1737,25 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     if (mark) {
         cMark *markStop = marks.GetNext(mark->position, MT_STOP, 0x0F);
         if (markStop) {
-            int maxDiff;
-            if (mark->type <= MT_NOBLACKSTART) maxDiff = 96;  // do not trust weak marks
-            else maxDiff = 8;
+            int maxDiff = 8;                                   // trust strong marks, do not trust weak marks
+            if (mark->type <= MT_NOBLACKSTART)   maxDiff = 96;
+            else if (mark->type == MT_LOGOSTART) maxDiff = 51; // changed from 26 to 51
             int diffStop = (markStop->position - mark->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
             dsyslog("cMarkAdStandalone::CheckMarks(): first broadcast length %ds from (%d) to (%d)", diffStop, mark->position, markStop->position);
-            if (diffStop <= maxDiff) {
-                dsyslog("cMarkAdStandalone::CheckMarks(): short STOP/START/STOP sequence at start, delete first pair");
-                marks.Del(mark->position);
-                marks.Del(markStop->position);
+            cMark *markStart = marks.GetNext(markStop->position, MT_START, 0x0F);
+            if (markStart) {
+                int diffStart = (markStart->position - markStop->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
+                dsyslog("cMarkAdStandalone::CheckMarks(): first advertising length %ds from (%d) to (%d)", diffStart, markStop->position, markStart->position);
+                if (diffStart <= 1) {
+                    dsyslog("cMarkAdStandalone::CheckMarks(): very short first advertising, this can be a logo detection failure");
+                }
+                else {
+                    if (diffStop <= maxDiff) {
+                        dsyslog("cMarkAdStandalone::CheckMarks(): short STOP/START/STOP sequence at start, delete first pair");
+                        marks.Del(mark->position);
+                        marks.Del(markStop->position);
+                    }
+                }
             }
         }
     }
