@@ -1760,13 +1760,13 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         int maxBeforeAssumed;           // max 5 min before assumed stop
         switch(mark->type) {
             case MT_ASSUMEDSTOP:
-                maxBeforeAssumed = 389; // try hard to get a better end mark
+                maxBeforeAssumed = 532; // try hard to get a better end mark, changed from 389 to 532
                 break;
             case MT_NOBLACKSTOP:
                 maxBeforeAssumed = 351; // try a litte more to get end mark, changed from 389 to 351
                 break;
             case MT_LOGOSTOP:
-                maxBeforeAssumed = 306;
+                maxBeforeAssumed = 299; // changed from 306 to 299
                 break;
             default:
                 maxBeforeAssumed = 300;                               // max 5 min before assumed stop
@@ -1782,7 +1782,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                 if (markStop) {
                     int diffStop = (markPrev->position - markStop->position) / macontext.Video.Info.framesPerSecond; // distance of the logo stop/start pair before last pair
                     dsyslog("cMarkAdStandalone::CheckMarks(): last advertising length %ds from (%d) to (%d)", diffStop, markStop->position, markPrev->position);
-                    if ((diffStop > 2) && (diffStop <= 163)) { // changed from 0 to 2 to avoid move to logo detection failure
+                    if ((diffStop > 2) && (diffStop <= 390)) { // changed from 0 to 2 to avoid move to logo detection failure, changed from 163 to 196 to 390
                         if ((mark->type != MT_LOGOSTOP) || (diffStop < 11) || (diffStop > 12)) { // ad from 11s to 12s can be undetected info logo at the end (SAT.1 or RTL2)
                             int iStopA = marks.GetFirst()->position + macontext.Video.Info.framesPerSecond * (length + macontext.Config->astopoffs);  // we have to recalculate iStopA
                             int diffAssumed = (iStopA - markStop->position) / macontext.Video.Info.framesPerSecond; // distance from assumed stop
