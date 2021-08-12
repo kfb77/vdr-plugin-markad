@@ -1034,16 +1034,24 @@ int cDetectLogoStopStart::ClosingCredit() {
         int endFinal   = -1;
     } ClosingImage;
 
+    int countFrames = 0;
+    int countDark   = 0;
+
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::ClosingCredit(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
         int similarCorners = 0;
-        int equalCorners = 0;
-        int noPixelCount = 0;
+        int equalCorners   = 0;
+        int noPixelCount   = 0;
+        int darkCorner     = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
             if (((*cornerResultIt).rate[corner] >= 230) || ((*cornerResultIt).rate[corner] == -1)) similarCorners++; // prevent false positiv from static scenes, changed from 220 to 230
             if (((*cornerResultIt).rate[corner] >= 807) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;   // changed from 970 to 899 to 807
             if ( (*cornerResultIt).rate[corner] ==  -1) noPixelCount++;
+            if (((*cornerResultIt).rate[corner] <=   0) && (corner != maContext->Video.Logo.corner)) darkCorner++;   // if we have no match, this can be a too dark corner
         }
+        countFrames++;
+        if (darkCorner == 3) countDark++;  // if all corners but logo corner has no match, this is a very dark scene
+
         if ((similarCorners >= 3) && (noPixelCount < CORNERS)) {  // at least 3 corners has a match, at least one corner has pixel
             if (ClosingCredits.start == -1) ClosingCredits.start = (*cornerResultIt).frameNumber1;
             ClosingCredits.end = (*cornerResultIt).frameNumber2;
@@ -1070,7 +1078,14 @@ int cDetectLogoStopStart::ClosingCredit() {
         }
     }
 
-    if ((ClosingImage.end - ClosingImage.start) >= (ClosingImage.endFinal - ClosingImage.startFinal)) {  // store longest part
+    // check if we have a full dark scene
+    if (countFrames == countDark) {
+        dsyslog("cDetectLogoStopStart::ClosingCredit(): full dark scene, could not detect anything");
+        return -1;
+    }
+
+    // store longest part maybe it was last part
+    if ((ClosingImage.end - ClosingImage.start) >= (ClosingImage.endFinal - ClosingImage.startFinal)) {
         ClosingImage.startFinal = ClosingImage.start;
         ClosingImage.endFinal   = ClosingImage.end;
     }
