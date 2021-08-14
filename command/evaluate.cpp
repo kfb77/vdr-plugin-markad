@@ -482,14 +482,16 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
 }
 
 
-bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo) {
+bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo, const int endRange) {
     if (!stopPosition) return false;
     if (!startPosition) return false;
     if (!isLogoChange) return false;
     if (!isInfoLogo) return false;
     if (nextLogoPairIterator == logoPairVector.end()) return false;
 
-    while ((nextLogoPairIterator->isLogoChange == STATUS_NO) && (nextLogoPairIterator->isInfoLogo == STATUS_NO)) {
+    // skip pair if there is nothing to detect
+    while ((nextLogoPairIterator->stopPosition < endRange) &&  // if we are in end range we possible need to detect colong credits
+           (nextLogoPairIterator->isLogoChange == STATUS_NO) && (nextLogoPairIterator->isInfoLogo == STATUS_NO)) {
         ++nextLogoPairIterator;
         if (nextLogoPairIterator == logoPairVector.end()) return false;
     }

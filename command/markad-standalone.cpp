@@ -714,7 +714,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
     // loop through all logo stop/start pairs
-    while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo)) {
+    while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo, iStopA - (26 * macontext.Video.Info.framesPerSecond))) {
         LogSeparator();
         // free from loop before
         if (indexToHMSFStop) {
@@ -732,8 +732,11 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
             dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): check logo stop (%d) at %s and logo start (%d) at %s, isInfoLogo %d", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart, isInfoLogo);
         }
         if (ptr_cDetectLogoStopStart->Detect(stopPosition, startPosition, false)) {
-            // check info logo before logo mark position
-            if ((isInfoLogo >= 0) && ptr_cDetectLogoStopStart->IsInfoLogo()) {
+            // check for closing credits if no other checks will be done, only part of the loop elements in recording end range
+            if ((isInfoLogo <= STATUS_NO) && (isLogoChange <= STATUS_NO)) ptr_cDetectLogoStopStart->ClosingCredit();
+
+            // check info logo
+            if ((isInfoLogo >= STATUS_UNKNOWN) && ptr_cDetectLogoStopStart->IsInfoLogo()) {
                 // found info logo part
                 if (indexToHMSFStop && indexToHMSFStart) {
                     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
@@ -741,7 +744,9 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
                 evaluateLogoStopStartPair->SetIsInfoLogo(stopPosition, startPosition);
                 marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
             }
-            if ((isLogoChange >= 0) && ptr_cDetectLogoStopStart->IsLogoChange()) {
+
+            // check logo change
+            if ((isLogoChange >= STATUS_UNKNOWN) && ptr_cDetectLogoStopStart->IsLogoChange()) {
                 if (indexToHMSFStop && indexToHMSFStart) {
                     isyslog("logo has changed between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
                 }
