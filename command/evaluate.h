@@ -159,9 +159,9 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
 /**
  * get closing credits status
  * @param startPosition frame number of the logo start mark
- * @return true if startPosition found and isClosingCredits is STATUS_YES, false otherwise
+ * @return value of isClosingCredits
  */
-        bool GetIsClosingCredits(const int startPosition);
+        int GetIsClosingCredits(const int startPosition);
 
 /**
  * get closing credits status

@@ -1231,7 +1231,7 @@ void cMarkAdStandalone::CheckStart() {
             bool isInvalid = true;
             while (isInvalid) {
                 // if the logo start mark belongs to closing credits logo stop/start pair, treat it as valid
-                if (evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(lStart->position)) break;
+                if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(lStart->position) == STATUS_YES)) break;
 
                 // check next logo stop/start pair
                 cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
@@ -1685,10 +1685,10 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                                                                                        // this is between last preview and broadcast start
                             if (lengthPreview <= 113) {  // changed from 110 to 111 to 113
                                 // check if this logo stop and next logo start are closing credits, in this case stop mark is valid
-                                bool isNextClosingCredits = evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(startAfter->position);
+                                bool isNextClosingCredits = evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(startAfter->position) == STATUS_YES);
                                 if (!isNextClosingCredits || (stopMark->position != marks.GetLast()->position)) { // check valid only for last mark
                                     // check if this logo start mark and previuos logo stop mark are closing credits with logo, in this case logo start mark is valid
-                                    bool isBeforeClosingCredits = evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(mark->position);
+                                    bool isBeforeClosingCredits = evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(mark->position) == STATUS_YES);
                                     if (!isBeforeClosingCredits || (stopMark->position != marks.GetFirst()->position)) {
                                         isyslog("found preview between logo mark (%d) and logo mark (%d) in advertisement, deleting marks", mark->position, stopMark->position);
                                         cMark *tmp = startAfter;

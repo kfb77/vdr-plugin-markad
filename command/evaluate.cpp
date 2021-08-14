@@ -528,16 +528,15 @@ void cEvaluateLogoStopStartPair::SetIsClosingCredits(const int stopPosition, con
 }
 
 
-bool cEvaluateLogoStopStartPair::GetIsClosingCredits(const int startPosition) {
+int cEvaluateLogoStopStartPair::GetIsClosingCredits(const int startPosition) {
     for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
         if (logoPairIterator->startPosition == startPosition) {
             dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCredits(): isClosingCredits for start (%d) mark: %d", logoPairIterator->startPosition, logoPairIterator->isClosingCredits);
-            if (logoPairIterator->isClosingCredits == STATUS_YES) return true;
-            else return false;
+            return logoPairIterator->isClosingCredits;
         }
     }
     dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCredits(): start (%d) mark not found", startPosition);
-    return false;
+    return STATUS_ERROR;
 }
 
 
