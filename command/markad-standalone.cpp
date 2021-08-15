@@ -3033,11 +3033,14 @@ void cMarkAdStandalone::Process3ndPass() {
         // logo stop mark or blackscreen start (=stop mark, this can only be a end mark, move mark to end of black screen range)
         // use black screen mark only after mark
         if ((mark->type == MT_LOGOSTOP) || (mark->type == MT_NOBLACKSTOP)) {
+            // try blackscreen after stop mark
+            bool foundAfter = false;
             cMark *blackMark = blackMarks.GetNext(mark->position, MT_NOBLACKSTART);
             if (blackMark) {
                 int diff_ms = 1000 * (blackMark->position - mark->position) / macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) %dms (expect <=%ds) after logo stop mark (%d) found", blackMark->position, diff_ms, blackscreenRange, mark->position);
                 if (diff_ms <= blackscreenRange) {
+                    foundAfter = true;
                     int newPos;
                     if (!macontext.Config->fullDecode) {
                         newPos =  recordingIndexMark->GetIFrameBefore(blackMark->position); // MT_NOBLACKSSTART with "only iFrame decoding" is the first frame afer blackscreen, get last frame of blackscreen, blacksceen at stop mark belongs to broasdact
@@ -3054,6 +3057,32 @@ void cMarkAdStandalone::Process3ndPass() {
                 }
             }
             else dsyslog("cMarkAdStandalone::Process3ndPass(): no black screen mark found after logo stop mark (%d)", mark->position);
+
+            // try blackscreen before stop mark, only with half distance
+            if (!foundAfter) {
+                cMark *blackMarkAfter = blackMarks.GetPrev(mark->position, MT_NOBLACKSTART);
+                if (blackMarkAfter) {
+                    int diff_ms = 1000 * (mark->position - blackMarkAfter->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::Process3ndPass(): blackscreen (%d) %dms (expect <=%ds) before logo stop mark (%d) found", blackMarkAfter->position, diff_ms, blackscreenRange, mark->position);
+                    if (diff_ms <= (blackscreenRange / 2)) {
+                        foundAfter = true;
+                        int newPos;
+                        if (!macontext.Config->fullDecode) {
+                            newPos =  recordingIndexMark->GetIFrameBefore(blackMarkAfter->position); // MT_NOBLACKSSTART with "only iFrame decoding" is the first frame afer blackscreen, get last frame of blackscreen, blacksceen at stop mark belongs to broasdact
+                        }
+                        else newPos = blackMarkAfter->position - 1; // MT_NOBLACKSTART is first frame after blackscreen, go one back
+
+                        if (newPos == mark->position) { // found blackscreen at same position
+                            mark = mark->Next();
+                            continue;
+                        }
+                        mark = marks.Move(&macontext, mark, newPos, "black screen");
+                        save = true;
+                        continue;
+                    }
+                }
+                else dsyslog("cMarkAdStandalone::Process3ndPass(): no black screen mark found before logo stop mark (%d)", mark->position);
+            }
         }
         mark = mark->Next();
     }
