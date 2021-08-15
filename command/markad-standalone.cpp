@@ -2175,16 +2175,14 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     }
     if (prev) {
         if (((prev->type & 0x0F) == (mark->type & 0x0F)) && ((prev->type & 0xF0) != (mark->type & 0xF0))) { // do not delete same mark type
-            int markDiff = 30;
-            if (iStart != 0) markDiff = 2;  // before chkStart: let more marks untouched, we need them for start detection
-            if (restartLogoDetectionDone) markDiff = 15; // we are in the end part, keep more marks to detect best end mark
-            int diff = (abs(mark->position - prev->position)) / macontext.Video.Info.framesPerSecond;
+            int markDiff = 30000;
+            if (iStart != 0) markDiff = 720;  // before chkStart: let more marks untouched, we need them for start detection, changed from 2000 to 720
+                                              // there are some broadcasts who start with a hborder preview but is not hborder
+            if (restartLogoDetectionDone) markDiff = 15000; // we are in the end part, keep more marks to detect best end mark
+            int diff = 1000 * (abs(mark->position - prev->position)) / macontext.Video.Info.framesPerSecond;
             if (diff < markDiff) {
                 if (prev->type > mark->type) {
-                    isyslog("previous mark (%i) type 0x%X stronger than actual mark with distance %ds, deleting (%i) type 0x%X", prev->position, prev->type, diff, mark->position, mark->type);
-                    if ((mark->type & 0xF0) == MT_BLACKCHANGE) {
-                        blackMarks.Add(mark->type, mark->position, NULL, false); // add mark to blackscreen list
-                    }
+                    isyslog("previous mark (%i) type 0x%X stronger than actual mark (%d) type 0x%X with distance %dms, deleting (%i)", prev->position, prev->type, mark->position, mark->type, diff, mark->position);
                     if (comment) {
                         FREE(strlen(comment)+1, "comment");
                         free(comment);
@@ -2192,10 +2190,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
                     return;
                 }
                 else {
-                    isyslog("actual mark (%i) type 0x%X stronger then previous mark with distance %ds, deleting %i type 0x%X", mark->position, mark->type, diff, prev->position, prev->type);
-                    if ((prev->type & 0xF0) == MT_BLACKCHANGE) {
-                        blackMarks.Add(prev->type, prev->position, NULL, false); // add mark to blackscreen list
-                    }
+                    isyslog("actual mark (%d) type 0x%X stronger then previous mark (%d) type 0x%X with distance %dms, deleting (%d)", mark->position, mark->type, prev->position, prev->type, diff, prev->position);
                     marks.Del(prev);
                 }
             }
