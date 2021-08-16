@@ -714,7 +714,9 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
     // loop through all logo stop/start pairs
-    while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo, iStopA - (26 * macontext.Video.Info.framesPerSecond))) {
+    int endRange = 0;  // if we are called by CheckStart, get all pairs to detect at least closing credits
+    if (iStart == 0) endRange = iStopA - (26 * macontext.Video.Info.framesPerSecond); // if we are called by CheckStop, get all pairs after this frame to detect at least closing credits
+    while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo, endRange)) {
         LogSeparator();
         // free from loop before
         if (indexToHMSFStop) {
