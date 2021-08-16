@@ -2441,7 +2441,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark
                 dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): next stop mark at (%d) to near, reduce check end position", nextStop->position);
             }
         }
-        if (nextStop->position < fRangeEnd) fRangeEnd = nextStop->position;  // do not check after next stop mark position
+        else if (fRangeEnd >= nextStop->position) fRangeEnd = nextStop->position - 1; // do not check after last stop mark position
     }
 
     dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): preload from frame       (%5d) to (%5d)", fRangeBegin, (*mark1)->position);
