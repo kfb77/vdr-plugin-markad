@@ -2072,6 +2072,10 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             dsyslog("cMarkAdStandalone::AddMark(): unknown mark type 0x%X", mark->type);
     }
 
+    // add blackscreen mark in andy case
+    if ((mark->type & 0xF0) == MT_BLACKCHANGE) blackMarks.Add(mark->type, mark->position, NULL, inBroadCast);
+
+    // check duplicate too near marks with different type
     cMark *prev = marks.GetLast();
     while (prev) { // we do not want blackscreen marks
         if ((prev->type & 0xF0) == MT_BLACKCHANGE) prev = prev->Prev();
@@ -2123,7 +2127,6 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
-    if ((mark->type & 0xF0) == MT_BLACKCHANGE) blackMarks.Add(mark->type, mark->position, NULL, inBroadCast);
     marks.Add(mark->type, mark->position, comment, inBroadCast);
     if (comment) {
         FREE(strlen(comment)+1, "comment");
