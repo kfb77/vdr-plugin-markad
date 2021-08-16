@@ -1238,7 +1238,24 @@ void cMarkAdStandalone::CheckStart() {
             bool isInvalid = true;
             while (isInvalid) {
                 // if the logo start mark belongs to closing credits logo stop/start pair, treat it as valid
-                if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(lStart->position) == STATUS_YES)) break;
+                if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(lStart->position) == STATUS_YES)) {
+                    dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark (%d) is end of closing credits, this is valid", lStart->position);
+                    // check next stop/start pair, if near and short this is a failed logo detection or an undetected info/introduction logo
+                    cMark *lNextStop  = marks.GetNext(lStart->position, MT_LOGOSTOP);
+                    cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
+                    if (lNextStart && lNextStop) {
+                        int distance = 1000 * (lNextStop->position  - lStart->position)    / macontext.Video.Info.framesPerSecond;
+                        int length   = 1000 * (lNextStart->position - lNextStop->position) / macontext.Video.Info.framesPerSecond;
+                        dsyslog("cMarkAdStandalone::CheckStart(): next logo stop (%d) start (%d), distance %dms, length %dms",
+                                                                                                            lNextStop->position, lNextStart->position, distance, length);
+                        if ((distance <= 680) && (length <= 4440)) {
+                            dsyslog("cMarkAdStandalone::CheckStart(): logo stop/start pair after closing credits invalid, deleting");
+                            marks.Del(lNextStop->position);
+                            marks.Del(lNextStart->position);
+                        }
+                    }
+                    break;
+                }
 
                 // check next logo stop/start pair
                 cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
