@@ -997,7 +997,7 @@ bool cDetectLogoStopStart::IsLogoChange() {
             noLogoQuote    = 100 * countNoLogoInLogoCorner / count;
         }
 #define LOGO_CHANGE_LIMIT static_cast<int>((matchNoLogoCorner / 3) * 1.15)  // chnaged from 1.3 to 1.15
-#define LOGO_LOW_QUOTE_MIN  82 // changed from 75 to 76 to 78 to 80 to 82
+#define LOGO_LOW_QUOTE_MIN  83 // changed from 78 to 80 to 82 to 83
 #define LOGO_HIGH_QUOTE_MIN 86 // changed from 88 to 86
 #define LOGO_QUOTE_NO_LOGO 19
         dsyslog("cDetectLogoStopStart::isLogoChange(): logo corner high matches %d quote %d%% (expect >=%d%%), low matches %d quote %d%% (expect >=%d%%), noLogoQuote %d (expect <=%d))", highMatchCount, highMatchQuote, LOGO_HIGH_QUOTE_MIN, lowMatchCount, lowMatchQuote, LOGO_LOW_QUOTE_MIN, noLogoQuote, LOGO_QUOTE_NO_LOGO);
