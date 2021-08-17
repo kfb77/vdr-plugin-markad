@@ -299,8 +299,8 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
 //
 void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond) {
     if (framesPerSecond <= 0) return;
-#define LOGO_INFO_STOP_START_MIN 3720  // min time in ms of a info logo section, bigger values than in InfoLogo becase of seek to iFrame, changed from 5000 to 4480 to 3720
-#define LOGO_INFO_STOP_START_MAX 17680 // max time in ms of a info logo section, changed from 17000 to 17640 to 17680
+#define LOGO_INFO_LENGTH_MIN  3720  // min time in ms of a info logo section, bigger values than in InfoLogo becase of seek to iFrame, changed from 5000 to 4480 to 3720
+#define LOGO_INFO_LENGTH_MAX 17680  // max time in ms of a info logo section, changed from 17000 to 17640 to 17680
 #define LOGO_INFO_SHORT_BLACKSCREEN_BEFORE_DIFF_MAX 440  // max time in ms no short blackscreen allowed before stop mark, changed from 40 to 440 to 360 to 440
                                                          // no not change, there are info logos direct after very short start logo (440ms before, length 1000ms)
 #define LOGO_INFO_SHORT_BLACKSCREEN_LENGTH         1000  // length of a short blackscreen, changed from 1080 to 1000
@@ -309,78 +309,94 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
 #define LOGO_INFO_LONG_BLACKSCREEN_LENGTH          5000  // length of a long blackscreen
 #define LOGO_INFO_BROADCAST_AFTER_MIN              1160  // min length of broadcast after info logo, changed from 4000 to 1160
 
-#define LOGO_INFO_NEXT_STOP_MIN                       3  // min distance of next logo stop/start pair to merge, changed from 5 to 3
-#define LOGO_INFO_NEXT_STOP_MAX                       8  // max distance of next logo stop/start pair to merge
+#define LOGO_INFO_NEXT_STOP_MIN                    2120  // min distance of next logo stop/start pair to merge, changed from 3000 to 2120
+#define LOGO_INFO_NEXT_STOP_MAX                    8080  // max distance of next logo stop/start pair to merge
                                                          // if info logo is very similar to logo, we false detect this as logo
                                                          // in this case we will have only a short logo interuption when info logo fade in/out, merge this range
+                                                         // changed from 8000 to 8080
     // check length
     int length = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / framesPerSecond;
     dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: length %dms (expect >=%dms and <=%dms)",
-                                                        logoStopStartPair->stopPosition, logoStopStartPair->startPosition, length, LOGO_INFO_STOP_START_MIN, LOGO_INFO_STOP_START_MAX);
+                                                        logoStopStartPair->stopPosition, logoStopStartPair->startPosition, length, LOGO_INFO_LENGTH_MIN, LOGO_INFO_LENGTH_MAX);
 
     // calculate next stop distance after stop/start pair
     int delta_Stop_AfterPair = 0;
     cMark *markStop_AfterPair = marks->GetNext(logoStopStartPair->stopPosition, MT_LOGOSTOP);
     if (markStop_AfterPair) {  // we have a next logo stop
-        delta_Stop_AfterPair = (markStop_AfterPair->position - logoStopStartPair->startPosition) / framesPerSecond;
+        delta_Stop_AfterPair = 1000 * (markStop_AfterPair->position - logoStopStartPair->startPosition) / framesPerSecond;
+        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: next stop mark (%d) distance %dms (expect >%dms)",
+                                        logoStopStartPair->stopPosition, logoStopStartPair->startPosition, markStop_AfterPair->position, delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MAX);
     }
-    dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: next stop mark distance %ds (expect <%ds)",
-                                                                   logoStopStartPair->stopPosition, logoStopStartPair->startPosition, delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MAX);
 
     // maybe we have a wrong start/stop pair between, check if merge with next pair can help
-    if (length < LOGO_INFO_STOP_START_MIN) {
-        if ((delta_Stop_AfterPair >= LOGO_INFO_NEXT_STOP_MIN) && (delta_Stop_AfterPair <= LOGO_INFO_NEXT_STOP_MAX)) {
-            dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): short pair and very near next start mark, try to merge with next pair");
+    if ((length < LOGO_INFO_LENGTH_MIN) ||  // this pair is too short
+       ((delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair <= LOGO_INFO_NEXT_STOP_MAX) && (length < 11800))) { // next pair is too near, do not merge big pairs
+        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): short pair or very near next start mark, try to merge with next pair");
 
-            // try next logo stop/start pair
-            cMark *pairNextStart = marks->GetNext(logoStopStartPair->startPosition, MT_LOGOSTART);
-            cMark *pairNextStop  = marks->GetNext(logoStopStartPair->startPosition, MT_LOGOSTOP);
-            if (pairNextStart) {
-                if (pairNextStop) dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): next pair: stop (%d) start (%d) found",  pairNextStop->position, pairNextStart->position);
-                else dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): next start mark (%d) but no next stop mark found",  pairNextStart->position);
-                int deltaStopStartNew = 1000 * (pairNextStart->position - logoStopStartPair->stopPosition ) / framesPerSecond;
-                if (deltaStopStartNew > LOGO_CHANGE_STOP_START_MAX) {
-                    dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): next start mark (%d) too near or too far away",  pairNextStart->position);
-                    logoStopStartPair->isLogoChange = STATUS_NO;
-                    return;
+        // try next logo stop/start pair
+        cMark *pairNextStart = marks->GetNext(logoStopStartPair->startPosition, MT_LOGOSTART);
+        cMark *pairNextStop  = marks->GetNext(logoStopStartPair->startPosition, MT_LOGOSTOP);
+        bool tryNext= true;
+        while (tryNext) {
+            if (pairNextStart && pairNextStop) {
+                dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): next pair: stop (%d) start (%d) found", pairNextStop->position, pairNextStart->position);
+                // check ditance of next logo stop mark
+                int deltaStopAfterPair = 1000 * (pairNextStop->position - logoStopStartPair->startPosition) / framesPerSecond;
+                if (deltaStopAfterPair < LOGO_INFO_NEXT_STOP_MIN) {
+                    dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): distance of next logo stop %ds too short, (expect <=%ds >=%ds), try next", delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MIN, LOGO_INFO_NEXT_STOP_MAX);
+                    pairNextStart = marks->GetNext(pairNextStart->position, MT_LOGOSTART);
+                    pairNextStop  = marks->GetNext(pairNextStop->position, MT_LOGOSTOP);
                 }
                 else {
-                    if (pairNextStop) {  // we have a next logo stop
-                        int lengthNew = 1000 * (pairNextStart->position - pairNextStop->position) / framesPerSecond;
-                        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): length of next pair: %dms", lengthNew);
-                        if ((length <= 120) && (lengthNew <= 160)) {
-                            dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): this pair and next pair are very short, they are previews, do not merge");
-                            logoStopStartPair->isLogoChange = STATUS_NO;
-                            return;
-                        }
-                        if (lengthNew > LOGO_INFO_STOP_START_MIN) {
-                            dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): next pair is long enough to be info logo, do not merge");
-                            logoStopStartPair->isLogoChange = STATUS_NO;
-                            return;
-                        }
-                        delta_Stop_AfterPair = (pairNextStop->position - logoStopStartPair->startPosition) / framesPerSecond;
+                    if (deltaStopAfterPair > LOGO_INFO_NEXT_STOP_MAX) {
+                        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): distance of next logo stop %ds too big, (expect <=%ds >=%ds", delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MIN, LOGO_INFO_NEXT_STOP_MAX);
+                        tryNext = false;
                     }
-                    else {  // no logo stop mark after new logo start mark
-                        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): no stop mark found after start mark (%d) ",  pairNextStart->position);
-                        delta_Stop_AfterPair = -1;
+                    else {
+                        // check length of merged pair
+                        int lengthNew = 1000 * (pairNextStart->position - logoStopStartPair->stopPosition ) / framesPerSecond;
+                        if ((lengthNew < LOGO_INFO_LENGTH_MIN) || (lengthNew > LOGO_INFO_LENGTH_MAX)) {
+                            dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): merged pair would have no valid length %dms", lengthNew);
+                            tryNext = false;
+                        }
+                        else {
+                            int lengthNext = 1000 * (pairNextStart->position - pairNextStop->position) / framesPerSecond;
+                            dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): length of next pair: %dms", lengthNext);
+                            if ((length <= 160) && (lengthNext <= 840)) { // length     changed from 120 to 160
+                                                                          // lengthNext changed from 160 to 840
+                                dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): this pair and next pair are very short, they are previews, do not merge");
+                                logoStopStartPair->isLogoChange = STATUS_NO;
+                                return;
+                            }
+                            if (lengthNext <= 320) {
+                                dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): next pair is very short, this is the part between broadcast start and info logo, it containes a valid start mark");
+                                logoStopStartPair->isLogoChange = STATUS_NO;
+                                return;
+                            }
+                            if (lengthNext > LOGO_INFO_LENGTH_MIN) {
+                                dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): next pair is long enough to be info logo, do not merge");
+                                logoStopStartPair->isLogoChange = STATUS_NO;
+                                return;
+                            }
+                            logoStopStartPair->startPosition = pairNextStart->position;
+                            length = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / framesPerSecond;  // length of merged pair
+                            dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): replace start mark with next start mark (%d), new length %dms",  pairNextStart->position, length);
+                            tryNext = false;
+                        }
                     }
-                    dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): replace start mark with next start mark (%d) new delta %dms, new distance %ds",  pairNextStart->position, deltaStopStartNew, delta_Stop_AfterPair);
-                    logoStopStartPair->startPosition = pairNextStart->position;
-                    length = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / framesPerSecond;
                 }
             }
             else {
-                logoStopStartPair->isLogoChange = STATUS_NO;
-                return;
-            }
+                dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): no next pair found");
+                tryNext = false;
+           }
         }
-        else dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): distance of next logo start %ds not valid, (expect <=%ds >=%ds)", delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MIN, LOGO_INFO_NEXT_STOP_MAX);
     }
 
     // check length of logo stop/start pair
-    if ((length > LOGO_INFO_STOP_START_MAX) || (length < LOGO_INFO_STOP_START_MIN)) {
+    if ((length > LOGO_INFO_LENGTH_MAX) || (length < LOGO_INFO_LENGTH_MIN)) {
         dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ----- stop (%d) start (%d) pair: no info logo section, length %dms (expect >=%dms and <=%dms)",
-                                                        logoStopStartPair->stopPosition, logoStopStartPair->startPosition, length, LOGO_INFO_STOP_START_MIN, LOGO_INFO_STOP_START_MAX);
+                                                        logoStopStartPair->stopPosition, logoStopStartPair->startPosition, length, LOGO_INFO_LENGTH_MIN, LOGO_INFO_LENGTH_MAX);
         logoStopStartPair->isInfoLogo = STATUS_NO;
         return;
     }
@@ -476,7 +492,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
             return;
         }
     }
-    dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           +++++ stop (%d) start (%d) pair: possible info logo section found, length  %ds (expect >=%ds and <=%ds)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, length, LOGO_INFO_STOP_START_MIN, LOGO_INFO_STOP_START_MAX);
+    dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           +++++ stop (%d) start (%d) pair: possible info logo section found, length  %ds (expect >=%ds and <=%ds)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, length, LOGO_INFO_LENGTH_MIN, LOGO_INFO_LENGTH_MAX);
     logoStopStartPair->isInfoLogo = STATUS_UNKNOWN;
     return;
 }
