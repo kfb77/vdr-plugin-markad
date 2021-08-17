@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-08-17: Version 3.0.10
+- optimize detection of short logo interruption
+- optimize preview detection
+- some minor bug fixes and optimizations, see git
+
 2021-07-31: Version 3.0.9
 - update Finnish translation (author: Ville-Pekka Vainio)
 - MarkadCut: fix crash if last ts file is not used
