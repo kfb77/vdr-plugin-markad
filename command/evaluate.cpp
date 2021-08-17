@@ -938,7 +938,9 @@ bool cDetectLogoStopStart::IsLogoChange() {
         dsyslog("cDetectLogoStopStart::isLogoChange(): frame (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
 
         // calculate possible preview fixed images
-        if (((*cornerResultIt).rate[0] >= 500) && ((*cornerResultIt).rate[1] >= 500) && ((*cornerResultIt).rate[2] >= 500) && ((*cornerResultIt).rate[3] >= 500)) {
+#define LOGO_CHANGE_STILL_MATCH_MIN 655  // chnaged from 500 to 655
+        if (((*cornerResultIt).rate[0] >= LOGO_CHANGE_STILL_MATCH_MIN) && ((*cornerResultIt).rate[1] >= LOGO_CHANGE_STILL_MATCH_MIN) &&
+            ((*cornerResultIt).rate[2] >= LOGO_CHANGE_STILL_MATCH_MIN) && ((*cornerResultIt).rate[3] >= LOGO_CHANGE_STILL_MATCH_MIN)) {
             if (previewImage.start == 0) previewImage.start = (*cornerResultIt).frameNumber1;
             previewImage.end = (*cornerResultIt).frameNumber2;
         }
@@ -976,13 +978,16 @@ bool cDetectLogoStopStart::IsLogoChange() {
         dsyslog("cDetectLogoStopStart::isLogoChange(): corner %-12s rate summery %5d of %2d frames", aCorner[corner], match[corner], count);
     }
     // check if there is a separation image
+#define LOGO_CHANGE_STILL_QUOTE_MIN  77
+#define LOGO_CHANGE_STILL_LENGTH_MIN 11
     previewImage.length = (previewImage.end - previewImage.start) / maContext->Video.Info.framesPerSecond;
     int quote = 100 * (previewImage.end - previewImage.start) / (endPos - startPos);
-    dsyslog("cDetectLogoStopStart::isLogoChange(): preview image: start (%d) end (%d), length %ds, quote %d%%", previewImage.start, previewImage.end, previewImage.length, quote);
+    dsyslog("cDetectLogoStopStart::isLogoChange(): preview image: start (%d) end (%d), length %ds (expect >%ds), quote %d%% (expect >=%d%%)", previewImage.start, previewImage.end, previewImage.length, LOGO_CHANGE_STILL_LENGTH_MIN, quote, LOGO_CHANGE_STILL_QUOTE_MIN);
     if (isSeparationImageNoPixel ||                                // black screen
-       (quote >= 77) ||                                           // a big part is still image
-       ((previewImage.length > 1) && isSeparationImageLowPixel) || // short still image, changed from 3 to 2 to 1
-       (previewImage.length >= 9)) {                               // a long still preview image direct before broadcast start
+       (quote >= LOGO_CHANGE_STILL_QUOTE_MIN) ||                   // a big part is still image
+      ((previewImage.length > 1) && isSeparationImageLowPixel) ||  // short still image, changed from 3 to 2 to 1
+       (previewImage.length > LOGO_CHANGE_STILL_LENGTH_MIN)) {     // a long still preview image direct before broadcast start, changed from 9 to 11
+                                                                   // prevent detection a still scene as separation image
         dsyslog("cDetectLogoStopStart::isLogoChange(): there is a separation images, pair can contain a valid start mark");
         status = false;
     }
