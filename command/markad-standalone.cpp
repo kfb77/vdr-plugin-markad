@@ -2993,7 +2993,7 @@ void cMarkAdStandalone::Process3ndPass() {
             if ((beforeSilence >= 0) && (beforeSilence != mark->position)) {
                 dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo start at frame (%i)", beforeSilence);
                 // search for blackscreen near silence to optimize mark positon
-                cMark *blackMark = blackMarks.GetAround(1 * macontext.Video.Info.framesPerSecond, beforeSilence, MT_NOBLACKSTART);
+                cMark *blackMark = blackMarks.GetAround(3 * macontext.Video.Info.framesPerSecond, beforeSilence, MT_NOBLACKSTART);  // changed from 1 to 3
                 if (blackMark) mark = marks.Move(&macontext, mark, blackMark->position, "black screen near silence");
                 else mark = marks.Move(&macontext, mark, beforeSilence, "silence");
                 save = true;
