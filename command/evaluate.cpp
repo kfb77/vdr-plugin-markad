@@ -1127,7 +1127,8 @@ int cDetectLogoStopStart::ClosingCredit() {
                                                                             // - we would not have the complete part, so it should go nearly to end
                                                                             // - we also should detect ad in frame
                                                                             // changed from <= 1440 to 1920 to < 1200 to 480
-           ((startOffset <= 480) && (endOffset <= 960)))) {                 // if good start accept early end
+           ((startOffset <= 480) && (endOffset < 480)))) {                  // if good start accept early end, changed from <= 960 to < 480
+                                                                            // still broadcast scene deteted false as closing credit
         dsyslog("cDetectLogoStopStart::ClosingCredit(): this is a closing credits, pair contains a valid mark");
         closingCreditsFrame = ClosingCredits.end;
     }
