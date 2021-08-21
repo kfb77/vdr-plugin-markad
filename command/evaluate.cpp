@@ -1073,7 +1073,7 @@ int cDetectLogoStopStart::ClosingCredit() {
             if (((*cornerResultIt).rate[corner] <=   0) && (corner != maContext->Video.Logo.corner)) darkCorner++;   // if we have no match, this can be a too dark corner
         }
         countFrames++;
-        if (darkCorner == 3) countDark++;  // if all corners but logo corner has no match, this is a very dark scene
+        if (darkCorner >= 2) countDark++;  // if at least two corners but logo corner has no match, this is a very dark scene
 
         if ((similarCorners >= 3) && (noPixelCount < CORNERS)) {  // at least 3 corners has a match, at least one corner has pixel
             if (ClosingCredits.start == -1) ClosingCredits.start = (*cornerResultIt).frameNumber1;
@@ -1101,9 +1101,11 @@ int cDetectLogoStopStart::ClosingCredit() {
         }
     }
 
-    // check if we have a full dark scene
-    if (countFrames == countDark) {
-        dsyslog("cDetectLogoStopStart::ClosingCredit(): full dark scene, could not detect anything");
+    // check if we have a too much dark scene to detect
+    int darkQuote = 100 * countDark / countFrames;
+    dsyslog("cDetectLogoStopStart::ClosingCredit(): dark scene quote %d%%", darkQuote);
+    if (darkQuote == 100) {
+        dsyslog("cDetectLogoStopStart::ClosingCredit(): too much dark scene, closing credits are not dark");
         return -1;
     }
 
