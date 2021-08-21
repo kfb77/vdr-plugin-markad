@@ -385,8 +385,7 @@ void cMarkAdLogo::SaveFrameCorner(const int frameNumber, const int debug) {
         int width = xend - xstart;
         int height = yend - ystart;
 
-        if (plane == 0) dsyslog("cMarkAdLogo::SaveFrameCorner(): frameNumber (%5d) plane %d xstart %3d xend %3d ystart %3d yend %3d corner %d width %3d height %3d debug %d",
-                                                                                                  frameNumber, plane, xstart, xend, ystart, yend, area.corner, width, height, debug);
+//        if (plane == 0) dsyslog("cMarkAdLogo::SaveFrameCorner(): frameNumber (%5d) plane %d xstart %3d xend %3d ystart %3d yend %3d corner %d width %3d height %3d debug %d", frameNumber, plane, xstart, xend, ystart, yend, area.corner, width, height, debug);
 
     // Open file
         sprintf(szFilename, "/tmp/frame%07d_C%d_P%d_D%02d.pgm", frameNumber, area.corner, plane, debug);
