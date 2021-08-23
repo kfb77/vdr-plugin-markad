@@ -979,7 +979,7 @@ bool cDetectLogoStopStart::IsLogoChange() {
         dsyslog("cDetectLogoStopStart::isLogoChange(): corner %-12s rate summery %5d of %2d frames", aCorner[corner], match[corner], count);
     }
     // check if there is a separation image
-#define LOGO_CHANGE_STILL_QUOTE_MIN  77
+#define LOGO_CHANGE_STILL_QUOTE_MIN  71  // changed from 77 to 71
 #define LOGO_CHANGE_STILL_LENGTH_MIN 11
     previewImage.length = (previewImage.end - previewImage.start) / maContext->Video.Info.framesPerSecond;
     int quote = 100 * (previewImage.end - previewImage.start) / (endPos - startPos);
