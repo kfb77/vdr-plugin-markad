@@ -1068,7 +1068,7 @@ int cDetectLogoStopStart::ClosingCredit() {
         int darkCorner     = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
             if (((*cornerResultIt).rate[corner] >= 230) || ((*cornerResultIt).rate[corner] == -1)) similarCorners++; // prevent false positiv from static scenes, changed from 220 to 230
-            if (((*cornerResultIt).rate[corner] >= 807) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;   // changed from 970 to 899 to 807
+            if (((*cornerResultIt).rate[corner] >= 260) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;   // changed from 899 to 807 to 715 to 260
             if ( (*cornerResultIt).rate[corner] ==  -1) noPixelCount++;
             if (((*cornerResultIt).rate[corner] <=   0) && (corner != maContext->Video.Logo.corner)) darkCorner++;   // if we have no match, this can be a too dark corner
         }
