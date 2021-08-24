@@ -13,15 +13,15 @@
 extern "C" {
     #include "debug.h"
 }
+
 #include "global.h"
 #include "video.h"
 #include "audio.h"
 #include "marks.h"
 #include "encoder_new.h"
 #include "evaluate.h"
+#include "osd.h"
 
-#define trcs(c) bind_textdomain_codeset("markad",c)
-#define tr(s) dgettext("markad",s)
 
 #define IGNORE_VIDEOINFO 1
 #define IGNORE_AUDIOINFO 2
@@ -30,43 +30,6 @@ extern "C" {
 #define DELTATIME 20000 /* equals to 222ms (base is 90kHz PTS) */
 
 #define MAXRANGE 120 /* range to search for start/stop marks in seconds */
-
-
-/**
- * send OSD message to VDR
- */
-class cOSDMessage {
-    public:
-
-/** constuctor
- * @param hostName   name or IP address of VDR
- * @param portNumber port number for OSD messages
- */
-        cOSDMessage(const char *hostName, int portNumber);
-
-        ~cOSDMessage();
-
-/**
- * send message to VDR OSD
- * @param format message format
- * @return 0 for success, -1 otherwise
- */
-        int Send(const char *format, ...);
-
-    private:
-        const char *host;                            //!< VDR host name or IP address
-                                                     //!<
-        int port;                                    //!< VDR port number to send OSD messages
-                                                     //!<
-        char *msg = NULL;                            //!< OSD message
-                                                     //!<
-        pthread_t tid = 0;                           //!< thread id of the OSD message
-                                                     //!<
-        static void *SendMessage(void *osd);         //!< send OSD message
-                                                     //!<
-        bool ReadReply(int fd, char **reply = NULL); //!< read reply from OSD
-                                                     //!<
-};
 
 
 /**
