@@ -751,7 +751,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
     // restore maContext state
     maContext->Video = maContextSaveState.Video;     // restore state of calling video context
     maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
-    return true;
+    return status;
 }
 
 
