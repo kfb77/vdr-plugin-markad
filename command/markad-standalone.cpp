@@ -3107,7 +3107,8 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 return false;
             }
 
-            if (!restartLogoDetectionDone && (frameCurrent > (iStopA-macontext.Video.Info.framesPerSecond * 2 * MAXRANGE))) {
+            // turn on logo and blackscreen detection for end part even if we use stronger marks, just in case we will get no strong end mark
+            if (!restartLogoDetectionDone && (frameCurrent > (iStopA - (macontext.Video.Info.framesPerSecond * 2 * MAXRANGE))) && (iStart == 0)) { // not before start part done
                 dsyslog("cMarkAdStandalone::ProcessFrame(): enter end part at frame (%d)", frameCurrent);
                 restartLogoDetectionDone = true;
                 if ((macontext.Video.Options.ignoreBlackScreenDetection) || (macontext.Video.Options.ignoreLogoDetection)) {
