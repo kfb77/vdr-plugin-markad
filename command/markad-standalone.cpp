@@ -1235,8 +1235,7 @@ void cMarkAdStandalone::CheckStart() {
                     lStart = lNextStart;   // found better logo start mark
                 }
             }
-            bool isInvalid = true;
-            while (isInvalid) {
+            while (true) {
                 // if the logo start mark belongs to closing credits logo stop/start pair, treat it as valid
                 if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(lStart->position) == STATUS_YES)) {
                     dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark (%d) is end of closing credits, this is valid", lStart->position);
@@ -1265,7 +1264,7 @@ void cMarkAdStandalone::CheckStart() {
                                                    // change from 55 to 20 because of too short logo change detected about 20s after start mark
                         indexToHMSF = marks.IndexToHMSF(lStop->position, &macontext);
                         if (indexToHMSF) {
-                            dsyslog("cMarkAdStandalone::CheckStart(): logo stop mark found very short after start mark on position (%i) at %s, distance %ds", lStop->position, indexToHMSF, distanceStartStop);
+                            dsyslog("cMarkAdStandalone::CheckStart(): next logo stop mark found very short after start mark on position (%i) at %s, distance %ds", lStop->position, indexToHMSF, distanceStartStop);
                             FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                             free(indexToHMSF);
                         }
@@ -1273,30 +1272,27 @@ void cMarkAdStandalone::CheckStart() {
                         if (lNextStart) {  // now we have logo start/stop/start, this can be a preview before broadcast start
                             indexToHMSF = marks.IndexToHMSF(lNextStart->position, &macontext);
                             int distanceStopNextStart = (lNextStart->position - lStop->position) / macontext.Video.Info.framesPerSecond;
-                            if ((distanceStopNextStart <= 76) || // found start mark short after start/stop, use this as start mark, changed from 21 to 68 to 76
-                                (distanceStartStop <= 10)) { // very short logo start stop is not valid
-                                if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark short after logo start/stop marks on position (%i) at %s", lNextStart->position, indexToHMSF);
+                            if (distanceStopNextStart <= 76) { // found start mark short after start/stop, use this as start mark, changed from 21 to 68 to 76
+                                if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, use this start mark", lNextStart->position, indexToHMSF, distanceStopNextStart);
                                 lStart = lNextStart;
                             }
                             else {
-                                isInvalid = false;
-                                if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): next logo start mark (%i) at %s too far away %d", lNextStart->position, indexToHMSF, distanceStopNextStart);
+                                if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, distance not valid", lNextStart->position, indexToHMSF, distanceStopNextStart);
+                                break;
                             }
                             if (indexToHMSF) {
                                 FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                                 free(indexToHMSF);
                             }
                         }
-                        else isInvalid = false;
+                        else break;
                     }
                     else {  // there is a next stop mark but too far away
                         dsyslog("cMarkAdStandalone::CheckStart(): next logo stop mark (%d) but too far away %ds", lStop->position, distanceStartStop);
-                        isInvalid = false;
+                        break;
                     }
                 }
-                else { // the is no next stop mark
-                    isInvalid = false;
-                }
+                else break; // the is no next stop mark
             }
             if (lStart->position  >= (iStart / 8)) {
                 begin = lStart;   // found valid logo start mark
