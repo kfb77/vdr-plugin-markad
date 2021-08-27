@@ -2084,7 +2084,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     if (prev) {
         if (((prev->type & 0x0F) == (mark->type & 0x0F)) && ((prev->type & 0xF0) != (mark->type & 0xF0))) { // do not delete same mark type
             int markDiff = 30000;
-            if (iStart != 0) markDiff = 720;  // before chkStart: let more marks untouched, we need them for start detection, changed from 2000 to 720
+            if (iStart != 0) markDiff = 680;  // before chkStart: let more marks untouched, we need them for start detection, changed from 2000 to 720 to 680
                                               // there are some broadcasts who start with a hborder preview but is not hborder
             if (restartLogoDetectionDone) markDiff = 15000; // we are in the end part, keep more marks to detect best end mark
             int diff = 1000 * (abs(mark->position - prev->position)) / macontext.Video.Info.framesPerSecond;
