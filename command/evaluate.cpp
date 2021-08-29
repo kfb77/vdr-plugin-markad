@@ -1137,17 +1137,19 @@ int cDetectLogoStopStart::ClosingCredit() {
     else dsyslog("cDetectLogoStopStart::ClosingCredit(): no closing credits found");
 
     // check if it is a still image
+#define CLOSING_CREDITS_STILL_OFFSET_MAX 10559  // max offset in ms from startPos (stop mark) to begn of still image
+#define STILL_IMAGE_QOUTE_MIN 50                // changed from 47 to 50
     if (closingCreditsFrame == -1) {
-        int lengthStillImage = ClosingImage.endFinal - ClosingImage.startFinal;
+        int lengthStillImage      = ClosingImage.endFinal - ClosingImage.startFinal;
+        int offsetStartStillImage = 1000 * (ClosingImage.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
         if (lengthStillImage > 0) {
             int quote = 100 * lengthStillImage / (endPos - startPos);
-#define STILL_IMAGE_QOUTE_MIN 50 // changed from 47 to 50
-            dsyslog("cDetectLogoStopStart::ClosingCredit(): quote of still image %d%% (expect >= %d)", quote, STILL_IMAGE_QOUTE_MIN);
-            if (quote > STILL_IMAGE_QOUTE_MIN) {
+            dsyslog("cDetectLogoStopStart::ClosingCredit(): still image from (%d) to (%d), start offset %dms (expect <= %dms), quote %d%% (expect >= %d)", ClosingImage.startFinal, ClosingImage.endFinal, offsetStartStillImage, CLOSING_CREDITS_STILL_OFFSET_MAX, quote, STILL_IMAGE_QOUTE_MIN);
+            if ((quote > STILL_IMAGE_QOUTE_MIN) && (offsetStartStillImage <= CLOSING_CREDITS_STILL_OFFSET_MAX)) {
                 dsyslog("cDetectLogoStopStart::ClosingCredit(): still image found");
                 closingCreditsFrame = ClosingImage.endFinal;
             }
-            else dsyslog("cDetectLogoStopStart::ClosingCredit(): still image too short");
+            else dsyslog("cDetectLogoStopStart::ClosingCredit(): still image too short or too far away from stop mark");
         }
         else dsyslog("cDetectLogoStopStart::ClosingCredit(): no still image found");
     }
