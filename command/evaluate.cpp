@@ -978,44 +978,45 @@ bool cDetectLogoStopStart::IsLogoChange() {
     for (int corner = 0; corner < CORNERS; corner++) {
         dsyslog("cDetectLogoStopStart::isLogoChange(): corner %-12s rate summery %5d of %2d frames", aCorner[corner], match[corner], count);
     }
+
     // check if there is a separation image
-#define LOGO_CHANGE_STILL_QUOTE_MIN  71  // changed from 77 to 71
-#define LOGO_CHANGE_STILL_LENGTH_MIN 11
-    previewImage.length = (previewImage.end - previewImage.start) / maContext->Video.Info.framesPerSecond;
+#define LOGO_CHANGE_STILL_QUOTE_MIN           71  // changed from 77 to 71
+#define LOGO_CHANGE_STILL_LENGTH_SHORT_MIN   960
+#define LOGO_CHANGE_STILL_LENGTH_LONG_MIN  11000
+    previewImage.length = 1000 * (previewImage.end - previewImage.start) / maContext->Video.Info.framesPerSecond;
     int quote = 100 * (previewImage.end - previewImage.start) / (endPos - startPos);
-    dsyslog("cDetectLogoStopStart::isLogoChange(): preview image: start (%d) end (%d), length %ds (expect >%ds), quote %d%% (expect >=%d%%)", previewImage.start, previewImage.end, previewImage.length, LOGO_CHANGE_STILL_LENGTH_MIN, quote, LOGO_CHANGE_STILL_QUOTE_MIN);
-    if ((quote >= LOGO_CHANGE_STILL_QUOTE_MIN) ||                   // a big part is still image
-       ((previewImage.length > 1) && isSeparationImageLowPixel) ||  // short still image, changed from 3 to 2 to 1
-        (previewImage.length > LOGO_CHANGE_STILL_LENGTH_MIN)) {     // a long still preview image direct before broadcast start, changed from 9 to 11
-                                                                   // prevent detection a still scene as separation image
+    dsyslog("cDetectLogoStopStart::isLogoChange(): preview image: start (%d) end (%d), length %dms (expect short >= %ds long >%dms), quote %d%% (expect >=%d%%)", previewImage.start, previewImage.end, previewImage.length, LOGO_CHANGE_STILL_LENGTH_SHORT_MIN, LOGO_CHANGE_STILL_LENGTH_LONG_MIN, quote, LOGO_CHANGE_STILL_QUOTE_MIN);
+    if ((quote >= LOGO_CHANGE_STILL_QUOTE_MIN) ||                    // a big part is still image
+       ((previewImage.length >= LOGO_CHANGE_STILL_LENGTH_SHORT_MIN) && isSeparationImageLowPixel) ||   // short still image, changed from 3 to 2 to 1 and a separator frame
+        (previewImage.length > LOGO_CHANGE_STILL_LENGTH_LONG_MIN)) { // a long still preview image direct before broadcast start, changed from 9 to 11
+                                                                     // prevent detection a still scene as separation image
         dsyslog("cDetectLogoStopStart::isLogoChange(): there is a separation images, pair can contain a valid start mark");
-        status = false;
+        return false;
     }
+
     // check match quotes
-    if (status) {
-        int highMatchQuote = 0;
-        int lowMatchQuote  = 0;
-        int noLogoQuote    = 0;
-        if (count > 0) {
-            highMatchQuote = 100 * highMatchCount / count;
-            lowMatchQuote  = 100 * lowMatchCount  / count;
-            noLogoQuote    = 100 * countNoLogoInLogoCorner / count;
-        }
+    int highMatchQuote = 0;
+    int lowMatchQuote  = 0;
+    int noLogoQuote    = 0;
+    if (count > 0) {
+        highMatchQuote = 100 * highMatchCount / count;
+        lowMatchQuote  = 100 * lowMatchCount  / count;
+        noLogoQuote    = 100 * countNoLogoInLogoCorner / count;
+    }
 #define LOGO_CHANGE_LIMIT static_cast<int>((matchNoLogoCorner / 3) * 1.15)  // chnaged from 1.3 to 1.15
 #define LOGO_LOW_QUOTE_MIN  83 // changed from 78 to 80 to 82 to 83
 #define LOGO_HIGH_QUOTE_MIN 86 // changed from 88 to 86
 #define LOGO_QUOTE_NO_LOGO 19
-        dsyslog("cDetectLogoStopStart::isLogoChange(): logo corner high matches %d quote %d%% (expect >=%d%%), low matches %d quote %d%% (expect >=%d%%), noLogoQuote %d (expect <=%d))", highMatchCount, highMatchQuote, LOGO_HIGH_QUOTE_MIN, lowMatchCount, lowMatchQuote, LOGO_LOW_QUOTE_MIN, noLogoQuote, LOGO_QUOTE_NO_LOGO);
-        dsyslog("cDetectLogoStopStart::isLogoChange(): rate summery logo corner %5d (expect >=%d), summery other corner %5d, avg other corners %d", match[maContext->Video.Logo.corner], LOGO_CHANGE_LIMIT, matchNoLogoCorner, static_cast<int>(matchNoLogoCorner / 3));
-        if ((lowMatchQuote >= LOGO_LOW_QUOTE_MIN) && (noLogoQuote <= LOGO_QUOTE_NO_LOGO) &&
-                  ((match[maContext->Video.Logo.corner] > LOGO_CHANGE_LIMIT) || (highMatchQuote >= LOGO_HIGH_QUOTE_MIN))) {
-            dsyslog("cDetectLogoStopStart::isLogoChange(): matches over limit, logo change found");
-            status = true;
-        }
-        else {
-            dsyslog("cDetectLogoStopStart::isLogoChange(): matches under limits, no logo change");
-            status = false;
-        }
+    dsyslog("cDetectLogoStopStart::isLogoChange(): logo corner high matches %d quote %d%% (expect >=%d%%), low matches %d quote %d%% (expect >=%d%%), noLogoQuote %d (expect <=%d))", highMatchCount, highMatchQuote, LOGO_HIGH_QUOTE_MIN, lowMatchCount, lowMatchQuote, LOGO_LOW_QUOTE_MIN, noLogoQuote, LOGO_QUOTE_NO_LOGO);
+    dsyslog("cDetectLogoStopStart::isLogoChange(): rate summery logo corner %5d (expect >=%d), summery other corner %5d, avg other corners %d", match[maContext->Video.Logo.corner], LOGO_CHANGE_LIMIT, matchNoLogoCorner, static_cast<int>(matchNoLogoCorner / 3));
+    if ((lowMatchQuote >= LOGO_LOW_QUOTE_MIN) && (noLogoQuote <= LOGO_QUOTE_NO_LOGO) &&
+              ((match[maContext->Video.Logo.corner] > LOGO_CHANGE_LIMIT) || (highMatchQuote >= LOGO_HIGH_QUOTE_MIN))) {
+       dsyslog("cDetectLogoStopStart::isLogoChange(): matches over limit, logo change found");
+        status = true;
+    }
+    else {
+        dsyslog("cDetectLogoStopStart::isLogoChange(): matches under limits, no logo change");
+        status = false;
     }
     return status;
 }
