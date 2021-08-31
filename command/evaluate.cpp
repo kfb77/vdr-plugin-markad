@@ -39,6 +39,7 @@ bool cEvaluateChannel::ClosingCreditsChannel(char *channelName) {
     if ((strcmp(channelName, "kabel_eins") != 0) &&
         (strcmp(channelName, "SAT_1") != 0) &&
         (strcmp(channelName, "SIXX") != 0) &&
+        (strcmp(channelName, "DMAX") != 0) &&
         (strcmp(channelName, "Pro7_MAXX") != 0) &&
         (strcmp(channelName, "RTL2") != 0) &&
         (strcmp(channelName, "ProSieben") != 0)) {
