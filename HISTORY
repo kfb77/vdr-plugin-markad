@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-09-01: Version 3.0.11
+- redesign introduction logo detection
+- some minor bug fixes and optimizations, see git
+
 2021-08-17: Version 3.0.10
 - optimize detection of short logo interruption
 - optimize preview detection
