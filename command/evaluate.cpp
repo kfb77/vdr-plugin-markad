@@ -1330,16 +1330,24 @@ int cDetectLogoStopStart::IntroductionLogo() {
             introductionLogo.end   = -1;
             separatorFrameAfter    = -1;
             stillImage.start       = -1;
+            stillImage.startFinal  = -1;
             stillImage.end         = -1;
+            stillImage.endFinal    = -1;
             continue;
         }
-        if ((separatorFrameBefore >= 0) && (countZero >= 1) && (sumPixel <= 166)) { // separator after introduction logo, in this case it can not be a introduction logo
-                                                                                    // countZero: changed from 2 to 1
-                                                                                    // sumPixel:  changed from 34 to 166
+
+        // separator after introduction logo, in this case it can not be a introduction logo
+        //  0    24   102     9 -> no seperator frame
+        // 52     0   114     0 -> separator frame
+        if ((separatorFrameBefore >= 0) &&
+           (((countZero >= 1) && (sumPixel <= 134)) ||
+             (countZero >= 2) && (sumPixel <= 166))) {
             separatorFrameAfter = (*cornerResultIt).frameNumber1;
         }
+
+        // detect still image
         if ((separatorFrameBefore >= 0) && (introductionLogo.start >= 0) && (countStillImage >= 3)) { // still image or closing credists after introduction logo
-                                                                                                       // countStillImage: changed from 4 to 3
+                                                                                                      // countStillImage: changed from 4 to 3
             if (stillImage.start == -1) stillImage.start = (*cornerResultIt).frameNumber1;
             stillImage.end = (*cornerResultIt).frameNumber2;
         }
@@ -1384,6 +1392,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
         return -1;
     }
 
+#define INTRODUCTION_STILL_MAX_DIFF_END       1919   // max distance of still image to start mark (endPos)
     // check still image after introduction logo
     if ((stillImage.end - stillImage.start) >= (stillImage.endFinal - stillImage.startFinal)) {
         stillImage.startFinal = stillImage.start;
@@ -1392,9 +1401,10 @@ int cDetectLogoStopStart::IntroductionLogo() {
     int length        = 1000 * (introductionLogo.end   - introductionLogo.start) / maContext->Video.Info.framesPerSecond;
     if ((stillImage.startFinal >= 0) && (stillImage.endFinal > 0)) {
         int lengthStillImage = 1000 * (stillImage.endFinal - stillImage.startFinal) / maContext->Video.Info.framesPerSecond;
+        int diffStartMark    = 1000 * (endPos              - stillImage.endFinal)   / maContext->Video.Info.framesPerSecond;
         int maxQuote = length * 0.7; // changed from 0.8 to 0.7
-        dsyslog("cDetectLogoStopStart::IntroductionLogo(): still image after introduction from (%d) to (%d), length %dms (expect <=%dms)", stillImage.startFinal, stillImage.endFinal, lengthStillImage, maxQuote);
-        if (lengthStillImage > maxQuote) return -1;
+        dsyslog("cDetectLogoStopStart::IntroductionLogo(): still image after introduction from (%d) to (%d), length %dms (expect >=%dms), distance to start mark %dms (expect <=%dms)", stillImage.startFinal, stillImage.endFinal, lengthStillImage, maxQuote, diffStartMark, INTRODUCTION_STILL_MAX_DIFF_END);
+        if ((lengthStillImage >= maxQuote) && (diffStartMark <= INTRODUCTION_STILL_MAX_DIFF_END)) return -1;
     }
 
     // check introduction logo
@@ -1410,4 +1420,3 @@ int cDetectLogoStopStart::IntroductionLogo() {
     else dsyslog("cDetectLogoStopStart::IntroductionLogo(): no introduction logo found");
     return retFrame;
 }
-
