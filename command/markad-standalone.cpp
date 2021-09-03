@@ -2818,10 +2818,12 @@ void cMarkAdStandalone::Process3ndPass() {
     LogSeparator(false);
     dsyslog("cMarkAdStandalone::Process3ndPass(): search for audio silence around logo marks");
     int silenceRange = 3500;  // in ms, do not increase, otherwise we got stop marks behind separation images, changed from 5000 to 3500
-    if (strcmp(macontext.Info.ChannelName, "DMAX")   == 0) silenceRange = 12000; // logo color change at the begin
-    if (strcmp(macontext.Info.ChannelName, "SIXX")   == 0) silenceRange =  5000; // short preview with logo direct after broadcast, get real stop with black screen between
-    if ((strcmp(macontext.Info.ChannelName, "TELE_5") == 0) ||
-        (strcmp(macontext.Info.ChannelName, "Nickelodeon") == 0)) silenceRange =  7000; // logo fade in/out
+    if (macontext.Info.ChannelName) {  // macontext.Info.ChannelName == NULL can happen if the VDR info file is missing
+        if (strcmp(macontext.Info.ChannelName, "DMAX")   == 0) silenceRange = 12000; // logo color change at the begin
+        if (strcmp(macontext.Info.ChannelName, "SIXX")   == 0) silenceRange =  5000; // short preview with logo direct after broadcast, get real stop with black screen between
+        if ((strcmp(macontext.Info.ChannelName, "TELE_5") == 0) ||
+            (strcmp(macontext.Info.ChannelName, "Nickelodeon") == 0)) silenceRange =  7000; // logo fade in/out
+    }
 
     ptr_cDecoder->Reset();
     ptr_cDecoder->DecodeDir(directory);
@@ -2911,9 +2913,11 @@ void cMarkAdStandalone::Process3ndPass() {
     dsyslog("cMarkAdStandalone::Process3ndPass(): start search for blackscreen near logo marks");
     int blackscreenRange = 4270;
     // logo fade in/out
-    if ((strcmp(macontext.Info.ChannelName, "TELE_5")         == 0) ||
-        (strcmp(macontext.Info.ChannelName, "Disney_Channel") == 0) ||
-        (strcmp(macontext.Info.ChannelName, "Nickelodeon")    == 0)) blackscreenRange = 5500;
+    if (macontext.Info.ChannelName) {  // macontext.Info.ChannelName == NULL can happen if the VDR info file is missing
+        if ((strcmp(macontext.Info.ChannelName, "TELE_5")         == 0) ||
+            (strcmp(macontext.Info.ChannelName, "Disney_Channel") == 0) ||
+            (strcmp(macontext.Info.ChannelName, "Nickelodeon")    == 0)) blackscreenRange = 5500;
+    }
     mark = marks.GetFirst();
     while (mark) {
         // logo start mark, use blackscreen before and after mark
