@@ -1263,7 +1263,6 @@ void cMarkAdStandalone::CheckStart() {
 
     if (begin) {
         marks.DelTill(begin->position, &blackMarks);    // delete all marks till start mark
-        CalculateCheckPositions(begin->position);
         char *indexToHMSF = marks.IndexToHMSF(begin->position, &macontext);
         if (indexToHMSF) {
             isyslog("using mark on position (%i) type 0x%X at %s as start mark", begin->position, begin->type, indexToHMSF);
@@ -1308,12 +1307,12 @@ void cMarkAdStandalone::CheckStart() {
             mark.position = iStart;
             mark.type = MT_ASSUMEDSTART;
             AddMark(&mark);
-            CalculateCheckPositions(iStart);
+            begin = marks.GetFirst();
         }
     }
 
     // now we have the final start mark, do fine tuning
-    if (begin && (begin->type == MT_HBORDERSTART)) { // we found a valid hborder start mark, check black screen because of closing credits from broadcast before
+    if (begin->type == MT_HBORDERSTART) { // we found a valid hborder start mark, check black screen because of closing credits from broadcast before
         cMark *blackMark = blackMarks.GetNext(begin->position, MT_NOBLACKSTART);
         if (blackMark) {
             int diff =(blackMark->position - begin->position) / macontext.Video.Info.framesPerSecond;
@@ -1334,7 +1333,7 @@ void cMarkAdStandalone::CheckStart() {
         }
         mark = mark->Next();
     }
-    if ((countStopStart >= 3) && begin) {
+    if (countStopStart >= 3) {
         isyslog("%d logo STOP/START pairs found after start mark, something is wrong with your logo", countStopStart);
         if (video->ReducePlanes()) {
             dsyslog("cMarkAdStandalone::CheckStart(): reduce logo processing to first plane and delete all marks after start mark (%d)", begin->position);
@@ -1342,11 +1341,49 @@ void cMarkAdStandalone::CheckStart() {
         }
     }
 
+    CheckStartMark();
+    LogSeparator();
+    CalculateCheckPositions(marks.GetFirst()->position);
     iStart = 0;
     marks.Save(directory, &macontext, false);
     DebugMarks();     //  only for debugging
     LogSeparator();
     return;
+}
+
+
+void cMarkAdStandalone::CheckStartMark() {
+// check start mark
+// check for short start/stop pairs at the start
+    LogSeparator();
+    dsyslog("cMarkAdStandalone::CheckMarks(): check for short start/stop pairs at start");
+    DebugMarks();     //  only for debugging
+    cMark *mark = marks.GetFirst(); // this is the start mark
+    if (mark) {
+        cMark *markStop = marks.GetNext(mark->position, MT_STOP, 0x0F);
+        if (markStop) {
+            int maxFirstBroadcast = 8;                                   // trust strong marks, do not trust weak marks
+            if (mark->type <= MT_NOBLACKSTART)   maxFirstBroadcast = 96;
+            else if (mark->type == MT_LOGOSTART) maxFirstBroadcast = 51; // changed from 26 to 51
+            int lengthFirstBroadcast = (markStop->position - mark->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
+            dsyslog("cMarkAdStandalone::CheckMarks(): first broadcast length %ds from (%d) to (%d) (expect <=%ds)", lengthFirstBroadcast, mark->position, markStop->position, maxFirstBroadcast);
+            cMark *markStart = marks.GetNext(markStop->position, MT_START, 0x0F);
+            if (markStart) {
+                int diffStart = (markStart->position - markStop->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
+                dsyslog("cMarkAdStandalone::CheckMarks(): first advertising length %ds from (%d) to (%d)", diffStart, markStop->position, markStart->position);
+                if (diffStart <= 1) {
+                    dsyslog("cMarkAdStandalone::CheckMarks(): very short first advertising, this can be a logo detection failure");
+                }
+                else {
+                    if (lengthFirstBroadcast <= maxFirstBroadcast) {
+                        dsyslog("cMarkAdStandalone::CheckMarks(): short STOP/START/STOP sequence at start, delete first pair");
+                        marks.Del(mark->position);
+                        marks.Del(markStop->position);
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -1648,35 +1685,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 
 // check start marks
 // check for short start/stop pairs at the start
-    LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckMarks(): check for short start/stop pairs at start");
-    DebugMarks();     //  only for debugging
-    mark = marks.GetFirst(); // this is the start mark
-    if (mark) {
-        cMark *markStop = marks.GetNext(mark->position, MT_STOP, 0x0F);
-        if (markStop) {
-            int maxDiff = 8;                                   // trust strong marks, do not trust weak marks
-            if (mark->type <= MT_NOBLACKSTART)   maxDiff = 96;
-            else if (mark->type == MT_LOGOSTART) maxDiff = 51; // changed from 26 to 51
-            int diffStop = (markStop->position - mark->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
-            dsyslog("cMarkAdStandalone::CheckMarks(): first broadcast length %ds from (%d) to (%d)", diffStop, mark->position, markStop->position);
-            cMark *markStart = marks.GetNext(markStop->position, MT_START, 0x0F);
-            if (markStart) {
-                int diffStart = (markStart->position - markStop->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
-                dsyslog("cMarkAdStandalone::CheckMarks(): first advertising length %ds from (%d) to (%d)", diffStart, markStop->position, markStart->position);
-                if (diffStart <= 1) {
-                    dsyslog("cMarkAdStandalone::CheckMarks(): very short first advertising, this can be a logo detection failure");
-                }
-                else {
-                    if (diffStop <= maxDiff) {
-                        dsyslog("cMarkAdStandalone::CheckMarks(): short STOP/START/STOP sequence at start, delete first pair");
-                        marks.Del(mark->position);
-                        marks.Del(markStop->position);
-                    }
-                }
-            }
-        }
-    }
+    CheckStartMark();
 
 // check blackscreen and assumed end mark
 // check for better end mark not very far away from assuemd end

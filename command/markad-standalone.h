@@ -139,6 +139,11 @@ class cMarkAdStandalone {
         void CheckStart();
 
 /**
+ * check final start mark for invalid short start/stop pairs
+ */
+        void CheckStartMark();
+
+/**
  * check for end mark
  */
         void CheckStop();
