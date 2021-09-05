@@ -160,8 +160,8 @@ bool cExtractLogo::Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_ac
 
             if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", maContext->Config->recDir, maContext->Info.ChannelName, logoAspectRatio.num, logoAspectRatio.den, plane)==-1) return false;
             ALLOC(strlen(buf)+1, "buf");
-            dsyslog("cExtractLogo::Save(): store logo in %s", buf);
-            isyslog("Logo size for Channel: %s %d:%d %dW %dH: %dW %dH %s", maContext->Info.ChannelName, logoAspectRatio.num, logoAspectRatio.den, maContext->Video.Info.width, maContext->Video.Info.height, logoWidth, logoHeight, aCorner[corner]);
+            dsyslog("cExtractLogo::Save(): store logo plane %d in %s", plane, buf);
+            if (plane == 0) isyslog("logo found for channel: %s %d:%d %dW %dH: %dW %dH %s", maContext->Info.ChannelName, logoAspectRatio.num, logoAspectRatio.den, maContext->Video.Info.width, maContext->Video.Info.height, logoWidth, logoHeight, aCorner[corner]);
         }
         else {  // debug function, store logo to /tmp
             if (debugText) {

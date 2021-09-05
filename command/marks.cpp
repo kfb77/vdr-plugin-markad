@@ -392,12 +392,17 @@ cMark *cMarks::Add(const int type, const int position, const char *comment, cons
 }
 
 
-// define text to mark type, used in marks file
-// return pointer to text
+// define text to mark type, used in marks file and log messages
+// return pointer to text, calling function has to free memory
 //
 char *cMarks::TypeToText(const int type) {
     char *text = NULL;
     switch (type & 0xF0) {
+        case MT_ASSUMED:
+            if (asprintf(&text, "assumed") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            break;
         case MT_BLACKCHANGE:
             if (asprintf(&text, "black screen") != -1) {
                 ALLOC(strlen(text)+1, "text");
@@ -424,7 +429,7 @@ char *cMarks::TypeToText(const int type) {
             }
             break;
         case MT_ASPECTCHANGE:
-            if (asprintf(&text, "aspectratio") != -1) {
+            if (asprintf(&text, "aspect ratio") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
             break;
@@ -456,12 +461,12 @@ cMark *cMarks::Move(sMarkAdContext *maContext, cMark *mark, const int newPositio
     char* typeText = TypeToText(mark->type);
 
     if (indexToHMSF && typeText) {
-       if (asprintf(&comment,"moved %s mark (%d) %s %s %s mark (%d) at %s, %s detected%s",
-                                    ((mark->type & 0x0F) == MT_START) ? "start" : "stop",
+       if (asprintf(&comment,"moved %s mark (%6d) %s %s %s mark (%6d) at %s, %s detected%s",
+                                    ((mark->type & 0x0F) == MT_START) ? "start" : "stop ",
                                              newPosition,
-                                                  (newPosition > mark->position) ? "after" : "before",
+                                                  (newPosition > mark->position) ? "after " : "before",
                                                      typeText,
-                                                        ((mark->type & 0x0F) == MT_START) ? "start" : "stop",
+                                                        ((mark->type & 0x0F) == MT_START) ? "start" : "stop ",
                                                                  mark->position,
                                                                        indexToHMSF,
                                                                            reason,
@@ -605,7 +610,7 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
         }
         char *indexToHMSF = IndexToHMSF(mark->position, maContext);
         if (indexToHMSF) {
-            fprintf(mf, "%s (%7d)%s %s\n", indexToHMSF, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", mark->comment ? mark->comment : "");
+            fprintf(mf, "%s (%6d)%s %s\n", indexToHMSF, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", mark->comment ? mark->comment : "");
             FREE(strlen(indexToHMSF)+1, "indexToHMSF");
             free(indexToHMSF);
         }

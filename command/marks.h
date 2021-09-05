@@ -282,13 +282,14 @@ class cMarks {
  */
         int LoadVPS(const char *directory, const char *type);
 
-    private:
 /**
  * convert mark type to text
  * @param type type of the mark
  * @return text of the mark type
  */
         char *TypeToText(const int type);
+
+    private:
 
         cIndex *recordingIndexMarks = NULL;  //!< recording index
                                              //!<
