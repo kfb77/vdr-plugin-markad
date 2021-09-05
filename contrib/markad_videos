@@ -287,6 +287,49 @@ class Config:
         if args.mirror_path is not None: self.mirror_path = args.mirror_path
 
 
+class CompareMarks:
+    def __init__(self, fileName1, fileName2):
+        self.fileName1 = fileName1
+        self.fileName2 = fileName2
+        self.rc = True
+
+        file1 = open(self.fileName1, 'r')
+        file2 = open(self.fileName2, 'r')
+
+        while True:
+           line1 = file1.readline()
+           line2 = file2.readline()
+ 
+           # if line is empty end of file is reached
+           if not line1 and not line2:  # both file have same count of lines
+               break
+
+           if not line1 or not line2:   # one file has more lines
+               self.rc = False
+               break
+
+           self.pos1 = line1.find(" (");
+           self.pos2 = line1.find(")");
+           if self.pos1 < 0 or self.pos2 < 0:
+               self.rc = False
+               break
+           self.frameNumer1 = line1[self.pos1 + 2:self.pos2]
+
+           self.pos1 = line2.find(" (");
+           self.pos2 = line2.find(")");
+           if self.pos1 < 0 or self.pos2 < 0:
+               self.rc = False
+               break
+           self.frameNumer2 = line2[self.pos1 + 2:self.pos2]
+
+           if int(self.frameNumer1) != int(self.frameNumer2):
+               self.rc = False
+               break
+
+        file1.close()
+        file2.close()
+    def __bool__(self): return self.rc
+
 
 class CheckPath:
     def __init__(self, root, files):
@@ -392,7 +435,7 @@ class CheckPath:
             if fnmatch.fnmatch(actFile,'marks_*'):
                 if fileCompareMarks is None: fileCompareMarks = actFile
                 else:
-                    rc = filecmp.cmp(self.root+"/"+fileCompareMarks, self.root+"/"+actFile)
+                    rc = CompareMarks(self.root+"/"+fileCompareMarks, self.root+"/"+actFile)
                     if not rc:
                         log.isyslog("marks is different in recording: " + self.root)
                         log.isyslog(fileCompareMarks)
