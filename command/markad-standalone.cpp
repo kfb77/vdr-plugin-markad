@@ -224,14 +224,17 @@ void cMarkAdStandalone::CheckStop() {
                 dsyslog("cMarkAdStandalone::CheckStop(): delete all weak marks");
                 marks.DelWeakFromTo(marks.GetFirst()->position + 1, end->position, MT_ASPECTCHANGE); // delete all weak marks, except start mark
             }
-            else { // 16:9 broadcast with 4:3 broadcast after, maybe ad between and we have a better logo stop mark
-                cMark *logoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
-                if (logoStop) {
-                    int diff = (end->position - logoStop->position) /  macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckStop(): found logo stop (%d) %ds before aspect ratio end mark (%d)", logoStop->position, diff, end->position);
-                    if (diff <= 111) {  // changed from 100 to 111
-                        dsyslog("cMarkAdStandalone::CheckStop(): advertising before, use logo stop mark");
-                        end = logoStop;
+            else { // 16:9 broadcast with 4:3 broadcast after, maybe ad between and we have a better hborder or logo stop mark
+                cMark *stopBefore  = marks.GetPrev(end->position, MT_HBORDERSTOP);         // try hborder
+                if (!stopBefore) {
+                    stopBefore  = marks.GetPrev(end->position, MT_LOGOSTOP);  // try logo stop
+                }
+                if (stopBefore) { // maybe real stop mark was deleted because on same frame as logo/hborder stop mark
+                    int diff = (iStopA - stopBefore->position) /  macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::CheckStop(): found %s stop mark (%d) before aspect ratio end mark (%d), %ds before assumed stop", marks.TypeToText(stopBefore->type), stopBefore->position, end->position, diff);
+                    if (diff <= 221) { // changed from 87 to 221
+                        dsyslog("cMarkAdStandalone::CheckStop(): advertising before aspect ratio change, use stop mark before as end mark");
+                        end = stopBefore;
                     }
                 }
             }
@@ -2118,9 +2121,9 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     if (prev) {
         if (((prev->type & 0x0F) == (mark->type & 0x0F)) && ((prev->type & 0xF0) != (mark->type & 0xF0))) { // do not delete same mark type
             int markDiff = 30000;
-            if (iStart != 0) markDiff = 680;  // before chkStart: let more marks untouched, we need them for start detection, changed from 2000 to 720 to 680
+            if (iStart != 0) markDiff = 680;  // we are in the start part, let more marks untouched, we need them for start detection, changed from 2000 to 720 to 680
                                               // there are some broadcasts who start with a hborder preview but is not hborder
-            if (restartLogoDetectionDone) markDiff = 15000; // we are in the end part, keep more marks to detect best end mark
+            if (restartLogoDetectionDone) markDiff = 5839; // we are in the end part, keep more marks to detect best end mark, changed from 15000 to 5839
             int diff = 1000 * (abs(mark->position - prev->position)) / macontext.Video.Info.framesPerSecond;
             if (diff < markDiff) {
                 char *markType = marks.TypeToText(mark->type);
