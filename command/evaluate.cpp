@@ -655,7 +655,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
     bool status = true;
     startPos = recordingIndex->GetIFrameAfter(startFrame);
     endPos = recordingIndex->GetIFrameBefore(endFrame);
-    dsyslog("cDetectLogoStopStart::Detect(): detect from iFrame (%d) to iFrame (%d)", startPos, endPos);
+    dsyslog("cDetectLogoStopStart::Detect(): detect from i-frame (%d) to i-frame (%d)", startPos, endPos);
 
     cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, recordingIndex);
     ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
@@ -679,7 +679,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
         dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", logoWidth, logoHeight);
         ptr_Logo->SetLogoSize(logoWidth, logoHeight);
     }
-    if (!ptr_cDecoder->SeekToFrame(maContext, startPos)) {
+    if (!ptr_cDecoder->SeekToFrame(maContext, startPos - 1)) {  // one frame before startPos because we start loop with GetNextPacket
         dsyslog("cDetectLogoStopStart::Detect(): SeekToFrame (%d) failed", startPos);
         status = false;
     }
