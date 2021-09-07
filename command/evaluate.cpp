@@ -939,20 +939,23 @@ bool cDetectLogoStopStart::IsLogoChange() {
     }
     dsyslog("cDetectLogoStopStart::isLogoChange(): check logo change between logo stop (%d) and logo start (%d)", startPos, endPos);
 
-    bool status = true;
-    int highMatchCount = 0;  // check if we have a lot of very similar pictures in the logo corner
-    int lowMatchCount = 0;   // we need at least a hight quote of low similar pictures in the logo corner, if not there is no logo
     struct previewImage {  // image at the end of a preview
-        int start = 0;
-        int end = 0;
+        int start  = 0;
+        int end    = 0;
         int length = 0;
     } previewImage;
 
-    int count = 0;
+    int highMatchCount          = 0;  // check if we have a lot of very similar pictures in the logo corner
+    int lowMatchCount           = 0;   // we need at least a hight quote of low similar pictures in the logo corner, if not there is no logo
+    int count                   = 0;
     int countNoLogoInLogoCorner = 0;
-    int match[CORNERS] = {0};
-    int matchNoLogoCorner = 0;
+    int match[CORNERS]          = {0};
+    int matchNoLogoCorner       = 0;
+    int darkSceneStart          = -1;
+
     bool isSeparationImageLowPixel = false;
+    bool status                    = true;
+
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::isLogoChange(): frame (%5d) and frame (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
 
@@ -975,21 +978,40 @@ bool cDetectLogoStopStart::IsLogoChange() {
         if ((*cornerResultIt).rate[maContext->Video.Logo.corner] == 0) {   // no logo in the logo corner
             countNoLogoInLogoCorner++;
         }
-        int matchPicture = 0;
+
+        int matchPicture          = 0;
+        int matchNoLogoCornerPair = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
             matchPicture += (*cornerResultIt).rate[corner];
             match[corner] += (*cornerResultIt).rate[corner];
             if (corner != maContext->Video.Logo.corner) {  // all but logo corner
-                matchNoLogoCorner += (*cornerResultIt).rate[corner];
+                matchNoLogoCornerPair += (*cornerResultIt).rate[corner];
             }
         }
+        matchNoLogoCorner += matchNoLogoCornerPair;
+
+        // detect dark scene
+        if (matchNoLogoCornerPair <= 0) {
+            if (darkSceneStart == -1) darkSceneStart = (*cornerResultIt).frameNumber1;
+        }
+        else darkSceneStart = -1;
+
+        // detect separator frame
         if (matchPicture <= 0) { // all 4 corners has no pixel
-            dsyslog("cDetectLogoStopStart::isLogoChange(): separation image without pixel at all corners found, this is no logo change");
-            return false;
+            dsyslog("cDetectLogoStopStart::isLogoChange(): separation image without pixel at all corners found");
+            if (darkSceneStart >= 0) {
+                int diffDarkScene = 1000 * ((*cornerResultIt).frameNumber1 - darkSceneStart) / maContext->Video.Info.framesPerSecond;
+                dsyslog("cDetectLogoStopStart::isLogoChange(): dark scene start at (%d), distance to separator frame %dms", darkSceneStart, diffDarkScene);
+                if (diffDarkScene < 2400) return false;
+            }
+            else return false;
         }
         if ((matchPicture <= 197) && ((*cornerResultIt).frameNumber1 >= previewImage.end) && (previewImage.end != 0)) { // all 4 corner has only a few pixel, changed from 98 to 197
-            isSeparationImageLowPixel = true; // we found a separation image after preview image
-            dsyslog("cDetectLogoStopStart::isLogoChange(): separation image found with low pixel count found");
+            if (darkSceneStart == -1) {
+                isSeparationImageLowPixel = true; // we found a separation image after preview image
+                dsyslog("cDetectLogoStopStart::isLogoChange(): separation image found with low pixel count found");
+            }
+            else dsyslog("cDetectLogoStopStart::isLogoChange(): separation image with low pixel count after dark scene found, ignoring");
         }
     }
     // log found results
