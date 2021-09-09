@@ -618,9 +618,10 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
     // contrast 159, brightness 123
     // contrast 161, brightness 120
     // contrast 163, brightness 124
-    if ((contrastLogo >= 164) && (brightnessLogo <= 124)) { // changed contrastLogo from 159 to 164
-                                                            // changed brightnessLogo from 112 to 110 to 124
-                                                            // increased to detect SIXX info logo as no logo
+    if ((contrastLogo >= 164) && (brightnessLogo <= 139)) { // changed contrastLogo from 159 to 164
+                                                            // changed brightnessLogo from 110 to 124 to 139
+                                                            // increased to 124 to detect SIXX info logo as no logo
+                                                            // increased to 139 to detect dark ad in bright frame without logo as logo invisable
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): very high contrast with not very high brightness in logo area, trust detection");
 #endif
