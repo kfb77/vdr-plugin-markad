@@ -1119,7 +1119,7 @@ void cMarkAdStandalone::CheckStart() {
             while (true) {
                 // if the logo start mark belongs to closing credits logo stop/start pair, treat it as valid
                 if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(lStart->position) == STATUS_YES)) {
-                    dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark (%d) is end of closing credits, this is valid", lStart->position);
+                    dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) is end of closing credits, this logo start mark is valid", lStart->position);
                     // check next stop/start pair, if near and short this is a failed logo detection or an undetected info/introduction logo
                     cMark *lNextStop  = marks.GetNext(lStart->position, MT_LOGOSTOP);
                     cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
@@ -1128,8 +1128,9 @@ void cMarkAdStandalone::CheckStart() {
                         int length   = 1000 * (lNextStart->position - lNextStop->position) / macontext.Video.Info.framesPerSecond;
                         dsyslog("cMarkAdStandalone::CheckStart(): next logo stop (%d) start (%d), distance %dms, length %dms",
                                                                                                             lNextStop->position, lNextStart->position, distance, length);
-                        if ((distance <= 680) && (length <= 4440)) {
-                            dsyslog("cMarkAdStandalone::CheckStart(): logo stop/start pair after closing credits invalid, deleting");
+                        if ((distance <= 1280) && (length <= 6840)) {  // length   changed from 4400 to 6840
+                                                                       // distance changed from  680 to 1280
+                            dsyslog("cMarkAdStandalone::CheckStart(): logo stop/start pair after closing credits is invalid, deleting");
                             marks.Del(lNextStop->position);
                             marks.Del(lNextStart->position);
                         }
