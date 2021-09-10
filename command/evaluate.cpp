@@ -476,11 +476,11 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     blackStart = NULL;
     if (blackStop) blackStart = blackMarks->GetNext(blackStop->position, MT_NOBLACKSTART); // blackscreen can start at the same position as logo stop
     if (blackStop && blackStart && (blackStart->position >= logoStopStartPair->stopPosition) && (blackStart->position <= logoStopStartPair->startPosition)) {
-        int diff = 1000 * (blackStart->position - logoStopStartPair->startPosition) / framesPerSecond;
+        int diff = 1000 * (blackStart->position - logoStopStartPair->stopPosition) / framesPerSecond;
         int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;
-        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen around stop (%d) and (%d) length %dms, diff %dms", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position, lengthBlack, diff);
-        if ((lengthBlack > 680) && (diff < 1200)) {  // changed from 1200 to 1160 to 520 to 680
-            dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ----- stop (%d) start (%d) pair: blacksceen pair long and near, no info logo part", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
+        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen around logo stop mark from (%d) to (%d), length %dms, end of blackscreen %dms after logo stop mark", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position, lengthBlack, diff);
+        if ((lengthBlack > 680) && (lengthBlack < 4400)) {  // too long blackscreen can be opening credits
+            dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ----- stop (%d) start (%d) pair: blacksceen around logo stop mark, no info logo part", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
             logoStopStartPair->isInfoLogo = STATUS_NO;
             return;
         }
