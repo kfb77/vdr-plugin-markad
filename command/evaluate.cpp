@@ -66,8 +66,9 @@ bool cEvaluateChannel::AdInFrameWithLogoChannel(char *channelName) {
 bool cEvaluateChannel::IntroductionLogoChannel(char *channelName) {
 // for performance reason only for known and tested channels for now
     if ((strcmp(channelName, "kabel_eins") != 0) &&
-        (strcmp(channelName, "SIXX") != 0) &&
-        (strcmp(channelName, "RTL2") != 0)) {
+        (strcmp(channelName, "SIXX")       != 0) &&
+        (strcmp(channelName, "SAT_1")      != 0) &&
+        (strcmp(channelName, "RTL2")       != 0)) {
         return false;
     }
     return true;
