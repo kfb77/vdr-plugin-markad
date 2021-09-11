@@ -107,6 +107,7 @@ class Config:
         self.nice = 19
         self.loglevel = 1
         self.checkOnly = False
+        self.pts = False
 
         self.markad_loglevel = 1
         self.autologo = 2
@@ -282,6 +283,7 @@ class Config:
         if args.fulldecode: self.fullencode = args.fullencode
         if args.cut: self.cut = args.cut
         if args.checkOnly: self.checkOnly = args.checkOnly
+        if args.pts: self.pts = args.pts
         if args.ac3reencode: self.ac3reencode = args.ac3reencode
         if args.backupmarks: self.backupmarks = args.backupmarks
         if args.mirror_path is not None: self.mirror_path = args.mirror_path
@@ -510,6 +512,7 @@ class CheckPath:
             if config.fullencode: cmd = cmd + " --fullencode=" + config.fullencode
             if config.cut: cmd = cmd + " --cut"
             if config.ac3reencode: cmd = cmd + " --ac3reencode"
+            if config.pts: cmd = cmd + " --pts"
             cmd = cmd + ' - ' + self.ConvertPath(self.root)
             log.dsyslog("markad call: "+cmd)
             self.process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
@@ -596,6 +599,7 @@ parser.add_argument('--cut', dest="cut", action='store_true', default=False, hel
 parser.add_argument('--ac3reencode', dest="ac3reencode", action='store_true', default=False, help='sets --ac3reencode of markad to the specified value, see markad for more details')
 parser.add_argument('--mirror_path=', dest="mirror_path",  metavar="<path>", action="store", help='path to the video mirror directory (default: None)')
 parser.add_argument('--checkonly', dest="checkOnly", action='store_true', default=False, help='only check marks file, no markad will executed')
+parser.add_argument('--pts', dest="pts", action='store_true', default=False, help='additional save PTS based timestamp in marks (only for debug)')
 
 # get config values
 config = Config()

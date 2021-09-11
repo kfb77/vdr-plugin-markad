@@ -190,7 +190,8 @@ typedef struct sMarkAdConfig {
     bool bestEncode = true;  //!< <b>true:</b> encode all video and audio streams <br>
                              //!< <b>false:</b> encode all video and audio streams
                              //!<
-
+    bool pts        = false; //!< <b>true:</b> add pts based timestanp to marks<br>
+                             //!< <b>false:</b> otherwise
 } sMarkAdConfig;
 
 

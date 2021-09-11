@@ -4509,6 +4509,7 @@ int main(int argc, char *argv[]) {
             {"autologo",1,0,16},
             {"fulldecode",0,0,17},
             {"fullencode",1,0,18},
+            {"pts",0,0,19},
 
             {0, 0, 0, 0}
         };
@@ -4765,6 +4766,9 @@ int main(int argc, char *argv[]) {
                     str = NULL;
                     ntok++;
                 }
+                break;
+            case 19: // --pts
+                config.pts = true;
                 break;
             default:
                 printf ("? getopt returned character code 0%o ? (option_index %d)\n", option,option_index);

@@ -495,13 +495,13 @@ void cMarks::RegisterIndex(cIndex *recordingIndex) {
 }
 
 
-char *cMarks::IndexToHMSF(const int frameNumber, const sMarkAdContext *maContext) {
+char *cMarks::IndexToHMSF(const int frameNumber, const sMarkAdContext *maContext, const bool isVDR) {
     double FramesPerSecond = maContext->Video.Info.framesPerSecond;
     if (FramesPerSecond == 0.0) return NULL;
     char *indexToHMSF = NULL;
     double Seconds;
     int f = 0;
-    if (recordingIndexMarks && ((maContext->Info.vPidType == MARKAD_PIDTYPE_VIDEO_H264) || (maContext->Info.vPidType == MARKAD_PIDTYPE_VIDEO_H265))) {
+    if (recordingIndexMarks && !isVDR) {
         int time_ms = recordingIndexMarks->GetTimeFromFrame(frameNumber);
         if (time_ms >= 0) {
             f = int(modf(float(time_ms) / 1000, &Seconds) * 100); // convert ms to 1/100 s
@@ -608,11 +608,15 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
             mark = mark->Next();
             continue;
         }
-        char *indexToHMSF = IndexToHMSF(mark->position, maContext);
-        if (indexToHMSF) {
-            fprintf(mf, "%s (%6d)%s %s\n", indexToHMSF, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", mark->comment ? mark->comment : "");
-            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-            free(indexToHMSF);
+        char *indexToHMSF_VDR = IndexToHMSF(mark->position, maContext, true);
+        char *indexToHMSF_PTS = IndexToHMSF(mark->position, maContext, false);
+        if (indexToHMSF_VDR && indexToHMSF_PTS) {
+            if (maContext->Config->pts) fprintf(mf, "%s (%6d)%s %s <- %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", indexToHMSF_PTS, mark->comment ? mark->comment : "");
+            else fprintf(mf, "%s (%6d)%s %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", mark->comment ? mark->comment : "");
+            FREE(strlen(indexToHMSF_VDR)+1, "indexToHMSF");
+            free(indexToHMSF_VDR);
+            FREE(strlen(indexToHMSF_PTS)+1, "indexToHMSF");
+            free(indexToHMSF_PTS);
         }
         mark = mark->Next();
     }

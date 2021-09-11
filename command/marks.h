@@ -139,9 +139,10 @@ class cMarks {
  * convert frame number to time string
  * @param frameNumber frame number
  * @param maContext markad context
+ * @param isVDR true: calculate timestamp based on frame number, false: calculate timestamp based on PTS of frame number
  * @return time string
  */
-        char *IndexToHMSF(const int frameNumber, const sMarkAdContext *maContext);
+        char *IndexToHMSF(const int frameNumber, const sMarkAdContext *maContext, const bool isVDR = false);
 
 /**
  * delete weak marks between two positions
