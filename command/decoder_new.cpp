@@ -47,6 +47,7 @@ void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_lis
 
 
 cDecoder::cDecoder(int threads, cIndex *recordingIndex) {
+    dsyslog("cDecoder::cDecoder(): create new decoder instance");
     av_log_set_level(AVLOGLEVEL);
     av_log_set_callback(AVlog);
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
@@ -83,6 +84,7 @@ cDecoder::~cDecoder() {
         FREE(sizeof(*avFrame), "avFrame");
         av_frame_free(&avFrame);
     }
+    dsyslog("cDecoder::~cDecoder(): decoder instance deleted");
 }
 
 
