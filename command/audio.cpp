@@ -69,12 +69,17 @@ sMarkAdMark *cMarkAdAudio::Process() {
             if (macontext->Audio.Info.Channels[stream] > 2) {
                 if (macontext->Config->fullDecode) {
                     int markFrame = recordingIndexAudio->GetFirstVideoFrameAfterPTS(macontext->Audio.Info.channelChangePTS); // get video frame with pts before channel change
+                    if (markFrame < 0) markFrame = macontext->Audio.Info.channelChangeFrame;
                     markFrame = recordingIndexAudio->GetIFrameAfter(markFrame);  // we need next iFrame for start cut, make sure we will not have last pic of ad
+                    dsyslog("*cMarkAdAudio::Process(): next i-frame (%d)", markFrame);
                     if (markFrame < 0) markFrame = macontext->Audio.Info.channelChangeFrame;
                     SetMark(MT_CHANNELSTART, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
                 }
                 else { // audio streams are alway full decoded, use next video iFrame
-                    SetMark(MT_CHANNELSTART, recordingIndexAudio->GetIFrameAfter(macontext->Audio.Info.channelChangeFrame), channels[stream], macontext->Audio.Info.Channels[stream]);
+                    int markFrame = recordingIndexAudio->GetIFrameAfter(macontext->Audio.Info.channelChangeFrame);  // we need next iFrame for start cut, make sure we will not have last pic of ad
+                    dsyslog("*cMarkAdAudio::Process(): next i-frame (%d)", markFrame);
+                    if (markFrame < 0) markFrame = macontext->Audio.Info.channelChangeFrame;
+                    SetMark(MT_CHANNELSTART, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
                 }
             }
             else { // frame before is last frame in broadcast
@@ -83,7 +88,12 @@ sMarkAdMark *cMarkAdAudio::Process() {
                     if (markFrame < 0) markFrame = macontext->Audio.Info.channelChangeFrame;
                     SetMark(MT_CHANNELSTOP, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
                 }
-                else SetMark(MT_CHANNELSTOP, recordingIndexAudio->GetIFrameBefore(macontext->Audio.Info.channelChangeFrame), channels[stream], macontext->Audio.Info.Channels[stream]);
+                else {
+                    int markFrame = recordingIndexAudio->GetIFrameBefore(macontext->Audio.Info.channelChangeFrame);
+                    dsyslog("*cMarkAdAudio::Process(): previous i-frame (%d)", markFrame);
+                    if (markFrame < 0) markFrame = macontext->Audio.Info.channelChangeFrame;
+                    SetMark(MT_CHANNELSTOP, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
+                }
             }
         }
         channels[stream] = macontext->Audio.Info.Channels[stream];

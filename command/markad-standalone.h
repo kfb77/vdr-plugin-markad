@@ -360,13 +360,15 @@ class cMarkAdStandalone {
                                                                        //!<
         int sleepcnt = 0;                                              //!< count of sleeps to wait for new frames when decode during recording
                                                                        //!<
-        cMarks marks;                                                 //!< objects with all marks
+        cMarks marks;                                                  //!< objects with all marks
                                                                        //!<
-        cMarks blackMarks;                                            //!< objects with all blackscreen marks
+        cMarks blackMarks;                                             //!< objects with all blackscreen marks
                                                                        //!<
         cDecoder *ptr_cDecoderLogoChange = NULL;                       //!< pointer to class cDecoder, used as second instance to detect logo changes
                                                                        //!<
         cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = NULL;  //!< pointer to class cEvaluateLogoStopStartPair
                                                                        //!<
+        bool checkAudio = false;                                       //!< set to true after each i-Frame, reset to false after audio channel check
+                                                                      //!<
 };
 #endif

@@ -3084,6 +3084,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
     if (ptr_cDecoder->IsVideoIFrame()) {
         iFrameBefore = iFrameCurrent;
         iFrameCurrent = frameCurrent;
+        checkAudio = true;
     }
     if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) {
         if (ptr_cDecoder->IsVideoPacket()) {
@@ -3160,7 +3161,8 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
             }
         }
         // check audio channel changes
-        if (ptr_cDecoder->IsAudioPacket()) {
+        if (checkAudio && ptr_cDecoder->IsAudioPacket()) {  // check only after i-frame to be able to get next i-frame
+            checkAudio = false;
             sMarkAdMark *amark = audio->Process();  // class audio will take frame number of channel change from macontext->Audio.Info.frameChannelChange
             if (amark) AddMark(amark);
         }
