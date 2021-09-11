@@ -639,6 +639,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
         FREE(sizeof(*avFrame), "avFrame");
         av_frame_free(&avFrame);
         avFrame = NULL;
+        avcodec_flush_buffers(codecCtxArray[avpkt->stream_index]);
     }
 
     struct timeval endDecode = {};
