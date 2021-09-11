@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-09-11: Version 3.0.12
+- fix audio channel change marks
+- fix crash if VDR info file is missing
+
 2021-09-01: Version 3.0.11
 - redesign introduction logo detection
 - some minor bug fixes and optimizations, see git
