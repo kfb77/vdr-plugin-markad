@@ -1072,15 +1072,13 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
         return false;
     }
     if (!avpkt) return false;
-
-    int rc = 0;
     stateEAGAIN = false;
 
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     if (avFrame) {
-        rc = avcodec_send_frame(avCodecCtx, avFrame);
-        if (rc < 0) {
-            switch (rc) {
+        int rcSend = avcodec_send_frame(avCodecCtx, avFrame);
+        if (rcSend < 0) {
+            switch (rcSend) {
                 case AVERROR(EAGAIN):
                     dsyslog("cEncoder::EncodeFrame(): avcodec_send_frame() error EAGAIN at frame %d", ptr_cDecoder->GetFrameNumber());
                     stateEAGAIN=true;
@@ -1089,7 +1087,7 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
                     dsyslog("cEncoder::EncodeFrame(): avcodec_send_frame() error EINVAL at frame %d", ptr_cDecoder->GetFrameNumber());
                     break;
                 default:
-                    dsyslog("cEncoder::EncodeFrame(): avcodec_send_frame() encode of frame (%d) failed with return code %i", ptr_cDecoder->GetFrameNumber(), rc);
+                    dsyslog("cEncoder::EncodeFrame(): avcodec_send_frame() encode of frame (%d) failed with return code %i", ptr_cDecoder->GetFrameNumber(), rcSend);
                     avcodec_flush_buffers(avCodecCtx);
                     EncoderStatus.videoEncodeError = true;
                     break;
@@ -1097,9 +1095,9 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
             return false;  // ignore send errors if we only empty encoder
         }
     }
-    rc = avcodec_receive_packet(avCodecCtx, avpkt);
-    if (rc < 0) {
-        switch (rc) {
+    int rcReceive = avcodec_receive_packet(avCodecCtx, avpkt);
+    if (rcReceive < 0) {
+        switch (rcReceive) {
             case AVERROR(EAGAIN):
 //                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_packet() error EAGAIN at frame %d", ptr_cDecoder->GetFrameNumber());
                 stateEAGAIN=true;
@@ -1108,17 +1106,17 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
                 dsyslog("cEncoder::EncodeFrame(): avcodec_receive_packet() error EINVAL at frame %d", ptr_cDecoder->GetFrameNumber());
                 break;
             default:
-                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_packet() encode of frame (%d) failed with return code %i", ptr_cDecoder->GetFrameNumber(), rc);
+                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_packet() encode of frame (%d) failed with return code %i", ptr_cDecoder->GetFrameNumber(), rcReceive);
                 break;
         }
         return false;
     }
 #else
-    int frame_ready=0;
+    int frame_ready = 0;
     if (ptr_cDecoder->IsAudioPacket()) {
-        rc=avcodec_encode_audio2(avCodecCtx, avpkt, avFrame, &frame_ready);
-        if (rc < 0) {
-            dsyslog("cEncoder::EncodeFrame(): avcodec_encode_audio2 of frame (%d) from stream %d failed with return code %i", ptr_cDecoder->GetFrameNumber(), avpkt->stream_index, rc);
+        int rcEncode = avcodec_encode_audio2(avCodecCtx, avpkt, avFrame, &frame_ready);
+        if (rcEncode < 0) {
+            dsyslog("cEncoder::EncodeFrame(): avcodec_encode_audio2 of frame (%d) from stream %d failed with return code %i", ptr_cDecoder->GetFrameNumber(), avpkt->stream_index, rcEncode);
             return false;
         }
     }
