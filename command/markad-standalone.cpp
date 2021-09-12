@@ -3027,7 +3027,6 @@ void cMarkAdStandalone::Process3ndPass() {
                     int diff_ms = 1000 * (mark->position - blackMarkAfter->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::Process3ndPass(): black screen (%d) %dms (expect <=%ds) before logo stop mark (%d) found", blackMarkAfter->position, diff_ms, blackscreenRange, mark->position);
                     if (diff_ms <= (blackscreenRange / 2)) {
-                        foundAfter = true;
                         int newPos;
                         if (!macontext.Config->fullDecode) {
                             newPos =  recordingIndexMark->GetIFrameBefore(blackMarkAfter->position); // MT_NOBLACKSSTART with "only iFrame decoding" is the first frame afer blackscreen, get last frame of blackscreen, blacksceen at stop mark belongs to broasdact
