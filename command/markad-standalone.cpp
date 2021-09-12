@@ -820,7 +820,7 @@ void cMarkAdStandalone::CheckStart() {
             marks.Del(pos);
             if (asprintf(&comment,"assumed start from channel stop (%d)", pos) == -1) comment = NULL;
             ALLOC(strlen(comment)+1, "comment");
-            begin=marks.Add(MT_ASSUMEDSTART, pos, comment);
+            marks.Add(MT_ASSUMEDSTART, pos, comment);
             FREE(strlen(comment)+1, "comment");
             free(comment);
         }
