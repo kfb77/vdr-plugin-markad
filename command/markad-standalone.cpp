@@ -679,7 +679,7 @@ void cMarkAdStandalone::CheckStart() {
     dsyslog("cMarkAdStandalone::CheckStart(): checking start at frame (%d) check start planed at (%d)", frameCurrent, chkSTART);
     dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %i", iStartA);
     DebugMarks();     //  only for debugging
-#define IGNORE_AT_START 11   // ignore this number of frames at the start for start marks, they are initial marks from recording before
+#define IGNORE_AT_START 12   // ignore this number of frames at the start for start marks, they are initial marks from recording before, changed from 11 to 12
 
     int hBorderStopPosition = 0;
     int delta = macontext.Video.Info.framesPerSecond * MAXRANGE;
