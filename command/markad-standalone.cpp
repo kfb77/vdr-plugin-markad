@@ -834,7 +834,7 @@ void cMarkAdStandalone::CheckStart() {
             macontext.Info.AspectRatio.den = macontext.Video.Info.AspectRatio.den;
         }
         // check marks and correct if necessary
-        cMark *aStart = marks.GetAround(chkSTART, chkSTART + IGNORE_AT_START, MT_ASPECTSTART);   // check if we have ascpect ratio START/STOP in start part
+        cMark *aStart = marks.GetAround(4 * delta, iStartA, MT_ASPECTSTART);   // check if we have ascpect ratio START/STOP in start part
         cMark *aStopAfter = NULL;
         cMark *aStopBefore = NULL;
         if (aStart) {
@@ -910,6 +910,8 @@ void cMarkAdStandalone::CheckStart() {
                     }
                     aMark = aMark->Next();
                 }
+                dsyslog("cMarkAdStandalone::CheckStart(): fixed marks are:");
+                DebugMarks();     //  only for debugging
             }
         }
         if (macontext.Info.vPidType == MARKAD_PIDTYPE_VIDEO_H264) {
@@ -939,20 +941,30 @@ void cMarkAdStandalone::CheckStart() {
                         marks.Del(MT_VBORDERSTOP);
                         macontext.Video.Options.ignoreHborder = true;
                         macontext.Video.Options.ignoreVborder = true;
-                   }
-                   else {
-                       cMark *aStopNext = marks.GetNext(begin->position, MT_ASPECTSTOP);
-                       if (aStopNext) dsyslog("cMarkAdStandalone::CheckStart(): found MT_ASPECTSTOP (%i)", aStopNext->position);
-                       else {
-                           dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTART is not valid (%i), ignoring", begin->position);
-                           marks.Del(begin->position);  // delete invalid start mark to prevent to be selected again later
-                           begin = NULL;
-                       }
-                       if (begin && (begin->position <= IGNORE_AT_START)) {
-                           dsyslog("cMarkAdStandalone::CheckStart(): only got start aspect ratio, ignoring");
-                           begin = NULL;
-                       }
-                   }
+                    }
+                    else {
+                        dsyslog("cMarkAdStandalone::CheckStart(): aspect ratio start mark at (%i) very early, maybe from broascast before", begin->position);
+                        cMark *aStopNext = marks.GetNext(begin->position, MT_ASPECTSTOP);
+                        if (aStopNext) dsyslog("cMarkAdStandalone::CheckStart(): found MT_ASPECTSTOP (%i)", aStopNext->position);
+                        else {
+                            dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTART is not valid (%i), ignoring", begin->position);
+                            marks.Del(begin->position);  // delete invalid start mark to prevent to be selected again later
+                            begin = NULL;
+                        }
+                        if (begin && (begin->position <= IGNORE_AT_START)) {
+                            cMark *nextAspectStart = marks.GetNext(begin->position, MT_ASPECTSTART);
+                            begin = NULL;
+                            if (nextAspectStart) {
+                                int diffAssumed = (nextAspectStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
+                                dsyslog("cMarkAdStandalone::CheckStart(): found next MT_ASPECTSTART at (%d), %ds after assumed start", nextAspectStart->position, diffAssumed);
+                                if (diffAssumed < 580) {  // do not use too late next start, this can be 4:3 broadcast before 4:3 broadcast, changed from 851 to 580
+                                    begin = nextAspectStart;
+                                    dsyslog("cMarkAdStandalone::CheckStart(): found next MT_ASPECTSTART at (%i), use this", begin->position);
+                                }
+                            }
+                            if (!begin) dsyslog("cMarkAdStandalone::CheckStart(): only got very early start aspect ratio and no later alternative, ignoring");
+                        }
+                    }
                 }
                 else dsyslog("cMarkAdStandalone::CheckStart(): no MT_ASPECTSTART found");   // previous is 4:3 too, search another start mark
             }
