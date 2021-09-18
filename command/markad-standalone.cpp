@@ -232,7 +232,7 @@ void cMarkAdStandalone::CheckStop() {
                 if (stopBefore) { // maybe real stop mark was deleted because on same frame as logo/hborder stop mark
                     int diff = (iStopA - stopBefore->position) /  macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::CheckStop(): found %s stop mark (%d) before aspect ratio end mark (%d), %ds before assumed stop", marks.TypeToText(stopBefore->type), stopBefore->position, end->position, diff);
-                    if (diff <= 221) { // changed from 87 to 221
+                    if (diff <= 312) { // changed from 87 to 221 to 312
                         dsyslog("cMarkAdStandalone::CheckStop(): advertising before aspect ratio change, use stop mark before as end mark");
                         end = stopBefore;
                     }
