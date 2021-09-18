@@ -750,7 +750,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                     cutColumn = column;
                 }
             }
-            if ((*logoWidth - cutColumn) < (*logoWidth * 0.5)) {  // do not cut out more than half of logo
+            if (cutColumn > (*logoWidth * 0.65)) {  // do not cut too mutch, could be a space in the logo (e.g. VOXup)
                 if ((bottomBlackPixel - topBlackPixel) <= 19) {
                     dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
                     CutOut(bestLogoInfo, 0, *logoWidth - cutColumn, logoHeight, logoWidth, bestLogoCorner);
