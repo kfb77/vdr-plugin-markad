@@ -946,6 +946,14 @@ bool cDetectLogoStopStart::IsLogoChange() {
         int length = 0;
     } previewImage;
 
+    struct sAdInFrame {
+        int start      = -1;
+        int startFinal = -1;
+        int end        = -1;
+        int endFinal   = -1;
+    } AdInFrame;
+
+
     int highMatchCount          = 0;  // check if we have a lot of very similar pictures in the logo corner
     int lowMatchCount           = 0;   // we need at least a hight quote of low similar pictures in the logo corner, if not there is no logo
     int count                   = 0;
@@ -959,6 +967,24 @@ bool cDetectLogoStopStart::IsLogoChange() {
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::isLogoChange(): frame (%5d) and frame (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+
+        // check for advertising in frame without logo
+        int adInFrameCorner = 0;
+        for (int corner = 0; corner < CORNERS; corner++) {
+            if ((*cornerResultIt).rate[corner] >= 651) adInFrameCorner++;
+        }
+        if (adInFrameCorner >= 3) { // at least 3 corner have a high match
+            if (AdInFrame.start == -1) AdInFrame.start = (*cornerResultIt).frameNumber1;
+            AdInFrame.end = (*cornerResultIt).frameNumber2;
+        }
+        else {
+            if ((AdInFrame.end - AdInFrame.start) > (AdInFrame.endFinal - AdInFrame.startFinal)) {
+                AdInFrame.startFinal = AdInFrame.start;
+                AdInFrame.endFinal   = AdInFrame.end;
+                AdInFrame.start      = -1;
+                AdInFrame.end        = -1;
+            }
+        }
 
         // calculate possible preview fixed images
 #define LOGO_CHANGE_STILL_MATCH_MIN 655  // chnaged from 500 to 655
@@ -1018,6 +1044,20 @@ bool cDetectLogoStopStart::IsLogoChange() {
     // log found results
     for (int corner = 0; corner < CORNERS; corner++) {
         dsyslog("cDetectLogoStopStart::isLogoChange(): corner %-12s rate summery %5d of %2d frames", aCorner[corner], match[corner], count);
+    }
+
+    // check if we found an advertising in frame without logo
+    if ((AdInFrame.end - AdInFrame.start) > (AdInFrame.endFinal - AdInFrame.startFinal)) {
+        AdInFrame.startFinal = AdInFrame.start;
+        AdInFrame.endFinal   = AdInFrame.end;
+    }
+    if (AdInFrame.startFinal >= 0) {
+        int adInFrameLength = 1000 * (AdInFrame.endFinal - AdInFrame.startFinal) / maContext->Video.Info.framesPerSecond;
+        dsyslog("cDetectLogoStopStart::isLogoChange(): found advertising in frame without logo from (%d) to (%d), length %dms", AdInFrame.startFinal, AdInFrame.endFinal, adInFrameLength);
+        if (adInFrameLength >= 4800) {
+            dsyslog("cDetectLogoStopStart::isLogoChange(): there is an advertising in frame without logo, pair contains a valid start mark");
+            return false;
+        }
     }
 
     // check if there is a separation image
