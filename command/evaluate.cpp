@@ -1198,7 +1198,7 @@ int cDetectLogoStopStart::ClosingCredit() {
     // check if we have a too much dark scene to detect
     int darkQuote = 100 * countDark / countFrames;
     dsyslog("cDetectLogoStopStart::ClosingCredit(): dark scene quote %d%%", darkQuote);
-    if (darkQuote == 100) {
+    if (darkQuote >= 95) {  // changed from 100 to 95
         dsyslog("cDetectLogoStopStart::ClosingCredit(): too much dark scene, closing credits are not dark");
         return -1;
     }
