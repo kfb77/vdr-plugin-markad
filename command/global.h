@@ -381,19 +381,22 @@ typedef struct sMarkAdContext {
  * logo info structure
  */
         struct sLogo {
-            int width = 0;            //!< width of logo
-                                      //!<
-            int height = 0;           //!< height of logo
-                                      //!<
-            int corner = -1;          //!< corner of logo, -1 for undefined
-                                      //!<
-            int pixelRatio = INT_MAX; //!< ratio of pixel in logo area, calculated: 1000 * logo pixel / (width * height)
-                                      //!<
-            bool isRotating = false;  //!< <b>true:</b>  logo is rotating <br>
-                                      //!< <b>false:</b> logo is not rotating
-                                      //!<
-        } Logo;                       //!< logo infos
-                                      //!<
+            int width          = 0;       //!< width of logo
+                                          //!<
+            int height         = 0;       //!< height of logo
+                                          //!<
+            int corner         = -1;      //!< corner of logo, -1 for undefined
+                                          //!<
+            int pixelRatio     = INT_MAX; //!< ratio of pixel in logo area, calculated: 1000 * logo pixel / (width * height)
+                                          //!<
+            bool isRotating    = false;   //!< <b>true:</b>  logo is rotating <br>
+                                          //!< <b>false:</b> logo is not rotating
+                                          //!<
+            bool isTransparent = false;   //!< <b>true:</b>  logo is transparent, expect bad detection <br>
+                                          //!< <b>false:</b> logo is not transparent
+                                          //!<
+        } Logo;                           //!< logo infos
+                                          //!<
 
 /**
  * video picture data
