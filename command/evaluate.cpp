@@ -788,35 +788,35 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 
     // start and stop frame of assumed info logo section
     struct sInfoLogo {
-        int start = 0;
-        int end = 0;
+        int start      = 0;
+        int end        = 0;
         int startFinal = 0;
-        int endFinal = 0;
+        int endFinal   = 0;
     } InfoLogo;
 
     // start and stop frame of detected zoomed still image
     // this happens before start mark in adult warning info (e.g. SIXX)
     struct sZoomedPicture {
-        int start = -1;
-        int end = -1;
+        int start    = -1;
+        int end      = -1;
         bool ongoing = true;
     } zoomedPicture;
 
-    bool found = true;
-    int separatorFrame = -1;
-    int lowMatchCount = 0;
-
-    int countFrames = 0;
-    int countDark   = 0;
+    bool found              = true;
+    int lastSeparatorFrame  = -1;
+    int countSeparatorFrame =  0;
+    int lowMatchCount       =  0;
+    int countFrames         =  0;
+    int countDark           =  0;
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
 
-        int sumPixel = 0;
+        int sumPixel              = 0;
         int sumPixelNonLogoCorner = 0;
-        int countZero = 0;
-        int zoomedPictureCount = 0;
-        int darkCorner = 0;
+        int countZero             = 0;
+        int zoomedPictureCount    = 0;
+        int darkCorner            = 0;
 
         for (int corner = 0; corner < CORNERS; corner++) {
             if ((*cornerResultIt).rate[corner] == 0) countZero++;
@@ -829,7 +829,10 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         countFrames++;
         if (darkCorner == 3) countDark++;  // if all corners but logo corner has no match, this is a very dark scene
 
-        if ((countZero >= 2) && (sumPixel <= 45)) separatorFrame = (*cornerResultIt).frameNumber2;  // changed from 0 to 15 to 100 to 60 to 45, too big values results in false detection of a separation image, do not increase
+        if ((countZero >= 2) && (sumPixel <= 45)) {
+            countSeparatorFrame++;
+            lastSeparatorFrame = (*cornerResultIt).frameNumber2;  // changed from 0 to 15 to 100 to 60 to 45, too big values results in false detection of a separation image, do not increase
+        }
 
         // check zoomed picture
         if (zoomedPicture.ongoing && (zoomedPictureCount == 4) && (countZero < 3)) {
@@ -873,12 +876,21 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     }
 
     // check separator image
-    if ((separatorFrame >= 0) && (countDark != countFrames)) {  // on full dark scenes we can not detect separator image
-        int diffSeparator = 1000 * (endPos - separatorFrame) / maContext->Video.Info.framesPerSecond;
-        dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator image found (%d), %dms before end", separatorFrame, diffSeparator);
-        if (diffSeparator <= 480) {
-            dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator image found, this is a valid start mark");
-            found = false;
+    dsyslog("cDetectLogoStopStart::IsInfoLogo(): count separator frames %d", countSeparatorFrame);
+    if (countSeparatorFrame >= 3) {
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): too much separator frames, this can not be a info logo");
+        found = false;
+    }
+    if (found) {
+        int darkQuote = 100 * countDark / countFrames;
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): dark quote %d%%", darkQuote);
+        if ((lastSeparatorFrame >= 0) && (darkQuote != 100)) {  // on full dark scenes we can not detect separator image
+            int diffSeparator = 1000 * (endPos - lastSeparatorFrame) / maContext->Video.Info.framesPerSecond;
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator image found (%d), %dms before end", lastSeparatorFrame, diffSeparator);
+            if (diffSeparator <= 480) {
+                dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator image found, this is a valid start mark");
+                found = false;
+            }
         }
     }
 
