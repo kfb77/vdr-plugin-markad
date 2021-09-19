@@ -1306,10 +1306,11 @@ int cDetectLogoStopStart::IntroductionLogo() {
     int separatorFrameBefore = -1;
     int separatorFrameAfter  = -1;
 
-#define INTRODUCTION_MIN_LENGTH         4320
-#define INTRODUCTION_MAX_LENGTH        26000
-#define INTRODUCTION_MAX_DIFF_SEPARATOR 3000   // max distance from sepatator frame to introduction logo start, changed from 480 to 2400 to 3000
+#define INTRODUCTION_MIN_LENGTH          4320
+#define INTRODUCTION_MAX_LENGTH         26000
+#define INTRODUCTION_MAX_DIFF_SEPARATOR 12480  // max distance from sepatator frame to introduction logo start, changed from 480 to 2400 to 3000 to 12480
                                                // somtime broacast start without logo before intruduction logo
+                                               // sometime we have a undetected info logo and separtion frame is far before
 #define INTRODUCTION_MAX_DIFF_END       4319   // max distance of introduction logo end to start mark (endPos)
 
    for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
@@ -1320,11 +1321,12 @@ int cDetectLogoStopStart::IntroductionLogo() {
         int countZero       = 0;
         int countStillImage = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
-            if ((*cornerResultIt).rate[corner] == 0) countZero++;
+            if ((*cornerResultIt).rate[corner] <= 0) countZero++;
             if (((*cornerResultIt).rate[corner] <= 0) || ((*cornerResultIt).rate[corner] >= 142)) countStillImage++; // changed from 964 to 441 to 142
             sumPixel += (*cornerResultIt).rate[corner];
         }
-        if ((countZero >= 3) && (sumPixel <= 14)) { // new separator image before introduction logo, restart detection
+        // 59     0     0    -1 -> separator frame
+        if ((countZero >= 3) && (sumPixel <= 58)) { // new separator image before introduction logo, restart detection, changed from 14 to 58
             separatorFrameBefore = (*cornerResultIt).frameNumber1;
             introductionLogo.start = -1;
             introductionLogo.end   = -1;
