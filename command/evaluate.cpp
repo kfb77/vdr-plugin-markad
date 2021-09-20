@@ -886,9 +886,9 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): dark quote %d%%", darkQuote);
         if ((lastSeparatorFrame >= 0) && (darkQuote != 100)) {  // on full dark scenes we can not detect separator image
             int diffSeparator = 1000 * (endPos - lastSeparatorFrame) / maContext->Video.Info.framesPerSecond;
-            dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator image found (%d), %dms before end", lastSeparatorFrame, diffSeparator);
-            if (diffSeparator <= 480) {
-                dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator image found, this is a valid start mark");
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): last separator frame found (%d), %dms before end", lastSeparatorFrame, diffSeparator);
+            if (diffSeparator <= 1440) { // changed from 480 to 1440
+                dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator frame found, this is a valid start mark");
                 found = false;
             }
         }
@@ -901,7 +901,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         int diffEnd = 1000 * (endPos - InfoLogo.endFinal) / maContext->Video.Info.framesPerSecond;
         int newStartPos = startPos;
         int newEndPos = endPos;
-        dsyslog("cDetectLogoStopStart::IsInfoLogo(): start diff %dms, end diff %dms", diffStart, diffEnd);
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo start diff %dms, end diff %dms", diffStart, diffEnd);
         if (diffStart < 1920) newStartPos = InfoLogo.startFinal;  // do not increase
         if (diffEnd <= 1800) newEndPos = InfoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): final range start (%d) end (%d)", newStartPos, newEndPos);
