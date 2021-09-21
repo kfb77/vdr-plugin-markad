@@ -884,7 +884,8 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     if (found) {
         int darkQuote = 100 * countDark / countFrames;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): dark quote %d%%", darkQuote);
-        if ((lastSeparatorFrame >= 0) && (darkQuote != 100)) {  // on full dark scenes we can not detect separator image
+        if ((lastSeparatorFrame >= 0) && (darkQuote < 65)) {  // on dark scenes we can not detect separator image
+                                                              // darkQuote changed from 100 to 69 to 65
             int diffSeparator = 1000 * (endPos - lastSeparatorFrame) / maContext->Video.Info.framesPerSecond;
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): last separator frame found (%d), %dms before end", lastSeparatorFrame, diffSeparator);
             if (diffSeparator <= 1440) { // changed from 480 to 1440
