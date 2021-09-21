@@ -881,6 +881,12 @@ void cMarkAdStandalone::CheckStart() {
                     }
                 }
             }
+            else { // vdr info file tells 4:3 video
+                if (aStart && aStopAfter && (aStart->position <= IGNORE_AT_START)) {  // we have a aspect ratio start mark at the recording start and a sspect ratio top mark
+                    cMark *aStartAfter = marks.GetNext(aStart->position, MT_ASPECTSTART);
+                    if (!aStartAfter) wrongAspectInfo = true;  // no aspect ratio start mark follows, the vdr info file must be wrong
+                }
+            }
 
             // fix wrong aspect ratio from vdr info file
             if (wrongAspectInfo || ((!earlyAspectChange) && ((macontext.Info.AspectRatio.num != macontext.Video.Info.AspectRatio.num) ||
