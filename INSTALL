@@ -1,10 +1,15 @@
 Basic Installation
 ==================
 
-Prerequisite: build-essential git vdr-dev libavcodec-dev libavformat-dev libavfilter-dev libswresample-dev
+Prerequisite:
+- build-essential
+- git
+- vdr-dev (>= version 2.2)
+- libavcodec-dev (>= 56.1.0 from FFmpeg 2.4)
+- libavformat-dev
+- libavfilter-dev
+- libswresample-dev
 e.g. for Ubuntu: sudo apt-get install build-essential git vdr-dev libavcodec-dev libavformat-dev libavfilter-dev libswresample-dev
-
-minimum version of libavcodec: 56.1.0 (FFmpeg 2.4)
 
 
 The simplest way to compile this package is:
@@ -28,4 +33,4 @@ If you have any problems post here: https://www.vdr-portal.de
 
 To report bugs please execute markad with the following command line parameters:
 markad --loglevel=3 --log2rec nice <path to recording>
-Post the files markad.log, marks und info from the recording directory at https://www.vdr-portal.de.
+Post the files markad.log, marks and info from the recording directory at https://www.vdr-portal.de.
