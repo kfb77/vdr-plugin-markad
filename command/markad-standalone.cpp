@@ -1219,9 +1219,10 @@ void cMarkAdStandalone::CheckStart() {
         begin = NULL;
     }
 
-    if (!begin) {    // try anything
-        marks.DelTill(1, &blackMarks);    // we do not want to have a start mark at position 0
-        begin = marks.GetAround(iStartA + 3 * delta, iStartA, MT_START, 0x0F);  // increased from 2 to 3
+// try anything
+    if (!begin) {
+        marks.DelTill(IGNORE_AT_START);    // we do not want to have a initial mark from previous recording as a start mark
+        begin = marks.GetAround(2 * delta, iStartA, MT_START, 0x0F);  // not too big search range, blackscreen marks can be wrong
         if (begin) {
             dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) type 0x%X after search for any type", begin->position, begin->type);
             if (begin->type == MT_NOBLACKSTART) {
@@ -1231,7 +1232,7 @@ void cMarkAdStandalone::CheckStart() {
                     diff = 1000 * (begin->position - blackStop->position) / macontext.Video.Info.framesPerSecond; // trust long blackscreen
                     dsyslog("cMarkAdStandalone::CheckStart(): found black screen from (%d) to (%d), length %dms", blackStop->position, begin->position, diff);
                 }
-                if ((diff < 800) && (begin->position > (iStartA + 2 * delta))) {
+                if ((diff < 800) && (begin->position >= (iStartA + (120 * macontext.Video.Info.framesPerSecond)))) {  // use short blackscreen only short after assumed start
                     dsyslog("cMarkAdStandalone::CheckStart(): found only very late and short black screen start mark (%i), ignoring", begin->position);
                     begin = NULL;
                 }
