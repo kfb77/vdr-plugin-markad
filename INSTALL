@@ -28,6 +28,22 @@ The simplest way to compile this package is:
 
 
 
+---------------------------------------------------------------------------------------------------
+complete build commands for yavdr distribution:
+
+sudo bash
+apt-get install vdr-dev
+apt-get build-dep vdr-plugin-markad-ng
+cd /usr/src
+git clone https://github.com/kfb77/vdr-plugin-markad
+cd vdr-plugin-markad
+make all
+service vdr stop
+make install
+service vdr start
+---------------------------------------------------------------------------------------------------
+
+
 See README for recommended plugin default settings.
 If you have any problems post here: https://www.vdr-portal.de
 
