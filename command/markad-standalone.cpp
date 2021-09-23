@@ -228,6 +228,18 @@ void cMarkAdStandalone::CheckStop() {
                 cMark *stopBefore  = marks.GetPrev(end->position, MT_HBORDERSTOP);         // try hborder
                 if (!stopBefore) {
                     stopBefore  = marks.GetPrev(end->position, MT_LOGOSTOP);  // try logo stop
+                    // check position of logo start mark before aspect ratio mark, if it is after logo stop mark, logo stop mark end can be end of preview in advertising
+                    if (stopBefore) {
+                        int diffAspectStop = (end->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
+                        dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d), %ds before aspect ratio stop mark", stopBefore->position, diffAspectStop);
+                        if (diffAspectStop > 153) {  // check only for early logo stop marks, do not increase, there can be a late advertising and aspect stop on same frame as logo stop
+                            cMark *startLogoBefore = marks.GetPrev(end->position, MT_LOGOSTART);
+                            if (startLogoBefore && (startLogoBefore->position > stopBefore->position)) {
+                                dsyslog("cMarkAdStandalone::CheckStop(): logo start mark (%d) between logo stop mark (%d) and aspect ratio mark (%d), this logo stop mark is end of advertising", startLogoBefore->position, stopBefore->position, end->position);
+                                stopBefore = NULL;
+                            }
+                        }
+                    }
                 }
                 if (stopBefore) { // maybe real stop mark was deleted because on same frame as logo/hborder stop mark
                     int diff = (iStopA - stopBefore->position) /  macontext.Video.Info.framesPerSecond;
