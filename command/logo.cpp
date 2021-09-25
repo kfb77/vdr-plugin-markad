@@ -506,7 +506,8 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
     dsyslog("cExtractLogo::Resize(): logo size before resize:    %3d width %3d height on corner %12s", *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
     int logoHeightBeforeResize = *logoHeight;
     int logoWidthBeforeResize = *logoWidth;
-    int acceptFalsePixelH = *logoWidth / 30;  // reduced from 60 to 20, increased to 30 for vertical logo of arte HD
+    int acceptFalsePixelH = *logoWidth / 37;  // reduced from 60 to 20, increased to 30 for vertical logo of arte HD
+                                              // increased to 37 to get full thin logos (e.g. arte HD)
     int acceptFalsePixelV;
     if (maContext->Video.Info.width < 3840) acceptFalsePixelV = *logoHeight / 20; // reduced from 30 to 20
     else acceptFalsePixelV = *logoHeight / 30; // UDH has thin logo structure
@@ -530,7 +531,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                         if (blackPixel > acceptFalsePixelH) break;
                     }
                 }
-                if (blackPixel <= acceptFalsePixelH) {  // accept false pixel
+                if (blackPixel < acceptFalsePixelH) {  // accept false pixel
                     whiteLines++;
                 }
                 else break;
