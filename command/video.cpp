@@ -422,57 +422,106 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
     int xstart, xend, ystart, yend;
     if (!SetCoorginates(&xstart, &xend, &ystart, &yend, 0)) return BRIGHTNESS_ERROR;
 
-// set coorginates for logo part in logo corner
-    int corner_xstart = 0;
-    int corner_xend   = 0;
-    int corner_ystart = 0;
-    int corner_yend   = 0;
-    switch (area.corner) {  // logo is usualy in the inner part of the logo corner
-        case TOP_LEFT:
-            corner_xstart = xend - (xend - xstart) / 2;
-            corner_xend = xend;
-            corner_ystart = yend - (yend - ystart) / 2;
-            corner_yend = yend;
-            break;
-        case TOP_RIGHT:
-            corner_xstart = xstart;
-            corner_xend = xend - (xend - xstart) / 2;
-            corner_ystart = yend - (yend - ystart) / 2;
-            corner_yend = yend;
-            break;
-        case BOTTOM_LEFT:
-            corner_xstart = xend - (xend - xstart) / 2;
-            corner_xend = xend;
-            corner_ystart = ystart;
-            corner_yend = yend - (yend - ystart) / 2;
-            break;
-        case BOTTOM_RIGHT:
-            corner_xstart = xstart;
-            corner_xend = xend - (xend - xstart) / 2 ;
-            corner_ystart = ystart;
-            corner_yend = yend - (yend - ystart) / 2;
-            break;
-        default:
-            return BRIGHTNESS_ERROR;
-            break;
+
+
+// set coorginates for logo pixel part in logo corner
+    if ((logo_xstart == 0) && (logo_xend == 0) && (logo_ystart == 0) && (logo_yend == 0)) {
+        switch (area.corner) {  // logo is usualy in the inner part of the logo corner
+#define LOGO_MIN_PIXEL 30  // big enough to get in the main part of the logo
+            case TOP_LEFT: {
+                // xend and yend from logo coordinates
+                logo_xend = xend;
+                logo_yend = yend;
+
+                // xstart is first column with pixel in logo area
+                int pixelCount = 0;
+                int column;
+                int line;
+                for (column = 0; column < logoWidth; column++) {
+                    for (line = 0; line < logoHeight; line++) {
+                        if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
+                        if (pixelCount > LOGO_MIN_PIXEL) break;
+                    }
+                    if (pixelCount > LOGO_MIN_PIXEL) break;
+                }
+                logo_xstart = column;
+
+                // ystart is first line with pixel in logo area
+                pixelCount = 0;
+                for (line = 0; line < logoHeight; line++) {
+                    for (column = 0; column < logoWidth; column++) {
+                        if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
+                        if (pixelCount >= LOGO_MIN_PIXEL) break;
+                    }
+                    if (pixelCount >= LOGO_MIN_PIXEL) break;
+                }
+                logo_ystart = line;
+                break;
+            }
+            case TOP_RIGHT: {
+                // xstart and yend from logo coordinates
+                logo_xstart = xstart;
+                logo_yend = yend;
+
+                // xend is last column with pixel in logo area
+                int pixelCount = 0;
+                int column;
+                int line;
+                for (column = logoWidth - 1; column >= 0; column--) {
+                    for (line = 0; line < logoHeight; line++) {
+                        if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
+                        if (pixelCount > LOGO_MIN_PIXEL) break;
+                    }
+                    if (pixelCount > LOGO_MIN_PIXEL) break;
+                }
+                logo_xend = xend - (logoWidth - column);
+
+                // ystart is first line with pixel in logo area
+                pixelCount = 0;
+                for (line = 0; line < logoHeight; line++) {
+                    for (column = 0; column < logoWidth; column++) {
+                        if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
+                        if (pixelCount >= LOGO_MIN_PIXEL) break;
+                    }
+                    if (pixelCount >= LOGO_MIN_PIXEL) break;
+                }
+                logo_ystart = line;
+                break;
+            }
+            case BOTTOM_LEFT:
+                logo_xstart = xend - (xend - xstart) / 2;
+                logo_xend = xend;
+                logo_ystart = ystart;
+                logo_yend = yend - (yend - ystart) / 2;
+                break;
+            case BOTTOM_RIGHT:
+                logo_xstart = xstart;
+                logo_xend = xend - (xend - xstart) / 2 ;
+                logo_ystart = ystart;
+                logo_yend = yend - (yend - ystart) / 2;
+                break;
+            default:
+                return BRIGHTNESS_ERROR;
+                break;
+        }
+        dsyslog("cMarkAdLogo::ReduceBrightness(): logo area: xstart %d xend %d, ystart %d yend %d", logo_xstart, logo_xend, logo_ystart, logo_yend);
     }
 
 // detect contrast and brightness of logo part
     int minPixel = INT_MAX;
     int maxPixel = 0;
     int sumPixel = 0;
-    for (int line = corner_ystart; line < corner_yend; line++) {
-        for (int column = corner_xstart; column < corner_xend; column++) {
+    for (int line = logo_ystart; line < logo_yend; line++) {
+        for (int column = logo_xstart; column < logo_xend; column++) {
             int pixel = maContext->Video.Data.Plane[0][line * maContext->Video.Data.PlaneLinesize[0] + column];
             if (pixel > maxPixel) maxPixel = pixel;
             if (pixel < minPixel) minPixel = pixel;
             sumPixel += pixel;
         }
     }
-    int brightnessLogo = sumPixel / ((corner_yend - corner_ystart) * (corner_xend - corner_xstart));
+    int brightnessLogo = sumPixel / ((logo_yend - logo_ystart) * (logo_xend - logo_xstart));
     int contrastLogo = maxPixel - minPixel;
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cMarkAdLogo::ReduceBrightness(): logo area: xstart %d xend %d, ystart %d yend %d", corner_xstart, corner_xend, corner_ystart, corner_yend);
     dsyslog("cMarkAdLogo::ReduceBrightness(): logo area before reduction:  contrast %3d, brightness %3d", contrastLogo, brightnessLogo);
 #endif
 
@@ -525,14 +574,11 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
     }
 
     // very high contrast with not very high brightness in logo area, trust detection
-    // logo is visible but not detected
-    // contrast 159, brightness 123
-    // contrast 161, brightness 120
-    // contrast 163, brightness 124
-    if ((contrastLogo >= 164) && (brightnessLogo <= 139)) { // changed contrastLogo from 159 to 164
-                                                            // changed brightnessLogo from 110 to 124 to 139
-                                                            // increased to 124 to detect SIXX info logo as no logo
-                                                            // increased to 139 to detect dark ad in bright frame without logo as logo invisable
+    // false negativ, logo is visible but not detected
+    // contrast 168, brightness 151
+    // contrast 171, brightness 150
+    if ((contrastLogo >= 164) && (brightnessLogo < 150)) { // contrastLogo changed from 159 to 164
+                                                           // brightnessLogo 150, do not increase, we will get undetected logos in bright area
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): very high contrast with not very high brightness in logo area, trust detection");
 #endif

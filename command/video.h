@@ -388,9 +388,9 @@ class cMarkAdLogo : cLogoSize {
 
         cIndex *recordingIndexMarkAdLogo = NULL;  //!< recording index
                                                   //!<
-        int logoHeight = 0;                       //!< logo height
+        int logoHeight                   = 0;     //!< logo height
                                                   //!<
-        int logoWidth = 0;                        //!< logo width
+        int logoWidth                    = 0;     //!< logo width
                                                   //!<
         sAreaT area;                              //!< pixels of logo area
                                                   //!<
@@ -398,11 +398,19 @@ class cMarkAdLogo : cLogoSize {
                                                   //!<
         int GY[3][3];                             //!< GY Sobel mask
                                                   //!<
-        sMarkAdContext *maContext = NULL;         //!< markad context
+        sMarkAdContext *maContext        = NULL;  //!< markad context
                                                   //!<
-        bool pixfmt_info = false;                 //!< true if unknown pixel error message was logged, false otherwise
+        bool pixfmt_info                 = false; //!< true if unknown pixel error message was logged, false otherwise
                                                   //!<
-        bool isInitColourChange = false;          //!< true if trnasformation of grey logo to coloured logo is done
+        bool isInitColourChange          = false; //!< true if trnasformation of grey logo to coloured logo is done
+                                                  //!<
+        int logo_xstart                  = 0;     //!< x start coordinate of the visible part of the logo
+                                                  //!<
+        int logo_xend                    = 0;     //!< x end coordinate of the visible part of the logo
+                                                  //!<
+        int logo_ystart                  = 0;     //!< y start coordinate of the visible part of the logo
+                                                  //!<
+        int logo_yend                    = 0;     //!< y end coordinate of the visible part of the logo
                                                   //!<
 };
 
