@@ -28,49 +28,50 @@
 #define MA_SP_TYPE 6
 #define MA_BI_TYPE 7
 
-#define MT_START          (unsigned char) 1
-#define MT_STOP           (unsigned char) 2
+#define MT_START           (unsigned char) 1
+#define MT_STOP            (unsigned char) 2
 
-#define MT_ASSUMED        (unsigned char) 0x10
-#define MT_ASSUMEDSTART   (unsigned char) 0x11
-#define MT_ASSUMEDSTOP    (unsigned char) 0x12
+#define MT_ASSUMED         (unsigned char) 0x10
+#define MT_ASSUMEDSTART    (unsigned char) 0x11
+#define MT_ASSUMEDSTOP     (unsigned char) 0x12
 
-#define MT_BLACKCHANGE    (unsigned char) 0x20
-#define MT_NOBLACKSTART   (unsigned char) 0x21
-#define MT_NOBLACKSTOP    (unsigned char) 0x22
+#define MT_BLACKCHANGE     (unsigned char) 0x20
+#define MT_NOBLACKSTART    (unsigned char) 0x21
+#define MT_NOBLACKSTOP     (unsigned char) 0x22
 
-#define MT_LOGOCHANGE     (unsigned char) 0x30
-#define MT_LOGOSTART      (unsigned char) 0x31
-#define MT_LOGOSTOP       (unsigned char) 0x32
+#define MT_LOGOCHANGE      (unsigned char) 0x30
+#define MT_LOGOSTART       (unsigned char) 0x31
+#define MT_LOGOSTOP        (unsigned char) 0x32
 
-#define MT_VBORDERCHANGE  (unsigned char) 0x40
-#define MT_VBORDERSTART   (unsigned char) 0x41
-#define MT_VBORDERSTOP    (unsigned char) 0x42
+#define MT_VBORDERCHANGE   (unsigned char) 0x40
+#define MT_VBORDERSTART    (unsigned char) 0x41
+#define MT_VBORDERSTOP     (unsigned char) 0x42
 
-#define MT_HBORDERCHANGE  (unsigned char) 0x50
-#define MT_HBORDERSTART   (unsigned char) 0x51
-#define MT_HBORDERSTOP    (unsigned char) 0x52
+#define MT_HBORDERCHANGE   (unsigned char) 0x50
+#define MT_HBORDERSTART    (unsigned char) 0x51
+#define MT_HBORDERSTOP     (unsigned char) 0x52
 
-#define MT_ASPECTCHANGE   (unsigned char) 0x60
-#define MT_ASPECTSTART    (unsigned char) 0x61
-#define MT_ASPECTSTOP     (unsigned char) 0x62
+#define MT_ASPECTCHANGE    (unsigned char) 0x60
+#define MT_ASPECTSTART     (unsigned char) 0x61
+#define MT_ASPECTSTOP      (unsigned char) 0x62
 
-#define MT_CHANNELCHANGE  (unsigned char) 0x70
-#define MT_CHANNELSTART   (unsigned char) 0x71
-#define MT_CHANNELSTOP    (unsigned char) 0x72
+#define MT_CHANNELCHANGE   (unsigned char) 0x70
+#define MT_CHANNELSTART    (unsigned char) 0x71
+#define MT_CHANNELSTOP     (unsigned char) 0x72
 
-#define MT_VPSCHANGE      (unsigned char) 0xC0
-#define MT_VPSSTART       (unsigned char) 0xC1
-#define MT_VPSSTOP        (unsigned char) 0xC2
+#define MT_VPSCHANGE       (unsigned char) 0xC0
+#define MT_VPSSTART        (unsigned char) 0xC1
+#define MT_VPSSTOP         (unsigned char) 0xC2
 
-#define MT_RECORDINGSTART (unsigned char) 0xD1
-#define MT_RECORDINGSTOP  (unsigned char) 0xD2
+#define MT_RECORDINGCHANGE (unsigned char) 0xD0
+#define MT_RECORDINGSTART  (unsigned char) 0xD1
+#define MT_RECORDINGSTOP   (unsigned char) 0xD2
 
-#define MT_MOVEDCHANGE    (unsigned char) 0xE0
-#define MT_MOVEDSTART     (unsigned char) 0xE1
-#define MT_MOVEDSTOP      (unsigned char) 0xE2
+#define MT_MOVEDCHANGE     (unsigned char) 0xE0
+#define MT_MOVEDSTART      (unsigned char) 0xE1
+#define MT_MOVEDSTOP       (unsigned char) 0xE2
 
-#define MT_ALL            (unsigned char) 0xFF
+#define MT_ALL             (unsigned char) 0xFF
 
 
 /**

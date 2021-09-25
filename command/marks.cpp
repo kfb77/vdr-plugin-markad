@@ -438,6 +438,11 @@ char *cMarks::TypeToText(const int type) {
                 ALLOC(strlen(text)+1, "text");
             }
             break;
+        case MT_RECORDINGCHANGE:
+            if (asprintf(&text, "recording") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            break;
         default:
            if (asprintf(&text, "unknown") != -1) {
                ALLOC(strlen(text)+1, "text");

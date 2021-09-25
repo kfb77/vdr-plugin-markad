@@ -4169,9 +4169,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     if (macontext.Info.tStart > 1) {
         if ((macontext.Info.tStart < 60) && (!macontext.Info.timerVPS)) macontext.Info.tStart = 60;
     }
-    isyslog("pre-timer:        %d:%02d:%02d", macontext.Info.tStart / 60 / 60, (macontext.Info.tStart / 60) % 60, macontext.Info.tStart % 60);
+    isyslog("pre-timer:        %2d:%02d:%02dh", macontext.Info.tStart / 60 / 60, abs((macontext.Info.tStart / 60) % 60), abs(macontext.Info.tStart % 60));
 
-    if (length) isyslog("broadcast length: %d:%02d:%02d", length / 60 / 60, ( length / 60) % 60,  length % 60 );
+    if (length) isyslog("broadcast length: %2d:%02d:%02dh", length / 60 / 60, ( length / 60) % 60,  length % 60 );
 
     if (title[0]) {
         ptitle = title;
