@@ -1759,7 +1759,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         int maxBeforeAssumed;           // max 5 min before assumed stop
         switch(mark->type) {
             case MT_ASSUMEDSTOP:
-                maxBeforeAssumed = 532; // try hard to get a better end mark, changed from 389 to 532
+                maxBeforeAssumed = 449; // try hard to get a better end mark, changed from 389 to 532 to 449
+                                        // not not increase to prevent to get preview stop from last advertising
                 break;
             case MT_NOBLACKSTOP:
                 maxBeforeAssumed = 351; // try a litte more to get end mark, changed from 389 to 351
