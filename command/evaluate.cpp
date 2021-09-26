@@ -388,9 +388,9 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
                         else {
                             int lengthNext = 1000 * (pairNextStart->position - pairNextStop->position) / framesPerSecond;
                             dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): length of next pair: %dms", lengthNext);
-                            if ((length <= 160) && (lengthNext <= 840)) { // length     changed from 120 to 160
+                            if ((length <= 200) && (lengthNext <= 840)) { // length     changed from 120 to 160 to 200
                                                                           // lengthNext changed from 160 to 840
-                                dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): this pair and next pair are very short, they are previews, do not merge");
+                                dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): this pair and next pair are very short, they are logo invisible parts between previews, do not merge");
                                 logoStopStartPair->isLogoChange = STATUS_NO;
                                 return;
                             }
