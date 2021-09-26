@@ -307,12 +307,16 @@ void cMarkAdStandalone::CheckStop() {
         while (true) {
             end = marks.GetAround(MAX_LOGO_END_MARK_FACTOR * delta, iStopA, MT_LOGOSTOP);
             if (end) {
-                dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame %i", end->position);
+                dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame (%i)", end->position);
                 cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
                 if (prevLogoStart) {
-                    int deltaLogoStart = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
-                    if (deltaLogoStart < 9) { // do not increase because of SIXX and SAT.1 has very short logo change at the end of recording,which are sometimes not detected
-                                              // sometimes we can not detect it at the end of the broadcast the info logo because text changes (noch eine Folge -> <Name der Folge>)
+                    int deltaLogoStart = 1000 * (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
+                    int maxDeltaLogoStart = 18200;
+                    // if this is a channel with logo changes there could be one short before end mark, use lower value
+                    // do not increase because of SIXX and SAT.1 has very short logo change at the end of recording, which are sometimes not detected
+                    // sometimes we can not detect it at the end of the broadcast the info logo because text changes (noch eine Folge -> <Name der Folge>)
+                    if (IsInfoLogoChannel(macontext.Info.ChannelName)) maxDeltaLogoStart = 8000;
+                    if (deltaLogoStart <= maxDeltaLogoStart) {
                         cMark *prevLogoStop = marks.GetPrev(prevLogoStart->position, MT_LOGOSTOP);
                         if (prevLogoStop && evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(prevLogoStop->position, prevLogoStart->position) == STATUS_YES)) {
                             dsyslog("cMarkAdStandalone::CheckStop(): previous logo stop (%d) start (%d) pair are closing credits, use this stop mark as end mark", prevLogoStop->position, prevLogoStart->position);
@@ -320,13 +324,13 @@ void cMarkAdStandalone::CheckStop() {
                             break;
                         }
                         else {
-                            dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) stop (%d) pair is invalid, logo start mark only %ds before, delete marks", prevLogoStart->position, end->position, deltaLogoStart);
+                            dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) stop (%d) pair is invalid, logo start mark only %dms before, delete marks", prevLogoStart->position, end->position, deltaLogoStart);
                             marks.Del(end);
                             marks.Del(prevLogoStart);
                         }
                     }
                     else {
-                        dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) stop (%d) pair is valid, logo start mark %ds before, delete marks", prevLogoStart->position, end->position, deltaLogoStart);
+                        dsyslog("cMarkAdStandalone::CheckStop(): logo start mark (%d) is %dms before logo stop mark (%d), logo stop mark is valid ", prevLogoStart->position, deltaLogoStart, end->position);
                         break;
                     }
                 }

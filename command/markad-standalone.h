@@ -35,7 +35,7 @@ extern "C" {
 /**
  * markad main class
  */
-class cMarkAdStandalone {
+class cMarkAdStandalone : public cEvaluateChannel {
     public:
 
 /**
