@@ -76,9 +76,13 @@ bool cEvaluateChannel::IntroductionLogoChannel(char *channelName) {
 }
 
 
-// evaluate logo stop/start pairs
+cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair() {
+}
+
+
+// Check logo stop/start pairs
 // used by logo change detection
-cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(sMarkAdContext *maContext, cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA) {
+void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maContext, cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA) {
     if (!marks) return;
 
 #define LOGO_CHANGE_NEXT_STOP_MIN     7000  // in ms, do not increase, 7s is the shortest found distance between two logo changes

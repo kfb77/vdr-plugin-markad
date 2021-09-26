@@ -594,12 +594,11 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start mark pairs with special logo");
 
-    if (evaluateLogoStopStartPair) {  // we need a new clean instance of the object
-        FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
-        delete evaluateLogoStopStartPair;
+    if (!evaluateLogoStopStartPair) {
+        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair();
+        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
     }
-    evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(&macontext, &marks, &blackMarks, iStart, chkSTART, iStopA);
-    ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+    evaluateLogoStopStartPair->CheckLogoStopStartPairs(&macontext, &marks, &blackMarks, iStart, chkSTART, iStopA);
 
     char *indexToHMSFStop = NULL;
     char *indexToHMSFStart = NULL;

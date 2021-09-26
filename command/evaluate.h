@@ -92,8 +92,11 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
                                                           //!<
         };
 
+    cEvaluateLogoStopStartPair();
+    ~cEvaluateLogoStopStartPair();
+
 /**
- * contructor for class to evalualte logo stop/start pairs
+ * check logo stop/start pairs
  * @param maContext       markad context
  * @param marks           object with all marks
  * @param blackMarks      object with all black screen marks
@@ -101,9 +104,8 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
  * @param chkSTART        frame postion to check start part
  * @param iStopA          assumed end mark position
  */
-        cEvaluateLogoStopStartPair(sMarkAdContext *maContext, cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA);
+    void CheckLogoStopStartPairs(sMarkAdContext *maContext, cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA);
 
-        ~cEvaluateLogoStopStartPair();
 
 /**
  * check if logo stop/start pair could be closing credits
