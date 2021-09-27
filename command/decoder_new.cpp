@@ -359,7 +359,7 @@ int cDecoder::GetVideoRealFrameRate() {
 }
 
 
-bool cDecoder::GetNextPacket() {
+bool cDecoder::GetNextPacket(bool ignorePTS_Ringbuffer) {
     if (!avctx) return false;
     FrameData.Valid = false;
     av_packet_unref(&avpkt);
@@ -394,7 +394,7 @@ bool cDecoder::GetNextPacket() {
             dtsBefore = avpkt.dts;
 
             // store frame number and pts in a ring buffer
-            recordingIndexDecoder->AddPTS(currFrameNumber, avpkt.pts);
+            if (!ignorePTS_Ringbuffer) recordingIndexDecoder->AddPTS(currFrameNumber, avpkt.pts);
             int64_t offsetTime_ms = -1;
             if (avpkt.pts != AV_NOPTS_VALUE) {
                 int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;

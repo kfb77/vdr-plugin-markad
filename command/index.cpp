@@ -210,6 +210,9 @@ int cIndex::GetFirstVideoFrameAfterPTS(const int64_t pts) {
     } after;
 
     for (std::vector<sPTS_RingbufferElement>::iterator ptsIterator = ptsRing.begin(); ptsIterator != ptsRing.end(); ++ptsIterator) { // get framenumber after
+#ifdef DEBUG_PTS
+        dsyslog("cIndex::GetFirstVideoFrameAfterPTS(): frame (%d) PTS %" PRId64, ptsIterator->frameNumber, ptsIterator->pts);
+#endif
         if (ptsIterator->pts < pts) {  // reset state if we found a frame with pts samaller than target
             after.frameNumber = -1;
             after.pts = INT64_MAX;

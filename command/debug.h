@@ -61,6 +61,9 @@
 // debug index build
 // #define DEBUG_INDEX_BUILD
 
+// debug PTS ring buffer
+// #define DEBUG_PTS
+
 // debug video cut
 // #define DEBUG_CUT <streamindex>
 // #define DEBUG_CUT 0

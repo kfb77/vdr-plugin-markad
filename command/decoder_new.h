@@ -145,9 +145,10 @@ class cDecoder {
  * increase i-frame counter if video i-frame <br>
  * add presentation timestamp for each frame to ring buffer <br>
  * add offset from recording start for each i-frame to recording index <br>
+ * @param ignorePTS_Ringbuffer no not fill PTS ring buffer, true if called by logo search to avoid out of sequence elements
  * @return true if successful, false if av_read_frame failed (e.g. end of file)
  */
-        bool GetNextPacket();
+        bool GetNextPacket(bool ignorePTS_Ringbuffer = false);
 
 /**
  * get current packet
