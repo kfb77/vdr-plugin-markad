@@ -666,7 +666,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
             if (repeat == 1) Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "3_after_cut_right_1");
             else Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "6_after_cut_right_2");
 #endif
-// search for at least 3 white columns to cut logos with text addon (e.g. "Neue Folge")
+// check text left of logo, search for at least 2 white columns to cut logos with text addon (e.g. "Neue Folge")
             int countWhite = 0;
             int cutColumn = 0;
             int lastBlackColumn = 0;
@@ -693,7 +693,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                     lastBlackColumn = column;
                     if (cutColumn > 0) break;
                 }
-                if (countWhite >= 3) {
+                if (countWhite >= 2) {  // changed from 3 to 2 (text right of Pro7_MAXX logo)
                     cutColumn = column;
                 }
             }
