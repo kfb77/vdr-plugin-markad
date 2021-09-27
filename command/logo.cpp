@@ -509,7 +509,8 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
     int acceptFalsePixelH = *logoWidth / 37;  // reduced from 60 to 20, increased to 30 for vertical logo of arte HD
                                               // increased to 37 to get full thin logos (e.g. arte HD)
     int acceptFalsePixelV;
-    if (maContext->Video.Info.width < 3840) acceptFalsePixelV = *logoHeight / 20; // reduced from 30 to 20
+    if (maContext->Video.Info.width < 3840) acceptFalsePixelV = *logoHeight / 27; // reduced from 30 to 20 to 27
+                                                                                  // to get start from SIXX logo
     else acceptFalsePixelV = *logoHeight / 30; // UDH has thin logo structure
 
     for (int repeat = 1; repeat <= 2; repeat++) {
