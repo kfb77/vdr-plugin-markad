@@ -492,6 +492,9 @@ int cStatusMarkAd::RunningRecording() {
 #if APIVERSNUM>=20301
     cStateKey StateKey;
     if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
+#ifdef DEBUG_LOCKS
+        dsyslog("markad: RunningRecording(): LOCK   timers");
+#endif
         for (const cTimer *Timer = Timers->First(); Timer; Timer = Timers->Next(Timer))
 #else
     for (cTimer *Timer = Timers.First(); Timer; Timer = Timers.Next(Timer))
@@ -510,6 +513,9 @@ int cStatusMarkAd::RunningRecording() {
         }
 #if APIVERSNUM>=20301
     }
+#ifdef DEBUG_LOCKS
+    dsyslog("markad: RunningRecording(): UNLOCK timers");
+#endif
     StateKey.Remove();
 #endif
 
@@ -650,6 +656,9 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
     const cTimer *timer = NULL;
     cStateKey StateKey;
     if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
+#ifdef DEBUG_LOCKS
+        dsyslog("markad: GetEventID(): LOCK   timers");
+#endif
         for (const cTimer *Timer = Timers->First(); Timer; Timer = Timers->Next(Timer))
 #else
     cTimer *timer = NULL;
@@ -671,6 +680,9 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
     if (!timer) {
         esyslog("markad: cannot find timer for <%s>", Name);
 #if APIVERSNUM>=20301
+#ifdef DEBUG_LOCKS
+        dsyslog("markad: GetEventID(): UNLOCK timers");
+#endif
         StateKey.Remove();
 #endif
         return;
@@ -685,6 +697,9 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
         *eventID = timer->Event()->EventID();
     }
 #if APIVERSNUM>=20301
+#ifdef DEBUG_LOCKS
+        dsyslog("markad: GetEventID(): UNLOCK timers");
+#endif
     StateKey.Remove();
 #endif
     dsyslog("markad: cStatusMarkAd::GetEventID(): eventID %u from event for recording <%s> timer <%s>  timer start %ld stop %ld", *eventID, Name, timer->File(), *timerStartTime, *timerStopTime);
@@ -785,6 +800,9 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device, const char *FileName) {
     const cTimer *timer = NULL;
     cStateKey StateKey;
     if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
+#ifdef DEBUG_LOCKS
+        dsyslog("markad: LogoExists(): LOCK   timers");
+#endif
         for (const cTimer *Timer = Timers->First(); Timer; Timer = Timers->Next(Timer))
 #else
     cTimer *timer = NULL;
@@ -811,6 +829,9 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device, const char *FileName) {
         }
 
 #if APIVERSNUM>=20301
+#ifdef DEBUG_LOCKS
+        dsyslog("markad: LogoExists(): UNLOCK timers");
+#endif
         StateKey.Remove();
     }
 #endif

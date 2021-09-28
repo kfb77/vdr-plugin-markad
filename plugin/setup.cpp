@@ -182,6 +182,9 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup) :cOsdMenu("",CHNUMWIDTH)
 #if APIVERSNUM>=20301
                 cStateKey StateKey;
                 if (const cChannels *Channels = cChannels::GetChannelsRead(StateKey)) {
+#ifdef DEBUG_LOCKS
+                    dsyslog("markad: cSetupMarkAdList(): LOCK   channels");
+#endif
                     for (const cChannel *channel=Channels->First(); channel; channel=Channels->Next(channel))
 #else
                 for (cChannel *channel = Channels.First(); channel; channel = Channels.Next(channel))
@@ -210,6 +213,9 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup) :cOsdMenu("",CHNUMWIDTH)
                     FREE(strlen(name)+1, "name");
                     free(name);
 #if APIVERSNUM>=20301
+#ifdef DEBUG_LOCKS
+                    dsyslog("markad: cSetupMarkAdList(): UNLOCK channels");
+#endif
                     StateKey.Remove();
                 }
 #endif

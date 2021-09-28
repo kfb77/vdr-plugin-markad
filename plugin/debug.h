@@ -11,6 +11,10 @@
 // debug pause und resume of markad process
 // #define DEBUG_PAUSE_CONTINUE
 
+// debug vdr locks
+// #define DEBUG_LOCKS
+
+
 #ifdef DEBUG_MEM
     #include <vdr/plugin.h>
 
