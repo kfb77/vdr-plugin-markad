@@ -1410,7 +1410,7 @@ void cMarkAdStandalone::CheckStartMark() {
         if (markStop) {
             int maxFirstBroadcast = 8;                                   // trust strong marks, do not trust weak marks
             if (mark->type <= MT_NOBLACKSTART)   maxFirstBroadcast = 96;
-            else if (mark->type == MT_LOGOSTART) maxFirstBroadcast = 51; // changed from 26 to 51
+            else if (mark->type == MT_LOGOSTART) maxFirstBroadcast = 71; // do not increase, there a broadcasts with early first advertising
             int lengthFirstBroadcast = (markStop->position - mark->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
             dsyslog("cMarkAdStandalone::CheckMarks(): first broadcast length %ds from (%d) to (%d) (expect <=%ds)", lengthFirstBroadcast, mark->position, markStop->position, maxFirstBroadcast);
             cMark *markStart = marks.GetNext(markStop->position, MT_START, 0x0F);
