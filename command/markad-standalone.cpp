@@ -2806,27 +2806,29 @@ void cMarkAdStandalone::Process3ndPass() {
             }
 
             // check for advertising in frame with logo after logo start mark position
-            LogSeparator(false);
-            int searchEndPosition = markLogo->position + (35 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
-            char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition, &macontext);
-            if (indexToHMSFStartMark && indexToHMSFSearchEnd) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo after logo start mark (%d) at %s to position (%d) at %s", markLogo->position, indexToHMSFStartMark, searchEndPosition, indexToHMSFSearchEnd);
-            if (indexToHMSFStartMark) {
-                FREE(strlen(indexToHMSFStartMark)+1, "indexToHMSF");
-                free(indexToHMSFStartMark);
-            }
-            if (indexToHMSFSearchEnd) {
-                FREE(strlen(indexToHMSFSearchEnd)+1, "indexToHMSF");
-                free(indexToHMSFSearchEnd);
-            }
             int adInFrameEndPosition = -1;
-            if (ptr_cDetectLogoStopStart->Detect(markLogo->position, searchEndPosition, true)) {
-                adInFrameEndPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(true);
-            }
-            if (adInFrameEndPosition >= 0) {
-                dsyslog("cMarkAdStandalone::Process3ndPass(): ad in frame between (%d) and (%d) found", markLogo->position, adInFrameEndPosition);
-                if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->IncludesInfoLogo(markLogo->position, adInFrameEndPosition))) {
-                    dsyslog("cMarkAdStandalone::Process3ndPass(): deleted info logo part in this range, this could not be a advertising in frame");
-                    adInFrameEndPosition = -1;
+            if (markLogo->position > marks.GetFirst()->position) { // never saw a advertising in frame after first start mark
+                LogSeparator(false);
+                int searchEndPosition = markLogo->position + (35 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
+                char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition, &macontext);
+                if (indexToHMSFStartMark && indexToHMSFSearchEnd) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo after logo start mark (%d) at %s to position (%d) at %s", markLogo->position, indexToHMSFStartMark, searchEndPosition, indexToHMSFSearchEnd);
+                if (indexToHMSFStartMark) {
+                    FREE(strlen(indexToHMSFStartMark)+1, "indexToHMSF");
+                    free(indexToHMSFStartMark);
+                }
+                if (indexToHMSFSearchEnd) {
+                    FREE(strlen(indexToHMSFSearchEnd)+1, "indexToHMSF");
+                    free(indexToHMSFSearchEnd);
+                }
+                if (ptr_cDetectLogoStopStart->Detect(markLogo->position, searchEndPosition, true)) {
+                    adInFrameEndPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(true);
+                }
+                if (adInFrameEndPosition >= 0) {
+                    dsyslog("cMarkAdStandalone::Process3ndPass(): ad in frame between (%d) and (%d) found", markLogo->position, adInFrameEndPosition);
+                    if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->IncludesInfoLogo(markLogo->position, adInFrameEndPosition))) {
+                        dsyslog("cMarkAdStandalone::Process3ndPass(): deleted info logo part in this range, this could not be a advertising in frame");
+                        adInFrameEndPosition = -1;
+                    }
                 }
             }
             if (adInFrameEndPosition != -1) {  // if we found advertising in frame, use this
