@@ -387,7 +387,9 @@ void cMarkAdStandalone::CheckStop() {
                         // check if previous logo stop/start pair are closing credits, in this case use previous logo stop mark
                         int diffAssumedStop = (iStopA - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
                         dsyslog("cMarkAdStandalone::CheckStop(): assumed logo end mark (%d), previous logo stop (%d) start (%d) pair %ds before assumed stop (%d)", end->position, prevLogoStop->position, prevLogoStart->position, diffAssumedStop, iStopA);
-                        bool isBeforeClosingCredits = evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(prevLogoStop->position, prevLogoStart->position) == STATUS_YES);
+                        bool isBeforeClosingCredits = false;
+                        // check closing credits, but not if we got first start mark as start mark of the pair, this could be closing credit of recording before
+                        if ((prevLogoStart->position > marks.GetFirst()->position) && evaluateLogoStopStartPair) isBeforeClosingCredits = (evaluateLogoStopStartPair->GetIsClosingCredits(prevLogoStop->position, prevLogoStart->position) == STATUS_YES);
                         if (isBeforeClosingCredits && (diffAssumedStop < 203)) { // changed from 281 to 203
                             dsyslog("cMarkAdStandalone::CheckStop(): previous stop (%d) start (%d) pair are closing credits, use this logo stop mark", prevLogoStop->position, prevLogoStart->position);
                             end = prevLogoStop;
