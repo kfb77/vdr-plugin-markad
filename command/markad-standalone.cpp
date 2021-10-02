@@ -4083,20 +4083,24 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     if (errno == 0) isyslog("starting markad v%s (%libit)", VERSION, lb);
     else isyslog("starting markad v%s", VERSION);
 
+    // check avcodec library version
+#if LIBAVCODEC_VERSION_INT < LIBAVCODEC_VERSION_DEPRECATED
+    #error "libavcodec version not supported, please update"
+#endif
+#if LIBAVCODEC_VERSION_INT < LIBAVCODEC_VERSION_VALID
+    #warning "libavcodec version is deprecated, please update"
+#endif
+
     int ver = avcodec_version();
     char *libver = NULL;
     if (asprintf(&libver, "%i.%i.%i", ver >> 16 & 0xFF, ver >> 8 & 0xFF, ver & 0xFF) != -1) {
         ALLOC(strlen(libver)+1, "libver");
         isyslog("using libavcodec.so.%s with %i threads", libver, config->threads);
-        if (ver!=LIBAVCODEC_VERSION_INT) {
+        if (ver != LIBAVCODEC_VERSION_INT) {
             esyslog("libavcodec header version %s", AV_STRINGIFY(LIBAVCODEC_VERSION));
             esyslog("header and library mismatch, do not report decoder bugs");
         }
-        if ((ver >> 16) < LIBAVCODEC_VERSION_MIN) {
-            esyslog("your libavcodec is not supported, update libavcodec to at least version %d", LIBAVCODEC_VERSION_MIN);
-            exit(1);
-        }
-        if ((ver >> 16) == LIBAVCODEC_VERSION_MIN) esyslog("your libavcodec is deprecated, update libavcodec to at least version %d, do not report decoder bugs", LIBAVCODEC_VERSION_MIN + 1);
+        if (ver < LIBAVCODEC_VERSION_VALID) esyslog("your libavcodec is deprecated, please update");
         FREE(strlen(libver)+1, "libver");
         free(libver);
     }
