@@ -1047,7 +1047,7 @@ void cMarkAdStandalone::CheckStart() {
             if (hStop) {
                 int length = (hStop->position - hStart->position) / macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::CheckStart(): next horizontal border stop mark (%d), length of broadcast %ds", hStop->position, length);
-                if ( length <= 140) { // changed from 120 to 140
+                if ( length <= 165) { // changed from 120 to 140 to 165
                     int diffAssumed = (hStop->position - iStartA) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop (%i) short after horizontal border start (%i) found, %ds after assumed start", hStop->position, hStart->position, diffAssumed); // do not delete weak marks here because it can only be from preview
                     if (diffAssumed < 477) hBorderStopPosition = hStop->position;  // maybe we can use this position as start mark if we found nothing else
@@ -1579,8 +1579,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     cMark *vborderStop = marks.GetNext(0, MT_VBORDERSTOP);
     if (hborderStart && hborderStop) {
         int hDelta = (hborderStop->position - hborderStart->position) / macontext.Video.Info.framesPerSecond;
-        if (hDelta < 120) {
-            dsyslog("cMarkAdStandalone::CheckMarks(): found hborder stop/start, but distance %d too short, try if there is a next pair", hDelta);
+        if (hDelta <= 230) {  // changed from 120 to 230
+            dsyslog("cMarkAdStandalone::CheckMarks(): found hborder start (%d) and stop (%d), but distance %d too short, try if there is a next pair", hborderStart->position, hborderStop->position, hDelta);
             hborderStart = marks.GetNext(hborderStart->position, MT_HBORDERSTART);
             hborderStop = marks.GetNext(hborderStop->position, MT_HBORDERSTOP);
         }
@@ -1739,10 +1739,18 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         mark = mark->Next();
     }
 
-// delete short START STOP hborder marks because they are advertisement in the advertisement
+// delete invalid short START STOP hborder marks
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): check border marks");
     DebugMarks();     //  only for debugging
+    // delete start stop hborder pairs at before chkSTART if there are no other hborder marks, they are a preview with hborder before recording start
+    mark = marks.GetFirst();
+    if ((mark->type == MT_HBORDERSTART) && mark->Next() && (mark->Next()->type == MT_HBORDERSTOP) && (mark->Next()->position < chkSTART) && (marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 1)) {
+        dsyslog("cMarkAdStandalone::CheckMarks(): preview with hborder before recording start found, delete start (%d) stop (%d)", mark->position, mark->Next()->position);
+        marks.Del(mark->Next()->position);
+        marks.Del(mark->position);
+    }
+    // delete short START STOP hborder marks with logo start mark between, because they are advertisement with border in the advertisement
     mark = marks.GetFirst();
     while (mark) {
         if ((mark->type == MT_HBORDERSTART) && (mark->position != marks.GetFirst()->position) && mark->Next()) {  // not start or end mark
