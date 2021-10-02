@@ -37,8 +37,21 @@ ifeq ($(CXXVERION),5)
         export CXXFLAGS += -std=c++11   # to prevent compiler errors with g++ V5
 endif
 
+
 ### The version number of VDR's plugin API:
 APIVERSION = $(call PKGCFG,apiversion)
+$(info VDR plugin API version is ${APIVERSION})
+APINUM = $(shell echo $(APIVERSION) | awk -F . '{print $$1 * 1000 + $$2 * 10 $$3}')
+
+# current minimum VDR API version 2.2.0
+ifeq ($(shell expr ${APINUM} \< 20200), 1)
+        $(error VDR plugin API version not supported, please update VDR)
+        exit
+endif
+ifeq ($(shell expr ${APINUM} \< 20301), 1)
+        $(warning VDR plugin API version is deprecated, please update VDR)
+endif
+
 
 ### The name of the distribution archive:
 ARCHIVE = $(PLUGIN)-$(VERSION)
