@@ -1129,7 +1129,7 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
 }
 
 
-bool cEncoder::CloseFile(cDecoder *ptr_cDecoder) {
+bool cEncoder::CloseFile(__attribute__((unused)) cDecoder *ptr_cDecoder) {  // unused for libavcodec 56
     int ret = 0;
 
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
