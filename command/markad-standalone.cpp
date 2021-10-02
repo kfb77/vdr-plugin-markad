@@ -1036,11 +1036,15 @@ void cMarkAdStandalone::CheckStart() {
         if (hStart) { // we found a hborder start mark
             dsyslog("cMarkAdStandalone::CheckStart(): horizontal border start found at (%i)", hStart->position);
             cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);  // if there is a MT_HBORDERSTOP short after the MT_HBORDERSTART, MT_HBORDERSTART is not valid
-            if ( hStop && ((hStop->position - hStart->position) < (2 * delta))) {
-                dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop (%i) short after horizontal border start (%i) found, this is end of broadcast before or a preview", hStop->position, hStart->position); // do not delete weak marks here because it can only be from preview
-                hBorderStopPosition = hStop->position;  // maybe we can use this position as start mark if we found nothing else
+            if ( hStop && ((hStop->position - hStart->position) < (120 * macontext.Video.Info.framesPerSecond))) {
+                int diffAssumed = (hStop->position - iStartA) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop (%i) short after horizontal border start (%i) found, %ds after assumed start, this is end of broadcast before or a preview", hStop->position, hStart->position, diffAssumed); // do not delete weak marks here because it can only be from preview
+                if (diffAssumed < 477) hBorderStopPosition = hStop->position;  // maybe we can use this position as start mark if we found nothing else
+                                                                               // do not use too late marks, they can be hborder from preview or in a doku
                 dsyslog("cMarkAdStandalone::CheckStart(): delete horizontal border stop (%d) mark", hStop->position);
-                marks.Del(hStop->position); // delete hborder stop mark because we ignore hborder start mark
+                // delete hborder start/stop marks because we ignore hborder start mark
+                marks.Del(hStart->position);
+                marks.Del(hStop->position);
             }
             else {
                 if (hStart->position >= IGNORE_AT_START) {  // position < IGNORE_AT_START is a hborder start from previous recording
@@ -1083,6 +1087,7 @@ void cMarkAdStandalone::CheckStart() {
         if (!vStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no vertical border at start found, ignore vertical border detection");
             macontext.Video.Options.ignoreVborder = true;
+            marks.DelType(MT_VBORDERSTART, 0xFF);  // maybe we have a vborder start from a preview or in a doku, delete it
             cMark *vStop = marks.GetAround(iStartA + delta, iStartA + delta, MT_VBORDERSTOP);
             if (vStop) {
                 int pos = vStop->position;
