@@ -494,9 +494,6 @@ void cMarkAdStandalone::CheckStop() {
             free(markType);
         }
 
-        dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after final stop mark at (%d)", end->position);
-        marks.DelTill(end->position, false);
-
         if ( end->position < iStopA - 5 * delta ) {    // last found stop mark too early, adding STOP mark at the end, increased from 3 to 5
                                                      // this can happen by audio channel change too if the next broadcast has also 6 channels
             if ( ( lastStart) && ( lastStart->position > end->position ) ) {
@@ -505,6 +502,7 @@ void cMarkAdStandalone::CheckStop() {
                 markNew.position = iFrameCurrent;
                 markNew.type = MT_ASSUMEDSTOP;
                 AddMark(&markNew);
+                end = marks.Get(iFrameCurrent);
             }
         }
     }
@@ -516,7 +514,6 @@ void cMarkAdStandalone::CheckStop() {
             if (aLastStop && (aLastStop->position > iStopA)) {
                 dsyslog("cMarkAdStandalone::CheckStop(): start mark is MT_ASPECTSTART (%d) found very late MT_ASPECTSTOP at (%d)", aFirstStart->position, aLastStop->position);
                 end = aLastStop;
-                marks.DelTill(end->position, false);
             }
         }
         if (!end) {
@@ -525,8 +522,13 @@ void cMarkAdStandalone::CheckStop() {
             mark.position = iFrameCurrent;  // we are lost, add a end mark at the last iframe
             mark.type = MT_ASSUMEDSTOP;
             AddMark(&mark);
+            end = marks.GetPrev(INT_MAX, MT_STOP, 0x0F);  // make sure we got a stop mark
         }
     }
+
+    // now we have a end mark
+    dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after final stop mark at (%d)", end->position);
+    marks.DelTill(end->position, false);
 
     // delete all black sceen marks expect start or end mark
     dsyslog("cMarkAdStandalone::CheckStop(): move all black screen marks except start and end mark to black screen list");
