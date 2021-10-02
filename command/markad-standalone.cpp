@@ -1308,7 +1308,7 @@ void cMarkAdStandalone::CheckStart() {
     }
 
     if (begin) {
-        marks.DelTill(begin->position, &blackMarks);    // delete all marks till start mark
+        marks.DelTill(begin->position);    // delete all marks till start mark
         char *indexToHMSF = marks.IndexToHMSF(begin->position, &macontext);
         char *typeName    = marks.TypeToText(begin->type);
         if (indexToHMSF && typeName) {
@@ -1345,11 +1345,11 @@ void cMarkAdStandalone::CheckStart() {
         if (hBorderStopPosition > 0) {
             dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, use MT_HBORDERSTOP from previous recoring as start mark");
             marks.Add(MT_ASSUMEDSTART, hBorderStopPosition, "start mark from border stop of previous recording*", true);
-            marks.DelTill(hBorderStopPosition, &blackMarks);
+            marks.DelTill(hBorderStopPosition);
         }
         else {  // set start after pre timer
             dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, assume start time at pre recording time");
-            marks.DelTill(iStart, &blackMarks);
+            marks.DelTill(iStart);
             marks.Del(MT_NOBLACKSTART);  // delete all black screen marks
             marks.Del(MT_NOBLACKSTOP);
             sMarkAdMark mark = {};
