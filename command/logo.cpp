@@ -283,6 +283,10 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
 // define size for special channels, special logos or to prevent false logo detection
 
 // 720x576
+    if (strcmp(maContext->Info.ChannelName, "arte") == 0) {             // arte                    16:9  720W  576H:->   50W 108H TOP_LEFT
+        logo.widthMin  =  50;
+        logo.heightMax = 108;
+    }
     if (strcmp(maContext->Info.ChannelName, "ATV2") == 0) {             // ATV2                    16:9  720W  576H:->  118W  68H TOP_LEFT
         logo.widthMin  = 110;
         logo.widthMax  = 118;
