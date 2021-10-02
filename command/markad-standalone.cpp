@@ -1345,6 +1345,7 @@ void cMarkAdStandalone::CheckStart() {
         if (hBorderStopPosition > 0) {
             dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, use MT_HBORDERSTOP from previous recoring as start mark");
             marks.Add(MT_ASSUMEDSTART, hBorderStopPosition, "start mark from border stop of previous recording*", true);
+            begin = marks.Get(hBorderStopPosition);
             marks.DelTill(hBorderStopPosition);
         }
         else {  // set start after pre timer
