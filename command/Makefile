@@ -39,6 +39,7 @@ endif
 CXXVERION=$(shell $(CXX) -dumpversion | cut -d"." -f1)
 ifeq ($(CXXVERION),4)
 	export CXXFLAGS += -std=c++11 -Wno-missing-field-initializers # to prevent a lot of compiler warnings with g++ V4
+        $(warning your compiler is deprecated, please update)
 endif
 ifeq ($(CXXVERION),5)
 	export CXXFLAGS += -std=c++11   # to prevent compiler errors with g++ V5
