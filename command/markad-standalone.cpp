@@ -232,7 +232,8 @@ void cMarkAdStandalone::CheckStop() {
                     if (stopBefore) {
                         int diffAspectStop = (end->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
                         dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d), %ds before aspect ratio stop mark", stopBefore->position, diffAspectStop);
-                        if (diffAspectStop > 153) {  // check only for early logo stop marks, do not increase, there can be a late advertising and aspect stop on same frame as logo stop
+                        if (diffAspectStop > 234) {  // check only for early logo stop marks, do not increase, there can be a late advertising and aspect stop on same frame as logo stop
+                                                     // changed from 153 to 234
                             cMark *startLogoBefore = marks.GetPrev(end->position, MT_LOGOSTART);
                             if (startLogoBefore && (startLogoBefore->position > stopBefore->position)) {
                                 dsyslog("cMarkAdStandalone::CheckStop(): logo start mark (%d) between logo stop mark (%d) and aspect ratio mark (%d), this logo stop mark is end of advertising", startLogoBefore->position, stopBefore->position, end->position);
