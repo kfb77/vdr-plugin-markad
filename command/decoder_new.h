@@ -41,20 +41,20 @@ extern "C"{
 //
 // valid versions
 // #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(  1<<8)+100)   ffmpeg 4.5
-// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4
-// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 91<<8)+100)   ffmpeg 4.3.2  (Debian Bullseye)
+// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4.6  (Ubuntu 21.10) (Debian 12 Bookworm)
+// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 91<<8)+100)   ffmpeg 4.3.2  (Debian 11 Bullseye)
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 54<<8)+100)   ffmpeg 4.2.4  (Ubuntu 20.04)
-// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 35<<8)+100)   ffmpeg 4.1.6  (Debian Buster)
+// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 35<<8)+100)   ffmpeg 4.1.6  (Debian 10 Buster)
 // #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   ffmpeg 3.4.8  (Ubuntu 18.04)
-// #if LIBAVCODEC_VERSION_INT >= ((57<<16)+( 64<<8)+101)   ffmpeg 3.2.15 (Debian Stretch)
-// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 60<<8)+100)   ffmpeg 2.8.17 (Ubuntu 16.04)
+// #if LIBAVCODEC_VERSION_INT >= ((57<<16)+( 64<<8)+101)   ffmpeg 3.2.15 (Debian 9 Stretch)
 //
 // deprecated versions
-// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 57<<8)+100)   Ubuntu 14.04
-// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 26<<8)+100)   Debian Jessie
-// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(  1<<8)+  0)   Rasbian Jessie
+// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 60<<8)+100)   ffmpeg 2.8.17 (Ubuntu 16.04)
+// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 57<<8)+100)   ffmpeg 2.7.2  (Ubuntu 14.04)
+// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 26<<8)+100)   ffmpeg 2      (Debian 8 Jessie
+// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(  1<<8)+  0)   ffmpeg 2      (Rasbian Jessie
 
-#define LIBAVCODEC_VERSION_VALID      ((56<<16)+( 60<<8)+100)   // oldest valid version
+#define LIBAVCODEC_VERSION_VALID      ((57<<16)+( 64<<8)+101)   // oldest valid version
 #define LIBAVCODEC_VERSION_DEPRECATED ((56<<16)+(  1<<8)+  0)   // oldest deprecated version, older is invalid
 
 
