@@ -305,6 +305,11 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
                                                                         // kabel_eins_Doku         16:9  720W  576H:->  132W  64H TOP_RIGHT
         logo.widthMax  = 132;
     }
+    if (strcmp(maContext->Info.ChannelName, "NICK_CC+1") == 0) {        // NICK_CC+1               16:9  720W  576H:->  146W  88H TOP_LEFT
+                                                                        // NICK_CC+1               16:9  720W  576H:->  146W  92H TOP_LEFT (special logo)
+        logo.heightMin =  88;
+        logo.heightMax =  92;
+    }
     if (strcmp(maContext->Info.ChannelName, "Nickelodeon") == 0) {      // Nickelodeon old logo    16:9  720W  576H:->  180W  78H TOP_LEFT
                                                                         // Nickelodeon old logo    16:9  720W  576H:->  180W  80H TOP_LEFT
                                                                         // Nickelodeon old logo    16:9  720W  576H:->  184W  80H TOP_LEFT
@@ -349,6 +354,8 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
                                                                         // SIXX                    16:9  720W  576H:->  136W  70H TOP_RIGHT (2013 complete)
                                                                         // SIXX                     4:3  720W  576H:->  162W  70H TOP_RIGHT (old logo)
         logo.widthMin  =  98;
+	if ((logoAspectRatio.num == 4) && (logoAspectRatio.den == 3)) logo.widthMax  = 162;
+	else                                                          logo.widthMax  = 136;
         logo.heightMin =  54;
     }
     if (strcmp(maContext->Info.ChannelName, "SUPER_RTL") == 0) {        // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT
@@ -1512,7 +1519,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
         }
 
         if ((bestLogoCorner >= 0) &&
-           (((startFrame == 0) && ((bestLogoInfo.hits >= 14)) ||                                       // this is the very last try, use what we have, bettet than nothing
+           (((startFrame == 0) && ((bestLogoInfo.hits >= 14)) || // this is the very last try, use what we have, bettet than nothing
                                   ((bestLogoInfo.hits >= 6) && (sumHits <= bestLogoInfo.hits + 1))) ||
              (bestLogoInfo.hits >= 50) || // we have a good result
             ((bestLogoInfo.hits >= 40) && (sumHits <= bestLogoInfo.hits + 10)) ||  // if most hits are in the same corner than less are enough
@@ -1533,7 +1540,8 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
             }
             else {
                 dsyslog("cExtractLogo::SearchLogo(): resize logo from best corner failed");
-                if (secondBestLogoInfo.hits >= 38) { // reduced from 50 to 40 to 38
+                if ((secondBestLogoInfo.hits >= 38) ||  // reduced from 50 to 40 to 38
+                   ((startFrame == 0) && (secondBestLogoInfo.hits >= 13)))  {
                     dsyslog("cExtractLogo::SearchLogo(): try with second best corner %s at frame %d with %d similars", aCorner[secondBestLogoCorner], secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
                     if (this->Resize(maContext, &secondBestLogoInfo, &logoHeight, &logoWidth, secondBestLogoCorner)) {
                         bestLogoInfo = secondBestLogoInfo;
