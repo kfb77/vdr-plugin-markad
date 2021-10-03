@@ -243,7 +243,10 @@ void cMarkAdStandalone::CheckStop() {
                 }
                 if (stopBefore) { // maybe real stop mark was deleted because on same frame as logo/hborder stop mark
                     int diff = (iStopA - stopBefore->position) /  macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckStop(): found %s stop mark (%d) before aspect ratio end mark (%d), %ds before assumed stop", marks.TypeToText(stopBefore->type), stopBefore->position, end->position, diff);
+                    char *markType = marks.TypeToText(stopBefore->type);
+                    dsyslog("cMarkAdStandalone::CheckStop(): found %s stop mark (%d) before aspect ratio end mark (%d), %ds before assumed stop", markType, stopBefore->position, end->position, diff);
+                    FREE(strlen(markType)+1, "text");
+                    free(markType);
                     if (diff <= 312) { // changed from 87 to 221 to 312
                         dsyslog("cMarkAdStandalone::CheckStop(): advertising before aspect ratio change, use stop mark before as end mark");
                         end = stopBefore;
@@ -2820,10 +2823,6 @@ void cMarkAdStandalone::Process3ndPass() {
                 int searchEndPosition = markLogo->position + (35 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
                 char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition, &macontext);
                 if (indexToHMSFStartMark && indexToHMSFSearchEnd) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo after logo start mark (%d) at %s to position (%d) at %s", markLogo->position, indexToHMSFStartMark, searchEndPosition, indexToHMSFSearchEnd);
-                if (indexToHMSFStartMark) {
-                    FREE(strlen(indexToHMSFStartMark)+1, "indexToHMSF");
-                    free(indexToHMSFStartMark);
-                }
                 if (indexToHMSFSearchEnd) {
                     FREE(strlen(indexToHMSFSearchEnd)+1, "indexToHMSF");
                     free(indexToHMSFSearchEnd);
@@ -2873,6 +2872,10 @@ void cMarkAdStandalone::Process3ndPass() {
                     if (move) markLogo = marks.Move(&macontext, markLogo, introductionStartPosition, "introduction logo");
                     save = true;
                 }
+            }
+            if (indexToHMSFStartMark) {
+                FREE(strlen(indexToHMSFStartMark)+1, "indexToHMSF");
+                free(indexToHMSFStartMark);
             }
         }
         if ((markLogo->type == MT_LOGOSTOP) && (marks.GetNext(markLogo->position, MT_STOP, 0x0F))) { // do not test logo end mark, ad in frame with logo and closing credits without logo looks the same
