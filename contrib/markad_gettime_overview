@@ -2,22 +2,20 @@
 # get all process times from markad.log
 # parameter $1 pass
 
-VIDEO1="/srv/vdr/video/Archiv_3"
-VIDEO2="/srv/vdr/video/Archiv_4"
-VIDEO3="/srv/vdr/video/Series"
+VIDEO="/srv/vdr/video"
 
-grep -r "DEBUG: time for decoding:" --include "markad.log" $VIDEO1 $VIDEO2 $VIDEO3 | awk -F  ":" '{printf "%s %s\n", $1, $6}' | awk '{printf "%3d %3d\n", $2, $3}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for video decoding:                  %8.3fs from %4d recordings\n", sum/n/1000, n }'
+grep -r "DEBUG: time for decoding:" --include "markad.log" $VIDEO | awk -F  ":" '{printf "%s %s\n", $1, $6}' | awk '{printf "%3d %3d\n", $2, $3}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for video decoding:                  %9.3fs from %4d recordings\n", sum/n/1000, n }'
 
-grep -r "DEBUG: time to find logo in recording:" --include "markad.log" $VIDEO1 $VIDEO2 $VIDEO3 | awk -F  ":" '{printf "%s %s\n", $1, $6}' | awk '{printf "%3d %3d\n", $2, $3}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for logo extraction:                 %8.3fs from %4d recordings\n", sum/n/1000, n }'
+grep -r "DEBUG: time to find logo in recording:" --include "markad.log" $VIDEO | awk -F  ":" '{printf "%s %s\n", $1, $6}' | awk '{printf "%3d %3d\n", $2, $3}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for logo extraction:                 %9.3fs from %4d recordings\n", sum/n/1000, n }'
 
-grep -r "DEBUG: time to find logo changes:" --include "markad.log" $VIDEO1 $VIDEO2 $VIDEO3 | awk -F  ":" '{printf "%s %s\n", $1, $6}' | awk '{printf "%3d %3d\n", $2, $3}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for logo change detection:           %8.3fs from %4d recordings\n", sum/n/1000, n }'
+grep -r "DEBUG: time to find logo changes:" --include "markad.log" $VIDEO | awk -F  ":" '{printf "%s %s\n", $1, $6}' | awk '{printf "%3d %3d\n", $2, $3}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for logo change detection:           %9.3fs from %4d recordings\n", sum/n/1000, n }'
 
-grep -r "pass 1: time" --include "markad.log" $VIDEO1 $VIDEO2 $VIDEO3 | awk -F  " " '{printf "%ds %3dms %s\n", $10, $11 ,$1}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for pass 1 (find marks):             %8.3fs from %4d recordings\n", sum/n/1000, n }'
+grep -r "pass 1: time" --include "markad.log" $VIDEO | awk -F  " " '{printf "%ds %3dms %s\n", $10, $11 ,$1}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for pass 1 (find marks):             %9.3fs from %4d recordings\n", sum/n/1000, n }'
 
-grep -r "pass 2: time" --include "markad.log" $VIDEO1 $VIDEO2 $VIDEO3 | awk -F  " " '{printf "%ds %3dms %s\n", $10, $11 ,$1}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for pass 2 (overlap):                %8.3fs from %4d recordings\n", sum/n/1000, n }'
+grep -r "pass 2: time" --include "markad.log" $VIDEO | awk -F  " " '{printf "%ds %3dms %s\n", $10, $11 ,$1}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for pass 2 (overlap):                %9.3fs from %4d recordings\n", sum/n/1000, n }'
 
-grep -r "pass 3: time" --include "markad.log" $VIDEO1 $VIDEO2 $VIDEO3 | awk -F  " " '{printf "%ds %3dms %s\n", $10, $11 ,$1}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for pass 3 (logo mark optimization): %8.3fs from %4d recordings\n", sum/n/1000, n }'
+grep -r "pass 3: time" --include "markad.log" $VIDEO | awk -F  " " '{printf "%ds %3dms %s\n", $10, $11 ,$1}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for pass 3 (logo mark optimization): %9.3fs from %4d recordings\n", sum/n/1000, n }'
 
-grep -r "pass 4: time" --include "markad.log" $VIDEO1 $VIDEO2 $VIDEO3 | awk -F  " " '{printf "%ds %3dms %s\n", $10, $11 ,$1}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for pass 4 (cut):                    %8.3fs from %4d recordings\n", sum/n/1000, n }'
+grep -r "pass 4: time" --include "markad.log" $VIDEO | awk -F  " " '{printf "%ds %3dms %s\n", $10, $11 ,$1}' | awk '{ sum += $1*1000+$2; n++ } END { if (n > 0) printf "average time for pass 4 (cut):                    %9.3fs from %4d recordings\n", sum/n/1000, n }'
 
-grep -r "INFO:  processed time" --include "markad.log" $VIDEO1 $VIDEO2 $VIDEO3 | awk -F  " " '{printf "%s:%s\n", $1, $9}' | awk -F  ":" '{printf "%s %s %s\n", $1, $3, $4}' | awk '{printf "%3dmin %3ds %s\n", $2, $3, $1}' | awk '{ sum += $1*60+$2; n++ } END { if (n > 0) printf "over all process time:                            %8.3fs from %4d recordings\n", sum/n, n }'
+grep -r "INFO:  processed time" --include "markad.log" $VIDEO | awk -F  " " '{printf "%s:%s\n", $1, $9}' | awk -F  ":" '{printf "%s %s %s\n", $1, $3, $4}' | awk '{printf "%3dmin %3ds %s\n", $2, $3, $1}' | awk '{ sum += $1*60+$2; n++ } END { if (n > 0) printf "over all process time:                            %9.3fs from %4d recordings\n", sum/n, n }'

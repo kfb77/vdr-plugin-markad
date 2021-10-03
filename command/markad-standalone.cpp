@@ -4240,7 +4240,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
             usec += 1000000;
             sec--;
         }
-        if ((sec + usec / 1000000) > 0) dsyslog("pass 1: time %3lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt1, framecnt1 / (sec + usec / 1000000));
+        if ((sec + usec / 1000000) > 0) dsyslog("pass 1: time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt1, framecnt1 / (sec + usec / 1000000));
 
 
         sec = endPass2.tv_sec - startPass2.tv_sec;
@@ -4249,7 +4249,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
             usec += 1000000;
             sec--;
         }
-        if ((sec + usec / 1000000) > 0) dsyslog("pass 2: time %3lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt2, framecnt2 / (sec + usec / 1000000));
+        if ((sec + usec / 1000000) > 0) dsyslog("pass 2: time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt2, framecnt2 / (sec + usec / 1000000));
 
         sec = endPass3.tv_sec - startPass3.tv_sec;
         usec = endPass3.tv_usec - startPass3.tv_usec;
@@ -4257,7 +4257,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
             usec += 1000000;
             sec--;
         }
-        if ((sec + usec / 1000000) > 0) dsyslog("pass 3: time %3lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt3, framecnt3 / (sec + usec / 1000000));
+        if ((sec + usec / 1000000) > 0) dsyslog("pass 3: time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt3, framecnt3 / (sec + usec / 1000000));
 
         sec = endPass4.tv_sec - startPass4.tv_sec;
         usec = endPass4.tv_usec - startPass4.tv_usec;
@@ -4265,7 +4265,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
             usec += 1000000;
             sec--;
         }
-        if ((sec + usec / 1000000) > 0) dsyslog("pass 4: time %3lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt4, framecnt4 / (sec + usec / 1000000));
+        if ((sec + usec / 1000000) > 0) dsyslog("pass 4: time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt4, framecnt4 / (sec + usec / 1000000));
 
         gettimeofday(&endAll, NULL);
         sec = endAll.tv_sec - startAll.tv_sec;
