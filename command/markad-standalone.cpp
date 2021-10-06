@@ -3346,7 +3346,11 @@ void cMarkAdStandalone::ProcessFiles() {
             isyslog("video width: %4d", macontext.Video.Info.width);
 
             macontext.Video.Info.framesPerSecond = ptr_cDecoder->GetVideoAvgFrameRate();
-            isyslog("average frame rate: %i frames per second", static_cast<int> (macontext.Video.Info.framesPerSecond));
+            isyslog("average frame rate: %d frames per second", static_cast<int> (macontext.Video.Info.framesPerSecond));
+            if (macontext.Video.Info.framesPerSecond < 0) {
+                esyslog("average frame rate of %d frames per second is invalid, recording is damaged", static_cast<int> (macontext.Video.Info.framesPerSecond));
+                abortNow = true;
+            }
             isyslog("real frame rate:    %i frames per second", ptr_cDecoder->GetVideoRealFrameRate());
 
             CalculateCheckPositions(macontext.Info.tStart * macontext.Video.Info.framesPerSecond);
