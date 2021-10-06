@@ -528,8 +528,11 @@ void cMarkAdStandalone::CheckStop() {
     }
 
     // now we have a end mark
-    dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after final stop mark at (%d)", end->position);
-    marks.DelTill(end->position, false);
+    if (end) { // be save, if something went wrong end = NULL
+        dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after final stop mark at (%d)", end->position);
+        marks.DelTill(end->position, false);
+    }
+    else esyslog("could not find a end mark");
 
     // delete all black sceen marks expect start or end mark
     dsyslog("cMarkAdStandalone::CheckStop(): move all black screen marks except start and end mark to black screen list");
