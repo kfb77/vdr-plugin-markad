@@ -1047,7 +1047,8 @@ void cMarkAdStandalone::CheckStart() {
             if (hStop) {
                 int length = (hStop->position - hStart->position) / macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::CheckStart(): next horizontal border stop mark (%d), length of broadcast %ds", hStop->position, length);
-                if ( length <= 165) { // changed from 120 to 140 to 165
+                cMark *hNextStart = marks.GetNext(hStop->position, MT_HBORDERSTART);
+                if ((length <= 231) && !hNextStart) { // changed from 120 to 140 to 165 to 231
                     int diffAssumed = (hStop->position - iStartA) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop (%i) short after horizontal border start (%i) found, %ds after assumed start", hStop->position, hStart->position, diffAssumed); // do not delete weak marks here because it can only be from preview
                     if (diffAssumed < 477) hBorderStopPosition = hStop->position;  // maybe we can use this position as start mark if we found nothing else
