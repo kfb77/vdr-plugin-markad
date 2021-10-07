@@ -713,7 +713,7 @@ void cMarkAdStandalone::CheckStart() {
     DebugMarks();     //  only for debugging
 #define IGNORE_AT_START 12   // ignore this number of frames at the start for start marks, they are initial marks from recording before, changed from 11 to 12
 
-    int hBorderStopPosition = 0;
+    int hBorderStopPosition = -1;
     int delta = macontext.Video.Info.framesPerSecond * MAXRANGE;
 
     cMark *begin = marks.GetAround(delta, 1, MT_RECORDINGSTART);  // do we have an incomplete recording ?
@@ -1162,13 +1162,15 @@ void cMarkAdStandalone::CheckStart() {
         if (!lStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no logo start mark found");
         }
-        else {
+        else {  // we got a logo start mark
             char *indexToHMSF = marks.IndexToHMSF(lStart->position, &macontext);
             if (indexToHMSF) {
                 dsyslog("cMarkAdStandalone::CheckStart(): logo start mark found on position (%i) at %s", lStart->position, indexToHMSF);
                 FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                 free(indexToHMSF);
             }
+
+            // check if logo start mark is too early
             if (lStart->position  < (iStart / 8)) {  // start mark is too early, try to find a later mark
                 cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
                 if (lNextStart && (lNextStart->position  > (iStart / 8)) && ((lNextStart->position - lStart->position) < (iStartA + (3 * delta)))) {  // found later logo start mark
@@ -1181,6 +1183,23 @@ void cMarkAdStandalone::CheckStart() {
                     lStart = lNextStart;   // found better logo start mark
                 }
             }
+
+            // check if logo start mark is before hborder stop mark from previous recording
+            if (lStart->position  < hBorderStopPosition) {  // start mark is before hborder stop of previous recording (hBorderStopPosition = -1 of no hborder stop)
+                dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) is before hborder stop mark (%d) from previous recording", lStart->position, hBorderStopPosition);
+                cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
+                if (lNextStart && (lNextStart->position  > hBorderStopPosition)) {  // found later logo start mark
+                    char *indexToHMSFStart = marks.IndexToHMSF(lNextStart->position, &macontext);
+                    if (indexToHMSFStart) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lNextStart->position, indexToHMSFStart);
+                        FREE(strlen(indexToHMSFStart)+1, "indexToHMSF");
+                        free(indexToHMSFStart);
+                    }
+                    lStart = lNextStart;   // found better logo start mark
+                }
+            }
+
+
             while (true) {
                 // if the logo start mark belongs to closing credits logo stop/start pair, treat it as valid
                 if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(lStart->position) == STATUS_YES)) {
@@ -1363,7 +1382,7 @@ void cMarkAdStandalone::CheckStart() {
     }
     else { //fallback
         // try hborder stop mark as start mark
-        if (hBorderStopPosition > 0) {
+        if (hBorderStopPosition >= 0) {
             dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, use MT_HBORDERSTOP from previous recoring as start mark");
             marks.Add(MT_ASSUMEDSTART, hBorderStopPosition, "start mark from border stop of previous recording*", true);
             begin = marks.Get(hBorderStopPosition);
