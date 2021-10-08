@@ -1,11 +1,17 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
-2021-10-01:
+2021-10-08: Version 3.0.15
+- declare libavcodec 56.60.100 (ffmpeg 2.8.17) as deprecated
+- CheckStart: fix crash if fallback to hborder stop mark as start mark
+- CheckStart: optimize detection of short clips with border in documentary films
+- some minor bug fixes and optimizations, see git
+
+2021-10-01: Version 3.0.14
 - optimize logo size check for new channels and new logos
 - some minor bug fixes and optimizations, see git
 
-2021-09-23:
+2021-09-23: Version 3.0.13
 - fix timestamps in marks file for HD videos with missing frames
 - some minor bug fixes and optimizations, see git
 
