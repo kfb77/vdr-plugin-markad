@@ -412,6 +412,7 @@ class CheckPath:
             if actFile == "info.epg2vdr": continue
             if actFile == "markad.vps": continue
             if actFile == "vps.log": continue
+            if actFile == ".nodelete": continue
             if actFile == "encoder": continue
             if actFile == "encoder.mbtree": continue
             if actFile == "info":

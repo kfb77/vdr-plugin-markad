@@ -466,7 +466,7 @@ cMark *cMarks::Move(sMarkAdContext *maContext, cMark *mark, const int newPositio
     char* typeText = TypeToText(mark->type);
 
     if (indexToHMSF && typeText) {
-       if (asprintf(&comment,"moved %s mark (%6d) %s %s %s mark (%6d) at %s, %s detected%s",
+       if (asprintf(&comment,"moved %s mark (%6d) %s %-5s %s mark (%6d) at %s, %s detected%s",
                                     ((mark->type & 0x0F) == MT_START) ? "start" : "stop ",
                                              newPosition,
                                                   (newPosition > mark->position) ? "after " : "before",

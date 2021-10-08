@@ -61,7 +61,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
             isREEL = origin.isREEL;
             MaxFiles = origin.MaxFiles;
             framecnt1 = origin.framecnt1;
-            framecnt2 = origin.framecnt2;
+            framecntOverlap = origin.framecntOverlap;
             gotendmark = origin.gotendmark;
             waittime = origin.waittime;
             iwaittime = origin.iwaittime;
@@ -90,7 +90,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
             isREEL = origin->isREEL;
             MaxFiles = origin->MaxFiles;
             framecnt1 = origin->framecnt1;
-            framecnt2 = origin->framecnt2;
+            framecntOverlap = origin->framecntOverlap;
             framecnt3 = origin->framecnt3;
             gotendmark = origin->gotendmark;
             waittime = origin->waittime;
@@ -179,7 +179,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
  */
         time_t GetRecordingStart(time_t start, int fd);
 
-#if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_MARK_FRAMES)
+#if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_MARK_FRAMES) || defined(DEBUG_OVERLAP_FRAME_RANGE)
 /**
  * save frame, used for debug
  * @param frame  frame number
@@ -321,7 +321,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
                                                                        //!<
         int framecnt1 = 0;                                             //!< processed frames of 1nd pass (detect marks)
                                                                        //!<
-        int framecnt2 = 0;                                             //!< processed frames of 2nd pass (overlap)
+        int framecntOverlap = 0;                                       //!< processed frames of overlap detection
                                                                        //!<
         int framecnt3 = 0;                                             //!< processed frames of 3nd pass (silence)
                                                                        //!<

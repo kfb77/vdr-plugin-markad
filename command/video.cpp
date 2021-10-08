@@ -1536,9 +1536,9 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
 
 
 cMarkAdOverlap::cMarkAdOverlap(sMarkAdContext *maContextParam) {
-    maContext = maContextParam;
+    maContext          = maContextParam;
     histbuf[OV_BEFORE] = NULL;
-    histbuf[OV_AFTER] = NULL;
+    histbuf[OV_AFTER]  = NULL;
     Clear();
 }
 
@@ -1552,32 +1552,36 @@ void cMarkAdOverlap::Clear() {
 #ifdef DEBUG_OVERLAP
     dsyslog("cMarkAdOverlap::Clear(): clear histogram buffers");
 #endif
-    histcnt[OV_BEFORE] = 0;
-    histcnt[OV_AFTER] = 0;
+    histcnt[OV_BEFORE]    = 0;
+    histcnt[OV_AFTER]     = 0;
     histframes[OV_BEFORE] = 0;
-    histframes[OV_AFTER] = 0;
+    histframes[OV_AFTER]  = 0;
+
     if (histbuf[OV_BEFORE]) {
         FREE(sizeof(*histbuf[OV_BEFORE]), "histbuf");
         delete[] histbuf[OV_BEFORE];
         histbuf[OV_BEFORE] = NULL;
     }
+
     if (histbuf[OV_AFTER]) {
         FREE(sizeof(*histbuf[OV_AFTER]), "histbuf");
         delete[] histbuf[OV_AFTER];
         histbuf[OV_AFTER] = NULL;
     }
-    memset(&Result, 0, sizeof(Result));
-    similarCutOff = 0;
-    similarMaxCnt = 0;
-    lastFrameNumber = -1;
+
+    similarCutOff    =  0;
+    similarMinLength =  0;
+    lastFrameNumber  = -1;
 }
 
 
 void cMarkAdOverlap::GetHistogram(simpleHistogram &dest) {
     memset(dest, 0, sizeof(simpleHistogram));
-    for (int Y = 0; Y < maContext->Video.Info.height;Y++) {
+    int startY =  maContext->Video.Info.height * 0.22;  // ignore top part because there can be info border at start after the advertising, changed from 0.16 to 0.2 to 0.22
+    int endY   =  maContext->Video.Info.height * 0.82; // ignore bottom part because there can info border text at start after the advertising, changed from 0.87 to 0.82
+    for (int Y = startY; Y < endY; Y++) {
         for (int X = 0; X < maContext->Video.Info.width;X++) {
-            uchar val = maContext->Video.Data.Plane[0][X+(Y*maContext->Video.Data.PlaneLinesize[0])];
+            uchar val = maContext->Video.Data.Plane[0][X + (Y * maContext->Video.Data.PlaneLinesize[0])];
             dest[val]++;
         }
     }
@@ -1596,94 +1600,163 @@ int cMarkAdOverlap::AreSimilar(const simpleHistogram &hist1, const simpleHistogr
 }
 
 
-sOverlapPos *cMarkAdOverlap::Detect() {
-    if (Result.frameNumberBefore == -1) return NULL;
-    int startAfterMark = 0;
-    int simcnt = 0;
-    int tmpindexAfterStartMark = 0;
-    int tmpindexBeforeStopMark = 0;
-    Result.frameNumberBefore = -1;
-    int firstSimilarBeforeStopMark = 0;
+void cMarkAdOverlap::Detect(sOverlapPos *ptr_OverlapPos) {
+    if (!ptr_OverlapPos) return;
+
+    int startAfterMark             =  0;
+    int simLength                  =  0;
+    int simMax                     =  0;
+    int tmpindexAfterStartMark     =  0;
+    int tmpindexBeforeStopMark     =  0;
+    int firstSimilarBeforeStopMark = -1;
+    int firstSimilarAfterStartMark = -1;
+    int range                      =  1;  // on a scene change we can miss the same picture
+
+    if (maContext->Config->fullDecode) range = 10;  // we need more range with full decoding
+
     for (int indexBeforeStopMark = 0; indexBeforeStopMark < histcnt[OV_BEFORE]; indexBeforeStopMark++) {
 #ifdef DEBUG_OVERLAP
-        dsyslog("cMarkAdOverlap::Detect(): ------------------ testing frame (%5d) before stop mark, indexBeforeStopMark %d, against all frames after start mark", histbuf[OV_BEFORE][indexBeforeStopMark].frameNumber, indexBeforeStopMark);
+        dsyslog("cMarkAdOverlap::Detect(): -------------------------------------------------------------------------------------------------------------");
+        dsyslog("cMarkAdOverlap::Detect(): testing frame (%5d) before stop mark, indexBeforeStopMark %d, against all frames after start mark", histbuf[OV_BEFORE][indexBeforeStopMark].frameNumber, indexBeforeStopMark);
 #endif
+
+        if (startAfterMark == histcnt[OV_AFTER]) {  // we reached end of range after start mark, reset state and contine with next frame before stop mark
+            startAfterMark = 0;
+            simLength      = 0;
+            simMax         = 0;
+            continue;
+        }
+
+        // check if histogram buffer before stop mark is valid
+        if (!histbuf[OV_BEFORE][indexBeforeStopMark].valid) {
+            dsyslog("cMarkAdOverlap::Detect(): histogram of frame (%d) before stop mark not valid, continue with next frame", histbuf[OV_BEFORE][indexBeforeStopMark].frameNumber);
+        }
+
         for (int indexAfterStartMark = startAfterMark; indexAfterStartMark < histcnt[OV_AFTER]; indexAfterStartMark++) {
+            // check if histogram buffer after start mark is valid
+            if (!histbuf[OV_AFTER][indexAfterStartMark].valid) {
+                indexBeforeStopMark++;
+                continue;
+            }
+
+            // check if pair is similar
             int simil = AreSimilar(histbuf[OV_BEFORE][indexBeforeStopMark].histogram, histbuf[OV_AFTER][indexAfterStartMark].histogram);
+            if ((simLength >= 1800) && (simil < 0)) {  // not similar, but if we had found at least a short similar part, check neighbour frames
+                int similBefore = -1;
+                int similAfter  = -1;
+                for (int i = 1 ; i <= range; i++) {
+                    if ((indexAfterStartMark - i) > 0) similBefore = AreSimilar(histbuf[OV_BEFORE][indexBeforeStopMark].histogram, histbuf[OV_AFTER][indexAfterStartMark - i].histogram);
+                    if ((indexAfterStartMark + i) <  histcnt[OV_AFTER]) similAfter = AreSimilar(histbuf[OV_BEFORE][indexBeforeStopMark].histogram, histbuf[OV_AFTER][indexAfterStartMark + i].histogram);
+                    if ((similBefore >= 0) || (similAfter >= 0)) break;
+                }
+                if ((similBefore < 0) && (similAfter < 0)) {  // we have reached end of a similar part
+                    tsyslog("cMarkAdOverlap::Detect(): end of similar from (%5d) to (%5d) and (%5d) to (%5d) length %5dms",  histbuf[OV_BEFORE][firstSimilarBeforeStopMark].frameNumber, histbuf[OV_BEFORE][tmpindexBeforeStopMark].frameNumber, histbuf[OV_AFTER][firstSimilarAfterStartMark].frameNumber, histbuf[OV_AFTER][tmpindexAfterStartMark].frameNumber, simLength);
+                    tsyslog("cMarkAdOverlap::Detect():                with similBefore %5d, simil %5d, similAfter %5d", similBefore, simil, similAfter);
+                }
+                if (similBefore > 0) simil = similBefore;
+                if (similAfter  > 0) simil = similAfter;
+            }
+
 #ifdef DEBUG_OVERLAP
-            if (simil > 0) dsyslog("cMarkAdOverlap::Detect(): compare frame  (%5d) (index %3d) and (%5d) (index %3d) -> simil %5d (max %d) simcnt %2i similarMaxCnt %2i)", histbuf[OV_BEFORE][indexBeforeStopMark].frameNumber, indexBeforeStopMark, histbuf[OV_AFTER][indexAfterStartMark].frameNumber, indexAfterStartMark, simil, similarCutOff, simcnt, similarMaxCnt);
+            if (simil >= 0) dsyslog("cMarkAdOverlap::Detect(): +++++     similar frame (%5d) (index %3d) and (%5d) (index %3d) -> simil %5d (max %d) length %2dms similarMaxCnt %2d)", histbuf[OV_BEFORE][indexBeforeStopMark].frameNumber, indexBeforeStopMark, histbuf[OV_AFTER][indexAfterStartMark].frameNumber, indexAfterStartMark, simil, similarCutOff, simLength, similarMinLength);
 #endif
-            if (simil > 0) {
-                if (simcnt == 0) {  // this is the first similar frame pair, store position
+            // found long enought overlap, store position
+
+            if ((simLength >= similarMinLength) &&
+               ((histbuf[OV_BEFORE][tmpindexBeforeStopMark].frameNumber - histbuf[OV_BEFORE][firstSimilarBeforeStopMark].frameNumber) >= (ptr_OverlapPos->similarBeforeEnd - ptr_OverlapPos->similarBeforeStart))) { // new overlap is longer than current overlap
+                ptr_OverlapPos->similarBeforeStart = histbuf[OV_BEFORE][firstSimilarBeforeStopMark].frameNumber;
+                ptr_OverlapPos->similarBeforeEnd   = histbuf[OV_BEFORE][tmpindexBeforeStopMark].frameNumber;
+                ptr_OverlapPos->similarAfterStart  = histbuf[OV_AFTER][firstSimilarAfterStartMark].frameNumber;
+                ptr_OverlapPos->similarAfterEnd    = histbuf[OV_AFTER][tmpindexAfterStartMark].frameNumber;
+                ptr_OverlapPos->similarMax         = simMax;
+                if (simil < 0) ptr_OverlapPos->similarEnd = -simil;
+            }
+
+            if (simil >= 0) {
+                if (simLength == 0) {  // this is the first similar frame pair, store position
                     firstSimilarBeforeStopMark = indexBeforeStopMark;
+                    firstSimilarAfterStartMark = indexAfterStartMark;
                 }
                 tmpindexAfterStartMark = indexAfterStartMark;
                 tmpindexBeforeStopMark = indexBeforeStopMark;
                 startAfterMark = indexAfterStartMark + 1;
-                if (simil < (similarCutOff / 2)) simcnt += 2;
-                else if (simil < (similarCutOff/4)) simcnt += 4;
-                else if (simil < (similarCutOff/6)) simcnt += 6;
-                else simcnt++;
+                simLength = 1000 * (histbuf[OV_BEFORE][indexBeforeStopMark].frameNumber - histbuf[OV_BEFORE][firstSimilarBeforeStopMark].frameNumber + 1) / maContext->Video.Info.framesPerSecond;
+                if (simil > simMax) simMax = simil;
+
+#ifdef DEBUG_OVERLAP
+                dsyslog("cMarkAdOverlap::Detect(): similar picture index  from %d to %d and %d to %d", firstSimilarBeforeStopMark, indexBeforeStopMark, firstSimilarAfterStartMark, indexAfterStartMark);
+                dsyslog("cMarkAdOverlap::Detect(): similar picture frames from (%d) to (%d) and (%d) to (%d), length %dms", histbuf[OV_BEFORE][firstSimilarBeforeStopMark].frameNumber, histbuf[OV_BEFORE][indexBeforeStopMark].frameNumber, histbuf[OV_AFTER][firstSimilarAfterStartMark].frameNumber, histbuf[OV_AFTER][indexAfterStartMark].frameNumber, simLength);
+#endif
+
                 break;
             }
             else {
-                if (simcnt > 0) {
+                // reset to first similar frame
+                if (simLength > 0) {
+#ifdef DEBUG_OVERLAP
+                    dsyslog("cMarkAdOverlap::Detect(): ---- not similar frame (%5d) (index %3d) and (%5d) (index %3d) -> simil %5d (max %d) length %2dms similarMaxCnt %2d)", histbuf[OV_BEFORE][indexBeforeStopMark].frameNumber, indexBeforeStopMark, histbuf[OV_AFTER][indexAfterStartMark].frameNumber, indexAfterStartMark, simil, similarCutOff, simLength, similarMinLength);
+                    dsyslog("cMarkAdOverlap::Detect(): ===================================================================================================================");
+#endif
                     indexBeforeStopMark = firstSimilarBeforeStopMark;  // reset to first similar frame
                 }
-                if (simcnt > similarMaxCnt) {
-                    if ((histbuf[OV_BEFORE][tmpindexBeforeStopMark].frameNumber > Result.frameNumberBefore) && (histbuf[OV_AFTER][tmpindexAfterStartMark].frameNumber > Result.frameNumberAfter)) {
-                        Result.frameNumberBefore = histbuf[OV_BEFORE][tmpindexBeforeStopMark].frameNumber;
-                        Result.frameNumberAfter = histbuf[OV_AFTER][tmpindexAfterStartMark].frameNumber;
-                    }
-                }
-                else {
-                    startAfterMark = 0;
-                }
-                simcnt = 0;
+
+                if (simLength < similarMinLength) startAfterMark = 0;
+                simLength = 0;
+                simMax    = 0;
             }
-          }
-    }
-    if (Result.frameNumberBefore == -1) {
-        if (simcnt > similarMaxCnt) {
-            Result.frameNumberBefore = histbuf[OV_BEFORE][tmpindexBeforeStopMark].frameNumber;
-            Result.frameNumberAfter = histbuf[OV_AFTER][tmpindexAfterStartMark].frameNumber;
         }
-        else {
-            return NULL;
-        }
+#ifdef DEBUG_OVERLAP
+        dsyslog("cMarkAdOverlap::Detect(): current overlap from (%d) to (%d) and (%d) to (%d)", ptr_OverlapPos->similarBeforeStart, ptr_OverlapPos->similarBeforeEnd, ptr_OverlapPos->similarAfterStart, ptr_OverlapPos->similarAfterEnd);
+#endif
     }
-    return &Result;
+    return;
 }
 
 
-sOverlapPos *cMarkAdOverlap::Process(const int frameNumber, const int frameCount, const bool beforeAd, const bool h264) {
+void cMarkAdOverlap::Process(sOverlapPos *ptr_OverlapPos, const int frameNumber, const int frameCount, const bool beforeAd, const bool h264) {
+    if (!ptr_OverlapPos) return;
 #ifdef DEBUG_OVERLAP
-    dsyslog("------------------------------------------------------------------------------------------------");
-    dsyslog("cMarkAdVideo::ProcessOverlap(): frameNumber %d, frameCount %d, beforeAd %d, isH264 %d", frameNumber, frameCount, beforeAd, h264);
+    dsyslog("cMarkAdOverlap::Process(): frameNumber %d, frameCount %d, beforeAd %d, isH264 %d", frameNumber, frameCount, beforeAd, h264);
 #endif
-    if ((lastFrameNumber > 0) && (!similarMaxCnt)) {
-        similarCutOff = 49000; // lower is harder! reduced from 50000 to 49000
-        if (h264) similarCutOff *= 4;       // reduce false similar detection in H.264 streams
-        similarMaxCnt = 10;
+
+    if ((lastFrameNumber > 0) && (similarMinLength == 0)) {
+        similarCutOff = 49000;            // lower is harder
+                                          // do not increase, we will get false positive
+        if (h264) similarCutOff = 196000; // reduce false similar detection in H.264 streams
+        similarMinLength = 4040;          // shortest valid length of an overlap with 4040ms found
     }
 
     if (beforeAd) {
 #ifdef DEBUG_OVERLAP
-        dsyslog("cMarkAdVideo::ProcessOverlap(): preload histogram with frames before stop mark");
+        dsyslog("cMarkAdOverlap::Process(): preload histogram with frames before stop mark, frame index %d of %d", histcnt[OV_BEFORE], frameCount - 1);
 #endif
+        // alloc memory for frames before stop mark
         if (!histbuf[OV_BEFORE]) {
             histframes[OV_BEFORE] = frameCount;
             histbuf[OV_BEFORE] = new sHistBuffer[frameCount + 1];
             ALLOC(sizeof(*histbuf[OV_BEFORE]), "histbuf");
         }
-        GetHistogram(histbuf[OV_BEFORE][histcnt[OV_BEFORE]].histogram);
+        // fill histogram for frames before stop mark
+        if (histcnt[OV_BEFORE] >= frameCount) {
+            dsyslog("cMarkAdOverlap::Process(): got more frames before stop mark than expected");
+            return;
+        }
+        if (maContext->Video.Data.valid) {
+            GetHistogram(histbuf[OV_BEFORE][histcnt[OV_BEFORE]].histogram);
+            histbuf[OV_BEFORE][histcnt[OV_BEFORE]].valid = true;
+        }
+        else {
+            dsyslog("cMarkAdOverlap::Process(): data before stop mark of frame (%d) not valid", frameNumber);
+            histbuf[OV_BEFORE][histcnt[OV_BEFORE]].valid = true;
+        }
         histbuf[OV_BEFORE][histcnt[OV_BEFORE]].frameNumber = frameNumber;
         histcnt[OV_BEFORE]++;
     }
     else {
 #ifdef DEBUG_OVERLAP
-        dsyslog("cMarkAdVideo::ProcessOverlap(): preload histogram with frames after start mark");
+        dsyslog("cMarkAdOverlap::Process(): preload histogram with frames after start mark, frame index %d of %d", histcnt[OV_AFTER], frameCount - 1);
 #endif
+        // alloc memory for frames after start mark
         if (!histbuf[OV_AFTER]) {
             histframes[OV_AFTER] = frameCount;
             histbuf[OV_AFTER] = new sHistBuffer[frameCount + 1];
@@ -1691,18 +1764,31 @@ sOverlapPos *cMarkAdOverlap::Process(const int frameNumber, const int frameCount
         }
 
         if (histcnt[OV_AFTER] >= histframes[OV_AFTER] - 1) {
-            if (Result.frameNumberBefore != 0) return NULL;
+            dsyslog("cMarkAdOverlap::Process(): start compare frames");
+            Detect(ptr_OverlapPos);
 #ifdef DEBUG_OVERLAP
-        dsyslog("cMarkAdVideo::ProcessOverlap(): compare frames");
+            dsyslog("cMarkAdOverlap::Process(): overlap from (%d) before stop mark and (%d) after start mark", ptr_OverlapPos->similarBeforeEnd, ptr_OverlapPos->similarAfterEnd);
 #endif
-            return Detect();
+            return;
         }
-        GetHistogram(histbuf[OV_AFTER][histcnt[OV_AFTER]].histogram);
+        // fill histogram for frames before after start mark
+        if (histcnt[OV_AFTER] >= frameCount) {
+            dsyslog("cMarkAdOverlap::Process(): got more frames after start mark than expected");
+            return;
+        }
+        if (maContext->Video.Data.valid) {
+            GetHistogram(histbuf[OV_AFTER][histcnt[OV_AFTER]].histogram);
+            histbuf[OV_AFTER][histcnt[OV_AFTER]].valid = true;
+        }
+        else {
+            dsyslog("cMarkAdOverlap::Process(): data after start mark of frame (%d) not valid", frameNumber);
+            histbuf[OV_AFTER][histcnt[OV_AFTER]].valid = false;
+        }
         histbuf[OV_AFTER][histcnt[OV_AFTER]].frameNumber = frameNumber;
         histcnt[OV_AFTER]++;
     }
     lastFrameNumber = frameNumber;
-    return NULL;
+    return;
 }
 
 

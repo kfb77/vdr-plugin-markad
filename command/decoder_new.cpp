@@ -748,6 +748,7 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool full) {
                 }
                 return true;
             }
+            maContext->Video.Data.valid = false;
             return false;
         }
     }

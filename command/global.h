@@ -200,11 +200,18 @@ typedef struct sMarkAdConfig {
  * frame overlap start and stop positions
  */
 typedef struct sOverlapPos {
-    int frameNumberBefore; //!< frame number of overlaps start before mark position
-                           //!<
-
-    int frameNumberAfter; //!< frame number of overlaps stop after mark position
-                          //!<
+    int similarBeforeStart = -1; //!< start of similar part before stop mark
+                                 //!<
+    int similarBeforeEnd   = -1; //!< stop of similar part before stop mark, this will be the new stop position
+                                 //!<
+    int similarAfterStart  = -1; //!< start of similar part after start mark
+                                 //!<
+    int similarAfterEnd    = -1; //!< stop of similar part after start mark, this will be the new start position
+                                 //!<
+    int similarMax         =  0; //!< maximum similar value from the overlap (lowest match)
+                                 //!<
+    int similarEnd         =  0; //!< similar value from the end of the overlap
+                                 //!<
 } sOverlapPos;
 
 

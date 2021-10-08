@@ -162,13 +162,13 @@ class cMarkAdOverlap {
 /**
  * if beforeAd == true preload frames before stop mark in histogram buffer array, otherwise preload frames after start mark <br>
  * if we got frameCount, start compare
- * @param frameNumber current frame number
- * @param frameCount  number of frames to process
- * @param beforeAd    true if called with a frame before advertising, false otherwise
- * @param h264        true if HD video, false otherwise
- * @return new stop and start mark position if overlap found, NULL otherwise
+ * @param[in,out] ptr_OverlapPos new stop and start mark pair after overlap detection, -1 if no overlap was found
+ * @param[in]     frameNumber    current frame number
+ * @param[in]     frameCount     number of frames to process
+ * @param[in]     beforeAd       true if called with a frame before advertising, false otherwise
+ * @param[in]     h264           true if HD video, false otherwise
  */
-        sOverlapPos *Process(const int frameNumber, const int frameCount, const bool beforeAd, const bool h264);
+        void Process(sOverlapPos *ptr_OverlapPos, const int frameNumber, const int frameCount, const bool beforeAd, const bool h264);
 
     private:
 
@@ -191,9 +191,9 @@ class cMarkAdOverlap {
 
 /**
  * detect overlaps before and after advertising
- * @return new stop and start mark position
+ * @param[in,out] ptr_OverlapPos new stop and start mark pair after overlap detection, -1 if no overlap was found
  */
-        sOverlapPos *Detect();
+        void Detect(sOverlapPos *ptr_OverlapPos);
 
 /**
  * reset state of overlap detection
@@ -204,12 +204,12 @@ class cMarkAdOverlap {
  * histogram buffer for overlap detection
  */
         typedef struct sHistBuffer {
-            int frameNumber;           //!< frame number
+            int frameNumber = -1;      //!< frame number
                                        //!<
-
+            bool valid      = false;   //!< true if buffer is valid
+                                       //!<
             simpleHistogram histogram; //!< simple frame histogram
                                        //!<
-
         } sHistBuffer;
 
         sMarkAdContext *maContext = NULL;  //!< markad context
@@ -222,11 +222,9 @@ class cMarkAdOverlap {
                                            //!<
         int lastFrameNumber;               //!< last processed frame number
                                            //!<
-        sOverlapPos Result;                //!< start and stop position of overlap
-                                           //!<
         int similarCutOff;                 //!< maximum different pixel to treat picture as similar, depends on resulution
                                            //!<
-        int similarMaxCnt;                 //!< current maximum similar frames found before stop mark and after start mark
+        int similarMinLength;              //!< minimum similar frames for a overlap
                                            //!<
 };
 

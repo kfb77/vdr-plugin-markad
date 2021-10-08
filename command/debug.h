@@ -22,6 +22,11 @@
 // debug overlap detection
 // #define DEBUG_OVERLAP
 
+// write overlap frame pairs
+// #define DEBUG_OVERLAP_FRAME_RANGE 2
+// #define DEBUG_OVERLAP_FRAME_BEFORE <framenumber>
+// #define DEBUG_OVERLAP_FRAME_AFTER  <framenumber>
+
 // debug logo detection of logo.cpp
 // #define DEBUG_LOGO_CORNER TOP_LEFT
 // #define DEBUG_LOGO_CORNER TOP_RIGHT

@@ -1133,14 +1133,15 @@ int cDetectLogoStopStart::ClosingCredit() {
 
     dsyslog("cDetectLogoStopStart::ClosingCredit(): detect from (%d) to (%d)", startPos, endPos);
 
-#define CLOSING_CREDITS_LENGTH_MIN 9
-    int minLength = ((endPos - startPos) / maContext->Video.Info.framesPerSecond) - 2;  // 2s buffer for change from closing credit to logo start
-    if (minLength <= 1) { // too short will result in false positive
+#define CLOSING_CREDITS_LENGTH_MIN 6120  // changed from 9000 to 6120
+                                         // because of silence deetection before closing credits detection
+    int minLength = (1000 * (endPos - startPos) / maContext->Video.Info.framesPerSecond) - 2000;  // 2s buffer for change from closing credit to logo start
+    if (minLength <= 1840) { // too short will result in false positive, changed from 1000 to 1840
         dsyslog("cDetectLogoStopStart::ClosingCredit(): length too short for detection");
         return -1;
     }
     if (minLength > CLOSING_CREDITS_LENGTH_MIN) minLength = CLOSING_CREDITS_LENGTH_MIN;
-    dsyslog("cDetectLogoStopStart::ClosingCredit(): min length %d", minLength);
+    dsyslog("cDetectLogoStopStart::ClosingCredit(): min length %dms", minLength);
 
     int closingCreditsFrame = -1;
 
@@ -1179,7 +1180,7 @@ int cDetectLogoStopStart::ClosingCredit() {
             ClosingCredits.end = (*cornerResultIt).frameNumber2;
         }
         else {
-            if ((ClosingCredits.end - ClosingCredits.start) >= (maContext->Video.Info.framesPerSecond * minLength)) {  // first long enough part is the closing credit
+            if ((ClosingCredits.end - ClosingCredits.start) >= (minLength * maContext->Video.Info.framesPerSecond / 1000)) {  // first long enough part is the closing credit
                 break;
             }
             ClosingCredits.start = -1;
@@ -1216,14 +1217,15 @@ int cDetectLogoStopStart::ClosingCredit() {
 
     // check if it is a closing credit
     int startOffset = 1000 * (ClosingCredits.start - startPos) / maContext->Video.Info.framesPerSecond;
-    int endOffset  = 1000 * (endPos - ClosingCredits.end) / maContext->Video.Info.framesPerSecond;
-    int length = (ClosingCredits.end - ClosingCredits.start) / maContext->Video.Info.framesPerSecond;
-    dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: start (%d) end (%d), offset start %dms end %dms, length %ds",
+    int endOffset   = 1000 * (endPos - ClosingCredits.end) / maContext->Video.Info.framesPerSecond;
+    int length      = 1000 * (ClosingCredits.end - ClosingCredits.start) / maContext->Video.Info.framesPerSecond;
+    dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: start (%d) end (%d), offset start %dms end %dms, length %dms",
                                                                                                           ClosingCredits.start, ClosingCredits.end, startOffset, endOffset, length);
 
     dsyslog("cDetectLogoStopStart::ClosingCredit(): closing imge:      start (%d) end (%d)", ClosingImage.startFinal, ClosingImage.endFinal);
     if ((ClosingCredits.start > 0) && (ClosingCredits.end > 0) && // we found something
-        (startOffset <= 1440) && (length < 19) && // do not reduce start offset, if logo fade out, we got start a little too late
+        (startOffset <= 4320) && (length < 19000) && // do not reduce start offset, if logo fade out, we got start a little too late
+                                                     // startOffset increases from 1440 to 4320 because of silence detection before closing credits detection
            ((length >= CLOSING_CREDITS_LENGTH_MIN) || (endOffset < 480) ||  // if we check from info logo:
                                                                             // - we would not have the complete part, so it should go nearly to end
                                                                             // - we also should detect ad in frame

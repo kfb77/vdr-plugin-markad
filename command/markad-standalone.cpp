@@ -572,7 +572,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoder, recordingIndexMark, NULL);
     ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
-    int endPos = stopMark->position + (25 * macontext.Video.Info.framesPerSecond);  // try till 15s after stopMarkPosition
+    int endPos = stopMark->position + (25 * macontext.Video.Info.framesPerSecond);  // try till 25s after stopMarkPosition
     int newPosition = -1;
     if (ptr_cDetectLogoStopStart->Detect(stopMark->position, endPos)) {
         newPosition = ptr_cDetectLogoStopStart->ClosingCredit();
@@ -2307,7 +2307,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
 // save currect content of the frame buffer to /tmp
 // if path and suffix is set, this will set as target path and file name suffix
 //
-#if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_MARK_FRAMES)
+#if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_MARK_FRAMES) || defined(DEBUG_OVERLAP_FRAME_RANGE)
 void cMarkAdStandalone::SaveFrame(const int frame, const char *path, const char *suffix) {
     if (!macontext.Video.Info.height) {
         dsyslog("cMarkAdStandalone::SaveFrame(): macontext.Video.Info.height not set");
@@ -2456,12 +2456,17 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
     if (!mark2) return false;
     if (!*mark2) return false;
 
+    sOverlapPos overlapPos;
+    overlapPos.similarBeforeStart = -1;
+    overlapPos.similarBeforeEnd   = -1;
+    overlapPos.similarAfterStart  = -1;
+    overlapPos.similarAfterEnd    = -1;
 
-    sOverlapPos *ptr_OverlapPos = NULL;
     Reset();
 
 // calculate overlap check positions
-#define OVERLAP_CHECK_BEFORE 120  // start 2 min before stop mark
+#define OVERLAP_CHECK_BEFORE 90  // start before stop mark, max found 58s, changed from 120 to 90
+#define OVERLAP_CHECK_AFTER  90  // end after start mark,                  changed from 300 to 90
     int fRangeBegin = (*mark1)->position - (macontext.Video.Info.framesPerSecond * OVERLAP_CHECK_BEFORE);
     if (fRangeBegin < 0) fRangeBegin = 0;                    // not before beginning of broadcast
     fRangeBegin = recordingIndexMark->GetIFrameBefore(fRangeBegin);
@@ -2469,7 +2474,6 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
         dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): GetIFrameBefore failed for frame (%d)", fRangeBegin);
         return false;
     }
-#define OVERLAP_CHECK_AFTER 300  // start 5 min after start mark
     int fRangeEnd = (*mark2)->position + (macontext.Video.Info.framesPerSecond * OVERLAP_CHECK_AFTER);
 
     cMark *prevStart = marks.GetPrev((*mark1)->position, MT_START, 0x0F);
@@ -2495,28 +2499,31 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
         else if (fRangeEnd >= nextStop->position) fRangeEnd = nextStop->position - 2; // do read after last stop mark position because we want to start one frame before end mark with closing credits check
     }
 
-    dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): preload from frame       (%5d) to (%5d)", fRangeBegin, (*mark1)->position);
-    dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): compare with frames from (%5d) to (%5d)", (*mark2)->position, fRangeEnd);
-
 // seek to start frame of overlap check
     char *indexToHMSF = marks.IndexToHMSF(fRangeBegin, &macontext);
     if (indexToHMSF) {
-        dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): start check %ds before at frame (%d) and start overlap check at %s", OVERLAP_CHECK_BEFORE, fRangeBegin, indexToHMSF);
+        dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): start check %ds before start mark (%d) from frame (%d) at %s", OVERLAP_CHECK_BEFORE, (*mark1)->position, fRangeBegin, indexToHMSF);
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
+    dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): preload from frame       (%5d) to (%5d)", fRangeBegin, (*mark1)->position);
+    dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): compare with frames from (%5d) to (%5d)", (*mark2)->position, fRangeEnd);
+
+    // seek to start frame
     if (!ptr_cDecoder->SeekToFrame(&macontext, fRangeBegin)) {
         esyslog("could not seek to frame (%i)", fRangeBegin);
         return false;
     }
 
-// get iFrame count of range to check for overlap
-    int iFrameCount = recordingIndexMark->GetIFrameRangeCount(fRangeBegin, (*mark1)->position);
-    if (iFrameCount < 0) {
+// get frame count of range before stop mark to check for overlap
+    int frameCount;
+    if (macontext.Config->fullDecode) frameCount = (*mark1)->position - fRangeBegin + 1;
+    else frameCount = recordingIndexMark->GetIFrameRangeCount(fRangeBegin, (*mark1)->position);
+    if (frameCount < 0) {
         dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): GetIFrameRangeCount failed at range (%d,%d))", fRangeBegin, (*mark1)->position);
         return false;
     }
-    dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): %d i-frames to preload between start of check (%d) and stop mark (%d)", iFrameCount, fRangeBegin, (*mark1)->position);
+    dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): %d frames to preload between start of check (%d) and stop mark (%d)", frameCount, fRangeBegin, (*mark1)->position);
 
 // preload frames before stop mark
     while (ptr_cDecoder->GetFrameNumber() <= (*mark1)->position ) {
@@ -2526,14 +2533,20 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
             return false;
         }
         if (!ptr_cDecoder->IsVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(&macontext, false)) {
-            if (ptr_cDecoder->IsVideoIFrame())  // if we have interlaced video this is expected, we have to read the next half picture
-                tsyslog("cMarkAdStandalone::ProcessMarkOverlap() before mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
-            continue;
-        }
-        if (ptr_cDecoder->IsVideoIFrame()) {
-            ptr_OverlapPos = overlap->Process(ptr_cDecoder->GetFrameNumber(), iFrameCount, true, (macontext.Info.vPidType == MARKAD_PIDTYPE_VIDEO_H264));
-        }
+
+#ifdef DEBUG_OVERLAP
+        dsyslog("------------------------------------------------------------------------------------------------");
+#endif
+
+        if (!ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode) && macontext.Config->fullDecode) dsyslog("cMarkAdStandalone::ProcessMarkOverlap() before stop mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
+        if (!macontext.Config->fullDecode && !ptr_cDecoder->IsVideoIFrame()) continue;
+
+#ifdef DEBUG_OVERLAP_FRAME_RANGE
+        if ((ptr_cDecoder->GetFrameNumber() > (DEBUG_OVERLAP_FRAME_BEFORE - DEBUG_OVERLAP_FRAME_RANGE)) &&
+            (ptr_cDecoder->GetFrameNumber() < (DEBUG_OVERLAP_FRAME_BEFORE + DEBUG_OVERLAP_FRAME_RANGE))) SaveFrame(ptr_cDecoder->GetFrameNumber(), NULL, NULL);
+#endif
+
+        overlap->Process(&overlapPos, ptr_cDecoder->GetFrameNumber(), frameCount, true, (macontext.Info.vPidType == MARKAD_PIDTYPE_VIDEO_H264));
     }
 
 // seek to iFrame before start mark
@@ -2545,7 +2558,7 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
     if (fRangeBegin <  ptr_cDecoder->GetFrameNumber()) fRangeBegin = ptr_cDecoder->GetFrameNumber(); // on very short stop/start pairs we have no room to go before start mark
     indexToHMSF = marks.IndexToHMSF(fRangeBegin, &macontext);
     if (indexToHMSF) {
-        dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): seek forward to iFrame (%d) at %s before start mark (%d) and start overlap check", fRangeBegin, indexToHMSF, (*mark2)->position);
+        dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): seek forward to frame (%d) at %s before start mark (%d) and start overlap check", fRangeBegin, indexToHMSF, (*mark2)->position);
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
@@ -2554,24 +2567,13 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
         return false;
     }
 
-    iFrameCount = recordingIndexMark->GetIFrameRangeCount(fRangeBegin, fRangeEnd) - 2;
-    if (iFrameCount < 0) {
+    if (macontext.Config->fullDecode) frameCount = fRangeEnd - fRangeBegin + 1;
+    else frameCount = recordingIndexMark->GetIFrameRangeCount(fRangeBegin, fRangeEnd) - 2;
+    if (frameCount < 0) {
             dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): GetIFrameRangeCount failed at range (%d,%d))", fRangeBegin, (*mark1)->position);
             return false;
     }
-    char *indexToHMSFbegin = marks.IndexToHMSF(fRangeBegin, &macontext);
-    char *indexToHMSFend = marks.IndexToHMSF(fRangeEnd, &macontext);
-    if (indexToHMSFbegin && indexToHMSFend) {
-        dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): process overlap detection between frame (%d) at %s and frame (%d) at %s", fRangeBegin, indexToHMSFbegin, fRangeEnd, indexToHMSFend);
-    }
-    if (indexToHMSFbegin) {
-        FREE(strlen(indexToHMSFbegin)+1, "indexToHMSF");
-        free(indexToHMSFbegin);
-    }
-    if (indexToHMSFend) {
-        FREE(strlen(indexToHMSFend)+1, "indexToHMSF");
-        free(indexToHMSFend);
-    }
+    dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): %d frames to preload between start mark (%d) and  end of check (%d)", frameCount, (*mark2)->position, fRangeEnd);
 
 // process frames after start mark and detect overlap
     while (ptr_cDecoder->GetFrameNumber() <= fRangeEnd ) {
@@ -2581,30 +2583,62 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
             return false;
         }
         if (!ptr_cDecoder->IsVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(&macontext, false)) {
-            if (ptr_cDecoder->IsVideoIFrame())
-                tsyslog("cMarkAdStandalone::ProcessMarkOverlap() after mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
-            continue;
-        }
-        if (ptr_cDecoder->IsVideoIFrame()) {
-            ptr_OverlapPos = overlap->Process(ptr_cDecoder->GetFrameNumber(), iFrameCount, false, (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264));
-        }
-        if (ptr_OverlapPos) {
+#ifdef DEBUG_OVERLAP
+        dsyslog("------------------------------------------------------------------------------------------------");
+#endif
+
+        if (!ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode) && macontext.Config->fullDecode) dsyslog("cMarkAdStandalone::ProcessMarkOverlap() after start mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
+        if (!macontext.Config->fullDecode && !ptr_cDecoder->IsVideoIFrame()) continue;
+
+#ifdef DEBUG_OVERLAP_FRAME_RANGE
+        if ((ptr_cDecoder->GetFrameNumber() > (DEBUG_OVERLAP_FRAME_AFTER - DEBUG_OVERLAP_FRAME_RANGE)) &&
+            (ptr_cDecoder->GetFrameNumber() < (DEBUG_OVERLAP_FRAME_AFTER + DEBUG_OVERLAP_FRAME_RANGE))) SaveFrame(ptr_cDecoder->GetFrameNumber(), NULL, NULL);
+#endif
+
+        overlap->Process(&overlapPos, ptr_cDecoder->GetFrameNumber(), frameCount, false, (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264));
+
+        if (overlapPos.similarAfterEnd >= 0) {
             // found overlap
-            char *indexToHMSFbefore = marks.IndexToHMSF(ptr_OverlapPos->frameNumberBefore, &macontext);
-            char *indexToHMSFmark1 = marks.IndexToHMSF((*mark1)->position, &macontext);
-            char *indexToHMSFmark2 = marks.IndexToHMSF((*mark2)->position, &macontext);
-            char *indexToHMSFafter = marks.IndexToHMSF(ptr_OverlapPos->frameNumberAfter, &macontext);
-            if (indexToHMSFbefore && indexToHMSFmark1 && indexToHMSFmark2 && indexToHMSFafter) {
-                dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): found overlap from (%6d) at %s to (%6d) at %s are identical with",
-                            ptr_OverlapPos->frameNumberBefore, indexToHMSFbefore, (*mark1)->position, indexToHMSFmark1);
-                dsyslog("cMarkAdStandalone::ProcessMarkOverlap():                    (%6d) at %s to (%6d) at %s",
-                            (*mark2)->position, indexToHMSFmark2, ptr_OverlapPos->frameNumberAfter, indexToHMSFafter);
+            int lengthBefore = 1000 * (overlapPos.similarBeforeEnd - overlapPos.similarBeforeStart + 1) / macontext.Video.Info.framesPerSecond; // include first and last
+            int lengthAfter  = 1000 * (overlapPos.similarAfterEnd  - overlapPos.similarAfterStart + 1)  / macontext.Video.Info.framesPerSecond;
+            char *indexToHMSFbeforeStart = marks.IndexToHMSF(overlapPos.similarBeforeStart, &macontext);
+            char *indexToHMSFbeforeEnd   = marks.IndexToHMSF(overlapPos.similarBeforeEnd,   &macontext);
+            char *indexToHMSFafterStart  = marks.IndexToHMSF(overlapPos.similarAfterStart,  &macontext);
+            char *indexToHMSFafterEnd    = marks.IndexToHMSF(overlapPos.similarAfterEnd,    &macontext);
+            dsyslog("cMarkAdOverlap::ProcessMarkOverlap(): similar from (%5d) at %s to (%5d) at %s, length %5dms", overlapPos.similarBeforeStart, indexToHMSFbeforeStart, overlapPos.similarBeforeEnd, indexToHMSFbeforeEnd, lengthBefore);
+            dsyslog("cMarkAdOverlap::ProcessMarkOverlap():              (%5d) at %s to (%5d) at %s, length %5dms",     overlapPos.similarAfterStart,  indexToHMSFafterStart,  overlapPos.similarAfterEnd,  indexToHMSFafterEnd, lengthAfter);
+            dsyslog("cMarkAdOverlap::ProcessMarkOverlap():              maximum deviation in overlap %6d", overlapPos.similarMax);
+            if (overlapPos.similarEnd > 0) dsyslog("cMarkAdOverlap::ProcessMarkOverlap():              next deviation after overlap %6d", overlapPos.similarEnd); // can be 0 if overlap ends at the mark
+
+            char *indexToHMSFmark1  = marks.IndexToHMSF((*mark1)->position, &macontext);
+            char *indexToHMSFmark2  = marks.IndexToHMSF((*mark2)->position, &macontext);
+
+            int gapStop         = ((*mark1)->position - overlapPos.similarBeforeEnd)   / macontext.Video.Info.framesPerSecond;
+            int lengthBeforeStop = ((*mark1)->position - overlapPos.similarBeforeStart) / macontext.Video.Info.framesPerSecond;
+            int gapStart        = (overlapPos.similarAfterStart - (*mark2)->position)  / macontext.Video.Info.framesPerSecond;
+            int lengthAfterStart = (overlapPos.similarAfterEnd - (*mark2)->position)    / macontext.Video.Info.framesPerSecond;
+
+            if (indexToHMSFbeforeStart && indexToHMSFbeforeEnd && indexToHMSFafterStart && indexToHMSFafterEnd && indexToHMSFmark1 && indexToHMSFmark2) {
+                dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): overlap from (%6d) at %s to (%6d) at %s, before stop mark gap %3ds length %3ds, are identical with",overlapPos.similarBeforeEnd, indexToHMSFbeforeEnd, (*mark1)->position, indexToHMSFmark1, gapStop, lengthBeforeStop);
+                dsyslog("cMarkAdStandalone::ProcessMarkOverlap():              (%6d) at %s to (%6d) at %s, after start mark gap %3ds length %3ds", (*mark2)->position, indexToHMSFmark2, overlapPos.similarAfterEnd, indexToHMSFafterEnd, gapStart, lengthAfterStart);
             }
-            if (indexToHMSFbefore) {
-                FREE(strlen(indexToHMSFbefore)+1, "indexToHMSF");
-                free(indexToHMSFbefore);
+            if (indexToHMSFbeforeStart) {
+                FREE(strlen(indexToHMSFbeforeStart)+1, "indexToHMSF");
+                free(indexToHMSFbeforeStart);
             }
+            if (indexToHMSFbeforeEnd) {
+                FREE(strlen(indexToHMSFbeforeEnd)+1, "indexToHMSF");
+                free(indexToHMSFbeforeEnd);
+            }
+            if (indexToHMSFafterStart) {
+                FREE(strlen(indexToHMSFafterStart)+1, "indexToHMSF");
+                free(indexToHMSFafterStart);
+            }
+            if (indexToHMSFafterEnd) {
+                FREE(strlen(indexToHMSFafterEnd)+1, "indexToHMSF");
+                free(indexToHMSFafterEnd);
+            }
+
             if (indexToHMSFmark1) {
                 FREE(strlen(indexToHMSFmark1)+1, "indexToHMSF");
                 free(indexToHMSFmark1);
@@ -2613,13 +2647,22 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
                 FREE(strlen(indexToHMSFmark2)+1, "indexToHMSF");
                 free(indexToHMSFmark2);
             }
-            if (indexToHMSFafter) {
-                FREE(strlen(indexToHMSFafter)+1, "indexToHMSF");
-                free(indexToHMSFafter);
+
+            // check overlap gap
+            int gapStartMax = 16;                                   // changed gapStart from 22 to 21 to 18 to 16
+            if ((*mark2)->type == MT_ASPECTSTART)  gapStartMax = 7; // for strong marks we can check with a lower value
+            if ((*mark2)->type == MT_VBORDERSTART) gapStartMax = 7; // for strong marks we can check with a lower value
+            dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): maximum valid gap after start mark: %ds", gapStartMax);
+            if (((gapStop < 23) && (gapStart == 0)) ||              // if we hit start mark, trust greater stop gap, maybe we have no correct stop mark, changed from 34 to 23
+                ((gapStop < 15) && (gapStart < gapStartMax))) {     // we can not detect all similars during a scene changes, changed from 27 to 15
+                                                                    // but if it is too far away it is a false positiv
+                                                                    // changed gapStop from 36 to 27
+                dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): overlap gap to marks are valid, before stop mark %ds, after start mark %ds, length %dms", gapStop, gapStart, lengthBefore);
+                *mark1 = marks.Move(&macontext, *mark1, overlapPos.similarBeforeEnd, "overlap");
+                *mark2 = marks.Move(&macontext, *mark2, overlapPos.similarAfterEnd,  "overlap");
+                marks.Save(directory, &macontext, false);
             }
-            *mark1 = marks.Move(&macontext, *mark1, ptr_OverlapPos->frameNumberBefore, "overlap");
-            *mark2 = marks.Move(&macontext, *mark2, ptr_OverlapPos->frameNumberAfter, "overlap");
-            marks.Save(directory, &macontext, false);
+            else dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): overlap gap to marks are not valid, before stop mark %ds, after start mark %ds, length %dms", gapStop, gapStart, lengthBefore);
             return true;
         }
     }
@@ -2834,22 +2877,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
 
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): start logo mark optimization");
-    LogSeparator(false);
-    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): check last logo stop mark if closing credits follows");
-
     bool save = false;
-// check last logo stop mark if closing credits follows
-    if (ptr_cDecoder) {  // we use file position from logo mark optimation call
-        cMark *lastStop = marks.GetLast();
-        if (lastStop && ((lastStop->type == MT_LOGOSTOP) ||  (lastStop->type == MT_HBORDERSTOP))) {
-            dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search for closing credits");
-            if (MoveLastStopAfterClosingCredits(lastStop)) {
-                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): moved last logo stop mark after closing credit");
-            }
-            save = true;
-            framecnt3 = ptr_cDecoder->GetFrameNumber() - framecnt2;
-        }
-    }
 
 // check for advertising in frame with logo after logo start mark and before logo stop mark and check for introduction logo
     LogSeparator(true);
@@ -3182,6 +3210,7 @@ void cMarkAdStandalone::ProcessOverlap() {
         macontext.Video.Info.framesPerSecond = 25;
     }
 
+    bool save = false;
     cMark *p1 = NULL,*p2 = NULL;
 
     if (ptr_cDecoder) {
@@ -3198,14 +3227,16 @@ void cMarkAdStandalone::ProcessOverlap() {
 
         while ((p1) && (p2)) {
             if (ptr_cDecoder) {
-                dsyslog("cMarkAdStandalone::ProcessOverlap(): ->->->->-> check overlap before stop frame (%d) and after start frame (%d)", p1->position, p2->position);
+                LogSeparator(false);
+                dsyslog("cMarkAdStandalone::ProcessOverlap(): check overlap before stop mark (%d) and after start mark (%d)", p1->position, p2->position);
                 // init overlap detection object
                 cMarkAdOverlap *overlap = new cMarkAdOverlap(&macontext);
                 ALLOC(sizeof(*overlap), "overlap");
                 // detect overlap before stop and after start
                 if (!ProcessMarkOverlap(overlap, &p1, &p2)) {
-                    dsyslog("cMarkAdStandalone::ProcessOverlap(): no overlap found for marks before frames (%d) and after (%d)", p1->position, p2->position);
+                    dsyslog("cMarkAdStandalone::ProcessOverlap(): no overlap found before stop mark (%d) and after start (%d)", p1->position, p2->position);
                 }
+                else save = true;
                 // free overlap detection object
                 FREE(sizeof(*overlap), "overlap");
                 delete overlap;
@@ -3219,7 +3250,23 @@ void cMarkAdStandalone::ProcessOverlap() {
             }
         }
     }
-    framecnt2 = ptr_cDecoder->GetFrameNumber();
+
+    // check last logo stop mark if closing credits follows
+    LogSeparator(false);
+    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): check last logo stop mark if closing credits follows");
+    if (ptr_cDecoder) {  // we use file position
+        cMark *lastStop = marks.GetLast();
+        if (lastStop && ((lastStop->type == MT_LOGOSTOP) || (lastStop->type == MT_HBORDERSTOP) || (lastStop->type == MT_MOVEDSTOP))) {
+            dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search for closing credits");
+            if (MoveLastStopAfterClosingCredits(lastStop)) {
+                save = true;
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): moved last logo stop mark after closing credit");
+            }
+        }
+    }
+
+    framecntOverlap = ptr_cDecoder->GetFrameNumber();
+    if (save) marks.Save(directory, &macontext, false);
     dsyslog("end Overlap");
     return;
 }
@@ -4288,10 +4335,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
             macontext.Video.Options.ignoreAspectRatio = true;
     }
 
-    framecnt1 = 0;
-    framecnt2 = 0;
-    framecnt3 = 0;
-    framecnt4 = 0;
+    framecnt1       = 0;
+    framecntOverlap = 0;
+    framecnt3       = 0;
+    framecnt4       = 0;
     chkSTART = chkSTOP = INT_MAX;
 }
 
@@ -4319,7 +4366,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
             usec += 1000000;
             sec--;
         }
-        if ((sec + usec / 1000000) > 0) dsyslog("overlap:                time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt2, framecnt2 / (sec + usec / 1000000));
+        if ((sec + usec / 1000000) > 0) dsyslog("overlap:                time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecntOverlap, framecntOverlap / (sec + usec / 1000000));
 
         sec = endLogoMarkOptimization.tv_sec - startLogoMarkOptimization.tv_sec;
         usec = endLogoMarkOptimization.tv_usec - startLogoMarkOptimization.tv_usec;
@@ -4347,7 +4394,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         double etime = 0;
         double ftime = 0;
         etime = sec + ((double) usec / 1000000) - waittime;
-        if (etime > 0) ftime = (framecnt1 + framecnt2 + framecnt3) / etime;
+        if (etime > 0) ftime = (framecnt1 + framecntOverlap + framecnt3) / etime;
         isyslog("processed time %d:%02d min with %d fps", static_cast<int> (etime / 60), static_cast<int> (etime - (static_cast<int> (etime / 60) * 60)), static_cast<int>(round(ftime)));
     }
 
@@ -5103,13 +5150,13 @@ int main(int argc, char *argv[]) {
             gettimeofday(&endPass1, NULL);
         }
         if (!bPass1Only) {
+            gettimeofday(&startLogoMarkOptimization, NULL);
+            cmasta->LogoMarkOptimization();  // logo mark optimization
+            gettimeofday(&endLogoMarkOptimization, NULL);
+
             gettimeofday(&startOverlap, NULL);
             cmasta->ProcessOverlap();  // overlap detection
             gettimeofday(&endOverlap, NULL);
-
-            gettimeofday(&startLogoMarkOptimization, NULL);
-            cmasta->LogoMarkOptimization();  // Audio silence detection
-            gettimeofday(&endLogoMarkOptimization, NULL);
         }
         if (config.MarkadCut) {
             gettimeofday(&startPass4, NULL);
