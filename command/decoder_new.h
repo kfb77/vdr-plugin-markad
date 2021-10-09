@@ -41,7 +41,7 @@ extern "C"{
 //
 // valid versions
 // #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(  1<<8)+100)   ffmpeg 4.5
-// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4.6  (Ubuntu 21.10) (Debian 12 Bookworm)
+// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4.6  (Ubuntu 21.10) (Debian 12 Bookworm) (Fedora 34) (Fedora 35)
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 91<<8)+100)   ffmpeg 4.3.2  (Debian 11 Bullseye)
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 54<<8)+100)   ffmpeg 4.2.4  (Ubuntu 20.04)
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 35<<8)+100)   ffmpeg 4.1.6  (Debian 10 Buster)
