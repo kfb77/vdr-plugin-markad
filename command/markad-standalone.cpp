@@ -1174,14 +1174,18 @@ void cMarkAdStandalone::CheckStart() {
             // check if logo start mark is too early
             if (lStart->position  < (iStart / 8)) {  // start mark is too early, try to find a later mark
                 cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
-                if (lNextStart && (lNextStart->position  > (iStart / 8)) && ((lNextStart->position - lStart->position) < (iStartA + (3 * delta)))) {  // found later logo start mark
+                if (lNextStart && (lNextStart->position  > (iStart / 8))) {  // found later logo start mark
+                    int diffAssumed = (lNextStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
                     char *indexToHMSFStart = marks.IndexToHMSF(lNextStart->position, &macontext);
                     if (indexToHMSFStart) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lNextStart->position, indexToHMSFStart);
+                        dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s, %ds after assumed start", lNextStart->position, indexToHMSFStart, diffAssumed);
                         FREE(strlen(indexToHMSFStart)+1, "indexToHMSF");
                         free(indexToHMSFStart);
                     }
-                    lStart = lNextStart;   // found better logo start mark
+#define MAX_LOGO_AFTER_ASSUMED 398  // changed from 518 to 398
+                                    // do not increase, sometimes there is a early first advertising
+                    if (diffAssumed < MAX_LOGO_AFTER_ASSUMED) lStart = lNextStart;   // found better logo start mark
+                    else dsyslog("cMarkAdStandalone::CheckStart(): next logo start mark too far after assumed start");
                 }
             }
 
@@ -1190,13 +1194,15 @@ void cMarkAdStandalone::CheckStart() {
                 dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) is before hborder stop mark (%d) from previous recording", lStart->position, hBorderStopPosition);
                 cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
                 if (lNextStart && (lNextStart->position  > hBorderStopPosition)) {  // found later logo start mark
+                    int diffAssumed = (lNextStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
                     char *indexToHMSFStart = marks.IndexToHMSF(lNextStart->position, &macontext);
                     if (indexToHMSFStart) {
                         dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lNextStart->position, indexToHMSFStart);
                         FREE(strlen(indexToHMSFStart)+1, "indexToHMSF");
                         free(indexToHMSFStart);
                     }
-                    lStart = lNextStart;   // found better logo start mark
+                    if (diffAssumed < MAX_LOGO_AFTER_ASSUMED) lStart = lNextStart;   // found better logo start mark
+                    else dsyslog("cMarkAdStandalone::CheckStart(): next logo start mark too far after assumed start");
                 }
             }
 
