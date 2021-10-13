@@ -301,6 +301,9 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "kabel_eins") == 0) {       // kabel_eins              16:9  720W  576H:->   86W  72H TOP_RIGHT
         logo.widthMax  =  86;
     }
+    if (strcmp(maContext->Info.ChannelName, "MDR_Sachsen") == 0) {      // MDR_Sachsen             16:9  720W  576H:->   92W  56H TOP_LEFT
+        logo.heightMin =  56;
+    }
     if (strcmp(maContext->Info.ChannelName, "kabel_eins_Doku") == 0) {  // kabel_eins_Doku         16:9  720W  576H:->  130W  64H TOP_RIGHT
                                                                         // kabel_eins_Doku         16:9  720W  576H:->  132W  64H TOP_RIGHT
         logo.widthMax  = 132;
@@ -348,14 +351,15 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMin  = 168;
         logo.widthMax  = 168;
     }
-    if (strcmp(maContext->Info.ChannelName, "SIXX") == 0) {             // SIXX                    16:9  720W  576H:->   98W  54H TOP_RIGHT (new logo)
+    if ((strcmp(maContext->Info.ChannelName, "SIXX") == 0) ||           // SIXX                    16:9  720W  576H:->   98W  54H TOP_RIGHT (new logo)
                                                                         // SIXX                    16:9  720W  576H:->  108W  56H TOP_RIGHT (old logo)
                                                                         // SIXX                    16:9  720W  576H:->  124W  70H TOP_RIGHT (2013 incomplete)
                                                                         // SIXX                    16:9  720W  576H:->  136W  70H TOP_RIGHT (2013 complete)
                                                                         // SIXX                     4:3  720W  576H:->  162W  70H TOP_RIGHT (old logo)
+        (strcmp(maContext->Info.ChannelName, "sixx_AUSTRIA") == 0)) {   // sixx_AUSTRIA            16:9  720W  576H:->  104W  54H TOP_RIGHT
         logo.widthMin  =  98;
-	if ((logoAspectRatio.num == 4) && (logoAspectRatio.den == 3)) logo.widthMax  = 162;
-	else                                                          logo.widthMax  = 136;
+        if ((logoAspectRatio.num == 4) && (logoAspectRatio.den == 3)) logo.widthMax  = 162;
+        else                                                          logo.widthMax  = 136;
         logo.heightMin =  54;
     }
     if (strcmp(maContext->Info.ChannelName, "SUPER_RTL") == 0) {        // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT
@@ -437,9 +441,9 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
 // set default values
     switch (maContext->Video.Info.width) {
         case 544:
-            if (logo.widthMin  == 0) logo.widthMin  =  95; // DMAX_Austria            16:9  544W  576H:->   98W  90H TOP_LEFT
+            if (logo.widthMin  == 0) logo.widthMin  =  72; // TLC_Austria             16:9  544W  576H:->   72W  60H TOP_LEFT
             if (logo.widthMax  == 0) logo.widthMax  =  98; // DMAX_Austria            16:9  544W  576H:->   98W  90H TOP_LEFT
-            if (logo.heightMin == 0) logo.heightMin =  89; // DMAX_Austria            16:9  544W  576H:->   98W  90H TOP_LEFT
+            if (logo.heightMin == 0) logo.heightMin =  60; // TLC_Austria             16:9  544W  576H:->   72W  60H TOP_LEFT
             if (logo.heightMax == 0) logo.heightMax =  91; // DMAX_Austria            16:9  544W  576H:->   98W  90H TOP_LEFT
             break;
         case 720:
