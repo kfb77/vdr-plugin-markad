@@ -1351,7 +1351,7 @@ void cMarkAdBlackBordersHoriz::Clear() {
 int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
 #define CHECKHEIGHT 5  // changed from 20 to 16 to 8 to 5
 #define BRIGHTNESS_H_SURE  22  // changed from 20 to 22
-#define BRIGHTNESS_H_MAYBE 47  // some channel have logo in border, so we will get a higher value, changed from 27 to 38 to 39 to 47
+#define BRIGHTNESS_H_MAYBE 71  // some channel have logo in border, so we will get a higher value, changed from 39 to 47 to 71
 #define VOFFSET 5
     if (!maContext) return HBORDER_ERROR;
     if (!maContext->Video.Data.valid) return HBORDER_ERROR;
