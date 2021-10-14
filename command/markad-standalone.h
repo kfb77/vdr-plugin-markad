@@ -115,12 +115,12 @@ class cMarkAdStandalone : public cEvaluateChannel {
 /**
  * process second pass, detect overlaps
  */
-        void Process2ndPass();
+        void ProcessOverlap();
 
 /**
  * process 3nd pass, optimze logo marks
  */
-        void Process3ndPass();
+        void LogoMarkOptimization();
 
 /**
  * cut recording based on detected marks
@@ -271,7 +271,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
  * @param[in, out] mark2   start mark after advertising, set to end position of detected overlap
  * @return true if overlap was detected, false otherwise
  */
-        bool ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark1, cMark **mark2);
+        bool ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark1, cMark **mark2);
 
 /**
  * process next frame

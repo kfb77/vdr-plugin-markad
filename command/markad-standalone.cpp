@@ -41,7 +41,7 @@ bool restartLogoDetectionDone = false;
 int SysLogLevel = 2;
 bool abortNow = false;
 struct timeval startAll, endAll = {};
-struct timeval startPass1, startPass2, startPass3, startPass4, endPass1, endPass2, endPass3, endPass4 = {};
+struct timeval startPass1, startOverlap, startLogoMarkOptimization, startPass4, endPass1, endOverlap, endLogoMarkOptimization, endPass4 = {};
 int logoSearchTime_ms = 0;
 int logoChangeTime_ms = 0;
 int decodeTime_us = 0;
@@ -2449,7 +2449,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
 }
 
 
-bool cMarkAdStandalone::ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark1, cMark **mark2) {
+bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark1, cMark **mark2) {
     if (!ptr_cDecoder) return false;
     if (!mark1) return false;
     if (!*mark1) return false;
@@ -2466,7 +2466,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark
     if (fRangeBegin < 0) fRangeBegin = 0;                    // not before beginning of broadcast
     fRangeBegin = recordingIndexMark->GetIFrameBefore(fRangeBegin);
     if (fRangeBegin < 0) {
-        dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetIFrameBefore failed for frame (%d)", fRangeBegin);
+        dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): GetIFrameBefore failed for frame (%d)", fRangeBegin);
         return false;
     }
 #define OVERLAP_CHECK_AFTER 300  // start 5 min after start mark
@@ -2475,7 +2475,7 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark
     cMark *prevStart = marks.GetPrev((*mark1)->position, MT_START, 0x0F);
     if (prevStart) {
         if (fRangeBegin <= (prevStart->position + ((OVERLAP_CHECK_AFTER + 1) * macontext.Video.Info.framesPerSecond))) { // previous start mark less than OVERLAP_CHECK_AFTER away, prevent overlapping check
-            dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): previous stop mark at (%d) very near, unable to check overlap", prevStart->position);
+            dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): previous stop mark at (%d) very near, unable to check overlap", prevStart->position);
             return false;
         }
     }
@@ -2486,22 +2486,22 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark
             if (fRangeEnd >= (nextStop->position - ((OVERLAP_CHECK_BEFORE + OVERLAP_CHECK_AFTER + 1) * macontext.Video.Info.framesPerSecond))) { // next start mark less than OVERLAP_CHECK_AFTER + OVERLAP_CHECK_BEFORE away, prevent overlapping check
                 fRangeEnd = nextStop->position - ((OVERLAP_CHECK_BEFORE + 1) * macontext.Video.Info.framesPerSecond);
                 if (fRangeEnd <= (*mark2)->position) {
-                    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): next stop mark at (%d) very near, unable to check overlap", nextStop->position);
+                    dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): next stop mark at (%d) very near, unable to check overlap", nextStop->position);
                     return false;
                 }
-                dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): next stop mark at (%d) to near, reduce check end position", nextStop->position);
+                dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): next stop mark at (%d) to near, reduce check end position", nextStop->position);
             }
         }
         else if (fRangeEnd >= nextStop->position) fRangeEnd = nextStop->position - 2; // do read after last stop mark position because we want to start one frame before end mark with closing credits check
     }
 
-    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): preload from frame       (%5d) to (%5d)", fRangeBegin, (*mark1)->position);
-    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): compare with frames from (%5d) to (%5d)", (*mark2)->position, fRangeEnd);
+    dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): preload from frame       (%5d) to (%5d)", fRangeBegin, (*mark1)->position);
+    dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): compare with frames from (%5d) to (%5d)", (*mark2)->position, fRangeEnd);
 
 // seek to start frame of overlap check
     char *indexToHMSF = marks.IndexToHMSF(fRangeBegin, &macontext);
     if (indexToHMSF) {
-        dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): start check %ds before at frame (%d) and start overlap check at %s", OVERLAP_CHECK_BEFORE, fRangeBegin, indexToHMSF);
+        dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): start check %ds before at frame (%d) and start overlap check at %s", OVERLAP_CHECK_BEFORE, fRangeBegin, indexToHMSF);
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
@@ -2513,22 +2513,22 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark
 // get iFrame count of range to check for overlap
     int iFrameCount = recordingIndexMark->GetIFrameRangeCount(fRangeBegin, (*mark1)->position);
     if (iFrameCount < 0) {
-        dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetIFrameRangeCount failed at range (%d,%d))", fRangeBegin, (*mark1)->position);
+        dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): GetIFrameRangeCount failed at range (%d,%d))", fRangeBegin, (*mark1)->position);
         return false;
     }
-    dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): %d i-frames to preload between start of check (%d) and stop mark (%d)", iFrameCount, fRangeBegin, (*mark1)->position);
+    dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): %d i-frames to preload between start of check (%d) and stop mark (%d)", iFrameCount, fRangeBegin, (*mark1)->position);
 
 // preload frames before stop mark
     while (ptr_cDecoder->GetFrameNumber() <= (*mark1)->position ) {
         if (abortNow) return false;
         if (!ptr_cDecoder->GetNextPacket()) {
-            dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetNextPacket failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
+            dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): GetNextPacket failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             return false;
         }
         if (!ptr_cDecoder->IsVideoPacket()) continue;
         if (!ptr_cDecoder->GetFrameInfo(&macontext, false)) {
             if (ptr_cDecoder->IsVideoIFrame())  // if we have interlaced video this is expected, we have to read the next half picture
-                tsyslog("cMarkAdStandalone::ProcessMark2ndPass() before mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
+                tsyslog("cMarkAdStandalone::ProcessMarkOverlap() before mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             continue;
         }
         if (ptr_cDecoder->IsVideoIFrame()) {
@@ -2539,13 +2539,13 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark
 // seek to iFrame before start mark
     fRangeBegin = recordingIndexMark->GetIFrameBefore((*mark2)->position);
     if (fRangeBegin <= 0) {
-        dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetIFrameBefore failed for frame (%d)", fRangeBegin);
+        dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): GetIFrameBefore failed for frame (%d)", fRangeBegin);
         return false;
     }
     if (fRangeBegin <  ptr_cDecoder->GetFrameNumber()) fRangeBegin = ptr_cDecoder->GetFrameNumber(); // on very short stop/start pairs we have no room to go before start mark
     indexToHMSF = marks.IndexToHMSF(fRangeBegin, &macontext);
     if (indexToHMSF) {
-        dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): seek forward to iFrame (%d) at %s before start mark (%d) and start overlap check", fRangeBegin, indexToHMSF, (*mark2)->position);
+        dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): seek forward to iFrame (%d) at %s before start mark (%d) and start overlap check", fRangeBegin, indexToHMSF, (*mark2)->position);
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
@@ -2556,13 +2556,13 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark
 
     iFrameCount = recordingIndexMark->GetIFrameRangeCount(fRangeBegin, fRangeEnd) - 2;
     if (iFrameCount < 0) {
-            dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetIFrameRangeCount failed at range (%d,%d))", fRangeBegin, (*mark1)->position);
+            dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): GetIFrameRangeCount failed at range (%d,%d))", fRangeBegin, (*mark1)->position);
             return false;
     }
     char *indexToHMSFbegin = marks.IndexToHMSF(fRangeBegin, &macontext);
     char *indexToHMSFend = marks.IndexToHMSF(fRangeEnd, &macontext);
     if (indexToHMSFbegin && indexToHMSFend) {
-        dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): process overlap detection between frame (%d) at %s and frame (%d) at %s", fRangeBegin, indexToHMSFbegin, fRangeEnd, indexToHMSFend);
+        dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): process overlap detection between frame (%d) at %s and frame (%d) at %s", fRangeBegin, indexToHMSFbegin, fRangeEnd, indexToHMSFend);
     }
     if (indexToHMSFbegin) {
         FREE(strlen(indexToHMSFbegin)+1, "indexToHMSF");
@@ -2577,13 +2577,13 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark
     while (ptr_cDecoder->GetFrameNumber() <= fRangeEnd ) {
         if (abortNow) return false;
         if (!ptr_cDecoder->GetNextPacket()) {
-            dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): GetNextPacket failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
+            dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): GetNextPacket failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             return false;
         }
         if (!ptr_cDecoder->IsVideoPacket()) continue;
         if (!ptr_cDecoder->GetFrameInfo(&macontext, false)) {
             if (ptr_cDecoder->IsVideoIFrame())
-                tsyslog("cMarkAdStandalone::ProcessMark2ndPass() after mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
+                tsyslog("cMarkAdStandalone::ProcessMarkOverlap() after mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             continue;
         }
         if (ptr_cDecoder->IsVideoIFrame()) {
@@ -2596,9 +2596,9 @@ bool cMarkAdStandalone::ProcessMark2ndPass(cMarkAdOverlap *overlap, cMark **mark
             char *indexToHMSFmark2 = marks.IndexToHMSF((*mark2)->position, &macontext);
             char *indexToHMSFafter = marks.IndexToHMSF(ptr_OverlapPos->frameNumberAfter, &macontext);
             if (indexToHMSFbefore && indexToHMSFmark1 && indexToHMSFmark2 && indexToHMSFafter) {
-                dsyslog("cMarkAdStandalone::ProcessMark2ndPass(): found overlap from (%6d) at %s to (%6d) at %s are identical with",
+                dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): found overlap from (%6d) at %s to (%6d) at %s are identical with",
                             ptr_OverlapPos->frameNumberBefore, indexToHMSFbefore, (*mark1)->position, indexToHMSFmark1);
-                dsyslog("cMarkAdStandalone::ProcessMark2ndPass():                    (%6d) at %s to (%6d) at %s",
+                dsyslog("cMarkAdStandalone::ProcessMarkOverlap():                    (%6d) at %s to (%6d) at %s",
                             (*mark2)->position, indexToHMSFmark2, ptr_OverlapPos->frameNumberAfter, indexToHMSFafter);
             }
             if (indexToHMSFbefore) {
@@ -2823,28 +2823,28 @@ void cMarkAdStandalone::MarkadCut() {
 }
 
 
-// 3nd pass
+// logo mark optimization
 // move logo marks:
 //     - if closing credits are detected after last logo stop mark
 //     - if silence was detected before start mark or after/before end mark
 //     - if black screen marks are direct before stop mark or direct after start mark
 //
-void cMarkAdStandalone::Process3ndPass() {
+void cMarkAdStandalone::LogoMarkOptimization() {
     if (!ptr_cDecoder) return;
 
     LogSeparator(true);
-    dsyslog("Process3ndPass(): start 3nd pass (optimze logo marks)");
+    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): start logo mark optimization");
     LogSeparator(false);
-    dsyslog("cMarkAdStandalone::Process3ndPass(): check last logo stop mark if closing credits follows");
+    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): check last logo stop mark if closing credits follows");
 
     bool save = false;
 // check last logo stop mark if closing credits follows
-    if (ptr_cDecoder) {  // we use file position from 2ndPass call
+    if (ptr_cDecoder) {  // we use file position from logo mark optimation call
         cMark *lastStop = marks.GetLast();
         if (lastStop && ((lastStop->type == MT_LOGOSTOP) ||  (lastStop->type == MT_HBORDERSTOP))) {
-            dsyslog("cMarkAdStandalone::Process3ndPass(): search for closing credits");
+            dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search for closing credits");
             if (MoveLastStopAfterClosingCredits(lastStop)) {
-                dsyslog("cMarkAdStandalone::Process3ndPass(): moved last logo stop mark after closing credit");
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): moved last logo stop mark after closing credit");
             }
             save = true;
             framecnt3 = ptr_cDecoder->GetFrameNumber() - framecnt2;
@@ -2853,7 +2853,7 @@ void cMarkAdStandalone::Process3ndPass() {
 
 // check for advertising in frame with logo after logo start mark and before logo stop mark and check for introduction logo
     LogSeparator(true);
-    dsyslog("cMarkAdStandalone::Process3ndPass(): check for advertising in frame with logo after logo start and before logo stop mark and check for introduction logo");
+    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): check for advertising in frame with logo after logo start and before logo stop mark and check for introduction logo");
 
     ptr_cDecoder->Reset();
     ptr_cDecoder->DecodeDir(directory);
@@ -2871,7 +2871,7 @@ void cMarkAdStandalone::Process3ndPass() {
             int searchStartPosition = markLogo->position - (30 * macontext.Video.Info.framesPerSecond); // introduction logos are usually 10s, somettimes longer, changed from 12 to 30
             if (searchStartPosition < 0) searchStartPosition = 0;
             char *indexToHMSFSearchStart = marks.IndexToHMSF(searchStartPosition, &macontext);
-            if (indexToHMSFStartMark && indexToHMSFSearchStart) dsyslog("cMarkAdStandalone::Process3ndPass(): search introduction logo from position (%d) at %s to logo start mark (%d) at %s", searchStartPosition, indexToHMSFSearchStart, markLogo->position, indexToHMSFStartMark);
+            if (indexToHMSFStartMark && indexToHMSFSearchStart) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search introduction logo from position (%d) at %s to logo start mark (%d) at %s", searchStartPosition, indexToHMSFSearchStart, markLogo->position, indexToHMSFStartMark);
             if (indexToHMSFSearchStart) {
                 FREE(strlen(indexToHMSFSearchStart)+1, "indexToHMSF");
                 free(indexToHMSFSearchStart);
@@ -2887,7 +2887,7 @@ void cMarkAdStandalone::Process3ndPass() {
                 LogSeparator(false);
                 int searchEndPosition = markLogo->position + (35 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
                 char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition, &macontext);
-                if (indexToHMSFStartMark && indexToHMSFSearchEnd) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo after logo start mark (%d) at %s to position (%d) at %s", markLogo->position, indexToHMSFStartMark, searchEndPosition, indexToHMSFSearchEnd);
+                if (indexToHMSFStartMark && indexToHMSFSearchEnd) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search advertising in frame with logo after logo start mark (%d) at %s to position (%d) at %s", markLogo->position, indexToHMSFStartMark, searchEndPosition, indexToHMSFSearchEnd);
                 if (indexToHMSFSearchEnd) {
                     FREE(strlen(indexToHMSFSearchEnd)+1, "indexToHMSF");
                     free(indexToHMSFSearchEnd);
@@ -2896,9 +2896,9 @@ void cMarkAdStandalone::Process3ndPass() {
                     adInFrameEndPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(true);
                 }
                 if (adInFrameEndPosition >= 0) {
-                    dsyslog("cMarkAdStandalone::Process3ndPass(): ad in frame between (%d) and (%d) found", markLogo->position, adInFrameEndPosition);
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", markLogo->position, adInFrameEndPosition);
                     if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->IncludesInfoLogo(markLogo->position, adInFrameEndPosition))) {
-                        dsyslog("cMarkAdStandalone::Process3ndPass(): deleted info logo part in this range, this could not be a advertising in frame");
+                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): deleted info logo part in this range, this could not be a advertising in frame");
                         adInFrameEndPosition = -1;
                     }
                 }
@@ -2916,7 +2916,7 @@ void cMarkAdStandalone::Process3ndPass() {
                     cMark *blackMarkStop = blackMarks.GetNext(introductionStartPosition, MT_NOBLACKSTOP);
                     if (blackMarkStart && blackMarkStop && (blackMarkStart->position <= markLogo->position) && (blackMarkStop->position <= markLogo->position)) {
                         int innerLength = 1000 * (blackMarkStart->position - blackMarkStop->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::Process3ndPass(): found black screen start (%d) and stop (%d) between introduction logo (%d) and start mark (%d), length %dms", blackMarkStop->position, blackMarkStart->position, introductionStartPosition, markLogo->position, innerLength);
+                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found black screen start (%d) and stop (%d) between introduction logo (%d) and start mark (%d), length %dms", blackMarkStop->position, blackMarkStart->position, introductionStartPosition, markLogo->position, innerLength);
                         if (innerLength > 1000) move = false;  // only move if we found no long blackscreen between introduction logo and logo start
                     }
                     if (move) {
@@ -2926,9 +2926,9 @@ void cMarkAdStandalone::Process3ndPass() {
                         if (blackMarkStart && blackMarkStop) {
                             int beforeLength = 1000 * (blackMarkStart->position - blackMarkStop->position)  / macontext.Video.Info.framesPerSecond;
                             int diff = 1000 * (introductionStartPosition - blackMarkStart->position) / macontext.Video.Info.framesPerSecond;
-                            dsyslog("cMarkAdStandalone::Process3ndPass(): found black screen start (%d) and stop (%d) before introduction logo (%d), distance %dms, length %dms", blackMarkStop->position, blackMarkStart->position, introductionStartPosition, diff, beforeLength);
+                            dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found black screen start (%d) and stop (%d) before introduction logo (%d), distance %dms, length %dms", blackMarkStop->position, blackMarkStart->position, introductionStartPosition, diff, beforeLength);
                             if (diff <= 3520) { // blackscreen beforeshould be near
-                                dsyslog("cMarkAdStandalone::Process3ndPass(): found valid black screen at (%d), %dms before introduction logo", blackMarkStart->position, diff);
+                                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found valid black screen at (%d), %dms before introduction logo", blackMarkStart->position, diff);
                                 markLogo = marks.Move(&macontext, markLogo, blackMarkStart->position, "black screen before introduction logo");
                                 move = false;  // move is done based on blackscreen position
                             }
@@ -2950,7 +2950,7 @@ void cMarkAdStandalone::Process3ndPass() {
                                                                                                         // somtimes there is a closing credit in frame with logo before
             char *indexToHMSFStopMark = marks.IndexToHMSF(markLogo->position, &macontext);
             char *indexToHMSFSearchPosition = marks.IndexToHMSF(searchStartPosition, &macontext);
-            if (indexToHMSFStopMark && indexToHMSFSearchPosition) dsyslog("cMarkAdStandalone::Process3ndPass(): search advertising in frame with logo from frame (%d) at %s to logo stop mark (%d) at %s", searchStartPosition, indexToHMSFSearchPosition, markLogo->position, indexToHMSFStopMark);
+            if (indexToHMSFStopMark && indexToHMSFSearchPosition) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search advertising in frame with logo from frame (%d) at %s to logo stop mark (%d) at %s", searchStartPosition, indexToHMSFSearchPosition, markLogo->position, indexToHMSFStopMark);
             if (indexToHMSFStopMark) {
                 FREE(strlen(indexToHMSFStopMark)+1, "indexToHMSF");
                 free(indexToHMSFStopMark);
@@ -2961,7 +2961,7 @@ void cMarkAdStandalone::Process3ndPass() {
             }
             // short start/stop pair can result in overlapping checks
             if (ptr_cDecoder->GetFrameNumber() > searchStartPosition) {
-                dsyslog("cMarkAdStandalone::Process3ndPass(): current framenumber (%d) greater than framenumber to seek (%d), restart decoder", ptr_cDecoder->GetFrameNumber(), searchStartPosition);
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): current framenumber (%d) greater than framenumber to seek (%d), restart decoder", ptr_cDecoder->GetFrameNumber(), searchStartPosition);
                 ptr_cDecoder->Reset();
                 ptr_cDecoder->DecodeDir(directory);
             }
@@ -2984,7 +2984,7 @@ void cMarkAdStandalone::Process3ndPass() {
 
 // search for audio silence near logo marks
     LogSeparator(false);
-    dsyslog("cMarkAdStandalone::Process3ndPass(): search for audio silence around logo marks");
+    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search for audio silence around logo marks");
     int silenceRange = 3500;  // in ms, do not increase, otherwise we got stop marks behind separation images, changed from 5000 to 3500
     if (macontext.Info.ChannelName) {  // macontext.Info.ChannelName == NULL can happen if the VDR info file is missing
         if (strcmp(macontext.Info.ChannelName, "DMAX")   == 0) silenceRange = 12000; // logo color change at the begin
@@ -3006,7 +3006,7 @@ void cMarkAdStandalone::Process3ndPass() {
         indexToHMSF = marks.IndexToHMSF(mark->position, &macontext);
 
         if (mark->type == MT_LOGOSTART) {
-            if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): detect audio silence before logo mark at frame (%6i) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
+            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence before logo mark at frame (%6i) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
             int seekPos =  mark->position - (silenceRange * macontext.Video.Info.framesPerSecond / 1000);
             if (seekPos < 0) seekPos = 0;
             if (!ptr_cDecoder->SeekToFrame(&macontext, seekPos)) {
@@ -3016,7 +3016,7 @@ void cMarkAdStandalone::Process3ndPass() {
             framecnt3 += silenceRange * macontext.Video.Info.framesPerSecond / 1000;
             int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, mark->position, true, true);
             if ((beforeSilence >= 0) && (beforeSilence != mark->position)) {
-                dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo start at frame (%i)", beforeSilence);
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence before logo start at frame (%i)", beforeSilence);
                 // search for blackscreen near silence to optimize mark positon
                 cMark *blackMark = blackMarks.GetAround(3 * macontext.Video.Info.framesPerSecond, beforeSilence, MT_NOBLACKSTART);  // changed from 1 to 3
                 if (blackMark) mark = marks.Move(&macontext, mark, blackMark->position, "black screen near silence");
@@ -3024,12 +3024,12 @@ void cMarkAdStandalone::Process3ndPass() {
                 save = true;
                 continue;
             }
-            if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): no audio silence before logo mark at frame (%6i) type 0x%X at %s found", mark->position, mark->type, indexToHMSF);
+            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no audio silence before logo mark at frame (%6i) type 0x%X at %s found", mark->position, mark->type, indexToHMSF);
 
         }
         if (mark->type == MT_LOGOSTOP) {
             // search before stop mark
-            if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): detect audio silence before logo stop mark at frame (%6i) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
+            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence before logo stop mark at frame (%6i) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
             int seekPos =  mark->position - (silenceRange * macontext.Video.Info.framesPerSecond / 1000);
             if (seekPos < ptr_cDecoder->GetFrameNumber()) seekPos = ptr_cDecoder->GetFrameNumber();  // will retun -1 before first frame read
             if (seekPos < 0) seekPos = 0;
@@ -3038,17 +3038,17 @@ void cMarkAdStandalone::Process3ndPass() {
                 break;
             }
             int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, mark->position, true, false);
-            if (beforeSilence >= 0) dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence before logo stop mark (%i) at frame (%i)", mark->position, beforeSilence);
+            if (beforeSilence >= 0) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence before logo stop mark (%i) at frame (%i)", mark->position, beforeSilence);
 
             // search after stop mark
-            if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): detect audio silence after logo stop mark at frame (%6i) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
+            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence after logo stop mark at frame (%6i) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
             if (!ptr_cDecoder->SeekToFrame(&macontext, mark->position)) {
                 esyslog("could not seek to frame (%i)", mark->position);
                 break;
             }
             int stopFrame =  mark->position + (silenceRange * macontext.Video.Info.framesPerSecond / 1000);
             int afterSilence = ptr_cDecoder->GetNextSilence(&macontext, stopFrame, false, false);
-            if (afterSilence >= 0) dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence after logo stop mark (%i) at iFrame (%i)", mark->position, afterSilence);
+            if (afterSilence >= 0) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence after logo stop mark (%i) at iFrame (%i)", mark->position, afterSilence);
             framecnt3 += 2 * silenceRange - 1 * macontext.Video.Info.framesPerSecond / 1000;
             bool before = false;
 
@@ -3059,8 +3059,8 @@ void cMarkAdStandalone::Process3ndPass() {
             }
 
             if ((afterSilence >= 0) && (afterSilence != mark->position)) {
-                if (indexToHMSF) dsyslog("cMarkAdStandalone::Process3ndPass(): found audio silence for mark at frame (%6i) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
-                dsyslog("cMarkAdStandalone::Process3ndPass(): use audio silence %s logo stop at iFrame (%i)", (before) ? "before" : "after", afterSilence);
+                if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence for mark at frame (%6i) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): use audio silence %s logo stop at iFrame (%i)", (before) ? "before" : "after", afterSilence);
                 // search for blackscreen near silence to optimize mark positon
                 cMark *blackMark = blackMarks.GetAround(1 * macontext.Video.Info.framesPerSecond, afterSilence, MT_NOBLACKSTART);
                 if (blackMark) mark = marks.Move(&macontext, mark, blackMark->position - 1, "black screen near silence"); // MT_NOBLACKSTART is first frame after black screen
@@ -3078,7 +3078,7 @@ void cMarkAdStandalone::Process3ndPass() {
 
 // try blacksceen mark
     LogSeparator(false);
-    dsyslog("cMarkAdStandalone::Process3ndPass(): start search for black screen near logo marks");
+    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): start search for black screen near logo marks");
     int blackscreenRange = 4270;
     // logo fade in/out
     if (macontext.Info.ChannelName) {  // macontext.Info.ChannelName == NULL can happen if the VDR info file is missing
@@ -3095,14 +3095,14 @@ void cMarkAdStandalone::Process3ndPass() {
                 int distance = mark->position - blackMark->position;
                 int distance_ms = 1000 * distance / macontext.Video.Info.framesPerSecond;
                 if (distance > 0)  { // blackscreen is before logo start mark
-                    dsyslog("cMarkAdStandalone::Process3ndPass(): black screen (%d) distance (%d frames) %dms (expect >0 and <=%dms) before logo start mark (%d), move mark", blackMark->position, distance, distance_ms, blackscreenRange, mark->position);
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): black screen (%d) distance (%d frames) %dms (expect >0 and <=%dms) before logo start mark (%d), move mark", blackMark->position, distance, distance_ms, blackscreenRange, mark->position);
                     mark = marks.Move(&macontext, mark, blackMark->position, "black screen");
                     save = true;
                     continue;
                 }
-                else dsyslog("cMarkAdStandalone::Process3ndPass(): black screen (%d) distance (%d) %ds (expect >0 and <=%ds) before (-after) logo start mark (%d), keep mark", blackMark->position, distance, distance_ms, blackscreenRange, mark->position);
+                else dsyslog("cMarkAdStandalone::LogoMarkOptimization(): black screen (%d) distance (%d) %ds (expect >0 and <=%ds) before (-after) logo start mark (%d), keep mark", blackMark->position, distance, distance_ms, blackscreenRange, mark->position);
             }
-            else dsyslog("cMarkAdStandalone::Process3ndPass(): no black screen mark found before logo start mark (%d)", mark->position);
+            else dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no black screen mark found before logo start mark (%d)", mark->position);
         }
         // logo stop mark or blackscreen start (=stop mark, this can only be a end mark, move mark to end of black screen range)
         // use black screen mark only after mark
@@ -3112,7 +3112,7 @@ void cMarkAdStandalone::Process3ndPass() {
             cMark *blackMark = blackMarks.GetNext(mark->position, MT_NOBLACKSTART);
             if (blackMark) {
                 int diff_ms = 1000 * (blackMark->position - mark->position) / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::Process3ndPass(): black screen (%d) %dms (expect <=%ds) after logo stop mark (%d) found", blackMark->position, diff_ms, blackscreenRange, mark->position);
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): black screen (%d) %dms (expect <=%ds) after logo stop mark (%d) found", blackMark->position, diff_ms, blackscreenRange, mark->position);
                 if (diff_ms <= blackscreenRange) {
                     foundAfter = true;
                     int newPos;
@@ -3130,14 +3130,14 @@ void cMarkAdStandalone::Process3ndPass() {
                     continue;
                 }
             }
-            else dsyslog("cMarkAdStandalone::Process3ndPass(): no black screen mark found after logo stop mark (%d)", mark->position);
+            else dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no black screen mark found after logo stop mark (%d)", mark->position);
 
             // try blackscreen before stop mark, only with half distance
             if (!foundAfter) {
                 cMark *blackMarkAfter = blackMarks.GetPrev(mark->position, MT_NOBLACKSTART);
                 if (blackMarkAfter) {
                     int diff_ms = 1000 * (mark->position - blackMarkAfter->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::Process3ndPass(): black screen (%d) %dms (expect <=%ds) before logo stop mark (%d) found", blackMarkAfter->position, diff_ms, blackscreenRange, mark->position);
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): black screen (%d) %dms (expect <=%ds) before logo stop mark (%d) found", blackMarkAfter->position, diff_ms, blackscreenRange, mark->position);
                     if (diff_ms <= (blackscreenRange / 2)) {
                         int newPos;
                         if (!macontext.Config->fullDecode) {
@@ -3154,7 +3154,7 @@ void cMarkAdStandalone::Process3ndPass() {
                         continue;
                     }
                 }
-                else dsyslog("cMarkAdStandalone::Process3ndPass(): no black screen mark found before logo stop mark (%d)", mark->position);
+                else dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no black screen mark found before logo stop mark (%d)", mark->position);
             }
         }
         mark = mark->Next();
@@ -3165,7 +3165,7 @@ void cMarkAdStandalone::Process3ndPass() {
 }
 
 
-void cMarkAdStandalone::Process2ndPass() {
+void cMarkAdStandalone::ProcessOverlap() {
     if (abortNow) return;
     if (duplicate) return;
     if (!ptr_cDecoder) return;
@@ -3174,7 +3174,8 @@ void cMarkAdStandalone::Process2ndPass() {
     if (time(NULL) < (startTime+(time_t) length)) return;
 
     LogSeparator(true);
-    dsyslog("Process2ndPass(): start 2nd pass (detect overlaps)");
+    dsyslog("ProcessOverlap(): start overlap detection");
+    DebugMarks();     //  only for debugging
 
     if (!macontext.Video.Info.framesPerSecond) {
         isyslog("WARNING: assuming fps of 25");
@@ -3197,13 +3198,13 @@ void cMarkAdStandalone::Process2ndPass() {
 
         while ((p1) && (p2)) {
             if (ptr_cDecoder) {
-                dsyslog("cMarkAdStandalone::Process2ndPass(): ->->->->-> check overlap before stop frame (%d) and after start frame (%d)", p1->position, p2->position);
+                dsyslog("cMarkAdStandalone::ProcessOverlap(): ->->->->-> check overlap before stop frame (%d) and after start frame (%d)", p1->position, p2->position);
                 // init overlap detection object
                 cMarkAdOverlap *overlap = new cMarkAdOverlap(&macontext);
                 ALLOC(sizeof(*overlap), "overlap");
                 // detect overlap before stop and after start
-                if (!ProcessMark2ndPass(overlap, &p1, &p2)) {
-                    dsyslog("cMarkAdStandalone::Process2ndPass(): no overlap found for marks before frames (%d) and after (%d)", p1->position, p2->position);
+                if (!ProcessMarkOverlap(overlap, &p1, &p2)) {
+                    dsyslog("cMarkAdStandalone::ProcessOverlap(): no overlap found for marks before frames (%d) and after (%d)", p1->position, p2->position);
                 }
                 // free overlap detection object
                 FREE(sizeof(*overlap), "overlap");
@@ -3219,7 +3220,7 @@ void cMarkAdStandalone::Process2ndPass() {
         }
     }
     framecnt2 = ptr_cDecoder->GetFrameNumber();
-    dsyslog("end 2ndPass");
+    dsyslog("end Overlap");
     return;
 }
 
@@ -4309,24 +4310,24 @@ cMarkAdStandalone::~cMarkAdStandalone() {
             usec += 1000000;
             sec--;
         }
-        if ((sec + usec / 1000000) > 0) dsyslog("pass 1: time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt1, framecnt1 / (sec + usec / 1000000));
+        if ((sec + usec / 1000000) > 0) dsyslog("pass 1:                 time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt1, framecnt1 / (sec + usec / 1000000));
 
 
-        sec = endPass2.tv_sec - startPass2.tv_sec;
-        usec = endPass2.tv_usec - startPass2.tv_usec;
+        sec = endOverlap.tv_sec - startOverlap.tv_sec;
+        usec = endOverlap.tv_usec - startOverlap.tv_usec;
         if (usec < 0) {
             usec += 1000000;
             sec--;
         }
-        if ((sec + usec / 1000000) > 0) dsyslog("pass 2: time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt2, framecnt2 / (sec + usec / 1000000));
+        if ((sec + usec / 1000000) > 0) dsyslog("overlap:                time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt2, framecnt2 / (sec + usec / 1000000));
 
-        sec = endPass3.tv_sec - startPass3.tv_sec;
-        usec = endPass3.tv_usec - startPass3.tv_usec;
+        sec = endLogoMarkOptimization.tv_sec - startLogoMarkOptimization.tv_sec;
+        usec = endLogoMarkOptimization.tv_usec - startLogoMarkOptimization.tv_usec;
         if (usec < 0) {
             usec += 1000000;
             sec--;
         }
-        if ((sec + usec / 1000000) > 0) dsyslog("pass 3: time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt3, framecnt3 / (sec + usec / 1000000));
+        if ((sec + usec / 1000000) > 0) dsyslog("logo mark optimization: time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt3, framecnt3 / (sec + usec / 1000000));
 
         sec = endPass4.tv_sec - startPass4.tv_sec;
         usec = endPass4.tv_usec - startPass4.tv_usec;
@@ -4334,7 +4335,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
             usec += 1000000;
             sec--;
         }
-        if ((sec + usec / 1000000) > 0) dsyslog("pass 4: time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt4, framecnt4 / (sec + usec / 1000000));
+        if ((sec + usec / 1000000) > 0) dsyslog("pass 4:                 time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt4, framecnt4 / (sec + usec / 1000000));
 
         gettimeofday(&endAll, NULL);
         sec = endAll.tv_sec - startAll.tv_sec;
@@ -5102,13 +5103,13 @@ int main(int argc, char *argv[]) {
             gettimeofday(&endPass1, NULL);
         }
         if (!bPass1Only) {
-            gettimeofday(&startPass2, NULL);
-            cmasta->Process2ndPass();  // overlap detection
-            gettimeofday(&endPass2, NULL);
+            gettimeofday(&startOverlap, NULL);
+            cmasta->ProcessOverlap();  // overlap detection
+            gettimeofday(&endOverlap, NULL);
 
-            gettimeofday(&startPass3, NULL);
-            cmasta->Process3ndPass();  // Audio silence detection
-            gettimeofday(&endPass3, NULL);
+            gettimeofday(&startLogoMarkOptimization, NULL);
+            cmasta->LogoMarkOptimization();  // Audio silence detection
+            gettimeofday(&endLogoMarkOptimization, NULL);
         }
         if (config.MarkadCut) {
             gettimeofday(&startPass4, NULL);
