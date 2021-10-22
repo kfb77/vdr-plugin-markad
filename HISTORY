@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-10-22: Version 3.0.16
+- fix border detection during info overlay
+- some minor bug fixes and optimizations, see git
+
 2021-10-08: Version 3.0.15
 - declare libavcodec 56.60.100 (ffmpeg 2.8.17) as deprecated
 - CheckStart: fix crash if fallback to hborder stop mark as start mark
