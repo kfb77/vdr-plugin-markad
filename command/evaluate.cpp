@@ -51,13 +51,14 @@ bool cEvaluateChannel::ClosingCreditsChannel(char *channelName) {
 
 bool cEvaluateChannel::AdInFrameWithLogoChannel(char *channelName) {
 // for performance reason only for known and tested channels for now
-    if ((strcmp(channelName, "SIXX")           != 0) &&
+    if ((strcmp(channelName, "kabel_eins")     != 0) &&
+        (strcmp(channelName, "SIXX")           != 0) &&
+        (strcmp(channelName, "Pro7_MAXX")      != 0) &&
         (strcmp(channelName, "RTL2")           != 0) &&
-        (strcmp(channelName, "VOX")            != 0) &&
-        (strcmp(channelName, "WELT")           != 0) &&
-        (strcmp(channelName, "SAT_1")          != 0) &&
         (strcmp(channelName, "RTL_Television") != 0) &&
-        (strcmp(channelName, "kabel_eins")     != 0)) {
+        (strcmp(channelName, "SAT_1")          != 0) &&
+        (strcmp(channelName, "VOX")            != 0) &&
+        (strcmp(channelName, "WELT")           != 0)) {
         return false;
     }
     return true;
@@ -1296,7 +1297,8 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
 
     int retFrame = -1;
 
-#define AD_IN_FRAME_STOP_OFFSET_MAX   9600  // for false positiv info logo, changed from 5280 to 9120 to 9600
+#define AD_IN_FRAME_STOP_OFFSET_MAX  15360  // for false positiv info logo, changed from 5280 to 9120 to 9600
+                                            // for preview direct after ad in frame changed from 9600 to 13440 to 15360
 #define AD_IN_FRAME_START_OFFSET_MAX  4799
     int isCornerLogo[CORNERS] = {0};
     int countFrames           = 0;
