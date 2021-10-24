@@ -55,6 +55,7 @@ bool cEvaluateChannel::AdInFrameWithLogoChannel(char *channelName) {
         (strcmp(channelName, "SIXX")           != 0) &&
         (strcmp(channelName, "Pro7_MAXX")      != 0) &&
         (strcmp(channelName, "RTL2")           != 0) &&
+        (strcmp(channelName, "RTLZWEI")        != 0) &&
         (strcmp(channelName, "RTL_Television") != 0) &&
         (strcmp(channelName, "SAT_1")          != 0) &&
         (strcmp(channelName, "VOX")            != 0) &&
