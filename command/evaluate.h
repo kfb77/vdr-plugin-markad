@@ -209,10 +209,9 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
  * compare all frames in range and calculate similar rate
  * @param startFrame start frame number
  * @param endFrame   end frame number
- * @param adInFrame true if compare for advertising in frame without logo, false otherwise
  * @return true if successful, false otherwise
  */
-        bool Detect(int startFrame, int endFrame, const bool adInFrame);
+        bool Detect(int startFrame, int endFrame);
 
 /// detect if current logo stop/start pair contains a info logo
 /**

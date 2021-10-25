@@ -631,7 +631,7 @@ cDetectLogoStopStart::~cDetectLogoStopStart() {
 }
 
 
-bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInFrame) {
+bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
     if (!maContext) return false;
     if (!ptr_cDecoder) return false;
     if (!recordingIndex) return false;
@@ -682,11 +682,8 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
     int logoHeight = 0;
     int logoWidth  = 0;
     ptr_cExtractLogo->GetLogoSize(maContext, &logoHeight, &logoWidth);  // default logo size of this resolution, not real logo size, info logos are greater than real logo
-    if (adInFrame) { // do check for frame
-        logoWidth *= 0.32;   // less width to ignore content in frame
-        dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", logoWidth, logoHeight);
-        ptr_Logo->SetLogoSize(logoWidth, logoHeight);
-    }
+    dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", logoWidth, logoHeight);
+
     if (!ptr_cDecoder->SeekToFrame(maContext, startPos - 1)) {  // one frame before startPos because we start loop with GetNextPacket
         dsyslog("cDetectLogoStopStart::Detect(): SeekToFrame (%d) failed", startPos);
         status = false;
@@ -711,7 +708,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame, const bool adInF
         for (int corner = 0; corner < CORNERS; corner++) {
             area->corner = corner;
             int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
-                                            //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
+                                        //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
 #ifdef DEBUG_COMPARE_FRAME_RANGE
             if (corner == DEBUG_COMPARE_FRAME_RANGE) iFrameNumberNext = -2;
 #endif

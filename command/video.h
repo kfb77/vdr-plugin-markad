@@ -295,13 +295,6 @@ class cMarkAdLogo : cLogoSize {
         void Clear(const bool isRestart = false, const bool inBroadCast = false);
 
 /**
- * set logo size
- * @param width  logo width in pixel
- * @param height logo height in pixel
- */
-        void SetLogoSize(const int width, const int height);
-
-/**
  * get pointer to logo area
  * @return pointer to logo area
  */

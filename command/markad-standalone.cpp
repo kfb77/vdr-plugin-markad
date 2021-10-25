@@ -574,7 +574,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
 
     int endPos = stopMark->position + (25 * macontext.Video.Info.framesPerSecond);  // try till 15s after stopMarkPosition
     int newPosition = -1;
-    if (ptr_cDetectLogoStopStart->Detect(stopMark->position, endPos, false)) {
+    if (ptr_cDetectLogoStopStart->Detect(stopMark->position, endPos)) {
         newPosition = ptr_cDetectLogoStopStart->ClosingCredit();
     }
 
@@ -647,7 +647,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
         if (indexToHMSFStop && indexToHMSFStart) {
             dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): check logo stop (%d) at %s and logo start (%d) at %s, isInfoLogo %d", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart, isInfoLogo);
         }
-        if (ptr_cDetectLogoStopStart->Detect(stopPosition, startPosition, false)) {
+        if (ptr_cDetectLogoStopStart->Detect(stopPosition, startPosition)) {
             // check for closing credits if no other checks will be done, only part of the loop elements in recording end range
             if ((isInfoLogo <= STATUS_NO) && (isLogoChange <= STATUS_NO)) ptr_cDetectLogoStopStart->ClosingCredit();
 
@@ -2877,7 +2877,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 free(indexToHMSFSearchStart);
             }
             int introductionStartPosition = -1;
-            if (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position, false)) {
+            if (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position)) {
                 introductionStartPosition = ptr_cDetectLogoStopStart->IntroductionLogo();
             }
 
@@ -2892,7 +2892,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                     FREE(strlen(indexToHMSFSearchEnd)+1, "indexToHMSF");
                     free(indexToHMSFSearchEnd);
                 }
-                if (ptr_cDetectLogoStopStart->Detect(markLogo->position, searchEndPosition, true)) {
+                if (ptr_cDetectLogoStopStart->Detect(markLogo->position, searchEndPosition)) {
                     adInFrameEndPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(true);
                 }
                 if (adInFrameEndPosition >= 0) {
@@ -2966,7 +2966,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 ptr_cDecoder->DecodeDir(directory);
             }
             // detect frames
-            if (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position, true)) {
+            if (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position)) {
                 int newStopPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(false);
                 if (newStopPosition != -1) {
                     newStopPosition = recordingIndexMark->GetIFrameBefore(newStopPosition - 1);  // we got first frame of ad, go one iFrame back for stop mark
