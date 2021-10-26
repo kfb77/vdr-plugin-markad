@@ -1302,7 +1302,8 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
                                             // for preview direct after ad in frame changed from 9600 to 13440 to 15360
 #define AD_IN_FRAME_START_OFFSET_MAX  4799
     int isCornerLogo[CORNERS] = {0};
-    int countFrames           = 0;
+    int countFrames           =  0;
+    int darkFrames            =  0;
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
@@ -1313,6 +1314,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         bool isStillImage            = true;
         int noPixelCountWoLogoCorner = 0;
         int noPixelCountAllCorner    = 0;
+        int darkCorner               = 0;
         countFrames++;
 
         for (int corner = 0; corner < CORNERS; corner++) {
@@ -1323,6 +1325,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
             else {
                 if ((*cornerResultIt).rate[corner]  > 0) isStillImage = false;
                 if ((*cornerResultIt).rate[corner] == 0) noPixelCountWoLogoCorner++;
+                if ((*cornerResultIt).rate[corner] <= 0) darkCorner++;   // if we have no match, this can be a too dark corner
             }
             // check ad in frame
             if (((*cornerResultIt).rate[corner] >= 140) || ((*cornerResultIt).rate[corner] == -1)) similarCornersLow++;
@@ -1336,6 +1339,9 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
 
             if ((*cornerResultIt).rate[corner] == 0) noPixelCountAllCorner++;
         }
+
+        // check it it is a drank frame
+        if (darkCorner == 3) darkFrames++;
 
         // check still image before ad in frame
         if (!isStartMark) {
@@ -1393,6 +1399,15 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
             }
         }
     }
+
+    // check if we have a very dark scene, in this case we can not detect ad in frame
+    int darkQuote = 100 * darkFrames / countFrames;
+    if (darkQuote >= 86) {
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): scene too dark, quote %d%%, can not detect ad in frame", darkQuote);
+        return -1;
+    }
+
+    // check ad in frame
     if ((AdInFrame.endType1 - AdInFrame.startType1) > (AdInFrame.endFinal - AdInFrame.startFinal)) {  // in case of ad in frame go to end position
         if (!isStartMark || ((1000 * (AdInFrame.startType1 - startPos) / maContext->Video.Info.framesPerSecond) < AD_IN_FRAME_START_OFFSET_MAX)) {  // ignore pair with invalid start offset
             AdInFrame.startFinal = AdInFrame.startType1;
