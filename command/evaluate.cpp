@@ -1328,8 +1328,12 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
             if (((*cornerResultIt).rate[corner] >= 140) || ((*cornerResultIt).rate[corner] == -1)) similarCornersLow++;
             if ((*cornerResultIt).rate[corner] >= 324) {  // changed from 300 to 324
                 similarCornersHigh++;
+            }
+            // check logo in corner
+            if ((*cornerResultIt).rate[corner] >= 424) {  // changed from 324 to 424
                 isCornerLogo[corner]++; // check if we have more than one logo
             }
+
             if ((*cornerResultIt).rate[corner] == 0) noPixelCountAllCorner++;
         }
 
