@@ -371,11 +371,11 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "TELE_5") == 0) {           // TELE_5                  16:9  720W  576H:->   72W  76H BOTTOM_RIGHT (new logo)
                                                                         // TELE_5                   4:3  720W  576H:->   94W  76H BOTTOM_RIGHT (new logo)
                                                                         // TELE_5                  16:9  720W  576H:->  108W  64H BOTTOM_RIGHT (old logo)
-        logo.widthMin  =  72;
+                                                                        // TELE_5                  16:9  720W  576H:->   70W  76H TOP_LEFT     (01.10.2021)
+        logo.widthMin  =  70;
         logo.widthMax  = 108;
         logo.heightMin =  64;
         logo.heightMax =  76;
-        logo.corner    = BOTTOM_RIGHT;
     }
     if (strcmp(maContext->Info.ChannelName, "TOGGO_plus") == 0) {       // TOGGO_plus              16:9  720W  576H:->  104W  56H TOP_LEFT
         logo.heightMin =  56;
@@ -422,6 +422,10 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     }
     if (strcmp(maContext->Info.ChannelName, "Deluxe_Music_HD") == 0) {  // Deluxe_Music_HD         16:9 1280W 1080H:->  334W 124H TOP_RIGHT
         logo.widthMax  = 334;
+    }
+    if ((strcmp(maContext->Info.ChannelName, "WDR_HD_Köln") == 0) ||    // WDR_HD_Köln             16:9 1280W  720H:->  224W  80H TOP_RIGHT
+        (strcmp(maContext->Info.ChannelName, "WDR_HD_Essen") == 0)) {
+        logo.heightMax =  80;
     }
 
 // 1440x1080
