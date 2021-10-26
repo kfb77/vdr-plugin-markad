@@ -4158,7 +4158,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
     // check avcodec library version
 #if LIBAVCODEC_VERSION_INT < LIBAVCODEC_VERSION_DEPRECATED
-    #error "libavcodec version not supported, please update"
+    #error "libavcodec not installed or version not supported, please install or update libavcodec"
 #endif
 #if LIBAVCODEC_VERSION_INT < LIBAVCODEC_VERSION_VALID
     #warning "libavcodec version is deprecated, please update"
