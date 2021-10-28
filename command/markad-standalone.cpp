@@ -3011,7 +3011,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
     delete ptr_cDetectLogoStopStart;
 
 // search for audio silence near logo marks
-    LogSeparator(false);
+    LogSeparator(true);
     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search for audio silence around logo marks");
     int silenceRange = 3500;  // in ms, do not increase, otherwise we got stop marks behind separation images, changed from 5000 to 3500
     if (macontext.Info.ChannelName) {  // macontext.Info.ChannelName == NULL can happen if the VDR info file is missing
@@ -3034,7 +3034,8 @@ void cMarkAdStandalone::LogoMarkOptimization() {
         indexToHMSF = marks.IndexToHMSF(mark->position, &macontext);
 
         if (mark->type == MT_LOGOSTART) {
-            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence before logo mark at frame (%6i) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
+            LogSeparator(false);
+            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence before logo start mark at frame (%6d) type 0x%X at %s range %dms", mark->position, mark->type, indexToHMSF, silenceRange);
             int seekPos =  mark->position - (silenceRange * macontext.Video.Info.framesPerSecond / 1000);
             if (seekPos < 0) seekPos = 0;
             if (!ptr_cDecoder->SeekToFrame(&macontext, seekPos)) {
@@ -3044,10 +3045,15 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             framecnt3 += silenceRange * macontext.Video.Info.framesPerSecond / 1000;
             int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, mark->position, true, true);
             if ((beforeSilence >= 0) && (beforeSilence != mark->position)) {
-                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence before logo start at frame (%i)", beforeSilence);
+                int diff = 1000 * (mark->position - beforeSilence) /  macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence at frame (%d) %dms before logo start mark (%d)", beforeSilence, diff, mark->position);
                 // search for blackscreen near silence to optimize mark positon
                 cMark *blackMark = blackMarks.GetAround(3 * macontext.Video.Info.framesPerSecond, beforeSilence, MT_NOBLACKSTART);  // changed from 1 to 3
-                if (blackMark) mark = marks.Move(&macontext, mark, blackMark->position, "black screen near silence");
+                if (blackMark) {
+                    int diffBlack = 1000 * (beforeSilence - blackMark->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found black screen (%d) %dms %s silence position (%d)", blackMark->position, abs(diffBlack), (diffBlack > 0) ? "before" : "after", beforeSilence);
+                    mark = marks.Move(&macontext, mark, blackMark->position, "black screen near silence");
+                }
                 else mark = marks.Move(&macontext, mark, beforeSilence, "silence");
                 save = true;
                 continue;
@@ -3057,7 +3063,8 @@ void cMarkAdStandalone::LogoMarkOptimization() {
         }
         if (mark->type == MT_LOGOSTOP) {
             // search before stop mark
-            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence before logo stop mark at frame (%6i) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
+            LogSeparator(false);
+            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence before logo stop mark at frame (%6d) type 0x%X at %s range %dms", mark->position, mark->type, indexToHMSF, silenceRange);
             int seekPos =  mark->position - (silenceRange * macontext.Video.Info.framesPerSecond / 1000);
             if (seekPos < ptr_cDecoder->GetFrameNumber()) seekPos = ptr_cDecoder->GetFrameNumber();  // will retun -1 before first frame read
             if (seekPos < 0) seekPos = 0;
@@ -3066,8 +3073,10 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 break;
             }
             int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, mark->position, true, false);
-            if (beforeSilence >= 0) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence before logo stop mark (%i) at frame (%i)", mark->position, beforeSilence);
-
+            if (beforeSilence >= 0) {
+                int diff = 1000 * (mark->position - beforeSilence) /  macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence at frame (%d) %dms before logo stop mark (%d)", beforeSilence, diff, mark->position);
+            }
             // search after stop mark
             if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence after logo stop mark at frame (%6i) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
             if (!ptr_cDecoder->SeekToFrame(&macontext, mark->position)) {
@@ -3076,7 +3085,10 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             }
             int stopFrame =  mark->position + (silenceRange * macontext.Video.Info.framesPerSecond / 1000);
             int afterSilence = ptr_cDecoder->GetNextSilence(&macontext, stopFrame, false, false);
-            if (afterSilence >= 0) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence after logo stop mark (%i) at iFrame (%i)", mark->position, afterSilence);
+            if (afterSilence >= 0) {
+                int diff = 1000 * (afterSilence - mark->position) /  macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence at frame (%d) %dms after logo stop mark (%d)", afterSilence, diff, mark->position);
+            }
             framecnt3 += 2 * silenceRange - 1 * macontext.Video.Info.framesPerSecond / 1000;
             bool before = false;
 
@@ -3087,11 +3099,14 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             }
 
             if ((afterSilence >= 0) && (afterSilence != mark->position)) {
-                if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence for mark at frame (%6i) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
-                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): use audio silence %s logo stop at iFrame (%i)", (before) ? "before" : "after", afterSilence);
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): use audio silence %s logo stop at frame (%d)", (before) ? "before" : "after", afterSilence);
                 // search for blackscreen near silence to optimize mark positon
                 cMark *blackMark = blackMarks.GetAround(1 * macontext.Video.Info.framesPerSecond, afterSilence, MT_NOBLACKSTART);
-                if (blackMark) mark = marks.Move(&macontext, mark, blackMark->position - 1, "black screen near silence"); // MT_NOBLACKSTART is first frame after black screen
+                if (blackMark) {
+                    int diff = 1000 * (afterSilence - blackMark->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found black screen (%d) %dms %s silence position (%d)", blackMark->position, abs(diff), (diff > 0) ? "before" : "after", afterSilence);
+                    mark = marks.Move(&macontext, mark, blackMark->position - 1, "black screen near silence"); // MT_NOBLACKSTART is first frame after black screen
+                }
                 else mark = marks.Move(&macontext, mark, afterSilence, "silence");
                 save = true;
                 continue;
