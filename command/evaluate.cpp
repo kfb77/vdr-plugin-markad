@@ -1300,7 +1300,8 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
 
 #define AD_IN_FRAME_STOP_OFFSET_MAX  15360  // for false positiv info logo, changed from 5280 to 9120 to 9600
                                             // for preview direct after ad in frame changed from 9600 to 13440 to 15360
-#define AD_IN_FRAME_START_OFFSET_MAX  4799
+#define AD_IN_FRAME_START_OFFSET_MAX  4319  // changed from 4799 to 4319
+                                            // prevent to get additional info logo as frame
     int isCornerLogo[CORNERS] = {0};
     int countFrames           =  0;
     int darkFrames            =  0;
