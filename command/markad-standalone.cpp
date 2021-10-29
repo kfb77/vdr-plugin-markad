@@ -893,8 +893,7 @@ void cMarkAdStandalone::CheckStart() {
             bool wrongAspectInfo = false;
             if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {  // vdr info file tells 16:9 video
                 if (aStart && aStopBefore && (aStopBefore->position > 0)) { // found 16:9 -> 4:3 -> 16:9, this can not be a 16:9 video
-                    dsyslog("cMarkAdStandalone::CheckStart(): found aspect ratio change 16:9 to 4:3 at (%d) to 16:9 at (%d), video info is 16:9, this must be wrong",
-                                                                                                                                             aStopBefore->position, aStart->position);
+                    dsyslog("cMarkAdStandalone::CheckStart(): found aspect ratio change 16:9 to 4:3 at (%d) to 16:9 at (%d), video info is 16:9, this must be wrong", aStopBefore->position, aStart->position);
                     wrongAspectInfo = true;
                 }
                 if (!wrongAspectInfo && (macontext.Video.Info.AspectRatio.num == 4) && (macontext.Video.Info.AspectRatio.den == 3) && inBroadCast) {
@@ -904,10 +903,10 @@ void cMarkAdStandalone::CheckStart() {
                 if (aStart && !wrongAspectInfo) {
                     cMark *logoStopBefore = marks.GetPrev(aStart->position, MT_LOGOSTOP);
                     if (logoStopBefore) {
-                        int diff = (aStart->position - logoStopBefore->position) / macontext.Video.Info.framesPerSecond;
-                        if (diff <= 4) {
-                            dsyslog("cMarkAdStandalone::CheckStart(): vdr info tells 16:9 but we found logo stop mark (%d) short before aspect ratio start mark (%d)",
-                                                                                                                                          logoStopBefore->position, aStart->position);
+                        int diff = 1000 * (aStart->position - logoStopBefore->position) / macontext.Video.Info.framesPerSecond;
+                        dsyslog("cMarkAdStandalone::CheckStart(): vdr info tells 16:9, logo stop mark (%d) %dms before aspect ratio start mark (%d)", logoStopBefore->position, diff, aStart->position);
+                        if (diff <= 4400) {  // do not reduce, need this for logo fade in/out
+                            dsyslog("cMarkAdStandalone::CheckStart(): logo stop mark short before aspect ratio start mark, aspect ratio info must be wrong");
                             if (aStopBefore && aStopBefore->position == 0) { // this is 4:3 from previous recording, no valid mark
                                 dsyslog("cMarkAdStandalone::CheckStart(): delete invalid aspect stop mark at (%d)", aStopBefore->position);
                                 marks.Del(aStopBefore->position);
