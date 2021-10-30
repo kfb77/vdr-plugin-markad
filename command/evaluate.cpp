@@ -1538,14 +1538,21 @@ int cDetectLogoStopStart::IntroductionLogo() {
         // separator frame
         int sumPixel        = 0;
         int countZero       = 0;
+        int countLow        = 0;
         int countStillImage = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
-            if ((*cornerResultIt).rate[corner] <= 0) countZero++;
-            if (((*cornerResultIt).rate[corner] <= 0) || ((*cornerResultIt).rate[corner] >= 142)) countStillImage++; // changed from 964 to 441 to 142
+            if ((*cornerResultIt).rate[corner]  <=  0) countZero++;
+            if ((*cornerResultIt).rate[corner]  <= 65) countLow++;
+            if (((*cornerResultIt).rate[corner] <=  0) || ((*cornerResultIt).rate[corner] >= 142)) countStillImage++; // changed from 964 to 441 to 142
             sumPixel += (*cornerResultIt).rate[corner];
         }
-        // 59     0     0    -1 -> separator frame
-        if ((countZero >= 3) && (sumPixel <= 58)) { // new separator image before introduction logo, restart detection, changed from 14 to 58
+        // examples of separator frames before introduction logo
+        // 59     0     0    -1 =  58
+        // 42    20    47    65 = 174
+        //  3    99    62    65 = 229
+        int diffSeparator = 1000 * (endPos - (*cornerResultIt).frameNumber1) / maContext->Video.Info.framesPerSecond;
+        if ((countLow >= 3) && (sumPixel <= 229) && (diffSeparator > 960)) { // new separator image before introduction logo, restart detection, changed from 14 to 58
+                                                                             // ignore first separator frame near endPos (logo start mark), this can not be start of introduction logo
             separatorFrameBefore = (*cornerResultIt).frameNumber1;
             introductionLogo.start = -1;
             introductionLogo.end   = -1;
@@ -1558,11 +1565,19 @@ int cDetectLogoStopStart::IntroductionLogo() {
         }
 
         // separator after introduction logo, in this case it can not be a introduction logo
-        //  0    24   102     9 -> no seperator frame
-        // 52     0   114     0 -> separator frame
+        // examples of separator frames after introduction logo
+        // no seperator frame
+        //  0    76    11     6 =  93
+        //  0    24   102     9 = 135
+        //
+        // separator frame
+        //  0     0     0     0 =   0
+        //  0     1    33     0 =  34
+        // 52     0   114     0 = 166
         if ((separatorFrameBefore >= 0) &&
-           (((countZero >= 1) && (sumPixel <= 134)) ||
-             (countZero >= 2) && (sumPixel <= 166))) {
+           (((countZero == 1) && (sumPixel <   93)) ||
+             (countZero == 2) && (sumPixel <= 166)) ||
+             (countZero >= 3)) {
             separatorFrameAfter = (*cornerResultIt).frameNumber1;
         }
 
@@ -1595,7 +1610,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
                 }
             }
         }
-   }
+    }
 
     // check separator frame before introduction logo
     if (separatorFrameBefore >= 0) {
