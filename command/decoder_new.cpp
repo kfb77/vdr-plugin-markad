@@ -908,9 +908,9 @@ int cDecoder::GetFirstMP2AudioStream() {
 
 // get next silence part
 // return:
-// if <before> we are called at range before mark and return next iFrame after last silence part frame
-// if not <before> we are called direct after mark position and return iFrame before first silence part
-// -1 if no silence part were found
+// if <before> we are called for a range before mark and return next i-frame after last silence part frame
+// if not <before> we are called direct after mark position and return i-frame before first silence part
+// -1 if no silence part were found or we got no valid video frame number to silecnce PTS
 //
 int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, const bool isBeforeMark, const bool isStartMark) {
 #define SILENCE_LEVEL 25  // changed from 10 to 27 to 25
@@ -934,8 +934,8 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
         return -1;
     }
     struct sVideoFrame {
-        int frameNumber = -1;
-        int64_t pts = -1;
+        int     frameNumber = -1;
+        int64_t pts         = -1;
     } videoFrame;
     std::vector<sVideoFrame> videoFrameVector;
     int startFrame = GetFrameNumber();
@@ -1020,8 +1020,8 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
         silence.endPTS     = silence.endTmpPTS;
     }
     videoFrame.frameNumber = -1;
-    videoFrame.pts = -1;
-    int silenceFrame = -1;
+    videoFrame.pts         = -1;
+    int silenceFrame       = -1;
 
     if (silence.count >= SILENCE_COUNT) {
         struct sAudioFrame {
@@ -1050,7 +1050,8 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
             audioFrame.frameNumber = silence.startFrame;  // for stop mark we use start of silence part
             audioFrame.pts         = silence.startPTS;
 
-            while (!videoFrameVector.empty()) {  // search video frame with pts before audio frame
+            // search video frame with pts before audio frame
+            while (!videoFrameVector.empty()) {
                 if ((videoFrameVector.back().pts < audioFrame.pts) && (videoFrameVector.back().pts > videoFrame.pts)) {
                     videoFrame.frameNumber =  videoFrameVector.back().frameNumber;
                     videoFrame.pts =  videoFrameVector.back().pts;
@@ -1059,14 +1060,15 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
                 FREE(sizeof(videoFrame), "videoFrameVector");
             }
             if (videoFrame.frameNumber == -1) {
-                dsyslog("cDecoder::GetNextSilence(): video frame with pts before not in range, set to audio frame");
-                videoFrame.frameNumber = silence.startFrame;
+                if (isBeforeMark) {
+                    dsyslog("cDecoder::GetNextSilence(): video frame with pts before not in range, set to audio frame");
+                    videoFrame.frameNumber = silence.startFrame;
+                }
+                else { // we check after a logo stop mark, do not go back before this mark
+                    dsyslog("cDecoder::GetNextSilence(): video frame with pts of silence is before stop mark during check after stop mark, use stop mark position");
+                    return startFrame;
+                }
             }
-
-
-
-
-
         }
         if (!maContext->Config->fullDecode) {
             if (isBeforeMark) silenceFrame = recordingIndexDecoder->GetIFrameBefore(videoFrame.frameNumber);
