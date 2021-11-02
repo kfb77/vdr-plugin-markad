@@ -938,6 +938,7 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
         int64_t pts = -1;
     } videoFrame;
     std::vector<sVideoFrame> videoFrameVector;
+    int startFrame = GetFrameNumber();
 
     dsyslog("cDecoder::GetNextSilence(): using stream index %i from frame (%d) to frame (%d)", streamIndex, GetFrameNumber(), stopFrame);
     while (GetFrameNumber() < stopFrame) {
