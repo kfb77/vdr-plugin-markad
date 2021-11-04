@@ -414,6 +414,13 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "hr-fernsehen_HD") == 0) {  // hr-fernsehen_HD         16:9 1280W  720H:->  198W  98H TOP_LEFT
         logo.heightMax =  98;
     }
+    if (strcmp(maContext->Info.ChannelName, "MDR_Sachsen_HD") == 0) {   // MDR_Sachsen_HD          16:9 1280W  720H:->  160W  70H TOP_LEFT
+        logo.heightMax =  70;
+    }
+    if (strcmp(maContext->Info.ChannelName, "ZDF_HD") == 0) {           // ZDF_HD                  16:9 1280W  720H:->  186W  94H TOP_LEFT
+                                                                        // ZDF_HD                  16:9 1280W  720H:->  186W  96H TOP_LEFT
+        logo.widthMax = 186;
+    }
 
 // 1280x1080
     if (strcmp(maContext->Info.ChannelName, "ANIXE+") == 0) {           // ANIXE+                  16:9 1280W 1080H:->  286W 170H TOP_LEFT
@@ -470,10 +477,10 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
             if (logo.heightMax == 0) logo.heightMax =  134; // arte_HD                 16:9 1280W  720H:->   88W 134H TOP_LEFT
             break;
         case 1440:
-            if (logo.widthMin  == 0) logo.widthMin  =  124; // BILD_HD                 16:9 1440W 1080H:->  124W 168H TOP_LEFT
+            if (logo.widthMin  == 0) logo.widthMin  =  124; // BILD_HD                 16:9 1440W 1080H:->  124W 168H TOP_LEFT (normal logo)
             if (logo.widthMax  == 0) logo.widthMax  =  250; // DMAX_HD                 16:9 1440W 1080H:->  250W 140H TOP_LEFT
             if (logo.heightMin == 0) logo.heightMin =  112; // WELT_HD                 16:9 1440W 1080H:->  396W 116H BOTTOM_LEFT
-            if (logo.heightMax == 0) logo.heightMax =  168; // BILD_HD                 16:9 1440W 1080H:->  124W 168H TOP_LEFT
+            if (logo.heightMax == 0) logo.heightMax =  204; // BILD_HD                 16:9 1440W 1080H:->  124W 204H TOP_LEFT (doku logo)
             break;
         case 1920:
             if (logo.widthMin  == 0) logo.widthMin  =  204; // SAT_1_HD                16:9 1920W 1080H:->  204W 132H TOP_RIGHT
