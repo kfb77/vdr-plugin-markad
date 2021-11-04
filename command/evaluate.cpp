@@ -1506,6 +1506,9 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     }
     else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): length not valid, this is not a advertising in frame with logo");
 
+    // write report
+    if (retFrame >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): report -> %s mark, length %dms, start offset %dms, stop offset %dms", (isStartMark) ? "after start" : "before stop", length, startOffset, stopOffset);
+
     return retFrame;
 }
 
