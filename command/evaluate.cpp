@@ -352,8 +352,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     cMark *markStop_AfterPair = marks->GetNext(logoStopStartPair->stopPosition, MT_LOGOSTOP);
     if (markStop_AfterPair) {  // we have a next logo stop
         delta_Stop_AfterPair = 1000 * (markStop_AfterPair->position - logoStopStartPair->startPosition) / framesPerSecond;
-        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: next stop mark (%d) distance %dms (expect >%dms)",
-                                        logoStopStartPair->stopPosition, logoStopStartPair->startPosition, markStop_AfterPair->position, delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MAX);
+        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: next stop mark (%d) distance %dms (expect <=%dms)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, markStop_AfterPair->position, delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MAX);
     }
 
     // maybe we have a wrong start/stop pair between, check if merge with next pair can help
@@ -368,7 +367,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
         while (tryNext) {
             if (pairNextStart && pairNextStop) {
                 dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): next pair: stop (%d) start (%d) found", pairNextStop->position, pairNextStart->position);
-                // check ditance of next logo stop mark
+                // check distance to next logo stop mark after stop/start pair
                 int deltaStopAfterPair = 1000 * (pairNextStop->position - logoStopStartPair->startPosition) / framesPerSecond;
                 if (deltaStopAfterPair < LOGO_INFO_NEXT_STOP_MIN) {
                     dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): distance of next logo stop %ds too short, (expect <=%ds >=%ds), try next", delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MIN, LOGO_INFO_NEXT_STOP_MAX);
