@@ -905,7 +905,7 @@ void cMarkAdStandalone::CheckStart() {
                     if (logoStopBefore) {
                         int diff = 1000 * (aStart->position - logoStopBefore->position) / macontext.Video.Info.framesPerSecond;
                         dsyslog("cMarkAdStandalone::CheckStart(): vdr info tells 16:9, logo stop mark (%d) %dms before aspect ratio start mark (%d)", logoStopBefore->position, diff, aStart->position);
-                        if (diff <= 4400) {  // do not reduce, need this for logo fade in/out
+                        if (diff <= 4440) {  // do not reduce, need this for logo fade in/out, changed from 4400 to 4440
                             dsyslog("cMarkAdStandalone::CheckStart(): logo stop mark short before aspect ratio start mark, aspect ratio info must be wrong");
                             if (aStopBefore && aStopBefore->position == 0) { // this is 4:3 from previous recording, no valid mark
                                 dsyslog("cMarkAdStandalone::CheckStart(): delete invalid aspect stop mark at (%d)", aStopBefore->position);
