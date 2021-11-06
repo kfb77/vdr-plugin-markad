@@ -1749,7 +1749,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                                                                                                                      // after min changed from 840 to 560 to 520 to 200
                                 ((lengthAdBefore >= 354200) && (lengthAdAfter >= 80))) {   // accept very short logo interuption after long ad
                                                                                            // this is between last preview and broadcast start
-                                if (lengthPreview <= 113) {  // changed from 110 to 111 to 113
+                                if (lengthPreview <= 120) {  // changed from 111 to 113 to 120
                                     // check if this logo stop and next logo start are closing credits, in this case stop mark is valid
                                     bool isNextClosingCredits = evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(startAfter->position) == STATUS_YES);
                                     if (!isNextClosingCredits || (stopMark->position != marks.GetLast()->position)) { // check valid only for last mark
