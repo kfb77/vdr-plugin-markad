@@ -3140,8 +3140,8 @@ void cMarkAdStandalone::LogoMarkOptimization() {
     int blackscreenRange = 4270;
     // logo fade in/out
     if (macontext.Info.ChannelName) {  // macontext.Info.ChannelName == NULL can happen if the VDR info file is missing
-        if ((strcmp(macontext.Info.ChannelName, "TELE_5")         == 0) ||
-            (strcmp(macontext.Info.ChannelName, "Disney_Channel") == 0) ||
+        if  (strcmp(macontext.Info.ChannelName, "TELE_5")         == 0)  blackscreenRange = 4600;  // do not increase, we will get ad before logo start mark, changed from 5500 to 4600
+        if ((strcmp(macontext.Info.ChannelName, "Disney_Channel") == 0) ||
             (strcmp(macontext.Info.ChannelName, "Nickelodeon")    == 0)) blackscreenRange = 5500;
     }
     mark = marks.GetFirst();
