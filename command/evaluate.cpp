@@ -284,19 +284,29 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
     }
     else dsyslog("cEvaluateLogoStopStartPair::IsLogoChange(): no valid next pair found");
 
-    // check logo start mark before if length is too short, may be a only short logo interuption during logo change
-    // we can not check this, assume it as logo change
-#define LOGO_CHANGE_PREV_START_MIN 19681  // change from 16600 to 19681
-#define LOGO_CHANGE_PREV_START_MAX 30400
-    if (deltaStopStart < LOGO_CHANGE_LENGTH_MIN) {
-        cMark *prevStart = marks->GetPrev(logoStopStartPair->stopPosition, MT_LOGOSTART);
-        if (prevStart) {
-            int deltaStartBefore = 1000 * (logoStopStartPair->stopPosition - prevStart->position) / framesPerSecond;
-            dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ????? stop (%d) start (%d) pair: previous logo start mark (%d), distance %dms (expect >=%dms <=%dms", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, prevStart->position, deltaStartBefore, LOGO_CHANGE_PREV_START_MIN, LOGO_CHANGE_PREV_START_MAX);
-            if ((deltaStartBefore >= LOGO_CHANGE_PREV_START_MIN) && (deltaStartBefore <= LOGO_CHANGE_PREV_START_MAX)) {
+
+    // check distance to logo start mark before
+    // if length of logo change is valid, check distance to logo start mark before
+    // if length of logo change is too short, may be a only short logo interuption during logo change, we can not check this, assume it as logo change
+#define LOGO_CHANGE_VALID_PREV_START_MAX  6920  // chnaged from 3000 to  6920
+#define LOGO_CHANGE_SHORT_PREV_START_MIN 19681  // change from 16600 to 19681
+#define LOGO_CHANGE_SHORT_PREV_START_MAX 30400
+    cMark *prevStart = marks->GetPrev(logoStopStartPair->stopPosition, MT_LOGOSTART);
+    if (prevStart) {
+        int deltaStartBefore = 1000 * (logoStopStartPair->stopPosition - prevStart->position) / framesPerSecond;
+        dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ????? stop (%d) start (%d) pair: previous logo start mark (%d), distance %dms", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, prevStart->position, deltaStartBefore);
+        if (deltaStopStart >= LOGO_CHANGE_LENGTH_MIN) {  // valid length for logo change
+            if (deltaStartBefore <= LOGO_CHANGE_VALID_PREV_START_MAX) {
+                dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ----- stop (%d) start (%d) pair: previous logo start mark (%d), distance %dms (expect >%dms) too short", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, prevStart->position, deltaStartBefore, LOGO_CHANGE_VALID_PREV_START_MAX);
+                logoStopStartPair->isLogoChange = STATUS_NO;
+                return;
+            }
+        }
+        else { // too short logo change
+            if ((deltaStartBefore >= LOGO_CHANGE_SHORT_PREV_START_MIN) && (deltaStartBefore <= LOGO_CHANGE_SHORT_PREV_START_MAX)) {
                 dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         +++++ stop (%d) start (%d) pair: short logo interuption at expected distance to logo start mark, this is a logo change", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
                 deltaStopStart = LOGO_CHANGE_LENGTH_MIN; // take length as valid
-           }
+            }
         }
     }
 
