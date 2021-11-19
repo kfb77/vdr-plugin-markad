@@ -2664,8 +2664,11 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
             }
 
             // check overlap gap
-            int gapStartMax = 16;                                   // changed gapStart from 22 to 21 to 18 to 16
-            if (gapStop > 0) gapStartMax = 14;                      // smaller valid diff if we do not hit stop mark, if both are not 0, this can be a invalid overlap
+            int gapStartMax = 16;                                   // changed gapStart from 21 to 18 to 16
+            if (gapStop > 0) {                                      // smaller valid diff if we do not hit stop mark, if both are not 0, this can be a invalid overlap
+                if (length <= 4920) gapStartMax = 9;                // short overlaps are weak, can be a false positive
+                else gapStartMax = 14;
+            }
             if ((*mark2)->type == MT_ASPECTSTART)  gapStartMax = 7; // for strong marks we can check with a lower value
             if ((*mark2)->type == MT_VBORDERSTART) gapStartMax = 7; // for strong marks we can check with a lower value
             dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): maximum valid gap after start mark: %ds", gapStartMax);
