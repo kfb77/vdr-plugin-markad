@@ -1558,6 +1558,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
                                                                              // ignore first separator frame near endPos (logo start mark), this can not be start of introduction logo
             separatorFrameBefore = (*cornerResultIt).frameNumber1;
             introductionLogo.start      = -1;
+            introductionLogo.end        = -1;
             introductionLogo.startFinal = -1;
             introductionLogo.endFinal   = -1;
             separatorFrameAfter         = -1;
@@ -1573,6 +1574,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
         // no seperator frame
         //  0    76    11     6 =  93
         //  0    24   102     9 = 135
+        //  0   540     0     0 = 540  dark scene with introduction logo
         //
         // separator frame
         //  0     0     0     0 =   0
@@ -1580,8 +1582,8 @@ int cDetectLogoStopStart::IntroductionLogo() {
         // 52     0   114     0 = 166
         if ((separatorFrameBefore >= 0) &&
            (((countZero == 1) && (sumPixel <   93)) ||
-             (countZero == 2) && (sumPixel <= 166)) ||
-             (countZero >= 3)) {
+            ((countZero == 2) && (sumPixel <= 166)) ||
+            ((countZero >= 3) && (sumPixel <  540)))) {
             separatorFrameAfter = (*cornerResultIt).frameNumber1;
         }
 
