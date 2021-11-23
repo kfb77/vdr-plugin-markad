@@ -1039,6 +1039,18 @@ void cMarkAdStandalone::CheckStart() {
         if (begin && (macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) marks.DelWeakFromTo(0, INT_MAX, MT_ASPECTCHANGE); // delete all weak marks
     }
 
+// check for very long dark opening credits
+    if (macontext.Video.Info.frameDarkOpeningCredits >= 0) {
+        dsyslog("cMarkAdStandalone::CheckStart(): found very long dark opening credits start at frame (%d), check which type of border mark is valid", macontext.Video.Info.frameDarkOpeningCredits);
+        cMark *hStop = marks.GetNext(iStartA, MT_HBORDERSTOP);
+        cMark *vStop = marks.GetNext(iStartA, MT_VBORDERSTOP);
+        if (hStop && !vStop) {
+            dsyslog("cMarkAdStandalone::CheckStart(): hborder stop found but no vborder stop, recording has vborder, change hborder start to vborder start at (%d), delete all hborder marks", macontext.Video.Info.frameDarkOpeningCredits);
+            marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
+            marks.Add(MT_VBORDERSTART, macontext.Video.Info.frameDarkOpeningCredits, "start of opening credits", true);
+        }
+    }
+
 // try to find a horizontal border mark (MT_HBORDERSTART)
     if (!begin) {
         cMark *hStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTART);

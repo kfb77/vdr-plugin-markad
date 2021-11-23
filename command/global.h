@@ -358,30 +358,25 @@ typedef struct sMarkAdContext {
  * video stream infos
  */
         struct sInfo {
-            int width;  //!< width of the video in pixel
-                        //!<
-
-            int height; //!< height of the video in pixel
-                        //!<
-
-            int pixFmt; //!< pixel format (see libavutil/pixfmt.h)
-                        //!<
-
-            sAspectRatio AspectRatio;  //!< current video aspect ratio, set by decoder for each frame
-                                             //!<
-
-            double framesPerSecond; //!< frames per second of the recording
-                                    //!<
-
-            bool interlaced = false;  //!< <b>true:</b> video is interlaced <br>
-                                      //!< <b>false:</b> video is progressive
-                                      //!<
-
-            bool hasBorder = false;  //!< <b>true:</b> video has horizontal or vertical borders <br>
-                                     //!< <b>false:</b> video has no horizontal or vertical borders
-                                     //!<
-
-
+            int width;                          //!< width of the video in pixel
+                                                //!<
+            int height;                         //!< height of the video in pixel
+                                                //!<
+            int pixFmt;                         //!< pixel format (see libavutil/pixfmt.h)
+                                                //!<
+            sAspectRatio AspectRatio;           //!< current video aspect ratio, set by decoder for each frame
+                                                //!<
+            double framesPerSecond;             //!< frames per second of the recording
+                                                //!<
+            bool interlaced = false;            //!< <b>true:</b>  video is interlaced <br>
+                                                //!< <b>false:</b> video is progressive
+                                                //!<
+            bool hasBorder = false;             //!< <b>true:</b>  video has horizontal or vertical borders <br>
+                                                //!< <b>false:</b> video has no horizontal or vertical borders
+                                                //!<
+            int frameDarkOpeningCredits = -1;   //!< <b>true:</b>  video has a very long dark opening credits <br>
+                                                //!< <b>false:</b> video has no very long dark opening credits <br>
+                                                //!<
         } Info; //!< video stream infos
                 //!<
 

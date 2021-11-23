@@ -1923,7 +1923,10 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
         int vborderframenumber;
         vret = vborder->Process(useFrame, &vborderframenumber);
         if ((vret == VBORDER_VISIBLE) && (vborderframenumber >= 0)) {
-            if (hret == HBORDER_VISIBLE) dsyslog("cMarkAdVideo::Process(); hborder and vborder detected, ignore this, it is a very long black screen");
+            if (hret == HBORDER_VISIBLE) {
+                maContext->Video.Info.frameDarkOpeningCredits = vborderframenumber;
+                dsyslog("cMarkAdVideo::Process(); hborder and vborder detected, ignore this, it is a very long black screen");
+            }
             else AddMark(MT_VBORDERSTART, vborderframenumber);
         }
         if ((vret == VBORDER_INVISIBLE) && (vborderframenumber >= 0)) {
