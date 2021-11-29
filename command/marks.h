@@ -138,11 +138,10 @@ class cMarks {
 /**
  * convert frame number to time string
  * @param frameNumber frame number
- * @param maContext markad context
  * @param isVDR true: calculate timestamp based on frame number, false: calculate timestamp based on PTS of frame number
  * @return time string
  */
-        char *IndexToHMSF(const int frameNumber, const sMarkAdContext *maContext, const bool isVDR = false);
+        char *IndexToHMSF(const int frameNumber, const bool isVDR = false);
 
 /**
  * delete weak marks between two positions
@@ -199,13 +198,12 @@ class cMarks {
 
 /**
  * move mark position
- * @param maContext   markad context
  * @param mark        mark to move
  * @param newPosition new position of mark
  * @param reason      reason of move, added to comment
  * @return mark with new position
  */
-        cMark *Move(sMarkAdContext *maContext, cMark *mark, const int newPosition, const char* reason);
+        cMark *Move(cMark *mark, const int newPosition, const char* reason);
 
 /**
  * get mark from position

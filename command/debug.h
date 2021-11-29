@@ -63,11 +63,14 @@
 // #define DEBUG_MARK_FRAMES <count frames before and after>
 // #define DEBUG_MARK_FRAMES 2
 
-// debug index build
-// #define DEBUG_INDEX_BUILD
+// debug framenumber pts index build
+// #define DEBUG_INDEX
+
+// debug frame PTS
+// #define DEBUG_FRAME_PTS
 
 // debug PTS ring buffer
-// #define DEBUG_PTS
+// #define DEBUG_RING_PTS
 
 // debug video cut
 // #define DEBUG_CUT <streamindex>

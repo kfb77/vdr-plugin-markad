@@ -456,12 +456,12 @@ char *cMarks::TypeToText(const int type) {
 // move mark to new posiition
 // return pointer to new mark
 //
-cMark *cMarks::Move(sMarkAdContext *maContext, cMark *mark, const int newPosition, const char* reason) {
+cMark *cMarks::Move(cMark *mark, const int newPosition, const char* reason) {
     if (!mark) return NULL;
     if (!reason) return NULL;
 
     char *comment = NULL;
-    char *indexToHMSF = IndexToHMSF(mark->position, maContext);
+    char *indexToHMSF = IndexToHMSF(mark->position);
     cMark *newMark = NULL;
     char* typeText = TypeToText(mark->type);
 
@@ -500,23 +500,15 @@ void cMarks::RegisterIndex(cIndex *recordingIndex) {
 }
 
 
-char *cMarks::IndexToHMSF(const int frameNumber, const sMarkAdContext *maContext, const bool isVDR) {
-    double FramesPerSecond = maContext->Video.Info.framesPerSecond;
-    if (FramesPerSecond == 0.0) return NULL;
+char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR) {
     char *indexToHMSF = NULL;
-    double Seconds;
+    double Seconds = 0;
     int f = 0;
-    if (recordingIndexMarks && !isVDR) {
-        int time_ms = recordingIndexMarks->GetTimeFromFrame(frameNumber);
-        if (time_ms >= 0) {
-            f = int(modf(float(time_ms) / 1000, &Seconds) * 100); // convert ms to 1/100 s
-        }
-        else {
-            dsyslog("cMarks::IndexToHMSF(): failed to get time from frame (%d)", frameNumber);
-        }
-    }
+    int time_ms = recordingIndexMarks->GetTimeFromFrame(frameNumber, isVDR);
+    if (time_ms >= 0) f = int(modf(float(time_ms) / 1000, &Seconds) * 100);                 // convert ms to 1/100 s
     else {
-        f = int(modf((frameNumber + 0.5) / FramesPerSecond, &Seconds) * FramesPerSecond + 1);
+        dsyslog("cMarks::IndexToHMSF(): failed to get time from frame (%d)", frameNumber);
+        return NULL;
     }
     int s = int(Seconds);
     int m = s / 60 % 60;
@@ -613,8 +605,8 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
             mark = mark->Next();
             continue;
         }
-        char *indexToHMSF_VDR = IndexToHMSF(mark->position, maContext, true);
-        char *indexToHMSF_PTS = IndexToHMSF(mark->position, maContext, false);
+        char *indexToHMSF_VDR = IndexToHMSF(mark->position, true);
+        char *indexToHMSF_PTS = IndexToHMSF(mark->position, false);
         if (indexToHMSF_VDR && indexToHMSF_PTS) {
             if (maContext->Config->pts) fprintf(mf, "%s (%6d)%s %s <- %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", indexToHMSF_PTS, mark->comment ? mark->comment : "");
             else fprintf(mf, "%s (%6d)%s %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", mark->comment ? mark->comment : "");

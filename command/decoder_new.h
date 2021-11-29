@@ -295,13 +295,15 @@ class cDecoder {
 #endif
         AVCodecContext **codecCtxArray = NULL; //!< codec context per stream
                                                //!<
-        int currFrameNumber = -1;              //!< current decoded frame number
+        int currFrameNumber            = -1;   //!< current decoded frame number
                                                //!<
-        int iFrameCount = 0;                   //!< count of decoed i-frames
+        long int currOffset            =  0;   //!< current offset from recording start, sum duration of all video packets in AVStream->time_base
                                                //!<
-        int64_t offsetTime_ms_LastFile = 0;    //!< offset from recording start of last file in ms
+        int iFrameCount                =  0;   //!< count of decoed i-frames
                                                //!<
-        int64_t offsetTime_ms_LastRead = 0;    //!< offset from recodring start of last frame in ms
+        int64_t offsetTime_ms_LastFile =  0;   //!< offset from recording start of last file in ms
+                                               //!<
+        int64_t offsetTime_ms_LastRead =  0;   //!< offset from recodring start of last frame in ms
                                                //!<
 /**
  * decoded frame data

@@ -371,11 +371,15 @@ bool cDecoder::GetNextPacket(bool ignorePTS_Ringbuffer) {
 #endif
         {
             currFrameNumber++;
+            currOffset += avpkt.duration;
+#ifdef DEBUG_FRAME_PTS
+            dsyslog("cDecoder::GetNextPacket(): framenumber %5d, DTS %ld, PTS %ld, duration %ld, flags %d", currFrameNumber, avpkt.dts, avpkt.pts, avpkt.duration, avpkt.flags);
+#endif
 
             // check DTS continuity
             if (dtsBefore != -1) {
                 int dtsDiff = 1000 * (avpkt.dts - dtsBefore) * avctx->streams[avpkt.stream_index]->time_base.num / avctx->streams[avpkt.stream_index]->time_base.den;
-                int     dtsStep = 1000 / GetVideoRealFrameRate();
+                int dtsStep = 1000 / GetVideoRealFrameRate();
                 if (dtsDiff > dtsStep) {  // some interlaced H.264 streams have some frames with half DTS
                     if (currFrameNumber > decodeErrorFrame) {  // only count new frames
                         decodeErrorCount++;
@@ -404,10 +408,9 @@ bool cDecoder::GetNextPacket(bool ignorePTS_Ringbuffer) {
             }
             if (IsVideoIFrame()) {
                 iFrameCount++;
-                // store a iframe number pts offset in ms index
-                if (offsetTime_ms >= 0) {
-                    recordingIndexDecoder->Add(fileNumber, currFrameNumber, offsetTime_ms_LastFile + offsetTime_ms);
-                }
+                // store iframe number and pts offset, sum frame duration in index
+                int frameTimeOffset_ms = 1000 * currOffset * avctx->streams[avpkt.stream_index]->time_base.num / avctx->streams[avpkt.stream_index]->time_base.den;
+                if (offsetTime_ms >= 0) recordingIndexDecoder->Add(fileNumber, currFrameNumber, offsetTime_ms_LastFile + offsetTime_ms, frameTimeOffset_ms);
                 else dsyslog("cDecoder::GetNextPacket(): failed to get pts for frame %d", currFrameNumber);
             }
         }

@@ -38,16 +38,20 @@ int cIndex::GetLastFrameNumber() {
 
 
 // add a new entry to the list of frame timestamps
-void cIndex::Add(int fileNumber, int frameNumber, int timeOffset_ms) {
-     if (GetLastFrameNumber() < frameNumber) {
+void cIndex::Add(const int fileNumber, const int frameNumber, const int ptsTimeOffset_ms, const int frameTimeOffset_ms) {
+    if (GetLastFrameNumber() < frameNumber) {
+#ifdef DEBUG_INDEX
+        dsyslog("cDecoder::GetNextPacket(): filenumber %d, frameNumber %5d, ptsTimeOffset_ms %5d, frameTimeOffset_ms %5d", fileNumber, frameNumber, ptsTimeOffset_ms, frameTimeOffset_ms);
+#endif
         // add new frame timestamp to vector
-         sIndexElement newIndex;
-         newIndex.fileNumber = fileNumber;
-         newIndex.frameNumber = frameNumber;
-         newIndex.timeOffset_ms = timeOffset_ms;
-         indexVector.push_back(newIndex);
-         ALLOC(sizeof(sIndexElement), "indexVector");
-     }
+        sIndexElement newIndex;
+        newIndex.fileNumber         = fileNumber;
+        newIndex.frameNumber        = frameNumber;
+        newIndex.ptsTimeOffset_ms   = ptsTimeOffset_ms;
+        newIndex.frameTimeOffset_ms = frameTimeOffset_ms;
+        indexVector.push_back(newIndex);
+        ALLOC(sizeof(sIndexElement), "indexVector");
+    }
 }
 
 
@@ -120,7 +124,7 @@ int cIndex::GetIFrameAfter(int frameNumber) {
 }
 
 
-int cIndex::GetTimeFromFrame(int frameNumber) {
+int cIndex::GetTimeFromFrame(const int frameNumber, const bool isVDR) {
     if (indexVector.empty()) {
         dsyslog("cIndex::GetTimeFromFrame(): frame index not initialized");
         return -1;
@@ -130,24 +134,28 @@ int cIndex::GetTimeFromFrame(int frameNumber) {
 
     for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
         if (frameIterator->frameNumber == frameNumber) {
-            tsyslog("cIndex::GetTimeFromFrame(): frame (%d) time is %dms", frameNumber, frameIterator->timeOffset_ms);
-            return frameIterator->timeOffset_ms;
+//            tsyslog("cIndex::GetTimeFromFrame(): frame (%d) time is %dms", frameNumber, frameIterator->ptsTimeOffset_ms);
+            if (isVDR) return frameIterator->frameTimeOffset_ms;
+            else return frameIterator->ptsTimeOffset_ms;
         }
         if (frameIterator->frameNumber > frameNumber) {
             if (abs(frameNumber - before_iFrame) < abs(frameNumber - frameIterator->frameNumber)) {
                 return before_ms;
             }
             else {
-                return frameIterator->timeOffset_ms;
+                if (isVDR) return frameIterator->frameTimeOffset_ms;
+                else return frameIterator->ptsTimeOffset_ms;
             }
         }
         else {
             before_iFrame = frameIterator->frameNumber;
-            before_ms = frameIterator->timeOffset_ms;
+            if (isVDR) before_ms = frameIterator->frameTimeOffset_ms;
+            else before_ms = frameIterator->ptsTimeOffset_ms;
         }
     }
     if (frameNumber > (indexVector.back().frameNumber - 30)) {  // we are after last iFrame but before next iFrame, possible not read jet, use last iFrame
-        return indexVector.back().timeOffset_ms;
+        if (isVDR) return indexVector.back().frameTimeOffset_ms;
+        else return indexVector.back().ptsTimeOffset_ms;
     }
     dsyslog("cIndex::GetTimeFromFrame(): could not find time for frame (%d), last frame in index list (%d)", frameNumber, indexVector.back().frameNumber);
     return -1;
@@ -161,7 +169,7 @@ int cIndex::GetFrameFromOffset(int offset_ms) {
     }
     int iFrameBefore = 0;
     for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->timeOffset_ms > offset_ms) return iFrameBefore;
+        if (frameIterator->ptsTimeOffset_ms > offset_ms) return iFrameBefore;
         iFrameBefore = frameIterator->frameNumber;
     }
     return iFrameBefore;  // return last frame if offset is not in recording, needed for VPS stopped recordings
@@ -210,7 +218,7 @@ int cIndex::GetFirstVideoFrameAfterPTS(const int64_t pts) {
     } after;
 
     for (std::vector<sPTS_RingbufferElement>::iterator ptsIterator = ptsRing.begin(); ptsIterator != ptsRing.end(); ++ptsIterator) { // get framenumber after
-#ifdef DEBUG_PTS
+#ifdef DEBUG_RING_PTS
         dsyslog("cIndex::GetFirstVideoFrameAfterPTS(): frame (%d) PTS %" PRId64, ptsIterator->frameNumber, ptsIterator->pts);
 #endif
         if (ptsIterator->pts < pts) {  // reset state if we found a frame with pts samaller than target

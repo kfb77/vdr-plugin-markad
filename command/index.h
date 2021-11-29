@@ -25,11 +25,12 @@ class cIndex {
 
 /**
  * add new frame to index
- * @param fileNumber  number of ts file
- * @param frameNumber number of frame
- * @param timeOffset_ms offset in ms from recording start
+ * @param fileNumber         number of ts file
+ * @param frameNumber        number of frame
+ * @param ptsTimeOffset_ms   offset in ms from recording start based on PTS fild
+ * @param frameTimeOffset_ms offset in ms from recording start based sum of duration
  */
-        void Add(int fileNumber, int frameNumber, int timeOffset_ms);
+        void Add(const int fileNumber, const int frameNumber, const int ptsTimeOffset_ms, const int frameTimeOffset_ms);
 
 /**
  * get i-frame before frameNumber
@@ -48,9 +49,10 @@ class cIndex {
 /**
  * get offset time from recoring start in ms
  * @param frameNumber number of the frame
+ * @param isVDR true if timestamp should calculated based on vdr rules (frame duration offset), false if timestamp should claculated based on vlc ruled (frame pts)
  * @return offset time from recoring start in ms
  */
-        int GetTimeFromFrame(int frameNumber);
+        int GetTimeFromFrame(const int frameNumber, const bool isVDR);
 
 /**
  * get frame number to offset of recording start
@@ -91,13 +93,13 @@ class cIndex {
  * element of the video index
  */
         struct sIndexElement {
-            int fileNumber = 0;                     //!< number of TS file
+            int fileNumber         = 0;             //!< number of TS file
                                                     //!<
-
-            int frameNumber = 0;                    //!< video frame number
+            int frameNumber        = 0;             //!< video frame number
                                                     //!<
-
-            int timeOffset_ms = 0;                  //!< time offset from start of the recording in ms
+            int ptsTimeOffset_ms   = 0;             //!< time offset from start of the recording in ms based on pts in frame, missing frame increase timestamp (imestamps for VLC player)
+                                                    //!<
+            int frameTimeOffset_ms = 0;             //!< time offset from start of the recording in ms based in frame duration, missing frames are ignored (timestamps for VDR)
                                                     //!<
         };
         std::vector<sIndexElement> indexVector;     //!< recording index
