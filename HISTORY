@@ -1,7 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
-2021-11-04: Version 3.0.16
+2021-11-30: Version 3.0.18
+- some minor bug fixes and optimizations, see git
+
+2021-11-04: Version 3.0.17
 - optimize detection of advertising in frame with logo
 - optimize detection of overlaps before and after advertising
 - some minor bug fixes and optimizations, see git
