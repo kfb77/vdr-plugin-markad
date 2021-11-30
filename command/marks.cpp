@@ -605,7 +605,11 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
             mark = mark->Next();
             continue;
         }
-        char *indexToHMSF_VDR = IndexToHMSF(mark->position, true);
+        // for stop marks adjust timestamp from iFrame before to prevent short ad pictures, vdr cut only on iFrames
+        int vdrMarkPosition = mark->position;
+        if ((mark->type & 0x0F) == MT_STOP) vdrMarkPosition = recordingIndexMarks->GetIFrameBefore(mark->position);
+
+        char *indexToHMSF_VDR = IndexToHMSF(vdrMarkPosition, true);
         char *indexToHMSF_PTS = IndexToHMSF(mark->position, false);
         if (indexToHMSF_VDR && indexToHMSF_PTS) {
             if (maContext->Config->pts) fprintf(mf, "%s (%6d)%s %s <- %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", indexToHMSF_PTS, mark->comment ? mark->comment : "");
