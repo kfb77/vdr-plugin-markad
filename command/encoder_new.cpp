@@ -1135,7 +1135,11 @@ bool cEncoder::CloseFile(__attribute__((unused)) cDecoder *ptr_cDecoder) {  // u
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     // empty all encoder queue
     for (unsigned int streamIndex = 0; streamIndex < avctxOut->nb_streams; streamIndex++) {
-        avcodec_send_frame(codecCtxArrayOut[streamIndex], NULL);
+        if (codecCtxArrayOut[streamIndex]) avcodec_send_frame(codecCtxArrayOut[streamIndex], NULL);  // prevent crash if we have no valid encoder codec context
+        else {
+            dsyslog("cEncoder::CloseFile(): output codec context of stream %d not valid", streamIndex);
+            break;
+        }
         AVPacket avpktOut;
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
         av_init_packet(&avpktOut);
