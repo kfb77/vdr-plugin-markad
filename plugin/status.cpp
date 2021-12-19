@@ -1007,7 +1007,7 @@ void cStatusMarkAd::Remove(const char *Name, bool Kill) {
 
 void cStatusMarkAd::Remove(int pos, bool Kill) {
     if (pos < 0) return;
-    dsyslog("markad: cStatusMarkAd::Remove(): index %d, pid %d, filename %s: remove from list", pos, recs[pos].Pid, recs[pos].FileName ? recs[pos].FileName : "<NULL>");
+//    dsyslog("markad: cStatusMarkAd::Remove(): index %d, pid %d, filename %s: remove from list", pos, recs[pos].Pid, recs[pos].FileName ? recs[pos].FileName : "<NULL>");
     if (recs[pos].FileName) {
         if (recs[pos].runningStatus == 4) isyslog("markad: got no VPS stop event for %s", recs[pos].FileName);
         FREE(strlen(recs[pos].FileName)+1, "recs[pos].FileName");
