@@ -974,8 +974,13 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
         av_init_packet(&avpktOut);
 #endif
-        avpktOut.data = NULL;
-        avpktOut.size = 0;
+        // init avpktOut
+        avpktOut.size            = 0;
+        avpktOut.data            = NULL;
+        avpktOut.side_data_elems = 0;
+        avpktOut.side_data       = NULL;
+        avpktOut.buf             = NULL;
+
         avFrame->pict_type = AV_PICTURE_TYPE_NONE;  // encoder decides picture type
         if ((EncoderStatus.videoEncodeError) && ptr_cDecoder->IsVideoPacket()) {
             // prevent "AVlog(): Assertion pict_type == rce->new_pict_type failed at src/libavcodec/ratecontrol.c:939" with ffmpeg 4.2.2
@@ -1132,8 +1137,8 @@ bool cEncoder::EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, A
 bool cEncoder::CloseFile(__attribute__((unused)) cDecoder *ptr_cDecoder) {  // unused for libavcodec 56
     int ret = 0;
 
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     // empty all encoder queue
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     for (unsigned int streamIndex = 0; streamIndex < avctxOut->nb_streams; streamIndex++) {
         if (codecCtxArrayOut[streamIndex]) avcodec_send_frame(codecCtxArrayOut[streamIndex], NULL);  // prevent crash if we have no valid encoder codec context
         else {
@@ -1144,8 +1149,13 @@ bool cEncoder::CloseFile(__attribute__((unused)) cDecoder *ptr_cDecoder) {  // u
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
         av_init_packet(&avpktOut);
 #endif
-        avpktOut.data = NULL;
-        avpktOut.size = 0;
+        // init avpktOut
+        avpktOut.size            = 0;
+        avpktOut.data            = NULL;
+        avpktOut.side_data_elems = 0;
+        avpktOut.side_data       = NULL;
+        avpktOut.buf             = NULL;
+
         while(EncodeFrame(ptr_cDecoder, codecCtxArrayOut[streamIndex], NULL, &avpktOut)) {
             avpktOut.stream_index = streamIndex;
             avpktOut.pos = -1;   // byte position in stream unknown
