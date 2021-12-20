@@ -1,6 +1,19 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2021-12-24: Version 3.0.19
+- calculate marks file timestamp for vdr based on sum of duration (thx @vpv for reporting)
+- adjust stop mark timestamp for vdr at i-frame before (thx @stschulze for reporting)
+- fix crash with 0 byte recording (thx @heifisch for reporting)
+- fix crash on writing pre timer mark if markad runs during recording (thx @vpv for reporting)
+- fix crash if we could not init encoder (thx @stschulze for reporting)
+- StatusMarkAd::Remove(): remove debug log message when exiting vdr (thx @MarkusE and many others for reporting)
+- fix crash in encoder with ffmpeg >= 4.3 (thx @cinfo and @stschulze for reporting)
+- new feature: markad_videos parameter to configure user and group to run markad (feature request from @stschulze)
+- cEncoder: ignore mute audio stream
+- cDecoder: fix crash in encoder with libavcodec >= 59.12.100 (thx @stschulze for reporting)
+- fix check of ioprio_get return code
+
 2021-11-30: Version 3.0.18
 - some minor bug fixes and optimizations, see git
 
