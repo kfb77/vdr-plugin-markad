@@ -339,12 +339,18 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
         }
         dsyslog("cEncoder::OpenFile(): source stream %d -----> target stream %d", index, streamMap[index]);
         if (streamMap[index] >= 0) {  // only init used streams
-            ret = InitEncoderCodec(ptr_cDecoder, directory, index, streamMap[index]);
-            if ( !ret ) {
-                dsyslog("cEncoder::OpenFile(): InitEncoderCodec failed");
-                FREE(strlen(filename)+1, "filename");
-                free(filename);
-                return false;
+            if (ptr_cDecoder->IsAudioStream(index) && codecCtxArrayIn[index]->sample_rate == 0) {  // ignore mute audio stream
+                dsyslog("cEncoder::OpenFile(): input stream %d: sample_rate not set, ignore mute audio stream", index);
+                streamMap[index] = -1;
+            }
+            else {
+                ret = InitEncoderCodec(ptr_cDecoder, directory, index, streamMap[index]);
+                if ( !ret ) {
+                    dsyslog("cEncoder::OpenFile(): InitEncoderCodec failed");
+                    FREE(strlen(filename)+1, "filename");
+                    free(filename);
+                    return false;
+                }
             }
         }
     }
