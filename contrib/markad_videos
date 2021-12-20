@@ -99,6 +99,8 @@ class Config:
         self.config = "/etc/markad_videos.conf"
         self.path = "/srv/vdr/video"
         self.bindir = "/usr/bin"
+        self.user = "vdr"
+        self.group = "vdr"
         self.minfree = 0
         self.maxrecordings = 1000
         self.backupmarks = False
@@ -188,6 +190,18 @@ class Config:
         if ret is not None: self.bindir = ret
 
         try:
+            ret = config.get('MARKAD', 'user')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.user = ret
+
+        try:
+            ret = config.get('MARKAD', 'group')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = None
+        if ret is not None: self.group = ret
+
+        try:
             ret = config.get('MARKAD', 'logocachedir')
         except (configparser.NoSectionError, configparser.NoOptionError):
             ret = None
@@ -271,6 +285,8 @@ class Config:
         if args.verbose: self.verbose = args.verbose
         if args.path is not None: self.path = args.path
         if args.bindir is not None: self.bindir = args.bindir
+        if args.user is not None: self.user = args.user
+        if args.group is not None: self.group = args.group
         if args.loglevel is not None: self.loglevel = args.loglevel
         if args.nice is not None: self.nice = args.nice
         if args.minfree is not None: self.minfree = args.minfree
@@ -301,7 +317,7 @@ class CompareMarks:
         while True:
            line1 = file1.readline()
            line2 = file2.readline()
- 
+
            # if line is empty end of file is reached
            if not line1 and not line2:  # both file have same count of lines
                break
@@ -369,7 +385,7 @@ class CheckPath:
             log.dsyslog("video mirror file name: " + self.mirror_name)
 
     def CheckFreeSpace(self):
-        if (self.root.find('TODO') != -1): 
+        if (self.root.find('TODO') != -1):
             return(False)
         total, used, free = shutil.disk_usage(self.root)
         freeGB = free // (2**30)
@@ -601,6 +617,8 @@ parser.add_argument('--ac3reencode', dest="ac3reencode", action='store_true', de
 parser.add_argument('--mirror_path=', dest="mirror_path",  metavar="<path>", action="store", help='path to the video mirror directory (default: None)')
 parser.add_argument('--checkonly', dest="checkOnly", action='store_true', default=False, help='only check marks file, no markad will executed')
 parser.add_argument('--pts', dest="pts", action='store_true', default=False, help='additional save PTS based timestamp in marks (only for debug)')
+parser.add_argument('--user=', dest="user",  metavar="<user>", action="store", help='run markad as <user> (default: vdr)')
+parser.add_argument('--group=', dest="group",  metavar="<group>", action="store", help='run markad as <group> (default: vdr)')
 
 # get config values
 config = Config()
@@ -611,27 +629,22 @@ config.Arguments()
 #set user and group to vdr
 username = getpass.getuser()
 log.dsyslog("start as user "+username)
-if username == "root":
-    log.dsyslog("drop privileges to user vdr")
+if username == "root" and config.user != "root":
+    log.dsyslog("drop privileges to user " + config.user)
     try:
-        vdr_uid = pwd.getpwnam("vdr").pw_uid
+        markad_uid = pwd.getpwnam(config.user).pw_uid
     except(KeyError):
-        log.esyslog("user vdr not found")
+        log.esyslog("user "+  config.user + " not found")
         exit(1)
     try:
-        vdr_gid = grp.getgrnam("vdr").gr_gid
+        markad_gid = grp.getgrnam(config.group).gr_gid
     except(KeyError):
-        log.esyslog("group vdr not found")
+        log.esyslog("group " + config.group + " not found")
         exit(1)
     os.setgroups([]) # Remove group privileges
     # Try setting the new uid/gid
-    os.setgid(vdr_gid)
-    os.setuid(vdr_uid)
-elif username == "vdr":
-    log.dsyslog("run as vdr")
-else:
-    log.esyslog("user "+username+" invalid")
-    exit(1)
+    os.setgid(markad_gid)
+    os.setuid(markad_uid)
 
 # PID File
 pidFile = PidFile()
