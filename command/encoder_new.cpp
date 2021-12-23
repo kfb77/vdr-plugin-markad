@@ -986,6 +986,10 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         avpktOut.side_data_elems = 0;
         avpktOut.side_data       = NULL;
         avpktOut.buf             = NULL;
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 12<<8)+100)
+        avpktOut.opaque          = NULL;
+        avpktOut.opaque_ref      = NULL;
+#endif
 
         avFrame->pict_type = AV_PICTURE_TYPE_NONE;  // encoder decides picture type
         if ((EncoderStatus.videoEncodeError) && ptr_cDecoder->IsVideoPacket()) {
@@ -1161,6 +1165,10 @@ bool cEncoder::CloseFile(__attribute__((unused)) cDecoder *ptr_cDecoder) {  // u
         avpktOut.side_data_elems = 0;
         avpktOut.side_data       = NULL;
         avpktOut.buf             = NULL;
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 12<<8)+100)
+        avpktOut.opaque          = NULL;
+        avpktOut.opaque_ref      = NULL;
+#endif
 
         while(EncodeFrame(ptr_cDecoder, codecCtxArrayOut[streamIndex], NULL, &avpktOut)) {
             avpktOut.stream_index = streamIndex;
