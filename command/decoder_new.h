@@ -233,6 +233,17 @@ class cDecoder {
  */
         bool IsAudioPacket();
 
+/** check if stream is subtitle
+ * @param streamIndex stream index
+ * @return true if stream is subtitle, false otherwise
+ */
+        bool IsSubtitleStream(const unsigned int streamIndex);
+
+/** check if current packet is a subtitle
+ * @return true if current packet is subtitle, false otherwise
+ */
+        bool IsSubtitlePacket();
+
 /** get current frame number
  * @return current frame number
  */

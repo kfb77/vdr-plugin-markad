@@ -505,7 +505,8 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
         avFrame->format = codecCtxArray[avpkt->stream_index]->pix_fmt;
 #endif
     }
-    else if (IsAudioPacket()) {
+    else {
+        if (IsAudioPacket()) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         avFrame->nb_samples = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codecpar->channel_layout);
         avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codecpar->channel_layout;
@@ -522,13 +523,22 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
         avFrame->format = codecCtxArray[avpkt->stream_index]->sample_fmt;
         avFrame->sample_rate = avctx->streams[avpkt->stream_index]->codec->sample_rate;
 #endif
+        }
+        else {
+            if (IsSubtitlePacket()) { // do not decode subtitle, even on fullencode use it without reencoding
+                FREE(sizeof(*avFrame), "avFrame");   // test if avFrame not NULL above
+                av_frame_free(&avFrame);
+                return NULL;
+            }
+            else {
+                dsyslog("cDecoder::DecodePacket(): stream %d type not supported", avpkt->stream_index);
+                FREE(sizeof(*avFrame), "avFrame");   // test if avFrame not NULL above
+                av_frame_free(&avFrame);
+                return NULL;
+            }
+        }
     }
-    else {
-        dsyslog("cDecoder::DecodePacket(): stream %d type not supported", avpkt->stream_index);
-        FREE(sizeof(*avFrame), "avFrame");   // test if avFrame not NULL above
-        av_frame_free(&avFrame);
-        return NULL;
-    }
+
     int rc = av_frame_get_buffer(avFrame, 32);
     if (rc != 0) {
         dsyslog("cDecoder::DecodePacket(): av_frame_get_buffer failed rc=%i", rc);
@@ -790,10 +800,9 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool full) {
 bool cDecoder::IsVideoStream(const unsigned int streamIndex) {
     if (!avctx) return false;
     if (streamIndex >= avctx->nb_streams) {
-        dsyslog("cDecoder::IsVideoStream(): streamindex %d out of range", streamIndex);
+        dsyslog("cDecoder::IsVideoStream(): stream index %d out of range", streamIndex);
         return false;
     }
-
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     if (avctx->streams[streamIndex]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) return true;
 #else
@@ -814,13 +823,20 @@ bool cDecoder::IsVideoPacket() {
 }
 
 
+bool cDecoder::IsVideoIFrame() {
+    if (!avctx) return false;
+    if (!IsVideoPacket()) return false;
+    if ((avpkt.flags & AV_PKT_FLAG_KEY) != 0)  return true;
+    return false;
+}
+
+
 bool cDecoder::IsAudioStream(const unsigned int streamIndex) {
     if (!avctx) return false;
     if (streamIndex >= avctx->nb_streams) {
-        dsyslog("cDecoder::IsAudioStream(): streamindex %d out of range", streamIndex);
+        dsyslog("cDecoder::IsAudioStream(): stream index %d out of range", streamIndex);
         return false;
     }
-
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     if (avctx->streams[streamIndex]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) return true;
 #else
@@ -839,6 +855,7 @@ bool cDecoder::IsAudioPacket() {
 #endif
     return false;
 }
+
 
 bool cDecoder::IsAudioAC3Stream(const unsigned int streamIndex) {
     if (!avctx) return false;
@@ -872,10 +889,28 @@ bool cDecoder::IsAudioAC3Packet() {
 }
 
 
-bool cDecoder::IsVideoIFrame() {
+bool cDecoder::IsSubtitleStream(const unsigned int streamIndex) {
     if (!avctx) return false;
-    if (!IsVideoPacket()) return false;
-    if ((avpkt.flags & AV_PKT_FLAG_KEY) != 0)  return true;
+    if (streamIndex >= avctx->nb_streams) {
+        dsyslog("cDecoder::IsSubtitleStream(): stream index %d out of range", streamIndex);
+        return false;
+    }
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
+    if (avctx->streams[streamIndex]->codecpar->codec_type == AVMEDIA_TYPE_SUBTITLE) return true;
+#else
+    if (avctx->streams[streamIndex]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) return true;
+#endif
+    return false;
+}
+
+
+bool cDecoder::IsSubtitlePacket() {
+    if (!avctx) return false;
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
+    if (avctx->streams[avpkt.stream_index]->codecpar->codec_type == AVMEDIA_TYPE_SUBTITLE) return true;
+#else
+    if (avctx->streams[avpkt.stream_index]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) return true;
+#endif
     return false;
 }
 

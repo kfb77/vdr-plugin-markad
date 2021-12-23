@@ -331,9 +331,9 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
             if (index == bestAudioStream) streamMap[index] = 1;
         }
         else {
-            if (ptr_cDecoder->IsVideoStream(index) || ptr_cDecoder->IsAudioStream(index)) streamMap[index] = index;
+            if (ptr_cDecoder->IsVideoStream(index) || ptr_cDecoder->IsAudioStream(index) || ptr_cDecoder->IsSubtitleStream(index)) streamMap[index] = index;
             else {
-                dsyslog("cEncoder::OpenFile(): stream %d is no audio and no video, ignoring", index);
+                dsyslog("cEncoder::OpenFile(): stream %d is no audio, no video and no subtitle, ignoring", index);
                 streamMap[index] = -1;
             }
         }
@@ -546,7 +546,8 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
         return false;
     }
 
-    // set encoding parameter
+// set encoding parameter
+    // video stream
     if (ptr_cDecoder->IsVideoStream(streamIndexIn)) {
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d avg framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->avg_frame_rate.num, avctxIn->streams[streamIndexIn]->avg_frame_rate.den);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d real framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->r_frame_rate.num, avctxIn->streams[streamIndexIn]->r_frame_rate.den);
@@ -664,6 +665,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d level %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->level);
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d aspect ratio %d:%d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.num, codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.den);
     }
+    // audio stream
     else {
         if (ptr_cDecoder->IsAudioStream(streamIndexIn)) {
             dsyslog("cEncoder::InitEncoderCodec(): input codec sample rate %d, timebase %d/%d for stream %d", codecCtxArrayIn[streamIndexIn]->sample_rate, codecCtxArrayIn[streamIndexIn]->time_base.num, codecCtxArrayIn[streamIndexIn]->time_base.den, streamIndexIn);
@@ -692,13 +694,21 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
             dsyslog("cEncoder::InitEncoderCodec(): audio output codec parameter for stream %d: bit_rate %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate);
 #endif
         }
+        // subtitle stream
         else {
-            dsyslog("cEncoder::InitEncoderCodec(): codec of input stream %i not audio or video, ignoring", streamIndexIn);
-            return true;
+            if (ptr_cDecoder->IsSubtitleStream(streamIndexIn)) {
+                dsyslog("cEncoder::InitEncoderCodec(): codec of input stream %d is subtitle", streamIndexIn);
+                codecCtxArrayOut[streamIndexOut]->time_base.num = 1;
+                codecCtxArrayOut[streamIndexOut]->time_base.den = 1;
+            }
+            else {
+                dsyslog("cEncoder::InitEncoderCodec(): codec of input stream %i not audio or video, ignoring", streamIndexIn);
+                return true;
+            }
         }
     }
     dsyslog("cEncoder::InitEncoderCodec():       output stream %d timebase %d/%d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->time_base.num, codecCtxArrayOut[streamIndexOut]->time_base.den);
-    if (codecCtxArrayOut[streamIndexOut]->time_base.num == 0) {
+    if ((codecCtxArrayOut[streamIndexOut]->time_base.num == 0) && (!ptr_cDecoder->IsSubtitleStream(streamIndexIn))) {
         dsyslog("cEncoder::InitEncoderCodec(): output stream %d timebase %d/%d not valid", streamIndexOut, codecCtxArrayOut[streamIndexOut]->time_base.num, codecCtxArrayOut[streamIndexOut]->time_base.den);
         return false;
     }
@@ -865,7 +875,8 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
 
     // reencode packet if needed
     if ((streamIndexOut >= 0) &&  // only reencode if stream is in streamMap
-       ((maContext->Config->ac3ReEncode && ptr_cDecoder->IsAudioAC3Packet()) || maContext->Config->fullEncode)) {
+       ((maContext->Config->ac3ReEncode && ptr_cDecoder->IsAudioAC3Packet()) ||
+        (maContext->Config->fullEncode && !ptr_cDecoder->IsSubtitlePacket()))) {  // even with full encode, do no reencode subtitle, use it as it is
 
         // check valid stream index
         if (streamIndexOut >= static_cast<int>(avctxOut->nb_streams)) return false;
@@ -1066,7 +1077,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         av_packet_unref(&avpktOut);
     }
     else {
-        if (!maContext->Config->fullEncode) {  // no reencode, copy input packet to output stream
+        if (!maContext->Config->fullEncode || ptr_cDecoder->IsSubtitlePacket()) {  // no reencode, copy input packet to output stream, never reencode subtitle
             if (streamIndexOut >= static_cast<int>(avctxOut->nb_streams)) return true;  // ignore high streamindex from input stream, they are unsuported subtitle
             // correct pts after cut
             avpktIn->pts = avpktIn->pts - EncoderStatus.pts_dts_CutOffset;
