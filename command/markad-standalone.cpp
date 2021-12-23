@@ -5099,10 +5099,10 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,"failed to get nice value\n");
         }
         int IOPrio = ioprio_get(1, getpid());
-        if (! IOPrio) {
-            fprintf(stderr,"failed to get ioprio\n");
+        if (IOPrio < 0) {
+            fprintf(stderr,"failed to get ioprio, rc = %d\n", IOPrio);
         }
-        IOPrio = IOPrio >> 13;
+        else IOPrio = IOPrio >> 13;
 
         // now do the work...
         struct stat statbuf;
