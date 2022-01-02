@@ -38,22 +38,22 @@ class cEpgEventLog {
 
 
 struct recs {
-    char *Name = NULL;
-    char *FileName = NULL;
-    pid_t Pid = 0;
-    char Status = 0;
-    bool ChangedbyUser = false;
-    tEventID eventID = 0;
-    tEventID eitEventID = 0;
-    time_t timerStartTime = 0;
-    time_t timerStopTime = 0;
-    bool timerVPS = false;
-    int runningStatus = 0;
-    time_t recStart = 0;
-    time_t vpsStartTime = 0;
-    time_t vpsStopTime = 0;
-    time_t vpsPauseStartTime = 0;
-    time_t vpsPauseStopTime = 0;
+    char     *Name             = NULL;
+    char     *FileName         = NULL;
+    pid_t    Pid               = 0;
+    char     Status            = 0;
+    bool     ChangedbyUser     = false;
+    tEventID eventID           = 0;
+    tEventID eitEventID        = 0;
+    time_t   timerStartTime    = 0;
+    time_t   timerStopTime     = 0;
+    bool     timerVPS          = false;
+    int      runningStatus     = 0;
+    time_t   recStart          = 0;
+    time_t   vpsStartTime      = 0;
+    time_t   vpsStopTime       = 0;
+    time_t   vpsPauseStartTime = 0;
+    time_t   vpsPauseStopTime  = 0;
     cEpgEventLog *epgEventLog;
 };
 
@@ -65,14 +65,15 @@ class cEpgHandlerMarkad;
 class cStatusMarkAd : public cStatus {
     private:
         struct recs recs[MAXDEVICES*MAXRECEIVERS];
-        int max_recs = -1;
-        struct setup *setup;
+        int        max_recs = -1;
+        struct     setup *setup;
         const char *bindir;
         const char *logodir;
-        int actpos;
+        int        actpos;
+        int        runningRecordings = 0;
+
         bool getPid(int Position);
         bool getStatus(int Position);
-        int RunningRecording();
         bool Replaying();
         int Get(const char *FileName, const char *Name = NULL);
         int Add(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, bool timerVPS);

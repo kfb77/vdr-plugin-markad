@@ -487,45 +487,6 @@ cStatusMarkAd::~cStatusMarkAd() {
 }
 
 
-int cStatusMarkAd::RunningRecording() {
-    int cnt = 0;
-#if APIVERSNUM>=20301
-    cStateKey StateKey;
-    if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
-#ifdef DEBUG_LOCKS
-        dsyslog("markad: RunningRecording(): LOCK   timers");
-#endif
-        for (const cTimer *Timer = Timers->First(); Timer; Timer = Timers->Next(Timer))
-#else
-    for (cTimer *Timer = Timers.First(); Timer; Timer = Timers.Next(Timer))
-#endif
-        {
-#if APIVERSNUM>=20301
-            if (Timer->Local() && Timer->Recording()) {
-#else
-            if (Timer->Recording()) {
-#endif
-#ifdef DEBUG_PAUSE_CONTINUE
-                dsyslog("markad: cStatusMarkAd::RunningRecording(): running local recoring: %s", Timer->File());
-#endif
-                cnt++;
-            }
-        }
-#if APIVERSNUM>=20301
-    }
-#ifdef DEBUG_LOCKS
-    dsyslog("markad: RunningRecording(): UNLOCK timers");
-#endif
-    StateKey.Remove();
-#endif
-
-#ifdef DEBUG_PAUSE_CONTINUE
-    dsyslog("markad: cStatusMarkAd::RunningRecording(): %d local running recording(s)", cnt);
-#endif
-    return cnt;
-}
-
-
 bool cStatusMarkAd::Replaying() {
     for (int i = 0; i < cDevice::NumDevices(); i++) {
         cDevice *dev = cDevice::GetDevice(i);
@@ -549,7 +510,7 @@ void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSE
         Pause(NULL);
     }
     else {
-        if (!RunningRecording()) Continue(NULL);
+        if (runningRecordings == 0) Continue(NULL);
     }
 }
 
@@ -620,7 +581,7 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
                     else Pause(FileName);
                 }
                 else {
-                    if (!setup->whileRecording && RunningRecording()) Pause(FileName);
+                    if (!setup->whileRecording && (runningRecordings > 0)) Pause(FileName);
                     if (!setup->whileReplaying && Replaying()) Pause(FileName);
                 }
             }
@@ -655,9 +616,12 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
 #if APIVERSNUM>=20301
     const cTimer *timer = NULL;
     cStateKey StateKey;
+#ifdef DEBUG_LOCKS
+        dsyslog("markad: GetEventID(): WANT   timers READ");
+#endif
     if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
 #ifdef DEBUG_LOCKS
-        dsyslog("markad: GetEventID(): LOCK   timers");
+        dsyslog("markad: GetEventID(): LOCKED timers READ");
 #endif
         for (const cTimer *Timer = Timers->First(); Timer; Timer = Timers->Next(Timer))
 #else
@@ -681,7 +645,7 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
         esyslog("markad: cannot find timer for <%s>", Name);
 #if APIVERSNUM>=20301
 #ifdef DEBUG_LOCKS
-        dsyslog("markad: GetEventID(): UNLOCK timers");
+        dsyslog("markad: GetEventID(): UNLOCK timers READ");
 #endif
         StateKey.Remove();
 #endif
@@ -698,7 +662,7 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
     }
 #if APIVERSNUM>=20301
 #ifdef DEBUG_LOCKS
-        dsyslog("markad: GetEventID(): UNLOCK timers");
+        dsyslog("markad: GetEventID(): UNLOCK timers READ");
 #endif
     StateKey.Remove();
 #endif
@@ -713,14 +677,12 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
 
 void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const char *FileName, bool On) {
     if (!FileName) return; // we cannot operate without a filename
-    if (!bindir) return; // we cannot operate without bindir
-    if (!logodir) return; // we dont want to operate without logodir
+    if (!bindir)   return; // we cannot operate without bindir
+    if (!logodir)  return; // we dont want to operate without logodir
 
     if (On) {
-        dsyslog("markad: cStatusMarkAd::Recording(): recording <%s> [%s] started", Name, FileName);
-#ifdef DEBUG_PAUSE_CONTINUE
-        RunningRecording();
-#endif
+        runningRecordings++;
+        dsyslog("markad: cStatusMarkAd::Recording(): recording <%s> [%s] started, recording count now %d", Name, FileName, runningRecordings);
         // check if markad is running for the same recording, this can happen if we have a short recording interuption
         int runningPos = Get(FileName, NULL);
         if (runningPos >= 0) {
@@ -728,10 +690,10 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
             Remove(runningPos, true);
         }
 
-        tEventID eventID = 0;
-        time_t timerStartTime = 0;
-        time_t timerStopTime = 0;
-        bool timerVPS = false;
+        tEventID eventID        = 0;
+        time_t   timerStartTime = 0;
+        time_t   timerStopTime  = 0;
+        bool     timerVPS       = false;
         GetEventID(Device, Name, &eventID, &timerStartTime, &timerStopTime, &timerVPS);
         SaveVPSTimer(FileName, timerVPS);
 
@@ -760,6 +722,9 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         }
     }
     else {
+        runningRecordings--;
+        if (runningRecordings < 0) runningRecordings = 0;
+        dsyslog("markad: cStatusMarkAd::Recording(): recording stopped, recording count now %d", runningRecordings);
 #ifdef DEBUG_PAUSE_CONTINUE
         dsyslog("markad: cStatusMarkAd::Recording(): setup->ProcessDuring %d, setup->whileRecording %d, setup->whileReplaying %d", setup->ProcessDuring, setup->whileRecording, setup->whileReplaying);
 #endif
@@ -774,12 +739,11 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
             if (setup->ProcessDuring == PROCESS_AFTER) {
                 if (!setup->whileRecording) {
                     if (!setup->whileReplaying) {
-                        if (!RunningRecording() && !Replaying()) Continue(NULL);
+                        if ((runningRecordings == 0) && !Replaying()) Continue(NULL);
                     }
                     else {
-                        int recordingCount = RunningRecording();
-                        if (recordingCount == 0) Continue(NULL);
-                        else dsyslog("markad: cStatusMarkAd::Recording(): resume not possible, still %d running recording(s)", recordingCount);
+                        if (runningRecordings == 0) Continue(NULL);
+                        else dsyslog("markad: cStatusMarkAd::Recording(): resume not possible, still %d running recording(s)", runningRecordings);
                     }
                 }
                 else {
@@ -799,9 +763,12 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device, const char *FileName) {
 #if APIVERSNUM>=20301
     const cTimer *timer = NULL;
     cStateKey StateKey;
+#ifdef DEBUG_LOCKS
+        dsyslog("markad: LogoExists(): WANT timers READ");
+#endif
     if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
 #ifdef DEBUG_LOCKS
-        dsyslog("markad: LogoExists(): LOCK   timers");
+        dsyslog("markad: LogoExists(): LOCKED timers READ");
 #endif
         for (const cTimer *Timer = Timers->First(); Timer; Timer = Timers->Next(Timer))
 #else
@@ -830,7 +797,7 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device, const char *FileName) {
 
 #if APIVERSNUM>=20301
 #ifdef DEBUG_LOCKS
-        dsyslog("markad: LogoExists(): UNLOCK timers");
+        dsyslog("markad: LogoExists(): UNLOCK timers READ");
 #endif
         StateKey.Remove();
     }
