@@ -491,7 +491,12 @@ bool cStatusMarkAd::Replaying() {
     for (int i = 0; i < cDevice::NumDevices(); i++) {
         cDevice *dev = cDevice::GetDevice(i);
         if (dev) {
-            if (dev->Replaying()) return true;
+            if (dev->Replaying()) {
+#ifdef DEBUG_PAUSE_CONTINUE
+                dsyslog("markad: cStatusMarkAd::Replaying(): device %d is playing",i);
+                return true;
+#endif
+            }
         }
     }
     return false;
@@ -738,7 +743,13 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
 
             if (setup->ProcessDuring == PROCESS_AFTER) {
                 if (!setup->whileRecording) {
+#ifdef DEBUG_PAUSE_CONTINUE
+                    dsyslog("markad: cStatusMarkAd::Recording(): PROCESS_AFTER");
+#endif
                     if (!setup->whileReplaying) {
+#ifdef DEBUG_PAUSE_CONTINUE
+                        dsyslog("markad: cStatusMarkAd::Recording(): replaying status %d", Replaying());
+#endif
                         if ((runningRecordings == 0) && !Replaying()) Continue(NULL);
                     }
                     else {
