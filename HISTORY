@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2022-03-06: Version 3.0.20
+- add subtitle stream to video cut
+- do not use timer locks
+- some minor bug fixes and optimizations, see git
+
 2021-12-24: Version 3.0.19
 - calculate marks file timestamp for vdr based on sum of duration (thx @vpv for reporting)
 - adjust stop mark timestamp for vdr at i-frame before (thx @stschulze for reporting)
