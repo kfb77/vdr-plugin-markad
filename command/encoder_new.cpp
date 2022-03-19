@@ -217,19 +217,19 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
     ALLOC(sizeof(SwrContext *) * avctxIn->nb_streams, "swrArray");
     memset(swrArray, 0, sizeof(SwrContext *) * avctxIn->nb_streams);
 
-    EncoderStatus.pts_dts_CyclicalOffset = (int64_t *) malloc(sizeof(int64_t) * avctxIn->nb_streams);
+    EncoderStatus.pts_dts_CyclicalOffset = static_cast<int64_t *>(malloc(sizeof(int64_t) * avctxIn->nb_streams));
     ALLOC(sizeof(int64_t) * avctxIn->nb_streams, "pts_dts_CyclicalOffset");
     memset(EncoderStatus.pts_dts_CyclicalOffset, 0, sizeof(int64_t) * avctxIn->nb_streams);
 
-    EncoderStatus.ptsInBefore = (int64_t *) malloc(sizeof(int64_t) * avctxIn->nb_streams);
+    EncoderStatus.ptsInBefore = static_cast<int64_t *>(malloc(sizeof(int64_t) * avctxIn->nb_streams));
     ALLOC(sizeof(int64_t) * avctxIn->nb_streams, "ptsInBefore");
     memset(EncoderStatus.ptsInBefore, 0, sizeof(int64_t) * avctxIn->nb_streams);
 
-    EncoderStatus.dtsInBefore = (int64_t *) malloc(sizeof(int64_t) * avctxIn->nb_streams);
+    EncoderStatus.dtsInBefore = static_cast<int64_t *>(malloc(sizeof(int64_t) * avctxIn->nb_streams));
     ALLOC(sizeof(int64_t) * avctxIn->nb_streams, "dtsInBefore");
     memset(EncoderStatus.dtsInBefore, 0, sizeof(int64_t) * avctxIn->nb_streams);
 
-    streamMap = (int *) malloc(sizeof(int) * avctxIn->nb_streams);
+    streamMap = static_cast<int *>(malloc(sizeof(int) * avctxIn->nb_streams));
     ALLOC(sizeof(int) * avctxIn->nb_streams, "streamMap");
     memset(streamMap, -1, sizeof(int) * avctxIn->nb_streams);
 
@@ -1080,7 +1080,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         if ((pass == 1) && codecCtxArrayOut[streamIndexOut]->stats_out) {
            long int strLength = strlen(codecCtxArrayOut[streamIndexOut]->stats_out);
             if (!stats_in.data) {
-                stats_in.data = (char *) malloc(strLength + 1);  // take care of terminating 0
+                stats_in.data = static_cast<char *>(malloc(strLength + 1));  // take care of terminating 0
                 stats_in.size = strLength + 1;
                 strcpy(stats_in.data, codecCtxArrayOut[streamIndexOut]->stats_out);
                 ALLOC(stats_in.size, "stats_in");
@@ -1089,7 +1089,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
                 long int oldLength = strlen(stats_in.data);
                 FREE(stats_in.size, "stats_in");
                 char *stats_in_tmp;
-                stats_in_tmp = (char *) realloc(stats_in.data, strLength + oldLength + 1);
+                stats_in_tmp = static_cast<char *>(realloc(stats_in.data, strLength + oldLength + 1));
                 if (!stats_in_tmp) {
                     esyslog("memory alloation for stats_in failed");  // free of stats_in in destructor
                     return false;
