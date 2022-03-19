@@ -81,29 +81,42 @@ class cMarkAdStandalone : public cEvaluateChannel {
  */
         cMarkAdStandalone &operator =(const cMarkAdStandalone *origin) {
             strcpy(title,origin->title);
-            ptitle = title;
-            directory = origin->directory;
-            video = NULL;
-            audio = NULL;
-            osd = NULL;
-            duplicate = origin->duplicate,
-            isREEL = origin->isREEL;
-            MaxFiles = origin->MaxFiles;
-            framecnt1 = origin->framecnt1;
-            framecntOverlap = origin->framecntOverlap;
-            framecnt3 = origin->framecnt3;
-            gotendmark = origin->gotendmark;
-            waittime = origin->waittime;
-            iwaittime = origin->iwaittime;
-            bDecodeVideo = origin->bDecodeVideo;
-            bDecodeAudio = origin->bDecodeAudio;
-            bIgnoreTimerInfo = origin->bIgnoreTimerInfo;
-            bLiveRecording = origin->bLiveRecording;
-            chkSTART = origin->chkSTART;
-            chkSTOP = origin->chkSTOP;
-            inBroadCast = origin->inBroadCast;
-            indexFile = origin->indexFile;
-            sleepcnt = origin->sleepcnt;
+            ptitle                    = title;
+            directory                 = origin->directory;
+            video                     = NULL;
+            audio                     = NULL;
+            osd                       = NULL;
+            duplicate                 = origin->duplicate,
+            isREEL                    = origin->isREEL;
+            MaxFiles                  = origin->MaxFiles;
+            framecnt1                 = origin->framecnt1;
+            framecntOverlap           = origin->framecntOverlap;
+            framecnt3                 = origin->framecnt3;
+            gotendmark                = origin->gotendmark;
+            waittime                  = origin->waittime;
+            iwaittime                 = origin->iwaittime;
+            bDecodeVideo              = origin->bDecodeVideo;
+            bDecodeAudio              = origin->bDecodeAudio;
+            bIgnoreTimerInfo          = origin->bIgnoreTimerInfo;
+            bLiveRecording            = origin->bLiveRecording;
+            chkSTART                  = origin->chkSTART;
+            chkSTOP                   = origin->chkSTOP;
+            inBroadCast               = origin->inBroadCast;
+            indexFile                 = origin->indexFile;
+            sleepcnt                  = origin->sleepcnt;
+            macontext                 = origin->macontext;
+            recordingIndexMark        = origin->recordingIndexMark;
+            iFrameBefore              = origin->iFrameBefore;
+            iFrameCurrent             = origin->iFrameCurrent;
+            frameCurrent              = origin->frameCurrent;
+            framecnt4                 = origin->framecnt4;
+            length                    = origin->length;
+            iStart                    = origin->iStart;
+            iStop                     = origin->iStop;
+            iStartA                   = origin->iStartA;
+            iStopA                    = origin->iStopA;
+            ptr_cDecoderLogoChange    = origin->ptr_cDecoderLogoChange;
+            evaluateLogoStopStartPair = origin->evaluateLogoStopStartPair;
             return *this;
         }
 
