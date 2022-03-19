@@ -37,7 +37,7 @@ cOSDMessage::~cOSDMessage() {
     }
     if (host) {
         FREE(strlen(host)+1, "host");
-        free((void*) host);
+	free(host);
     }
 }
 
@@ -62,7 +62,7 @@ bool cOSDMessage::ReadReply(int fd, char **reply) {
             msgsize++;
             while ((msgsize + 5) > repsize) {
                 repsize += 80;
-                char *tmp = (char *) realloc(*reply, repsize);
+                char *tmp = static_cast<char *>(realloc(*reply, repsize));
                 if (!tmp) {
                     free(*reply);
                     *reply = NULL;
@@ -159,6 +159,6 @@ int cOSDMessage::Send(const char *format, ...) {
     ALLOC(strlen(msg)+1, "msg");
     va_end(ap);
 
-    if (pthread_create(&tid, NULL, (void *(*) (void *))&SendMessage, (void *) this) != 0 ) return -1;
+    if (pthread_create(&tid, NULL, (void *(*) (void *))&SendMessage, reinterpret_cast<void *>(this)) != 0 ) return -1;
     return 0;
 }

@@ -37,7 +37,7 @@ class cOSDMessage {
         int Send(const char *format, ...);
 
     private:
-        const char *host;                            //!< VDR host name or IP address
+        char *host;                                  //!< VDR host name or IP address
                                                      //!<
         int port;                                    //!< VDR port number to send OSD messages
                                                      //!<
