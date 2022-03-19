@@ -40,6 +40,7 @@ extern "C"{
 // libavcodec versions of some distributions
 //
 // valid versions
+// #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)   ffmpeg N-106355-ga24e6ca8bf
 // #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 12<<8)+100)   ffmpeg 4.5    (BM2LTS v4.0.20)
 // #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(  1<<8)+100)   ffmpeg 4.5
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4.6  (Ubuntu 21.10) (Debian 12 Bookworm) (Fedora 34) (Fedora 35)

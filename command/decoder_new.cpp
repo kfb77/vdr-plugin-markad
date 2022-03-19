@@ -508,8 +508,13 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
     else {
         if (IsAudioPacket()) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
+    #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+        av_channel_layout_default(&avctx->streams[avpkt->stream_index]->codecpar->ch_layout, avctx->streams[avpkt->stream_index]->codecpar->ch_layout.u.mask);
+        avFrame->ch_layout.u.mask = avctx->streams[avpkt->stream_index]->codecpar->ch_layout.u.mask;
+    #else
         avFrame->nb_samples = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codecpar->channel_layout);
         avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codecpar->channel_layout;
+    #endif
         avFrame->format = avctx->streams[avpkt->stream_index]->codecpar->format;
         avFrame->sample_rate = avctx->streams[avpkt->stream_index]->codecpar->sample_rate;
 #elif LIBAVCODEC_VERSION_INT >= ((56<<16)+(26<<8)+100)
@@ -773,12 +778,15 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool full) {
                 return false;
             }
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
+    #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+            if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codecpar->ch_layout.nb_channels) {
+                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d) PTS %" PRId64, avpkt.stream_index, maContext->Audio.Info.Channels[avpkt.stream_index], avctx->streams[avpkt.stream_index]->codecpar->ch_layout.nb_channels, currFrameNumber, avpkt.pts);
+                maContext->Audio.Info.Channels[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codecpar->ch_layout.nb_channels;
+    #else
             if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codecpar->channels) {
-                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d) PTS %" PRId64, avpkt.stream_index,
-                                                                                                        maContext->Audio.Info.Channels[avpkt.stream_index],
-                                                                                                        avctx->streams[avpkt.stream_index]->codecpar->channels,
-                                                                                                        currFrameNumber, avpkt.pts);
+                dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d) PTS %" PRId64, avpkt.stream_index, maContext->Audio.Info.Channels[avpkt.stream_index], avctx->streams[avpkt.stream_index]->codecpar->channels, currFrameNumber, avpkt.pts);
                 maContext->Audio.Info.Channels[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codecpar->channels;
+    #endif
 #else
             if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codec->channels) {
                 dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d) PTS %" PRId64, avpkt.stream_index,
@@ -999,13 +1007,21 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
             if (audioFrame) {
                 if (audioFrame->format == AV_SAMPLE_FMT_S16P) {
                     int level = 0;
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+                    for (int channel = 0; channel < audioFrame->ch_layout.nb_channels; channel++) {
+#else
                     for (int channel = 0; channel < audioFrame->channels; channel++) {
+#endif
                         int16_t *samples = reinterpret_cast<int16_t*>(audioFrame->data[channel]);
                         for (int sample = 0; sample < audioFrame->nb_samples; sample++) {
                             level += abs(samples[sample]);
                         }
                     }
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+                    int normLevel =  level / audioFrame->nb_samples / audioFrame->ch_layout.nb_channels;
+#else
                     int normLevel =  level / audioFrame->nb_samples / audioFrame->channels;
+#endif
 #ifdef DEBUG_SILENCE
                     dsyslog("cDecoder::GetNextSilence(): frame (%5d) level %d", GetFrameNumber(), normLevel);
 #endif

@@ -50,8 +50,12 @@ bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFo
         return false;
     }
 // Set the filter options through the AVOptions API
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+    av_opt_set_int(filterSrc, "channel_layout", channel_layout, AV_OPT_SEARCH_CHILDREN);
+#else
     av_get_channel_layout_string(ch_layout, sizeof(ch_layout), 0, (int64_t) channel_layout);
     av_opt_set(filterSrc, "channel_layout", ch_layout, AV_OPT_SEARCH_CHILDREN);
+#endif
     av_opt_set(filterSrc, "sample_fmt", av_get_sample_fmt_name(sample_fmt), AV_OPT_SEARCH_CHILDREN);
     av_opt_set_q(filterSrc, "time_base", (AVRational){ 1, sample_rate}, AV_OPT_SEARCH_CHILDREN);
     av_opt_set_int(filterSrc, "sample_rate", sample_rate, AV_OPT_SEARCH_CHILDREN);
@@ -407,9 +411,14 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
     }
     else if (ptr_cDecoder->IsAudioStream(streamIndexIn)) {
         codecCtxArrayOut[streamIndexOut]->sample_fmt = avCodecCtxIn->sample_fmt;
-        codecCtxArrayOut[streamIndexOut]->channel_layout = avCodecCtxIn->channel_layout;
         codecCtxArrayOut[streamIndexOut]->sample_rate = avCodecCtxIn->sample_rate;
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+        codecCtxArrayOut[streamIndexOut]->ch_layout.u.mask = avCodecCtxIn->ch_layout.u.mask;
+        codecCtxArrayOut[streamIndexOut]->ch_layout.nb_channels = avCodecCtxIn->ch_layout.nb_channels;
+#else
+        codecCtxArrayOut[streamIndexOut]->channel_layout = avCodecCtxIn->channel_layout;
         codecCtxArrayOut[streamIndexOut]->channels = avCodecCtxIn->channels;
+#endif
     }
     else {
         dsyslog("cEncoder::ChangeEncoderCodec(): codec of input stream %i not suported", streamIndexIn);
@@ -435,7 +444,11 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
         delete ptr_cAC3VolumeFilter[streamIndexOut];
         ptr_cAC3VolumeFilter[streamIndexOut] = new cAC3VolumeFilter();
         ALLOC(sizeof(*ptr_cAC3VolumeFilter[streamIndexOut]), "ptr_cAC3VolumeFilter");
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+        if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(avCodecCtxIn->ch_layout.u.mask, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate)) {
+#else
         if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(avCodecCtxIn->channel_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate)) {
+#endif
             dsyslog("cEncoder::ChangeEncoderCodec(): ptr_cAC3VolumeFilter->Init() failed");
             return false;
         }
@@ -671,16 +684,26 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
             dsyslog("cEncoder::InitEncoderCodec(): input codec sample rate %d, timebase %d/%d for stream %d", codecCtxArrayIn[streamIndexIn]->sample_rate, codecCtxArrayIn[streamIndexIn]->time_base.num, codecCtxArrayIn[streamIndexIn]->time_base.den, streamIndexIn);
             codecCtxArrayOut[streamIndexOut]->time_base.num = codecCtxArrayIn[streamIndexIn]->time_base.num;
             codecCtxArrayOut[streamIndexOut]->time_base.den = codecCtxArrayIn[streamIndexIn]->time_base.den;
-            codecCtxArrayOut[streamIndexOut]->channel_layout = codecCtxArrayIn[streamIndexIn]->channel_layout;
             codecCtxArrayOut[streamIndexOut]->sample_rate = codecCtxArrayIn[streamIndexIn]->sample_rate;
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+            codecCtxArrayOut[streamIndexOut]->ch_layout.u.mask = codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask;
+            codecCtxArrayOut[streamIndexOut]->ch_layout.nb_channels = codecCtxArrayIn[streamIndexIn]->ch_layout.nb_channels;
+#else
+            codecCtxArrayOut[streamIndexOut]->channel_layout = codecCtxArrayIn[streamIndexIn]->channel_layout;
             codecCtxArrayOut[streamIndexOut]->channels = codecCtxArrayIn[streamIndexIn]->channels;
+#endif
             codecCtxArrayOut[streamIndexOut]->bit_rate = codecCtxArrayIn[streamIndexIn]->bit_rate;
             if (codecCtxArrayIn[streamIndexIn]->sample_fmt == AV_SAMPLE_FMT_S16P) {  // libav do not support planar audio
                 codecCtxArrayOut[streamIndexOut]->sample_fmt = AV_SAMPLE_FMT_S16;
                 swrArray[streamIndexOut] = swr_alloc();
                 ALLOC(sizeof(swrArray[streamIndexOut]), "swr");  // only pointer size as marker
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+                av_opt_set_int(swrArray[streamIndexOut], "in_channel_layout", codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask, 0);
+                av_opt_set_int(swrArray[streamIndexOut], "out_channel_layout", codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask,  0);
+#else
                 av_opt_set_int(swrArray[streamIndexOut], "in_channel_layout", codecCtxArrayIn[streamIndexIn]->channel_layout, 0);
                 av_opt_set_int(swrArray[streamIndexOut], "out_channel_layout", codecCtxArrayIn[streamIndexIn]->channel_layout,  0);
+#endif
                 av_opt_set_int(swrArray[streamIndexOut], "in_sample_rate", codecCtxArrayIn[streamIndexIn]->sample_rate, 0);
                 av_opt_set_int(swrArray[streamIndexOut], "out_sample_rate", codecCtxArrayIn[streamIndexIn]->sample_rate, 0);
                 av_opt_set_sample_fmt(swrArray[streamIndexOut], "in_sample_fmt", AV_SAMPLE_FMT_S16P, 0);
@@ -741,7 +764,11 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
         }
         ptr_cAC3VolumeFilter[streamIndexOut] = new cAC3VolumeFilter();
         ALLOC(sizeof(*ptr_cAC3VolumeFilter[streamIndexOut]), "ptr_cAC3VolumeFilter");
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+        if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask, codecCtxArrayIn[streamIndexIn]->sample_fmt, codecCtxArrayIn[streamIndexIn]->sample_rate)) {
+#else
         if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(codecCtxArrayIn[streamIndexIn]->channel_layout, codecCtxArrayIn[streamIndexIn]->sample_fmt, codecCtxArrayIn[streamIndexIn]->sample_rate)) {
+#endif
             dsyslog("cEncoder::InitEncoderCodec(): ptr_cAC3VolumeFilter->Init() failed");
             return false;
         }
@@ -756,11 +783,20 @@ bool cEncoder::ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int 
     if (!swrArray[streamIndex]) return false;
     if (!avFrameIn->extended_data) return false;
 
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+    if (avFrameIn->ch_layout.nb_channels != 2) {
+        dsyslog("cEncoder::ReSampleAudio(): %d MP2 audio channels not supported", avFrameIn->ch_layout.nb_channels);
+#else
     if (avFrameIn->channels != 2) {
         dsyslog("cEncoder::ReSampleAudio(): %d MP2 audio channels not supported", avFrameIn->channels);
+#endif
         return false;
     }
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+    int ret = av_samples_alloc(avFrameOut->extended_data, avFrameOut->linesize, avFrameIn->ch_layout.nb_channels, avFrameIn->nb_samples, AV_SAMPLE_FMT_S16, 0);
+#else
     int ret = av_samples_alloc(avFrameOut->extended_data, avFrameOut->linesize, avFrameIn->channels, avFrameIn->nb_samples, AV_SAMPLE_FMT_S16, 0);
+#endif
     if (ret < 0) {
         dsyslog("cEncoder::ReSampleAudio(): Could not allocate source samples");
         return false;
@@ -934,12 +970,17 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
 
         if (ptr_cDecoder->IsAudioAC3Packet()) {
             // Check if the audio stream has changed channels
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+            if ((codecCtxArrayOut[streamIndexOut]->ch_layout.u.mask != codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask) ||
+                (codecCtxArrayOut[streamIndexOut]->ch_layout.nb_channels != codecCtxArrayIn[streamIndexIn]->ch_layout.nb_channels)) {
+                dsyslog("cEncoder::WritePacket(): channel layout of input stream %d changed at frame %d from %" PRIu64 " to %" PRIu64, streamIndexIn, frameNumber, codecCtxArrayOut[streamIndexOut]->ch_layout.u.mask, codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask);
+                dsyslog("cEncoder::WritePacket(): number of channels of input stream %d changed at frame %d from %d to %d", streamIndexIn, frameNumber, codecCtxArrayOut[streamIndexOut]->ch_layout.nb_channels, codecCtxArrayIn[streamIndexIn]->ch_layout.nb_channels);
+#else
             if ((codecCtxArrayOut[streamIndexOut]->channel_layout != codecCtxArrayIn[streamIndexIn]->channel_layout) ||
                 (codecCtxArrayOut[streamIndexOut]->channels != codecCtxArrayIn[streamIndexIn]->channels)) {
-                dsyslog("cEncoder::WritePacket(): channel layout of input stream %d changed at frame %d from %" PRIu64 " to %" PRIu64, streamIndexIn,
-                        frameNumber, codecCtxArrayOut[streamIndexOut]->channel_layout, codecCtxArrayIn[streamIndexIn]->channel_layout);
-                dsyslog("cEncoder::WritePacket(): number of channels of input stream %d changed at frame %d from %d to %d", streamIndexIn,
-                        frameNumber, codecCtxArrayOut[streamIndexOut]->channels, codecCtxArrayIn[streamIndexIn]->channels);
+                dsyslog("cEncoder::WritePacket(): channel layout of input stream %d changed at frame %d from %" PRIu64 " to %" PRIu64, streamIndexIn, frameNumber, codecCtxArrayOut[streamIndexOut]->channel_layout, codecCtxArrayIn[streamIndexIn]->channel_layout);
+                dsyslog("cEncoder::WritePacket(): number of channels of input stream %d changed at frame %d from %d to %d", streamIndexIn, frameNumber, codecCtxArrayOut[streamIndexOut]->channels, codecCtxArrayIn[streamIndexIn]->channels);
+#endif
 
                 if(!ChangeEncoderCodec(ptr_cDecoder, streamIndexIn, streamIndexOut, codecCtxArrayIn[streamIndexIn])) {
                     dsyslog("cEncoder::WritePacket(): InitEncoderCodec failed");
