@@ -569,13 +569,14 @@ class cMarkAdVideo {
  * operator=, not used, only for formal reason
  */
         cMarkAdVideo &operator =(const cMarkAdVideo *origin) {
-            maContext = origin->maContext;
-            blackScreen = NULL;
-            hborder = NULL;
-            vborder = NULL;
-            logo = NULL;
-//            overlap = NULL;
-            aspectRatio = {};
+            maContext                 = origin->maContext;
+            blackScreen               = NULL;
+            hborder                   = NULL;
+            vborder                   = NULL;
+            logo                      = NULL;
+            aspectRatio               = {};
+            recordingIndexMarkAdVideo = NULL;
+            marks                     = {};
             return *this;
         }
 
