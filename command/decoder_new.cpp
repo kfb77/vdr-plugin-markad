@@ -409,7 +409,7 @@ bool cDecoder::GetNextPacket(bool ignorePTS_Ringbuffer) {
             if (IsVideoIFrame()) {
                 iFrameCount++;
                 // store iframe number and pts offset, sum frame duration in index
-                int frameTimeOffset_ms = 1000 * currOffset * avctx->streams[avpkt.stream_index]->time_base.num / avctx->streams[avpkt.stream_index]->time_base.den;
+                int64_t frameTimeOffset_ms = 1000 * static_cast<int64_t>(currOffset) * avctx->streams[avpkt.stream_index]->time_base.num / avctx->streams[avpkt.stream_index]->time_base.den;  // need more space to calculate value
                 if (offsetTime_ms >= 0) recordingIndexDecoder->Add(fileNumber, currFrameNumber, offsetTime_ms_LastFile + offsetTime_ms, frameTimeOffset_ms);
                 else dsyslog("cDecoder::GetNextPacket(): failed to get pts for frame %d", currFrameNumber);
             }
