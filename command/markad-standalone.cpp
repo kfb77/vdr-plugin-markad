@@ -601,8 +601,8 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
 // some channel e.g. TELE5 plays with the logo in the broadcast
 //
 void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason only known and tested channels
-    struct timeval startTime, stopTime;
-    gettimeofday(&startTime, NULL);
+    struct timeval startTimeChangeMarks, stopTimeChangeMarks;
+    gettimeofday(&startTimeChangeMarks, NULL);
 
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start mark pairs with special logo");
@@ -696,9 +696,9 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): marks after detect and remove logo stop/start mark pairs with special logo");
     DebugMarks();     //  only for debugging
 
-    gettimeofday(&stopTime, NULL);
-    time_t sec = stopTime.tv_sec - startTime.tv_sec;
-    suseconds_t usec = stopTime.tv_usec - startTime.tv_usec;
+    gettimeofday(&stopTimeChangeMarks, NULL);
+    time_t      sec  = stopTimeChangeMarks.tv_sec  - startTimeChangeMarks.tv_sec;
+    suseconds_t usec = stopTimeChangeMarks.tv_usec - startTimeChangeMarks.tv_usec;
     if (usec < 0) {
         usec += 1000000;
         sec--;
@@ -1060,11 +1060,11 @@ void cMarkAdStandalone::CheckStart() {
             // check if next broadcast is long enough
             cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);  // if there is a MT_HBORDERSTOP short after the MT_HBORDERSTART, MT_HBORDERSTART is not valid
             if (hStop) {
-                int length = (hStop->position - hStart->position) / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::CheckStart(): next horizontal border stop mark (%d), length of broadcast %ds", hStop->position, length);
+                int lengthBroadcast = (hStop->position - hStart->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::CheckStart(): next horizontal border stop mark (%d), length of broadcast %ds", hStop->position, lengthBroadcast);
                 cMark *hNextStart = marks.GetNext(hStop->position, MT_HBORDERSTART);
-                if (((length <= 235) && !hNextStart) || // hborder preview before broadcast start, changed from 120 to 140 to 165 to 231 to 235
-                     (length <= 74)) {                  // very short broadcast length is never valid
+                if (((lengthBroadcast <= 235) && !hNextStart) || // hborder preview before broadcast start, changed from 165 to 231 to 235
+                     (lengthBroadcast <=  74)) {                 // very short broadcast length is never valid
                     int diffAssumed = (hStop->position - iStartA) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop (%i) short after horizontal border start (%i) found, %ds after assumed start", hStop->position, hStart->position, diffAssumed); // do not delete weak marks here because it can only be from preview
                     if (diffAssumed < 477) hBorderStopPosition = hStop->position;  // maybe we can use this position as start mark if we found nothing else
@@ -1231,11 +1231,10 @@ void cMarkAdStandalone::CheckStart() {
                     cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
                     if (lNextStart && lNextStop) {
                         int distance = 1000 * (lNextStop->position  - lStart->position)    / macontext.Video.Info.framesPerSecond;
-                        int length   = 1000 * (lNextStart->position - lNextStop->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::CheckStart(): next logo stop (%d) start (%d), distance %dms, length %dms",
-                                                                                                            lNextStop->position, lNextStart->position, distance, length);
-                        if ((distance <= 6800) && (length <= 6840)) {  // length   changed from 4400 to 6840
-                                                                       // distance changed from  680 to 1280 to 6800
+                        int lengthAd = 1000 * (lNextStart->position - lNextStop->position) / macontext.Video.Info.framesPerSecond;
+                        dsyslog("cMarkAdStandalone::CheckStart(): next logo stop (%d) start (%d), distance %dms, length %dms", lNextStop->position, lNextStart->position, distance, lengthAd);
+                        if ((distance <= 6800) && (lengthAd <= 6840)) { // lengthAd changed from 4400 to 6840
+                                                                        // distance changed from 1280 to 6800
                             dsyslog("cMarkAdStandalone::CheckStart(): logo stop/start pair after closing credits is invalid, deleting");
                             marks.Del(lNextStop->position);
                             marks.Del(lNextStart->position);
@@ -1861,10 +1860,10 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                         maxAd            = 505;
                         maxBeforeAssumed = 755;
                     }
-                    int iStopA = marks.GetFirst()->position + macontext.Video.Info.framesPerSecond * (length + macontext.Config->astopoffs);  // we have to recalculate iStopA
+                    int iStopA2 = marks.GetFirst()->position + macontext.Video.Info.framesPerSecond * (length + macontext.Config->astopoffs);  // we have to recalculate iStopA
                     if (markPrev->type == MT_LOGOSTART) {
-                        int diffAssumedStopStart = (iStopA - markPrev->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::CheckMarks(): last logo start mark (%d) is %ds before assumed stop (%d)", markPrev->position, diffAssumedStopStart, iStopA);
+                        int diffAssumedStopStart = (iStopA2 - markPrev->position) / macontext.Video.Info.framesPerSecond;
+                        dsyslog("cMarkAdStandalone::CheckMarks(): last logo start mark (%d) is %ds before assumed stop (%d)", markPrev->position, diffAssumedStopStart, iStopA2);
                         if (diffAssumedStopStart <= 16) {
                             maxAd            = 529;
                             maxBeforeAssumed = 498;
@@ -1874,8 +1873,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 
                     if ((diffStop > 2) && (diffStop <= maxAd)) { // changed from 0 to 2 to avoid move to logo detection failure
                         if ((mark->type != MT_LOGOSTOP) || (diffStop < 11) || (diffStop > 12)) { // ad from 11s to 12s can be undetected info logo at the end (SAT.1 or RTL2)
-                            int diffAssumed = (iStopA - markStop->position) / macontext.Video.Info.framesPerSecond; // distance from assumed stop
-                            dsyslog("cMarkAdStandalone::CheckMarks(): last stop mark (%d) %ds (expect <=%ds) before assumed stop (%d)", markStop->position, diffAssumed, maxBeforeAssumed, iStopA);
+                            int diffAssumed = (iStopA2 - markStop->position) / macontext.Video.Info.framesPerSecond; // distance from assumed stop
+                            dsyslog("cMarkAdStandalone::CheckMarks(): last stop mark (%d) %ds (expect <=%ds) before assumed stop (%d)", markStop->position, diffAssumed, maxBeforeAssumed, iStopA2);
                             if (diffAssumed <= maxBeforeAssumed) {
                                 dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark before as end mark, assume too big recording length");
                                 marks.Del(mark->position);
@@ -3729,9 +3728,10 @@ bool cMarkAdStandalone::SaveInfo() {
 
 bool cMarkAdStandalone::IsVPSTimer() {
     if (!directory) return false;
-    bool timerVPS = false;
 
-    char *fpath = NULL;
+    bool timerVPS = false;
+    char *fpath   = NULL;
+
     if (asprintf(&fpath, "%s/%s", directory, "markad.vps") == -1) return false;
     ALLOC(strlen(fpath)+1, "fpath");
 
@@ -3746,16 +3746,18 @@ bool cMarkAdStandalone::IsVPSTimer() {
     FREE(strlen(fpath)+1, "fpath");
     free(fpath);
 
-    char *line = NULL;
-    size_t length;
-    char vpsTimer[12] = "";
-    while (getline(&line, &length, mf) != -1) {
+    size_t size;
+    char   *line        = NULL;
+    char   vpsTimer[12] = "";
+
+    while (getline(&line, &size, mf) != -1) {
         sscanf(line, "%12s", (char *) &vpsTimer);
         if (strcmp(vpsTimer, "VPSTIMER=YES") == 0) {
             timerVPS = true;
             break;
         }
     }
+
     if (line) free(line);
     fclose(mf);
     return timerVPS;
