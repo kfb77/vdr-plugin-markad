@@ -4347,7 +4347,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         ptitle = title;
     }
     else {
-        ptitle = (char *) directory;
+        ptitle = const_cast<char *>(directory);
     }
 
     if (config->osd) {
