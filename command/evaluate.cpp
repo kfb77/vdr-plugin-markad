@@ -103,8 +103,8 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
             logoPairVector.push_back(newPair);
             ALLOC(sizeof(sLogoStopStartPair), "logoPairVector");
             // reset for next pair
-            newPair.stopPosition = -1;
-            newPair.startPosition = -1;
+            newPair.stopPosition  = -1;
+//            newPair.startPosition = -1;    // no need to reset
         }
         mark = mark->Next();
     }
@@ -827,7 +827,6 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
 
         int sumPixel              = 0;
-        int sumPixelNonLogoCorner = 0;
         int countZero             = 0;
         int zoomedPictureCount    = 0;
         int darkCorner            = 0;
@@ -836,7 +835,6 @@ bool cDetectLogoStopStart::IsInfoLogo() {
             if ((*cornerResultIt).rate[corner] == 0) countZero++;
             if (((*cornerResultIt).rate[corner] >= 319) || ((*cornerResultIt).rate[corner] <= 0))zoomedPictureCount++;
             sumPixel += (*cornerResultIt).rate[corner];
-            if (corner != maContext->Video.Logo.corner) sumPixelNonLogoCorner += (*cornerResultIt).rate[corner];
             if (((*cornerResultIt).rate[corner] <=   0) && (corner != maContext->Video.Logo.corner)) darkCorner++;   // if we have no match, this can be a too dark corner
         }
         // dark scene
