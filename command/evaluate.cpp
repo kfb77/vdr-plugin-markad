@@ -158,16 +158,16 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
     //
     for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
         if (logoPairIterator->isAdvertising == 1) {  // advertising pair
-            std::vector<sLogoStopStartPair>::iterator nextLogoPairIterator = logoPairIterator;
-            ++nextLogoPairIterator;
-            if (nextLogoPairIterator != logoPairVector.end()) {
-                if ((nextLogoPairIterator->isLogoChange == 0) && (nextLogoPairIterator->isStartMarkInBroadcast  == 0)){ // unknown pair
-                    std::vector<sLogoStopStartPair>::iterator next2LogoPairIterator = nextLogoPairIterator;
+            std::vector<sLogoStopStartPair>::iterator next1LogoPairIterator = logoPairIterator;
+            ++next1LogoPairIterator;
+            if (next1LogoPairIterator != logoPairVector.end()) {
+                if ((next1LogoPairIterator->isLogoChange == 0) && (next1LogoPairIterator->isStartMarkInBroadcast  == 0)){ // unknown pair
+                    std::vector<sLogoStopStartPair>::iterator next2LogoPairIterator = next1LogoPairIterator;
                     ++next2LogoPairIterator;
                     if (next2LogoPairIterator != logoPairVector.end()) {
                         if (next2LogoPairIterator->isStartMarkInBroadcast  == 1) { // pair with bradcast start mark
-                            dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: part between advertising and broadcast, keep this mark because it contains start mark of broadcast)", nextLogoPairIterator->stopPosition, nextLogoPairIterator->startPosition);
-                            nextLogoPairIterator->isLogoChange = STATUS_NO;
+                            dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: part between advertising and broadcast, keep this mark because it contains start mark of broadcast)", next1LogoPairIterator->stopPosition, next1LogoPairIterator->startPosition);
+                            next1LogoPairIterator->isLogoChange = STATUS_NO;
                         }
                         if ((next2LogoPairIterator->isLogoChange == 0) && (next2LogoPairIterator->isStartMarkInBroadcast  == 0)) { // unknown pair
                             std::vector<sLogoStopStartPair>::iterator next3LogoPairIterator = next2LogoPairIterator;
