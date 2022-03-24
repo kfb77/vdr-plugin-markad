@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2022-03-06: Version 3.0.21
+- update for the new ffmpeg channel layout API
+- fix integer overflow on 32 bit systemsV03
+- some minor bug fixes and optimizations, see git
+
 2022-03-06: Version 3.0.20
 - add subtitle stream to video cut
 - do not use timer locks
