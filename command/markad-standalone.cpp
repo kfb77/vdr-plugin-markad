@@ -2079,7 +2079,9 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
         if (isPause) {
             dsyslog("cMarkAdStandalone::AddMarkVPS(): no mark found to replace with pause mark, add new mark");
             if (asprintf(&comment,"VPS %s (%d)%s", (type == MT_START) ? "pause start" : "pause stop", vpsFrame, (type == MT_START) ? "*" : "") == -1) comment=NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             marks.Add((type == MT_START) ? MT_VPSSTART : MT_VPSSTOP, vpsFrame, comment);
             FREE(strlen(comment)+1,"comment");
             free(comment);
@@ -2099,7 +2101,9 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
         else {
             dsyslog("cMarkAdStandalone::AddMarkVPS(): mark to replace at frame (%d) type 0x%X at %s", mark->position, mark->type, timeText);
             if (asprintf(&comment,"VPS %s (%d), moved from %s mark (%d) at %s %s", (type == MT_START) ? "start" : "stop", vpsFrame, marks.TypeToText(mark->type), mark->position, timeText, (type == MT_START) ? "*" : "") == -1) comment=NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             dsyslog("cMarkAdStandalone::AddMarkVPS(): delete mark on position (%d)", mark->position);
             marks.Del(mark->position);
             marks.Add((type == MT_START) ? MT_VPSSTART : MT_VPSSTOP, vpsFrame, comment);
