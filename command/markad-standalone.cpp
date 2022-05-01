@@ -855,10 +855,14 @@ void cMarkAdStandalone::CheckStart() {
             dsyslog("cMarkAdStandalone::CheckStart(): channel stop without start mark found (%i), assume as start mark of the following recording, convert it to assumed start mark", pos);  // for later use, if we found nothing else
             marks.Del(pos);
             if (asprintf(&comment,"assumed start from channel stop (%d)", pos) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             marks.Add(MT_ASSUMEDSTART, pos, comment);
-            FREE(strlen(comment)+1, "comment");
-            free(comment);
+            if (comment) {
+                FREE(strlen(comment)+1, "comment");
+                free(comment);
+            }
         }
     }
 
@@ -1105,10 +1109,14 @@ void cMarkAdStandalone::CheckStart() {
                 dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop without start mark found (%i), assume as start mark of the following recording", pos);
                 marks.Del(pos);
                 if (asprintf(&comment,"assumed start from horizontal border stop (%d)", pos) == -1) comment = NULL;
-                ALLOC(strlen(comment)+1, "comment");
+                if (comment) {
+                    ALLOC(strlen(comment)+1, "comment");
+                }
                 begin=marks.Add(MT_ASSUMEDSTART, pos, comment);
-                FREE(strlen(comment)+1, "comment");
-                free(comment);
+                if (comment) {
+                    FREE(strlen(comment)+1, "comment");
+                    free(comment);
+                }
             }
         }
     }
@@ -1127,10 +1135,14 @@ void cMarkAdStandalone::CheckStart() {
                 dsyslog("cMarkAdStandalone::CheckStart(): vertical border stop without start mark found (%i), possible start mark of the following recording", pos);
                 marks.Del(pos);
                 if (asprintf(&comment,"assumed start from vertical border stop (%d)", pos) == -1) comment = NULL;
-                ALLOC(strlen(comment)+1, "comment");
+                if (comment) {
+                    ALLOC(strlen(comment)+1, "comment");
+                }
                 marks.Add(MT_ASSUMEDSTART, pos, comment);
-                FREE(strlen(comment)+1, "comment");
-                free(comment);
+                if (comment) {
+                    FREE(strlen(comment)+1, "comment");
+                    free(comment);
+                }
             }
         }
         else {
