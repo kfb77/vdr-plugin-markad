@@ -4322,7 +4322,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     }
 
     if (asprintf(&indexFile, "%s/index", directory) == -1) indexFile = NULL;
-    ALLOC(strlen(indexFile)+1, "indexFile");
+    if (indexFile) {
+        ALLOC(strlen(indexFile)+1, "indexFile");
+    }
 
     if (!LoadInfo()) {
         if (bDecodeVideo) {
