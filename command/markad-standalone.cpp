@@ -2131,53 +2131,77 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     switch (mark->type) {
         case MT_ASSUMEDSTART:
             if (asprintf(&comment, "assuming start (%6d)*", mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         case MT_ASSUMEDSTOP:
             if (asprintf(&comment, "assuming stop  (%6d) ", mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         case MT_NOBLACKSTART:
             if (asprintf(&comment, "detected end of black screen   (%6d)*", mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         case MT_NOBLACKSTOP:
             if (asprintf(&comment, "detected start of black screen (%6d) ", mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         case MT_LOGOSTART:
             if (asprintf(&comment, "detected logo start (%6d)*", mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         case MT_LOGOSTOP:
             if (asprintf(&comment, "detected logo stop  (%6d) ", mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         case MT_HBORDERSTART:
             if (asprintf(&comment, "detected start of horiz. borders (%6d)*", mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         case MT_HBORDERSTOP:
             if (asprintf(&comment, "detected stop  of horiz. borders (%6d) ", mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         case MT_VBORDERSTART:
             if (asprintf(&comment, "detected start of vert. borders (%6d)*", mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         case MT_VBORDERSTOP:
             if (asprintf(&comment, "detected stop  of vert. borders (%6d) ", mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         case MT_ASPECTSTART:
             if (!mark->AspectRatioBefore.num) {
                 if (asprintf(&comment, "aspect ratio start with %2d:%d (%6d)*", mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position) == -1) comment = NULL;
-                ALLOC(strlen(comment)+1, "comment");
+                if (comment) {
+                    ALLOC(strlen(comment)+1, "comment");
+                }
             }
             else {
                 if (asprintf(&comment, "aspect ratio change from %2d:%d to %2d:%d (%6d)*", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den,
                          mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position) == -1) comment = NULL;
-                ALLOC(strlen(comment)+1, "comment");
+                if (comment) {
+                    ALLOC(strlen(comment)+1, "comment");
+                }
                 if ((macontext.Config->autoLogo > 0) &&( mark->position > 0) && bDecodeVideo) {
                     isyslog("aspect ratio change from %2d:%d to %2d:%d at frame (%d), logo detection reenabled", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position);
                     macontext.Video.Options.ignoreLogoDetection = false;
@@ -2186,9 +2210,10 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             }
             break;
         case MT_ASPECTSTOP:
-            if (asprintf(&comment, "aspect ratio change from %2d:%d to %2d:%d (%6d) ", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den,
-                     mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (asprintf(&comment, "aspect ratio change from %2d:%d to %2d:%d (%6d) ", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position) == -1) comment = NULL;
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             if ((macontext.Config->autoLogo > 0) && (mark->position > 0) && bDecodeVideo) {
                 isyslog("logo detection reenabled at frame (%d)", mark->position);
                 macontext.Video.Options.ignoreLogoDetection = false;
@@ -2198,7 +2223,9 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         case MT_CHANNELSTART:
             macontext.Audio.Info.channelChange = true;
             if (asprintf(&comment, "audio channel change from %i to %i (%6d)*", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         case MT_CHANNELSTOP:
             if ((mark->position > chkSTART) && (mark->position < iStopA / 2) && !macontext.Audio.Info.channelChange) {
@@ -2211,15 +2238,21 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             }
             macontext.Audio.Info.channelChange = true;
             if (asprintf(&comment, "audio channel change from %i to %i (%6d)", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         case MT_RECORDINGSTART:
             if (asprintf(&comment, "start of recording (%6d)*", mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         case MT_RECORDINGSTOP:
             if (asprintf(&comment, "stop of recording (%6d) ",mark->position) == -1) comment = NULL;
-            ALLOC(strlen(comment)+1, "comment");
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
             break;
         default:
             dsyslog("cMarkAdStandalone::AddMark(): unknown mark type 0x%X", mark->type);
