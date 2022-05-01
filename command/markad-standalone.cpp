@@ -4108,16 +4108,18 @@ bool cMarkAdStandalone::CheckTS() {
     if (asprintf(&buf, "%s/00001.ts", directory) == -1) return false;
     ALLOC(strlen(buf)+1, "buf");
     struct stat statbuf;
-    if (stat(buf,&statbuf) == -1) {
+    if (stat(buf, &statbuf) == -1) {
         if (errno != ENOENT) {
             FREE(strlen(buf)+1, "buf");
             free(buf);
             return false;
         }
-        buf=NULL;
+        buf = NULL;
     }
-    FREE(strlen(buf)+1, "buf");
-    free(buf);
+    if (buf) {
+        FREE(strlen(buf)+1, "buf");
+        free(buf);
+    }
     return true;
 }
 
