@@ -693,6 +693,15 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
             codecCtxArrayOut[streamIndexOut]->channels = codecCtxArrayIn[streamIndexIn]->channels;
 #endif
             codecCtxArrayOut[streamIndexOut]->bit_rate = codecCtxArrayIn[streamIndexIn]->bit_rate;
+
+            // audio sampe format
+            dsyslog("cEncoder::InitEncoderCodec():            input audio codec sample format %d -> %s", codecCtxArrayIn[streamIndexIn]->sample_fmt, av_get_sample_fmt_name(codecCtxArrayIn[streamIndexIn]->sample_fmt));
+            const enum AVSampleFormat *sampleFormats = codec->sample_fmts;
+            while (*sampleFormats != AV_SAMPLE_FMT_NONE) {
+                dsyslog("cEncoder::InitEncoderCodec(): supported output audio codec sample format %d -> %s", *sampleFormats, av_get_sample_fmt_name(*sampleFormats));
+                sampleFormats++;
+            }
+
             if (codecCtxArrayIn[streamIndexIn]->sample_fmt == AV_SAMPLE_FMT_S16P) {  // libav do not support planar audio
                 codecCtxArrayOut[streamIndexOut]->sample_fmt = AV_SAMPLE_FMT_S16;
                 swrArray[streamIndexOut] = swr_alloc();
@@ -709,6 +718,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
                 av_opt_set_sample_fmt(swrArray[streamIndexOut], "in_sample_fmt", AV_SAMPLE_FMT_S16P, 0);
                 av_opt_set_sample_fmt(swrArray[streamIndexOut], "out_sample_fmt", AV_SAMPLE_FMT_S16,  0);
                 swr_init(swrArray[streamIndexOut]);
+
             }
             else codecCtxArrayOut[streamIndexOut]->sample_fmt = codecCtxArrayIn[streamIndexIn]->sample_fmt;
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
