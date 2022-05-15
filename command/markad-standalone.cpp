@@ -205,7 +205,10 @@ void cMarkAdStandalone::CheckStop() {
                 if (cStartFirst) {
                     int deltaC = (end->position - cStartFirst->position) / macontext.Video.Info.framesPerSecond;
                     if (deltaC < 305) {  // changed from 300 to 305
-                    dsyslog("cMarkAdStandalone::CheckStop(): first channel start mark and possible channel end mark to near, this belongs to the next recording");
+                    dsyslog("cMarkAdStandalone::CheckStop(): first channel start mark (%d) and possible channel end mark (%d) to near %ds, this belongs to the next recording", cStartFirst->position, end->position, deltaC);
+                    dsyslog("cMarkAdStandalone::CheckStop(): delete channel marks at (%d) and (%d)", cStartFirst->position, end->position);
+                    marks.Del(cStartFirst->position);
+                    marks.Del(end->position);
                     end = NULL;
                     }
                 }
@@ -2237,11 +2240,14 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             }
             break;
         case MT_CHANNELSTART:
-            macontext.Audio.Info.channelChange = true;
             if (asprintf(&comment, "audio channel change from %i to %i (%6d)*", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
             if (comment) {
                 ALLOC(strlen(comment)+1, "comment");
             }
+            if (!macontext.Audio.Info.channelChange && (mark->position > iStopA / 2)) {
+                dsyslog("AddMark(): first channel start at frame (%d) after half of assumed recording length at frame (%d), this is start mark of next braoscast", mark->position, iStopA / 2);
+            }
+            else macontext.Audio.Info.channelChange = true;
             break;
         case MT_CHANNELSTOP:
             if ((mark->position > chkSTART) && (mark->position < iStopA / 2) && !macontext.Audio.Info.channelChange) {
