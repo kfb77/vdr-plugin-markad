@@ -404,7 +404,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMax  =  210;
     }
     if (strcmp(maContext->Info.ChannelName, "Das_Erste_HD") == 0) {     // Das_Erste_HD            16:9 1280W  720H:->  146W 114H TOP_RIGHT
-        logo.widthMax  = 146;
+        logo.widthMax  = 148;     // 2 more pixel for better match
     }
     if (strcmp(maContext->Info.ChannelName, "Einsfestival_HD") == 0) {  // Einsfestival_HD         16:9 1280W  720H:->  300W  80H TOP_RIGHT
         logo.widthMax  = 300;
