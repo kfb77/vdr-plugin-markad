@@ -37,17 +37,21 @@ class cOSDMessage {
         int Send(const char *format, ...);
 
     private:
-        char *host;                                  //!< VDR host name or IP address
-                                                     //!<
-        int port;                                    //!< VDR port number to send OSD messages
-                                                     //!<
-        char *msg = NULL;                            //!< OSD message
-                                                     //!<
-        pthread_t tid = 0;                           //!< thread id of the OSD message
-                                                     //!<
-        static void *SendMessage(void *osd);         //!< send OSD message
-                                                     //!<
-        bool ReadReply(int fd, char **reply = NULL); //!< read reply from OSD
-                                                     //!<
+
+        cOSDMessage(const cOSDMessage &cOSDMessageCopy); // not implemented
+        cOSDMessage &operator=(const cOSDMessage &foo);  // not implemented
+
+        char *host;                                      //!< VDR host name or IP address
+                                                         //!<
+        int port;                                        //!< VDR port number to send OSD messages
+                                                         //!<
+        char *msg     = NULL;                            //!< OSD message
+                                                         //!<
+        pthread_t tid = 0;                               //!< thread id of the OSD message
+                                                         //!<
+        static void *SendMessage(void *osd);             //!< send OSD message
+                                                         //!<
+        bool ReadReply(int fd, char **reply = NULL);     //!< read reply from OSD
+                                                         //!<
 };
 #endif

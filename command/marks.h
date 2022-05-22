@@ -83,10 +83,13 @@ class cMark {
                                    //!<
 
     private:
-        cMark *next;  //!< next mark
-                      //!<
-        cMark *prev;  //!< previous mark
-                      //!<
+        cMark(const cMark &cMarkCopy);       // not implemented
+        cMark &operator=(const cMark &foo);  // not implemented
+
+        cMark *next;                         //!< next mark
+                                             //!<
+        cMark *prev;                         //!< previous mark
+                                             //!<
 
 };
 
