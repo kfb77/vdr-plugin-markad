@@ -209,11 +209,11 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
         return false;
     }
 
-    codecCtxArrayOut = (AVCodecContext **) malloc(sizeof(AVCodecContext *) * avctxIn->nb_streams);
+    codecCtxArrayOut = static_cast<AVCodecContext **>(malloc(sizeof(AVCodecContext *) * avctxIn->nb_streams));
     ALLOC(sizeof(AVCodecContext *) * avctxIn->nb_streams, "codecCtxArrayOut");
     memset(codecCtxArrayOut, 0, sizeof(AVCodecContext *) * avctxIn->nb_streams);
 
-    swrArray = (SwrContext **) malloc(sizeof(SwrContext *) * avctxIn->nb_streams);
+    swrArray = static_cast<SwrContext **>(malloc(sizeof(SwrContext *) * avctxIn->nb_streams));
     ALLOC(sizeof(SwrContext *) * avctxIn->nb_streams, "swrArray");
     memset(swrArray, 0, sizeof(SwrContext *) * avctxIn->nb_streams);
 
@@ -812,7 +812,7 @@ bool cEncoder::ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int 
         return false;
     }
     // convert to destination format
-    ret = swr_convert(swrArray[streamIndex], avFrameOut->extended_data, avFrameIn->nb_samples, (const uint8_t**)avFrameIn->extended_data, avFrameIn->nb_samples);
+    ret = swr_convert(swrArray[streamIndex], avFrameOut->extended_data, avFrameIn->nb_samples, const_cast<const uint8_t**>(avFrameIn->extended_data), avFrameIn->nb_samples);
     if (ret < 0) {
         dsyslog("cEncoder::ReSampleAudio():  Error while converting audio stream");
         return false;

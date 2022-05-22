@@ -4653,7 +4653,7 @@ int usage(int svdrpport) {
 
 static void signal_handler(int sig) {
     void *trace[32];
-    char **messages = (char **)NULL;
+    char **messages = static_cast<char **>(NULL);
     int i, trace_size = 0;
 
     switch (sig) {
