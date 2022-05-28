@@ -820,12 +820,14 @@ bool cEncoder::ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int 
     ALLOC(sizeof(*(avFrameOut->extended_data)), "extended_data");  // only size of pointer array as reminder
 
     // set frame values
-#if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   // fix mp2 encoding with ffmpeg >= 4.4
-    avFrameOut->channels   = avFrameIn->channels;
+#if   LIBAVCODEC_VERSION_INT >= ((59<<16)+( 32<<8)+101)
+    avFrameOut->ch_layout.nb_channels = avFrameIn->ch_layout.nb_channels;
+#elif LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   // fix mp2 encoding with ffmpeg >= 4.4
+    avFrameOut->channels              = avFrameIn->channels;
 #endif
-    avFrameOut->format     = AV_SAMPLE_FMT_S16;
-    avFrameOut->nb_samples = avFrameIn->nb_samples;
-    avFrameOut->pts        = avFrameIn->pts;
+    avFrameOut->format                = AV_SAMPLE_FMT_S16;
+    avFrameOut->nb_samples            = avFrameIn->nb_samples;
+    avFrameOut->pts                   = avFrameIn->pts;
     return true;
 }
 
