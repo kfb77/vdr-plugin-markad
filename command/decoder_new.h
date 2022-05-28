@@ -37,10 +37,12 @@ extern "C"{
 #endif
 
 
-// libavcodec versions of some distributions
+// libavcodec versions
 //
-// valid versions
+// suported versions
+// #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 32<<8)+101)   ffmpeg N-107018-gfab9130c7a (git 28.05.2022)
 // #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)   ffmpeg N-106355-ga24e6ca8bf
+// #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 18<<8)+100)   ffmpeg 5.0.1
 // #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 12<<8)+100)   ffmpeg 4.5    (BM2LTS v4.0.20)
 // #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(  1<<8)+100)   ffmpeg 4.5
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4.1  (Ubuntu 22.04) (Debian 12 Bookworm) (Fedora 34) (Fedora 35)
@@ -55,8 +57,10 @@ extern "C"{
 // #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 57<<8)+100)   ffmpeg 2.7.2  (Ubuntu 14.04)
 // #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 26<<8)+100)   ffmpeg 2      (Debian 8 Jessie
 // #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(  1<<8)+  0)   ffmpeg 2      (Rasbian Jessie
+//
+// end of live version
 
-#define LIBAVCODEC_VERSION_VALID      ((57<<16)+( 64<<8)+101)   // oldest valid version
+#define LIBAVCODEC_VERSION_VALID      ((57<<16)+( 64<<8)+101)   // oldest suported version
 #define LIBAVCODEC_VERSION_DEPRECATED ((56<<16)+(  1<<8)+  0)   // oldest deprecated version, older is invalid
 
 
