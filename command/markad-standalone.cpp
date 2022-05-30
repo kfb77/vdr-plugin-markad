@@ -3855,13 +3855,17 @@ time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
         dsyslog("cMarkAdStandalone::GetRecordingStart(): broadcast start time from vdr info file                          %s", strtok(ctime(&start), "\n"));
     }
 
-    // try to get from mtime
+    // (try to get from mtime)
     // (and hope info.vdr has not changed after the start of the recording)
+    // since vdr 2.6 with the recording error count in the info file, this is not longer valid
+    // use it only if mtime fits a common pre timer value
     if (fstat(fd,&statbuf) != -1) {
-        if (fabs(difftime(start, statbuf.st_mtime)) < 7200) {
-            dsyslog("cMarkAdStandalone::GetRecordingStart(): getting recording start from VDR info file modification time     %s", strtok(ctime(&statbuf.st_mtime), "\n"));
+        dsyslog("cMarkAdStandalone::GetRecordingStart(): recording start from VDR info file modification time             %s", strtok(ctime(&statbuf.st_mtime), "\n"));
+        if (fabs(difftime(start, statbuf.st_mtime)) < 600) {  // max valid pre time 10 min
+            dsyslog("cMarkAdStandalone::GetRecordingStart(): use recording start from VDR info file modification time         %s", strtok(ctime(&statbuf.st_mtime), "\n"));
             return (time_t) statbuf.st_mtime;
         }
+        else dsyslog("cMarkAdStandalone::GetRecordingStart(): vdr info file modification time %ds after recording start, file was modified because of vdr error counter", int(difftime(statbuf.st_mtime, start)));
     }
 
     // fallback to the directory name (time part)
