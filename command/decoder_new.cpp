@@ -509,24 +509,29 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
         if (IsAudioPacket()) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-        av_channel_layout_default(&avctx->streams[avpkt->stream_index]->codecpar->ch_layout, avctx->streams[avpkt->stream_index]->codecpar->ch_layout.u.mask);
-        avFrame->ch_layout.u.mask = avctx->streams[avpkt->stream_index]->codecpar->ch_layout.u.mask;
+        avFrame->nb_samples     = codecCtxArray[avpkt->stream_index]->frame_size;
+        avFrame->format         = codecCtxArray[avpkt->stream_index]->sample_fmt;
+        int ret                 = av_channel_layout_copy(&avFrame->ch_layout, &codecCtxArray[avpkt->stream_index]->ch_layout);
+        if (ret < 0) {
+            dsyslog("cDecoder::DecodePacket(): av_channel_layout_copy failed, rc = %d", ret);
+            return NULL;
+        }
     #else
-        avFrame->nb_samples = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codecpar->channel_layout);
+        avFrame->nb_samples     = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codecpar->channel_layout);
         avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codecpar->channel_layout;
     #endif
-        avFrame->format = avctx->streams[avpkt->stream_index]->codecpar->format;
-        avFrame->sample_rate = avctx->streams[avpkt->stream_index]->codecpar->sample_rate;
+        avFrame->format         = avctx->streams[avpkt->stream_index]->codecpar->format;
+        avFrame->sample_rate    = avctx->streams[avpkt->stream_index]->codecpar->sample_rate;
 #elif LIBAVCODEC_VERSION_INT >= ((56<<16)+(26<<8)+100)
-        avFrame->nb_samples = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codec->channel_layout);
+        avFrame->nb_samples     = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codec->channel_layout);
         avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codec->channel_layout;
-        avFrame->format = codecCtxArray[avpkt->stream_index]->sample_fmt;
-        avFrame->sample_rate = avctx->streams[avpkt->stream_index]->codec->sample_rate;
+        avFrame->format         = codecCtxArray[avpkt->stream_index]->sample_fmt;
+        avFrame->sample_rate    = avctx->streams[avpkt->stream_index]->codec->sample_rate;
 #else  // Raspbian Jessie
-        avFrame->nb_samples = av_popcount64(avctx->streams[avpkt->stream_index]->codec->channel_layout);
+        avFrame->nb_samples     = av_popcount64(avctx->streams[avpkt->stream_index]->codec->channel_layout);
         avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codec->channel_layout;
-        avFrame->format = codecCtxArray[avpkt->stream_index]->sample_fmt;
-        avFrame->sample_rate = avctx->streams[avpkt->stream_index]->codec->sample_rate;
+        avFrame->format         = codecCtxArray[avpkt->stream_index]->sample_fmt;
+        avFrame->sample_rate    = avctx->streams[avpkt->stream_index]->codec->sample_rate;
 #endif
         }
         else {
@@ -546,7 +551,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
 
     int rc = av_frame_get_buffer(avFrame, 32);
     if (rc != 0) {
-        dsyslog("cDecoder::DecodePacket(): av_frame_get_buffer failed rc=%i", rc);
+        dsyslog("cDecoder::DecodePacket(): stream index %d: av_frame_get_buffer failed rc=%i", avpkt->stream_index, rc);
         if (avFrame) {
             FREE(sizeof(*avFrame), "avFrame");
             av_frame_free(&avFrame);
