@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2022-06-04: Version 3.0.23
+- some fixes for the new ffmpeg channel layout API
+- adjustments for vdr 2.6 error counter
+- declare ffmpeg 3.2.18 from Debian 9 Stretch as deprecated
+- some minor bug fixes and optimizations, see git
+
 2022-05-05: Version 3.0.22
 - fix encoding of mp2 audio with ffmpeg >= 4.4
 - fix some possible null pointer dereference
