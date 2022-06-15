@@ -27,7 +27,7 @@ class cMark {
  * @param commentParam     mark comment
  * @param inBroadCastParam true if mark is in broadcast, false if mark is in advertising
  */
-        cMark(const int typeParam = 0, const int positionParam = 0, const char *commentParam = NULL, const bool inBroadCastParam = false);
+        explicit cMark(const int typeParam = 0, const int positionParam = 0, const char *commentParam = NULL, const bool inBroadCastParam = false);
 
         ~cMark();
 
