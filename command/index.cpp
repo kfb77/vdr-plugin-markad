@@ -49,6 +49,14 @@ void cIndex::Add(const int fileNumber, const int frameNumber, const int ptsTimeO
         newIndex.frameNumber        = frameNumber;
         newIndex.ptsTimeOffset_ms   = ptsTimeOffset_ms;
         newIndex.frameTimeOffset_ms = frameTimeOffset_ms;
+
+// on arm systems with gcc 9 we got a segfault if push_back alloc the memory for the new element in the vector
+// solution: pre alloc the memory for the new element
+// see: https://www.vdr-portal.de/forum/index.php?thread/133203-markad-%C3%BCberarbeiteter-decoder/&postID=1351412#post1351412
+#if (defined(CXXVERSION) && (CXXVERSION==9))
+        indexSize++;
+        indexVector.reserve(indexSize);
+#endif
         indexVector.push_back(newIndex);
         ALLOC(sizeof(sIndexElement), "indexVector");
     }
