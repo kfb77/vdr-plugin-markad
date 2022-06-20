@@ -119,5 +119,7 @@ class cIndex {
         };
         std::vector<sPTS_RingbufferElement> ptsRing; //!< ring buffer for PTS per frameA
                                                      //!<
+
+#define MAX_PTSRING 35                               // maximum Element in ptsRing Ring Buffer
 };
 #endif

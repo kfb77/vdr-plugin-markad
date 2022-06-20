@@ -12,6 +12,7 @@ extern "C" {
 
 
 cIndex::cIndex() {
+    ptsRing.reserve(MAX_PTSRING + 2);  // pre alloc memory of static length ptsRing
 }
 
 
@@ -211,7 +212,7 @@ void cIndex::AddPTS(const int frameNumber, const int64_t pts) {
     ALLOC(sizeof(sPTS_RingbufferElement), "ptsRing");
 
     // delete oldest entry
-    if (ptsRing.size() > 35) {  // changed from 20 to 35
+    if (ptsRing.size() > MAX_PTSRING) {
         ptsRing.erase(ptsRing.begin());
         FREE(sizeof(sPTS_RingbufferElement), "ptsRing");
     }
