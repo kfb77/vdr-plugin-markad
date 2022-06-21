@@ -13,6 +13,7 @@ extern "C" {
 
 cIndex::cIndex() {
     ptsRing.reserve(MAX_PTSRING + 2);  // pre alloc memory of static length ptsRing
+    indexVector.reserve(1000);       // pre alloc memory for 1000 index elements
 }
 
 
@@ -42,7 +43,7 @@ int cIndex::GetLastFrameNumber() {
 void cIndex::Add(const int fileNumber, const int frameNumber, const int ptsTimeOffset_ms, const int frameTimeOffset_ms) {
     if (GetLastFrameNumber() < frameNumber) {
 #ifdef DEBUG_INDEX
-        dsyslog("cDecoder::GetNextPacket(): filenumber %d, frameNumber %5d, ptsTimeOffset_ms %5d, frameTimeOffset_ms %5d", fileNumber, frameNumber, ptsTimeOffset_ms, frameTimeOffset_ms);
+        dsyslog("cIndex::Add(): filenumber %d, frameNumber %5d, ptsTimeOffset_ms %5d, frameTimeOffset_ms %5d", fileNumber, frameNumber, ptsTimeOffset_ms, frameTimeOffset_ms);
 #endif
         // add new frame timestamp to vector
         sIndexElement newIndex;
@@ -51,13 +52,11 @@ void cIndex::Add(const int fileNumber, const int frameNumber, const int ptsTimeO
         newIndex.ptsTimeOffset_ms   = ptsTimeOffset_ms;
         newIndex.frameTimeOffset_ms = frameTimeOffset_ms;
 
-// on arm systems with gcc 9 we got a segfault if push_back alloc the memory for the new element in the vector
-// solution: pre alloc the memory for the new element
-// see: https://www.vdr-portal.de/forum/index.php?thread/133203-markad-%C3%BCberarbeiteter-decoder/&postID=1351412#post1351412
-#if (defined(CXXVERSION) && (CXXVERSION==9))
-        indexSize++;
-        indexVector.reserve(indexSize);
-#endif
+        if (indexVector.size() == indexVector.capacity()) {
+            dsyslog("cIndex::Add(): indexVector size %ld, reserve memory for 1000 more elements", indexVector.size());
+            indexVector.reserve(1000);
+        }
+
         indexVector.push_back(newIndex);
         ALLOC(sizeof(sIndexElement), "indexVector");
     }

@@ -104,10 +104,6 @@ class cIndex {
         };
         std::vector<sIndexElement> indexVector;     //!< recording index
                                                     //!<
-#if (defined(CXXVERSION) && (CXXVERSION==9))
-        int indexSize              = 0;
-#endif
-
 /**
  * ring buffer element to store frame presentation timestamp
  */
