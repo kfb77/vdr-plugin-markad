@@ -4,6 +4,7 @@ Basic Installation
 Prerequisite:
 - build-essential (gcc >= 4.8.4)
 - git
+- pkg-config
 - vdr-dev         (>= version 2.2)
 - libavcodec-dev  (>= 56.1.0 from FFmpeg 2.4)
 - libavformat-dev
