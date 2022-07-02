@@ -460,9 +460,9 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
         }
         else {
             char *log = NULL;
-            if ((recs[index].epgEventLog) && (asprintf(&log, "VPS stop to fast after start, reset to not running") != -1)) recs[index].epgEventLog->Log(log);
+            if ((recs[index].epgEventLog) && (asprintf(&log, "VPS stop to fast after start, invalid VPS sequence, abort VPS detection") != -1)) recs[index].epgEventLog->Log(log);
             if (log) free(log);
-            recs[index].vpsStartTime=0;
+            recs[index].runningStatus = -1;
             return false;
         }
     }
