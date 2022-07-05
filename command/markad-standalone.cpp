@@ -4734,7 +4734,7 @@ int main(int argc, char *argv[]) {
         config.svdrpport = htons(serv->s_port);
     }
     else {
-        config.svdrpport = 2001;
+        config.svdrpport = 6419;
     }
 
     atexit(freedir);
