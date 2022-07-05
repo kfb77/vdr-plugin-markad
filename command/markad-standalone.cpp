@@ -4861,6 +4861,7 @@ int main(int argc, char *argv[]) {
                 break;
             case 'I':
                 config.saveInfo = true;
+                fprintf(stderr, "markad: option -I (--saveinfo) is depreciated and will be removed in next release\n");
                 break;
             case 'L':
                 // --extractlogo

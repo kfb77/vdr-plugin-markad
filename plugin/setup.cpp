@@ -10,28 +10,28 @@
 
 
 cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
-    setup = Setup;
-    processduring = setup->ProcessDuring;
-    usevps = setup->useVPS;
-    logvps = setup->logVPS;
-    whilerecording = setup->whileRecording;
-    whilereplaying = setup->whileReplaying;
-    osdmsg = setup->OSDMessage;
-    svdrPort = setup->svdrPort;
-    verbose = setup->Verbose;
-    nomargins = setup->NoMargins;
+    setup             = Setup;
+    processduring     = setup->ProcessDuring;
+    usevps            = setup->useVPS;
+    logvps            = setup->logVPS;
+    whilerecording    = setup->whileRecording;
+    whilereplaying    = setup->whileReplaying;
+    osdmsg            = setup->OSDMessage;
+    svdrPort          = setup->svdrPort;
+    verbose           = setup->Verbose;
+    nomargins         = setup->NoMargins;
     hidemainmenuentry = setup->HideMainMenuEntry;
-    secondpass = setup->SecondPass;
-    log2rec = setup->Log2Rec;
-    logoonly = setup->LogoOnly;
-    saveinfo = setup->SaveInfo;
-    deferredshutdown = setup->DeferredShutdown;
-    autologomenue = setup->autoLogoMenue;
-    fulldecode = setup->fulldecode;
+    secondpass        = setup->SecondPass;
+    log2rec           = setup->Log2Rec;
+    logoonly          = setup->LogoOnly;
+    saveinfo          = setup->SaveInfo;
+    deferredshutdown  = setup->DeferredShutdown;
+    autologomenue     = setup->autoLogoMenue;
+    fulldecode        = setup->fulldecode;
 
-    processTexts[PROCESS_AFTER] = tr("after");
+    processTexts[PROCESS_AFTER]  = tr("after");
     processTexts[PROCESS_DURING] = tr("during");
-    processTexts[PROCESS_NEVER] = tr("never");
+    processTexts[PROCESS_NEVER]  = tr("never");
 
     autoLogoTexts[0] = tr("disable");
     autoLogoTexts[1] = tr("deprecated, do not use");
@@ -39,6 +39,7 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
 
     lpos = 0;
     write();
+    if (saveinfo != 0) esyslog("markad: option saveinfo is deprecated and will be removed in next release");
 }
 
 
@@ -61,7 +62,7 @@ void cSetupMarkAd::write(void) {
         Add(new cMenuEditBoolItem(tr("deferred shutdown"), &deferredshutdown));
         Add(new cMenuEditBoolItem(tr("ignore timer margins"), &nomargins));
         Add(new cMenuEditBoolItem(tr("optimize marks (overlaps and logo marks adjustments"), &secondpass));
-        Add(new cMenuEditBoolItem(tr("correct info file"), &saveinfo));
+        Add(new cMenuEditBoolItem(tr("correct info file (deprecated)"), &saveinfo));
         Add(new cMenuEditBoolItem(tr("OSD message"), &osdmsg));
         Add(new cMenuEditIntItem(tr("SVDR port number"), &svdrPort));
         Add(new cMenuEditBoolItem(tr("verbose logging"), &verbose));
