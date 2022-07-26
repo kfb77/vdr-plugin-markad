@@ -832,7 +832,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         int darkCorner            = 0;
 
         for (int corner = 0; corner < CORNERS; corner++) {
-            if ((*cornerResultIt).rate[corner] == 0) countZero++;
+            if ((*cornerResultIt).rate[corner] <= 0) countZero++;
             if (((*cornerResultIt).rate[corner] >= 319) || ((*cornerResultIt).rate[corner] <= 0))zoomedPictureCount++;
             sumPixel += (*cornerResultIt).rate[corner];
             if (((*cornerResultIt).rate[corner] <=   0) && (corner != maContext->Video.Logo.corner)) darkCorner++;   // if we have no match, this can be a too dark corner
