@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2022-07-30: Version 3.0.25
+- change svdrp default port to 6419
+- declare option --saveinfo as depreciated
+- some minor bug fixes and optimizations, see git
+
 2022-06-20: Version 3.0.24
 - fix segfault in stdlib after vector push_back on arm systems with gcc9
   bug reported here: https://www.vdr-portal.de/forum/index.php?thread/133203-markad-%C3%BCberarbeiteter-decoder/&postID=1351412#post1351412
