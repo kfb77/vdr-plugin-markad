@@ -321,7 +321,8 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMax  = 184;
         logo.heightMin =  78;
     }
-    if (strcmp(maContext->Info.ChannelName, "n-tv") == 0) {             //  n-tv                    16:9  720W  576H:->  224W  60H BOTTOM_RIGHT
+    if ((strcmp(maContext->Info.ChannelName, "n-tv") == 0) ||            //  n-tv                    16:9  720W  576H:->  224W  60H BOTTOM_RIGHT
+        (strcmp(maContext->Info.ChannelName, "ntv")  == 0)) {            //  ntv                     16:9  720W  576H:->  226W  60H BOTTOM_LEFT
         logo.widthMax  = INT_MAX;  // news ticker
     }
     if (strcmp(maContext->Info.ChannelName, "ProSieben") == 0) {        // ProSieben               16:9  720W  576H:->   84W  66H TOP_RIGHT
