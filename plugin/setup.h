@@ -27,7 +27,6 @@ struct setup {
     bool GenIndex;
     bool NoMargins;
     bool SecondPass;
-    bool SaveInfo;
     bool HideMainMenuEntry;
     bool Log2Rec;
     bool LogoOnly;
@@ -65,7 +64,6 @@ class cSetupMarkAd : public cMenuSetupPage {
         int hidemainmenuentry;
         int log2rec;
         int logoonly;
-        int saveinfo;
         int deferredshutdown;
         void write(void);
         int lpos;

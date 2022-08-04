@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
-"POT-Creation-Date: 2022-07-05 20:18+0200\n"
+"POT-Creation-Date: 2022-08-05 19:40+0200\n"
 "PO-Revision-Date: 2021-07-23 01:07+0300\n"
 "Last-Translator: Ville-Pekka Vainio <vpvainio@iki.fi>\n"
 "Language-Team: Finnish <vdr@linuxtv.org>\n"
@@ -98,9 +98,6 @@ msgstr "Älä huomioi ajastinmarginaaleja"
 
 msgid "optimize marks (overlaps and logo marks adjustments"
 msgstr "Optimoi merkinnät (päällekkäisyydet ja logomerkintöjen hienosäätö)"
-
-msgid "correct info file (deprecated)"
-msgstr ""
 
 msgid "OSD message"
 msgstr "Käytä kuvaruutuviestejä"

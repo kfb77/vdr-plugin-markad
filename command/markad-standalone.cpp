@@ -3566,11 +3566,7 @@ void cMarkAdStandalone::ProcessFiles() {
             tempmark.position = iFrameCurrent;
             AddMark(&tempmark);
         }
-        if (marks.Save(directory, &macontext, false)) {
-            if (length && startTime)
-                    if (macontext.Config->saveInfo) SaveInfo();
-
-        }
+        marks.Save(directory, &macontext, false);
     }
     dsyslog("cMarkAdStandalone::ProcessFiles(): end processing files");
 }
@@ -3583,201 +3579,6 @@ bool cMarkAdStandalone::SetFileUID(char *file) {
         if (chown(file, statbuf.st_uid, statbuf.st_gid) == -1) return false;
     }
     return true;
-}
-
-
-bool cMarkAdStandalone::SaveInfo() {
-    isyslog("writing info file");
-    char *src, *dst;
-    if (isREEL) {
-        if (asprintf(&src, "%s/info.txt", directory) == -1) return false;
-    }
-    else {
-        if (asprintf(&src, "%s/info", directory) == -1) return false;
-    }
-    ALLOC(strlen(src)+1, "src");
-
-    if (asprintf(&dst, "%s/info.bak", directory) == -1) {
-        free(src);
-        return false;
-    }
-    ALLOC(strlen(dst)+1, "src");
-
-    FILE *r,*w;
-    r = fopen(src, "r");
-    if (!r) {
-        free(src);
-        free(dst);
-        return false;
-    }
-
-    w=fopen(dst, "w+");
-    if (!w) {
-        fclose(r);
-        free(src);
-        free(dst);
-        return false;
-    }
-
-    char *line = NULL;
-    char *lline = NULL;
-    size_t len = 0;
-
-    char lang[4] = "";
-
-    int component_type_add = 0;
-    if (macontext.Video.Info.height > 576) component_type_add = 8;
-
-    int stream_content = 0;
-    if (macontext.Info.vPidType == MARKAD_PIDTYPE_VIDEO_H262) stream_content = 1;
-    if (macontext.Info.vPidType == MARKAD_PIDTYPE_VIDEO_H264) stream_content = 5;
-
-    int component_type_43;
-    int component_type_169;
-    if ((macontext.Video.Info.framesPerSecond == 25) || (macontext.Video.Info.framesPerSecond == 50)) {
-        component_type_43 = 1;
-        component_type_169 = 3;
-    }
-    else {
-        component_type_43 = 5;
-        component_type_169 = 7;
-    }
-
-    bool err = false;
-    for (int i = 0; i < MAXSTREAMS; i++) {
-        dsyslog("stream %i has %i channels", i, macontext.Info.Channels[i]);
-    }
-    unsigned int stream_index = 0;
-    if (ptr_cDecoder) stream_index++;
-    while (getline(&line, &len, r) != -1) {
-        dsyslog("info file line: %s", line);
-        if (line[0] == 'X') {
-            int stream = 0;
-            unsigned int type = 0;
-            char descr[256] = "";
-
-            int result=sscanf(line, "%*c %3i %3X %3c %250c", &stream, &type, (char *) &lang, (char *) &descr);
-            if ((result != 0) && (result != EOF)) {
-                switch (stream) {
-                    case 1:
-                    case 5:
-                        if (stream == stream_content) {
-                            if ((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) {
-                                if (fprintf(w, "X %i %02i %s 4:3\n", stream_content, component_type_43 + component_type_add, lang) <= 0) err = true;
-                                macontext.Info.AspectRatio.num = 0;
-                                macontext.Info.AspectRatio.den = 0;
-                            }
-                            else if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
-                                if (fprintf(w, "X %i %02X %s 16:9\n", stream_content, component_type_169 + component_type_add, lang) <= 0) err = true;
-                                macontext.Info.AspectRatio.num = 0;
-                                macontext.Info.AspectRatio.den = 0;
-                            }
-                            else {
-                                if (fprintf(w, "%s",line) <=0 ) err = true;
-                            }
-                        }
-                        else {
-                            if (fprintf(w, "%s", line) <= 0) err = true;
-                        }
-                        break;
-                    case 2:
-                        if (type == 5) {
-                            if (macontext.Info.Channels[stream_index] == 6) {
-                                if (fprintf(w,"X 2 05 %s Dolby Digital 5.1\n", lang) <=0 ) err = true;
-                                macontext.Info.Channels[stream_index] = 0;
-                            }
-                            else if (macontext.Info.Channels[stream_index] == 2) {
-                                if (fprintf(w, "X 2 05 %s Dolby Digital 2.0\n", lang) <=0 ) err = true;
-                                macontext.Info.Channels[stream_index] = 0;
-                            }
-                            else {
-                                if (fprintf(w, "%s", line) <=0 ) err = true;
-                            }
-                        }
-                        else {
-                            if (fprintf(w, "%s", line) <=0 ) err = true;
-                        }
-                        break;
-                    case 4:
-                        if (type == 0x2C) {
-                            if (fprintf(w, "%s", line) <=0 ) err = true;
-                            macontext.Info.Channels[stream_index] = 0;
-                            stream_index++;
-                        }
-                        break;
-                    default:
-                        if (fprintf(w, "%s", line) <=0 ) err = true;
-                        break;
-                }
-            }
-        }
-        else {
-            if (line[0] != '@') {
-                if (fprintf(w, "%s", line) <=0 ) err = true;
-            }
-            else {
-                if (lline) {
-                    free(lline);
-                    err = true;
-                    esyslog("multiple @lines in info file, please report this!");
-                }
-                lline=strdup(line);
-                ALLOC(strlen(lline)+1, "lline");
-            }
-        }
-        if (err) break;
-    }
-    if (line) free(line);
-    line=lline;
-
-    if (lang[0] == 0) strcpy(lang, "und");
-
-    if (stream_content) {
-        if ((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3) && (!err)) {
-            if (fprintf(w, "X %i %02i %s 4:3\n", stream_content, component_type_43 + component_type_add, lang) <= 0 ) err = true;
-        }
-        if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9) && (!err)) {
-            if (fprintf(w, "X %i %02i %s 16:9\n", stream_content, component_type_169 + component_type_add, lang) <= 0) err = true;
-        }
-    }
-    for (short int stream = 0; stream < MAXSTREAMS; stream++) {
-        if (macontext.Info.Channels[stream] == 0) continue;
-        if ((macontext.Info.Channels[stream] == 2) && (!err)) {
-            if (fprintf(w, "X 2 05 %s Dolby Digital 2.0\n", lang) <= 0) err = true;
-        }
-        if ((macontext.Info.Channels[stream] == 6) && (!err)) {
-            if (fprintf(w, "X 2 05 %s Dolby Digital 5.1\n", lang) <= 0) err = true;
-       }
-    }
-    if (line) {
-        if (fprintf(w, "%s", line) <=0 ) err = true;
-        free(line);
-    }
-    fclose(w);
-    struct stat statbuf_r;
-    if (fstat(fileno(r), &statbuf_r) == -1) err = true;
-
-    fclose(r);
-    if (err) {
-        unlink(dst);
-    }
-    else {
-        if (rename(dst, src) == -1) {
-            err = true;
-        }
-        else {
-            // preserve timestamps from old file
-            struct utimbuf oldtimes;
-            oldtimes.actime = statbuf_r.st_atime;
-            oldtimes.modtime = statbuf_r.st_mtime;
-            if (utime(src, &oldtimes)) {};
-            SetFileUID(src);
-        }
-    }
-
-    free(src);
-    free(dst);
-    return (err==false);
 }
 
 
@@ -4579,8 +4380,6 @@ int usage(int svdrpport) {
            "                  increments loglevel by one, can be given multiple times\n"
            "-B              --backupmarks\n"
            "                  make a backup of existing marks\n"
-           "-I              --saveinfo\n"
-           "                  correct information in info file\n"
            "-L              --extractlogo=<direction>[,width[,height]]\n"
            "                  extracts logo to /tmp as pgm files (must be renamed)\n"
            "                  <direction>  0 = top left,    1 = top right\n"
@@ -4719,7 +4518,6 @@ int main(int argc, char *argv[]) {
     // set defaults
     config.decodeVideo = true;
     config.decodeAudio = true;
-    config.saveInfo = false;
     config.logoExtraction = -1;
     config.logoWidth = -1;
     config.logoHeight = -1;
@@ -4858,10 +4656,6 @@ int main(int argc, char *argv[]) {
             case 'B':
                 // --backupmarks
                 config.backupMarks = true;
-                break;
-            case 'I':
-                config.saveInfo = true;
-                fprintf(stderr, "markad: option -I (--saveinfo) is depreciated and will be removed in next release\n");
                 break;
             case 'L':
                 // --extractlogo

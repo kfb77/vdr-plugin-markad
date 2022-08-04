@@ -24,7 +24,6 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
     secondpass        = setup->SecondPass;
     log2rec           = setup->Log2Rec;
     logoonly          = setup->LogoOnly;
-    saveinfo          = setup->SaveInfo;
     deferredshutdown  = setup->DeferredShutdown;
     autologomenue     = setup->autoLogoMenue;
     fulldecode        = setup->fulldecode;
@@ -39,7 +38,6 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
 
     lpos = 0;
     write();
-    if (saveinfo != 0) esyslog("markad: option saveinfo is deprecated and will be removed in next release");
 }
 
 
@@ -62,7 +60,6 @@ void cSetupMarkAd::write(void) {
         Add(new cMenuEditBoolItem(tr("deferred shutdown"), &deferredshutdown));
         Add(new cMenuEditBoolItem(tr("ignore timer margins"), &nomargins));
         Add(new cMenuEditBoolItem(tr("optimize marks (overlaps and logo marks adjustments"), &secondpass));
-        Add(new cMenuEditBoolItem(tr("correct info file (deprecated)"), &saveinfo));
         Add(new cMenuEditBoolItem(tr("OSD message"), &osdmsg));
         Add(new cMenuEditIntItem(tr("SVDR port number"), &svdrPort));
         Add(new cMenuEditBoolItem(tr("verbose logging"), &verbose));
@@ -132,7 +129,6 @@ void cSetupMarkAd::Store(void) {
     SetupStore("HideMainMenuEntry", hidemainmenuentry);
     SetupStore("Log2Rec", log2rec);
     SetupStore("LogoOnly", logoonly);
-    SetupStore("SaveInfo", saveinfo);
     SetupStore("DeferredShutdown", deferredshutdown);
     SetupStore("AutoLogoExtraction", autologomenue);
     SetupStore("FullDecode", fulldecode);
@@ -153,7 +149,6 @@ void cSetupMarkAd::Store(void) {
     setup->fulldecode = static_cast<bool>(fulldecode);
     setup->Log2Rec = log2rec;
     setup->LogoOnly = logoonly;
-    setup->SaveInfo = saveinfo;
 }
 
 

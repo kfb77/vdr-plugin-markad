@@ -265,12 +265,6 @@ class cMarkAdStandalone : public cEvaluateChannel {
         bool LoadInfo();
 
 /**
- * save VDR info file
- * @return true if successful, false otherwise
- */
-        bool SaveInfo();
-
-/**
  * set user id of created files in recording directory
  * @param file filename
  * @return true if successful, false otherwise

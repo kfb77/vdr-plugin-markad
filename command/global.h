@@ -90,109 +90,105 @@ typedef struct sLogoSize {
  * markad configuration structure
  */
 typedef struct sMarkAdConfig {
-    char logFile[20] = {};  //!< name of the markad log file
-                            //!<
+    char logFile[20] = {};      //!< name of the markad log file
+                                //!<
 
-    char logoDirectory[1024]; //!< logo cache directory (defaut /var/lib/markad)
-                              //!<
+    char logoDirectory[1024];   //!< logo cache directory (defaut /var/lib/markad)
+                                //!<
 
-    char markFileName[1024];  //!< name of the marks file (default marks)
-                              //!<
+    char markFileName[1024];    //!< name of the marks file (default marks)
+                                //!<
 
-    char svdrphost[1024];  //!< ip or name of vdr server (default localhost)
-                           //!<
+    char svdrphost[1024];       //!< ip or name of vdr server (default localhost)
+                                //!<
 
-    int svdrpport;  //!< vdr svdrp port number
-                    //!<
+    int svdrpport;              //!< vdr svdrp port number
+                                //!<
 
     int logoExtraction = false; //!< <b>true:</b> extract logo and store to /tmp <br>
                                 //!< <b>false:</b> normal markad operation
                                 //!<
 
-    int logoWidth;  //!< width for logo extractions
-                    //!
+    int logoWidth;              //!< width for logo extractions
+                                //!
 
-    int logoHeight; //!< height for logo extraction
-                    //!<
+    int logoHeight;             //!< height for logo extraction
+                                //!<
 
-    int ignoreInfo; //!< <b>true:</b> ignore vdr info file <br>
-                    //!< <b>false:</b> use data from vdr info file
-                    //!<
+    int ignoreInfo;             //!< <b>true:</b> ignore vdr info file <br>
+                                //!< <b>false:</b> use data from vdr info file
+                                //!<
 
-    int threads;  //!< number of threads for decoder and encoder
-                  //!<
+    int threads;                //!< number of threads for decoder and encoder
+                                //!<
 
-    int astopoffs; //!< assumed stop offset in seconds
-                   //!<
+    int astopoffs;              //!< assumed stop offset in seconds
+                                //!<
 
-    int posttimer; //!< time in second in the recording after assumed end of broadcast
-                   //!<
+    int posttimer;              //!< time in second in the recording after assumed end of broadcast
+                                //!<
 
-    bool useVPS = false; //!< <b>true:</b> use informations from vps file to optimize marks
-                         //!< <b>false:</b> do not use informations from vps file to optimize marks
+    bool useVPS = false;        //!< <b>true:</b> use informations from vps file to optimize marks
+                                //!< <b>false:</b> do not use informations from vps file to optimize marks
 
-    bool MarkadCut = false;   //!< cut video after mark detection
-                              //!<
+    bool MarkadCut = false;     //!< cut video after mark detection
+                                //!<
 
-    bool ac3ReEncode = false; //!< re-encode AC3 stream and adapt audio volume
-                              //!<
+    bool ac3ReEncode = false;   //!< re-encode AC3 stream and adapt audio volume
+                                //!<
 
-    int autoLogo = 2;   //!< 0 = off, 1 = deprecated, 2 = on
-                        //!<
+    int autoLogo = 2;           //!< 0 = off, 1 = deprecated, 2 = on
+                                //!<
 
-    const char *recDir; //!< name of the recording directory
-                        //!<
+    const char *recDir;         //!< name of the recording directory
+                                //!<
 
-    bool decodeVideo; //!< <b>true:</b> use video stream to detect marks <br>
-                      //!< <b>false:</b> do not use video stream to detect marks
-                      //!<
+    bool decodeVideo;           //!< <b>true:</b> use video stream to detect marks <br>
+                                //!< <b>false:</b> do not use video stream to detect marks
+                                //!<
 
-    bool decodeAudio; //!< <b>true:</b> use audio streams to detect marks <br>
-                      //!< <b>false:</b> do not use audio streams to detect marks
-                      //!<
+    bool decodeAudio;           //!< <b>true:</b> use audio streams to detect marks <br>
+                                //!< <b>false:</b> do not use audio streams to detect marks
+                                //!<
 
-    bool backupMarks; //!< <b>true:</b> backup marks file before override <br>
-                      //!< <b>false:</b> do not backup marks file
-                      //!<
+    bool backupMarks;           //!< <b>true:</b> backup marks file before override <br>
+                                //!< <b>false:</b> do not backup marks file
+                                //!<
 
-    bool noPid;  //!< <b>true:</b> do not write a PID file <br>
-                 //!< <b>false:</b> write a PID file
-                 //!<
+    bool noPid;                 //!< <b>true:</b> do not write a PID file <br>
+                                //!< <b>false:</b> write a PID file
+                                //!<
 
-    bool osd; //!< <b>true:</b> send screen messages to vdr <br>
-              //!< <b>false:</b> do not send screen messages to vdr
-              //!<
+    bool osd;                   //!< <b>true:</b> send screen messages to vdr <br>
+                                //!< <b>false:</b> do not send screen messages to vdr
+                                //!<
 
-    int online = 0;  //!< start markad immediately when called with "before" as cmd
-                     //!< if online is 1, markad starts online for live-recordings
-                     //!< only, online=2 starts markad online for every recording
-                     //!< live-recordings are identified by having a '@' in the
-                     //!< filename so the entry 'Mark instant recording' in the menu
-                     //!< Setup - Recording of the vdr should be set to 'yes'
-                     //!< ( default is 1 )
-                     //!<
+    int online = 0;             //!< start markad immediately when called with "before" as cmd
+                                //!< if online is 1, markad starts online for live-recordings
+                                //!< only, online=2 starts markad online for every recording
+                                //!< live-recordings are identified by having a '@' in the
+                                //!< filename so the entry 'Mark instant recording' in the menu
+                                //!< Setup - Recording of the vdr should be set to 'yes'
+                                //!< ( default is 1 )
+                                //!<
 
-    bool before;     //!< <b>true:</b> markad started by vdr before the recording is complete, only valid together with --online <br>
-                     //!<
+    bool before;                //!< <b>true:</b> markad started by vdr before the recording is complete, only valid together with --online <br>
+                                //!<
 
-    bool saveInfo;  //!< <b>true:</b> override vdr info file <br>
-                    //!< <b>false:</b> do not save info file
-                    //!<
+    bool fullDecode = false;    //!< <b>true:</b> decode all video frames <br>
+                                //!< <b>false:</b> decode only iFrames
+                                //!<
 
+    bool fullEncode = false;    //!< <b>true:</b> full re-encode all frames, cut on all frame types <br>
+                                //!< <b>false:</b> copy frames without re-encode, cut on iframe position
+                                //!<
 
-    bool fullDecode = false; //!< <b>true:</b> decode all video frames <br>
-                             //!< <b>false:</b> decode only iFrames
-                             //!<
+    bool bestEncode = true;     //!< <b>true:</b> encode all video and audio streams <br>
+                                //!< <b>false:</b> encode all video and audio streams
+                                //!<
 
-    bool fullEncode = false;   //!< <b>true:</b> full re-encode all frames, cut on all frame types <br>
-                               //!< <b>false:</b> copy frames without re-encode, cut on iframe position
-                               //!<
-
-    bool bestEncode = true;  //!< <b>true:</b> encode all video and audio streams <br>
-                             //!< <b>false:</b> encode all video and audio streams
-                             //!<
-    bool pts        = false; //!< <b>true:</b> add pts based timestanp to marks<br>
-                             //!< <b>false:</b> otherwise
+    bool pts        = false;    //!< <b>true:</b> add pts based timestanp to marks<br>
+                                //!< <b>false:</b> otherwise
 } sMarkAdConfig;
 
 
