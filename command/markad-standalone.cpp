@@ -4424,7 +4424,7 @@ int usage(int svdrpport) {
            "                --vps\n"
            "                  use markad.vps from recording directory to optimize start, stop and break marks\n"
            "                --cut\n"
-           "                  cut vidio based on marks and write it in the recording directory\n"
+           "                  cut video based on marks and write it in the recording directory\n"
            "                --ac3reencode\n"
            "                  re-encode AC3 stream to fix low audio level of cutted video on same devices\n"
            "                  requires --cut\n"
