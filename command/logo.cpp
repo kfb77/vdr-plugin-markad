@@ -1452,7 +1452,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                             for (int plane = 0; plane < PLANES; plane++) {
                                 delete actLogoInfo.sobel[plane];
                             }
-                            delete actLogoInfo.sobel;
+                            delete[] actLogoInfo.sobel;
                             FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
                         }
                     }
