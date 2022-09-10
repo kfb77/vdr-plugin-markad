@@ -33,10 +33,6 @@ struct sLogoInfo {
 
     uchar **sobel = NULL;    //!< sobel transformed corner picture data
                              //!<
-
-    bool valid[PLANES] = {}; //!< <b>true:</b> data planes contain valid data <br>
-                             //!< <b>false:</b> data planes are not valid
-                             //!<
 };
 
 

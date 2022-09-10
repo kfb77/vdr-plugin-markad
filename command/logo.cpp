@@ -818,10 +818,6 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
     if ((logoHeight <= 0) || (logoWidth <= 0)) return 0;
     if ((corner < 0) || (corner >= CORNERS)) return 0;
     if (!ptr_actLogoInfo) return 0;
-    if (!ptr_actLogoInfo->valid) {
-        dsyslog("cExtractLogo::CheckValid(): invalid logo data at frame %i", ptr_actLogoInfo->iFrameNumber);
-        return false;
-    }
     if (corner <= TOP_RIGHT) {
         for (int i = 0 ; i < WHITEHORIZONTAL_BIG * logoWidth; i++) { // a valid top logo should have a white top part
             if ((ptr_actLogoInfo->sobel[0][i] == 0) ||
@@ -914,10 +910,6 @@ int cExtractLogo::Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLog
     if (!ptr_actLogoInfo) return 0;
     if ((logoHeight <= 0) || (logoWidth <= 0)) return 0;
     if ((corner < 0) || (corner >= CORNERS)) return 0;
-    if (!ptr_actLogoInfo->valid) {
-        dsyslog("cExtractLogo::Compare(): invalid logo data at frame %i", ptr_actLogoInfo->iFrameNumber);
-        return 0;
-    }
     int hits=0;
 
     for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
