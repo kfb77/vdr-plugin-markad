@@ -623,7 +623,7 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
     }
     fclose(mf);
 
-    if (getuid() == 0 || geteuid() != 0) {
+    if (geteuid() == 0) {
         // if we are root, set fileowner to owner of 001.vdr/00001.ts file
         char *spath = NULL;
         if (asprintf(&spath, "%s/00001.ts", directory) != -1) {
