@@ -379,6 +379,9 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.heightMin =  64;
         logo.heightMax =  76;
     }
+    if (strcmp(maContext->Info.ChannelName, "TLC") == 0) {              // TLC                     16:9  720W  576H:->   94W  60H TOP_LEFT
+        logo.heightMax =  65;
+    }
     if (strcmp(maContext->Info.ChannelName, "TOGGO_plus") == 0) {       // TOGGO_plus              16:9  720W  576H:->  104W  56H TOP_LEFT
         logo.heightMin =  56;
     }
