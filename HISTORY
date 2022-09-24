@@ -1,6 +1,14 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2022-09-24: Version 3.0.26
+- remove option --saveinfo
+- add make option NO_VDR
+- fix memory leak (thx to wirbel-at-vdr-portal for reporting)
+- remove definition of unused variable (thx to wirbel-at-vdr-portal for reporting)
+- fix check for user root (thx to wirbel-at-vdr-portal for reporting)
+- some minor bug fixes and optimizations, see git
+
 2022-07-30: Version 3.0.25
 - change svdrp default port to 6419
 - declare option --saveinfo as depreciated
