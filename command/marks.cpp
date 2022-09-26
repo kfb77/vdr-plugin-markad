@@ -559,9 +559,9 @@ int cMarks::LoadVPS(const char *directory, const char *type) {
     free(fpath);
 
     char *line = NULL;
-    size_t length;
-    char typeVPS[15] = "";
-    char timeVPS[20] = "";
+    size_t length = 0;
+    char typeVPS[16] = "";
+    char timeVPS[21] = "";
     int offsetVPS = 0;
     while (getline(&line, &length,mf) != -1) {
         sscanf(line, "%15s %20s %d", (char *) &typeVPS, (char *)&timeVPS, &offsetVPS);

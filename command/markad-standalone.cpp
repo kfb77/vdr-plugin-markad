@@ -3602,9 +3602,9 @@ bool cMarkAdStandalone::IsVPSTimer() {
     FREE(strlen(fpath)+1, "fpath");
     free(fpath);
 
-    size_t size;
+    size_t size = 0;
     char   *line        = NULL;
-    char   vpsTimer[12] = "";
+    char   vpsTimer[13] = "";
 
     while (getline(&line, &size, mf) != -1) {
         sscanf(line, "%12s", (char *) &vpsTimer);
@@ -3785,10 +3785,11 @@ bool cMarkAdStandalone::LoadInfo() {
     }
 
     char *line = NULL;
-    size_t linelen;
+    size_t linelen = 0;
     while (getline(&line, &linelen, f) != -1) {
         if (line[0] == 'C') {
-            char channelname[256] = "";
+            char channelname[256];
+            memset(channelname, 0, sizeof(channelname));
             int result = sscanf(line, "%*c %*80s %250c", (char *) &channelname);
             if (result == 1) {
                 macontext.Info.ChannelName = strdup(channelname);
@@ -3825,7 +3826,9 @@ bool cMarkAdStandalone::LoadInfo() {
             }
         }
         if ((line[0] == 'E') && (!bLiveRecording)) {
-            int result = sscanf(line,"%*c %*10i %20li %6i %*2x %*2x", &startTime, &length);
+            long st;
+            int result = sscanf(line,"%*c %*10i %20li %6i %*2x %*2x", &st, &length);
+            startTime=(time_t)st;
             if (result != 2) {
                 dsyslog("cMarkAdStandalone::LoadInfo(): vdr info file not valid, could not read start time and length");
                 startTime = 0;
@@ -3833,6 +3836,7 @@ bool cMarkAdStandalone::LoadInfo() {
             }
         }
         if (line[0] == 'T') {
+            memset(title, 0, sizeof(title));
             int result = sscanf(line, "%*c %79c", title);
             if ((result == 0) || (result == EOF)) {
                 title[0] = 0;
@@ -3856,7 +3860,8 @@ bool cMarkAdStandalone::LoadInfo() {
         }
         if ((line[0] == 'X') && (!bLiveRecording)) {
             int stream = 0, type = 0;
-            char descr[256] = "";
+            char descr[256];
+            memset(descr, 0, sizeof(descr));
             int result=sscanf(line, "%*c %3i %3i %250c", &stream, &type, (char *) &descr);
             if ((result != 0) && (result != EOF)) {
                 if ((stream == 1) || (stream == 5)) {
