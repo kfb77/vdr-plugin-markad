@@ -1401,6 +1401,9 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
 
     if ((valTop <= BRIGHTNESS_H_MAYBE) && (valBottom <= BRIGHTNESS_H_SURE) || (valTop <= BRIGHTNESS_H_SURE) && (valBottom <= BRIGHTNESS_H_MAYBE)) {
         if (borderframenumber == -1) {
+#ifdef DEBUG_HBORDER
+            dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%5d) first detected hborder", FrameNumber);
+#endif
             borderframenumber = FrameNumber;
         }
         else {
@@ -1925,7 +1928,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
         if ((vret == VBORDER_VISIBLE) && (vborderframenumber >= 0)) {
             if (hret == HBORDER_VISIBLE) {
                 maContext->Video.Info.frameDarkOpeningCredits = vborderframenumber;
-                dsyslog("cMarkAdVideo::Process(); hborder and vborder detected, ignore this, it is a very long black screen");
+                dsyslog("cMarkAdVideo::Process(): hborder and vborder detected at frame (%d), this is a very long black screen, maybe opening credits", vborderframenumber);
             }
             else AddMark(MT_VBORDERSTART, vborderframenumber);
         }
