@@ -333,8 +333,11 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
                                                                         // RTL_Television          16:9  720W  576H:->  142W  60H TOP_LEFT (before 09/2021 RTL live logo)
                                                                         // RTL_Television          16:9  720W  576H:->  126W  68H TOP_LEFT (after  09/2021)
                                                                         // RTL_Television          16:9  720W  576H:->  146W  68H TOP_LEFT (after  09/2021 RTL live logo)
+                                                                        //
+                                                                        // no logo                 16:9  720W  576H:->  116W  66H TOP_LEFT ("neue Folge")
         logo.widthMax  = 146 ;
         logo.heightMax =  68 ;
+        logo.corner    = TOP_LEFT;
     }
     if (strcmp(maContext->Info.ChannelName, "RTL2") == 0) {             // RTL2                    16:9  720W  576H:->   82W  78H BOTTOM_RIGHT (new logo)
                                                                         // RTL2                    16:9  720W  576H:->   82W  80H BOTTOM_RIGHT (new Logo)
