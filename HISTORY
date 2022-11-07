@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2022-11-07: Version 3.0.27
+- fix variable init for getline and sscanf (thx to durchflieger@vdr-portal.de)
+- some minor bug fixes and optimizations, see git
+
 2022-09-24: Version 3.0.26
 - remove option --saveinfo
 - add make option NO_VDR
