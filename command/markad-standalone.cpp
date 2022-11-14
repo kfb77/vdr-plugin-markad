@@ -1258,6 +1258,28 @@ void cMarkAdStandalone::CheckStart() {
                     break;
                 }
 
+                // trust sequence blackscreen start / logo stop / blacksceen end / logo start as start of broadcast
+                cMark *prev1 = marks.GetPrev(lStart->position);
+                if (prev1 && (prev1->type == MT_NOBLACKSTART)) {
+                    dsyslog("cMarkAdStandalone::CheckStart(): blackscreen end (%d) before logo start (%d) found", prev1->position, lStart->position);
+                    cMark *prev2 = marks.GetPrev(prev1->position);
+                    if (prev2 && (prev2->type == MT_LOGOSTOP)) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): logo stop (%d) before blackscreen end (%d) before logo start (%d) found", prev2->position, prev1->position, lStart->position);
+                        cMark *prev3 = marks.GetPrev(prev2->position);
+                        if (prev3 && (prev3->type == MT_NOBLACKSTOP)) {
+                            dsyslog("cMarkAdStandalone::CheckStart(): blackscreen start (%d) before logo stop (%d) before blackscreen end (%d) before logo start (%d) found",  prev3->position, prev2->position, prev1->position, lStart->position);
+                            int blacklength = 1000 * (prev1->position  - prev3->position) / macontext.Video.Info.framesPerSecond;
+                            dsyslog("cMarkAdStandalone::CheckStart(): blackscreen length %dms", blacklength);
+                            if (blacklength >= 2160) {  // trust only a long blackscreen
+                                dsyslog("cMarkAdStandalone::CheckStart(): sequence blackscreen start / logo stop / blacksceen end / logo start found, this is the broadcast start");
+                                dsyslog("cMarkAdStandalone::CheckStart(): delete all other logo stop/start marks");
+                                marks.DelFromTo(lStart->position + 1, INT_MAX, MT_LOGOCHANGE);
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 // check next logo stop/start pair
                 cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
                 if (lStop) {  // there is a next stop mark in the start range
