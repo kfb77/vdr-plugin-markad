@@ -9,6 +9,7 @@
 #define __index_h_
 
 #include <stdlib.h>
+#include <algorithm>
 #include <inttypes.h>
 #include <vector>
 

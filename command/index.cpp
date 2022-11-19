@@ -122,13 +122,13 @@ int cIndex::GetIFrameAfter(int frameNumber) {
         dsyslog("cIndex::GetIFrameAfter(): frame index not initialized");
         return -1;
     }
-    for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->frameNumber >= frameNumber) {
-            return frameIterator->frameNumber;
-        }
-    }
+
+    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](auto const &value) ->bool { if (value.frameNumber >= frameNumber) return true; else return false; });
+    if (found != indexVector.end()) return found->frameNumber;
+
     dsyslog("cIndex::GetIFrameAfter(): failed for frame (%d)", frameNumber);
     return -1;
+
 }
 
 
