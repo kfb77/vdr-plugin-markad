@@ -598,13 +598,13 @@ int cEvaluateLogoStopStartPair::GetIsClosingCredits(const int startPosition) {
 
 
 int cEvaluateLogoStopStartPair::GetIsClosingCredits(const int stopPosition, const int startPosition) {
-    for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
-        if ((stopPosition >= logoPairIterator->stopPosition) && (startPosition <= logoPairIterator->startPosition)) {
-            dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCredits(): isClosingCredits for stop (%d) start (%d) pair: %d", logoPairIterator->stopPosition,
-                                                                                                                  logoPairIterator->startPosition, logoPairIterator->isClosingCredits);
-            return logoPairIterator->isClosingCredits;
-        }
+    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition, stopPosition](auto const &value) ->bool { if ((value.startPosition >= startPosition) && (value.stopPosition <= stopPosition)) return true; else return false; });
+
+    if (found != logoPairVector.end()) {
+        dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCredits(): isClosingCredits for stop (%d) start (%d) pair: %d", found->stopPosition, found->startPosition, found->isClosingCredits);
+        return found->isClosingCredits;
     }
+
     dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCredits(): stop (%d) start (%d) pair not found", stopPosition, startPosition);
     return STATUS_ERROR;
 }
