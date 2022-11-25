@@ -559,7 +559,7 @@ bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPositi
 
 
 void cEvaluateLogoStopStartPair::SetIsInfoLogo(const int stopPosition, const int startPosition) {
-    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition, stopPosition](auto const &value) ->bool { if ((value.startPosition == startPosition) && (value.stopPosition == stopPosition)) return true; else return false; });
+    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition, stopPosition](sLogoStopStartPair const &value) ->bool { if ((value.startPosition == startPosition) && (value.stopPosition == stopPosition)) return true; else return false; });
 
     if (found != logoPairVector.end()) {
         dsyslog("cEvaluateLogoStopStartPair::SetIsInfoLogo(): set isInfoLogo for stop (%d) start (%d) pair", found->stopPosition, found->startPosition);
@@ -573,7 +573,7 @@ void cEvaluateLogoStopStartPair::SetIsInfoLogo(const int stopPosition, const int
 // set isClosingCredits to STAUS_YES
 // stopPosition / startPosition do not need exact match, they must be inbetween stop/start pair
 void cEvaluateLogoStopStartPair::SetIsClosingCredits(const int stopPosition, const int startPosition) {
-    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition, stopPosition](auto const &value) ->bool { if ((value.startPosition >= startPosition) && (value.stopPosition <= stopPosition)) return true; else return false; });
+    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition, stopPosition](sLogoStopStartPair const &value) ->bool { if ((value.startPosition >= startPosition) && (value.stopPosition <= stopPosition)) return true; else return false; });
 
     if (found != logoPairVector.end()) {
         dsyslog("cEvaluateLogoStopStartPair::SetIsClosingCredits(): set isClosingCredits for stop (%d) start (%d) pair", found->stopPosition, found->startPosition);
@@ -585,7 +585,7 @@ void cEvaluateLogoStopStartPair::SetIsClosingCredits(const int stopPosition, con
 
 
 int cEvaluateLogoStopStartPair::GetIsClosingCredits(const int startPosition) {
-    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition](auto const &value) ->bool { if (value.startPosition == startPosition) return true; else return false; });
+    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition](sLogoStopStartPair const &value) ->bool { if (value.startPosition == startPosition) return true; else return false; });
 
     if (found != logoPairVector.end()) {
         dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCredits(): isClosingCredits for start (%d) mark: %d", found->startPosition, found->isClosingCredits);
@@ -598,7 +598,7 @@ int cEvaluateLogoStopStartPair::GetIsClosingCredits(const int startPosition) {
 
 
 int cEvaluateLogoStopStartPair::GetIsClosingCredits(const int stopPosition, const int startPosition) {
-    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition, stopPosition](auto const &value) ->bool { if ((value.startPosition >= startPosition) && (value.stopPosition <= stopPosition)) return true; else return false; });
+    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition, stopPosition](sLogoStopStartPair const &value) ->bool { if ((value.startPosition >= startPosition) && (value.stopPosition <= stopPosition)) return true; else return false; });
 
     if (found != logoPairVector.end()) {
         dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCredits(): isClosingCredits for stop (%d) start (%d) pair: %d", found->stopPosition, found->startPosition, found->isClosingCredits);
@@ -611,7 +611,7 @@ int cEvaluateLogoStopStartPair::GetIsClosingCredits(const int stopPosition, cons
 
 
 bool cEvaluateLogoStopStartPair::IncludesInfoLogo(const int stopPosition, const int startPosition) {
-    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition, stopPosition](auto const &value) ->bool { if ((value.startPosition <= startPosition) && (value.stopPosition >= stopPosition)) return true; else return false; });
+    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition, stopPosition](sLogoStopStartPair const &value) ->bool { if ((value.startPosition <= startPosition) && (value.stopPosition >= stopPosition)) return true; else return false; });
 
     if (found != logoPairVector.end()) {
         dsyslog("cEvaluateLogoStopStartPair::SetIsInfoLogo(): stop %d start %d pair includes info logo for stop (%d) start (%d) pair", stopPosition, startPosition, found->stopPosition, found->startPosition);

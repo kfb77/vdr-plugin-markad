@@ -123,7 +123,7 @@ int cIndex::GetIFrameAfter(int frameNumber) {
         return -1;
     }
 
-    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](auto const &value) ->bool { if (value.frameNumber >= frameNumber) return true; else return false; });
+    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](const sIndexElement &value) ->bool { if (value.frameNumber >= frameNumber) return true; else return false; });
     if (found != indexVector.end()) return found->frameNumber;
 
     dsyslog("cIndex::GetIFrameAfter(): failed for frame (%d)", frameNumber);
