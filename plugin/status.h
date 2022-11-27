@@ -30,7 +30,7 @@ class cEpgEventLog {
            eventLogFile = NULL;
            return *this;
        };
-       void Log(const time_t recStart, const tEventID recEventID, const tEventID eventID, const tEventID followingEventID, const tEventID eitEventID, const int state, const int event, const int newState, const char* action);
+       void Log(const time_t recStart, const int state, const int event, const int newState, const char* action);
        void Log(const char *message);
     private:
        FILE *eventLogFile = NULL;
