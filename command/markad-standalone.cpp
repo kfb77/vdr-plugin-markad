@@ -2599,6 +2599,10 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
     }
     dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): preload from frame       (%5d) to (%5d)", fRangeBegin, (*mark1)->position);
     dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): compare with frames from (%5d) to (%5d)", (*mark2)->position, fRangeEnd);
+    if (ptr_cDecoder->GetFrameNumber() > fRangeBegin) {
+        dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): current framenumber (%d) greater then start frame (%d), set start to current frame" , ptr_cDecoder->GetFrameNumber(), fRangeBegin);
+        fRangeBegin =  ptr_cDecoder->GetFrameNumber();
+    }
 
     // seek to start frame
     if (!ptr_cDecoder->SeekToFrame(&macontext, fRangeBegin)) {
