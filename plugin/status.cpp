@@ -182,7 +182,10 @@ void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event
     for (int i = 0; i <= max_recs; i++) {
         if (recs[i].eitEventID == 0) {  // we do not know the EIT Event ID, with epg2vdr it is different from timer eventID
             const cEvent *event = Schedule->GetPresentEvent();
-            if (!event || (event->EventID() != recs[i].eventID)) continue;
+            if (!event || (event->EventID() != recs[i].eventID)) {
+                event = Schedule->GetFollowingEvent();
+                if (!event || (event->EventID() != recs[i].eventID)) continue;
+            }
 
             //  this is no real VPS control, we can only handle events in the timer start/stop range
             time_t startTimeEIT = EitEvent->getStartTime();
