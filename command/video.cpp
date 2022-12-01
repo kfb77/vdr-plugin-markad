@@ -1046,7 +1046,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     }
     else {  // if we have more planes we can still have a problem with coloured logo on same colored background
         // too bright
-        if ((area.status == LOGO_VISIBLE) && (area.intensity >= 131) &&             // too bright, logo detection can be wrong, changed from 150 to 142 to 137 to 131
+        if ((area.status == LOGO_VISIBLE) && (area.intensity >= 122) &&             // too bright, logo detection can be wrong, changed from 137 to 131 to 122
             (rPixel > 0) && (rPixel < (mPixel * logo_imark))) return LOGO_NOCHANGE; // trust 0 matches
 
         // maybe coloured logo on same colored background, try without plane 0
