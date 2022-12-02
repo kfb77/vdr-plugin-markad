@@ -501,7 +501,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
         dsyslog("cMarkAdLogo::ReduceBrightness(): logo area: xstart %d xend %d, ystart %d yend %d", logo_xstart, logo_xend, logo_ystart, logo_yend);
     }
 
-// detect contrast and brightness of logo part
+// detect c ntrast and brightness of logo part
     int minPixel = INT_MAX;
     int maxPixel = 0;
     int sumPixel = 0;
@@ -1450,11 +1450,9 @@ int cMarkAdBlackBordersVert::GetFirstBorderFrame() {
 
 
 int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
-#define CHECKWIDTH 32
+#define CHECKWIDTH 20          // changed from 32 to 20
 #define BRIGHTNESS_V_SURE  22  // changed from 20 to 21 to 22
-#define BRIGHTNESS_V_MAYBE 100  // some channel have logo or infos in one border, so we must accept a higher value, changed from 68 to 100
-#define HOFFSET 50
-#define VOFFSET_ 120
+#define BRIGHTNESS_V_MAYBE 100 // some channel have logo or infos in one border, so we must accept a higher value, changed from 68 to 100
     if (!maContext) {
         dsyslog("cMarkAdBlackBordersVert::Process(): maContext not valid");
         return VBORDER_ERROR;
@@ -1475,29 +1473,24 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
         return VBORDER_ERROR;
     }
 
+
     // check left border
-    int end = maContext->Video.Data.PlaneLinesize[0] * (maContext->Video.Info.height - VOFFSET_);
-    int i = VOFFSET_ * maContext->Video.Data.PlaneLinesize[0];
-    while (i < end) {
-        for (int x = 0; x < CHECKWIDTH; x++) {
-            valLeft += maContext->Video.Data.Plane[0][HOFFSET + x + i];
+    for (int y = 0; y < maContext->Video.Info.height ; y++) {
+        for (int x = 0; x <= CHECKWIDTH; x++) {
+            valLeft += maContext->Video.Data.Plane[0][x + (y * maContext->Video.Data.PlaneLinesize[0])];
             cnt++;
         }
-        i += maContext->Video.Data.PlaneLinesize[0];
     }
     valLeft /= cnt;
 
+    // check right border
     if (valLeft <= BRIGHTNESS_V_MAYBE) {
-        // check right border
         cnt = 0;
-        i = VOFFSET_ * maContext->Video.Data.PlaneLinesize[0];
-        int w = maContext->Video.Info.width - HOFFSET - CHECKWIDTH;
-        while (i < end) {
-            for (int x = 0; x < CHECKWIDTH; x++) {
-                valRight += maContext->Video.Data.Plane[0][w+x+i];
+        for (int y = 0; y < maContext->Video.Info.height ; y++) {
+            for (int x = maContext->Video.Info.width - CHECKWIDTH; x < maContext->Video.Info.width; x++) {
+                valRight += maContext->Video.Data.Plane[0][x + (y * maContext->Video.Data.PlaneLinesize[0])];
                 cnt++;
             }
-            i += maContext->Video.Data.PlaneLinesize[0];
         }
         valRight /= cnt;
     }
