@@ -292,6 +292,7 @@ class cMarkAdLogo : cLogoSize {
  */
         void Clear(const bool isRestart = false, const bool inBroadCast = false);
 
+
 /**
  * get pointer to logo area
  * @return pointer to logo area
@@ -601,6 +602,11 @@ class cMarkAdVideo {
  * @param inBroadCast true if called in broadcast, false if called in advertising
  */
         void Clear(bool isRestart, bool inBroadCast = false);
+
+/**
+ * clear state of border detection
+ */
+        void ClearBorder();
 
     private:
 

@@ -780,6 +780,7 @@ void cMarkAdStandalone::CheckStart() {
                 if (macontext.Audio.Info.channelChange) {
                     dsyslog("cMarkAdStandalone::CheckStart(): channel change detected, disable logo/border/aspect detection");
                     bDecodeVideo = false;
+                    video->ClearBorder();
                     macontext.Video.Options.ignoreAspectRatio = true;
                     macontext.Video.Options.ignoreLogoDetection = true;
                     macontext.Video.Options.ignoreBlackScreenDetection = true;
@@ -970,6 +971,7 @@ void cMarkAdStandalone::CheckStart() {
             if (((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3))) {
                 isyslog("logo/border detection disabled");
                 bDecodeVideo = false;
+                video->ClearBorder();
                 macontext.Video.Options.ignoreAspectRatio = false;
                 macontext.Video.Options.ignoreLogoDetection = true;
                 macontext.Video.Options.ignoreBlackScreenDetection = true;
@@ -2276,6 +2278,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
                 dsyslog("cMarkAdStandalone::AddMark(): first audio channel change is after chkSTART, disable logo/border/aspect detection now");
                 if (iStart == 0) marks.DelWeakFromTo(marks.GetFirst()->position, INT_MAX, MT_CHANNELCHANGE); // only if we heve selected a start mark
                 bDecodeVideo = false;
+                video->ClearBorder();
                 macontext.Video.Options.ignoreAspectRatio = true;
                 macontext.Video.Options.ignoreLogoDetection = true;
                 macontext.Video.Options.ignoreBlackScreenDetection = true;

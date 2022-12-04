@@ -1841,6 +1841,12 @@ void cMarkAdVideo::Clear(bool isRestart, bool inBroadCast) {
 }
 
 
+void cMarkAdVideo::ClearBorder() {
+    if (vborder) vborder->Clear();
+    if (hborder) hborder->Clear();
+}
+
+
 void cMarkAdVideo::ResetMarks() {
     marks={};
 }
