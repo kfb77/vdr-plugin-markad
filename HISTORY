@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2022-12-04: Version 3.0.28
+- optimize vertical border detection
+- some minor bug fixes and optimizations, see git
+
 2022-11-07: Version 3.0.27
 - fix variable init for getline and sscanf (thx to durchflieger@vdr-portal.de)
 - some minor bug fixes and optimizations, see git
