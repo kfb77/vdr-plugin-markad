@@ -3450,7 +3450,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 dsyslog("cMarkAdStandalone::ProcessFrame(): enter end part at frame (%d)", frameCurrent);
                 restartLogoDetectionDone = true;
                 if ((macontext.Video.Options.ignoreBlackScreenDetection) || (macontext.Video.Options.ignoreLogoDetection)) {
-                    isyslog("restart logo and black screen detection at frame (%d)", ptr_cDecoder->GetFrameNumber());
+                    isyslog("restart logo, border and black screen detection at frame (%d)", ptr_cDecoder->GetFrameNumber());
                     bDecodeVideo = true;
                     macontext.Video.Options.ignoreBlackScreenDetection = false;   // use black sceen setection only to find end mark
                     if (macontext.Video.Options.ignoreLogoDetection == true) {
@@ -3459,7 +3459,10 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                         }
                         else {
                             macontext.Video.Options.ignoreLogoDetection = false;
-                            if (video) video->Clear(true, inBroadCast);    // reset logo detector status
+                            if (video) {
+                                dsyslog("cMarkAdStandalone::ProcessFrame():  reset logo detector status");
+                                video->Clear(true, inBroadCast);
+                            }
                         }
                     }
                 }

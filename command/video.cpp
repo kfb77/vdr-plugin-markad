@@ -1469,7 +1469,7 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
     int cnt = 0;
 
     if(!maContext->Video.Data.PlaneLinesize[0]) {
-        dsyslog("Video.Data.PlaneLinesize[0] missing");
+        dsyslog("cMarkAdBlackBordersVert::Process(): Video.Data.PlaneLinesize[0] missing");
         return VBORDER_ERROR;
     }
 
@@ -1497,7 +1497,7 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
     else valLeft = INT_MAX;
 
 #ifdef DEBUG_VBORDER
-    dsyslog("cMarkAdBlackBordersVert(): frame (%5d) valLeft %d valRight %d", frameNumber, valLeft, valRight);
+    dsyslog("cMarkAdBlackBordersVert::Process(): frame (%5d) valLeft %d valRight %d", frameNumber, valLeft, valRight);
 #endif
     if (((valLeft <= BRIGHTNESS_V_MAYBE) && (valRight <= BRIGHTNESS_V_SURE)) || ((valLeft <= BRIGHTNESS_V_SURE) && (valRight <= BRIGHTNESS_V_MAYBE))) {
         if (borderframenumber == -1) {
@@ -1506,7 +1506,7 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
         else {
             if (borderstatus != VBORDER_VISIBLE) {
 #ifdef DEBUG_VBORDER
-                dsyslog("cMarkAdBlackBordersVert(): frame (%5d) duration %ds", frameNumber, static_cast<int> ((frameNumber - borderframenumber) /  maContext->Video.Info.framesPerSecond));
+                dsyslog("cMarkAdBlackBordersVert::Process(): frame (%5d) duration %ds", frameNumber, static_cast<int> ((frameNumber - borderframenumber) /  maContext->Video.Info.framesPerSecond));
 #endif
                 if (frameNumber > (borderframenumber + maContext->Video.Info.framesPerSecond * MIN_V_BORDER_SECS)) {
                     *borderFrame = borderframenumber;
@@ -1833,8 +1833,8 @@ void cMarkAdVideo::Clear(bool isRestart, bool inBroadCast) {
     if (! isRestart) {
         aspectRatio.num=0;
         aspectRatio.den=0;
-        if (hborder) hborder->Clear();
         if (vborder) vborder->Clear();
+        if (hborder) hborder->Clear();
     }
     if (blackScreen) blackScreen->Clear();
     if (logo) logo->Clear(isRestart, inBroadCast);
