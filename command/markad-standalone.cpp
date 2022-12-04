@@ -1880,6 +1880,9 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             case MT_LOGOSTOP:
                 maxBeforeAssumed = 299; // changed from 306 to 299
                 break;
+            case MT_VBORDERSTOP:
+                maxBeforeAssumed = 288;
+                break;
             default:
                 maxBeforeAssumed = 300;                               // max 5 min before assumed stop
                 break;
