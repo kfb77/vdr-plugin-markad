@@ -1392,10 +1392,10 @@ void cMarkAdStandalone::CheckStart() {
             cMark *nextStop  = blackMarks.GetNext(begin->position, MT_NOBLACKSTOP);
             cMark *nextStart = blackMarks.GetNext(begin->position, MT_NOBLACKSTART);
             if (nextStart && nextStop) {
-                int diff = (nextStop->position - begin->position) / macontext.Video.Info.framesPerSecond;
+                int diff = (nextStop->position - iStartA) / macontext.Video.Info.framesPerSecond;
                 int adLength = (nextStart->position - nextStop->position) / macontext.Video.Info.framesPerSecond;;
-                dsyslog("cMarkAdStandalone::CheckStart(): next black screen from (%d) to (%d) in %ds, length %ds", nextStop->position, nextStart->position, diff, adLength);
-                if ((diff <= 67) && (adLength >= 5)) {  // changed from 3 to 5, avoid long dark scenes
+                dsyslog("cMarkAdStandalone::CheckStart(): next black screen from (%d) to (%d) in %ds after assued start (%d), length %ds", nextStop->position, nextStart->position, diff,iStartA, adLength);
+                if ((diff <= 51) && (adLength >= 5)) {  // changed from 3 to 5, avoid long dark scenes
                     dsyslog("cMarkAdStandalone::CheckStart(): very long black screen short after, we are in the closing credits of previous recording");
                     begin = nextStart;
                 }
