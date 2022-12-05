@@ -1165,7 +1165,7 @@ void cMarkAdStandalone::CheckStart() {
                     // 228s opening credits with vborder -> invalid TODO
                     //  96s opening credits with vborder -> invalid
                     // 151s advertising in start area    -> valid
-                    if ((markDiff <= 122) ||         // too short for a broadcast part
+                    if ((markDiff < 114) ||        // too short for a broadcast part, changed from 122 to 144 because of early ad found
                         (frameCurrent > iStopA)) { // we got not in broadcast at chkSTART with a vborder mark
                         dsyslog("cMarkAdStandalone::CheckStart():vertical border stop at (%d) %ds after vertical border start (%i) in start part found, this is not valid, delete marks", vStop->position, markDiff, vStart->position);
                         marks.Del(vStop);
