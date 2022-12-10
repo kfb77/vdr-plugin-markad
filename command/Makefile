@@ -51,6 +51,9 @@ ifeq ($(CXXVERSION),5)
 	export CXXFLAGS += -std=c++11   # to prevent compiler errors with g++ V5
 endif
 
+# uncomment for address sanitizer
+# export CXXFLAGS += -fsanitize=address
+
 #
 PKG-CONFIG ?= pkg-config
 STRIP ?= strip
