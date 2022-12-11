@@ -4755,8 +4755,12 @@ int main(int argc, char *argv[]) {
                 printf ("\n");
                 break;
             case 1: // --markfile
-                strncpy(config.markFileName, optarg, sizeof(config.markFileName));
-                config.markFileName[sizeof(config.markFileName) - 1] = 0;
+                if ((strlen(optarg) + 1) > sizeof(config.markFileName)) {
+                    fprintf(stderr, "markad: mark file name too long: %s\n", optarg);
+                    return 2;
+                }
+                strncpy(config.markFileName, optarg, sizeof(config.markFileName) - 1);
+                config.markFileName[strlen(optarg) + 1] = 0;
                 break;
             case 2: // --loglevel
                 SysLogLevel = atoi(optarg);
