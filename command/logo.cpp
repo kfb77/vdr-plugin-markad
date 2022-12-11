@@ -55,9 +55,9 @@ cExtractLogo::~cExtractLogo() {
         // free memory of sobel plane vector
         for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
             for (int plane = 0; plane < PLANES; plane++) {
-                delete actLogo->sobel[plane];
+                delete[] actLogo->sobel[plane];
             }
-            delete actLogo->sobel;
+            delete[] actLogo->sobel;
             FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
         }
         logoInfoVector[corner].clear();
