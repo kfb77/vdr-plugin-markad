@@ -4779,8 +4779,12 @@ int main(int argc, char *argv[]) {
                 config.noPid = true;
                 break;
             case 5: // --svdrphost
-                strncpy(config.svdrphost, optarg, sizeof(config.svdrphost));
-                config.svdrphost[sizeof(config.svdrphost) - 1] = 0;
+                if ((strlen(optarg) + 1) > sizeof(config.svdrphost)) {
+                    fprintf(stderr, "markad: svdrphost too long: %s\n", optarg);
+                    return 2;
+                }
+                strncpy(config.svdrphost, optarg, sizeof(config.svdrphost) - 1);
+                config.svdrphost[strlen(optarg) + 1] = 0;
                 break;
             case 6: // --svdrpport
                 if (isnumber(optarg) && atoi(optarg) > 0 && atoi(optarg) < 65536) {
