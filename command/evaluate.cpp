@@ -749,9 +749,9 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
             // free memory
             if (logo1[corner]->sobel) {  // at first iteration logo1[corner]->sobel is not allocated
                 for (int plane = 0; plane < PLANES; plane++) {
-                    delete logo1[corner]->sobel[plane];
+                    delete[] logo1[corner]->sobel[plane];
                 }
-                delete logo1[corner]->sobel;
+                delete[] logo1[corner]->sobel;
                 FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "logo[corner]->sobel");
             }
             FREE(sizeof(*logo1[corner]), "logo");
@@ -771,9 +771,9 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
     for (int corner = 0; corner < CORNERS; corner++) {
         if (logo1[corner]->sobel) {
             for (int plane = 0; plane < PLANES; plane++) {
-                delete logo1[corner]->sobel[plane];
+                delete[] logo1[corner]->sobel[plane];
             }
-            delete logo1[corner]->sobel;
+            delete[] logo1[corner]->sobel;
             FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "logo[corner]->sobel");
         }
         FREE(sizeof(*logo1[corner]), "logo");
