@@ -51,10 +51,6 @@ ifeq ($(CXXVERSION),5)
 	export CXXFLAGS += -std=c++11   # to prevent compiler errors with g++ V5
 endif
 
-# uncomment for address sanitizer
-# export CXXFLAGS += -fsanitize=address
-
-#
 PKG-CONFIG ?= pkg-config
 STRIP ?= strip
 
@@ -67,6 +63,7 @@ DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
 DEFINES += -D__STDC_CONSTANT_MACROS -D__USE_XOPEN_EXTENDED
 
 
+# more debug compiler options
 ifdef DEBUG_MEM_MARKAD
 DEFINES += -DDEBUG_MEM
 $(info option DEBUG_MEM_MARKAD is set)
@@ -75,6 +72,11 @@ endif
 ifdef DEBUG_MARK_FRAMES
 DEFINES += -DDEBUG_MARK_FRAMES=$(DEBUG_MARK_FRAMES)
 $(info option DEBUG_MARK_FRAMES is set)
+endif
+
+ifdef DEBUG_SANITIZER
+export CXXFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
+$(info sanitize option is set)
 endif
 
 
