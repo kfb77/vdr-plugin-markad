@@ -132,27 +132,27 @@ void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
     if (area.sobel) {
         FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.sobel");
         for (int plane = 0; plane < PLANES; plane++) {
-            delete area.sobel[plane];
+            delete[] area.sobel[plane];
         }
-        delete area.sobel;
+        delete[] area.sobel;
         area.sobel = NULL;
     }
     // free memory for sobel masks
     if (area.mask) {
         FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
         for (int plane = 0; plane < PLANES; plane++) {
-            delete area.mask[plane];
+            delete[] area.mask[plane];
         }
-        delete area.mask;
+        delete[] area.mask;
         area.mask = NULL;
     }
     // free memory for sobel result
     if (area.result) {
         FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.result");
         for (int plane = 0; plane < PLANES; plane++) {
-            delete area.result[plane];
+            delete[] area.result[plane];
         }
-        delete area.result;
+        delete[] area.result;
         area.result = NULL;
     }
     area = {};
