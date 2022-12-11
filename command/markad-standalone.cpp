@@ -4656,8 +4656,12 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             case 'l':
-                strncpy(config.logoDirectory, optarg, sizeof(config.logoDirectory));
-                config.logoDirectory[sizeof(config.logoDirectory) - 1]=0;
+                if ((strlen(optarg) + 1) > sizeof(config.logoDirectory)) {
+                    fprintf(stderr, "markad: logo path too long: %s\n", optarg);
+                    return 2;
+                }
+                strncpy(config.logoDirectory, optarg, sizeof(config.logoDirectory) - 1);
+                config.logoDirectory[strlen(optarg) + 1] = 0;
                 break;
             case 'p':
                 // --priority
