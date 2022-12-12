@@ -1386,35 +1386,37 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                         continue;
                     }
 
-                    int hBorderIFrame = -1;
-                    int vBorderIFrame = -1;
-                    int isHBorder = hborder->Process(iFrameNumber, &hBorderIFrame);
-                    int isVBorder = vborder->Process(iFrameNumber, &vBorderIFrame);
-                    if (isHBorder) {  // -1 invisible, 1 visible
-                        if (hBorderIFrame >= 0) {  // we had a change
-                            if (isHBorder == HBORDER_VISIBLE){
-                                dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d)", hBorderIFrame, iFrameNumber);
-                                iFrameCountValid-=DeleteFrames(maContext, hBorderIFrame, iFrameNumber);
-                            }
-                            else {
-                                dsyslog("cExtractLogo::SearchLogo(): no horizontal border from frame (%d)", iFrameNumber);
-                            }
-                        }
-                    }
-                    if (isVBorder) { // -1 invisible, 1 visible
-                        if (vBorderIFrame >= 0) {  // we had a change
-                            if (isVBorder == VBORDER_VISIBLE) {
-                                dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d)", vBorderIFrame, iFrameNumber);
-                                iFrameCountValid-=DeleteFrames(maContext, vBorderIFrame, iFrameNumber);
-                            }
-                            else {
-                                dsyslog("cExtractLogo::SearchLogo(): no vertical border from frame (%d)", iFrameNumber);
+                    if (!maContext->Video.Logo.isInBorder) {
+                        int hBorderIFrame = -1;
+                        int vBorderIFrame = -1;
+                        int isHBorder = hborder->Process(iFrameNumber, &hBorderIFrame);
+                        int isVBorder = vborder->Process(iFrameNumber, &vBorderIFrame);
+                        if (isHBorder) {  // -1 invisible, 1 visible
+                            if (hBorderIFrame >= 0) {  // we had a change
+                                if (isHBorder == HBORDER_VISIBLE){
+                                    dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d)", hBorderIFrame, iFrameNumber);
+                                    iFrameCountValid-=DeleteFrames(maContext, hBorderIFrame, iFrameNumber);
+                                }
+                                else {
+                                    dsyslog("cExtractLogo::SearchLogo(): no horizontal border from frame (%d)", iFrameNumber);
+                                }
                             }
                         }
-                    }
-                    if ((isHBorder == HBORDER_VISIBLE) || (isVBorder == VBORDER_VISIBLE)) {
-                        dsyslog("cExtractLogo::SearchLogo(): border frame detected, abort logo search");
-                        retStatus = false;
+                        if (isVBorder) { // -1 invisible, 1 visible
+                            if (vBorderIFrame >= 0) {  // we had a change
+                                if (isVBorder == VBORDER_VISIBLE) {
+                                    dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d)", vBorderIFrame, iFrameNumber);
+                                    iFrameCountValid-=DeleteFrames(maContext, vBorderIFrame, iFrameNumber);
+                                }
+                                else {
+                                    dsyslog("cExtractLogo::SearchLogo(): no vertical border from frame (%d)", iFrameNumber);
+                                }
+                            }
+                        }
+                        if ((isHBorder == HBORDER_VISIBLE) || (isVBorder == VBORDER_VISIBLE)) {
+                            dsyslog("cExtractLogo::SearchLogo(): border frame detected, abort logo search");
+                            retStatus = false;
+                        }
                     }
 
                     iFrameCountValid++;

@@ -294,11 +294,25 @@ void cMarkAdStandalone::CheckStop() {
     if (!end) {
         end = marks.GetAround(3*delta, iStopA, MT_VBORDERSTOP);
         if (end) {
-            dsyslog("cMarkAdStandalone::CheckStop(): MT_VBORDERSTOP found at frame %i", end->position);
-            cMark *prevVStart = marks.GetPrev(end->position, MT_VBORDERSTART);
-            if (prevVStart) {
-                dsyslog("cMarkAdStandalone::CheckStop(): vertial border start and stop found, delete weak marks except start mark");
-                marks.DelWeakFromTo(marks.GetFirst()->position + 1, INT_MAX, MT_VBORDERCHANGE);
+            int deltaStopA = (end->position - iStopA) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::CheckStop(): MT_VBORDERSTOP found at frame (%d), %ds after assumed stop", end->position, deltaStopA);
+            if ((deltaStopA >= 203) && macontext.Video.Logo.isInBorder) {  // changed from 239 to 236 to 203
+                cMark *logoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
+                if (logoStop) {
+                    int deltaLogoStop = (iStopA - logoStop->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP at (%d) %d before assumed stop found", logoStop->position, deltaLogoStop);
+                    if (deltaLogoStop <= 381) {
+                        dsyslog("cMarkAdStandalone::CheckStop(): MT_VBORDERSTOP too far after assumed stop, found bettet logo stop mark at (%d)", logoStop->position);
+                        end = logoStop;
+                    }
+                }
+            }
+            if (end->type == MT_VBORDERSTOP) { // we habe not replaced vborder top with logo stop
+                cMark *prevVStart = marks.GetPrev(end->position, MT_VBORDERSTART);
+                if (prevVStart) {
+                    dsyslog("cMarkAdStandalone::CheckStop(): vertial border start and stop found, delete weak marks except start mark");
+                    marks.DelWeakFromTo(marks.GetFirst()->position + 1, INT_MAX, MT_VBORDERCHANGE);
+                }
             }
         }
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_VBORDERSTOP mark found");
@@ -1097,7 +1111,7 @@ void cMarkAdStandalone::CheckStart() {
                 else {
                     dsyslog("cMarkAdStandalone::CheckStart(): delete too early horizontal border mark (%d)", hStart->position);
                     marks.Del(hStart->position);
-                    if (marks.Count(MT_HBORDERCHANGE, 0xF0) == 0) {
+                    if ((marks.Count(MT_HBORDERCHANGE, 0xF0) == 0) && !macontext.Video.Logo.isInBorder) {
                         dsyslog("cMarkAdStandalone::CheckStart(): horizontal border since start, logo marks can not be valid");
                         marks.DelType(MT_LOGOCHANGE, 0xF0);
                     }
@@ -1325,7 +1339,7 @@ void cMarkAdStandalone::CheckStart() {
             }
             else dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) too early, ignoring", lStart->position);
         }
-        if (begin) {
+        if (begin && (!macontext.Video.Logo.isInBorder)) {
             dsyslog("cMarkAdStandalone::CheckStart(): disable border detection and delete border marks");  // avoid false detection of border
             marks.DelType(MT_HBORDERCHANGE, 0xF0);  // there could be hborder from an advertising in the recording
             marks.DelType(MT_VBORDERCHANGE, 0xF0);  // there could be hborder from an advertising in the recording
@@ -1674,7 +1688,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             vborderStop = marks.GetNext(vborderStop->position, MT_VBORDERSTOP);
         }
     }
-    if ((channelStart && channelStop) || (hborderStart && hborderStop) || (vborderStart && vborderStop)) {
+    if (channelStart && channelStop) {
         mark = marks.GetFirst();
         while (mark) {
             if (mark != marks.GetFirst()) {
@@ -1682,9 +1696,28 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                 if ((mark->type == MT_LOGOSTART) || (mark->type == MT_LOGOSTOP)) {
                     cMark *tmp = mark;
                     mark = mark->Next();
-                    dsyslog("cMarkAdStandalone::CheckMarks(): delete logo mark (%i)", tmp->position);
+                    dsyslog("cMarkAdStandalone::CheckMarks(): we have channel marks, delete logo mark (%i)", tmp->position);
                     marks.Del(tmp);
                     continue;
+                }
+            }
+            mark = mark->Next();
+        }
+    }
+
+    if ((hborderStart && hborderStop) || (vborderStart && vborderStop)) {
+        mark = marks.GetFirst();
+        while (mark) {
+            if (mark != marks.GetFirst()) {
+                if (mark == marks.GetLast()) break;
+                if ((mark->type == MT_LOGOSTART) || (mark->type == MT_LOGOSTOP)) {
+                    if ((mark->type == MT_LOGOSTART) || (marks.GetNext(mark->position, MT_LOGOSTOP)) || !macontext.Video.Logo.isInBorder) { // keep last logo stop mark of recordings with logo in border, this can be the end mark
+                        cMark *tmp = mark;
+                        mark = mark->Next();
+                        dsyslog("cMarkAdStandalone::CheckMarks(): we have border marks, delete logo mark (%i)", tmp->position);
+                        marks.Del(tmp);
+                        continue;
+                    }
                 }
             }
             mark = mark->Next();
@@ -3857,6 +3890,10 @@ bool cMarkAdStandalone::LoadInfo() {
                 if ((strcmp(macontext.Info.ChannelName, "SAT_1") == 0) || (strcmp(macontext.Info.ChannelName, "SAT_1_HD")) == 0) {
                     dsyslog("cMarkAdStandalone::LoadInfo(): channel %s has a rotating logo", macontext.Info.ChannelName);
                     macontext.Video.Logo.isRotating = true;
+                }
+                if ((strcmp(macontext.Info.ChannelName, "TELE_5") == 0) || (strcmp(macontext.Info.ChannelName, "TELE_5_HD")) == 0) {
+                    dsyslog("cMarkAdStandalone::LoadInfo(): channel %s has logo in the border", macontext.Info.ChannelName);
+                    macontext.Video.Logo.isInBorder = true;
                 }
             }
         }
