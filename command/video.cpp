@@ -1451,7 +1451,7 @@ int cMarkAdBlackBordersVert::GetFirstBorderFrame() {
 
 int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
 #define CHECKWIDTH 20          // changed from 32 to 20
-#define BRIGHTNESS_V_SURE  22  // changed from 20 to 21 to 22
+#define BRIGHTNESS_V_SURE  24  // changed from 22 to 24
 #define BRIGHTNESS_V_MAYBE 100 // some channel have logo or infos in one border, so we must accept a higher value, changed from 68 to 100
     if (!maContext) {
         dsyslog("cMarkAdBlackBordersVert::Process(): maContext not valid");
