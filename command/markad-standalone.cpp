@@ -2119,6 +2119,28 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             mark = mark->Next();
         }
     }
+
+    mark = marks.GetFirst();
+    while (mark) {
+        // final cleanup of start followed by start or stop followed by stop
+        if ((((mark->type & 0x0F) == MT_STOP)  && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_STOP)) || // two stop or start marks, keep strong marks, delete weak
+            (((mark->type & 0x0F) == MT_START) && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_START))) {
+            dsyslog("cMarkAdStandalone::CheckMarks(): mark (%d) type %d, followed by same mark (%d) type %d", mark->position, mark->type, mark->Next()->position, mark->Next()->type);
+            if (mark->type < mark->Next()->type) {
+                dsyslog("cMarkAdStandalone::CheckMarks(): delete mark (%d)", mark->position);
+                cMark *tmp = mark;
+                mark = mark->Next();
+                marks.Del(tmp);
+                continue;
+            }
+            else {
+                dsyslog("cMarkAdStandalone::CheckMarks(): delete mark (%d)", mark->Next()->position);
+                marks.Del(mark->Next());
+            }
+        }
+        mark = mark->Next();
+    }
+
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): final marks:");
     DebugMarks();     //  only for debugging
