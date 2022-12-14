@@ -1590,51 +1590,14 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
 
 void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no sense
     LogSeparator(true);
-    cMark *mark = NULL;
 
     // remove invalid marks
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): remove invalid marks");
     DebugMarks();     //  only for debugging
-    mark = marks.GetFirst();
+    marks.DelInvalidSequence();
+    cMark *mark = marks.GetFirst();
     while (mark) {
-        // if first mark is a stop mark, remove it
-        if (((mark->type & 0x0F) == MT_STOP) && (mark == marks.GetFirst())){
-            dsyslog("Start with STOP mark, delete first mark");
-            cMark *tmp = mark;
-            mark = mark->Next();
-            marks.Del(tmp);
-            continue;
-        }
-        // start followed by start or stop followed by stop
-        if ((((mark->type & 0x0F) == MT_STOP)  && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_STOP)) || // two stop or start marks, keep most used type, delete other
-            (((mark->type & 0x0F) == MT_START) && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_START))) {
-            if ((mark == marks.GetFirst()) && mark->Next()->position >  (macontext.Video.Info.framesPerSecond * (length + macontext.Config->astopoffs))) {
-                dsyslog("cMarkAdStandalone::CheckMarks(): double start mark as first marks, second start mark near end, this is start mark of the next recording, delete this");
-                marks.Del(mark->Next());
-            }
-            else {
-                int count1 = marks.Count(mark->type);
-                int count2 = marks.Count(mark->Next()->type);
-                dsyslog("cMarkAdStandalone::CheckMarks(): mark (%i) type count %d, followed by same mark (%i) type count %d", mark->position, count1, mark->Next()->position, count2);
-                if (count1 == count2) { // if equal, keep stronger type
-                    if (mark->type > mark->Next()->type) count1++;
-                    else                                 count2++;
-                }
-                if (count1 < count2) {
-                    dsyslog("cMarkAdStandalone::CheckMarks(): delete mark (%d)", mark->position);
-                    cMark *tmp = mark;
-                    mark = mark->Next();
-                    marks.Del(tmp);
-                    continue;
-                }
-                else {
-                    dsyslog("cMarkAdStandalone::CheckMarks(): delete stop mark (%d)", mark->Next()->position);
-                   marks.Del(mark->Next());
-                }
-            }
-        }
-
         // if stop/start distance is too big, remove pair
         if (((mark->type & 0x0F) == MT_STOP) && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_START)) {
             int diff = (mark->Next()->position - mark->position) / macontext.Video.Info.framesPerSecond;
@@ -2120,26 +2083,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         }
     }
 
-    mark = marks.GetFirst();
-    while (mark) {
-        // final cleanup of start followed by start or stop followed by stop
-        if ((((mark->type & 0x0F) == MT_STOP)  && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_STOP)) || // two stop or start marks, keep strong marks, delete weak
-            (((mark->type & 0x0F) == MT_START) && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_START))) {
-            dsyslog("cMarkAdStandalone::CheckMarks(): mark (%d) type %d, followed by same mark (%d) type %d", mark->position, mark->type, mark->Next()->position, mark->Next()->type);
-            if (mark->type < mark->Next()->type) {
-                dsyslog("cMarkAdStandalone::CheckMarks(): delete mark (%d)", mark->position);
-                cMark *tmp = mark;
-                mark = mark->Next();
-                marks.Del(tmp);
-                continue;
-            }
-            else {
-                dsyslog("cMarkAdStandalone::CheckMarks(): delete mark (%d)", mark->Next()->position);
-                marks.Del(mark->Next());
-            }
-        }
-        mark = mark->Next();
-    }
+    marks.DelInvalidSequence();
 
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): final marks:");

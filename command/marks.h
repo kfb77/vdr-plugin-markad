@@ -180,6 +180,12 @@ class cMarks {
  */
         void DelAll();
 
+
+/**
+ * delete marks with invalid squence (double start or stop marks)
+ */
+        void DelInvalidSequence();
+
 /**
  * delete mark
  * @param mark mark to delete
