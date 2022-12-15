@@ -23,7 +23,9 @@
 
 #define MIN_H_BORDER_SECS 70  //!< minimum lenght of horizontal border, changed from 60 to 70 to prevent to detect dark scene as border
                               //!<
-#define MIN_V_BORDER_SECS 73  //!< minimum lenght of vertical border, changed from 70 to 80
+#define MIN_V_BORDER_SECS 98  //!< minimum lenght of vertical border before it is accepted <br>
+                              //!< changed from 73 to 90 to 98 <br>
+                              //!< need a long sequence to prevent long darks scenes detected as border <br>
                               //!< keep it greater than MIN_H_BORDER_SECS for detecting long black screens
 
 
