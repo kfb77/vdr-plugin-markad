@@ -29,19 +29,19 @@ cPluginMarkAd::cPluginMarkAd(void) {
     ALLOC(strlen(bindir)+1, "bindir");
     logodir = strdup(DEF_LOGODIR);
     ALLOC(strlen(logodir)+1, "logodir");
-    title[0] = 0;
-    setup.ProcessDuring = true;
-    setup.whileRecording = true;
-    setup.whileReplaying = true;
-    setup.GenIndex = false;
-    setup.OSDMessage = false;
-    setup.Verbose = false;
-    setup.NoMargins = false;
+    title[0]                = 0;
+    setup.ProcessDuring     = PROCESS_NEVER;
+    setup.whileRecording    = true;
+    setup.whileReplaying    = true;
+    setup.GenIndex          = false;
+    setup.OSDMessage        = false;
+    setup.Verbose           = false;
+    setup.NoMargins         = false;
     setup.HideMainMenuEntry = false;
-    setup.SecondPass = true;
-    setup.Log2Rec = false;
-    setup.LogoOnly = true;
-    setup.DeferredShutdown = true;
+    setup.SecondPass        = true;
+    setup.Log2Rec           = false;
+    setup.LogoOnly          = true;
+    setup.DeferredShutdown  = true;
 }
 
 

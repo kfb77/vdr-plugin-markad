@@ -16,13 +16,13 @@
 
 
 struct setup {
-    int ProcessDuring;
-    bool useVPS = false;
-    bool logVPS = false;
+    int ProcessDuring     = PROCESS_NEVER;
+    bool useVPS           = false;
+    bool logVPS           = false;
     bool whileRecording;
     bool whileReplaying;
     bool OSDMessage;
-    int  svdrPort = 6419;
+    int  svdrPort          = 6419;
     bool Verbose;
     bool GenIndex;
     bool NoMargins;
@@ -31,16 +31,16 @@ struct setup {
     bool Log2Rec;
     bool LogoOnly;
     bool DeferredShutdown;
-    const char *LogoDir;
-    char *LogLevel = NULL;
-    char *aStopOffs = NULL;
-    bool cDecoder = false;
-    bool MarkadCut = false;
-    bool ac3ReEncode = false;
-    int autoLogoConf = -1;
-    int autoLogoMenue = 2;
-    bool fulldecode = false;
-    const char *PluginName;
+    const char *LogoDir    = NULL;
+    char *LogLevel         = NULL;
+    char *aStopOffs        = NULL;
+    bool cDecoder          = false;
+    bool MarkadCut         = false;
+    bool ac3ReEncode       = false;
+    int autoLogoConf       = -1;
+    int autoLogoMenue      = 2;
+    bool fulldecode        = false;
+    const char *PluginName = NULL;
 };
 
 
