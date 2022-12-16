@@ -19,7 +19,7 @@ extern "C" {
 }
 
 
-#define VOLUME 3dB
+#define VOLUME 2dB
 
 /**
  * libav volume filter class
