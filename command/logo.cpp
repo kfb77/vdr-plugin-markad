@@ -1061,9 +1061,9 @@ int cExtractLogo::DeleteFrames(const sMarkAdContext *maContext, const int from, 
             if (actLogo->iFrameNumber <= to) {
                 // free memory of sobel planes
                 for (int plane = 0; plane < PLANES; plane++) {
-                    delete actLogo->sobel[plane];
+                    delete[] actLogo->sobel[plane];
                 }
-                delete actLogo->sobel;
+                delete[] actLogo->sobel;
 #ifdef DEBUG_MEM
                 int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
 #endif
