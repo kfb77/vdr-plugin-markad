@@ -442,17 +442,20 @@ typedef struct sMarkAdContext {
             short int Channels[MAXSTREAMS] = {0}; //!< number of audio channels from each AC3 streams
                                                   //!<
 
-            int SampleRate;  //!< audio sample rate
-                             //!<
+            int codec_id[MAXSTREAMS] = {0};       //!< codec id of the audio stream
+                                                  //!<
 
-            bool channelChange = false; //!< a valid channel change is detected in this recording
-                                        //!<
+            int SampleRate;                       //!< audio sample rate
+                                                  //!<
 
-            int channelChangeFrame; //!< frame number of last channel change
-                                    //!<
+            bool channelChange = false;           //!< a valid channel change is detected in this recording
+                                                  //!<
 
-            int64_t channelChangePTS; //!< presentation timestamp of last audio channel change
-                                      //!<
+            int channelChangeFrame;               //!< frame number of last channel change
+                                                  //!<
+
+            int64_t channelChangePTS;             //!< presentation timestamp of last audio channel change
+                                                  //!<
 
         } Info; //!< audio stream infos
                 //!<

@@ -777,6 +777,17 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool full) {
     }
 
     if (IsAudioPacket()) {
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
+        if (maContext->Audio.Info.codec_id[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codecpar->codec_id) {
+            if (maContext->Audio.Info.codec_id[avpkt.stream_index] != 0) dsyslog("cDecoder::GetFrameInfo(): frame (%d) stream index %d codec_id changed from %d to %d", currFrameNumber, avpkt.stream_index, maContext->Audio.Info.codec_id[avpkt.stream_index], avctx->streams[avpkt.stream_index]->codecpar->codec_id);
+            maContext->Audio.Info.codec_id[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codecpar->codec_id;
+        }
+#else
+        if (maContext->Audio.Info.codec_id[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codec->codec_id) {
+            if (maContext->Audio.Info.codec_id[avpkt.stream_index] != 0) dsyslog("cDecoder::GetFrameInfo(): frame (%d) stream index %d codec_id changed from %d to %d", currFrameNumber, avpkt.stream_index, maContext->Audio.Info.codec_id[avpkt.stream_index], avctx->streams[avpkt.stream_index]->codec->codec_id);
+            maContext->Audio.Info.codec_id[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codec->codec_id;
+        }
+#endif
         if (IsAudioAC3Packet()) {
             if (avpkt.stream_index > MAXSTREAMS) {
                 dsyslog("cDecoder::GetFrameInfo(): to much streams %i", avpkt.stream_index);
