@@ -460,17 +460,13 @@ int cMarkAdStandalone::CheckStop() {
                 cMark *nextLogoStop = NULL;
                 if (nextLogoStart) nextLogoStop = marks.GetNext(end->position, MT_LOGOSTOP);
 
-                if (prevLogoStart && prevLogoStop && nextLogoStart && !nextLogoStop) {
+                if (prevLogoStart && prevLogoStop && nextLogoStart && !nextLogoStop) {  // debug log for future use
                     int adBefore = (prevLogoStart->position - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::CheckStop(): advertising before from (%d) to (%d) %3ds", prevLogoStart->position, prevLogoStop->position, adBefore);
                     int adAfter = (nextLogoStart->position - end->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::CheckStop(): advertising after  from (%d) to (%d) %3ds", end->position, nextLogoStart->position, adAfter);
                     int broadcastBefore = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::CheckStop(): broadcast   before from (%d) to (%d) %3ds", prevLogoStart->position, end->position, broadcastBefore);
-                    if (adAfter <= 33) {
-                        dsyslog("cMarkAdStandalone::CheckStop(): advertising after logo end mark too short, mark not valid");
-                        end = NULL;
-                    }
                 }
             }
         }
