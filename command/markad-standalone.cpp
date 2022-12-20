@@ -1190,8 +1190,7 @@ void cMarkAdStandalone::CheckStart() {
             if (vStart) {
                 if (vStart->position >= IGNORE_AT_START) {  // early position is a vborder previous recording
                     dsyslog("cMarkAdStandalone::CheckStart(): delete HBORDER marks if any");
-                    marks.Del(MT_HBORDERSTART);
-                    marks.Del(MT_HBORDERSTOP);
+                    marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
                     begin = vStart;   // found valid vertical border start mark
                     macontext.Video.Info.hasBorder = true;
                     macontext.Video.Options.ignoreHborder = true;
