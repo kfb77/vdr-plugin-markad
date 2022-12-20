@@ -3455,15 +3455,10 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                     bDecodeVideo = true;
                     macontext.Video.Options.ignoreBlackScreenDetection = false;   // use black sceen setection only to find end mark
                     if (macontext.Video.Options.ignoreLogoDetection == true) {
-                        if (macontext.Video.Info.hasBorder) { // we do not need logos, we have hborder
-                            dsyslog("cMarkAdStandalone::ProcessFrame(): we do not need to look for logos, we have a broadcast with border");
-                        }
-                        else {
-                            macontext.Video.Options.ignoreLogoDetection = false;
-                            if (video) {
-                                dsyslog("cMarkAdStandalone::ProcessFrame():  reset logo detector status");
-                                video->Clear(true, inBroadCast);
-                            }
+                        macontext.Video.Options.ignoreLogoDetection = false;
+                        if (video) {
+                            dsyslog("cMarkAdStandalone::ProcessFrame():  reset logo detector status");
+                            video->Clear(true, inBroadCast);
                         }
                     }
                 }
