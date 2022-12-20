@@ -222,9 +222,9 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
         if (area.mask) {
             FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
             for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-                delete area.mask[planeTMP];
+                delete[] area.mask[planeTMP];
             }
-            delete area.mask;
+            delete[] area.mask;
             area.mask = NULL;
         }
         area.mask = new uchar*[PLANES];
