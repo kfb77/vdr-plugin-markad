@@ -1118,7 +1118,7 @@ void cMarkAdStandalone::CheckStart() {
             }
         }
         else { // we found no hborder start mark
-            dsyslog("cMarkAdStandalone::CheckStart(): no horizontal border at start found, ignore horizontal border detection");
+            dsyslog("cMarkAdStandalone::CheckStart(): no horizontal border at start found, disable horizontal border detection");
             macontext.Video.Options.ignoreHborder = true;
             cMark *hStop = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTOP);
             if (hStop) {
@@ -1136,6 +1136,8 @@ void cMarkAdStandalone::CheckStart() {
                     free(comment);
                 }
             }
+            dsyslog("cMarkAdStandalone::CheckStart(): delete horizontal border marks, if any");
+            marks.DelType(MT_HBORDERCHANGE, 0xF0);  // mybe the is a late invalid hborder start marks, exists sometimes with old vborder recordings
         }
     }
 
