@@ -115,6 +115,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
             iStop                     = origin->iStop;
             iStartA                   = origin->iStartA;
             iStopA                    = origin->iStopA;
+            endMarkPos                = origin->endMarkPos;
             ptr_cDecoderLogoChange    = origin->ptr_cDecoderLogoChange;
             evaluateLogoStopStartPair = origin->evaluateLogoStopStartPair;
             return *this;
@@ -159,7 +160,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
 /**
  * check for end mark
  */
-        void CheckStop();
+        int CheckStop();
 
 /**
  * move search for closing credits and move last logo stop mark after this
@@ -245,7 +246,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
 /**
  * cleanup marks that make no sense
  */
-        void CheckMarks();
+        void CheckMarks(const int endPos);
 
 /**
  * write a separator line to log file
@@ -360,6 +361,8 @@ class cMarkAdStandalone : public cEvaluateChannel {
                                                                        //!<
         int iStopA = 0;                                                //!< assumed end frame position (negative if unset)
                                                                        //!<
+        int endMarkPos = 0;                                            //!< from checkStop calulated end position of the recording
+                                                                       //!<
         bool iStopinBroadCast = false;                                 //!< true if we are in broadcast at iStop position, false otherwise
                                                                        //!<
         int chkSTART = 0;                                              //!< frame number to check for start mark
@@ -381,6 +384,6 @@ class cMarkAdStandalone : public cEvaluateChannel {
         cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = NULL;  //!< pointer to class cEvaluateLogoStopStartPair
                                                                        //!<
         bool checkAudio = false;                                       //!< set to true after each i-Frame, reset to false after audio channel check
-                                                                      //!<
+                                                                       //!<
 };
 #endif

@@ -171,7 +171,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
 }
 
 
-void cMarkAdStandalone::CheckStop() {
+int cMarkAdStandalone::CheckStop() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStop(): start check stop (%i)", frameCurrent);
 
@@ -577,6 +577,8 @@ void cMarkAdStandalone::CheckStop() {
     DebugMarks();     //  only for debugging
     dsyslog("cMarkAdStandalone::CheckStop(): end check stop");
     LogSeparator();
+    if (end) return end->position;
+    else return 0;
 
 }
 
@@ -1589,7 +1591,7 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
 }
 
 
-void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no sense
+void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup marks that make no sense
     LogSeparator(true);
 
     // remove invalid marks
@@ -1673,15 +1675,12 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         mark = marks.GetFirst();
         while (mark) {
             if (mark != marks.GetFirst()) {
-                if (mark == marks.GetLast()) break;
-                if ((mark->type == MT_LOGOSTART) || (mark->type == MT_LOGOSTOP)) {
-                    if ((mark->type == MT_LOGOSTART) || (marks.GetNext(mark->position, MT_LOGOSTOP)) || !macontext.Video.Logo.isInBorder) { // keep last logo stop mark of recordings with logo in border, this can be the end mark
-                        cMark *tmp = mark;
-                        mark = mark->Next();
-                        dsyslog("cMarkAdStandalone::CheckMarks(): we have border marks, delete logo mark (%i)", tmp->position);
-                        marks.Del(tmp);
-                        continue;
-                    }
+                if (((mark->type == MT_LOGOSTART) || (mark->type == MT_LOGOSTOP)) && (mark->position != endMarkPos)) {  // do not delete mark on end position, can be a logo mark even if we have border
+                    cMark *tmp = mark;
+                    mark = mark->Next();
+                    dsyslog("cMarkAdStandalone::CheckMarks(): we have border marks, delete logo mark (%i)", tmp->position);
+                    marks.Del(tmp);
+                    continue;
                 }
             }
             mark = mark->Next();
@@ -3498,7 +3497,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                         dsyslog("still no chkStart called, doing it now");
                         CheckStart();
                     }
-                    CheckStop();
+                    endMarkPos = CheckStop();
                     return false;
                 }
             }
@@ -3592,9 +3591,9 @@ void cMarkAdStandalone::ProcessFiles() {
                 dsyslog("cMarkAdStandalone::ProcessFiles(): recording ends unexpected before chkSTOP (%d) at frame %d", chkSTOP, frameCurrent);
                 isyslog("got end of recording before recording length from info file reached");
             }
-            CheckStop();
+            endMarkPos = CheckStop();
         }
-        CheckMarks();
+        CheckMarks(endMarkPos);
         if ((inBroadCast) && (!gotendmark) && (frameCurrent)) {
             sMarkAdMark tempmark;
             tempmark.type = MT_RECORDINGSTOP;
