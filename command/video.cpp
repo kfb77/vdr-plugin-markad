@@ -1630,8 +1630,9 @@ void cMarkAdOverlap::Detect(sOverlapPos *ptr_OverlapPos) {
 
         for (int indexAfterStartMark = startAfterMark; indexAfterStartMark < histcnt[OV_AFTER]; indexAfterStartMark++) {
             // check if histogram buffer after start mark is valid
-            if (!histbuf[OV_AFTER][indexAfterStartMark].valid) {
+            if (!histbuf[OV_AFTER][indexAfterStartMark].valid) {  // not valid, continue with next pair
                 indexBeforeStopMark++;
+                if (indexBeforeStopMark >= histcnt[OV_BEFORE]) break;
                 continue;
             }
 
