@@ -467,6 +467,11 @@ int cMarkAdStandalone::CheckStop() {
                     dsyslog("cMarkAdStandalone::CheckStop(): advertising after  from (%d) to (%d) %3ds", end->position, nextLogoStart->position, adAfter);
                     int broadcastBefore = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::CheckStop(): broadcast   before from (%d) to (%d) %3ds", prevLogoStart->position, end->position, broadcastBefore);
+
+                    if (broadcastBefore <= 34) {  // end mark invalid there is only a very short ad after end mark
+                        dsyslog("cMarkAdStandalone::CheckStop(): broadcast before only %ds, end mark (%d) is invalid", broadcastBefore, end->position);
+                        end = NULL;
+                    }
                 }
             }
         }
