@@ -404,20 +404,23 @@ int cMarkAdStandalone::CheckStop() {
                     }
                     else dsyslog("cMarkAdStandalone::CheckStop(): next logo stop mark too far after assumed end");
                 }
-                else {  // check previous logo stop/start pair
+                else {  // check logo stop/start pairs around end mark
+                    // check if previous logo stop/start pair are closing credits, in this case use previous logo stop mark
                     cMark *prevLogoStart  = marks.GetPrev(end->position, MT_LOGOSTART);
                     cMark *prevLogoStop = NULL;
                     if (prevLogoStart) prevLogoStop = marks.GetPrev(prevLogoStart->position, MT_LOGOSTOP);
                     if (prevLogoStart && prevLogoStop) {
-                        // check if previous logo stop/start pair are closing credits, in this case use previous logo stop mark
-                        int diffAssumedStop = (iStopA - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::CheckStop(): assumed logo end mark (%d), previous logo stop (%d) start (%d) pair %ds before assumed stop (%d)", end->position, prevLogoStop->position, prevLogoStart->position, diffAssumedStop, iStopA);
-                        bool isBeforeClosingCredits = false;
-                        // check closing credits, but not if we got first start mark as start mark of the pair, this could be closing credit of recording before
-                        if ((prevLogoStart->position > marks.GetFirst()->position) && evaluateLogoStopStartPair) isBeforeClosingCredits = (evaluateLogoStopStartPair->GetIsClosingCredits(prevLogoStop->position, prevLogoStart->position) == STATUS_YES);
-                        if (isBeforeClosingCredits && (diffAssumedStop < 203)) { // changed from 281 to 203
-                            dsyslog("cMarkAdStandalone::CheckStop(): previous stop (%d) start (%d) pair are closing credits, use this logo stop mark", prevLogoStop->position, prevLogoStart->position);
-                            end = prevLogoStop;
+#define MAX_BEFORE_ASUMED_STOP 203 // changed from 281 to 203
+                        int diffAssumedPrevLogoStop = (iStopA - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
+                        int diffAssumedEnd          = (iStopA - end->position)          / macontext.Video.Info.framesPerSecond;
+                        dsyslog("cMarkAdStandalone::CheckStop(): end mark (%d): %ds before assumed stop (%d)", end->position, diffAssumedEnd, iStopA);
+                        dsyslog("cMarkAdStandalone::CheckStop(): previous logo stop (%d) start (%d): %ds (expect < %d) before assumed stop (%d)", prevLogoStop->position, prevLogoStart->position, diffAssumedPrevLogoStop, MAX_BEFORE_ASUMED_STOP, iStopA);
+                        if ((prevLogoStart->position > marks.GetFirst()->position) && (diffAssumedPrevLogoStop < MAX_BEFORE_ASUMED_STOP) && abs(diffAssumedPrevLogoStop) < (diffAssumedEnd) && evaluateLogoStopStartPair) {
+                            // check closing credits, but not if we got first start mark as start mark of the pair, this could be closing credit of recording before
+                            if (evaluateLogoStopStartPair->GetIsClosingCredits(prevLogoStop->position, prevLogoStart->position == STATUS_YES)) {
+                                dsyslog("cMarkAdStandalone::CheckStop(): previous stop (%d) start (%d): are closing credits, use this logo stop mark", prevLogoStop->position, prevLogoStart->position);
+                                end = prevLogoStop;
+                            }
                         }
                         else { // detect very short logo stop/start around assumed stop mark, if they are undetected info logos (text previews over the logo e.g. SAT.1)
                             int deltaLogoStart = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
