@@ -113,7 +113,7 @@ class cEpgHandlerMarkad : public cEpgHandler {
             StatusMarkAd = statusMonitor;
         };
         ~cEpgHandlerMarkad(void) {};
-        virtual bool HandleEitEvent(cSchedule *Schedule, const SI::EIT::Event *EitEvent, uchar TableID, uchar Version);
+	virtual bool HandleEitEvent(cSchedule *Schedule, const SI::EIT::Event *EitEvent, uchar TableID, uchar Version);
 //        virtual bool HandleEvent(cEvent *Event);
     private:
         cStatusMarkAd *StatusMarkAd = NULL;

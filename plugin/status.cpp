@@ -156,19 +156,31 @@ void cEpgEventLog::Log(const char *message) {
 
 bool cEpgHandlerMarkad::HandleEitEvent(cSchedule *Schedule, const SI::EIT::Event *EitEvent, uchar TableID, uchar Version) {
     if (!EitEvent) return false;
+    if (EitEvent->getRunningStatus() <= 0) return false;
     if (!StatusMarkAd) return false;
-    if (EitEvent->getRunningStatus()) StatusMarkAd->SetVPSStatus(Schedule, EitEvent);
+    StatusMarkAd->SetVPSStatus(Schedule, EitEvent);
+/*
+    LOCK_CHANNELS_READ;
+    const cChannel *channel = Channels->GetByChannelID(Schedule->ChannelID(), true);
+    if (channel && (EitEvent->getRunningStatus() > 0)) {
+        dsyslog("---------------------------------------------------------------------------------------------");
+        dsyslog("markad: cEpgHandlerMarkad::HandleEitEvent(): EventID() %5d RunningStatus() %d, channel: %s %s", EitEvent->getEventId(), EitEvent->getRunningStatus(), *Schedule->ChannelID().ToString(), channel->Name());
+    }
+*/
     return false;
 }
 
 
-/*
+/* does not work together with epg2vdr
 bool cEpgHandlerMarkad::HandleEvent(cEvent *Event) {
-    if (Event->RunningStatus()) StatusMarkAd->SetVPSStatus(Event->EventID(), Event->RunningStatus());
+    if (!Event) return false;
+//    if (Event->RunningStatus()) StatusMarkAd->SetVPSStatus(Event->EventID(), Event->RunningStatus());
+    LOCK_CHANNELS_READ;
+    const cChannel *channel = Channels->GetByChannelID(Event->ChannelID(), true);
+    if (channel && (Event->RunningStatus() > 0))  dsyslog("markad: cEpgHandlerMarkad::HandleEvent():    EventID() %5d RunningStatus() %d, channel: %s %s, title: %s", Event->EventID(), Event->RunningStatus(), *Event->ChannelID().ToString(), channel->Name(), Event->Title());
     return false;
 }
 */
-
 
 
 void cStatusMarkAd::SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event *EitEvent) {
@@ -514,6 +526,9 @@ cStatusMarkAd::cStatusMarkAd(const char *BinDir, const char *LogoDir, struct set
     logodir = LogoDir;
     actpos = 0;
     memset(&recs, 0, sizeof(recs));
+
+    dsyslog("markad: cStatusMarkAd::cStatusMarkAd(): create epg event handler");
+    epgHandlerMarkad = new cEpgHandlerMarkad(this);     // VDR will free at stop
 }
 
 

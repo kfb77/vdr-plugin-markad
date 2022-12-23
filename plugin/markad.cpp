@@ -169,6 +169,7 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
 
 bool cPluginMarkAd::Initialize(void) {
     // Initialize any background activities the plugin shall perform.
+    dsyslog("markad: cPluginMarkAd::Initialize() called");
     char *path;
     if (asprintf(&path, "%s/markad", bindir) == -1) return false;
     ALLOC(strlen(path)+1, "path");
@@ -183,12 +184,17 @@ bool cPluginMarkAd::Initialize(void) {
     }
     FREE(strlen(path)+1, "path");
     free(path);
-    return true;
+
+    dsyslog("markad: cPluginMarkAd::Initialize(): create status monitor");
+    statusMonitor = new cStatusMarkAd(bindir, logodir, &setup);
+    ALLOC(sizeof(*statusMonitor), "statusMonitor");
+    return (statusMonitor!=NULL);
 }
 
 
 bool cPluginMarkAd::Start(void) {
     // Start any background activities the plugin shall perform.
+    dsyslog("markad: cPluginMarkAd::Start() called");
     lastcheck = 0;
     setup.PluginName = Name();
     if (loglevel) {
@@ -200,20 +206,18 @@ bool cPluginMarkAd::Start(void) {
         if(! asprintf(&setup.aStopOffs, " --astopoffs=%i ", astopoffs)) esyslog("markad: asprintf out of memory");
         ALLOC(strlen(setup.aStopOffs)+1, "setup.aStopOffs");
     }
-    setup.MarkadCut = MarkadCut;
-    setup.ac3ReEncode = ac3ReEncode;
+    setup.MarkadCut    = MarkadCut;
+    setup.ac3ReEncode  = ac3ReEncode;
     setup.autoLogoConf = autoLogoConf;
-    setup.LogoDir = logodir;
+    setup.LogoDir      = logodir;
 
-    dsyslog("markad: cPluginMarkAd::Start(): create recording handler");
-    statusMonitor = new cStatusMarkAd(bindir, logodir, &setup);
-    ALLOC(sizeof(*statusMonitor), "statusMonitor");
-    return (statusMonitor!=NULL);
+    return true;
 }
 
 
 void cPluginMarkAd::Stop(void) {
     // Stop any background activities the plugin is performing.
+    dsyslog("markad: cPluginMarkAd::Stop() called");
 }
 
 
