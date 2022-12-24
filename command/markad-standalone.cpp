@@ -332,7 +332,7 @@ int cMarkAdStandalone::CheckStop() {
                 cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
                 if (prevLogoStart) {
                     int deltaLogoStart = 1000 * (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
-                    int maxDeltaLogoStart = 18200;
+                    int maxDeltaLogoStart = 83000;  // changed from 18200 to 48700 to 83000
                     // if this is a channel with logo changes there could be one short before end mark, use lower value
                     // do not increase because of SIXX and SAT.1 has very short logo change at the end of recording, which are sometimes not detected
                     // sometimes we can not detect it at the end of the broadcast the info logo because text changes (noch eine Folge -> <Name der Folge>)
@@ -351,7 +351,7 @@ int cMarkAdStandalone::CheckStop() {
                         }
                     }
                     else {
-                        dsyslog("cMarkAdStandalone::CheckStop(): logo start mark (%d) is %dms before logo stop mark (%d), logo stop mark is valid ", prevLogoStart->position, deltaLogoStart, end->position);
+                        dsyslog("cMarkAdStandalone::CheckStop(): logo start mark (%d) is %dms (expect >%d) before logo stop mark (%d), logo stop mark is valid ", prevLogoStart->position, deltaLogoStart, maxDeltaLogoStart, end->position);
                         break;
                     }
                 }
