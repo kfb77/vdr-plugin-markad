@@ -297,6 +297,16 @@ cMark *cMarks::GetAround(const int frames, const int position, const int type, c
 }
 
 
+cMark *cMarks::Optimize(const int frames, cMark *mark) {
+    cMark *black = GetAround(frames, mark->position, (mark->type && 0x0F) + MT_BLACKCHANGE);
+    if (black) {
+        dsyslog("cMarks::Optimze(): found near blackscrren mark at (%d) for mark at (%d)", black->position, mark->position);
+        return Move(mark, black->position, "black screen");
+    }
+    return mark;
+}
+
+
 cMark *cMarks::GetPrev(const int position, const int type, const int mask) {
     if (!first) return NULL; // no elements yet
 

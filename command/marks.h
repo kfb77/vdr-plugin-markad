@@ -231,6 +231,13 @@ class cMarks {
  */
         cMark *GetAround(const int frames, const int position, const int type = 0xFF, const int mask = 0xFF);
 
+/**
+ * optimze mark to nearest blachsceen mark
+ * @param frames maximum frames distance
+ * @param mark   mark to be optimized
+ * @return optimzed  mark
+ */
+        cMark *Optimize(const int frames, cMark *mark);
 
 /**
  * get previous mark
