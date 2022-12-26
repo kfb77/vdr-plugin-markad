@@ -131,10 +131,14 @@ class cMarkAdStandalone : public cEvaluateChannel {
  */
         void ProcessOverlap();
 
-/**
- * process 3nd pass, optimze logo marks
+/** logo mark optimization <br>
+ * move logo marks:
+ *     - if closing credits are detected after last logo stop mark
+ *     - if silence was detected before start mark or after/before end mark
+ *     - if black screen marks are direct before stop mark or direct after start mark
  */
         void LogoMarkOptimization();
+
 
 /**
  * cut recording based on detected marks

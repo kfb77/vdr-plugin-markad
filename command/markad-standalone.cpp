@@ -3125,10 +3125,11 @@ void cMarkAdStandalone::LogoMarkOptimization() {
     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search for audio silence around logo marks");
     int silenceRange = 3500;  // in ms, do not increase, otherwise we got stop marks behind separation images, changed from 5000 to 3500
     if (macontext.Info.ChannelName) {  // macontext.Info.ChannelName == NULL can happen if the VDR info file is missing
-        if (strcmp(macontext.Info.ChannelName, "TELE_5")      == 0) silenceRange =  4000; // logo fade in/out, do not increase to prevent to get ad before start
-        if (strcmp(macontext.Info.ChannelName, "SIXX")        == 0) silenceRange =  5000; // short preview with logo direct after broadcast, get real stop with black screen between
-        if (strcmp(macontext.Info.ChannelName, "Nickelodeon") == 0) silenceRange =  7000; // logo fade in/out
-        if (strcmp(macontext.Info.ChannelName, "DMAX")        == 0) silenceRange = 12000; // logo color change at the begin
+        if (strcmp(macontext.Info.ChannelName, "TELE_5")      == 0) silenceRange = 4000; // logo fade in/out, do not increase to prevent to get ad before start
+        if (strcmp(macontext.Info.ChannelName, "SIXX")        == 0) silenceRange = 5000; // short preview with logo direct after broadcast, get real stop with black screen between
+        if (strcmp(macontext.Info.ChannelName, "Nickelodeon") == 0) silenceRange = 7000; // logo fade in/out
+        if (strcmp(macontext.Info.ChannelName, "DMAX")        == 0) silenceRange = 8000; // logo color change at the begin
+                                                                                         // changed from 12000 to 8000 to prevent to get a silence part away from stop mark
     }
 
     ptr_cDecoder->Reset();
@@ -3145,7 +3146,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
 
         if (mark->type == MT_LOGOSTART) {
             LogSeparator(false);
-            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence before logo start mark at frame (%6d) type 0x%X at %s range %dms", mark->position, mark->type, indexToHMSF, silenceRange);
+            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence before logo start mark at frame (%6d) type 0x%X at %s max range %dms", mark->position, mark->type, indexToHMSF, silenceRange);
             int seekPos =  mark->position - (silenceRange * macontext.Video.Info.framesPerSecond / 1000);
             if (seekPos < 0) seekPos = 0;
             if (!ptr_cDecoder->SeekToFrame(&macontext, seekPos)) {
