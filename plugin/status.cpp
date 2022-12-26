@@ -20,8 +20,8 @@
 // arte HD;ARD:                        0 -> 2 (-> 1) -> 4 -> 1             OK
 // SR Fernsehen HD;ARD:                0 -> 1 -> 4                         no real VPS, got start at planed time, no stop event
 // tagesschau24 HD;ARD:                0 -> 1 -> 4                         no real VPS, got start at planed time, no stop event
+// phoenix HD                          0 -> 1 -> 4                         no real VPS, got start at planed time, no stop event
 // MDR Sachsen HD;ARD:                 no VPS events
-// phoenix HD;ARD:                     no VPS events
 //
 // ZDF HD;ZDFvision:                   0 -> 1 -> 2 -> 4 -> 1               OK
 // 3sat HD;ZDFvision:                  0 -> 1 -> 2 -> 4 (-> 2 ->4) -> 1    OK
