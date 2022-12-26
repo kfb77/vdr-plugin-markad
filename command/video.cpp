@@ -501,7 +501,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
         dsyslog("cMarkAdLogo::ReduceBrightness(): logo area: xstart %d xend %d, ystart %d yend %d", logo_xstart, logo_xend, logo_ystart, logo_yend);
     }
 
-// detect c ntrast and brightness of logo part
+// detect contrast and brightness of logo part
     int minPixel = INT_MAX;
     int maxPixel = 0;
     int sumPixel = 0;
