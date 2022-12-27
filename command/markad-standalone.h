@@ -190,8 +190,10 @@ class cMarkAdStandalone : public cEvaluateChannel {
         bool IsVPSTimer();
 
 /**
- * get start time of the recording
- * @param start timer start time of the broadcast
+ * get start time of the recording from: <br>
+ * -# file access time (atime) of recording directory, if the volume is mounted with noatime (no change of atime after creation)
+ * -# file modification time (mtime) from VDR info file
+ * @param timer start time of the broadcast
  * @param fd stream pointer to VDR info file
  * @return time of recording start
  */

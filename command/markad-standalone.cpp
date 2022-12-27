@@ -3661,10 +3661,10 @@ bool cMarkAdStandalone::IsVPSTimer() {
 time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
     // get recording start from atime of directory (if the volume is mounted with noatime)
     struct mntent *ent;
-    struct stat statbuf;
+    struct stat   statbuf;
     FILE *mounts = setmntent(_PATH_MOUNTED, "r");
-    int mlen;
-    int oldmlen = 0;
+    int  mlen;
+    int  oldmlen  = 0;
     bool useatime = false;
     while ((ent = getmntent(mounts)) != NULL) {
         if (strstr(directory, ent->mnt_dir)) {
@@ -3686,7 +3686,7 @@ time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
     else dsyslog("cMarkAdStandalone::GetRecordingStart(): mount option noatime is not set");
 
     if ((useatime) && (stat(directory, &statbuf) != -1)) {
-        if (fabs(difftime(start,statbuf.st_atime)) < 60 * 60 * 12) {  // do not beleave recordings > 12h
+        if (fabs(difftime(start,statbuf.st_atime)) < 60 * 60 * 12) {  // do not believe recordings > 12h
             dsyslog("cMarkAdStandalone::GetRecordingStart(): got recording start from directory creation time");
             return statbuf.st_atime;
         }
