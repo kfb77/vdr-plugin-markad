@@ -4505,10 +4505,6 @@ int usage(int svdrpport) {
 
 
 static void signal_handler(int sig) {
-    void *trace[32];
-    char **messages = static_cast<char **>(NULL);
-    int i, trace_size = 0;
-
     switch (sig) {
         #ifdef POSIX
         case SIGTSTP:
@@ -4524,17 +4520,23 @@ static void signal_handler(int sig) {
             esyslog("aborted by signal");
             abortNow = true;;
             break;
-        case SIGSEGV:
+        case SIGSEGV: {
             esyslog("segmentation fault");
 
-            trace_size = backtrace(trace, 32);
-            messages = backtrace_symbols(trace, trace_size);
+            #ifdef POSIX
+            void *trace[32];
+            int trace_size = backtrace(trace, 32);
+            char **messages = backtrace_symbols(trace, trace_size);
+
             esyslog("[bt] Execution path:");
             for (i=0; i < trace_size; ++i) {
                 esyslog("[bt] %s", messages[i]);
             }
+            #endif /* #ifdef POSIX */
+
             _exit(1);
             break;
+            }
         case SIGTERM:
         case SIGINT:
             esyslog("aborted by user");
