@@ -4514,6 +4514,7 @@ static void signal_handler(int sig) {
     int i, trace_size = 0;
 
     switch (sig) {
+        #ifdef POSIX
         case SIGTSTP:
             isyslog("paused by signal");
             kill(getpid(), SIGSTOP);
@@ -4521,6 +4522,8 @@ static void signal_handler(int sig) {
         case SIGCONT:
             isyslog("continued by signal");
             break;
+        #endif /* ifdef POSIX */
+
         case SIGABRT:
             esyslog("aborted by signal");
             abortNow = true;;
