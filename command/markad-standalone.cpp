@@ -4582,6 +4582,11 @@ int main(int argc, char *argv[]) {
     strcpy(config.svdrphost, "127.0.0.1");
     strcpy(config.logoDirectory, "/var/lib/markad");
 
+    #ifdef WINDOWS
+    /* winsock2 needs initialization, if we later support it. */
+    w32init RuntimeInit;
+    #endif
+
     struct servent *serv=getservbyname("svdrp", "tcp");
     if (serv) {
         config.svdrpport = htons(serv->s_port);
@@ -4949,6 +4954,7 @@ int main(int argc, char *argv[]) {
     if ( (bImmediateCall || config.before || bAfter || bNice) && recDir ) {
         // if bFork is given go in background
         if ( bFork ) {
+            #ifdef POSIX
             //close_files();
             pid_t pid = fork();
             if (pid < 0) {
@@ -5002,6 +5008,9 @@ int main(int argc, char *argv[]) {
                 }
                 (void)close(f);
             }
+            #else
+            std::cerr << "fork is unsupported on WIN32." << std::endl;
+            #endif /* ifdef POSIX */
         }
 
         (void)umask((mode_t)0022);
