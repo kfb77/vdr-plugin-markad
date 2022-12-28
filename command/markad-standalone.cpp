@@ -5069,9 +5069,11 @@ int main(int argc, char *argv[]) {
         signal(SIGTERM, signal_handler);
         signal(SIGSEGV, signal_handler);
         signal(SIGABRT, signal_handler);
+        #ifdef POSIX
         signal(SIGUSR1, signal_handler);
         signal(SIGTSTP, signal_handler);
         signal(SIGCONT, signal_handler);
+        #endif /* ifdef POSIX */
 
         cIndex *recordingIndex = new cIndex();
         ALLOC(sizeof(*recordingIndex), "recordingIndex");
