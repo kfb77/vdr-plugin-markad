@@ -4,6 +4,7 @@
 #include <time.h>
 #include <errno.h>
 
+#if defined (WINDOWS)
 struct tm* localtime_r(const time_t* timer, struct tm* buf) {
 
   /* NOTE: careful here!
@@ -21,4 +22,5 @@ struct tm* localtime_r(const time_t* timer, struct tm* buf) {
      
   return buf;
 }
+#endif
 #endif
