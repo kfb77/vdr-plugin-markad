@@ -5,8 +5,13 @@
  *
  */
 
-#include <sys/stat.h>
-#include <unistd.h>
+#include "global.h"
+#ifdef POSIX
+  #include <sys/stat.h>
+  #include <unistd.h>
+#else
+   #include "win32/mingw64.h"
+#endif
 
 #include "logo.h"
 #include "index.h"
