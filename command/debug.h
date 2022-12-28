@@ -5,10 +5,14 @@
  *
  */
 
-#include <syslog.h>
-
 #ifndef __debug_h_
 #define __debug_h_
+
+#include "global.h"
+
+#ifdef POSIX
+  #include <syslog.h> // only part of posix systems.
+#endif
 
 #define LOG_TRACE 8
 
@@ -82,11 +86,19 @@
 extern int SysLogLevel;
 extern void syslog_with_tid(int priority, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
 
-
-#define esyslog(a...) void( (SysLogLevel > 0) ? syslog_with_tid(LOG_ERR, a) : void() )
-#define isyslog(a...) void( (SysLogLevel > 1) ? syslog_with_tid(LOG_INFO, a) : void() )
-#define dsyslog(a...) void( (SysLogLevel > 2) ? syslog_with_tid(LOG_DEBUG, a) : void() )
-#define tsyslog(a...) void( (SysLogLevel > 3) ? syslog_with_tid(LOG_TRACE, a) : void() )
+#ifdef POSIX
+   #define esyslog(a...) void( (SysLogLevel > 0) ? syslog_with_tid(LOG_ERR, a) : void() )
+   #define isyslog(a...) void( (SysLogLevel > 1) ? syslog_with_tid(LOG_INFO, a) : void() )
+   #define dsyslog(a...) void( (SysLogLevel > 2) ? syslog_with_tid(LOG_DEBUG, a) : void() )
+   #define tsyslog(a...) void( (SysLogLevel > 3) ? syslog_with_tid(LOG_TRACE, a) : void() )
+#else
+   /* no POSIX, no syslog */
+   #include <cstdio>
+   #define esyslog(a...) if (SysLogLevel > 0) fprintf(stderr, a)
+   #define isyslog(a...) if (SysLogLevel > 1) fprintf(stdout, a)
+   #define dsyslog(a...) if (SysLogLevel > 2) fprintf(stdout, a)
+   #define tsyslog(a...) if (SysLogLevel > 3) fprintf(stdout, a)
+#endif
 
 
 #ifdef DEBUG_MEM
