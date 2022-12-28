@@ -53,7 +53,7 @@ int decodeTime_us = 0;
 
 #ifdef POSIX
 
-static inline int static inline int ioprio_set(int which, int who, int ioprio) {(int which, int who, int ioprio) {
+static inline int ioprio_set(int which, int who, int ioprio) {
 #if defined(__i386__)
 #define __NR_ioprio_set         289
 #elif defined(__ppc__)
