@@ -754,6 +754,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
     if ((plane < 0) || (plane >= PLANES)) return false;
     if (!maContext->Video.Data.PlaneLinesize[plane]) return false;
+    if (boundary < 1) boundary = 1; // we have to stay at least 1 pixel away from max pixel because of X Gradient approximation (-1 to +1) to prevent heap-buffer-overflow
 
     // alloc memory for sobel transformed planes
     int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
@@ -806,7 +807,7 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
         width /= 2;
     }
     int SUM;
-    int sumX,sumY;
+    int sumX, sumY;
     area.rPixel[plane] = 0;
     if (!plane) area.intensity = 0;
     for (int Y = ystart; Y <= yend - 1; Y++) {
