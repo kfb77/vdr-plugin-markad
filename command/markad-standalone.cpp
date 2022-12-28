@@ -5,27 +5,31 @@
  *
  */
 
-#include <syslog.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <signal.h>
-#include <ctype.h>
-#include <netdb.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
-#include <locale.h>
-#include <libintl.h>
-#include <execinfo.h>
-#include <mntent.h>
-#include <utime.h>
-#include <math.h>
-#include <limits.h>
-#include <errno.h>
-#include <dirent.h>
+#ifdef POSIX
+   #include <syslog.h>
+   #include <stdlib.h>
+   #include <unistd.h>
+   #include <fcntl.h>
+   #include <getopt.h>
+   #include <signal.h>
+   #include <ctype.h>
+   #include <netdb.h>
+   #include <sys/stat.h>
+   #include <sys/time.h>
+   #include <sys/resource.h>
+   #include <sys/wait.h>
+   #include <locale.h>
+   #include <libintl.h>
+   #include <execinfo.h>
+   #include <mntent.h>
+   #include <utime.h>
+   #include <math.h>
+   #include <limits.h>
+   #include <errno.h>
+   #include <dirent.h>
+#else
+   #include "win32/mingw64.h"
+#endif
 
 #include "markad-standalone.h"
 #include "version.h"
