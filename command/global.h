@@ -8,6 +8,17 @@
 #ifndef __global_h_
 #define __global_h_
 
+#if defined (_WIN32) || defined (__MINGW32__)
+  /* mingw64 build on Windows 7 or higher */
+  #undef POSIX
+  #define WINDOWS
+#else
+   /* safe to include unistd.h and use the
+    * _POSIX_VERSION macro */
+  #undef WINDOWS
+  #define POSIX
+#endif
+
 #include <time.h>
 #include <stdint.h>
 #include <climits>
