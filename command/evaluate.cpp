@@ -1424,6 +1424,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): scene too dark, quote %d%%, can not detect ad in frame", darkQuote);
         return -1;
     }
+    dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): dark quote %d%% is valid for detection", darkQuote);
 
     // select longest found ad in frame
     // type 1
@@ -1443,7 +1444,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame type 2: start (%d) end (%d)", AdInFrameType2.start, AdInFrameType2.end);
     }
     // select longest ad in frame of both types
-    int lengthMin = 8281;  // changed from 8280 to 8281
+    int lengthMin = 8880;  // changed from 8280 to 8880
                            // prevent to detect short second info logo (e.g. läuft THE WALKING DEAD, length 8280ms) as advertising in frame
     if ((AdInFrameType1.endFinal - AdInFrameType1.startFinal) > (AdInFrameType2.endFinal - AdInFrameType2.startFinal)) {
         AdInFrameFinal.start = AdInFrameType1.startFinal;
@@ -1500,9 +1501,9 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     int stopOffset  = 1000 * (endPos - AdInFrameFinal.end) / maContext->Video.Info.framesPerSecond;
     int length      = 1000 * (AdInFrameFinal.end - AdInFrameFinal.start) / maContext->Video.Info.framesPerSecond;
     dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start (%d) end (%d)", AdInFrameFinal.start, AdInFrameFinal.end);
-    dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start offset %dms (expect <=%dms for start marks), stop offset %dms (expect <=%dms for stop mark), length %dms (expect >=%dms and <=%dms)", startOffset, AD_IN_FRAME_START_OFFSET_MAX, stopOffset, AD_IN_FRAME_STOP_OFFSET_MAX, length, lengthMin, AD_IN_FRAME_LENGTH_MAX);
+    dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start offset %dms (expect <=%dms for start marks), stop offset %dms (expect <=%dms for stop mark), length %dms (expect >%dms and <=%dms)", startOffset, AD_IN_FRAME_START_OFFSET_MAX, stopOffset, AD_IN_FRAME_STOP_OFFSET_MAX, length, lengthMin, AD_IN_FRAME_LENGTH_MAX);
 
-    if ((length >= lengthMin) && (length <= AD_IN_FRAME_LENGTH_MAX)) {         // do not reduce min to prevent false positive, do not increase to detect 10s ad in frame
+    if ((length > lengthMin) && (length <= AD_IN_FRAME_LENGTH_MAX)) {         // do not reduce min to prevent false positive, do not increase to detect 10s ad in frame
         if ((isStartMark && (startOffset <= AD_IN_FRAME_START_OFFSET_MAX)) ||  // an ad in frame with logo after start mark must be near start mark, changed from 5 to 4
            (!isStartMark && (stopOffset  <= AD_IN_FRAME_STOP_OFFSET_MAX))) {   // an ad in frame with logo before stop mark must be near stop mark
                                                                                // maybe we have a preview direct after ad in frame and missed stop mark
