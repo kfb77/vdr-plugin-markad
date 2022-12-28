@@ -1,0 +1,496 @@
+This branch adds mingw64 support for markad, using the msys2 version of mingw64.
+This means, that the commandline version of markad might be used on Windows computers.
+
+Only 64bit version is tested.
+
+== Preparing your mingw64 Installation ==
+Update your msys2/mingw installation
+  pacman -Syu
+Close the mingw64 window and repeat. 
+
+Install mingw64 and development files (gcc,make,win32api,gettext,..) using pacman.
+
+Install ffmpeg and it's dependencies
+ pacman -S mingw-w64-x86_64-ffms2
+
+== Compiling markad on mingw 64bit ==
+Now compile markad on mingw64 using the command
+ make -f Makefile.mingw64
+
+NOTE: the original Makefile is not in use here, the changes would be too large,
+      compared to building on posix.
+ 
+== Known Issues ==
+Windows is not Posix and vice versa. Several things in the code assume to be run on Posix.
+The following is known to not working on WIN32.
+* Communication to vdr-plugin-markad
+* SVDRP
+* Running in background
+
+== Folders ==
+Windows has a very different folder structure. Therefore the markad support
+files are expected to be in %APPDATA%/vdr-plugin-markad.
+
+This translates usually to something like
+C:\Users\<USER>\AppData\Roaming\vdr-plugin-markad.
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+== appendix a, List of libraries this tool needs ==
+Many Libraries are needed to run this tool, so you may either run this
+from the mingw64 environment, or put those libs to a place where they are found.
+
+There are several choices
+* add the full (..)\msys2\mingw64\bin path to the Path environment variable
+* put the libs into the directory where the binary is
+* put the libs to C:\Windows\System32
+
+In general, because FFMPEG is such a large packet, you will the following
+libs:
+
+* avcodec-58.dll
+* avfilter-7.dll
+* avformat-58.dll
+* avutil-56.dll
+* swresample-3.dll
+* libgcc_s_seh-1.dll
+* libgme.dll
+* libstdc++-6.dll
+* libintl-8.dll
+* libiconv-2.dll
+* libwinpthread-1.dll
+* libbz2-1.dll
+* libbluray-2.dll
+* librtmp-1.dll
+* libsrt.dll
+* libgnutls-30.dll
+* zlib1.dll
+* libssh.dll
+* libmfx-1.dll
+* libxml2-2.dll
+* libass-9.dll
+* libfreetype-6.dll
+* libmodplug-1.dll
+* libfontconfig-1.dll
+* libfribidi-0.dll
+* libvidstab.dll
+* postproc-55.dll
+* libzimg-2.dll
+* swscale-5.dll
+* libaom.dll
+* libdav1d.dll
+* libcairo-2.dll
+* libgobject-2.0-0.dll
+* libgsm.dll
+* liblzma-5.dll
+* libglib-2.0-0.dll
+* libopencore-amrnb-0.dll
+* libmp3lame-0.dll
+* libopencore-amrwb-0.dll
+* libopenjp2-7.dll
+* libopus-0.dll
+* rav1e.dll
+* libspeex-1.dll
+* librsvg-2-2.dll
+* libSvtAv1Enc.dll
+* libtheoradec-1.dll
+* libtheoraenc-1.dll
+* libvorbis-0.dll
+* libvorbisenc-2.dll
+* libwebpmux-3.dll
+* libwebp-7.dll
+* libvpx-1.dll
+* libx264-164.dll
+* libgmp-10.dll
+* xvidcore.dll
+* libsoxr.dll
+* libx265.dll
+* libhogweed-6.dll
+* libnettle-8.dll
+* libidn2-0.dll
+* libtasn1-6.dll
+* libzstd.dll
+* libcrypto-1_1-x64.dll
+* libp11-kit-0.dll
+* libunistring-2.dll
+* libbrotlidec.dll
+* libharfbuzz-0.dll
+* libpng16-16.dll
+* libexpat-1.dll
+* libffi-8.dll
+* libgomp-1.dll
+* libpixman-1-0.dll
+* libpcre-1.dll
+* libssp-0.dll
+* libcairo-gobject-2.dll
+* libgdk_pixbuf-2.0-0.dll
+* libpango-1.0-0.dll
+* libpangocairo-1.0-0.dll
+* libogg-0.dll
+* libgio-2.0-0.dll
+* libgraphite2.dll
+* libbrotlicommon.dll
+* libpangoft2-1.0-0.dll
+* libgmodule-2.0-0.dll
+* libthai-0.dll
+* libpangowin32-1.0-0.dll
+* libdatrie-1.dll
+
+== appendix b, List of installed packages in use to build this tool ==
+  $ LC_ALL=C pacman -Qi | awk '/^Name/{name=$3} /^Installed Size/{print $4$5, name}' | sort -h
+
+Size       | Package Name
+----------------------------------------------------------
+0.00B      | base
+0.00B      | base-devel
+1348.00B   | mingw-w64-x86_64-windows-default-manifest
+2048.00B   | windows-default-manifest
+4.00KiB    | perl-Net-SMTP-SSL
+9.04KiB    | automake-wrapper
+11.73KiB   | libasprintf
+12.43KiB   | pacman-mirrors
+14.68KiB   | perl-HTTP-Date
+16.00KiB   | libnpth
+16.49KiB   | perl-File-Listing
+17.00KiB   | perl-Encode-Locale
+17.00KiB   | perl-HTML-Tagset
+17.85KiB   | perl-Clone
+21.00KiB   | perl-HTTP-Negotiate
+21.00KiB   | perl-WWW-RobotRules
+22.69KiB   | getent
+24.78KiB   | perl-IO-HTML
+29.45KiB   | perl-Try-Tiny
+30.45KiB   | libffi
+33.66KiB   | which
+34.00KiB   | mingw-w64-x86_64-libsystre
+34.88KiB   | autoconf-wrapper
+35.14KiB   | time
+35.41KiB   | perl-HTTP-Daemon
+37.36KiB   | tftp-hpa
+39.37KiB   | libcrypt
+41.32KiB   | perl-TermReadKey
+42.81KiB   | perl-Net-HTTP
+43.09KiB   | perl-Error
+43.78KiB   | perl-HTTP-Cookies
+44.82KiB   | libintl
+48.39KiB   | libcbor
+53.97KiB   | msys2-keyring
+54.54KiB   | diffstat
+55.03KiB   | libxxhash
+57.83KiB   | perl-LWP-MediaTypes
+61.83KiB   | mingw-w64-x86_64-libwinpthread-git
+64.00KiB   | perl-Convert-BinHex
+64.35KiB   | mingw-w64-x86_64-termcap
+65.70KiB   | libbz2
+67.10KiB   | texinfo-tex
+70.50KiB   | libgdbm
+84.42KiB   | mingw-w64-x86_64-libb2
+84.62KiB   | libargp
+84.94KiB   | perl-TimeDate
+85.00KiB   | perl-Authen-SASL
+87.00KiB   | mingw-w64-x86_64-SDL_net
+89.30KiB   | zlib
+93.57KiB   | mingw-w64-x86_64-SDL_ttf
+95.88KiB   | perl-IO-Stringy
+107.56KiB  | mingw-w64-x86_64-SDL2_net
+108.00KiB  | perl-MailTools
+110.11KiB  | libpsl
+123.07KiB  | mpc
+127.62KiB  | mingw-w64-x86_64-libffi
+128.76KiB  | libtasn1
+134.29KiB  | liblz4
+144.63KiB  | liblzma
+145.53KiB  | libassuan
+162.76KiB  | perl-HTML-Parser
+163.78KiB  | perl-URI
+166.35KiB  | nettle
+166.58KiB  | gzip
+167.37KiB  | perl-HTTP-Message
+168.06KiB  | libexpat
+168.09KiB  | libnghttp2
+170.16KiB  | pinentry
+178.72KiB  | mingw-w64-x86_64-libpsl
+182.00KiB  | patch
+196.71KiB  | mingw-w64-x86_64-wineditline
+201.28KiB  | libfido2
+209.68KiB  | mingw-w64-x86_64-mpc
+217.50KiB  | db
+221.00KiB  | mingw-w64-x86_64-SDL_image
+223.35KiB  | mingw-w64-x86_64-jansson
+230.29KiB  | gperf
+240.47KiB  | less
+252.00KiB  | mingw-w64-x86_64-libtre-git
+258.16KiB  | dash
+263.05KiB  | libhogweed
+266.40KiB  | libksba
+266.42KiB  | libnettle
+279.49KiB  | libpcre
+279.73KiB  | mingw-w64-x86_64-libaec
+281.54KiB  | pkgconf
+286.35KiB  | filesystem
+287.16KiB  | perl-libwww
+293.00KiB  | mingw-w64-x86_64-jbigkit
+299.51KiB  | mingw-w64-x86_64-libunwind
+304.71KiB  | mingw-w64-x86_64-libdatrie
+306.63KiB  | bzip2
+314.71KiB  | libssh2
+340.00KiB  | mingw-w64-x86_64-libmad
+344.85KiB  | libgettextpo
+346.11KiB  | libidn2
+346.74KiB  | libxslt
+363.96KiB  | mingw-w64-x86_64-ffms2
+364.00KiB  | mingw-w64-x86_64-SDL_gfx
+366.11KiB  | mingw-w64-x86_64-opusfile
+373.96KiB  | libpcre2_8
+386.96KiB  | mingw-w64-x86_64-winpthreads-git
+395.73KiB  | m4
+396.39KiB  | mingw-w64-x86_64-zlib
+402.85KiB  | mingw-w64-x86_64-libdeflate
+404.00KiB  | perl-MIME-tools
+411.98KiB  | info
+412.20KiB  | mingw-w64-x86_64-libslirp
+413.27KiB  | mingw-w64-x86_64-vid.stab
+419.55KiB  | perl-IO-Socket-SSL
+431.20KiB  | mingw-w64-x86_64-glog
+434.40KiB  | mingw-w64-x86_64-celt
+451.32KiB  | mingw-w64-x86_64-gsm
+458.71KiB  | mingw-w64-x86_64-fribidi
+466.38KiB  | mingw-w64-x86_64-bzip2
+478.15KiB  | gdbm
+487.05KiB  | mingw-w64-x86_64-pkgconf
+494.80KiB  | libedit
+534.80KiB  | mingw-w64-x86_64-SDL_mixer
+545.74KiB  | mingw-w64-x86_64-tinyxml
+546.44KiB  | mingw-w64-x86_64-libogg
+556.74KiB  | msys2-launcher
+560.60KiB  | mingw-w64-x86_64-graphite2
+563.12KiB  | inetutils
+571.38KiB  | libreadline
+575.37KiB  | mingw-w64-x86_64-libtasn1
+592.84KiB  | autoconf2.13
+593.82KiB  | libcurl
+621.23KiB  | mingw-w64-x86_64-smpeg2
+631.31KiB  | mingw-w64-x86_64-lzo2
+642.58KiB  | rsync
+650.93KiB  | mingw-w64-x86_64-c-ares
+654.64KiB  | mingw-w64-x86_64-rtmpdump-git
+692.70KiB  | mingw-w64-x86_64-opencore-amr
+701.91KiB  | mingw-w64-x86_64-expat
+702.92KiB  | mingw-w64-x86_64-libidn2
+716.24KiB  | mingw-w64-x86_64-speexdsp
+725.39KiB  | sed
+728.16KiB  | mingw-w64-x86_64-munt-mt32emu
+728.75KiB  | gmp
+731.00KiB  | mingw-w64-x86_64-libass
+748.35KiB  | mingw-w64-x86_64-giflib
+751.80KiB  | libgpg-error
+764.20KiB  | libutil-linux
+766.32KiB  | mingw-w64-x86_64-smpeg
+771.20KiB  | mingw-w64-x86_64-libsoxr
+779.44KiB  | libzstd
+782.04KiB  | perl-Net-SSLeay
+814.74KiB  | mingw-w64-x86_64-libthai
+818.50KiB  | mpfr
+825.95KiB  | mingw-w64-x86_64-libssh2
+840.57KiB  | mingw-w64-x86_64-pugixml
+851.04KiB  | grep
+877.30KiB  | ca-certificates
+880.20KiB  | libgpgme
+892.85KiB  | mingw-w64-x86_64-fluidsynth
+892.90KiB  | mingw-w64-x86_64-ca-certificates
+901.73KiB  | mingw-w64-x86_64-zziplib
+932.30KiB  | mingw-w64-x86_64-libmodplug
+954.00KiB  | mingw-w64-x86_64-libmikmod
+958.50KiB  | libgcrypt
+962.21KiB  | rebase
+963.30KiB  | mingw-w64-x86_64-nghttp2
+979.98KiB  | curl
+985.63KiB  | mingw-w64-x86_64-speex
+1017.07KiB | libp11-kit
+1045.63KiB | tzcode
+1045.94KiB | mingw-w64-x86_64-hlsl2glsl-git
+1050.99KiB | mingw-w64-x86_64-libgme
+1087.29KiB | mingw-w64-x86_64-gflags
+1125.41KiB | mingw-w64-x86_64-freeglut
+1160.29KiB | mingw-w64-x86_64-vulkan-loader
+1177.43KiB | mingw-w64-x86_64-libmfx
+1187.13KiB | mingw-w64-x86_64-opus
+1193.08KiB | mingw-w64-x86_64-libbluray
+1216.60KiB | mingw-w64-x86_64-mpfr
+1261.54KiB | mingw-w64-x86_64-portaudio
+1298.83KiB | openssl
+1301.72KiB | libxml2
+1307.61KiB | libsqlite
+1341.83KiB | mingw-w64-x86_64-fontconfig
+1358.16KiB | mingw-w64-x86_64-asciidoc
+1362.01KiB | libiconv
+1398.58KiB | mingw-w64-x86_64-lz4
+1462.17KiB | automake1.13
+1469.56KiB | automake1.14
+1470.21KiB | automake1.12
+1473.65KiB | automake1.11
+1490.14KiB | diffutils
+1500.42KiB | mingw-w64-x86_64-tzdata
+1516.58KiB | automake1.15
+1517.13KiB | make
+1527.02KiB | automake1.16
+1543.00KiB | mingw-w64-x86_64-jxrlib
+1550.55KiB | mingw-w64-x86_64-libssh
+1570.29KiB | flex
+1579.61KiB | mingw-w64-x86_64-libgpg-error
+1607.83KiB | mingw-w64-x86_64-pixman
+1623.81KiB | findutils
+1635.35KiB | mingw-w64-x86_64-lame
+1640.04KiB | brotli
+1673.60KiB | mingw-w64-x86_64-lcms2
+1682.60KiB | mingw-w64-x86_64-readline
+1688.78KiB | mingw-w64-x86_64-cppunit
+1710.35KiB | mingw-w64-x86_64-SDL
+1735.15KiB | mingw-w64-x86_64-xvidcore
+1743.19KiB | autoconf2.69
+1767.16KiB | xz
+1775.60KiB | mingw-w64-x86_64-ninja
+1842.81KiB | mingw-w64-x86_64-lerc
+1893.38KiB | mingw-w64-x86_64-p11-kit
+1899.15KiB | mingw-w64-x86_64-pdcurses
+1952.71KiB | autoconf2.71
+1992.50KiB | p11-kit
+2010.45KiB | mingw-w64-x86_64-docbook-xml
+2015.25KiB | mingw-w64-x86_64-openjpeg2
+2.03MiB    | mingw-w64-x86_64-xz
+2.07MiB    | isl
+2.19MiB    | heimdal
+2.23MiB    | dos2unix
+2.23MiB    | mintty
+2.28MiB    | mingw-w64-x86_64-libsndfile
+2.28MiB    | mingw-w64-x86_64-metis
+2.30MiB    | mingw-w64-x86_64-libvorbis
+2.34MiB    | mingw-w64-x86_64-libpng
+2.35MiB    | libunistring
+2.37MiB    | bash-completion
+2.37MiB    | mingw-w64-x86_64-libiconv
+2.42MiB    | mingw-w64-x86_64-mpdecimal
+2.50MiB    | heimdal-libs
+2.50MiB    | mingw-w64-x86_64-l-smash
+2.52MiB    | mingw-w64-x86_64-brotli
+2.53MiB    | mingw-w64-x86_64-libcaca
+2.54MiB    | bison
+2.54MiB    | mingw-w64-x86_64-openvr
+2.58MiB    | mingw-w64-x86_64-libmysofa
+2.60MiB    | mingw-w64-x86_64-freetype
+2.60MiB    | mingw-w64-x86_64-nettle
+2.70MiB    | mingw-w64-x86_64-flac
+2.78MiB    | mingw-w64-x86_64-freeimage
+2.78MiB    | mingw-w64-x86_64-gcc-libs
+2.80MiB    | libgnutls
+2.85MiB    | mingw-w64-x86_64-gmp
+2.86MiB    | tar
+2.91MiB    | libopenssl
+2.92MiB    | nano
+2.98MiB    | mingw-w64-x86_64-curl
+3.00MiB    | mingw-w64-x86_64-gcc-libgfortran
+3.03MiB    | mingw-w64-x86_64-libtheora
+3.07MiB    | mingw-w64-x86_64-libwebp
+3.08MiB    | wget
+3.09MiB    | mingw-w64-x86_64-libexif
+3.19MiB    | libdb
+3.26MiB    | mingw-w64-x86_64-zimg
+3.26MiB    | mingw-w64-x86_64-zstd
+3.38MiB    | mingw-w64-x86_64-libgcrypt
+3.38MiB    | mingw-w64-x86_64-libxslt
+3.42MiB    | gawk
+3.48MiB    | mingw-w64-x86_64-jemalloc
+3.53MiB    | zstd
+3.59MiB    | mingw-w64-x86_64-pango
+3.81MiB    | mingw-w64-x86_64-ceres-solver
+3.84MiB    | bsdtar
+3.93MiB    | mingw-w64-x86_64-openal
+4.16MiB    | mingw-w64-x86_64-pcre
+4.32MiB    | mingw-w64-x86_64-libtiff
+4.37MiB    | mingw-w64-x86_64-cairo
+4.44MiB    | mingw-w64-x86_64-dav1d
+4.54MiB    | mingw-w64-x86_64-libjpeg-turbo
+4.59MiB    | mingw-w64-x86_64-libarchive
+4.93MiB    | mingw-w64-x86_64-srt
+5.30MiB    | gcc-libs
+5.43MiB    | ncurses-devel
+5.48MiB    | openssh
+5.50MiB    | mingw-w64-x86_64-glsl-optimizer-git
+5.53MiB    | mingw-w64-x86_64-libunistring
+5.55MiB    | mingw-w64-x86_64-tk
+5.63MiB    | mingw-w64-x86_64-meson
+6.24MiB    | mingw-w64-x86_64-jasper
+6.36MiB    | mingw-w64-x86_64-libraw
+6.39MiB    | mingw-w64-x86_64-frei0r-plugins
+6.54MiB    | gettext
+6.62MiB    | mingw-w64-x86_64-intel-tbb
+6.74MiB    | mingw-w64-x86_64-x264
+7.67MiB    | file
+7.72MiB    | mingw-w64-x86_64-rav1e
+7.83MiB    | mingw-w64-x86_64-SDL2
+7.88MiB    | mingw-w64-x86_64-gdk-pixbuf2
+8.21MiB    | texinfo
+8.28MiB    | mingw-w64-x86_64-eigen3
+8.49MiB    | mingw-w64-x86_64-leptonica
+8.86MiB    | tcl
+8.97MiB    | mingw-w64-x86_64-libvpx
+9.10MiB    | util-linux
+9.27MiB    | gnupg
+9.33MiB    | pacman-contrib
+9.38MiB    | mc
+9.56MiB    | mingw-w64-x86_64-openexr
+9.64MiB    | mingw-w64-x86_64-tcl
+9.81MiB    | ncurses
+10.73MiB   | bash
+11.10MiB   | mingw-w64-x86_64-harfbuzz
+11.12MiB   | mingw-w64-x86_64-suitesparse
+11.59MiB   | msys2-runtime
+11.92MiB   | mingw-w64-x86_64-isl
+12.04MiB   | glib2
+12.09MiB   | mingw-w64-x86_64-sqlite3
+12.47MiB   | mingw-w64-x86_64-libxml2
+13.14MiB   | mingw-w64-x86_64-gnutls
+13.22MiB   | groff
+13.95MiB   | mingw-w64-x86_64-gavl
+15.24MiB   | mingw-w64-x86_64-ncurses
+17.18MiB   | mingw-w64-x86_64-vulkan-headers
+17.47MiB   | mingw-w64-x86_64-gettext
+21.52MiB   | mingw-w64-x86_64-svt-av1
+21.89MiB   | mingw-w64-x86_64-aom
+23.62MiB   | mingw-w64-x86_64-glib2
+24.26MiB   | msys2-runtime-devel
+25.38MiB   | mingw-w64-x86_64-tesseract-ocr
+25.78MiB   | coreutils
+26.33MiB   | mingw-w64-x86_64-docbook-xsl
+30.95MiB   | mingw-w64-x86_64-protobuf
+32.43MiB   | git
+32.57MiB   | pacman
+33.73MiB   | icu
+37.82MiB   | binutils
+40.98MiB   | perl
+52.56MiB   | mingw-w64-x86_64-librsvg
+52.68MiB   | mingw-w64-x86_64-ffmpeg
+57.01MiB   | msys2-w32api-runtime
+58.65MiB   | msys2-w32api-headers
+63.93MiB   | mingw-w64-x86_64-binutils
+65.20MiB   | mingw-w64-x86_64-x265
+69.61MiB   | mingw-w64-x86_64-openssl
+70.68MiB   | mingw-w64-x86_64-headers-git
+83.08MiB   | mingw-w64-x86_64-crt-git
+89.25MiB   | mingw-w64-x86_64-opencv
+97.98MiB   | mingw-w64-x86_64-hdf5
+102.43MiB  | mingw-w64-x86_64-icu
+104.88MiB  | mingw-w64-x86_64-openblas
+115.26MiB  | mingw-w64-x86_64-imath
+117.72MiB  | mingw-w64-x86_64-python
+149.67MiB  | gcc
+153.02MiB  | mingw-w64-x86_64-ogre3d
+154.51MiB  | mingw-w64-x86_64-gcc
+163.79MiB  | mingw-w64-x86_64-bullet
+179.10MiB  | mingw-w64-x86_64-boost
+ 
