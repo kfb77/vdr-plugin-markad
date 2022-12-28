@@ -5,6 +5,7 @@
  *
  */
 
+#include "global.h"
 #ifdef POSIX
    #include <syslog.h>
    #include <stdlib.h>
