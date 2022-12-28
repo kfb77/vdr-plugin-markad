@@ -19,7 +19,7 @@ char* realpath(const char* path, char* resolved_path) {
    * The caller should deallocate this buffer using free(3).
    */
   if (resolved_path == NULL) {
-     resolved_path = (char*) malloc(PATH_MAX);
+     resolved_path = static_cast<char*>(malloc(PATH_MAX));
      if (resolved_path == NULL) {
         errno = ENOMEM;
         return NULL;

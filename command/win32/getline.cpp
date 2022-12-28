@@ -20,7 +20,7 @@ ssize_t getline(char** lineptr, size_t* n, FILE* stream) {
   char* bufptr = *lineptr;
   ssize_t size = *n;
   if (bufptr == nullptr) {
-     bufptr = (char*) malloc(buflen);
+     bufptr = static_cast<char*>(malloc(buflen));
      if (bufptr == nullptr) {
         /* Allocation or reallocation of the line buffer failed. */
         errno = ENOMEM;
@@ -40,7 +40,7 @@ ssize_t getline(char** lineptr, size_t* n, FILE* stream) {
   while (c != EOF) {
      if ((p - bufptr) > (size - 1)) {
         size += buflen;
-        bufptr = (char*) realloc(bufptr, size);
+        bufptr = static_cast<char*>(realloc(bufptr, size));
         if (bufptr == nullptr) {
            /* Allocation or reallocation of the line buffer failed. */
            errno = ENOMEM;
