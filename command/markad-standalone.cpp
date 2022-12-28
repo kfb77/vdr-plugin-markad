@@ -4530,7 +4530,7 @@ static void signal_handler(int sig) {
 
             #ifdef POSIX
             void *trace[32];
-            int trace_size = backtrace(trace, 32);
+            int i, trace_size = backtrace(trace, 32);
             char **messages = backtrace_symbols(trace, trace_size);
 
             esyslog("[bt] Execution path:");
