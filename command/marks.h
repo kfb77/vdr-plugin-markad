@@ -27,7 +27,7 @@ class cMark {
  * @param commentParam     mark comment
  * @param inBroadCastParam true if mark is in broadcast, false if mark is in advertising
  */
-        explicit cMark(const int typeParam = 0, const int positionParam = 0, const char *commentParam = NULL, const bool inBroadCastParam = false);
+        explicit cMark(const int typeParam = MT_UNDEFINED, const int oldTypeParam = MT_UNDEFINED, const int positionParam = 0, const char *commentParam = NULL, const bool inBroadCastParam = false);
 
         ~cMark();
 
@@ -74,6 +74,8 @@ class cMark {
         }
 
         int type;                  //!< mark type
+                                   //!<
+        int oldType;               //!< old mark type after mark moved
                                    //!<
         int position;              //!< mark frame position
                                    //!<
@@ -136,7 +138,7 @@ class cMarks {
  * @param inBroadCast true if mark is in broacast, false if mark is in advertising
  * @return ointer to new mark
  */
-        cMark *Add(const int type, const int position, const char *comment = NULL, const bool inBroadCast = false);
+        cMark *Add(const int type, const int oldType, const int position, const char *comment = NULL, const bool inBroadCast = false);
 
 /**
  * convert frame number to time string

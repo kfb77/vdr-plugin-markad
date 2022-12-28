@@ -893,7 +893,7 @@ void cMarkAdStandalone::CheckStart() {
                 if (comment) {
                     ALLOC(strlen(comment)+1, "comment");
                 }
-                marks.Add(MT_ASSUMEDSTART, pos, comment);
+                marks.Add(MT_ASSUMEDSTART, MT_UNDEFINED, pos, comment);
                 if (comment) {
                     FREE(strlen(comment)+1, "comment");
                     free(comment);
@@ -1087,7 +1087,7 @@ void cMarkAdStandalone::CheckStart() {
         if (hStop && !vStop) {
             dsyslog("cMarkAdStandalone::CheckStart(): hborder stop found but no vborder stop, recording has vborder, change hborder start to vborder start at (%d), delete all hborder marks", macontext.Video.Info.frameDarkOpeningCredits);
             marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
-            marks.Add(MT_VBORDERSTART, macontext.Video.Info.frameDarkOpeningCredits, "start of opening credits", true);
+            marks.Add(MT_VBORDERSTART, MT_UNDEFINED, macontext.Video.Info.frameDarkOpeningCredits, "start of opening credits", true);
         }
     }
 
@@ -1149,7 +1149,7 @@ void cMarkAdStandalone::CheckStart() {
                 if (comment) {
                     ALLOC(strlen(comment)+1, "comment");
                 }
-                begin=marks.Add(MT_ASSUMEDSTART, pos, comment);
+                begin=marks.Add(MT_ASSUMEDSTART, MT_UNDEFINED, pos, comment);
                 if (comment) {
                     FREE(strlen(comment)+1, "comment");
                     free(comment);
@@ -1177,7 +1177,7 @@ void cMarkAdStandalone::CheckStart() {
                 if (comment) {
                     ALLOC(strlen(comment)+1, "comment");
                 }
-                marks.Add(MT_ASSUMEDSTART, pos, comment);
+                marks.Add(MT_ASSUMEDSTART, MT_UNDEFINED, pos, comment);
                 if (comment) {
                     FREE(strlen(comment)+1, "comment");
                     free(comment);
@@ -1477,7 +1477,7 @@ void cMarkAdStandalone::CheckStart() {
         // try hborder stop mark as start mark
         if (hBorderStopPosition >= 0) {
             dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, use MT_HBORDERSTOP from previous recoring as start mark");
-            marks.Add(MT_ASSUMEDSTART, hBorderStopPosition, "start mark from border stop of previous recording*", true);
+            marks.Add(MT_ASSUMEDSTART, MT_UNDEFINED, hBorderStopPosition, "start mark from border stop of previous recording*", true);
             begin = marks.Get(hBorderStopPosition);
             marks.DelTill(hBorderStopPosition);
         }
@@ -2139,7 +2139,7 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
             if (comment) {
                 ALLOC(strlen(comment)+1, "comment");
             }
-            marks.Add((type == MT_START) ? MT_VPSSTART : MT_VPSSTOP, vpsFrame, comment);
+            marks.Add((type == MT_START) ? MT_VPSSTART : MT_VPSSTOP, MT_UNDEFINED, vpsFrame, comment);
             FREE(strlen(comment)+1,"comment");
             free(comment);
             return;
@@ -2163,7 +2163,7 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
             }
             dsyslog("cMarkAdStandalone::AddMarkVPS(): delete mark on position (%d)", mark->position);
             marks.Del(mark->position);
-            marks.Add((type == MT_START) ? MT_VPSSTART : MT_VPSSTOP, vpsFrame, comment);
+            marks.Add((type == MT_START) ? MT_VPSSTART : MT_VPSSTOP, MT_UNDEFINED, vpsFrame, comment);
             FREE(strlen(comment)+1,"comment");
             free(comment);
             if ((type == MT_START) && !isPause) {   // delete all marks before vps start
@@ -2324,7 +2324,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     }
 
     // add blackscreen mark in andy case
-    if ((mark->type & 0xF0) == MT_BLACKCHANGE) blackMarks.Add(mark->type, mark->position, NULL, inBroadCast);
+    if ((mark->type & 0xF0) == MT_BLACKCHANGE) blackMarks.Add(mark->type, MT_UNDEFINED, mark->position, NULL, inBroadCast);
 
     // check duplicate too near marks with different type
     cMark *prev = marks.GetLast();
@@ -2405,7 +2405,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         free(indexToHMSF);
     }
     dsyslog("cMarkAdStandalone::AddMark(): inBroadCast now: %i", inBroadCast);
-    marks.Add(mark->type, mark->position, comment, inBroadCast);
+    marks.Add(mark->type, MT_UNDEFINED, mark->position, comment, inBroadCast);
     if (comment) {
         FREE(strlen(comment)+1, "comment");
         free(comment);
@@ -3393,11 +3393,18 @@ void cMarkAdStandalone::ProcessOverlap() {
     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): check last logo stop mark if closing credits follows");
     if (ptr_cDecoder) {  // we use file position
         cMark *lastStop = marks.GetLast();
-        if (lastStop && ((lastStop->type == MT_LOGOSTOP) || (lastStop->type == MT_HBORDERSTOP) || (lastStop->type == MT_MOVEDSTOP))) {
-            dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search for closing credits");
-            if (MoveLastStopAfterClosingCredits(lastStop)) {
-                save = true;
-                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): moved last logo stop mark after closing credit");
+        if (lastStop) {
+            if ((lastStop->type == MT_NOBLACKSTOP) || (lastStop->oldType == MT_NOBLACKSTOP)) {
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): end mark is a weak blackscreen mark, no closing credits without logo can follow");
+            }
+            else {
+                if ((lastStop->type == MT_LOGOSTOP) || (lastStop->type == MT_HBORDERSTOP) || (lastStop->type == MT_MOVEDSTOP)) {
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search for closing credits");
+                    if (MoveLastStopAfterClosingCredits(lastStop)) {
+                        save = true;
+                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): moved last logo stop mark after closing credit");
+                    }
+                }
             }
         }
     }
@@ -3580,7 +3587,7 @@ void cMarkAdStandalone::ProcessFiles() {
                 dsyslog("cMarkAdStandalone::ProcessFiles(): recording is aktive, read frame (%d), now save dummy start mark at pre timer position %ds", ptr_cDecoder->GetFrameNumber(), macontext.Info.tStart);
                 cMarks marksTMP;
                 marksTMP.RegisterIndex(recordingIndexMark);
-                marksTMP.Add(MT_ASSUMEDSTART, ptr_cDecoder->GetFrameNumber(), "timer start", true);
+                marksTMP.Add(MT_ASSUMEDSTART, MT_UNDEFINED, ptr_cDecoder->GetFrameNumber(), "timer start", true);
                 marksTMP.Save(macontext.Config->recDir, &macontext, true);
                 macontext.Info.isStartMarkSaved = true;
             }

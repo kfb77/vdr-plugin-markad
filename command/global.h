@@ -39,6 +39,8 @@
 #define MA_SP_TYPE 6
 #define MA_BI_TYPE 7
 
+#define MT_UNDEFINED       (unsigned char) 0
+
 #define MT_START           (unsigned char) 1
 #define MT_STOP            (unsigned char) 2
 

@@ -29,9 +29,10 @@ extern "C" {
 extern bool abortNow;
 
 
-cMark::cMark(const int typeParam, const int positionParam, const char *commentParam, const bool inBroadCastParam) {
-    type = typeParam;
-    position = positionParam;
+cMark::cMark(const int typeParam, const int oldTypeParam, const int positionParam, const char *commentParam, const bool inBroadCastParam) {
+    type        = typeParam;
+    oldType     = oldTypeParam;
+    position    = positionParam;
     inBroadCast = inBroadCastParam;
     if (commentParam) {
         comment = strdup(commentParam);
@@ -353,7 +354,7 @@ cMark *cMarks::GetNext(const int position, const int type, const int mask) {
 }
 
 
-cMark *cMarks::Add(const int type, const int position, const char *comment, const bool inBroadCast) {
+cMark *cMarks::Add(const int type, const int oldType, const int position, const char *comment, const bool inBroadCast) {
 
     cMark *dupMark;
     if ((dupMark = Get(position))) {
@@ -376,7 +377,7 @@ cMark *cMarks::Add(const int type, const int position, const char *comment, cons
         return dupMark;
     }
 
-    cMark *newMark = new cMark(type, position, comment, inBroadCast);
+    cMark *newMark = new cMark(type, oldType, position, comment, inBroadCast);
     if (!newMark) return NULL;
     ALLOC(sizeof(*newMark), "mark");
 
@@ -528,9 +529,10 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const char* reason) {
            ALLOC(strlen(comment)+1, "comment");
            isyslog("%s",comment);
 
+           int oldType = mark->type;
            int newType = ((mark->type & 0x0F) == MT_START) ? MT_MOVEDSTART : MT_MOVEDSTOP;
            Del(mark);
-           newMark = Add(newType, newPosition, comment);
+           newMark = Add(newType, oldType, newPosition, comment);
 
            FREE(strlen(typeText)+1, "text");
            free(typeText);
