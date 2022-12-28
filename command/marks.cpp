@@ -14,6 +14,10 @@
 #include <string.h>
 #include <stdint.h>
 #include <fcntl.h>
+#include "global.h"
+#ifdef WINDOWS
+   #include "win32/mingw64.h"
+#endif
 
 #include "marks.h"
 extern "C" {
