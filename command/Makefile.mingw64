@@ -1,0 +1,119 @@
+$(shell GITVERSION=`git rev-parse --short HEAD 2> /dev/null`; sed "s/\";/ ($$GITVERSION)\";/" ../version.dist > version.h )
+
+
+# some data from environment
+HOMEDRIVE = $(shell env | grep HOMEDRIVE | cut -d'=' -f2)
+HOMEPATH  = $(shell env | grep HOMEPATH  | cut -d'=' -f2)
+HOME      = $(HOMEDRIVE)$(HOMEPATH)
+APPDATA   = $(shell env | grep ^APPDATA  | cut -d'=' -f2)
+MARKAD_DIR= $(APPDATA)\vdr-plugin-markad
+
+
+
+# for installation:
+BINDIR = $(MARKAD_DIR)
+MANDIR = $(MARKAD_DIR)\man
+LOCDIR = $(MARKAD_DIR)\locale
+
+
+CXX      = g++
+CXXFLAGS = -g -O3 -Wall -Woverloaded-virtual -Wno-parentheses -Wfatal-errors
+CXXFLAGS+= -funroll-loops
+
+PKG-CONFIG ?= pkg-config
+STRIP ?= strip
+
+### Includes and Defines (add further entries here):
+PKG-LIBS += libavcodec libavutil libavformat libavfilter libswresample
+PKG-INCLUDES += libavcodec libavutil libavformat libavfilter libswresample
+
+DEFINES += -D_GNU_SOURCE
+DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
+
+
+
+INCLUDES += $(shell $(PKG-CONFIG) --cflags $(PKG-INCLUDES))
+LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
+LIBS     += -lintl
+LIBS     += -lws2_32
+
+
+### The object files (add further files here):
+WIN32_SRC:=$(wildcard win32/*.cpp)
+OBJS = $(WIN32_SRC:.cpp=.o)
+OBJS+= evaluate.o 
+OBJS+= debug.o
+OBJS+= index.o
+OBJS+= logo.o
+OBJS+= encoder_new.o
+OBJS+= decoder_new.o
+OBJS+= audio.o
+OBJS+= video.o
+OBJS+= marks.o
+OBJS+= markad-standalone.o
+
+WIN32_SRC:=$(wildcard win32/*.cpp)
+
+### The main target:
+all: report markad i18n
+
+### Dependencies:
+MAKEDEP = $(CXX) -MM -MG
+DEPFILE = .dependencies
+$(DEPFILE): Makefile
+	@$(MAKEDEP) $(DEFINES) $(INCLUDES) $(OBJS:%.o=%.cpp) > $@
+
+-include $(DEPFILE)
+
+### Internationalization (I18N):
+PODIR     = po
+I18Npo    = $(wildcard $(PODIR)/*.po)
+I18Nmsgs  = $(addprefix  $(DESTDIR)$(LOCDIR)/, $(addsuffix /LC_MESSAGES/markad.mo, $(notdir $(foreach file, $(I18Npo), $(basename $(file))))))
+I18Npot   = $(PODIR)/markad.pot
+
+%.mo: %.po
+	msgfmt -c -o $@ $<
+
+$(I18Npot): $(wildcard *.cpp *.h)
+	xgettext -C -cTRANSLATORS --no-wrap --no-location -k -ktr -ktrNOOP --msgid-bugs-address='<see README>' -o $@ $^
+
+%.po: $(I18Npot)
+	msgmerge -U --no-wrap --no-location --backup=none -q $@ $<
+	@touch $@
+
+$(I18Nmsgs): $(DESTDIR)$(LOCDIR)/%/LC_MESSAGES/markad.mo: $(PODIR)/%.mo
+	install -D -m644 $< $@
+
+.PHONY: i18n
+i18n: $(I18Npot)
+
+### Targets:
+markad: $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
+
+### Implicit rules:
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $(DEFINES) $(INCLUDES) -o $@ $<
+
+report:
+	$(info MARKAD_DIR: ${MARKAD_DIR})
+
+install-doc:
+	@mkdir -p $(DESTDIR)$(MANDIR)/man1
+	@gzip -c markad.1 > $(DESTDIR)$(MANDIR)/man1/markad.1.gz
+
+install: install-doc markad $(I18Nmsgs)
+	@mkdir -p $(DESTDIR)$(BINDIR)
+	install -D markad $(DESTDIR)$(BINDIR)/markad
+	@mkdir -p $(DESTDIR)/var/lib/markad
+	install -D logos/* $(DESTDIR)/var/lib/markad
+	@echo markad installed
+
+clean:
+	rm -f *.o
+	rm -f win32/*.o
+	rm -f $(DEPFILE)
+	rm -f markad
+	rm -f $(PODIR)/*.mo
+	rm -f $(PODIR)/*.pot
