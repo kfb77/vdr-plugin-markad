@@ -7,6 +7,10 @@
 
 #include <string>
 #include <sys/time.h>
+#include "global.h"
+#ifdef WINDOWS
+   #include "win32/mingw64.h"
+#endif
 
 #include "decoder_new.h"
 extern "C" {
