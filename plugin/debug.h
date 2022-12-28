@@ -14,6 +14,9 @@
 // debug vdr locks
 // #define DEBUG_LOCKS
 
+// debug all VPS events with runningStatus > 0
+// #define DEBUG_VPS
+
 
 #ifdef DEBUG_MEM
     #include <vdr/plugin.h>

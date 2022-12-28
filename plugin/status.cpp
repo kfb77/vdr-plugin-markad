@@ -158,15 +158,16 @@ bool cEpgHandlerMarkad::HandleEitEvent(cSchedule *Schedule, const SI::EIT::Event
     if (!EitEvent) return false;
     if (EitEvent->getRunningStatus() <= 0) return false;
     if (!StatusMarkAd) return false;
-    StatusMarkAd->SetVPSStatus(Schedule, EitEvent);
-/*
+
+#ifdef DEBUG_VPS
     LOCK_CHANNELS_READ;
     const cChannel *channel = Channels->GetByChannelID(Schedule->ChannelID(), true);
     if (channel && (EitEvent->getRunningStatus() > 0)) {
-        dsyslog("---------------------------------------------------------------------------------------------");
         dsyslog("markad: cEpgHandlerMarkad::HandleEitEvent(): EventID() %5d RunningStatus() %d, channel: %s %s", EitEvent->getEventId(), EitEvent->getRunningStatus(), *Schedule->ChannelID().ToString(), channel->Name());
     }
-*/
+#endif
+
+    StatusMarkAd->SetVPSStatus(Schedule, EitEvent);
     return false;
 }
 
