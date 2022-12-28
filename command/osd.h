@@ -5,7 +5,8 @@
  *
  */
 
-#ifndef __osd_h_
+#include "global.h"
+#if !defined(__osd_h_) && defined(POSIX)
 #define __osd_h_
 
 extern "C" {

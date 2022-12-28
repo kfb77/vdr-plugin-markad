@@ -31,6 +31,8 @@ extern "C" {
 
 #define MAXRANGE 120 /* range to search for start/stop marks in seconds */
 
+/* forward declarations */
+class cOSDMessage;
 
 /**
  * markad main class
