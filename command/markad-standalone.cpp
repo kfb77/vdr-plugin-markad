@@ -3738,7 +3738,7 @@ time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
 
 bool cMarkAdStandalone::CheckLogo() {
     if (!macontext.Config) return false;
-    if (!macontext.Config->logoDirectory) return false;
+    if (!*macontext.Config->logoDirectory) return false;
     if (!macontext.Info.ChannelName) return false;
     int len=strlen(macontext.Info.ChannelName);
     if (!len) return false;
