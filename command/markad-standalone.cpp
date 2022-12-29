@@ -4693,7 +4693,6 @@ int main(int argc, char *argv[]) {
                     return 2;
                 }
                 strncpy(config.logoDirectory, optarg, sizeof(config.logoDirectory) - 1);
-                config.logoDirectory[strlen(optarg) + 1] = 0;
                 break;
             case 'p':
                 // --priority
@@ -4792,7 +4791,6 @@ int main(int argc, char *argv[]) {
                     return 2;
                 }
                 strncpy(config.markFileName, optarg, sizeof(config.markFileName) - 1);
-                config.markFileName[strlen(optarg) + 1] = 0;
                 break;
             case 2: // --loglevel
                 SysLogLevel = atoi(optarg);
@@ -4820,7 +4818,6 @@ int main(int argc, char *argv[]) {
                     return 2;
                 }
                 strncpy(config.svdrphost, optarg, sizeof(config.svdrphost) - 1);
-                config.svdrphost[strlen(optarg) + 1] = 0;
                 break;
             case 6: // --svdrpport
                 if (isnumber(optarg) && atoi(optarg) > 0 && atoi(optarg) < 65536) {
