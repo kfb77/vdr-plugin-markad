@@ -3,6 +3,7 @@
 #if __cplusplus <= CPLUSPLUS_20
 #include <time.h>
 #include <errno.h>
+#include "../global.h"
 
 #if defined (WINDOWS)
 struct tm* localtime_r(const time_t* timer, struct tm* buf) {
