@@ -73,4 +73,4 @@ clean:
 	@-rm -f version.h $(PACKAGE).tgz
 
 cppcheck: 
-	cppcheck --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction:plugin/markad.cpp --suppress=unusedFunction:plugin/status.cpp -DLIBAVCODEC_VERSION_INT=3763044 -DDEBUGMEM=1 --error-exitcode=1 . > /dev/null
+	cppcheck --enable=all --inline-suppr --suppress=missingIncludeSystem --suppress=unusedFunction:plugin/markad.cpp --suppress=unusedFunction:plugin/status.cpp -DLIBAVCODEC_VERSION_INT=3763044 -DDEBUGMEM=1 --error-exitcode=1 . > /dev/null
