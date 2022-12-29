@@ -1,9 +1,14 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-01-01: Version 3.1.0
+- new feature: compilable under Windows with MinGW-w64 (written by wirbel@vdr-portal)
+- new feature: optimize channel start mark with near blackscreen
+- optimize search for undetected info logo before end mark
+- some minor bug fixes and optimizations, see git
+
 2022-12-24: Version 3.0.29
 - optimize start and end marks of border recordings
-- some minor bug fixes and optimizations, see git
 
 2022-12-04: Version 3.0.28
 - optimize vertical border detection
