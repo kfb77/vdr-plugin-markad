@@ -14,7 +14,8 @@ struct tm* localtime_r(const time_t* timer, struct tm* buf) {
    * C++11:  struct tm* localtime_s(const time_t* restrict timer, struct tm* restrict buf);
    */
 
-  errno_t r = localtime_s(buf, timer); // cppcheck-suppress AssignmentAddressToInteger
+  // cppcheck-suppress AssignmentAddressToInteger
+  errno_t r = localtime_s(buf, timer);
 
   if (r != 0)
      errno = EINVAL;
