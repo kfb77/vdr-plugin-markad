@@ -1470,10 +1470,10 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
                                                                  // 57 / 59 = 0.96 is second logo
                                                                  // 64 / 67 = 0.94 is ad in frame
                                                                  // 54 / 58 = 0.93 is ad in frame
-            dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): %d high matches of %d frames, found additional logo in corner %s", isCornerLogo[corner], countFrames, aCorner[corner]);
+            dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): %2d high matches of %2d frames, found additional logo in corner %s", isCornerLogo[corner], countFrames, aCorner[corner]);
             countLogo++;
         }
-        else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): %d high matches of %d frames, no additional logo in corner %s", isCornerLogo[corner], countFrames, aCorner[corner]);
+        else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): %2d high matches of %2d frames, no additional logo in corner %s", isCornerLogo[corner], countFrames, aCorner[corner]);
     }
     if (countLogo > 0) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): found more than one logo, this is not a advertising in frame");
