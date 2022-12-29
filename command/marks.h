@@ -23,6 +23,7 @@ class cMark {
 /**
  * mark constructor
  * @param typeParam        mark type
+ * @param oldTypeParam     original mark type before move
  * @param positionParam    mark position
  * @param commentParam     mark comment
  * @param inBroadCastParam true if mark is in broadcast, false if mark is in advertising
@@ -85,8 +86,15 @@ class cMark {
                                    //!<
 
     private:
-        cMark(const cMark &cMarkCopy);       // not implemented
-        cMark &operator=(const cMark &foo);  // not implemented
+/**
+ * copy mark Object (not used)
+ */
+        cMark(const cMark &cMarkCopy);
+
+/**
+ * = operator for mark object (not used)
+ */
+        cMark &operator=(const cMark &foo);
 
         cMark *next;                         //!< next mark
                                              //!<
@@ -133,6 +141,7 @@ class cMarks {
 /**
  * add mark
  * @param type mark type
+ * @param oldType original mark type before movecOSDMessage
  * @param position mark position
  * @param comment mark comment
  * @param inBroadCast true if mark is in broacast, false if mark is in advertising

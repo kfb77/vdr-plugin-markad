@@ -39,8 +39,15 @@ class cOSDMessage {
 
     private:
 
-        cOSDMessage(const cOSDMessage &cOSDMessageCopy); // not implemented
-        cOSDMessage &operator=(const cOSDMessage &foo);  // not implemented
+/**
+ * copy OSM object (not used)
+ */
+        cOSDMessage(const cOSDMessage &cOSDMessageCopy);
+
+/**
+ * = operator for OSM object (not used)
+ */
+        cOSDMessage &operator=(const cOSDMessage &foo);
 
         char *host;                                      //!< VDR host name or IP address
                                                          //!<
