@@ -3492,7 +3492,9 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 if ((macontext.Video.Options.ignoreBlackScreenDetection) || (macontext.Video.Options.ignoreLogoDetection)) {
                     isyslog("restart logo, border and black screen detection at frame (%d)", ptr_cDecoder->GetFrameNumber());
                     bDecodeVideo = true;
-                    macontext.Video.Options.ignoreBlackScreenDetection = false;   // use black sceen setection only to find end mark
+                    macontext.Video.Options.ignoreBlackScreenDetection = false;   // use this to find end mark
+                    macontext.Video.Options.ignoreVborder              = false;
+                    macontext.Video.Options.ignoreHborder              = false;
                     if (macontext.Video.Options.ignoreLogoDetection == true) {
                         macontext.Video.Options.ignoreLogoDetection = false;
                         if (video) {
