@@ -420,8 +420,8 @@ int cMarkAdStandalone::CheckStop() {
 #define MAX_BEFORE_ASUMED_STOP 203 // changed from 281 to 203
                     int diffAssumedPrevLogoStop = (iStopA - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
                     int diffAssumedEnd          = (iStopA - end->position)          / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckStop(): end mark (%d): %ds before assumed stop (%d)", end->position, diffAssumedEnd, iStopA);
-                    dsyslog("cMarkAdStandalone::CheckStop(): previous logo stop (%d) start (%d): %ds (expect < %ds) before assumed stop (%d)", prevLogoStop->position, prevLogoStart->position, diffAssumedPrevLogoStop, MAX_BEFORE_ASUMED_STOP, iStopA);
+                    dsyslog("cMarkAdStandalone::CheckStop(): closing credits check of previous logo pair: stop (%d) start (%d): %ds (expect < %ds) before assumed stop (%d)", prevLogoStop->position, prevLogoStart->position, diffAssumedPrevLogoStop, MAX_BEFORE_ASUMED_STOP, iStopA);
+                    dsyslog("cMarkAdStandalone::CheckStop(): current end mark (%d): %ds before assumed stop (%d)", end->position, diffAssumedEnd, iStopA);
                     if ((prevLogoStart->position > marks.GetFirst()->position) && (diffAssumedPrevLogoStop < MAX_BEFORE_ASUMED_STOP) && abs(diffAssumedPrevLogoStop) < (diffAssumedEnd) && evaluateLogoStopStartPair) {
                         // check closing credits, but not if we got first start mark as start mark of the pair, this could be closing credit of recording before
                         if (evaluateLogoStopStartPair->GetIsClosingCredits(prevLogoStop->position, prevLogoStart->position == STATUS_YES)) {
@@ -429,6 +429,7 @@ int cMarkAdStandalone::CheckStop() {
                             end = prevLogoStop;
                         }
                     }
+                    else dsyslog("cMarkAdStandalone::CheckStop(): closing credits check of previous logo pair: stop (%d) start (%d): %ds (expect < %ds) before assumed stop (%d) is not valid as end mark", prevLogoStop->position, prevLogoStart->position, diffAssumedPrevLogoStop, MAX_BEFORE_ASUMED_STOP, iStopA);
                     // detect short logo stop/start before assumed stop mark, they can be undetected info logos or text previews over the logo (e.g. SAT.1)
                     while (true) {
                         prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART); // end mark can be changed above
