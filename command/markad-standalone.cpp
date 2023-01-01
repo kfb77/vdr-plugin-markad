@@ -3309,12 +3309,12 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             }
             else dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no black screen mark found after logo stop mark (%d)", mark->position);
 
-            // try blackscreen before stop mark, only with half distance
+            // try blackscreen before stop mark, only with half distance, better save than sorry
             if (!foundAfter) {
                 cMark *blackMarkAfter = blackMarks.GetPrev(mark->position, MT_NOBLACKSTART);
                 if (blackMarkAfter) {
                     int diff_ms = 1000 * (mark->position - blackMarkAfter->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): black screen (%d) %dms (expect <=%ds) before logo stop mark (%d) found", blackMarkAfter->position, diff_ms, blackscreenRange, mark->position);
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): black screen (%d) %dms (expect <=%ds) before logo stop mark (%d) found", blackMarkAfter->position, diff_ms, blackscreenRange / 2, mark->position);
                     if (diff_ms <= (blackscreenRange / 2)) {
                         int newPos;
                         if (!macontext.Config->fullDecode) {
