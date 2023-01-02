@@ -1221,11 +1221,12 @@ void cMarkAdStandalone::CheckStart() {
                 }
             }
             if (vStart) {
-                if (vStart->position >= IGNORE_AT_START) {  // early position is a vborder previous recording
-                    dsyslog("cMarkAdStandalone::CheckStart(): delete HBORDER marks if any");
+                if (vStart->position >= IGNORE_AT_START) { // early position is a vborder previous recording
+                    dsyslog("cMarkAdStandalone::CheckStart(): delete logo and HBORDER marks if any");
                     marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
-                    begin = vStart;   // found valid vertical border start mark
-                    macontext.Video.Info.hasBorder = true;
+                    marks.DelType(MT_LOGOCHANGE,    0xF0); // delete logo marks, vborder is stronger
+                    begin = vStart;                        // found valid vertical border start mark
+                    macontext.Video.Info.hasBorder        = true;
                     macontext.Video.Options.ignoreHborder = true;
                 }
                 else dsyslog("cMarkAdStandalone::CheckStart(): ignore vertical border start found at (%d)", vStart->position);
