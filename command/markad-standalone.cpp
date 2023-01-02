@@ -299,7 +299,7 @@ int cMarkAdStandalone::CheckStop() {
     }
 
 // try MT_VBORDERSTOP
-    if (!end) {
+    if (!end  || (marks.First() && marks.First()->type == MT_VBORDERSTART)) {  // if start mark is VBORDER try anyway if we have a VBODERSTOP
         end = marks.GetAround(3*delta, iStopA, MT_VBORDERSTOP);
         if (end) {
             int deltaStopA = (end->position - iStopA) / macontext.Video.Info.framesPerSecond;

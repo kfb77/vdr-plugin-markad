@@ -257,6 +257,11 @@ void cMarks::Del(cMark *mark) {
 }
 
 
+cMark *cMarks::First() {
+    return first;
+}
+
+
 cMark *cMarks::Get(const int position) {
     if (!first) return NULL; // no elements yet
 

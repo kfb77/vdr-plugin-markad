@@ -225,6 +225,14 @@ class cMarks {
  */
         cMark *Move(cMark *mark, const int newPosition, const char* reason);
 
+
+/**
+ * get first mark
+ * @return first mark
+ */
+        cMark *First();
+
+
 /**
  * get mark from position
  * @param position frame position
