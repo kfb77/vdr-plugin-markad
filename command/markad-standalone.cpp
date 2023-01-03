@@ -210,6 +210,8 @@ int cMarkAdStandalone::CheckStop() {
             }
             else {
                 cMark *cStartFirst = marks.GetNext(0, MT_CHANNELSTART);  // get first channel start mark
+                cMark *movedFirst  = marks.First();                      // maybe first mark is a moved channel mark
+                if (movedFirst && (movedFirst->type == MT_MOVEDSTART) && (movedFirst->oldType == MT_CHANNELSTART)) cStartFirst = movedFirst;
                 if (cStartFirst) {
                     int deltaC = (end->position - cStartFirst->position) / macontext.Video.Info.framesPerSecond;
                     if (deltaC < 305) {  // changed from 300 to 305
