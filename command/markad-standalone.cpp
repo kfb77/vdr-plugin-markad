@@ -512,8 +512,8 @@ int cMarkAdStandalone::CheckStop() {
     }
 
     if (!end) {
-        end = marks.GetAround(1.1 * delta, iStopA + delta, MT_STOP, 0x0F);    // try any type of stop mark, start search after iStopA and accept only  short before
-        if (end) dsyslog("cMarkAdStandalone::CheckStop(): weak end mark found at frame %i", end->position);
+        end = marks.GetAround(1.1 * delta, iStopA, MT_STOP, 0x0F);    // try any type of stop mark, accept only short before
+        if (end) dsyslog("cMarkAdStandalone::CheckStop(): weak end mark found at frame %d", end->position);
         else dsyslog("cMarkAdStandalone::CheckStop(): no end mark found");
     }
 
@@ -532,38 +532,65 @@ int cMarkAdStandalone::CheckStop() {
             mark = mark->Next();
         }
 
-        if ((end->type == MT_NOBLACKSTOP) && (end->position < iStopA)) {        // if stop mark is MT_NOBLACKSTOP and it is not after iStopA try next, better save than sorry
-           cMark *end2 = marks.GetAround(delta, end->position + 2*delta, MT_STOP, 0x0F);
-           if (end2) {
-               dsyslog("cMarkAdStandalone::CheckStop(): stop mark is week, use next stop mark at (%i)", end2->position);
-               end = end2;
-           }
+        // if stop mark is MT_NOBLACKSTOP and it is not after iStopA try next, better save than sorry
+        if (end->type == MT_NOBLACKSTOP) {
+            dsyslog("cMarkAdStandalone::CheckStop(): only accept blackscreen marks after assumes stop");
+            while(end->position < iStopA) {
+                cMark *end2 = marks.GetNext(end->position, MT_STOP, 0x0F);
+                if (end2) {
+                    dsyslog("cMarkAdStandalone::CheckStop(): week stop mark is before assumed stop, use next stop mark at (%d)", end2->position);
+                    end = end2;
+                }
+                else {
+                    dsyslog("cMarkAdStandalone::CheckStop(): week stop mark is before assumed stop, no next stop mark found");
+                    end = NULL;
+                    break;
+                }
+            }
         }
 
-        indexToHMSF    = marks.IndexToHMSF(end->position);
-        char *markType = marks.TypeToText(end->type);
-        if (indexToHMSF && markType) {
-            isyslog("using %s stop mark on position (%i) at %s as end mark", markType, end->position, indexToHMSF);
-            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-            free(indexToHMSF);
-            FREE(strlen(markType)+1, "text");
-            free(markType);
+        // ignore very short black screen, take next as end mark
+        if (end && end->type == MT_NOBLACKSTOP) {
+            dsyslog("cMarkAdStandalone::CheckStop(): do not accept very short blackscreen marks");
+            cMark *blackStop  = end;
+            cMark *blackStart = marks.GetNext(end->position, MT_NOBLACKSTART);
+            while (true) {
+                if (!blackStop || !blackStart) break;
+                if ((blackStart->position - end->position) > 1) break;
+                blackStop                 = marks.GetNext(blackStop->position, MT_NOBLACKSTOP);
+                if (blackStop) blackStart = marks.GetNext(blackStop->position, MT_NOBLACKSTART);
+            }
+            if (blackStop) end = blackStop;
         }
 
-        if ( end->position < iStopA - 5 * delta ) {    // last found stop mark too early, adding STOP mark at the end, increased from 3 to 5
-                                                     // this can happen by audio channel change too if the next broadcast has also 6 channels
-            if ( ( lastStart) && ( lastStart->position > end->position ) ) {
-                isyslog("last STOP mark results in to short recording, set STOP at the end of the recording (%i)", iFrameCurrent);
-                sMarkAdMark markNew = {};
-                markNew.position = iFrameCurrent;
-                markNew.type = MT_ASSUMEDSTOP;
-                AddMark(&markNew);
-                end = marks.Get(iFrameCurrent);
+        if (end) {
+            indexToHMSF    = marks.IndexToHMSF(end->position);
+            char *markType = marks.TypeToText(end->type);
+            if (indexToHMSF && markType) {
+                isyslog("using %s stop mark on position (%i) at %s as end mark", markType, end->position, indexToHMSF);
+                FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                free(indexToHMSF);
+                FREE(strlen(markType)+1, "text");
+                free(markType);
+            }
+
+            if (end->position < iStopA - 5 * delta ) {    // last found stop mark too early, adding STOP mark at the end, increased from 3 to 5
+                                                          // this can happen by audio channel change too if the next broadcast has also 6 channels
+                if ((lastStart) && (lastStart->position > end->position)) {
+                    isyslog("last STOP mark results in to short recording, set STOP at the end of the recording (%i)", iFrameCurrent);
+                    sMarkAdMark markNew = {};
+                    markNew.position = iFrameCurrent;
+                    markNew.type = MT_ASSUMEDSTOP;
+                    AddMark(&markNew);
+                    end = marks.Get(iFrameCurrent);
+                }
             }
         }
     }
-    else {  // no valid stop mark found
-        // try if there is any late MT_ASPECTSTOP
+
+    if (!end) {  // no valid stop mark found
+                 // try if there is any late MT_ASPECTSTOP
+        dsyslog("cMarkAdStandalone::CheckStop(): no valid end mark found, try very late MT_ASPECTSTOP");
         cMark *aFirstStart = marks.GetNext(0, MT_ASPECTSTART);
         if (aFirstStart) {
             cMark *aLastStop = marks.GetPrev(INT_MAX, MT_ASPECTSTOP);
@@ -572,14 +599,15 @@ int cMarkAdStandalone::CheckStop() {
                 end = aLastStop;
             }
         }
-        if (!end) {
-            dsyslog("cMarkAdStandalone::CheckStop(): no stop mark found, add stop mark at the last frame (%i)", iFrameCurrent);
-            sMarkAdMark mark = {};
-            mark.position = iFrameCurrent;  // we are lost, add a end mark at the last iframe
-            mark.type = MT_ASSUMEDSTOP;
-            AddMark(&mark);
-            end = marks.GetPrev(INT_MAX, MT_STOP, 0x0F);  // make sure we got a stop mark
-        }
+    }
+
+    if (!end) {  // no end mark found at all, set end mark at the end of the recording
+        dsyslog("cMarkAdStandalone::CheckStop(): no stop mark found, add stop mark at the last frame (%d)", iFrameCurrent);
+        sMarkAdMark mark = {};
+        mark.position = iFrameCurrent;  // we are lost, add a end mark at the last iframe
+        mark.type     = MT_ASSUMEDSTOP;
+        AddMark(&mark);
+        end = marks.GetPrev(INT_MAX, MT_STOP, 0x0F);  // make sure we got a stop mark
     }
 
     // now we have a end mark
