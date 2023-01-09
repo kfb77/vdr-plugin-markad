@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-01-09: Version 3.1.1
+- fix unintentionally deletion of channel stop mark
+- some minor bug fixes and optimizations, see git
+
 2023-01-01: Version 3.1.0
 - new feature: compilable under Windows with MinGW-w64 (written by wirbel@vdr-portal)
 - new feature: optimize channel start mark with near blackscreen
