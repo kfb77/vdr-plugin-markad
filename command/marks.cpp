@@ -20,9 +20,7 @@
 #endif
 
 #include "marks.h"
-extern "C" {
-    #include "debug.h"
-}
+#include "debug.h"
 
 
 // global variable

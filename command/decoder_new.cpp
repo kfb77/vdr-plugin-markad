@@ -13,9 +13,7 @@
 #endif
 
 #include "decoder_new.h"
-extern "C" {
-    #include "debug.h"
-}
+#include "debug.h"
 
 extern int decodeTime_us;
 

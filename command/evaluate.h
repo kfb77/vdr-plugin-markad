@@ -9,9 +9,7 @@
 #ifndef __evaluate_h_
 #define __evaluate_h_
 
-extern "C" {
-    #include "debug.h"
-}
+#include "debug.h"
 #include "global.h"
 #include "marks.h"
 #include "video.h"

@@ -9,9 +9,7 @@
 #if !defined(__osd_h_) && defined(POSIX)
 #define __osd_h_
 
-extern "C" {
-    #include "debug.h"
-}
+#include "debug.h"
 
 #define trcs(c) bind_textdomain_codeset("markad",c)
 #define tr(s) dgettext("markad",s)

@@ -6,9 +6,7 @@
  */
 
 #include "index.h"
-extern "C" {
-    #include "debug.h"
-}
+#include "debug.h"
 
 
 cIndex::cIndex() {

@@ -10,10 +10,7 @@
 
 #include <sys/time.h>
 
-extern "C" {
-    #include "debug.h"
-}
-
+#include "debug.h"
 #include "global.h"
 #include "video.h"
 #include "audio.h"

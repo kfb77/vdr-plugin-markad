@@ -10,6 +10,7 @@
 
 #include "global.h"
 #include "index.h"
+#include "debug.h"
 
 
 /**

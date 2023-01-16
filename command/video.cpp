@@ -11,10 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-extern "C" {
-    #include "debug.h"
-}
-
+#include "debug.h"
 #include "video.h"
 #include "logo.h"
 

@@ -12,9 +12,7 @@
 #include <cstring>
 #include <vector>
 #include <pthread.h>
-extern "C"{
-    #include "debug.h"
-}
+#include "debug.h"
 
 
 int memUseSum = 0;

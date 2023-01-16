@@ -16,9 +16,7 @@
 #include "logo.h"
 #include "index.h"
 
-extern "C"{
-    #include "debug.h"
-}
+#include "debug.h"
 
 // based on this idee to find the logo in a recording:
 // 1. take 1000 iframes
