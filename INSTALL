@@ -6,7 +6,7 @@ Prerequisite:
 - git
 - pkg-config
 - vdr-dev         (>= version 2.2)
-- libavcodec-dev  (>= 56.1.0 from FFmpeg 2.4)
+- libavcodec-dev  (>= 56.57.100 from FFmpeg 2.7.2)
 - libavformat-dev
 - libavfilter-dev
 - libswresample-dev
