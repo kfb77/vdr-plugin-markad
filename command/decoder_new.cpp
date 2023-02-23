@@ -336,23 +336,8 @@ int cDecoder::GetVideoRealFrameRate() {
             videoRealFrameRate = av_q2d(avctx->streams[i]->r_frame_rate);
             return videoRealFrameRate;
 #else
-    #if LIBAVCODEC_VERSION_INT <= ((56<<16)+(1<<8)+0)    // Rasbian Jessie
-            AVStream *st = avctx->streams[i];
-            AVRational r_frame_rate;
-            if ( st->codec->time_base.den * (int64_t) st->time_base.num <= st->codec->time_base.num * st->codec->ticks_per_frame * (int64_t) st->time_base.den) {
-                r_frame_rate.num = st->codec->time_base.den;
-                r_frame_rate.den = st->codec->time_base.num * st->codec->ticks_per_frame;
-            }
-            else {
-                r_frame_rate.num = st->time_base.den;
-                r_frame_rate.den = st->time_base.num;
-            }
-            videoRealFrameRate = av_q2d(r_frame_rate);
-            return videoRealFrameRate;
-    #else
             videoRealFrameRate = av_q2d(av_stream_get_r_frame_rate(avctx->streams[i]));
             return videoRealFrameRate;
-    #endif
 #endif
         }
     }
