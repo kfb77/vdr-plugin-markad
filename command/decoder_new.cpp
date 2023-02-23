@@ -509,13 +509,8 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
     #endif
         avFrame->format         = avctx->streams[avpkt->stream_index]->codecpar->format;
         avFrame->sample_rate    = avctx->streams[avpkt->stream_index]->codecpar->sample_rate;
-#elif LIBAVCODEC_VERSION_INT >= ((56<<16)+(26<<8)+100)
+#else
         avFrame->nb_samples     = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codec->channel_layout);
-        avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codec->channel_layout;
-        avFrame->format         = codecCtxArray[avpkt->stream_index]->sample_fmt;
-        avFrame->sample_rate    = avctx->streams[avpkt->stream_index]->codec->sample_rate;
-#else  // Raspbian Jessie
-        avFrame->nb_samples     = av_popcount64(avctx->streams[avpkt->stream_index]->codec->channel_layout);
         avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codec->channel_layout;
         avFrame->format         = codecCtxArray[avpkt->stream_index]->sample_fmt;
         avFrame->sample_rate    = avctx->streams[avpkt->stream_index]->codec->sample_rate;
