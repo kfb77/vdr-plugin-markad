@@ -273,7 +273,6 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
     datePart = NULL;
     dsyslog("cEncoder::OpenFile(): write to '%s'", filename);
 
-#if LIBAVCODEC_VERSION_INT >= ((56<<16)+(26<<8)+100)
     avformat_alloc_output_context2(&avctxOut, NULL, NULL, filename);
     if (!avctxOut) {
         dsyslog("cEncoder::OpenFile(): Could not create output context");
@@ -282,25 +281,6 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
         return false;
     }
     ALLOC(sizeof(*avctxOut), "avctxOut");
-#else  // Raspbian Jessie
-    avctxOut = avformat_alloc_context();
-    if (!avctxOut) {
-        dsyslog("cEncoder::OpenFile(): Could not create output context");
-        FREE(strlen(filename)+1, "filename");
-        free(filename);
-        return false;
-    }
-    ALLOC(sizeof(*avctxOut), "avctxOut");
-    snprintf(avctxOut->filename, sizeof(avctxOut->filename), "%s", filename);
-    AVOutputFormat *avOutputFormat = av_guess_format(NULL, filename, NULL);
-    if (!avOutputFormat) {
-        dsyslog("cEncoder::OpenFile(): Could not create output format");
-        FREE(strlen(filename)+1, "filename");
-        free(filename);
-        return false;
-    }
-    avctxOut->oformat = avOutputFormat;
-#endif
     dsyslog("cEncoder::OpenFile(): output format %s", avctxOut->oformat->long_name);
 
     codecCtxArrayIn = ptr_cDecoder->GetAVCodecContext();
