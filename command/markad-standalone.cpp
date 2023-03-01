@@ -3896,7 +3896,7 @@ bool cMarkAdStandalone::LoadInfo() {
         if (line[0] == 'C') {
             char channelname[256];
             memset(channelname, 0, sizeof(channelname));
-            int result = sscanf(line, "%*c %*80s %250c", (char *) &channelname);
+            int result = sscanf(line, "%*c %*80s %250c", reinterpret_cast<char *>(&channelname));
             if (result == 1) {
                 macontext.Info.ChannelName = strdup(channelname);
                 ALLOC(strlen(macontext.Info.ChannelName)+1, "macontext.Info.ChannelName");
@@ -3972,7 +3972,7 @@ bool cMarkAdStandalone::LoadInfo() {
             int stream = 0, type = 0;
             char descr[256];
             memset(descr, 0, sizeof(descr));
-            int result=sscanf(line, "%*c %3i %3i %250c", &stream, &type, (char *) &descr);
+            int result=sscanf(line, "%*c %3i %3i %250c", &stream, &type, reinterpret_cast<char *>(&descr));
             if ((result != 0) && (result != EOF)) {
                 if ((stream == 1) || (stream == 5)) {
                     if ((type != 1) && (type != 5) && (type != 9) && (type != 13)) {
