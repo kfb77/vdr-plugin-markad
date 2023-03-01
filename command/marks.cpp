@@ -619,7 +619,7 @@ int cMarks::LoadVPS(const char *directory, const char *type) {
     char timeVPS[21] = "";
     int offsetVPS = 0;
     while (getline(&line, &length,mf) != -1) {
-        sscanf(line, "%15s %20s %d", (char *) &typeVPS, (char *)&timeVPS, &offsetVPS);
+        sscanf(line, "%15s %20s %d", reinterpret_cast<char *>(&typeVPS), reinterpret_cast<char *>(&timeVPS), &offsetVPS);
         if (strcmp(type, typeVPS) == 0) break;
         offsetVPS = -1;
     }
