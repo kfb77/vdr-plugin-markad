@@ -159,6 +159,6 @@ int cOSDMessage::Send(const char *format, ...) {
     ALLOC(strlen(msg)+1, "msg");
     va_end(ap);
 
-    if (pthread_create(&tid, NULL, (void *(*) (void *))&SendMessage, reinterpret_cast<void *>(this)) != 0 ) return -1;
+    if (pthread_create(&tid, NULL, reinterpret_cast<void *(*) (void *)>(&SendMessage), reinterpret_cast<void *>(this)) != 0 ) return -1;
     return 0;
 }
