@@ -227,7 +227,7 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup) :cOsdMenu("",CHNUMWIDTH)
 
 
 int cSetupMarkAdListItem::Compare(const cListObject &ListObject) const {
-    const cSetupMarkAdListItem *la = (cSetupMarkAdListItem *) &ListObject;
+    const cSetupMarkAdListItem *la = reinterpret_cast<const cSetupMarkAdListItem *>(&ListObject);
     const char *t1 = strchr(Text(),'\t');
     const char *t2 = strchr(la->Text(),'\t');
     if ((t1) && (t2)) {
