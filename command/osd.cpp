@@ -100,7 +100,7 @@ void *cOSDMessage::SendMessage(void *posd) {
     sock=socket(PF_INET, SOCK_STREAM, 0);
     if (sock < 0) return NULL;
 
-    if (connect(sock, (struct sockaddr *)&name, size) != 0 ) {
+    if (connect(sock, reinterpret_cast<struct sockaddr *>(&name), size) != 0 ) {
         close(sock);
         return NULL;
     }
