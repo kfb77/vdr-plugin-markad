@@ -3713,7 +3713,7 @@ bool cMarkAdStandalone::IsVPSTimer() {
     char   vpsTimer[13] = "";
 
     while (getline(&line, &size, mf) != -1) {
-        sscanf(line, "%12s", (char *) &vpsTimer);
+        sscanf(line, "%12s", reinterpret_cast<char *>(&vpsTimer));
         if (strcmp(vpsTimer, "VPSTIMER=YES") == 0) {
             timerVPS = true;
             break;
