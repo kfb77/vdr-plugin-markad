@@ -83,6 +83,10 @@
 // debug encoder
 // #define DEBUG_ENCODER
 
+// debug mark optimization
+// #define DEBUG_MARK_OPTIMIZATION
+
+
 extern int SysLogLevel;
 extern void syslog_with_tid(int priority, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
 
@@ -98,6 +102,11 @@ extern void syslog_with_tid(int priority, const char *format, ...) __attribute__
    #define isyslog(a...) if (SysLogLevel > 1) fprintf(stdout, a)
    #define dsyslog(a...) if (SysLogLevel > 2) fprintf(stdout, a)
    #define tsyslog(a...) if (SysLogLevel > 3) fprintf(stdout, a)
+#endif
+
+
+#ifdef DEBUG_MARK_OPTIMIZATION
+    bool SavePicture(const char *fileName, uchar *picture, const int width, const int height);
 #endif
 
 

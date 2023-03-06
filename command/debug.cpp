@@ -5,6 +5,38 @@
  *
  */
 
+#include "debug.h"
+
+
+// save picture to recording directory
+// return: true if successful
+//
+#ifdef DEBUG_MARK_OPTIMIZATION
+#include <stdio.h>
+#include <stdlib.h>
+bool SavePicture(const char *fileName, uchar *picture, const int width, const int height) {
+    if (!fileName) return false;
+    if ((width == 0) || (height == 0)) {
+        dsyslog("SavePicture: logo width or logo height not set");
+        return false;
+    }
+
+    // Open file
+    FILE *pFile = fopen(fileName, "wb");
+    if (pFile == NULL) return false;
+
+    // Write header
+    fprintf(pFile, "P5\n%d %d\n255\n", width, height);
+
+    // Write pixel data
+    if (fwrite(picture, 1, width * height, pFile)) {};
+
+    // Close file
+    fclose(pFile);
+    return true;
+}
+#endif
+
 
 #ifdef DEBUG_MEM
 
@@ -12,7 +44,6 @@
 #include <cstring>
 #include <vector>
 #include <pthread.h>
-#include "debug.h"
 
 
 int memUseSum = 0;

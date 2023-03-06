@@ -203,6 +203,7 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
 
         ~cDetectLogoStopStart();
 
+
 /**
  * compare all frames in range and calculate similar rate
  * @param startFrame start frame number

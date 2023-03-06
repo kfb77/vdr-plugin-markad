@@ -723,6 +723,18 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
             if (corner == DEBUG_COMPARE_FRAME_RANGE) iFrameNumberNext = -2;
 #endif
             ptr_Logo->Detect(0, frameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
+
+#ifdef DEBUG_MARK_OPTIMIZATION
+	    // save plane 0 of sobel transformation
+            char *fileName = NULL;
+            if (asprintf(&fileName,"%s/F%07d-P0-C%1d.pgm", maContext->Config->recDir, frameNumber, corner) >= 1) {
+                ALLOC(strlen(fileName)+1, "fileName");
+                SavePicture(fileName, area->sobel[0], logoWidth, logoHeight);
+                FREE(strlen(fileName)+1, "fileName");
+                free(fileName);
+            }
+#endif
+
             logo2[corner] = new sLogoInfo;
             ALLOC(sizeof(*logo2[corner]), "logo");
             logo2[corner]->iFrameNumber = frameNumber;
