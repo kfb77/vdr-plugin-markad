@@ -86,7 +86,6 @@
 // debug mark optimization
 // #define DEBUG_MARK_OPTIMIZATION
 
-
 extern int SysLogLevel;
 extern void syslog_with_tid(int priority, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
 
