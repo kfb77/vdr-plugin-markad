@@ -203,6 +203,14 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
 
         ~cDetectLogoStopStart();
 
+/**
+ * detect a frame in a sobel transformed picture
+ * @param picture plane 0 of sobel transformed picture
+ * @param width width of picture in pixel
+ * @param height height of picture in pixel
+ * @param corner source corner of picture
+ */
+        int DetectFrame(const int frameNumber, const uchar *picture, const int width, const int height, const int corner);
 
 /**
  * compare all frames in range and calculate similar rate
@@ -269,6 +277,8 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
             int frameNumber2 = 0;                //!< frame number 2
                                                  //!<
             int rate[CORNERS] = {0};             //!< similar rate of frame pair per corner
+                                                 //!<
+            int framePortion[CORNERS] = {0};     //!< portion of frame pixels of corner
                                                  //!<
         };
         std::vector<sCompareInfo> compareResult; //!< vector of frame compare results
