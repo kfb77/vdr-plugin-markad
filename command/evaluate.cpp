@@ -1606,8 +1606,8 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
                 similarCornersHigh++;
             }
             // check logo in corner
-            if ((*cornerResultIt).rate[corner] >= 424) {  // changed from 324 to 424
-                isCornerLogo[corner]++; // check if we have more than one logo
+            if ((*cornerResultIt).rate[corner] >= 400) {  // changed from 424 to 400
+                isCornerLogo[corner]++; // check if we have more than one logo, in this case there can not be a ad in frame
             }
 
             if ((*cornerResultIt).rate[corner] == 0) noPixelCountAllCorner++;
@@ -1714,7 +1714,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
 
     if (AdInFrameType1.frameCountFinal > 0) {
         int framePortionQuote = maxSumFramePortion / AdInFrameType1.frameCountFinal;
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of frame portion from best corner %d: %d from %d frames, quote %d", frameCorner, maxSumFramePortion, AdInFrameType1.frameCountFinal, framePortionQuote);
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of frame portion from best corner %s: %d from %d frames, quote %d", aCorner[frameCorner], maxSumFramePortion, AdInFrameType1.frameCountFinal, framePortionQuote);
         if (framePortionQuote < 500) {
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): not enought frame pixel found, advertising in frame type 1 not valid");
             AdInFrameType1.startFinal = -1;
@@ -1751,15 +1751,15 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     // check if we have more than one logo
     int countLogo = 0;
     for (int corner = 0; corner < CORNERS; corner++) {
-        if (corner == maContext->Video.Logo.corner) continue;
-        if ((100 * isCornerLogo[corner]) > (95 * countFrames)) { // we should not have a lot of high mathes in the complete part expect logo corner
-                                                                 // 57 / 59 = 0.96 is second logo
-                                                                 // 64 / 67 = 0.94 is ad in frame
-                                                                 // 54 / 58 = 0.93 is ad in frame
-            dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): %2d high matches of %2d frames, found additional logo in corner %s", isCornerLogo[corner], countFrames, aCorner[corner]);
+        int logoQuote         = 1000 * isCornerLogo[corner] / countFrames;
+        int framePortionQuote = 0;
+        if (AdInFrameType1.frameCountFinal > 0) framePortionQuote = AdInFrameType1.sumFramePortionFinal[corner] / AdInFrameType1.frameCountFinal;
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): corner %-12s: %2d high matches, high matches qoute %3d (of %2d frames), frame portion quote %3d (of %2d frames)", aCorner[corner], isCornerLogo[corner], logoQuote, countFrames, framePortionQuote, AdInFrameType1.frameCountFinal);
+        if (corner == maContext->Video.Logo.corner) continue;  // in logo corner we expect logo
+        if ((logoQuote >= 900) && (framePortionQuote <= 500)) {
+            dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): additional logo found in corner %s", aCorner[corner]);
             countLogo++;
         }
-        else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): %2d high matches of %2d frames, no additional logo in corner %s", isCornerLogo[corner], countFrames, aCorner[corner]);
     }
     if (countLogo > 0) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): found more than one logo, this is not a advertising in frame");
