@@ -2207,25 +2207,29 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
             dsyslog("cMarkAdStandalone::AddMarkVPS(): keep mark at frame (%d) type 0x%X at %s", mark->position, mark->type, timeText);
         }
         else {
-            dsyslog("cMarkAdStandalone::AddMarkVPS(): mark to replace at frame (%d) type 0x%X at %s", mark->position, mark->type, timeText);
-            if (asprintf(&comment,"VPS %s (%d), moved from %s mark (%d) at %s %s", (type == MT_START) ? "start" : "stop", vpsFrame, marks.TypeToText(mark->type), mark->position, timeText, (type == MT_START) ? "*" : "") == -1) comment=NULL;
-            if (comment) {
-                ALLOC(strlen(comment)+1, "comment");
-            }
-            dsyslog("cMarkAdStandalone::AddMarkVPS(): delete mark on position (%d)", mark->position);
-            marks.Del(mark->position);
-            marks.Add((type == MT_START) ? MT_VPSSTART : MT_VPSSTOP, MT_UNDEFINED, vpsFrame, comment);
-            FREE(strlen(comment)+1,"comment");
-            free(comment);
-            if ((type == MT_START) && !isPause) {   // delete all marks before vps start
-                marks.DelWeakFromTo(0, vpsFrame, 0xFF);
-            }
-            else if ((type == MT_STOP) && isPause) {  // delete all marks between vps start and vps pause start
-                cMark *startVPS = marks.GetFirst();
-                if (startVPS && (startVPS->type == MT_VPSSTART)) {
-                    marks.DelWeakFromTo(startVPS->position, vpsFrame, MT_VPSCHANGE);
+            int diff = 1000 * abs(mark->position - vpsFrame) / macontext.Video.Info.framesPerSecond;
+            if (diff > 2640) { // near blackscreen my be better than VPS event, chaned from 2080 to 2640
+                dsyslog("cMarkAdStandalone::AddMarkVPS(): mark to replace at frame (%d) type 0x%X at %s, %d ms away", mark->position, mark->type, timeText, diff);
+                if (asprintf(&comment,"VPS %s (%d), moved from %s mark (%d) at %s %s", (type == MT_START) ? "start" : "stop", vpsFrame, marks.TypeToText(mark->type), mark->position, timeText, (type == MT_START) ? "*" : "") == -1) comment=NULL;
+                if (comment) {
+                    ALLOC(strlen(comment)+1, "comment");
+                }
+                dsyslog("cMarkAdStandalone::AddMarkVPS(): delete mark on position (%d)", mark->position);
+                marks.Del(mark->position);
+                marks.Add((type == MT_START) ? MT_VPSSTART : MT_VPSSTOP, MT_UNDEFINED, vpsFrame, comment);
+                FREE(strlen(comment)+1,"comment");
+                free(comment);
+                if ((type == MT_START) && !isPause) {   // delete all marks before vps start
+                    marks.DelWeakFromTo(0, vpsFrame, 0xFF);
+                }
+                else if ((type == MT_STOP) && isPause) {  // delete all marks between vps start and vps pause start
+                    cMark *startVPS = marks.GetFirst();
+                    if (startVPS && (startVPS->type == MT_VPSSTART)) {
+                        marks.DelWeakFromTo(startVPS->position, vpsFrame, MT_VPSCHANGE);
+                    }
                 }
             }
+            else dsyslog("cMarkAdStandalone::AddMarkVPS(): keep near blackscreen mark at frame (%d)", mark->position);
         }
         FREE(strlen(timeText)+1, "indexToHMSF");
         free(timeText);
