@@ -800,6 +800,7 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
     int width = logoWidth;
     if (plane > 0) {
         boundary /= 2;
+        if (boundary < 1) boundary = 1; // we have to stay at least 1 pixel away from max pixel because of X Gradient approximation (-1 to +1) to prevent heap-buffer-overflow
         cutval /= 2;
         width /= 2;
     }
