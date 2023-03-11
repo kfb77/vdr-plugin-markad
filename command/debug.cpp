@@ -106,7 +106,7 @@ void memList() {
     dsyslog("debugmem unmachted alloc start ----------------------------------------------------------------");
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
         if (memLine->count > 0) {
-            dsyslog("debugmem unmachted alloc %6d times %7d bytes, file %s, line %4d, variable: %s", memLine->count, memLine->size, memLine->file, memLine->line, memLine->var);
+            esyslog("debugmem unmachted alloc %6d times %7d bytes, file %s, line %4d, variable: %s", memLine->count, memLine->size, memLine->file, memLine->line, memLine->var);
         }
         free(memLine->file);
         free(memLine->var);
