@@ -1584,10 +1584,11 @@ void cMarkAdOverlap::GetHistogram(simpleHistogram &dest) {
 
 
 int cMarkAdOverlap::AreSimilar(const simpleHistogram &hist1, const simpleHistogram &hist2) { // return > 0 if similar, else <= 0
-    int similar = 0;
+    long int similar = 0;  // prevent integer overflow
     for (int i = 0; i < 256; i++) {
         similar += abs(hist1[i] - hist2[i]);  // calculte difference, smaller is more similar
     }
+    if (similar > INT_MAX) similar = INT_MAX;  // we do need more
     if (similar < similarCutOff) {
        return similar;
     }
