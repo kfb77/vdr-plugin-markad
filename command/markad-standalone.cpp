@@ -1387,8 +1387,12 @@ void cMarkAdStandalone::CheckStart() {
                                 lStart = lNextStart;
                             }
                             else {
-                                if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, distance not valid", lNextStart->position, indexToHMSF, distanceStopNextStart);
-                                break;
+                                if (indexToHMSF) {
+                                    dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, distance not valid", lNextStart->position, indexToHMSF, distanceStopNextStart);
+                                        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                                        free(indexToHMSF);
+                                    break;
+                                }
                             }
                             if (indexToHMSF) {
                                 FREE(strlen(indexToHMSF)+1, "indexToHMSF");
@@ -1495,14 +1499,15 @@ void cMarkAdStandalone::CheckStart() {
         marks.DelTill(begin->position);    // delete all marks till start mark
         char *indexToHMSF = marks.IndexToHMSF(begin->position);
         char *typeName    = marks.TypeToText(begin->type);
-        if (indexToHMSF && typeName) {
-            isyslog("using %s start mark on position (%d) at %s as broadcast start", typeName, begin->position, indexToHMSF);
+        if (indexToHMSF && typeName) isyslog("using %s start mark on position (%d) at %s as broadcast start", typeName, begin->position, indexToHMSF);
+        if (indexToHMSF) {
             FREE(strlen(indexToHMSF)+1, "indexToHMSF");
             free(indexToHMSF);
+        }
+        if (typeName) {
             FREE(strlen(typeName)+1, "text");
             free(typeName);
         }
-
 
         if ((begin->type == MT_VBORDERSTART) || (begin->type == MT_HBORDERSTART)) {
             isyslog("found %s borders, logo detection disabled",(begin->type == MT_HBORDERSTART) ? "horizontal" : "vertical");
