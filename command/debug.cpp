@@ -46,7 +46,7 @@ bool SavePicture(const char *fileName, uchar *picture, const int width, const in
 #include <pthread.h>
 
 
-int memUseSum = 0;
+long int memUseSum = 0;  // prevent int overflow
 struct memUse {
     int size = 0;
     int line = 0;
