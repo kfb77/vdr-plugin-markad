@@ -889,9 +889,8 @@ void cMarkAdStandalone::CheckStart() {
                     else dsyslog("cMarkAdStandalone::CheckStart(): no audio channel change found till now, do not disable logo/border/aspect detection");
                 }
                 else {
-                    if (macontext.Audio.Options.ignoreDolbyDetection == true) isyslog("disabling AC3 decoding (from logo)");
-                    if ((macontext.Info.Channels[stream]) && (macontext.Audio.Options.ignoreDolbyDetection == false))
-                        isyslog("AC3 audio with %d channels on stream %d",macontext.Info.Channels[stream], stream);
+                    if (macontext.Audio.Options.ignoreDolbyDetection) isyslog("disabling AC3 decoding (from logo)");
+		    else isyslog("AC3 audio with %d channels on stream %d",macontext.Info.Channels[stream], stream);  // macontext.Info.Channels[stream] is always true
                     if (inBroadCast) {  // if we have channel marks but we are now with 2 channels inBroascast, delete these
                         macontext.Video.Options.ignoreAspectRatio          = false;   // then we have to find other marks
                         macontext.Video.Options.ignoreLogoDetection        = false;
