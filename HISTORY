@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-03-14: Version 3.2.0
+- end of support for libavcodec < 56.57.100 (ffmpeg 2.4)
+- new feature: detect frame in recording to optimize detection of "advertising in frame with logo" before start or after logo stop
+- some minor bug fixes and optimizations, see git
+
 2023-01-09: Version 3.1.1
 - fix unintentionally deletion of channel stop mark
 - some minor bug fixes and optimizations, see git
