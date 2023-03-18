@@ -1481,12 +1481,10 @@ int cDetectLogoStopStart::ClosingCredit() {
     if ((ClosingCredits.start > 0) && (ClosingCredits.end > 0) && // we found something
         (startOffset <= 4320) && (length < 19000) && // do not reduce start offset, if logo fade out, we got start a little too late
                                                      // startOffset increases from 1440 to 4320 because of silence detection before closing credits detection
-           ((length >= CLOSING_CREDITS_LENGTH_MIN) || (endOffset < 480) ||  // if we check from info logo:
+           ((length >= CLOSING_CREDITS_LENGTH_MIN) || (endOffset < 480))) {  // if we check from info logo:
                                                                             // - we would not have the complete part, so it should go nearly to end
                                                                             // - we also should detect ad in frame
                                                                             // changed from <= 1440 to 1920 to < 1200 to 480
-           ((startOffset <= 480) && (endOffset < 480)))) {                  // if good start accept early end, changed from <= 960 to < 480
-                                                                            // still broadcast scene deteted false as closing credit
         dsyslog("cDetectLogoStopStart::ClosingCredit(): this is a closing credits, pair contains a valid mark");
         closingCreditsFrame = ClosingCredits.end;
     }
