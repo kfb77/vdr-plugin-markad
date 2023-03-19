@@ -496,7 +496,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
         if (IsAudioPacket()) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-        avFrame->nb_samples     = codecCtxArray[avpkt->stream_index]->frame_size;
+        avFrame->nb_samples     = codecCtxArray[avpkt->stream_index]->ch_layout.nb_channels;
         avFrame->format         = codecCtxArray[avpkt->stream_index]->sample_fmt;
         int ret                 = av_channel_layout_copy(&avFrame->ch_layout, &codecCtxArray[avpkt->stream_index]->ch_layout);
         if (ret < 0) {
@@ -531,9 +531,16 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
         }
     }
 
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+    int rc = av_frame_get_buffer(avFrame, 0);
+#else
     int rc = av_frame_get_buffer(avFrame, 32);
+#endif
+
     if (rc != 0) {
-        dsyslog("cDecoder::DecodePacket(): stream index %d: av_frame_get_buffer failed rc=%i", avpkt->stream_index, rc);
+        char errTXT[64] = {0};
+        av_strerror(rc, errTXT, sizeof(errTXT));
+        dsyslog("cDecoder::DecodePacket(): stream index %d: av_frame_get_buffer failed: %s", avpkt->stream_index, errTXT);
         if (avFrame) {
             FREE(sizeof(*avFrame), "avFrame");
             av_frame_free(&avFrame);
