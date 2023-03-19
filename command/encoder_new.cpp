@@ -432,21 +432,24 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
 
     if (ptr_cDecoder->IsAudioAC3Stream(streamIndexIn)) {
         dsyslog("cEncoder::ChangeEncoderCodec(): AC3 input stream found %i, re-initialize volume filter for outpur stream %d", streamIndexIn, streamIndexOut);
-        if (!ptr_cAC3VolumeFilter[streamIndexOut]) {
-            dsyslog("cEncoder::ChangeEncoderCodec(): ptr_cAC3VolumeFilter not initialized for output stream %i", streamIndexOut);
-            return false;
-        }
-        FREE(sizeof(*ptr_cAC3VolumeFilter[streamIndexOut]), "ptr_cAC3VolumeFilter");
-        delete ptr_cAC3VolumeFilter[streamIndexOut];
-        ptr_cAC3VolumeFilter[streamIndexOut] = new cAC3VolumeFilter();
-        ALLOC(sizeof(*ptr_cAC3VolumeFilter[streamIndexOut]), "ptr_cAC3VolumeFilter");
+        if (maContext->Config->ac3ReEncode) {
+            if (!ptr_cAC3VolumeFilter[streamIndexOut]) {
+                dsyslog("cEncoder::ChangeEncoderCodec(): ptr_cAC3VolumeFilter not initialized for output stream %i", streamIndexOut);
+                return false;
+            }
+            FREE(sizeof(*ptr_cAC3VolumeFilter[streamIndexOut]), "ptr_cAC3VolumeFilter");
+            delete ptr_cAC3VolumeFilter[streamIndexOut];
+            ptr_cAC3VolumeFilter[streamIndexOut] = new cAC3VolumeFilter();
+            ALLOC(sizeof(*ptr_cAC3VolumeFilter[streamIndexOut]), "ptr_cAC3VolumeFilter");
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-        if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(avCodecCtxIn->ch_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate)) {
+            if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(avCodecCtxIn->ch_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate))
 #else
-        if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(avCodecCtxIn->channel_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate)) {
+            if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(avCodecCtxIn->channel_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate))
 #endif
-            dsyslog("cEncoder::ChangeEncoderCodec(): ptr_cAC3VolumeFilter->Init() failed");
-            return false;
+            {
+                dsyslog("cEncoder::ChangeEncoderCodec(): ptr_cAC3VolumeFilter->Init() failed");
+                return false;
+            }
         }
     }
     return true;
@@ -767,7 +770,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
     }
     else dsyslog("cEncoder::InitEncoderCodec(): avcodec_open2 for stream %i successful", streamIndexOut);
 
-    if (ptr_cDecoder->IsAudioAC3Stream(streamIndexIn)) {
+    if (ptr_cDecoder->IsAudioAC3Stream(streamIndexIn) && maContext->Config->ac3ReEncode) {
         dsyslog("cEncoder::InitEncoderCodec(): AC3 input found at stream %i, initialize volume filter for output stream %d", streamIndexIn, streamIndexOut);
         if (ptr_cAC3VolumeFilter[streamIndexOut]) {
             dsyslog("cEncoder::InitEncoderCodec(): ptr_cAC3VolumeFilter is not NULL for output stream %i", streamIndexOut);
@@ -777,10 +780,11 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
         ptr_cAC3VolumeFilter[streamIndexOut] = new cAC3VolumeFilter();
         ALLOC(sizeof(*ptr_cAC3VolumeFilter[streamIndexOut]), "ptr_cAC3VolumeFilter");
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-        if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(codecCtxArrayIn[streamIndexIn]->ch_layout, codecCtxArrayIn[streamIndexIn]->sample_fmt, codecCtxArrayIn[streamIndexIn]->sample_rate)) {
+        if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(codecCtxArrayIn[streamIndexIn]->ch_layout, codecCtxArrayIn[streamIndexIn]->sample_fmt, codecCtxArrayIn[streamIndexIn]->sample_rate))
 #else
-        if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(codecCtxArrayIn[streamIndexIn]->channel_layout, codecCtxArrayIn[streamIndexIn]->sample_fmt, codecCtxArrayIn[streamIndexIn]->sample_rate)) {
+        if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(codecCtxArrayIn[streamIndexIn]->channel_layout, codecCtxArrayIn[streamIndexIn]->sample_fmt, codecCtxArrayIn[streamIndexIn]->sample_rate))
 #endif
+        {
             dsyslog("cEncoder::InitEncoderCodec(): ptr_cAC3VolumeFilter->Init() failed");
             return false;
         }
@@ -1007,13 +1011,15 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
             }
 
             // use filter to adapt AC3 volume
-            if (!ptr_cAC3VolumeFilter[streamIndexOut]->SendFrame(avFrame)) {
-                dsyslog("cEncoder::WriteFrame(): cAC3VolumeFilter SendFrame failed");
-                return false;
-            }
-            if (!ptr_cAC3VolumeFilter[streamIndexOut]->GetFrame(avFrame)) {
-                dsyslog("cEncoder::WriteFrame(): cAC3VolumeFilter GetFrame failed");
-                return false;
+            if (maContext->Config->ac3ReEncode) {
+                if (!ptr_cAC3VolumeFilter[streamIndexOut]->SendFrame(avFrame)) {
+                    dsyslog("cEncoder::WriteFrame(): cAC3VolumeFilter SendFrame failed");
+                    return false;
+                }
+                if (!ptr_cAC3VolumeFilter[streamIndexOut]->GetFrame(avFrame)) {
+                    dsyslog("cEncoder::WriteFrame(): cAC3VolumeFilter GetFrame failed");
+                    return false;
+                }
             }
         }
 #ifdef DEBUG_ENCODER
