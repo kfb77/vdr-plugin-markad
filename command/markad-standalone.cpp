@@ -2214,7 +2214,7 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
         }
         else {
             int diff = 1000 * abs(mark->position - vpsFrame) / macontext.Video.Info.framesPerSecond;
-            if (diff > 2640) { // near blackscreen my be better than VPS event, chaned from 2080 to 2640
+            if (diff > 5500) { // near blackscreen my be better than VPS event, chaned from 2640 to 5500
                 dsyslog("cMarkAdStandalone::AddMarkVPS(): mark to replace at frame (%d) type 0x%X at %s, %d ms away", mark->position, mark->type, timeText, diff);
                 char *markTypeText =  marks.TypeToText(mark->type);
                 if (asprintf(&comment,"VPS %s (%d), moved from %s mark (%d) at %s %s", (type == MT_START) ? "start" : "stop", vpsFrame, markTypeText, mark->position, timeText, (type == MT_START) ? "*" : "") == -1) comment=NULL;
