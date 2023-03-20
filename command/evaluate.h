@@ -203,6 +203,10 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
 
         ~cDetectLogoStopStart();
 
+        void FindFrameFirstPixel(const uchar *picture, int *startX, int *startY, const int width, const int height, int searchX, int searchY, const int offsetX, const int offsetY);
+        void FindFrameStartPixel(const uchar *picture, int *startX, int *startY, const int width, const int height, const int offsetX, const int offsetY);
+        void FindFrameEndPixel(const uchar *picture, int *endX, int *endY, const int startX, const int startY, const int width, const int height, const int offsetX, const int offsetY);
+
 /**
  * detect a frame in a sobel transformed picture
  * @param picture plane 0 of sobel transformed picture

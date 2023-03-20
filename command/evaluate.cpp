@@ -641,218 +641,157 @@ cDetectLogoStopStart::~cDetectLogoStopStart() {
 }
 
 
+#define DETECTFRAME_MAXSEARCH 120
+void cDetectLogoStopStart::FindFrameFirstPixel( const uchar *picture, int *startX, int *startY, const int width, const int height, int searchX, int searchY, const int offsetX, const int offsetY) {
+    *startX = -1;
+    *startY = -1;
+    for (int i = 0; i < DETECTFRAME_MAXSEARCH; i++) {
+        if (picture[searchY * width + searchX] == 0) {  // pixel found
+            *startX = searchX;
+            *startY = searchY;
+            break;
+        }
+        searchX += offsetX;
+        if ((searchX < 0) || (searchX >= width)) break;
+        searchY += offsetY;
+        if ((searchY < 0) || (searchY >= height)) break;
+    }
+}
+
+
+void cDetectLogoStopStart::FindFrameStartPixel(const uchar *picture, int *startX, int *startY, const int width, const int height, const int offsetX, const int offsetY) {
+    while ((*startX > 0) && (*startX < width - 1)) {
+        if (picture[*startY * width + *startX + offsetX] == 0) *startX += offsetX;  // next position has pixel
+        else break;
+    }
+    while ((*startY > 0) && (*startY < height - 1)) {
+        if (picture[(*startY + offsetY) * width + *startX] == 0) *startY += offsetY;  // next position has pixel
+        else break;
+    }
+}
+
+
+void cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, int *endX, int *endY, const int startX, const int startY, const int width, const int height, const int offsetX, const int offsetY) {
+    *endX = startX;
+    while ((*endX > 0) && (*endX < width - 1)) {
+        if ((picture[ startY      * width + *endX + offsetX] == 0) ||
+            (picture[(startY + 1) * width + *endX + offsetX] == 0) ||
+            (picture[(startY - 1) * width + *endX + offsetX] == 0)) *endX += offsetX;  // next position has pixel, try also near by
+        else break;
+    }
+    *endY = startY;
+    while ((*endY > 0) && (*endY < height - 1)) {
+        if ((picture[(*endY + offsetY) * width + startX    ] == 0) ||
+            (picture[(*endY + offsetY) * width + startX + 1] == 0) ||
+            (picture[(*endY + offsetY) * width + startX - 1] == 0)) *endY += offsetY;  // next position has pixel
+        else break;
+    }
+}
+
+
 // detect frame in sobel transformed picture
 // sobel transformes lines can be interrupted, try also pixel next to start point
 // return portion of frame pixel in picture
 int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNumber, const uchar *picture, const int width, const int height, const int corner) {
     if (!picture) return 0;
-#define DETECTFRAME_MAXSEARCH 100
     if ((width <= DETECTFRAME_MAXSEARCH) || (height <= DETECTFRAME_MAXSEARCH)) return 0;    // we can not detect in very small pictures
 
     int startX  = -1;
     int startY  = -1;
     int endX    = -1;
     int endY    = -1;
+    int portion =  0;
 
     switch (corner) {
         case 0: // TOP_LEFT
-            // search diagonal for start of frame from top left of picture (first pixel diagonal from corner)
-            for (int i = 0; i < DETECTFRAME_MAXSEARCH; i++) {
-                if (picture[i * width + i] == 0) {  // pixel found
-                    startX = i;
-                    startY = i;
-                    break;
-                }
+            FindFrameFirstPixel(picture, &startX, &startY, width, height, 0, 0, 1, 1); // search from top left to bottom right
+            if ((startX >= 0) && (startY >= 0)) { // found a start pixel
+                FindFrameStartPixel(picture, &startX, &startY, width, height, -1, -1);  // start search from first pixel, search to left and top
+                FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, 1, 1);  // start search from start pixel, search to right and to buttom
+                if (((endX - startX) >= 5) && ((endY - startY) >= 5)) portion = 1000 * (endX - startX) / (width - startX) + 1000 * (endY - startY) / (height - startY);
             }
-            if ((startX == -1) || (startY == -1)) {
 #ifdef DEBUG_MARK_OPTIMIZATION
-                dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found", frameNumber, corner);
+            else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from top left to buttom right", frameNumber, corner);
 #endif
-                return 0;  // no start pixel found
-            }
-            // check for start left from current position
-            for (int x = startX - 1; x >= 0; x--) {
-                if (picture[startY * width + x] == 255) {  // first without pixel
-                    startX = x + 1;
-                    break;
+            if (portion < 180) {  // maybe we have a text under frame or the logo
+                FindFrameFirstPixel(picture, &startX, &startY, width, height, width / 2, 0, 1, 1); // search from top mid to bottom right
+                if ((startX >= 0) && (startY >= 0)) { // found a start pixel
+                    FindFrameStartPixel(picture, &startX, &startY, width, height, -1, -1);  // start search from first pixel, search to left and top
+                    FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, 1, 1);  // start search from start pixel, search to right and to buttom
+                    if (((endX - startX) >= 5) && ((endY - startY) >= 5)) portion = 1000 * (endX - startX) / (width - startX) + 1000 * (endY - startY) / (height - startY);
                 }
-            }
-            // check for start above current position
-            for (int y = startY - 1; y >= 0; y--) {
-                if (picture[y * width + startX] == 255) {  // first without pixel
-                startY = y + 1;
-                break;
-                }
-            }
-            // search last pixel right from start
-            for (int x = startX + 1; x < width; x++) {
-                if ((picture[startY * width + x] == 255) && (picture[(startY + 1) * width + x] == 255)) {  // first without pixel
-                endX = x - 1;
-                break;
-                }
-            }
-            // search last pixel below start
-            for (int y = startY + 1; y < height; y++) {
-                if ((picture[y * width + startX] == 255) && (picture[y * width + startX + 1] == 255)) {  // first without pixel
-                    endY = y - 1;
-                    break;
-                }
+#ifdef DEBUG_MARK_OPTIMIZATION
+                else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from buttom right to top left", frameNumber, corner);
+#endif
             }
             break;
 
         case 1: // TOP_RIGHT
-            // search diagonal for start of frame from top right of picture (first pixel diagonal from corner)
-            for (int i = 0; i < DETECTFRAME_MAXSEARCH; i++) {
-                if (picture[i * width + (width - i - 1)] == 0) {  // pixel found
-                    startX = (width - i - 1);
-                    startY = i;
-                    break;
-                }
+            FindFrameFirstPixel(picture, &startX, &startY, width, height, width - 1, 0, -1, 1); // search from top right to bottom left
+            if ((startX >= 0) && (startY >= 0)) { // found a start pixel
+                FindFrameStartPixel(picture, &startX, &startY, width, height, 1, -1);  // start search from first pixel, search to right and top
+                FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, - 1, 1);  // start search from start pixel, search to left and to buttom
+                if (((startX - endX) >= 5) && ((endY - startY) >= 5)) portion = 1000 * (startX - endX) / startX + 1000 * (endY - startY) / (height - startY);
             }
-            if ((startX == -1) || (startY == -1)) { // no start pixel found, try start search from middle of picture
-                for (int i = 0; i < DETECTFRAME_MAXSEARCH; i++) {
-                    if ((width / 2 - i) < 0) break;
-                    if (picture[i * width + (width / 2 - i)] == 0) {  // pixel found
-                        startX = (width / 2 - i);
-                        startY = i;
-                        break;
-                    }
-                }
-            }
-            if ((startX == -1) || (startY == -1)) { // no start pixel found
 #ifdef DEBUG_MARK_OPTIMIZATION
-                dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found", frameNumber, corner);
+            else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from top right to buttom left", frameNumber, corner);
 #endif
-                return 0;  // no start pixel found
-            }
-            // check for start right from current position
-            for (int x = startX + 1; x < width; x++) {
-                if (picture[startY * width + x] == 255) {  // first without pixel
-                    startX = x - 1;
-                    break;
+            if (portion < 180) {  // maybe we have a text under frame or the logo
+                FindFrameFirstPixel(picture, &startX, &startY, width, height, width / 2, 0, -1, 1); // search from top mid to bottom left
+                if ((startX >= 0) && (startY >= 0)) { // found a start pixel
+                    FindFrameStartPixel(picture, &startX, &startY, width, height, 1, -1);  // start search from first pixel, search to right and top
+                    FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, - 1, 1);  // start search from start pixel, search to left and to buttom
+                    if (((endX - startX) >= 5) && ((endY - startY) >= 5)) portion = 1000 * (endX - startX) / (width - startX) + 1000 * (endY - startY) / (height - startY);
                 }
-            }
-            // check for start above current position
-            for (int y = startY - 1; y >= 0; y--) {
-                if (picture[y * width + startX] == 255) {  // first without pixel
-                    startY = y + 1;
-                    break;
-                }
-            }
-            // search last pixel left from start
-            for (int x = startX - 1; x >= 0 ; x--) {
-                if (picture[startY * width + x] == 255) {  // first without pixel
-                endX = x + 1;
-                break;
-                }
-            }
-            // search last pixel below start
-            for (int y = startY + 1; y < height; y++) {
-                if (picture[y * width + startX] == 255) {  // first without pixel
-                    endY = y - 1;
-                    break;
-                }
+#ifdef DEBUG_MARK_OPTIMIZATION
+                else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from top mid to buttom left", frameNumber, corner);
+#endif
             }
             break;
 
         case 2: // BOTTOM_LEFT
-            // search diagonal for start of frame from bottom left of picture (first pixel diagonal from corner)
-            for (int i = 0; i < DETECTFRAME_MAXSEARCH; i++) {
-                if (picture[(height - i - 1) * width + i] == 0) {  // pixel found
-                    startX = i;
-                    startY = height - i - 1;
-                    break;
-                }
+            FindFrameFirstPixel(picture, &startX, &startY, width, height, 0, height - 1, 1, -1); // search from buttom left to top right
+            if ((startX >= 0) && (startY >= 0)) { // found a start pixel
+                FindFrameStartPixel(picture, &startX, &startY, width, height, -1, 1);  // start search from first pixel, search to left and to bottom
+                FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, 1, -1);  // start search from start pixel, search to right and to top
+                if (((endX - startX) >= 5) && ((startY - endY) >= 5)) portion = 1000 * (endX - startX) / (width - startX) + 1000 * (startY - endY) / (height - startY);
             }
-            if ((startX == -1) || (startY == -1)) { // no start pixel found
-                                                    // maybe frame far away from corner, more deep search make no sense, there could be a text under the frame
-                                                    // try search start position from top right
-                for (int i = 0; i < DETECTFRAME_MAXSEARCH; i++) {
-                    if (picture[i * width + (width - i - 1)] == 0) {  // pixel found
-                        startX = (width - i - 1);
-                        startY = i;
-                        break;
-                    }
-                }
-            }
-            if ((startX == -1) || (startY == -1)) {
 #ifdef DEBUG_MARK_OPTIMIZATION
-                dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found", frameNumber, corner);
+            else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from buttom left to top right", frameNumber, corner);
 #endif
-                return 0;  // no start pixel found
-            }
-            // check for start left from current position
-            for (int x = startX - 1; x >= 0; x--) {
-                if (picture[startY * width + x] == 255) {  // first without pixel
-                    startX = x + 1;
-                    break;
+            if (portion < 180) {  // maybe we have a text under frame
+                FindFrameFirstPixel(picture, &startX, &startY, width, height, width / 2, height - 1, 1, -1); // search from bottom mid to top right
+                if ((startX >= 0) && (startY >= 0)) { // found a start pixel
+                    FindFrameStartPixel(picture, &startX, &startY, width, height, -1, 1);  // start search from first pixel, search to left and to bottom
+                    FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, 1, -1);  // start search from start pixel, search to right and to top
+                    if (((endX - startX) >= 5) && ((startY - endY) >= 5)) portion = 1000 * (endX - startX) / (width - startX) + 1000 * (startY - endY) / (height - startY);
                 }
-            }
-            // check for start below current position
-            for (int y = startY + 1; y < height; y++) {
-                if (picture[y * width + startX] == 255) {  // first without pixel
-                startY = y - 1;
-                break;
-                }
-            }
-            // search last pixel right from start
-            for (int x = startX + 1; x < width; x++) {
-                if (picture[startY * width + x] == 255) {  // first without pixel
-                endX = x - 1;
-                break;
-                }
-            }
-            // search last pixel above start
-            for (int y = startY - 1; y >= 0; y--) {
-                if (picture[y * width + startX] == 255) {  // first without pixel
-                    endY = y + 1;
-                    break;
-                }
+#ifdef DEBUG_MARK_OPTIMIZATION
+                else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from buttom mid to top right", frameNumber, corner);
+#endif
             }
             break;
 
         case 3: // BOTTOM_RIGHT
-            // search diagonal for start of frame from bottom right of picture (first pixel diagonal from corner)
-            for (int i = 0; i < DETECTFRAME_MAXSEARCH; i++) {
-                if (picture[(height - i - 1) * width + (width - i - 1)] == 0) {  // pixel found
-                    startX = width  - i - 1;
-                    startY = height - i - 1;
-                    break;
-                }
+            FindFrameFirstPixel(picture, &startX, &startY, width, height, width - 1, height - 1, -1, -1); // search from buttom right to top left
+            if ((startX >= 0) && (startY >= 0)) { // found a start pixel
+                FindFrameStartPixel(picture, &startX, &startY, width, height, 1, 1);  // start search from first pixel, search to right and to bottom
+                FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, -1, -1);  // start search from start pixel, search to left and to top
+                if (((startX - endX) >= 5) && ((startY - endY) >= 5)) portion = 1000 * (startX - endX) / startX + 1000 * (startY - endY) / startY;
             }
-            if ((startX == -1) || (startY == -1)) { // no start pixel found
 #ifdef DEBUG_MARK_OPTIMIZATION
-                dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found", frameNumber, corner);
+            else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from buttom right to top left", frameNumber, corner);
 #endif
-                return 0;  // no start pixel found
-            }
-            // check for start right from current position
-            for (int x = startX + 1; x < width; x++) {
-                if (picture[startY * width + x] == 255) {  // first without pixel
-                    startX = x - 1;
-                    break;
+            if (portion < 180) {  // maybe we have a text under frame
+                FindFrameFirstPixel(picture, &startX, &startY, width, height, 0, 0, 1, 1); // search from top left to buttom right
+                if ((startX >= 0) && (startY >= 0)) { // found a start pixel
+                    FindFrameStartPixel(picture, &startX, &startY, width, height, 1, 1);  // start search from first pixel, search to right and to bottom
+                    FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, -1, -1);  // start search from start pixel, search to left and to top
+                    if (((startX - endX) >= 5) && ((startY - endY) >= 5)) portion = 1000 * (startX - endX) / startX + 1000 * (startY - endY) / startY;
                 }
-            }
-            // check for start below current position
-            for (int y = startY + 1; y >= 0; y++) {
-                if (picture[y * width + startX] == 255) {  // first without pixel
-                    startY = y - 1;
-                    break;
-                }
-            }
-            // search last pixel left from start
-            for (int x = startX - 1; x >= 0 ; x--) {
-                if (picture[startY * width + x] == 255) {  // first without pixel
-                endX = x + 1;
-                break;
-                }
-            }
-            // search last pixel above start
-            for (int y = startY - 1; y >= 0; y--) {
-                if (picture[y * width + startX] == 255) {  // first without pixel
-                    endY = y + 1;
-                    break;
-                }
+#ifdef DEBUG_MARK_OPTIMIZATION
+                else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from top left to buttom right", frameNumber, corner);
+#endif
             }
             break;
 
@@ -860,9 +799,6 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
             return 0;
     } // case
 
-    // check if result is part of a frame
-    int portion =  0;
-    if ((abs(startX - endX) >= 5) && (abs(startY - endY) >= 5)) portion = 1000 * abs(startX - endX) / (width - startX) + 1000 * abs(startY - endY) / (height - startY);
 
 #ifdef DEBUG_MARK_OPTIMIZATION
     dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: startX %3d, endX %3d, startY %3d, endY %3d, portion %3d", frameNumber, corner, startX, endX, startY, endY, portion);
