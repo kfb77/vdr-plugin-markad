@@ -512,9 +512,14 @@ int cMarkAdStandalone::CheckStop() {
     }
 
     if (!end) {
-        end = marks.GetAround(1.1 * delta, iStopA, MT_STOP, 0x0F);    // try any type of stop mark, accept only short before
-        if (end) dsyslog("cMarkAdStandalone::CheckStop(): weak end mark found at frame %d", end->position);
-        else dsyslog("cMarkAdStandalone::CheckStop(): no end mark found");
+        end = marks.GetAround(1.1 * delta, iStopA, MT_STOP, 0x0F);    // try any type of stop mark, accept only near assumed stop
+        if (end) dsyslog("cMarkAdStandalone::CheckStop(): weak end mark found at frame %d near assumed stop (%d)", end->position, iStopA);
+        else dsyslog("cMarkAdStandalone::CheckStop(): no end mark found near assumed stop (%d)", iStopA);
+    }
+    if (!end) {
+        end = marks.GetNext(iStopA, MT_STOP, 0x0F);    // try any type of stop mark, accept only after assumed end, better safe than sorry
+        if (end) dsyslog("cMarkAdStandalone::CheckStop(): weak end mark found at frame %d after assumed stop (%d)", end->position, iStopA);
+        else dsyslog("cMarkAdStandalone::CheckStop(): no end mark found after assumed stop (%d)", iStopA);
     }
 
     cMark *lastStart = marks.GetAround(INT_MAX, frameCurrent, MT_START, 0x0F);
