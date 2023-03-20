@@ -2088,36 +2088,33 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
         LogSeparator();
         dsyslog("cMarkAdStandalone::CheckMarks(): apply VPS events");
         DebugMarks();     //  only for debugging
-        if (ptr_cDecoder) {
-            int vpsOffset = marks.LoadVPS(macontext.Config->recDir, "START:"); // VPS start mark
-            if (vpsOffset >= 0) {
-                isyslog("VPS start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-                AddMarkVPS(vpsOffset, MT_START, false);
-            }
-            else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS start event found");
-
-            vpsOffset = marks.LoadVPS(macontext.Config->recDir, "PAUSE_START:");     // VPS pause start mark = stop mark
-            if (vpsOffset >= 0) {
-                isyslog("VPS pause start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-                AddMarkVPS(vpsOffset, MT_STOP, true);
-            }
-            else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause start event found");
-
-            vpsOffset = marks.LoadVPS(macontext.Config->recDir, "PAUSE_STOP:");     // VPS pause stop mark = start mark
-            if (vpsOffset >= 0) {
-                isyslog("VPS pause stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-                AddMarkVPS(vpsOffset, MT_START, true);
-            }
-            else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause stop event found");
-
-            vpsOffset = marks.LoadVPS(macontext.Config->recDir, "STOP:");     // VPS stop mark
-            if (vpsOffset >= 0) {
-                isyslog("VPS stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-                AddMarkVPS(vpsOffset, MT_STOP, false);
-            }
-            else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS stop event found");
+        int vpsOffset = marks.LoadVPS(macontext.Config->recDir, "START:"); // VPS start mark
+        if (vpsOffset >= 0) {
+            isyslog("VPS start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
+            AddMarkVPS(vpsOffset, MT_START, false);
         }
-        else isyslog("VPS info usage requires --cDecoder");
+        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS start event found");
+
+        vpsOffset = marks.LoadVPS(macontext.Config->recDir, "PAUSE_START:");     // VPS pause start mark = stop mark
+        if (vpsOffset >= 0) {
+            isyslog("VPS pause start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
+            AddMarkVPS(vpsOffset, MT_STOP, true);
+        }
+        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause start event found");
+
+        vpsOffset = marks.LoadVPS(macontext.Config->recDir, "PAUSE_STOP:");     // VPS pause stop mark = start mark
+        if (vpsOffset >= 0) {
+            isyslog("VPS pause stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
+            AddMarkVPS(vpsOffset, MT_START, true);
+        }
+        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause stop event found");
+
+        vpsOffset = marks.LoadVPS(macontext.Config->recDir, "STOP:");     // VPS stop mark
+        if (vpsOffset >= 0) {
+            isyslog("VPS stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
+            AddMarkVPS(vpsOffset, MT_STOP, false);
+        }
+        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS stop event found");
 
 // once again check marks
         mark = marks.GetFirst();
