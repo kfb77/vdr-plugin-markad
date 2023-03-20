@@ -2428,6 +2428,14 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
                         if (restartLogoDetectionDone && (mark->type == MT_ASPECTSTOP) && (prev->type == MT_LOGOSTOP) && (mark->position == prev->position) &&
                             marks.Count(MT_ASPECTCHANGE, 0xF0) == 0) {
                             isyslog("only one aspect ratio mark on same position (%d) as logo stop mark in end part, ignore aspect ratio mark, it is from next recording", mark->position);
+                            FREE(strlen(markType)+1, "text");
+                            free(markType);
+                            FREE(strlen(prevType)+1, "text");
+                            free(prevType);
+                            if (comment) {
+                                FREE(strlen(comment)+1, "comment");
+                                free(comment);
+                            }
                             return;
                         }
 
