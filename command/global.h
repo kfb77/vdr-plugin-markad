@@ -72,6 +72,10 @@
 #define MT_CHANNELSTART    (unsigned char) 0x71
 #define MT_CHANNELSTOP     (unsigned char) 0x72
 
+#define MT_TYPECHANGE      (unsigned char) 0xB0
+#define MT_TYPECHANGESTART (unsigned char) 0xB1
+#define MT_TYPECHANGESTOP  (unsigned char) 0xB2
+
 #define MT_VPSCHANGE       (unsigned char) 0xC0
 #define MT_VPSSTART        (unsigned char) 0xC1
 #define MT_VPSSTOP         (unsigned char) 0xC2

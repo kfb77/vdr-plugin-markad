@@ -396,8 +396,27 @@ int cMarkAdStandalone::CheckStop() {
             }
         }
 
-        // check if logo end mark is valid
+        // check border start mark before, in this case logo stop is from next recording, use border start mark as end mark
+        bool typeChange = false;
         if (end) {
+            cMark *hBorderStart = marks.GetPrev(end->position, MT_HBORDERSTART);
+            if (hBorderStart) {
+                cMark *hBorderStartPrev = marks.GetPrev(hBorderStart->position, MT_HBORDERSTART);
+                if (!hBorderStartPrev) {
+                    int deltahBorder = (hBorderStart->position - iStopA) / macontext.Video.Info.framesPerSecond;
+                    int deltaLogo   = (end->position          - iStopA) / macontext.Video.Info.framesPerSecond;
+                    if ((deltaLogo > 0) && (deltahBorder > -1)) { // log top is after assumed end, hborder is after 1s before assumed stop
+                        dsyslog("cMarkAdStandalone::CheckStop(): found MT_HBORDERSTART at (%d) %ds after assumed end (and no other MT_HBORDERSTART before), logo stop mark at (%d) %ds after assumed end is invalid, use MT_HBORDERSTART as end mark", hBorderStart->position, deltahBorder, end->position, deltaLogo);
+                        marks.ChangeType(hBorderStart, MT_STOP);
+                        end = hBorderStart;
+                        typeChange = true;
+                    }
+                }
+            }
+        }
+
+        // check if logo end mark is valid
+        if (end && !typeChange) {
             LogSeparator(false);
             dsyslog("cMarkAdStandalone::CheckStop(): check logo end mark (%d), cleanup undetected info logos", end->position);
             // check if end mark and next start mark are closing credits
@@ -479,8 +498,8 @@ int cMarkAdStandalone::CheckStop() {
             }
         }
 
-        // check if very eary logo end mark is end of preview
-        if (end) {
+            // check if very eary logo end mark is end of preview
+        if (end && !typeChange) {
             int beforeAssumed = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::CheckStop(): end mark (%d) %ds before assumed stop (%d)", end->position, beforeAssumed, iStopA);
             if (beforeAssumed >= 218) {

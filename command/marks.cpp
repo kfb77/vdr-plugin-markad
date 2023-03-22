@@ -507,6 +507,21 @@ char *cMarks::TypeToText(const int type) {
 }
 
 
+void cMarks::ChangeType(cMark *mark, const int newType) {
+    if (!mark) return;
+    if ((newType != MT_START) && (newType != MT_STOP)) return;
+    mark->type = MT_TYPECHANGE | newType;
+    char *comment = NULL;
+    if (asprintf(&comment,"%s used as %s mark",mark->comment, (newType == MT_START)? "START" : "STOP") == -1) return;
+    ALLOC(strlen(comment)+1, "comment");
+
+    FREE(strlen(mark->comment)+1, "comment");
+    free(mark->comment);
+    mark->comment = comment;
+    return;
+}
+
+
 // move mark to new posiition
 // return pointer to new mark
 //

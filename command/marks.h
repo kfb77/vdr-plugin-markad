@@ -216,6 +216,10 @@ class cMarks {
  */
         void Del(const int position);
 
+
+        void ChangeType(cMark *mark, const int newType);
+
+
 /**
  * move mark position
  * @param mark        mark to move
