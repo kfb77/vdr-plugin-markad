@@ -1649,7 +1649,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     if (AdInFrameType1.frameCountFinal > 0) {
         int framePortionQuote = maxSumFramePortion / AdInFrameType1.frameCountFinal;
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of frame portion from best corner %s: %d from %d frames, quote %d", aCorner[frameCorner], maxSumFramePortion, AdInFrameType1.frameCountFinal, framePortionQuote);
-        if (framePortionQuote < 500) {
+        if (framePortionQuote < 362) {  // changed from 500 to 362
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): not enought frame pixel found, advertising in frame type 1 not valid");
             AdInFrameType1.startFinal = -1;
         }
