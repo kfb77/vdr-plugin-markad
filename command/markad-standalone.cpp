@@ -338,9 +338,9 @@ int cMarkAdStandalone::CheckStop() {
         while (true) {
             end = marks.GetAround(MAX_LOGO_END_MARK_FACTOR * delta, iStopA, MT_LOGOSTOP);
             if (end) {
-                int iStopDelta = (end->position - iStopA) / macontext.Video.Info.framesPerSecond;
+                int iStopDelta = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame (%d), %ds before assumed stop (%d)", end->position, iStopDelta, iStopA);
-                if (iStopDelta <= -282) {
+                if (iStopDelta > 282) {
                     dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark too far before assumed stop");
                     end = NULL;
                     break;
