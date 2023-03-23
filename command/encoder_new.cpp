@@ -19,7 +19,12 @@ cAC3VolumeFilter::~cAC3VolumeFilter() {
 }
 
 
-bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFormat sample_fmt, const int sample_rate){
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+bool cAC3VolumeFilter::Init(const AVChannelLayout channel_layout, const enum AVSampleFormat sample_fmt, const int sample_rate)
+#else
+bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFormat sample_fmt, const int sample_rate)
+#endif
+{
     AVFilterContext *volume_ctx = NULL;
     const AVFilter  *abuffer = NULL;
     const AVFilter  *volume = NULL;
@@ -49,16 +54,23 @@ bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFo
         dsyslog("cAC3VolumeFilter::Init(): Could not allocate the abuffer instance %i", AVERROR(ENOMEM));
         return false;
     }
+
 // Set the filter options through the AVOptions API
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-    av_opt_set_int(filterSrc, "channel_layout", channel_layout, AV_OPT_SEARCH_CHILDREN);
+    int rc = av_channel_layout_describe(&channel_layout, ch_layout, sizeof(ch_layout));
+    if (rc <= 0) {
+        dsyslog("cAC3VolumeFilter::Init(): av_channel_layout_describe failed, rc = %d", rc);
+        return false;
+    }
 #else
     av_get_channel_layout_string(ch_layout, sizeof(ch_layout), 0, (int64_t) channel_layout);
-    av_opt_set(filterSrc, "channel_layout", ch_layout, AV_OPT_SEARCH_CHILDREN);
 #endif
-    av_opt_set(filterSrc, "sample_fmt", av_get_sample_fmt_name(sample_fmt), AV_OPT_SEARCH_CHILDREN);
-    av_opt_set_q(filterSrc, "time_base", (AVRational){ 1, sample_rate}, AV_OPT_SEARCH_CHILDREN);
-    av_opt_set_int(filterSrc, "sample_rate", sample_rate, AV_OPT_SEARCH_CHILDREN);
+
+    av_opt_set(filterSrc,     "channel_layout", ch_layout, AV_OPT_SEARCH_CHILDREN);
+    av_opt_set(filterSrc,     "sample_fmt",     av_get_sample_fmt_name(sample_fmt), AV_OPT_SEARCH_CHILDREN);
+    av_opt_set_q(filterSrc,   "time_base",      (AVRational){ 1, sample_rate}, AV_OPT_SEARCH_CHILDREN);
+    av_opt_set_int(filterSrc, "sample_rate",    sample_rate, AV_OPT_SEARCH_CHILDREN);
+
 // Now initialize the filter; we pass NULL options, since we have already set all the options above
     err = avfilter_init_str(filterSrc, NULL);
     if (err < 0) {
@@ -429,7 +441,7 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
         ptr_cAC3VolumeFilter[streamIndexOut] = new cAC3VolumeFilter();
         ALLOC(sizeof(*ptr_cAC3VolumeFilter[streamIndexOut]), "ptr_cAC3VolumeFilter");
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-        if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(avCodecCtxIn->ch_layout.u.mask, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate)) {
+        if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(avCodecCtxIn->ch_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate)) {
 #else
         if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(avCodecCtxIn->channel_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate)) {
 #endif
@@ -765,7 +777,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
         ptr_cAC3VolumeFilter[streamIndexOut] = new cAC3VolumeFilter();
         ALLOC(sizeof(*ptr_cAC3VolumeFilter[streamIndexOut]), "ptr_cAC3VolumeFilter");
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-        if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask, codecCtxArrayIn[streamIndexIn]->sample_fmt, codecCtxArrayIn[streamIndexIn]->sample_rate)) {
+        if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(codecCtxArrayIn[streamIndexIn]->ch_layout, codecCtxArrayIn[streamIndexIn]->sample_fmt, codecCtxArrayIn[streamIndexIn]->sample_rate)) {
 #else
         if (!ptr_cAC3VolumeFilter[streamIndexOut]->Init(codecCtxArrayIn[streamIndexIn]->channel_layout, codecCtxArrayIn[streamIndexIn]->sample_fmt, codecCtxArrayIn[streamIndexIn]->sample_rate)) {
 #endif

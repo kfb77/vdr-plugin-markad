@@ -37,7 +37,11 @@ class cAC3VolumeFilter {
  * @param  sample_rate    samples per second
  * @return true if volume filter graph was successful created, false otherwise
  */
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+        bool Init(const AVChannelLayout channel_layout, const enum AVSampleFormat sample_fmt, const int sample_rate);
+#else
         bool Init(const uint64_t channel_layout, const enum AVSampleFormat sample_fmt, const int sample_rate);
+#endif
 
  /**
   * send frame to volume filter graph
