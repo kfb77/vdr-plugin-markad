@@ -75,7 +75,10 @@ cDecoder::~cDecoder() {
         }
         FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
         free(codecCtxArray);
-
+    }
+    if (avctx) {
+        dsyslog("cDecoder::~cDecoder(): call avformat_close_input");
+        FREE(sizeof(avctx), "avctx");
         avformat_close_input(&avctx);
     }
     if (recordingDir) {
@@ -163,8 +166,12 @@ bool cDecoder::DecodeFile(const char *filename) {
 
     // open first/next file
     if (avformat_open_input(&avctxNextFile, filename, NULL, NULL) == 0) {
+        ALLOC(sizeof(avctxNextFile), "avctx");
         dsyslog("cDecoder::DecodeFile(): opened file %s", filename);
-        if (avctx) avformat_close_input(&avctx);
+        if (avctx) {
+            FREE(sizeof(avctx), "avctx");
+            avformat_close_input(&avctx);
+        }
         avctx = avctxNextFile;
     }
     else {
