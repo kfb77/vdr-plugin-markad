@@ -175,6 +175,7 @@ cEncoder::~cEncoder() {
         free(stats_in.data);
     }
 
+    dsyslog("cEncoder::~cEncoder(): call avformat_free_context");
     FREE(sizeof(*avctxOut), "avctxOut");
     avformat_free_context(avctxOut);
 }
@@ -368,6 +369,8 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
     }
     if (!avCodecCtxIn) return false;
 
+
+    dsyslog("cEncoder::ChangeEncoderCodec(): call avcodec_close");
     avcodec_close(codecCtxArrayOut[streamIndexOut]);
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100)  // ffmpeg 4.5
     const AVCodec *codec = avcodec_find_encoder(avctxIn->streams[streamIndexIn]->codecpar->codec_id);
@@ -407,6 +410,7 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
     codecCtxArrayOut[streamIndexOut]->thread_count = threadCount;
     if (avcodec_open2(codecCtxArrayOut[streamIndexOut], codec, NULL) < 0) {
         dsyslog("cEncoder::ChangeEncoderCodec(): avcodec_open2 for output stream %i failed", streamIndexOut);
+        dsyslog("cEncoder::ChangeEncoderCodec(): call avcodec_free_context for stream %d", streamIndexOut);
         FREE(sizeof(*codecCtxArrayOut[streamIndexOut]), "codecCtxArrayOut[streamIndex]");
         avcodec_free_context(&codecCtxArrayOut[streamIndexOut]);
         codecCtxArrayOut[streamIndexOut]=NULL;
@@ -739,6 +743,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
     codecCtxArrayOut[streamIndexOut]->thread_count = threadCount;
     if (avcodec_open2(codecCtxArrayOut[streamIndexOut], codec, NULL) < 0) {
         dsyslog("cEncoder::InitEncoderCodec(): avcodec_open2 for stream %i failed", streamIndexOut);
+        dsyslog("cEncoder::InitEncoderCodec(): call avcodec_free_context for stream %d", streamIndexOut);
         FREE(sizeof(*codecCtxArrayOut[streamIndexOut]), "codecCtxArrayOut[streamIndex]");
         avcodec_free_context(&codecCtxArrayOut[streamIndexOut]);
         codecCtxArrayOut[streamIndexOut] = NULL;
@@ -1244,6 +1249,7 @@ bool cEncoder::CloseFile(__attribute__((unused)) cDecoder *ptr_cDecoder) {  // u
     for (unsigned int streamIndex = 0; streamIndex < avctxIn->nb_streams; streamIndex++) {  // we have alocaed codec context for all possible input streams
         if (codecCtxArrayOut[streamIndex]) {
             avcodec_flush_buffers(codecCtxArrayOut[streamIndex]);
+            dsyslog("cEncoder::CloseFile(): call avcodec_free_context for stream %d", streamIndex);
             FREE(sizeof(*codecCtxArrayOut[streamIndex]), "codecCtxArrayOut[streamIndex]");
             avcodec_free_context(&codecCtxArrayOut[streamIndex]);
         }
@@ -1273,6 +1279,7 @@ bool cEncoder::CloseFile(__attribute__((unused)) cDecoder *ptr_cDecoder) {  // u
 
     // free output context
     if (pass == 1) {  // in other cases free in destructor
+        dsyslog("cEncoder::CloseFile(): call avformat_free_context");
         FREE(sizeof(*avctxOut), "avctxOut");
         avformat_free_context(avctxOut);
     }
