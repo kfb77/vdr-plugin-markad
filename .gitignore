@@ -2,6 +2,7 @@ version.h
 
 command/markad
 command/.dependencies
+command/*.swp
 command/*.o
 command/*~
 command/po/*.pot
@@ -11,6 +12,7 @@ command/html/*
 *markad.exe
 
 plugin/.dependencies
+plugin/*.swp
 plugin/*.o
 plugin/*.so
 plugin/*~
