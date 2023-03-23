@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-03-23: Version 3.2.1
+- fix encoder for libavcodec >= 59.25.100 (ffmpeg >= 5.1)
+- fix memory leaks, out-of-bounds array access and uninitialized value access reported by valgrind
+- some minor bug fixes and optimizations, see git
+
 2023-03-14: Version 3.2.0
 - end of support for libavcodec < 56.57.100 (ffmpeg 2.4)
 - new feature: detect frame in recording to optimize detection of "advertising in frame with logo" before start or after logo stop
