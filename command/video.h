@@ -71,13 +71,13 @@ enum {
  * corner area after sobel transformation
  */
 typedef struct sAreaT {
-    uchar **sobel = NULL;            //!< monochrome picture from edge after sobel transformation, memory will be alocated after we know video resolution
+    uchar **sobel      = NULL;       //!< monochrome picture from edge after sobel transformation, memory will be alocated after we know video resolution
                                      //!<
 
-    uchar **mask = NULL;             //!< monochrome mask of logo, memory will be alocated after we know video resolution
+    uchar **mask       = NULL;       //!< monochrome mask of logo, memory will be alocated after we know video resolution
                                      //!<
 
-    uchar **result = NULL;           //!< result of sobel + mask, memory will be alocated after we know video resolution
+    uchar **result     = NULL;       //!< result of sobel + mask, memory will be alocated after we know video resolution
                                      //!<
 
     int rPixel[PLANES];              //!< black pixel in result
@@ -104,8 +104,8 @@ typedef struct sAreaT {
     sAspectRatio AspectRatio;        //!< aspect ratio of the video
                                      //!<
 
-    bool valid[PLANES];              //!< <b>true:</b> logo mask data are valid <br>
-                                     //!< <b>false:</b> logo mask is not valid
+    bool valid[PLANES];              //!< <b>true:</b> logo mask data (logo) are valid <br>
+                                     //!< <b>false:</b> logo mask (logo) is not valid
                                      //!<
 
 } sAreaT;

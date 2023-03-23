@@ -227,6 +227,7 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
         area.mask = new uchar*[PLANES];
         for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
             area.mask[planeTMP] = new uchar[maxLogoPixel];
+            memset(area.mask[planeTMP], 0, sizeof(*area.mask[planeTMP]));
         }
         ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
     }
@@ -762,14 +763,9 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
         }
         ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.sobel");
     }
-    // alloc memory for mask planes (logo)
-    if (!area.mask) {
-        area.mask = new uchar*[PLANES];
-        for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-            area.mask[planeTMP] = new uchar[maxLogoPixel];
-        }
-        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
-    }
+
+    // alloc memory for mask planes (logo) is done in Load()
+
     // alloc memory for mask result (machtes)
     if (!area.result) {
         area.result = new uchar*[PLANES];
@@ -782,7 +778,7 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
     if ((logoWidth == 0) || (logoHeight == 0)) {
         sLogoSize DefaultLogoSize = GetDefaultLogoSize(maContext->Video.Info.width);
         logoHeight = DefaultLogoSize.height;
-        logoWidth = DefaultLogoSize.width;
+        logoWidth  = DefaultLogoSize.width;
     }
     if ((maContext->Video.Info.pixFmt != 0) && (maContext->Video.Info.pixFmt != 12)) {
         if (!pixfmt_info) {
@@ -794,15 +790,15 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
     int xstart, xend, ystart, yend;
     if (!SetCoorginates(&xstart, &xend, &ystart, &yend, plane)) return false;
 
-//    dsyslog("cMarkAdLogo::SobelPlane(): xstart %d, xend %d, ystart %d, yend %d", xstart, xend, ystart, yend);
+//    dsyslog("cMarkAdLogo::SobelPlane(): plane %d: xstart %d, xend %d, ystart %d, yend %d", plane, xstart, xend, ystart, yend);
 
     int cutval = 127;
-    int width = logoWidth;
+    int width  = logoWidth;
     if (plane > 0) {
         boundary /= 2;
         if (boundary < 1) boundary = 1; // we have to stay at least 1 pixel away from max pixel because of X Gradient approximation (-1 to +1) to prevent heap-buffer-overflow
         cutval /= 2;
-        width /= 2;
+        width  /= 2;
     }
     int SUM;
     int sumX, sumY;
@@ -840,18 +836,19 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
             }
 
             if (SUM >= cutval) SUM = 255;
-            if (SUM < cutval) SUM = 0;
+            if (SUM <  cutval) SUM =   0;
 
             int val = 255 - (uchar) SUM;
 
-            area.sobel[plane][(X-xstart)+(Y-ystart)*width] = val;
+            area.sobel[plane][(X - xstart) + (Y - ystart) * width] = val;
 
-            area.result[plane][(X-xstart)+(Y-ystart)*width] = (area.mask[plane][(X-xstart)+(Y-ystart)*width] + val) & 255;
-
-            if (!area.result[plane][(X-xstart)+(Y-ystart)*width]) area.rPixel[plane]++;
+            if (area.valid[plane]) {  // if we are called by logo search, we have no valid area.mask
+                area.result[plane][(X - xstart) + (Y - ystart) * width] = (area.mask[plane][(X - xstart) + (Y - ystart) * width] + val) & 255;
+                if (!area.result[plane][(X - xstart) + (Y - ystart) * width]) area.rPixel[plane]++;
+            }
         }
     }
-    if (!plane) area.intensity /= (logoHeight*width);
+    if (!plane) area.intensity /= (logoHeight * width);
     return true;
 }
 
