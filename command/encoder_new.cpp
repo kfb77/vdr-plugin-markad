@@ -668,14 +668,19 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
             dsyslog("cEncoder::InitEncoderCodec(): input codec sample rate %d, timebase %d/%d for stream %d", codecCtxArrayIn[streamIndexIn]->sample_rate, codecCtxArrayIn[streamIndexIn]->time_base.num, codecCtxArrayIn[streamIndexIn]->time_base.den, streamIndexIn);
             codecCtxArrayOut[streamIndexOut]->time_base.num = codecCtxArrayIn[streamIndexIn]->time_base.num;
             codecCtxArrayOut[streamIndexOut]->time_base.den = codecCtxArrayIn[streamIndexIn]->time_base.den;
-            codecCtxArrayOut[streamIndexOut]->sample_rate = codecCtxArrayIn[streamIndexIn]->sample_rate;
+            codecCtxArrayOut[streamIndexOut]->sample_rate   = codecCtxArrayIn[streamIndexIn]->sample_rate;
+
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-            codecCtxArrayOut[streamIndexOut]->ch_layout.u.mask = codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask;
-            codecCtxArrayOut[streamIndexOut]->ch_layout.nb_channels = codecCtxArrayIn[streamIndexIn]->ch_layout.nb_channels;
+            int rc = av_channel_layout_copy(&codecCtxArrayOut[streamIndexOut]->ch_layout, &codecCtxArrayIn[streamIndexIn]->ch_layout);
+            if (rc != 0) {
+                dsyslog("cEncoder::InitEncoderCodec(): av_channel_layout_copy for output stream %d from input stream %d  failed, rc = %d", streamIndexOut, streamIndexIn, rc);
+                return false;
+            }
 #else
             codecCtxArrayOut[streamIndexOut]->channel_layout = codecCtxArrayIn[streamIndexIn]->channel_layout;
-            codecCtxArrayOut[streamIndexOut]->channels = codecCtxArrayIn[streamIndexIn]->channels;
+            codecCtxArrayOut[streamIndexOut]->channels       = codecCtxArrayIn[streamIndexIn]->channels;
 #endif
+
             codecCtxArrayOut[streamIndexOut]->bit_rate = codecCtxArrayIn[streamIndexIn]->bit_rate;
 
             // audio sampe format
