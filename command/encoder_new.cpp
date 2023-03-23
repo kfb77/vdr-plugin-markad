@@ -1220,25 +1220,31 @@ bool cEncoder::CloseFile(__attribute__((unused)) cDecoder *ptr_cDecoder) {  // u
     // empty all encoder queue
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     for (unsigned int streamIndex = 0; streamIndex < avctxOut->nb_streams; streamIndex++) {
-        if (codecCtxArrayOut[streamIndex]) avcodec_send_frame(codecCtxArrayOut[streamIndex], NULL);  // prevent crash if we have no valid encoder codec context
+        if (codecCtxArrayOut[streamIndex]) {
+            if (codecCtxArrayOut[streamIndex]->codec_type == AVMEDIA_TYPE_SUBTITLE) continue; // draining encoder queue of subtitle stream is not valid, no encoding used
+            avcodec_send_frame(codecCtxArrayOut[streamIndex], NULL);  // prevent crash if we have no valid encoder codec context
+        }
         else {
             dsyslog("cEncoder::CloseFile(): output codec context of stream %d not valid", streamIndex);
             break;
         }
         AVPacket avpktOut;
-#if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
+
+        #if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
         av_init_packet(&avpktOut);
-#endif
+        #endif
+
         // init avpktOut
         avpktOut.size            = 0;
         avpktOut.data            = NULL;
         avpktOut.side_data_elems = 0;
         avpktOut.side_data       = NULL;
         avpktOut.buf             = NULL;
-#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 12<<8)+100)
+
+        #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 12<<8)+100)
         avpktOut.opaque          = NULL;
         avpktOut.opaque_ref      = NULL;
-#endif
+        #endif
 
         while(EncodeFrame(ptr_cDecoder, codecCtxArrayOut[streamIndex], NULL, &avpktOut)) {
             avpktOut.stream_index = streamIndex;
