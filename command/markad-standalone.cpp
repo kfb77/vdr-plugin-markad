@@ -4936,7 +4936,7 @@ int main(int argc, char *argv[]) {
                 config.useVPS = true;
                 break;
             case 15: // --logfile
-                strncpy(config.logFile, optarg, sizeof(config.logFile));
+                strncpy(config.logFile, optarg, sizeof(config.logFile) - 1);
                 config.logFile[sizeof(config.logFile) - 1] = 0;
                 break;
             case 16: // --autologo
