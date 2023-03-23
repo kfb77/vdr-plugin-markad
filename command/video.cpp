@@ -332,40 +332,40 @@ bool cMarkAdLogo::Save(const int frameNumber, uchar **picture, const short int p
 }
 
 
-bool cMarkAdLogo::SetCoorginates(int *xstart, int *xend, int *ystart, int *yend, const int plane) {
+bool cMarkAdLogo::SetCoordinates(int *xstart, int *xend, int *ystart, int *yend, const int plane) {
     switch (area.corner) {
         case TOP_LEFT:
             *xstart = 0;
-            *xend = logoWidth;
+            *xend   = logoWidth  - 1;
             *ystart = 0;
-            *yend = logoHeight;
+            *yend   = logoHeight - 1;
             break;
         case TOP_RIGHT:
-            *xstart = maContext->Video.Info.width - logoWidth;
-            *xend = maContext->Video.Info.width;
+            *xstart = maContext->Video.Info.width - 1 - logoWidth;
+            *xend   = maContext->Video.Info.width - 1;
             *ystart = 0;
-            *yend = logoHeight;
+            *yend   = logoHeight - 1;
             break;
         case BOTTOM_LEFT:
             *xstart = 0;
-            *xend = logoWidth;
-            *ystart = maContext->Video.Info.height - logoHeight;
-            *yend = maContext->Video.Info.height;
+            *xend   = logoWidth - 1;
+            *ystart = maContext->Video.Info.height - 1 - logoHeight;
+            *yend   = maContext->Video.Info.height - 1;
             break;
         case BOTTOM_RIGHT:
-            *xstart = maContext->Video.Info.width - logoWidth;
-            *xend = maContext->Video.Info.width;
-            *ystart = maContext->Video.Info.height - logoHeight;
-            *yend = maContext->Video.Info.height;
+            *xstart = maContext->Video.Info.width  - 1 - logoWidth;
+            *xend   = maContext->Video.Info.width  - 1;
+            *ystart = maContext->Video.Info.height - 1 - logoHeight;
+            *yend   = maContext->Video.Info.height - 1;
             break;
         default:
             return false;
     }
     if (plane > 0) {
         *xstart /= 2;
-        *xend /= 2;
+        *xend   /= 2;
         *ystart /= 2;
-        *yend /= 2;
+        *yend   /= 2;
     }
     return true;
 }
@@ -382,7 +382,7 @@ void cMarkAdLogo::SaveFrameCorner(const int frameNumber, const int debug) {
 
     for (int plane = 0; plane < PLANES; plane ++) {
         int xstart, xend, ystart, yend;
-        if (!SetCoorginates(&xstart, &xend, &ystart, &yend, plane)) return;
+        if (!SetCoordinates(&xstart, &xend, &ystart, &yend, plane)) return;
         int width = xend - xstart;
         int height = yend - ystart;
 
@@ -412,7 +412,7 @@ void cMarkAdLogo::SaveFrameCorner(const int frameNumber, const int debug) {
 //
 int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber, int *contrastReduced) {  // frameNumber used only for debugging
     int xstart, xend, ystart, yend;
-    if (!SetCoorginates(&xstart, &xend, &ystart, &yend, 0)) return BRIGHTNESS_ERROR;
+    if (!SetCoordinates(&xstart, &xend, &ystart, &yend, 0)) return BRIGHTNESS_ERROR;
 
 
 
@@ -429,8 +429,8 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
                 int pixelCount = 0;
                 int column;
                 int line;
-                for (column = 0; column < logoWidth; column++) {
-                    for (line = 0; line < logoHeight; line++) {
+                for (column = 0; column <= logoWidth; column++) {
+                    for (line = 0; line <= logoHeight; line++) {
                         if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
                         if (pixelCount > LOGO_MIN_PIXEL) break;
                     }
@@ -440,8 +440,8 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 
                 // ystart is first line with pixel in logo area
                 pixelCount = 0;
-                for (line = 0; line < logoHeight; line++) {
-                    for (column = 0; column < logoWidth; column++) {
+                for (line = 0; line <= logoHeight; line++) {
+                    for (column = 0; column <= logoWidth; column++) {
                         if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
                         if (pixelCount >= LOGO_MIN_PIXEL) break;
                     }
@@ -453,14 +453,14 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
             case TOP_RIGHT: {
                 // xstart and yend from logo coordinates
                 logo_xstart = xstart;
-                logo_yend = yend;
+                logo_yend   = yend;
 
                 // xend is last column with pixel in logo area
                 int pixelCount = 0;
                 int column;
                 int line;
-                for (column = logoWidth - 1; column >= 0; column--) {
-                    for (line = 0; line < logoHeight; line++) {
+                for (column = logoWidth; column >= 0; column--) {
+                    for (line = 0; line <= logoHeight; line++) {
                         if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
                         if (pixelCount > LOGO_MIN_PIXEL) break;
                     }
@@ -470,8 +470,8 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 
                 // ystart is first line with pixel in logo area
                 pixelCount = 0;
-                for (line = 0; line < logoHeight; line++) {
-                    for (column = 0; column < logoWidth; column++) {
+                for (line = 0; line <= logoHeight; line++) {
+                    for (column = 0; column <= logoWidth; column++) {
                         if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
                         if (pixelCount >= LOGO_MIN_PIXEL) break;
                     }
@@ -788,7 +788,7 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
         return false;
     }
     int xstart, xend, ystart, yend;
-    if (!SetCoorginates(&xstart, &xend, &ystart, &yend, plane)) return false;
+    if (!SetCoordinates(&xstart, &xend, &ystart, &yend, plane)) return false;
 
 //    dsyslog("cMarkAdLogo::SobelPlane(): plane %d: xstart %d, xend %d, ystart %d, yend %d", plane, xstart, xend, ystart, yend);
 
@@ -804,8 +804,8 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
     int sumX, sumY;
     area.rPixel[plane] = 0;
     if (!plane) area.intensity = 0;
-    for (int Y = ystart; Y <= yend - 1; Y++) {
-        for (int X = xstart; X <= xend - 1; X++) {
+    for (int Y = ystart; Y <= yend; Y++) {
+        for (int X = xstart; X <= xend; X++) {
             if (!plane) {
                 area.intensity += maContext->Video.Data.Plane[plane][X + (Y * maContext->Video.Data.PlaneLinesize[plane])];
             }

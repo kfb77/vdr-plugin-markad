@@ -314,7 +314,7 @@ class cMarkAdLogo : cLogoSize {
         };
 
 /**
- * calculate coordinates of logo position
+ * calculate coordinates of logo position (values for array index, from 0 to (Video.Info.width - 1) or (Video.Info.height)
  * @param[out] xstart x position of logo start
  * @param[out] xend   x position of logo end
  * @param[out] ystart y position of logo start
@@ -322,7 +322,7 @@ class cMarkAdLogo : cLogoSize {
  * @param[in]  plane  plane number
  * @return true if sucessful, false otherwise
  */
-        bool SetCoorginates(int *xstart, int *xend, int *ystart, int *yend, const int plane);
+        bool SetCoordinates(int *xstart, int *xend, int *ystart, int *yend, const int plane);
 
 /**
  * reduce brightness of logo corner
