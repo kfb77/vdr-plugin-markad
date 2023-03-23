@@ -1192,7 +1192,7 @@ void cExtractLogo::RemovePixelDefects(const sMarkAdContext *maContext, sLogoInfo
             height = logoHeight / 2;
             width = logoWidth / 2;
         }
-        for (int line = height - 1; line >= 0; line--) {
+        for (int line = height - 2; line >= 1; line--) {  // elements are from 0 to height -1 but we check neighbor pixel
             for (int column = 0; column < width; column++) {
                 if ( logoInfo->sobel[plane][line * width + column] == 0) {  // remove single separate pixel
                     if (( logoInfo->sobel[plane][(line + 1) * width + column] == 255) &&
