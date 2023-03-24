@@ -104,7 +104,7 @@ extern void syslog_with_tid(int priority, const char *format, ...) __attribute__
 #endif
 
 
-#ifdef DEBUG_MARK_OPTIMIZATION
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE)
     bool SavePicture(const char *fileName, uchar *picture, const int width, const int height);
 #endif
 

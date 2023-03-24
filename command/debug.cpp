@@ -11,7 +11,7 @@
 // save picture to recording directory
 // return: true if successful
 //
-#ifdef DEBUG_MARK_OPTIMIZATION
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE)
 #include <stdio.h>
 #include <stdlib.h>
 bool SavePicture(const char *fileName, uchar *picture, const int width, const int height) {

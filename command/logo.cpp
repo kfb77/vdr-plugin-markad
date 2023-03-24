@@ -209,7 +209,8 @@ void cExtractLogo::CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, int
     if (!logoHeight) return;
     if (!logoWidth) return;
     if ((corner < 0) || (corner >= CORNERS)) return;
-// plane 0
+
+// plane 0 should have even pixel, we ve to calculate half of pixel for plane 1 and 2 without rest, accept one empty line
     if (cutPixelH % 2) cutPixelH--;
     if (cutPixelV % 2) cutPixelV--;
 
@@ -548,18 +549,30 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
     if (!logoHeight) return false;
     if (!logoWidth) return false;
     if ((bestLogoCorner < 0) || (bestLogoCorner >= CORNERS)) return false;
+
 #ifdef DEBUG_LOGO_RESIZE
-    Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "0_before_resize");
+        // save plane 0 of logo
+        int cutStep = 0;
+        char *fileName = NULL;
+        if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_Before.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep) >= 1) {
+            ALLOC(strlen(fileName)+1, "fileName");
+            SavePicture(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+            FREE(strlen(fileName)+1, "fileName");
+            free(fileName);
+            cutStep++;
+        }
 #endif
+
     dsyslog("cExtractLogo::Resize(): logo size before resize:    %3d width %3d height on corner %12s", *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
     int logoHeightBeforeResize = *logoHeight;
     int logoWidthBeforeResize = *logoWidth;
     int acceptFalsePixelH = *logoWidth / 37;  // reduced from 60 to 20, increased to 30 for vertical logo of arte HD
                                               // increased to 37 to get full thin logos (e.g. arte HD)
     int acceptFalsePixelV;
-    if (maContext->Video.Info.width < 3840) acceptFalsePixelV = *logoHeight / 27; // reduced from 30 to 20 to 27
-                                                                                  // to get start from SIXX logo
+    if (maContext->Video.Info.width < 3840) acceptFalsePixelV = *logoHeight / 33; // increase from 27 to 33
+                                                                                  // to get left start from SIXX logo
     else acceptFalsePixelV = *logoHeight / 30; // UDH has thin logo structure
+    dsyslog("cExtractLogo::Resize(): accept false pixel horizontal %d, vertical %d", acceptFalsePixelH, acceptFalsePixelV);
 
     for (int repeat = 1; repeat <= 2; repeat++) {
         if ((*logoWidth <= 0) || (*logoHeight <= 0)) {
@@ -575,7 +588,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
             for (int line = *logoHeight - 1; line > 0; line--) {
                 int blackPixel = 0;
                 for (int column = 0; column < *logoWidth; column++) {
-                    if ( bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
+                    if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
                         blackPixel++;
                         if (blackPixel > acceptFalsePixelH) break;
                     }
@@ -586,6 +599,21 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 else break;
             }
             CutOut(bestLogoInfo, whiteLines, 0, logoHeight, logoWidth, bestLogoCorner);
+
+#ifdef DEBUG_LOGO_RESIZE
+            // save plane 0 of logo
+            if (whiteLines > 0) {
+                char *fileName = NULL;
+                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutBottom%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
+                    ALLOC(strlen(fileName)+1, "fileName");
+                    SavePicture(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+                    FREE(strlen(fileName)+1, "fileName");
+                    free(fileName);
+                    cutStep++;
+                }
+            }
+#endif
+
 // search for text under logo
 // search for at least 2 (SD) or 4 (HD) white lines to cut logos with text addon (e.g. "Neue Folge" or "Live")
             int countWhite = 0;
@@ -646,10 +674,21 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 else break;
             }
             CutOut(bestLogoInfo, whiteLines, 0, logoHeight, logoWidth, bestLogoCorner);
+
 #ifdef DEBUG_LOGO_RESIZE
-            if (repeat == 1) Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "1_after_cut_top_1");
-            else Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "4_after_cut_top_2");
+            if (whiteLines > 0) {
+                // save plane 0 of logo
+                char *fileName = NULL;
+                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutTop%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
+                    ALLOC(strlen(fileName)+1, "fileName");
+                    SavePicture(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+                    FREE(strlen(fileName)+1, "fileName");
+                    free(fileName);
+                    cutStep++;
+                }
+            }
 #endif
+
 // search for text above logo
 // search for at least 3 white lines to cut logos with text addon (e.g. "Neue Folge" or "Live")
             int countWhite = 0;
@@ -690,16 +729,12 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 else dsyslog("cExtractLogo::Resize(): cutline at %d not valid (expect >=%d and <%d)", cutLine, LOGO_MIN_LETTERING_H, LOGO_MAX_LETTERING_H);
             }
         }
-#ifdef DEBUG_LOGO_RESIZE
-        if (repeat == 1) Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "2_after_cut_text_above_1");
-        else Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "5_after_cut_text_above_2");
-#endif
 
         if ((bestLogoCorner == TOP_RIGHT) || (bestLogoCorner == BOTTOM_RIGHT)) {  // right corners, cut from left
             int whiteColumns = 0;
-            for (int column = 0; column < *logoWidth; column++) {
+            for (int column = 0; column < *logoWidth - 1; column++) {
                 int blackPixel = 0;
-                for (int line = 0; line < *logoHeight; line++) {
+                for (int line = 0; line < *logoHeight - 1; line++) {
                     if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
                         blackPixel++;
                         if (blackPixel > acceptFalsePixelV) break;
@@ -711,10 +746,21 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 else break;
             }
             CutOut(bestLogoInfo, 0, whiteColumns, logoHeight, logoWidth, bestLogoCorner);
+
 #ifdef DEBUG_LOGO_RESIZE
-            if (repeat == 1) Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "3_after_cut_right_1");
-            else Save(maContext, bestLogoInfo, *logoHeight, *logoWidth, bestLogoCorner, bestLogoInfo->iFrameNumber, "6_after_cut_right_2");
+            // save plane 0 of logo
+            if (whiteColumns > 0) {
+                char *fileName = NULL;
+                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutRight%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
+                    ALLOC(strlen(fileName)+1, "fileName");
+                    SavePicture(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+                    FREE(strlen(fileName)+1, "fileName");
+                    free(fileName);
+                    cutStep++;
+                }
+            }
 #endif
+
 // check text left of logo, search for at least 2 white columns to cut logos with text addon (e.g. "Neue Folge")
             int countWhite = 0;
             int cutColumn = 0;
