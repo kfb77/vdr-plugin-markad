@@ -1443,6 +1443,13 @@ void cMarkAdStandalone::CheckStart() {
             macontext.Video.Options.ignoreHborder = true;
             macontext.Video.Options.ignoreVborder = true;
         }
+        if (begin) { // we found a logo start, cleanup invalid marks
+            cMark *vBorderStop = marks.GetNext(begin->position, MT_VBORDERSTOP);
+            if (vBorderStop) {
+                dsyslog("cMarkAdStandalone::CheckStart(): found invalid MT_VBORDERSTOP at (%d) after logo start mark, delete MT_VBORDERSTOP", vBorderStop->position);
+                marks.Del(vBorderStop->position);
+            }
+        }
     }
 
     if (begin && (begin->type != MT_RECORDINGSTART) && (begin->position <= IGNORE_AT_START)) {  // first frames are from previous recording
