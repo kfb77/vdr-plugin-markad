@@ -897,7 +897,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
             char *fileName = NULL;
             if (asprintf(&fileName,"%s/F%07d-P0-C%1d.pgm", maContext->Config->recDir, frameNumber, corner) >= 1) {
                 ALLOC(strlen(fileName)+1, "fileName");
-                SavePicture(fileName, area->sobel[0], logoWidth, logoHeight);
+                SaveSobel(fileName, area->sobel[0], logoWidth, logoHeight);
                 FREE(strlen(fileName)+1, "fileName");
                 free(fileName);
             }

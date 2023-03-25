@@ -556,7 +556,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
         char *fileName = NULL;
         if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_Before.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep) >= 1) {
             ALLOC(strlen(fileName)+1, "fileName");
-            SavePicture(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+            SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
             FREE(strlen(fileName)+1, "fileName");
             free(fileName);
             cutStep++;
@@ -606,7 +606,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 char *fileName = NULL;
                 if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutBottom%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
-                    SavePicture(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+                    SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
                     FREE(strlen(fileName)+1, "fileName");
                     free(fileName);
                     cutStep++;
@@ -681,7 +681,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 char *fileName = NULL;
                 if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutTop%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
-                    SavePicture(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+                    SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
                     FREE(strlen(fileName)+1, "fileName");
                     free(fileName);
                     cutStep++;
@@ -753,7 +753,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 char *fileName = NULL;
                 if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutRight%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
-                    SavePicture(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+                    SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
                     FREE(strlen(fileName)+1, "fileName");
                     free(fileName);
                     cutStep++;

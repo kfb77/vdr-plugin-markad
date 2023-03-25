@@ -14,10 +14,10 @@
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE)
 #include <stdio.h>
 #include <stdlib.h>
-bool SavePicture(const char *fileName, uchar *picture, const int width, const int height) {
+bool SaveSobel(const char *fileName, uchar *picture, const int width, const int height) {
     if (!fileName) return false;
     if ((width == 0) || (height == 0)) {
-        dsyslog("SavePicture: logo width or logo height not set");
+        dsyslog("SaveSobel: logo width or logo height not set");
         return false;
     }
 
