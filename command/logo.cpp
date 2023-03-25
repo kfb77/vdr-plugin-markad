@@ -317,8 +317,9 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     }
     if (strcmp(maContext->Info.ChannelName, "NICK_CC+1") == 0) {             // NICK_CC+1               16:9  720W  576H:->  146W  88H TOP_LEFT
                                                                              // NICK_CC+1               16:9  720W  576H:->  146W  92H TOP_LEFT (special logo)
-        logo.heightMin =  88;
+        logo.heightMin =  88;                                                // NICK_CC+1               16:9  720W  576H:->  148W  92H TOP_LEFT (special logo)
         logo.heightMax =  92;
+        logo.widthMax  = 148;
     }
     if (strcmp(maContext->Info.ChannelName, "Nick_Comedy_Central+1") == 0) { // Nick_Comedy_Central+1   16:9  720W  576H:->  144W  94H TOP_LEFT (special logo)
         logo.heightMax =  94;                                                // Nick_Comedy_Central+1   16:9  720W  576H:->  154W  90H TOP_LEFT (special logo 2022 3. Advent)
@@ -332,9 +333,10 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMax  = 184;
         logo.heightMin =  78;
     }
-    if ((strcmp(maContext->Info.ChannelName, "n-tv") == 0) ||                //  n-tv                    16:9  720W  576H:->  224W  60H BOTTOM_RIGHT
+    if ((strcmp(maContext->Info.ChannelName, "n-tv") == 0) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
         (strcmp(maContext->Info.ChannelName, "ntv")  == 0)) {                //  ntv                     16:9  720W  576H:->  226W  60H BOTTOM_LEFT
         logo.widthMax  = INT_MAX;  // news ticker
+        logo.heightMin =  58;
     }
     if (strcmp(maContext->Info.ChannelName, "ProSieben") == 0) {             // ProSieben               16:9  720W  576H:->   84W  66H TOP_RIGHT
                                                                              // ProSieben                4:3  720W  576H:->  100W  66H TOP_RIGHT
@@ -388,10 +390,16 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
                                                                              // TELE_5                   4:3  720W  576H:->   94W  76H BOTTOM_RIGHT (new logo)
                                                                              // TELE_5                  16:9  720W  576H:->  108W  64H BOTTOM_RIGHT (old logo)
                                                                              // TELE_5                  16:9  720W  576H:->   70W  76H TOP_LEFT     (01.10.2021)
-        logo.widthMin  =  70;
-        logo.widthMax  = 108;
-        logo.heightMin = 64;
+        if (logoCorner == TOP_RIGHT) {
+            logo.heightMin =  67;                                            // prevent to accept "NEUE SERIE" as logo, never saw a valid logo on TOP_RIGHT
+            logo.widthMax  = 101;                                            // prevent to accept advertisement logo as channel logo
+        }
+        else {
+            logo.heightMin =  64;
+            logo.widthMax  = 108;
+        }
         logo.heightMax =  76;
+        logo.widthMin  =  70;
     }
     if (strcmp(maContext->Info.ChannelName, "TLC") == 0) {                   // TLC                     16:9  720W  576H:->   94W  60H TOP_LEFT
         logo.heightMax =  65;
@@ -438,12 +446,13 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     }
     if (strcmp(maContext->Info.ChannelName, "ZDF_HD") == 0) {                // ZDF_HD                  16:9 1280W  720H:->  186W  94H TOP_LEFT
                                                                              // ZDF_HD                  16:9 1280W  720H:->  186W  96H TOP_LEFT
-        logo.widthMax = 186;
+                                                                             // ZDF_HD                  16:9 1280W  720H:->  188W  96H TOP_LEFT
+        logo.widthMax = 188;
     }
 
 // 1280x1080
-    if (strcmp(maContext->Info.ChannelName, "ANIXE+") == 0) {                // ANIXE+                  16:9 1280W 1080H:->  286W 170H TOP_LEFT
-        logo.widthMax  = 286;
+    if (strcmp(maContext->Info.ChannelName, "ANIXE+") == 0) {                // ANIXE+                  16:9 1280W 1080H:->  294W 170H TOP_LEFT
+        logo.widthMax  = 294;
         logo.heightMax = 170;
     }
     if (strcmp(maContext->Info.ChannelName, "Deluxe_Music_HD") == 0) {       // Deluxe_Music_HD         16:9 1280W 1080H:->  334W 124H TOP_RIGHT
@@ -480,7 +489,6 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
             if (logo.widthMin  == 0) logo.widthMin  =  76; // SAT_1                   16:9  720W  576H:->   76W  72H TOP_RIGHT
             if (logo.widthMax  == 0) logo.widthMax  = 146; // N24_DOKU                16:9  720W  576H:->  146W  82H TOP_RIGHT
                                                            // Nickelodeon             16:9  720W  576H:->  146W  88H TOP_LEFT
-                                                           // NICK_MTV+               16:9  720W  576H:->  146W  88H TOP_LEFT
                                                            // SIXX                     4:3  720W  576H:->  146W  70H TOP_RIGHT
             if (logo.heightMin == 0) logo.heightMin =  60; // n-tv                    16:9  720W  576H:->  224W  60H BOTTOM_RIGHT
                                                            // RTL_Television          16:9  720W  576H:->  104W  60H TOP_LEFT
@@ -502,7 +510,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
             if (logo.heightMax == 0) logo.heightMax =  204; // BILD_HD                 16:9 1440W 1080H:->  124W 204H TOP_LEFT (doku logo)
             break;
         case 1920:
-            if (logo.widthMin  == 0) logo.widthMin  =  204; // SAT_1_HD                16:9 1920W 1080H:->  204W 132H TOP_RIGHT
+            if (logo.widthMin  == 0) logo.widthMin  =  202; // SAT_1_HD                16:9 1920W 1080H:->  202W 132H TOP_RIGHT
             if (logo.widthMax  == 0) logo.widthMax  =  394; // n-tv_HD                 16:9 1920W 1080H:->  394W 110H BOTTOM_RIGHT
                                                             // n-tv_HD                 16:9 1920W 1080H:->  394W 122H BOTTOM_RIGHT
             if (logo.heightMin == 0) logo.heightMin =   96; // münchen_tv_HD           16:9 1920W 1080H:->  336W  96H TOP_LEFT
