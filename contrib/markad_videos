@@ -564,7 +564,7 @@ class CheckPath:
 
     def BackupLogo(self):
         for file in os.listdir(self.root):
-            if file.endswith(".pgm") and not file.startswith("logo__"):
+            if file.endswith(".pgm") and not file.startswith("logo__") and not file.startswith("F__"):
                 log.dsyslog("backup logo file " + file)
                 markadVersion = subprocess.run([config.bindir+"/markad", "--version"], stdout=subprocess.PIPE)
                 wordList = markadVersion.stdout.decode('utf-8').split(" ")
