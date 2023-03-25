@@ -198,7 +198,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
  */
         time_t GetRecordingStart(time_t start, int fd);
 
-#if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_MARK_FRAMES) || defined(DEBUG_OVERLAP_FRAME_RANGE)
+#if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_OVERLAP_FRAME_RANGE)
 /**
  * save frame, used for debug
  * @param frame  frame number

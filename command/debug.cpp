@@ -38,6 +38,40 @@ bool SaveSobel(const char *fileName, uchar *picture, const int width, const int 
 #endif
 
 
+// save currect content of the frame buffer (plane 0) to fileName
+//
+#if defined(DEBUG_MARK_FRAMES)
+#include <stdio.h>
+#include <stdlib.h>
+void SaveFrameBuffer(const sMarkAdContext *maContext, const char *fileName) {
+    if (!maContext->Video.Info.height) {
+        dsyslog("SaveFrameBuffer(): maContext->Video.Info.height not set");
+        return;
+    }
+    if (!maContext->Video.Info.width) {
+        dsyslog("SaveFrameBuffer(): maContext->Video.Info.width not set");
+        return;
+    }
+    if (!maContext->Video.Data.valid) {
+        dsyslog("SaveFrameBuffer(): maContext->Video.Data.valid not set");
+        return;
+    }
+    // Open file
+    FILE *pFile = fopen(fileName, "wb");
+    if (pFile == NULL) {
+        dsyslog("cMarkAdStandalone::SaveFrame(): open file %s failed", fileName);
+        return;
+    }
+    // Write header
+    fprintf(pFile, "P5\n%d %d\n255\n", maContext->Video.Info.width, maContext->Video.Info.height);
+    // Write pixel data
+    for (int line = 0; line < maContext->Video.Info.height; line++) {
+        if (fwrite(&maContext->Video.Data.Plane[0][line * maContext->Video.Data.PlaneLinesize[0]], 1, maContext->Video.Info.width, pFile)) {};
+    }
+    // Close file
+    fclose(pFile);
+}
+#endif
 #ifdef DEBUG_MEM
 
 #include <stdlib.h>

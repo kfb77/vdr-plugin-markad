@@ -109,6 +109,11 @@ extern void syslog_with_tid(int priority, const char *format, ...) __attribute__
 #endif
 
 
+#if defined(DEBUG_MARK_FRAMES)
+void SaveFrameBuffer(const sMarkAdContext *maContext, const char *fileName);
+#endif
+
+
 #ifdef DEBUG_MEM
     #define ALLOC(size, var) memAlloc(size, __LINE__, const_cast<char *>(__FILE__), const_cast<char *>(var))
     #define FREE(size, var) memFree(size, __LINE__, const_cast<char *>(__FILE__), const_cast<char *>(var))

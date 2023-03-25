@@ -2511,7 +2511,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
 // save currect content of the frame buffer to /tmp
 // if path and suffix is set, this will set as target path and file name suffix
 //
-#if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_MARK_FRAMES) || defined(DEBUG_OVERLAP_FRAME_RANGE)
+#if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_OVERLAP_FRAME_RANGE)
 void cMarkAdStandalone::SaveFrame(const int frame, const char *path, const char *suffix) {
     if (!macontext.Video.Info.height) {
         dsyslog("cMarkAdStandalone::SaveFrame(): macontext.Video.Info.height not set");
@@ -2913,14 +2913,21 @@ void cMarkAdStandalone::DebugMarkFrames() {
                 if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) {
                     if (ptr_cDecoder->GetFrameNumber() >= writePosition) {
                         dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at frame (%5d) type 0x%X, write frame (%5d)", mark->position, mark->type, writePosition);
-                        if (writePosition == mark->position) {
-                            if ((mark->type & 0x0F) == MT_START) SaveFrame(mark->position, directory, "START");
-                            else if ((mark->type & 0x0F) == MT_STOP) SaveFrame(mark->position, directory, "STOP");
-                                 else SaveFrame(mark->position, directory, "MOVED");
+                        char suffix1[10] = "";
+                        char suffix2[10] = "";
+                        if ((mark->type & 0x0F) == MT_START) strcpy(suffix1, "START");
+                        if ((mark->type & 0x0F) == MT_STOP)  strcpy(suffix1, "STOP");
+                        if (writePosition < mark->position)  strcpy(suffix2, "BEFORE");
+                        if (writePosition > mark->position)  strcpy(suffix2, "AFTER");
+
+                        char *fileName = NULL;
+                        if (asprintf(&fileName,"%s/F__%07d_%s_%s.pgm", macontext.Config->recDir, ptr_cDecoder->GetFrameNumber(), suffix1, suffix2) >= 1) {
+                            ALLOC(strlen(fileName)+1, "fileName");
+                            SaveFrameBuffer(&macontext, fileName);
+                            FREE(strlen(fileName)+1, "fileName");
+                            free(fileName);
                         }
-                        else {
-                            SaveFrame(writePosition, directory, (writePosition < mark->position) ? "BEFORE" : "AFTER");
-                        }
+
                         if (!macontext.Config->fullDecode) writePosition = recordingIndexMark->GetIFrameAfter(writePosition + 1);
                         else writePosition++;
                         if (writeOffset >= DEBUG_MARK_FRAMES) {

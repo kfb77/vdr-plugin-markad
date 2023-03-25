@@ -390,7 +390,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
                                                                              // TELE_5                  16:9  720W  576H:->   70W  76H TOP_LEFT     (01.10.2021)
         logo.widthMin  =  70;
         logo.widthMax  = 108;
-        logo.heightMin =  64;
+        logo.heightMin = 64;
         logo.heightMax =  76;
     }
     if (strcmp(maContext->Info.ChannelName, "TLC") == 0) {                   // TLC                     16:9  720W  576H:->   94W  60H TOP_LEFT
