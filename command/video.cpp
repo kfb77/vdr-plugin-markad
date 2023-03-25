@@ -2009,7 +2009,6 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
 bool cMarkAdVideo::ReducePlanes() {
     if (!logo) return false;
     sAreaT *area = logo->GetArea();
-    if (!area) return false;
     bool ret = false;
     for (int plane = 1; plane < PLANES; plane++) {
         if (area->valid[plane]) {
