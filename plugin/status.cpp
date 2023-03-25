@@ -547,8 +547,8 @@ bool cStatusMarkAd::Replaying() {
             if (dev->Replaying()) {
 #ifdef DEBUG_PAUSE_CONTINUE
                 dsyslog("markad: cStatusMarkAd::Replaying(): device %d is playing",i);
-                return true;
 #endif
+                return true;
             }
         }
     }
