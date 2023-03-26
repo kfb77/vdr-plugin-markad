@@ -971,7 +971,7 @@ int cDecoder::GetFirstMP2AudioStream() {
 // -1 if no silence part were found or we got no valid video frame number to silecnce PTS
 //
 int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, const bool isBeforeMark, const bool isStartMark) {
-#define SILENCE_LEVEL 25  // changed from 10 to 27 to 25
+#define SILENCE_LEVEL 17  // changed from 25 to 17
 #define SILENCE_COUNT 5   // low level counts twice
     struct silenceType {
         int     startTmp    = -1;
