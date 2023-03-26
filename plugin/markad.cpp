@@ -372,7 +372,8 @@ cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int
         if (Option) {
             char *Title = NULL;
             if (ReadTitle(Option)) Title = reinterpret_cast<char *>(&title);
-            if (statusMonitor->Start(Option, Title, 0, 0, 0, false, true)) { // start markad via SVDRP command, timerVPS will be detected by markad, we dont know this here
+            tChannelID channelID;
+            if (statusMonitor->Start(Option, Title, 0, 0, channelID, 0, 0, false, true)) { // start markad via SVDRP command, timerVPS will be detected by markad, we dont know this here
                 return cString::sprintf("Started markad for %s", Option);
             }
             else {

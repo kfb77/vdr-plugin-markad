@@ -8,14 +8,18 @@
 #ifndef __debug_h_
 #define __debug_h_
 
+
 // debug pause und resume of markad process
 // #define DEBUG_PAUSE_CONTINUE
 
 // debug vdr locks
 // #define DEBUG_LOCKS
 
-// debug all VPS events with runningStatus > 0
-// #define DEBUG_VPS
+// debug all VPS EIT events with runningStatus > 0 from <channel>
+// #define DEBUG_VPS_EIT "<channel>"
+
+// debug all VPS VDR events with runningStatus > 0 from <channel>
+// #define DEBUG_VPS_VDR "<channel>"
 
 
 #ifdef DEBUG_MEM

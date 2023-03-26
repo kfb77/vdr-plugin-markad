@@ -13,7 +13,7 @@
 #include "debug.h"
 
 
-cOsdMarkAd::cOsdMarkAd(struct recs *Entry) {
+cOsdMarkAd::cOsdMarkAd(struct sRecordings *Entry) {
     entry = Entry;
     const char *status;
 
@@ -84,7 +84,7 @@ bool cMenuMarkAd::write() {
     Clear();
 
     bool header=false;
-    struct recs *Entry=NULL;
+    struct sRecordings *Entry=NULL;
     status->ResetActPos();
     do {
         status->GetNextActive(&Entry);
@@ -111,7 +111,7 @@ bool cMenuMarkAd::write() {
 }
 
 
-void cMenuMarkAd::SetHelpText(struct recs *Entry) {
+void cMenuMarkAd::SetHelpText(struct sRecordings *Entry) {
     if (!Entry) {
         SetHelp(NULL,NULL);
         return;
@@ -144,7 +144,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key) {
         case kRed:
             osd=static_cast<cOsdMarkAd *>(Get(Current()));
             if ((osd) && (osd->Selectable())) {
-                struct recs *entry=osd->GetEntry();
+                struct sRecordings *entry=osd->GetEntry();
                 if ((entry) && (entry->Pid) && (entry->Status!='T')) {
                     dsyslog("sending TSTP to %i",entry->Pid);
                     kill(entry->Pid,SIGTSTP);
@@ -156,7 +156,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key) {
         case kGreen:
             osd=static_cast<cOsdMarkAd *>(Get(Current()));
             if ((osd) && (osd->Selectable())) {
-                struct recs *entry=osd->GetEntry();
+                struct sRecordings *entry=osd->GetEntry();
                 if ((entry) && (entry->Pid)) {
                     dsyslog("sending CONT to %i",entry->Pid);
                     kill(entry->Pid,SIGCONT);

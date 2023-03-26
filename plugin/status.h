@@ -30,33 +30,36 @@ class cEpgEventLog {
            eventLogFile = NULL;
            return *this;
        };
-       void Log(const time_t recStart, const int state, const int event, const int newState, const char* action);
+       void Log(const time_t recStart, const int event, const int state, const int newState, const char* action);
        void Log(const char *message);
     private:
        FILE *eventLogFile = NULL;
 };
 
 
-struct recs {
-    char     *Name             = NULL;
-    char     *FileName         = NULL;
-    pid_t    Pid               = 0;
-    char     Status            = 0;
-    bool     ChangedbyUser     = false;
-    tEventID eventID           = 0;
-    tEventID eitEventID        = 0;
-    time_t   timerStartTime    = 0;
-    time_t   timerStopTime     = 0;
-    bool     timerVPS          = false;
-    int      runningStatus     = 0;
-    time_t   recStart          = 0;
-    time_t   vpsStartTime      = 0;
-    time_t   vpsStopTime       = 0;
-    time_t   vpsPauseStartTime = 0;
-    time_t   vpsPauseStopTime  = 0;
+struct sRecordings {
+    char         *Name             = NULL;
+    char         *FileName         = NULL;
+    pid_t        Pid               = 0;
+    char         Status            = 0;
+    bool         ChangedbyUser     = false;
+    bool         ignoreEIT         = false;
+    tEventID     eventID           = 0;
+    tEventID     eventNextID       = 0;
+    tEventID     eitEventID        = 0;
+    tEventID     eitEventNextID    = 0;
+    time_t       timerStartTime    = 0;
+    time_t       timerStopTime     = 0;
+    bool         timerVPS          = false;
+    int          runningStatus     = 0;
+    time_t       recStart          = 0;
+    time_t       vpsStartTime      = 0;
+    time_t       vpsStopTime       = 0;
+    time_t       vpsPauseStartTime = 0;
+    time_t       vpsPauseStopTime  = 0;
+    tChannelID   channelID;
     cEpgEventLog *epgEventLog;
 };
-
 
 class cEpgHandlerMarkad;
 
@@ -64,25 +67,26 @@ class cEpgHandlerMarkad;
 // --- cStatusMarkAd
 class cStatusMarkAd : public cStatus {
     private:
-        struct recs recs[MAXDEVICES*MAXRECEIVERS];
-        int        max_recs = -1;
-        struct     setup *setup;
-        const char *bindir;
-        const char *logodir;
-        int        actpos;
-        int        runningRecordings = 0;
+        struct sRecordings recs[MAXDEVICES*MAXRECEIVERS];
+        int             max_recs = -1;
+        const char      *bindir  = NULL;
+        const char      *logodir = NULL;
+        int             actpos   = 0;
+        struct          setup *setup;
+        int             runningRecordings = 0;
+        pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
         bool getPid(int Position);
         bool getStatus(int Position);
         bool Replaying();
         int Get(const char *FileName, const char *Name = NULL);
-        int Add(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, bool timerVPS);
+        int Add(const char *FileName, const char *Name, const tEventID eventID, const tEventID eventNextID, const tChannelID channelID, const time_t timerStartTime, const time_t timerStopTime, bool timerVPS);
         void Remove(int Position, bool Kill = false);
         void Remove(const char *Name, bool Kill = false);
         void Pause(const char *FileName);
         void Continue(const char *FileName);
         bool LogoExists(const cDevice *Device, const char *FileName);
-        void GetEventID(const cDevice *Device,const char *FileName, tEventID *eventID, time_t *timerStartTime, time_t *timerStopTime, bool *timerVPS);
+        void GetEventID(const cDevice *Device,const char *FileName, tEventID *eventID, tEventID *eventNextID, tChannelID *channelID, time_t *timerStartTime, time_t *timerStopTime, bool *timerVPS);
         void SaveVPSTimer(const char *FileName, const bool timerVPS);
         void SaveVPSEvents(const int index);
         bool StoreVPSStatus(const char *status, const int index);
@@ -100,9 +104,11 @@ class cStatusMarkAd : public cStatus {
         }
         char *GetStatus();
         void Check(void);
-        bool GetNextActive(struct recs **RecEntry);
-        bool Start(const char *FileName, const char *Name, const tEventID eventID, const time_t timerStartTime, const time_t timerStopTime, const bool timerVPS, const bool Direct);
-        void SetVPSStatus(const cSchedule *Schedule, const SI::EIT::Event *EitEvent);
+        bool GetNextActive(struct sRecordings **RecEntry);
+        bool Start(const char *FileName, const char *Name, const tEventID eventID, const tEventID eventNextID, const tChannelID channelID, const time_t timerStartTime, const time_t timerStopTime, const bool timerVPS, const bool Direct);
+        int Get_EIT_EventID(const sRecordings *recording, const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *schedule, const bool nextEvent);
+        void FindRecording(const cEvent *event, const SI::EIT::Event *EitEvent, const cSchedule *Schedule);
+        void SetVPSStatus(const int index, int runningStatus, const bool eventEIT);
 };
 
 
@@ -113,8 +119,8 @@ class cEpgHandlerMarkad : public cEpgHandler {
             StatusMarkAd = statusMonitor;
         };
         ~cEpgHandlerMarkad(void) {};
-	virtual bool HandleEitEvent(cSchedule *Schedule, const SI::EIT::Event *EitEvent, uchar TableID, uchar Version);
-//        virtual bool HandleEvent(cEvent *Event);
+        virtual bool HandleEitEvent(cSchedule *Schedule, const SI::EIT::Event *EitEvent, uchar TableID, uchar Version);
+        virtual bool HandleEvent(cEvent *Event);
     private:
         cStatusMarkAd *StatusMarkAd = NULL;
 };
