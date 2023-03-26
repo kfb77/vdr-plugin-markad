@@ -3184,7 +3184,11 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                             dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found black screen start (%d) and stop (%d) before introduction logo (%d), distance %dms, length %dms", blackMarkStop->position, blackMarkStart->position, introductionStartPosition, diff, beforeLength);
                             if (diff <= 3520) { // blackscreen beforeshould be near
                                 dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found valid black screen at (%d), %dms before introduction logo", blackMarkStart->position, diff);
-                                markLogo = marks.Move(markLogo, blackMarkStart->position, "black screen before introduction logo");
+                                if (macontext.Config->fullDecode && (markLogo->position == marks.First()->position)) {
+                                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): this is the start mark of the broadcast, keep last black screen at (%d)", blackMarkStart->position - 1);
+                                    markLogo = marks.Move(markLogo, blackMarkStart->position - 1, "black screen before introduction logo");
+                                }
+                                else markLogo = marks.Move(markLogo, blackMarkStart->position, "black screen before introduction logo");
                                 move = false;  // move is done based on blackscreen position
                             }
                         }
@@ -3280,7 +3284,11 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 if (blackMark) {
                     int diffBlack = 1000 * (beforeSilence - blackMark->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found black screen (%d) %dms %s silence position (%d)", blackMark->position, abs(diffBlack), (diffBlack > 0) ? "before" : "after", beforeSilence);
-                    mark = marks.Move(mark, blackMark->position, "black screen near silence");
+                    if (macontext.Config->fullDecode && (mark->position == marks.First()->position)) {
+                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): this is the start mark of the broadcast, keep last black screen at (%d)", blackMark->position - 1);
+                        mark = marks.Move(mark, blackMark->position - 1, "black screen near silence");
+                    }
+                    else mark = marks.Move(mark, blackMark->position, "black screen near silence");
                 }
                 else mark = marks.Move(mark, beforeSilence, "silence");
                 save = true;
@@ -3367,7 +3375,11 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 int distance_ms = 1000 * distance / macontext.Video.Info.framesPerSecond;
                 if (distance > 0)  { // blackscreen is before logo start mark
                     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): black screen (%d) distance (%d frames) %dms (expect >0 and <=%dms) before logo start mark (%d), move mark", blackMark->position, distance, distance_ms, blackscreenRange, mark->position);
-                    mark = marks.Move(mark, blackMark->position, "black screen");
+                    if (macontext.Config->fullDecode && (mark->position == marks.First()->position)) {
+                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): this is the start mark of the broadcast, keep last black screen at (%d)", blackMark->position - 1);
+                        mark = marks.Move(mark, blackMark->position - 1, "black screen");
+                    }
+                    else mark = marks.Move(mark, blackMark->position, "black screen");
                     save = true;
                     continue;
                 }
