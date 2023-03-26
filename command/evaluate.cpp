@@ -406,7 +406,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
                                 logoStopStartPair->isLogoChange = STATUS_NO;
                                 return;
                             }
-                            if (lengthNext <= 320) {
+                            if (lengthNext <= 440) {  // changed from 320 to 440
                                 dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): next pair is very short, this is the part between broadcast start and info logo, it containes a valid start mark");
                                 logoStopStartPair->isLogoChange = STATUS_NO;
                                 return;
