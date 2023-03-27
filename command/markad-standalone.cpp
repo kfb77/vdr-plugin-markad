@@ -3362,31 +3362,42 @@ void cMarkAdStandalone::LogoMarkOptimization() {
     int blackscreenRange = 4270;
     // logo fade in/out
     if (macontext.Info.ChannelName) {  // macontext.Info.ChannelName == NULL can happen if the VDR info file is missing
-        if ((strcmp(macontext.Info.ChannelName, "TELE_5")         == 0) ||  // these channels have fading in/out logo, so we need more range
-            (strcmp(macontext.Info.ChannelName, "Disney_Channel") == 0) ||
-            (strcmp(macontext.Info.ChannelName, "Nickelodeon")    == 0)) blackscreenRange = 5500;
+        if ((strcmp(macontext.Info.ChannelName, "TELE_5")                == 0) ||  // these channels have fading in/out logo, so we need more range
+            (strcmp(macontext.Info.ChannelName, "Disney_Channel")        == 0) ||
+            (strcmp(macontext.Info.ChannelName, "Nick_Comedy_Central+1") == 0) ||
+            (strcmp(macontext.Info.ChannelName, "Nickelodeon")           == 0)) blackscreenRange = 5500;
     }
     mark = marks.GetFirst();
     while (mark) {
         // logo start mark, use blackscreen before and after mark
         if (mark->type == MT_LOGOSTART) {
-            cMark *blackMark = blackMarks.GetAround(blackscreenRange * macontext.Video.Info.framesPerSecond / 1000, mark->position, MT_NOBLACKSTART); // blacksceen belongs to previous broadcast, use first frame after
-            if (blackMark) {
-                int distance = mark->position - blackMark->position;
-                int distance_ms = 1000 * distance / macontext.Video.Info.framesPerSecond;
-                if (distance > 0)  { // blackscreen is before logo start mark
-                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): black screen (%d) distance (%d frames) %dms (expect >0 and <=%dms) before logo start mark (%d), move mark", blackMark->position, distance, distance_ms, blackscreenRange, mark->position);
-                    if (macontext.Config->fullDecode && (mark->position == marks.First()->position)) {
-                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): this is the start mark of the broadcast, keep last black screen at (%d)", blackMark->position - 1);
-                        mark = marks.Move(mark, blackMark->position - 1, "black screen");
+            for (int i = 0; i <= 1; i++) {
+                cMark *blackMark = NULL;
+                if (i == 0) blackMark = blackMarks.GetAround(blackscreenRange * macontext.Video.Info.framesPerSecond / 1000, mark->position, MT_NOBLACKSTART); // first try near   logo start mark
+                else blackMark = blackMarks.GetPrev(mark->position, MT_NOBLACKSTART);                                                                          //  next try before logo start mark
+
+                if (blackMark) {
+                    int distance_ms = 1000 * (mark->position - blackMark->position) / macontext.Video.Info.framesPerSecond;
+                    if ((distance_ms > 0) && (distance_ms <= blackscreenRange)) { // blackscreen is before logo start mark
+                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): black screen (%d) distance %dms (expect >0 and <=%dms) before logo start mark (%d), move mark", blackMark->position, distance_ms, blackscreenRange, mark->position);
+                        if (macontext.Config->fullDecode && (mark->position == marks.First()->position)) {
+                            dsyslog("cMarkAdStandalone::LogoMarkOptimization(): this is the start mark of the broadcast, keep last black screen at (%d)", blackMark->position - 1);
+                            mark = marks.Move(mark, blackMark->position - 1, "black screen");
+                        }
+                        else mark = marks.Move(mark, blackMark->position, "black screen");
+                        save = true;
+                        break;
                     }
-                    else mark = marks.Move(mark, blackMark->position, "black screen");
-                    save = true;
-                    continue;
+                    else {
+                        if (i == 0) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): black screen near   logo start mark (%d) distance %dms (expect >0 and <=%ds) before (-after) logo start mark (%d), keep mark", blackMark->position, distance_ms, blackscreenRange, mark->position);
+                        else        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): black screen before logo start mark (%d) distance %dms (expect >0 and <=%ds) before (-after) logo start mark (%d), keep mark", blackMark->position, distance_ms, blackscreenRange, mark->position);
+                    }
                 }
-                else dsyslog("cMarkAdStandalone::LogoMarkOptimization(): black screen (%d) distance (%d) %ds (expect >0 and <=%ds) before (-after) logo start mark (%d), keep mark", blackMark->position, distance, distance_ms, blackscreenRange, mark->position);
+                else {
+                    if (i == 0) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no black screen mark found near   logo start mark (%d)", mark->position);
+                    else        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no black screen mark found before logo start mark (%d)", mark->position);
+                }
             }
-            else dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no black screen mark found before logo start mark (%d)", mark->position);
         }
         // logo stop mark or blackscreen start (=stop mark, this can only be a end mark, move mark to end of black screen range)
         // use black screen mark only after mark
