@@ -52,13 +52,14 @@ bool cEvaluateChannel::ClosingCreditsChannel(char *channelName) {
 bool cEvaluateChannel::AdInFrameWithLogoChannel(char *channelName) {
 // for performance reason only for known and tested channels for now
     if ((strcmp(channelName, "kabel_eins")     != 0) &&
-        (strcmp(channelName, "SIXX")           != 0) &&
         (strcmp(channelName, "Pro7_MAXX")      != 0) &&
         (strcmp(channelName, "RTL2")           != 0) &&
         (strcmp(channelName, "RTLZWEI")        != 0) &&
         (strcmp(channelName, "RTL_Television") != 0) &&
         (strcmp(channelName, "SAT_1")          != 0) &&
+        (strcmp(channelName, "SIXX")           != 0) &&
         (strcmp(channelName, "VOX")            != 0) &&
+        (strcmp(channelName, "VOXup")          != 0) &&
         (strcmp(channelName, "WELT")           != 0)) {
         return false;
     }
