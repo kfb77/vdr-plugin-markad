@@ -896,11 +896,28 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
             if (onlyFillArea) boundary = 5; // called by cExtractLogo, need boundary to remove lines in corner
             if (SobelPlane(plane, boundary)) {
                 processed++;
+
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-                if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200) && !onlyFillArea) {
-                    Save(frameCurrent, area.sobel,  plane, "0area_sobel");
-                    Save(frameCurrent, area.mask,   plane, "1area_mask");
-                    Save(frameCurrent, area.result, plane, "2area_reslt");
+                if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && !onlyFillArea) {
+                    char *fileName = NULL;
+                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_0sobel.pgm", maContext->Config->recDir, frameCurrent, plane, area.corner) >= 1) {
+                        ALLOC(strlen(fileName)+1, "fileName");
+                        SaveSobel(fileName, area.sobel[plane], maContext->Video.Logo.width, maContext->Video.Logo.height);
+                        FREE(strlen(fileName)+1, "fileName");
+                        free(fileName);
+                    }
+                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_1mask.pgm", maContext->Config->recDir, frameCurrent, plane, area.corner) >= 1) {
+                        ALLOC(strlen(fileName)+1, "fileName");
+                        SaveSobel(fileName, area.mask[plane], maContext->Video.Logo.width, maContext->Video.Logo.height);
+                        FREE(strlen(fileName)+1, "fileName");
+                        free(fileName);
+                    }
+                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_2result.pgm", maContext->Config->recDir, frameCurrent, plane, area.corner) >= 1) {
+                        ALLOC(strlen(fileName)+1, "fileName");
+                        SaveSobel(fileName, area.result[plane], maContext->Video.Logo.width, maContext->Video.Logo.height);
+                        FREE(strlen(fileName)+1, "fileName");
+                        free(fileName);
+                    }
                 }
 #endif
             }

@@ -2518,7 +2518,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
 // save currect content of the frame buffer to /tmp
 // if path and suffix is set, this will set as target path and file name suffix
 //
-#if defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_OVERLAP_FRAME_RANGE)
+#if defined(DEBUG_OVERLAP_FRAME_RANGE)
 void cMarkAdStandalone::SaveFrame(const int frame, const char *path, const char *suffix) {
     if (!macontext.Video.Info.height) {
         dsyslog("cMarkAdStandalone::SaveFrame(): macontext.Video.Info.height not set");
@@ -3625,9 +3625,14 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
             }
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-            if ((iFrameCurrent > (DEBUG_LOGO_DETECT_FRAME_CORNER - 200)) && (iFrameCurrent < (DEBUG_LOGO_DETECT_FRAME_CORNER + 200))) {
-//                dsyslog("save frame (%i) to /tmp", iFrameCurrent);
-                SaveFrame(iFrameCurrent);
+            if ((iFrameCurrent > (DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) && (iFrameCurrent < (DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE))) {
+                char *fileName = NULL;
+                if (asprintf(&fileName,"%s/F__%07d.pgm", macontext.Config->recDir, frameCurrent) >= 1) {
+                    ALLOC(strlen(fileName)+1, "fileName");
+                    SaveFrameBuffer(&macontext, fileName);
+                    FREE(strlen(fileName)+1, "fileName");
+                    free(fileName);
+                }
             }
 #endif
 

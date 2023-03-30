@@ -17,8 +17,11 @@
 #define LOG_TRACE 8
 
 
-// write picture from full recording recording and logo corner to /tmp from <framenumber> - 200 to <framenumber> + 200
+// write full picture from recording and all sobel pictured from logo corner to recording directory 
+// from <framenumber> - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE to <framenumber> + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE
 // #define DEBUG_LOGO_DETECT_FRAME_CORNER <framenumber>
+// #define DEBUG_LOGO_DETECT_FRAME_CORNER 40550
+// #define DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE 200
 
 // write logo detection informations in log file
 // #define DEBUG_LOGO_DETECTION
@@ -104,12 +107,12 @@ extern void syslog_with_tid(int priority, const char *format, ...) __attribute__
 #endif
 
 
-#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE)
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER)
     bool SaveSobel(const char *fileName, uchar *picture, const int width, const int height);
 #endif
 
 
-#if defined(DEBUG_MARK_FRAMES)
+#if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER)
 void SaveFrameBuffer(const sMarkAdContext *maContext, const char *fileName);
 #endif
 
