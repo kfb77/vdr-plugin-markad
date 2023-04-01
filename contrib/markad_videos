@@ -452,17 +452,18 @@ class CheckPath:
                 continue
 
             if fnmatch.fnmatch(actFile,'marks_*'):
-                if fileCompareMarks is None: fileCompareMarks = actFile
-                else:
-                    rc = CompareMarks(self.root+"/"+fileCompareMarks, self.root+"/"+actFile)
-                    if not rc:
-                        log.isyslog("marks is different in recording: " + self.root)
-                        log.isyslog(fileCompareMarks)
-                        log.isyslog(actFile)
+                if not isMarksNotFound:  # log different backup marks only if we have a marks file
+                    if fileCompareMarks is None: fileCompareMarks = actFile
                     else:
-                        log.dsyslog("delete: "+ self.root+"/"+fileCompareMarks);
-                        os.remove(self.root+"/"+fileCompareMarks);
-                    fileCompareMarks = actFile
+                        rc = CompareMarks(self.root+"/"+fileCompareMarks, self.root+"/"+actFile)
+                        if not rc:
+                            log.isyslog("marks is different in recording: " + self.root)
+                            log.isyslog(fileCompareMarks)
+                            log.isyslog(actFile)
+                        else:
+                            log.dsyslog("delete: "+ self.root+"/"+fileCompareMarks);
+                            os.remove(self.root+"/"+fileCompareMarks);
+                        fileCompareMarks = actFile
                 continue
 
             if fnmatch.fnmatch(actFile,'logo__*'):
