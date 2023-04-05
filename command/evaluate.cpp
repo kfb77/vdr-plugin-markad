@@ -1315,7 +1315,7 @@ bool cDetectLogoStopStart::IsLogoChange() {
 }
 
 
-
+// search for closing credits in frame without logo after broadcast end
 int cDetectLogoStopStart::ClosingCredit() {
     if (!maContext) return -1;
 
@@ -1338,24 +1338,31 @@ int cDetectLogoStopStart::ClosingCredit() {
     dsyslog("cDetectLogoStopStart::ClosingCredit(): min length %dms", minLength);
 
     int closingCreditsFrame = -1;
-
     struct sClosingCredits {
-        int start = -1;
-        int end   = -1;
+        int start                    = -1;
+        int end                      = -1;
+        int frameCount               =  0;
+        int sumFramePortion[CORNERS] = {0};
+
     } ClosingCredits;
+    int framePortion[CORNERS] = {0};
 
     struct sClosingImage {
         int start      = -1;
         int end        = -1;
         int startFinal = -1;
         int endFinal   = -1;
-    } ClosingImage;
+   } ClosingImage;
 
     int countFrames = 0;
     int countDark   = 0;
 
+    dsyslog("cDetectLogoStopStart::ClosingCredit(():      1. frame    2. frame:   matches (frame portion of 2. frame)");
+    dsyslog("cDetectLogoStopStart::ClosingCredit(():                              TOP_LEFT     TOP_RIGHT    BOTTOM_LEFT  BOTTOM_RIGHT");
+
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
-        dsyslog("cDetectLogoStopStart::ClosingCredit(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+        dsyslog("cDetectLogoStopStart::ClosingCredit(): frame (%5d) and (%5d): %5d (%4d) %5d (%4d) %5d (%4d) %5d (%4d)", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).framePortion[0], (*cornerResultIt).rate[1], (*cornerResultIt).framePortion[1], (*cornerResultIt).rate[2], (*cornerResultIt).framePortion[2], (*cornerResultIt).rate[3], (*cornerResultIt).framePortion[3]);
+
         int similarCorners = 0;
         int equalCorners   = 0;
         int noPixelCount   = 0;
@@ -1372,13 +1379,18 @@ int cDetectLogoStopStart::ClosingCredit() {
         if ((similarCorners >= 3) && (noPixelCount < CORNERS)) {  // at least 3 corners has a match, at least one corner has pixel
             if (ClosingCredits.start == -1) ClosingCredits.start = (*cornerResultIt).frameNumber1;
             ClosingCredits.end = (*cornerResultIt).frameNumber2;
+            ClosingCredits.frameCount++;
+            for (int corner = 0; corner < CORNERS; corner++) ClosingCredits.sumFramePortion[corner] += framePortion[corner];
         }
         else {
             if ((ClosingCredits.end - ClosingCredits.start) >= (minLength * maContext->Video.Info.framesPerSecond / 1000)) {  // first long enough part is the closing credit
                 break;
             }
-            ClosingCredits.start = -1;
-            ClosingCredits.end = -1;
+            // restet state
+            ClosingCredits.start      = -1;
+            ClosingCredits.end        = -1;
+            ClosingCredits.frameCount =  0;
+            for (int corner = 0; corner < CORNERS; corner++) ClosingCredits.sumFramePortion[corner] = 0;
         }
 
         if (equalCorners == 4) {  //  all 4 corners are equal, this must be a still image
@@ -1387,11 +1399,16 @@ int cDetectLogoStopStart::ClosingCredit() {
         }
         else {
             if ((ClosingImage.end - ClosingImage.start) >= (ClosingImage.endFinal - ClosingImage.startFinal)) {  // store longest part
-                ClosingImage.startFinal = ClosingImage.start;
-                ClosingImage.endFinal   = ClosingImage.end;
+                ClosingImage.startFinal        = ClosingImage.start;
+                ClosingImage.endFinal          = ClosingImage.end;
             }
+            // restet state
             ClosingImage.start = -1;
-            ClosingImage.end = -1;
+            ClosingImage.end   = -1;
+        }
+        // store frame portion of frame 2
+        for (int corner = 0; corner < CORNERS; corner++) {
+            framePortion[corner] = (*cornerResultIt).framePortion[corner];
         }
     }
 
@@ -1428,6 +1445,24 @@ int cDetectLogoStopStart::ClosingCredit() {
         closingCreditsFrame = ClosingCredits.end;
     }
     else dsyslog("cDetectLogoStopStart::ClosingCredit(): no closing credits found");
+
+    // check if we have a frame
+    int maxSumFramePortion =  0;
+    int frameCorner        = -1;
+    for (int corner = 0; corner < CORNERS; corner++) {
+        if (ClosingCredits.sumFramePortion[corner] > maxSumFramePortion) {
+            maxSumFramePortion = ClosingCredits.sumFramePortion[corner];
+            frameCorner = corner;
+        }
+    }
+    if (ClosingCredits.frameCount > 0) {
+        int framePortionQuote = maxSumFramePortion / ClosingCredits.frameCount;
+        dsyslog("cDetectLogoStopStart::ClosingCredit(): sum of frame portion from best corner %s: %d from %d frames, quote %d", aCorner[frameCorner], maxSumFramePortion, ClosingCredits.frameCount, framePortionQuote);
+        if (framePortionQuote <= 514) {
+            dsyslog("cDetectLogoStopStart::ClosingCredit(): not enought frame pixel found, closing credits not valid");
+            return -1;
+        }
+    }
 
     // check if it is a still image
 #define CLOSING_CREDITS_STILL_OFFSET_MAX 10559  // max offset in ms from startPos (stop mark) to begn of still image
