@@ -498,7 +498,7 @@ int cMarkAdStandalone::CheckStop() {
             }
         }
 
-            // check if very eary logo end mark is end of preview
+        // check if very eary logo end mark is end of preview
         if (end && !typeChange) {
             int beforeAssumed = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::CheckStop(): end mark (%d) %ds before assumed stop (%d)", end->position, beforeAssumed, iStopA);
@@ -520,7 +520,7 @@ int cMarkAdStandalone::CheckStop() {
                     int broadcastBefore = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::CheckStop(): broadcast   before from (%d) to (%d) %3ds", prevLogoStart->position, end->position, broadcastBefore);
 
-                    if (broadcastBefore <= 34) {  // end mark invalid there is only a very short ad after end mark
+                    if (broadcastBefore <= 115) {  // end mark invalid there is only a very short broadcast after end mark, changed from 34 to 115
                         dsyslog("cMarkAdStandalone::CheckStop(): broadcast before only %ds, end mark (%d) is invalid", broadcastBefore, end->position);
                         end = NULL;
                     }
