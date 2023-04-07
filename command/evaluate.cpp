@@ -1573,8 +1573,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
             }
             // check ad in frame
             if (((*cornerResultIt).rate[corner] >= 138) || ((*cornerResultIt).rate[corner] == -1)) similarCornersLow++;  // changed from 140 to 138
-            if ((*cornerResultIt).rate[corner]  >= 315) {  // changed from 300 to 324
-                                                           // changed from 324 to 315 after increased range of search
+            if ((*cornerResultIt).rate[corner]  >= 310) {  // changed from 315 to 310
                 similarCornersHigh++;
             }
             // check logo in corner
