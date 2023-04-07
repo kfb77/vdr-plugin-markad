@@ -1976,7 +1976,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                 maxBeforeAssumed = 351; // try a litte more to get end mark, changed from 389 to 351
                 break;
             case MT_LOGOSTOP:
-                maxBeforeAssumed = 299; // changed from 306 to 299
+                maxBeforeAssumed = 198; // changed from 299 to 198
                 break;
             case MT_VBORDERSTOP:
                 maxBeforeAssumed = 288;
