@@ -745,7 +745,7 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
                 if ((startX >= 0) && (startY >= 0)) { // found a start pixel
                     FindFrameStartPixel(picture, &startX, &startY, width, height, 1, -1);  // start search from first pixel, search to right and top
                     FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, - 1, 1);  // start search from start pixel, search to left and to buttom
-                    if (((endX - startX) >= FRAME_MIN_PIXEL) && ((endY - startY) >= FRAME_MIN_PIXEL)) portion = 1000 * (endX - startX) / (width - startX) + 1000 * (endY - startY) / (height - startY);
+                    if (((startX - endX) >= FRAME_MIN_PIXEL) && ((endY - startY) >= FRAME_MIN_PIXEL)) portion = 1000 * (startX - endX) / startX + 1000 * (endY - startY) / (height - startY);
                 }
 #ifdef DEBUG_MARK_OPTIMIZATION
                 else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from top mid to buttom left", frameNumber, corner);
@@ -900,7 +900,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
 #ifdef DEBUG_MARK_OPTIMIZATION
             // save plane 0 of sobel transformation
             char *fileName = NULL;
-            if (asprintf(&fileName,"%s/F%07d-P0-C%1d.pgm", maContext->Config->recDir, frameNumber, corner) >= 1) {
+            if (asprintf(&fileName,"%s/F__%07d-P0-C%1d.pgm", maContext->Config->recDir, frameNumber, corner) >= 1) {
                 ALLOC(strlen(fileName)+1, "fileName");
                 SaveSobel(fileName, area->sobel[0], logoWidth, logoHeight);
                 FREE(strlen(fileName)+1, "fileName");
