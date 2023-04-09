@@ -371,40 +371,6 @@ bool cMarkAdLogo::SetCoordinates(int *xstart, int *xend, int *ystart, int *yend,
 }
 
 
-// save the original picture of the corner to /tmp
-// add debug identifier to filename
-// return: true if successful
-//
-#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-void cMarkAdLogo::SaveFrameCorner(const int frameNumber, const int debug) {
-    FILE *pFile;
-    char szFilename[256];
-
-    for (int plane = 0; plane < PLANES; plane ++) {
-        int xstart, xend, ystart, yend;
-        if (!SetCoordinates(&xstart, &xend, &ystart, &yend, plane)) return;
-        int width = xend - xstart;
-        int height = yend - ystart;
-
-//        if (plane == 0) dsyslog("cMarkAdLogo::SaveFrameCorner(): frameNumber (%5d) plane %d xstart %3d xend %3d ystart %3d yend %3d corner %d width %3d height %3d debug %d", frameNumber, plane, xstart, xend, ystart, yend, area.corner, width, height, debug);
-
-    // Open file
-        sprintf(szFilename, "/tmp/frame%07d_C%d_P%d_D%02d.pgm", frameNumber, area.corner, plane, debug);
-        pFile=fopen(szFilename, "wb");
-        if (pFile == NULL) {
-            dsyslog("cMarkAdLogo::SaveFrameCorner(): open file %s failed", szFilename);
-            return;
-        }
-        fprintf(pFile, "P5\n%d %d\n255\n", width, height); // Write header
-        for (int line = ystart; line < yend; line++) {     // Write pixel data
-            fwrite(&maContext->Video.Data.Plane[plane][line * maContext->Video.Data.PlaneLinesize[plane] + xstart], 1, width, pFile);
-        }
-        fclose(pFile); // Close file
-    }
-}
-#endif
-
-
 // reduce brightness and increase contrast
 // return result status as value from eBrightness
 //        BRIGHTNESS_SEPARATOR:                   possible separation image detected
@@ -413,8 +379,6 @@ void cMarkAdLogo::SaveFrameCorner(const int frameNumber, const int debug) {
 int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber, int *contrastReduced) {  // frameNumber used only for debugging
     int xstart, xend, ystart, yend;
     if (!SetCoordinates(&xstart, &xend, &ystart, &yend, 0)) return BRIGHTNESS_ERROR;
-
-
 
 // set coorginates for logo pixel part in logo corner
     if ((logo_xstart == 0) && (logo_xend == 0) && (logo_ystart == 0) && (logo_yend == 0)) {
@@ -736,7 +700,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
         }
     }
 
-// correct brightness and increase ontrast
+// correct brightness and increase ontrast of plane 0
     minPixel = INT_MAX;
     maxPixel = 0;
 #ifdef DEBUG_LOGO_DETECTION
@@ -759,13 +723,24 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
         }
     }
     *contrastReduced = maxPixel - minPixel;
+
 #ifdef DEBUG_LOGO_DETECTION
     int brightnessReduced = sumPixel / ((yend - ystart) * (xend - xstart));
     dsyslog("cMarkAdLogo::ReduceBrightness(): after brightness correction: contrast %3d, brightness %3d", *contrastReduced, brightnessReduced);
 #endif
+
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-    if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) SaveFrameCorner(frameNumber, 2);
+    if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
+        char *fileName = NULL;
+        if (asprintf(&fileName,"%s/F__%07d_corrected.pgm", maContext->Config->recDir, frameNumber) >= 1) {
+            ALLOC(strlen(fileName)+1, "fileName");
+            SaveFrameBuffer(maContext, fileName);
+            FREE(strlen(fileName)+1, "fileName");
+            free(fileName);
+        }
+    }
 #endif
+
     return BRIGHTNESS_CHANGED;
 }
 
@@ -920,22 +895,28 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
                 if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && !onlyFillArea) {
+                    int width  = maContext->Video.Logo.width;
+                    int height = maContext->Video.Logo.height;
+                    if (plane > 0) {
+                        width  /= 2;
+                        height /= 2;
+                    }
                     char *fileName = NULL;
                     if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_0sobel.pgm", maContext->Config->recDir, frameCurrent, plane, area.corner) >= 1) {
                         ALLOC(strlen(fileName)+1, "fileName");
-                        SaveSobel(fileName, area.sobel[plane], maContext->Video.Logo.width, maContext->Video.Logo.height);
+                        SaveSobel(fileName, area.sobel[plane], width, height);
                         FREE(strlen(fileName)+1, "fileName");
                         free(fileName);
                     }
                     if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_1mask.pgm", maContext->Config->recDir, frameCurrent, plane, area.corner) >= 1) {
                         ALLOC(strlen(fileName)+1, "fileName");
-                        SaveSobel(fileName, area.mask[plane], maContext->Video.Logo.width, maContext->Video.Logo.height);
+                        SaveSobel(fileName, area.mask[plane], width, height);
                         FREE(strlen(fileName)+1, "fileName");
                         free(fileName);
                     }
                     if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_2result.pgm", maContext->Config->recDir, frameCurrent, plane, area.corner) >= 1) {
                         ALLOC(strlen(fileName)+1, "fileName");
-                        SaveSobel(fileName, area.result[plane], maContext->Video.Logo.width, maContext->Video.Logo.height);
+                        SaveSobel(fileName, area.result[plane], width, height);
                         FREE(strlen(fileName)+1, "fileName");
                         free(fileName);
                     }
@@ -956,14 +937,17 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     if (processed == 0) return LOGO_ERROR;  // we have no plane processed
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-    if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) {
-        SaveFrameCorner(frameCurrent, 1);  // we are not called by logo.cpp frame debug
+    if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
+//        SaveFrameCorner(frameCurrent, 1);  // we are not called by logo.cpp frame debug
     }
 #endif
 
 #ifdef DEBUG_LOGO_DETECTION
+    char detectStatus[] = "o";
+    if (rPixel > (mPixel * logo_vmark)) strcpy(detectStatus, "+");
+    if (rPixel < (mPixel * logo_imark)) strcpy(detectStatus, "-");
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
-    dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed);
+    dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed, detectStatus);
 #endif
     // if we only have one plane we are "vulnerable"
     // to very bright pictures, so ignore them...
@@ -996,10 +980,27 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 mPixel += area.mPixel[0];
 #ifdef DEBUG_LOGO_DETECTION
                 dsyslog("cMarkAdLogo::Detect(): frame (%6d) corrected: new area intensity: %d, brightnessState: %d, contrastReduced: %d", frameCurrent, area.intensity, brightnessState, contrastReduced);
-                dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed);
+                char detectStatus[] = "o";
+                if (rPixel > (mPixel * logo_vmark)) strcpy(detectStatus, "+");
+                if (rPixel < (mPixel * logo_imark)) strcpy(detectStatus, "-");
+                dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed, detectStatus);
 #endif
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-                if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) Save(frameCurrent, area.sobel, 0, "area_sobel_afterReduceBrightness");
+                if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
+                    char *fileName = NULL;
+                    if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_3sobelCorrected.pgm", maContext->Config->recDir, frameCurrent, area.corner) >= 1) {
+                        ALLOC(strlen(fileName)+1, "fileName");
+                        SaveSobel(fileName, area.sobel[0], maContext->Video.Logo.width, maContext->Video.Logo.height);
+                        FREE(strlen(fileName)+1, "fileName");
+                        free(fileName);
+                    }
+                    if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_4resultCorrected.pgm", maContext->Config->recDir, frameCurrent, area.corner) >= 1) {
+                        ALLOC(strlen(fileName)+1, "fileName");
+                        SaveSobel(fileName, area.result[0], maContext->Video.Logo.width, maContext->Video.Logo.height);
+                        FREE(strlen(fileName)+1, "fileName");
+                        free(fileName);
+                    }
+                }
 #endif
                 if ((area.status == LOGO_INVISIBLE) && contrastReduced < 25) {  // if we have a very low contrast this could not be a new logo
                     return LOGO_NOCHANGE;
@@ -1054,7 +1055,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 area.mPixel[plane] = area.mPixel[0] / 4;
                 SobelPlane(plane, 0);
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-                if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) {
+                if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
                     Save(frameCurrent, area.sobel, plane, "area.sobel_coloured");
                 }
 #endif
@@ -1066,7 +1067,10 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
             }
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cMarkAdLogo::Detect(): frame (%6d) maybe logo had a colour change, try plane 1 and plan 2", frameCurrent);
-            dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed);
+            char detectStatus[] = "o";
+            if (rPixel > (mPixel * logo_vmark)) strcpy(detectStatus, "+");
+            if (rPixel < (mPixel * logo_imark)) strcpy(detectStatus, "-");
+            dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed, detectStatus);
 #endif
             if (rPixel < (mPixel * logo_imark)) { // we found no coloured logo here, restore old state
                 area.intensity = intensityOld;
@@ -1101,7 +1105,10 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 rPixel -= area.rPixel[0]; //  try without plane 0
                 mPixel -= area.mPixel[0];
 #ifdef DEBUG_LOGO_DETECTION
-                dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed);
+                char detectStatus[] = "o";
+                if (rPixel > (mPixel * logo_vmark)) strcpy(detectStatus, "+");
+                if (rPixel < (mPixel * logo_imark)) strcpy(detectStatus, "-");
+                dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed, detectStatus);
 #endif
             }
         }
@@ -1170,7 +1177,10 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         if (area.counter < 0) area.counter = 0;
     }
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed);
+    strcpy(detectStatus, "o");
+    if (rPixel > (mPixel * logo_vmark)) strcpy(detectStatus, "+");
+    if (rPixel < (mPixel * logo_imark)) strcpy(detectStatus, "-");
+    dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed, detectStatus);
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
 #endif
     return ret;
