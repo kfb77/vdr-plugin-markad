@@ -3202,7 +3202,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 free(indexToHMSFStartMark);
             }
         }
-        if ((markLogo->type == MT_LOGOSTOP) && (marks.GetNext(markLogo->position, MT_STOP, 0x0F))) { // do not test logo end mark, ad in frame with logo and closing credits without logo looks the same
+        if (markLogo->type == MT_LOGOSTOP) {
             // check for advertising in frame with logo before logo stop mark position
             LogSeparator(false);
             int searchStartPosition = markLogo->position - (45 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s, changed from 35 to 45
