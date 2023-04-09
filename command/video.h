@@ -33,20 +33,22 @@
  * logo detection status
  */
 enum eLogoStatus {
-    LOGO_ERROR = -3,
+    LOGO_RESTART       = -4,
+    LOGO_ERROR         = -3,
     LOGO_UNINITIALIZED = -2,
-    LOGO_INVISIBLE = -1,
-    LOGO_NOCHANGE = 0,
-    LOGO_VISIBLE = 1
+    LOGO_INVISIBLE     = -1,
+    LOGO_NOCHANGE      =  0,
+    LOGO_VISIBLE       =  1
 };
 
 enum {
     BLACKSCREEN_UNINITIALIZED = -2,
-    BLACKSCREEN_INVISIBLE = -1,
-    BLACKSCREEN_VISIBLE = 1
+    BLACKSCREEN_INVISIBLE     = -1,
+    BLACKSCREEN_VISIBLE       =  1
 };
 
 enum {
+    HBORDER_RESTART       = -3,
     HBORDER_UNINITIALIZED = -2,
     HBORDER_INVISIBLE     = -1,
     HBORDER_ERROR         =  0,
@@ -54,6 +56,7 @@ enum {
 };
 
 enum {
+    VBORDER_RESTART       = -3,
     VBORDER_UNINITIALIZED = -2,
     VBORDER_INVISIBLE     = -1,
     VBORDER_ERROR         =  0,
@@ -62,7 +65,7 @@ enum {
 
 enum {
     OV_BEFORE = 0,
-    OV_AFTER = 1
+    OV_AFTER  = 1
 };
 
 
@@ -289,10 +292,9 @@ class cMarkAdLogo : cLogoSize {
 
 /**
  * clear status and free memory
- * @param isRestart   true if called from logo detection restart at pass 1, false otherwise
- * @param inBroadCast true if called while processing in broadcast, false if called in advertising
+ * @param isRestart   true if called from full video detection (blackscreen, logo, border) restart at pass 1, false otherwise
  */
-        void Clear(const bool isRestart = false, const bool inBroadCast = false);
+        void Clear(const bool isRestart = false);
 
 
 /**
@@ -482,7 +484,7 @@ class cMarkAdBlackBordersHoriz {
 /**
  * clear horizontal border detection status
  */
-        void Clear();
+        void Clear(const bool isRestart = false);
 
     private:
         int borderstatus;                 //!< status of horizontal border detection
@@ -531,7 +533,7 @@ class cMarkAdBlackBordersVert {
 /**
  * clear vertical border detection status
  */
-        void Clear();
+        void Clear(const bool isRestart = false);
 
     private:
         int borderstatus;                  //!< status of vertical border detection
@@ -601,10 +603,9 @@ class cMarkAdVideo {
 
 /**
  * reset all video based detection of marks
- * @param isRestart   ture if called after restart of video based detection at start of the end part of the recording, false otherwise
- * @param inBroadCast true if called in broadcast, false if called in advertising
+ * @param isRestart   ture if called after restart of full video detection (blackscreen, logo, border) at start of the end part of the recording, false otherwise
  */
-        void Clear(bool isRestart, bool inBroadCast = false);
+        void Clear(const bool isRestart = false);
 
 /**
  * clear state of border detection

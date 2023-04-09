@@ -3604,24 +3604,16 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 return false;
             }
 
-            // turn on logo and blackscreen detection for end part even if we use stronger marks, just in case we will get no strong end mark
+            // turn on all detection for end part even if we use stronger marks, just in case we will get no strong end mark
             if (!restartLogoDetectionDone && (frameCurrent > (iStopA - (macontext.Video.Info.framesPerSecond * 2 * MAXRANGE))) && (iStart == 0)) { // not before start part done
-                dsyslog("cMarkAdStandalone::ProcessFrame(): enter end part at frame (%d)", frameCurrent);
+                dsyslog("cMarkAdStandalone::ProcessFrame(): enter end part at frame (%d), reset detector status", frameCurrent);
+                video->Clear(true);
+                bDecodeVideo = true;
+                macontext.Video.Options.ignoreBlackScreenDetection = false;
+                macontext.Video.Options.ignoreVborder              = false;
+                macontext.Video.Options.ignoreHborder              = false;
+                macontext.Video.Options.ignoreLogoDetection        = false;
                 restartLogoDetectionDone = true;
-                if ((macontext.Video.Options.ignoreBlackScreenDetection) || (macontext.Video.Options.ignoreLogoDetection)) {
-                    isyslog("restart logo, border and black screen detection at frame (%d)", ptr_cDecoder->GetFrameNumber());
-                    bDecodeVideo = true;
-                    macontext.Video.Options.ignoreBlackScreenDetection = false;   // use this to find end mark
-                    macontext.Video.Options.ignoreVborder              = false;
-                    macontext.Video.Options.ignoreHborder              = false;
-                    if (macontext.Video.Options.ignoreLogoDetection == true) {
-                        macontext.Video.Options.ignoreLogoDetection = false;
-                        if (video) {
-                            dsyslog("cMarkAdStandalone::ProcessFrame():  reset logo detector status");
-                            video->Clear(true, inBroadCast);
-                        }
-                    }
-                }
             }
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER

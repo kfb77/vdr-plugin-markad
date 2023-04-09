@@ -113,12 +113,12 @@ cMarkAdLogo::cMarkAdLogo(sMarkAdContext *maContextParam, cIndex *recordingIndex)
 
 
 cMarkAdLogo::~cMarkAdLogo() {
-    Clear(false, false); // free memory for sobel plane
+    Clear(false); // free memory for sobel plane
 
 }
 
 
-void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
+void cMarkAdLogo::Clear(const bool isRestart) {
 #ifdef DEBUG_MEM
     if (!maContext) return;
     int maxLogoPixel = 0;
@@ -154,11 +154,8 @@ void cMarkAdLogo::Clear(const bool isRestart, const bool inBroadCast) {
     }
     area = {};
 
-    if (isRestart) { // reset valid logo status after restart
-        if (inBroadCast) area.status = LOGO_VISIBLE;
-        else area.status = LOGO_INVISIBLE;
-    }
-    else area.status = LOGO_UNINITIALIZED;
+    if (isRestart) area.status = LOGO_RESTART;
+    else           area.status = LOGO_UNINITIALIZED;
 }
 
 
@@ -1113,18 +1110,28 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
             }
         }
     }
-    int ret = LOGO_NOCHANGE;
-    if (area.status == LOGO_UNINITIALIZED) { // Initialize
-        if (rPixel >= (mPixel * logo_vmark)) {
-            area.status = ret = LOGO_VISIBLE;
-        }
-        else {
-            area.status = LOGO_INVISIBLE;
-        }
-        area.frameNumber = frameCurrent;
+
+// set logo visible/unvisible status
+    if (area.status == LOGO_UNINITIALIZED) {
+        if (rPixel >= (mPixel * logo_vmark)) area.status = LOGO_VISIBLE;
+        else area.status = LOGO_INVISIBLE;  // at new log detection start we initialize even with an unclear result
+
         *logoFrameNumber = frameCurrent;
+        area.frameNumber = frameCurrent;
+        return area.status;
     }
 
+    if (area.status == LOGO_RESTART) {
+        if (rPixel >= (mPixel * logo_vmark)) area.status = LOGO_VISIBLE;
+        if (rPixel <  (mPixel * logo_imark)) area.status = LOGO_INVISIBLE;
+
+        *logoFrameNumber = -1;   // no logo change report after detection restart
+        area.frameNumber = frameCurrent;
+        return area.status;
+    }
+
+
+    int ret = LOGO_NOCHANGE;
     if (rPixel >= (mPixel * logo_vmark)) {
         if (area.status == LOGO_INVISIBLE) {
             if (area.counter >= LOGO_VMAXCOUNT) {
@@ -1385,8 +1392,9 @@ int cMarkAdBlackBordersHoriz::GetFirstBorderFrame() {
 }
 
 
-void cMarkAdBlackBordersHoriz::Clear() {
-    borderstatus = HBORDER_UNINITIALIZED;
+void cMarkAdBlackBordersHoriz::Clear(const bool isRestart) {
+    if (isRestart) borderstatus = HBORDER_RESTART;
+    else           borderstatus = HBORDER_UNINITIALIZED;
     borderframenumber = -1;
 }
 
@@ -1410,12 +1418,12 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
         dsyslog("cMarkAdBlackBordersHoriz::Process() Video.Data.PlaneLinesize[0] not initalized");
         return HBORDER_ERROR;
     }
-    int start = (height - CHECKHEIGHT) * maContext->Video.Data.PlaneLinesize[0];
-    int end = height * maContext->Video.Data.PlaneLinesize[0];
-    int valTop = 0;
+    int start     = (height - CHECKHEIGHT) * maContext->Video.Data.PlaneLinesize[0];
+    int end       = height * maContext->Video.Data.PlaneLinesize[0];
+    int valTop    = 0;
     int valBottom = 0;
-    int cnt = 0;
-    int xz = 0;
+    int cnt       = 0;
+    int xz        = 0;
 
     for (int x = start; x < end; x++) {
         if (xz < maContext->Video.Info.width) {
@@ -1423,7 +1431,7 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
             cnt++;
         }
         xz++;
-        if (xz >= maContext->Video.Data.PlaneLinesize[0]) xz=0;
+        if (xz >= maContext->Video.Data.PlaneLinesize[0]) xz = 0;
     }
     valBottom /= cnt;
 
@@ -1431,51 +1439,54 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
         start = VOFFSET * maContext->Video.Data.PlaneLinesize[0];
         end = maContext->Video.Data.PlaneLinesize[0] * (CHECKHEIGHT+VOFFSET);
         cnt = 0;
-        xz = 0;
+        xz  = 0;
         for (int x = start; x < end; x++) {
             if (xz < maContext->Video.Info.width) {
                 valTop += maContext->Video.Data.Plane[0][x];
                 cnt++;
             }
             xz++;
-            if (xz >= maContext->Video.Data.PlaneLinesize[0]) xz=0;
+            if (xz >= maContext->Video.Data.PlaneLinesize[0]) xz = 0;
         }
         valTop /= cnt;
     }
     else valTop = INT_MAX;
 
 #ifdef DEBUG_HBORDER
-    dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%5d) hborder brightness top %3d bottom %3d (expect one <=%d and one <= %d)", FrameNumber, valTop, valBottom, BRIGHTNESS_H_SURE, BRIGHTNESS_H_MAYBE);
+    dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder brightness top %3d bottom %3d (expect one <=%d and one <= %d)", FrameNumber, valTop, valBottom, BRIGHTNESS_H_SURE, BRIGHTNESS_H_MAYBE);
 #endif
 
     if ((valTop <= BRIGHTNESS_H_MAYBE) && (valBottom <= BRIGHTNESS_H_SURE) || (valTop <= BRIGHTNESS_H_SURE) && (valBottom <= BRIGHTNESS_H_MAYBE)) {
-        if (borderframenumber == -1) {
+        // hborder detected
 #ifdef DEBUG_HBORDER
-            dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%5d) first detected hborder", FrameNumber);
+        dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder ++++++: borderstatus %d, borderframenumber (%d)", FrameNumber, borderstatus, borderframenumber);
 #endif
+        if (borderframenumber == -1) {  // got first frame with hborder
             borderframenumber = FrameNumber;
         }
-        else {
-            if (borderstatus != HBORDER_VISIBLE) {
-                if (FrameNumber > (borderframenumber+maContext->Video.Info.framesPerSecond * MIN_H_BORDER_SECS)) {
-                    *borderFrame = borderframenumber;
-                    borderstatus = HBORDER_VISIBLE;
-                    return HBORDER_VISIBLE; // detected start of black border
-                }
+        if (borderstatus != HBORDER_VISIBLE) {
+            if (FrameNumber > (borderframenumber + maContext->Video.Info.framesPerSecond * MIN_H_BORDER_SECS)) {
+                if (borderstatus == HBORDER_RESTART) *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
+                else *borderFrame = borderframenumber;
+                borderstatus = HBORDER_VISIBLE; // detected start of black border
             }
         }
     }
     else {
-        if (borderstatus == HBORDER_VISIBLE) {
-            *borderFrame = FrameNumber;
-            borderstatus = HBORDER_INVISIBLE;
-            borderframenumber = HBORDER_INVISIBLE;
-            return HBORDER_INVISIBLE; // detected stop of black border
+        // no hborder detected
+#ifdef DEBUG_HBORDER
+        dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder ------: borderstatus %d, borderframenumber (%d)", FrameNumber, borderstatus, borderframenumber);
+#endif
+        if (borderstatus != HBORDER_INVISIBLE) {
+            if ((borderstatus == HBORDER_UNINITIALIZED) || (borderstatus == HBORDER_RESTART)) *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
+            else *borderFrame = borderframenumber;
+            borderstatus = HBORDER_INVISIBLE; // detected stop of black border
         }
-        else {
-            borderframenumber = -1; // restart from scratch
-        }
+        borderframenumber = -1; // restart from scratch
     }
+#ifdef DEBUG_HBORDER
+        dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder return: borderstatus %d, borderframenumber (%d), borderFrame (%d)", FrameNumber, borderstatus, borderframenumber, *borderFrame);
+#endif
     return borderstatus;
 }
 
@@ -1486,8 +1497,9 @@ cMarkAdBlackBordersVert::cMarkAdBlackBordersVert(sMarkAdContext *maContextParam)
 }
 
 
-void cMarkAdBlackBordersVert::Clear() {
-    borderstatus = VBORDER_UNINITIALIZED;
+void cMarkAdBlackBordersVert::Clear(const bool isRestart) {
+    if (isRestart) borderstatus = VBORDER_RESTART;
+    else           borderstatus = VBORDER_UNINITIALIZED;
     borderframenumber = -1;
 }
 
@@ -1546,35 +1558,33 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
     else valLeft = INT_MAX;
 
 #ifdef DEBUG_VBORDER
-    dsyslog("cMarkAdBlackBordersVert::Process(): frame (%5d) valLeft %d valRight %d", frameNumber, valLeft, valRight);
+    dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d) valLeft %d valRight %d", frameNumber, valLeft, valRight);
 #endif
     if (((valLeft <= BRIGHTNESS_V_MAYBE) && (valRight <= BRIGHTNESS_V_SURE)) || ((valLeft <= BRIGHTNESS_V_SURE) && (valRight <= BRIGHTNESS_V_MAYBE))) {
+        // vborder detected
         if (borderframenumber == -1) {
             borderframenumber = frameNumber;
         }
-        else {
-            if (borderstatus != VBORDER_VISIBLE) {
+        if (borderstatus != VBORDER_VISIBLE) {
 #ifdef DEBUG_VBORDER
-                dsyslog("cMarkAdBlackBordersVert::Process(): frame (%5d) duration %ds", frameNumber, static_cast<int> ((frameNumber - borderframenumber) /  maContext->Video.Info.framesPerSecond));
+            dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d) duration %ds", frameNumber, static_cast<int> ((frameNumber - borderframenumber) /  maContext->Video.Info.framesPerSecond));
 #endif
-                if (frameNumber > (borderframenumber + maContext->Video.Info.framesPerSecond * MIN_V_BORDER_SECS)) {
-                    *borderFrame = borderframenumber;
-                    borderstatus = VBORDER_VISIBLE;
-                    return VBORDER_VISIBLE; // detected start of black border
-                }
+            if (frameNumber > (borderframenumber + maContext->Video.Info.framesPerSecond * MIN_V_BORDER_SECS)) {
+                if ((borderstatus == VBORDER_UNINITIALIZED) || (borderstatus == VBORDER_RESTART)) *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
+                else *borderFrame = borderframenumber;
+                borderstatus = VBORDER_VISIBLE; // detected start of black border
             }
         }
     }
     else {
-        if (borderstatus == VBORDER_VISIBLE) {
-            *borderFrame = frameNumber;
-            borderstatus = VBORDER_INVISIBLE;
-            borderframenumber = -1;
-            return VBORDER_INVISIBLE; // detected stop of black border
+        // no vborder detected
+        if (borderstatus != VBORDER_INVISIBLE) {
+            if ((borderstatus == VBORDER_UNINITIALIZED) || (borderstatus == VBORDER_RESTART)) *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
+
+            else *borderFrame = frameNumber;
+            borderstatus = VBORDER_INVISIBLE; // detected stop of black border
         }
-        else {
-            borderframenumber = -1; // restart from scratch
-        }
+        borderframenumber = -1; // restart from scratch
     }
     return borderstatus;
 }
@@ -1880,15 +1890,23 @@ cMarkAdVideo::~cMarkAdVideo() {
 }
 
 
-void cMarkAdVideo::Clear(bool isRestart, bool inBroadCast) {
-    if (! isRestart) {
+void cMarkAdVideo::Clear(const bool isRestart) {
+    if (!isRestart) {
         aspectRatio.num=0;
         aspectRatio.den=0;
-        if (vborder) vborder->Clear();
-        if (hborder) hborder->Clear();
     }
-    if (blackScreen) blackScreen->Clear();
-    if (logo) logo->Clear(isRestart, inBroadCast);
+    if (isRestart) {  // only clear if detection is disabled
+        if (blackScreen && maContext->Video.Options.ignoreBlackScreenDetection) blackScreen->Clear();
+        if (logo &&        maContext->Video.Options.ignoreLogoDetection)        logo->Clear(true);
+        if (vborder &&     maContext->Video.Options.ignoreVborder)              vborder->Clear(true);
+        if (hborder &&     maContext->Video.Options.ignoreHborder)              hborder->Clear(true);
+    }
+    else {
+        if (blackScreen) blackScreen->Clear();
+        if (logo)    logo->Clear(false);
+        if (vborder) vborder->Clear(false);
+        if (hborder) hborder->Clear(false);
+    }
 }
 
 
