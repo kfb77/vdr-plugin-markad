@@ -307,9 +307,10 @@ class cMarkAdLogo : cLogoSize {
  * enumeration for ReduceBrightness function return codes
  */
         enum eBrightness {
-            BRIGHTNESS_VALID = 0,
-            BRIGHTNESS_SEPARATOR = -1,
-            BRIGHTNESS_ERROR = -2,
+            BRIGHTNESS_CHANGED       =  1,
+            BRIGHTNESS_VALID         =  0,           // picture is valid, no reduction necessary
+            BRIGHTNESS_SEPARATOR     = -1,
+            BRIGHTNESS_ERROR         = -2,
             BRIGHTNESS_UNINITIALIZED = -3
         };
 
@@ -328,7 +329,7 @@ class cMarkAdLogo : cLogoSize {
  * reduce brightness of logo corner
  * @param[in]  frameNumber     frame number, only used to debug
  * @param[out] contrastReduced logo area brightness after reduction if sucessful, otherwise unchanged
- * @return logo area brightness before reduction if sucessful, otherwise return code #eBrightness value
+ * @return return code #eBrightness value
  */
         int ReduceBrightness(const int frameNumber, int *contrastReduced);
 

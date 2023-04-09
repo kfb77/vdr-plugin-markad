@@ -406,7 +406,7 @@ void cMarkAdLogo::SaveFrameCorner(const int frameNumber, const int debug) {
 
 
 // reduce brightness and increase contrast
-// return contrast of logo area before reduction: if successfully corrected
+// return result status as value from eBrightness
 //        BRIGHTNESS_SEPARATOR:                   possible separation image detected
 //        BRIGHTNESS_ERROR:                       if correction not possible
 //
@@ -766,7 +766,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
     if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) SaveFrameCorner(frameNumber, 2);
 #endif
-    return contrastLogo;
+    return BRIGHTNESS_CHANGED;
 }
 
 
@@ -1001,11 +1001,11 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
                 if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - 200) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + 200)) Save(frameCurrent, area.sobel, 0, "area_sobel_afterReduceBrightness");
 #endif
-                if ((area.status == LOGO_INVISIBLE) && (brightnessState < 25)) {  // if we have a very low contrast this could not be a new logo
+                if ((area.status == LOGO_INVISIBLE) && contrastReduced < 25) {  // if we have a very low contrast this could not be a new logo
                     return LOGO_NOCHANGE;
                 }
                 // if we have a very low contrast and some matches this could be a logo on a very bright area
-                if ((area.status == LOGO_VISIBLE) && (brightnessState < 25) && (rPixel < (mPixel * logo_imark)) && (rPixel > (mPixel * logo_imark) / 3)) {
+                if ((area.status == LOGO_VISIBLE) && (contrastReduced < 25) && (rPixel < (mPixel * logo_imark)) && (rPixel > (mPixel * logo_imark) / 3)) {
                     return LOGO_NOCHANGE;
                 }
             }
