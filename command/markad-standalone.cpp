@@ -552,6 +552,7 @@ int cMarkAdStandalone::CheckStop() {
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_LOGOSTOP mark found");
     }
 
+// try any
     if (!end) {
         end = marks.GetAround(1.1 * delta, iStopA, MT_STOP, 0x0F);    // try any type of stop mark, accept only near assumed stop
         if (end) dsyslog("cMarkAdStandalone::CheckStop(): weak end mark found at frame %d near assumed stop (%d)", end->position, iStopA);
@@ -644,6 +645,15 @@ int cMarkAdStandalone::CheckStop() {
                 dsyslog("cMarkAdStandalone::CheckStop(): start mark is MT_ASPECTSTART (%d) found very late MT_ASPECTSTOP at (%d)", aFirstStart->position, aLastStop->position);
                 end = aLastStop;
             }
+        }
+    }
+
+    if (!end || (end->type == MT_NOBLACKSTOP)) { // try to get hborder start mark from next broadcast as stop mark
+        cMark *hBorderStart = marks.GetNext(iStopA, MT_HBORDERSTART);
+        if (hBorderStart) {
+            dsyslog("cMarkAdStandalone::CheckStop(): use hborder start mark (%d) from next broadcast as end mark", hBorderStart->position);
+            marks.ChangeType(hBorderStart, MT_STOP);
+            end = hBorderStart;
         }
     }
 
