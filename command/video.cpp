@@ -745,7 +745,8 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
     if ((plane < 0) || (plane >= PLANES)) return false;
     if (!maContext->Video.Data.PlaneLinesize[plane]) return false;
-    if (boundary < 1) boundary = 1; // we have to stay at least 1 pixel away from max pixel because of X Gradient approximation (-1 to +1) to prevent heap-buffer-overflow
+    if (boundary < 2) boundary = 2; // we have to stay at least 1 pixel away from max pixel because of X Gradient approximation (-1 to +1) to prevent heap-buffer-overflow
+                                    // need double of this for plane > 1
 
     // alloc memory for sobel transformed planes
     int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
@@ -780,26 +781,35 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
         }
         return false;
     }
-    int xstart, xend, ystart, yend;
+    int xstart = 0;
+    int xend   = 0;
+    int ystart = 0;
+    int yend   = 0;
     if (!SetCoordinates(&xstart, &xend, &ystart, &yend, plane)) return false;
-
+    // we need 2 more pixel for sobel calculation to get a full logo picture
+    int div = 1;
+    if (plane > 0) div = 2;
+    if ((xstart > 0) && (xstart < ((maContext->Video.Info.width  / div) - 3))) xstart += 2;
+    if ((xend   > 0) && (xend   < ((maContext->Video.Info.width  / div) - 3))) xend   += 2;
+    if ((ystart > 0) && (ystart < ((maContext->Video.Info.height / div) - 3))) ystart += 2;
+    if ((yend   > 0) && (yend   < ((maContext->Video.Info.height / div) - 3))) yend   += 2;
+//    dsyslog("cMarkAdLogo::SobelPlane(): plane %d: xStart %d, xEnd %d, yStart %d, yEnd %d", plane, xStart, xEnd, yStart, yEnd);
 //    dsyslog("cMarkAdLogo::SobelPlane(): plane %d: xstart %d, xend %d, ystart %d, yend %d", plane, xstart, xend, ystart, yend);
 
     int cutval = 127;
     int width  = logoWidth;
     if (plane > 0) {
         boundary /= 2;
-        if (boundary < 1) boundary = 1; // we have to stay at least 1 pixel away from max pixel because of X Gradient approximation (-1 to +1) to prevent heap-buffer-overflow
-        cutval /= 2;
-        width  /= 2;
+        cutval   /= 2;
+        width    /= 2;
     }
     int SUM;
     int sumX, sumY;
     area.rPixel[plane] = 0;
-    if (!plane) area.intensity = 0;
+    if (plane == 0) area.intensity = 0;
     for (int Y = ystart; Y <= yend; Y++) {
         for (int X = xstart; X <= xend; X++) {
-            if (!plane) {
+            if (plane == 0) {
                 area.intensity += maContext->Video.Data.Plane[plane][X + (Y * maContext->Video.Data.PlaneLinesize[plane])];
             }
             sumX = 0;
