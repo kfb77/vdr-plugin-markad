@@ -334,8 +334,16 @@ int cMarkAdStandalone::CheckStop() {
             if (end->type == MT_VBORDERSTOP) { // we habe not replaced vborder top with logo stop
                 cMark *prevVStart = marks.GetPrev(end->position, MT_VBORDERSTART);
                 if (prevVStart) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): vertial border start and stop found, delete weak marks except start mark");
-                    marks.DelWeakFromTo(marks.GetFirst()->position + 1, INT_MAX, MT_VBORDERCHANGE);
+                    if (prevVStart->position > iStopA) {
+                        dsyslog("cMarkAdStandalone::CheckStop(): previous vertial border start (%d) is after assumed stop (%d), delete this marks, they are form next brodcast", prevVStart->position, iStopA);
+                        marks.Del(prevVStart->position);
+                        marks.Del(end->position);
+                        end = NULL;
+                    }
+                    else {
+                        dsyslog("cMarkAdStandalone::CheckStop(): vertial border start and stop found, delete weak marks except start mark");
+                        marks.DelWeakFromTo(marks.GetFirst()->position + 1, INT_MAX, MT_VBORDERCHANGE);
+                    }
                 }
             }
         }
