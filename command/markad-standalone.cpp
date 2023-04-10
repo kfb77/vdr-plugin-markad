@@ -1634,7 +1634,7 @@ void cMarkAdStandalone::CheckStartMark() {
             int minFirstBroadcast = 8;                                   // trust strong marks
             if (mark->type <= MT_NOBLACKSTART)   minFirstBroadcast = 96; // do not trust weak marks
             else if (mark->type == MT_LOGOSTART) minFirstBroadcast = 68; // do not increase, there a broadcasts with early first advertising, changed from 71 to 68
-									 // there can be short stop/start from a undetected info logo
+                                                                         // there can be short stop/start from a undetected info logo
             int lengthFirstBroadcast = (markStop->position - mark->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
             dsyslog("cMarkAdStandalone::CheckStartMark(): first broadcast length %ds from (%d) to (%d) (expect <=%ds)", lengthFirstBroadcast, mark->position, markStop->position, minFirstBroadcast);
             cMark *markStart = marks.GetNext(markStop->position, MT_START, 0x0F);
@@ -3140,7 +3140,11 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             int adInFrameEndPosition = -1;
             if (markLogo->position > marks.GetFirst()->position) { // never saw a advertising in frame after first start mark
                 LogSeparator(false);
-                int searchEndPosition = markLogo->position + (35 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
+                int searchEndPosition = markLogo->position + (60 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
+                                                                                                          // somtimes advertising in frame has text in "e.g. Werbung"
+                                                                                                          // check longer range to prevent to detect text as second logo
+                                                                                                          // changed from 35 to 60
+
                 char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition);
                 if (indexToHMSFStartMark && indexToHMSFSearchEnd) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search advertising in frame with logo after logo start mark (%d) at %s to position (%d) at %s", markLogo->position, indexToHMSFStartMark, searchEndPosition, indexToHMSFSearchEnd);
                 if (indexToHMSFSearchEnd) {
