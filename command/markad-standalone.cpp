@@ -273,6 +273,20 @@ int cMarkAdStandalone::CheckStop() {
 
 // try MT_HBORDERSTOP
     if (!end) {
+        // cleanup very short hborder start/stop pair after detection restart, this can be a very long dark scene
+        cMark *hStart = marks.GetNext(iStopA - (macontext.Video.Info.framesPerSecond * 2 * MAXRANGE), MT_HBORDERSTART);
+        if (hStart) {
+            cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);
+            if (hStop && (hStop->position < iStopA)) {
+                int broadcastLength = (hStop->position - hStart->position) / macontext.Video.Info.framesPerSecond;
+                if (broadcastLength <= 92) {
+                    dsyslog("cMarkAdStandalone::CheckStop(): found short hborder start (%d) stop (%d) pair, length %ds after detection restart, this can be a very long dark scene, delete marks", hStart->position, hStop->position, broadcastLength);
+                    marks.Del(hStart->position);
+                    marks.Del(hStop->position);
+                }
+            }
+        }
+        // search hborder stop mark around iStopA
         end = marks.GetAround(5 * delta, iStopA, MT_HBORDERSTOP);         // increased from 3 to 5
         if (end) {
             dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTOP found at frame %i", end->position);
