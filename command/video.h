@@ -12,21 +12,21 @@
 #include "global.h"
 #include "index.h"
 
-#define LOGO_VMAXCOUNT 3      //!< count of IFrames for detection of "logo visible"
-                              //!<
-#define LOGO_IMAXCOUNT 4      //!< count of IFrames for detection of "logo invisible", reduced from 5 to 4
-                              //!<
-#define LOGO_VMARK 0.5        //!< percantage of pixels for visible
-                              //!<
-#define LOGO_IMARK 0.18       //!< percentage of pixels for invisible changed from 0,15 to 0,18
-                              //!<
+#define LOGO_VMAXCOUNT 3       //!< count of IFrames for detection of "logo visible"
+                               //!<
+#define LOGO_IMAXCOUNT 4       //!< count of IFrames for detection of "logo invisible", reduced from 5 to 4
+                               //!<
+#define LOGO_VMARK 0.5         //!< percantage of pixels for visible
+                               //!<
+#define LOGO_IMARK 0.18        //!< percentage of pixels for invisible changed from 0,15 to 0,18
+                               //!<
 
-#define MIN_H_BORDER_SECS 70  //!< minimum lenght of horizontal border, changed from 60 to 70 to prevent to detect dark scene as border
-                              //!<
-#define MIN_V_BORDER_SECS 98  //!< minimum lenght of vertical border before it is accepted <br>
-                              //!< changed from 73 to 90 to 98 <br>
-                              //!< need a long sequence to prevent long darks scenes detected as border <br>
-                              //!< keep it greater than MIN_H_BORDER_SECS for detecting long black screens
+#define MIN_H_BORDER_SECS  70  //!< minimum lenght of horizontal border, changed from 60 to 70 to prevent to detect dark scene as border
+                               //!<
+#define MIN_V_BORDER_SECS 120  //!< minimum lenght of vertical border before it is accepted <br>
+                               //!< changed from 98 to 120 <br>
+                               //!< need a long sequence to prevent long darks scenes detected as border <br>
+                               //!< keep it greater than MIN_H_BORDER_SECS for detecting long black screens
 
 
 /**
