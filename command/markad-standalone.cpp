@@ -2038,7 +2038,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                         dsyslog("cMarkAdStandalone::CheckMarks(): last logo start mark (%d) is %ds before assumed stop (%d)", markPrev->position, diffAssumedStopStart, iStopA2);
                         if (diffAssumedStopStart <= 16) {
                             maxAd            = 529;
-                            maxBeforeAssumed = 498;
+                            maxBeforeAssumed = 493;  // changed from 498 to 493
                         }
                     }
                     dsyslog("cMarkAdStandalone::CheckMarks(): last advertising length %ds (expect <=%ds) from (%d) to (%d)", diffStop, maxAd, markStop->position, markPrev->position);
@@ -2046,8 +2046,8 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     if ((diffStop > 2) && (diffStop <= maxAd)) { // changed from 0 to 2 to avoid move to logo detection failure
                         if ((mark->type != MT_LOGOSTOP) || (diffStop < 11) || (diffStop > 12)) { // ad from 11s to 12s can be undetected info logo at the end (SAT.1 or RTL2)
                             int diffAssumed = (iStopA2 - markStop->position) / macontext.Video.Info.framesPerSecond; // distance from assumed stop
-                            dsyslog("cMarkAdStandalone::CheckMarks(): last stop mark (%d) %ds (expect <=%ds) before assumed stop (%d)", markStop->position, diffAssumed, maxBeforeAssumed, iStopA2);
-                            if (diffAssumed <= maxBeforeAssumed) {
+                            dsyslog("cMarkAdStandalone::CheckMarks():  stop mark before end (%d) %ds (expect <%ds) before assumed stop (%d)", markStop->position, diffAssumed, maxBeforeAssumed, iStopA2);
+                            if (diffAssumed < maxBeforeAssumed) {
                                 dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark before as end mark, assume too big recording length");
                                 marks.Del(mark->position);
                                 marks.Del(markPrev->position);
