@@ -90,8 +90,9 @@ void cEpgEventLog::Log(const char *message) {
 
 bool cEpgHandlerMarkad::HandleEitEvent(cSchedule *Schedule, const SI::EIT::Event *EitEvent, uchar TableID, uchar Version) {
     if (!EitEvent) return false;
-    if (!Schedule) return false;
+    if (EitEvent->getEventId() <= 0) return false;
     if (EitEvent->getRunningStatus() <= 0) return false;
+    if (!Schedule) return false;
     if (!StatusMarkAd) return false;
 
     const cEvent *event = Schedule->GetPresentEvent();
