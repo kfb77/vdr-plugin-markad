@@ -1365,13 +1365,15 @@ int cDetectLogoStopStart::ClosingCredit() {
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::ClosingCredit(): frame (%5d) and (%5d): %5d (%4d) %5d (%4d) %5d (%4d) %5d (%4d)", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).framePortion[0], (*cornerResultIt).rate[1], (*cornerResultIt).framePortion[1], (*cornerResultIt).rate[2], (*cornerResultIt).framePortion[2], (*cornerResultIt).rate[3], (*cornerResultIt).framePortion[3]);
 
-        int similarCorners = 0;
-        int equalCorners   = 0;
-        int noPixelCount   = 0;
-        int darkCorner     = 0;
+        int similarCorners     = 0;
+        int moreSimilarCorners = 0;
+        int equalCorners       = 0;
+        int noPixelCount       = 0;
+        int darkCorner         = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
             if (((*cornerResultIt).rate[corner] >= 230) || ((*cornerResultIt).rate[corner] == -1)) similarCorners++; // prevent false positiv from static scenes, changed from 220 to 230
-            if (((*cornerResultIt).rate[corner] >= 260) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;   // changed from 899 to 807 to 715 to 260
+            if (((*cornerResultIt).rate[corner] >= 260) || ((*cornerResultIt).rate[corner] == -1)) moreSimilarCorners++;   // changed from 899 to 807 to 715 to 260
+            if (((*cornerResultIt).rate[corner] >= 545) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;  // changed from 924 to 605 to 545
             if ( (*cornerResultIt).rate[corner] ==  -1) noPixelCount++;
             if (((*cornerResultIt).rate[corner] <=   0) && (corner != maContext->Video.Logo.corner)) darkCorner++;   // if we have no match, this can be a too dark corner
         }
@@ -1395,7 +1397,8 @@ int cDetectLogoStopStart::ClosingCredit() {
             for (int corner = 0; corner < CORNERS; corner++) ClosingCredits.sumFramePortion[corner] = 0;
         }
 
-        if (equalCorners == 4) {  //  all 4 corners are equal, this must be a still image
+        if ((moreSimilarCorners == 4) || (equalCorners >= 3)) {  //  all 4 corners are more similar, this must be a still image
+                                                                 //  at least 3 corner are equal, these are closing credits in a different form than a frame
             if (ClosingImage.start == -1) ClosingImage.start = (*cornerResultIt).frameNumber1;
             ClosingImage.end = (*cornerResultIt).frameNumber2;
         }
@@ -1463,27 +1466,28 @@ int cDetectLogoStopStart::ClosingCredit() {
         if (frameCorner >= 0) dsyslog("cDetectLogoStopStart::ClosingCredit(): sum of frame portion from best corner %s: %d from %d frames, quote %d", aCorner[frameCorner], maxSumFramePortion, ClosingCredits.frameCount, framePortionQuote);
         if (framePortionQuote <= 514) {
             dsyslog("cDetectLogoStopStart::ClosingCredit(): not enought frame pixel found, closing credits not valid");
-            return -1;
+            closingCreditsFrame = -1;  // no valid ad in a frame
         }
     }
 
-    // check if it is a still image
-#define CLOSING_CREDITS_STILL_OFFSET_MAX 10559  // max offset in ms from startPos (stop mark) to begn of still image
-#define STILL_IMAGE_QOUTE_MIN 50                // changed from 47 to 50
-    if (closingCreditsFrame == -1) {
-        int lengthStillImage      = ClosingImage.endFinal - ClosingImage.startFinal;
-        int offsetStartStillImage = 1000 * (ClosingImage.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
-        if (lengthStillImage > 0) {
-            int quote = 100 * lengthStillImage / (endPos - startPos);
-            dsyslog("cDetectLogoStopStart::ClosingCredit(): still image from (%d) to (%d), start offset %dms (expect <= %dms), quote %d%% (expect >= %d)", ClosingImage.startFinal, ClosingImage.endFinal, offsetStartStillImage, CLOSING_CREDITS_STILL_OFFSET_MAX, quote, STILL_IMAGE_QOUTE_MIN);
-            if ((quote > STILL_IMAGE_QOUTE_MIN) && (offsetStartStillImage <= CLOSING_CREDITS_STILL_OFFSET_MAX)) {
-                dsyslog("cDetectLogoStopStart::ClosingCredit(): still image found");
-                closingCreditsFrame = ClosingImage.endFinal;
+    // check if it is a still image or an ad in a different form than a frame
+#define CLOSING_CREDITS_STILL_OFFSET_MAX 10559  // max offset in ms from startPos (stop mark) to begin of still image
+    if (darkQuote < 66) {  // too dark to detect a still image
+        if (closingCreditsFrame == -1) {
+            int lengthStillImage      = 1000 *  (ClosingImage.endFinal - ClosingImage.startFinal) / maContext->Video.Info.framesPerSecond;
+            int offsetStartStillImage = 1000 * (ClosingImage.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
+            if (lengthStillImage > 4200) {  // changed from 0 to 4200
+                dsyslog("cDetectLogoStopStart::ClosingCredit(): still image from (%d) to (%d), start offset %dms (expect <= %dms), length %dms)", ClosingImage.startFinal, ClosingImage.endFinal, offsetStartStillImage, CLOSING_CREDITS_STILL_OFFSET_MAX, lengthStillImage);
+                if (offsetStartStillImage <= CLOSING_CREDITS_STILL_OFFSET_MAX) {
+                    dsyslog("cDetectLogoStopStart::ClosingCredit(): still image found");
+                    closingCreditsFrame = ClosingImage.endFinal;
+                }
+                else dsyslog("cDetectLogoStopStart::ClosingCredit(): still image too far away from stop mark");
             }
-            else dsyslog("cDetectLogoStopStart::ClosingCredit(): still image too short or too far away from stop mark");
+            else dsyslog("cDetectLogoStopStart::ClosingCredit(): no still image found or too short");
         }
-        else dsyslog("cDetectLogoStopStart::ClosingCredit(): no still image found");
     }
+    else dsyslog("cDetectLogoStopStart::ClosingCredit(): too dark %d%% to detect a still image", darkQuote);
 
     if (evaluateLogoStopStartPair && (closingCreditsFrame >= 0)) evaluateLogoStopStartPair->SetIsClosingCredits(startPos, endPos);
     return closingCreditsFrame;
