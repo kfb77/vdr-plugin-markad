@@ -1460,7 +1460,7 @@ int cDetectLogoStopStart::ClosingCredit() {
     }
     if (ClosingCredits.frameCount > 0) {
         int framePortionQuote = maxSumFramePortion / ClosingCredits.frameCount;
-        dsyslog("cDetectLogoStopStart::ClosingCredit(): sum of frame portion from best corner %s: %d from %d frames, quote %d", aCorner[frameCorner], maxSumFramePortion, ClosingCredits.frameCount, framePortionQuote);
+        if (frameCorner >= 0) dsyslog("cDetectLogoStopStart::ClosingCredit(): sum of frame portion from best corner %s: %d from %d frames, quote %d", aCorner[frameCorner], maxSumFramePortion, ClosingCredits.frameCount, framePortionQuote);
         if (framePortionQuote <= 514) {
             dsyslog("cDetectLogoStopStart::ClosingCredit(): not enought frame pixel found, closing credits not valid");
             return -1;
