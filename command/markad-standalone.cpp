@@ -191,10 +191,26 @@ int cMarkAdStandalone::CheckStop() {
         }
     DebugMarks();     //  only for debugging
 
+
+    // check for very long dark opening credits of next braodcast and cleanup marks
+    if (macontext.Video.Info.frameDarkOpeningCredits >= 0) {
+        dsyslog("cMarkAdStandalone::CheckStop(): found very long dark opening credits start at frame (%d), check which type of border mark is valid", macontext.Video.Info.frameDarkOpeningCredits);
+        cMark *hStart = marks.GetNext(macontext.Video.Info.frameDarkOpeningCredits, MT_HBORDERSTART);
+        cMark *vStart = marks.GetNext(macontext.Video.Info.frameDarkOpeningCredits, MT_VBORDERSTART);
+        if (hStart && !vStart) {
+            dsyslog("cMarkAdStandalone::CheckStop(): hborder start found but no vborder start, next broadcast has hborder");
+            cMark *vStop = marks.GetNext(iStopA, MT_VBORDERSTOP);
+            if (vStop) {
+                dsyslog("cMarkAdStandalone::CheckStop(): cleanup invalid vborder stop mark (%d)", vStop->position);
+                marks.Del(vStop->position); // delete wrong vborder stop marks
+            }
+        }
+    }
+
     // remove logo change marks
     RemoveLogoChangeMarks();
     LogSeparator(true);
-    dsyslog("cMarkAdStandalone::CheckStop(): start end end mark selection");
+    dsyslog("cMarkAdStandalone::CheckStop(): start end mark selection");
 
 // try MT_CHANNELSTOP
     int delta = macontext.Video.Info.framesPerSecond * MAXRANGE;
@@ -1194,6 +1210,7 @@ void cMarkAdStandalone::CheckStart() {
             marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
             marks.Add(MT_VBORDERSTART, MT_UNDEFINED, macontext.Video.Info.frameDarkOpeningCredits, "start of opening credits", true);
         }
+        macontext.Video.Info.frameDarkOpeningCredits = 0; // reset state for long dark opening credits of next braodcast
     }
 
 // horizontal border start
