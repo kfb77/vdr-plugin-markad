@@ -322,8 +322,8 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMax  = 148;
     }
     if (strcmp(maContext->Info.ChannelName, "Nick_Comedy_Central+1") == 0) { // Nick_Comedy_Central+1   16:9  720W  576H:->  144W  94H TOP_LEFT (special logo)
-        logo.heightMax =  94;                                                // Nick_Comedy_Central+1   16:9  720W  576H:->  154W  90H TOP_LEFT (special logo 2022 3. Advent)
-        logo.widthMax  = 154;
+        logo.heightMax =  96;                                                // Nick_Comedy_Central+1   16:9  720W  576H:->  154W  90H TOP_LEFT (special logo 2022 3. Advent)
+        logo.widthMax  = 154;                                                // Nick_Comedy_Central+1   16:9  720W  576H:->  148W  96H TOP_LEFT (special logo)
     }
     if (strcmp(maContext->Info.ChannelName, "Nickelodeon") == 0) {           // Nickelodeon old logo    16:9  720W  576H:->  180W  78H TOP_LEFT
                                                                              // Nickelodeon old logo    16:9  720W  576H:->  180W  80H TOP_LEFT
@@ -355,10 +355,11 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "RTL2") == 0) {                  // RTL2                    16:9  720W  576H:->   82W  78H BOTTOM_RIGHT (new logo)
                                                                              // RTL2                    16:9  720W  576H:->   82W  80H BOTTOM_RIGHT (new Logo)
                                                                              // RTL2                    16:9  720W  576H:->  108W 108H BOTTOM_RIGHT (old logo)
+                                                                             // RTL2                    16:9  720W  576H:->  108W 110H BOTTOM_RIGHT
         logo.widthMin  =  82;
         logo.widthMax  = 108;
         logo.heightMin =  78;
-        logo.heightMax = 108;
+        logo.heightMax = 110;
     }
     if (strcmp(maContext->Info.ChannelName, "RTLZWEI") == 0) {               // RTLZWEI                 16:9  720W  576H:->   82W  78H BOTTOM_RIGHT
                                                                              // RTLZWEI                  4:3  720W  576H:->   98W  80H BOTTOM_RIGHT
