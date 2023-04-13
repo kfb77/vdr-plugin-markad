@@ -1872,7 +1872,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     int lengthBefore = -1;
                     if (mark->Prev() && (mark->Prev()->type == MT_LOGOSTART)) lengthBefore = (mark->position - mark->Prev()->position) /  macontext.Video.Info.framesPerSecond;
                     int lengthAfter = (mark->Next()->Next()->position - mark->Next()->position) /  macontext.Video.Info.framesPerSecond;
-                    if ((lengthBefore < 816) && (lengthAfter < 139)) {  // do not delete a short stop/start before or after a long broadcast part
+                    if ((lengthBefore < 696) && (lengthAfter < 139)) {  // do not delete a short stop/start before or after a long broadcast part, changed from 816 to 696
                                                                         //  this pair contains start mark, lengthAfter changed from 203 to 139
                         cMark *tmp = mark->Next()->Next();
                         dsyslog("cMarkAdStandalone::CheckMarks(): very short logo stop (%d) and logo start (%d) pair, length %dms, distance before %ds after %ds, deleting", mark->position, mark->Next()->position, diff, lengthBefore, lengthAfter);
