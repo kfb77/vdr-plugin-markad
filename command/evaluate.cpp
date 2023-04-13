@@ -1870,8 +1870,10 @@ int cDetectLogoStopStart::IntroductionLogo() {
         //  0     0     0     0 =   0
         //  0     1    33     0 =  34
         // 52     0   114     0 = 166
+        //  3     7    66    29 = 105
         if ((separatorFrameBefore >= 0) &&
-           (((countZero == 1) && (sumPixel <   93)) ||
+           (((countZero == 0) && (sumPixel <= 105)) ||
+            ((countZero == 1) && (sumPixel <   93)) ||
             ((countZero == 2) && (sumPixel <= 166)) ||
             ((countZero >= 3) && (sumPixel <  540)))) {
             separatorFrameAfter = (*cornerResultIt).frameNumber1;
