@@ -674,17 +674,13 @@ void cDetectLogoStopStart::FindFrameStartPixel(const uchar *picture, int *startX
 
 void cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, int *endX, int *endY, const int startX, const int startY, const int width, const int height, const int offsetX, const int offsetY) {
     *endX = startX;
-    while ((*endX > 0) && (*endX < width - 1)) {
-        if ((picture[ startY      * width + *endX + offsetX] == 0) ||
-            (picture[(startY + 1) * width + *endX + offsetX] == 0) ||
-            (picture[(startY - 1) * width + *endX + offsetX] == 0)) *endX += offsetX;  // next position has pixel, try also near by
+    while ((*endX >= 0) && (*endX < width)) {
+        if (picture[ startY * width + *endX + offsetX] == 0) *endX += offsetX;
         else break;
     }
     *endY = startY;
-    while ((*endY > 0) && (*endY < height - 1)) {
-        if ((picture[(*endY + offsetY) * width + startX    ] == 0) ||
-            (picture[(*endY + offsetY) * width + startX + 1] == 0) ||
-            (picture[(*endY + offsetY) * width + startX - 1] == 0)) *endY += offsetY;  // next position has pixel
+    while ((*endY >= 0) && (*endY < height)) {
+        if (picture[(*endY + offsetY) * width + startX] == 0) *endY += offsetY;
         else break;
     }
 }
