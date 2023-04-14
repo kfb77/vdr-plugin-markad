@@ -51,18 +51,17 @@ extern "C"{
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4.2  (Ubuntu 22.04,       updated 22.02.2023)
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 91<<8)+100)   ffmpeg 4.3.5  (Debian 11 Bullseye, updated 02.03.2023)
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 54<<8)+100)   ffmpeg 4.2.7  (Ubuntu 20.04,       updated 22.02.2023)
-// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 35<<8)+100)   ffmpeg 4.1.10 (Debian 10 Buster,   updated 01.03.2023)
-// #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   ffmpeg 3.4.11 (Ubuntu 18.04,       updated 22.02.2023, End of Standard Support: April 2023)
-
-#define LIBAVCODEC_VERSION_VALID      ((57<<16)+(107<<8)+100)   // oldest full suported version (ffmpeg 3.4.11 from Ubuntu 18.04)
+#define LIBAVCODEC_VERSION_VALID ((58<<16)+( 54<<8)+100)   // oldest full suported version
 
 
 
 // deprecated markad ffmpeg versions (based on Ubuntu is End of Standard Support but still has Extended Security Maintenance)
 //
-// #if LIBAVCODEC_VERSION_INT >= ((57<<16)+( 64<<8)+101)   ffmpeg 3.2.18 (Debian 9 Stretch, End of Life: 30.06.2022)
+// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 35<<8)+100)   ffmpeg 4.1.10 (Debian 10 Buster,   updated 01.03.2023, End of Life: 10.09.2022)
+// #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   ffmpeg 3.4.11 (Ubuntu 18.04,       updated 22.02.2023, End of Standard Support: April 2023)
+// #if LIBAVCODEC_VERSION_INT >= ((57<<16)+( 64<<8)+101)   ffmpeg 3.2.18 (Debian 9 Stretch,                       End of Life: 30.06.2022)
 // #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 60<<8)+100)   ffmpeg 2.8.17 (Ubuntu 16.04)
-// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 57<<8)+100)   ffmpeg 2.7.2  (Ubuntu 14.04, End of Life: April 2024)
+// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 57<<8)+100)   ffmpeg 2.7.2  (Ubuntu 14.04,                           End of Life: April 2024)
 
 #define LIBAVCODEC_VERSION_DEPRECATED ((56<<16)+( 57<<8)+100)   // oldest deprecated version, older is invalid (ffmpeg 2.7.2 from Ubuntu 14.04)
 
