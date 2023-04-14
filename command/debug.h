@@ -20,8 +20,8 @@
 // write full picture from recording and all sobel pictures from logo corner to recording directory 
 // from <framenumber> - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE to <framenumber> + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE
 // #define DEBUG_LOGO_DETECT_FRAME_CORNER <framenumber>
-// #define DEBUG_LOGO_DETECT_FRAME_CORNER 35479
-// #define DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE 2
+// #define DEBUG_LOGO_DETECT_FRAME_CORNER 31580
+// #define DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE 10
 
 // write logo detection informations in log file
 // #define DEBUG_LOGO_DETECTION
