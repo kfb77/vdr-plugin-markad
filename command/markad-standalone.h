@@ -15,7 +15,7 @@
 #include "video.h"
 #include "audio.h"
 #include "marks.h"
-#include "encoder_new.h"
+#include "encoder.h"
 #include "evaluate.h"
 #include "osd.h"
 

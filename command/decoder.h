@@ -1,12 +1,12 @@
 /*
- * decoder_new.h: A program for the Video Disk Recorder
+ * decoder.h: A program for the Video Disk Recorder
  *
  * See the README file for copyright information and how to reach the author.
  *
  */
 
-#ifndef __decoder_new_h_
-#define __decoder_new_h_
+#ifndef __decoder_h_
+#define __decoder_h_
 
 #include <vector>
 #include "global.h"

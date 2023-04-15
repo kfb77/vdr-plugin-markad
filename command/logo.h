@@ -10,7 +10,7 @@
 
 #include "global.h"
 #include "markad-standalone.h"
-#include "decoder_new.h"
+#include "decoder.h"
 #include "video.h"
 #include "audio.h"
 

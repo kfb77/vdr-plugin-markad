@@ -85,7 +85,7 @@ LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
 
 
 ### The object files (add further files here):
-OBJS = markad-standalone.o marks.o video.o audio.o decoder_new.o encoder_new.o logo.o debug.o index.o evaluate.o osd.o
+OBJS = markad-standalone.o marks.o video.o audio.o decoder.o encoder.o logo.o debug.o index.o evaluate.o osd.o
 
 ### The main target:
 all: markad i18n

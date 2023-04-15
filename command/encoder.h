@@ -1,5 +1,5 @@
 /*
- * encoder_new.h: A program for the Video Disk Recorder
+ * encoder.h: A program for the Video Disk Recorder
  *
  * See the README file for copyright information and how to reach the author.
  *

@@ -10,7 +10,7 @@
 
 #include <string.h>
 #include "global.h"
-#include "decoder_new.h"
+#include "decoder.h"
 #include "index.h"
 
 

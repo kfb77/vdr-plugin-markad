@@ -1,5 +1,5 @@
 /*
- * decoder_new.cpp: A program for the Video Disk Recorder
+ * decoder.cpp: A program for the Video Disk Recorder
  *
  * See the README file for copyright information and how to reach the author.
  *
@@ -12,7 +12,7 @@
    #include "win32/mingw64.h"
 #endif
 
-#include "decoder_new.h"
+#include "decoder.h"
 #include "debug.h"
 
 extern int decodeTime_us;

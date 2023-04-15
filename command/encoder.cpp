@@ -1,12 +1,12 @@
 /*
- * encoder_new.cpp: A program for the Video Disk Recorder
+ * encoder.cpp: A program for the Video Disk Recorder
  *
  * See the README file for copyright information and how to reach the author.
  *
  */
 
-#include "decoder_new.h"
-#include "encoder_new.h"
+#include "decoder.h"
+#include "encoder.h"
 
 
 cAC3VolumeFilter::cAC3VolumeFilter() {
