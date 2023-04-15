@@ -207,6 +207,27 @@ int cMarkAdStandalone::CheckStop() {
         }
     }
 
+    // cleanup very short logo stop/start after aspect ratio start, they are from a fading in logo
+    cMark *aStart = marks.GetNext(0, MT_ASPECTSTART);
+    while (true) {
+        if (!aStart) break;
+        cMark *lStop = marks.GetNext(aStart->position, MT_LOGOSTOP);
+        if (lStop) {
+            cMark *lStart = marks.GetNext(lStop->position, MT_LOGOSTART);
+            if (lStart) {
+                int diffStop  = 1000 * (lStop->position  - aStart->position) / macontext.Video.Info.framesPerSecond;
+                int diffStart = 1000 * (lStart->position - aStart->position) / macontext.Video.Info.framesPerSecond;
+                if ((diffStop < 1000) && (diffStart < 1000)) {
+                    dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d) and logo start mark (%d) very near after aspect ratio start mark (%d), this is a fading in logo, delete marks", aStart->position, lStop->position, lStart->position);
+                    marks.Del(lStop->position);
+                    marks.Del(lStart->position);
+                 }
+            }
+        }
+        aStart = marks.GetNext(aStart->position, MT_ASPECTSTART);
+    }
+
+
     // remove logo change marks
     RemoveLogoChangeMarks();
     LogSeparator(true);
