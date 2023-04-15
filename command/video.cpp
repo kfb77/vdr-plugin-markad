@@ -786,6 +786,10 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
     int ystart = 0;
     int yend   = 0;
     if (!SetCoordinates(&xstart, &xend, &ystart, &yend, plane)) return false;
+    int xStart = xstart;
+    int xEnd   = xend;
+    int yStart = ystart;
+    int yEnd   = yend;
     // we need 2 more pixel for sobel calculation to get a full logo picture
     int div = 1;
     if (plane > 0) div = 2;
@@ -845,7 +849,8 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
 
             area.sobel[plane][(X - xstart) + (Y - ystart) * width] = val;
 
-            if (area.valid[plane]) {  // if we are called by logo search, we have no valid area.mask
+            // only store results in logo coordinates range
+            if ((area.valid[plane] && (X >= xStart) && (X <= xEnd) && (Y >= yStart) && (Y <= yEnd))) {  // if we are called by logo search, we have no valid area.mask
                 area.result[plane][(X - xstart) + (Y - ystart) * width] = (area.mask[plane][(X - xstart) + (Y - ystart) * width] + val) & 255;
                 if (!area.result[plane][(X - xstart) + (Y - ystart) * width]) area.rPixel[plane]++;
             }
@@ -1097,9 +1102,9 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     }
     else {  // if we have more planes we can still have a problem with coloured logo on same colored background
         // too bright
-        if ((area.status == LOGO_VISIBLE) && (area.intensity > 188) &&             // too bright, logo detection can be wrong, changed from 122 to 188
-                                                                                   // we need to detect very short bright separation picture from Commedy Central
-            (rPixel > 0) && (rPixel < (mPixel * logo_imark))) return LOGO_NOCHANGE; // trust 0 matches
+        if ((area.status == LOGO_VISIBLE) && (area.intensity > 188) &&              // too bright, logo detection can be wrong, changed from 122 to 188
+                                                                                    // we need to detect very short bright separation picture from Commedy Central
+            (rPixel > 0) && (rPixel < (mPixel * logo_imark))) return LOGO_NOCHANGE; // in very bright pictures try to get result only if we have some matches
 
         // maybe coloured logo on same colored background, try without plane 0
         if ((((area.status == LOGO_UNINITIALIZED) && (rPixel < (mPixel * logo_vmark))) ||  // at start make sure we get at least a quick initial logo visible
