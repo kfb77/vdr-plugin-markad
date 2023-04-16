@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-04-16: Version 3.2.3
+- declare ffmpeg < 4.2.7 as deprecated
+- optimize detection of colored logo on same color background
+- optimize frame detection used by search for advertisement in frame with logo
+- some minor bug fixes and optimizations, see git
+
 2023-04-08: Version 3.2.2
 -  rewrite plugins epg handler
    use VPS start from next event to signal VPS stop of running recording
