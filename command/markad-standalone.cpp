@@ -528,16 +528,16 @@ int cMarkAdStandalone::CheckStop() {
 #define MAX_BEFORE_ASUMED_STOP 203 // changed from 281 to 203
                             int deltaLogoStart = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
                             int deltaLogoPrevStartStop = (prevLogoStart->position - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
-                            dsyslog("cMarkAdStandalone::CheckStop(): check for undetected info logo: stop (%d) start (%d) pair (lenght %ds), %ds before assumed end mark (%d)", prevLogoStop->position, prevLogoStart->position, deltaLogoPrevStartStop, deltaLogoPrevStartStop, end->position);
-#define CHECK_START_DISTANCE_MAX 188    // changed from 13 to 71 to 141 to 188
+                            dsyslog("cMarkAdStandalone::CheckStop(): check for undetected info logo: stop (%d) start (%d) pair (lenght %ds), %ds before end mark (%d)", prevLogoStop->position, prevLogoStart->position, deltaLogoPrevStartStop, deltaLogoStart, end->position);
+#define CHECK_START_DISTANCE_MAX 179    // changed from 188 to 179
 #define CHECK_START_STOP_LENGTH_MAX 17  // changed from  4 to 12 to  17
-                            if ((deltaLogoStart <= CHECK_START_DISTANCE_MAX) && (deltaLogoPrevStartStop <= CHECK_START_STOP_LENGTH_MAX)) {
-                                dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) stop (%d) pair before assumed end mark is near %ds (<=%ds) and short %ds (<=%ds), this is undetected info logo or text preview over the logo, delete marks", prevLogoStart->position, prevLogoStop->position, deltaLogoStart, CHECK_START_DISTANCE_MAX, deltaLogoPrevStartStop, CHECK_START_STOP_LENGTH_MAX);
+                            if ((deltaLogoStart < CHECK_START_DISTANCE_MAX) && (deltaLogoPrevStartStop <= CHECK_START_STOP_LENGTH_MAX)) {
+                                dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) stop (%d) pair before end mark is near %ds (<%ds) and short %ds (<=%ds), this is undetected info logo or text preview over the logo, delete marks", prevLogoStart->position, prevLogoStop->position, deltaLogoStart, CHECK_START_DISTANCE_MAX, deltaLogoPrevStartStop, CHECK_START_STOP_LENGTH_MAX);
                                 marks.Del(prevLogoStart);
                                 marks.Del(prevLogoStop);
                             }
                             else {
-                                dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) stop (%d) pair before assumed end mark is far %ds (>%ds) or long %ds (>%ds), stop/start pair is valid", prevLogoStart->position, prevLogoStop->position, deltaLogoStart, CHECK_START_DISTANCE_MAX, deltaLogoPrevStartStop, CHECK_START_STOP_LENGTH_MAX);
+                                dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) stop (%d) pair before assumed end mark is far %ds (>=%ds) or long %ds (>%ds), stop/start pair is valid", prevLogoStart->position, prevLogoStop->position, deltaLogoStart, CHECK_START_DISTANCE_MAX, deltaLogoPrevStartStop, CHECK_START_STOP_LENGTH_MAX);
                                 break;
                             }
                         }
