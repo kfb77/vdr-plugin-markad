@@ -894,7 +894,7 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
             if ((ptr_actLogoInfo->sobel[0][i] == 0) ||
                ((i < WHITEHORIZONTAL_BIG * logoWidth / 4) && ((ptr_actLogoInfo->sobel[1][i] == 0) || (ptr_actLogoInfo->sobel[2][i] == 0)))) {
 #ifdef DEBUG_LOGO_CORNER
-                if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no big white top part at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s has no big white top part at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
 #endif
                 return false;
             }
@@ -905,7 +905,7 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
             for (int i = (logoHeight - WHITEHORIZONTAL_SMALL) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid top logo should have at least a small white bottom part in plane 0
                 if (ptr_actLogoInfo->sobel[0][i] == 0) {
 #ifdef DEBUG_LOGO_CORNER
-                    if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no small white bottom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s has no small white bottom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
 #endif
                     return false;
                 }
@@ -917,7 +917,7 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
         for (int i = (logoHeight - WHITEHORIZONTAL_BIG) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid bottom logo should have a white bottom part in plane 0
             if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                 if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no big white bottom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                 if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s has no big white bottom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
 #endif
                 return false;
             }
@@ -926,7 +926,7 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
             for (int i = 0 ; i < WHITEHORIZONTAL_SMALL * logoWidth; i++) { // a valid bottom logo should have at least a small white top part in plane 0
                 if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                    if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no small white top part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s has no small white top part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
 #endif
                     return false;
                 }
@@ -1492,11 +1492,24 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                     for (int corner = 0; corner < CORNERS; corner++) {
                         int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
                                                     //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
-#if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 0
-                        if (corner == DEBUG_LOGO_CORNER) iFrameNumberNext = -2;   // only for debuging, store logo file to /tmp
-#endif
                         area->corner = corner;
                         ptr_Logo->Detect(0, iFrameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
+
+#if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 0
+                        if (corner == DEBUG_LOGO_CORNER) {
+                            for (int plane = 0; plane < PLANES; plane++) {
+                                char *fileName = NULL;
+                                if (asprintf(&fileName,"%s/F%07d-P%1d-C%1d_SearchLogo.pgm", maContext->Config->recDir, iFrameNumber, plane, corner) >= 1) {
+                                    ALLOC(strlen(fileName)+1, "fileName");
+                                    if (plane == 0) SaveSobel(fileName, area->sobel[plane], logoWidth, logoHeight);
+                                    else SaveSobel(fileName, area->sobel[plane], logoWidth / 2, logoHeight / 2);
+                                    FREE(strlen(fileName)+1, "fileName");
+                                    free(fileName);
+                                }
+                            }
+                        }
+#endif
+
                         sLogoInfo actLogoInfo = {};
                         actLogoInfo.iFrameNumber = iFrameNumber;
 

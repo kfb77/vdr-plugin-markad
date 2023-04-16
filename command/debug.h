@@ -107,7 +107,7 @@ extern void syslog_with_tid(int priority, const char *format, ...) __attribute__
 #endif
 
 
-#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER)
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_LOGO_SAVE)
     bool SaveSobel(const char *fileName, uchar *picture, const int width, const int height);
 #endif
 

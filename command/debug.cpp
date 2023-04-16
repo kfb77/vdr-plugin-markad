@@ -11,7 +11,7 @@
 // save picture to recording directory
 // return: true if successful
 //
-#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER)
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_LOGO_SAVE)
 #include <stdio.h>
 #include <stdlib.h>
 bool SaveSobel(const char *fileName, uchar *picture, const int width, const int height) {
