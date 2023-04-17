@@ -2097,7 +2097,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     if ((diffStop > 2) && (diffStop <= maxAd)) { // changed from 0 to 2 to avoid move to logo detection failure
                         if ((mark->type != MT_LOGOSTOP) || (diffStop < 11) || (diffStop > 12)) { // ad from 11s to 12s can be undetected info logo at the end (SAT.1 or RTL2)
                             int diffAssumed = (newStopA - markStop->position) / macontext.Video.Info.framesPerSecond; // distance from assumed stop
-                            dsyslog("cMarkAdStandalone::CheckMarks():  stop mark before end (%d) %ds (expect <%ds) before assumed stop (%d)", markStop->position, diffAssumed, maxBeforeAssumed, newStopA);
+                            dsyslog("cMarkAdStandalone::CheckMarks(): stop mark before end (%d) %ds (expect <%ds) before assumed stop (%d)", markStop->position, diffAssumed, maxBeforeAssumed, newStopA);
                             if (diffAssumed < maxBeforeAssumed) {
                                 dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark before as end mark, assume too big recording length");
                                 marks.Del(mark->position);
