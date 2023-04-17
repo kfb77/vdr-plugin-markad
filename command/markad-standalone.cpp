@@ -1676,7 +1676,7 @@ void cMarkAdStandalone::CheckStart() {
         isyslog("%d logo STOP/START pairs found after start mark, something is wrong with your logo", countStopStart);
         if (video->ReducePlanes()) {
             dsyslog("cMarkAdStandalone::CheckStart(): reduce logo processing to first plane and delete all marks after start mark (%d)", begin->position);
-            marks.DelFrom(begin->position);
+            marks.DelAfterFromToEnd(begin->position);
         }
     }
 
@@ -2001,7 +2001,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
         dsyslog("cMarkAdStandalone::CheckMarks(): late single vborder start mark (%d) %ds after assumed stop (%d), this is start of next broadcast", borderStart->position, diffEnd, newStopA);
         if (diffEnd >= -156) { // maybe reported recording lenght is too big
             dsyslog("cMarkAdStandalone::CheckMarks(): delete all marks from (%d) to end", borderStart->position);
-            marks.DelTill(borderStart->position - 1, false);
+            marks.DelAfterFromToEnd(borderStart->position - 1);
         }
     }
 

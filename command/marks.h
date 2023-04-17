@@ -181,10 +181,10 @@ class cMarks {
         void DelTill(const int position, const bool fromStart = true);
 
 /**
- * delete all marks from position to last mark
+ * delete all marks after position to last mark
  * @param position start position to delete from
  */
-        void DelFrom(const int position);
+        void DelAfterFromToEnd(const int position);
 
 /**
  * delete all marks

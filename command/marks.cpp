@@ -162,13 +162,14 @@ void cMarks::DelTill(const int position, const bool fromStart) {
 }
 
 
-void cMarks::DelFrom(const int position) {
+// delete all marks after position to last mark
+//
+void cMarks::DelAfterFromToEnd(const int position) {
     cMark *mark = first;
-    while (mark) {
+    while (mark) {  // find first mark after position
         if (mark->position > position) break;
         mark = mark->Next();
     }
-
     while (mark) {
         cMark * next = mark->Next();
         Del(mark);
