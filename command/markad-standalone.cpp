@@ -1766,6 +1766,7 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
 void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup marks that make no sense
     LogSeparator(true);
 
+    int newStopA = marks.GetFirst()->position + macontext.Video.Info.framesPerSecond * (length + macontext.Config->astopoffs);  // we have to recalculate iStopA
     // remove invalid marks
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): remove invalid marks");
@@ -1992,6 +1993,19 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): check border marks");
     DebugMarks();     //  only for debugging
+
+    // delete late first vborder start mark, they are start of next recording
+    cMark *borderStart = marks.GetNext(0, MT_VBORDERSTART);
+    if ((borderStart) && (marks.Count(MT_VBORDERCHANGE, 0xF0) == 1)) {
+        int diffEnd = (borderStart->position - newStopA) / macontext.Video.Info.framesPerSecond;
+        dsyslog("cMarkAdStandalone::CheckMarks(): late single vborder start mark (%d) %ds after assumed stop (%d), this is start of next broadcast", borderStart->position, diffEnd, newStopA);
+        if (diffEnd >= -156) { // maybe reported recording lenght is too big
+            dsyslog("cMarkAdStandalone::CheckMarks(): delete all marks from (%d) to end", borderStart->position);
+            marks.DelTill(borderStart->position - 1, false);
+        }
+    }
+
+
     // delete start stop hborder pairs at before chkSTART if there are no other hborder marks, they are a preview with hborder before recording start
     mark = marks.GetFirst();
     if (mark && (mark->type == MT_HBORDERSTART) && mark->Next() && (mark->Next()->type == MT_HBORDERSTOP) && (mark->Next()->position < chkSTART) && (marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 1)) {
@@ -2070,10 +2084,9 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                         maxAd            = 505;
                         maxBeforeAssumed = 755;
                     }
-                    int iStopA2 = marks.GetFirst()->position + macontext.Video.Info.framesPerSecond * (length + macontext.Config->astopoffs);  // we have to recalculate iStopA
                     if (markPrev->type == MT_LOGOSTART) {
-                        int diffAssumedStopStart = (iStopA2 - markPrev->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::CheckMarks(): last logo start mark (%d) is %ds before assumed stop (%d)", markPrev->position, diffAssumedStopStart, iStopA2);
+                        int diffAssumedStopStart = (newStopA - markPrev->position) / macontext.Video.Info.framesPerSecond;
+                        dsyslog("cMarkAdStandalone::CheckMarks(): last logo start mark (%d) is %ds before assumed stop (%d)", markPrev->position, diffAssumedStopStart, newStopA);
                         if (diffAssumedStopStart <= 16) {
                             maxAd            = 529;
                             maxBeforeAssumed = 493;  // changed from 498 to 493
@@ -2083,8 +2096,8 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
 
                     if ((diffStop > 2) && (diffStop <= maxAd)) { // changed from 0 to 2 to avoid move to logo detection failure
                         if ((mark->type != MT_LOGOSTOP) || (diffStop < 11) || (diffStop > 12)) { // ad from 11s to 12s can be undetected info logo at the end (SAT.1 or RTL2)
-                            int diffAssumed = (iStopA2 - markStop->position) / macontext.Video.Info.framesPerSecond; // distance from assumed stop
-                            dsyslog("cMarkAdStandalone::CheckMarks():  stop mark before end (%d) %ds (expect <%ds) before assumed stop (%d)", markStop->position, diffAssumed, maxBeforeAssumed, iStopA2);
+                            int diffAssumed = (newStopA - markStop->position) / macontext.Video.Info.framesPerSecond; // distance from assumed stop
+                            dsyslog("cMarkAdStandalone::CheckMarks():  stop mark before end (%d) %ds (expect <%ds) before assumed stop (%d)", markStop->position, diffAssumed, maxBeforeAssumed, newStopA);
                             if (diffAssumed < maxBeforeAssumed) {
                                 dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark before as end mark, assume too big recording length");
                                 marks.Del(mark->position);
