@@ -1108,11 +1108,13 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 
         // maybe coloured logo on same colored background, try without plane 0
         if ((((area.status == LOGO_UNINITIALIZED) && (rPixel < (mPixel * logo_vmark))) ||  // at start make sure we get at least a quick initial logo visible
-            ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * logo_imark)) && (rPixel > (mPixel * logo_imark * 0.4)))) &&  // we have a some machtes but not enough
-                                                                                                                               // changed from 0.5 to 0.4
+            ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * logo_imark)) && (rPixel > (mPixel * logo_imark * 0.3)))) &&  // we have a some machtes but not enough
+                                                                                                                               // changed from 0.5 to 0.4 to 0.3
              (area.intensity > 50)) {  // changed from 120 to 50
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cMarkAdLogo::Detect(): result plane 0: rp=%d | mp=%d , plane 1: rp=%d | mp=%d, plane 2: rp=%d | mp=%d", area.rPixel[0], area.mPixel[0], area.rPixel[1], area.mPixel[1], area.rPixel[2], area.mPixel[2]);
+            dsyslog("cMarkAdLogo::Detect():       plane 0: rp=%5d | mp=%5d", area.rPixel[0], area.mPixel[0]);
+            dsyslog("cMarkAdLogo::Detect():       plane 1: rp=%5d | mp=%5d", area.rPixel[1], area.mPixel[1]);
+            dsyslog("cMarkAdLogo::Detect():       plane 2: rp=%5d | mp=%5d", area.rPixel[2], area.mPixel[2]);
 #endif
             if ((area.rPixel[1] + area.rPixel[2]) > 0) {  // if we have no result in plane 1/2, do not use it
                 rPixel -= area.rPixel[0]; //  try without plane 0
