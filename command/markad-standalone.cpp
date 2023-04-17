@@ -3246,7 +3246,8 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 }
             }
             if (adInFrameEndPosition != -1) {  // if we found advertising in frame, use this
-                adInFrameEndPosition = recordingIndexMark->GetIFrameAfter(adInFrameEndPosition + 1);  // we got last frame of ad, go to next iFrame for start mark
+                if (!macontext.Config->fullDecode) adInFrameEndPosition = recordingIndexMark->GetIFrameAfter(adInFrameEndPosition + 1);  // we got last frame of ad, go to next iFrame for start mark
+                else adInFrameEndPosition++; // use next frame after ad in frame as start mark
                 markLogo = marks.Move(markLogo, adInFrameEndPosition, "advertising in frame");
                 save = true;
             }
@@ -3315,7 +3316,8 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             if (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position)) {
                 int newStopPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(false);
                 if (newStopPosition != -1) {
-                    newStopPosition = recordingIndexMark->GetIFrameBefore(newStopPosition - 1);  // we got first frame of ad, go one iFrame back for stop mark
+                    if (!macontext.Config->fullDecode) newStopPosition = recordingIndexMark->GetIFrameBefore(newStopPosition - 1);  // we got first frame of ad, go one iFrame back for stop mark
+                    else newStopPosition--; // get frame before ad in frame as stop mark
                     markLogo = marks.Move(markLogo, newStopPosition, "advertising in frame");
                     save = true;
                }
