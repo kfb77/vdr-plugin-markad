@@ -1451,8 +1451,8 @@ void cMarkAdStandalone::CheckStart() {
                             dsyslog("cMarkAdStandalone::CheckStart(): blackscreen length %dms", blacklength);
                             if (blacklength >= 2160) {  // trust only a long blackscreen
                                 dsyslog("cMarkAdStandalone::CheckStart(): sequence blackscreen start / logo stop / blacksceen end / logo start found, this is the broadcast start");
-                                dsyslog("cMarkAdStandalone::CheckStart(): delete all other logo stop/start marks");
-                                marks.DelFromTo(lStart->position + 1, INT_MAX, MT_LOGOCHANGE);
+                                dsyslog("cMarkAdStandalone::CheckStart(): delete all other logo stop/start marks next 300s (min broadcast length)");
+                                marks.DelFromTo(lStart->position + 1, lStart->position + (300 *  macontext.Video.Info.framesPerSecond), MT_LOGOCHANGE);
                                 break;
                             }
                         }
