@@ -1581,7 +1581,7 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
 #endif
     if (((valLeft <= BRIGHTNESS_V_MAYBE) && (valRight <= BRIGHTNESS_V_SURE)) || ((valLeft <= BRIGHTNESS_V_SURE) && (valRight <= BRIGHTNESS_V_MAYBE))) {
         // vborder detected
-        if (borderframenumber == -1) {
+        if (borderframenumber == -1) {   // first vborder detected
             borderframenumber = frameNumber;
         }
         if (borderstatus != VBORDER_VISIBLE) {
@@ -1589,8 +1589,15 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
             dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d) duration %ds", frameNumber, static_cast<int> ((frameNumber - borderframenumber) /  maContext->Video.Info.framesPerSecond));
 #endif
             if (frameNumber > (borderframenumber + maContext->Video.Info.framesPerSecond * MIN_V_BORDER_SECS)) {
-                if ((borderstatus == VBORDER_UNINITIALIZED) || (borderstatus == VBORDER_RESTART)) *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
-                else *borderFrame = borderframenumber;
+                switch (borderstatus) {
+                    case VBORDER_UNINITIALIZED:
+                        *borderFrame = 0;
+                        break;
+                    case VBORDER_RESTART:
+                        *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
+                        break;
+                    default: *borderFrame = borderframenumber;
+                }
                 borderstatus = VBORDER_VISIBLE; // detected start of black border
             }
         }
@@ -1598,8 +1605,7 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
     else {
         // no vborder detected
         if (borderstatus != VBORDER_INVISIBLE) {
-            if ((borderstatus == VBORDER_UNINITIALIZED) || (borderstatus == VBORDER_RESTART)) *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
-
+            if ((borderstatus == VBORDER_UNINITIALIZED) || (borderstatus == VBORDER_RESTART)) *borderFrame = -1;  // do not report back a border change, only set internal state
             else *borderFrame = frameNumber;
             borderstatus = VBORDER_INVISIBLE; // detected stop of black border
         }
