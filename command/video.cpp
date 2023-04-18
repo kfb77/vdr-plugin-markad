@@ -1108,7 +1108,8 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 
         // maybe coloured logo on same colored background, try without plane 0
         if ((((area.status == LOGO_UNINITIALIZED) && (rPixel < (mPixel * logo_vmark))) ||  // at start make sure we get at least a quick initial logo visible
-            ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * logo_imark)) && (rPixel > (mPixel * logo_imark * 0.3)))) &&  // we have a some machtes but not enough
+             ((area.status == LOGO_INVISIBLE)     && (rPixel < (mPixel * logo_vmark)) && (rPixel > (mPixel * logo_imark))) ||  // try get early logo start on bright background
+             ((area.status == LOGO_VISIBLE)       && (rPixel < (mPixel * logo_imark)) && (rPixel > (mPixel * logo_imark * 0.3)))) &&  // we have a some machtes but not enough
                                                                                                                                // changed from 0.5 to 0.4 to 0.3
              (area.intensity > 50)) {  // changed from 120 to 50
 #ifdef DEBUG_LOGO_DETECTION
