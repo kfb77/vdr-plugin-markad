@@ -1131,19 +1131,17 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     }
 
 // set logo visible/unvisible status
+    // set initial start status
     if (area.status == LOGO_UNINITIALIZED) {
         if (rPixel >= (mPixel * logo_vmark)) area.status = LOGO_VISIBLE;
-        else area.status = LOGO_INVISIBLE;  // at new log detection start we initialize even with an unclear result
-
+        else                                 area.status = LOGO_INVISIBLE;
         *logoFrameNumber = frameCurrent;
         area.frameNumber = frameCurrent;
         return area.status;
     }
-
     if (area.status == LOGO_RESTART) {
         if (rPixel >= (mPixel * logo_vmark)) area.status = LOGO_VISIBLE;
-        if (rPixel <  (mPixel * logo_imark)) area.status = LOGO_INVISIBLE;
-
+        if (rPixel <  (mPixel * logo_imark)) area.status = LOGO_INVISIBLE;  // wait for a clear result
         *logoFrameNumber = -1;   // no logo change report after detection restart
         area.frameNumber = frameCurrent;
         return area.status;
@@ -1216,7 +1214,6 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const int frameCurrent, int *logoFrameNumber) {
     if (!maContext) return LOGO_ERROR;
     if (!maContext->Video.Data.valid) {
-        area.status = LOGO_UNINITIALIZED;
         dsyslog("cMarkAdLogo::Process(): video data not valid at frame (%i)", iFrameCurrent);
         return LOGO_ERROR;
     }
