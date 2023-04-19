@@ -306,7 +306,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMin  = 126;
     }
     if (strcmp(maContext->Info.ChannelName, "kabel_eins") == 0) {            // kabel_eins              16:9  720W  576H:->   86W  72H TOP_RIGHT
-        logo.widthMax  =  86;
+        logo.widthMax  =  88;                                                // kabel_eins              16:9  720W  576H:->   88W  72H TOP_RIGHT
     }
     if (strcmp(maContext->Info.ChannelName, "MDR_Sachsen") == 0) {           // MDR_Sachsen             16:9  720W  576H:->   92W  56H TOP_LEFT
         logo.heightMin =  56;
@@ -512,8 +512,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
             break;
         case 1920:
             if (logo.widthMin  == 0) logo.widthMin  =  202; // SAT_1_HD                16:9 1920W 1080H:->  202W 132H TOP_RIGHT
-            if (logo.widthMax  == 0) logo.widthMax  =  394; // n-tv_HD                 16:9 1920W 1080H:->  394W 110H BOTTOM_RIGHT
-                                                            // n-tv_HD                 16:9 1920W 1080H:->  394W 122H BOTTOM_RIGHT
+            if (logo.widthMax  == 0) logo.widthMax  =  396; // ANIXE_HD                16:9 1920W 1080H:->  396W 180H TOP_LEFT
             if (logo.heightMin == 0) logo.heightMin =   96; // münchen_tv_HD           16:9 1920W 1080H:->  336W  96H TOP_LEFT
             if (logo.heightMax == 0) logo.heightMax =  180; // ANIXE_HD                16:9 1920W 1080H:->  336W 180H TOP_LEFT
             break;
