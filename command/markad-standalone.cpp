@@ -1196,22 +1196,31 @@ void cMarkAdStandalone::CheckStart() {
                 begin = marks.GetAround(delta * 3, iStartA, MT_ASPECTSTART);
                 if (begin) {
                     dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTART found at (%i) because previous recording was 4:3", begin->position);
-                    cMark *vBorderStart = marks.GetAround(delta, begin->position, MT_VBORDERSTART);  // do not use this mark if there is a later vborder start mark
-                    if (vBorderStart && (vBorderStart->position >  begin->position)) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): found later MT_VBORDERSTAT, do not use MT_ASPECTSTART");
+                    if (begin->position < IGNORE_AT_START) {  // wrong aspect start/stop can happen if aspect ratio from VDR info file is missing or wrong
+                        dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTART (%d) is start of recording, delete start mark and invert aspect stop mark", begin->position);
+                        cMark *aspectStop = marks.GetNext(begin->position, MT_ASPECTSTOP);
+                        if (aspectStop) marks.ChangeType(aspectStop, MT_START);
+                        marks.Del(begin->position);
                         begin = NULL;
                     }
                     else {
-                        cMark *logoStart = marks.GetAround(delta * 4, begin->position, MT_LOGOSTART);  // do not use this mark if there is a later logo start mark
-                        if (logoStart && (logoStart->position > begin->position)) {
-                            cMark *stopVBorder = marks.GetNext(begin->position, MT_VBORDERSTOP); // if we have vborder stop between aspect start and logo start mark
-                                                                                                 // logo start mark is invalid
-                            if (stopVBorder && (stopVBorder->position < logoStart->position)) {
-                                dsyslog("cMarkAdStandalone::CheckStart(): vborder stop found at (%d), between aspect stop (%d) and logo stop (%d), aspect start is valid", stopVBorder->position, begin->position, logoStart->position);
-                            }
-                            else {
-                                dsyslog("cMarkAdStandalone::CheckStart(): found later MT_LOGOSTART, do not use MT_ASPECTSTART");
-                                begin = NULL;
+                        cMark *vBorderStart = marks.GetAround(delta, begin->position, MT_VBORDERSTART);  // do not use this mark if there is a later vborder start mark
+                        if (vBorderStart && (vBorderStart->position >  begin->position)) {
+                            dsyslog("cMarkAdStandalone::CheckStart(): found later MT_VBORDERSTAT, do not use MT_ASPECTSTART");
+                            begin = NULL;
+                        }
+                        else {
+                            cMark *logoStart = marks.GetAround(delta * 4, begin->position, MT_LOGOSTART);  // do not use this mark if there is a later logo start mark
+                            if (logoStart && (logoStart->position > begin->position)) {
+                                cMark *stopVBorder = marks.GetNext(begin->position, MT_VBORDERSTOP); // if we have vborder stop between aspect start and logo start mark
+                                                                                                     // logo start mark is invalid
+                                if (stopVBorder && (stopVBorder->position < logoStart->position)) {
+                                    dsyslog("cMarkAdStandalone::CheckStart(): vborder stop found at (%d), between aspect stop (%d) and logo stop (%d), aspect start is valid", stopVBorder->position, begin->position, logoStart->position);
+                                }
+                                else {
+                                    dsyslog("cMarkAdStandalone::CheckStart(): found later MT_LOGOSTART, do not use MT_ASPECTSTART");
+                                    begin = NULL;
+                                }
                             }
                         }
                     }
