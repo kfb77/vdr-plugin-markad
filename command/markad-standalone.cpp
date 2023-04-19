@@ -195,8 +195,8 @@ int cMarkAdStandalone::CheckStop() {
     // check for very long dark opening credits of next braodcast and cleanup marks
     if (macontext.Video.Info.frameDarkOpeningCredits >= 0) {
         dsyslog("cMarkAdStandalone::CheckStop(): found very long dark opening credits start at frame (%d), check which type of border mark is valid", macontext.Video.Info.frameDarkOpeningCredits);
-        cMark *hStart = marks.GetNext(macontext.Video.Info.frameDarkOpeningCredits, MT_HBORDERSTART);
-        cMark *vStart = marks.GetNext(macontext.Video.Info.frameDarkOpeningCredits, MT_VBORDERSTART);
+        cMark *hStart = marks.GetNext(macontext.Video.Info.frameDarkOpeningCredits - 1, MT_HBORDERSTART);
+        cMark *vStart = marks.GetNext(macontext.Video.Info.frameDarkOpeningCredits - 1, MT_VBORDERSTART);
         if (hStart && !vStart) {
             dsyslog("cMarkAdStandalone::CheckStop(): hborder start found but no vborder start, next broadcast has hborder");
             cMark *vStop = marks.GetNext(iStopA, MT_VBORDERSTOP);
