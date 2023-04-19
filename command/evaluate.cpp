@@ -1167,59 +1167,17 @@ bool cDetectLogoStopStart::IsLogoChange() {
     }
     dsyslog("cDetectLogoStopStart::isLogoChange(): check logo change between logo stop (%d) and logo start (%d)", startPos, endPos);
 
-    struct previewImage {  // image at the end of a preview
-        int start  = 0;
-        int end    = 0;
-        int length = 0;
-    } previewImage;
-
-    struct sAdInFrame {
-        int start      = -1;
-        int startFinal = -1;
-        int end        = -1;
-        int endFinal   = -1;
-    } AdInFrame;
-
-
-    int highMatchCount          = 0;  // check if we have a lot of very similar pictures in the logo corner
-    int lowMatchCount           = 0;   // we need at least a hight quote of low similar pictures in the logo corner, if not there is no logo
-    int count                   = 0;
-    int countNoLogoInLogoCorner = 0;
-    int match[CORNERS]          = {0};
-    int matchNoLogoCorner       = 0;
-    int darkSceneStart          = -1;
-
-    bool isSeparationImageLowPixel = false;
-    bool status                    = true;
+    int  highMatchCount          =  0;  // check if we have a lot of very similar pictures in the logo corner
+    int  lowMatchCount           =  0;   // we need at least a hight quote of low similar pictures in the logo corner, if not there is no logo
+    int  count                   =  0;
+    int  countNoLogoInLogoCorner =  0;
+    int  match[CORNERS]          = {0};
+    int  matchNoLogoCorner       =  0;
+    int  darkSceneStart          = -1;
+    bool status                  =  true;
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
         dsyslog("cDetectLogoStopStart::isLogoChange(): frame (%5d) and frame (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
-
-        // check for advertising in frame without logo
-        int adInFrameCorner = 0;
-        for (int corner = 0; corner < CORNERS; corner++) {
-            if ((*cornerResultIt).rate[corner] >= 651) adInFrameCorner++;
-        }
-        if (adInFrameCorner >= 3) { // at least 3 corner have a high match
-            if (AdInFrame.start == -1) AdInFrame.start = (*cornerResultIt).frameNumber1;
-            AdInFrame.end = (*cornerResultIt).frameNumber2;
-        }
-        else {
-            if ((AdInFrame.end - AdInFrame.start) > (AdInFrame.endFinal - AdInFrame.startFinal)) {
-                AdInFrame.startFinal = AdInFrame.start;
-                AdInFrame.endFinal   = AdInFrame.end;
-                AdInFrame.start      = -1;
-                AdInFrame.end        = -1;
-            }
-        }
-
-        // calculate possible preview fixed images
-#define LOGO_CHANGE_STILL_MATCH_MIN 655  // chnaged from 500 to 655
-        if (((*cornerResultIt).rate[0] >= LOGO_CHANGE_STILL_MATCH_MIN) && ((*cornerResultIt).rate[1] >= LOGO_CHANGE_STILL_MATCH_MIN) &&
-            ((*cornerResultIt).rate[2] >= LOGO_CHANGE_STILL_MATCH_MIN) && ((*cornerResultIt).rate[3] >= LOGO_CHANGE_STILL_MATCH_MIN)) {
-            if (previewImage.start == 0) previewImage.start = (*cornerResultIt).frameNumber1;
-            previewImage.end = (*cornerResultIt).frameNumber2;
-        }
 
         // calculate matches
         count ++;
@@ -1260,46 +1218,10 @@ bool cDetectLogoStopStart::IsLogoChange() {
             }
             else return false;
         }
-        if ((matchPicture <= 197) && ((*cornerResultIt).frameNumber1 >= previewImage.end) && (previewImage.end != 0)) { // all 4 corner has only a few pixel, changed from 98 to 197
-            if (darkSceneStart == -1) {
-                isSeparationImageLowPixel = true; // we found a separation image after preview image
-                dsyslog("cDetectLogoStopStart::isLogoChange(): separation image found with low pixel count found");
-            }
-            else dsyslog("cDetectLogoStopStart::isLogoChange(): separation image with low pixel count after dark scene found, ignoring");
-        }
     }
     // log found results
     for (int corner = 0; corner < CORNERS; corner++) {
         dsyslog("cDetectLogoStopStart::isLogoChange(): corner %-12s rate summery %5d of %2d frames", aCorner[corner], match[corner], count);
-    }
-
-    // check if we found an advertising in frame without logo
-    if ((AdInFrame.end - AdInFrame.start) > (AdInFrame.endFinal - AdInFrame.startFinal)) {
-        AdInFrame.startFinal = AdInFrame.start;
-        AdInFrame.endFinal   = AdInFrame.end;
-    }
-    if (AdInFrame.startFinal >= 0) {
-        int adInFrameLength = 1000 * (AdInFrame.endFinal - AdInFrame.startFinal) / maContext->Video.Info.framesPerSecond;
-        dsyslog("cDetectLogoStopStart::isLogoChange(): found advertising in frame without logo from (%d) to (%d), length %dms", AdInFrame.startFinal, AdInFrame.endFinal, adInFrameLength);
-        if (adInFrameLength >= 4800) {
-            dsyslog("cDetectLogoStopStart::isLogoChange(): there is an advertising in frame without logo, pair contains a valid start mark");
-            return false;
-        }
-    }
-
-    // check if there is a separation image
-#define LOGO_CHANGE_STILL_QUOTE_MIN           71  // changed from 77 to 71
-#define LOGO_CHANGE_STILL_LENGTH_SHORT_MIN   960
-#define LOGO_CHANGE_STILL_LENGTH_LONG_MIN  11000
-    previewImage.length = 1000 * (previewImage.end - previewImage.start) / maContext->Video.Info.framesPerSecond;
-    int quote = 100 * (previewImage.end - previewImage.start) / (endPos - startPos);
-    dsyslog("cDetectLogoStopStart::isLogoChange(): preview image: start (%d) end (%d), length %dms (expect short >= %ds long >%dms), quote %d%% (expect >=%d%%)", previewImage.start, previewImage.end, previewImage.length, LOGO_CHANGE_STILL_LENGTH_SHORT_MIN, LOGO_CHANGE_STILL_LENGTH_LONG_MIN, quote, LOGO_CHANGE_STILL_QUOTE_MIN);
-    if ((quote >= LOGO_CHANGE_STILL_QUOTE_MIN) ||                    // a big part is still image
-       ((previewImage.length >= LOGO_CHANGE_STILL_LENGTH_SHORT_MIN) && isSeparationImageLowPixel) ||   // short still image, changed from 3 to 2 to 1 and a separator frame
-        (previewImage.length > LOGO_CHANGE_STILL_LENGTH_LONG_MIN)) { // a long still preview image direct before broadcast start, changed from 9 to 11
-                                                                     // prevent detection a still scene as separation image
-        dsyslog("cDetectLogoStopStart::isLogoChange(): there is a separation images, pair can contain a valid start mark");
-        return false;
     }
 
     // check match quotes
