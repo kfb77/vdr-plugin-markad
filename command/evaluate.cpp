@@ -1489,8 +1489,9 @@ int cDetectLogoStopStart::ClosingCredit() {
         if (closingCreditsFrame == -1) {
             int lengthStillImage      = 1000 *  (ClosingImage.endFinal - ClosingImage.startFinal) / maContext->Video.Info.framesPerSecond;
             int offsetStartStillImage = 1000 * (ClosingImage.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
-            if (lengthStillImage > 4200) {  // changed from 0 to 4200
-                dsyslog("cDetectLogoStopStart::ClosingCredit(): still image from (%d) to (%d), start offset %dms (expect <= %dms), length %dms)", ClosingImage.startFinal, ClosingImage.endFinal, offsetStartStillImage, CLOSING_CREDITS_STILL_OFFSET_MAX, lengthStillImage);
+            dsyslog("cDetectLogoStopStart::ClosingCredit(): still image from (%d) to (%d), start offset %dms (expect <= %dms), length [5280ms<] %dms [<19680ms]", ClosingImage.startFinal, ClosingImage.endFinal, offsetStartStillImage, CLOSING_CREDITS_STILL_OFFSET_MAX, lengthStillImage);
+            if ((lengthStillImage > 5280) && (lengthStillImage < 19680)) {  // limit length to prevent to false detect long sill start scene of next broadcast
+                                                                            // changed min from 0 to 4200 to 5280
                 if (offsetStartStillImage <= CLOSING_CREDITS_STILL_OFFSET_MAX) {
                     dsyslog("cDetectLogoStopStart::ClosingCredit(): still image found");
                     closingCreditsFrame = ClosingImage.endFinal;
