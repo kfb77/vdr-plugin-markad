@@ -1776,7 +1776,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
         for (int corner = 0; corner < CORNERS; corner++) {
             if ((*cornerResultIt).rate[corner]  <=  0) countZero++;
             if ((*cornerResultIt).rate[corner]  <= 65) countLow++;
-            if (((*cornerResultIt).rate[corner] <=  0) || ((*cornerResultIt).rate[corner] >= 142)) countStillImage++; // changed from 964 to 441 to 142
+            if (((*cornerResultIt).rate[corner] <=  0) || ((*cornerResultIt).rate[corner] > 507)) countStillImage++; // changed from 142 to 507
             sumPixel += (*cornerResultIt).rate[corner];
         }
         // examples of separator frames before introduction logo
@@ -1820,8 +1820,8 @@ int cDetectLogoStopStart::IntroductionLogo() {
         }
 
         // detect still image
-        if ((separatorFrameBefore >= 0) && (introductionLogo.start >= 0) && (countStillImage >= 3)) { // still image or closing credists after introduction logo
-                                                                                                      // countStillImage: changed from 4 to 3
+        if ((separatorFrameBefore >= 0) && (introductionLogo.start >= 0) && (countStillImage >= 4)) { // still image or closing credists after introduction logo
+                                                                                                      // countStillImage: changed from 3 to 4
             if (stillImage.start == -1) stillImage.start = (*cornerResultIt).frameNumber1;
             stillImage.end = (*cornerResultIt).frameNumber2;
         }
