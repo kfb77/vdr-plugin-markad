@@ -2469,11 +2469,14 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             if ((mark->position > chkSTART) && (mark->position < iStopA / 2) && !macontext.Audio.Info.channelChange) {
                 dsyslog("cMarkAdStandalone::AddMark(): first audio channel change is after chkSTART, disable logo/border/aspect detection now");
                 if (iStart == 0) marks.DelWeakFromTo(marks.GetFirst()->position, INT_MAX, MT_CHANNELCHANGE); // only if we heve selected a start mark
+                // disable all video detection TODO: maybe we can optimize exact frame number with blackscreen
                 bDecodeVideo = false;
                 video->ClearBorder();
-                macontext.Video.Options.ignoreAspectRatio = true;
-                macontext.Video.Options.ignoreLogoDetection = true;
+                macontext.Video.Options.ignoreAspectRatio          = true;
+                macontext.Video.Options.ignoreLogoDetection        = true;
                 macontext.Video.Options.ignoreBlackScreenDetection = true;
+                macontext.Video.Options.ignoreVborder              = true;
+                macontext.Video.Options.ignoreHborder              = true;
             }
             macontext.Audio.Info.channelChange = true;
             if (asprintf(&comment, "audio channel change from %i to %i (%6d)", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;

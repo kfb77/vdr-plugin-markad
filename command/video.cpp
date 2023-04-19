@@ -1485,8 +1485,16 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
         }
         if (borderstatus != HBORDER_VISIBLE) {
             if (FrameNumber > (borderframenumber + maContext->Video.Info.framesPerSecond * MIN_H_BORDER_SECS)) {
-                if (borderstatus == HBORDER_RESTART) *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
-                else *borderFrame = borderframenumber;
+                switch (borderstatus) {
+                    case HBORDER_UNINITIALIZED:
+                        *borderFrame = 0;  // report back a border change after recording start
+                        break;
+                    case HBORDER_RESTART:
+                        *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
+                        break;
+                    default:
+                        *borderFrame = borderframenumber;
+                }
                 borderstatus = HBORDER_VISIBLE; // detected start of black border
             }
         }
@@ -1916,6 +1924,7 @@ cMarkAdVideo::~cMarkAdVideo() {
 
 
 void cMarkAdVideo::Clear(const bool isRestart) {
+    dsyslog("cMarkAdVideo::Clear(): reset detection status, isRestart = %d", isRestart);
     if (!isRestart) {
         aspectRatio.num=0;
         aspectRatio.den=0;
@@ -1936,6 +1945,7 @@ void cMarkAdVideo::Clear(const bool isRestart) {
 
 
 void cMarkAdVideo::ClearBorder() {
+    dsyslog("cMarkAdVideo::ClearBorder(): reset border detection status");
     if (vborder) vborder->Clear();
     if (hborder) hborder->Clear();
 }
