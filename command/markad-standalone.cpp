@@ -2161,11 +2161,13 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
             }
             else dsyslog("cMarkAdStandalone::CheckMarks(): mark distance between logo START and STOP %.1fs, keep (%i,%i)", distance, mark->position, mark->Next()->position);
         }
+
+        // check for logo detection failure, delete if logo stop/start pair is too short for an ad
         if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
-            int MARKDIFF = static_cast<int> (macontext.Video.Info.framesPerSecond * 23);   // assume thre is shortest advertising, changed from 20s to 23s
-            if ((mark->Next()->position - mark->position) <= MARKDIFF) {
-                double distance = (mark->Next()->position - mark->position) / macontext.Video.Info.framesPerSecond;
-                isyslog("mark distance between logo STOP and START too short (%.1fs), deleting %i,%i", distance, mark->position, mark->Next()->position);
+            int lengthAd = 1000 * (mark->Next()->position - mark->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::CheckMarks(): mark distance between logo stop (%d) and logo start (%d), length advertising %dms", mark->position, mark->Next()->position, lengthAd);
+            if (lengthAd < 13040) {  // found shortest ad with 13040ms
+                isyslog("mark distance %ds too short, deleting logo stop mark (%d) and logo start mark (%d)", lengthAd / 1000, mark->position, mark->Next()->position);
                 cMark *tmp = mark;
                 mark = mark->Next()->Next();
                 marks.Del(tmp->Next());
