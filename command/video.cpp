@@ -707,12 +707,14 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 #ifdef DEBUG_LOGO_DETECTION
     sumPixel = 0;
 #endif
-    int reduceBrightness = brightnessLogo - 128; // bring logo area to +- 128
+
+#define REDUCE_BRIGHTNESS 30
+#define INCREASE_CONTRAST 2
     for (int line = ystart; line < yend; line++) {
         for (int column = xstart; column < xend; column++) {
-            int pixel = maContext->Video.Data.Plane[0][line * maContext->Video.Data.PlaneLinesize[0] + column] - reduceBrightness;
-            if (pixel > 128) pixel += 20;  // increase contrast around logo part brightness +- 128, do not do too much, otherwise clouds will detected as logo parts
-            if (pixel < 128) pixel -= 20;
+            int pixel = maContext->Video.Data.Plane[0][line * maContext->Video.Data.PlaneLinesize[0] + column] - REDUCE_BRIGHTNESS;
+            if (pixel < 0) pixel = 0;
+            pixel = INCREASE_CONTRAST * (pixel - 128) + 128;
             if (pixel < 0) pixel = 0;
             if (pixel > 255) pixel = 255;
             maContext->Video.Data.Plane[0][line * maContext->Video.Data.PlaneLinesize[0] + column] = pixel;
@@ -1018,6 +1020,12 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                     }
                 }
 #endif
+                if (area.intensity >= 152) { // still too bright, we can not use the result
+#ifdef DEBUG_LOGO_DETECTION
+                    dsyslog("cMarkAdLogo::Detect(): frame (%6d) brightness reducation successful, but logo area still too bright", frameCurrent);
+#endif
+                    return LOGO_NOCHANGE;
+                }
                 if ((area.status == LOGO_INVISIBLE) && contrastReduced < 25) {  // if we have a very low contrast this could not be a new logo
                     return LOGO_NOCHANGE;
                 }
@@ -1099,7 +1107,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
            ((brightnessState == BRIGHTNESS_ERROR) || (brightnessState == BRIGHTNESS_UNINITIALIZED)) &&
             (rPixel < (mPixel * logo_vmark))) {  // accept it, if we can see a logo
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cMarkAdLogo::Detect(): frame (%6d) still too bright", frameCurrent);
+            dsyslog("cMarkAdLogo::Detect(): frame (%6d) too bright", frameCurrent);
 #endif
             return LOGO_NOCHANGE;
         }
