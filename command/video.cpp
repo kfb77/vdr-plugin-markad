@@ -536,9 +536,10 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
     // contrast 178, brightness 142
     // contrast 181, brightness 131
     // contrast 200, brightness 122
-    if ((contrastLogo > 162) && (brightnessLogo < 110)) { // contrastLogo changed from 164 to 162
-                                                          // brightnessLogo changed from 150 to 110
-                                                          // do not increase, we will get undetected logos in bright area
+    if (((contrastLogo > 162) && (brightnessLogo < 110) && (maContext->Video.Logo.pixelRatio >  18)) ||   // contrastLogo changed from 164 to 162
+                                                                                                          // brightnessLogo changed from 150 to 110
+                                                                                                          // do not increase, we will get undetected logos in bright area
+        ((contrastLogo > 162) && (brightnessLogo <  91) && (maContext->Video.Logo.pixelRatio <= 18))) {
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): very high contrast with not very high brightness in logo area, trust detection");
 #endif
@@ -641,7 +642,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast  13, brightness 207
 // contrast   3, brightness 206
 // contrast   9, brightness 205
-    if (maContext->Video.Logo.pixelRatio > 16) { // normal logo
+    if (maContext->Video.Logo.pixelRatio > 18) { // normal logo
         // build the curve
         if (((contrastLogo >= 114) && (brightnessLogo >= 142)) ||  // contrast changed from 115 to 114, brightness changed from 151 to 142
             ((contrastLogo >=  86) && (brightnessLogo >= 153)) ||  // contrast changed from  95 to  86, brightness changed from 163 to 153
@@ -654,14 +655,17 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
             return BRIGHTNESS_ERROR; //  nothing we can work with
         }
     }
-// logo with 16/1000 or less pixel in logo corner (e.g. Kutonen_HD)
+// logo with 18/1000 or less pixel in logo corner (e.g. Kutonen_HD)
 // brightness reduction does not work very well if we have only a few pixel
 // not detected logo in bright area, take it as invalid
 //
+// contrast 132, brightness 136  NEW
 // contrast 111, brightness 146
+//
 // contrast 106, brightness 156
 // contrast 106, brightness 154
 // contrast 106, brightness 152
+// contrast  98, brightness 143  NEW
 // contrast  94, brightness 145
 // contrast  92, brightness 157
 // contrast  85, brightness 157
@@ -685,8 +689,8 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast  25, brightness 195
 // contrast  16, brightness 202
     else {  // logo with low pixel count
-        if (((contrastLogo >= 115) && (brightnessLogo >= 142)) ||
-            ((contrastLogo >=  86) && (brightnessLogo >= 145)) ||
+        if (((contrastLogo >= 115) && (brightnessLogo >= 136)) ||
+            ((contrastLogo >=  86) && (brightnessLogo >= 143)) ||
             ((contrastLogo >=  51) && (brightnessLogo >= 154)) ||
             ((contrastLogo >=  34) && (brightnessLogo >= 176)) ||
             ((contrastLogo >=  16) && (brightnessLogo >= 187))) {
