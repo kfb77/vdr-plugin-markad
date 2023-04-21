@@ -31,14 +31,6 @@
 #define PLANES 3
 #define CORNERS 4
 
-#define MA_I_TYPE 1
-#define MA_P_TYPE 2
-#define MA_B_TYPE 3
-#define MA_D_TYPE 4
-#define MA_SI_TYPE 5
-#define MA_SP_TYPE 6
-#define MA_BI_TYPE 7
-
 #define MT_UNDEFINED       (unsigned char) 0
 
 #define MT_START           (unsigned char) 1
