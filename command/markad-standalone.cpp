@@ -949,7 +949,7 @@ void cMarkAdStandalone::CheckStart() {
 
             if (macontext.Config->decodeAudio && macontext.Info.Channels[stream]) {
                 if ((macontext.Info.Channels[stream] == 6) && (macontext.Audio.Options.ignoreDolbyDetection == false)) {
-                    isyslog("DolbyDigital5.1 audio whith 6 Channels in stream %i detected", stream);
+                    isyslog("DolbyDigital5.1 audio whith 6 channels in stream %i detected", stream);
                     if (macontext.Audio.Info.channelChange) {
                         dsyslog("cMarkAdStandalone::CheckStart(): channel change detected, disable logo/border/aspect detection");
                         video->ClearBorder();
@@ -2490,7 +2490,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
                 macontext.Video.Options.ignoreHborder              = true;
             }
             macontext.Audio.Info.channelChange = true;
-            if (asprintf(&comment, "audio channel change from %i to %i (%6d)", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "audio channel change from %i to %i (%6d) ", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
             if (comment) {
                 ALLOC(strlen(comment)+1, "comment");
             }
