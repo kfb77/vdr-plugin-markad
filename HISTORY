@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-04-22: Version 3.2.4
+- change algorithms for adjusting brightness and contrast
+- cleanup invalid marks after long black opening credits
+- faster detect coloured logo start on bright background
+- some minor bug fixes and optimizations, see git
+
 2023-04-16: Version 3.2.3
 - declare ffmpeg < 4.2.7 as deprecated
 - optimize detection of colored logo on same color background
