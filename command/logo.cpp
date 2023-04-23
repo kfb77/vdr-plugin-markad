@@ -393,7 +393,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
                                                                              // TELE_5                  16:9  720W  576H:->   70W  76H TOP_LEFT     (01.10.2021)
         if (logoCorner == TOP_RIGHT) {
             logo.heightMin =  67;                                            // prevent to accept "NEUE SERIE" as logo, never saw a valid logo on TOP_RIGHT
-            logo.widthMax  = 101;                                            // prevent to accept advertisement logo as channel logo
+            logo.widthMax  =  91;                                            // prevent to accept advertisement logo as channel logo
         }
         else {
             logo.heightMin =  64;
