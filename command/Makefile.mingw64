@@ -51,6 +51,7 @@ OBJS+= audio.o
 OBJS+= video.o
 OBJS+= marks.o
 OBJS+= markad-standalone.o
+OBJS+= criteria.o
 
 WIN32_SRC:=$(wildcard win32/*.cpp)
 

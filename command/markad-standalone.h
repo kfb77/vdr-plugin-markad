@@ -18,6 +18,7 @@
 #include "encoder.h"
 #include "evaluate.h"
 #include "osd.h"
+#include "criteria.h"
 
 
 #define IGNORE_VIDEOINFO 1
@@ -159,6 +160,11 @@ class cMarkAdStandalone : public cEvaluateChannel {
  * check final start mark for invalid short start/stop pairs
  */
         void CheckStartMark();
+
+/**
+ * check for hborder end mark
+ */
+        cMark *Check_HBORDERSTOP();
 
 /**
  * check for end mark
@@ -311,6 +317,8 @@ class cMarkAdStandalone : public cEvaluateChannel {
         cOSDMessage *osd = NULL;                                       //!< OSD message text
                                                                        //!<
         sMarkAdContext macontext = {};                                 //!< markad context
+                                                                       //!<
+        cMarkCriteria markCriteria;                                    //!< status of possible mark types of the broadcast
                                                                        //!<
         cIndex *recordingIndexMark = NULL;                             //!< pointer to recording index class
                                                                        //!<

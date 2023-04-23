@@ -179,6 +179,52 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
 }
 
 
+cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
+// try MT_HBORDERSTOP
+    cMark *end = NULL;
+    // cleanup very short hborder start/stop pair after detection restart, this can be a very long dark scene
+    cMark *hStart = marks.GetNext(iStopA - (macontext.Video.Info.framesPerSecond * 2 * MAXRANGE), MT_HBORDERSTART);
+    if (hStart) {
+        cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);
+        if (hStop && (hStop->position < iStopA)) {
+            int broadcastLength = (hStop->position - hStart->position) / macontext.Video.Info.framesPerSecond;
+            if (broadcastLength <= 92) {
+                dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): found short hborder start (%d) stop (%d) pair, length %ds after detection restart, this can be a very long dark scene, delete marks", hStart->position, hStop->position, broadcastLength);
+                marks.Del(hStart->position);
+                marks.Del(hStop->position);
+            }
+        }
+    }
+    // search hborder stop mark around iStopA
+    end = marks.GetAround(600 * macontext.Video.Info.framesPerSecond, iStopA, MT_HBORDERSTOP);  // 10 minutes
+    if (end) {
+        dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): MT_HBORDERSTOP found at frame %i", end->position);
+        cMark *prevHStart = marks.GetPrev(end->position, MT_HBORDERSTART);
+        if (prevHStart && (prevHStart->position > iStopA)) {
+           dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): previous hborder start mark (%d) is after assumed stop (%d), hborder stop mark (%d) is invalid", prevHStart->position, iStopA, end->position);
+            // check if we got first hborder stop of next broadcast
+            cMark *hBorderStopPrev = marks.GetPrev(end->position, MT_HBORDERSTOP);
+            if (hBorderStopPrev) {
+                int diff = (iStopA - hBorderStopPrev->position) / macontext.Video.Info.framesPerSecond;
+                if (diff <= 476) { // maybe recording length is wrong
+                    dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): previous hborder stop mark (%d) is %ds before assumed stop, take this as stop mark", hBorderStopPrev->position, diff);
+                    end = hBorderStopPrev;
+                }
+                else {
+                    dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): previous hborder stop mark (%d) is %ds before assumed stop, not valid", hBorderStopPrev->position, diff);
+                    end = NULL;
+                }
+            }
+            else {
+                end = NULL;
+            }
+        }
+    }
+    else dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): no MT_HBORDERSTOP mark found");
+    return end;
+ }
+
+
 int cMarkAdStandalone::CheckStop() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStop(): start check stop (%i)", frameCurrent);
@@ -309,47 +355,7 @@ int cMarkAdStandalone::CheckStop() {
     }
 
 // try MT_HBORDERSTOP
-    if (!end) {
-        // cleanup very short hborder start/stop pair after detection restart, this can be a very long dark scene
-        cMark *hStart = marks.GetNext(iStopA - (macontext.Video.Info.framesPerSecond * 2 * MAXRANGE), MT_HBORDERSTART);
-        if (hStart) {
-            cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);
-            if (hStop && (hStop->position < iStopA)) {
-                int broadcastLength = (hStop->position - hStart->position) / macontext.Video.Info.framesPerSecond;
-                if (broadcastLength <= 92) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): found short hborder start (%d) stop (%d) pair, length %ds after detection restart, this can be a very long dark scene, delete marks", hStart->position, hStop->position, broadcastLength);
-                    marks.Del(hStart->position);
-                    marks.Del(hStop->position);
-                }
-            }
-        }
-        // search hborder stop mark around iStopA
-        end = marks.GetAround(5 * delta, iStopA, MT_HBORDERSTOP);         // increased from 3 to 5
-        if (end) {
-            dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTOP found at frame %i", end->position);
-            cMark *prevHStart = marks.GetPrev(end->position, MT_HBORDERSTART);
-            if (prevHStart && (prevHStart->position > iStopA)) {
-                dsyslog("cMarkAdStandalone::CheckStop(): previous hborder start mark (%d) is after assumed stop (%d), hborder stop mark (%d) is invalid", prevHStart->position, iStopA, end->position);
-                // check if we got first hborder stop of next broadcast
-                cMark *hBorderStopPrev = marks.GetPrev(end->position, MT_HBORDERSTOP);
-                if (hBorderStopPrev) {
-                    int diff = (iStopA - hBorderStopPrev->position) / macontext.Video.Info.framesPerSecond;
-                    if (diff <= 476) { // maybe recording length is wrong
-                        dsyslog("cMarkAdStandalone::CheckStop(): previous hborder stop mark (%d) is %ds before assumed stop, take this as stop mark", hBorderStopPrev->position, diff);
-                        end = hBorderStopPrev;
-                    }
-                    else {
-                        dsyslog("cMarkAdStandalone::CheckStop(): previous hborder stop mark (%d) is %ds before assumed stop, not valid", hBorderStopPrev->position, diff);
-                        end = NULL;
-                    }
-                }
-                else {
-                    end = NULL;
-                }
-            }
-        }
-        else dsyslog("cMarkAdStandalone::CheckStop(): no MT_HBORDERSTOP mark found");
-    }
+    if (!end && (markCriteria.GetState(MT_HBORDERCHANGE) >= MARK_UNKNOWN)) end = Check_HBORDERSTOP();
 
 // try MT_VBORDERSTOP
     if (!end  || (marks.First() && marks.First()->type == MT_VBORDERSTART)) {  // if start mark is VBORDER try anyway if we have a VBODERSTOP
@@ -890,6 +896,9 @@ void cMarkAdStandalone::CheckStart() {
     dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %i", iStartA);
     DebugMarks();     //  only for debugging
 #define IGNORE_AT_START 12   // ignore this number of frames at the start for start marks, they are initial marks from recording before, changed from 11 to 12
+
+    // set initial mark criterias
+    if (marks.Count(MT_HBORDERSTART) == 0) markCriteria.SetState(MT_HBORDERCHANGE, MARK_UNAVAILABLE);  // if we have no hborder start, broadcast can not have hborder
 
     int hBorderStopPosition = -1;
     int delta = macontext.Video.Info.framesPerSecond * MAXRANGE;
