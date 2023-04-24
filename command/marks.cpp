@@ -645,6 +645,26 @@ int cMarks::LoadVPS(const char *directory, const char *type) {
 }
 
 
+int cMarks::Length() {
+    if (!first) return 0;
+    int length = 0;
+    cMark *startMark = first;
+    cMark *stopMark  = NULL;
+    while (startMark) {
+        if ((startMark->type & 0x0F) == MT_START) {
+            stopMark = startMark->Next();
+            if ((stopMark && (stopMark->type & 0x0F) == MT_STOP)) {
+                length += stopMark->position - startMark->position;
+            }
+            else return 0;  // invalid secuence
+        }
+        else return 0;      // invalid sequence
+        startMark = stopMark->Next();
+    }
+    return length;
+}
+
+
 bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const bool force) {
     if (!directory) return false;
     if (!maContext) return false;

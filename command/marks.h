@@ -326,6 +326,12 @@ class cMarks {
         int LoadVPS(const char *directory, const char *type);
 
 /**
+ * calculate length of the braodcast without advertisement
+ * @return count frames of the broadcast without advertisement
+ */
+        int Length();
+
+/**
  * convert mark type to text
  * @param type type of the mark
  * @return text of the mark type

@@ -4552,6 +4552,10 @@ cMarkAdStandalone::~cMarkAdStandalone() {
     marks.Save(directory, &macontext, true);
     if ((!abortNow) && (!duplicate)) {
         LogSeparator();
+        int lengthFrames = marks.Length();
+        int lengthSec    = lengthFrames / macontext.Video.Info.framesPerSecond;
+        dsyslog("broadcast length without advertisement: %d frames, %ds -> %d:%2d:%2dh", marks.Length(), lengthSec, lengthSec / 3600, (lengthSec % 3600) / 60,  lengthSec % 60);
+
         dsyslog("time for decoding:              %3ds %3dms", decodeTime_us / 1000000, (decodeTime_us % 1000000) / 1000);
         if (logoSearchTime_ms > 0) dsyslog("time to find logo in recording: %3ds %3dms", logoSearchTime_ms / 1000, logoSearchTime_ms % 1000);
         if (logoChangeTime_ms > 0) dsyslog("time to find logo changes:      %3ds %3dms", logoChangeTime_ms / 1000, logoChangeTime_ms % 1000);
