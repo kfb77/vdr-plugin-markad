@@ -317,13 +317,6 @@ class cMarks {
  */
         bool Save(const char *directory, const sMarkAdContext *maContext, const bool force);
 
-/**
- * get offset of first mark wtih type from markad.vps in recording directory
- * @param directory recording directory
- * @param type VPS mark type
- * @return offset from recording start in seconds
- */
-        int LoadVPS(const char *directory, const char *type);
 
 /**
  * calculate length of the braodcast without advertisement

@@ -37,6 +37,7 @@
 #include "logo.h"
 #include "index.h"
 
+
 bool SYSLOG = false;
 bool LOG2REC = false;
 cDecoder *ptr_cDecoder = NULL;
@@ -899,6 +900,10 @@ void cMarkAdStandalone::CheckStart() {
 
     // set initial mark criterias
     if (marks.Count(MT_HBORDERSTART) == 0) markCriteria.SetState(MT_HBORDERCHANGE, MARK_UNAVAILABLE);  // if we have no hborder start, broadcast can not have hborder
+    else if ((marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 0)) markCriteria.SetState(MT_HBORDERCHANGE, MARK_AVAILABLE);  // if we have a vborder start and no vboder stop
+
+    if (marks.Count(MT_VBORDERSTART) == 0) markCriteria.SetState(MT_VBORDERCHANGE, MARK_UNAVAILABLE);  // if we have no vborder start, broadcast can not have vborder
+    else if ((marks.Count(MT_VBORDERSTART) == 1) && (marks.Count(MT_VBORDERSTOP) == 0)) markCriteria.SetState(MT_VBORDERCHANGE, MARK_AVAILABLE);  // if we have a vborder start and no vboder stop
 
     int hBorderStopPosition = -1;
     int delta = macontext.Video.Info.framesPerSecond * MAXRANGE;
@@ -2217,28 +2222,28 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
         LogSeparator();
         dsyslog("cMarkAdStandalone::CheckMarks(): apply VPS events");
         DebugMarks();     //  only for debugging
-        int vpsOffset = marks.LoadVPS(macontext.Config->recDir, "START:"); // VPS start mark
+        int vpsOffset = vps->GetStart(); // VPS start mark
         if (vpsOffset >= 0) {
             isyslog("VPS start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
             AddMarkVPS(vpsOffset, MT_START, false);
         }
         else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS start event found");
 
-        vpsOffset = marks.LoadVPS(macontext.Config->recDir, "PAUSE_START:");     // VPS pause start mark = stop mark
+        vpsOffset = vps->GetPauseStart();     // VPS pause start mark = stop mark
         if (vpsOffset >= 0) {
             isyslog("VPS pause start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
             AddMarkVPS(vpsOffset, MT_STOP, true);
         }
         else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause start event found");
 
-        vpsOffset = marks.LoadVPS(macontext.Config->recDir, "PAUSE_STOP:");     // VPS pause stop mark = start mark
+        vpsOffset = vps->GetPauseStop();     // VPS pause stop mark = start mark
         if (vpsOffset >= 0) {
             isyslog("VPS pause stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
             AddMarkVPS(vpsOffset, MT_START, true);
         }
         else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause stop event found");
 
-        vpsOffset = marks.LoadVPS(macontext.Config->recDir, "STOP:");     // VPS stop mark
+        vpsOffset = vps->GetStop();     // VPS stop mark
         if (vpsOffset >= 0) {
             isyslog("VPS stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
             AddMarkVPS(vpsOffset, MT_STOP, false);
@@ -4204,7 +4209,7 @@ bool cMarkAdStandalone::LoadInfo() {
                 dsyslog("cMarkAdStandalone::LoadInfo():     timer start at %s", strtok(ctime(&startTime), "\n"));
                 if (macontext.Info.timerVPS) { //  VPS controlled recording start, we use assume broascast start 45s after recording start
                     isyslog("VPS controlled recording start");
-                    macontext.Info.tStart = marks.LoadVPS(macontext.Config->recDir, "START:"); // VPS start mark
+                    macontext.Info.tStart = vps->GetStart(); // VPS start mark
                     if (macontext.Info.tStart >= 0) {
                         dsyslog("cMarkAdStandalone::LoadInfo(): found VPS start event at offset %ds", macontext.Info.tStart);
                     }
@@ -4545,6 +4550,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     framecnt3       = 0;
     framecnt4       = 0;
     chkSTART = chkSTOP = INT_MAX;
+
+    // load VPS events
+    vps = new cVPS(directory);
+    ALLOC(sizeof(*vps), "vps");
 }
 
 
@@ -4645,6 +4654,12 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         delete ptr_cDecoder;
         ptr_cDecoder = NULL;
     }
+    if (vps) {
+        FREE(sizeof(*vps), "vps");
+        delete vps;
+        vps = NULL;
+    }
+
     RemovePidfile();
 }
 

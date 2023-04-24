@@ -25,7 +25,13 @@ int cMarkCriteria::GetState(const int type) {
         default:
             dsyslog("cMarkCriteria::SetState(): type %d not valid", type);
     }
-    dsyslog("cMarkCriteria::GetState(): type: %d state: %d", type, state);
+    char *typeToText  = TypeToText(type);
+    char *stateToText = StateToText(state);
+    dsyslog("cMarkCriteria::GetState(): type: %s state: %s", typeToText, stateToText);
+    FREE(strlen(typeToText)+1, "text");
+    free(typeToText);
+    FREE(strlen(stateToText)+1, "state");
+    free(stateToText);
     return state;
 }
 

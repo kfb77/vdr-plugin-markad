@@ -19,6 +19,7 @@
 #include "evaluate.h"
 #include "osd.h"
 #include "criteria.h"
+#include "vps.h"
 
 
 #define IGNORE_VIDEOINFO 1
@@ -118,6 +119,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
             endMarkPos                = origin->endMarkPos;
             ptr_cDecoderLogoChange    = origin->ptr_cDecoderLogoChange;
             evaluateLogoStopStartPair = origin->evaluateLogoStopStartPair;
+	    vps                       = origin->vps;
             return *this;
         }
 
@@ -319,6 +321,8 @@ class cMarkAdStandalone : public cEvaluateChannel {
         sMarkAdContext macontext = {};                                 //!< markad context
                                                                        //!<
         cMarkCriteria markCriteria;                                    //!< status of possible mark types of the broadcast
+                                                                       //!<
+        cVPS *vps = NULL;                                              //!< VPS events of the broadast
                                                                        //!<
         cIndex *recordingIndexMark = NULL;                             //!< pointer to recording index class
                                                                        //!<
