@@ -23,6 +23,8 @@ class cVPS {
         int GetPauseStart() {return vpsPauseStart;};
         int GetPauseStop()  {return vpsPauseStop;};
 
+        int Length();
+
     private:
         int vpsStart      = -1;
         int vpsStop       = -1;

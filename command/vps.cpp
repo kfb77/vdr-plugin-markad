@@ -57,3 +57,12 @@ cVPS::cVPS(const char *directory) {
 cVPS::~cVPS() {
 }
 
+
+int cVPS::Length() {
+    if ((vpsStart >= 0) && (vpsStop >= 0)) {
+        int length = vpsStop - vpsStart;
+        if ((vpsPauseStart >= 0) && (vpsPauseStop >= 0)) length -= (vpsPauseStop - vpsPauseStart);
+        return length;
+    }
+    else return -1;
+}

@@ -4561,9 +4561,20 @@ cMarkAdStandalone::~cMarkAdStandalone() {
     marks.Save(directory, &macontext, true);
     if ((!abortNow) && (!duplicate)) {
         LogSeparator();
+
+        // broadcast length without advertisement
         int lengthFrames = marks.Length();
         int lengthSec    = lengthFrames / macontext.Video.Info.framesPerSecond;
-        dsyslog("broadcast length without advertisement: %d frames, %ds -> %d:%2d:%2dh", marks.Length(), lengthSec, lengthSec / 3600, (lengthSec % 3600) / 60,  lengthSec % 60);
+        dsyslog("broadcast length without advertisement: %6d frames, %6ds -> %d:%02d:%02dh", marks.Length(), lengthSec, lengthSec / 3600, (lengthSec % 3600) / 60,  lengthSec % 60);
+
+        // recording length from VPS eventsA
+        int vpsLength = vps->Length();
+        if (vpsLength > 0) {
+            dsyslog("recording length from VPS events:                      %6ds -> %d:%02d:%02dh", vpsLength, vpsLength / 3600, (vpsLength % 3600) / 60,  vpsLength % 60);
+            int adQuote = 100 * (vpsLength - lengthSec) / vpsLength;
+            if (adQuote > 30) esyslog("advertisement quote: %d%% very high, marks can be wrong", adQuote);
+            else dsyslog("advertisement quote: %d%%", adQuote);
+        }
 
         dsyslog("time for decoding:              %3ds %3dms", decodeTime_us / 1000000, (decodeTime_us % 1000000) / 1000);
         if (logoSearchTime_ms > 0) dsyslog("time to find logo in recording: %3ds %3dms", logoSearchTime_ms / 1000, logoSearchTime_ms % 1000);
