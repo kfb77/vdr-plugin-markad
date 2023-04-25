@@ -805,7 +805,10 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
                 int portionTMP =  0;
                 FindFrameStartPixel(picture, &startX, &startY, width, height, 1, 1);  // start search from first pixel, search to right and botton
                 FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, -1, -1);  // start search from start pixel, search to left and to top
-                if (((startX - endX) >= FRAME_MIN_PIXEL) && ((startY - endY) >= FRAME_MIN_PIXEL)) portionTMP = 1000 * (startX - endX) / startX + 1000 * (startY - endY) / startY;
+                if ((((startX - endX) >= FRAME_MIN_PIXEL) && ((startY - endY) >= FRAME_MIN_PIXEL)) ||
+                     ((startX - endX) > 185)) {   // accept a log horizontal line as part of a frame
+                    portionTMP = 1000 * (startX - endX) / startX + 1000 * (startY - endY) / startY;
+                }
                 if (portionTMP > portion) portion = portionTMP;
             }
 #ifdef DEBUG_MARK_OPTIMIZATION
