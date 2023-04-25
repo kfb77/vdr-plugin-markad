@@ -1716,7 +1716,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): no still image before advertising in frame found");
 
     // check advertising in frame
-#define AD_IN_FRAME_LENGTH_MAX  30720  // changed from 30000 to 30720
+#define AD_IN_FRAME_LENGTH_MAX  34680  // changed from 30720 to 34680
     startOffset    = 1000 * (AdInFrameFinal.start - startPos) / maContext->Video.Info.framesPerSecond;
     int stopOffset = 1000 * (endPos - AdInFrameFinal.end) / maContext->Video.Info.framesPerSecond;
     int length     = 1000 * (AdInFrameFinal.end - AdInFrameFinal.start) / maContext->Video.Info.framesPerSecond;
