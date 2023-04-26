@@ -1533,7 +1533,10 @@ void cMarkAdStandalone::CheckStart() {
             if (lStart->position  >= (iStart / 8)) {
                 begin = lStart;   // found valid logo start mark
             }
-            else dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) too early, ignoring", lStart->position);
+            else {
+                dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) too early, delete mark", lStart->position);
+                marks.Del(lStart->position);  // prevent from later selection
+            }
         }
         if (begin && (!macontext.Video.Logo.isInBorder)) {
             dsyslog("cMarkAdStandalone::CheckStart(): disable border detection and delete border marks");  // avoid false detection of border
