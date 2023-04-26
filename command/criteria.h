@@ -44,4 +44,5 @@ class cMarkCriteria : public cMarks {
     private:
         char *StateToText(const int state);
         int hborder = MARK_UNKNOWN;
+        int vborder = MARK_UNKNOWN;
 };

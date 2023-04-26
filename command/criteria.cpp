@@ -22,8 +22,12 @@ int cMarkCriteria::GetState(const int type) {
         case MT_HBORDERCHANGE:
             state = hborder;
             break;
+        case MT_VBORDERCHANGE:
+            state = vborder;
+            break;
         default:
             dsyslog("cMarkCriteria::SetState(): type %d not valid", type);
+            return MARK_UNKNOWN;
     }
     char *typeToText  = TypeToText(type);
     char *stateToText = StateToText(state);
@@ -49,6 +53,9 @@ void cMarkCriteria::SetState(const int type, const int state) {
     switch (type) {
         case MT_HBORDERCHANGE:
             hborder = state;
+            break;
+        case MT_VBORDERCHANGE:
+            vborder = state;
             break;
         default:
             esyslog("cMarkCriteria::SetState(): type %d not valid", type);

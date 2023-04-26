@@ -462,17 +462,19 @@ int cMarkAdStandalone::CheckStop() {
             }
         }
 
-        // check border start mark before, in this case logo stop is from next recording, use border start mark as end mark
+        // for broadcast without hborder check border start mark from next bradcast before logo stop
+        // in this case logo stop mark is from next recording, use border start mark as end mark
         bool typeChange = false;
-        if (end) {
+        if (end && (markCriteria.GetState(MT_HBORDERCHANGE) <= MARK_UNKNOWN)) {
             cMark *hBorderStart = marks.GetPrev(end->position, MT_HBORDERSTART);
             if (hBorderStart) {
                 cMark *hBorderStartPrev = marks.GetPrev(hBorderStart->position, MT_HBORDERSTART);
                 if (!hBorderStartPrev) {
                     int deltahBorder = (hBorderStart->position - iStopA) / macontext.Video.Info.framesPerSecond;
-                    int deltaLogo   = (end->position          - iStopA) / macontext.Video.Info.framesPerSecond;
-                    if ((deltaLogo > 0) && (deltahBorder > -1)) { // log top is after assumed end, hborder is after 1s before assumed stop
-                        dsyslog("cMarkAdStandalone::CheckStop(): found MT_HBORDERSTART at (%d) %ds after assumed end (and no other MT_HBORDERSTART before), logo stop mark at (%d) %ds after assumed end is invalid, use MT_HBORDERSTART as end mark", hBorderStart->position, deltahBorder, end->position, deltaLogo);
+                    int deltaLogo    = (end->position          - iStopA) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::CheckStop(): found MT_HBORDERSTART at (%d) %ds after assumed end (and no other MT_HBORDERSTART before), logo stop mark at (%d) %ds after assumed end", hBorderStart->position, deltahBorder, end->position, deltaLogo);
+                    if ((deltaLogo >= 0) && (deltahBorder >= -1)) {
+                        dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark at (%d) %ds after assumed end is invalid, use MT_HBORDERSTART (%d) as end mark", end->position, deltaLogo, hBorderStart->position);
                         marks.ChangeType(hBorderStart, MT_STOP);
                         end = hBorderStart;
                         typeChange = true;
@@ -732,6 +734,10 @@ int cMarkAdStandalone::CheckStop() {
         }
         mark = mark->Next();
     }
+
+    // cleanup detection failures (e.g. very long dark scenes)
+    if (markCriteria.GetState(MT_HBORDERCHANGE) == MARK_UNAVAILABLE) marks.DelType(MT_HBORDERCHANGE, 0xF0);
+    if (markCriteria.GetState(MT_VBORDERCHANGE) == MARK_UNAVAILABLE) marks.DelType(MT_VBORDERCHANGE, 0xF0);
 
     iStop = iStopA = 0;
     gotendmark = true;
