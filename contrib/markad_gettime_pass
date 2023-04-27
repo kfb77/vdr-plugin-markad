@@ -1,7 +1,22 @@
 #!/bin/bash
 # extract all logo sizes from markad.log
 # parameter $1 pass
+# parameter $2 video directory
 
-VIDEO="/srv/vdr/video"
+if [ -n "$1" ]; then
+    PASS=$1
+else
+    echo "usage: markad_gettime_pass <pass> [<video directory>]"
+    exit
+fi
 
-grep -r "pass $1: time" --include "markad.log" $VIDEO | awk -F  " " '{printf "%3ds %3dms %s\n", $10, $11 ,$1}' | sort --numeric-sort -k1,1 -k2,2
+if [ -n "$2" ]; then
+    VIDEO=$2
+else
+    VIDEO="/srv/vdr/video"
+fi
+
+echo "use video directory: $VIDEO"
+echo "show pass:           $PASS"
+
+grep -r "pass $1" --include "markad.log" $VIDEO | awk -F  " " '{printf "%3ds %s\n", $12, $1}' | sort --numeric-sort -k1,1 -k2,2

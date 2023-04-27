@@ -38,19 +38,25 @@
 #include "index.h"
 
 
-bool SYSLOG = false;
-bool LOG2REC = false;
-cDecoder *ptr_cDecoder = NULL;
+bool SYSLOG                    = false;
+bool LOG2REC                   = false;
+cDecoder *ptr_cDecoder         = NULL;
 cExtractLogo *ptr_cExtractLogo = NULL;
-cMarkAdStandalone *cmasta = NULL;
-bool restartLogoDetectionDone = false;
-int SysLogLevel = 2;
-bool abortNow = false;
+cMarkAdStandalone *cmasta      = NULL;
+bool restartLogoDetectionDone  = false;
+int SysLogLevel                = 2;
+bool abortNow                  = false;
+int logoSearchTime_ms          = 0;
+int decodeTime_us              = 0;
+
 struct timeval startAll, endAll = {};
-struct timeval startPass1, startOverlap, startLogoMarkOptimization, startPass4, endPass1, endOverlap, endLogoMarkOptimization, endPass4 = {};
-int logoSearchTime_ms = 0;
-int logoChangeTime_ms = 0;
-int decodeTime_us = 0;
+struct timeval startTime1, endTime1 = {}; // pass 1 (logo search) time
+struct timeval startTime2, endTime2 = {}; // pass 2 (mark detection) time
+struct timeval startTime3, endTime3 = {}; // pass 3 (mark optimation) time
+struct timeval startTime4, endTime4 = {}; // pass 4 (overlap detection) time
+struct timeval startTime5, endTime5 = {}; // pass 5 (cut recording) time
+struct timeval startTime6, endTime6 = {}; // pass 6 (mark pictures) time
+
 
 
 #ifdef POSIX
@@ -794,9 +800,6 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
 // some channel e.g. TELE5 plays with the logo in the broadcast
 //
 void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason only known and tested channels
-    struct timeval startTimeChangeMarks, stopTimeChangeMarks;
-    gettimeofday(&startTimeChangeMarks, NULL);
-
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start mark pairs with special logo");
 
@@ -888,16 +891,6 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
 
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): marks after detect and remove logo stop/start mark pairs with special logo");
     DebugMarks();     //  only for debugging
-
-    gettimeofday(&stopTimeChangeMarks, NULL);
-    time_t      sec  = stopTimeChangeMarks.tv_sec  - startTimeChangeMarks.tv_sec;
-    suseconds_t usec = stopTimeChangeMarks.tv_usec - startTimeChangeMarks.tv_usec;
-    if (usec < 0) {
-        usec += 1000000;
-        sec--;
-    }
-    logoChangeTime_ms += sec * 1000 + usec / 1000;
-
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): end detect and remove logo stop/start mark pairs with special logo");
     LogSeparator();
 }
@@ -3118,7 +3111,7 @@ void cMarkAdStandalone::MarkadCut() {
     }
 
     for (int pass = passMin; pass <= passMax; pass ++) {
-        dsyslog("cMarkAdStandalone::MarkadCut(): start pass %d", pass);
+        dsyslog("cMarkAdStandalone::MarkadCut(): start pass: %d", pass);
         ptr_cDecoder->Reset();
         ptr_cDecoder->DecodeDir(directory);
         ptr_cEncoder->Reset(pass);
@@ -3157,7 +3150,7 @@ void cMarkAdStandalone::MarkadCut() {
                 int frameNumber = ptr_cDecoder->GetFrameNumber();
                 if  (frameNumber < startPosition) {  // go to start frame
                     LogSeparator();
-                    dsyslog("cMarkAdStandalone::MarkadCut(): decoding from frame (%d) for start mark (%d) to frame (%d) in pass %d", startPosition, startMark->position, stopMark->position, pass);
+                    dsyslog("cMarkAdStandalone::MarkadCut(): decoding from frame (%d) for start mark (%d) to frame (%d) in pass: %d", startPosition, startMark->position, stopMark->position, pass);
                     ptr_cDecoder->SeekToFrame(&macontext, startPosition);
                     frameNumber = ptr_cDecoder->GetFrameNumber();
                 }
@@ -4017,9 +4010,11 @@ bool cMarkAdStandalone::CheckLogo() {
     if (!macontext.Config) return false;
     if (!*macontext.Config->logoDirectory) return false;
     if (!macontext.Info.ChannelName) return false;
-    int len=strlen(macontext.Info.ChannelName);
+
+    int len = strlen(macontext.Info.ChannelName);
     if (!len) return false;
 
+    gettimeofday(&startTime1, NULL);
     dsyslog("cMarkAdStandalone::CheckLogo(): using logo directory %s", macontext.Config->logoDirectory);
     dsyslog("cMarkAdStandalone::CheckLogo(): searching logo for %s", macontext.Info.ChannelName);
     DIR *dir = opendir(macontext.Config->logoDirectory);
@@ -4043,6 +4038,7 @@ bool cMarkAdStandalone::CheckLogo() {
                 if (!strncmp(direntRec->d_name, macontext.Info.ChannelName, len)) {
                     closedir(recDIR);
                     isyslog("logo found in recording directory");
+                    gettimeofday(&endTime1, NULL);
                     return true;
                 }
             }
@@ -4069,13 +4065,16 @@ bool cMarkAdStandalone::CheckLogo() {
         }
         if (endpos == 0) {
             dsyslog("cMarkAdStandalone::CheckLogo(): found logo in recording");
+            gettimeofday(&endTime1, NULL);
             return true;
         }
         else {
             dsyslog("cMarkAdStandalone::CheckLogo(): logo search failed");
+            gettimeofday(&endTime1, NULL);
             return false;
         }
     }
+    gettimeofday(&endTime1, NULL);
     return false;
 }
 
@@ -4586,6 +4585,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         LogSeparator();
 
         // broadcast length without advertisement
+        dsyslog("recording statistics: -----------------------------------------------------------------------");
         int lengthFrames = marks.Length();
         int lengthSec    = lengthFrames / macontext.Video.Info.framesPerSecond;
         dsyslog("broadcast length without advertisement: %6d frames, %6ds -> %d:%02d:%02dh", marks.Length(), lengthSec, lengthSec / 3600, (lengthSec % 3600) / 60,  lengthSec % 60);
@@ -4599,42 +4599,58 @@ cMarkAdStandalone::~cMarkAdStandalone() {
             else dsyslog("advertisement quote: %d%%", adQuote);
         }
 
+        dsyslog("processing statistics: ----------------------------------------------------------------------");
+        time_t sec = endTime1.tv_sec - startTime1.tv_sec;
+        suseconds_t usec = endTime1.tv_usec - startTime1.tv_usec;
+        if (usec < 0) {
+            usec += 1000000;
+            sec--;
+        }
+        if ((sec + usec / 1000000) > 0) dsyslog("pass 1 (initial logo search): time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
+
+        sec = endTime2.tv_sec - startTime2.tv_sec;
+        usec = endTime2.tv_usec - startTime2.tv_usec;
+        if (usec < 0) {
+            usec += 1000000;
+            sec--;
+        }
+        if ((sec + usec / 1000000) > 0) dsyslog("pass 2 (mark detection):      time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
+
+        sec = endTime3.tv_sec - startTime3.tv_sec;
+        usec = endTime3.tv_usec - startTime3.tv_usec;
+        if (usec < 0) {
+            usec += 1000000;
+            sec--;
+        }
+        if ((sec + usec / 1000000) > 0) dsyslog("pass 3 (mark optimation):     time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
+
+        sec = endTime4.tv_sec - startTime4.tv_sec;
+        usec = endTime4.tv_usec - startTime4.tv_usec;
+        if (usec < 0) {
+            usec += 1000000;
+            sec--;
+        }
+        if ((sec + usec / 1000000) > 0) dsyslog("pass 4 (overlap detection):   time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
+
+        sec = endTime5.tv_sec - startTime5.tv_sec;
+        usec = endTime5.tv_usec - startTime5.tv_usec;
+        if (usec < 0) {
+            usec += 1000000;
+            sec--;
+        }
+        if ((sec + usec / 1000000) > 0) dsyslog("pass 5 (cut recording):       time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
+
+        sec = endTime6.tv_sec - startTime6.tv_sec;
+        usec = endTime6.tv_usec - startTime6.tv_usec;
+        if (usec < 0) {
+            usec += 1000000;
+            sec--;
+        }
+        if ((sec + usec / 1000000) > 0) dsyslog("pass 6 (mark pictures):       time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
+
+
+        dsyslog("internal statistics: -------------------------------------------------------------------------");
         dsyslog("time for decoding:              %3ds %3dms", decodeTime_us / 1000000, (decodeTime_us % 1000000) / 1000);
-        if (logoSearchTime_ms > 0) dsyslog("time to find logo in recording: %3ds %3dms", logoSearchTime_ms / 1000, logoSearchTime_ms % 1000);
-        if (logoChangeTime_ms > 0) dsyslog("time to find logo changes:      %3ds %3dms", logoChangeTime_ms / 1000, logoChangeTime_ms % 1000);
-
-        time_t sec = endPass1.tv_sec - startPass1.tv_sec;
-        suseconds_t usec = endPass1.tv_usec - startPass1.tv_usec;
-        if (usec < 0) {
-            usec += 1000000;
-            sec--;
-        }
-        if ((sec + usec / 1000000) > 0) dsyslog("pass 1:                 time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt1, framecnt1 / (sec + usec / 1000000));
-
-
-        sec = endOverlap.tv_sec - startOverlap.tv_sec;
-        usec = endOverlap.tv_usec - startOverlap.tv_usec;
-        if (usec < 0) {
-            usec += 1000000;
-            sec--;
-        }
-        if ((sec + usec / 1000000) > 0) dsyslog("overlap:                time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecntOverlap, framecntOverlap / (sec + usec / 1000000));
-
-        sec = endLogoMarkOptimization.tv_sec - startLogoMarkOptimization.tv_sec;
-        usec = endLogoMarkOptimization.tv_usec - startLogoMarkOptimization.tv_usec;
-        if (usec < 0) {
-            usec += 1000000;
-            sec--;
-        }
-        if ((sec + usec / 1000000) > 0) dsyslog("logo mark optimization: time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt3, framecnt3 / (sec + usec / 1000000));
-
-        sec = endPass4.tv_sec - startPass4.tv_sec;
-        usec = endPass4.tv_usec - startPass4.tv_usec;
-        if (usec < 0) {
-            usec += 1000000;
-            sec--;
-        }
-        if ((sec + usec / 1000000) > 0) dsyslog("pass 4:                 time %5lds %03ldms, frames %6i, fps %6ld", sec, usec / 1000, framecnt4, framecnt4 / (sec + usec / 1000000));
 
         gettimeofday(&endAll, NULL);
         sec = endAll.tv_sec - startAll.tv_sec;
@@ -4648,6 +4664,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         etime = sec + ((double) usec / 1000000) - waittime;
         if (etime > 0) ftime = (framecnt1 + framecntOverlap + framecnt3) / etime;
         isyslog("processed time %d:%02d min with %d fps", static_cast<int> (etime / 60), static_cast<int> (etime - (static_cast<int> (etime / 60) * 60)), static_cast<int>(round(ftime)));
+        dsyslog("----------------------------------------------------------------------------------------------");
     }
 
     if ((osd) && (!duplicate)) {
@@ -5422,27 +5439,31 @@ int main(int argc, char *argv[]) {
             else dsyslog("encode all streams");
         }
         if (!bPass2Only) {
-            gettimeofday(&startPass1, NULL);
+            gettimeofday(&startTime2, NULL);
             cmasta->ProcessFiles();
-            gettimeofday(&endPass1, NULL);
+            gettimeofday(&endTime2, NULL);
         }
         if (!bPass1Only) {
-            gettimeofday(&startLogoMarkOptimization, NULL);
+            gettimeofday(&startTime3, NULL);
             cmasta->LogoMarkOptimization();  // logo mark optimization
-            gettimeofday(&endLogoMarkOptimization, NULL);
+            gettimeofday(&endTime3, NULL);
 
-            gettimeofday(&startOverlap, NULL);
+            gettimeofday(&startTime4, NULL);
             cmasta->ProcessOverlap();  // overlap detection
-            gettimeofday(&endOverlap, NULL);
+            gettimeofday(&endTime4, NULL);
         }
         if (config.MarkadCut) {
-            gettimeofday(&startPass4, NULL);
+            gettimeofday(&startTime5, NULL);
             cmasta->MarkadCut();
-            gettimeofday(&endPass4, NULL);
+            gettimeofday(&endTime5, NULL);
         }
+
+        gettimeofday(&startTime6, NULL);
 #ifdef DEBUG_MARK_FRAMES
         cmasta->DebugMarkFrames(); // write frames picture of marks to recording directory
 #endif
+        gettimeofday(&endTime6, NULL);
+
         if (cmasta) {
             FREE(sizeof(*cmasta), "cmasta");
             delete cmasta;
