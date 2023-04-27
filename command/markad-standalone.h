@@ -119,7 +119,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
             endMarkPos                = origin->endMarkPos;
             ptr_cDecoderLogoChange    = origin->ptr_cDecoderLogoChange;
             evaluateLogoStopStartPair = origin->evaluateLogoStopStartPair;
-	    vps                       = origin->vps;
+            vps                       = origin->vps;
             return *this;
         }
 
@@ -167,6 +167,11 @@ class cMarkAdStandalone : public cEvaluateChannel {
  * check for hborder end mark
  */
         cMark *Check_HBORDERSTOP();
+
+/**
+ * check for vborder end mark
+ */
+        cMark *Check_VBORDERSTOP();
 
 /**
  * check for end mark

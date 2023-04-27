@@ -180,8 +180,8 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
 }
 
 
-cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
 // try MT_HBORDERSTOP
+cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
     cMark *end = NULL;
     // cleanup very short hborder start/stop pair after detection restart, this can be a very long dark scene
     cMark *hStart = marks.GetNext(iStopA - (macontext.Video.Info.framesPerSecond * 2 * MAXRANGE), MT_HBORDERSTART);
@@ -224,6 +224,45 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
     else dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): no MT_HBORDERSTOP mark found");
     return end;
  }
+
+
+// try MT_VBORDERSTOP
+cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
+    cMark *end = marks.GetAround(360 * macontext.Video.Info.framesPerSecond, iStopA, MT_VBORDERSTOP); // 3 minutes
+    if (end) {
+        int deltaStopA = (end->position - iStopA) / macontext.Video.Info.framesPerSecond;
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_VBORDERSTOP found at frame (%d), %ds after assumed stop", end->position, deltaStopA);
+        if ((deltaStopA >= 203) && macontext.Video.Logo.isInBorder) {  // changed from 239 to 236 to 203
+            cMark *logoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
+            if (logoStop) {
+                int deltaLogoStop = (iStopA - logoStop->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_LOGOSTOP at (%d) %d before assumed stop found", logoStop->position, deltaLogoStop);
+                if (deltaLogoStop <= 381) {
+                    dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_VBORDERSTOP too far after assumed stop, found bettet logo stop mark at (%d)", logoStop->position);
+                    end = logoStop;
+                }
+            }
+        }
+        if (end->type == MT_VBORDERSTOP) { // we habe not replaced vborder top with logo stop
+            cMark *prevVStart = marks.GetPrev(end->position, MT_VBORDERSTART);
+            if (prevVStart) {
+                if (prevVStart->position > iStopA) {
+                    dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): previous vertial border start (%d) is after assumed stop (%d), delete this marks, they are form next brodcast", prevVStart->position, iStopA);
+                    marks.Del(prevVStart->position);
+                    marks.Del(end->position);
+                    end = NULL;
+                }
+                else {
+                    dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): vertial border start and stop found, delete weak marks except start mark");
+                    marks.DelWeakFromTo(marks.GetFirst()->position + 1, INT_MAX, MT_VBORDERCHANGE);
+                }
+            }
+        }
+    }
+    else dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): no MT_VBORDERSTOP mark found");
+    return end;
+}
+
 
 
 int cMarkAdStandalone::CheckStop() {
@@ -359,40 +398,7 @@ int cMarkAdStandalone::CheckStop() {
     if (!end && (markCriteria.GetState(MT_HBORDERCHANGE) >= MARK_UNKNOWN)) end = Check_HBORDERSTOP();
 
 // try MT_VBORDERSTOP
-    if (!end  || (marks.First() && marks.First()->type == MT_VBORDERSTART)) {  // if start mark is VBORDER try anyway if we have a VBODERSTOP
-        end = marks.GetAround(3*delta, iStopA, MT_VBORDERSTOP);
-        if (end) {
-            int deltaStopA = (end->position - iStopA) / macontext.Video.Info.framesPerSecond;
-            dsyslog("cMarkAdStandalone::CheckStop(): MT_VBORDERSTOP found at frame (%d), %ds after assumed stop", end->position, deltaStopA);
-            if ((deltaStopA >= 203) && macontext.Video.Logo.isInBorder) {  // changed from 239 to 236 to 203
-                cMark *logoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
-                if (logoStop) {
-                    int deltaLogoStop = (iStopA - logoStop->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP at (%d) %d before assumed stop found", logoStop->position, deltaLogoStop);
-                    if (deltaLogoStop <= 381) {
-                        dsyslog("cMarkAdStandalone::CheckStop(): MT_VBORDERSTOP too far after assumed stop, found bettet logo stop mark at (%d)", logoStop->position);
-                        end = logoStop;
-                    }
-                }
-            }
-            if (end->type == MT_VBORDERSTOP) { // we habe not replaced vborder top with logo stop
-                cMark *prevVStart = marks.GetPrev(end->position, MT_VBORDERSTART);
-                if (prevVStart) {
-                    if (prevVStart->position > iStopA) {
-                        dsyslog("cMarkAdStandalone::CheckStop(): previous vertial border start (%d) is after assumed stop (%d), delete this marks, they are form next brodcast", prevVStart->position, iStopA);
-                        marks.Del(prevVStart->position);
-                        marks.Del(end->position);
-                        end = NULL;
-                    }
-                    else {
-                        dsyslog("cMarkAdStandalone::CheckStop(): vertial border start and stop found, delete weak marks except start mark");
-                        marks.DelWeakFromTo(marks.GetFirst()->position + 1, INT_MAX, MT_VBORDERCHANGE);
-                    }
-                }
-            }
-        }
-        else dsyslog("cMarkAdStandalone::CheckStop(): no MT_VBORDERSTOP mark found");
-    }
+    if (!end && (markCriteria.GetState(MT_VBORDERCHANGE) >= MARK_UNKNOWN)) end = Check_VBORDERSTOP();
 
 // try MT_LOGOSTOP
 #define MAX_LOGO_END_MARK_FACTOR 2.7 // changed from 3 to 2.7 to prevent too early logo stop marks
@@ -2541,31 +2547,17 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             if (restartLogoDetectionDone) markDiff = 5839; // we are in the end part, keep more marks to detect best end mark, changed from 15000 to 5839
             int diff = 1000 * (abs(mark->position - prev->position)) / macontext.Video.Info.framesPerSecond;
             if (diff < markDiff) {
-                char *markType = marks.TypeToText(mark->type);
-                char *prevType = marks.TypeToText(prev->type);
-                if (markType && prevType) {
-                    if (prev->type > mark->type) {
-                        if ((mark->type & 0xF0) == MT_BLACKCHANGE) {
-                            dsyslog("cMarkAdStandalone::AddMark(): previous %s mark (%d) is stronger than actual %s mark (%d), distance %dms, deleting (%d)", prevType, prev->position, markType, mark->position, diff, mark->position);
-                        }
-                        else {
-                            isyslog("previous %s mark (%i) is stronger than actual %s mark (%d), distance %dms, ignoring (%i)", prevType, prev->position, markType, mark->position, diff, mark->position);
-                        }
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(prevType)+1, "text");
-                        free(prevType);
-                        if (comment) {
-                            FREE(strlen(comment)+1, "comment");
-                            free(comment);
-                        }
-                        return;
-                    }
-                    else {
-                        // do not delete logo stop mark on same position as only one aspect ratio mark in end part, prevent false end mark selection
-                        if (restartLogoDetectionDone && (mark->type == MT_ASPECTSTOP) && (prev->type == MT_LOGOSTOP) && (mark->position == prev->position) &&
-                            marks.Count(MT_ASPECTCHANGE, 0xF0) == 0) {
-                            isyslog("only one aspect ratio mark on same position (%d) as logo stop mark in end part, ignore aspect ratio mark, it is from next recording", mark->position);
+                if (markCriteria.GetState(mark->type & 0xF0) >= MARK_UNKNOWN) {
+                    char *markType = marks.TypeToText(mark->type);
+                    char *prevType = marks.TypeToText(prev->type);
+                    if (markType && prevType) {
+                        if (prev->type > mark->type) {
+                            if ((mark->type & 0xF0) == MT_BLACKCHANGE) {
+                                dsyslog("cMarkAdStandalone::AddMark(): previous %s mark (%d) is stronger than actual %s mark (%d), distance %dms, deleting (%d)", prevType, prev->position, markType, mark->position, diff, mark->position);
+                            }
+                            else {
+                                isyslog("previous %s mark (%i) is stronger than actual %s mark (%d), distance %dms, ignoring (%i)", prevType, prev->position, markType, mark->position, diff, mark->position);
+                            }
                             FREE(strlen(markType)+1, "text");
                             free(markType);
                             FREE(strlen(prevType)+1, "text");
@@ -2576,17 +2568,49 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
                             }
                             return;
                         }
+                        else {
+                            // do not delete logo stop mark on same position as only one aspect ratio mark in end part, prevent false end mark selection
+                            if (restartLogoDetectionDone && (mark->type == MT_ASPECTSTOP) && (prev->type == MT_LOGOSTOP) && (mark->position == prev->position) &&
+                                marks.Count(MT_ASPECTCHANGE, 0xF0) == 0) {
+                                isyslog("only one aspect ratio mark on same position (%d) as logo stop mark in end part, ignore aspect ratio mark, it is from next recording", mark->position);
+                                FREE(strlen(markType)+1, "text");
+                                free(markType);
+                                FREE(strlen(prevType)+1, "text");
+                                free(prevType);
+                                if (comment) {
+                                    FREE(strlen(comment)+1, "comment");
+                                    free(comment);
+                                }
+                                return;
+                            }
 
-                        // delete weaker mark
-                        isyslog("actual %s mark (%d) stronger then previous %s mark (%d), distance %dms, deleting (%d)", markType, mark->position, prevType, prev->position, diff, prev->position);
+                            // delete weaker mark
+                            isyslog("actual %s mark (%d) stronger then previous %s mark (%d), distance %dms, deleting (%d)", markType, mark->position, prevType, prev->position, diff, prev->position);
+                            FREE(strlen(markType)+1, "text");
+                            free(markType);
+                            FREE(strlen(prevType)+1, "text");
+                            free(prevType);
+                            marks.Del(prev);
+                        }
+                    }
+                    else esyslog("failed to convert mark type in text");
+                }
+                else {
+                    char *markType = marks.TypeToText(mark->type);
+                    char *prevType = marks.TypeToText(prev->type);
+                    if (markType && prevType) {
+                        dsyslog("cMarkAdStandalone::AddMark(): actual %s mark (%d) is not expected, ignore false detection, keep %s mark at (%d)", markType, mark->position, prevType, prev->position);
                         FREE(strlen(markType)+1, "text");
                         free(markType);
                         FREE(strlen(prevType)+1, "text");
                         free(prevType);
-                        marks.Del(prev);
-                    }
+                        if (comment) {
+                            FREE(strlen(comment)+1, "comment");
+                            free(comment);
+                        }
+                        return;
+                   }
                 }
-                else esyslog("failed to convert mark type in text");
             }
         }
     }
