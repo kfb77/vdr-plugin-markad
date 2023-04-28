@@ -493,6 +493,11 @@ char *cMarks::TypeToText(const int type) {
                 ALLOC(strlen(text)+1, "text");
             }
             break;
+        case MT_VPSCHANGE:
+            if (asprintf(&text, "VPS event") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            break;
         case MT_RECORDINGCHANGE:
             if (asprintf(&text, "recording") != -1) {
                 ALLOC(strlen(text)+1, "text");
