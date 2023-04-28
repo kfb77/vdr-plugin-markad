@@ -913,6 +913,16 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                     }
                 }
 #endif
+                int black = 0;
+                for (int i = 0; i < logoHeight * logoWidth; i++) {
+                    if (area.sobel[0][i] == 0) black++;
+                }
+                int quote = 100 * black / (logoHeight * logoWidth);
+                if (quote >= 49) return LOGO_NOCHANGE; // there is a pattern on the backbround, no logo detection possible
+#ifdef DEBUG_LOGO_DETECTION
+                dsyslog("cMarkAdLogo::Detect(): frame (%6d) pixel quote after brighness reduction: %d%%", frameCurrent, quote);
+#endif
+
                 if (area.intensity >= 152) { // still too bright, we can not use the result
 #ifdef DEBUG_LOGO_DETECTION
                     dsyslog("cMarkAdLogo::Detect(): frame (%6d) brightness reducation successful, but logo area still too bright", frameCurrent);
