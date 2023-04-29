@@ -923,7 +923,8 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 dsyslog("cMarkAdLogo::Detect(): frame (%6d) pixel quote after brighness reduction: %d%%", frameCurrent, quote);
 #endif
 
-                if (area.intensity >= 152) { // still too bright, we can not use the result
+                if (((area.intensity >= 152) && (rPixel >  0)) || // still too bright, we can not use the result
+                    ((area.intensity >= 208) && (rPixel == 0))) {
 #ifdef DEBUG_LOGO_DETECTION
                     dsyslog("cMarkAdLogo::Detect(): frame (%6d) brightness reducation successful, but logo area still too bright", frameCurrent);
 #endif
