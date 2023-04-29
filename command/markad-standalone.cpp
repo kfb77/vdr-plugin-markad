@@ -1787,7 +1787,12 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
 void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup marks that make no sense
     LogSeparator(true);
 
-    int newStopA = marks.GetFirst()->position + macontext.Video.Info.framesPerSecond * (length + macontext.Config->astopoffs);  // we have to recalculate iStopA
+    cMark *firstMark = marks.GetFirst();
+    if (!firstMark) {
+        esyslog("no marks at all detected, something went very wrong");
+        return;
+    }
+    int newStopA = firstMark->position + macontext.Video.Info.framesPerSecond * (length + macontext.Config->astopoffs);  // we have to recalculate iStopA
     // remove invalid marks
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): remove invalid marks");
