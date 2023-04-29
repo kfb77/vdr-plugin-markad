@@ -3373,6 +3373,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 if (newStopPosition != -1) {
                     if (!macontext.Config->fullDecode) newStopPosition = recordingIndexMark->GetIFrameBefore(newStopPosition - 1);  // we got first frame of ad, go one iFrame back for stop mark
                     else newStopPosition--; // get frame before ad in frame as stop mark
+                    if (evaluateLogoStopStartPair) evaluateLogoStopStartPair->AddAdInFrame(newStopPosition, markLogo->position);  // store info that we found here adinframe
                     markLogo = marks.Move(markLogo, newStopPosition, "advertising in frame");
                     save = true;
                }
@@ -3380,8 +3381,6 @@ void cMarkAdStandalone::LogoMarkOptimization() {
         }
         markLogo = markLogo->Next();
     }
-    FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
-    delete evaluateLogoStopStartPair;
     FREE(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
     delete ptr_cDetectLogoStopStart;
 
@@ -3668,20 +3667,25 @@ void cMarkAdStandalone::ProcessOverlap() {
     if (ptr_cDecoder) {  // we use file position
         cMark *lastStop = marks.GetLast();
         if (lastStop) {
-            if ((lastStop->type == MT_NOBLACKSTOP) || (lastStop->oldType == MT_NOBLACKSTOP)) {
-                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): end mark is a weak blackscreen mark, no closing credits without logo can follow");
-            }
-            else {
-                if ((lastStop->type == MT_LOGOSTOP) || (lastStop->type == MT_HBORDERSTOP) || (lastStop->type == MT_MOVEDSTOP)) {
-                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search for closing credits");
-                    if (MoveLastStopAfterClosingCredits(lastStop)) {
-                        save = true;
-                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): moved last logo stop mark after closing credit");
+            if (evaluateLogoStopStartPair->GetIsAdInFrame(lastStop->position) != STATUS_YES) {
+                if ((lastStop->type == MT_NOBLACKSTOP) || (lastStop->oldType == MT_NOBLACKSTOP)) {
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): end mark is a weak blackscreen mark, no closing credits without logo can follow");
+                }
+                else {
+                    if ((lastStop->type == MT_LOGOSTOP) || (lastStop->type == MT_HBORDERSTOP) || (lastStop->type == MT_MOVEDSTOP)) {
+                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search for closing credits");
+                        if (MoveLastStopAfterClosingCredits(lastStop)) {
+                            save = true;
+                            dsyslog("cMarkAdStandalone::LogoMarkOptimization(): moved last logo stop mark after closing credit");
+                        }
                     }
                 }
             }
+            else dsyslog("cMarkAdStandalone::LogoMarkOptimization(): last stop mark (%d) is moved because of advertisement in frame, no closing credits can follow", lastStop->position);
         }
     }
+    FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+    delete evaluateLogoStopStartPair;
 
     framecntOverlap = ptr_cDecoder->GetFrameNumber();
     if (save) marks.Save(directory, &macontext, false);

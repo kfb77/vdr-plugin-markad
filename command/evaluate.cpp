@@ -80,6 +80,19 @@ bool cEvaluateChannel::IntroductionLogoChannel(char *channelName) {
 
 
 cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair() {
+    dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): called");
+}
+
+
+cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
+    dsyslog("cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair(): called");
+#ifdef DEBUG_MEM
+    int size =  logoPairVector.size();
+    for (int i = 0 ; i < size; i++) {
+        FREE(sizeof(sLogoStopStartPair), "logoPairVector");
+    }
+#endif
+     logoPairVector.clear();
 }
 
 
@@ -93,7 +106,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
 #define LOGO_CHANGE_IS_ADVERTISING_MIN 300  // in s
 #define LOGO_CHANGE_IS_BROADCAST_MIN   240  // in s
 
-    dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): start with iStart %d, chkSTART %d, iStopA %d", iStart, chkSTART, iStopA);
+    dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): start with iStart %d, chkSTART %d, iStopA %d", iStart, chkSTART, iStopA);
     sLogoStopStartPair newPair;
 
     cMark *mark = marks->GetFirst();
@@ -113,8 +126,8 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
 // evaluate stop/start pairs
     for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
         //  evaluate logo section
-        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): -----------------------------------------------------------------------------------------");
-        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): stop (%d) start (%d) pair", logoPairIterator->stopPosition, logoPairIterator->startPosition);
+        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): -----------------------------------------------------------------------------------------");
+        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): stop (%d) start (%d) pair", logoPairIterator->stopPosition, logoPairIterator->startPosition);
         // check for info logo section
         if (IsInfoLogoChannel(maContext->Info.ChannelName)) IsInfoLogo(marks, blackMarks, &(*logoPairIterator), maContext->Video.Info.framesPerSecond);
         else logoPairIterator->isInfoLogo = STATUS_NO;
@@ -132,8 +145,8 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
         cMark *markStop_AfterPair = marks->GetNext(logoPairIterator->stopPosition, MT_LOGOSTOP);
         int deltaStopStart = (logoPairIterator->startPosition - logoPairIterator->stopPosition ) / maContext->Video.Info.framesPerSecond;
         if (deltaStopStart >= LOGO_CHANGE_IS_ADVERTISING_MIN) {
-            dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: delta %ds (expect >=%ds) is a advertising", logoPairIterator->stopPosition, logoPairIterator->startPosition, deltaStopStart, LOGO_CHANGE_IS_ADVERTISING_MIN);
-            logoPairIterator->isAdvertising = 1;
+            dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): ----- stop (%d) start (%d) pair: delta %ds (expect >=%ds) is a advertising", logoPairIterator->stopPosition, logoPairIterator->startPosition, deltaStopStart, LOGO_CHANGE_IS_ADVERTISING_MIN);
+            logoPairIterator->isAdInFrame = STATUS_YES;
         }
 
         // check next stop distance after stop/start pair
@@ -149,7 +162,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
             }
         }
         if (delta_Stop_AfterPair >= LOGO_CHANGE_IS_BROADCAST_MIN) {
-            dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: next stop mark after stop/start pair in %ds (expect >=%ds, start mark is in braoscast)", logoPairIterator->stopPosition, logoPairIterator->startPosition, delta_Stop_AfterPair, LOGO_CHANGE_IS_BROADCAST_MIN);
+            dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): ----- stop (%d) start (%d) pair: next stop mark after stop/start pair in %ds (expect >=%ds, start mark is in braoscast)", logoPairIterator->stopPosition, logoPairIterator->startPosition, delta_Stop_AfterPair, LOGO_CHANGE_IS_BROADCAST_MIN);
             logoPairIterator->isStartMarkInBroadcast = 1;
         }
     }
@@ -158,7 +171,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
     // search for part between advertising and broadcast, keep this mark, because it contains the start mark of the broadcast
     //
     for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
-        if (logoPairIterator->isAdvertising == 1) {  // advertising pair
+        if (logoPairIterator->isAdInFrame == STATUS_YES) {  // advertising pair
             std::vector<sLogoStopStartPair>::iterator next1LogoPairIterator = logoPairIterator;
             ++next1LogoPairIterator;
             if (next1LogoPairIterator != logoPairVector.end()) {
@@ -167,7 +180,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
                     ++next2LogoPairIterator;
                     if (next2LogoPairIterator != logoPairVector.end()) {
                         if (next2LogoPairIterator->isStartMarkInBroadcast  == 1) { // pair with bradcast start mark
-                            dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: part between advertising and broadcast, keep this mark because it contains start mark of broadcast)", next1LogoPairIterator->stopPosition, next1LogoPairIterator->startPosition);
+                            dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): ----- stop (%d) start (%d) pair: part between advertising and broadcast, keep this mark because it contains start mark of broadcast)", next1LogoPairIterator->stopPosition, next1LogoPairIterator->startPosition);
                             next1LogoPairIterator->isLogoChange = STATUS_NO;
                         }
                         if ((next2LogoPairIterator->isLogoChange == 0) && (next2LogoPairIterator->isStartMarkInBroadcast  == 0)) { // unknown pair
@@ -175,7 +188,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
                             ++next3LogoPairIterator;
                             if (next3LogoPairIterator != logoPairVector.end()) {
                                 if (next3LogoPairIterator->isStartMarkInBroadcast  == 1) { // pair with bradcast start mark
-                                    dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): ----- stop (%d) start (%d) pair: part between advertising and broadcast, keep this mark because it contains start mark of broadcast)", next2LogoPairIterator->stopPosition, next2LogoPairIterator->startPosition);
+                                    dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): ----- stop (%d) start (%d) pair: part between advertising and broadcast, keep this mark because it contains start mark of broadcast)", next2LogoPairIterator->stopPosition, next2LogoPairIterator->startPosition);
                                     next2LogoPairIterator->isLogoChange = STATUS_NO;
                                 }
                             }
@@ -186,25 +199,14 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
         }
     }
     for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
-        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): add stop (%d) start (%d) pair:", logoPairIterator->stopPosition, logoPairIterator->startPosition);
-        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isLogoChange           %2d", logoPairIterator->isLogoChange);
-        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isAdvertising          %2d", logoPairIterator->isAdvertising);
-        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isStartMarkInBroadcast %2d", logoPairIterator->isStartMarkInBroadcast);
-        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isInfoLogo             %2d", logoPairIterator->isInfoLogo);
-        dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair():                  isClosingCredits       %2d", logoPairIterator->isClosingCredits);
+        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): add stop (%d) start (%d) pair:", logoPairIterator->stopPosition, logoPairIterator->startPosition);
+        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isLogoChange           %2d", logoPairIterator->isLogoChange);
+        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isAdInFrame            %2d", logoPairIterator->isAdInFrame);
+        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isStartMarkInBroadcast %2d", logoPairIterator->isStartMarkInBroadcast);
+        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isInfoLogo             %2d", logoPairIterator->isInfoLogo);
+        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isClosingCredits       %2d", logoPairIterator->isClosingCredits);
     }
     nextLogoPairIterator = logoPairVector.begin();
-}
-
-
-cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
-#ifdef DEBUG_MEM
-    int size =  logoPairVector.size();
-    for (int i = 0 ; i < size; i++) {
-        FREE(sizeof(sLogoStopStartPair), "logoPairVector");
-    }
-#endif
-     logoPairVector.clear();
 }
 
 
@@ -594,6 +596,35 @@ int cEvaluateLogoStopStartPair::GetIsClosingCredits(const int startPosition) {
     }
 
     dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCredits(): start (%d) mark not found", startPosition);
+    return STATUS_ERROR;
+}
+
+
+void cEvaluateLogoStopStartPair::AddAdInFrame(const int startPosition, const int stopPosition) {
+    dsyslog("cEvaluateLogoStopStartPair::AddAdInFrame(): add pair for adinframe at start (%d) stop (%d)", startPosition, stopPosition);
+    sLogoStopStartPair newPair;
+    newPair.startPosition = startPosition;
+    newPair.stopPosition  = stopPosition;
+    newPair.isAdInFrame   = STATUS_YES;
+    logoPairVector.push_back(newPair);
+    ALLOC(sizeof(sLogoStopStartPair), "logoPairVector");
+}
+
+
+int cEvaluateLogoStopStartPair::GetIsAdInFrame(const int startPosition) {
+    dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrame(): startPosition %d", startPosition);
+    for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
+        dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrame():: stop (%5d) start (%5d) pair: isAdInFrame %d", logoPairIterator->stopPosition, logoPairIterator->startPosition, logoPairIterator->isAdInFrame);
+    }
+
+    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition](sLogoStopStartPair const &value) ->bool { if (value.startPosition == startPosition) return true; else return false; });
+
+    if (found != logoPairVector.end()) {
+        dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrame(): IsAdInFrame for start mark (%d): state %d", startPosition, found->isAdInFrame);
+        return found->isAdInFrame;
+    }
+
+    dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrame(): IsAdInFrame for start mark (%d): state not found", startPosition);
     return STATUS_ERROR;
 }
 
@@ -1297,11 +1328,15 @@ int cDetectLogoStopStart::ClosingCredit() {
     int countFrames = 0;
     int countDark   = 0;
 
+#ifdef DEBUG_MARK_OPTIMIZATION
     dsyslog("cDetectLogoStopStart::ClosingCredit(():      1. frame    2. frame:   matches (frame portion of 2. frame)");
     dsyslog("cDetectLogoStopStart::ClosingCredit(():                              TOP_LEFT     TOP_RIGHT    BOTTOM_LEFT  BOTTOM_RIGHT");
+#endif
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
+#ifdef DEBUG_MARK_OPTIMIZATION
         dsyslog("cDetectLogoStopStart::ClosingCredit(): frame (%5d) and (%5d): %5d (%4d) %5d (%4d) %5d (%4d) %5d (%4d)", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).framePortion[0], (*cornerResultIt).rate[1], (*cornerResultIt).framePortion[1], (*cornerResultIt).rate[2], (*cornerResultIt).framePortion[2], (*cornerResultIt).rate[3], (*cornerResultIt).framePortion[3]);
+#endif
 
         int similarCorners     = 0;
         int moreSimilarCorners = 0;
