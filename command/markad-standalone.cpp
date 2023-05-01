@@ -2371,7 +2371,7 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
             char *markTypeText =  marks.TypeToText(mark->type);
             if (asprintf(&comment,"VPS %s (%d), moved from %s mark (%d) at %s %s", (type == MT_START) ? "start" : "stop", vpsFrame, markTypeText, mark->position, timeText, (type == MT_START) ? "*" : "") == -1) comment=NULL;
             if (comment) ALLOC(strlen(comment)+1, "comment");
-	    else return;
+            else return;
             FREE(strlen(markTypeText)+1, "text");  // alloc in TypeToText
             free(markTypeText);
 
@@ -3054,6 +3054,8 @@ void cMarkAdStandalone::DebugMarkFrames() {
 
     ptr_cDecoder->Reset();
     cMark *mark = marks.GetFirst();
+    if (!mark) return;
+
     if (!macontext.Config->fullDecode) {
         while (mark) {
             if (mark->position != recordingIndexMark->GetIFrameBefore(mark->position)) dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at (%d) type 0x%X is not a iFrame position", mark->position, mark->type);
@@ -3062,50 +3064,34 @@ void cMarkAdStandalone::DebugMarkFrames() {
     }
 
     mark = marks.GetFirst();
-    if (!mark) return;
-
-    int writePosition = mark->position;
-    for (int i = 0; i < DEBUG_MARK_FRAMES; i++) {
-        if (!macontext.Config->fullDecode) writePosition = recordingIndexMark->GetIFrameBefore(writePosition - 1);
-        else writePosition--;
-    }
-    int writeOffset = -DEBUG_MARK_FRAMES;
 
     // read and decode all video frames, we want to be sure we have a valid decoder state, this is a debug function, we dont care about performance
     while(mark && (ptr_cDecoder->DecodeDir(directory))) {
         while(mark && (ptr_cDecoder->GetNextPacket())) {
             if (ptr_cDecoder->IsVideoPacket()) {
                 if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) {
-                    if (ptr_cDecoder->GetFrameNumber() >= writePosition) {
-                        dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark at frame (%5d) type 0x%X, write frame (%5d)", mark->position, mark->type, writePosition);
+                    int frameNumber = ptr_cDecoder->GetFrameNumber();
+                    if (frameNumber >= (mark->position - DEBUG_MARK_FRAMES)) {
+                        dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark frame (%5d) type 0x%X, write frame (%5d)", mark->position, mark->type, frameNumber);
                         char suffix1[10] = "";
                         char suffix2[10] = "";
                         if ((mark->type & 0x0F) == MT_START) strcpy(suffix1, "START");
                         if ((mark->type & 0x0F) == MT_STOP)  strcpy(suffix1, "STOP");
-                        if (writePosition < mark->position)  strcpy(suffix2, "BEFORE");
-                        if (writePosition > mark->position)  strcpy(suffix2, "AFTER");
+                        if (frameNumber < mark->position)    strcpy(suffix2, "BEFORE");
+                        if (frameNumber > mark->position)    strcpy(suffix2, "AFTER");
 
                         char *fileName = NULL;
-                        if (asprintf(&fileName,"%s/F__%07d_%s_%s.pgm", macontext.Config->recDir, ptr_cDecoder->GetFrameNumber(), suffix1, suffix2) >= 1) {
+                        if (asprintf(&fileName,"%s/F__%07d_%s_%s.pgm", macontext.Config->recDir, frameNumber, suffix1, suffix2) >= 1) {
                             ALLOC(strlen(fileName)+1, "fileName");
                             SaveFrameBuffer(&macontext, fileName);
                             FREE(strlen(fileName)+1, "fileName");
                             free(fileName);
                         }
 
-                        if (!macontext.Config->fullDecode) writePosition = recordingIndexMark->GetIFrameAfter(writePosition + 1);
-                        else writePosition++;
-                        if (writeOffset >= DEBUG_MARK_FRAMES) {
+                        if (frameNumber >= (mark->position + DEBUG_MARK_FRAMES)) {
                             mark = mark->Next();
                             if (!mark) break;
-                            writePosition = mark->position;
-                            for (int i = 0; i < DEBUG_MARK_FRAMES; i++) {
-                                if (!macontext.Config->fullDecode) writePosition = recordingIndexMark->GetIFrameBefore(writePosition - 1);
-                                else writePosition--;
-                            }
-                            writeOffset = -DEBUG_MARK_FRAMES;
                         }
-                        else writeOffset++;
                     }
                 }
             }
