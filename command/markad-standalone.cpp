@@ -607,6 +607,22 @@ int cMarkAdStandalone::CheckStop() {
                 }
             }
         }
+
+        // check previous logo stop mark against VPS stop event, if any
+        if (end) {
+            cMark *prevLogoStop = marks.GetPrev(end->position, MT_LOGOSTOP); // maybe different if deleted above
+            if (prevLogoStop) {
+                int vpsOffset = vps->GetStop(); // get VPS stop mark
+                if (vpsOffset >= 0) {
+                    int vpsStopFrame = recordingIndexMark->GetFrameFromOffset(vpsOffset * 1000);
+                    int diffAfterVPS = (prevLogoStop->position - vpsStopFrame) / macontext.Video.Info.framesPerSecond;
+                    if (diffAfterVPS >= 0) {
+                        dsyslog("cMarkAdStandalone::CheckStop(): VPS stop event at (%d) is %ds after previous logo stop (%d), use this as end mark", vpsStopFrame, diffAfterVPS, prevLogoStop->position);
+                        end = prevLogoStop;
+                    }
+                }
+            }
+        }
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_LOGOSTOP mark found");
     }
 

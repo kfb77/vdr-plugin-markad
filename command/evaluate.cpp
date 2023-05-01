@@ -1317,16 +1317,8 @@ int cDetectLogoStopStart::ClosingCredit() {
 
     } ClosingCredits;
     int framePortion[CORNERS] = {0};
-
-    struct sClosingImage {
-        int start      = -1;
-        int end        = -1;
-        int startFinal = -1;
-        int endFinal   = -1;
-   } ClosingImage;
-
-    int countFrames = 0;
-    int countDark   = 0;
+    int countFrames           = 0;
+    int countDark             = 0;
 
 #ifdef DEBUG_MARK_OPTIMIZATION
     dsyslog("cDetectLogoStopStart::ClosingCredit(():      1. frame    2. frame:   matches (frame portion of 2. frame)");
@@ -1370,20 +1362,6 @@ int cDetectLogoStopStart::ClosingCredit() {
             for (int corner = 0; corner < CORNERS; corner++) ClosingCredits.sumFramePortion[corner] = 0;
         }
 
-        if ((moreSimilarCorners == 4) || (equalCorners >= 3)) {  //  all 4 corners are more similar, this must be a still image
-                                                                 //  at least 3 corner are equal, these are closing credits in a different form than a frame
-            if (ClosingImage.start == -1) ClosingImage.start = (*cornerResultIt).frameNumber1;
-            ClosingImage.end = (*cornerResultIt).frameNumber2;
-        }
-        else {
-            if ((ClosingImage.end - ClosingImage.start) >= (ClosingImage.endFinal - ClosingImage.startFinal)) {  // store longest part
-                ClosingImage.startFinal        = ClosingImage.start;
-                ClosingImage.endFinal          = ClosingImage.end;
-            }
-            // restet state
-            ClosingImage.start = -1;
-            ClosingImage.end   = -1;
-        }
         // store frame portion of frame 2
         for (int corner = 0; corner < CORNERS; corner++) {
             framePortion[corner] = (*cornerResultIt).framePortion[corner];
@@ -1398,12 +1376,6 @@ int cDetectLogoStopStart::ClosingCredit() {
         return -1;
     }
 
-    // store longest part maybe it was last part
-    if ((ClosingImage.end - ClosingImage.start) >= (ClosingImage.endFinal - ClosingImage.startFinal)) {
-        ClosingImage.startFinal = ClosingImage.start;
-        ClosingImage.endFinal   = ClosingImage.end;
-    }
-
     // check if it is a closing credit
     int startOffset = 1000 * (ClosingCredits.start - startPos) / maContext->Video.Info.framesPerSecond;
     int endOffset   = 1000 * (endPos - ClosingCredits.end) / maContext->Video.Info.framesPerSecond;
@@ -1411,7 +1383,6 @@ int cDetectLogoStopStart::ClosingCredit() {
     dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: start (%d) end (%d), offset start %dms end %dms, length %dms",
                                                                                                           ClosingCredits.start, ClosingCredits.end, startOffset, endOffset, length);
 
-    dsyslog("cDetectLogoStopStart::ClosingCredit(): closing imge:      start (%d) end (%d)", ClosingImage.startFinal, ClosingImage.endFinal);
     if ((ClosingCredits.start > 0) && (ClosingCredits.end > 0) && // we found something
         (startOffset <= 4320) && (length < 19000) && // do not reduce start offset, if logo fade out, we got start a little too late
                                                      // startOffset increases from 1440 to 4320 because of silence detection before closing credits detection
@@ -1442,26 +1413,6 @@ int cDetectLogoStopStart::ClosingCredit() {
             closingCreditsFrame = -1;  // no valid ad in a frame
         }
     }
-
-    // check if it is a still image or an ad in a different form than a frame
-#define CLOSING_CREDITS_STILL_OFFSET_MAX 10559  // max offset in ms from startPos (stop mark) to begin of still image
-    if (darkQuote < 66) {  // too dark to detect a still image
-        if (closingCreditsFrame == -1) {
-            int lengthStillImage      = 1000 *  (ClosingImage.endFinal - ClosingImage.startFinal) / maContext->Video.Info.framesPerSecond;
-            int offsetStartStillImage = 1000 * (ClosingImage.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
-            dsyslog("cDetectLogoStopStart::ClosingCredit(): still image from (%d) to (%d), start offset %dms (expect <= %dms), length [5280ms<] %dms [<19680ms]", ClosingImage.startFinal, ClosingImage.endFinal, offsetStartStillImage, CLOSING_CREDITS_STILL_OFFSET_MAX, lengthStillImage);
-            if ((lengthStillImage > 5280) && (lengthStillImage < 19680)) {  // limit length to prevent to false detect long sill start scene of next broadcast
-                                                                            // changed min from 0 to 4200 to 5280
-                if (offsetStartStillImage <= CLOSING_CREDITS_STILL_OFFSET_MAX) {
-                    dsyslog("cDetectLogoStopStart::ClosingCredit(): still image found");
-                    closingCreditsFrame = ClosingImage.endFinal;
-                }
-                else dsyslog("cDetectLogoStopStart::ClosingCredit(): still image too far away from stop mark");
-            }
-            else dsyslog("cDetectLogoStopStart::ClosingCredit(): no still image found or too short");
-        }
-    }
-    else dsyslog("cDetectLogoStopStart::ClosingCredit(): too dark %d%% to detect a still image", darkQuote);
 
     if (evaluateLogoStopStartPair && (closingCreditsFrame >= 0)) evaluateLogoStopStartPair->SetIsClosingCredits(startPos, endPos);
     return closingCreditsFrame;
