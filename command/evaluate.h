@@ -221,8 +221,6 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
 /**
  * find first pixel in a sobel transformed picture
  * @param      picture sobel transformed picture
- * @param[out] startX  x position of first pixel
- * @param[out] startY  y position of first pixel
  * @param      width   width of the picture
  * @param      height  height of the picture
  * @param      searchX x position to start search
@@ -230,34 +228,33 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
  * @param      offsetX x offset for each search step (usually +1 or -1)
  * @param      offsetY y offset for each search step (usually +1 or -1)
  */
-        void FindFrameFirstPixel(const uchar *picture, int *startX, int *startY, const int width, const int height, int searchX, int searchY, const int offsetX, const int offsetY);
+        int FindFrameFirstPixel(const uchar *picture, const int corner, const int width, const int height, int startX, int startY, const int offsetX, const int offsetY);
+
 
 /**
  * find start position of a possible frame in a sobel transformed picture
  * @param         picture sobel transformed picture
- * @param[in,out] startX  in: x position to start search, out: x position of possible frame
- * @param[in,out] startY  in: y position to start search, out: y position of possible frame
  * @param         width   width of the picture
  * @param         height  height of the picture
+ * @param[in,out] startX  in: x position to start search, out: x position of possible frame
+ * @param[in,out] startY  in: y position to start search, out: y position of possible frame
  * @param         offsetX x offset for each search step (usually +1 or -1)
  * @param         offsetY y offset for each search step (usually +1 or -1)
  */
-        void FindFrameStartPixel(const uchar *picture, int *startX, int *startY, const int width, const int height, const int offsetX, const int offsetY);
+        int FindFrameStartPixel(const uchar *picture, const int width, const int height,  int startX, int startY, const int offsetX, const int offsetY);
 
 
 /**
  * find start position of a possible frame in a sobel transformed picture
  * @param      picture sobel transformed picture
- * @param[out] endX    x position of the end of the frame
- * @param[out] endY    y position of the end of the frame
- * @param[in]  startX  x position to start search (start pixel)
- * @param[in]  startY  y position to start search (start pixel)
  * @param      width   width of the picture
  * @param      height  height of the picture
+ * @param[in]  startX  x position to start search (start pixel)
+ * @param[in]  startY  y position to start search (start pixel)
  * @param      offsetX x offset for each search step (usually +1 or -1)
  * @param      offsetY y offset for each search step (usually +1 or -1)
  */
-        void FindFrameEndPixel(const uchar *picture, int *endX, int *endY, const int startX, const int startY, const int width, const int height, const int offsetX, const int offsetY);
+        int FindFrameEndPixel(const uchar *picture, const int width, const int height, const int startX, const int startY, const int offsetX, const int offsetY, int *endX, int *endY);
 
 /**
  * detect a frame in a sobel transformed picture

@@ -673,14 +673,42 @@ cDetectLogoStopStart::~cDetectLogoStopStart() {
 }
 
 
-#define DETECTFRAME_MAXSEARCH 120
-void cDetectLogoStopStart::FindFrameFirstPixel( const uchar *picture, int *startX, int *startY, const int width, const int height, int searchX, int searchY, const int offsetX, const int offsetY) {
-    *startX = -1;
-    *startY = -1;
-    for (int i = 0; i < DETECTFRAME_MAXSEARCH; i++) {
+int cDetectLogoStopStart::FindFrameFirstPixel(const uchar *picture, const int corner, const int width, const int height, int startX, int startY, const int offsetX, const int offsetY) {
+    int foundX        = -1;
+    int foundY        = -1;
+    int searchX       = startX;
+    int searchY       = startY;
+    int searchOffsetX = 0;
+    int searchOffsetY = 0;
+
+    switch (corner) {
+        case 0: // TOP_LEFT
+            searchOffsetX = 1;
+            searchOffsetY = 1;
+            break;
+
+        case 1: // TOP_RIGHT
+            searchOffsetX = -1;
+            searchOffsetY =  1;
+            break;
+
+        case 2: // BOTTOM_LEFT
+            searchOffsetX =  1;
+            searchOffsetY = -1;
+            break;
+
+        case 3: // BOTTOM_RIGHT
+            searchOffsetX = -1;
+            searchOffsetY = -1;
+            break;
+        default:
+            return 0;
+    } // case
+
+    for (int i = 0; i < width; i++) {
         if (picture[searchY * width + searchX] == 0) {  // pixel found
-            *startX = searchX;
-            *startY = searchY;
+            foundX = searchX;
+            foundY = searchY;
             break;
         }
         searchX += offsetX;
@@ -688,25 +716,52 @@ void cDetectLogoStopStart::FindFrameFirstPixel( const uchar *picture, int *start
         searchY += offsetY;
         if ((searchY < 0) || (searchY >= height)) break;
     }
+#ifdef DEBUG_MARK_OPTIMIZATION
+    dsyslog("-----------------------------------------------------------------------------------------------------------------------------------------------");
+    dsyslog("cDetectLogoStopStart::FindFrameFirstPixel(): search for first pixel: start (%d,%d), direction (%d,%d): found (%d,%d)", startX, startY, offsetX, offsetY, foundX, foundY);
+#endif
+    if ((foundX >= 0) && (foundY >= 0)) return FindFrameStartPixel(picture, width, height, foundX, foundY, -searchOffsetX, -searchOffsetY);
+    return 0;
 }
 
 
-void cDetectLogoStopStart::FindFrameStartPixel(const uchar *picture, int *startX, int *startY, const int width, const int height, const int offsetX, const int offsetY) {
-    while ((*startX > 0) && (*startX < width - 1)) {
-        if (picture[*startY * width + *startX + offsetX] == 0) *startX += offsetX;  // next position has pixel
+int cDetectLogoStopStart::FindFrameStartPixel(const uchar *picture, const int width, const int height,  int startX, int startY, const int offsetX, const int offsetY) {
+    int firstPixelX = startX;
+    int firstPixelY = startY;
+    while ((startX > 0) && (startX < width - 1)) {
+        if (picture[startY * width + startX + offsetX] == 0) startX += offsetX;  // next position has pixel
         else break;
     }
-    while ((*startY > 0) && (*startY < height - 1)) {
-        if (picture[(*startY + offsetY) * width + *startX] == 0) *startY += offsetY;  // next position has pixel
+    while ((startY > 0) && (startY < height - 1)) {
+        if (picture[(startY + offsetY) * width + startX] == 0) startY += offsetY;  // next position has pixel
         else break;
     }
+    if (abs(firstPixelX - startX) > abs(firstPixelY - startY)) startY = firstPixelY;  // prevent to get out of line from a single pixel, only one coordinate can change
+    else startX = firstPixelX;
+#ifdef DEBUG_MARK_OPTIMIZATION
+    dsyslog("cDetectLogoStopStart::FindFrameStartPixel(): search for start pixel: first pixel (%d,%d), direction (%d,%d): found (%d,%d)", firstPixelX, firstPixelY, offsetX, offsetY, startX, startY);
+#endif
+    int endX = -1;
+    int endY = -1;
+    int portion = FindFrameEndPixel(picture, width, height, startX, startY, -offsetX, -offsetY, &endX, &endY);
+    if ((abs(startX - endX) >= 90) && (abs(startY - endY) <= 2)) { // we found a long horizontal line but no frame, try to find a reverse frame from end pixel
+        startX = endX;
+        startY = endY;
+        int portionTMP = FindFrameEndPixel(picture, width, height, startX, startY, offsetX, offsetY, &endX, &endY);  // try reverse direction
+        if (portionTMP > portion) portion = portionTMP;
+        else { // we missed the corner pixel, try to find a reverse frame one pixel before
+            portionTMP = FindFrameEndPixel(picture, width, height, startX + offsetX, endY, offsetX, offsetY, &endX, &endY);  // try reverse direction, one pixel before
+            if (portionTMP > portion) portion = portionTMP;
+        }
+    }
+    return portion;
 }
 
 
-void cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, int *endX, int *endY, const int startX, const int startY, const int width, const int height, const int offsetX, const int offsetY) {
+int cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, const int width, const int height, const int startX, const int startY, const int offsetX, const int offsetY, int *endX, int *endY) {
     *endX = startX;
     while ((*endX >= 0) && (*endX < width)) {
-        if (picture[ startY * width + *endX + offsetX] == 0) *endX += offsetX;
+        if (picture[startY * width + *endX + offsetX] == 0) *endX += offsetX;
         else break;
     }
     *endY = startY;
@@ -714,6 +769,15 @@ void cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, int *endX, in
         if (picture[(*endY + offsetY) * width + startX] == 0) *endY += offsetY;
         else break;
     }
+    int lengthX = abs(*endX - startX);
+    int lengthY = abs(*endY - startY);
+    int portion = 0;
+    if ((lengthX > 50) || (lengthY > 50) || // we have a part of the frame found, a vertical or horizontal line
+       ((lengthX > 8) && (lengthY > 8))) portion = 1000 * lengthX / width + 1000 * lengthY / height;
+#ifdef DEBUG_MARK_OPTIMIZATION
+    dsyslog("cDetectLogoStopStart::FindFrameEndPixel(): search for end pixel: direction (%d,%d): found frame from (%d,%d) to (%d,%d), length (%d,%d) -> portion %d", offsetX, offsetY, startX, startY, *endX, *endY, lengthX, lengthY, portion);
+#endif
+    return portion;
 }
 
 
@@ -722,138 +786,63 @@ void cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, int *endX, in
 // return portion of frame pixel in picture
 int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNumber, const uchar *picture, const int width, const int height, const int corner) {
     if (!picture) return 0;
-    if ((width <= DETECTFRAME_MAXSEARCH) || (height <= DETECTFRAME_MAXSEARCH)) return 0;    // we can not detect in very small pictures
 
-    int startX  = -1;
-    int startY  = -1;
-    int endX    = -1;
-    int endY    = -1;
     int portion =  0;
 
-#define FRAME_MIN_PIXEL 8
-
+#ifdef DEBUG_MARK_OPTIMIZATION
+    dsyslog("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+    dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: search for frame", frameNumber, corner);
+#endif
 
     switch (corner) {
         case 0: // TOP_LEFT
-            FindFrameFirstPixel(picture, &startX, &startY, width, height, 0, 0, 1, 1); // search from top left to bottom right
-            if ((startX >= 0) && (startY >= 0)) { // found a start pixel
-                FindFrameStartPixel(picture, &startX, &startY, width, height, -1, -1);  // start search from first pixel, search to left and top
-                FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, 1, 1);  // start search from start pixel, search to right and to buttom
-                if (((endX - startX) >= FRAME_MIN_PIXEL) && ((endY - startY) >= FRAME_MIN_PIXEL)) portion = 1000 * (endX - startX) / (width - startX) + 1000 * (endY - startY) / (height - startY);
-            }
-#ifdef DEBUG_MARK_OPTIMIZATION
-            else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from top left to buttom right", frameNumber, corner);
-#endif
+            portion = FindFrameFirstPixel(picture, corner, width, height, 10, 0, 1, 1); // search from top left to bottom right
+                                                                                // do not start at corner, maybe conrner was not exacly detected
             if (portion < 180) {  // maybe we have a text under frame or the logo
-                FindFrameFirstPixel(picture, &startX, &startY, width, height, width / 2, 0, 1, 1); // search from top mid to bottom right
-                if ((startX >= 0) && (startY >= 0)) { // found a start pixel
-                    FindFrameStartPixel(picture, &startX, &startY, width, height, -1, -1);  // start search from first pixel, search to left and top
-                    FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, 1, 1);  // start search from start pixel, search to right and to buttom
-                    if ((((endX - startX) >= FRAME_MIN_PIXEL) && ((endY - startY) >= FRAME_MIN_PIXEL)) ||
-                         ((endY - startY) >= 50)) {  // we have a part of the frame found, a vertical line, changed from 115 to 95 to 50
-                        portion = 1000 * (endX - startX) / (width - startX) + 1000 * (endY - startY) / (height - startY);
-                    }
-                }
-#ifdef DEBUG_MARK_OPTIMIZATION
-                else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from buttom right to top left", frameNumber, corner);
-#endif
+                portion = FindFrameFirstPixel(picture, corner, width, height, width / 2, 0, 1, 1); // search from top mid to bottom right
+            }
+            if (portion < 180) {  // maybe we have a text under frame or the logo
+                portion = FindFrameFirstPixel(picture, corner, width, height, 0 , height * 9 / 10, 1, 0); // search horizontal from 9/10 button left to right
+                                                                                                          // text is left and right from a vertical line
             }
             break;
 
         case 1: // TOP_RIGHT
-            FindFrameFirstPixel(picture, &startX, &startY, width, height, width - 1, 0, -1, 1); // search from top right to bottom left
-            if ((startX >= 0) && (startY >= 0)) { // found a start pixel
-                FindFrameStartPixel(picture, &startX, &startY, width, height, 1, -1);  // start search from first pixel, search to right and top
-                FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, - 1, 1);  // start search from start pixel, search to left and to buttom
-                if (((startX - endX) >= FRAME_MIN_PIXEL) && ((endY - startY) >= FRAME_MIN_PIXEL)) portion = 1000 * (startX - endX) / startX + 1000 * (endY - startY) / (height - startY);
-            }
-#ifdef DEBUG_MARK_OPTIMIZATION
-            else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from top right to buttom left", frameNumber, corner);
-#endif
+            portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, 0, -1, 1); // search from top right to bottom left
             if (portion < 180) {  // maybe we have a text under frame or the logo
-                FindFrameFirstPixel(picture, &startX, &startY, width, height, width / 2, 0, -1, 1); // search from top mid to bottom left
-                if ((startX >= 0) && (startY >= 0)) { // found a start pixel
-                    FindFrameStartPixel(picture, &startX, &startY, width, height, 1, -1);  // start search from first pixel, search to right and top
-                    FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, - 1, 1);  // start search from start pixel, search to left and to buttom
-                    if (((startX - endX) >= FRAME_MIN_PIXEL) && ((endY - startY) >= FRAME_MIN_PIXEL)) portion = 1000 * (startX - endX) / startX + 1000 * (endY - startY) / (height - startY);
-                }
-#ifdef DEBUG_MARK_OPTIMIZATION
-                else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from top mid to buttom left", frameNumber, corner);
-#endif
+                portion = FindFrameFirstPixel(picture, corner, width, height, width / 2, 0, -1, 1); // search from top mid to bottom left
             }
             break;
 
         case 2: // BOTTOM_LEFT
-            FindFrameFirstPixel(picture, &startX, &startY, width, height, 0, height - 1, 1, -1); // search from buttom left to top right
-            if ((startX >= 0) && (startY >= 0)) { // found a start pixel
-                FindFrameStartPixel(picture, &startX, &startY, width, height, -1, 1);  // start search from first pixel, search to left and to bottom
-                FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, 1, -1);  // start search from start pixel, search to right and to top
-                if (((endX - startX) >= FRAME_MIN_PIXEL) && ((startY - endY) >= FRAME_MIN_PIXEL)) portion = 1000 * (endX - startX) / (width - startX) + 1000 * (startY - endY) / startY;
-            }
-#ifdef DEBUG_MARK_OPTIMIZATION
-            else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from buttom left to top right", frameNumber, corner);
-#endif
+            portion = FindFrameFirstPixel(picture, corner, width, height, 0, height - 1, 1, -1); // search from buttom left to top right
             if (portion < 180) {  // maybe we have a text under frame
-                FindFrameFirstPixel(picture, &startX, &startY, width, height, width / 2, height - 1, 1, -1); // search from bottom mid to top right
-                if ((startX >= 0) && (startY >= 0)) { // found a start pixel
-                    FindFrameStartPixel(picture, &startX, &startY, width, height, -1, 1);  // start search from first pixel, search to left and to bottom
-                    FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, 1, -1);  // start search from start pixel, search to right and to top
-                    if (((endX - startX) >= FRAME_MIN_PIXEL) && ((startY - endY) >= FRAME_MIN_PIXEL)) portion = 1000 * (endX - startX) / (width - startX) + 1000 * (startY - endY) / startY;
-                }
-#ifdef DEBUG_MARK_OPTIMIZATION
-                else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from buttom mid to top right", frameNumber, corner);
-#endif
+                portion = FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, 1, -1); // search from bottom mid to top right
+                if (portion < 180) {  // maybe we have only a part of the frame
+                    portion = FindFrameFirstPixel(picture, corner, width, height, width / 3, height - 1, 1, -1); // search from bottom 1/3 left to top right
             }
-            if (portion < 180) {  // maybe we have only a part of the frame, try from top left to bottom right
-                FindFrameFirstPixel(picture, &startX, &startY, width, height, 0, 0, 1, 1); // search from top left to botton right
-                if ((startX >= 0) && (startY >= 0)) { // found a start pixel
-                    FindFrameStartPixel(picture, &startX, &startY, width, height, -1, -1);  // start search from first pixel, search to left and to top
-                    FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, 1, 1);  // start search from start pixel, search to right and to bottom
-                    if ((((endX - startX) >= FRAME_MIN_PIXEL) && ((startY - endY) >= FRAME_MIN_PIXEL)) ||
-                         ((endX - startX) > 200)) {  // accept a log horizontal line as part of a frame
-                        portion = 1000 * (endX - startX) / (width - startX) + 1000 * (startY - endY) / startY;
-                    }
-                }
-#ifdef DEBUG_MARK_OPTIMIZATION
-                else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from buttom mid to top right", frameNumber, corner);
-#endif
             }
             break;
 
         case 3: // BOTTOM_RIGHT
-            FindFrameFirstPixel(picture, &startX, &startY, width, height, width - 1, height - 1, -1, -1); // search from buttom right to top left
-            if ((startX >= 0) && (startY >= 0)) { // found a start pixel
-                FindFrameStartPixel(picture, &startX, &startY, width, height, 1, 1);  // start search from first pixel, search to right and to bottom
-                FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, -1, -1);  // start search from start pixel, search to left and to top
-                if (((startX - endX) >= FRAME_MIN_PIXEL) && ((startY - endY) >= FRAME_MIN_PIXEL)) portion = 1000 * (startX - endX) / startX + 1000 * (startY - endY) / startY;
-            }
-#ifdef DEBUG_MARK_OPTIMIZATION
-            else dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from buttom right to top left", frameNumber, corner);
-#endif
-            // maybe we have a text or a logo under frame, try from top left
-            FindFrameFirstPixel(picture, &startX, &startY, width, height, 0, 0, 1, 1); // search from top left to buttom right
-            if ((startX >= 0) && (startY >= 0)) { // found a start pixel
-                int portionTMP =  0;
-                FindFrameStartPixel(picture, &startX, &startY, width, height, 1, 1);  // start search from first pixel, search to right and botton
-                FindFrameEndPixel(picture, &endX, &endY, startX, startY, width, height, -1, -1);  // start search from start pixel, search to left and to top
-                if ((((startX - endX) >= FRAME_MIN_PIXEL) && ((startY - endY) >= FRAME_MIN_PIXEL)) ||
-                     ((startX - endX) > 185)) {   // accept a log horizontal line as part of a frame
-                    portionTMP = 1000 * (startX - endX) / startX + 1000 * (startY - endY) / startY;
+            portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, height - 1, -1, -1);         // search from buttom right to top left
+            if (portion < 180) {  // maybe we have a text under frame
+                portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, height / 2, -1, -1);     // search from mid right to top left
+                if (portion < 180) {  // maybe we have a text under frame
+                    portion = FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, -1, -1); // search from buttom mid right to top left
+                    if (portion < 180) {  // maybe we have a logo under frame (e.g. SAT.1)
+                        portion = FindFrameFirstPixel(picture, corner, width, height, width * 2 / 3, 0, -1, 1); // search from 2/3 right top to left button
+                    }
                 }
-                if (portionTMP > portion) portion = portionTMP;
             }
-#ifdef DEBUG_MARK_OPTIMIZATION
-            dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: no start found with search from top left to buttom right", frameNumber, corner);
-#endif
             break;
 
         default:
             return 0;
     } // case
 
-
 #ifdef DEBUG_MARK_OPTIMIZATION
-    dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: startX %3d, endX %3d, startY %3d, endY %3d, portion %3d", frameNumber, corner, startX, endX, startY, endY, portion);
+    dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: portion %3d", frameNumber, corner, portion);
 #endif
 
     return portion;
@@ -1408,7 +1397,7 @@ int cDetectLogoStopStart::ClosingCredit() {
     if (ClosingCredits.frameCount > 0) {
         int framePortionQuote = maxSumFramePortion / ClosingCredits.frameCount;
         if (frameCorner >= 0) dsyslog("cDetectLogoStopStart::ClosingCredit(): sum of frame portion from best corner %s: %d from %d frames, quote %d", aCorner[frameCorner], maxSumFramePortion, ClosingCredits.frameCount, framePortionQuote);
-        if (framePortionQuote <= 514) {
+        if (framePortionQuote < 311) {  // changed from 514 to 328 to 311
             dsyslog("cDetectLogoStopStart::ClosingCredit(): not enought frame pixel found, closing credits not valid");
             closingCreditsFrame = -1;  // no valid ad in a frame
         }
