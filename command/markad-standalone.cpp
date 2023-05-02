@@ -3140,9 +3140,9 @@ void cMarkAdStandalone::MarkadCut() {
             return;
         }
         int startPosition;
-        if (macontext.Config->fullEncode) startPosition = recordingIndexMark->GetIFrameBefore(startMark->position - 1);  // go before mark position to preload decoder pipe
-        else startPosition = recordingIndexMark->GetIFrameAfter(startMark->position);  // go after mark position to prevent last picture of ad
-        if (startPosition < 0) startPosition = startMark->position;
+        startPosition = recordingIndexMark->GetIFrameBefore(startMark->position - 1);  // go before mark position to preload decoder pipe
+        startPosition = recordingIndexMark->GetIFrameBefore(startPosition - 1);        // go again one iFrame back to be sure we can decode start mark position
+        if (startPosition < 0) startPosition = 0;
 
         cMark *stopMark = startMark->Next();
         if ((stopMark->type & 0x0F) != MT_STOP) {
@@ -3165,13 +3165,15 @@ void cMarkAdStandalone::MarkadCut() {
         while(nextFile && ptr_cDecoder->DecodeDir(directory)) {
             while(ptr_cDecoder->GetNextPacket()) {
                 int frameNumber = ptr_cDecoder->GetFrameNumber();
-                if  (frameNumber < startPosition) {  // go to start frame
+                // seek to startPosition
+                if  (frameNumber < startPosition) {
                     LogSeparator();
                     dsyslog("cMarkAdStandalone::MarkadCut(): decoding from frame (%d) for start mark (%d) to frame (%d) in pass: %d", startPosition, startMark->position, stopMark->position, pass);
                     ptr_cDecoder->SeekToFrame(&macontext, startPosition);
                     frameNumber = ptr_cDecoder->GetFrameNumber();
                 }
-                if  (frameNumber > stopMark->position) {  // stop mark reached
+                // stop mark reached, set next startPosition
+                if  (frameNumber > stopMark->position) {
                     if (stopMark->Next() && stopMark->Next()->Next()) {  // next mark pair
                         startMark = stopMark->Next();
                         if ((startMark->type & 0x0F) != MT_START) {
@@ -3179,9 +3181,9 @@ void cMarkAdStandalone::MarkadCut() {
                             return;
                         }
 
-                        if (macontext.Config->fullEncode) startPosition = recordingIndexMark->GetIFrameBefore(startMark->position - 1);  // go before mark position to preload decoder pipe
-                        else startPosition = recordingIndexMark->GetIFrameAfter(startMark->position);  // go after mark position to prevent last picture of ad
-                        if (startPosition < 0) startPosition = startMark->position;
+                        startPosition = recordingIndexMark->GetIFrameBefore(startMark->position - 1);  // go before mark position to preload decoder pipe
+                        startPosition = recordingIndexMark->GetIFrameBefore(startPosition - 1);        // go again one iFrame back to be sure we can decode start mark position
+                        if (startPosition < 0) startPosition = frameNumber;
 
                         stopMark = startMark->Next();
                         if ((stopMark->type & 0x0F) != MT_STOP) {
