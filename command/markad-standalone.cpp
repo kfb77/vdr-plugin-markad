@@ -4551,6 +4551,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         ALLOC(strlen(indexFile)+1, "indexFile");
     }
 
+    // load VPS events
+    vps = new cVPS(directory);
+    ALLOC(sizeof(*vps), "vps");
+
     if (!LoadInfo()) {
         if (bDecodeVideo) {
             esyslog("failed loading info - logo %s%sdisabled",
@@ -4607,10 +4611,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     framecnt3       = 0;
     framecnt4       = 0;
     chkSTART = chkSTOP = INT_MAX;
-
-    // load VPS events
-    vps = new cVPS(directory);
-    ALLOC(sizeof(*vps), "vps");
 }
 
 
