@@ -1,6 +1,9 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-05-03: Version 3.2.6
+- fix crash with VPS recordings
+
 2023-05-01: Version 3.2.5
 - log statistic infos
 - check advertisement quote
