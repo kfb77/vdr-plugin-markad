@@ -377,7 +377,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
                                                                              // SIXX                     4:3  720W  576H:->  162W  70H TOP_RIGHT (old logo)
         (strcmp(maContext->Info.ChannelName, "sixx_AUSTRIA") == 0)) {        // sixx_AUSTRIA            16:9  720W  576H:->  104W  54H TOP_RIGHT
         logo.widthMin  =  98;
-        if ((logoAspectRatio.num == 4) && (logoAspectRatio.den == 3)) logo.widthMax  = 162;
+        if ((logoAspectRatio.num == 4) && (logoAspectRatio.den == 3)) logo.widthMax  = 164;
         else                                                          logo.widthMax  = 136;
         logo.heightMin =  54;
     }
@@ -397,7 +397,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         }
         else {
             logo.heightMin =  64;
-            logo.widthMax  = 108;
+            logo.widthMax  = 110;
         }
         logo.heightMax =  76;
         logo.widthMin  =  70;
@@ -472,7 +472,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
 // 1920x1080
     if (strcmp(maContext->Info.ChannelName, "13th_Street_HD") == 0) {        // 13th_Street_HD:         16:9 1920W 1080H:->  218W 194H TOP_LEFT
         logo.widthMin  = 217;
-        logo.heightMax = 195;
+        logo.heightMax = 198;
     }
     if (strcmp(maContext->Info.ChannelName, "münchen_tv_HD") == 0) {
         logo.widthMax  = 396;
