@@ -326,15 +326,14 @@ int cMarkAdStandalone::CheckStop() {
     dsyslog("cMarkAdStandalone::CheckStop(): start end mark selection");
 
 // try MT_CHANNELSTOP
-    int delta = macontext.Video.Info.framesPerSecond * MAXRANGE;
-    cMark *end = marks.GetAround(3 * delta, iStopA, MT_CHANNELSTOP);   // do not increase, we will get mark from last ad stop
+    cMark *end = marks.GetAround(390 * macontext.Video.Info.framesPerSecond, iStopA, MT_CHANNELSTOP);   // changed from 360 to 390
     if (end) {
         dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTOP found at frame %i", end->position);
         cMark *cStart = marks.GetPrev(end->position, MT_CHANNELSTART);      // if there is short befor a channel start, this stop mark belongs to next recording
         if (cStart) {
-            if ((end->position - cStart->position) < delta) {
+            if ((end->position - cStart->position) < (macontext.Video.Info.framesPerSecond * 120)) {
                 dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTART found short before at frame %i with delta %ds, MT_CHANNELSTOP is not valid, try to find stop mark short before", cStart->position, static_cast<int> ((end->position - cStart->position) / macontext.Video.Info.framesPerSecond));
-                end = marks.GetAround(delta, iStopA - delta, MT_CHANNELSTOP);
+                end = marks.GetAround(macontext.Video.Info.framesPerSecond * 120, iStopA - (macontext.Video.Info.framesPerSecond * 120), MT_CHANNELSTOP);
                 if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTOP found short before at frame (%d)", end->position);
             }
             else {
@@ -359,7 +358,7 @@ int cMarkAdStandalone::CheckStop() {
 
 // try MT_ASPECTSTOP
     if (!end) {
-        end = marks.GetAround(3 * delta, iStopA, MT_ASPECTSTOP);      // try MT_ASPECTSTOP
+        end = marks.GetAround(3 * (macontext.Video.Info.framesPerSecond * MAXRANGE), iStopA, MT_ASPECTSTOP);      // try MT_ASPECTSTOP
         if (end) {
             dsyslog("cMarkAdStandalone::CheckStop(): MT_ASPECTSTOP found at frame (%d)", end->position);
             if ((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) {
@@ -414,7 +413,7 @@ int cMarkAdStandalone::CheckStop() {
         LogSeparator(false);
         dsyslog("cMarkAdStandalone::CheckStop(): check logo end mark (cleanup very short logo start/stop pairs around possible logo end marks)");
         while (true) {
-            end = marks.GetAround(MAX_LOGO_END_MARK_FACTOR * delta, iStopA, MT_LOGOSTOP);
+            end = marks.GetAround(MAX_LOGO_END_MARK_FACTOR * macontext.Video.Info.framesPerSecond * MAXRANGE, iStopA, MT_LOGOSTOP);
             if (end) {
                 int iStopDelta = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
                 #define MAX_LOGO_BEFORE_ASSUMED 304   // changed from 282 to 304
@@ -629,7 +628,7 @@ int cMarkAdStandalone::CheckStop() {
 
 // try any
     if (!end) {
-        end = marks.GetAround(1.1 * delta, iStopA, MT_STOP, 0x0F);    // try any type of stop mark, accept only near assumed stop
+        end = marks.GetAround(1.1 * macontext.Video.Info.framesPerSecond * MAXRANGE, iStopA, MT_STOP, 0x0F);    // try any type of stop mark, accept only near assumed stop
         if (end) dsyslog("cMarkAdStandalone::CheckStop(): weak end mark found at frame %d near assumed stop (%d)", end->position, iStopA);
         else dsyslog("cMarkAdStandalone::CheckStop(): no end mark found near assumed stop (%d)", iStopA);
     }
@@ -696,7 +695,7 @@ int cMarkAdStandalone::CheckStop() {
                 free(markType);
             }
 
-            if (end->position < iStopA - 5 * delta ) {    // last found stop mark too early, adding STOP mark at the end, increased from 3 to 5
+            if (end->position < iStopA - 5 * macontext.Video.Info.framesPerSecond * MAXRANGE) {    // last found stop mark too early, adding STOP mark at the end, increased from 3 to 5
                                                           // this can happen by audio channel change too if the next broadcast has also 6 channels
                 if ((lastStart) && (lastStart->position > end->position)) {
                     isyslog("last STOP mark results in to short recording, set STOP at the end of the recording (%i)", iFrameCurrent);
