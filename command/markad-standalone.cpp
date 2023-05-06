@@ -947,6 +947,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // audio channel start
     if (!begin) {
+        dsyslog("cMarkAdStandalone::CheckStart(): search for channel start mark");
         for (short int stream = 0; stream < MAXSTREAMS; stream++) {
             if ((macontext.Info.Channels[stream]) && (macontext.Audio.Info.Channels[stream]) && (macontext.Info.Channels[stream] != macontext.Audio.Info.Channels[stream])) {
                 char as[20];
@@ -1082,6 +1083,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // aspect ratio start
     if (!begin) {
+        dsyslog("cMarkAdStandalone::CheckStart(): search for aspect ratio start mark");
         if ((macontext.Info.AspectRatio.num == 0) || (macontext.Video.Info.AspectRatio.den == 0)) {
             isyslog("no video aspect ratio found in vdr info file");
             macontext.Info.AspectRatio.num = macontext.Video.Info.AspectRatio.num;
@@ -1281,6 +1283,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // horizontal border start
     if (!begin) {
+        dsyslog("cMarkAdStandalone::CheckStart(): search for hborder start mark");
         cMark *hStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTART);
         if (hStart) { // we found a hborder start mark
             dsyslog("cMarkAdStandalone::CheckStart(): horizontal border start found at (%i)", hStart->position);
@@ -1327,22 +1330,6 @@ void cMarkAdStandalone::CheckStart() {
         else { // we found no hborder start mark
             dsyslog("cMarkAdStandalone::CheckStart(): no horizontal border at start found, disable horizontal border detection");
             macontext.Video.Options.ignoreHborder = true;
-            cMark *hStop = marks.GetAround(iStartA + delta, iStartA + delta, MT_HBORDERSTOP);
-            if (hStop) {
-                int pos = hStop->position;
-                char *comment = NULL;
-                dsyslog("cMarkAdStandalone::CheckStart(): horizontal border stop without start mark found (%i), assume as start mark of the following recording", pos);
-                marks.Del(pos);
-                if (asprintf(&comment,"assumed start from horizontal border stop (%d)", pos) == -1) comment = NULL;
-                if (comment) {
-                    ALLOC(strlen(comment)+1, "comment");
-                }
-                begin=marks.Add(MT_ASSUMEDSTART, MT_UNDEFINED, pos, comment);
-                if (comment) {
-                    FREE(strlen(comment)+1, "comment");
-                    free(comment);
-                }
-            }
             dsyslog("cMarkAdStandalone::CheckStart(): delete horizontal border marks, if any");
             marks.DelType(MT_HBORDERCHANGE, 0xF0);  // mybe the is a late invalid hborder start marks, exists sometimes with old vborder recordings
         }
@@ -1350,6 +1337,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // vertical border start
     if (!begin) {
+        dsyslog("cMarkAdStandalone::CheckStart(): search for vborder start mark");
         cMark *vStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_VBORDERSTART);  // do not find initial vborder start from previous recording
         if (!vStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no vertical border at start found, ignore vertical border detection");
@@ -1409,6 +1397,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // logo start
     if (!begin) {
+        dsyslog("cMarkAdStandalone::CheckStart(): search for logo start mark");
         RemoveLogoChangeMarks();
         cMark *lStart = marks.GetAround(iStartA + (2 * delta), iStartA, MT_LOGOSTART);   // increase from 1
         if (!lStart) {
@@ -1567,6 +1556,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // no strong mark found, try anything
     if (!begin) {
+        dsyslog("cMarkAdStandalone::CheckStart(): search for any start mark");
         marks.DelTill(IGNORE_AT_START);    // we do not want to have a initial mark from previous recording as a start mark
         begin = marks.GetAround(2 * delta, iStartA, MT_START, 0x0F);  // not too big search range, blackscreen marks can be wrong
         if (begin) {
