@@ -1643,7 +1643,8 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         int secondFramePortionQuote = secondSumFramePortion / AdInFrameType1.frameCountFinal;
         if (firstFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of        best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[firstFrameCorner], firstSumFramePortion, AdInFrameType1.frameCountFinal, firstFramePortionQuote);
         if (secondFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of second best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[secondFrameCorner], secondSumFramePortion, AdInFrameType1.frameCountFinal, secondFramePortionQuote);
-        if (firstFramePortionQuote < 362) {  // changed from 500 to 362
+        if (firstFramePortionQuote <= 443) {  // changed from 362 to 380 to 443
+                                              // take care of static scene with vertial or horizontal lines (blinds or stairs)
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): not enought frame pixel found on best corner found, advertising in frame type 1 not valid");
             AdInFrameType1.startFinal = -1;
         }
