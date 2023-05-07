@@ -3636,9 +3636,12 @@ void cMarkAdStandalone::ProcessOverlap() {
     if (abortNow) return;
     if (duplicate) return;
     if (!ptr_cDecoder) return;
-    if (!length) return;
-    if (!startTime) return;
-    if (time(NULL) < (startTime+(time_t) length)) return;
+    if ((length == 0) || (startTime == 0)) {  // we got no recording length or start time from info file
+        FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+        delete evaluateLogoStopStartPair;
+        return;
+    }
+    if (time(NULL) < (startTime+(time_t) length)) return;  // we are running during recording and has not reached end of recording
 
     LogSeparator(true);
     dsyslog("ProcessOverlap(): start overlap detection");
