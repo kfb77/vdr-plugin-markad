@@ -539,11 +539,12 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
 }
 
 
-bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo, const int endRange) {
-    if (!stopPosition) return false;
-    if (!startPosition) return false;
-    if (!isLogoChange) return false;
-    if (!isInfoLogo) return false;
+bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo, int *isStartMarkInBroadcast, const int endRange) {
+    if (!stopPosition)           return false;
+    if (!startPosition)          return false;
+    if (!isLogoChange)           return false;
+    if (!isInfoLogo)             return false;
+    if (!isStartMarkInBroadcast) return false;
     if (nextLogoPairIterator == logoPairVector.end()) return false;
 
     // skip pair if there is nothing to detect
@@ -552,10 +553,11 @@ bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPositi
         ++nextLogoPairIterator;
         if (nextLogoPairIterator == logoPairVector.end()) return false;
     }
-    *stopPosition = nextLogoPairIterator->stopPosition;
-    *startPosition = nextLogoPairIterator->startPosition;
-    *isLogoChange = nextLogoPairIterator->isLogoChange;
-    *isInfoLogo = nextLogoPairIterator->isInfoLogo;
+    *stopPosition           = nextLogoPairIterator->stopPosition;
+    *startPosition          = nextLogoPairIterator->startPosition;
+    *isLogoChange           = nextLogoPairIterator->isLogoChange;
+    *isInfoLogo             = nextLogoPairIterator->isInfoLogo;
+    *isStartMarkInBroadcast = nextLogoPairIterator->isStartMarkInBroadcast;
     ++nextLogoPairIterator;
     return true;
 }

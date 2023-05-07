@@ -140,7 +140,7 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
  * @param endRange      frame number of start of end range, we possible need to detect closing credits
  * @return true if there is a next logo stop/start pair, false otherwise
  */
-        bool GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo, const int endRange);
+        bool GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo, int *isStartMarkInBroadcast, const int endRange);
 
 /**
  * set info logo status to STATUS_YES

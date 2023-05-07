@@ -826,12 +826,13 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     }
     evaluateLogoStopStartPair->CheckLogoStopStartPairs(&macontext, &marks, &blackMarks, iStart, chkSTART, iStopA);
 
-    char *indexToHMSFStop = NULL;
-    char *indexToHMSFStart = NULL;
-    int stopPosition = 0;
-    int startPosition = 0;
-    int isLogoChange = 0;
-    int isInfoLogo = 0;
+    char *indexToHMSFStop      = NULL;
+    char *indexToHMSFStart     = NULL;
+    int stopPosition           = 0;
+    int startPosition          = 0;
+    int isLogoChange           = STATUS_UNKNOWN;
+    int isInfoLogo             = STATUS_UNKNOWN;
+    int isStartMarkInBroadcast = STATUS_UNKNOWN;
 
     // alloc new objects
     ptr_cDecoderLogoChange = new cDecoder(macontext.Config->threads, recordingIndexMark);
@@ -847,7 +848,8 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     // loop through all logo stop/start pairs
     int endRange = 0;  // if we are called by CheckStart, get all pairs to detect at least closing credits
     if (iStart == 0) endRange = iStopA - (26 * macontext.Video.Info.framesPerSecond); // if we are called by CheckStop, get all pairs after this frame to detect at least closing credits
-    while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo, endRange)) {
+    while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo, &isStartMarkInBroadcast, endRange)) {
+        if (!marks.Get(startPosition) || !marks.Get(stopPosition)) continue;  // at least one of the mark from pair was deleted, nothing to do
         LogSeparator();
         // free from loop before
         if (indexToHMSFStop) {
@@ -869,13 +871,19 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
             if ((isInfoLogo <= STATUS_NO) && (isLogoChange <= STATUS_NO)) ptr_cDetectLogoStopStart->ClosingCredit();
 
             // check info logo
-            if ((isInfoLogo >= STATUS_UNKNOWN) && ptr_cDetectLogoStopStart->IsInfoLogo()) {
-                // found info logo part
-                if (indexToHMSFStop && indexToHMSFStart) {
-                    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
+            if ((iStart > 0) && (isStartMarkInBroadcast == STATUS_YES)) {  // we are called by CheckStart and we are in broadcast
+                                                                           // do not delete info logo, it can be introduction logo, it looks the same
+                dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): do not check for info logo, we are in start range, it can be introducion logo ");
+            }
+            else {
+                if ((isInfoLogo >= STATUS_UNKNOWN) && ptr_cDetectLogoStopStart->IsInfoLogo()) {
+                    // found info logo part
+                    if (indexToHMSFStop && indexToHMSFStart) {
+                        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
+                    }
+                    evaluateLogoStopStartPair->SetIsInfoLogo(stopPosition, startPosition);
+                    marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
                 }
-                evaluateLogoStopStartPair->SetIsInfoLogo(stopPosition, startPosition);
-                marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
             }
 
             // check logo change
