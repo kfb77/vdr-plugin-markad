@@ -21,10 +21,10 @@
 #define LOGO_IMARK 0.18        //!< percentage of pixels for invisible changed from 0,15 to 0,18
                                //!<
 
-#define MIN_H_BORDER_SECS  80  //!< minimum lenght of horizontal border, changed from 70 to 80 to prevent to detect dark scene or closing credits as border
+#define MIN_H_BORDER_SECS  97  //!< minimum lenght of horizontal border, changed from 80 to 97 to prevent to detect dark scene or closing credits as border
                                //!<
-#define MIN_V_BORDER_SECS 128  //!< minimum lenght of vertical border before it is accepted <br>
-                               //!< changed from 120 to 128 <br>
+#define MIN_V_BORDER_SECS 140  //!< minimum lenght of vertical border before it is accepted <br>
+                               //!< changed from 128 to 140 <br>
                                //!< need a long sequence to prevent long darks scenes detected as border <br>
                                //!< keep it greater than MIN_H_BORDER_SECS for detecting long black screens
 
