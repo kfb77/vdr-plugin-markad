@@ -1774,7 +1774,9 @@ int cDetectLogoStopStart::IntroductionLogo() {
 #define INTRODUCTION_MAX_DIFF_END       4319   // max distance of introduction logo end to start mark (endPos)
 
    for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
+#ifdef DEBUG_MARK_OPTIMIZATION
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+#endif
 
         // separator frame before introduction logo
         int sumPixel        = 0;
@@ -1789,11 +1791,19 @@ int cDetectLogoStopStart::IntroductionLogo() {
         }
         // examples of separator frames before introduction logo
         // 59     0     0    -1 =  58
+        // -1   325     0     0 = 324  (ignoring, conflict with: 27   286     0     7 )
         // 42    20    47    65 = 174
         //  3    99    62    65 = 229
-        int diffSeparator = 1000 * (endPos - (*cornerResultIt).frameNumber1) / maContext->Video.Info.framesPerSecond;
-        if ((countLow >= 3) && (sumPixel <= 229) && (diffSeparator > 960)) { // new separator image before introduction logo, restart detection, changed from 14 to 58
-                                                                             // ignore first separator frame near endPos (logo start mark), this can not be start of introduction logo
+        //
+        //  example of no separator frames
+        // 27   286     0     7 = 320
+        int diffSeparatorToEnd = 1000 * (endPos - (*cornerResultIt).frameNumber1) / maContext->Video.Info.framesPerSecond;
+        if ((countLow >= 3) && (sumPixel < 320) && (diffSeparatorToEnd > 960)) { // new separator image before introduction logo, restart detection
+                                                                                 // changed from 324 to 320
+                                                                                 // ignore first separator frame near endPos (logo start mark), this can not be start of introduction logo
+#ifdef DEBUG_MARK_OPTIMIZATION
+            dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator found at frame (%5d)", (*cornerResultIt).frameNumber1);
+#endif
             separatorFrameBefore = (*cornerResultIt).frameNumber1;
             introductionLogo.start      = -1;
             introductionLogo.end        = -1;
