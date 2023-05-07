@@ -1892,7 +1892,7 @@ void cMarkAdVideo::ResetMarks() {
 }
 
 
-bool cMarkAdVideo::AddMark(int type, int position, sAspectRatio *before, sAspectRatio *after) {
+bool cMarkAdVideo::AddMark(int type, int position, const sAspectRatio *before, const sAspectRatio *after) {
     if (marks.Count>marks.maxCount) return false;
     if (before) {
         marks.Number[marks.Count].AspectRatioBefore.num = before->num;

@@ -627,7 +627,7 @@ class cMarkAdVideo {
  * @param after    video aspect ratio after mark position
  * @return true if free position in new mark array found, false otherwise
  */
-        bool AddMark(int type, int position, sAspectRatio *before = NULL, sAspectRatio *after = NULL);
+        bool AddMark(int type, int position, const sAspectRatio *before = NULL, const sAspectRatio *after = NULL);
 
 /**
  * check if video aspect ratio changes between the two aspect ratios
