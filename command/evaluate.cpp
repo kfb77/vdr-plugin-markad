@@ -1166,7 +1166,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 
     // check if it is a closing credit, we may not delete this because it contains end mark
     if (found) {
-        if (ClosingCredit() >= 0) {
+        if (ClosingCredit(true) >= 0) {
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): stop/start part is closing credit, no info logo");
             found = false;
         }
@@ -1282,7 +1282,7 @@ bool cDetectLogoStopStart::IsLogoChange() {
 
 
 // search for closing credits in frame without logo after broadcast end
-int cDetectLogoStopStart::ClosingCredit() {
+int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
     if (!maContext) return -1;
 
     if (!ClosingCreditsChannel(maContext->Info.ChannelName)) return -1;
@@ -1395,6 +1395,7 @@ int cDetectLogoStopStart::ClosingCredit() {
     int maxSumFramePortion =  0;
     int frameCorner        = -1;
     for (int corner = 0; corner < CORNERS; corner++) {
+        if (noLogoCorner && (corner ==  maContext->Video.Logo.corner)) continue;  // if we are called from Info logo, we can false detect the info logo as frame
         if (ClosingCredits.sumFramePortion[corner] > maxSumFramePortion) {
             maxSumFramePortion = ClosingCredits.sumFramePortion[corner];
             frameCorner = corner;

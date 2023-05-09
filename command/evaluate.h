@@ -293,7 +293,7 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
  * check for closing credits without logo and for closing still image
  * @return frame number of end of closing credits or closing still image
  */
-        int ClosingCredit();
+        int ClosingCredit(const bool noLogoCorner = false);
 
 /**
  * check if current range is an advertising in frame with logo
