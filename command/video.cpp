@@ -861,6 +861,14 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     int contrastReduced = -1;
     if (processed == 1) {   // we have only 1 plane (no coloured logo
 
+        // prevent to detect logo start on very bright background, this is not possible
+        if ((area.status == LOGO_INVISIBLE) && (rPixel > (mPixel * logo_vmark)) && area.intensity >= 218) {  // possible state change from invisible to visible
+#ifdef DEBUG_LOGO_DETECTION
+            dsyslog("cMarkAdLogo::Detect(): frame (%6d) to bright %d for logo start", frameCurrent, area.intensity);
+#endif
+            return LOGO_NOCHANGE;
+        }
+
         // prevent to detect background patten as logo
         if ((area.status == LOGO_INVISIBLE) && (rPixel > (mPixel * logo_vmark))) {  // possible state change from invisible to visible
             int black = 0;
