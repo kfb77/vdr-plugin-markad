@@ -9,9 +9,9 @@
 #include "marks.h"
 
 enum eCriteria {
-    MARK_AVAILABLE   =  1,
-    MARK_UNKNOWN     =  0,
-    MARK_UNAVAILABLE = -1,
+    CRITERIA_AVAILABLE   =  1,
+    CRITERIA_UNKNOWN     =  0,
+    CRITERIA_UNAVAILABLE = -1,
 };
 
 /**
@@ -31,18 +31,18 @@ class cMarkCriteria : public cMarks {
  * get status of a mark type
  * @return status
  */
-        int GetState(const int type);
+        int GetMarkTypeState(const int type);
 
 
 /**
  * set status of a mark type
  * @return status
  */
-        void SetState(const int type, const int state);
+        void SetMarkTypeState(const int type, const int state);
 
 
     private:
         char *StateToText(const int state);
-        int hborder = MARK_UNKNOWN;
-        int vborder = MARK_UNKNOWN;
+        int hborder = CRITERIA_UNKNOWN;
+        int vborder = CRITERIA_UNKNOWN;
 };

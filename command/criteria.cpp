@@ -16,8 +16,8 @@ cMarkCriteria::~cMarkCriteria() {
 }
 
 
-int cMarkCriteria::GetState(const int type) {
-    int state = MARK_UNKNOWN;
+int cMarkCriteria::GetMarkTypeState(const int type) {
+    int state = CRITERIA_UNKNOWN;
     switch (type) {
         case MT_HBORDERCHANGE:
             state = hborder;
@@ -26,12 +26,12 @@ int cMarkCriteria::GetState(const int type) {
             state = vborder;
             break;
         default:
-            dsyslog("cMarkCriteria::SetState(): type %d not valid", type);
-            return MARK_UNKNOWN;
+            dsyslog("cMarkCriteria::GetMarkTypeState(): type %d not valid", type);
+            return CRITERIA_UNKNOWN;
     }
     char *typeToText  = TypeToText(type);
     char *stateToText = StateToText(state);
-    dsyslog("cMarkCriteria::GetState(): type: %s state: %s", typeToText, stateToText);
+    dsyslog("cMarkCriteria::GetMarkTypeState(): type: %s state: %s", typeToText, stateToText);
     FREE(strlen(typeToText)+1, "text");
     free(typeToText);
     FREE(strlen(stateToText)+1, "state");
@@ -40,11 +40,11 @@ int cMarkCriteria::GetState(const int type) {
 }
 
 
-void cMarkCriteria::SetState(const int type, const int state) {
+void cMarkCriteria::SetMarkTypeState(const int type, const int state) {
     char *typeToText  = TypeToText(type);
     char *stateToText = StateToText(state);
     if (typeToText && stateToText) {
-        dsyslog("cMarkCriteria::SetState(): set mark type for %s to %s", typeToText, stateToText);
+        dsyslog("cMarkCriteria::SetMarkTypeState(): set mark type for %s to %s", typeToText, stateToText);
         FREE(strlen(typeToText)+1, "text");
         free(typeToText);
         FREE(strlen(stateToText)+1, "state");
@@ -58,7 +58,7 @@ void cMarkCriteria::SetState(const int type, const int state) {
             vborder = state;
             break;
         default:
-            esyslog("cMarkCriteria::SetState(): type %d not valid", type);
+            esyslog("cMarkCriteria::SetMarkTypeState(): type %d not valid", type);
     }
 
 }
@@ -70,17 +70,17 @@ void cMarkCriteria::SetState(const int type, const int state) {
 char *cMarkCriteria::StateToText(const int state) {
     char *text = NULL;
     switch (state) {
-        case MARK_AVAILABLE:
+        case CRITERIA_AVAILABLE:
             if (asprintf(&text, "available") != -1) {
                 ALLOC(strlen(text)+1, "state");
             }
             break;
-        case MARK_UNKNOWN:
+        case CRITERIA_UNKNOWN:
             if (asprintf(&text, "unknown") != -1) {
                 ALLOC(strlen(text)+1, "state");
             }
             break;
-        case MARK_UNAVAILABLE:
+        case CRITERIA_UNAVAILABLE:
             if (asprintf(&text, "unavailable") != -1) {
                 ALLOC(strlen(text)+1, "state");
             }

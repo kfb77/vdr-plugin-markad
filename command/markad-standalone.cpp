@@ -400,10 +400,10 @@ int cMarkAdStandalone::CheckStop() {
     }
 
 // try MT_HBORDERSTOP
-    if (!end && (markCriteria.GetState(MT_HBORDERCHANGE) >= MARK_UNKNOWN)) end = Check_HBORDERSTOP();
+    if (!end && (markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) >= CRITERIA_UNKNOWN)) end = Check_HBORDERSTOP();
 
 // try MT_VBORDERSTOP
-    if (!end && (markCriteria.GetState(MT_VBORDERCHANGE) >= MARK_UNKNOWN)) end = Check_VBORDERSTOP();
+    if (!end && (markCriteria.GetMarkTypeState(MT_VBORDERCHANGE) >= CRITERIA_UNKNOWN)) end = Check_VBORDERSTOP();
 
 // try MT_LOGOSTOP
 #define MAX_LOGO_END_MARK_FACTOR 2.7 // changed from 3 to 2.7 to prevent too early logo stop marks
@@ -477,7 +477,7 @@ int cMarkAdStandalone::CheckStop() {
         // for broadcast without hborder check border start mark from next bradcast before logo stop
         // in this case logo stop mark is from next recording, use border start mark as end mark
         bool typeChange = false;
-        if (end && (markCriteria.GetState(MT_HBORDERCHANGE) <= MARK_UNKNOWN)) {
+        if (end && (markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) <= CRITERIA_UNKNOWN)) {
             cMark *hBorderStart = marks.GetPrev(end->position, MT_HBORDERSTART);
             if (hBorderStart) {
                 cMark *hBorderStartPrev = marks.GetPrev(hBorderStart->position, MT_HBORDERSTART);
@@ -765,8 +765,8 @@ int cMarkAdStandalone::CheckStop() {
     }
 
     // cleanup detection failures (e.g. very long dark scenes)
-    if (markCriteria.GetState(MT_HBORDERCHANGE) == MARK_UNAVAILABLE) marks.DelType(MT_HBORDERCHANGE, 0xF0);
-    if (markCriteria.GetState(MT_VBORDERCHANGE) == MARK_UNAVAILABLE) marks.DelType(MT_VBORDERCHANGE, 0xF0);
+    if (markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_UNAVAILABLE) marks.DelType(MT_HBORDERCHANGE, 0xF0);
+    if (markCriteria.GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_UNAVAILABLE) marks.DelType(MT_VBORDERCHANGE, 0xF0);
 
     iStop = iStopA = 0;
     gotendmark = true;
@@ -929,11 +929,11 @@ void cMarkAdStandalone::CheckStart() {
 #define IGNORE_AT_START 12   // ignore this number of frames at the start for start marks, they are initial marks from recording before, changed from 11 to 12
 
     // set initial mark criterias
-    if (marks.Count(MT_HBORDERSTART) == 0) markCriteria.SetState(MT_HBORDERCHANGE, MARK_UNAVAILABLE);  // if we have no hborder start, broadcast can not have hborder
-    else if ((marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 0)) markCriteria.SetState(MT_HBORDERCHANGE, MARK_AVAILABLE);  // if we have a vborder start and no vboder stop
+    if (marks.Count(MT_HBORDERSTART) == 0) markCriteria.SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_UNAVAILABLE);  // if we have no hborder start, broadcast can not have hborder
+    else if ((marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 0)) markCriteria.SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE);  // if we have a vborder start and no vboder stop
 
-    if (marks.Count(MT_VBORDERSTART) == 0) markCriteria.SetState(MT_VBORDERCHANGE, MARK_UNAVAILABLE);  // if we have no vborder start, broadcast can not have vborder
-    else if ((marks.Count(MT_VBORDERSTART) == 1) && (marks.Count(MT_VBORDERSTOP) == 0)) markCriteria.SetState(MT_VBORDERCHANGE, MARK_AVAILABLE);  // if we have a vborder start and no vboder stop
+    if (marks.Count(MT_VBORDERSTART) == 0) markCriteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE);  // if we have no vborder start, broadcast can not have vborder
+    else if ((marks.Count(MT_VBORDERSTART) == 1) && (marks.Count(MT_VBORDERSTOP) == 0)) markCriteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_AVAILABLE);  // if we have a vborder start and no vboder stop
 
     int hBorderStopPosition = -1;
     int delta = macontext.Video.Info.framesPerSecond * MAXRANGE;
@@ -1398,7 +1398,7 @@ void cMarkAdStandalone::CheckStart() {
                     dsyslog("cMarkAdStandalone::CheckStart(): no vertical border start found after start (%d) and stop (%d)", vStart->position, vStop->position);
                     if ((vStart->position < IGNORE_AT_START) && (markDiff <= 140)) {  // vbordet start/stop from previous broadcast
                         dsyslog("cMarkAdStandalone::CheckStart(): vertical border stop at (%d) %ds after vertical border start (%d) in start part found, this is from previous broadcast, delete marks", vStop->position, markDiff, vStart->position);
-                        markCriteria.SetState(MT_VBORDERCHANGE, MARK_UNAVAILABLE);
+                        markCriteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE);
                         marks.Del(vStop);
                         marks.Del(vStart);
                         vStart = NULL;
@@ -2624,7 +2624,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             if (restartLogoDetectionDone) markDiff = 5839; // we are in the end part, keep more marks to detect best end mark, changed from 15000 to 5839
             int diff = 1000 * (abs(mark->position - prev->position)) / macontext.Video.Info.framesPerSecond;
             if (diff < markDiff) {
-                if (markCriteria.GetState(mark->type & 0xF0) >= MARK_UNKNOWN) {
+                if (markCriteria.GetMarkTypeState(mark->type & 0xF0) >= CRITERIA_UNKNOWN) {
                     char *markType = marks.TypeToText(mark->type);
                     char *prevType = marks.TypeToText(prev->type);
                     if (markType && prevType) {
