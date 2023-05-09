@@ -3475,7 +3475,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
         if (strcmp(macontext.Info.ChannelName, "NITRO")       == 0) silenceRange = 2700; // short separation scene with no audio before
         if (strcmp(macontext.Info.ChannelName, "TELE_5")      == 0) silenceRange = 4000; // logo fade in/out, do not increase to prevent to get ad before start
         if (strcmp(macontext.Info.ChannelName, "SIXX")        == 0) silenceRange = 5000; // short preview with logo direct after broadcast, get real stop with black screen between
-        if (strcmp(macontext.Info.ChannelName, "Nickelodeon") == 0) silenceRange = 7000; // logo fade in/out
+        if (strcmp(macontext.Info.ChannelName, "Nickelodeon") == 0) silenceRange = 6500; // logo fade in/out, changed from 7000 to 6500 to prevent to detect still image without audio
         if (strcmp(macontext.Info.ChannelName, "DMAX")        == 0) silenceRange = 8000; // logo color change at the begin
                                                                                          // changed from 12000 to 8000 to prevent to get a silence part away from stop mark
     }
