@@ -1319,10 +1319,26 @@ void cMarkAdStandalone::CheckStart() {
             // check hborder start position
             if (hStart) {
                 if (hStart->position >= IGNORE_AT_START) {  // position < IGNORE_AT_START is a hborder start from previous recording
-                    dsyslog("cMarkAdStandalone::CheckStart(): delete logo and vborder marks if any");
+                    begin = hStart;                         // found valid horizontal border start mark
+                    // we found a hborder, check logo stop/start after to prevent to get closing credit from previous recording as start
+                    cMark *logoStop  = marks.GetNext(begin->position, MT_LOGOSTOP);
+                    cMark *logoStart = marks.GetNext(begin->position, MT_LOGOSTART);
+                    if (logoStop && logoStart && (logoStart->position > logoStop->position)) {
+                        int diffStop  = (logoStop->position  - begin->position) / macontext.Video.Info.framesPerSecond;
+                        int diffStart = (logoStart->position - begin->position) / macontext.Video.Info.framesPerSecond;
+                        dsyslog("cMarkAdStandalone::CheckStart(): found logo stop (%d) %ds and logo start (%d) %ds after hborder start (%d)", logoStop->position, diffStop, logoStart->position, diffStart, begin->position);
+                        if ((diffStop <= 13) && (diffStart <= 17)) {
+                            dsyslog("cMarkAdStandalone::CheckStart(): hborder start mark position (%d) includes previous closing credits, use logo start (%d) instead", begin->position, logoStart->position);
+                            marks.Del(begin->position);
+                            begin = logoStart;
+                        }
+                    }
+                    if (begin->type != MT_LOGOSTART) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): delete logo marks if any");
+                        marks.DelType(MT_LOGOCHANGE, 0xF0);
+                    }
+                    dsyslog("cMarkAdStandalone::CheckStart(): delete vborder marks if any");
                     marks.DelType(MT_VBORDERCHANGE, 0xF0);
-                    marks.DelType(MT_LOGOCHANGE, 0xF0);
-                    begin = hStart;   // found valid horizontal border start mark
                     macontext.Video.Options.ignoreVborder = true;
                 }
                 else {
@@ -1390,11 +1406,27 @@ void cMarkAdStandalone::CheckStart() {
                 }
             }
             if (vStart) {
-                if (vStart->position >= IGNORE_AT_START) { // early position is a vborder previous recording
-                    dsyslog("cMarkAdStandalone::CheckStart(): delete logo and HBORDER marks if any");
-                    marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
-                    marks.DelType(MT_LOGOCHANGE,    0xF0); // delete logo marks, vborder is stronger
+                if (vStart->position >= IGNORE_AT_START) { // early position is a vborder from previous recording
                     begin = vStart;                        // found valid vertical border start mark
+                    // we found a vborder, check logo stop/start after to prevent to get closing credit from previous recording as start
+                    cMark *logoStop  = marks.GetNext(begin->position, MT_LOGOSTOP);
+                    cMark *logoStart = marks.GetNext(begin->position, MT_LOGOSTART);
+                    if (logoStop && logoStart && (logoStart->position > logoStop->position)) {
+                        int diffStop  = (logoStop->position  - begin->position) / macontext.Video.Info.framesPerSecond;
+                        int diffStart = (logoStart->position - begin->position) / macontext.Video.Info.framesPerSecond;
+                        dsyslog("cMarkAdStandalone::CheckStart(): found logo stop (%d) %ds and logo start (%d) %ds after vborder start (%d)", logoStop->position, diffStop, logoStart->position, diffStart, begin->position);
+                        if ((diffStop <= 25) && (diffStart <= 28)) {  // changed from 1/4 to 10/13 to 25/28
+                            dsyslog("cMarkAdStandalone::CheckStart(): vborder start mark position (%d) includes previous closing credits, use logo start (%d) instead", begin->position, logoStart->position);
+                            marks.Del(begin->position);
+                            begin = logoStart;
+                        }
+                    }
+                    if (begin->type != MT_LOGOSTART) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): delete logo marks if any");
+                        marks.DelType(MT_LOGOCHANGE, 0xF0); // delete logo marks, vborder is stronger
+                    }
+                    dsyslog("cMarkAdStandalone::CheckStart(): delete HBORDER marks if any");
+                    marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
                     macontext.Video.Info.hasBorder        = true;
                     macontext.Video.Options.ignoreHborder = true;
                 }
@@ -3260,6 +3292,28 @@ void cMarkAdStandalone::MarkadCut() {
 }
 
 
+void cMarkAdStandalone::BorderMarkOptimization() {
+    LogSeparator(true);
+    dsyslog("cMarkAdStandalone::BorderMarkOptimization(): start border mark optimization");
+
+    // first boder start mark can be too early if previous braacast has dark closing credits
+    cMark *mark = marks.GetFirst();
+    if (mark && ((mark->type == MT_VBORDERSTART) || (mark->type == MT_HBORDERSTART))) {
+        cMark *blackMark = blackMarks.GetNext(mark->position, MT_NOBLACKSTART);
+        if (blackMark) {
+            int diffBlack = 1000 * (blackMark->position - mark->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::BlackMarkOptimization(): black screen (%d) %dms after border start mark (%d)", blackMark->position, diffBlack, mark->position);
+            if (diffBlack <= 2560) { // changed from 1520 to 2560
+                marks.Move(mark, blackMark->position - 1, "black screen before border");
+                marks.Save(directory, &macontext, false);
+                return;
+            }
+        }
+    }
+    return;
+}
+
+
 // logo mark optimization
 // move logo marks:
 //     - if closing credits are detected after last logo stop mark
@@ -3628,7 +3682,6 @@ void cMarkAdStandalone::LogoMarkOptimization() {
     }
 
     if (save) marks.Save(directory, &macontext, false);
-    return;
 }
 
 
@@ -5492,7 +5545,8 @@ int main(int argc, char *argv[]) {
         }
         if (!bPass1Only) {
             gettimeofday(&startTime3, NULL);
-            cmasta->LogoMarkOptimization();  // logo mark optimization
+            cmasta->LogoMarkOptimization();   // logo mark optimization
+            cmasta->BorderMarkOptimization(); // vborder and hborder mark optimization
             gettimeofday(&endTime3, NULL);
 
             gettimeofday(&startTime4, NULL);

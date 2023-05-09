@@ -133,6 +133,12 @@ class cMarkAdStandalone : public cEvaluateChannel {
  */
         void ProcessOverlap();
 
+/** boder mark optimization <br>
+ * move border marks:
+ *     - if black screen marks are direct after broadcast start mark
+ */
+        void BorderMarkOptimization();
+
 /** logo mark optimization <br>
  * move logo marks:
  *     - if closing credits are detected after last logo stop mark
