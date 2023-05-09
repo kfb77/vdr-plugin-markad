@@ -64,6 +64,18 @@ void cMarkCriteria::SetMarkTypeState(const int type, const int state) {
 }
 
 
+int cMarkCriteria::GetClosingCreditsState() {
+    dsyslog("cMarkCriteria::GetClosingCreditState(): closing credits state is %d", closingCredits);
+    return closingCredits;
+}
+
+
+void cMarkCriteria::SetClosingCreditsState(const int state) {
+    dsyslog("cMarkCriteria::SetClosingCreditState(): set closing credits state to %d", state);
+    closingCredits = state;
+}
+
+
 // define text to mark status of broadcast
 // return pointer to text, calling function has to free memory
 //

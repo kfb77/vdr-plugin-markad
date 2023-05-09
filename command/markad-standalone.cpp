@@ -741,7 +741,19 @@ int cMarkAdStandalone::CheckStop() {
         end = marks.GetPrev(INT_MAX, MT_STOP, 0x0F);  // make sure we got a stop mark
     }
 
-    // now we have a end mark
+    // now we have a end mark, check if the could follow closing credits
+    if (end && (end->type == MT_LOGOSTOP)) {
+        cMark *nextLogoStart = marks.GetNext(end->position);
+        if (nextLogoStart) {
+            int closingCreditsLength = (nextLogoStart->position - end->position) / macontext.Video.Info.framesPerSecond;
+            if (closingCreditsLength <= 2) {
+                dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) %ds after end mark (%d), no closing credits without logo follows", nextLogoStart->position, closingCreditsLength, end->position);
+                markCriteria.SetClosingCreditsState(CRITERIA_UNAVAILABLE);
+            }
+        }
+    }
+
+    // delete all marks after end mark
     if (end) { // be save, if something went wrong end = NULL
         dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after final stop mark at (%d)", end->position);
         marks.DelTill(end->position, false);
@@ -3748,7 +3760,7 @@ void cMarkAdStandalone::ProcessOverlap() {
 
     // check last logo stop mark if closing credits follows
     LogSeparator(false);
-    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): check last logo stop mark if closing credits follows");
+    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): check last logo stop mark for advertisement in frame with logo or closing credits without logo");
     if (ptr_cDecoder) {  // we use file position
         cMark *lastStop = marks.GetLast();
         if (lastStop) {
@@ -3757,7 +3769,8 @@ void cMarkAdStandalone::ProcessOverlap() {
                     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): end mark is a weak blackscreen mark, no closing credits without logo can follow");
                 }
                 else {
-                    if ((lastStop->type == MT_LOGOSTOP) || (lastStop->type == MT_HBORDERSTOP) || (lastStop->type == MT_MOVEDSTOP)) {
+                    if ((markCriteria.GetClosingCreditsState() >= CRITERIA_UNKNOWN) &&
+                       ((lastStop->type == MT_LOGOSTOP) || (lastStop->type == MT_HBORDERSTOP) || (lastStop->type == MT_MOVEDSTOP))) {
                         dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search for closing credits");
                         if (MoveLastStopAfterClosingCredits(lastStop)) {
                             save = true;

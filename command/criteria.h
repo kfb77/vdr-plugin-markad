@@ -41,8 +41,23 @@ class cMarkCriteria : public cMarks {
         void SetMarkTypeState(const int type, const int state);
 
 
+/**
+ * get status of possible closing credits without logo
+ * @return status
+ */
+        int GetClosingCreditsState();
+
+
+/**
+ * set status of closing credits without logo
+ * @return status
+ */
+        void SetClosingCreditsState(const int state);
+
+
     private:
         char *StateToText(const int state);
-        int hborder = CRITERIA_UNKNOWN;
-        int vborder = CRITERIA_UNKNOWN;
+        int hborder        = CRITERIA_UNKNOWN;
+        int vborder        = CRITERIA_UNKNOWN;
+        int closingCredits = CRITERIA_UNKNOWN;
 };
