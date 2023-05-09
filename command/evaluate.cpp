@@ -341,7 +341,8 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
 void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond) {
     if (framesPerSecond <= 0) return;
 #define LOGO_INFO_LENGTH_MIN  3720  // min time in ms of a info logo section, bigger values than in InfoLogo becase of seek to iFrame, changed from 5000 to 4480 to 3720
-#define LOGO_INFO_LENGTH_MAX 17680  // max time in ms of a info logo section, changed from 17000 to 17640 to 17680
+#define LOGO_INFO_LENGTH_MAX 22480  // max time in ms of a info logo section, changed from 17680 to 22480
+                                    // RTL2 has very long info logos
 #define LOGO_INFO_SHORT_BLACKSCREEN_BEFORE_DIFF_MAX 440  // max time in ms no short blackscreen allowed before stop mark, changed from 40 to 440 to 360 to 440
                                                          // no not change, there are info logos direct after very short start logo (440ms before, length 1000ms)
 #define LOGO_INFO_SHORT_BLACKSCREEN_LENGTH         1000  // length of a short blackscreen, changed from 1080 to 1000
@@ -1050,7 +1051,9 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     int countDark           =  0;
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
+#ifdef DEBUG_MARK_OPTIMIZATION
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
+#endif
 
         int sumPixel              = 0;
         int countZero             = 0;
@@ -1146,7 +1149,8 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         if (diffEnd <= 1800) newEndPos = InfoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): final range start (%d) end (%d)", newStartPos, newEndPos);
 #define INFO_LOGO_MIN_LENGTH  2880  // changed from 4000 to 3360 to 2880
-#define INFO_LOGO_MAX_LENGTH 14520  // chnaged from 14000 to 14160 to 14400 to 14520
+#define INFO_LOGO_MAX_LENGTH 15640  // chnaged from 14520 to 15640
+                                    // RTL2 has very long info logos
 #define INFO_LOGO_MIN_QUOTE     69  // changed from 80 to 72 to 70 to 69
         int quote = 100 * (InfoLogo.endFinal - InfoLogo.startFinal) / (newEndPos - newStartPos);
         int length = 1000 * (InfoLogo.endFinal - InfoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
