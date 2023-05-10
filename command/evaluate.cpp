@@ -1150,7 +1150,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         if (diffEnd <= 1800) newEndPos = InfoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): final range start (%d) end (%d)", newStartPos, newEndPos);
 #define INFO_LOGO_MIN_LENGTH  2880  // changed from 4000 to 3360 to 2880
-#define INFO_LOGO_MAX_LENGTH 15640  // chnaged from 14520 to 15640
+#define INFO_LOGO_MAX_LENGTH 17040  // chnaged from 15640 to 15880 to 17040
                                     // RTL2 has very long info logos
 #define INFO_LOGO_MIN_QUOTE     69  // changed from 80 to 72 to 70 to 69
         int quote = 100 * (InfoLogo.endFinal - InfoLogo.startFinal) / (newEndPos - newStartPos);
