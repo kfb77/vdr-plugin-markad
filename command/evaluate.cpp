@@ -1071,8 +1071,8 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         countFrames++;
         if (darkCorner == 3) countDark++;  // if all corners but logo corner has no match, this is a very dark scene
 
-        if (((countZero >= 2) && (sumPixel <=  45)) || // changed from 0 to 15 to 100 to 60 to 45, too big values results in false detection of a separation image, do not increase
-            ((countZero >= 3) && (sumPixel <= 132))) {
+        if (((countZero >= 2) && (sumPixel <=  45)) || // changed from  60 to  45, too big values results in false detection of a separation image, do not increase
+            ((countZero >= 3) && (sumPixel <  122))) { // changed from 132 to 122
             countSeparatorFrame++;
             lastSeparatorFrame = (*cornerResultIt).frameNumber2;
         }
