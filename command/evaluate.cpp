@@ -352,10 +352,11 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
 #define LOGO_INFO_BROADCAST_AFTER_MIN              1160  // min length of broadcast after info logo, changed from 4000 to 1160
 
 #define LOGO_INFO_NEXT_STOP_MIN                    2120  // min distance of next logo stop/start pair to merge, changed from 3000 to 2120
-#define LOGO_INFO_NEXT_STOP_MAX                    8080  // max distance of next logo stop/start pair to merge
+#define LOGO_INFO_NEXT_STOP_MAX                    4560  // max distance of next logo stop/start pair to merge
                                                          // if info logo is very similar to logo, we false detect this as logo
                                                          // in this case we will have only a short logo interuption when info logo fade in/out, merge this range
-                                                         // changed from 8000 to 8080
+                                                         // nearest logo stop 4560ms after info logo found, do not merge with real stop mark
+                                                         // changed from 7280 to 4560
     // check length
     int length = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / framesPerSecond;
     dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: length %dms (expect >=%dms and <=%dms)",
@@ -371,7 +372,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
 
     // maybe we have a wrong start/stop pair between, check if merge with next pair can help
     if ((length < LOGO_INFO_LENGTH_MIN) ||  // this pair is too short
-       ((delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair <= LOGO_INFO_NEXT_STOP_MAX) && (length < 11800))) { // next pair is too near, do not merge big pairs
+       ((delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair < LOGO_INFO_NEXT_STOP_MAX) && (length < 11800))) { // next pair is too near, do not merge big pairs
         dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): short pair or very near next start mark, try to merge with next pair");
 
         // try next logo stop/start pair
