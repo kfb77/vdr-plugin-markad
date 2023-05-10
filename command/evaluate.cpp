@@ -1075,6 +1075,9 @@ bool cDetectLogoStopStart::IsInfoLogo() {
             ((countZero >= 3) && (sumPixel <  122))) { // changed from 132 to 122
             countSeparatorFrame++;
             lastSeparatorFrame = (*cornerResultIt).frameNumber2;
+#ifdef DEBUG_MARK_OPTIMIZATION
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator frame (%d)", lastSeparatorFrame);
+#endif
         }
 
         // check zoomed picture
@@ -1120,7 +1123,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 
     // check separator image
     dsyslog("cDetectLogoStopStart::IsInfoLogo(): count separator frames %d", countSeparatorFrame);
-    if (countSeparatorFrame >= 3) {
+    if (countSeparatorFrame > 4) {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): too much separator frames, this can not be a info logo");
         found = false;
     }
