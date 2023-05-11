@@ -4708,7 +4708,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         if (vpsLength > 0) {
             dsyslog("recording length from VPS events:                      %6ds -> %d:%02d:%02dh", vpsLength, vpsLength / 3600, (vpsLength % 3600) / 60,  vpsLength % 60);
             int adQuote = 100 * (vpsLength - lengthSec) / vpsLength;
-            if (adQuote > 30) esyslog("advertisement quote: %d%% very high, marks can be wrong", adQuote);
+            if (adQuote > 37) esyslog("advertisement quote: %d%% very high, marks can be wrong", adQuote);  // changed from 34 to 37
             else dsyslog("advertisement quote: %d%%", adQuote);
         }
 
