@@ -957,7 +957,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                     return LOGO_NOCHANGE;
                 }
                 // if we have a very low contrast and some matches this could be a logo on a very bright area
-                if ((area.status == LOGO_VISIBLE) && (contrastReduced < 25) && (rPixel < (mPixel * logo_imark)) && (rPixel > (mPixel * logo_imark) / 3)) {
+                if ((area.status == LOGO_VISIBLE) && (area.intensity > 8) && (contrastReduced < 25) && (rPixel < (mPixel * logo_imark)) && (rPixel > (mPixel * logo_imark) / 3)) {
                     return LOGO_NOCHANGE;
                 }
             }
