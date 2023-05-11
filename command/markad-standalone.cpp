@@ -3555,8 +3555,8 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             framecnt3 += 2 * silenceRange - 1 * macontext.Video.Info.framesPerSecond / 1000;
             bool before = false;
 
-            // use before silence only if we found no after silence
-            if (afterSilence < 0) {
+            // use nearest silence
+            if ((mark->position - beforeSilence) < (afterSilence -  mark->position)) {
                 afterSilence = beforeSilence;
                 before = true;
             }
