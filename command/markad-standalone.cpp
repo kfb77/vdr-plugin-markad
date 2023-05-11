@@ -1805,8 +1805,8 @@ void cMarkAdStandalone::CheckStartMark() {
         if (markStop) {
             int minFirstBroadcast = 8;                                   // trust strong marks
             if (mark->type <= MT_NOBLACKSTART)   minFirstBroadcast = 96; // do not trust weak marks
-            else if (mark->type == MT_LOGOSTART) minFirstBroadcast = 68; // do not increase, there a broadcasts with early first advertising, changed from 71 to 68
-                                                                         // there can be short stop/start from a undetected info logo
+            else if (mark->type == MT_LOGOSTART) minFirstBroadcast = 52; // do not increase, there are broadcasts with early first advertising, changed from 68 to 52
+                                                                         // there can be short stop/start from a undetected info logo (eg RTL2)
             int lengthFirstBroadcast = (markStop->position - mark->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
             dsyslog("cMarkAdStandalone::CheckStartMark(): first broadcast length %ds from (%d) to (%d) (expect <=%ds)", lengthFirstBroadcast, mark->position, markStop->position, minFirstBroadcast);
             cMark *markStart = marks.GetNext(markStop->position, MT_START, 0x0F);
