@@ -1627,12 +1627,16 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     int firstFrameCorner      = -1;
     int secondFrameCorner     = -1;
     for (int corner = 0; corner < CORNERS; corner++) {
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of frame portion from corner %-12s: %7d", aCorner[corner], AdInFrameType1.sumFramePortionFinal[corner]);
         if (corner == maContext->Video.Logo.corner) continue;  // ignore logo corner, we have a static picture in that corner
         if (AdInFrameType1.sumFramePortionFinal[corner] > firstSumFramePortion) {
             firstSumFramePortion  = AdInFrameType1.sumFramePortionFinal[corner];
-            firstFrameCorner = corner;
+            firstFrameCorner      = corner;
         }
-        if ((AdInFrameType1.sumFramePortionFinal[corner] >= secondSumFramePortion) && (AdInFrameType1.sumFramePortionFinal[corner] < firstSumFramePortion)) {
+    }
+    for (int corner = 0; corner < CORNERS; corner++) {
+        if ((corner == maContext->Video.Logo.corner) || (corner == firstFrameCorner)) continue;
+        if (AdInFrameType1.sumFramePortionFinal[corner] > secondSumFramePortion) {
             secondSumFramePortion = AdInFrameType1.sumFramePortionFinal[corner];
             secondFrameCorner     = corner;
         }
