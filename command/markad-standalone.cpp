@@ -1848,6 +1848,7 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
             FREE(strlen(indexToHMSF)+1, "indexToHMSF");
             free(indexToHMSF);
         }
+        else dsyslog("cMarkAdStandalone::DebugMarks(): could not get time to mark (%d) type %d", mark->position, mark->type);
         mark=mark->Next();
     }
     tsyslog("cMarkAdStandalone::DebugMarks(): current black screen marks:");
@@ -2150,72 +2151,72 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
 // check for short start/stop pairs at the start
     CheckStartMark();
 
-// check blackscreen and assumed end mark
 // check for better end mark not very far away from assuemd end
     LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckMarks(): check for near better end mark in case of recording length is too big");
+    dsyslog("cMarkAdStandalone::CheckMarks(): check for better end mark in case of recording length is too big");
     DebugMarks();     //  only for debugging
-    mark = marks.GetLast();
-    if (mark && ((mark->type & 0xF0) < MT_CHANNELCHANGE)) {  // trust only channel marks and better
-        int maxBeforeAssumed;           // max 5 min before assumed stop
-        switch(mark->type) {
-            case MT_ASSUMEDSTOP:
-                maxBeforeAssumed = 449; // try hard to get a better end mark, changed from 389 to 532 to 449
-                                        // not not increase to prevent to get preview stop from last advertising
-                break;
-            case MT_NOBLACKSTOP:
-                maxBeforeAssumed = 351; // try a litte more to get end mark, changed from 389 to 351
-                break;
-            case MT_LOGOSTOP:
-                maxBeforeAssumed = 198; // changed from 299 to 198
-                break;
-            case MT_VBORDERSTOP:
-                maxBeforeAssumed = 288;
-                break;
-            default:
-                maxBeforeAssumed = 300;                               // max 5 min before assumed stop
-                break;
-        }
 
-        cMark *markPrev = marks.GetPrev(mark->position);
-        if (markPrev) {
-            int diffStart = (mark->position - markPrev->position) / macontext.Video.Info.framesPerSecond; // length of the last broadcast part, do not check it only depends on after timer
-            dsyslog("cMarkAdStandalone::CheckMarks(): last broadcast length %ds from (%d) to (%d)", diffStart, markPrev->position, mark->position);
-            if (diffStart >= 15) { // changed from 17 to 15
-                cMark *markStop = marks.GetPrev(markPrev->position);
-                if (markStop) {
-                    int diffStop = (markPrev->position - markStop->position) / macontext.Video.Info.framesPerSecond; // distance of the logo stop/start pair before last pair
-                    int maxAd = 390;  // changed from 163 to 196 to 390
-                    // if start mark is hborder and end mark is not hborder, try last hborder stop mark with greater distance
-                    if ((markStop->type == MT_HBORDERSTOP) && (markPrev->type != MT_HBORDERSTART) && (mark->type != MT_HBORDERSTOP)) { // we have hborder marks, but end pair is not
-                        maxAd            = 505;
-                        maxBeforeAssumed = 755;
-                    }
-                    if (markPrev->type == MT_LOGOSTART) {
-                        int diffAssumedStopStart = (newStopA - markPrev->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::CheckMarks(): last logo start mark (%d) is %ds before assumed stop (%d)", markPrev->position, diffAssumedStopStart, newStopA);
-                        if (diffAssumedStopStart <= 16) {
-                            maxAd            = 529;
-                            maxBeforeAssumed = 493;  // changed from 498 to 493
-                        }
-                    }
-                    dsyslog("cMarkAdStandalone::CheckMarks(): last advertising length %ds (expect <=%ds) from (%d) to (%d)", diffStop, maxAd, markStop->position, markPrev->position);
+    // get last 3 marks
+    cMark *lastStopMark = marks.GetLast();
+    if (lastStopMark && ((lastStopMark->type & 0x0F) == MT_STOP)) {
+        cMark *lastStartMark = marks.GetPrev(lastStopMark->position);
+        if (lastStartMark && ((lastStartMark->type & 0x0F) == MT_START)) {
+            cMark *prevStopMark = marks.GetPrev(lastStartMark->position);
+            if (prevStopMark && ((prevStopMark->type & 0x0F) == MT_STOP)) {
+                int lastBroadcast        = (lastStopMark->position  - lastStartMark->position) / macontext.Video.Info.framesPerSecond;
+                int diffLastStopAssumed  = (lastStopMark->position  - newStopA)                / macontext.Video.Info.framesPerSecond;
+                int diffLastStartAssumed = (lastStartMark->position - newStopA)                / macontext.Video.Info.framesPerSecond;
+                int diffPrevStopAssumed  = (prevStopMark->position  - newStopA)                / macontext.Video.Info.framesPerSecond;
+                int lastAd               = (lastStartMark->position - prevStopMark->position)  / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::CheckMarks(): end mark          (%5d) %4ds after assumed end (%5d), last broadcast length %ds, last ad length %ds", lastStopMark->position, diffLastStopAssumed, newStopA, lastBroadcast, lastAd);
+                dsyslog("cMarkAdStandalone::CheckMarks(): start mark before (%5d) %4ds after assumed end (%5d)", lastStartMark->position, diffLastStartAssumed, newStopA);
+                dsyslog("cMarkAdStandalone::CheckMarks(): stop  mark before (%5d) %4ds after assumed end (%5d)", prevStopMark->position,  diffPrevStopAssumed, newStopA);
 
-                    if ((diffStop > 2) && (diffStop <= maxAd)) { // changed from 0 to 2 to avoid move to logo detection failure
-                        if ((mark->type != MT_LOGOSTOP) || (diffStop < 11) || (diffStop > 12)) { // ad from 11s to 12s can be undetected info logo at the end (SAT.1 or RTL2)
-                            int diffAssumed = (newStopA - markStop->position) / macontext.Video.Info.framesPerSecond; // distance from assumed stop
-                            dsyslog("cMarkAdStandalone::CheckMarks(): stop mark before end (%d) %ds (expect <%ds) before assumed stop (%d)", markStop->position, diffAssumed, maxBeforeAssumed, newStopA);
-                            if (diffAssumed < maxBeforeAssumed) {
-                                dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark before as end mark, assume too big recording length");
-                                marks.Del(mark->position);
-                                marks.Del(markPrev->position);
-                            }
-                        }
+                // check length of last advertisement and distance to assumed end
+                if ((lastStopMark->type & 0xF0) < MT_CHANNELCHANGE) {  // trust channel marks and better
+                    int minLastStopAssumed;    // trusted distance to assumed assumed stop depents on hardness of marks
+                    int minLastStartAssumed;
+                    int minPrevStopAssumed;
+                    switch(lastStopMark->type) {
+                        case MT_ASSUMEDSTOP:
+                            minLastStopAssumed  =  396;  // changed from  403 to  396
+                            minLastStartAssumed = -117;  // changed from -154 to -117
+                            minPrevStopAssumed  = -542;  // changed from -491 to -542
+                            break;
+                        case MT_NOBLACKSTOP:
+                            minLastStopAssumed  =  476;
+                            minLastStartAssumed =   56;
+                            minPrevStopAssumed  = -477;
+                            break;
+                        case MT_LOGOSTOP:
+                            minLastStopAssumed  =  117;
+                            minLastStartAssumed =  -43;
+                            minPrevStopAssumed  = -160;
+                            break;
+                        case MT_VBORDERSTOP:                     // TODO
+                            minLastStopAssumed  =  288;
+                            minLastStartAssumed =   56;
+                            minPrevStopAssumed  = -477;
+                            break;
+                        default:
+                            minLastStopAssumed  = 1000;          // do nothing
+                            minLastStartAssumed = 1000;
+                            minPrevStopAssumed  = 1000;
                     }
-                }
+                    dsyslog("cMarkAdStandalone::CheckMarks(): select previous stop if: end mark        >= %4ds after assumed end (%d)", minLastStopAssumed, newStopA);
+                    dsyslog("cMarkAdStandalone::CheckMarks():                          last start mark >= %4ds after assumed end (%d)", minLastStartAssumed, newStopA);
+                    dsyslog("cMarkAdStandalone::CheckMarks():                          last stop  mark >= %4ds after assumed end (%d)", minPrevStopAssumed, newStopA);
+
+                    if ((diffLastStopAssumed >= minLastStopAssumed) && (diffLastStartAssumed >= minLastStartAssumed) && (diffPrevStopAssumed >= minPrevStopAssumed)) {
+                        dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, assume too big recording length", prevStopMark->position);
+                        marks.Del(lastStopMark->position);
+                        marks.Del(lastStartMark->position);
+                    }
+               }
             }
         }
     }
+
 
 // delete short START STOP logo marks because they are previes not detected above or due to next broadcast
 // delete short STOP START logo marks because they are logo detection failure
