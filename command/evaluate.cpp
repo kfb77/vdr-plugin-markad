@@ -1694,7 +1694,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): corner %-12s: %4d high matches, high matches qoute %3d (of %2d frames)", aCorner[corner], isCornerLogo[corner], logoQuote, countFrames);
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo():                    : frame portion quote %3d (of %3d frames)", framePortionQuote, AdInFrameType1.frameCountFinal);
         if (corner == maContext->Video.Logo.corner) continue;  // in logo corner we expect logo
-        if ((logoQuote >= 894) && (framePortionQuote <= 500)) {  // logoQuote changed from 900 to 894
+        if ((logoQuote >= 894) && (framePortionQuote < 476)) {  // logoQuote changed from 900 to 894, framePortionQuote changed from 500 to 476
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): additional logo found in corner %s", aCorner[corner]);
             countLogo++;
         }
