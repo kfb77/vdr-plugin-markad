@@ -1399,7 +1399,29 @@ void cMarkAdStandalone::CheckStart() {
     if (!begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): search for logo start mark");
         RemoveLogoChangeMarks();
-        cMark *lStart = marks.GetAround(iStartA + (2 * delta), iStartA, MT_LOGOSTART);   // increase from 1
+
+        // remove very short logo start/stop pairs, this, is a false positive logo detection
+        cMark *lStart = marks.GetFirst();
+        while (lStart) {
+            if (lStart->type == MT_LOGOSTART) {
+                cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);
+                if (lStop) {
+                    int diff = 1000 * (lStop->position - lStart->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::CheckStart(): logo start (%5d) logo stop (%5d), distance %dms", lStart->position, lStop->position, diff);
+                    if (diff <= 60) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): distance too short, deleting marks");
+                        cMark *tmpMark = lStop->Next();
+                        marks.Del(lStart->position);
+                        marks.Del(lStop->position);
+                        lStart = tmpMark;
+                    }
+                }
+            }
+            lStart = lStart->Next();
+        }
+
+        // searech for logo start mark around assumed start
+        lStart = marks.GetAround(iStartA + (2 * delta), iStartA, MT_LOGOSTART);   // increase from 1
         if (!lStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no logo start mark found");
         }
