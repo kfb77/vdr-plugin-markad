@@ -107,6 +107,7 @@ int cIndex::GetIFrameBefore(int frameNumber) {
         else before_iFrame = frameIterator->frameNumber;
     }
     dsyslog("cIndex::GetIFrameBefore(): failed for frame (%d), index: first frame (%d) last frame (%d)", frameNumber, indexVector.front().frameNumber, indexVector.back().frameNumber);
+    if (frameNumber > indexVector.back().frameNumber) return indexVector.back().frameNumber;  // with full decoding mark frame can be after last iFrame, return last iFrame
     return -2; // frame not yet in index
 }
 
