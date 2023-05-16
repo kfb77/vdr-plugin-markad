@@ -546,14 +546,15 @@ int cMarkAdStandalone::CheckStop() {
                         if (prevLogoStart) prevLogoStop = marks.GetPrev(prevLogoStart->position, MT_LOGOSTOP);
                         else break;
                         if (prevLogoStop) {
-#define MAX_BEFORE_ASUMED_STOP 203 // changed from 281 to 203
+#define MAX_BEFORE_ASUMED_STOP        203  // changed from 281 to 203
+#define CHECK_START_DISTANCE_MAX      179  // changed from 188 to 179
+#define CHECK_START_STOP_LENGTH_MIN     0  // for future use
+#define CHECK_START_STOP_LENGTH_MAX 17000  // changed from  12000 to  17000
                             int deltaLogoStart = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
-                            int deltaLogoPrevStartStop = (prevLogoStart->position - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
-                            dsyslog("cMarkAdStandalone::CheckStop(): check for undetected info logo: stop (%d) start (%d) pair (lenght %ds), %ds before end mark (%d)", prevLogoStop->position, prevLogoStart->position, deltaLogoPrevStartStop, deltaLogoStart, end->position);
-#define CHECK_START_DISTANCE_MAX 179    // changed from 188 to 179
-#define CHECK_START_STOP_LENGTH_MAX 17  // changed from  4 to 12 to  17
-                            if ((deltaLogoStart < CHECK_START_DISTANCE_MAX) && (deltaLogoPrevStartStop <= CHECK_START_STOP_LENGTH_MAX)) {
-                                dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) stop (%d) pair before end mark is near %ds (<%ds) and short %ds (<=%ds), this is undetected info logo or text preview over the logo, delete marks", prevLogoStart->position, prevLogoStop->position, deltaLogoStart, CHECK_START_DISTANCE_MAX, deltaLogoPrevStartStop, CHECK_START_STOP_LENGTH_MAX);
+                            int deltaLogoPrevStartStop = 1000 * (prevLogoStart->position - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
+                            dsyslog("cMarkAdStandalone::CheckStop(): check for undetected info logo: logo start (%d) stop (%d) pair before end mark is near %ds (<%ds) and short >=%dms %dms <=%dms, this is undetected info logo or text preview over the logo, delete marks", prevLogoStart->position, prevLogoStop->position, deltaLogoStart, CHECK_START_DISTANCE_MAX, CHECK_START_STOP_LENGTH_MAX, deltaLogoPrevStartStop, CHECK_START_STOP_LENGTH_MAX);
+                            if ((deltaLogoStart < CHECK_START_DISTANCE_MAX) && (deltaLogoPrevStartStop >= CHECK_START_STOP_LENGTH_MIN) && (deltaLogoPrevStartStop <= CHECK_START_STOP_LENGTH_MAX)) {
+                                dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) stop (%d) pair is undetected info logo or text preview over the logo, delete marks", prevLogoStart->position, prevLogoStop->position);
                                 marks.Del(prevLogoStart);
                                 marks.Del(prevLogoStop);
                             }
@@ -2041,7 +2042,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
     if ((borderStart) && (marks.Count(MT_VBORDERCHANGE, 0xF0) == 1)) {
         int diffEnd = (borderStart->position - newStopA) / macontext.Video.Info.framesPerSecond;
         dsyslog("cMarkAdStandalone::CheckMarks(): late single vborder start mark (%d) %ds after assumed stop (%d), this is start of next broadcast", borderStart->position, diffEnd, newStopA);
-        if (diffEnd >= -156) { // maybe reported recording lenght is too big
+        if (diffEnd >= -156) { // maybe reported recording length is too big
             dsyslog("cMarkAdStandalone::CheckMarks(): delete all marks from (%d) to end", borderStart->position);
             marks.DelAfterFromToEnd(borderStart->position - 1);
         }
