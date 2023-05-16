@@ -1294,10 +1294,10 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
     dsyslog("cDetectLogoStopStart::ClosingCredit(): detect from (%d) to (%d)", startPos, endPos);
 
 #define CLOSING_CREDITS_LENGTH_MIN 6120  // changed from 9000 to 6120
-                                         // because of silence deetection before closing credits detection
+                                         // because of silence detection before closing credits detection
     int minLength = (1000 * (endPos - startPos) / maContext->Video.Info.framesPerSecond) - 2000;  // 2s buffer for change from closing credit to logo start
-    if (minLength <= 1840) { // too short will result in false positive, changed from 1000 to 1840
-        dsyslog("cDetectLogoStopStart::ClosingCredit(): length too short for detection");
+    if (minLength <= 3760) { // too short will result in false positive, changed from 1840 to 3760
+        dsyslog("cDetectLogoStopStart::ClosingCredit(): length %dms too short for detection", minLength);
         return -1;
     }
     if (minLength > CLOSING_CREDITS_LENGTH_MIN) minLength = CLOSING_CREDITS_LENGTH_MIN;
