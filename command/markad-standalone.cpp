@@ -4111,7 +4111,7 @@ time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
                 t.tm_mon--;
                 t.tm_sec = 0;
                 t.tm_isdst = -1;
-                isyslog("getting recording start from directory (can be wrong!)");
+                dsyslog("cMarkAdStandalone::GetRecordingStart(): getting recording start from directory");
                 return mktime(&t);
             }
         }
@@ -4343,18 +4343,29 @@ bool cMarkAdStandalone::LoadInfo() {
             if (rStart) {
                 dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
                 dsyslog("cMarkAdStandalone::LoadInfo():     timer start at %s", strtok(ctime(&startTime), "\n"));
-                if (macontext.Info.timerVPS) { //  VPS controlled recording start, we use assume broascast start 45s after recording start
-                    isyslog("VPS controlled recording start");
-                    macontext.Info.tStart = vps->GetStart(); // VPS start mark
-                    if (macontext.Info.tStart >= 0) {
-                        dsyslog("cMarkAdStandalone::LoadInfo(): found VPS start event at offset %ds", macontext.Info.tStart);
+
+                // try VPS start event from markad.vps
+                macontext.Info.tStart = vps->GetStart(); // VPS start mark
+                if (macontext.Info.tStart >= 0) {
+                    dsyslog("cMarkAdStandalone::LoadInfo(): VPS start event at offset:           %5ds -> %d:%02d:%02dh", macontext.Info.tStart,  macontext.Info.tStart / 3600, (macontext.Info.tStart % 3600) / 60, macontext.Info.tStart % 60);
+                    int vpsStop = vps->GetStop();
+                    if (vpsStop > macontext.Info.tStart) {
+                        dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop  event at offset:           %5ds -> %d:%02d:%02dh", vpsStop, vpsStop / 3600, (vpsStop % 3600) / 60, vpsStop % 60);
+                        dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from vdr info file: %5ds -> %d:%02d:%02dh", length, length / 3600, (length % 3600) / 60, length % 60);
+                        length = vpsStop - macontext.Info.tStart;
+                        dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from VPS events:    %5ds -> %d:%02d:%02dh, use this", length, length / 3600, (length % 3600) / 60, length % 60);
                     }
-                    else {
+                }
+                if (macontext.Info.timerVPS) { //  VPS controlled recording start, we guess assume broascast start 45s after recording start
+                    isyslog("VPS controlled recording start");
+                    if (macontext.Info.tStart < 0) {
                         dsyslog("cMarkAdStandalone::LoadInfo(): no VPS start event found");
                         macontext.Info.tStart = 45;
                     }
                 }
-                else {
+
+                // try to get broadcast start offset from file infos
+                if (macontext.Info.tStart < 0) {
                     macontext.Info.tStart = static_cast<int> (startTime - rStart);
                     if (macontext.Info.tStart > 60 * 60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
                         isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", macontext.Info.tStart);
