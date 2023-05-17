@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-05-17: Version 3.2.7
+- use VPS start/stop event as assumed broadcast start/stop
+- some minor bug fixes and optimizations, see git
+
 2023-05-03: Version 3.2.6
 - fix crash with VPS recordings
 
