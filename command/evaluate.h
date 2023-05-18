@@ -187,7 +187,7 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
  */
         int GetIsClosingCredits(const int stopPosition, const int startPosition);
 
-/** check of there is a info logo part between a logo stop/start pair
+/** check if there is a info logo part between a logo stop/start pair
  * @param stopPosition  frame number of logo stop mark
  * @param startPosition frame number of logo start mark
  * @return true, if there is a info logo part between a logo stop/start pair

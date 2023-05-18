@@ -647,10 +647,11 @@ int cEvaluateLogoStopStartPair::GetIsClosingCredits(const int stopPosition, cons
 
 
 bool cEvaluateLogoStopStartPair::IncludesInfoLogo(const int stopPosition, const int startPosition) {
+    dsyslog("cEvaluateLogoStopStartPair::IncludesInfoLogo(): check if start mark (%d) and stop mark (%d) includes info logo", startPosition, stopPosition);
     std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition, stopPosition](sLogoStopStartPair const &value) ->bool { if ((value.startPosition <= startPosition) && (value.stopPosition >= stopPosition)) return true; else return false; });
 
     if (found != logoPairVector.end()) {
-        dsyslog("cEvaluateLogoStopStartPair::SetIsInfoLogo(): stop %d start %d pair includes info logo for stop (%d) start (%d) pair", stopPosition, startPosition, found->stopPosition, found->startPosition);
+        dsyslog("cEvaluateLogoStopStartPair::IncludesInfoLogo(): stop (%d) start (%d) pair includes info logo for stop (%d) start (%d) pair", stopPosition, startPosition, found->stopPosition, found->startPosition);
         return true;
     }
 

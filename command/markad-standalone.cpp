@@ -3464,6 +3464,13 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             // detect frames
             if (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position)) {
                 int newStopPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(false);
+                if (newStopPosition >= 0) {
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", newStopPosition, markLogo->position);
+                    if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->IncludesInfoLogo(newStopPosition, markLogo->position))) {
+                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): deleted info logo part in this range, this could not be a advertising in frame");
+                        newStopPosition = -1;
+                    }
+                }
                 if (newStopPosition != -1) {
                     if (!macontext.Config->fullDecode) newStopPosition = recordingIndexMark->GetIFrameBefore(newStopPosition - 1);  // we got first frame of ad, go one iFrame back for stop mark
                     else newStopPosition--; // get frame before ad in frame as stop mark
