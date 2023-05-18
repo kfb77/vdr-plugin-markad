@@ -61,8 +61,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
             duplicate = origin.duplicate,
             isREEL = origin.isREEL;
             MaxFiles = origin.MaxFiles;
-            framecnt1 = origin.framecnt1;
-            framecntOverlap = origin.framecntOverlap;
+            framecnt = origin.framecnt;
             gotendmark = origin.gotendmark;
             waittime = origin.waittime;
             iwaittime = origin.iwaittime;
@@ -90,9 +89,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
             duplicate                 = origin->duplicate,
             isREEL                    = origin->isREEL;
             MaxFiles                  = origin->MaxFiles;
-            framecnt1                 = origin->framecnt1;
-            framecntOverlap           = origin->framecntOverlap;
-            framecnt3                 = origin->framecnt3;
+            framecnt                  = origin->framecnt;
             gotendmark                = origin->gotendmark;
             waittime                  = origin->waittime;
             iwaittime                 = origin->iwaittime;
@@ -110,7 +107,6 @@ class cMarkAdStandalone : public cEvaluateChannel {
             iFrameBefore              = origin->iFrameBefore;
             iFrameCurrent             = origin->iFrameCurrent;
             frameCurrent              = origin->frameCurrent;
-            framecnt4                 = origin->framecnt4;
             length                    = origin->length;
             iStart                    = origin->iStart;
             iStop                     = origin->iStop;
@@ -355,13 +351,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
                                                                        //!<
         int frameCurrent = -1;                                         //!< current processed frame number
                                                                        //!<
-        int framecnt1 = 0;                                             //!< processed frames of 1nd pass (detect marks)
-                                                                       //!<
-        int framecntOverlap = 0;                                       //!< processed frames of overlap detection
-                                                                       //!<
-        int framecnt3 = 0;                                             //!< processed frames of 3nd pass (silence)
-                                                                       //!<
-        int framecnt4 = 0;                                             //!< processed frames of 4nd pass (cut)
+        int framecnt = 0;                                             //!< processed frames of 1nd pass (detect marks)
                                                                        //!<
         bool gotendmark = false;                                       //!< true if a valid end mark was found, false otherwise
                                                                        //!<

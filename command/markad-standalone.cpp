@@ -2810,7 +2810,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
         dsyslog("slept too much");
         return; // we already slept too much
     }
-    if (ptr_cDecoder) framecnt1 = ptr_cDecoder->GetFrameNumber();
+    if (ptr_cDecoder) framecnt = ptr_cDecoder->GetFrameNumber();
     bool notenough = true;
     do {
         struct stat statbuf;
@@ -2819,7 +2819,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
         }
 
         int maxframes = statbuf.st_size / 8;
-        if (maxframes < (framecnt1 + 200)) {
+        if (maxframes < (framecnt + 200)) {
             if ((difftime(time(NULL), statbuf.st_mtime)) >= WAITTIME) {
                 if (length && startTime) {
                     time_t endRecording = startTime + (time_t) length;
@@ -3300,7 +3300,6 @@ void cMarkAdStandalone::MarkadCut() {
     FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
     delete ptr_cEncoder;  // ptr_cEncoder must be valid here because it is used above
     ptr_cEncoder = NULL;
-    framecnt4 = ptr_cDecoder->GetFrameNumber();
 }
 
 
@@ -3513,7 +3512,6 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 esyslog("could not seek to frame (%i)", mark->position);
                 break;
             }
-            framecnt3 += silenceRange * macontext.Video.Info.framesPerSecond / 1000;
             int beforeSilence = ptr_cDecoder->GetNextSilence(&macontext, mark->position, true, true);
             if ((beforeSilence >= 0) && (beforeSilence != mark->position)) {
                 int diff = 1000 * (mark->position - beforeSilence) /  macontext.Video.Info.framesPerSecond;
@@ -3566,7 +3564,6 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence at frame (%d) %dms after logo stop mark (%d)", afterSilence, diff, mark->position);
             }
             else dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no audio silence found after logo stop mark (%d)", mark->position);
-            framecnt3 += 2 * silenceRange - 1 * macontext.Video.Info.framesPerSecond / 1000;
             bool before = false;
 
             // use nearest silence
@@ -3787,7 +3784,6 @@ void cMarkAdStandalone::ProcessOverlap() {
     FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
     delete evaluateLogoStopStartPair;
 
-    framecntOverlap = ptr_cDecoder->GetFrameNumber();
     if (save) marks.Save(directory, &macontext, false);
     dsyslog("end Overlap");
     return;
@@ -4697,10 +4693,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
             macontext.Video.Options.ignoreAspectRatio = true;
     }
 
-    framecnt1       = 0;
-    framecntOverlap = 0;
-    framecnt3       = 0;
-    framecnt4       = 0;
     chkSTART = chkSTOP = INT_MAX;
 }
 
@@ -4786,10 +4778,8 @@ cMarkAdStandalone::~cMarkAdStandalone() {
             sec--;
         }
         double etime = 0;
-        double ftime = 0;
         etime = sec + ((double) usec / 1000000) - waittime;
-        if (etime > 0) ftime = (framecnt1 + framecntOverlap + framecnt3) / etime;
-        isyslog("processed time %d:%02d min with %d fps", static_cast<int> (etime / 60), static_cast<int> (etime - (static_cast<int> (etime / 60) * 60)), static_cast<int>(round(ftime)));
+        isyslog("processed time %d:%02d min", static_cast<int> (etime / 60), static_cast<int> (etime - (static_cast<int> (etime / 60) * 60)));
         dsyslog("----------------------------------------------------------------------------------------------");
     }
 
