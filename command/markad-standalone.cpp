@@ -3506,7 +3506,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
 
         if (mark->type == MT_LOGOSTART) {
             LogSeparator(false);
-            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence before logo start mark at frame (%6d) type 0x%X at %s max range %dms", mark->position, mark->type, indexToHMSF, silenceRange);
+            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence before logo start mark at frame (%d) type 0x%X at %s max range %dms", mark->position, mark->type, indexToHMSF, silenceRange);
             int seekPos =  mark->position - (silenceRange * macontext.Video.Info.framesPerSecond / 1000);
             if (seekPos < 0) seekPos = 0;
             if (!ptr_cDecoder->SeekToFrame(&macontext, seekPos)) {
@@ -3533,13 +3533,13 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 save = true;
                 continue;
             }
-            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no audio silence before logo mark at frame (%6i) type 0x%X at %s found", mark->position, mark->type, indexToHMSF);
+            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no audio silence before logo mark at frame (%d) type 0x%X at %s found", mark->position, mark->type, indexToHMSF);
 
         }
         if (mark->type == MT_LOGOSTOP) {
             // search before stop mark
             LogSeparator(false);
-            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence before logo stop mark at frame (%6d) type 0x%X at %s range %dms", mark->position, mark->type, indexToHMSF, silenceRange);
+            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence before logo stop mark at frame (%d) type 0x%X at %s range %dms", mark->position, mark->type, indexToHMSF, silenceRange);
             int seekPos =  mark->position - (silenceRange * macontext.Video.Info.framesPerSecond / 1000);
             if (seekPos < ptr_cDecoder->GetFrameNumber()) seekPos = ptr_cDecoder->GetFrameNumber();  // will retun -1 before first frame read
             if (seekPos < 0) seekPos = 0;
@@ -3552,8 +3552,9 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 int diff = 1000 * (mark->position - beforeSilence) /  macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence at frame (%d) %dms before logo stop mark (%d)", beforeSilence, diff, mark->position);
             }
+            else dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no audio silence found before logo stop mark (%d)", mark->position);
             // search after stop mark
-            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence after logo stop mark at frame (%6i) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
+            if (indexToHMSF) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): detect audio silence after logo stop mark at frame (%d) type 0x%X at %s range %ims", mark->position, mark->type, indexToHMSF, silenceRange);
             if (!ptr_cDecoder->SeekToFrame(&macontext, mark->position)) {
                 esyslog("could not seek to frame (%i)", mark->position);
                 break;
@@ -3564,11 +3565,12 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 int diff = 1000 * (afterSilence - mark->position) /  macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found audio silence at frame (%d) %dms after logo stop mark (%d)", afterSilence, diff, mark->position);
             }
+            else dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no audio silence found after logo stop mark (%d)", mark->position);
             framecnt3 += 2 * silenceRange - 1 * macontext.Video.Info.framesPerSecond / 1000;
             bool before = false;
 
             // use nearest silence
-            if ((mark->position - beforeSilence) < (afterSilence -  mark->position)) {
+            if ((afterSilence < 0) || (mark->position - beforeSilence) < (afterSilence -  mark->position)) {
                 afterSilence = beforeSilence;
                 before = true;
             }
