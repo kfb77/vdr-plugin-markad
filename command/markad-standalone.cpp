@@ -4356,8 +4356,14 @@ bool cMarkAdStandalone::LoadInfo() {
                     if (vpsStop > macontext.Info.tStart) {
                         dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop  event at offset:           %5ds -> %d:%02d:%02dh", vpsStop, vpsStop / 3600, (vpsStop % 3600) / 60, vpsStop % 60);
                         dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from vdr info file: %5ds -> %d:%02d:%02dh", length, length / 3600, (length % 3600) / 60, length % 60);
-                        length = vpsStop - macontext.Info.tStart;
-                        dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from VPS events:    %5ds -> %d:%02d:%02dh, use this", length, length / 3600, (length % 3600) / 60, length % 60);
+                        int lengthVPS = vpsStop - macontext.Info.tStart;
+                        int diff      = lengthVPS - length;
+                        dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from VPS events:    %5ds -> %d:%02d:%02dh, %ds longer than length from vdr info file", lengthVPS, lengthVPS / 3600, (lengthVPS % 3600) / 60, length % 60, diff);
+                        if (abs(diff) >= 506) dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop event seeams to be invalid, use length from vdr info file");
+                        else {
+                            dsyslog("cMarkAdStandalone::LoadInfo(): VPS events seeams to be valid, use length from VPS events");
+                            length = lengthVPS;
+                        }
                     }
                 }
                 if (macontext.Info.timerVPS) { //  VPS controlled recording start, we guess assume broascast start 45s after recording start
