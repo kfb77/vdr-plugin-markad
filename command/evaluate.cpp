@@ -1410,7 +1410,10 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
     if (ClosingCredits.frameCount > 0) {
         int framePortionQuote = maxSumFramePortion / ClosingCredits.frameCount;
         if (frameCorner >= 0) dsyslog("cDetectLogoStopStart::ClosingCredit(): sum of frame portion from best corner %s: %d from %d frames, quote %d", aCorner[frameCorner], maxSumFramePortion, ClosingCredits.frameCount, framePortionQuote);
-        if (framePortionQuote < 311) {  // changed from 514 to 328 to 311
+        if (framePortionQuote <= 419) {  // changed from 311 to 419
+                                         // prevent to detect background frame as closing credit
+                                         // example of no closing credits
+                                         // quote 419, kitchen cabinet in background
             dsyslog("cDetectLogoStopStart::ClosingCredit(): not enought frame pixel found, closing credits not valid");
             closingCreditsFrame = -1;  // no valid ad in a frame
         }
