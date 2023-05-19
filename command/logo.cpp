@@ -317,22 +317,34 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     }
     if (strcmp(maContext->Info.ChannelName, "NICK_CC+1") == 0) {             // NICK_CC+1               16:9  720W  576H:->  146W  88H TOP_LEFT
                                                                              // NICK_CC+1               16:9  720W  576H:->  146W  92H TOP_LEFT (special logo)
-        logo.heightMin =  88;                                                // NICK_CC+1               16:9  720W  576H:->  148W  92H TOP_LEFT (special logo)
         logo.heightMax =  92;
-        logo.widthMax  = 148;
     }
-    if (strcmp(maContext->Info.ChannelName, "Nick_Comedy_Central+1") == 0) { // Nick_Comedy_Central+1   16:9  720W  576H:->  144W  94H TOP_LEFT (special logo)
-        logo.heightMax =  96;                                                // Nick_Comedy_Central+1   16:9  720W  576H:->  154W  90H TOP_LEFT (special logo 2022 3. Advent)
-        logo.widthMax  = 154;                                                // Nick_Comedy_Central+1   16:9  720W  576H:->  148W  96H TOP_LEFT (special logo)
-    }
-    if (strcmp(maContext->Info.ChannelName, "Nickelodeon") == 0) {           // Nickelodeon old logo    16:9  720W  576H:->  180W  78H TOP_LEFT
-                                                                             // Nickelodeon old logo    16:9  720W  576H:->  180W  80H TOP_LEFT
-                                                                             // Nickelodeon old logo    16:9  720W  576H:->  184W  80H TOP_LEFT
-                                                                             // Nickelodeon new logo    16:9  720W  576H:->  146W  90H TOP_LEFT
+
+    // NICK_CC+1               16:9  720W  576H:->  146W  88H TOP_LEFT
+    // NICK_CC+1               16:9  720W  576H:->  146W  92H TOP_LEFT
+    // NICK_CC+1               16:9  720W  576H:->  148W  92H TOP_LEFT
+    // Nick_Comedy_Central+1   16:9  720W  576H:->  144W  94H TOP_LEFT
+    // Nick_Comedy_Central+1   16:9  720W  576H:->  146W  88H TOP_LEFT
+    // Nick_Comedy_Central+1   16:9  720W  576H:->  146W  90H TOP_LEFT
+    // Nick_Comedy_Central+1   16:9  720W  576H:->  148W  94H TOP_LEFT
+    // Nickelodeon             16:9  720W  576H:->  146W  88H TOP_LEFT
+    // Nickelodeon             16:9  720W  576H:->  146W  90H TOP_LEFT
+    // Nickelodeon             16:9  720W  576H:->  180W  78H TOP_LEFT
+    // Nickelodeon             16:9  720W  576H:->  180W  80H TOP_LEFT
+    // Nickelodeon             16:9  720W  576H:->  182W  78H TOP_LEFT
+    // Nickelodeon             16:9  720W  576H:->  184W  78H TOP_LEFT
+    // Nickelodeon             16:9  720W  576H:->  184W  80H TOP_LEFT
+    // NICK_MTV+               16:9  720W  576H:->  146W  88H TOP_LEFT
+    // NICK_MTV+               16:9  720W  576H:->  146W  90H TOP_LEFT
+    if ((strcmp(maContext->Info.ChannelName, "NICK_CC+1")             == 0) ||
+        (strcmp(maContext->Info.ChannelName, "Nick_Comedy_Central+1") == 0) ||
+        (strcmp(maContext->Info.ChannelName, "Nickelodeon"))          == 0) {
         logo.widthMin  = 144;
         logo.widthMax  = 184;
         logo.heightMin =  78;
+        logo.heightMax =  96;
     }
+
     if ((strcmp(maContext->Info.ChannelName, "n-tv") == 0) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
         (strcmp(maContext->Info.ChannelName, "ntv")  == 0)) {                //  ntv                     16:9  720W  576H:->  226W  60H BOTTOM_LEFT
         logo.widthMax  = INT_MAX;  // news ticker
