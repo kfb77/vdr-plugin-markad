@@ -26,9 +26,6 @@
 #define IGNORE_AUDIOINFO 2
 #define IGNORE_TIMERINFO 4
 
-#define DELTATIME 20000 /* equals to 222ms (base is 90kHz PTS) */
-
-#define MAXRANGE 120 /* range to search for start/stop marks in seconds */
 
 /* forward declarations */
 class cOSDMessage;
