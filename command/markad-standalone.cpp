@@ -3490,12 +3490,13 @@ void cMarkAdStandalone::LogoMarkOptimization() {
     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search for audio silence around logo marks");
     int silenceRange = 3500;           // in ms, do not increase, otherwise we got stop/start marks behind separation images (e.g. NITRO)
     if (macontext.Info.ChannelName) {  // macontext.Info.ChannelName == NULL can happen if the VDR info file is missing
-        if (strcmp(macontext.Info.ChannelName, "NITRO")       == 0) silenceRange = 2700; // short separation scene with no audio before
-        if (strcmp(macontext.Info.ChannelName, "TELE_5")      == 0) silenceRange = 4000; // logo fade in/out, do not increase to prevent to get ad before start
-        if (strcmp(macontext.Info.ChannelName, "SIXX")        == 0) silenceRange = 5000; // short preview with logo direct after broadcast, get real stop with black screen between
-        if (strcmp(macontext.Info.ChannelName, "Nickelodeon") == 0) silenceRange = 6500; // logo fade in/out, changed from 7000 to 6500 to prevent to detect still image without audio
-        if (strcmp(macontext.Info.ChannelName, "DMAX")        == 0) silenceRange = 8000; // logo color change at the begin
-                                                                                         // changed from 12000 to 8000 to prevent to get a silence part away from stop mark
+        if (strcmp(macontext.Info.ChannelName, "NITRO")          == 0) silenceRange = 2700; // short separation scene with no audio before
+        if (strcmp(macontext.Info.ChannelName, "TELE_5")         == 0) silenceRange = 4000; // logo fade in/out, do not increase to prevent to get ad before start
+        if (strcmp(macontext.Info.ChannelName, "SIXX")           == 0) silenceRange = 5000; // short preview with logo direct after broadcast, get real stop with black screen between
+        if (strcmp(macontext.Info.ChannelName, "Disney_Channel") == 0) silenceRange = 5000; // logo fade in/out
+        if (strcmp(macontext.Info.ChannelName, "Nickelodeon")    == 0) silenceRange = 6500; // logo fade in/out, changed from 7000 to 6500 to prevent to detect still image without audio
+        if (strcmp(macontext.Info.ChannelName, "DMAX")           == 0) silenceRange = 8000; // logo color change at the begin
+                                                                                            // changed from 12000 to 8000 to prevent to get a silence part away from stop mark
     }
 
     ptr_cDecoder->Reset();
