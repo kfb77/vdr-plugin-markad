@@ -879,8 +879,8 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cMarkAdLogo::Detect(): frame (%6d) pixel quote: %d%%", frameCurrent, quote);
 #endif
-            if (quote > 27) return LOGO_NOCHANGE; // there is a pattern on the backbround, no logo detection possible
-                                                  // changed from 22 to 27
+            if (quote > 45) return LOGO_NOCHANGE; // there is a pattern on the backbround, no logo detection possible
+                                                  // changed from 27 to 45
                                                   // do not reduce, we need to detect logo on trees or gras background
         }
 
