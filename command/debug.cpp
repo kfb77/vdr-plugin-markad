@@ -81,6 +81,7 @@ void SaveFrameBuffer(const sMarkAdContext *maContext, const char *fileName) {
 
 
 long int memUseSum = 0;  // prevent int overflow
+long int memUseMax = 0;
 struct memUse {
     int size = 0;
     int line = 0;
@@ -95,7 +96,8 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 void memAlloc(int size, int line, char *file, char *var) {
     pthread_mutex_lock(&mutex);
     memUseSum += size;
-    tsyslog("debugmem alloc %7d bytes, file %s, line %4d, variable: %s", size, file, line, var);
+    if (memUseSum > memUseMax) memUseMax = memUseSum;
+    tsyslog("debugmem: alloc %7d bytes, file %s, line %4d, variable: %s", size, file, line, var);
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
         if ((memLine->size == size) && (strcmp(memLine->file, file) == 0) && (strcmp(memLine->var, var) == 0)) {
             memLine->count++;
@@ -112,7 +114,7 @@ void memAlloc(int size, int line, char *file, char *var) {
 void memFree(int size, int line, char *file, char *var) {
     pthread_mutex_lock(&mutex);
     memUseSum -= size;
-    tsyslog("debugmem  free %7d bytes, file %s, line %4d, variable: %s", size, file, line, var);
+    tsyslog("debugmem:  free %7d bytes, file %s, line %4d, variable: %s", size, file, line, var);
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
         if ((memLine->size == size) && (strcmp(memLine->file, file) == 0) && (strcmp(memLine->var, var) == 0)) {  // try file match
             if (memLine->count <= 0) break;
@@ -129,7 +131,7 @@ void memFree(int size, int line, char *file, char *var) {
             return;
         }
     }
-    dsyslog("debugmem unmachted free %7d bytes, file %s, line %4d, variable: %s", size, file, line, var);
+    esyslog("debugmem: unmachted free %7d bytes, file %s, line %4d, variable: %s", size, file, line, var);
     pthread_mutex_unlock(&mutex);
     return;
 }
@@ -137,7 +139,7 @@ void memFree(int size, int line, char *file, char *var) {
 
 void memList() {
     pthread_mutex_lock(&mutex);
-    dsyslog("debugmem unmachted alloc start ----------------------------------------------------------------");
+    dsyslog("debugmem: unmachted alloc start ----------------------------------------------------------------");
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
         if (memLine->count > 0) {
             esyslog("debugmem unmachted alloc %6d times %7d bytes, file %s, line %4d, variable: %s", memLine->count, memLine->size, memLine->file, memLine->line, memLine->var);
@@ -145,8 +147,10 @@ void memList() {
         free(memLine->file);
         free(memLine->var);
     }
-    dsyslog("debugmem unmachted alloc end ------------------------------------------------------------------");
+    dsyslog("debugmem: unmachted alloc end ------------------------------------------------------------------");
     memUseVector.clear();
+
+    dsyslog("debugmem: maximal heap memory usage: %ld B -> %ld MB", memUseMax, memUseMax / 1024 / 1024);
     pthread_mutex_unlock(&mutex);
 }
 #endif

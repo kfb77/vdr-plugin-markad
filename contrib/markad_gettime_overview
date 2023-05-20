@@ -20,3 +20,13 @@ grep -r "pass 4" --include "markad.log" $VIDEO | awk -F " " '{printf "%ds %s\n",
 grep -r "pass 5" --include "markad.log" $VIDEO | awk -F " " '{printf "%ds %s\n", $12, $1}' | awk '{ sum += $1; n++ } END { if (n > 0) printf "average time for pass 5 (cut recording):        %6ds -> %2d:%02d:%02dh  from %5d recordings\n", sum/n, sum/n/3600, (sum/n % 3600) / 60, sum/n % 60, n}'
 
 grep -r "pass 6" --include "markad.log" $VIDEO | awk -F " " '{printf "%ds %s\n", $12, $1}' | awk '{ sum += $1; n++ } END { if (n > 0) printf "average time for pass 6 (mark pictures):        %6ds -> %2d:%02d:%02dh  from %5d recordings\n", sum/n, sum/n/3600, (sum/n % 3600) / 60, sum/n % 60, n}'
+
+echo
+
+grep -r "decoding:                    time" --include "markad.log" $VIDEO | awk -F " " '{printf "%ds %s\n", $9, $1}' | awk '{ sum += $1; n++ } END { if (n > 0) printf "average time for decoding:                      %6ds -> %2d:%02d:%02dh  from %5d recordings\n", sum/n, sum/n/3600, (sum/n % 3600) / 60, sum/n % 60, n}'
+
+grep -r "duration:                    time" --include "markad.log" $VIDEO | awk -F " " '{printf "%ds %s\n", $9, $1}' | awk '{ sum += $1; n++ } END { if (n > 0) printf "average duration:                               %6ds -> %2d:%02d:%02dh  from %5d recordings\n", sum/n, sum/n/3600, (sum/n % 3600) / 60, sum/n % 60, n}'
+
+echo
+
+grep -r "debugmem: maximal heap memory usage:" --include "markad.log" $VIDEO | awk -F " " '{printf "%ds %s\n", $12, $1}' | awk '{ sum += $1; n++ } END { if (n > 0) printf "average of maximum heap memory usage:       %10dB -> %5dMB    from %5d recordings\n", sum/n, sum/n/1024/1024, n}'

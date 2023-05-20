@@ -4780,9 +4780,9 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         }
         if ((sec + usec / 1000000) > 0) dsyslog("pass 6 (mark pictures):      time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
 
-
-        dsyslog("internal statistics: -------------------------------------------------------------------------");
-        dsyslog("time for decoding:              %3ds %3dms", decodeTime_us / 1000000, (decodeTime_us % 1000000) / 1000);
+        dsyslog("global statistics: --------------------------------------------------------------------------");
+        int decodeTime_s = decodeTime_us / 1000000;
+        dsyslog("decoding:                    time %5ds -> %d:%02d:%02dh", decodeTime_s, decodeTime_s / 3600, (decodeTime_s % 3600) / 60,  decodeTime_s % 60);
 
         gettimeofday(&endAll, NULL);
         sec = endAll.tv_sec - startAll.tv_sec;
@@ -4793,7 +4793,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         }
         double etime = 0;
         etime = sec + ((double) usec / 1000000) - waittime;
-        isyslog("processed time %d:%02d min", static_cast<int> (etime / 60), static_cast<int> (etime - (static_cast<int> (etime / 60) * 60)));
+        isyslog("duration:                    time %5ds -> %d:%02d:%02dh", static_cast<int> (etime), static_cast<int> (etime / 3600),  (static_cast<int> (etime) % 3600) / 60, static_cast<int> (etime) % 60);
         dsyslog("----------------------------------------------------------------------------------------------");
     }
 
