@@ -365,9 +365,16 @@ bool cDecoder::GetNextPacket(bool ignorePTS_Ringbuffer) {
 #endif
         {
             currFrameNumber++;
+
+            // check packet DTS and PTS
+            if ((avpkt.dts == AV_NOPTS_VALUE) || (avpkt.pts == AV_NOPTS_VALUE)) {
+                dsyslog("cDecoder::GetNextPacket(): framenumber %5d: invalid packet, DTS or PTS not set", currFrameNumber);
+                return true;   // false only on EOF
+            }
+
             currOffset += avpkt.duration;
 #ifdef DEBUG_FRAME_PTS
-            dsyslog("cDecoder::GetNextPacket(): framenumber %5d, DTS %ld, PTS %ld, duration %ld, flags %d", currFrameNumber, avpkt.dts, avpkt.pts, avpkt.duration, avpkt.flags);
+            dsyslog("cDecoder::GetNextPacket(): framenumber %5d, DTS %ld, PTS %ld, duration %ld, flags %d, dtsBefore %ld, time_base.num %d, time_base.den %d", currFrameNumber, avpkt.dts, avpkt.pts, avpkt.duration, avpkt.flags, dtsBefore, avctx->streams[avpkt.stream_index]->time_base.num, avctx->streams[avpkt.stream_index]->time_base.den);
 #endif
 
             // check DTS continuity
