@@ -2198,12 +2198,12 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                             minLastStartAssumed =   56;
                             minPrevStopAssumed  = -477;
                             break;
-                        case MT_LOGOSTOP:
-                            minLastStopAssumed  =  117;
-                            minLastStartAssumed =  -43;
+                        case MT_LOGOSTOP:                // changed from 117/-43/-160 to 106/-74/-160
+                            minLastStopAssumed  =  106;
+                            minLastStartAssumed =  -74;
                             minPrevStopAssumed  = -160;
                             break;
-                        case MT_VBORDERSTOP:                     // TODO
+                        case MT_VBORDERSTOP:             // TODO
                             minLastStopAssumed  =  288;
                             minLastStartAssumed =   56;
                             minPrevStopAssumed  = -477;
