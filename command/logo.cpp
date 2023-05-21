@@ -875,6 +875,10 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
             }
         }
         dsyslog("cExtractLogo::Resize(): logo size after %d. resize:  %3d width %3d height on corner %12s", repeat, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
+        if ((*logoWidth <= 10) || (*logoHeight <= 10)) {
+            dsyslog("cExtractLogo::Resize(): logo size after resize is invalid");
+            return false;
+        }
     }
     if (CheckLogoSize(maContext, *logoHeight, *logoWidth, bestLogoCorner)) {
         dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is valid", maContext->Video.Info.width, maContext->Video.Info.height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
