@@ -2182,42 +2182,50 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                 dsyslog("cMarkAdStandalone::CheckMarks(): start mark before (%5d) %4ds after assumed end (%5d)", lastStartMark->position, diffLastStartAssumed, newStopA);
                 dsyslog("cMarkAdStandalone::CheckMarks(): stop  mark before (%5d) %4ds after assumed end (%5d)", prevStopMark->position,  diffPrevStopAssumed, newStopA);
 
-                // check length of last advertisement and distance to assumed end
+                // check length of last broadcast and distance to assumed end
                 if ((lastStopMark->type & 0xF0) < MT_CHANNELCHANGE) {  // trust channel marks and better
                     int minLastStopAssumed;    // trusted distance to assumed assumed stop depents on hardness of marks
                     int minLastStartAssumed;
                     int minPrevStopAssumed;
+                    int maxLastBroadcast;
                     switch(lastStopMark->type) {
                         case MT_ASSUMEDSTOP:
                             minLastStopAssumed  =  396;  // changed from  403 to  396
                             minLastStartAssumed = -117;  // changed from -154 to -117
                             minPrevStopAssumed  = -542;  // changed from -491 to -542
+                            maxLastBroadcast    =    0;
                             break;
                         case MT_NOBLACKSTOP:
                             minLastStopAssumed  =  476;
                             minLastStartAssumed =   56;
                             minPrevStopAssumed  = -477;
+                            maxLastBroadcast    =    0;
                             break;
                         case MT_LOGOSTOP:                // changed from 117/-43/-160 to 106/-74/-160
                             minLastStopAssumed  =  106;
                             minLastStartAssumed =  -74;
                             minPrevStopAssumed  = -160;
+                            maxLastBroadcast    =  158;  // shortest last part of a broadcast found after logo marks
                             break;
-                        case MT_VBORDERSTOP:             // TODO
+                        case MT_VBORDERSTOP:
                             minLastStopAssumed  =  288;
                             minLastStartAssumed =   56;
                             minPrevStopAssumed  = -477;
+                            maxLastBroadcast    =    0;
                             break;
                         default:
-                            minLastStopAssumed  = 1000;          // do nothing
+                            minLastStopAssumed  = 1000;  // do nothing
                             minLastStartAssumed = 1000;
                             minPrevStopAssumed  = 1000;
+                            maxLastBroadcast    =    0;
                     }
                     dsyslog("cMarkAdStandalone::CheckMarks(): select previous stop if: end mark        >= %4ds after assumed end (%d)", minLastStopAssumed, newStopA);
                     dsyslog("cMarkAdStandalone::CheckMarks():                          last start mark >= %4ds after assumed end (%d)", minLastStartAssumed, newStopA);
                     dsyslog("cMarkAdStandalone::CheckMarks():                          last stop  mark >= %4ds after assumed end (%d)", minPrevStopAssumed, newStopA);
+                    dsyslog("cMarkAdStandalone::CheckMarks():             max length of last broadcast <  %4ds", maxLastBroadcast);
 
-                    if ((diffLastStopAssumed >= minLastStopAssumed) && (diffLastStartAssumed >= minLastStartAssumed) && (diffPrevStopAssumed >= minPrevStopAssumed)) {
+                    if (((diffLastStopAssumed >= minLastStopAssumed) && (diffLastStartAssumed >= minLastStartAssumed) && (diffPrevStopAssumed >= minPrevStopAssumed)) ||
+                         (lastBroadcast < maxLastBroadcast)) {
                         dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, assume too big recording length", prevStopMark->position);
                         marks.Del(lastStopMark->position);
                         marks.Del(lastStartMark->position);
