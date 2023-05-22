@@ -173,6 +173,11 @@ class cMarkAdStandalone : public cEvaluateChannel {
         cMark *Check_VBORDERSTOP();
 
 /**
+ * cleanup undetected info logo before end mark
+ */
+        void CleanupUndetectedInfoLogo(cMark *end);
+
+/**
  * check for end mark
  */
         int CheckStop();
