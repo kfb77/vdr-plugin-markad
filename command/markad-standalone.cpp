@@ -3875,7 +3875,8 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
             }
 
             // turn on all detection for end part even if we use stronger marks, just in case we will get no strong end mark
-            if (!restartLogoDetectionDone && (frameCurrent > (iStopA - (macontext.Video.Info.framesPerSecond * 240))) && (iStart == 0)) { // not before start part done
+            if (!restartLogoDetectionDone && (frameCurrent > (iStopA - (macontext.Video.Info.framesPerSecond * 300))) && (iStart == 0)) { // not before start part done
+                                                                                                                                          // changed from 240 to 300
                 dsyslog("cMarkAdStandalone::ProcessFrame(): enter end part at frame (%d), reset detector status", frameCurrent);
                 video->Clear(true);
                 bDecodeVideo = true;
