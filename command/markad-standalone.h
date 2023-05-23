@@ -175,7 +175,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
 /**
  * cleanup undetected info logo before end mark
  */
-        void CleanupUndetectedInfoLogo(cMark *end);
+        void CleanupUndetectedInfoLogo(const cMark *end);
 
 /**
  * check for end mark

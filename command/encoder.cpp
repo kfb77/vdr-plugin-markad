@@ -535,7 +535,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
     }
     dsyslog("cEncoder::InitEncoderCodec(): using encoder id %d '%s' for output stream %i", codec_id, codec->long_name, streamIndexOut);
 
-    AVStream *out_stream = avformat_new_stream(avctxOut, codec);
+    const AVStream *out_stream = avformat_new_stream(avctxOut, codec);
     if (!out_stream) {
         dsyslog("cEncoder::InitEncoderCodec(): Failed allocating output stream");
         return false;

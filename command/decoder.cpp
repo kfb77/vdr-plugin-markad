@@ -1031,7 +1031,7 @@ int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, con
 #else
                     for (int channel = 0; channel < audioFrame->channels; channel++) {
 #endif
-                        int16_t *samples = reinterpret_cast<int16_t*>(audioFrame->data[channel]);
+                        const int16_t *samples = reinterpret_cast<int16_t*>(audioFrame->data[channel]);
                         for (int sample = 0; sample < audioFrame->nb_samples; sample++) {
                             level += abs(samples[sample]);
                         }

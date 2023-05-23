@@ -84,7 +84,7 @@ bool cOSDMessage::ReadReply(int fd, char **reply) {
 void *cOSDMessage::SendMessage(void *posd) {
     cOSDMessage *osd = static_cast<cOSDMessage *>(posd);
 
-    struct hostent *host = gethostbyname(osd->host);
+    const struct hostent *host = gethostbyname(osd->host);
     if (!host) {
         osd->tid = 0;
         return NULL;
