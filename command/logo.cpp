@@ -1419,7 +1419,18 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
         dsyslog("cExtractLogo::SearchLogo(): logo size %dx%d", logoWidth, logoHeight);
 
         while(ptr_cDecoder->GetNextPacket(true)) { // no not fill PTS ring buffer, it will get out of sequence
-            if (abortNow) return -1;
+            if (abortNow) {
+                dsyslog("cExtractLogo::SearchLogo(): aborted by user");
+                FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
+                delete ptr_cDecoder;
+                FREE(sizeof(*ptr_Logo), "SearchLogo-ptr_Logo");
+                delete ptr_Logo;
+                FREE(sizeof(*hborder), "hborder");
+                delete hborder;
+                FREE(sizeof(*vborder), "vborder");
+                delete vborder;
+	        return -1;
+	    }
 
             // write an early start mark for running recordings
             if (maContext->Info.isRunningRecording && !maContext->Info.isStartMarkSaved && (iFrameNumber >= (maContext->Info.tStart * maContext->Video.Info.framesPerSecond))) {

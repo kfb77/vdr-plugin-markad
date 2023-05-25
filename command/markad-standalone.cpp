@@ -4729,7 +4729,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
 
 cMarkAdStandalone::~cMarkAdStandalone() {
-    marks.Save(directory, &macontext, true);
+    if (!abortNow) marks.Save(directory, &macontext, true);
     if ((!abortNow) && (!duplicate)) {
         LogSeparator();
 
