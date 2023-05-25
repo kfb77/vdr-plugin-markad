@@ -764,15 +764,29 @@ int cDetectLogoStopStart::FindFrameStartPixel(const uchar *picture, const int wi
 
 
 int cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, const int width, const int height, const int startX, const int startY, const int offsetX, const int offsetY, int *endX, int *endY) {
+    int pixelError = 0;   // accept two missing pixel in the frame from detection errors
     *endX = startX;
-    while ((*endX >= 0) && (*endX < width)) {
-        if (picture[startY * width + *endX + offsetX] == 0) *endX += offsetX;
-        else break;
+    while (((*endX + pixelError) >= 0) && ((*endX + pixelError) < width)) {
+        if (picture[startY * width + *endX + pixelError + offsetX] == 0) {
+           *endX += (offsetX + pixelError);
+           pixelError = 0;
+        }
+        else {
+            if (abs(pixelError) >= (2 * abs(offsetX))) break;
+            pixelError += offsetX;
+        }
     }
+    pixelError = 0;   // accept two missing pixel in the frame from detection errors
     *endY = startY;
-    while ((*endY >= 0) && (*endY < height)) {
-        if (picture[(*endY + offsetY) * width + startX] == 0) *endY += offsetY;
-        else break;
+    while ((*endY + pixelError >= 0) && (*endY + pixelError < height)) {
+        if (picture[(*endY + pixelError + offsetY) * width + startX] == 0) {
+            *endY += (offsetY + pixelError);
+            pixelError = 0;
+        }
+        else {
+            if (abs(pixelError) >= (2 * abs(offsetY))) break;
+            pixelError += offsetY;
+        }
     }
     int lengthX = abs(*endX - startX);
     int lengthY = abs(*endY - startY);
@@ -802,13 +816,15 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
     switch (corner) {
         case 0: // TOP_LEFT
             portion = FindFrameFirstPixel(picture, corner, width, height, 10, 0, 1, 1); // search from top left to bottom right
-                                                                                // do not start at corner, maybe conrner was not exacly detected
+                                                                                        // do not start at corner, maybe conrner was not exacly detected
             if (portion < 180) {  // maybe we have a text under frame or the logo
                 portion = FindFrameFirstPixel(picture, corner, width, height, width / 2, 0, 1, 1); // search from top mid to bottom right
-            }
-            if (portion < 180) {  // maybe we have a text under frame or the logo
-                portion = FindFrameFirstPixel(picture, corner, width, height, 0 , height * 9 / 10, 1, 0); // search horizontal from 9/10 button left to right
-                                                                                                          // text is left and right from a vertical line
+                if (portion < 180) {  // maybe we have a text under frame or the logo
+                    portion = FindFrameFirstPixel(picture, corner, width, height, 0 , height * 9 / 10, 1, 0); // search horizontal from 9/10 button left to right
+                    if (portion < 180) {  // maybe we have a text under frame or the logo
+                        portion = FindFrameFirstPixel(picture, corner, width, height, 0 , height / 2, 1, 0); // search horizontal mid right mid left
+                    }
+                }
             }
             break;
 
@@ -825,7 +841,13 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
                 portion = FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, 1, -1); // search from bottom mid to top right
                 if (portion < 180) {  // maybe we have only a part of the frame
                     portion = FindFrameFirstPixel(picture, corner, width, height, width / 3, height - 1, 1, -1); // search from bottom 1/3 left to top right
-            }
+                    if (portion < 180) {  // maybe we have only a part of the frame
+                        portion = FindFrameFirstPixel(picture, corner, width, height, 0, height / 2, 1, -1); // search from mid right  to top right
+                        if (portion < 180) {  // maybe we have only a part of the frame
+                            portion = FindFrameFirstPixel(picture, corner, width, height, width, 0, -1, 1); // search from top right to buttom left (horizontal line with text below)
+                        }
+                    }
+                }
             }
             break;
 
