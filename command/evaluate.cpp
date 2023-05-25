@@ -1835,15 +1835,15 @@ int cDetectLogoStopStart::IntroductionLogo() {
         }
         // examples of separator frames before introduction logo
         // 59     0     0    -1 =  58
-        // -1   325     0     0 = 324  (ignoring, conflict with: 27   286     0     7 )
-        // 42    20    47    65 = 174
-        //  3    99    62    65 = 229
         //
-        //  example of no separator frames
-        // 27   286     0     7 = 320
+        // example of no separator frames (l = logo corner)
+        // 27   286      0     7 = 320
+        // 34   206(l)   0     0 = 240
+        //  0   201(l)  30     0 = 231
+        //  0    35(l) 109     0 = 144
         int diffSeparatorToEnd = 1000 * (endPos - (*cornerResultIt).frameNumber1) / maContext->Video.Info.framesPerSecond;
-        if ((countLow >= 3) && (sumPixel < 320) && (diffSeparatorToEnd > 960)) { // new separator image before introduction logo, restart detection
-                                                                                 // changed from 324 to 320
+        if ((countLow >= 3) && (sumPixel < 144) && (diffSeparatorToEnd > 960)) { // new separator image before introduction logo, restart detection
+                                                                                 // changed from 320 to 144
                                                                                  // ignore first separator frame near endPos (logo start mark), this can not be start of introduction logo
 #ifdef DEBUG_MARK_OPTIMIZATION
             dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator found at frame (%5d)", (*cornerResultIt).frameNumber1);
