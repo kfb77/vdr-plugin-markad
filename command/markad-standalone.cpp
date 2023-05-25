@@ -438,17 +438,15 @@ int cMarkAdStandalone::CheckStop() {
     if (!end && (markCriteria.GetMarkTypeState(MT_VBORDERCHANGE) >= CRITERIA_UNKNOWN)) end = Check_VBORDERSTOP();
 
 // try MT_LOGOSTOP
-#define MAX_LOGO_END_MARK_FACTOR 2.7 // changed from 3 to 2.7 to prevent too early logo stop marks
     if (!end) {  // try logo stop mark
-
         // cleanup very short start/stop pairs around possible end marks, these are logo detection failures
         LogSeparator(false);
         dsyslog("cMarkAdStandalone::CheckStop(): check logo end mark (cleanup very short logo start/stop pairs around possible logo end marks)");
         while (true) {
-            end = marks.GetAround(MAX_LOGO_END_MARK_FACTOR * macontext.Video.Info.framesPerSecond * 120, iStopA, MT_LOGOSTOP);
+            end = marks.GetAround(400 * macontext.Video.Info.framesPerSecond, iStopA, MT_LOGOSTOP);
             if (end) {
                 int iStopDelta = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
-                #define MAX_LOGO_BEFORE_ASSUMED 304   // changed from 282 to 304
+                #define MAX_LOGO_BEFORE_ASSUMED 395   // changed from 304 to 395
                 dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame (%d), %ds (expect < %ds) before assumed stop (%d)", end->position, iStopDelta, MAX_LOGO_BEFORE_ASSUMED, iStopA);
                 if (iStopDelta > MAX_LOGO_BEFORE_ASSUMED) {
                     dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark too far before assumed stop");
