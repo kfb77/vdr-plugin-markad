@@ -1478,7 +1478,7 @@ void cMarkAdStandalone::CheckStart() {
         }
 
         // searech for logo start mark around assumed start
-        lStart = marks.GetAround(iStartA + (2 * delta), iStartA, MT_LOGOSTART);   // increase from 1
+        lStart = marks.GetAround(iStartA + 420 * macontext.Video.Info.framesPerSecond, iStartA, MT_LOGOSTART);
         if (!lStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no logo start mark found");
         }
@@ -1611,7 +1611,7 @@ void cMarkAdStandalone::CheckStart() {
                 }
                 else break; // the is no next stop mark
             }
-            if (lStart->position  >= (iStart / 8)) {
+            if (lStart->position  >= (iStart / 10)) {  // changed from 8 to 10
                 begin = lStart;   // found valid logo start mark
             }
             else {
