@@ -407,7 +407,13 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
     else if (ptr_cDecoder->IsAudioStream(streamIndexIn)) {
         codecCtxArrayOut[streamIndexOut]->sample_fmt = avCodecCtxIn->sample_fmt;
         codecCtxArrayOut[streamIndexOut]->sample_rate = avCodecCtxIn->sample_rate;
-#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 37<<8)+100)
+        int rc = av_channel_layout_copy(&codecCtxArrayOut[streamIndexOut]->ch_layout, &codecCtxArrayIn[streamIndexIn]->ch_layout);
+        if (rc != 0) {
+            dsyslog("cEncoder::ChangeEncoderCodec(): av_channel_layout_copy for output stream %d from input stream %d  failed, rc = %d", streamIndexOut, streamIndexIn, rc);
+            return false;
+        }
+#elif LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
         codecCtxArrayOut[streamIndexOut]->ch_layout.u.mask = avCodecCtxIn->ch_layout.u.mask;
         codecCtxArrayOut[streamIndexOut]->ch_layout.nb_channels = avCodecCtxIn->ch_layout.nb_channels;
 #else
@@ -1005,7 +1011,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
 #endif
 
                 if(!ChangeEncoderCodec(ptr_cDecoder, streamIndexIn, streamIndexOut, codecCtxArrayIn[streamIndexIn])) {
-                    dsyslog("cEncoder::WritePacket(): InitEncoderCodec failed");
+                    esyslog("encoder initialization failed for output stream index %d, source is stream index %d", streamIndexOut, streamIndexIn);
                     return false;
                 }
             }
