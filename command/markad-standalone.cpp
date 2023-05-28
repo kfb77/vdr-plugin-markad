@@ -2188,22 +2188,24 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     int maxLastBroadcast;
                     switch(lastStopMark->type) {
                         case MT_ASSUMEDSTOP:
+                            // too long broadcast length from info file, delete last stop:
+                            // 471/-154/-542
                             minLastStopAssumed  =  396;  // changed from  403 to  396
-                            minLastStartAssumed = -117;  // changed from -154 to -117
+                            minLastStartAssumed = -154;
                             minPrevStopAssumed  = -542;  // changed from -491 to -542
                             maxLastBroadcast    =    0;
                             break;
                         case MT_NOBLACKSTOP:
-                            minLastStopAssumed  =  476;
-                            minLastStartAssumed =   56;
-                            minPrevStopAssumed  = -477;
+                            minLastStopAssumed  =   99;  // changed from 476 to 99
+                            minLastStartAssumed =  -39;  // changed from 56 to -39
+                            minPrevStopAssumed  = -469;
                             maxLastBroadcast    =    0;
                             break;
                         case MT_LOGOSTOP:                // changed from 117/-43/-160 to 106/-74/-160
                             minLastStopAssumed  =  106;
                             minLastStartAssumed =  -74;
                             minPrevStopAssumed  = -160;
-                            maxLastBroadcast    =  158;  // shortest last part of a broadcast found after logo marks
+                            maxLastBroadcast    =   79;  // shortest last part of a broadcast with logo end mark
                             break;
                         case MT_VBORDERSTOP:
                             minLastStopAssumed  =  288;
@@ -2223,7 +2225,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     dsyslog("cMarkAdStandalone::CheckMarks():             max length of last broadcast <  %4ds", maxLastBroadcast);
 
                     if (((diffLastStopAssumed >= minLastStopAssumed) && (diffLastStartAssumed >= minLastStartAssumed) && (diffPrevStopAssumed >= minPrevStopAssumed)) ||
-                         (lastBroadcast < maxLastBroadcast)) {
+                        ((lastBroadcast < maxLastBroadcast) && (lastStopMark->position < newStopA))) {
                         dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, assume too big recording length", prevStopMark->position);
                         marks.Del(lastStopMark->position);
                         marks.Del(lastStartMark->position);
