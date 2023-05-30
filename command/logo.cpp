@@ -393,10 +393,9 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         else                                                          logo.widthMax  = 136;
         logo.heightMin =  54;
     }
-    if (strcmp(maContext->Info.ChannelName, "SUPER_RTL") == 0) {             // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT
-                                                                             // SUPER_RTL PRIMETIME     16:9  720W  576H:->  160W  54H TOP_LEFT
-        logo.widthMin  =  98;
-        logo.widthMax  = 160;
+    // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT
+    if (strcmp(maContext->Info.ChannelName, "SUPER_RTL") == 0) {
+        logo.widthMax  =  98;
         logo.heightMin =  48;
     }
     if (strcmp(maContext->Info.ChannelName, "TELE_5") == 0) {                // TELE_5                  16:9  720W  576H:->   72W  76H BOTTOM_RIGHT (new logo)
@@ -434,6 +433,10 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     }
 
 // 1280x720
+    // 3sat_HD                 16:9 1280W  720H:->  178W  94H TOP_LEFT
+    if (strcmp(maContext->Info.ChannelName, "3sat_HD") == 0) {
+        logo.widthMax  = 185;
+    }
     if (strcmp(maContext->Info.ChannelName, "ARD-alpha_HD") == 0) {          // ARD-alpha_HD            16:9 1280W  720H:->  206W  76H TOP_LEFT
         logo.heightMax  = 76;
     }
@@ -485,6 +488,10 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "13th_Street_HD") == 0) {        // 13th_Street_HD:         16:9 1920W 1080H:->  218W 194H TOP_LEFT
         logo.widthMin  = 217;
         logo.heightMax = 198;
+    }
+    // ANIXE_HD                16:9 1920W 1080H:->  396W 180H TOP_LEFT
+    if (strcmp(maContext->Info.ChannelName, "ANIXE_HD") == 0) {
+        logo.heightMin = 180;
     }
     if (strcmp(maContext->Info.ChannelName, "münchen_tv_HD") == 0) {
         logo.widthMax  = 396;
@@ -636,6 +643,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
 
 // search for text under logo
 // search for at least 2 (SD) or 4 (HD) white lines to cut logos with text addon (e.g. "Neue Folge" or "Live")
+            dsyslog("cExtractLogo::Resize(): top logo: search for text under logo, repeat %d", repeat);
             int countWhite = 0;
             int cutLine = 0;
             int topBlackLineOfLogo= 0;
@@ -677,6 +685,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 }
                 else dsyslog("cExtractLogo::Resize(): cutline at %d not valid", cutLine);
             }
+            else dsyslog("cExtractLogo::Resize(): top logo: no text under logo found, repeat %d", repeat);
         }
         else { // bottom corners, calculate new height and cut from above
             int whiteLines = 0;
@@ -836,42 +845,58 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 else break;
             }
             CutOut(bestLogoInfo, 0, whiteColumns, logoHeight, logoWidth, bestLogoCorner);
-
-            // search for at least 3 white columns to cut logos with text addon (e.g. "Neue Folge")
-            int countWhite = 0;
-            int cutColumn = 0;
-            int topBlackPixel =  INT_MAX;
-            int topBlackPixelBefore = INT_MAX;
-            int bottomBlackPixelBefore = 0;
-            int bottomBlackPixel = 0;
-            for (int column = *logoWidth - 1; column > 0; column--) {
-                bool isAllWhite = true;
-                topBlackPixel = topBlackPixelBefore;
-                bottomBlackPixel = bottomBlackPixelBefore;
-                for (int line = 0; line < *logoHeight; line++) {
-                    if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
-                        isAllWhite = false;
-                        if (line < topBlackPixelBefore) topBlackPixelBefore = line;
-                        if (line > bottomBlackPixelBefore) bottomBlackPixelBefore = line;
-                    }
-                }
-                if (isAllWhite) {
-                    countWhite++;
-                }
-                else {
-                    countWhite = 0;
-                    if (cutColumn > 0) break;
-                }
-                if (countWhite >= 3) {  // need at least 3 white column to detect as separator
-                    cutColumn = column;
+#ifdef DEBUG_LOGO_RESIZE
+            // save plane 0 of logo
+            if (whiteColumns > 0) {
+                char *fileName = NULL;
+                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutRight%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
+                    ALLOC(strlen(fileName)+1, "fileName");
+                    SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+                    FREE(strlen(fileName)+1, "fileName");
+                    free(fileName);
+                    cutStep++;
                 }
             }
-            if (cutColumn > (*logoWidth * 0.65)) {  // do not cut too mutch, could be a space in the logo (e.g. VOXup)
-                if ((bottomBlackPixel - topBlackPixel) <= 19) {
-                    dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
-                    CutOut(bestLogoInfo, 0, *logoWidth - cutColumn, logoHeight, logoWidth, bestLogoCorner);
+#endif
+            // search for columns to cut logos with text addon (e.g. "Neue Folge")
+            if (!CheckLogoSize(maContext, *logoHeight, *logoWidth, bestLogoCorner)) {
+                dsyslog("cExtractLogo::Resize(): left logo: search for text right of logo, repeat %d", repeat);
+                int countWhite = 0;
+                int cutColumn = 0;
+                int topBlackPixel =  INT_MAX;
+                int topBlackPixelBefore = INT_MAX;
+                int bottomBlackPixelBefore = 0;
+                int bottomBlackPixel = 0;
+                for (int column = *logoWidth - 1; column > 0; column--) {
+                    bool isAllWhite = true;
+                    topBlackPixel = topBlackPixelBefore;
+                    bottomBlackPixel = bottomBlackPixelBefore;
+                    for (int line = 0; line < *logoHeight; line++) {
+                        if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
+                            isAllWhite = false;
+                            if (line < topBlackPixelBefore) topBlackPixelBefore = line;
+                            if (line > bottomBlackPixelBefore) bottomBlackPixelBefore = line;
+                        }
+                    }
+                    if (isAllWhite) {
+                        countWhite++;
+                    }
+                    else {
+                        countWhite = 0;
+                        if (cutColumn > 0) break;
+                    }
+                    if (countWhite >= 3) {  // need at least 3 white column to detect as separator
+                        cutColumn = column;
+                    }
                 }
-                else dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel test: top %d bottom %d, text height %d is not valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
+                if (cutColumn > static_cast<int>((*logoWidth * 0.5))) {  // do not cut too mutch, could be a space in the logo (e.g. VOXup)
+                    if ((bottomBlackPixel - topBlackPixel) <= 19) {
+                        dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
+                        CutOut(bestLogoInfo, 0, *logoWidth - cutColumn, logoHeight, logoWidth, bestLogoCorner);
+                    }
+                    else dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel test: top %d bottom %d, text height %d is not valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
+                }
+                else dsyslog("cExtractLogo::Resize(): left logo: no text right of logo found, cutColumn %d, repeat %d", cutColumn, repeat);
             }
         }
         dsyslog("cExtractLogo::Resize(): logo size after %d. resize:  %3d width %3d height on corner %12s", repeat, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
@@ -1429,8 +1454,8 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                 delete hborder;
                 FREE(sizeof(*vborder), "vborder");
                 delete vborder;
-	        return -1;
-	    }
+                return -1;
+            }
 
             // write an early start mark for running recordings
             if (maContext->Info.isRunningRecording && !maContext->Info.isStartMarkSaved && (iFrameNumber >= (maContext->Info.tStart * maContext->Video.Info.framesPerSecond))) {
