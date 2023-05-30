@@ -715,8 +715,7 @@ int cMarkAdStandalone::CheckStop() {
         }
     }
 
-    if (!end) {  // no valid stop mark found
-                 // try if there is any late MT_ASPECTSTOP
+    if (!end) {  // no valid stop mark found, try if there is any late MT_ASPECTSTOP
         dsyslog("cMarkAdStandalone::CheckStop(): no valid end mark found, try very late MT_ASPECTSTOP");
         cMark *aFirstStart = marks.GetNext(0, MT_ASPECTSTART);
         if (aFirstStart) {
@@ -728,6 +727,15 @@ int cMarkAdStandalone::CheckStop() {
         }
     }
 
+    // no end mark found, try if we can use a start mark of next bradcast as end mark
+    if (!end) {  // no valid stop mark found, try if there is a MT_CHANNELSTART from next broadcast
+        cMark *channelStart = marks.GetNext(iStopA, MT_CHANNELSTART);
+        if (channelStart) {
+            dsyslog("cMarkAdStandalone::CheckStop(): use channel start mark (%d) from next broadcast as end mark", channelStart->position);
+            marks.ChangeType(channelStart, MT_STOP);
+            end = channelStart;
+        }
+    }
     if (!end || (end->type == MT_NOBLACKSTOP)) { // try to get hborder start mark from next broadcast as stop mark
         cMark *hBorderStart = marks.GetNext(iStopA, MT_HBORDERSTART);
         if (hBorderStart) {
