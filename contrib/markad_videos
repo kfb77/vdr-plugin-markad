@@ -181,7 +181,6 @@ class Config:
         except (configparser.NoSectionError, configparser.NoOptionError):
             ret = None
         if ret is not None: self.markad_loglevel = ret
-        else: self.markad_loglevel = self.loglevel
 
         try:
             ret = config.get('MARKAD', 'bindir')
@@ -288,6 +287,7 @@ class Config:
         if args.user is not None: self.user = args.user
         if args.group is not None: self.group = args.group
         if args.loglevel is not None: self.loglevel = args.loglevel
+        if args.markad_loglevel is not None: self.markad_loglevel = args.markad_loglevel
         if args.nice is not None: self.nice = args.nice
         if args.minfree is not None: self.minfree = args.minfree
         if args.maxrecordings is not None: self.maxrecordings = args.maxrecordings
@@ -600,6 +600,7 @@ log = Log()
 parser = argparse.ArgumentParser(description='run markad on all new VDR recordings')
 parser.add_argument('-v', '--verbose', dest="verbose", action='store_true', default=False, help='log to std out')
 parser.add_argument('-l', '--loglevel=', metavar="<level>", type=int, choices=range(0, 5), dest="loglevel", action="store", help='sets --loglevel to the specified value, 0=no logging 1=error 2=info 3=debug 4=trace (default 1)')
+parser.add_argument('--markad_loglevel=', metavar="<level>", type=int, choices=range(0, 4), dest="markad_loglevel", action="store", help='sets --loglevel for markad to the specified value, 0=no logging 1=error 2=info 3=debug 4=trace (default 1)')
 parser.add_argument('-p', '--path=', dest="path",  metavar="<path>", action="store", help='path to the VDR recording directory (default: /srv/vdr/video)')
 parser.add_argument('--nice=', dest="nice",  metavar="<value>", choices=range(0, 20), action="store", help='set niceness of scheduling priority (default 19)')
 parser.add_argument('--minfree=', metavar="GB", type=int, dest="minfree", action="store", help='minimum free disk space in GBs for all disk consuming operations (default 0 no limit)')
