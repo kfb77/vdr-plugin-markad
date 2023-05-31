@@ -361,8 +361,8 @@ void cStatusMarkAd::SetVPSStatus(const int index, int runningStatus, const bool 
             recs[index].runningStatus = 1;
         }
         else {
-            if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, runningStatus, "reset");
-            recs[index].runningStatus = 1;
+            if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, runningStatus, "invalid VPS sequence, abort VPS detection");
+            recs[index].runningStatus = -1;
         }
         return;
     }
@@ -547,7 +547,6 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
             char *log = NULL;
             if ((recs[index].epgEventLog) && (asprintf(&log, "VPS stop to fast after start, invalid VPS sequence, abort VPS detection") != -1)) recs[index].epgEventLog->Log(log);
             if (log) free(log);
-            recs[index].runningStatus = -1;
             return false;
         }
     }
