@@ -4387,9 +4387,9 @@ bool cMarkAdStandalone::LoadInfo() {
                         int lengthVPS = vpsStop - macontext.Info.tStart;
                         int diff      = lengthVPS - length;
                         dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from VPS events:    %5ds -> %d:%02d:%02dh, %ds longer than length from vdr info file", lengthVPS, lengthVPS / 3600, (lengthVPS % 3600) / 60, length % 60, diff);
-                        if (abs(diff) >= 506) dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop event seeams to be invalid, use length from vdr info file");
+                        if (abs(diff) >= 506) dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop event seems to be invalid, use length from vdr info file");
                         else {
-                            dsyslog("cMarkAdStandalone::LoadInfo(): VPS events seeams to be valid, use length from VPS events");
+                            dsyslog("cMarkAdStandalone::LoadInfo(): VPS events seems to be valid, use length from VPS events");
                             length = lengthVPS;
                         }
                     }
