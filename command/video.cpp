@@ -1080,9 +1080,9 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     // set initial start status
     if (area.status == LOGO_UNINITIALIZED) {
         if (rPixel >= (mPixel * logo_vmark)) area.status = LOGO_VISIBLE;
-        else                                 area.status = LOGO_INVISIBLE;
-        *logoFrameNumber = frameCurrent;
-        area.frameNumber = frameCurrent;
+        if (rPixel <  (mPixel * logo_imark)) area.status = LOGO_INVISIBLE;  // wait for a clear result
+        if (area.frameNumber == -1) area.frameNumber = frameCurrent;
+        *logoFrameNumber = area.frameNumber;
         return area.status;
     }
     if (area.status == LOGO_RESTART) {

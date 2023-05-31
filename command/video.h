@@ -86,16 +86,16 @@ typedef struct sAreaT {
     int rPixel[PLANES];              //!< black pixel in result
                                      //!<
 
-    int mPixel[PLANES] = {0};        //!< black pixel in mask
+    int mPixel[PLANES]    = {0};     //!< black pixel in mask
                                      //!<
 
     int status;                      //!< logo status: on, off, uninitialized
                                      //!<
 
-    int frameNumber;                 //!< start/stop frame number
+    int frameNumber       = -1;      //!< start/stop frame number
                                      //!<
 
-    int counter;                     //!< since how many logo on, offs detected?
+    int counter;                     //!< how many logo on, offs detected
                                      //!<
 
     int corner;                      //!< corner of logo
@@ -110,7 +110,6 @@ typedef struct sAreaT {
     bool valid[PLANES];              //!< <b>true:</b> logo mask data (logo) are valid <br>
                                      //!< <b>false:</b> logo mask (logo) is not valid
                                      //!<
-
 } sAreaT;
 
 
