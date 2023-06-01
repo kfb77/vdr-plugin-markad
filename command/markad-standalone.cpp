@@ -1619,7 +1619,7 @@ void cMarkAdStandalone::CheckStart() {
                 }
                 else break; // the is no next stop mark
             }
-            if (lStart->position  >= (iStart / 10)) {  // changed from 8 to 10
+            if (lStart->position  >= (iStart / 11)) {  // changed from 8 to 10 to 11
                 begin = lStart;   // found valid logo start mark
             }
             else {
