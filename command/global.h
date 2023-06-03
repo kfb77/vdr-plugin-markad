@@ -40,29 +40,33 @@
 #define MT_ASSUMEDSTART    (unsigned char) 0x11
 #define MT_ASSUMEDSTOP     (unsigned char) 0x12
 
-#define MT_BLACKCHANGE     (unsigned char) 0x20
-#define MT_NOBLACKSTART    (unsigned char) 0x21
-#define MT_NOBLACKSTOP     (unsigned char) 0x22
+#define MT_SCENECHANGE     (unsigned char) 0x20
+#define MT_SCENESTART      (unsigned char) 0x21
+#define MT_SCENESTOP       (unsigned char) 0x22
 
-#define MT_LOGOCHANGE      (unsigned char) 0x30
-#define MT_LOGOSTART       (unsigned char) 0x31
-#define MT_LOGOSTOP        (unsigned char) 0x32
+#define MT_BLACKCHANGE     (unsigned char) 0x30
+#define MT_NOBLACKSTART    (unsigned char) 0x31
+#define MT_NOBLACKSTOP     (unsigned char) 0x32
 
-#define MT_VBORDERCHANGE   (unsigned char) 0x40
-#define MT_VBORDERSTART    (unsigned char) 0x41
-#define MT_VBORDERSTOP     (unsigned char) 0x42
+#define MT_LOGOCHANGE      (unsigned char) 0x40
+#define MT_LOGOSTART       (unsigned char) 0x41
+#define MT_LOGOSTOP        (unsigned char) 0x42
 
-#define MT_HBORDERCHANGE   (unsigned char) 0x50
-#define MT_HBORDERSTART    (unsigned char) 0x51
-#define MT_HBORDERSTOP     (unsigned char) 0x52
+#define MT_VBORDERCHANGE   (unsigned char) 0x50
+#define MT_VBORDERSTART    (unsigned char) 0x51
+#define MT_VBORDERSTOP     (unsigned char) 0x52
 
-#define MT_ASPECTCHANGE    (unsigned char) 0x60
-#define MT_ASPECTSTART     (unsigned char) 0x61
-#define MT_ASPECTSTOP      (unsigned char) 0x62
+#define MT_HBORDERCHANGE   (unsigned char) 0x60
+#define MT_HBORDERSTART    (unsigned char) 0x61
+#define MT_HBORDERSTOP     (unsigned char) 0x62
 
-#define MT_CHANNELCHANGE   (unsigned char) 0x70
-#define MT_CHANNELSTART    (unsigned char) 0x71
-#define MT_CHANNELSTOP     (unsigned char) 0x72
+#define MT_ASPECTCHANGE    (unsigned char) 0x70
+#define MT_ASPECTSTART     (unsigned char) 0x71
+#define MT_ASPECTSTOP      (unsigned char) 0x72
+
+#define MT_CHANNELCHANGE   (unsigned char) 0x80
+#define MT_CHANNELSTART    (unsigned char) 0x81
+#define MT_CHANNELSTOP     (unsigned char) 0x82
 
 #define MT_TYPECHANGE      (unsigned char) 0xB0
 #define MT_TYPECHANGESTART (unsigned char) 0xB1

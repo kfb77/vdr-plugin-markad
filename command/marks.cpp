@@ -362,7 +362,7 @@ cMark *cMarks::Add(const int type, const int oldType, const int position, const 
 
     cMark *dupMark;
     if ((dupMark = Get(position))) {
-        dsyslog("cMarks::Add(): duplicate mark on position %i type 0x%X and type 0x%X", position, type, dupMark->type);
+        if (((dupMark->type & 0xF0) != MT_BLACKCHANGE) && ((type & 0xF0) != MT_BLACKCHANGE)) dsyslog("cMarks::Add(): duplicate mark on position (%d) type 0x%X and type 0x%X", position, type, dupMark->type);  // do not log duplicates with blacksceen, this is normal
         if (type == dupMark->type) return dupMark;      // same type at same position, ignore add
         if ((type & 0xF0) == (dupMark->type & 0xF0)) {  // start and stop mark of same type at same position, delete both
             Del(dupMark->position);
@@ -458,6 +458,11 @@ char *cMarks::TypeToText(const int type) {
                 ALLOC(strlen(text)+1, "text");
             }
             break;
+        case MT_SCENECHANGE:
+            if (asprintf(&text, "scene") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            break;
         case MT_BLACKCHANGE:
             if (asprintf(&text, "black screen") != -1) {
                 ALLOC(strlen(text)+1, "text");
@@ -490,6 +495,11 @@ char *cMarks::TypeToText(const int type) {
             break;
         case MT_MOVEDCHANGE:
             if (asprintf(&text, "moved") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            break;
+        case MT_TYPECHANGE:
+            if (asprintf(&text, "type changed") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
             break;
@@ -541,7 +551,7 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const char* reason) {
     char* typeText = TypeToText(mark->type);
 
     if (indexToHMSF && typeText) {
-       if (asprintf(&comment,"moved %s mark (%6d) %s %-5s %s mark (%6d) at %s, %s detected%s",
+       if (asprintf(&comment,"moved %s mark                 (%6d) %s %-5s %s mark (%6d) at %s, %s detected%s",
                                     ((mark->type & 0x0F) == MT_START) ? "start" : "stop ",
                                              newPosition,
                                                   (newPosition > mark->position) ? "after " : "before",

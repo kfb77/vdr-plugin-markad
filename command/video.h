@@ -42,6 +42,12 @@ enum eLogoStatus {
 };
 
 enum {
+    SCENE_UNINITALISIZED = -2,
+    SCENE_NOCHANGE       =  0,
+    SCENE_CHANGED        =  1
+};
+
+enum {
     BLACKSCREEN_UNINITIALIZED = -2,
     BLACKSCREEN_INVISIBLE     = -1,
     BLACKSCREEN_VISIBLE       =  1
@@ -410,6 +416,38 @@ class cMarkAdLogo : cLogoSize {
                                                   //!<
 };
 
+/**
+ * class to detect scene change
+ */
+class cMarkAdSceneChange {
+    public:
+
+/**
+ * class to detect scene change
+ * @param maContextParam markad context
+ */
+        explicit cMarkAdSceneChange(sMarkAdContext *maContextParam);
+        ~cMarkAdSceneChange();
+
+/**
+ * process scene change detection
+ * @param frameCurrent current frame number
+ * @return scene change status: <br>
+ *         -1 scene stop <br>
+ *          0 no status change <br>
+ *          1 scene start
+ */
+        int Process(const int currentFrameNumber);
+
+    private:
+        sMarkAdContext *maContext = NULL;  //!< markad context
+                                           //!<
+        int prevFrameNumber       = 0;     //!< previous frame number
+                                           //!<
+        int *prevHistogram        = NULL;  //!< histogram of previos frame
+                                           //!<
+};
+
 
 /**
  * class to detect black screen
@@ -581,6 +619,7 @@ class cMarkAdVideo {
  */
         cMarkAdVideo &operator =(const cMarkAdVideo *origin) {
             maContext                 = origin->maContext;
+            sceneChange               = NULL;
             blackScreen               = NULL;
             hborder                   = NULL;
             vborder                   = NULL;
@@ -651,6 +690,8 @@ class cMarkAdVideo {
                                                   //!<
         sAspectRatio aspectRatio = {};            //!< video display aspect ratio (DAR)
                                                   //!<
+        cMarkAdSceneChange *sceneChange = NULL;   //!< pointer to class cMarkAdsceneChange
+                                                  //!<
         cMarkAdBlackScreen *blackScreen;          //!< pointer to class cMarkAdBlackScreen
                                                   //!<
         cMarkAdBlackBordersHoriz *hborder;        //!< pointer to class cMarkAdBlackBordersHoriz
@@ -658,8 +699,6 @@ class cMarkAdVideo {
         cMarkAdBlackBordersVert *vborder;         //!< pointer to class cMarkAdBlackBordersVert
                                                   //!<
         cMarkAdLogo *logo;                        //!< pointer to class cMarkAdLogo
-                                                  //!<
-//        cMarkAdOverlap *overlap;                  //!< pointer to class cMarkAdOverlap
                                                   //!<
 };
 #endif

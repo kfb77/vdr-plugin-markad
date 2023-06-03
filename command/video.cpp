@@ -1277,8 +1277,70 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
 }
 
 
+// detect scene change
+cMarkAdSceneChange::cMarkAdSceneChange(sMarkAdContext *maContextParam) {
+    maContext = maContextParam;
+}
+
+
+cMarkAdSceneChange::~cMarkAdSceneChange() {
+    FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
+    free(prevHistogram);
+}
+
+
+int cMarkAdSceneChange::Process(const int currentFrameNumber) {
+    if (!maContext) return 0;
+    if (!maContext->Video.Data.valid) return 0;
+    if (maContext->Video.Info.framesPerSecond == 0) return 0;
+    if (!maContext->Video.Info.height) {
+        dsyslog("cMarkAdSceneChange::Process(): missing maContext->Video.Info.height");
+        return 0;
+    }
+    if (!maContext->Video.Info.width) {
+        dsyslog("cMarkAdSceneChange::Process(): missing maContext->Video.Info.width");
+        return 0;
+    }
+    if (!maContext->Video.Data.Plane[0]) {
+        dsyslog("cMarkAdSceneChange::Process(): Video.Data.Plane[0] missing");
+        return 0;
+    }
+    // get simple histogramm from current frame
+    int *currentHistogram = NULL;
+    currentHistogram = static_cast<int *>(malloc(sizeof(int) * 256));
+    ALLOC(sizeof(*currentHistogram), "SceneChangeHistogramm");
+    memset(currentHistogram, 0, sizeof(int[256]));
+    for (int Y = 0; Y < maContext->Video.Info.height; Y++) {
+        for (int X = 0; X < maContext->Video.Info.width; X++) {
+            uchar val = maContext->Video.Data.Plane[0][X + (Y * maContext->Video.Data.PlaneLinesize[0])];
+            currentHistogram[val]++;
+        }
+    }
+    if (!prevHistogram) {
+        prevHistogram = currentHistogram;
+        return SCENE_UNINITALISIZED;
+    }
+
+    // calculate distance between pevios und current frame
+    long int difference = 0;  // prevent integer overflow
+    for (int i = 0; i < 256; i++) {
+        difference += abs(prevHistogram[i] - currentHistogram[i]);  // calculte difference, smaller is more similar
+    }
+    int diffQuote = 1000 * difference / (maContext->Video.Info.height * maContext->Video.Info.width * 2);
+#ifdef DEBUG_SCENE_CHANGE
+    dsyslog("cMarkAdSceneChange::Process(): previous frame (%7d) and current frame (%7d): difference %7ld, diffQute %4d", prevFrameNumber, currentFrameNumber, difference, diffQuote);
+#endif
+    FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
+    free(prevHistogram);
+    prevHistogram   = currentHistogram;
+    prevFrameNumber = currentFrameNumber;
+
+    if (diffQuote >= 659) return SCENE_CHANGED;  // changed from 811 to 659
+    return SCENE_NOCHANGE;
+}
+
+
 // detect blackscreen
-//
 cMarkAdBlackScreen::cMarkAdBlackScreen(sMarkAdContext *maContextParam) {
     maContext = maContextParam;
     Clear();
@@ -1874,13 +1936,16 @@ cMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContextParam, cIndex *recordingInde
     maContext = maContextParam;
     recordingIndexMarkAdVideo = recordingIndex;
 
+    sceneChange = new cMarkAdSceneChange(maContext);
+    ALLOC(sizeof(*sceneChange), "sceneChange");
+
     blackScreen = new cMarkAdBlackScreen(maContext);
     ALLOC(sizeof(*blackScreen), "blackScreen");
 
-    hborder=new cMarkAdBlackBordersHoriz(maContext);
+    hborder = new cMarkAdBlackBordersHoriz(maContext);
     ALLOC(sizeof(*hborder), "hborder");
 
-    vborder=new cMarkAdBlackBordersVert(maContext);
+    vborder = new cMarkAdBlackBordersVert(maContext);
     ALLOC(sizeof(*vborder), "vborder");
 
     logo = new cMarkAdLogo(maContext, recordingIndexMarkAdVideo);
@@ -1892,6 +1957,10 @@ cMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContextParam, cIndex *recordingInde
 
 cMarkAdVideo::~cMarkAdVideo() {
     ResetMarks();
+    if (sceneChange) {
+        FREE(sizeof(*sceneChange), "sceneChange");
+        delete sceneChange;
+    }
     if (blackScreen) {
         FREE(sizeof(*blackScreen), "blackScreen");
         delete blackScreen;
@@ -1988,6 +2057,19 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
     else useFrame = iFrameCurrent;
     ResetMarks();
 
+    // detect scene change
+    if (sceneChange->Process(useFrame) == SCENE_CHANGED) {
+        if (maContext->Config->fullDecode) {
+            AddMark(MT_SCENESTOP,  useFrame - 1);
+            AddMark(MT_SCENESTART, useFrame);
+        }
+        else {
+            AddMark(MT_SCENESTOP,  iFrameBefore);
+            AddMark(MT_SCENESTART, iFrameCurrent);
+        }
+    }
+
+    // detect black screen
     if ((frameCurrent > 0) && !maContext->Video.Options.ignoreBlackScreenDetection) { // first frame can be invalid result
         int blackret;
         blackret = blackScreen->Process(useFrame);

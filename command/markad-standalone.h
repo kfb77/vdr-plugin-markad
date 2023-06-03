@@ -140,6 +140,8 @@ class cMarkAdStandalone : public cEvaluateChannel {
  */
         void LogoMarkOptimization();
 
+        void SceneChangeOptimization();
+
 
 /**
  * cut recording based on detected marks
@@ -397,7 +399,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
                                                                        //!<
         cMarks marks;                                                  //!< objects with all marks
                                                                        //!<
-        cMarks blackMarks;                                             //!< objects with all blackscreen marks
+        cMarks weakMarks;                                              //!< objects with all weak marks (scene chnage and black screen marks)
                                                                        //!<
         cDecoder *ptr_cDecoderLogoChange = NULL;                       //!< pointer to class cDecoder, used as second instance to detect logo changes
                                                                        //!<

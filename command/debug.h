@@ -17,7 +17,7 @@
 #define LOG_TRACE 8
 
 
-// write full picture from recording and all sobel pictures from logo corner to recording directory 
+// write full picture from recording and all sobel pictures from logo corner to recording directory
 // from <framenumber> - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE to <framenumber> + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE
 // #define DEBUG_LOGO_DETECT_FRAME_CORNER <framenumber>
 // #define DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE <count frames>
@@ -58,6 +58,12 @@
 
 // debug hborder detection
 // #define DEBUG_HBORDER
+
+// show all weak marks
+// #define DEBUG_WEAK_MARKS
+
+// debug scene change detection
+// #define DEBUG_SCENE_CHANGE
 
 // debug blackscreen detection
 // #define DEBUG_BLACKSCREEN

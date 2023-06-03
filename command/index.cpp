@@ -51,7 +51,7 @@ void cIndex::Add(const int fileNumber, const int frameNumber, const int ptsTimeO
         newIndex.frameTimeOffset_ms = frameTimeOffset_ms;
 
         if (indexVector.size() == indexVector.capacity()) {
-            dsyslog("cIndex::Add(): indexVector size %zu, reserve memory for 1000 more elements", indexVector.size());
+//            dsyslog("cIndex::Add(): indexVector size %zu, reserve memory for 1000 more elements", indexVector.size());
             indexVector.reserve(1000);
         }
 
