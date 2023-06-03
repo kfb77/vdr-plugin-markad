@@ -2752,7 +2752,6 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
-    dsyslog("cMarkAdStandalone::AddMark(): inBroadCast now: %i", inBroadCast);
     marks.Add(mark->type, MT_UNDEFINED, mark->position, comment, inBroadCast);
     if (comment) {
         FREE(strlen(comment)+1, "comment");
