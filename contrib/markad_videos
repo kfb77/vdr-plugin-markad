@@ -284,6 +284,7 @@ class Config:
         if args.verbose: self.verbose = args.verbose
         if args.path is not None: self.path = args.path
         if args.bindir is not None: self.bindir = args.bindir
+        if args.logocachedir is not None: self.logocachedir = args.logocachedir
         if args.user is not None: self.user = args.user
         if args.group is not None: self.group = args.group
         if args.loglevel is not None: self.loglevel = args.loglevel
@@ -430,7 +431,9 @@ class CheckPath:
             if actFile == "vps.log": continue
             if actFile == ".nodelete": continue
             if actFile == "encoder": continue
+            if actFile == "encoder.temp": continue
             if actFile == "encoder.mbtree": continue
+            if actFile == "encoder.mbtree.temp": continue
             if actFile == "info":
                 isInfoFound = True
                 continue
