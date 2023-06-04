@@ -4163,7 +4163,13 @@ bool cMarkAdStandalone::CheckLogo() {
     dsyslog("cMarkAdStandalone::CheckLogo(): using logo directory %s", macontext.Config->logoDirectory);
     dsyslog("cMarkAdStandalone::CheckLogo(): searching logo for %s", macontext.Info.ChannelName);
     DIR *dir = opendir(macontext.Config->logoDirectory);
-    if (!dir) return false;
+    if (!dir) {
+        esyslog("logo cache directory %s does not exist, use /tmp", macontext.Config->logoDirectory);
+        strcpy( macontext.Config->logoDirectory, "/tmp");
+        dsyslog("cMarkAdStandalone::CheckLogo(): using logo directory %s", macontext.Config->logoDirectory);
+        dir = opendir(macontext.Config->logoDirectory);
+        if (!dir) exit(1);
+    }
 
     struct dirent *dirent = NULL;
     while ((dirent = readdir(dir))) {
