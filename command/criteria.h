@@ -57,6 +57,7 @@ class cMarkCriteria : public cMarks {
 
     private:
         char *StateToText(const int state);
+        int logo           = CRITERIA_UNKNOWN;
         int hborder        = CRITERIA_UNKNOWN;
         int vborder        = CRITERIA_UNKNOWN;
         int closingCredits = CRITERIA_UNKNOWN;

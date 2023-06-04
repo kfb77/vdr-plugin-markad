@@ -19,6 +19,9 @@ cMarkCriteria::~cMarkCriteria() {
 int cMarkCriteria::GetMarkTypeState(const int type) {
     int state = CRITERIA_UNKNOWN;
     switch (type) {
+        case MT_LOGOCHANGE:
+            state = logo;
+            break;
         case MT_HBORDERCHANGE:
             state = hborder;
             break;
