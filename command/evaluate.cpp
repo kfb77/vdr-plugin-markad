@@ -1168,7 +1168,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
                                                               // darkQuote changed from 100 to 69 to 65
             int diffSeparator = 1000 * (endPos - lastSeparatorFrame) / maContext->Video.Info.framesPerSecond;
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): last separator frame found (%d), %dms before end", lastSeparatorFrame, diffSeparator);
-            if (diffSeparator < 1160) { // changed from 1440 to 1160
+            if (diffSeparator < 1080) { // changed from 1160 to 1080
                                         // we can get a false detected separator frame in a dark scene during change from info logo to normal logo near logo start
                 dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator frame found, this is a valid start mark");
                 found = false;
