@@ -1078,12 +1078,15 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         bool ongoing = true;
     } zoomedPicture;
 
-    bool found              = true;
-    int lastSeparatorFrame  = -1;
-    int countSeparatorFrame =  0;
-    int lowMatchCount       =  0;
-    int countFrames         =  0;
-    int countDark           =  0;
+    bool found                 = true;
+    int  lastSeparatorFrame    = -1;
+    int  countSeparatorFrame   =  0;
+    int  lowMatchCornerCount   =  0;
+    int  matchLogoCornerCount  =  0;
+    int  matchRestCornerCount  =  0;
+    int  countFrames           =  0;
+    int  countDark             =  0;
+#define INFO_LOGO_MACTH_MIN 210
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
 #ifdef DEBUG_MARK_OPTIMIZATION
@@ -1096,6 +1099,8 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         int darkCorner            = 0;
 
         for (int corner = 0; corner < CORNERS; corner++) {
+            if (((corner == maContext->Video.Logo.corner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) matchLogoCornerCount++;
+            if (((corner != maContext->Video.Logo.corner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) matchRestCornerCount++;
             if ((*cornerResultIt).rate[corner] <= 0) countZero++;
             if (((*cornerResultIt).rate[corner] >= 319) || ((*cornerResultIt).rate[corner] <= 0))zoomedPictureCount++;
             sumPixel += (*cornerResultIt).rate[corner];
@@ -1121,10 +1126,9 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         }
         else if (zoomedPicture.start >= 0) zoomedPicture.ongoing = false;
 
-#define INFO_LOGO_MACTH_MIN 210
         if (((*cornerResultIt).rate[maContext->Video.Logo.corner] > INFO_LOGO_MACTH_MIN) || // do not rededuce to prevent false positiv
-            ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 142) && (lowMatchCount == 0)) { // allow one lower match for the change from new logo to normal logo
-            if ((*cornerResultIt).rate[maContext->Video.Logo.corner] <= INFO_LOGO_MACTH_MIN) lowMatchCount++;
+            ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 142) && (lowMatchCornerCount == 0)) { // allow one lower match for the change from new logo to normal logo
+            if ((*cornerResultIt).rate[maContext->Video.Logo.corner] <= INFO_LOGO_MACTH_MIN) lowMatchCornerCount++;
             if (InfoLogo.start == 0) InfoLogo.start = (*cornerResultIt).frameNumber1;
             InfoLogo.end = (*cornerResultIt).frameNumber2;
         }
@@ -1133,34 +1137,49 @@ bool cDetectLogoStopStart::IsInfoLogo() {
                 InfoLogo.startFinal = InfoLogo.start;
                 InfoLogo.endFinal = InfoLogo.end;
             }
-            InfoLogo.start = 0;  // reset state
-            InfoLogo.end = 0;
+            InfoLogo.start       = 0;  // reset state
+            InfoLogo.end         = 0;
+            matchLogoCornerCount =  0;
+            matchRestCornerCount =  0;
         }
     }
+
+    // check if "no logo" corner has same matches as logo corner, in this case it must be a static scene (e.g. static preview picture in frame) and no info logo
+    matchRestCornerCount /= 3;
+    dsyslog("cDetectLogoStopStart::IsInfoLogo(): count matches greater than limit of %d: %d logo corner, avg rest corners %d", INFO_LOGO_MACTH_MIN, matchLogoCornerCount, matchRestCornerCount);
+    if (matchLogoCornerCount <= (matchRestCornerCount + 1)) {
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): too much similar corners, this must be a static ad or preview picture");
+        found = false;
+    }
+
     if ((InfoLogo.end - InfoLogo.start) > (InfoLogo.endFinal - InfoLogo.startFinal)) {
         InfoLogo.startFinal = InfoLogo.start;
         InfoLogo.endFinal = InfoLogo.end;
     }
 
     // check zoomed picture
-    if ((zoomedPicture.start >= 0) && (zoomedPicture.end >= 0)) {
-        int startDiff =  1000 * (zoomedPicture.start - startPos) / maContext->Video.Info.framesPerSecond;
-        int endDiff   =  1000 * (endPos - zoomedPicture.end)     / maContext->Video.Info.framesPerSecond;
-        if ((startDiff <= 960) && (endDiff <= 480)) {
-            dsyslog("cDetectLogoStopStart::IsInfoLogo(): zoomed picture found from (%d) to (%d), start offset %dms, end offset %dms",
-                                                                                                                zoomedPicture.start, zoomedPicture.end, startDiff, endDiff);
-            found = false;
+    if (found) {
+        if ((zoomedPicture.start >= 0) && (zoomedPicture.end >= 0)) {
+            int startDiff =  1000 * (zoomedPicture.start - startPos) / maContext->Video.Info.framesPerSecond;
+            int endDiff   =  1000 * (endPos - zoomedPicture.end)     / maContext->Video.Info.framesPerSecond;
+            if ((startDiff <= 960) && (endDiff <= 480)) {
+                dsyslog("cDetectLogoStopStart::IsInfoLogo(): zoomed picture found from (%d) to (%d), start offset %dms, end offset %dms", zoomedPicture.start, zoomedPicture.end, startDiff, endDiff);
+                found = false;
+            }
+            else dsyslog("cDetectLogoStopStart::IsInfoLogo(): no zoomed picture  from (%d) to (%d), start offset %dms, end offset %dms", zoomedPicture.start, zoomedPicture.end, startDiff, endDiff);
         }
-        else dsyslog("cDetectLogoStopStart::IsInfoLogo(): no zoomed picture  from (%d) to (%d), start offset %dms, end offset %dms",
-                                                                                                                zoomedPicture.start, zoomedPicture.end, startDiff, endDiff);
     }
 
     // check separator image
-    dsyslog("cDetectLogoStopStart::IsInfoLogo(): count separator frames %d", countSeparatorFrame);
-    if (countSeparatorFrame > 4) {
-        dsyslog("cDetectLogoStopStart::IsInfoLogo(): too much separator frames, this can not be a info logo");
-        found = false;
+    if (found) {
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): count separator frames %d", countSeparatorFrame);
+        if (countSeparatorFrame > 4) {
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): too much separator frames, this can not be a info logo");
+            found = false;
+        }
     }
+
+    // check dark quote
     if (found) {
         int darkQuote = 100 * countDark / countFrames;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): dark quote %d%%", darkQuote);
