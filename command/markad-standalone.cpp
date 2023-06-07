@@ -1665,7 +1665,7 @@ void cMarkAdStandalone::CheckStart() {
                 }
             }
             else {
-                if ((begin->inBroadCast) || macontext.Video.Options.ignoreLogoDetection){  // test on inBroadCast because we have to take care of black screen marks in an ad
+                if ((begin->type == MT_ASSUMEDSTART) || (begin->inBroadCast) || macontext.Video.Options.ignoreLogoDetection){  // test on inBroadCast because we have to take care of black screen marks in an ad, MT_ASSUMEDSTART is from converted channel stop of previous broadcast
                     char *indexToHMSF = marks.IndexToHMSF(begin->position);
                     if (indexToHMSF) {
                         dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%i) type 0x%X at %s inBroadCast %i", begin->position, begin->type, indexToHMSF, begin->inBroadCast);
@@ -1710,62 +1710,67 @@ void cMarkAdStandalone::CheckStart() {
         }
     }
 
-    if (begin) {
-        marks.DelTill(begin->position);    // delete all marks till start mark
-        char *indexToHMSF = marks.IndexToHMSF(begin->position);
-        char *typeName    = marks.TypeToText(begin->type);
-        if (indexToHMSF && typeName) isyslog("using %s start mark on position (%d) at %s as broadcast start", typeName, begin->position, indexToHMSF);
-        if (indexToHMSF) {
-            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-            free(indexToHMSF);
-        }
-        if (typeName) {
-            FREE(strlen(typeName)+1, "text");
-            free(typeName);
-        }
-
-        if ((begin->type == MT_VBORDERSTART) || (begin->type == MT_HBORDERSTART)) {
-            isyslog("found %s borders, logo detection disabled",(begin->type == MT_HBORDERSTART) ? "horizontal" : "vertical");
-            macontext.Video.Options.ignoreLogoDetection = true;
-            macontext.Video.Options.ignoreBlackScreenDetection = true;
-            marks.Del(MT_LOGOSTART);
-            marks.Del(MT_LOGOSTOP);
-        }
-
-        dsyslog("cMarkAdStandalone::CheckStart(): delete all black screen marks except start mark");
-        cMark *mark = marks.GetFirst();   // delete all black screen marks because they are weak, execpt the start mark
-        while (mark) {
-            if (((mark->type & 0xF0) == MT_BLACKCHANGE) && (mark->position > begin->position) ) {
-                cMark *tmp = mark;
-                mark = mark->Next();
-                marks.Del(tmp);  // delete mark from normal list
-                continue;
-            }
-            mark = mark->Next();
-        }
-    }
-    else { //fallback
-        // try hborder stop mark as start mark
+    // still no start mark found, try stop marks from previous broadcast
+    if (!begin) { // try hborder stop mark as start mark
         if (hBorderStopPosition >= 0) {
             dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, use MT_HBORDERSTOP from previous recoring as start mark");
             marks.Add(MT_ASSUMEDSTART, MT_UNDEFINED, hBorderStopPosition, "start mark from border stop of previous recording*", true);
             begin = marks.Get(hBorderStopPosition);
             marks.DelTill(hBorderStopPosition);
         }
-        else {  // set start after pre timer
-            dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, assume start time at pre recording time");
-            marks.DelTill(iStart);
-            marks.Del(MT_NOBLACKSTART);  // delete all black screen marks
-            marks.Del(MT_NOBLACKSTOP);
-            sMarkAdMark mark = {};
-            mark.position = iStart;
-            mark.type = MT_ASSUMEDSTART;
-            AddMark(&mark);
-            begin = marks.GetFirst();
-        }
     }
 
+    // no start mark found at all, set start after pre timer
+    if (!begin) {
+        dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, assume start time at pre recording time");
+        marks.DelTill(iStart);
+        marks.Del(MT_NOBLACKSTART);  // delete all black screen marks
+        marks.Del(MT_NOBLACKSTOP);
+        sMarkAdMark mark = {};
+        mark.position = iStart;
+        mark.type = MT_ASSUMEDSTART;
+        AddMark(&mark);
+        begin = marks.GetFirst();
+    }
+
+
     // now we have the final start mark, do fine tuning
+    marks.DelTill(begin->position);    // delete all marks till start mark
+    char *indexToHMSF = marks.IndexToHMSF(begin->position);
+    char *typeName    = marks.TypeToText(begin->type);
+    if (indexToHMSF && typeName) isyslog("using %s start mark on position (%d) at %s as broadcast start", typeName, begin->position, indexToHMSF);
+    if (indexToHMSF) {
+        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+        free(indexToHMSF);
+    }
+    if (typeName) {
+        FREE(strlen(typeName)+1, "text");
+        free(typeName);
+    }
+
+    // if we have border marks, delete logo marks and disable logo and blacksceen detection
+    if ((begin->type == MT_VBORDERSTART) || (begin->type == MT_HBORDERSTART)) {
+        isyslog("found %s borders, logo detection disabled",(begin->type == MT_HBORDERSTART) ? "horizontal" : "vertical");
+        macontext.Video.Options.ignoreLogoDetection = true;
+        macontext.Video.Options.ignoreBlackScreenDetection = true;
+        marks.Del(MT_LOGOSTART);
+        marks.Del(MT_LOGOSTOP);
+    }
+
+    // cleanup black sceen marks
+    dsyslog("cMarkAdStandalone::CheckStart(): delete all black screen marks except start mark");
+    cMark *mark = marks.GetFirst();   // delete all black screen marks because they are weak, execpt the start mark
+    while (mark) {
+        if (((mark->type & 0xF0) == MT_BLACKCHANGE) && (mark->position > begin->position) ) {
+            cMark *tmp = mark;
+            mark = mark->Next();
+            marks.Del(tmp);  // delete mark from normal list
+            continue;
+        }
+        mark = mark->Next();
+    }
+
+    // check hborder start mark position
     if (begin->type == MT_HBORDERSTART) { // we found a valid hborder start mark, check black screen because of closing credits from broadcast before
         cMark *blackMark = blackMarks.GetNext(begin->position, MT_NOBLACKSTART);
         if (blackMark) {
@@ -1780,7 +1785,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // count logo STOP/START pairs
     int countStopStart = 0;
-    cMark *mark = marks.GetFirst();
+    mark = marks.GetFirst();
     while (mark) {
         if ((mark->type == MT_LOGOSTOP) && mark->Next() && (mark->Next()->type == MT_LOGOSTART)) {
             countStopStart++;
