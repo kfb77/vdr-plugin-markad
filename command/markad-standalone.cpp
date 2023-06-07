@@ -2648,6 +2648,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             break;
         default:
             dsyslog("cMarkAdStandalone::AddMark(): unknown mark type 0x%X", mark->type);
+            return;
     }
 
     // add blackscreen mark in andy case

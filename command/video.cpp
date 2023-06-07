@@ -1908,7 +1908,10 @@ void cMarkAdVideo::ResetMarks() {
 
 
 bool cMarkAdVideo::AddMark(int type, int position, const sAspectRatio *before, const sAspectRatio *after) {
-    if (marks.Count>marks.maxCount) return false;
+    if (marks.Count >= marks.maxCount) {  // array start with 0
+        esyslog("too much marks %d at once detected", marks.Count);
+        return false;
+    }
     if (before) {
         marks.Number[marks.Count].AspectRatioBefore.num = before->num;
         marks.Number[marks.Count].AspectRatioBefore.den = before->den;
@@ -1918,7 +1921,7 @@ bool cMarkAdVideo::AddMark(int type, int position, const sAspectRatio *before, c
         marks.Number[marks.Count].AspectRatioAfter.den = after->den;
     }
     marks.Number[marks.Count].position = position;
-    marks.Number[marks.Count].type = type;
+    marks.Number[marks.Count].type     = type;
     marks.Count++;
     return true;
 }
