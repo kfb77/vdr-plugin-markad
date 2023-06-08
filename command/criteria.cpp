@@ -19,6 +19,9 @@ cMarkCriteria::~cMarkCriteria() {
 int cMarkCriteria::GetMarkTypeState(const int type) {
     int state = CRITERIA_UNKNOWN;
     switch (type) {
+        case MT_BLACKCHANGE:
+            state = CRITERIA_UNKNOWN;
+            break;
         case MT_LOGOCHANGE:
             state = logo;
             break;
@@ -28,8 +31,14 @@ int cMarkCriteria::GetMarkTypeState(const int type) {
         case MT_VBORDERCHANGE:
             state = vborder;
             break;
+        case MT_ASPECTCHANGE:
+            state = CRITERIA_UNKNOWN;
+            break;
+        case MT_CHANNELCHANGE:
+            state = CRITERIA_UNKNOWN;
+            break;
         default:
-            dsyslog("cMarkCriteria::GetMarkTypeState(): type %d not valid", type);
+            esyslog("cMarkCriteria::GetMarkTypeState(): type 0x%X not valid", type);
             return CRITERIA_UNKNOWN;
     }
     char *typeToText  = TypeToText(type);
@@ -61,7 +70,7 @@ void cMarkCriteria::SetMarkTypeState(const int type, const int state) {
             vborder = state;
             break;
         default:
-            esyslog("cMarkCriteria::SetMarkTypeState(): type %d not valid", type);
+            esyslog("cMarkCriteria::SetMarkTypeState(): type 0x%X not valid", type);
     }
 
 }
