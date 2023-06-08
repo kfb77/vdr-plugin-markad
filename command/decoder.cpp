@@ -683,8 +683,14 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
 
 
 bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool full) {
-    if (!maContext) return false;
-    if (!avctx) return false;
+    if (!maContext) {
+        esyslog("cDecoder::GetFrameInfo(): frame (%5d): markad context not set", currFrameNumber);
+        return false;
+    }
+    if (!avctx) {
+        esyslog("cDecoder::GetFrameInfo(): frame (%5d): libav format context not set", currFrameNumber);
+        return false;
+    }
 
     AVFrame *avFrameRef = NULL;
 
@@ -793,7 +799,7 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool full) {
 #endif
         if (IsAudioAC3Packet()) {
             if (avpkt.stream_index > MAXSTREAMS) {
-                dsyslog("cDecoder::GetFrameInfo(): to much streams %i", avpkt.stream_index);
+                esyslog("cDecoder::GetFrameInfo(): to much streams %i", avpkt.stream_index);
                 return false;
             }
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)

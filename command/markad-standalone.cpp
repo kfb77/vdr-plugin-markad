@@ -2997,17 +2997,17 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
     while (ptr_cDecoder->GetFrameNumber() <= (*mark1)->position ) {
         if (abortNow) return false;
         if (!ptr_cDecoder->GetNextPacket()) {
-            dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): GetNextPacket failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
+            dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): GetNextPacket() failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             return false;
         }
         if (!ptr_cDecoder->IsVideoPacket()) continue;
+        if (!ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) continue; // interlaced videos will not decode each frame
+        if (!macontext.Config->fullDecode && !ptr_cDecoder->IsVideoIFrame()) continue;
 
 #ifdef DEBUG_OVERLAP
         dsyslog("------------------------------------------------------------------------------------------------");
 #endif
 
-        if (!ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode) && macontext.Config->fullDecode) dsyslog("cMarkAdStandalone::ProcessMarkOverlap() before stop mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
-        if (!macontext.Config->fullDecode && !ptr_cDecoder->IsVideoIFrame()) continue;
 
 #ifdef DEBUG_OVERLAP_FRAME_RANGE
         if ((ptr_cDecoder->GetFrameNumber() > (DEBUG_OVERLAP_FRAME_BEFORE - DEBUG_OVERLAP_FRAME_RANGE)) &&
@@ -3051,12 +3051,12 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
             return false;
         }
         if (!ptr_cDecoder->IsVideoPacket()) continue;
+        if (!ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) continue; // interlaced videos will not decode each frame
+        if (!macontext.Config->fullDecode && !ptr_cDecoder->IsVideoIFrame()) continue;
+
 #ifdef DEBUG_OVERLAP
         dsyslog("------------------------------------------------------------------------------------------------");
 #endif
-
-        if (!ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode) && macontext.Config->fullDecode) dsyslog("cMarkAdStandalone::ProcessMarkOverlap() after start mark GetFrameInfo failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
-        if (!macontext.Config->fullDecode && !ptr_cDecoder->IsVideoIFrame()) continue;
 
 #ifdef DEBUG_OVERLAP_FRAME_RANGE
         if ((ptr_cDecoder->GetFrameNumber() > (DEBUG_OVERLAP_FRAME_AFTER - DEBUG_OVERLAP_FRAME_RANGE)) &&
