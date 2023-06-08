@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-06-08: Version 3.2.9
+- fix accessing array out of bounds
+- abort VPS detection after invalid sequence
+- some minor bug fixes and optimizations, see git
+
 2023-05-28: Version 3.2.8
 - fix change of audio channel layout with libavcodec >= 59.37.100
 - log max heap usage and duration
