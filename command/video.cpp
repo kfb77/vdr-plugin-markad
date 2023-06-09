@@ -1502,10 +1502,9 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
         return VBORDER_ERROR;
     }
     *borderFrame = -1;
-
-    int valLeft = 0;
-    int valRight = 0;
-    int cnt = 0;
+    int valLeft  =  0;
+    int valRight =  0;
+    int cnt      =  0;
 
     if(!maContext->Video.Data.PlaneLinesize[0]) {
         dsyslog("cMarkAdBlackBordersVert::Process(): Video.Data.PlaneLinesize[0] missing");
@@ -1514,7 +1513,7 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
 
 
     // check left border
-    for (int y = 0; y < maContext->Video.Info.height ; y++) {
+    for (int y = 0; y < maContext->Video.Info.height; y++) {
         for (int x = 0; x <= CHECKWIDTH; x++) {
             valLeft += maContext->Video.Data.Plane[0][x + (y * maContext->Video.Data.PlaneLinesize[0])];
             cnt++;
@@ -1525,7 +1524,7 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
     // check right border
     if (valLeft <= BRIGHTNESS_V_MAYBE) {
         cnt = 0;
-        for (int y = 0; y < maContext->Video.Info.height ; y++) {
+        for (int y = 0; y < maContext->Video.Info.height; y++) {
             for (int x = maContext->Video.Info.width - CHECKWIDTH; x < maContext->Video.Info.width; x++) {
                 valRight += maContext->Video.Data.Plane[0][x + (y * maContext->Video.Data.PlaneLinesize[0])];
                 cnt++;
@@ -1533,21 +1532,56 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
         }
         valRight /= cnt;
     }
-    else valLeft = INT_MAX;
+    else valRight = INT_MAX;  // left side has no border, so we have not to check right side
 
 #ifdef DEBUG_VBORDER
-    dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d) valLeft %d valRight %d", frameNumber, valLeft, valRight);
+    dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d): vborder status: %d, valLeft: %10d, valRight: %10d", frameNumber, borderstatus, valLeft, valRight);
+    if (darkFrameNumber < INT_MAX) dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d):  frist vborder in dark picture: (%5d)]", frameNumber, darkFrameNumber);
+    if (borderframenumber >= 0) dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d):  frist vborder: [bright (%5d), dark (%5d)], duration: %ds", frameNumber, borderframenumber, darkFrameNumber, static_cast<int> ((frameNumber - borderframenumber) / maContext->Video.Info.framesPerSecond));
 #endif
+#define BRIGHTNESS_MIN 23679342      // do not increase, we will never find vborder start
     if (((valLeft <= BRIGHTNESS_V_MAYBE) && (valRight <= BRIGHTNESS_V_SURE)) || ((valLeft <= BRIGHTNESS_V_SURE) && (valRight <= BRIGHTNESS_V_MAYBE))) {
         // vborder detected
         if (borderframenumber == -1) {   // first vborder detected
-            borderframenumber = frameNumber;
+            // prevent false detection in a very dark scene, we have to get at least one vborder in a bright picture to accept start frame
+#ifndef DEBUG_VBORDER
+            bool end_loop   = false;
+#endif
+            int  brightness = 0;
+            for (int y = 0; y < maContext->Video.Info.height ; y++) {
+                for (int x = 0; x < maContext->Video.Info.width; x++) {
+                    brightness += maContext->Video.Data.Plane[0][x + (y * maContext->Video.Data.PlaneLinesize[0])];
+                    if (brightness >= BRIGHTNESS_MIN) {
+#ifndef DEBUG_VBORDER
+                        end_loop = true;
+                        break;
+#endif
+                    }
+                }
+#ifndef DEBUG_VBORDER
+                if (end_loop) break;
+#endif
+            }
+            if (brightness < BRIGHTNESS_MIN) {
+                darkFrameNumber = std::min(darkFrameNumber, frameNumber);  // set to first frame with vborder
+#ifdef DEBUG_VBORDER
+                minBrightness = std::min(brightness, minBrightness);
+                maxBrightness = std::max(brightness, maxBrightness);
+                dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d) has a dark picture: %d, delay vborder start at (%7d), minBrightnexx %d, maxBrightnexx %d", frameNumber, brightness, darkFrameNumber, minBrightness, maxBrightness);
+#endif
+            }
+            else {
+                borderframenumber = std::min(frameNumber, darkFrameNumber);      // use first vborder
+#ifdef DEBUG_VBORDER
+                minBrightness = INT_MAX;
+                maxBrightness = 0;
+                dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d) has a bright picture %d, accept vborder start at (%7d)", frameNumber, brightness, borderframenumber);
+#endif
+                darkFrameNumber = INT_MAX;
+            }
         }
         if (borderstatus != VBORDER_VISIBLE) {
-#ifdef DEBUG_VBORDER
-            dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d) duration %ds", frameNumber, static_cast<int> ((frameNumber - borderframenumber) /  maContext->Video.Info.framesPerSecond));
-#endif
-            if (frameNumber > (borderframenumber + maContext->Video.Info.framesPerSecond * MIN_V_BORDER_SECS)) {
+            if ((borderframenumber >= 0) && (frameNumber > (borderframenumber + maContext->Video.Info.framesPerSecond * MIN_V_BORDER_SECS))) {
                 switch (borderstatus) {
                     case VBORDER_UNINITIALIZED:
                         *borderFrame = 0;
@@ -1562,6 +1596,10 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
         }
     }
     else {
+#ifdef DEBUG_VBORDER
+        minBrightness = INT_MAX;
+        maxBrightness = 0;
+#endif
         // no vborder detected
         if (borderstatus != VBORDER_INVISIBLE) {
             if ((borderstatus == VBORDER_UNINITIALIZED) || (borderstatus == VBORDER_RESTART)) *borderFrame = -1;  // do not report back a border change, only set internal state
@@ -1569,6 +1607,7 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
             borderstatus = VBORDER_INVISIBLE; // detected stop of black border
         }
         borderframenumber = -1; // restart from scratch
+        darkFrameNumber = INT_MAX;
     }
     return borderstatus;
 }

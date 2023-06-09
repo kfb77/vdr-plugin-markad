@@ -535,12 +535,18 @@ class cMarkAdBlackBordersVert {
         void Clear(const bool isRestart = false);
 
     private:
-        int borderstatus;                  //!< status of vertical border detection
-                                           //!<
-        int borderframenumber;             //!< frame number of detected vertical border
-                                           //!<
-        sMarkAdContext *maContext = NULL;  //!< markad context
-                                           //!<
+        int borderstatus;                    //!< status of vertical border detection
+                                             //!<
+        int borderframenumber     = -1;      //!< frame number of detected vertical border
+                                             //!<
+        int darkFrameNumber       = INT_MAX; //!< first vborder frame, but need to check, because of dark picture
+                                             //!<
+        sMarkAdContext *maContext = NULL;    //!< markad context
+                                             //!<
+#ifdef DEBUG_VBORDER
+        int minBrightness         = INT_MAX;
+        int maxBrightness         = 0;
+#endif
 };
 
 
