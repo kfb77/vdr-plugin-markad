@@ -1086,6 +1086,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     int  matchRestCornerCount  =  0;
     int  countFrames           =  0;
     int  countDark             =  0;
+
 #define INFO_LOGO_MACTH_MIN 210
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
@@ -1703,10 +1704,11 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         int secondFramePortionQuote = secondSumFramePortion / AdInFrameType1.frameCountFinal;
         if (firstFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of        best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[firstFrameCorner], firstSumFramePortion, AdInFrameType1.frameCountFinal, firstFramePortionQuote);
         if (secondFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of second best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[secondFrameCorner], secondSumFramePortion, AdInFrameType1.frameCountFinal, secondFramePortionQuote);
-        if (firstFramePortionQuote <= 504) {  // changed from 501 to 504
+        if (firstFramePortionQuote <= 505) {  // changed from 504 to 505
                                               // example for no ad in frame (static scene with vertial or horizontal lines, blinds, windows frames or stairs):
                                               // best frame portion qoute 501, second best frame portion qoute  79
                                               // best frame portion qoute 504, second best frame portion qoute  11
+                                              // best frame portion qoute 505, second best frame portion qoute  85
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): not enought frame pixel found on best corner found, advertising in frame type 1 not valid");
             AdInFrameType1.startFinal = -1;
         }
@@ -1746,9 +1748,9 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     // check if we have more than one logo
     // no ad in frame, second logo:
     // high matches qoute 992, frame portion quote 521  -> second logo a with a frame
+    // high matches qoute 981, frame portion quote 710  -> second logo with a horizental line
     //
     // ad in frame, no second logo:
-    // high matches qoute 997, frame portion quote 577  -> ad in frame with text "Werbung" and second logo after ad in frame
     // high matches qoute 834, frame portion quote 494
     // high matches qoute 711, frame portion quote 560  -> ad in frame with second logo before
     // high matches qoute 690, frame portion quote 314
@@ -1763,7 +1765,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): corner %-12s: %4d high matches, high matches qoute %3d (of %2d frames)", aCorner[corner], isCornerLogo[corner], logoQuote, countFrames);
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo():                    : frame portion quote %3d (of %3d frames)", framePortionQuote, AdInFrameType1.frameCountFinal);
         if (corner == maContext->Video.Logo.corner) continue;  // in logo corner we expect logo
-        if ((logoQuote >= 992) && (framePortionQuote <= 521)) {
+        if ((logoQuote >= 981) && (framePortionQuote <= 710)) {
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): additional logo found in corner %s", aCorner[corner]);
             countLogo++;
         }
