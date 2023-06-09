@@ -21,7 +21,7 @@
 #define LOGO_IMARK 0.18        //!< percentage of pixels for invisible changed from 0,15 to 0,18
                                //!<
 
-#define MIN_H_BORDER_SECS  97  //!< minimum lenght of horizontal border, changed from 80 to 97 to prevent to detect dark scene or closing credits as border
+#define MIN_H_BORDER_SECS  79  //!< minimum lenght of horizontal border, changed from 97 to 79, shortest full hborder, after this logo in border results in lower values
                                //!<
 #define MIN_V_BORDER_SECS 140  //!< minimum lenght of vertical border before it is accepted <br>
                                //!< changed from 128 to 140 <br>

@@ -1365,15 +1365,15 @@ void cMarkAdBlackBordersHoriz::Clear(const bool isRestart) {
 
 
 int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
-#define CHECKHEIGHT 5           // changed from 20 to 16 to 8 to 5
+#define CHECKHEIGHT 5           // changed from 8 to 5
 #define BRIGHTNESS_H_SURE   22  // changed from 20 to 22
-#define BRIGHTNESS_H_MAYBE 118  // some channel have logo in border, so we will get a higher value, changed from 81 to 118
+#define BRIGHTNESS_H_MAYBE 131  // some channel have logo in border, so we will get a higher value, changed from 118 to 131
 #define VOFFSET 0               // changed from 5 to 0, test if offset is necessary, delete of not, TODO
 #define NO_HBORDER        1000
     if (!maContext) return HBORDER_ERROR;
     if (!maContext->Video.Data.valid) return HBORDER_ERROR;
     if (maContext->Video.Info.framesPerSecond == 0) return HBORDER_ERROR;
-    *borderFrame = -1;   // framenumber if we has a change, otherwise -1
+    *borderFrame = -1;   // framenumber of first hborder, otherwise -1
     if (!maContext->Video.Info.height) {
         dsyslog("cMarkAdBlackBordersHoriz::Process() video hight missing");
         return HBORDER_ERROR;
@@ -1402,9 +1402,7 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
     valBottom /= cnt;
 
     // if we have a bottom border, test top border
-    if (((borderstatus == HBORDER_VISIBLE) && (valBottom <= BRIGHTNESS_H_MAYBE)) || // we have a bottom border, less black pixel is enought to keep state
-                                                                                    // because of info logos over border (TELE5)
-        ((borderstatus  < HBORDER_VISIBLE) && (valBottom <= BRIGHTNESS_H_SURE))) {  // for hborder start we need more black pixel, prevent false positiv of dark scene
+    if (valBottom <= BRIGHTNESS_H_MAYBE) {
         start = VOFFSET * maContext->Video.Data.PlaneLinesize[0];
         end = maContext->Video.Data.PlaneLinesize[0] * (CHECKHEIGHT+VOFFSET);
         cnt = 0;
@@ -1419,7 +1417,7 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
         }
         valTop /= cnt;
     }
-    else valTop = NO_HBORDER;
+    else valTop = NO_HBORDER;   // we have no botton border, so we do not have to calculate top border
 
 #ifdef DEBUG_HBORDER
     dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder brightness top %4d bottom %4d (expect one <=%d and one <= %d)", FrameNumber, valTop, valBottom, BRIGHTNESS_H_SURE, BRIGHTNESS_H_MAYBE);
@@ -1429,7 +1427,7 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
         ((borderstatus <  HBORDER_VISIBLE) && (valBottom <= BRIGHTNESS_H_SURE) && (valTop <= BRIGHTNESS_H_SURE))) {
         // hborder detected
 #ifdef DEBUG_HBORDER
-        dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder ++++++: borderstatus %d, borderframenumber (%d)", FrameNumber, borderstatus, borderframenumber);
+        dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder ++++++: borderstatus %d, borderframenumber (%d), duration %d", FrameNumber, borderstatus, borderframenumber, (FrameNumber - borderframenumber) / maContext->Video.Info.framesPerSecond);
 #endif
         if (borderframenumber == -1) {  // got first frame with hborder
             borderframenumber = FrameNumber;
