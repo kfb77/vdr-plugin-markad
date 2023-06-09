@@ -1877,18 +1877,18 @@ int cDetectLogoStopStart::IntroductionLogo() {
             sumPixel += (*cornerResultIt).rate[corner];
         }
         // examples of separator frames before introduction logo
-        // 59     0     0    -1 =  58
-        // -1   325(l)  0     0 = 324  // fading out logo on black sceen between broadcast before and introduction logo, logo start mark is after introduction logo
+        //  59     0     0    -1 =  58
+	//  -1   325(l)  0     0 = 324  // fading out logo on black sceen between broadcast before and introduction logo, logo start mark is after introduction logo (conflict)
         //
         // example of no separator frames (l = logo corner)
-        // 27   286      0     7 = 320
-        // 34   206(l)   0     0 = 240
-        //  0   201(l)  30     0 = 231
-        //  0    35(l) 109     0 = 144
+        //  27   286      0     7 = 320
+        //  34   206(l)   0     0 = 240
+        //   0   201(l)  30     0 = 231
+        //   0    35(l) 109     0 = 144
+	//  -1   241(l)   0    -1 = 239   // dark scene with introduction logo
         int diffSeparatorToEnd = 1000 * (endPos - (*cornerResultIt).frameNumber1) / maContext->Video.Info.framesPerSecond;
         if (((countLow  >= 3) && (sumPixel < 144) && (diffSeparatorToEnd > 960)) ||
-            ((countZero >= 3) && (sumPixel <= 324))){ // new separator image before introduction logo, restart detection
-                                                      // changed from 320 to 144
+            ((countZero >= 3) && (sumPixel < 239))){ // new separator image before introduction logo, restart detection
                                                       // ignore first separator frame near endPos (logo start mark), this can not be start of introduction logo
 #ifdef DEBUG_MARK_OPTIMIZATION
             dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator found at frame (%5d)", (*cornerResultIt).frameNumber1);
@@ -1929,10 +1929,18 @@ int cDetectLogoStopStart::IntroductionLogo() {
         // detect still image
         if ((separatorFrameBefore >= 0) && (introductionLogo.start >= 0) && (countStillImage >= 4)) { // still image or closing credists after introduction logo
                                                                                                       // countStillImage: changed from 3 to 4
-            if (stillImage.start == -1) stillImage.start = (*cornerResultIt).frameNumber1;
+            if (stillImage.start == -1) {
+                stillImage.start = (*cornerResultIt).frameNumber1;
+#ifdef DEBUG_MARK_OPTIMIZATION
+                dsyslog("cDetectLogoStopStart::IntroductionLogo(): still image start at frame (%5d)", stillImage.start);
+#endif
+            }
             stillImage.end = (*cornerResultIt).frameNumber2;
         }
         else {
+#ifdef DEBUG_MARK_OPTIMIZATION
+            if (stillImage.end >= 0) dsyslog("cDetectLogoStopStart::IntroductionLogo(): still image end at frame (%5d)", stillImage.end);
+#endif
             if ((stillImage.end - stillImage.start) >= (stillImage.endFinal - stillImage.startFinal)) {
                 stillImage.startFinal = stillImage.start;
                 stillImage.endFinal   = stillImage.end;
