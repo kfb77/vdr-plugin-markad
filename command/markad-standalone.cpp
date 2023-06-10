@@ -238,18 +238,23 @@ cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
     if (end) {
         int deltaStopA = (end->position - iStopA) / macontext.Video.Info.framesPerSecond;
         dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_VBORDERSTOP found at frame (%d), %ds after assumed stop", end->position, deltaStopA);
-        if ((deltaStopA >= 203) && macontext.Video.Logo.isInBorder) {  // changed from 239 to 236 to 203
+        if (deltaStopA >= 326) {  // we found start of first ad from next broadcast, changed from 353 to 326
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_VBORDERSTOP too far after assumed stop, ignoring");
+            return NULL;
+        }
+        if (macontext.Video.Logo.isInBorder) {
             cMark *logoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
             if (logoStop) {
-                int deltaLogoStop = (iStopA - logoStop->position) / macontext.Video.Info.framesPerSecond;
+                int deltaLogoStop = 1000 * (end->position - logoStop->position) / macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_LOGOSTOP at (%d) %d before assumed stop found", logoStop->position, deltaLogoStop);
-                if (deltaLogoStop <= 381) {
-                    dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_VBORDERSTOP too far after assumed stop, found bettet logo stop mark at (%d)", logoStop->position);
+                if (deltaLogoStop <= 2000) {
+                    dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): use logo stop mark at (%d) short before vborder stop (%d)", logoStop->position, end->position);
                     end = logoStop;
                 }
+
             }
         }
-        if (end->type == MT_VBORDERSTOP) { // we habe not replaced vborder top with logo stop
+        if (end->type == MT_VBORDERSTOP) { // we have not replaced vborder top with logo stop
             cMark *prevVStart = marks.GetPrev(end->position, MT_VBORDERSTART);
             if (prevVStart) {
                 if (prevVStart->position > iStopA) {
