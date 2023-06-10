@@ -421,7 +421,7 @@ int cMarkAdStandalone::CheckStop() {
                     dsyslog("cMarkAdStandalone::CheckStop(): found %s stop mark (%d) before aspect ratio end mark (%d), %ds before assumed stop", markType, stopBefore->position, end->position, diff);
                     FREE(strlen(markType)+1, "text");
                     free(markType);
-                    if (diff <= 312) { // changed from 87 to 221 to 312
+                    if (diff <= 682) { // changed from 312 to 682, for broadcast length from info file too long
                         dsyslog("cMarkAdStandalone::CheckStop(): advertising before aspect ratio change, use stop mark before as end mark");
                         end = stopBefore;
                     }
@@ -2676,7 +2676,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     }
     if (prev) {
         if (((prev->type & 0x0F) == (mark->type & 0x0F)) && ((prev->type & 0xF0) != (mark->type & 0xF0))) { // do not delete same mark type
-            int markDiff = 30000;
+            int markDiff = 19000;  // changed from 30000 to 19000, prevent loosing logo end mark if broadcast length in info file too long
             if (iStart != 0) markDiff = 200;  // we are in the start part, let more marks untouched, we need them for start detection, changed from 720 to 680 to 200
                                               // there are some broadcasts who start with a hborder preview but is not hborder
             if (restartLogoDetectionDone) markDiff = 5839; // we are in the end part, keep more marks to detect best end mark, changed from 15000 to 5839
