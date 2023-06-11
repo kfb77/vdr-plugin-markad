@@ -470,7 +470,7 @@ bool cDecoder::SeekToFrame(sMarkAdContext *maContext, int frameNumber) {
             }
             continue;
         }
-        if (currFrameNumber >= iFrameBefore) GetFrameInfo(maContext, false);  // preload decoder buffer
+        if (currFrameNumber >= iFrameBefore) GetFrameInfo(maContext, true, false);  // preload decoder buffer
     }
     dsyslog("cDecoder::SeekToFrame(): successful");
     return true;
@@ -682,7 +682,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
 }
 
 
-bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool full) {
+bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, const bool decodeFull) {
     if (!maContext) {
         esyslog("cDecoder::GetFrameInfo(): frame (%5d): markad context not set", currFrameNumber);
         return false;
@@ -695,8 +695,8 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool full) {
     AVFrame *avFrameRef = NULL;
 
     FrameData.Valid = false;
-    if (IsVideoPacket()) {
-        if (full || IsVideoIFrame() || stateEAGAIN) {
+    if (decodeVideo && IsVideoPacket()) {
+        if (decodeFull || IsVideoIFrame() || stateEAGAIN) {
             avFrameRef = DecodePacket(&avpkt);  // free in DecodePacket
             if (avFrameRef) {
                 stateEAGAIN=false;

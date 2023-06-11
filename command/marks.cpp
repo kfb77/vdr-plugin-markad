@@ -514,10 +514,19 @@ char *cMarks::TypeToText(const int type) {
             }
             break;
         default:
-           if (asprintf(&text, "unknown") != -1) {
-               ALLOC(strlen(text)+1, "text");
-           }
-           break;
+            // special type
+            if (type == MT_ALL) {
+                if (asprintf(&text, "all") != -1) {
+                    ALLOC(strlen(text)+1, "text");
+                }
+            }
+            else {
+                esyslog("cMarks::TypeToText(): type 0x%X unknown", type);
+                if (asprintf(&text, "unknown") != -1) {
+                    ALLOC(strlen(text)+1, "text");
+                }
+            }
+            break;
     }
     return text;
 }
@@ -551,7 +560,7 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const char* reason) {
     char* typeText = TypeToText(mark->type);
 
     if (indexToHMSF && typeText) {
-       if (asprintf(&comment,"moved %s mark                 (%6d) %s %-5s %s mark (%6d) at %s, %s detected%s",
+       if (asprintf(&comment,"moved %s mark                 (%6d) %s %-13s %s (%6d) at %s, %s detected%s",
                                     ((mark->type & 0x0F) == MT_START) ? "start" : "stop ",
                                              newPosition,
                                                   (newPosition > mark->position) ? "after " : "before",

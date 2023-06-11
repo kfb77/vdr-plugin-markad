@@ -204,7 +204,7 @@ class cDecoder {
  * @param[in,out] maContext markad context
  * @param[in]     full      true if we do full decoding of all video frames, false if we decode only i-frames
  */
-        bool GetFrameInfo(sMarkAdContext *maContext, const bool full);
+        bool GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, const bool decodeFull);
 
 /** check if stream is video stream
  * @param streamIndex stream index

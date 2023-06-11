@@ -5,6 +5,8 @@
  *
  */
 
+#ifndef __criteria_h_
+#define __criteria_h_
 
 #include "marks.h"
 
@@ -54,11 +56,37 @@ class cMarkCriteria : public cMarks {
  */
         void SetClosingCreditsState(const int state);
 
+/**
+ *  get detection state of marks from <type>
+ */
+        bool GetDetectionState(const int type);
+
+/**
+ * turn on/of detection of marks from <type>
+ */
+        void SetDetectionState(const int type, const bool state);
+
+/**
+ * list detection stati
+ */
+        void ListDetection();
 
     private:
         char *StateToText(const int state);
         int logo           = CRITERIA_UNKNOWN;
         int hborder        = CRITERIA_UNKNOWN;
         int vborder        = CRITERIA_UNKNOWN;
+        int channel        = CRITERIA_UNKNOWN;
+
         int closingCredits = CRITERIA_UNKNOWN;
+
+        bool sceneDetection       = true;
+        bool blackscreenDetection = true;
+        bool logoDetection        = true;
+        bool vborderDetection     = true;
+        bool hborderDetection     = true;
+        bool channelDetection     = true;
+
+        bool videoDecoding        = true;
 };
+#endif

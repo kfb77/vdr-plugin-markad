@@ -819,7 +819,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     if (!stopMark) return false;
     dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits without logo after position (%d)", stopMark->position);
 
-    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoder, recordingIndexMark, NULL);
+    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, &markCriteria, ptr_cDecoder, recordingIndexMark, NULL);
     ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
     int endPos = stopMark->position + (25 * macontext.Video.Info.framesPerSecond);  // try till 25s after stopMarkPosition
@@ -872,7 +872,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     cExtractLogo *ptr_cExtractLogoChange = new cExtractLogo(&macontext, macontext.Video.Info.AspectRatio, recordingIndexMark);
     ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
 
-    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoderLogoChange, recordingIndexMark, evaluateLogoStopStartPair);
+    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, &markCriteria, ptr_cDecoderLogoChange, recordingIndexMark, evaluateLogoStopStartPair);
     ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
     // loop through all logo stop/start pairs
@@ -1022,16 +1022,14 @@ void cMarkAdStandalone::CheckStart() {
             }
             macontext.Info.Channels[stream] = macontext.Audio.Info.Channels[stream];
 
-            if (macontext.Config->decodeAudio && macontext.Info.Channels[stream]) {
+            if (macontext.Info.Channels[stream]) {
                 if ((macontext.Info.Channels[stream] == 6) && (macontext.Audio.Options.ignoreDolbyDetection == false)) {
                     isyslog("DolbyDigital5.1 audio whith 6 channels in stream %i detected", stream);
                     if (macontext.Audio.Info.channelChange) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): channel change detected, disable logo/border/aspect detection");
+                        dsyslog("cMarkAdStandalone::CheckStart(): channel change detected");
                         video->ClearBorder();
-                        macontext.Video.Options.ignoreAspectRatio   = true;
-                        macontext.Video.Options.ignoreLogoDetection = true;
-                        macontext.Video.Options.ignoreHborder       = true;
-                        macontext.Video.Options.ignoreVborder       = true;
+                        markCriteria.SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE);
+                        macontext.Video.Options.ignoreAspectRatio = true;
                         marks.DelType(MT_ASPECTCHANGE, 0xF0); // delete aspect marks if any
 
                         // start mark must be around iStartA
@@ -1061,8 +1059,8 @@ void cMarkAdStandalone::CheckStart() {
                     else isyslog("AC3 audio with %d channels on stream %d",macontext.Info.Channels[stream], stream);  // macontext.Info.Channels[stream] is always true
                     if (inBroadCast) {  // if we have channel marks but we are now with 2 channels inBroascast, delete these
                         macontext.Video.Options.ignoreAspectRatio          = false;   // then we have to find other marks
-                        macontext.Video.Options.ignoreLogoDetection        = false;
-                        macontext.Video.Options.ignoreBlackScreenDetection = false;
+                        markCriteria.SetDetectionState(MT_BLACKCHANGE, true);
+                        markCriteria.SetDetectionState(MT_LOGOCHANGE, true);
                     }
                 }
             }
@@ -1220,11 +1218,11 @@ void cMarkAdStandalone::CheckStart() {
             isyslog("SD video with aspect ratio of %i:%i detected", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
             if (((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3))) {
                 isyslog("logo/border detection disabled");
-                bDecodeVideo = false;
                 video->ClearBorder();
                 macontext.Video.Options.ignoreAspectRatio = false;
-                macontext.Video.Options.ignoreLogoDetection = true;
-                macontext.Video.Options.ignoreBlackScreenDetection = true;
+                markCriteria.SetDetectionState(MT_SCENECHANGE, false);
+                markCriteria.SetDetectionState(MT_BLACKCHANGE, false);
+                markCriteria.SetDetectionState(MT_LOGOCHANGE,  false);
                 marks.Del(MT_CHANNELSTART);
                 marks.Del(MT_CHANNELSTOP);
                 // start mark must be around iStartA
@@ -1239,8 +1237,8 @@ void cMarkAdStandalone::CheckStart() {
                         marks.Del(MT_HBORDERSTOP);
                         marks.Del(MT_VBORDERSTART);
                         marks.Del(MT_VBORDERSTOP);
-                        macontext.Video.Options.ignoreHborder = true;
-                        macontext.Video.Options.ignoreVborder = true;
+                        markCriteria.SetDetectionState(MT_BLACKCHANGE, false);
+                        markCriteria.SetDetectionState(MT_LOGOCHANGE,  false);
                     }
                     else {
                         dsyslog("cMarkAdStandalone::CheckStart(): aspect ratio start mark at (%i) very early, maybe from broascast before", begin->position);
@@ -1369,7 +1367,7 @@ void cMarkAdStandalone::CheckStart() {
                     }
                     dsyslog("cMarkAdStandalone::CheckStart(): delete vborder marks if any");
                     marks.DelType(MT_VBORDERCHANGE, 0xF0);
-                    macontext.Video.Options.ignoreVborder = true;
+                    markCriteria.SetDetectionState(MT_VBORDERCHANGE, false);
                 }
                 else {
                     dsyslog("cMarkAdStandalone::CheckStart(): delete too early horizontal border mark (%d)", hStart->position);
@@ -1383,7 +1381,7 @@ void cMarkAdStandalone::CheckStart() {
         }
         else { // we found no hborder start mark
             dsyslog("cMarkAdStandalone::CheckStart(): no horizontal border at start found, disable horizontal border detection");
-            macontext.Video.Options.ignoreHborder = true;
+            markCriteria.SetDetectionState(MT_HBORDERCHANGE, false);
             dsyslog("cMarkAdStandalone::CheckStart(): delete horizontal border marks, if any");
             marks.DelType(MT_HBORDERCHANGE, 0xF0);  // mybe the is a late invalid hborder start marks, exists sometimes with old vborder recordings
         }
@@ -1395,7 +1393,7 @@ void cMarkAdStandalone::CheckStart() {
         cMark *vStart = marks.GetAround(iStartA + delta, iStartA + delta, MT_VBORDERSTART);  // do not find initial vborder start from previous recording
         if (!vStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): no vertical border at start found, ignore vertical border detection");
-            macontext.Video.Options.ignoreVborder = true;
+            markCriteria.SetDetectionState(MT_VBORDERCHANGE, false);
             marks.DelType(MT_VBORDERSTART, 0xFF);  // maybe we have a vborder start from a preview or in a doku, delete it
             const cMark *vStop = marks.GetAround(iStartA + delta, iStartA + delta, MT_VBORDERSTOP);
             if (vStop) {
@@ -1458,7 +1456,7 @@ void cMarkAdStandalone::CheckStart() {
                     dsyslog("cMarkAdStandalone::CheckStart(): delete HBORDER marks if any");
                     marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
                     macontext.Video.Info.hasBorder        = true;
-                    macontext.Video.Options.ignoreHborder = true;
+                    markCriteria.SetDetectionState(MT_HBORDERCHANGE, false);
                 }
                 else dsyslog("cMarkAdStandalone::CheckStart(): ignore vertical border start found at (%d)", vStart->position);
             }
@@ -1636,8 +1634,8 @@ void cMarkAdStandalone::CheckStart() {
             dsyslog("cMarkAdStandalone::CheckStart(): disable border detection and delete border marks");  // avoid false detection of border
             marks.DelType(MT_HBORDERCHANGE, 0xF0);  // there could be hborder from an advertising in the recording
             marks.DelType(MT_VBORDERCHANGE, 0xF0);  // there could be hborder from an advertising in the recording
-            macontext.Video.Options.ignoreHborder = true;
-            macontext.Video.Options.ignoreVborder = true;
+            markCriteria.SetDetectionState(MT_HBORDERCHANGE, false);
+            markCriteria.SetDetectionState(MT_VBORDERCHANGE, false);
         }
     }
 
@@ -1670,7 +1668,7 @@ void cMarkAdStandalone::CheckStart() {
                 }
             }
             else {
-                if ((begin->type == MT_ASSUMEDSTART) || (begin->inBroadCast) || macontext.Video.Options.ignoreLogoDetection){  // test on inBroadCast because we have to take care of black screen marks in an ad, MT_ASSUMEDSTART is from converted channel stop of previous broadcast
+                if ((begin->type == MT_ASSUMEDSTART) || (begin->inBroadCast) || !markCriteria.GetDetectionState(MT_LOGOCHANGE)){  // test on inBroadCast because we have to take care of black screen marks in an ad, MT_ASSUMEDSTART is from converted channel stop of previous broadcast
                     char *indexToHMSF = marks.IndexToHMSF(begin->position);
                     if (indexToHMSF) {
                         dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%i) type 0x%X at %s inBroadCast %i", begin->position, begin->type, indexToHMSF, begin->inBroadCast);
@@ -1756,8 +1754,9 @@ void cMarkAdStandalone::CheckStart() {
     // if we have border marks, delete logo marks and disable logo and blacksceen detection
     if ((begin->type == MT_VBORDERSTART) || (begin->type == MT_HBORDERSTART)) {
         isyslog("found %s borders, logo detection disabled",(begin->type == MT_HBORDERSTART) ? "horizontal" : "vertical");
-        macontext.Video.Options.ignoreLogoDetection = true;
-        macontext.Video.Options.ignoreBlackScreenDetection = true;
+        markCriteria.SetDetectionState(MT_SCENECHANGE, false);
+        markCriteria.SetDetectionState(MT_BLACKCHANGE, false);
+        markCriteria.SetDetectionState(MT_LOGOCHANGE,  false);
         marks.Del(MT_LOGOSTART);
         marks.Del(MT_LOGOSTOP);
     }
@@ -1811,6 +1810,8 @@ void cMarkAdStandalone::CheckStart() {
     iStart = 0;
     marks.Save(directory, &macontext, false);
     DebugMarks();     //  only for debugging
+    LogSeparator();
+    markCriteria.ListDetection();
     LogSeparator();
     return;
 }
@@ -2639,10 +2640,10 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
                 if (comment) {
                     ALLOC(strlen(comment)+1, "comment");
                 }
-                if ((macontext.Config->autoLogo > 0) &&( mark->position > 0) && bDecodeVideo) {
+                if ((macontext.Config->autoLogo > 0) && (mark->position > 0)) {
                     isyslog("aspect ratio change from %2d:%d to %2d:%d at frame (%d), logo detection reenabled", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position);
-                    macontext.Video.Options.ignoreLogoDetection = false;
-                    macontext.Video.Options.ignoreBlackScreenDetection = false;
+                    markCriteria.SetDetectionState(MT_BLACKCHANGE, true);
+                    markCriteria.SetDetectionState(MT_LOGOCHANGE, true);
                 }
             }
             break;
@@ -2651,14 +2652,14 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             if (comment) {
                 ALLOC(strlen(comment)+1, "comment");
             }
-            if ((macontext.Config->autoLogo > 0) && (mark->position > 0) && bDecodeVideo) {
+            if ((macontext.Config->autoLogo > 0) && (mark->position > 0)) {
                 isyslog("logo detection reenabled at frame (%d)", mark->position);
-                macontext.Video.Options.ignoreLogoDetection = false;
-                macontext.Video.Options.ignoreBlackScreenDetection = false;
+                markCriteria.SetDetectionState(MT_BLACKCHANGE, true);
+                markCriteria.SetDetectionState(MT_LOGOCHANGE,  true);
             }
             break;
         case MT_CHANNELSTART:
-            if (asprintf(&comment, "audio channel change from %i to %i (%6d)*", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "audio channel change from %d to %d (%6d)*", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
             if (comment) {
                 ALLOC(strlen(comment)+1, "comment");
             }
@@ -2668,20 +2669,15 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             else macontext.Audio.Info.channelChange = true;
             break;
         case MT_CHANNELSTOP:
-            if ((mark->position > chkSTART) && (mark->position < iStopA / 2) && !macontext.Audio.Info.channelChange) {
-                dsyslog("cMarkAdStandalone::AddMark(): first audio channel change is after chkSTART, disable logo/border/aspect detection now");
-                if (iStart == 0) marks.DelWeakFromTo(marks.GetFirst()->position, INT_MAX, MT_CHANNELCHANGE); // only if we heve selected a start mark
-                // disable all video detection TODO: maybe we can optimize exact frame number with blackscreen
-                bDecodeVideo = false;
+            if ((mark->position > chkSTART) && (mark->position < iStopA * 2 / 3) && !macontext.Audio.Info.channelChange) {
+                dsyslog("cMarkAdStandalone::AddMark(): first audio channel change is after chkSTART, disable video decoding detection now");
+                if (iStart == 0) marks.DelWeakFromTo(marks.GetFirst()->position, INT_MAX, MT_CHANNELCHANGE); // only if we have selected a start mark
+                // disable all video detection
                 video->ClearBorder();
-                macontext.Video.Options.ignoreAspectRatio          = true;
-                macontext.Video.Options.ignoreLogoDetection        = true;
-                macontext.Video.Options.ignoreBlackScreenDetection = true;
-                macontext.Video.Options.ignoreVborder              = true;
-                macontext.Video.Options.ignoreHborder              = true;
+                markCriteria.SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE);
             }
             macontext.Audio.Info.channelChange = true;
-            if (asprintf(&comment, "audio channel change from %i to %i (%6d) ", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "audio channel change from %d to %d(%6d) ", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
             if (comment) {
                 ALLOC(strlen(comment)+1, "comment");
             }
@@ -2979,7 +2975,7 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
             return false;
         }
         if (!ptr_cDecoder->IsVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) continue; // interlaced videos will not decode each frame
+        if (!ptr_cDecoder->GetFrameInfo(&macontext, true, macontext.Config->fullDecode)) continue; // interlaced videos will not decode each frame
         if (!macontext.Config->fullDecode && !ptr_cDecoder->IsVideoIFrame()) continue;
 
 #ifdef DEBUG_OVERLAP
@@ -3029,7 +3025,7 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
             return false;
         }
         if (!ptr_cDecoder->IsVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) continue; // interlaced videos will not decode each frame
+        if (!ptr_cDecoder->GetFrameInfo(&macontext, true, macontext.Config->fullDecode)) continue; // interlaced videos will not decode each frame
         if (!macontext.Config->fullDecode && !ptr_cDecoder->IsVideoIFrame()) continue;
 
 #ifdef DEBUG_OVERLAP
@@ -3144,7 +3140,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
         while(mark && (ptr_cDecoder->GetNextPacket())) {
             if (abortNow) return;
             if (ptr_cDecoder->IsVideoPacket()) {
-                if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) {
+                if (ptr_cDecoder->GetFrameInfo(&macontext, true, macontext.Config->fullDecode)) {
                     int frameNumber = ptr_cDecoder->GetFrameNumber();
                     if (frameNumber >= (mark->position - DEBUG_MARK_FRAMES)) {
                         dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark frame (%5d) type 0x%X, write frame (%5d)", mark->position, mark->type, frameNumber);
@@ -3355,7 +3351,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
     ptr_cDecoder->Reset();
     ptr_cDecoder->DecodeDir(directory);
 
-    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, ptr_cDecoder, recordingIndexMark, NULL);
+    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, &markCriteria, ptr_cDecoder, recordingIndexMark, NULL);
     ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
     cMark *markLogo = marks.GetFirst();
@@ -3878,7 +3874,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
         iFrameCurrent = frameCurrent;
         checkAudio = true;
     }
-    if (ptr_cDecoder->GetFrameInfo(&macontext, macontext.Config->fullDecode)) {
+    if (ptr_cDecoder->GetFrameInfo(&macontext, markCriteria.GetDetectionState(MT_VIDEO), macontext.Config->fullDecode)) {
         if (ptr_cDecoder->IsVideoPacket()) {
             if ((ptr_cDecoder->GetFileNumber() == 1) &&  // found some Finnish H.264 interlaced recordings who changed real bite rate in second TS file header
                                                          // frame rate can not change, ignore this and keep frame rate from first TS file
@@ -3903,19 +3899,6 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
                 return false;
             }
 
-            // turn on all detection for end part even if we use stronger marks, just in case we will get no strong end mark
-            if (!restartLogoDetectionDone && (frameCurrent > (iStopA - (macontext.Video.Info.framesPerSecond * 300))) && (iStart == 0)) { // not before start part done
-                                                                                                                                          // changed from 240 to 300
-                dsyslog("cMarkAdStandalone::ProcessFrame(): enter end part at frame (%d), reset detector status", frameCurrent);
-                video->Clear(true);
-                bDecodeVideo = true;
-                macontext.Video.Options.ignoreBlackScreenDetection = false;
-                macontext.Video.Options.ignoreVborder              = false;
-                macontext.Video.Options.ignoreHborder              = false;
-                macontext.Video.Options.ignoreLogoDetection        = false;
-                restartLogoDetectionDone = true;
-            }
-
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
             if ((frameCurrent > (DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) && (frameCurrent < (DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE))) {
                 char *fileName = NULL;
@@ -3928,11 +3911,12 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
             }
 #endif
 
-            if (!bDecodeVideo) macontext.Video.Data.valid = false; // make video picture invalid, we do not need them
-            sMarkAdMarks *vmarks = video->Process(iFrameBefore, iFrameCurrent, frameCurrent);
-            if (vmarks) {
-                for (int i = 0; i < vmarks->Count; i++) {
-                    AddMark(&vmarks->Number[i]);
+            if (markCriteria.GetDetectionState(MT_VIDEO)) {
+                sMarkAdMarks *vmarks = video->Process(iFrameBefore, iFrameCurrent, frameCurrent);
+                if (vmarks) {
+                    for (int i = 0; i < vmarks->Count; i++) {
+                        AddMark(&vmarks->Number[i]);
+                    }
                 }
             }
 
@@ -3955,6 +3939,15 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
             checkAudio = false;
             sMarkAdMark *amark = audio->Process();  // class audio will take frame number of channel change from macontext->Audio.Info.frameChannelChange
             if (amark) AddMark(amark);
+        }
+
+        // turn on all detection for end part even if we use stronger marks, just in case we will get no strong end mark
+        if (!restartLogoDetectionDone && (frameCurrent > (iStopA - (macontext.Video.Info.framesPerSecond * 300))) && (iStart == 0)) { // not before start part done
+                                                                                                                                      // changed from 240 to 300
+            dsyslog("cMarkAdStandalone::ProcessFrame(): enter end part at frame (%d), reset detector status", frameCurrent);
+            video->Clear(true);
+            markCriteria.SetDetectionState(MT_ALL, true);
+            restartLogoDetectionDone = true;
         }
     }
     return true;
@@ -4222,12 +4215,12 @@ bool cMarkAdStandalone::CheckLogo() {
         ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
         int startPos =  macontext.Info.tStart * 25;  // search logo from assumed start, we do not know the frame rate at this point, so we use 25
         if (startPos < 0) startPos = 0;  // consider late start of recording
-        int endpos = ptr_cExtractLogo->SearchLogo(&macontext, startPos);
+        int endpos = ptr_cExtractLogo->SearchLogo(&macontext, &markCriteria, startPos);
         for (int retry = 2; retry <= 7; retry++) {  // do not reduce, we will not get some logos
             startPos += 5 * 60 * macontext.Video.Info.framesPerSecond; // next try 5 min later, now we know the frame rate
             if (endpos > 0) {
                 dsyslog("cMarkAdStandalone::CheckLogo(): no logo found in recording, retry in %ind part of the recording at frame (%d)", retry, startPos);
-                endpos = ptr_cExtractLogo->SearchLogo(&macontext, startPos);
+                endpos = ptr_cExtractLogo->SearchLogo(&macontext, &markCriteria, startPos);
             }
             else break;
         }
@@ -4469,7 +4462,6 @@ bool cMarkAdStandalone::LoadInfo() {
         esyslog("cannot read broadcast length from info, marks can be wrong!");
         macontext.Info.AspectRatio.num = 0;
         macontext.Info.AspectRatio.den = 0;
-        bDecodeVideo = macontext.Config->decodeVideo;
         macontext.Video.Options.ignoreAspectRatio = false;
     }
 
@@ -4589,9 +4581,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     macontext = {};
     macontext.Config = config;
 
-    bDecodeVideo = config->decodeVideo;
-    bDecodeAudio = config->decodeAudio;
-
     macontext.Info.tStart = iStart = iStop = iStopA = 0;
 
     if ((config->ignoreInfo & IGNORE_TIMERINFO) == IGNORE_TIMERINFO) {
@@ -4647,18 +4636,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     tsyslog("libavcodec config: %s",avcodec_configuration());
     isyslog("on %s", directory);
 
-    if (!bDecodeAudio) {
-        isyslog("audio decoding disabled by user");
-    }
-    if (!bDecodeVideo) {
-        isyslog("video decoding disabled by user");
-    }
     if (bIgnoreTimerInfo) {
         isyslog("timer info usage disabled by user");
-    }
-    if (config->logoExtraction != -1) {
-        // just to be sure extraction works
-        bDecodeVideo = true;
     }
     if (config->before) sleep(10);
 
@@ -4711,18 +4690,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     ALLOC(sizeof(*vps), "vps");
 
     if (!LoadInfo()) {
-        if (bDecodeVideo) {
-            esyslog("failed loading info - logo %s%sdisabled",
-                    (config->logoExtraction != -1) ? "extraction" : "detection",
-                    bIgnoreTimerInfo ? " " : " and pre-/post-timer ");
-            macontext.Info.tStart = iStart = iStop = iStopA = 0;
-            macontext.Video.Options.ignoreLogoDetection = true;
-        }
+        esyslog("failed loading info - logo %s%sdisabled", (config->logoExtraction != -1) ? "extraction" : "detection", bIgnoreTimerInfo ? " " : " and pre-/post-timer ");
+        macontext.Info.tStart = iStart = iStop = iStopA = 0;
+        markCriteria.SetDetectionState(MT_LOGOCHANGE, false);
     }
     else {
         if (!CheckLogo() && (config->logoExtraction==-1) && (config->autoLogo == 0)) {
             isyslog("no logo found, logo detection disabled");
-            macontext.Video.Options.ignoreLogoDetection = true;
+            markCriteria.SetDetectionState(MT_LOGOCHANGE, false);
         }
     }
 
@@ -4751,7 +4726,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     if (config->markFileName[0]) marks.SetFileName(config->markFileName);
 
     if (!abortNow) {
-        video = new cMarkAdVideo(&macontext, recordingIndex);
+        video = new cMarkAdVideo(&macontext, &markCriteria, recordingIndex);
         ALLOC(sizeof(*video), "video");
         audio = new cMarkAdAudio(&macontext, recordingIndex);
         ALLOC(sizeof(*audio), "audio");
@@ -5078,8 +5053,6 @@ int main(int argc, char *argv[]) {
     gettimeofday(&startAll, NULL);
 
     // set defaults
-    config.decodeVideo = true;
-    config.decodeAudio = true;
     config.logoExtraction = -1;
     config.logoWidth = -1;
     config.logoHeight = -1;
@@ -5154,25 +5127,6 @@ int main(int argc, char *argv[]) {
             case 'b':
                 // --background
                 bFork = SYSLOG = true;
-                break;
-            case 'd':
-                // --disable
-                switch (atoi(optarg)) {
-                    case 1:
-                        config.decodeVideo = false;
-                        break;
-                    case 2:
-                        config.decodeAudio = false;
-                        break;
-                    case 3:
-                        config.decodeVideo = false;
-                        config.decodeAudio = false;
-                        break;
-                    default:
-                        fprintf(stderr, "markad: invalid disable option: %s\n", optarg);
-                         return 2;
-                         break;
-                }
                 break;
             case 'i':
                 // --ignoreinfo

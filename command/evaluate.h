@@ -214,7 +214,7 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
  * @param recordingIndexParam            recording index
  * @param evaluateLogoStopStartPairParam class to evalute logo stop/start pairs
  */
-        cDetectLogoStopStart(sMarkAdContext *maContextParam, cDecoder *ptr_cDecoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam);
+        cDetectLogoStopStart(sMarkAdContext *maContextParam, cMarkCriteria *markCriteriaParam, cDecoder *ptr_cDecoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam);
 
         ~cDetectLogoStopStart();
 
@@ -312,6 +312,8 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
     private:
 
         sMarkAdContext *maContext;                              //!< markad context
+                                                                //!<
+        cMarkCriteria *markCriteria;                            //!< class for mark detection criteria
                                                                 //!<
         cDecoder *ptr_cDecoder;                                 //!< decoder
                                                                 //!<

@@ -62,8 +62,6 @@ class cMarkAdStandalone : public cEvaluateChannel {
             gotendmark = origin.gotendmark;
             waittime = origin.waittime;
             iwaittime = origin.iwaittime;
-            bDecodeVideo = origin.bDecodeVideo;
-            bDecodeAudio = origin.bDecodeAudio;
             bIgnoreTimerInfo = origin.bIgnoreTimerInfo;
             bLiveRecording = origin.bLiveRecording;
             chkSTART = origin.chkSTART;
@@ -90,8 +88,6 @@ class cMarkAdStandalone : public cEvaluateChannel {
             gotendmark                = origin->gotendmark;
             waittime                  = origin->waittime;
             iwaittime                 = origin->iwaittime;
-            bDecodeVideo              = origin->bDecodeVideo;
-            bDecodeAudio              = origin->bDecodeAudio;
             bIgnoreTimerInfo          = origin->bIgnoreTimerInfo;
             bLiveRecording            = origin->bLiveRecording;
             chkSTART                  = origin->chkSTART;
@@ -362,10 +358,6 @@ class cMarkAdStandalone : public cEvaluateChannel {
         int waittime = 0;                                              //!< time waited for more frames if markad runs during recording
                                                                        //!<
         int iwaittime = 0;                                             //!< time waited for continuation of interrupted recording
-                                                                       //!<
-        bool bDecodeVideo = false;                                     //!< true if configured to decode video, false otherwise
-                                                                       //!<
-        bool bDecodeAudio = false;                                     //!< true if configured to decode audio, false otherwise
                                                                        //!<
         bool bIgnoreTimerInfo = false;                                 //!< true if confugured to ignore timer infos from info file, false otherwise
                                                                        //!<

@@ -659,10 +659,11 @@ bool cEvaluateLogoStopStartPair::IncludesInfoLogo(const int stopPosition, const 
 }
 
 
-cDetectLogoStopStart::cDetectLogoStopStart(sMarkAdContext *maContextParam, cDecoder *ptr_cDecoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam) {
-    maContext = maContextParam;
-    ptr_cDecoder = ptr_cDecoderParam;
-    recordingIndex = recordingIndexParam;
+cDetectLogoStopStart::cDetectLogoStopStart(sMarkAdContext *maContextParam, cMarkCriteria *markCriteriaParam, cDecoder *ptr_cDecoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam) {
+    maContext                 = maContextParam;
+    markCriteria              = markCriteriaParam;
+    ptr_cDecoder              = ptr_cDecoderParam;
+    recordingIndex            = recordingIndexParam;
     evaluateLogoStopStartPair = evaluateLogoStopStartPairParam;
 }
 
@@ -921,7 +922,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
     endPos = recordingIndex->GetIFrameBefore(endFrame);
     dsyslog("cDetectLogoStopStart::Detect(): detect from i-frame (%d) to i-frame (%d)", startPos, endPos);
 
-    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, recordingIndex);
+    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, markCriteria, recordingIndex);
     ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
     sAreaT *area = ptr_Logo->GetArea();
 
@@ -951,7 +952,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         }
         int frameNumber =  ptr_cDecoder->GetFrameNumber();
         if (!ptr_cDecoder->IsVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(maContext, (maContext->Config->fullDecode))) {
+        if (!ptr_cDecoder->GetFrameInfo(maContext, true, maContext->Config->fullDecode)) {
             if (ptr_cDecoder->IsVideoIFrame()) // if we have interlaced video this is expected, we have to read the next half picture
                 tsyslog("cDetectLogoStopStart::Detect(): GetFrameInfo() failed at frame (%d)", frameNumber);
             continue;

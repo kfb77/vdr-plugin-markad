@@ -1391,7 +1391,7 @@ int cExtractLogo::AudioInBroadcast(const sMarkAdContext *maContext, const int iF
 }
 
 
-int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
+int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCriteria, int startFrame) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
     dsyslog("----------------------------------------------------------------------------");
     dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d", startFrame, logoAspectRatio.num, logoAspectRatio.den);
 
@@ -1420,7 +1420,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
     cDecoder *ptr_cDecoder = new cDecoder(maContext->Config->threads, recordingIndexLogo);
     ALLOC(sizeof(*ptr_cDecoder), "ptr_cDecoder");
 
-    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, recordingIndexLogo);
+    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, markCriteria, recordingIndexLogo);
     ALLOC(sizeof(*ptr_Logo), "SearchLogo-ptr_Logo");
 
     cMarkAdBlackBordersHoriz *hborder = new cMarkAdBlackBordersHoriz(maContext);
@@ -1501,7 +1501,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, int startFrame) {  // re
                 dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at frame (%d), got %d valid frames of %d frames read", ptr_cDecoder->GetFrameNumber(), iFrameCountValid, iFrameCountAll);
                 retStatus=false;
             }
-            if ((ptr_cDecoder->GetFrameInfo(maContext, false) && retStatus)) {
+            if ((ptr_cDecoder->GetFrameInfo(maContext, true, false) && retStatus)) {
                 if (ptr_cDecoder->IsVideoPacket()) {
                     iFrameNumber = ptr_cDecoder->GetFrameNumber();
                     if (maxLogoPixel == 0) maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);

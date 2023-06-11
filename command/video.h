@@ -11,6 +11,7 @@
 
 #include "global.h"
 #include "index.h"
+#include "criteria.h"
 
 #define LOGO_VMAXCOUNT 3       //!< count of IFrames for detection of "logo visible"
                                //!<
@@ -250,7 +251,7 @@ class cMarkAdLogo : cLogoSize {
  * @param maContext      markad context
  * @param recordingIndex recording index
  */
-        explicit cMarkAdLogo(sMarkAdContext *maContext, cIndex *recordingIndex);
+        explicit cMarkAdLogo(sMarkAdContext *maContext, cMarkCriteria *markCriteriaParam, cIndex *recordingIndex);
 
         ~cMarkAdLogo();
 
@@ -401,6 +402,8 @@ class cMarkAdLogo : cLogoSize {
         int GY[3][3];                             //!< GY Sobel mask
                                                   //!<
         sMarkAdContext *maContext        = NULL;  //!< markad context
+                                                  //!<
+        cMarkCriteria *markCriteria      = NULL;  //!< pointer to class with decoding states
                                                   //!<
         bool pixfmt_info                 = false; //!< true if unknown pixel error message was logged, false otherwise
                                                   //!<
@@ -599,7 +602,7 @@ class cMarkAdVideo {
  * @param maContext      markad context
  * @param recordingIndex recording index
  */
-        explicit cMarkAdVideo(sMarkAdContext *maContext, cIndex *recordingIndex);
+        explicit cMarkAdVideo(sMarkAdContext *maContext, cMarkCriteria *markCriteriaParam, cIndex *recordingIndex);
         ~cMarkAdVideo();
 
 /**
@@ -619,6 +622,7 @@ class cMarkAdVideo {
  */
         cMarkAdVideo &operator =(const cMarkAdVideo *origin) {
             maContext                 = origin->maContext;
+	    markCriteria              = origin->markCriteria;
             sceneChange               = NULL;
             blackScreen               = NULL;
             hborder                   = NULL;
@@ -682,23 +686,25 @@ class cMarkAdVideo {
  */
         bool AspectRatioChange(const sAspectRatio &AspectRatioA, const sAspectRatio &AspectRatioB, bool &start);
 
+        sMarkAdContext *maContext         = NULL; //!< markad context
+                                                  //!<
+        cMarkCriteria *markCriteria       = NULL; //!< poiter to class for marks and decoding criterias
+                                                  //!<
         cIndex *recordingIndexMarkAdVideo = NULL; //!< recording index
                                                   //!<
-        sMarkAdContext *maContext = NULL;         //!< markad context
+        sMarkAdMarks marks                = {};   //!< array of marks to add to list
                                                   //!<
-        sMarkAdMarks marks = {};                  //!< array of marks to add to list
+        sAspectRatio aspectRatio          = {};   //!< video display aspect ratio (DAR)
                                                   //!<
-        sAspectRatio aspectRatio = {};            //!< video display aspect ratio (DAR)
+        cMarkAdSceneChange *sceneChange   = NULL; //!< pointer to class cMarkAdsceneChange
                                                   //!<
-        cMarkAdSceneChange *sceneChange = NULL;   //!< pointer to class cMarkAdsceneChange
+        cMarkAdBlackScreen *blackScreen   = NULL; //!< pointer to class cMarkAdBlackScreen
                                                   //!<
-        cMarkAdBlackScreen *blackScreen;          //!< pointer to class cMarkAdBlackScreen
+        cMarkAdBlackBordersHoriz *hborder = NULL; //!< pointer to class cMarkAdBlackBordersHoriz
                                                   //!<
-        cMarkAdBlackBordersHoriz *hborder;        //!< pointer to class cMarkAdBlackBordersHoriz
+        cMarkAdBlackBordersVert *vborder  = NULL; //!< pointer to class cMarkAdBlackBordersVert
                                                   //!<
-        cMarkAdBlackBordersVert *vborder;         //!< pointer to class cMarkAdBlackBordersVert
-                                                  //!<
-        cMarkAdLogo *logo;                        //!< pointer to class cMarkAdLogo
+        cMarkAdLogo *logo                 = NULL; //!< pointer to class cMarkAdLogo
                                                   //!<
 };
 #endif

@@ -57,7 +57,7 @@ class cExtractLogo : public cLogoSize {
  * @param startFrame frame number to start search
  * @return last read frame during search
  */
-        int SearchLogo(sMarkAdContext *maContext, int startFrame);
+        int SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCriteria, int startFrame);
 
 /**
  * get default logo size
