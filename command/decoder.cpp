@@ -195,8 +195,13 @@ bool cDecoder::DecodeFile(const char *filename) {
         AVCodecID codec_id = avctx->streams[streamIndex]->codec->codec_id;
         codec = avcodec_find_decoder(codec_id);
 #endif
-        if (!codec) {
-            if (codec_id == 100359) {  // not supported by libavcodec
+        if (!codec) {  // ignore not supported DVB subtitle by libavcodec
+#if LIBAVCODEC_VERSION_INT < ((59<<16)+(37<<8)+100)
+            if (codec_id == 100359)
+#else
+            if (codec_id ==  98314)
+#endif
+            {  // not supported by libavcodec
                 dsyslog("cDecoder::DecodeFile(): ignore unsupported subtitle codec for stream %i codec id %d", streamIndex, codec_id);
                 continue;
             }
