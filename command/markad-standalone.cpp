@@ -641,12 +641,15 @@ int cMarkAdStandalone::CheckStop() {
 // try any
     if (!end) {
         end = marks.GetAround(132 * macontext.Video.Info.framesPerSecond, iStopA, MT_STOP, 0x0F);    // try any type of stop mark, accept only near assumed stop
-        if (end) dsyslog("cMarkAdStandalone::CheckStop(): weak end mark found at frame %d near assumed stop (%d)", end->position, iStopA);
+        if (end) {
+            int diff = (end->position - iStopA) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::CheckStop(): weak end mark found at frame (%d) %ds after assumed stop (%d)", end->position, diff, iStopA);
+        }
         else dsyslog("cMarkAdStandalone::CheckStop(): no end mark found near assumed stop (%d)", iStopA);
     }
     if (!end) {
         end = marks.GetNext(iStopA, MT_STOP, 0x0F);    // try any type of stop mark, accept only after assumed end, better safe than sorry
-        if (end) dsyslog("cMarkAdStandalone::CheckStop(): weak end mark found at frame %d after assumed stop (%d)", end->position, iStopA);
+        if (end) dsyslog("cMarkAdStandalone::CheckStop(): weak end mark found at frame (%d) after assumed stop (%d)", end->position, iStopA);
         else dsyslog("cMarkAdStandalone::CheckStop(): no end mark found after assumed stop (%d)", iStopA);
     }
 
@@ -655,7 +658,7 @@ int cMarkAdStandalone::CheckStop() {
         dsyslog("cMarkAdStandalone::CheckStop(): found end mark at (%i)", end->position);
         cMark *mark = marks.GetFirst();
         while (mark) {
-            if ((mark->position >= iStopA-macontext.Video.Info.framesPerSecond * 120) && (mark->position < end->position) && ((mark->type & 0xF0) < (end->type & 0xF0))) { // delete all weak marks
+            if ((mark->position >= iStopA - (macontext.Video.Info.framesPerSecond * 120)) && (mark->position < end->position) && ((mark->type & 0xF0) < (end->type & 0xF0))) { // delete all weak marks
                 dsyslog("cMarkAdStandalone::CheckStop(): found stronger end mark (%d) delete mark (%d)", end->position, mark->position);
                 cMark *tmp = mark;
                 mark = mark->Next();
@@ -665,17 +668,17 @@ int cMarkAdStandalone::CheckStop() {
             mark = mark->Next();
         }
 
-        // if stop mark is MT_NOBLACKSTOP and it is not after iStopA try next, better save than sorry
+        // if stop mark is MT_NOBLACKSTOP and it is too much before iStopA try next, better save than sorry
         if (end->type == MT_NOBLACKSTOP) {
-            dsyslog("cMarkAdStandalone::CheckStop(): only accept blackscreen marks after assumes stop");
-            while(end->position < iStopA) {
+            while(end->position < (iStopA - (4 * macontext.Video.Info.framesPerSecond))) {
+                dsyslog("cMarkAdStandalone::CheckStop(): blackscreen end mark (%d) is more then 4s before assumes stop, try next", end->position);
                 cMark *end2 = marks.GetNext(end->position, MT_STOP, 0x0F);
                 if (end2) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): week stop mark is before assumed stop, use next stop mark at (%d)", end2->position);
+                    dsyslog("cMarkAdStandalone::CheckStop(): week stop mark is too far before assumed stop, use next stop mark at (%d)", end2->position);
                     end = end2;
                 }
                 else {
-                    dsyslog("cMarkAdStandalone::CheckStop(): week stop mark is before assumed stop, no next stop mark found");
+                    dsyslog("cMarkAdStandalone::CheckStop(): week stop mark is too far before assumed stop, no next stop mark found");
                     end = NULL;
                     break;
                 }
