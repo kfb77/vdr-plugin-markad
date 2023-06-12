@@ -1285,8 +1285,10 @@ cMarkAdSceneChange::cMarkAdSceneChange(sMarkAdContext *maContextParam) {
 
 
 cMarkAdSceneChange::~cMarkAdSceneChange() {
-    FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
-    free(prevHistogram);
+    if (prevHistogram) {  // in case constructor called but never Process()
+       FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
+       free(prevHistogram);
+    }
 }
 
 

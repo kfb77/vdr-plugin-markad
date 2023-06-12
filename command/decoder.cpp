@@ -201,7 +201,7 @@ bool cDecoder::DecodeFile(const char *filename) {
                 continue;
             }
             else {
-                dsyslog("cDecoder::DecodeFile(): could not find decoder for stream %i codec id %i", streamIndex, codec_id);
+                esyslog("cDecoder::DecodeFile(): could not find decoder for stream %i codec id %i", streamIndex, codec_id);
                 return false;
             }
         }

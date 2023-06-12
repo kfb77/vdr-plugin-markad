@@ -3811,7 +3811,7 @@ void cMarkAdStandalone::ProcessOverlap() {
     // check last logo stop mark if closing credits follows
     LogSeparator(false);
     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): check last logo stop mark for advertisement in frame with logo or closing credits without logo");
-    if (ptr_cDecoder) {  // we use file position
+    if (evaluateLogoStopStartPair) {  // not set if we have no logo
         cMark *lastStop = marks.GetLast();
         if (lastStop) {
             if (evaluateLogoStopStartPair->GetIsAdInFrame(lastStop->position) != STATUS_YES) {
@@ -3831,9 +3831,9 @@ void cMarkAdStandalone::ProcessOverlap() {
             }
             else dsyslog("cMarkAdStandalone::LogoMarkOptimization(): last stop mark (%d) is moved because of advertisement in frame, no closing credits can follow", lastStop->position);
         }
+        FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+        delete evaluateLogoStopStartPair;
     }
-    FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
-    delete evaluateLogoStopStartPair;
 
     if (save) marks.Save(directory, &macontext, false);
     dsyslog("end Overlap");
