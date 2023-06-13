@@ -76,6 +76,7 @@ class cMarkCriteria : public cMarks {
         int logo           = CRITERIA_UNKNOWN;
         int hborder        = CRITERIA_UNKNOWN;
         int vborder        = CRITERIA_UNKNOWN;
+        int aspectratio    = CRITERIA_UNKNOWN;
         int channel        = CRITERIA_UNKNOWN;
 
         int closingCredits = CRITERIA_UNKNOWN;
@@ -85,6 +86,7 @@ class cMarkCriteria : public cMarks {
         bool logoDetection        = true;
         bool vborderDetection     = true;
         bool hborderDetection     = true;
+        bool aspectratioDetection = true;
         bool channelDetection     = true;
 
         bool videoDecoding        = true;

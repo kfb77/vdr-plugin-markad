@@ -32,7 +32,7 @@ int cMarkCriteria::GetMarkTypeState(const int type) {
             state = hborder;
             break;
         case MT_ASPECTCHANGE:
-            state = CRITERIA_UNKNOWN;
+            state = aspectratio;
             break;
         case MT_CHANNELCHANGE:
             state = channel;
@@ -82,6 +82,16 @@ void cMarkCriteria::SetMarkTypeState(const int type, const int state) {
                 SetDetectionState(MT_LOGOCHANGE,  false);  // we do not need detection of we have border
             }
             if (hborder == CRITERIA_UNAVAILABLE) {
+                SetDetectionState(MT_HBORDERCHANGE, false);
+            }
+            break;
+        case MT_ASPECTCHANGE:
+            aspectratio = state;
+            if (aspectratio == CRITERIA_AVAILABLE) {
+                SetDetectionState(MT_SCENECHANGE,   false);
+                SetDetectionState(MT_BLACKCHANGE,   false);
+                SetDetectionState(MT_LOGOCHANGE,    false);
+                SetDetectionState(MT_VBORDERCHANGE, false);
                 SetDetectionState(MT_HBORDERCHANGE, false);
             }
             break;
@@ -160,6 +170,9 @@ bool cMarkCriteria::GetDetectionState(const int type) {
        case MT_HBORDERCHANGE:
             state = hborderDetection;
             break;
+       case MT_ASPECTCHANGE:
+            state = aspectratioDetection;
+            break;
        case MT_VIDEO:
             state = videoDecoding;
             break;
@@ -171,13 +184,7 @@ bool cMarkCriteria::GetDetectionState(const int type) {
 
 
 void cMarkCriteria::SetDetectionState(const int type, const bool state) {
-    char *typeToText  = TypeToText(type);
-    if (typeToText) {
-        dsyslog("cMarkCriteria::SetDetectionState(): set detection state for %-16s to %d", typeToText, state);
-        FREE(strlen(typeToText)+1, "text");
-        free(typeToText);
-    }
-    switch (type) {
+   switch (type) {
         case MT_SCENECHANGE:
             sceneDetection = state;
             break;
@@ -204,21 +211,23 @@ void cMarkCriteria::SetDetectionState(const int type, const bool state) {
         default:
             esyslog("cMarkCriteria::SetDetectionState(): type 0x%X not valid", type);
     }
-    if (GetDetectionState(MT_SCENECHANGE) || GetDetectionState(MT_BLACKCHANGE) || GetDetectionState(MT_LOGOCHANGE) || GetDetectionState(MT_VBORDERCHANGE) || GetDetectionState(MT_HBORDERCHANGE)) {
-        dsyslog("cMarkCriteria::SetDetectionState(): video decoding is on");
-        videoDecoding = true;
-    }
-    else {
-        dsyslog("cMarkCriteria::SetDetectionState(): video decoding is off");
-        videoDecoding = false;
+    if (GetDetectionState(MT_SCENECHANGE) || GetDetectionState(MT_BLACKCHANGE) || GetDetectionState(MT_LOGOCHANGE) || GetDetectionState(MT_VBORDERCHANGE) || GetDetectionState(MT_HBORDERCHANGE) || GetDetectionState(MT_ASPECTCHANGE)) videoDecoding = true;
+    else videoDecoding = false;
+
+    char *typeToText  = TypeToText(type);
+    if (typeToText) {
+        dsyslog("cMarkCriteria::SetDetectionState(): set detection state for %-17s to %d, video decoding is %d", typeToText, state, videoDecoding);
+        FREE(strlen(typeToText)+1, "text");
+        free(typeToText);
     }
 }
 
 
 void cMarkCriteria::ListDetection() {
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_SCENECHANGE:   %d", GetDetectionState(MT_SCENECHANGE));
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_BLACKCHANGE:   %d", GetDetectionState(MT_BLACKCHANGE));
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_LOGOCHANGE:    %d", GetDetectionState(MT_LOGOCHANGE));
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_VBORDERCHANGE: %d", GetDetectionState(MT_VBORDERCHANGE));
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_HBORDERCHANGE: %d", GetDetectionState(MT_HBORDERCHANGE));
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_SCENECHANGE:     %s", GetDetectionState(MT_SCENECHANGE)   ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_BLACKCHANGE:     %s", GetDetectionState(MT_BLACKCHANGE)   ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_LOGOCHANGE:      %s", GetDetectionState(MT_LOGOCHANGE)    ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_VBORDERCHANGE:   %s", GetDetectionState(MT_VBORDERCHANGE) ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_HBORDERCHANGE:   %s", GetDetectionState(MT_HBORDERCHANGE) ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_MT_ASPECTCHANGE: %s", GetDetectionState(MT_HBORDERCHANGE) ? "on" : "off");
 }
