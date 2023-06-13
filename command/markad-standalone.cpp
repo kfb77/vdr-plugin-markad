@@ -1407,11 +1407,8 @@ void cMarkAdStandalone::CheckStart() {
         }
 
         // searech for logo start mark around assumed start
-        lStart = marks.GetAround(iStartA + 420 * macontext.Video.Info.framesPerSecond, iStartA, MT_LOGOSTART);
-        if (!lStart) {
-            dsyslog("cMarkAdStandalone::CheckStart(): no logo start mark found");
-        }
-        else {  // we got a logo start mark
+        lStart = marks.GetAround(iStartA + (420 * macontext.Video.Info.framesPerSecond), iStartA, MT_LOGOSTART);
+        if (lStart) {  // we got a logo start mark
             char *indexToHMSF = marks.IndexToHMSF(lStart->position);
             if (indexToHMSF) {
                 dsyslog("cMarkAdStandalone::CheckStart(): logo start mark found on position (%i) at %s", lStart->position, indexToHMSF);
@@ -1420,9 +1417,9 @@ void cMarkAdStandalone::CheckStart() {
             }
 
             // check if logo start mark is too early
-            if (lStart->position  < (iStart / 8)) {  // start mark is too early, try to find a later mark
+            if (lStart->position  < (15 * macontext.Video.Info.framesPerSecond)) {  // need same seconds to have a stable logo status
                 cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
-                if (lNextStart && (lNextStart->position  > (iStart / 8))) {  // found later logo start mark
+                if (lNextStart && (lNextStart->position  >= (15 * macontext.Video.Info.framesPerSecond))) {  // found later logo start mark
                     int diffAssumed = (lNextStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
                     char *indexToHMSFStart = marks.IndexToHMSF(lNextStart->position);
                     if (indexToHMSFStart) {
@@ -1435,119 +1432,122 @@ void cMarkAdStandalone::CheckStart() {
                     if (diffAssumed < MAX_LOGO_AFTER_ASSUMED) lStart = lNextStart;   // found better logo start mark
                     else dsyslog("cMarkAdStandalone::CheckStart(): next logo start mark too far after assumed start");
                 }
-            }
+                else {
+                    dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) too early, delete mark, no valid later logo start mark found", lStart->position);
+                    marks.Del(lStart->position);  // prevent from later selection
+                    lStart = NULL;
+               }
+           }
 
-            // check if logo start mark is before hborder stop mark from previous recording
-            if (lStart->position  < hBorderStopPosition) {  // start mark is before hborder stop of previous recording (hBorderStopPosition = -1 of no hborder stop)
-                dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) is before hborder stop mark (%d) from previous recording", lStart->position, hBorderStopPosition);
-                cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
-                if (lNextStart && (lNextStart->position  > hBorderStopPosition)) {  // found later logo start mark
-                    int diffAssumed = (lNextStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
-                    char *indexToHMSFStart = marks.IndexToHMSF(lNextStart->position);
-                    if (indexToHMSFStart) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lNextStart->position, indexToHMSFStart);
-                        FREE(strlen(indexToHMSFStart)+1, "indexToHMSF");
-                        free(indexToHMSFStart);
-                    }
-                    if (diffAssumed < MAX_LOGO_AFTER_ASSUMED) lStart = lNextStart;   // found better logo start mark
-                    else dsyslog("cMarkAdStandalone::CheckStart(): next logo start mark too far after assumed start");
-                }
-            }
-
-
-            while (true) {
-                // if the logo start mark belongs to closing credits logo stop/start pair, treat it as valid
-                if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(lStart->position) == STATUS_YES)) {
-                    dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) is end of closing credits, this logo start mark is valid", lStart->position);
-                    // check next stop/start pair, if near and short this is a failed logo detection or an undetected info/introduction logo
-                    cMark *lNextStop  = marks.GetNext(lStart->position, MT_LOGOSTOP);
+           if (lStart) {
+                // check if logo start mark is before hborder stop mark from previous recording
+                if (lStart->position  < hBorderStopPosition) {  // start mark is before hborder stop of previous recording (hBorderStopPosition = -1 of no hborder stop)
+                    dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) is before hborder stop mark (%d) from previous recording", lStart->position, hBorderStopPosition);
                     cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
-                    if (lNextStart && lNextStop) {
-                        int distance = 1000 * (lNextStop->position  - lStart->position)    / macontext.Video.Info.framesPerSecond;
-                        int lengthAd = 1000 * (lNextStart->position - lNextStop->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::CheckStart(): next logo stop (%d) start (%d), distance %dms, length %dms", lNextStop->position, lNextStart->position, distance, lengthAd);
-                        if ((distance <= 6800) && (lengthAd <= 6840)) { // lengthAd changed from 4400 to 6840
-                                                                        // distance changed from 1280 to 6800
-                            dsyslog("cMarkAdStandalone::CheckStart(): logo stop/start pair after closing credits is invalid, deleting");
-                            marks.Del(lNextStop->position);
-                            marks.Del(lNextStart->position);
+                    if (lNextStart && (lNextStart->position  > hBorderStopPosition)) {  // found later logo start mark
+                        int diffAssumed = (lNextStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
+                        char *indexToHMSFStart = marks.IndexToHMSF(lNextStart->position);
+                        if (indexToHMSFStart) {
+                            dsyslog("cMarkAdStandalone::CheckStart(): later logo start mark found on position (%i) at %s", lNextStart->position, indexToHMSFStart);
+                            FREE(strlen(indexToHMSFStart)+1, "indexToHMSF");
+                            free(indexToHMSFStart);
                         }
-                    }
-                    break;
-                }
-
-                // trust sequence blackscreen start / logo stop / blacksceen end / logo start as start of broadcast
-                cMark *prev1 = marks.GetPrev(lStart->position);
-                if (prev1 && (prev1->type == MT_NOBLACKSTART)) {
-                    dsyslog("cMarkAdStandalone::CheckStart(): blackscreen end (%d) before logo start (%d) found", prev1->position, lStart->position);
-                    cMark *prev2 = marks.GetPrev(prev1->position);
-                    if (prev2 && (prev2->type == MT_LOGOSTOP)) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): logo stop (%d) before blackscreen end (%d) before logo start (%d) found", prev2->position, prev1->position, lStart->position);
-                        cMark *prev3 = marks.GetPrev(prev2->position);
-                        if (prev3 && (prev3->type == MT_NOBLACKSTOP)) {
-                            dsyslog("cMarkAdStandalone::CheckStart(): blackscreen start (%d) before logo stop (%d) before blackscreen end (%d) before logo start (%d) found",  prev3->position, prev2->position, prev1->position, lStart->position);
-                            int blacklength = 1000 * (prev1->position  - prev3->position) / macontext.Video.Info.framesPerSecond;
-                            dsyslog("cMarkAdStandalone::CheckStart(): blackscreen length %dms", blacklength);
-                            if (blacklength >= 2160) {  // trust only a long blackscreen
-                                dsyslog("cMarkAdStandalone::CheckStart(): sequence blackscreen start / logo stop / blacksceen end / logo start found, this is the broadcast start");
-                                dsyslog("cMarkAdStandalone::CheckStart(): delete all other logo stop/start marks next 300s (min broadcast length)");
-                                marks.DelFromTo(lStart->position + 1, lStart->position + (300 *  macontext.Video.Info.framesPerSecond), MT_LOGOCHANGE);
-                                break;
-                            }
-                        }
+                        if (diffAssumed < MAX_LOGO_AFTER_ASSUMED) lStart = lNextStart;   // found better logo start mark
+                        else dsyslog("cMarkAdStandalone::CheckStart(): next logo start mark too far after assumed start");
                     }
                 }
 
-                // check next logo stop/start pair
-                cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
-                if (lStop) {  // there is a next stop mark in the start range
-                    int distanceStartStop = (lStop->position - lStart->position) / macontext.Video.Info.framesPerSecond;
-                    if (distanceStartStop < 20) {  // very short logo part, lStart is possible wrong, do not increase, first ad can be early
-                                                   // change from 55 to 20 because of too short logo change detected about 20s after start mark
-                        indexToHMSF = marks.IndexToHMSF(lStop->position);
-                        if (indexToHMSF) {
-                            dsyslog("cMarkAdStandalone::CheckStart(): next logo stop mark found very short after start mark on position (%i) at %s, distance %ds", lStop->position, indexToHMSF, distanceStartStop);
-                            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-                            free(indexToHMSF);
-                        }
-                        cMark *lNextStart = marks.GetNext(lStop->position, MT_LOGOSTART); // get next logo start mark
-                        if (lNextStart) {  // now we have logo start/stop/start, this can be a preview before broadcast start
-                            indexToHMSF = marks.IndexToHMSF(lNextStart->position);
-                            int distanceStopNextStart = (lNextStart->position - lStop->position) / macontext.Video.Info.framesPerSecond;
-                            if (distanceStopNextStart <= 136) { // found start mark short after start/stop, use this as start mark, changed from 68 to 76 to 136
-                                if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, use this start mark", lNextStart->position, indexToHMSF, distanceStopNextStart);
-                                lStart = lNextStart;
+
+                while (true) {
+                    // if the logo start mark belongs to closing credits logo stop/start pair, treat it as valid
+                    if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(lStart->position) == STATUS_YES)) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) is end of closing credits, this logo start mark is valid", lStart->position);
+                        // check next stop/start pair, if near and short this is a failed logo detection or an undetected info/introduction logo
+                        cMark *lNextStop  = marks.GetNext(lStart->position, MT_LOGOSTOP);
+                        cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
+                        if (lNextStart && lNextStop) {
+                            int distance = 1000 * (lNextStop->position  - lStart->position)    / macontext.Video.Info.framesPerSecond;
+                            int lengthAd = 1000 * (lNextStart->position - lNextStop->position) / macontext.Video.Info.framesPerSecond;
+                            dsyslog("cMarkAdStandalone::CheckStart(): next logo stop (%d) start (%d), distance %dms, length %dms", lNextStop->position, lNextStart->position, distance, lengthAd);
+                            if ((distance <= 6800) && (lengthAd <= 6840)) { // lengthAd changed from 4400 to 6840
+                                                                            // distance changed from 1280 to 6800
+                                dsyslog("cMarkAdStandalone::CheckStart(): logo stop/start pair after closing credits is invalid, deleting");
+                                marks.Del(lNextStop->position);
+                                marks.Del(lNextStart->position);
                             }
-                            else {
-                                if (indexToHMSF) {
-                                    dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, distance not valid", lNextStart->position, indexToHMSF, distanceStopNextStart);
-                                        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-                                        free(indexToHMSF);
+                        }
+                        break;
+                    }
+
+                    // trust sequence blackscreen start / logo stop / blacksceen end / logo start as start of broadcast
+                    cMark *prev1 = marks.GetPrev(lStart->position);
+                    if (prev1 && (prev1->type == MT_NOBLACKSTART)) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): blackscreen end (%d) before logo start (%d) found", prev1->position, lStart->position);
+                        cMark *prev2 = marks.GetPrev(prev1->position);
+                        if (prev2 && (prev2->type == MT_LOGOSTOP)) {
+                            dsyslog("cMarkAdStandalone::CheckStart(): logo stop (%d) before blackscreen end (%d) before logo start (%d) found", prev2->position, prev1->position, lStart->position);
+                            cMark *prev3 = marks.GetPrev(prev2->position);
+                            if (prev3 && (prev3->type == MT_NOBLACKSTOP)) {
+                                dsyslog("cMarkAdStandalone::CheckStart(): blackscreen start (%d) before logo stop (%d) before blackscreen end (%d) before logo start (%d) found",  prev3->position, prev2->position, prev1->position, lStart->position);
+                                int blacklength = 1000 * (prev1->position  - prev3->position) / macontext.Video.Info.framesPerSecond;
+                                dsyslog("cMarkAdStandalone::CheckStart(): blackscreen length %dms", blacklength);
+                                if (blacklength >= 2160) {  // trust only a long blackscreen
+                                    dsyslog("cMarkAdStandalone::CheckStart(): sequence blackscreen start / logo stop / blacksceen end / logo start found, this is the broadcast start");
+                                    dsyslog("cMarkAdStandalone::CheckStart(): delete all other logo stop/start marks next 300s (min broadcast length)");
+                                    marks.DelFromTo(lStart->position + 1, lStart->position + (300 *  macontext.Video.Info.framesPerSecond), MT_LOGOCHANGE);
                                     break;
                                 }
                             }
+                         }
+                    }
+
+                    // check next logo stop/start pair
+                    cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
+                    if (lStop) {  // there is a next stop mark in the start range
+                        int distanceStartStop = (lStop->position - lStart->position) / macontext.Video.Info.framesPerSecond;
+                        if (distanceStartStop < 20) {  // very short logo part, lStart is possible wrong, do not increase, first ad can be early
+                                                       // change from 55 to 20 because of too short logo change detected about 20s after start mark
+                            indexToHMSF = marks.IndexToHMSF(lStop->position);
                             if (indexToHMSF) {
+                                dsyslog("cMarkAdStandalone::CheckStart(): next logo stop mark found very short after start mark on position (%i) at %s, distance %ds", lStop->position, indexToHMSF, distanceStartStop);
                                 FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                                 free(indexToHMSF);
                             }
+                            cMark *lNextStart = marks.GetNext(lStop->position, MT_LOGOSTART); // get next logo start mark
+                            if (lNextStart) {  // now we have logo start/stop/start, this can be a preview before broadcast start
+                                indexToHMSF = marks.IndexToHMSF(lNextStart->position);
+                                int distanceStopNextStart = (lNextStart->position - lStop->position) / macontext.Video.Info.framesPerSecond;
+                                if (distanceStopNextStart <= 136) { // found start mark short after start/stop, use this as start mark, changed from 68 to 76 to 136
+                                    if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, use this start mark", lNextStart->position, indexToHMSF, distanceStopNextStart);
+                                    lStart = lNextStart;
+                                }
+                                else {
+                                    if (indexToHMSF) {
+                                        dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, distance not valid", lNextStart->position, indexToHMSF, distanceStopNextStart);
+                                        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                                        free(indexToHMSF);
+                                        break;
+                                    }
+                                }
+                                if (indexToHMSF) {
+                                    FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                                    free(indexToHMSF);
+                                }
+                            }
+                            else break;
                         }
-                        else break;
+                        else {  // there is a next stop mark but too far away
+                            dsyslog("cMarkAdStandalone::CheckStart(): next logo stop mark (%d) but too far away %ds", lStop->position, distanceStartStop);
+                            break;
+                        }
                     }
-                    else {  // there is a next stop mark but too far away
-                        dsyslog("cMarkAdStandalone::CheckStart(): next logo stop mark (%d) but too far away %ds", lStop->position, distanceStartStop);
-                        break;
-                    }
+                    else break; // the is no next stop mark
                 }
-                else break; // the is no next stop mark
-            }
-            if (lStart->position  >= (iStart / 11)) {  // changed from 8 to 10 to 11
                 begin = lStart;   // found valid logo start mark
             }
-            else {
-                dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) too early, delete mark", lStart->position);
-                marks.Del(lStart->position);  // prevent from later selection
-            }
         }
+        else dsyslog("cMarkAdStandalone::CheckStart(): no logo start mark found");
+
         if (begin && (!macontext.Video.Logo.isInBorder)) {
             dsyslog("cMarkAdStandalone::CheckStart(): disable border detection and delete border marks");  // avoid false detection of border
             marks.DelType(MT_HBORDERCHANGE, 0xF0);  // there could be hborder from an advertising in the recording
@@ -1557,6 +1557,7 @@ void cMarkAdStandalone::CheckStart() {
         }
     }
 
+    // drop too early marks of all types
     if (begin && (begin->type != MT_RECORDINGSTART) && (begin->position <= IGNORE_AT_START)) {  // first frames are from previous recording
         dsyslog("cMarkAdStandalone::CheckStart(): start mark (%d) type 0x%X dropped because it is too early", begin->position, begin->type);
         begin = NULL;
