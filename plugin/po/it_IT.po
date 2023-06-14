@@ -129,6 +129,3 @@ msgstr "Elenco"
 
 msgid "back"
 msgstr "Indietro"
-
-#~ msgid "correct info file"
-#~ msgstr "File info corretto"

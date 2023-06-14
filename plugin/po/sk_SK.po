@@ -129,6 +129,3 @@ msgstr "zoznam"
 
 msgid "back"
 msgstr "späť"
-
-#~ msgid "correct info file"
-#~ msgstr "správne informácie súboru"

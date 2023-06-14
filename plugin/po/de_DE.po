@@ -126,9 +126,3 @@ msgstr "Liste"
 
 msgid "back"
 msgstr "zurück"
-
-#~ msgid "correct info file (deprecated)"
-#~ msgstr "Infodatei korrigieren (veraltet)"
-
-#~ msgid "correct info file"
-#~ msgstr "Infodatei korrigieren"

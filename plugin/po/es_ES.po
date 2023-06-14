@@ -129,6 +129,3 @@ msgstr "Lista"
 
 msgid "back"
 msgstr "Atrás"
-
-#~ msgid "correct info file"
-#~ msgstr "Corrige fichero de información"
