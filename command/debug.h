@@ -39,10 +39,10 @@
 // #define DEBUG_LOGO_CORNER BOTTOM_LEFT
 // #define DEBUG_LOGO_CORNER BOTTOM_RIGHT
 
-// save logos from search logo function
-// #define DEBUG_LOGO_SAVE 0   // save all logos before CheckValid to /tmp
-// #define DEBUG_LOGO_SAVE 1   // save valid logos after CheckValid and before RemovePixelDefects to /tmp
-// #define DEBUG_LOGO_SAVE 2   // save valid logos after RemovePixelDefects /tmp
+// save logos from search logo function (only works if corner is defined by DEBUG_LOGO_CORNER
+// #define DEBUG_LOGO_SAVE 0   // save all logos before CheckValid to recording directory
+// #define DEBUG_LOGO_SAVE 1   // save valid logos after CheckValid and before RemovePixelDefects to recording directory
+// #define DEBUG_LOGO_SAVE 2   // save valid logos after RemovePixelDefects recording directory
 
 // debug logo resize function
 // #define DEBUG_LOGO_RESIZE

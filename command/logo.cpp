@@ -965,7 +965,7 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
             if ((ptr_actLogoInfo->sobel[0][i] == 0) ||
                ((i < WHITEHORIZONTAL_BIG * logoWidth / 4) && ((ptr_actLogoInfo->sobel[1][i] == 0) || (ptr_actLogoInfo->sobel[2][i] == 0)))) {
 #ifdef DEBUG_LOGO_CORNER
-                if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s has no big white top part at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white top part", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
 #endif
                 return false;
             }
@@ -976,7 +976,7 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
             for (int i = (logoHeight - WHITEHORIZONTAL_SMALL) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid top logo should have at least a small white bottom part in plane 0
                 if (ptr_actLogoInfo->sobel[0][i] == 0) {
 #ifdef DEBUG_LOGO_CORNER
-                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s has no small white bottom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no small white bottom part in plane 0", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
 #endif
                     return false;
                 }
@@ -988,7 +988,7 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
         for (int i = (logoHeight - WHITEHORIZONTAL_BIG) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid bottom logo should have a white bottom part in plane 0
             if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                 if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s has no big white bottom part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                 if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white bottom part in plane 0", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
 #endif
                 return false;
             }
@@ -997,7 +997,7 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
             for (int i = 0 ; i < WHITEHORIZONTAL_SMALL * logoWidth; i++) { // a valid bottom logo should have at least a small white top part in plane 0
                 if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): logo %s has no small white top part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no small white top part in plane 0", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
 #endif
                     return false;
                 }
@@ -1010,7 +1010,7 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
             for (int i = column; i < logoHeight * logoWidth; i = i + logoWidth) {
                 if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                     if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no big white left part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                     if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white left part in plane 0", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
 #endif
                     return false;
                 }
@@ -1022,7 +1022,7 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
             for (int i = logoWidth - column; i < logoHeight * logoWidth; i = i + logoWidth) {
                 if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                    if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s has no big white right part in plane 0 at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white right part in plane 0", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
 #endif
                     return false;
                 }
@@ -1036,12 +1036,12 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
     }
     if (blackPixel1 < 300) {
 #ifdef DEBUG_LOGO_CORNER
-        if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo has no enough pixel %d plane 0 at frame %i", blackPixel1, ptr_actLogoInfo->iFrameNumber);
+        if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has not enough pixel %d in plane 0", ptr_actLogoInfo->iFrameNumber, aCorner[corner], blackPixel1);
 #endif
         return false;
     }
 #ifdef DEBUG_LOGO_CORNER
-    if (corner == DEBUG_LOGO_CORNER) tsyslog("cExtractLogo::CheckValid(): logo %s plane 0 is valid at frame %i", aCorner[corner], ptr_actLogoInfo->iFrameNumber);
+    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s plane 0 is valid", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
 #endif
     return true;
 }
