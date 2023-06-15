@@ -588,10 +588,23 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
 // not detected logo in bright area, also not detected with bridgtness reduction, take it as invalid
 // contrast 189, brightness 127
 // contrast 189, brightness 117
+// contrast 188, brightness 173
+//
+// contrast  94, brightness 191
+// contrast  41, brightness 213
+// contrast  36, brightness 214
+// contrast  20, brightness 215
+//
+// no logo in bright area, not detected without brightness reduction, detected with brightness reduction, take it as valid
+// contrast 140, brightness 121
+// contrast 100, brightness 166
+//
+// contrast   0, brightness 111   -> red sepator picture without logo
 //
     else {  // logo with low pixel count
-        if ((contrastLogo   <=  13) ||
-            (brightnessLogo >= 117)) {
+        if (((contrastLogo <=  94)                          && (brightnessLogo >= 191)) ||
+            ((contrastLogo >   94) && (contrastLogo <= 140) && (brightnessLogo >  166)) ||
+            ((contrastLogo >  140)                          && (brightnessLogo >= 117))) {
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cMarkAdLogo::ReduceBrightness():  contrast/brightness in logo area is invalid for brightness reduction (low pixel logo)");
 #endif
