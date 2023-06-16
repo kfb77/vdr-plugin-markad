@@ -185,8 +185,9 @@ class cDecoder {
  * get aspect ratio for video frames <br>
  * get audio channels for audio packets <br>
  * fill video data planes
- * @param[in,out] maContext markad context
- * @param[in]     full      true if we do full decoding of all video frames, false if we decode only i-frames
+ * @param[in,out] maContext       markad context
+ * @param[in]     decodeVideo     true if we do decoding of video frames, false if we do no decoding at all
+ * @param[in]     decodeFull      true if we do full decoding of all video frames, false if we decode only i-frames
  */
         bool GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, const bool decodeFull);
 

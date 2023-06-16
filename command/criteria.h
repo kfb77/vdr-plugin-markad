@@ -57,12 +57,12 @@ class cMarkCriteria : public cMarks {
         void SetClosingCreditsState(const int state);
 
 /**
- *  get detection state of marks from <type>
+ *  get detection state of marks from type
  */
         bool GetDetectionState(const int type);
 
 /**
- * turn on/of detection of marks from <type>
+ * turn on/of detection of marks from type
  */
         void SetDetectionState(const int type, const bool state);
 
@@ -72,23 +72,42 @@ class cMarkCriteria : public cMarks {
         void ListDetection();
 
     private:
+/**
+ * convert state to printable text
+ * @param state
+ * @return state in printable text
+ */
         char *StateToText(const int state);
-        int logo           = CRITERIA_UNKNOWN;
-        int hborder        = CRITERIA_UNKNOWN;
-        int vborder        = CRITERIA_UNKNOWN;
-        int aspectratio    = CRITERIA_UNKNOWN;
-        int channel        = CRITERIA_UNKNOWN;
 
-        int closingCredits = CRITERIA_UNKNOWN;
+        int logo                  = CRITERIA_UNKNOWN;  //!< status of logo in broadcast
+                                                       //!<
+        int hborder               = CRITERIA_UNKNOWN;  //!< status of hborder in broadcast
+                                                       //!<
+        int vborder               = CRITERIA_UNKNOWN;  //!< status of vborder in broadcast
+                                                       //!<
+        int aspectratio           = CRITERIA_UNKNOWN;  //!< status of aspact ration in broadcast
+                                                       //!<
+        int channel               = CRITERIA_UNKNOWN;  //!< status of channel changes in broadcast
+                                                       //!<
+ 
+        int closingCredits        = CRITERIA_UNKNOWN;  //!< status of closing credits after end mark
+                                                       //!<
 
-        bool sceneDetection       = true;
-        bool blackscreenDetection = true;
-        bool logoDetection        = true;
-        bool vborderDetection     = true;
-        bool hborderDetection     = true;
-        bool aspectratioDetection = true;
-        bool channelDetection     = true;
-
-        bool videoDecoding        = true;
+        bool sceneDetection       = true;              //!< true if we have to detect scene changes, false otherwise
+                                                       //!<
+        bool blackscreenDetection = true;              //!< true if we have to detect black screens, false otherwise
+                                                       //!<
+        bool logoDetection        = true;              //!< true if we have to detect logo, false otherwise
+                                                       //!<
+        bool vborderDetection     = true;              //!< true if we have to detect vertical border, false otherwise
+                                                       //!<
+        bool hborderDetection     = true;              //!< true if we have to detect horizontal border, false otherwise
+                                                       //!<
+        bool aspectratioDetection = true;              //!< true if we have to detect video aspect ratio changes, false otherwise
+                                                       //!<
+        bool channelDetection     = true;              //!< true if we have to detect channel changes, false otherwise
+                                                       //!<
+        bool videoDecoding        = true;              //!< true if we have do decode video stream, false otherwise
+                                                       //!<
 };
 #endif

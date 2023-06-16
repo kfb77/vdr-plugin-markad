@@ -248,8 +248,9 @@ class cMarkAdLogo : cLogoSize {
 
 /**
  * class to detect logo
- * @param maContext      markad context
- * @param recordingIndex recording index
+ * @param maContext         markad context
+ * @param markCriteriaParam mark critaria
+ * @param recordingIndex    recording index
  */
         explicit cMarkAdLogo(sMarkAdContext *maContext, cMarkCriteria *markCriteriaParam, cIndex *recordingIndex);
 
@@ -434,7 +435,7 @@ class cMarkAdSceneChange {
 
 /**
  * process scene change detection
- * @param frameCurrent current frame number
+ * @param currentFrameNumber current frame number
  * @return scene change status: <br>
  *         -1 scene stop <br>
  *          0 no status change <br>
@@ -599,8 +600,9 @@ class cMarkAdVideo {
 
 /**
  * constructor of class to check packet for video based marks
- * @param maContext      markad context
- * @param recordingIndex recording index
+ * @param maContext         markad context
+ * @param markCriteriaParam mark criteria
+ * @param recordingIndex    recording index
  */
         explicit cMarkAdVideo(sMarkAdContext *maContext, cMarkCriteria *markCriteriaParam, cIndex *recordingIndex);
         ~cMarkAdVideo();

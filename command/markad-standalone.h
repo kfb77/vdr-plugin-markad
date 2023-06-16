@@ -136,6 +136,9 @@ class cMarkAdStandalone : public cEvaluateChannel {
  */
         void LogoMarkOptimization();
 
+/**
+ * optimize marks based on schene changes
+ */
         void SceneChangeOptimization();
 
 

@@ -133,11 +133,12 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
 
 /**
  * get next logo stop/start pair
- * @param stopPosition  frame number of logo stop mark
- * @param startPosition frame number of logo start mark
- * @param isLogoChange  -1 no logo change, 0 unknown, 1 is logo change
- * @param isInfoLogo    -1 pair is no introduction sequence, 0 unknown, 1 pair is introduction sequence
- * @param endRange      frame number of start of end range, we possible need to detect closing credits
+ * @param stopPosition           frame number of logo stop mark
+ * @param startPosition          frame number of logo start mark
+ * @param isLogoChange           -1 no logo change, 0 unknown, 1 is logo change
+ * @param isInfoLogo             -1 pair is no introduction sequence, 0 unknown, 1 pair is introduction sequence
+ * @param isStartMarkInBroadcast -1 start mark is not in broadcast, 0 not known, 1 start mark is in broadcast
+ * @param endRange               frame number of start of end range, we possible need to detect closing credits
  * @return true if there is a next logo stop/start pair, false otherwise
  */
         bool GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo, int *isStartMarkInBroadcast, const int endRange);
@@ -210,6 +211,7 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
 /**
  * contructor for class to dectect special logo stop/start pair
  * @param maContextParam                 markad context
+ * @param markCriteriaParam              mark criteria
  * @param ptr_cDecoderParam              decoder
  * @param recordingIndexParam            recording index
  * @param evaluateLogoStopStartPairParam class to evalute logo stop/start pairs
@@ -221,10 +223,11 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
 /**
  * find first pixel in a sobel transformed picture
  * @param      picture sobel transformed picture
+ * @param      corner  corner source of picture
  * @param      width   width of the picture
  * @param      height  height of the picture
- * @param      searchX x position to start search
- * @param      searchY y position to start search
+ * @param      startX  x position to start search
+ * @param      startY  y position to start search
  * @param      offsetX x offset for each search step (usually +1 or -1)
  * @param      offsetY y offset for each search step (usually +1 or -1)
  */
@@ -246,13 +249,15 @@ class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
 
 /**
  * find start position of a possible frame in a sobel transformed picture
- * @param      picture sobel transformed picture
- * @param      width   width of the picture
- * @param      height  height of the picture
- * @param[in]  startX  x position to start search (start pixel)
- * @param[in]  startY  y position to start search (start pixel)
- * @param      offsetX x offset for each search step (usually +1 or -1)
- * @param      offsetY y offset for each search step (usually +1 or -1)
+ * @param         picture sobel transformed picture
+ * @param         width   width of the picture
+ * @param         height  height of the picture
+ * @param[in]     startX  x position to start search (start pixel)
+ * @param[in]     startY  y position to start search (start pixel)
+ * @param         offsetX x offset for each search step (usually +1 or -1)
+ * @param         offsetY y offset for each search step (usually +1 or -1)
+ * @param[in,out] endX    x position from end of the frame
+ * @param[in,out] endY    y position from end of the frame
  */
         int FindFrameEndPixel(const uchar *picture, const int width, const int height, const int startX, const int startY, const int offsetX, const int offsetY, int *endX, int *endY);
 

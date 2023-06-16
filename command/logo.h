@@ -53,8 +53,9 @@ class cExtractLogo : public cLogoSize {
 
 /**
  * search and extract logo from recording
- * @param maContext  markad context
- * @param startFrame frame number to start search
+ * @param maContext    markad context
+ * @param markCriteria mark criteria
+ * @param startFrame   frame number to start search
  * @return last read frame during search
  */
         int SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCriteria, int startFrame);
