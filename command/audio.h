@@ -12,6 +12,12 @@
 #include "index.h"
 #include "debug.h"
 
+enum {
+    SILENCE_UNINITIALIZED = -2,
+    SILENCE_FALSE         = -1,
+    SILENCE_TRUE          =  1
+};
+
 
 /**
  *  detect audio channel changes and set channel marks
@@ -30,7 +36,7 @@ class cMarkAdAudio {
 /**
  *  compare current audio channels with channels before and add marks if channel count has changed
  */
-        sMarkAdMark *Process();
+        sMarkAdMarks *Process(const int frameNumber);
 
 /**
  *  reset stored channel states of all audio streams
@@ -41,18 +47,23 @@ class cMarkAdAudio {
     private:
 
 /**
- *  reset all values of mark
+ *  reset audio marks array
  */
-        void ResetMark();
+        void ResetMarks();
 
 /**
- *  prepare mark to add
+ *  add a new mark ti mark array
  *  @param type           type of the mark (MT_CHANNELSTART or MT_CHANNELSTOP)
  *  @param position frame number of the mark
  *  @param channelsBefore number of channels before change
  *  @param channelsAfter  number of channels after change
  */
-        void SetMark(const int type, const int position, const int channelsBefore, const int channelsAfter);
+        void AddMark(const int type, const int position, const int channelsBefore, const int channelsAfter);
+
+/**
+ * detect silence marks
+ */
+        void Silence(const int frameNumber);
 
 /**
  *  detect if there is a change of the audio channel count
@@ -62,13 +73,24 @@ class cMarkAdAudio {
  */
         bool ChannelChange(int channelsBefore, int channelsAfter);
 
-        sMarkAdContext *macontext;             //!< markad context
-                                               //!<
-        cIndex *recordingIndexAudio = NULL;    //!< recording index
-                                               //!<
-        sMarkAdMark mark;                      //!< new mark to add
-                                               //!<
-        short int channels[MAXSTREAMS] = {0};  //!< count of audio channels per stream
-                                               //!<
+
+        sMarkAdContext *macontext      = NULL;                   //!< markad context
+                                                                 //!<
+        int silenceStatus              = SILENCE_UNINITIALIZED;  //!< status of silence detection
+                                                                 //!<
+        int64_t silencePTS             = -1;                     //!< PTS of first detected silence
+                                                                 //!<
+        int silenceFrame               = -1;                     //!< frame number of first detected silence
+                                                                 //!<
+        int64_t soundPTS               = -1;                     //!< PTS of first detected sound
+                                                                 //!<
+        int retry                      = 0;                      //!< retry count to get video frame after first sound PTS
+                                                                 //!<
+        cIndex *recordingIndexAudio    = NULL;                   //!< recording index
+                                                                 //!<
+        short int channels[MAXSTREAMS] = {0};                    //!< count of audio channels per stream
+                                                                 //!<
+        sMarkAdMarks audioMarks        = {};                     //!< array of marks to add to list
+                                                                 //!<
 };
 #endif

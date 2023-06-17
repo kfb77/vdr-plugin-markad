@@ -27,8 +27,9 @@
 extern bool abortNow;
 
 
-cMark::cMark(const int typeParam, const int oldTypeParam, const int positionParam, const char *commentParam, const bool inBroadCastParam) {
+cMark::cMark(const int typeParam, const int oldTypeParam, const int newTypeParam, const int positionParam, const char *commentParam, const bool inBroadCastParam) {
     type        = typeParam;
+    newType     = newTypeParam;
     oldType     = oldTypeParam;
     position    = positionParam;
     inBroadCast = inBroadCastParam;
@@ -306,16 +307,6 @@ cMark *cMarks::GetAround(const int frames, const int position, const int type, c
 }
 
 
-cMark *cMarks::Optimize(const int frames, cMark *mark) {
-    cMark *black = GetAround(frames, mark->position, (mark->type && 0x0F) + MT_BLACKCHANGE);
-    if (black) {
-        dsyslog("cMarks::Optimze(): found near blackscreen mark at (%d) for mark at (%d)", black->position, mark->position);
-        return Move(mark, black->position, "black screen");
-    }
-    return mark;
-}
-
-
 cMark *cMarks::GetPrev(const int position, const int type, const int mask) {
     if (!first) return NULL; // no elements yet
 
@@ -358,11 +349,14 @@ cMark *cMarks::GetNext(const int position, const int type, const int mask) {
 }
 
 
-cMark *cMarks::Add(const int type, const int oldType, const int position, const char *comment, const bool inBroadCast) {
+cMark *cMarks::Add(const int type, const int oldType, const int newType, const int position, const char *comment, const bool inBroadCast) {
 
     cMark *dupMark;
     if ((dupMark = Get(position))) {
-        if (((dupMark->type & 0xF0) != MT_BLACKCHANGE) && ((type & 0xF0) != MT_BLACKCHANGE)) dsyslog("cMarks::Add(): duplicate mark on position (%d) type 0x%X and type 0x%X", position, type, dupMark->type);  // do not log duplicates with blacksceen, this is normal
+        if ((type & 0xF0) != MT_SCENECHANGE) dsyslog("cMarks::Add(): duplicate mark on position (%d) type 0x%X and type 0x%X", position, type, dupMark->type); // duplicate scene changes happens frequently
+#ifdef DEBUG_SCENECHANGE
+        dsyslog("cMarks::Add(): duplicate mark on position (%d) type 0x%X and type 0x%X", position, type, dupMark->type); // duplicate scene changes happens frequently
+#endif
         if (type == dupMark->type) return dupMark;      // same type at same position, ignore add
         if ((type & 0xF0) == (dupMark->type & 0xF0)) {  // start and stop mark of same type at same position, delete both
             Del(dupMark->position);
@@ -375,14 +369,15 @@ cMark *cMarks::Add(const int type, const int oldType, const int position, const 
                 dupMark->comment = strdup(comment);
                 ALLOC(strlen(dupMark->comment)+1, "comment");
             }
-            dupMark->type = type;
-            dupMark->oldType = oldType;
+            dupMark->type        = type;
+            dupMark->oldType     = oldType;
+            dupMark->newType     = newType;
             dupMark->inBroadCast = inBroadCast;
         }
         return dupMark;
     }
 
-    cMark *newMark = new cMark(type, oldType, position, comment, inBroadCast);
+    cMark *newMark = new cMark(type, oldType, newType, position, comment, inBroadCast);
     if (!newMark) return NULL;
     ALLOC(sizeof(*newMark), "mark");
 
@@ -452,66 +447,96 @@ cMark *cMarks::Add(const int type, const int oldType, const int position, const 
 //
 char *cMarks::TypeToText(const int type) {
     char *text = NULL;
-    switch (type & 0xF0) {
+    switch (type & 0xFF0) {
+        case MT_UNDEFINED:
+            if (asprintf(&text, "undefined") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
+            break;
         case MT_ASSUMED:
             if (asprintf(&text, "assumed") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
         case MT_SCENECHANGE:
             if (asprintf(&text, "scene") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
+            break;
+        case MT_SOUNDCHANGE:
+            if (asprintf(&text, "sound") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
         case MT_BLACKCHANGE:
             if (asprintf(&text, "black screen") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
         case MT_LOGOCHANGE:
             if (asprintf(&text, "logo") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
         case MT_CHANNELCHANGE:
             if (asprintf(&text, "channel") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
         case MT_VBORDERCHANGE:
             if (asprintf(&text, "vertical border") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
         case MT_HBORDERCHANGE:
             if (asprintf(&text, "horizontal border") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
         case MT_ASPECTCHANGE:
             if (asprintf(&text, "aspect ratio") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
-        case MT_MOVEDCHANGE:
+        case MT_MOVED:
             if (asprintf(&text, "moved") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
         case MT_TYPECHANGE:
             if (asprintf(&text, "type changed") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
         case MT_VPSCHANGE:
             if (asprintf(&text, "VPS event") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
         case MT_RECORDINGCHANGE:
             if (asprintf(&text, "recording") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
+            break;
+        case MT_INTRODUCTIONCHANGE:
+            if (asprintf(&text, "introduction") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
         default:
             // special type
@@ -519,12 +544,14 @@ char *cMarks::TypeToText(const int type) {
                 if (asprintf(&text, "all") != -1) {
                     ALLOC(strlen(text)+1, "text");
                 }
+                else esyslog("cMarks::TypeToText(): asprintf failed");
             }
             else {
-                esyslog("cMarks::TypeToText(): type 0x%X unknown", type);
-                if (asprintf(&text, "unknown") != -1) {
+                esyslog("cMarks::TypeToText(): type 0x%X not valid", type);
+                if (asprintf(&text, "not valid") != -1) {
                     ALLOC(strlen(text)+1, "text");
                 }
+                else esyslog("cMarks::TypeToText(): asprintf failed");
             }
             break;
     }
@@ -550,12 +577,13 @@ void cMarks::ChangeType(cMark *mark, const int newType) {
 // move mark to new posiition
 // return pointer to new mark
 //
-cMark *cMarks::Move(cMark *mark, const int newPosition, const char* reason) {
+cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType, const char* reason) {
     if (!mark) return NULL;
     if (!reason) return NULL;
 
     char *comment = NULL;
     char *indexToHMSF = IndexToHMSF(mark->position);
+    if (indexToHMSF) { ALLOC(strlen(indexToHMSF)+1, "indexToHMSF"); }
     cMark *newMark = NULL;
     char* typeText = TypeToText(mark->type);
 
@@ -574,9 +602,9 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const char* reason) {
            isyslog("%s",comment);
 
            int oldType = mark->type;
-           int newType = ((mark->type & 0x0F) == MT_START) ? MT_MOVEDSTART : MT_MOVEDSTOP;
+           int type = ((mark->type & 0x0F) == MT_START) ? MT_MOVEDSTART : MT_MOVEDSTOP;
            Del(mark);
-           newMark = Add(newType, oldType, newPosition, comment);
+           newMark = Add(type, oldType, newType, newPosition, comment);
 
            FREE(strlen(typeText)+1, "text");
            free(typeText);
@@ -600,17 +628,19 @@ char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR) {
     double Seconds = 0;
     int f = 0;
     int time_ms = recordingIndexMarks->GetTimeFromFrame(frameNumber, isVDR);
+#ifdef DEBUG_SAVEMARKS
+    dsyslog("cMarks::IndexToHMSF():      frame (%d), offset from start %d, isVDR %d", frameNumber, time_ms, isVDR);
+#endif
     if (time_ms >= 0) f = int(modf(float(time_ms) / 1000, &Seconds) * 100);                 // convert ms to 1/100 s
     else {
-        dsyslog("cMarks::IndexToHMSF(): failed to get time from frame (%d)", frameNumber);
+        esyslog("cMarks::IndexToHMSF(): failed to get time from frame (%d)", frameNumber);
         return NULL;
     }
     int s = int(Seconds);
     int m = s / 60 % 60;
     int h = s / 3600;
     s %= 60;
-    if (asprintf(&indexToHMSF, "%d:%02d:%02d.%02d", h, m, s, f) == -1) return NULL;   // this has to be freed in the calling function
-    ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
+    if (asprintf(&indexToHMSF, "%d:%02d:%02d.%02d", h, m, s, f) == -1) return NULL;   // this has to be managed in the calling function
     return indexToHMSF;
 }
 
@@ -676,31 +706,40 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
 
     FILE *mf;
     mf = fopen(fpath,"w+");
-
     if (!mf) {
         FREE(strlen(fpath)+1, "fpath");
         free(fpath);
         return false;
     }
-
     cMark *mark = first;
     while (mark) {
-        if (((mark->type & 0xF0) == MT_BLACKCHANGE) && (mark->position != first->position) && (mark->position != last->position)) { // do not save blackscreen marks expect start and end mark
-            mark = mark->Next();
-            continue;
-        }
         // for stop marks adjust timestamp from iFrame before to prevent short ad pictures, vdr cut only on iFrames
         int vdrMarkPosition = mark->position;
         if ((mark->type & 0x0F) == MT_STOP) vdrMarkPosition = recordingIndexMarks->GetIFrameBefore(mark->position);
 
-        char *indexToHMSF_VDR = IndexToHMSF(vdrMarkPosition, true);
-        char *indexToHMSF_PTS = IndexToHMSF(mark->position, false);
+#ifdef DEBUG_SAVEMARKS
+        dsyslog("-----------------------------------------------------------------------------");
+        dsyslog("cMarks::Save(): mark frame number     (%d)", mark->position);
+        dsyslog("cMarks::Save(): vdr mark frame number (%d)", vdrMarkPosition);
+#endif
+        char *indexToHMSF_PTS = IndexToHMSF(mark->position, false);     // PTS based timestamp
+        if (indexToHMSF_PTS) { ALLOC(strlen(indexToHMSF_PTS)+1, "indexToHMSF_PTS"); }
+        char *indexToHMSF_VDR = IndexToHMSF(vdrMarkPosition, true);     // vdr based timestamp
+        if (indexToHMSF_VDR) { ALLOC(strlen(indexToHMSF_VDR)+1, "indexToHMSF_VDR"); }
+#ifdef DEBUG_SAVEMARKS
+        dsyslog("cMarks::Save(): mark frame number     (%d): indexToHMSF_PTS %s", mark->position,  indexToHMSF_PTS);
+        dsyslog("cMarks::Save(): vdr mark frame number (%d): indexToHMSF_VDR %s", vdrMarkPosition, indexToHMSF_VDR);
+#endif
         if (indexToHMSF_VDR && indexToHMSF_PTS) {
             if (maContext->Config->pts) fprintf(mf, "%s (%6d)%s %s <- %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", indexToHMSF_PTS, mark->comment ? mark->comment : "");
             else fprintf(mf, "%s (%6d)%s %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", mark->comment ? mark->comment : "");
-            FREE(strlen(indexToHMSF_VDR)+1, "indexToHMSF");
+        }
+        if (indexToHMSF_VDR) {
+            FREE(strlen(indexToHMSF_VDR)+1, "indexToHMSF_VDR");
             free(indexToHMSF_VDR);
-            FREE(strlen(indexToHMSF_PTS)+1, "indexToHMSF");
+        }
+        if (indexToHMSF_PTS) {
+            FREE(strlen(indexToHMSF_PTS)+1, "indexToHMSF_PTS");
             free(indexToHMSF_PTS);
         }
         mark = mark->Next();

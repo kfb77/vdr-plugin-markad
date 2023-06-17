@@ -37,7 +37,7 @@ cOSDMessage::~cOSDMessage() {
     }
     if (host) {
         FREE(strlen(host)+1, "host");
-	free(host);
+        free(host);
     }
 }
 

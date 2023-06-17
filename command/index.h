@@ -81,26 +81,20 @@ class cIndex {
  * @param pts  presentation timestamp
  * @return first frame number after given presentation timestamp
  */
-        int GetFirstVideoFrameAfterPTS(const int64_t pts);
+        int GetVideoFrameToPTS(const int64_t pts, const bool before = false);
 
     private:
-/**
- * get last stored frame number of the recording index
- * @return last stored frame number of the recording index
- */
-        int GetLastFrameNumber();
-
 /**
  * element of the video index
  */
         struct sIndexElement {
-            int fileNumber         = 0;             //!< number of TS file
+            int fileNumber         = -1;            //!< number of TS file
                                                     //!<
-            int frameNumber        = 0;             //!< video frame number
+            int frameNumber        = -1;            //!< video frame number
                                                     //!<
-            int ptsTimeOffset_ms   = 0;             //!< time offset from start of the recording in ms based on pts in frame, missing frame increase timestamp (imestamps for VLC player)
+            int ptsTimeOffset_ms   = -1;            //!< time offset from start of the recording in ms based on pts in frame, missing frame increase timestamp (imestamps for VLC player)
                                                     //!<
-            int frameTimeOffset_ms = 0;             //!< time offset from start of the recording in ms based in frame duration, missing frames are ignored (timestamps for VDR)
+            int frameTimeOffset_ms = -1;            //!< time offset from start of the recording in ms based in frame duration, missing frames are ignored (timestamps for VDR)
                                                     //!<
         };
         std::vector<sIndexElement> indexVector;     //!< recording index
@@ -117,6 +111,6 @@ class cIndex {
         std::vector<sPTS_RingbufferElement> ptsRing; //!< ring buffer for PTS per frameA
                                                      //!<
 
-#define MAX_PTSRING 125                              // maximum Element in ptsRing Ring Buffer
+#define MAX_PTSRING 100                              // maximum Element in ptsRing Ring Buffer
 };
 #endif

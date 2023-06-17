@@ -212,6 +212,9 @@ bool cDecoder::DecodeFile(const char *filename) {
         }
 
         dsyslog("cDecoder::DecodeFile(): using decoder for stream %i: codec id %5i -> %s", streamIndex, codec_id, codec->long_name);
+        if ((firstMP2Index < 0) && (codec_id == AV_CODEC_ID_MP2)) {
+            firstMP2Index = streamIndex;
+        }
         codecCtxArray[streamIndex]=avcodec_alloc_context3(codec);
         if (!codecCtxArray[streamIndex]) {
             dsyslog("cDecoder::DecodeFile(): avcodec_alloc_context3 failed");
@@ -237,6 +240,7 @@ bool cDecoder::DecodeFile(const char *filename) {
             dsyslog("cDecoder::DecodeFile(): real    framerate %d/%d", avctx->streams[streamIndex]->r_frame_rate.num, avctx->streams[streamIndex]->r_frame_rate.den);
         }
     }
+    dsyslog("cDecoder::DecodeFile(): first MP2 audio stream index: %d", firstMP2Index);
     if (fileNumber <= 1) offsetTime_ms_LastFile = 0;
     return true;
 }
@@ -358,7 +362,7 @@ int cDecoder::GetVideoRealFrameRate() {
 }
 
 
-bool cDecoder::GetNextPacket(bool ignorePTS_Ringbuffer) {
+bool cDecoder::GetNextPacket(const bool buildFrameIndex, const bool buildPTS_Index) {
     if (!avctx) return false;
     FrameData.Valid = false;
     av_packet_unref(&avpkt);
@@ -402,7 +406,7 @@ bool cDecoder::GetNextPacket(bool ignorePTS_Ringbuffer) {
             dtsBefore = avpkt.dts;
 
             // store frame number and pts in a ring buffer
-            if (!ignorePTS_Ringbuffer) recordingIndexDecoder->AddPTS(currFrameNumber, avpkt.pts);
+            if (buildPTS_Index) recordingIndexDecoder->AddPTS(currFrameNumber, avpkt.pts);
             int64_t offsetTime_ms = -1;
             if (avpkt.pts != AV_NOPTS_VALUE) {
                 int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
@@ -414,8 +418,10 @@ bool cDecoder::GetNextPacket(bool ignorePTS_Ringbuffer) {
                 iFrameCount++;
                 // store iframe number and pts offset, sum frame duration in index
                 int64_t frameTimeOffset_ms = 1000 * static_cast<int64_t>(currOffset) * avctx->streams[avpkt.stream_index]->time_base.num / avctx->streams[avpkt.stream_index]->time_base.den;  // need more space to calculate value
-                if (offsetTime_ms >= 0) recordingIndexDecoder->Add(fileNumber, currFrameNumber, offsetTime_ms_LastFile + offsetTime_ms, frameTimeOffset_ms);
-                else dsyslog("cDecoder::GetNextPacket(): failed to get pts for frame %d", currFrameNumber);
+                if (buildFrameIndex) {
+                    if (offsetTime_ms >= 0) recordingIndexDecoder->Add(fileNumber, currFrameNumber, offsetTime_ms_LastFile + offsetTime_ms, frameTimeOffset_ms);
+                    else dsyslog("cDecoder::GetNextPacket(): failed to get pts for frame %d", currFrameNumber);
+                }
             }
         }
         return true;
@@ -444,10 +450,6 @@ bool cDecoder::SeekToFrame(sMarkAdContext *maContext, int frameNumber) {
 
     int iFrameBefore = recordingIndexDecoder->GetIFrameBefore(frameNumber);
     if (iFrameBefore == -1) {
-        dsyslog("cDecoder::SeekFrame(): failed to get iFrame before frame (%d)", frameNumber);
-        return false;
-    }
-    if (iFrameBefore == -2) {
         iFrameBefore = 0;
         dsyslog("cDecoder::SeekFrame(): index does not yet contain frame (%5d), decode from current frame (%d) to build index", frameNumber, currFrameNumber);
     }
@@ -466,14 +468,14 @@ bool cDecoder::SeekToFrame(sMarkAdContext *maContext, int frameNumber) {
     }
 
     while (currFrameNumber < frameNumber) {
-        if (!this->GetNextPacket()) {
+        if (!this->GetNextPacket(true, false)) {  // build frame index but no pts index
             if (!this->DecodeDir(recordingDir)) {
                 dsyslog("cDecoder::SeekFrame(): failed for frame (%d) at frame (%d)", frameNumber, currFrameNumber);
                 return false;
             }
             continue;
         }
-        if (currFrameNumber >= iFrameBefore) GetFrameInfo(maContext, true, false);  // preload decoder buffer
+        if (currFrameNumber >= iFrameBefore) GetFrameInfo(maContext, true, false, false);  // preload decoder buffer
     }
     dsyslog("cDecoder::SeekToFrame(): successful");
     return true;
@@ -685,7 +687,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
 }
 
 
-bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, const bool decodeFull) {
+bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, const bool decodeFull, const bool decodeVolume) {
     if (!maContext) {
         esyslog("cDecoder::GetFrameInfo(): frame (%5d): markad context not set", currFrameNumber);
         return false;
@@ -800,6 +802,38 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, c
             maContext->Audio.Info.codec_id[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codec->codec_id;
         }
 #endif
+        // get volume of the first MP2 stream
+        if (decodeVolume && (currFrameNumber >= 0) && (avpkt.stream_index == firstMP2Index)) {
+            avFrameRef = DecodePacket(&avpkt);  // free in DecodePacket
+            if (avFrame) {
+                if (avFrameRef->format == AV_SAMPLE_FMT_S16P) {
+                    int level = 0;
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+                    for (int channel = 0; channel < avFrameRef->ch_layout.nb_channels; channel++)
+#else
+                    for (int channel = 0; channel < avFrameRef->channels; channel++)
+#endif
+                    {
+                        const int16_t *samples = reinterpret_cast<int16_t*>(avFrameRef->data[channel]);
+                        for (int sample = 0; sample < avFrameRef->nb_samples; sample++) {
+                            level += abs(samples[sample]);
+                        }
+                    }
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+                    int normVolume =  level / avFrameRef->nb_samples / avFrameRef->ch_layout.nb_channels;
+#else
+                    int normVolume =  level / avFrameRef->nb_samples / avFrameRef->channels;
+#endif
+                    maContext->Audio.Info.volume = normVolume;
+                    maContext->Audio.Info.PTS    = avpkt.pts;
+                }
+                else dsyslog("cDecoder::cDecoder::GetFrameInfo(): invalid audio frame format: %d", avFrameRef->format);
+            }
+        }
+        else {  // not first MP2 stream, set values to invalid
+            maContext->Audio.Info.volume = -1;
+        }
+
         if (IsAudioAC3Packet()) {
             if (avpkt.stream_index > MAXSTREAMS) {
                 esyslog("cDecoder::GetFrameInfo(): to much streams %i", avpkt.stream_index);
@@ -964,210 +998,4 @@ int cDecoder::GetIFrameCount(){
 bool cDecoder::IsInterlacedVideo(){
     if (interlaced_frame > 0) return true;
     return false;
-}
-
-
-int cDecoder::GetFirstMP2AudioStream() {
-    for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-        AVCodecID codec_id = avctx->streams[streamIndex]->codecpar->codec_id;
-#else
-        AVCodecID codec_id = avctx->streams[streamIndex]->codec->codec_id;
-#endif
-        if (codec_id == AV_CODEC_ID_MP2) return streamIndex;
-    }
-    return -1;
-}
-
-
-// get next silence part
-// return:
-// if <before> we are called for a range before mark and return next i-frame after last silence part frame
-// if not <before> we are called direct after mark position and return i-frame before first silence part
-// -1 if no silence part were found or we got no valid video frame number to silecnce PTS
-//
-int cDecoder::GetNextSilence(sMarkAdContext *maContext, const int stopFrame, const bool isBeforeMark, const bool isStartMark) {
-#define SILENCE_LEVEL 17  // changed from 25 to 17
-#define SILENCE_COUNT 5   // low level counts twice
-    struct silenceType {
-        int     startTmp    = -1;
-        int64_t startTmpPTS = -1;
-        int     endTmp      = -1;
-        int64_t endTmpPTS   = -1;
-        int     countTmp    =  0;
-        int     startFrame  = -1;
-        int64_t startPTS    = -1;
-        int     endFrame    = -1;
-        int64_t endPTS      = -1;
-        int     count       =  0;
-    } silence;
-
-    int streamIndex = GetFirstMP2AudioStream();
-    if (streamIndex < 0) {
-        dsyslog("cDecoder::GetNextSilence(): could not get stream index of MP2 audio stream");
-        return -1;
-    }
-    struct sVideoFrame {
-        int     frameNumber = -1;
-        int64_t pts         = -1;
-    } videoFrame;
-    std::vector<sVideoFrame> videoFrameVector;
-    int startFrame = GetFrameNumber();
-
-    dsyslog("cDecoder::GetNextSilence(): using stream index %i from frame (%d) to frame (%d)", streamIndex, GetFrameNumber(), stopFrame);
-    while (GetFrameNumber() < stopFrame) {
-        if (!GetNextPacket()) {
-            if (!DecodeDir(recordingDir)) break;
-        }
-        if (IsVideoPacket()) {  // store video PTS of each video frame
-#ifdef DEBUG_SILENCE
-            dsyslog("cDecoder::GetNextSilence(): stream index %i video frame (%d) pts %" PRId64, streamIndex, GetFrameNumber(), avpkt.pts);
-#endif
-            videoFrame.frameNumber = GetFrameNumber();
-            videoFrame.pts = avpkt.pts;
-            videoFrameVector.push_back(videoFrame);
-            ALLOC(sizeof(videoFrame), "videoFrameVector");
-            continue;
-        }
-        if (avpkt.stream_index != streamIndex) continue;
-        if (IsAudioPacket()) {
-            AVFrame *audioFrame = DecodePacket(&avpkt);
-            if (audioFrame) {
-                if (audioFrame->format == AV_SAMPLE_FMT_S16P) {
-                    int level = 0;
-#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-                    for (int channel = 0; channel < audioFrame->ch_layout.nb_channels; channel++) {
-#else
-                    for (int channel = 0; channel < audioFrame->channels; channel++) {
-#endif
-                        const int16_t *samples = reinterpret_cast<int16_t*>(audioFrame->data[channel]);
-                        for (int sample = 0; sample < audioFrame->nb_samples; sample++) {
-                            level += abs(samples[sample]);
-                        }
-                    }
-#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-                    int normLevel =  level / audioFrame->nb_samples / audioFrame->ch_layout.nb_channels;
-#else
-                    int normLevel =  level / audioFrame->nb_samples / audioFrame->channels;
-#endif
-#ifdef DEBUG_SILENCE
-                    dsyslog("cDecoder::GetNextSilence(): frame (%5d) level %d", GetFrameNumber(), normLevel);
-#endif
-                    if (normLevel <= SILENCE_LEVEL) {
-                        silence.countTmp++;
-                        if (normLevel <= 7) silence.countTmp++;
-                        int frameNumber = GetFrameNumber();
-                        if (silence.startTmp == -1) {
-                            silence.startTmp = frameNumber;
-                            silence.startTmpPTS = avpkt.pts;
-                        }
-                        silence.endTmp = frameNumber;
-                        silence.endTmpPTS = avpkt.pts;
-                        dsyslog("cDecoder::GetNextSilence(): stream %d frame (%5d) level %2d silenceCount %2d, pts %" PRId64, avpkt.stream_index, frameNumber, normLevel, silence.countTmp, silence.endTmpPTS);
-
-                    }
-                    else {
-                        if (silence.countTmp >= SILENCE_COUNT) { // min count reached, this part is valid
-                            if (silence.startTmp >= 0) {  // end of silence part reached
-                                if (!isBeforeMark) break;  // we are called after the mark, take first valid silence part
-                                if (silence.startFrame <= silence.startTmp) { // later result found
-                                    silence.count      = silence.countTmp;
-                                    silence.startFrame = silence.startTmp;
-                                    silence.startPTS   = silence.startTmpPTS;
-                                    silence.endFrame   = silence.endTmp;
-                                    silence.endPTS     = silence.endTmpPTS;
-                                }
-                            }
-                        }
-                        silence.countTmp    =  0;
-                        silence.startTmp    = -1;
-                        silence.startTmpPTS = -1;
-                        silence.endTmp      = -1;
-                        silence.endTmpPTS   = -1;
-                    }
-                }
-                else {
-                    dsyslog("cDecoder::GetNextSilence(): stream %i frame %i sample format not supported %s", avpkt.stream_index, GetFrameNumber(), av_get_sample_fmt_name((enum AVSampleFormat) audioFrame->format));
-                    return -1;
-                }
-            }
-        }
-
-    }
-    if (silence.startFrame <= silence.startTmp) { // later result found
-        silence.count      = silence.countTmp;
-        silence.startFrame = silence.startTmp;
-        silence.startPTS   = silence.startTmpPTS;
-        silence.endFrame   = silence.endTmp;
-        silence.endPTS     = silence.endTmpPTS;
-    }
-    videoFrame.frameNumber = -1;
-    videoFrame.pts         = -1;
-    int silenceFrame       = -1;
-
-    if (silence.count >= SILENCE_COUNT) {
-        struct sAudioFrame {
-            int frameNumber = -1;
-            int64_t pts = -1;
-        } audioFrame;
-        if (isStartMark) {
-            audioFrame.frameNumber = silence.endFrame; // for start marks we use end of silence part
-            audioFrame.pts         = silence.endPTS;
-
-            videoFrame.pts = INT64_MAX;
-            while (!videoFrameVector.empty()) {  // search video frame with pts after audio frame
-                if ((videoFrameVector.back().pts > audioFrame.pts) && (videoFrameVector.back().pts < videoFrame.pts)) {
-                    videoFrame.frameNumber =  videoFrameVector.back().frameNumber;
-                    videoFrame.pts =  videoFrameVector.back().pts;
-                }
-                videoFrameVector.pop_back();
-                FREE(sizeof(videoFrame), "videoFrameVector");
-            }
-            if (videoFrame.frameNumber == -1) {
-                dsyslog("cDecoder::GetNextSilence(): video frame with pts after not in range, set to audio frame");
-                videoFrame.frameNumber = silence.endFrame;
-            }
-        }
-        else {
-            audioFrame.frameNumber = silence.startFrame;  // for stop mark we use start of silence part
-            audioFrame.pts         = silence.startPTS;
-
-            // search video frame with pts before audio frame
-            while (!videoFrameVector.empty()) {
-                if ((videoFrameVector.back().pts < audioFrame.pts) && (videoFrameVector.back().pts > videoFrame.pts)) {
-                    videoFrame.frameNumber =  videoFrameVector.back().frameNumber;
-                    videoFrame.pts =  videoFrameVector.back().pts;
-                }
-                videoFrameVector.pop_back();
-                FREE(sizeof(videoFrame), "videoFrameVector");
-            }
-            if (videoFrame.frameNumber == -1) {
-                if (isBeforeMark) {
-                    dsyslog("cDecoder::GetNextSilence(): video frame with pts before not in range, set to audio frame");
-                    videoFrame.frameNumber = silence.startFrame;
-                }
-                else { // we check after a logo stop mark, do not go back before this mark
-                    dsyslog("cDecoder::GetNextSilence(): video frame with pts of silence is before stop mark during check after stop mark, use stop mark position");
-                    return startFrame;
-                }
-            }
-        }
-        if (!maContext->Config->fullDecode) {
-            if (isBeforeMark) silenceFrame = recordingIndexDecoder->GetIFrameBefore(videoFrame.frameNumber);
-            else              silenceFrame = recordingIndexDecoder->GetIFrameAfter(videoFrame.frameNumber);
-        }
-        else silenceFrame = videoFrame.frameNumber;
-        dsyslog("cDecoder::GetNextSilence(): found silence part in stream %d between audio frame (%d) and (%d)", streamIndex, silence.startFrame, silence.endFrame);
-        dsyslog("cDecoder::GetNextSilence(): use audio frame (%d) PTS %" PRId64 ", video frame (%d) PTS %" PRId64 ", return frame (%d)", audioFrame.frameNumber, audioFrame.pts, videoFrame.frameNumber, videoFrame.pts, silenceFrame);
-    }
-    else {
-#ifdef DEBUG_MEM
-        int size = videoFrameVector.size();
-        for (int i = 0 ; i < size; i++) {
-            FREE(sizeof(videoFrame), "videoFrameVector");
-        }
-#endif
-        videoFrameVector.clear();
-    }
-    return silenceFrame;
 }

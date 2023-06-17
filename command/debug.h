@@ -68,8 +68,8 @@
 // debug blackscreen detection
 // #define DEBUG_BLACKSCREEN
 
-// debug silence detection
-// #define DEBUG_SILENCE
+// debug volume detection
+// #define DEBUG_VOLUME
 
 // debug marks frames, write mark frame picture (and some before and after) to recording directory
 // #define DEBUG_MARK_FRAMES <count frames before and after>
@@ -81,8 +81,11 @@
 // debug frame PTS
 // #define DEBUG_FRAME_PTS
 
-// debug PTS ring buffer
-// #define DEBUG_RING_PTS
+// debug PTS ring buffer build
+// #define DEBUG_RING_PTS_ADD
+
+// debug PTS ring buffer missed PTS
+// #define DEBUG_RING_PTS_ERROR
 
 // debug video cut
 // #define DEBUG_CUT <streamindex>
@@ -93,6 +96,9 @@
 
 // debug mark optimization
 // #define DEBUG_MARK_OPTIMIZATION
+
+// debug timestamps from final marks to save
+// #define DEBUG_SAVEMARKS
 
 extern int SysLogLevel;
 extern void syslog_with_tid(int priority, const char *format, ...) __attribute__ ((format (printf, 2, 3)));

@@ -28,7 +28,7 @@ class cMark {
  * @param commentParam     mark comment
  * @param inBroadCastParam true if mark is in broadcast, false if mark is in advertising
  */
-        explicit cMark(const int typeParam = MT_UNDEFINED, const int oldTypeParam = MT_UNDEFINED, const int positionParam = 0, const char *commentParam = NULL, const bool inBroadCastParam = false);
+        explicit cMark(const int typeParam = MT_UNDEFINED, const int oldTypeParam = MT_UNDEFINED, const int newTypeParam = MT_UNDEFINED, const int positionParam = 0, const char *commentParam = NULL, const bool inBroadCastParam = false);
 
         ~cMark();
 
@@ -74,16 +74,18 @@ class cMark {
             prev = prevParam;
         }
 
-        int type;                  //!< mark type
-                                   //!<
-        int oldType;               //!< old mark type after mark moved
-                                   //!<
-        int position;              //!< mark frame position
-                                   //!<
-        char *comment = NULL;      //!< mark comment
-                                   //!<
-        bool inBroadCast = false;  //!< true if mark is in broadcast, false if mark is in advertising
-                                   //!<
+        int type         = MT_UNDEFINED;   //!< mark type
+                                           //!<
+        int oldType      = MT_UNDEFINED;   //!< old mark type after mark moved
+                                           //!<
+        int newType      = MT_UNDEFINED;   //!< new mark type after mark moved
+                                           //!<
+        int position     = -1;             //!< mark frame position
+                                           //!<
+        char *comment    = NULL;           //!< mark comment
+                                           //!<
+        bool inBroadCast = false;          //!< true if mark is in broadcast, false if mark is in advertising
+                                           //!<
 
     private:
 /**
@@ -147,7 +149,7 @@ class cMarks {
  * @param inBroadCast true if mark is in broacast, false if mark is in advertising
  * @return ointer to new mark
  */
-        cMark *Add(const int type, const int oldType, const int position, const char *comment = NULL, const bool inBroadCast = false);
+        cMark *Add(const int type, const int oldType, const int newType, const int position, const char *comment = NULL, const bool inBroadCast = false);
 
 /**
  * convert frame number to time string
@@ -232,7 +234,7 @@ class cMarks {
  * @param reason      reason of move, added to comment
  * @return mark with new position
  */
-        cMark *Move(cMark *mark, const int newPosition, const char* reason);
+        cMark *Move(cMark *mark, const int newPosition, const int newType, const char* reason);
 
 
 /**
@@ -258,14 +260,6 @@ class cMarks {
  * @return nearest mark
  */
         cMark *GetAround(const int frames, const int position, const int type = 0xFF, const int mask = 0xFF);
-
-/**
- * optimze mark to nearest blachsceen mark
- * @param frames maximum frames distance
- * @param mark   mark to be optimized
- * @return optimzed  mark
- */
-        cMark *Optimize(const int frames, cMark *mark);
 
 /**
  * get previous mark

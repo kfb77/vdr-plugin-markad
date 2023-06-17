@@ -31,11 +31,12 @@
 #define PLANES 3
 #define CORNERS 4
 
-#define MT_UNDEFINED       (unsigned char) 0
+// global types
+#define MT_UNDEFINED       (unsigned char) 0x00
+#define MT_START           (unsigned char) 0x01
+#define MT_STOP            (unsigned char) 0x02
 
-#define MT_START           (unsigned char) 1
-#define MT_STOP            (unsigned char) 2
-
+// mark types
 #define MT_ASSUMED         (unsigned char) 0x10
 #define MT_ASSUMEDSTART    (unsigned char) 0x11
 #define MT_ASSUMEDSTOP     (unsigned char) 0x12
@@ -44,49 +45,58 @@
 #define MT_SCENESTART      (unsigned char) 0x21
 #define MT_SCENESTOP       (unsigned char) 0x22
 
-#define MT_BLACKCHANGE     (unsigned char) 0x30
-#define MT_NOBLACKSTART    (unsigned char) 0x31
-#define MT_NOBLACKSTOP     (unsigned char) 0x32
+#define MT_SOUNDCHANGE     (unsigned char) 0x30
+#define MT_SOUNDSTART      (unsigned char) 0x31
+#define MT_SOUNDSTOP       (unsigned char) 0x32
 
-#define MT_LOGOCHANGE      (unsigned char) 0x40
-#define MT_LOGOSTART       (unsigned char) 0x41
-#define MT_LOGOSTOP        (unsigned char) 0x42
+#define MT_BLACKCHANGE     (unsigned char) 0x40
+#define MT_NOBLACKSTART    (unsigned char) 0x41
+#define MT_NOBLACKSTOP     (unsigned char) 0x42
 
-#define MT_VBORDERCHANGE   (unsigned char) 0x50
-#define MT_VBORDERSTART    (unsigned char) 0x51
-#define MT_VBORDERSTOP     (unsigned char) 0x52
+#define MT_LOGOCHANGE      (unsigned char) 0x50
+#define MT_LOGOSTART       (unsigned char) 0x51
+#define MT_LOGOSTOP        (unsigned char) 0x52
 
-#define MT_HBORDERCHANGE   (unsigned char) 0x60
-#define MT_HBORDERSTART    (unsigned char) 0x61
-#define MT_HBORDERSTOP     (unsigned char) 0x62
+#define MT_VBORDERCHANGE   (unsigned char) 0x60
+#define MT_VBORDERSTART    (unsigned char) 0x61
+#define MT_VBORDERSTOP     (unsigned char) 0x62
 
-#define MT_ASPECTCHANGE    (unsigned char) 0x70
-#define MT_ASPECTSTART     (unsigned char) 0x71
-#define MT_ASPECTSTOP      (unsigned char) 0x72
+#define MT_HBORDERCHANGE   (unsigned char) 0x70
+#define MT_HBORDERSTART    (unsigned char) 0x71
+#define MT_HBORDERSTOP     (unsigned char) 0x72
 
-#define MT_CHANNELCHANGE   (unsigned char) 0x80
-#define MT_CHANNELSTART    (unsigned char) 0x81
-#define MT_CHANNELSTOP     (unsigned char) 0x82
+#define MT_ASPECTCHANGE    (unsigned char) 0x80
+#define MT_ASPECTSTART     (unsigned char) 0x81
+#define MT_ASPECTSTOP      (unsigned char) 0x82
 
-#define MT_TYPECHANGE      (unsigned char) 0xB0
-#define MT_TYPECHANGESTART (unsigned char) 0xB1
-#define MT_TYPECHANGESTOP  (unsigned char) 0xB2
+#define MT_CHANNELCHANGE   (unsigned char) 0x90
+#define MT_CHANNELSTART    (unsigned char) 0x91
+#define MT_CHANNELSTOP     (unsigned char) 0x92
 
-#define MT_VPSCHANGE       (unsigned char) 0xC0
-#define MT_VPSSTART        (unsigned char) 0xC1
-#define MT_VPSSTOP         (unsigned char) 0xC2
+#define MT_TYPECHANGE      (unsigned char) 0xA0
+#define MT_TYPECHANGESTART (unsigned char) 0xA1
+#define MT_TYPECHANGESTOP  (unsigned char) 0xA2
 
-#define MT_RECORDINGCHANGE (unsigned char) 0xD0
-#define MT_RECORDINGSTART  (unsigned char) 0xD1
-#define MT_RECORDINGSTOP   (unsigned char) 0xD2
+#define MT_VPSCHANGE       (unsigned char) 0xB0
+#define MT_VPSSTART        (unsigned char) 0xB1
+#define MT_VPSSTOP         (unsigned char) 0xB2
 
-#define MT_MOVEDCHANGE     (unsigned char) 0xE0
-#define MT_MOVEDSTART      (unsigned char) 0xE1
-#define MT_MOVEDSTOP       (unsigned char) 0xE2
+#define MT_RECORDINGCHANGE (unsigned char) 0xC0
+#define MT_RECORDINGSTART  (unsigned char) 0xC1
+#define MT_RECORDINGSTOP   (unsigned char) 0xC2
 
-#define MT_VIDEO           (unsigned char) 0xFE  // dummy type for video decode state
+#define MT_MOVED           (unsigned char) 0xD0
+#define MT_MOVEDSTART      (unsigned char) 0xD1
+#define MT_MOVEDSTOP       (unsigned char) 0xD2
+
+// global types
+#define MT_VIDEO           (unsigned char) 0xFD  // dummy type for video decoding state
+#define MT_AUDIO           (unsigned char) 0xFE  // dummy type for audio decoding state
 #define MT_ALL             (unsigned char) 0xFF
 
+// subtypes for moved marks
+#define MT_INTRODUCTIONCHANGE             0xD00
+#define MT_INTRODUCTIONSTART              0xD01
 
 /**
  * logo size structure
@@ -209,23 +219,18 @@ typedef struct sAspectRatio {
  * new mark to add
  */
 typedef struct sMarkAdMark {
-    int type = 0; //!< type of the new mark, see global.h
-                  //!<
-
-    int position = 0; //!< frame position
-                      //!<
-
-    int channelsBefore = 0; //!< audio channel count before mark (set if channel changed at this mark)
-                            //!<
-
-    int channelsAfter = 0; //!< audio channel count after mark (set if channel changed at this mark)
-                           //!<
-
-    sAspectRatio AspectRatioBefore; //!< video aspect ratio before mark (set if video aspect ratio changed at this mark)
+    int type                       = 0;   //!< type of the new mark, see global.h
                                           //!<
-
-    sAspectRatio AspectRatioAfter; //!< video aspect ratio after mark (set if video aspect ratio changed at this mark)
-                                         //!<
+    int position                   = 0;   //!< frame position
+                                          //!<
+    int channelsBefore             = 0;   //!< audio channel count before mark (set if channel changed at this mark)
+                                          //!<
+    int channelsAfter              = 0;   //!< audio channel count after mark (set if channel changed at this mark)
+                                          //!<
+    sAspectRatio AspectRatioBefore = {0}; //!< video aspect ratio before mark (set if video aspect ratio changed at this mark)
+                                          //!<
+    sAspectRatio AspectRatioAfter  = {0}; //!< video aspect ratio after mark (set if video aspect ratio changed at this mark)
+                                          //!<
 } sMarkAdMark;
 
 
@@ -301,38 +306,25 @@ typedef struct sMarkAdContext {
  */
     struct sVideo {
 /**
- * video detection options structure
- */
-        struct sOptions {
-            bool ignoreAspectRatio = false; //!< <b>true:</b>  ignore video aspect ratio detection, set if we found audio channel changes or H.264 video <br>
-                                            //!< <b>false:</b> detect video aspect ratio
-                                            //!<
-        } Options; //!< video detection options
-                   //!<
-
-/**
  * video stream infos
  */
         struct sInfo {
-            int width;                          //!< width of the video in pixel
-                                                //!<
-            int height;                         //!< height of the video in pixel
-                                                //!<
-            int pixFmt;                         //!< pixel format (see libavutil/pixfmt.h)
-                                                //!<
-            sAspectRatio AspectRatio;           //!< current video aspect ratio, set by decoder for each frame
-                                                //!<
-            double framesPerSecond;             //!< frames per second of the recording
-                                                //!<
-            bool interlaced = false;            //!< <b>true:</b>  video is interlaced <br>
-                                                //!< <b>false:</b> video is progressive
-                                                //!<
-            bool hasBorder = false;             //!< <b>true:</b>  video has horizontal or vertical borders <br>
-                                                //!< <b>false:</b> video has no horizontal or vertical borders
-                                                //!<
-            int frameDarkOpeningCredits = -1;   //!< <b>true:</b>  video has a very long dark opening credits <br>
-                                                //!< <b>false:</b> video has no very long dark opening credits <br>
-                                                //!<
+            int width                   = 0;      //!< width of the video in pixel
+                                                  //!<
+            int height                  = 0;;     //!< height of the video in pixel
+                                                  //!<
+            int pixFmt                  = 0;;     //!< pixel format (see libavutil/pixfmt.h)
+                                                  //!<
+            sAspectRatio AspectRatio    = {};     //!< current video aspect ratio, set by decoder for each frame
+                                                  //!<
+            double framesPerSecond      = 0;      //!< frames per second of the recording
+                                                  //!<
+            bool interlaced             = false;  //!< <b>true:</b>  video is interlaced <br>
+                                                  //!< <b>false:</b> video is progressive
+                                                  //!<
+            int frameDarkOpeningCredits = -1;     //!< <b>true:</b>  video has a very long dark opening credits <br>
+                                                  //!< <b>false:</b> video has no very long dark opening credits <br>
+                                                  //!<
         } Info; //!< video stream infos
                 //!<
 
@@ -399,24 +391,22 @@ typedef struct sMarkAdContext {
  * audio stream info structure
  */
         struct sInfo {
-            short int Channels[MAXSTREAMS] = {0}; //!< number of audio channels from each AC3 streams
-                                                  //!<
-
-            int codec_id[MAXSTREAMS] = {0};       //!< codec id of the audio stream
-                                                  //!<
-
-            int SampleRate;                       //!< audio sample rate
-                                                  //!<
-
-            bool channelChange = false;           //!< a valid channel change is detected in this recording
-                                                  //!<
-
-            int channelChangeFrame;               //!< frame number of last channel change
-                                                  //!<
-
-            int64_t channelChangePTS;             //!< presentation timestamp of last audio channel change
-                                                  //!<
-
+            short int Channels[MAXSTREAMS] = {0};    //!< number of audio channels from each AC3 streams
+                                                     //!<
+            int volume                     = -1;     //!< current volume of first MP2 audio stream
+                                                     //!<
+            int64_t PTS                    = -1;     //!< current PTS of packet from first MP2 audio stream
+                                                     //!<
+            int codec_id[MAXSTREAMS]       = {0};    //!< codec id of the audio stream
+                                                     //!<
+            int SampleRate                 = 0;      //!< audio sample rate
+                                                     //!<
+            bool channelChange             = false;  //!< a valid channel change is detected in this recording
+                                                     //!<
+            int channelChangeFrame         = -1;     //!< frame number of last channel change
+                                                     //!<
+            int64_t channelChangePTS       = -1;     //!< presentation timestamp of last audio channel change
+                                                     //!<
         } Info; //!< audio stream infos
                 //!<
 

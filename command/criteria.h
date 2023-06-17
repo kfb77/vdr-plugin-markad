@@ -11,9 +11,11 @@
 #include "marks.h"
 
 enum eCriteria {
+    CRITERIA_USED        =  2,
     CRITERIA_AVAILABLE   =  1,
     CRITERIA_UNKNOWN     =  0,
     CRITERIA_UNAVAILABLE = -1,
+    CRITERIA_DISABLED    = -2,
 };
 
 /**
@@ -44,6 +46,17 @@ class cMarkCriteria : public cMarks {
 
 
 /**
+ * list mark type stati
+ */
+        void ListMarkTypeState();
+
+/**
+ *  get detection state of marks from type
+ */
+        bool GetDetectionState(const int type);
+
+
+/**
  * get status of possible closing credits without logo
  * @return status
  */
@@ -56,20 +69,18 @@ class cMarkCriteria : public cMarks {
  */
         void SetClosingCreditsState(const int state);
 
-/**
- *  get detection state of marks from type
- */
-        bool GetDetectionState(const int type);
 
 /**
  * turn on/of detection of marks from type
  */
         void SetDetectionState(const int type, const bool state);
 
+
 /**
  * list detection stati
  */
         void ListDetection();
+
 
     private:
 /**
@@ -89,11 +100,13 @@ class cMarkCriteria : public cMarks {
                                                        //!<
         int channel               = CRITERIA_UNKNOWN;  //!< status of channel changes in broadcast
                                                        //!<
- 
+
         int closingCredits        = CRITERIA_UNKNOWN;  //!< status of closing credits after end mark
                                                        //!<
 
         bool sceneDetection       = true;              //!< true if we have to detect scene changes, false otherwise
+                                                       //!<
+        bool soundDetection       = true;              //!< true if we have to detect silence, false otherwise
                                                        //!<
         bool blackscreenDetection = true;              //!< true if we have to detect black screens, false otherwise
                                                        //!<
@@ -107,7 +120,10 @@ class cMarkCriteria : public cMarks {
                                                        //!<
         bool channelDetection     = true;              //!< true if we have to detect channel changes, false otherwise
                                                        //!<
+
         bool videoDecoding        = true;              //!< true if we have do decode video stream, false otherwise
+                                                       //!<
+        bool audioDecoding        = true;              //!< true if we have do decode audio stream, false otherwise
                                                        //!<
 };
 #endif

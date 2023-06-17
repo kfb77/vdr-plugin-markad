@@ -137,10 +137,19 @@ class cMarkAdStandalone : public cEvaluateChannel {
         void LogoMarkOptimization();
 
 /**
+ * optimize marks based on black screen
+ */
+        void BlackScreenOptimization();
+
+/**
+ * optimize marks based on mute scene
+ */
+        void SilenceOptimization();
+
+/**
  * optimize marks based on schene changes
  */
         void SceneChangeOptimization();
-
 
 /**
  * cut recording based on detected marks
@@ -152,6 +161,10 @@ class cMarkAdStandalone : public cEvaluateChannel {
 #endif
 
     private:
+/**
+ * swap aspect ratio marks
+ */
+        void SwapAspectRatio();
 
 /**
  * check for start mark
@@ -392,9 +405,13 @@ class cMarkAdStandalone : public cEvaluateChannel {
                                                                        //!<
         int sleepcnt = 0;                                              //!< count of sleeps to wait for new frames when decode during recording
                                                                        //!<
-        cMarks marks;                                                  //!< objects with all marks
+        cMarks marks;                                                  //!< objects with all strong marks
                                                                        //!<
-        cMarks weakMarks;                                              //!< objects with all weak marks (scene chnage and black screen marks)
+        cMarks sceneMarks;                                             //!< objects with all scene change marks
+                                                                       //!<
+        cMarks silenceMarks;                                           //!< objects with all mute scene marks
+                                                                       //!<
+        cMarks blackMarks;                                             //!< objects with all black screen marks
                                                                        //!<
         cDecoder *ptr_cDecoderLogoChange = NULL;                       //!< pointer to class cDecoder, used as second instance to detect logo changes
                                                                        //!<

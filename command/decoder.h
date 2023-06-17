@@ -154,7 +154,7 @@ class cDecoder {
  * @param ignorePTS_Ringbuffer no not fill PTS ring buffer, true if called by logo search to avoid out of sequence elements
  * @return true if successful, false if av_read_frame failed (e.g. end of file)
  */
-        bool GetNextPacket(bool ignorePTS_Ringbuffer = false);
+        bool GetNextPacket(const bool buildIndex, bool buildPTSIndex);
 
 /**
  * get current packet
@@ -189,7 +189,7 @@ class cDecoder {
  * @param[in]     decodeVideo     true if we do decoding of video frames, false if we do no decoding at all
  * @param[in]     decodeFull      true if we do full decoding of all video frames, false if we decode only i-frames
  */
-        bool GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, const bool decodeFull);
+        bool GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, const bool decodeFull, const bool decodeVolume);
 
 /** check if stream is video stream
  * @param streamIndex stream index
@@ -267,23 +267,7 @@ class cDecoder {
  */
         int GetIFrameRangeCount(int beginFrame, int endFrame);
 
-/**
- * get next silent audio part from current frame position to stopFrame
- * @param maContext    markad context
- * @param stopFrame    stop search at this frame
- * @param isBeforeMark true if search is from current frame to mark position, false if search is from mark position to stopFrame
- * @param isStartMark  true if we check for a start mark, false if we check for a stop mark
- * @return frame number of silence part, -1 if no silence part was found
- */
-        int GetNextSilence(sMarkAdContext *maContext, const int stopFrame, const bool isBeforeMark, const bool isStartMark);
-
-    private:
-/**
- * get index of first MP2 audio stream
- * @return index of first MP2 audio stream
- */
-        int GetFirstMP2AudioStream();
-
+   private:
         cIndex *recordingIndexDecoder = NULL;  //!< recording index
                                                //!<
         char *recordingDir = NULL;             //!< name of recording directory
@@ -316,6 +300,8 @@ class cDecoder {
         int64_t offsetTime_ms_LastFile =  0;   //!< offset from recording start of last file in ms
                                                //!<
         int64_t offsetTime_ms_LastRead =  0;   //!< offset from recodring start of last frame in ms
+                                               //!<
+        int firstMP2Index              = -1;   //!< stream index for first MP2 audio stream
                                                //!<
 /**
  * decoded frame data

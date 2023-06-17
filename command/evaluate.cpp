@@ -949,13 +949,13 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         status = false;
     }
     while (status && (ptr_cDecoder->GetFrameNumber() < endPos)) {
-        if (!ptr_cDecoder->GetNextPacket()) {
+        if (!ptr_cDecoder->GetNextPacket(false, false)) {
             dsyslog("cDetectLogoStopStart::Detect(): GetNextPacket() failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             status = false;
         }
         int frameNumber =  ptr_cDecoder->GetFrameNumber();
         if (!ptr_cDecoder->IsVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(maContext, true, maContext->Config->fullDecode)) {
+        if (!ptr_cDecoder->GetFrameInfo(maContext, true, maContext->Config->fullDecode, false)) {
             if (ptr_cDecoder->IsVideoIFrame()) // if we have interlaced video this is expected, we have to read the next half picture
                 tsyslog("cDetectLogoStopStart::Detect(): GetFrameInfo() failed at frame (%d)", frameNumber);
             continue;

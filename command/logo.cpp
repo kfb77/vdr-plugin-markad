@@ -1489,7 +1489,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
         GetLogoSize(maContext, &logoHeight, &logoWidth);
         dsyslog("cExtractLogo::SearchLogo(): logo size %dx%d", logoWidth, logoHeight);
 
-        while(ptr_cDecoder->GetNextPacket(true)) { // no not fill PTS ring buffer, it will get out of sequence
+        while(ptr_cDecoder->GetNextPacket(true, false)) { // fill frame index, but not fill PTS ring buffer, it will get out of sequence
             if (abortNow) {
                 dsyslog("cExtractLogo::SearchLogo(): aborted by user");
                 FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
@@ -1508,7 +1508,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
                 dsyslog("cExtractLogo::SearchLogo(): recording is aktive, read frame (%d), now save dummy start mark at pre timer position %ds", iFrameNumber, maContext->Info.tStart);
                 cMarks marksTMP;
                 marksTMP.RegisterIndex(recordingIndexLogo);
-                marksTMP.Add(MT_ASSUMEDSTART, MT_UNDEFINED, iFrameNumber, "timer start", true);
+                marksTMP.Add(MT_ASSUMEDSTART, MT_UNDEFINED, MT_UNDEFINED, iFrameNumber, "timer start", true);
                 marksTMP.Save(maContext->Config->recDir, maContext, true);
                 maContext->Info.isStartMarkSaved = true;
             }
@@ -1516,7 +1516,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
                 dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at frame (%d), got %d valid frames of %d frames read", ptr_cDecoder->GetFrameNumber(), iFrameCountValid, iFrameCountAll);
                 retStatus=false;
             }
-            if ((ptr_cDecoder->GetFrameInfo(maContext, true, false) && retStatus)) {
+            if ((ptr_cDecoder->GetFrameInfo(maContext, true, false, false) && retStatus)) {
                 if (ptr_cDecoder->IsVideoPacket()) {
                     iFrameNumber = ptr_cDecoder->GetFrameNumber();
                     if (maxLogoPixel == 0) maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);

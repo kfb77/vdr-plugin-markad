@@ -11,6 +11,7 @@
 
 cIndex::cIndex() {
     ptsRing.reserve(MAX_PTSRING + 2);  // pre alloc memory of static length ptsRing
+    indexVector.clear();
     indexVector.reserve(1000);       // pre alloc memory for 1000 index elements
 }
 
@@ -31,18 +32,12 @@ cIndex::~cIndex() {
 }
 
 
-int cIndex::GetLastFrameNumber() {
-     if (!indexVector.empty()) return indexVector.back().frameNumber;
-     else return -1;
-}
-
-
 // add a new entry to the list of frame timestamps
 void cIndex::Add(const int fileNumber, const int frameNumber, const int ptsTimeOffset_ms, const int frameTimeOffset_ms) {
-    if (GetLastFrameNumber() < frameNumber) {
-#ifdef DEBUG_INDEX
-        dsyslog("cIndex::Add(): filenumber %d, frameNumber %5d, ptsTimeOffset_ms %5d, frameTimeOffset_ms %5d", fileNumber, frameNumber, ptsTimeOffset_ms, frameTimeOffset_ms);
-#endif
+    if ((frameNumber > 0) && ((ptsTimeOffset_ms == 0) || (frameTimeOffset_ms == 0))) {
+        esyslog("cIndex::Add(): invalid index entry at frame (%5d): ptsTimeOffset_ms %d, frameTimeOffset_ms %d", frameNumber, ptsTimeOffset_ms, frameTimeOffset_ms);
+    }
+    if (indexVector.empty() || (frameNumber > indexVector.back().frameNumber)) {
         // add new frame timestamp to vector
         sIndexElement newIndex;
         newIndex.fileNumber         = fileNumber;
@@ -51,10 +46,11 @@ void cIndex::Add(const int fileNumber, const int frameNumber, const int ptsTimeO
         newIndex.frameTimeOffset_ms = frameTimeOffset_ms;
 
         if (indexVector.size() == indexVector.capacity()) {
-//            dsyslog("cIndex::Add(): indexVector size %zu, reserve memory for 1000 more elements", indexVector.size());
             indexVector.reserve(1000);
         }
-
+#ifdef DEBUG_INDEX
+        dsyslog("cIndex::Add(): fileNumber %d, frameNumber (%d), ptsTimeOffset_ms %d, frameTimeOffset_ms %d", fileNumber, frameNumber, ptsTimeOffset_ms, frameTimeOffset_ms);
+#endif
         indexVector.push_back(newIndex);
         ALLOC(sizeof(sIndexElement), "indexVector");
     }
@@ -92,23 +88,29 @@ int cIndex::GetIFrameNear(int frame) {
 
 // get iFrame before given frame
 // if frame is a iFrame, frame will be returned
-// return: iFrame number
+// if frame > last iFrame from index, return last iFrame
+// return: iFrame number, -1 if index is not initialized
 //
 int cIndex::GetIFrameBefore(int frameNumber) {
     if (indexVector.empty()) {
         dsyslog("cIndex::GetIFrameBefore(): frame index not initialized");
         return -1;
     }
-    int before_iFrame = 0;
+    int before_iFrame = -1;
+    int iFrameBefore  = -1;
     for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->frameNumber >= frameNumber) {
-            return before_iFrame;
+        if (frameIterator->frameNumber == frameNumber) {
+            iFrameBefore = frameNumber; // given frame is a iFrame
+            break;
+        }
+        if (frameIterator->frameNumber > frameNumber) {
+            iFrameBefore = before_iFrame;
+            break;
         }
         else before_iFrame = frameIterator->frameNumber;
     }
-    dsyslog("cIndex::GetIFrameBefore(): failed for frame (%d), index: first frame (%d) last frame (%d)", frameNumber, indexVector.front().frameNumber, indexVector.back().frameNumber);
-    if (frameNumber > indexVector.back().frameNumber) return indexVector.back().frameNumber;  // with full decoding mark frame can be after last iFrame, return last iFrame
-    return -2; // frame not yet in index
+    if (iFrameBefore < 0) iFrameBefore = indexVector.back().frameNumber;  // use last iFrame from index
+    return iFrameBefore; // frame not (yet) in index
 }
 
 
@@ -133,39 +135,61 @@ int cIndex::GetIFrameAfter(int frameNumber) {
 
 int cIndex::GetTimeFromFrame(const int frameNumber, const bool isVDR) {
     if (indexVector.empty()) {
-        dsyslog("cIndex::GetTimeFromFrame(): frame index not initialized");
+        esyslog("cIndex::GetTimeFromFrame(): frame index not initialized");
         return -1;
     }
-    int before_ms = 0;
-    int before_iFrame = 0;
+#ifdef DEBUG_SAVEMARKS
+    dsyslog("cIndex::GetTimeFromFrame(): frameNumber (%d), isVDR %d", frameNumber, isVDR);
+#endif
+    int before_ms     = -1;
+    int before_iFrame = -1;
+    int offset        = -1;
 
     for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+#ifdef DEBUG_SAVEMARKS
+        dsyslog("cIndex::GetTimeFromFrame(): frame (%6d): offset time is %6dms", frameIterator->frameNumber, frameIterator->ptsTimeOffset_ms);
+#endif
         if (frameIterator->frameNumber == frameNumber) {
-//            tsyslog("cIndex::GetTimeFromFrame(): frame (%d) time is %dms", frameNumber, frameIterator->ptsTimeOffset_ms);
-            if (isVDR) return frameIterator->frameTimeOffset_ms;
-            else return frameIterator->ptsTimeOffset_ms;
+            if (isVDR) {
+                offset = frameIterator->frameTimeOffset_ms;
+                break;
+            }
+            else {
+                offset = frameIterator->ptsTimeOffset_ms;
+                break;
+            }
         }
         if (frameIterator->frameNumber > frameNumber) {
             if (abs(frameNumber - before_iFrame) < abs(frameNumber - frameIterator->frameNumber)) {
-                return before_ms;
+                offset = before_ms;
+                break;
             }
             else {
-                if (isVDR) return frameIterator->frameTimeOffset_ms;
-                else return frameIterator->ptsTimeOffset_ms;
+                if (isVDR) {
+                    offset = frameIterator->frameTimeOffset_ms;
+                    break;
+                }
+                else {
+                    offset = frameIterator->ptsTimeOffset_ms;
+                    break;
+                }
             }
         }
         else {
             before_iFrame = frameIterator->frameNumber;
             if (isVDR) before_ms = frameIterator->frameTimeOffset_ms;
-            else before_ms = frameIterator->ptsTimeOffset_ms;
+            else       before_ms = frameIterator->ptsTimeOffset_ms;
         }
     }
     if (frameNumber > (indexVector.back().frameNumber - 30)) {  // we are after last iFrame but before next iFrame, possible not read jet, use last iFrame
-        if (isVDR) return indexVector.back().frameTimeOffset_ms;
-        else return indexVector.back().ptsTimeOffset_ms;
+        if (isVDR) offset = indexVector.back().frameTimeOffset_ms;
+        else offset = indexVector.back().ptsTimeOffset_ms;
     }
-    dsyslog("cIndex::GetTimeFromFrame(): could not find time for frame (%d), last frame in index list (%d)", frameNumber, indexVector.back().frameNumber);
-    return -1;
+#ifdef DEBUG_SAVEMARKS
+    dsyslog("cIndex::GetTimeFromFrame(): frame (%d): offset from start %dms, isVDR %d", frameNumber, offset, isVDR);
+#endif
+    if (offset < 0) esyslog("cIndex::GetTimeFromFrame(): could not find time for frame (%d), list content: first frame (%d) , last frame (%d)", frameNumber, indexVector.front().frameNumber, indexVector.back().frameNumber);
+    return offset;
 }
 
 
@@ -202,6 +226,9 @@ int cIndex::GetIFrameRangeCount(int beginFrame, int endFrame) {
 
 
 void cIndex::AddPTS(const int frameNumber, const int64_t pts) {
+#ifdef DEBUG_RING_PTS_ADD
+    dsyslog("cIndex::AddPTS(): frame (%6d) PTS %" PRId64, frameNumber, pts);
+#endif
     // add new frame timestamp to vector
     sPTS_RingbufferElement newPTS;
     newPTS.frameNumber = frameNumber;
@@ -218,27 +245,53 @@ void cIndex::AddPTS(const int frameNumber, const int64_t pts) {
 }
 
 
-int cIndex::GetFirstVideoFrameAfterPTS(const int64_t pts) {
-    struct afterType {
+int cIndex::GetVideoFrameToPTS(const int64_t pts, const bool before) {
+    if (ptsRing.size() == 0) {
+        esyslog("cIndex::GetVideoFrameToPTS(): index is empty");
+        return -1;
+    }
+    struct sFrameType {
         int frameNumber = -1;
-        int64_t pts = INT64_MAX;
-    } after;
+        int64_t pts     =  0;
+    } frame;
+#ifdef DEBUG_RING_PTS_ERROR
+    int64_t ptsMin =  INT64_MAX;
+    int64_t ptsMax =  0;
+    dsyslog("----------------------------------------------------------------------------------------------------------------------");
+#endif
+    if (!before) frame.pts = INT64_MAX;
 
     for (std::vector<sPTS_RingbufferElement>::iterator ptsIterator = ptsRing.begin(); ptsIterator != ptsRing.end(); ++ptsIterator) { // get framenumber after
-#ifdef DEBUG_RING_PTS
-        dsyslog("cIndex::GetFirstVideoFrameAfterPTS(): frame (%d) PTS %" PRId64, ptsIterator->frameNumber, ptsIterator->pts);
+#ifdef DEBUG_RING_PTS_ERROR
+        dsyslog("cIndex::GetVideoFrameToPTS(): frame (%6d) PTS %" PRId64, ptsIterator->frameNumber, ptsIterator->pts);
+        ptsMin = std::min(ptsMin, ptsIterator->pts);
+        ptsMax = std::max(ptsMax, ptsIterator->pts);
 #endif
-        if (ptsIterator->pts < pts) {  // reset state if we found a frame with pts samaller than target
-            after.frameNumber = -1;
-            after.pts = INT64_MAX;
+        if (before) {  // search smallest Video PTS before or equal given PTS
+            if ((ptsIterator->pts <= pts) && (ptsIterator->pts >= frame.pts)) {  // reset state if we found a frame with pts smaller than target, they can be out of sequence
+                frame.frameNumber = ptsIterator->frameNumber;
+                frame.pts         = ptsIterator->pts;
+            }
         }
-        else {
-            if (ptsIterator->pts < after.pts) {  // get frame with lowest pts after taget pts
-                after.frameNumber = ptsIterator->frameNumber;
-                after.pts = ptsIterator->pts;
+        else {  // search smallest video PTS after given PTS
+            if ((ptsIterator->pts >= pts) && (ptsIterator->pts <= frame.pts)) {  // get frame with lowest pts after taget pts, we can not break here because it can out of sequence
+                frame.frameNumber = ptsIterator->frameNumber;
+                frame.pts         = ptsIterator->pts;
             }
         }
     }
-    dsyslog("cIndex::GetFirstVideoFrameAfterPTS(): found video frame (%d) PTS %" PRId64 " after PTS %" PRId64, after.frameNumber, after.pts, pts);
-    return after.frameNumber;
+#ifdef DEBUG_RING_PTS_ERROR
+    dsyslog("cIndex::GetVideoFrameToPTS(): PTS      min: %" PRId64, ptsMin);
+    dsyslog("cIndex::GetVideoFrameToPTS(): PTS searched: %" PRId64, pts);
+    dsyslog("cIndex::GetVideoFrameToPTS(): PTS      max: %" PRId64, ptsMax);
+    dsyslog("cIndex::GetVideoFrameToPTS(): index size %lu", ptsRing.size());
+    dsyslog("cIndex::GetVideoFrameToPTS(): found video frame (%d) PTS %" PRId64 " %s PTS %" PRId64, frame.frameNumber, frame.pts, (before) ? "before" : "after", pts);
+    dsyslog("----------------------------------------------------------------------------------------------------------------------");
+#endif
+    if (frame.frameNumber < 0) {
+        if (ptsRing.front().frameNumber == 0) frame.frameNumber = 0;  // return start of recording
+    }
+    // error message should be done by calling function
+    // missing audio PTS in index can happen if audio PTS is after video PTS
+    return frame.frameNumber;
 }

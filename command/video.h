@@ -624,7 +624,7 @@ class cMarkAdVideo {
  */
         cMarkAdVideo &operator =(const cMarkAdVideo *origin) {
             maContext                 = origin->maContext;
-	    markCriteria              = origin->markCriteria;
+            markCriteria              = origin->markCriteria;
             sceneChange               = NULL;
             blackScreen               = NULL;
             hborder                   = NULL;
@@ -632,7 +632,7 @@ class cMarkAdVideo {
             logo                      = NULL;
             aspectRatio               = {};
             recordingIndexMarkAdVideo = NULL;
-            marks                     = {};
+            videoMarks                = {};
             return *this;
         }
 
@@ -694,7 +694,7 @@ class cMarkAdVideo {
                                                   //!<
         cIndex *recordingIndexMarkAdVideo = NULL; //!< recording index
                                                   //!<
-        sMarkAdMarks marks                = {};   //!< array of marks to add to list
+        sMarkAdMarks videoMarks          = {};   //!< array of marks to add to list
                                                   //!<
         sAspectRatio aspectRatio          = {};   //!< video display aspect ratio (DAR)
                                                   //!<
