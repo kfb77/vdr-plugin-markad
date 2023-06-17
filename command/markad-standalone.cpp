@@ -3673,6 +3673,7 @@ void cMarkAdStandalone::ProcessOverlap() {
     if ((length == 0) || (startTime == 0)) {  // we got no recording length or start time from info file
         FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
         delete evaluateLogoStopStartPair;
+        evaluateLogoStopStartPair = NULL;
         return;
     }
     if (time(NULL) < (startTime+(time_t) length)) return;  // we are running during recording and has not reached end of recording
@@ -3752,6 +3753,7 @@ void cMarkAdStandalone::ProcessOverlap() {
         }
         FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
         delete evaluateLogoStopStartPair;
+        evaluateLogoStopStartPair = NULL;
     }
 
     if (save) marks.Save(directory, &macontext, false);
@@ -4787,6 +4789,12 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         FREE(sizeof(*vps), "vps");
         delete vps;
         vps = NULL;
+    }
+
+    if (evaluateLogoStopStartPair) {
+        FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+        delete evaluateLogoStopStartPair;
+        evaluateLogoStopStartPair = NULL;
     }
 
     RemovePidfile();
