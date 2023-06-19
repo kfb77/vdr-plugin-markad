@@ -3053,6 +3053,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
     }
 
     mark = marks.GetFirst();
+    int oldFrameNumber = 0;
 
     // read and decode all video frames, we want to be sure we have a valid decoder state, this is a debug function, we dont care about performance
     while(mark && (ptr_cDecoder->DecodeDir(directory))) {
@@ -3061,7 +3062,9 @@ void cMarkAdStandalone::DebugMarkFrames() {
             if (ptr_cDecoder->IsVideoPacket()) {
                 if (ptr_cDecoder->GetFrameInfo(&macontext, true, macontext.Config->fullDecode)) {
                     int frameNumber = ptr_cDecoder->GetFrameNumber();
-                    if (frameNumber >= (mark->position - DEBUG_MARK_FRAMES)) {
+                    int frameDistance = 1;
+                    if (!macontext.Config->fullDecode) frameDistance = frameNumber - oldFrameNumber;  // get distance between to frame numbers
+                    if (frameNumber >= (mark->position - (frameDistance * DEBUG_MARK_FRAMES))) {
                         dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark frame (%5d) type 0x%X, write frame (%5d)", mark->position, mark->type, frameNumber);
                         char suffix1[10] = "";
                         char suffix2[10] = "";
@@ -3078,11 +3081,12 @@ void cMarkAdStandalone::DebugMarkFrames() {
                             free(fileName);
                         }
 
-                        if (frameNumber >= (mark->position + DEBUG_MARK_FRAMES)) {
+                        if (frameNumber >= (mark->position + (frameDistance * DEBUG_MARK_FRAMES))) {
                             mark = mark->Next();
                             if (!mark) break;
                         }
                     }
+                    oldFrameNumber = frameNumber;
                 }
             }
         }
