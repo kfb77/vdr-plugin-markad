@@ -3639,7 +3639,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
     dsyslog("cMarkAdStandalone::SceneChangeOptimization(): start search for scene change near logo marks");
     cMark *mark = marks.GetFirst();
     while (mark) {
-        if ((mark->type == MT_LOGOSTART) || (mark->type == MT_CHANNELSTART)) {
+        if (mark->type == MT_LOGOSTART) {
             cMark *sceneStart = weakMarks.GetPrev(mark->position, MT_SCENESTART);
             if (sceneStart && (sceneStart->position + 1 != mark->position)) {  // we want to get scene change at same position as mark
                 int diff = 1000 * (mark->position - sceneStart->position) / macontext.Video.Info.framesPerSecond;
@@ -3650,7 +3650,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 }
             }
         }
-        if ((mark->type == MT_LOGOSTOP) || (mark->type == MT_CHANNELSTOP)) {
+        if (mark->type == MT_LOGOSTOP) {
             cMark *sceneStop = weakMarks.GetNext(mark->position - 1, MT_SCENESTOP);  // we want to get scene change at same position as mark
             if (sceneStop && (sceneStop->position != mark->position)) {
                 int diff = 1000 * (sceneStop->position - mark->position) / macontext.Video.Info.framesPerSecond;
