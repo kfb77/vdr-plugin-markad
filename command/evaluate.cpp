@@ -1705,8 +1705,10 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         int secondFramePortionQuote = secondSumFramePortion / AdInFrameType1.frameCountFinal;
         if (firstFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of        best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[firstFrameCorner], firstSumFramePortion, AdInFrameType1.frameCountFinal, firstFramePortionQuote);
         if (secondFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of second best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[secondFrameCorner], secondSumFramePortion, AdInFrameType1.frameCountFinal, secondFramePortionQuote);
-        if (firstFramePortionQuote <= 505) {  // changed from 504 to 505
+        if ((firstFramePortionQuote <= 505) || 
+           ((firstFramePortionQuote <= 699) && (secondFramePortionQuote <= 20))) {
                                               // example for no ad in frame (static scene with vertial or horizontal lines, blinds, windows frames or stairs):
+                                              // best frame portion qoute 699, second best frame portion qoute  20 -> blinds in background with vertical lines
                                               // best frame portion qoute 501, second best frame portion qoute  79
                                               // best frame portion qoute 504, second best frame portion qoute  11
                                               // best frame portion qoute 505, second best frame portion qoute  85
@@ -1752,6 +1754,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     // high matches qoute 981, frame portion quote 710  -> second logo with a horizental line
     //
     // ad in frame, no second logo:
+    // high matches qoute 997, frame portion quote 577  -> second logo after ad in frame (conflict)
     // high matches qoute 834, frame portion quote 494
     // high matches qoute 711, frame portion quote 560  -> ad in frame with second logo before
     // high matches qoute 690, frame portion quote 314
@@ -1878,14 +1881,14 @@ int cDetectLogoStopStart::IntroductionLogo() {
         }
         // examples of separator frames before introduction logo
         //  59     0     0    -1 =  58
-	//  -1   325(l)  0     0 = 324  // fading out logo on black sceen between broadcast before and introduction logo, logo start mark is after introduction logo (conflict)
+        //  -1   325(l)  0     0 = 324  // fading out logo on black sceen between broadcast before and introduction logo, logo start mark is after introduction logo (conflict)
         //
         // example of no separator frames (l = logo corner)
         //  27   286      0     7 = 320
         //  34   206(l)   0     0 = 240
         //   0   201(l)  30     0 = 231
         //   0    35(l) 109     0 = 144
-	//  -1   241(l)   0    -1 = 239   // dark scene with introduction logo
+        //  -1   241(l)   0    -1 = 239   // dark scene with introduction logo
         int diffSeparatorToEnd = 1000 * (endPos - (*cornerResultIt).frameNumber1) / maContext->Video.Info.framesPerSecond;
         if (((countLow  >= 3) && (sumPixel < 144) && (diffSeparatorToEnd > 960)) ||
             ((countZero >= 3) && (sumPixel < 239))){ // new separator image before introduction logo, restart detection
