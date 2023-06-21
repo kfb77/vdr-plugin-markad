@@ -2596,7 +2596,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
                 markCriteria.SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE);
             }
             macontext.Audio.Info.channelChange = true;
-            if (asprintf(&comment, "audio channel change from %d to %d(%6d) ", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
+            if (asprintf(&comment, "audio channel change from %d to %d (%6d) ", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
             if (comment) {
                 ALLOC(strlen(comment)+1, "comment");
             }
