@@ -3716,14 +3716,13 @@ void cMarkAdStandalone::ProcessOverlap() {
     }
 
     bool save = false;
-    cMark *p1 = NULL,*p2 = NULL;
+    cMark *p1 = NULL;
+    cMark *p2 = NULL;
 
-    if (ptr_cDecoder) {
-        ptr_cDecoder->Reset();
-        ptr_cDecoder->DecodeDir(directory);
-    }
+    ptr_cDecoder->Reset();
+    ptr_cDecoder->DecodeDir(directory);
 
-    if (marks.Count() >= 4) {
+    if (marks.Count() >= 4) {  // overlap is in inner marks, so we must have at least 4 marks
         p1 = marks.GetFirst();
         if (!p1) return;
 
