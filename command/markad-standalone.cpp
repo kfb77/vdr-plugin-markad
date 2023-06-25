@@ -1796,7 +1796,7 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
                 FREE(strlen(markType)+1, "text");
                 free(markType);
             }
-            else dsyslog("cMarkAdStandalone::DebugMarks(): could not get type to mark (%d) type %d", mark->position, mark->type);
+            else esyslog("cMarkAdStandalone::DebugMarks(): could not get type to mark (%d) type %d", mark->position, mark->type);
             FREE(strlen(indexToHMSF)+1, "indexToHMSF");
             free(indexToHMSF);
         }
@@ -3094,9 +3094,10 @@ void cMarkAdStandalone::DebugMarkFrames() {
                         char suffix2[10] = "";
                         if ((mark->type & 0x0F) == MT_START) strcpy(suffix1, "START");
                         if ((mark->type & 0x0F) == MT_STOP)  strcpy(suffix1, "STOP");
-                        if (frameNumber < mark->position)    strcpy(suffix2, "BEFORE");
-                        if (frameNumber > mark->position)    strcpy(suffix2, "AFTER");
 
+                        if (frameNumber < mark->position)    strcpy(suffix2, "BEFORE");
+                        if ((macontext.Config->fullDecode)  && (frameNumber > mark->position))     strcpy(suffix2, "AFTER");
+                        if ((!macontext.Config->fullDecode) && (frameNumber > mark->position + 1)) strcpy(suffix2, "AFTER");  // for interlaced stream we will get the picture after the iFrame
                         char *fileName = NULL;
                         if (asprintf(&fileName,"%s/F__%07d_%s_%s.pgm", macontext.Config->recDir, frameNumber, suffix1, suffix2) >= 1) {
                             ALLOC(strlen(fileName)+1, "fileName");
@@ -3104,7 +3105,6 @@ void cMarkAdStandalone::DebugMarkFrames() {
                             FREE(strlen(fileName)+1, "fileName");
                             free(fileName);
                         }
-
                         if (frameNumber >= (mark->position + (frameDistance * DEBUG_MARK_FRAMES))) {
                             mark = mark->Next();
                             if (!mark) break;
