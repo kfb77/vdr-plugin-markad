@@ -367,6 +367,13 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
                                                                              // ProSieben                4:3  720W  576H:->  100W  66H TOP_RIGHT
         logo.widthMax  =  100;
     }
+
+    // Pro7_MAXX               16:9  720W  576H:->  114W  64H TOP_RIGHT
+    // Pro7_MAXX               16:9  720W  576H:->  140W  64H TOP_RIGHT
+    if (strcmp(maContext->Info.ChannelName, "Pro7_MAXX") == 0) {
+        logo.heightMax  =   64;
+    }
+
     if (strcmp(maContext->Info.ChannelName, "RTL_Television") == 0) {        // RTL_Television          16:9  720W  576H:->  104W  60H TOP_LEFT (before 09/2021)
                                                                              // RTL_Television          16:9  720W  576H:->  142W  60H TOP_LEFT (before 09/2021 RTL live logo)
                                                                              // RTL_Television          16:9  720W  576H:->  126W  68H TOP_LEFT (after  09/2021)
@@ -491,6 +498,14 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     }
     if (strcmp(maContext->Info.ChannelName, "MDR_Sachsen_HD") == 0) {        // MDR_Sachsen_HD          16:9 1280W  720H:->  160W  70H TOP_LEFT
         logo.heightMax =  70;
+    }
+
+    // NDR_FS_HH_HD            16:9 1280W  720H:->  184W  86H TOP_LEFT
+    // NDR_FS_HH_HD            16:9 1280W  720H:->  184W  88H TOP_LEFT
+    // NDR_FS_NDS_HD           16:9 1280W  720H:->  184W  88H TOP_LEFT
+    if ((strcmp(maContext->Info.ChannelName, "NDR_FS_HH_HD")  == 0) ||
+        (strcmp(maContext->Info.ChannelName, "NDR_FS_NDS_HD") == 0)) {
+        logo.heightMax =  88;
     }
 
     if (strcmp(maContext->Info.ChannelName, "rbb_Berlin_HD") == 0) {         // rbb_Berlin_HD           16:9 1280W  720H:->  178W  90H TOP_RIGHT
