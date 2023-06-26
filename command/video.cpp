@@ -482,8 +482,9 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
 // check if we have a separation image (very bright with very log contrast in all planes)
 //
 // separation image without logo, still too bright after reduction, but need to detect as logo invisible to get a logo stop mark
-// rp=    0, contrast  20, brightness 197, plane 1: pixel diff  40, plane 2: pixel diff  40  -> bright blue separator frame (ZDF)
-// rp=    0, contrast  24, brightness 215, plane 1: pixel diff  29, plane 2: pixel diff  37  -> bright blue separator frame (ZDF)  (conflict)
+// rp=    0, contrast  20, brightness 197, plane 1: pixel diff  40, plane 2: pixel diff  40  -> bright blue separator frame (with "ZDF")
+// rp=    0, contrast  24, brightness 215, plane 1: pixel diff  29, plane 2: pixel diff  37  -> bright blue separator frame (with "ZDF")  (conflict)
+// rp=    0, contrast   0, brightness 197, plane 1: pixel diff  96, plane 2: pixel diff  26  -> bright yellow separator frame (with "ZWEI")
 //
 // no separation images (bright picture with logo)
 // rp=    0, contrast  23, brightness 207, plane 1: pixel diff  17, plane 2: pixel diff  26
@@ -513,7 +514,7 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
 #endif
         // if we have also low pixel diff in plane 1 and plane 2, this is a separation image
         // we can not use contrast because there is a soft colour change from right to left
-        if ((diffPixel_12[0] <= 40) && (diffPixel_12[1] <= 40)) {
+        if ((diffPixel_12[0] <= 96) && (diffPixel_12[1] <= 40)) {
             dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%d): separation image detected", frameNumber);
             return BRIGHTNESS_SEPARATOR;
         }
