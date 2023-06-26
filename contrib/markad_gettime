@@ -3,4 +3,4 @@
 
 VIDEO="/srv/vdr/video"
 
-grep -r "INFO:  processed time" --include "markad.log" $VIDEO | awk -F  " " '{printf "%s:%s\n", $1, $9}' | awk -F  ":" '{printf "%s %s %s\n", $1, $3, $4}' | awk '{printf "%3dmin %3ds %s\n", $2, $3, $1}'  | sort --numeric-sort -k1,1 -k2,2
+grep -r "duration:                    time" --include "markad.log" $VIDEO | awk -F " " '{printf "%ds %s\n", $9, $1}' | sort --numeric-sort -k1,1 -k2,2
