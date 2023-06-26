@@ -47,7 +47,7 @@ bool restartLogoDetectionDone  = false;
 int SysLogLevel                = 2;
 bool abortNow                  = false;
 int logoSearchTime_ms          = 0;
-int decodeTime_us              = 0;
+long int decodeTime_us         = 0;
 
 struct timeval startAll, endAll = {};
 struct timeval startTime1, endTime1 = {}; // pass 1 (logo search) time

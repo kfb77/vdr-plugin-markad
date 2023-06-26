@@ -15,7 +15,7 @@
 #include "decoder.h"
 #include "debug.h"
 
-extern int decodeTime_us;
+extern long int decodeTime_us;
 
 
 void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_list vl){
