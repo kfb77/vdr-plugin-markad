@@ -1065,11 +1065,15 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 
     // start and stop frame of assumed info logo section
     struct sInfoLogo {
-        int start      = 0;
-        int end        = 0;
-        int startFinal = 0;
-        int endFinal   = 0;
-    } InfoLogo;
+        int start                     = 0;
+        int end                       = 0;
+        int startFinal                = 0;
+        int endFinal                  = 0;
+        int matchLogoCornerCount      = 0;
+        int matchRestCornerCount      = 0;
+        int matchLogoCornerCountFinal = 0;
+        int matchRestCornerCountFinal = 0;
+    } infoLogo;
 
     // start and stop frame of detected zoomed still image
     // this happens before start mark in adult warning info (e.g. SIXX)
@@ -1083,8 +1087,6 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     int  lastSeparatorFrame    = -1;
     int  countSeparatorFrame   =  0;
     int  lowMatchCornerCount   =  0;
-    int  matchLogoCornerCount  =  0;
-    int  matchRestCornerCount  =  0;
     int  countFrames           =  0;
     int  countDark             =  0;
 
@@ -1101,8 +1103,8 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         int darkCorner            = 0;
 
         for (int corner = 0; corner < CORNERS; corner++) {
-            if (((corner == maContext->Video.Logo.corner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) matchLogoCornerCount++;
-            if (((corner != maContext->Video.Logo.corner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) matchRestCornerCount++;
+            if (((corner == maContext->Video.Logo.corner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) infoLogo.matchLogoCornerCount++;
+            if (((corner != maContext->Video.Logo.corner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) infoLogo.matchRestCornerCount++;
             if ((*cornerResultIt).rate[corner] <= 0) countZero++;
             if (((*cornerResultIt).rate[corner] >= 319) || ((*cornerResultIt).rate[corner] <= 0))zoomedPictureCount++;
             sumPixel += (*cornerResultIt).rate[corner];
@@ -1131,32 +1133,43 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         if (((*cornerResultIt).rate[maContext->Video.Logo.corner] > INFO_LOGO_MACTH_MIN) || // do not rededuce to prevent false positiv
             ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 142) && (lowMatchCornerCount == 0)) { // allow one lower match for the change from new logo to normal logo
             if ((*cornerResultIt).rate[maContext->Video.Logo.corner] <= INFO_LOGO_MACTH_MIN) lowMatchCornerCount++;
-            if (InfoLogo.start == 0) InfoLogo.start = (*cornerResultIt).frameNumber1;
-            InfoLogo.end = (*cornerResultIt).frameNumber2;
+            if (infoLogo.start == 0) {
+                infoLogo.start = (*cornerResultIt).frameNumber1;
+#ifdef DEBUG_MARK_OPTIMIZATION
+                dsyslog("cDetectLogoStopStart::IsInfoLogo(): info log: start (%d)", infoLogo.start);
+#endif
+                }
+            infoLogo.end = (*cornerResultIt).frameNumber2;
         }
         else {
-            if ((InfoLogo.end - InfoLogo.start) > (InfoLogo.endFinal - InfoLogo.startFinal)) {
-                InfoLogo.startFinal = InfoLogo.start;
-                InfoLogo.endFinal = InfoLogo.end;
+#ifdef DEBUG_MARK_OPTIMIZATION
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): info log: start (%d), end (%d), matchLogoCornerCount %d, matchRestCornerCount (%d)", infoLogo.start, infoLogo.end, infoLogo.matchLogoCornerCount, infoLogo.matchRestCornerCount);
+#endif
+            if ((infoLogo.end - infoLogo.start) > (infoLogo.endFinal - infoLogo.startFinal)) {
+                infoLogo.startFinal                = infoLogo.start;
+                infoLogo.endFinal                  = infoLogo.end;
+                infoLogo.matchLogoCornerCountFinal = infoLogo.matchLogoCornerCount;
+                infoLogo.matchRestCornerCountFinal = infoLogo.matchRestCornerCount;
             }
-            InfoLogo.start       = 0;  // reset state
-            InfoLogo.end         = 0;
-            matchLogoCornerCount =  0;
-            matchRestCornerCount =  0;
+            infoLogo.start                = 0;  // reset state
+            infoLogo.end                  = 0;
+            infoLogo.matchLogoCornerCount = 0;
+            infoLogo.matchRestCornerCount = 0;
         }
+    }
+    if ((infoLogo.end - infoLogo.start) > (infoLogo.endFinal - infoLogo.startFinal)) {
+        infoLogo.startFinal                = infoLogo.start;
+        infoLogo.endFinal                  = infoLogo.end;
+        infoLogo.matchLogoCornerCountFinal = infoLogo.matchLogoCornerCount;
+        infoLogo.matchRestCornerCountFinal = infoLogo.matchRestCornerCount;
     }
 
     // check if "no logo" corner has same matches as logo corner, in this case it must be a static scene (e.g. static preview picture in frame) and no info logo
-    matchRestCornerCount /= 3;
-    dsyslog("cDetectLogoStopStart::IsInfoLogo(): count matches greater than limit of %d: %d logo corner, avg rest corners %d", INFO_LOGO_MACTH_MIN, matchLogoCornerCount, matchRestCornerCount);
-    if (matchLogoCornerCount <= (matchRestCornerCount + 1)) {
+    infoLogo.matchRestCornerCountFinal /= 3;
+    dsyslog("cDetectLogoStopStart::IsInfoLogo(): count matches greater than limit of %d: %d logo corner, avg rest corners %d", INFO_LOGO_MACTH_MIN, infoLogo.matchLogoCornerCountFinal, infoLogo.matchRestCornerCountFinal);
+    if (infoLogo.matchLogoCornerCountFinal <= (infoLogo.matchRestCornerCountFinal + 1)) {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): too much similar corners, this must be a static ad or preview picture");
         found = false;
-    }
-
-    if ((InfoLogo.end - InfoLogo.start) > (InfoLogo.endFinal - InfoLogo.startFinal)) {
-        InfoLogo.startFinal = InfoLogo.start;
-        InfoLogo.endFinal = InfoLogo.end;
     }
 
     // check zoomed picture
@@ -1200,21 +1213,21 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     // check info logo
     if (found) {
         // ignore short parts at start and end, this is fade in and fade out
-        int diffStart = 1000 * (InfoLogo.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
-        int diffEnd = 1000 * (endPos - InfoLogo.endFinal) / maContext->Video.Info.framesPerSecond;
+        int diffStart = 1000 * (infoLogo.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
+        int diffEnd = 1000 * (endPos - infoLogo.endFinal) / maContext->Video.Info.framesPerSecond;
         int newStartPos = startPos;
         int newEndPos = endPos;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo start diff %dms, end diff %dms", diffStart, diffEnd);
-        if (diffStart < 1920) newStartPos = InfoLogo.startFinal;  // do not increase
-        if (diffEnd <= 1800) newEndPos = InfoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
+        if (diffStart < 1920) newStartPos = infoLogo.startFinal;  // do not increase
+        if (diffEnd <= 1800) newEndPos = infoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): final range start (%d) end (%d)", newStartPos, newEndPos);
 #define INFO_LOGO_MIN_LENGTH  2880  // changed from 4000 to 3360 to 2880
 #define INFO_LOGO_MAX_LENGTH 17040  // chnaged from 15640 to 15880 to 17040
                                     // RTL2 has very long info logos
 #define INFO_LOGO_MIN_QUOTE     69  // changed from 80 to 72 to 70 to 69
-        int quote = 100 * (InfoLogo.endFinal - InfoLogo.startFinal) / (newEndPos - newStartPos);
-        int length = 1000 * (InfoLogo.endFinal - InfoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
-        dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo: start (%d), end (%d), length %dms (expect >=%dms and <=%dms), quote %d%% (expect >= %d%%)", InfoLogo.startFinal, InfoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
+        int quote = 100 * (infoLogo.endFinal - infoLogo.startFinal) / (newEndPos - newStartPos);
+        int length = 1000 * (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo: start (%d), end (%d), length %dms (expect >=%dms and <=%dms), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
         if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE)) {
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): found info logo");
         }
@@ -1705,7 +1718,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         int secondFramePortionQuote = secondSumFramePortion / AdInFrameType1.frameCountFinal;
         if (firstFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of        best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[firstFrameCorner], firstSumFramePortion, AdInFrameType1.frameCountFinal, firstFramePortionQuote);
         if (secondFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of second best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[secondFrameCorner], secondSumFramePortion, AdInFrameType1.frameCountFinal, secondFramePortionQuote);
-        if ((firstFramePortionQuote <= 505) || 
+        if ((firstFramePortionQuote <= 505) ||
            ((firstFramePortionQuote <= 699) && (secondFramePortionQuote <= 20))) {
                                               // example for no ad in frame (static scene with vertial or horizontal lines, blinds, windows frames or stairs):
                                               // best frame portion qoute 699, second best frame portion qoute  20 -> blinds in background with vertical lines
