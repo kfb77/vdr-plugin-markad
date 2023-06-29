@@ -3910,9 +3910,11 @@ void cMarkAdStandalone::ProcessFiles() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::ProcessFiles(): start processing files");
     ptr_cDecoder = new cDecoder(macontext.Config->threads, recordingIndexMark);
-    ALLOC(sizeof(*ptr_cDecoder), "ptr_cDecoder");
+    if (ptr_cDecoder) ALLOC(sizeof(*ptr_cDecoder), "ptr_cDecoder");
+    else              return;
     CheckIndexGrowing();
-    while(ptr_cDecoder && ptr_cDecoder->DecodeDir(directory)) {
+    bool nextFile = true;
+    while(nextFile && ptr_cDecoder && ptr_cDecoder->DecodeDir(directory)) {
         if (abortNow) {
             if (ptr_cDecoder) {
                 FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
@@ -3962,11 +3964,13 @@ void cMarkAdStandalone::ProcessFiles() {
                 macontext.Info.isStartMarkSaved = true;
             }
 
-            if (!cMarkAdStandalone::ProcessFrame(ptr_cDecoder)) break;
+            if (!cMarkAdStandalone::ProcessFrame(ptr_cDecoder)) {
+                nextFile = false;
+                break;
+            }
             CheckIndexGrowing();
         }
     }
-
     if (!abortNow) {
         if (iStart !=0 ) {  // iStart will be 0 if iStart was called
             dsyslog("cMarkAdStandalone::ProcessFiles(): recording ends unexpected before chkSTART (%d) at frame %d", chkSTART, frameCurrent);

@@ -379,7 +379,7 @@ bool cDecoder::GetNextPacket(bool ignorePTS_Ringbuffer) {
 
             currOffset += avpkt.duration;
 #ifdef DEBUG_FRAME_PTS
-            dsyslog("cDecoder::GetNextPacket(): framenumber %5d, DTS %ld, PTS %ld, duration %ld, flags %d, dtsBefore %ld, time_base.num %d, time_base.den %d", currFrameNumber, avpkt.dts, avpkt.pts, avpkt.duration, avpkt.flags, dtsBefore, avctx->streams[avpkt.stream_index]->time_base.num, avctx->streams[avpkt.stream_index]->time_base.den);
+            dsyslog("cDecoder::GetNextPacket():  fileNumber %d, framenumber %5d, DTS %ld, PTS %ld, duration %ld, flags %d, dtsBefore %ld, time_base.num %d, time_base.den %d",  fileNumber, currFrameNumber, avpkt.dts, avpkt.pts, avpkt.duration, avpkt.flags, dtsBefore, avctx->streams[avpkt.stream_index]->time_base.num, avctx->streams[avpkt.stream_index]->time_base.den);
 #endif
 
             // check DTS continuity
@@ -392,13 +392,11 @@ bool cDecoder::GetNextPacket(bool ignorePTS_Ringbuffer) {
                         decodeErrorFrame = currFrameNumber;
                     }
                     if (dtsDiff <= 0) { // ignore frames with negativ DTS difference
-                        dsyslog("cDecoder::GetNextPacket(): DTS continuity error at frame (%d), difference %dms should be %dms, ignore frame, decoding errors %d",
-                                                                                                                                   currFrameNumber, dtsDiff, dtsStep, decodeErrorCount);
+                        dsyslog("cDecoder::GetNextPacket(): DTS continuity error at frame (%d), difference %dms should be %dms, ignore frame, decoding errors %d", currFrameNumber, dtsDiff, dtsStep, decodeErrorCount);
                         dtsBefore = avpkt.dts;  // store even wrong DTS to continue after error
                         return true;  // false only on EOF
                     }
-                    else dsyslog("cDecoder::GetNextPacket(): DTS continuity error at frame (%d), difference %dms should be %dms, decoding errors %d",
-                                                                                                                                    currFrameNumber,dtsDiff, dtsStep, decodeErrorCount);
+                    else dsyslog("cDecoder::GetNextPacket(): DTS continuity error at frame (%d), difference %dms should be %dms, decoding errors %d", currFrameNumber,dtsDiff, dtsStep, decodeErrorCount);
                 }
             }
             dtsBefore = avpkt.dts;
