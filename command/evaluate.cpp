@@ -1224,8 +1224,8 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 #define INFO_LOGO_MIN_LENGTH  2880  // changed from 4000 to 3360 to 2880
 #define INFO_LOGO_MAX_LENGTH 17040  // chnaged from 15640 to 15880 to 17040
                                     // RTL2 has very long info logos
-#define INFO_LOGO_MIN_QUOTE     69  // changed from 80 to 72 to 70 to 69
-        int quote = 100 * (infoLogo.endFinal - infoLogo.startFinal) / (newEndPos - newStartPos);
+#define INFO_LOGO_MIN_QUOTE     58  // changed from 69 to 58 (catch more than one change of info logo)
+        int quote  = 100  * (infoLogo.endFinal - infoLogo.startFinal) / (newEndPos - newStartPos);
         int length = 1000 * (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo: start (%d), end (%d), length %dms (expect >=%dms and <=%dms), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
         if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE)) {
