@@ -129,7 +129,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): -----------------------------------------------------------------------------------------");
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): stop (%d) start (%d) pair", logoPairIterator->stopPosition, logoPairIterator->startPosition);
         // check for info logo section
-        if (IsInfoLogoChannel(maContext->Info.ChannelName)) IsInfoLogo(marks, blackMarks, &(*logoPairIterator), maContext->Video.Info.framesPerSecond);
+        if (IsInfoLogoChannel(maContext->Info.ChannelName)) IsInfoLogo(marks, blackMarks, &(*logoPairIterator), maContext->Video.Info.framesPerSecond, iStart);
         else logoPairIterator->isInfoLogo = STATUS_NO;
 
         // check for logo change section
@@ -338,7 +338,7 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
 
 // check if stop/start pair could be a info logo
 //
-void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond) {
+void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart) {
     if (framesPerSecond <= 0) return;
 #define LOGO_INFO_LENGTH_MIN  3720  // min time in ms of a info logo section, bigger values than in InfoLogo becase of seek to iFrame, changed from 5000 to 4480 to 3720
 #define LOGO_INFO_LENGTH_MAX 22480  // max time in ms of a info logo section, changed from 17680 to 22480
@@ -352,7 +352,10 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
 #define LOGO_INFO_BROADCAST_AFTER_MIN              1160  // min length of broadcast after info logo, changed from 4000 to 1160
 
 #define LOGO_INFO_NEXT_STOP_MIN                    2120  // min distance of next logo stop/start pair to merge, changed from 3000 to 2120
-#define LOGO_INFO_NEXT_STOP_MAX                    4560  // max distance of next logo stop/start pair to merge
+							 //
+    int maxNextStop = 0;
+    if (iStart > 0) maxNextStop = 6000;                  // we are in start mark, less risk of deleting valid stop mark
+    else            maxNextStop = 4560;                  // max distance of next logo stop/start pair to merge
                                                          // if info logo is very similar to logo, we false detect this as logo
                                                          // in this case we will have only a short logo interuption when info logo fade in/out, merge this range
                                                          // nearest logo stop 4560ms after info logo found, do not merge with real stop mark
@@ -367,12 +370,12 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     cMark *markStop_AfterPair = marks->GetNext(logoStopStartPair->stopPosition, MT_LOGOSTOP);
     if (markStop_AfterPair) {  // we have a next logo stop
         delta_Stop_AfterPair = 1000 * (markStop_AfterPair->position - logoStopStartPair->startPosition) / framesPerSecond;
-        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: next stop mark (%d) distance %dms (expect <=%dms)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, markStop_AfterPair->position, delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MAX);
+        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: next stop mark (%d) distance %dms (expect <=%dms)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, markStop_AfterPair->position, delta_Stop_AfterPair, maxNextStop);
     }
 
     // maybe we have a wrong start/stop pair between, check if merge with next pair can help
     if ((length < LOGO_INFO_LENGTH_MIN) ||  // this pair is too short
-       ((delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair < LOGO_INFO_NEXT_STOP_MAX) && (length < 11800))) { // next pair is too near, do not merge big pairs
+       ((delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair < maxNextStop) && (length < 11800))) { // next pair is too near, do not merge big pairs
         dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): short pair or very near next start mark, try to merge with next pair");
 
         // try next logo stop/start pair
@@ -385,13 +388,13 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
                 // check distance to next logo stop mark after stop/start pair
                 int deltaStopAfterPair = 1000 * (pairNextStop->position - logoStopStartPair->startPosition) / framesPerSecond;
                 if (deltaStopAfterPair < LOGO_INFO_NEXT_STOP_MIN) {
-                    dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): distance of next logo stop %ds too short, (expect <=%ds >=%ds), try next", delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MIN, LOGO_INFO_NEXT_STOP_MAX);
+                    dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): distance of next logo stop %dms too short, (expect >=%ds <=%ds), try next", delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MIN, maxNextStop);
                     pairNextStart = marks->GetNext(pairNextStart->position, MT_LOGOSTART);
                     pairNextStop  = marks->GetNext(pairNextStop->position, MT_LOGOSTOP);
                 }
                 else {
-                    if (deltaStopAfterPair > LOGO_INFO_NEXT_STOP_MAX) {
-                        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): distance of next logo stop %ds too big, (expect <=%ds >=%ds", delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MIN, LOGO_INFO_NEXT_STOP_MAX);
+                    if (deltaStopAfterPair > maxNextStop) {
+                        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): distance of next logo stop %dms too big, (expect >=%ds <=%ds", delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MIN, maxNextStop);
                         tryNext = false;
                     }
                     else {

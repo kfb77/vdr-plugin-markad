@@ -129,7 +129,7 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
  * @param logoStopStartPair structure of logo/stop start pair, result is stored here
  * @param framesPerSecond   video frame rate
  */
-        void IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond);
+        void IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart);
 
 /**
  * get next logo stop/start pair
