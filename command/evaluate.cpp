@@ -1842,7 +1842,8 @@ int cDetectLogoStopStart::IntroductionLogo() {
     int separatorFrameAfter  = -1;
 
 #define INTRODUCTION_MIN_LENGTH          4320
-#define INTRODUCTION_MAX_LENGTH         10559  // changed from 26000 to 16799 to 13919 to 10559
+#define INTRODUCTION_MAX_LENGTH         13040  // changed from 26000 to 16799 to 13919 to 10559
+                                               // found introduction logo with length 13040, try to fix preview problem later TODO
                                                // do not increase to prevent to detect preview as introduction logo
 #define INTRODUCTION_MAX_DIFF_SEPARATOR 12480  // max distance from sepatator frame to introduction logo start, changed from 480 to 2400 to 3000 to 12480
                                                // somtime broacast start without logo before intruduction logo
