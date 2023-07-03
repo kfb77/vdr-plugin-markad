@@ -352,7 +352,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
 #define LOGO_INFO_BROADCAST_AFTER_MIN              1160  // min length of broadcast after info logo, changed from 4000 to 1160
 
 #define LOGO_INFO_NEXT_STOP_MIN                    2120  // min distance of next logo stop/start pair to merge, changed from 3000 to 2120
-							 //
+
     int maxNextStop = 0;
     if (iStart > 0) maxNextStop = 6000;                  // we are in start mark, less risk of deleting valid stop mark
     else            maxNextStop = 4560;                  // max distance of next logo stop/start pair to merge
@@ -1078,14 +1078,6 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         int matchRestCornerCountFinal = 0;
     } infoLogo;
 
-    // start and stop frame of detected zoomed still image
-    // this happens before start mark in adult warning info (e.g. SIXX)
-    struct sZoomedPicture {
-        int start    = -1;
-        int end      = -1;
-        bool ongoing = true;
-    } zoomedPicture;
-
     bool found                 = true;
     int  lastSeparatorFrame    = -1;
     int  countSeparatorFrame   =  0;
@@ -1102,14 +1094,12 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 
         int sumPixel              = 0;
         int countZero             = 0;
-        int zoomedPictureCount    = 0;
         int darkCorner            = 0;
 
         for (int corner = 0; corner < CORNERS; corner++) {
             if (((corner == maContext->Video.Logo.corner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) infoLogo.matchLogoCornerCount++;
             if (((corner != maContext->Video.Logo.corner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) infoLogo.matchRestCornerCount++;
             if ((*cornerResultIt).rate[corner] <= 0) countZero++;
-            if (((*cornerResultIt).rate[corner] >= 319) || ((*cornerResultIt).rate[corner] <= 0))zoomedPictureCount++;
             sumPixel += (*cornerResultIt).rate[corner];
             if (((*cornerResultIt).rate[corner] <=   0) && (corner != maContext->Video.Logo.corner)) darkCorner++;   // if we have no match, this can be a too dark corner
         }
@@ -1125,13 +1115,6 @@ bool cDetectLogoStopStart::IsInfoLogo() {
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator frame (%d)", lastSeparatorFrame);
 #endif
         }
-
-        // check zoomed picture
-        if (zoomedPicture.ongoing && (zoomedPictureCount == 4) && (countZero < 3)) {
-            if (zoomedPicture.start == -1) zoomedPicture.start = (*cornerResultIt).frameNumber1;
-            zoomedPicture.end = (*cornerResultIt).frameNumber2;
-        }
-        else if (zoomedPicture.start >= 0) zoomedPicture.ongoing = false;
 
         if (((*cornerResultIt).rate[maContext->Video.Logo.corner] > INFO_LOGO_MACTH_MIN) || // do not rededuce to prevent false positiv
             ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 142) && (lowMatchCornerCount == 0)) { // allow one lower match for the change from new logo to normal logo
@@ -1167,25 +1150,12 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         infoLogo.matchRestCornerCountFinal = infoLogo.matchRestCornerCount;
     }
 
-    // check if "no logo" corner has same matches as logo corner, in this case it must be a static scene (e.g. static preview picture in frame) and no info logo
+    // check if "no logo" corner has same matches as logo corner, in this case it must be a static scene (e.g. static preview picture in frame or adult warning) and no info logo
     infoLogo.matchRestCornerCountFinal /= 3;
     dsyslog("cDetectLogoStopStart::IsInfoLogo(): count matches greater than limit of %d: %d logo corner, avg rest corners %d", INFO_LOGO_MACTH_MIN, infoLogo.matchLogoCornerCountFinal, infoLogo.matchRestCornerCountFinal);
-    if (infoLogo.matchLogoCornerCountFinal <= (infoLogo.matchRestCornerCountFinal + 1)) {
+    if (infoLogo.matchLogoCornerCountFinal <= (infoLogo.matchRestCornerCountFinal + 2)) {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): too much similar corners, this must be a static ad or preview picture");
         found = false;
-    }
-
-    // check zoomed picture
-    if (found) {
-        if ((zoomedPicture.start >= 0) && (zoomedPicture.end >= 0)) {
-            int startDiff =  1000 * (zoomedPicture.start - startPos) / maContext->Video.Info.framesPerSecond;
-            int endDiff   =  1000 * (endPos - zoomedPicture.end)     / maContext->Video.Info.framesPerSecond;
-            if ((startDiff <= 960) && (endDiff <= 480)) {
-                dsyslog("cDetectLogoStopStart::IsInfoLogo(): zoomed picture found from (%d) to (%d), start offset %dms, end offset %dms", zoomedPicture.start, zoomedPicture.end, startDiff, endDiff);
-                found = false;
-            }
-            else dsyslog("cDetectLogoStopStart::IsInfoLogo(): no zoomed picture  from (%d) to (%d), start offset %dms, end offset %dms", zoomedPicture.start, zoomedPicture.end, startDiff, endDiff);
-        }
     }
 
     // check separator image
