@@ -1875,10 +1875,11 @@ int cDetectLogoStopStart::IntroductionLogo() {
         //  34   206(l)   0     0 = 240
         //   0   201(l)  30     0 = 231
         //   0    35(l) 109     0 = 144
+        //   0   147(l)   0     0 = 147  NEW
         //  -1   241(l)   0    -1 = 239   // dark scene with introduction logo
         int diffSeparatorToEnd = 1000 * (endPos - (*cornerResultIt).frameNumber1) / maContext->Video.Info.framesPerSecond;
         if (((countLow  >= 3) && (sumPixel < 144) && (diffSeparatorToEnd > 960)) ||
-            ((countZero >= 3) && (sumPixel < 239))){ // new separator image before introduction logo, restart detection
+            ((countZero >= 3) && (sumPixel < 147))){ // new separator image before introduction logo, restart detection
                                                       // ignore first separator frame near endPos (logo start mark), this can not be start of introduction logo
 #ifdef DEBUG_MARK_OPTIMIZATION
             dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator found at frame (%5d)", (*cornerResultIt).frameNumber1);
@@ -1901,7 +1902,8 @@ int cDetectLogoStopStart::IntroductionLogo() {
         // no seperator frame
         //  0    76    11     6 =  93
         //  0    24   102     9 = 135
-        //  0   540     0     0 = 540  dark scene with introduction logo
+        //  0   147     0     0 = 147  NEW
+        //  0   540     0     0 = 540  dark scene with introduction logo (conflict)
         //
         // separator frame
         //  0     0     0     0 =   0
@@ -1912,7 +1914,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
            (((countZero == 0) && (sumPixel <= 105)) ||
             ((countZero == 1) && (sumPixel <   93)) ||
             ((countZero == 2) && (sumPixel <= 166)) ||
-            ((countZero >= 3) && (sumPixel <  540)))) {
+            ((countZero >= 3) && (sumPixel <  147)))) {
             separatorFrameAfter = (*cornerResultIt).frameNumber1;
         }
 
@@ -1941,7 +1943,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
 
         // detect introduction logo
         if (separatorFrameBefore >= 0) { // introduction logo start is after seperator frame
-            if ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 162) { // changed from 155 to 162
+            if ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 144) { // changed from 162 to 144 (change from intro logo to normal logo)
                 if (introductionLogo.start == -1) introductionLogo.start = (*cornerResultIt).frameNumber1;
                 introductionLogo.end = (*cornerResultIt).frameNumber2;
             }
