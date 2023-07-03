@@ -1968,9 +1968,9 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                 lengthBefore = (mark->position - mark->Prev()->position) /  macontext.Video.Info.framesPerSecond;
             }
             dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair, length %dms, distance before %ds after %ds", mark->position, mark->Next()->position, diff, lengthBefore, lengthAfter);
-            if ((diff <= 80) || ((diff < 200 ) && (lengthBefore < 696) && (lengthAfter < 139))) {
+            if ((diff <= 80) || ((diff < 160 ) && (lengthBefore < 696) && (lengthAfter < 139))) {
                                                                                  // do not increase length because of very short real logo interuption between broacast and preview
-                                                                                 // changed from 520 to 200
+                                                                                 // changed from 520 to 200 to 160
                                                                                  // do not delete a short stop/start before or after a long broadcast part, changed from 816 to 696
                                                                                  // this pair contains start mark, lengthAfter changed from 203 to 139
                 dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair, too short, deleting", mark->position, mark->Next()->position);
