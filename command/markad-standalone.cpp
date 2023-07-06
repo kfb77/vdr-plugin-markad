@@ -391,7 +391,7 @@ int cMarkAdStandalone::CheckStop() {
                 if (movedFirst && (movedFirst->type == MT_MOVEDSTART) && (movedFirst->oldType == MT_CHANNELSTART)) cStartFirst = movedFirst;
                 if (cStartFirst) {
                     int deltaC = (end->position - cStartFirst->position) / macontext.Video.Info.framesPerSecond;
-                    if (deltaC < 305) {  // changed from 300 to 305
+                    if (deltaC < 287) {  // changed from 305 to 287, found shortest last part, do not reduce
                     dsyslog("cMarkAdStandalone::CheckStop(): first channel start mark (%d) and possible channel end mark (%d) to near %ds, this belongs to the next recording", cStartFirst->position, end->position, deltaC);
                     dsyslog("cMarkAdStandalone::CheckStop(): delete channel marks at (%d) and (%d)", cStartFirst->position, end->position);
                     marks.Del(cStartFirst->position);
