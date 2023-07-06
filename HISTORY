@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-07-06: Version 3.3.1
+- redesign mark optimization
+- some minor bug fixes and optimizations, see git
+
 2023-06-22: Version 3.3.0
 - new feature: detect scene change and use it to optimize marks
 - performance improvement by saving unnecessary detection
