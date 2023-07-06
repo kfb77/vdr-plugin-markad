@@ -133,41 +133,29 @@ sMarkAdMarks *cMarkAdAudio::Process(const int frameNumber) {
     for (short int stream = 0; stream < MAXSTREAMS; stream++){
         if ((macontext->Audio.Info.Channels[stream] != 0) && (channels[stream] == 0)) dsyslog("cMarkAdAudio::ChannelChange(): new audio stream %d start at frame (%d)", stream, macontext->Audio.Info.channelChangeFrame);
         if (ChannelChange(macontext->Audio.Info.Channels[stream], channels[stream])) {
-            // we accept to cut out a little audio, we do not want to have a frame from ad
-            if (macontext->Audio.Info.Channels[stream] > 2) {
-                if (macontext->Config->fullDecode) {
-                    int markFrame = recordingIndexAudio->GetVideoFrameToPTS(macontext->Audio.Info.channelChangePTS); // get video frame with pts before channel change
-                    if (markFrame < 0) {
-                        esyslog("cMarkAdAudio::Process(): no video frame found after audio PTS %" PRId64, macontext->Audio.Info.channelChangePTS);
-                        markFrame = macontext->Audio.Info.channelChangeFrame;
-                    }
+            if (macontext->Audio.Info.Channels[stream] > 2) {  // channel start
+                int markFrame = recordingIndexAudio->GetVideoFrameToPTS(macontext->Audio.Info.channelChangePTS, false); // get video frame with pts after channel change
+                if (markFrame < 0) {
+                    esyslog("cMarkAdAudio::Process(): no video frame found after audio PTS %" PRId64, macontext->Audio.Info.channelChangePTS);
+                    markFrame = macontext->Audio.Info.channelChangeFrame;
+                }
+                if (!macontext->Config->fullDecode) {
                     markFrame = recordingIndexAudio->GetIFrameAfter(markFrame);  // we need next iFrame for start cut, make sure we will not have last pic of ad
-                    dsyslog("*cMarkAdAudio::Process(): next i-frame (%d)", markFrame);
                     if (markFrame < 0) markFrame = macontext->Audio.Info.channelChangeFrame;
-                    AddMark(MT_CHANNELSTART, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
                 }
-                else { // audio streams are alway full decoded, use next video iFrame
-                    int markFrame = recordingIndexAudio->GetIFrameAfter(macontext->Audio.Info.channelChangeFrame);  // we need next iFrame for start cut, make sure we will not have last pic of ad
-                    dsyslog("*cMarkAdAudio::Process(): next i-frame (%d)", markFrame);
-                    if (markFrame < 0) markFrame = macontext->Audio.Info.channelChangeFrame;
-                    AddMark(MT_CHANNELSTART, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
-                }
+                AddMark(MT_CHANNELSTART, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
             }
-            else { // frame before is last frame in broadcast
-                if (macontext->Config->fullDecode) {
-                    int markFrame = recordingIndexAudio->GetVideoFrameToPTS(macontext->Audio.Info.channelChangePTS);
-                    if (markFrame < 0) {
-                        esyslog("cMarkAdAudio::Process(): no video frame found after audio PTS %" PRId64, macontext->Audio.Info.channelChangePTS);
-                        markFrame = macontext->Audio.Info.channelChangeFrame;
-                    }
-                    AddMark(MT_CHANNELSTOP, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
+            else { // channel stop, frame before is last frame in broadcast
+                int markFrame = recordingIndexAudio->GetVideoFrameToPTS(macontext->Audio.Info.channelChangePTS, false); // get video frame with pts after channel change
+                if (markFrame < 0) {
+                    esyslog("cMarkAdAudio::Process(): no video frame found after audio PTS %" PRId64, macontext->Audio.Info.channelChangePTS);
+                    markFrame = macontext->Audio.Info.channelChangeFrame;
                 }
-                else {
-                    int markFrame = recordingIndexAudio->GetIFrameBefore(macontext->Audio.Info.channelChangeFrame);
-                    dsyslog("*cMarkAdAudio::Process(): previous i-frame (%d)", markFrame);
+                if (!macontext->Config->fullDecode) {
+                    markFrame = recordingIndexAudio->GetIFrameBefore(markFrame);  // we need iFrame before for start cut, make sure we will not have first pic of ad
                     if (markFrame < 0) markFrame = macontext->Audio.Info.channelChangeFrame;
-                    AddMark(MT_CHANNELSTOP, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
                 }
+                AddMark(MT_CHANNELSTOP, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
             }
         }
         channels[stream] = macontext->Audio.Info.Channels[stream];
