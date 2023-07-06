@@ -3661,8 +3661,10 @@ void cMarkAdStandalone::SilenceOptimization() {
     DebugMarks();
     cMark *mark = marks.GetFirst();
     while (mark) {
-        if ((mark->type == MT_LOGOSTART) ||
-            (mark->type == MT_VPSSTART)) {
+        // optimize start marks
+        if ((mark->type & 0x0F) == MT_START) {
+            // log available marks
+            bool moved = false;
             int diffBefore = INT_MAX;
             int diffAfter  = INT_MAX;
             cMark *soundStartBefore = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTART);
@@ -3675,51 +3677,127 @@ void cMarkAdStandalone::SilenceOptimization() {
                 diffAfter = 1000 * (soundStartAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): found sound start (%5d) %7dms after", mark->position, soundStartAfter->position, diffAfter);
             }
-            if (soundStartBefore && (soundStartBefore->position != mark->position) && (diffBefore <= 3400)) {
-                int newPos = soundStartBefore->position;
-                if (!macontext.Config->fullDecode) newPos = recordingIndexMark->GetIFrameBefore(newPos);
-                mark = marks.Move(mark, newPos, MT_SOUNDSTART, "sound start");
-                save = true;
+            // select best mark
+            if ((diffBefore <= 3080) && (diffAfter <= 460)) diffBefore = INT_MAX; // first silence is in ad
+            // try silence before start position
+            if (soundStartBefore && (soundStartBefore->position != mark->position)) { // do not move to same frame
+                int maxBefore = 0;
+                switch (mark->type) {
+                    case MT_ASSUMEDSTART:
+                        maxBefore = 4479;
+                        break;
+                    case MT_LOGOSTART:
+                        maxBefore = 4479;  // do not increase, we will get position before separation picture
+                        break;
+                    case MT_VPSSTART:
+                        maxBefore = 17199;  // do not increase, we will get position before broadcast start
+                        break;
+                    default:
+                        maxBefore = 0;
+                }
+                if (diffBefore <= maxBefore) {
+                    int newPos = soundStartBefore->position;
+                    if (!macontext.Config->fullDecode) newPos = recordingIndexMark->GetIFrameBefore(newPos);
+                    mark = marks.Move(mark, newPos, MT_SOUNDSTART, "sound start");
+                    if (mark) {
+                        moved = true;
+                        save  = true;
+                    }
+                    else break;
+                }
             }
-            else {
-                int maxAfter = 6200;
-                if (mark->type == MT_VPSSTART) maxAfter = 7160;
-                if (soundStartAfter && (soundStartAfter->position != mark->position) && (diffAfter <= maxAfter)) {
+            // try silence after start position
+            if (!moved && soundStartAfter) {
+                int maxAfter = 0;
+                switch (mark->type) {
+                    case MT_ASSUMEDSTART:
+                        maxAfter = 19400;  // changed from 13440 to 19400
+                        break;
+                    case MT_LOGOSTART:
+                        maxAfter = 6200;
+                        break;
+                    case MT_VPSSTART:
+                        maxAfter = 53400;  // changed from 21600 to 53400
+                        break;
+                    default:
+                        maxAfter = 0;
+                }
+                if ((diffAfter <= maxAfter) && (soundStartAfter->position != mark->position)) {
                     int newPos = soundStartAfter->position;
                     if (!macontext.Config->fullDecode) newPos = recordingIndexMark->GetIFrameBefore(newPos);
                     mark = marks.Move(mark, newPos, MT_SOUNDSTART, "sound start");
-                    save = true;
+                    if (mark) {
+                        save  = true;
+                    }
+                    else break;
                 }
             }
         }
-        if ((mark->type == MT_LOGOSTOP) ||
-            (mark->type == MT_VPSSTOP)) {
-            int maxAfter = 3879;  // do not increase, we will get position after seperation picture (e.g. "Werbung")
-            if (strcmp(macontext.Info.ChannelName, "Disney_Channel") == 0) maxAfter = 4560; // long before fading out logo
-            if (mark->type == MT_VPSSTOP) maxAfter = 5040; // VPS is not exact
-
-            cMark *soundStop = silenceMarks.GetNext(mark->position, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
-            if (soundStop) {
-                int diff = 1000 * (soundStop->position - mark->position) / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): found sound stop  (%5d) %7dms after", mark->position, soundStop->position, diff);
-                if ((soundStop->position != mark->position) && (diff <= maxAfter)) {
-                    int newPos = soundStop->position;
+        // optimize stop marks
+        if ((mark->type & 0x0F) == MT_STOP) {
+            // log available marks
+            bool moved = false;
+            cMark *soundStopBefore = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
+            cMark *soundStopAfter  = silenceMarks.GetNext(mark->position - 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
+            int diffBefore = INT_MAX;
+            int diffAfter  = INT_MAX;
+            if (soundStopBefore) {
+               diffBefore = 1000 * (mark->position - soundStopBefore->position) / macontext.Video.Info.framesPerSecond;
+               dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): found sound stop  (%5d) %7dms before", mark->position, soundStopBefore->position, diffBefore);
+            }
+            if (soundStopAfter) {
+                diffAfter = 1000 * (soundStopAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): found sound stop  (%5d) %7dms after", mark->position, soundStopAfter->position, diffAfter);
+            }
+            // select best mark
+            if ((diffBefore <= 240) && (diffAfter <= 1080)) diffAfter = INT_MAX; // sound stop near before and after mark, use sound stop before, next is in ad
+            // try silence after stop mark
+            if (soundStopAfter && (soundStopAfter->position != mark->position)) {
+                int maxAfter = 0;
+                switch (mark->type) {
+                    case MT_LOGOSTOP:
+                        maxAfter = 3879; // do not increase, we will get position after seperation picture (e.g. "Werbung")
+                        if ((strcmp(macontext.Info.ChannelName, "Disney_Channel") == 0) ||  // fading out logo long before
+                            (strcmp(macontext.Info.ChannelName, "Nickelodeon")    == 0)) maxAfter = 4920;  // changed from 4880 to 4920
+                        break;
+                    case MT_VPSSTOP:
+                        maxAfter = 23019;  // changed from 37099 to 23019, do not increase, will miss valid sound stop before
+                        break;
+                    default:
+                        maxAfter = 0;
+                }
+                if (diffAfter <= maxAfter) {
+                    int newPos = soundStopAfter->position;
                     if (!macontext.Config->fullDecode) newPos = recordingIndexMark->GetIFrameAfter(newPos);
                     mark = marks.Move(mark, newPos, MT_SOUNDSTOP, "sound stop after");
-                    save = true;
+                    if (mark) {
+                        moved = true;
+                        save  = true;
+                    }
+                    else break;
                 }
             }
-            if (mark->type != MT_MOVEDSTOP) { // nothing valid after stop mark found, try short before stop mark
-                soundStop = silenceMarks.GetPrev(mark->position, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
-                if (soundStop) {
-                   int diff = 1000 * (mark->position - soundStop->position) / macontext.Video.Info.framesPerSecond;
-                   dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): found sound stop  (%5d) %7dms before", mark->position, soundStop->position, diff);
-                    if ((soundStop->position != mark->position) && (diff <= 1000)) {
-                        int newPos = soundStop->position;
-                        if (!macontext.Config->fullDecode) newPos = recordingIndexMark->GetIFrameAfter(newPos);
-                        mark = marks.Move(mark, newPos, MT_SOUNDSTOP, "sound stop before");
+            // try silence before stop mark
+            if (!moved && soundStopBefore) {
+                int maxBefore = 0;
+                switch (mark->type) {
+                    case MT_LOGOSTOP:
+                        maxBefore = 4240;  // changed from 2800 to 4240
+                        break;
+                    case MT_VPSSTOP:
+                        maxBefore = 7060;
+                        break;
+                    default:
+                        maxBefore = 0;
+                }
+                if ((diffBefore <= maxBefore) && (soundStopBefore->position != mark->position)) {
+                    int newPos = soundStopBefore->position;
+                    if (!macontext.Config->fullDecode) newPos = recordingIndexMark->GetIFrameAfter(newPos);
+                    mark = marks.Move(mark, newPos, MT_SOUNDSTOP, "sound stop before");
+                    if (mark) {
                         save = true;
                     }
+                    else break;
                 }
             }
         }
