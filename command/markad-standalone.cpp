@@ -1033,11 +1033,11 @@ void cMarkAdStandalone::CheckStart() {
 
             if (macontext.Info.Channels[stream]) {
                 if ((macontext.Info.Channels[stream] == 6) && (macontext.Audio.Options.ignoreDolbyDetection == false)) {
-                    isyslog("DolbyDigital5.1 audio whith 6 channels in stream %i detected", stream);
+                    isyslog("DolbyDigital5.1 audio whith 6 channels in stream %d detected", stream);
+                    markCriteria.SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE);
                     if (macontext.Audio.Info.channelChange) {
                         dsyslog("cMarkAdStandalone::CheckStart(): channel change detected");
                         video->ClearBorder();
-                        markCriteria.SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE);
                         marks.DelType(MT_ASPECTCHANGE, 0xF0); // delete aspect marks if any
 
                         // start mark must be around iStartA
@@ -2611,7 +2611,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
                 if (iStart == 0) marks.DelWeakFromTo(marks.GetFirst()->position, INT_MAX, MT_CHANNELCHANGE); // only if we have selected a start mark
                 // disable all video detection
                 video->ClearBorder();
-                markCriteria.SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE);
+                markCriteria.SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED);
             }
             macontext.Audio.Info.channelChange = true;
             if (asprintf(&comment, "audio channel change from %d to %d (%6d) ", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
