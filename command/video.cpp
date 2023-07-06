@@ -1355,7 +1355,7 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber) {
     prevHistogram   = currentHistogram;
     prevFrameNumber = currentFrameNumber;
 
-    if (diffQuote >= 322) return SCENE_CHANGED;  // changed from 811 to 659 to 540 to 425 to 391 to 322
+    if (diffQuote >= 110) return SCENE_CHANGED;  // changed from 169 to 158 to 125 to 110
     return SCENE_NOCHANGE;
 }
 
