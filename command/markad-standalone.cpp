@@ -2687,7 +2687,11 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
                 else                                 inBroadCast = false;
             }
             // add mark
-            char *indexToHMSF = marks.IndexToHMSF(mark->position);
+            char *indexToHMSF = NULL;
+            if (mark->type == MT_RECORDINGSTART) {
+                if (asprintf(&indexToHMSF, "00:00:00.00") == -1) esyslog("cMarkAdStandalone::AddMark(): asprintf failed");  // we have no index to get time for position 0
+            }
+            else indexToHMSF = marks.IndexToHMSF(mark->position);
             if (indexToHMSF) {
                 ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
                 if (comment) isyslog("%s at %s", comment, indexToHMSF);
