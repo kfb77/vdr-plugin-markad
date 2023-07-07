@@ -3737,17 +3737,49 @@ void cMarkAdStandalone::SceneChangeOptimization() {
     DebugMarks();
     cMark *mark = marks.GetFirst();
     while (mark) {
-        if ((mark->type    == MT_LOGOSTART) ||
-            (mark->type    == MT_VPSSTART)  ||
-            (mark->oldType == MT_VPSSTART)  ||
-           ((mark->type    == MT_MOVEDSTART) && (mark->oldType == MT_LOGOSTART) && ((mark->newType == MT_SOUNDSTART) ||
-                                                                                    (mark->newType == MT_INTRODUCTIONSTART)))) {
+        // check start mark
+        if ((mark->type & 0x0F) == MT_START) {
+            // log available marks
+            bool moved = false;
             cMark *sceneStartBefore = sceneMarks.GetPrev(mark->position + 1, MT_SCENESTART);  // allow to get same position
             cMark *sceneStartAfter  = sceneMarks.GetNext(mark->position - 1, MT_SCENESTART);  // allow to get same position
+            int diffBefore = INT_MAX;
+            int diffAfter  = INT_MAX;
             if (sceneStartBefore) {
-                int diffBefore = 1000 * (mark->position - sceneStartBefore->position) / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::SceneChangeOptimization(): start mark (%5d): found scene start (%5d) %5dms before", mark->position, sceneStartBefore->position, diffBefore);
-                if ((sceneStartBefore->position != mark->position) && (diffBefore <= 4120)) {  // changed from 2880 to 4120
+                diffBefore = 1000 * (mark->position - sceneStartBefore->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::SceneChangeOptimization(): start mark (%6d): found scene start (%6d) %5dms before", mark->position, sceneStartBefore->position, diffBefore);
+            }
+            if (sceneStartAfter) {
+                diffAfter = 1000 * (sceneStartAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::SceneChangeOptimization(): start mark (%6d): found scene start (%6d) %5dms after", mark->position, sceneStartAfter->position, diffAfter);
+            }
+            // try scene change before start mark
+            if (sceneStartBefore && (!sceneStartAfter || (diffAfter > 159))) {  // better use very near scene change after for fading out logo
+                                                                                // do not increase, we will get wrong next scene start
+                int maxBefore = 0;
+                switch (mark->type) {
+                    case MT_LOGOSTART:
+                        maxBefore = 4120;  // changed from 2880 to 4120
+                        break;
+                    case MT_MOVEDSTART:
+                        switch (mark->newType) {
+                            case MT_SOUNDSTART:
+                                maxBefore = 3799;
+                                break;
+                            case MT_INTRODUCTIONSTART:
+                                maxBefore = 3799;
+                                break;
+                            default:
+                                maxBefore = 0;
+                        }
+                        break;
+                    case MT_VPSSTART:
+                        maxBefore = 4200;
+                        break;
+                    default:
+                        maxBefore = 0;
+                }
+                if ((diffBefore <= maxBefore) && (sceneStartBefore->position != mark->position)) {
                     char *comment = NULL;
                     if (mark->type == MT_MOVEDSTART) {
                         char *markType = marks.TypeToText(mark->newType);
@@ -3758,20 +3790,45 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         }
                     }
                     else if (asprintf(&comment, "scene start before") == -1) esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
-
                     if (comment) {
                         ALLOC(strlen(comment)+1, "comment");
                         mark = marks.Move(mark, sceneStartBefore->position, MT_SCENESTART, comment);
                         FREE(strlen(comment)+1, "comment");
                         free(comment);
-                        save = true;
+                        if (mark) {
+                            moved = true;
+                            save  = true;
+                        }
+                        else break;
                     }
                 }
             }
-            if (sceneStartAfter) {
-                int diffAfter = 1000 * (sceneStartAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::SceneChangeOptimization(): start mark (%5d): found scene start (%5d) %5dms After", mark->position, sceneStartAfter->position, diffAfter);
-                if ((sceneStartAfter->position != mark->position) && (diffAfter <= 1200)) {
+            // try scene change after start mark
+            if (!moved && sceneStartAfter) {
+                int maxAfter = 0;
+                switch (mark->type) {
+                    case MT_LOGOSTART:
+                        maxAfter = 1200;
+                        break;
+                    case MT_MOVEDSTART:
+                        switch (mark->newType) {
+                            case MT_SOUNDSTART:
+                                maxAfter = 1200;
+                                break;
+                            case MT_INTRODUCTIONSTART:
+                                maxAfter = 1200;
+                                break;
+                            default:
+                                maxAfter = 0;
+                        }
+                        break;
+                    case MT_VPSSTART:
+                        maxAfter = 1200;
+                        break;
+                    default:
+                        maxAfter = 0;
+                }
+                if ((diffAfter <= maxAfter) && (sceneStartAfter->position != mark->position)) {
                     char *comment = NULL;
                     if (mark->type == MT_MOVEDSTART) {
                         char *markType = marks.TypeToText(mark->newType);
@@ -3782,58 +3839,116 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         }
                     }
                     else if (asprintf(&comment, "scene start after") == -1) esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
-
                     if (comment) {
                         ALLOC(strlen(comment)+1, "comment");
                         mark = marks.Move(mark, sceneStartAfter->position, MT_SCENESTART, comment);
                         FREE(strlen(comment)+1, "comment");
                         free(comment);
-                        save = true;
+                        if (mark) {
+                            save = true;
+                        }
+                        else break;
                     }
                 }
             }
         }
-        if ((mark->type == MT_LOGOSTOP) ||
-            (mark->type == MT_VPSSTOP)  ||
-           ((mark->type == MT_MOVEDSTOP) && (mark->oldType == MT_VPSSTOP) && (mark->newType == MT_SOUNDSTOP))) {
+        // check stop mark
+        if ((mark->type & 0x0F) == MT_STOP) {
+            // log available marks
+            bool moved = false;
             cMark *sceneStopBefore = sceneMarks.GetPrev(mark->position + 1, MT_SCENESTOP);
             cMark *sceneStopAfter  = sceneMarks.GetNext(mark->position - 1, MT_SCENESTOP);  // allow to get same position
-            int diffStopAfter = INT_MAX;
-            if (sceneStopAfter) {
-                diffStopAfter = 1000 * (sceneStopAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::SceneChangeOptimization(): stop  mark (%5d): found scene stop  (%5d) %5dms after", mark->position, sceneStopAfter->position, diffStopAfter);
-            }
             int diffStopBefore = INT_MAX;
             if (sceneStopBefore) {
                 diffStopBefore = 1000 * (mark->position - sceneStopBefore->position) / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::SceneChangeOptimization(): stop  mark (%5d): found scene stop  (%5d) %5dms before", mark->position, sceneStopBefore->position, diffStopBefore);
+                dsyslog("cMarkAdStandalone::SceneChangeOptimization(): stop  mark (%6d): found scene stop  (%6d) %5dms before", mark->position, sceneStopBefore->position, diffStopBefore);
             }
-            if ((sceneStopAfter) && (sceneStopAfter->position != mark->position) && (diffStopAfter <= 3000)) {  // logo is fading out before end of broadcast scene, move forward
-                mark = marks.Move(mark, sceneStopAfter->position, MT_SCENESTOP, "scene end after logo stop");
-                save = true;
+            int diffStopAfter = INT_MAX;
+            if (sceneStopAfter) {
+                diffStopAfter = 1000 * (sceneStopAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::SceneChangeOptimization(): stop  mark (%6d): found scene stop  (%6d) %5dms after", mark->position, sceneStopAfter->position, diffStopAfter);
             }
-            else {
-                if ((sceneStopBefore) && (sceneStopBefore->position != mark->position) && (diffStopBefore <= 1000)) { // logo stop detected too late, move backwards
-                    mark = marks.Move(mark, sceneStopBefore->position, MT_SCENESTOP, "scene end before logo stop");
-                    save = true;
+            // select best mark
+            if ((diffStopAfter >= 4640) && (diffStopBefore <= 240)) diffStopAfter = INT_MAX;  // better use very near scene stop before, prevent to move half into closing credits
+            if ((diffStopAfter >   280) && (diffStopBefore <= 120)) diffStopAfter = INT_MAX;  // better use very near scene stop before, but use short after in any case
+            // try scene change after stop mark
+            if ((sceneStopAfter) && (sceneStopAfter->position != mark->position)) {
+                int maxAfter = 0;
+                switch (mark->type) {
+                    case MT_LOGOSTOP:
+                        maxAfter = 4800;  // changed from 3000 to 4800
+                        break;
+                    case MT_VPSSTOP:
+                        maxAfter = 8200;
+                        break;
+                    case MT_MOVEDSTOP:
+                        switch (mark->newType) {
+                           case MT_SOUNDSTOP:
+                                maxAfter = 2459;  // do not increase for VPS -> sound stop
+                                break;
+                           default:
+                               maxAfter = 0;
+                        }
+                        break;
+                    default:
+                        maxAfter = 0;
+                }
+                if (diffStopAfter <= maxAfter) {  // logo is fading out before end of broadcast scene, move forward
+                    char *comment = NULL;
+                    if (mark->type == MT_MOVEDSTOP) {
+                        char *markType = marks.TypeToText(mark->newType);
+                        if (markType) {
+                            if (asprintf(&comment, "scene end after %s stop", markType) == -1) esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                            FREE(strlen(markType)+1, "text");
+                            free(markType);
+                        }
+                    }
+                    else if (asprintf(&comment, "scene end after") == -1) esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                    if (comment) {
+                        ALLOC(strlen(comment)+1, "comment");
+                        mark = marks.Move(mark, sceneStopAfter->position, MT_SCENESTOP, comment);
+                        FREE(strlen(comment)+1, "comment");
+                        free(comment);
+                        if (mark) {
+                            moved = true;
+                            save  = true;
+                        }
+                        else break;
+                    }
                 }
             }
-        }
-        // optimize silence moved logo marks
-        if ((mark->type == MT_MOVEDSTART) && (mark->oldType == MT_LOGOSTART) && (mark->newType == MT_SOUNDSTART)) {
-            cMark *sceneStart = sceneMarks.GetAround(1 *  macontext.Video.Info.framesPerSecond, mark->position, MT_SCENESTART);
-            if (sceneStart && (sceneStart->position != mark->position)) {
-                dsyslog("cMarkAdStandalone::SceneChangeOptimization(): start mark (%5d): found scene start (%5d) near by", mark->position, sceneStart->position);
-                mark = marks.Move(mark, sceneStart->position, MT_SCENESTART, "scene start near silence");
-                save = true;
-            }
-        }
-        if ((mark->type == MT_MOVEDSTOP) && (mark->oldType == MT_LOGOSTOP) && (mark->newType == MT_SOUNDSTOP)) {
-            cMark *sceneStop = sceneMarks.GetAround(1 *  macontext.Video.Info.framesPerSecond, mark->position, MT_SCENESTOP);
-            if (sceneStop && (sceneStop->position != mark->position)) {
-                dsyslog("cMarkAdStandalone::SceneChangeOptimization(): stop  mark (%5d): found scene stop (%5d) near by", mark->position, sceneStop->position);
-                mark = marks.Move(mark, sceneStop->position, MT_SCENESTOP, "scene stop near silence");
-                save = true;
+            // try scene change before stop mark
+            if (!moved && (sceneStopBefore) && (sceneStopBefore->position != mark->position)) { // logo stop detected too late, move backwards
+                int maxBefore = 0;
+                switch (mark->type) {
+                    case MT_LOGOSTOP:
+                        maxBefore = 4719;  // changed from 13279 to 4719, do not increse, closing credits detection will fail
+                        break;
+                    case MT_VPSSTOP:
+                        maxBefore = 2280;
+                        break;
+                    case MT_MOVEDSTOP:
+                        switch (mark->newType) {
+                           case MT_SOUNDSTOP:
+                                maxBefore = 2280;
+                                break;
+                           case MT_NOADINFRAMESTOP:  // correct the missed start of ad in frame before stop mark
+                                maxBefore = 1600;
+                                break;
+                           default:
+                               maxBefore = 0;
+                        }
+                        break;
+                    default:
+                        maxBefore = 0;
+                }
+                if (diffStopBefore <= maxBefore) {
+                    mark = marks.Move(mark, sceneStopBefore->position, MT_SCENESTOP, "scene end before stop");
+                    if (mark) {
+                        save = true;
+                    }
+                    else break;
+                }
             }
         }
         mark = mark->Next();
