@@ -72,14 +72,13 @@ void cMarkAdAudio::Silence(__attribute__((unused)) const int frameNumber) {
 #ifdef DEBUG_VOLUME
         dsyslog("cMarkAdAudio::Silence(): frame (%5d): macontext->Audio.Info.volume %4d, silenceFrame (%5d), silenceStatus %d", frameNumber, macontext->Audio.Info.volume, silenceFrame, silenceStatus);
 #endif
-#define MAX_VOLUME 15
         switch (silenceStatus) {
             case SILENCE_UNINITIALIZED:
-                if (macontext->Audio.Info.volume <= MAX_VOLUME) silenceStatus = SILENCE_TRUE;
+                if (macontext->Audio.Info.volume <= MAX_SILENCE_VOLUME) silenceStatus = SILENCE_TRUE;
                 else                                            silenceStatus = SILENCE_FALSE;
                 break;
             case SILENCE_FALSE:
-                if (macontext->Audio.Info.volume <= MAX_VOLUME) {
+                if (macontext->Audio.Info.volume <= MAX_SILENCE_VOLUME) {
                     silenceStatus = SILENCE_TRUE;
                     silencePTS    = macontext->Audio.Info.PTS;
                     silenceFrame  = recordingIndexAudio->GetVideoFrameToPTS(silencePTS, true); // get video frame from PTS before audio PTS
@@ -91,7 +90,7 @@ void cMarkAdAudio::Silence(__attribute__((unused)) const int frameNumber) {
                 }
                 break;
             case SILENCE_TRUE:
-                if (macontext->Audio.Info.volume > MAX_VOLUME) {  // end of silence
+                if (macontext->Audio.Info.volume > MAX_SILENCE_VOLUME) {  // end of silence
                     silenceStatus = SILENCE_FALSE;
                     soundPTS      = macontext->Audio.Info.PTS;
                }
