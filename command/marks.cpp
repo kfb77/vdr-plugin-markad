@@ -473,7 +473,7 @@ char *cMarks::TypeToText(const int type) {
             else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
         case MT_BLACKCHANGE:
-            if (asprintf(&text, "black screen") != -1) {
+            if (asprintf(&text, "no black screen") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
             else esyslog("cMarks::TypeToText(): asprintf failed");
@@ -534,6 +534,12 @@ char *cMarks::TypeToText(const int type) {
             break;
         case MT_INTRODUCTIONCHANGE:
             if (asprintf(&text, "introduction") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
+            break;
+        case MT_ADINFRAMECHANGE:
+            if (asprintf(&text, "no ad in frame") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
             else esyslog("cMarks::TypeToText(): asprintf failed");
