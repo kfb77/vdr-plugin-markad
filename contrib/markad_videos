@@ -344,7 +344,7 @@ class CompareMarks:
                break
            self.frameNumer2 = line2[self.pos1 + 2:self.pos2]
 
-           if abs(int(self.frameNumer1) - int(self.frameNumer2)) > 25:
+           if abs(int(self.frameNumer1) - int(self.frameNumer2)) > 5:
                self.rc = False
                break
 
