@@ -3,4 +3,4 @@
 
 VIDEO="/srv/vdr/video"
 
-grep -r "ERROR: " --include "markad.log" $VIDEO | sort
+grep --text -r "ERROR: " --include "markad.log" $VIDEO | sort
