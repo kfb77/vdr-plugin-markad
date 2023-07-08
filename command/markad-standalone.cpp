@@ -783,7 +783,7 @@ int cMarkAdStandalone::CheckStop() {
 //
 bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     if (!stopMark) return false;
-    dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits without logo after position (%d)", stopMark->position);
+    dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits after position (%d)", stopMark->position);
 
     cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, &markCriteria, ptr_cDecoder, recordingIndexMark, NULL);
     ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
@@ -798,7 +798,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     delete ptr_cDetectLogoStopStart;
 
     if (newPosition > stopMark->position) {
-        dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): closing credits found, move logo stop mark to position (%d)", newPosition);
+        dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): closing credits found, move stop mark to position (%d)", newPosition);
         marks.Move(stopMark, newPosition, MT_UNDEFINED, "closing credits");
         return true;
     }
@@ -3317,9 +3317,9 @@ void cMarkAdStandalone::BorderMarkOptimization() {
 
 // logo mark optimization
 // do it with all mark types, because even with channel marks from a double episode, logo marks can be the only valid end mark type
-// move logo marks:
-//     - if closing credits are detected after last logo stop mark
-//     - if black screen marks are direct before stop mark or direct after start mark
+// - move logo marks before intrudiction logo
+// - move logo marks before/after ad in frame
+// - remove stop/start from info logo
 //
 void cMarkAdStandalone::LogoMarkOptimization() {
     if (!ptr_cDecoder) return;
@@ -3834,36 +3834,43 @@ void cMarkAdStandalone::ProcessOverlap() {
         }
     }
 
-    // check last logo stop mark if closing credits follows
+    // check last stop mark if closing credits follows
     LogSeparator(false);
-    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): check last logo stop mark for advertisement in frame with logo or closing credits without logo");
-    if (evaluateLogoStopStartPair) {  // not set if we have no logo
-        cMark *lastStop = marks.GetLast();
-        if (lastStop) {
-            if (evaluateLogoStopStartPair->GetIsAdInFrame(lastStop->position) != STATUS_YES) {
-                if ((lastStop->type == MT_NOBLACKSTOP) || (lastStop->oldType == MT_NOBLACKSTOP)) {
-                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): end mark is a weak blackscreen mark, no closing credits without logo can follow");
-                }
-                else {
-                    if ((markCriteria.GetClosingCreditsState() >= CRITERIA_UNKNOWN) &&
-                       ((lastStop->type == MT_LOGOSTOP) || (lastStop->type == MT_HBORDERSTOP) || (lastStop->type == MT_MOVEDSTOP))) {
-                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search for closing credits");
-                        if (MoveLastStopAfterClosingCredits(lastStop)) {
-                            save = true;
-                            dsyslog("cMarkAdStandalone::LogoMarkOptimization(): moved last logo stop mark after closing credit");
-                        }
+    dsyslog("cMarkAdStandalone::ProcessOverlap(): check last stop mark for advertisement in frame with logo or closing credits");
+    if (!evaluateLogoStopStartPair) {  // not set if we have no logo marks at all
+        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair();
+        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+    }
+    cMark *lastStop = marks.GetLast();
+    if (lastStop) {
+        // check logo end mark
+        if (lastStop->type == MT_LOGOSTOP) {
+            if ((evaluateLogoStopStartPair->GetIsAdInFrame(lastStop->position) != STATUS_YES)) {
+                if ((markCriteria.GetClosingCreditsState() >= CRITERIA_UNKNOWN) && ((lastStop->type == MT_LOGOSTOP) || (lastStop->type == MT_MOVEDSTOP))) {
+                    dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after logo end mark");
+                    if (MoveLastStopAfterClosingCredits(lastStop)) {
+                        save = true;
+                        dsyslog("cMarkAdStandalone::ProcessOverlap(): moved logo end mark after closing credit");
                     }
                 }
             }
-            else dsyslog("cMarkAdStandalone::LogoMarkOptimization(): last stop mark (%d) is moved because of advertisement in frame, no closing credits can follow", lastStop->position);
+            else dsyslog("cMarkAdStandalone::ProcessOverlap(): last stop mark (%d) is moved because of advertisement in frame, no closing credits can follow", lastStop->position);
         }
-        FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
-        delete evaluateLogoStopStartPair;
-        evaluateLogoStopStartPair = NULL;
+        // check border end mark
+        if ((lastStop->type == MT_HBORDERSTOP) || (lastStop->type == MT_MOVEDSTOP)) {
+            dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after border end mark");
+            if (MoveLastStopAfterClosingCredits(lastStop)) {
+                save = true;
+                dsyslog("cMarkAdStandalone::ProcessOverlap(): moved border end mark after closing credit");
+            }
+        }
     }
+    FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+    delete evaluateLogoStopStartPair;
+    evaluateLogoStopStartPair = NULL;
 
     if (save) marks.Save(directory, &macontext, false);
-    dsyslog("end Overlap");
+    dsyslog("cMarkAdStandalone::ProcessOverlap(): end");
     return;
 }
 
