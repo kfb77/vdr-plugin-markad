@@ -95,6 +95,7 @@ bool cEpgHandlerMarkad::HandleEitEvent(cSchedule *Schedule, const SI::EIT::Event
     if (!Schedule) return false;
     if (!StatusMarkAd) return false;
 
+    pthread_mutex_lock(&mutex);
     const cEvent *event = Schedule->GetPresentEvent();
     if (event) {
 #ifdef DEBUG_VPS_EIT
@@ -114,6 +115,7 @@ bool cEpgHandlerMarkad::HandleEitEvent(cSchedule *Schedule, const SI::EIT::Event
 #endif
         StatusMarkAd->FindRecording(event, EitEvent, Schedule);
     }
+    pthread_mutex_unlock(&mutex);
     return false; // let vdr call other handler too
 }
 
@@ -122,6 +124,7 @@ bool cEpgHandlerMarkad::HandleEvent(cEvent *Event) {
     if (!Event) return false;
     if (Event->RunningStatus() <= 0) return false;
 
+    pthread_mutex_lock(&mutex);
 #ifdef DEBUG_VPS_VDR
     LOCK_CHANNELS_READ;
     const cChannel *channel = Channels->GetByChannelID(Event->ChannelID(), true);
@@ -129,9 +132,9 @@ bool cEpgHandlerMarkad::HandleEvent(cEvent *Event) {
            dsyslog("markad: cEpgHandlerMarkad::HandleEvent():    EventID %5d,          RunningStatus %d, channel: %s %s, title: %s", Event->EventID(), Event->RunningStatus(), *Event->ChannelID().ToString(), channel->Name(), Event->Title());
     }
 #endif
-
     StatusMarkAd->FindRecording(Event, NULL, NULL);
 
+    pthread_mutex_unlock(&mutex);
     return false;  // let vdr call other handler too
 }
 
@@ -242,18 +245,14 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
             }
             if ((recs[i].eitEventID == eitEventID)) {
                 if (recs[i].runningStatus != runningStatus) {
-                    pthread_mutex_lock(&mutex);
                     SetVPSStatus(i, runningStatus, (eitEvent)); // store recording running status from EIT Event, with epg2vdr it is differnt from VDR event
-                    pthread_mutex_unlock(&mutex);
                 }
             }
             if ((recs[i].runningStatus == 4) && (runningStatus == 4) && (eitEventID == recs[i].eitEventNextID)) {  // next event got EIT start, for private channels this is the only stop event
                 char *log = NULL;
                 if ((recs[i].epgEventLog) && (asprintf(&log, "------------------------------------> new VPS EIT Event: eventID: %7d, eitEventID: %7d, runningStatus: %u -> next event started", eventID, eitEventID, runningStatus) != -1)) recs[i].epgEventLog->Log(log);
                 if (log) free(log);
-                pthread_mutex_lock(&mutex);
                 SetVPSStatus(i, 1, (eitEvent)); // store recording stop
-                pthread_mutex_unlock(&mutex);
             }
         }
 
@@ -261,18 +260,14 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
         if (!eitEvent && recs[i].ignoreEIT) {
             if (eventID == recs[i].eventID) {
                 if (recs[i].runningStatus != runningStatus) {
-                    pthread_mutex_lock(&mutex);
                     SetVPSStatus(i, runningStatus, (eitEvent)); // store recording running status
-                    pthread_mutex_unlock(&mutex);
                 }
             }
             if ((recs[i].runningStatus == 4) && (runningStatus == 4) && (eventID == recs[i].eventNextID)) {  // next event got VPS start, for private channels this is the only stop event
                 char *log = NULL;
                 if ((recs[i].epgEventLog) && (asprintf(&log, "------------------------------------> new VPS VDR Event: eventID: %7d, eitEventID: %7d, runningStatus: %u -> next event started", eventID, eitEventID, runningStatus) != -1)) recs[i].epgEventLog->Log(log);
                 if (log) free(log);
-                pthread_mutex_lock(&mutex);
                 SetVPSStatus(i, 1, (eitEvent)); // store recording stop
-                pthread_mutex_unlock(&mutex);
             }
         }
     }

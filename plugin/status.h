@@ -74,7 +74,6 @@ class cStatusMarkAd : public cStatus {
         int             actpos   = 0;
         struct          setup *setup;
         int             runningRecordings = 0;
-        pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
         bool getPid(int Position);
         bool getStatus(int Position);
@@ -123,5 +122,6 @@ class cEpgHandlerMarkad : public cEpgHandler {
         virtual bool HandleEvent(cEvent *Event);
     private:
         cStatusMarkAd *StatusMarkAd = NULL;
+        pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 };
 #endif
