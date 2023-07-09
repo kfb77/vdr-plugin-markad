@@ -3883,7 +3883,7 @@ void cMarkAdStandalone::Reset() {
 bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
     if (!ptr_cDecoder) return false;
     if (!video) {
-        esyslog("cMarkAdStandalone::ProcessFrame() video not initialized");
+        esyslog("cMarkAdStandalone::ProcessFrame(): video not initialized");
         return false;
     }
 
@@ -3900,14 +3900,14 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
     if (ptr_cDecoder->GetFrameInfo(&macontext, markCriteria.GetDetectionState(MT_VIDEO), macontext.Config->fullDecode, markCriteria.GetDetectionState(MT_SOUNDCHANGE))) {
         if (ptr_cDecoder->IsVideoPacket()) {
             if ((ptr_cDecoder->GetFileNumber() == 1) && ptr_cDecoder->IsInterlacedVideo()) {
-                macontext.Video.Info.interlaced = true;
                 // found some Finnish H.264 interlaced recordings who changed real bite rate in second TS file header
                 // frame rate can not change, ignore this and keep frame rate from first TS file
-                if ((macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264) && (ptr_cDecoder->GetVideoAvgFrameRate() == 25) && (ptr_cDecoder->GetVideoRealFrameRate() == 50)) {
+                if (!macontext.Video.Info.interlaced && (macontext.Info.vPidType==MARKAD_PIDTYPE_VIDEO_H264) && (ptr_cDecoder->GetVideoAvgFrameRate() == 25) && (ptr_cDecoder->GetVideoRealFrameRate() == 50)) {
                     dsyslog("cMarkAdStandalone::ProcessFrame(): change internal frame rate to handle H.264 interlaced video");
                     macontext.Video.Info.framesPerSecond *= 2;
                     CalculateCheckPositions(macontext.Info.tStart * macontext.Video.Info.framesPerSecond);  // recalculate position with new frame rate
                 }
+                macontext.Video.Info.interlaced = true;
             }
             if ((iStart < 0) && (frameCurrent > -iStart)) iStart = frameCurrent;
             if ((iStop < 0) && (frameCurrent > -iStop)) {
