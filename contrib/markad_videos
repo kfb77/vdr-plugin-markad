@@ -472,6 +472,8 @@ class CheckPath:
                         fileCompareMarks = actFile
                 continue
 
+            if fnmatch.fnmatch(actFile,'F__*'):
+                continue
             if fnmatch.fnmatch(actFile,'logo__*'):
                 hadLogo = True
                 if fileCompareLogo is None: fileCompareLogo = actFile
