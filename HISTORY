@@ -1,6 +1,9 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-07-09: Version 3.3.2
+- fix calculation of frame rate for H.264 interlaced video
+
 2023-07-06: Version 3.3.1
 - redesign mark optimization
 - some minor bug fixes and optimizations, see git
