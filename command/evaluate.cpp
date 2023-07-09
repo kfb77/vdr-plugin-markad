@@ -1153,7 +1153,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     // check if "no logo" corner has same matches as logo corner, in this case it must be a static scene (e.g. static preview picture in frame or adult warning) and no info logo
     infoLogo.matchRestCornerCountFinal /= 3;
     dsyslog("cDetectLogoStopStart::IsInfoLogo(): count matches greater than limit of %d: %d logo corner, avg rest corners %d", INFO_LOGO_MACTH_MIN, infoLogo.matchLogoCornerCountFinal, infoLogo.matchRestCornerCountFinal);
-    if (infoLogo.matchLogoCornerCountFinal <= (infoLogo.matchRestCornerCountFinal + 2)) {
+    if (infoLogo.matchLogoCornerCountFinal <= (infoLogo.matchRestCornerCountFinal + 3)) {  // changed from 2 to 3
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): too much similar corners, this must be a static ad or preview picture");
         found = false;
     }
