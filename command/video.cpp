@@ -554,7 +554,7 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
 // contrast 181, brightness 130
 //
 // contrast 125, brightness 171
-//
+// contrast 112, brightness 176  NEW
 // contrast  91, brightness 171
 // contrast  60, brightness 174
 // contrast  41, brightness 179
@@ -567,15 +567,15 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
 // contrast  13, brightness 176
 //
 // no logo in bright area, not detected without brightness reduction, detected with brightness reduction, take it as valid
-// contrast 149, brightness 139 NEW
+// contrast 149, brightness 139
 // contrast 131, brightness 152
 // contrast  94, brightness 158
 // contrast  25, brightness 153
 
     if (maContext->Video.Logo.pixelRatio > LOW_PIXEL_LOGO) { // normal logo
         // build the curve
-        if (((contrastLogo   <= 123) &&                          (brightnessLogo >  187)) ||
-            ((contrastLogo   >  123) && (contrastLogo <= 131) && (brightnessLogo >= 153)) ||
+        if (((contrastLogo   <= 125) &&                          (brightnessLogo >= 171)) ||
+            ((contrastLogo   >  125) && (contrastLogo <= 131) && (brightnessLogo >= 153)) ||
             ((contrastLogo   >  131) && (contrastLogo <= 149) && (brightnessLogo >= 140)) ||
             ((contrastLogo   >  149) &&                          (brightnessLogo >= 120))) {
 #ifdef DEBUG_LOGO_DETECTION
