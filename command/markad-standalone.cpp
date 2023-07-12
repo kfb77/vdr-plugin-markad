@@ -2176,6 +2176,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     switch(lastStopMark->type) {
                         case MT_ASSUMEDSTOP:
                             // too long broadcast length from info file, delete last stop:
+                            // 296 / -383 / -419
                             // 346 / -224 / -535
                             // 351 / -154 / -506
                             // 369 /   25 / -542
@@ -2184,38 +2185,43 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                             // 442 / -130 / -564
                             // 471 / -154 / -542
                             // 547 /  -83 / -567
-                            minLastStopAssumed  =  346;
-                            minLastStartAssumed = -224;
+                            minLastStopAssumed  =  296;
+                            minLastStartAssumed = -383;
                             minPrevStopAssumed  = -567;
                             maxLastBroadcast    =   -1;
                             maxLastAd           =   -1;
                             break;
                         case MT_NOBLACKSTOP:
                             // too long broadcast length from info file, delete last stop:
+                            //  73 / -173 / -536
+                            //  93 / -278 / -541
                             // 102 /  -98 / -515
+                            // 102 / -225 / -535
                             // 123 / -189 / -500
-                            // 123 / -384 / -539  (conflict)
+                            // 123 / -384 / -539
                             // 147 /  -60 / -535
-                            // 169 / -226 / -537  (conflict)
-                            // 187 / -225 / -535  (conflict)
+                            // 169 / -226 / -537
+                            // 187 / -225 / -535
                             // 209 /  -76 / -535
                             // 416 /  -95 / -538
                             // correct end mark, do not delete last stop
-                            // 154 / -217 / -510
+                            // 154 / -217 / -510  (conflict)
+                            //  73 / -384 / -510  (conflict)
                             //  68 / -124 / -534
                             //  82 /  -78 / -504
-                            minLastStopAssumed  =  102;
-                            minLastStartAssumed = -216;
-                            minPrevStopAssumed  = -539;
+                            minLastStopAssumed  =   73;
+                            minLastStartAssumed = -384;
+                            minPrevStopAssumed  = -541;
                             maxLastBroadcast    =   -1;
                             maxLastAd           =   -1;
                             break;
                         case MT_LOGOSTOP:
                             // too long broadcast length from info file, delete last stop:
                             // -12 /  -97 / -132
-                            //  52 / -165 / -289 NEW
+                            //  52 / -165 / -289
                             //  63 /  -86 / -195
                             // 106 /  -79 / -182
+                            // 251 /  -54 / -496  (conflict)
                             // 306 /  -19 / -483  (conflict)
                             // correct end mark, do not delete last stop
                             // 176 /   30 / -449
