@@ -354,8 +354,26 @@ int cMarkAdStandalone::CheckStop() {
         }
         aStart = marks.GetNext(aStart->position, MT_ASPECTSTART);
     }
-    // if we use channel marks: cleanup logo marks near by channel start marks, they are useless info logo
+    // if we use channel marks
     if (markCriteria.GetMarkTypeState(MT_CHANNELCHANGE) == CRITERIA_USED) {
+        // delete short channel stop/start pairs, they are stream errors
+        cMark *channelStop = marks.GetNext(-1, MT_CHANNELSTOP);
+        while (true) {
+            if (!channelStop) break;
+            cMark *channelStart = marks.GetNext(channelStop->position, MT_CHANNELSTART);
+            if (!channelStart) break;
+            int lengthChannel = 1000 * (channelStart->position - channelStop->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::CheckStop(): channel stop (%6d) start (%6d): length %6dms", channelStop->position, channelStart->position, lengthChannel);
+            if (lengthChannel <= 280) {
+                dsyslog("cMarkAdStandalone::CheckStop(): channel stop (%6d) start (%6d): length too short, delete marks", channelStop->position, channelStart->position);
+                int tmp = channelStop->position;
+                marks.Del(channelStop->position);
+                marks.Del(channelStart->position);
+                channelStop = marks.GetNext(tmp, MT_CHANNELSTOP);
+            }
+            else channelStop = marks.GetNext(channelStop->position, MT_CHANNELSTOP);
+        }
+    // cleanup logo marks near by channel start marks, they are useless info logo
         cMark *channelStart = marks.GetNext(-1, MT_CHANNELSTART);
         while (channelStart) {
 #define CHANNEL_LOGO_MARK 60
