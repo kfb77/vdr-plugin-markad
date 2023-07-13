@@ -867,25 +867,33 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
             dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): check logo stop (%d) at %s and logo start (%d) at %s, isInfoLogo %d", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart, isInfoLogo);
         }
         if (ptr_cDetectLogoStopStart->Detect(stopPosition, startPosition)) {
+            bool doInfoCheck = true;
             // check for closing credits if no other checks will be done, only part of the loop elements in recording end range
             if ((isInfoLogo <= STATUS_NO) && (isLogoChange <= STATUS_NO)) ptr_cDetectLogoStopStart->ClosingCredit();
 
-            // check info logo
+            // check for info logo
             if ((iStart > 0) && (isStartMarkInBroadcast == STATUS_YES)) {  // we are called by CheckStart and we are in broadcast
                                                                            // do not delete info logo, it can be introduction logo, it looks the same
-                dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): do not check for info logo, we are in start range, it can be introducion logo ");
-            }
-            else {
-                if ((isInfoLogo >= STATUS_UNKNOWN) && ptr_cDetectLogoStopStart->IsInfoLogo()) {
-                    // found info logo part
-                    if (indexToHMSFStop && indexToHMSFStart) {
-                        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
+                                                                           // expect we have another start very short before
+                cMark *lStartBefore = marks.GetPrev(stopPosition, MT_LOGOSTART);
+                if (lStartBefore) {
+                    int diffStart = 1000 * (stopPosition - lStartBefore->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): logo start (%d) %dms before stop mark (%d)", lStartBefore->position, diffStart, stopPosition);
+                    if (diffStart > 1240) {  // do info logo check if we have a logo start mark short before, some channel send a early info log after boradcast start
+                                             // changed from 1160 to 1240
+                        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): do not check for info logo, we are in start range, it can be introducion logo");
+                        doInfoCheck = false;
                     }
-                    evaluateLogoStopStartPair->SetIsInfoLogo(stopPosition, startPosition);
-                    marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
                 }
             }
-
+            if (doInfoCheck && (isInfoLogo >= STATUS_UNKNOWN) && ptr_cDetectLogoStopStart->IsInfoLogo()) {
+                // found info logo part
+                if (indexToHMSFStop && indexToHMSFStart) {
+                    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
+                }
+                evaluateLogoStopStartPair->SetIsInfoLogo(stopPosition, startPosition);
+                marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
+            }
             // check logo change
             if ((isLogoChange >= STATUS_UNKNOWN) && ptr_cDetectLogoStopStart->IsLogoChange()) {
                 if (indexToHMSFStop && indexToHMSFStart) {
