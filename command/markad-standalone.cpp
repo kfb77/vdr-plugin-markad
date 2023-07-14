@@ -2171,9 +2171,28 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
         mark = mark->Next();
     }
 
-// check start marks
-// check for short start/stop pairs at the start
+// check for short start/stop pairs at the start part
     CheckStartMark();
+
+// check for short stop/start logo pair at start part in case of late recording start, ad between broadcasts are short, ad in broadcast are long
+    dsyslog("cMarkAdStandalone::CheckMarks(): final check start mark");
+    cMark *firstStart = marks.GetNext(-1, MT_LOGOSTART);
+    if (firstStart) {
+        cMark *firstStop  = marks.GetNext(firstStart->position, MT_LOGOSTOP);
+        if (firstStop) {
+            cMark *secondStart = marks.GetNext(firstStop->position, MT_LOGOSTART);
+            if (secondStart) {
+                int lengthFirstAd       = (secondStart->position - firstStop->position) / macontext.Video.Info.framesPerSecond;
+                int newDiffAfterAssumed = (secondStart->position - iStart) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::CheckMarks(): first logo stop mark (%d), next logo start mark (%d), length ad %ds, start %ds after assumed start", firstStop->position, secondStart->position, lengthFirstAd, newDiffAfterAssumed);
+                if ((lengthFirstAd <= 41) && (newDiffAfterAssumed <= 387)) {  // changed from 359 to 363 to 365 to 387
+                    dsyslog("cMarkAdStandalone::CheckMarks(): first ad too short for in broadcast, delete start (%d) and stop (%d) mark", firstStart->position, firstStop->position);
+                    marks.Del(firstStart->position);
+                    marks.Del(firstStop->position);
+                }
+            }
+        }
+    }
 
 // check for better end mark not very far away from assuemd end
     LogSeparator();
@@ -2343,7 +2362,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
         if ((mark->type == MT_LOGOSTOP) && mark->Next() && mark->Next()->type == MT_LOGOSTART) {
             int lengthAd = 1000 * (mark->Next()->position - mark->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::CheckMarks(): mark distance between logo stop (%d) and logo start (%d), length advertising %dms", mark->position, mark->Next()->position, lengthAd);
-            if (lengthAd < 13040) {  // found shortest ad with 13040ms
+            if (lengthAd < 13040) {  // found shortest ad in broadcast with 13040ms, between two broadcast the can be very short
                 isyslog("mark distance %ds too short, deleting logo stop mark (%d) and logo start mark (%d)", lengthAd / 1000, mark->position, mark->Next()->position);
                 cMark *tmp = mark;
                 mark = mark->Next()->Next();
