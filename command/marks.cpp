@@ -669,7 +669,10 @@ bool cMarks::Backup(const char *directory) {
 
 
 int cMarks::Length() {
-    if (!first) return 0;
+    if (!first) {
+        esyslog("cMarks::Length(): no marks found");
+        return 0;
+    }
     int length = 0;
     cMark *startMark = first;
     cMark *stopMark  = NULL;
@@ -679,9 +682,15 @@ int cMarks::Length() {
             if ((stopMark && (stopMark->type & 0x0F) == MT_STOP)) {
                 length += stopMark->position - startMark->position;
             }
-            else return 0;  // invalid secuence
+            else {  // invalid sequence
+                esyslog("cMarks::Length(): invalid mark type sequence, expect a stop mark");
+                return 0;
+            }
         }
-        else return 0;      // invalid sequence
+        else {  // invalid sequence
+            esyslog("cMarks::Length(): invalid mark type sequence, expect a start mark");
+            return 0;
+        }
         startMark = stopMark->Next();
     }
     return length;
