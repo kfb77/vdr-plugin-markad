@@ -2096,15 +2096,8 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
     if ((frameCurrent > 0) && markCriteria->GetDetectionState(MT_BLACKCHANGE)) { // first frame can be invalid result
         int blackret;
         blackret = blackScreen->Process(useFrame);
-        if (blackret > 0) {
-            if (maContext->Config->fullDecode) AddMark(MT_NOBLACKSTART, useFrame);  // first frame without blackscreen is start mark position
-            else AddMark(MT_NOBLACKSTART, useFrame); // with iFrames only we must set mark on first frame after blackscreen to avoid start and stop on same iFrame
-        }
-        else {
-            if (blackret < 0) {
-                AddMark(MT_NOBLACKSTOP, useFrame);
-            }
-        }
+        if (blackret > 0) AddMark(MT_NOBLACKSTART, useFrame);  // first frame without blackscreen is start mark position
+        if (blackret < 0) AddMark(MT_NOBLACKSTOP, useFrame);
     }
     int hret = HBORDER_ERROR;
     if (markCriteria->GetDetectionState(MT_HBORDERCHANGE)) {
