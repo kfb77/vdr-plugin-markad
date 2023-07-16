@@ -1870,18 +1870,21 @@ int cDetectLogoStopStart::IntroductionLogo() {
         // examples of separator frames before introduction logo
         //  59     0     0    -1 =  58
         //  -1   325(l)  0     0 = 324  // fading out logo on black sceen between broadcast before and introduction logo, logo start mark is after introduction logo (conflict)
+        //  -1  1000(l) -1    -1 = 997  // black screen with logo, last frame from previous broadcast
         //
         // example of no separator frames (l = logo corner)
         //  27   286      0     7 = 320
         //  34   206(l)   0     0 = 240
         //   0   201(l)  30     0 = 231
         //   0    35(l) 109     0 = 144
-        //   0   147(l)   0     0 = 147  NEW
+        //   0   147(l)   0     0 = 147
         //  -1   241(l)   0    -1 = 239   // dark scene with introduction logo
         int diffSeparatorToEnd = 1000 * (endPos - (*cornerResultIt).frameNumber1) / maContext->Video.Info.framesPerSecond;
-        if (((countLow  >= 3) && (sumPixel < 144) && (diffSeparatorToEnd > 960)) ||
-            ((countZero >= 3) && (sumPixel < 147))){ // new separator image before introduction logo, restart detection
-                                                      // ignore first separator frame near endPos (logo start mark), this can not be start of introduction logo
+        // new separator image before introduction logo, restart detection
+        // ignore first separator frame near endPos (logo start mark), this can not be start of introduction logo
+        if ((((countLow  >= 3) && (sumPixel < 144) && (diffSeparatorToEnd > 960)) ||
+            ((countZero >= 3) && (sumPixel < 147))) ||
+            ((countZero == 3) && (sumPixel >= 997))){ // special case:  black screen with logo, last frame from previous broadcast
 #ifdef DEBUG_MARK_OPTIMIZATION
             dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator found at frame (%5d)", (*cornerResultIt).frameNumber1);
 #endif
