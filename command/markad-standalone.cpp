@@ -431,7 +431,7 @@ int cMarkAdStandalone::CheckStop() {
             if (aspectStop) {
                 const cMark *aspectStart = marks.GetPrev(aspectStop->position, MT_ASPECTSTOP);
                 if (!aspectStart) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): we have 16:9 bradcast and MT_ASPECTSTOP at frame (%d) without MT_ASPECTSTART before, this is and mark", aspectStop->position);
+                    dsyslog("cMarkAdStandalone::CheckStop(): we have 16:9 bradcast and MT_ASPECTSTOP at frame (%d) without MT_ASPECTSTART before, this is a possible end mark", aspectStop->position);
                     end = aspectStop;
                 }
             }
@@ -468,8 +468,10 @@ int cMarkAdStandalone::CheckStop() {
                     FREE(strlen(markType)+1, "text");
                     free(markType);
                     if (diff <= 682) { // changed from 312 to 682, for broadcast length from info file too long
-                        dsyslog("cMarkAdStandalone::CheckStop(): advertising before aspect ratio change, use stop mark before as end mark");
+                        dsyslog("cMarkAdStandalone::CheckStop(): there is an advertising before aspect ratio change, use stop mark (%d) before as end mark", stopBefore->position);
                         end = stopBefore;
+                        // cleanup possible info logo or logo detection failure short before end mark
+                        if (end->type == MT_LOGOSTOP) marks.DelFromTo(end->position - (60 * macontext.Video.Info.framesPerSecond), end->position - 1, MT_LOGOCHANGE);
                     }
                 }
             }
