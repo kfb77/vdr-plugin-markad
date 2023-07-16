@@ -3381,7 +3381,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
 
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): start logo mark optimization");
-    if (markCriteria.GetMarkTypeState(MT_LOGOCHANGE) != CRITERIA_USED) {
+    if (marks.Count(MT_LOGOCHANGE, 0xF0) == 0) {
         dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no logo marks used");
         return;
     }
