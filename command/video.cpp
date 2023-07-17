@@ -1395,23 +1395,29 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
         return 0;
     }
     int end = maContext->Video.Info.height * maContext->Video.Info.width;
-    int val = 0;
     // calulate limit with hysteresis
     int maxBrightness;
     if (blackScreenstatus == BLACKSCREEN_INVISIBLE) maxBrightness = BLACKNESS * end;
     else maxBrightness = (BLACKNESS + 1) * end;
+    int maxBrightnessGrey = 28 * end;
 
 #ifdef DEBUG_BLACKSCREEN
-    int debugVal = 0;
+    int debugMaxPixel = 0;
+    int debugVal      = 0;
     for (int x = 0; x < end; x++) {
+        if (maContext->Video.Data.Plane[0][x] > debugMaxPixel) debugMaxPixel = maContext->Video.Data.Plane[0][x];
         debugVal += maContext->Video.Data.Plane[0][x];
     }
     debugVal /= end;
-    dsyslog("cMarkAdBlackScreen::Process(): frame (%d) blackness %d (expect <%d for start, >%d for end)", frameCurrent, debugVal, BLACKNESS, BLACKNESS);
+    dsyslog("cMarkAdBlackScreen::Process(): frame (%d) blackness %d (expect <%d for start, >%d for end), max pixel %d", frameCurrent, debugVal, BLACKNESS, BLACKNESS, debugMaxPixel);
 #endif
+    int val = 0;
+    int maxPixel = 0;
     for (int x = 0; x < end; x++) {
         val += maContext->Video.Data.Plane[0][x];
-        if (val > maxBrightness) {
+        if (maContext->Video.Data.Plane[0][x] > maxPixel) maxPixel = maContext->Video.Data.Plane[0][x];
+        if ((val > maxBrightness) &&
+           ((val > maxBrightnessGrey) || (maxPixel > 73))) {  // TLC use one dark grey separator picture between broadcasts, changed from 50 to 73
             if (blackScreenstatus != BLACKSCREEN_INVISIBLE) {
                 blackScreenstatus = BLACKSCREEN_INVISIBLE;
                 return 1; // detected stop of black screen
