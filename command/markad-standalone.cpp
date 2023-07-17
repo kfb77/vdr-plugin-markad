@@ -3913,7 +3913,7 @@ void cMarkAdStandalone::ProcessOverlap() {
         }
         // check border end mark
         if ((lastStop->type == MT_HBORDERSTOP) || (lastStop->type == MT_MOVEDSTOP)) {
-            dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after border end mark");
+            dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after border or moved end mark");
             if (MoveLastStopAfterClosingCredits(lastStop)) {
                 save = true;
                 dsyslog("cMarkAdStandalone::ProcessOverlap(): moved border end mark after closing credit");
