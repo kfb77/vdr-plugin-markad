@@ -2913,9 +2913,9 @@ void cMarkAdStandalone::CheckIndexGrowing()
 bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark1, cMark **mark2) {
     if (!ptr_cDecoder) return false;
     if (!mark1)        return false;
-    if (!*mark1)       return false;
+    if (!(*mark1))     return false;
     if (!mark2)        return false;
-    if (!*mark2)       return false;
+    if (!(*mark2))     return false;
 
     sOverlapPos overlapPos;
     overlapPos.similarBeforeStart = -1;
@@ -3142,8 +3142,16 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
                                                                     // but if it is too far away it is a false positiv
                                                                     // changed gapStop from 36 to 27
                 dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): overlap gap to marks are valid, before stop mark %ds, after start mark %ds, length %dms", gapStop, gapStart, lengthBefore);
-                *mark1 = marks.Move(*mark1, overlapPos.similarBeforeEnd, MT_UNDEFINED, "overlap");
-                *mark2 = marks.Move(*mark2, overlapPos.similarAfterEnd,  MT_UNDEFINED, "overlap");
+                *mark1 = marks.Move((*mark1), overlapPos.similarBeforeEnd, MT_OVERLAPSTOP,  "overlap");
+                if (!(*mark1)) {
+                    esyslog("cMarkAdStandalone::ProcessMarkOverlap(): move stop mark failed");
+                    return false;
+                }
+                *mark2 = marks.Move((*mark2), overlapPos.similarAfterEnd,  MT_OVERLAPSTART, "overlap");
+                if (!(*mark2)) {
+                    esyslog("cMarkAdStandalone::ProcessMarkOverlap(): move start mark failed");
+                    return false;
+                }
                 marks.Save(directory, &macontext, false);
             }
             else dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): overlap gap to marks are not valid, before stop mark %ds, after start mark %ds, length %dms", gapStop, gapStart, lengthBefore);
@@ -3454,7 +3462,11 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             if (adInFrameEndPosition != -1) {  // if we found advertising in frame, use this
                 if (!macontext.Config->fullDecode) adInFrameEndPosition = recordingIndexMark->GetIFrameAfter(adInFrameEndPosition + 1);  // we got last frame of ad, go to next iFrame for start mark
                 else adInFrameEndPosition++; // use next frame after ad in frame as start mark
-                markLogo = marks.Move(markLogo, adInFrameEndPosition, MT_UNDEFINED, "advertising in frame");
+                markLogo = marks.Move(markLogo, adInFrameEndPosition, MT_NOADINFRAMESTART, "advertising in frame");
+                if (!markLogo) {
+                    esyslog("cMarkAdStandalone::LogoMarkOptimization(): move mark failed");
+                    break;
+                }
                 save = true;
             }
             else {
@@ -3881,6 +3893,7 @@ void cMarkAdStandalone::ProcessOverlap() {
                 FREE(sizeof(*overlap), "overlap");
                 delete overlap;
             }
+            if (!p1 || !p2) break;  // failed move will return NULL pointer
             p1 = p2->Next();
             if (p1) {
                 p2 = p1->Next();

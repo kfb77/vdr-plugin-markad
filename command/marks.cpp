@@ -580,7 +580,19 @@ void cMarks::ChangeType(cMark *mark, const int newType) {
 cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType, const char* reason) {
     if (!mark) return NULL;
     if (!reason) return NULL;
-
+    if (newType != MT_UNDEFINED) {
+        // check if old and new type is valid
+        if ((mark->type & 0x0F) != (newType & 0x0F)) {
+            esyslog("cMarks::Move(): old mark (%d) type 0x%X and new type 0x%X is invalid", mark->position, mark->type, newType);
+            return NULL;
+        }
+        // prevent move to position on with a mark exists with different base type (START/STOP)
+        const cMark *checkPos = Get(newPosition);
+        if (checkPos && ((checkPos->type & 0x0F) != (newType & 0x0F))) {  // will result in invalid sequence
+            esyslog("cMarks::Move(): move failed, mark with different type exists on new position (%d) type 0x%X, new type 0x%X", newPosition, checkPos->type, newType);
+            return NULL;
+        }
+    }
     char *comment = NULL;
     char *indexToHMSF = IndexToHMSF(mark->position);
     if (indexToHMSF) { ALLOC(strlen(indexToHMSF)+1, "indexToHMSF"); }
