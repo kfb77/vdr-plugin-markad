@@ -461,13 +461,16 @@ int cMarkAdStandalone::CheckStop() {
                         }
                     }
                 }
+                // now we may have a hborder or a logo stop mark before aspect stop mark, check if valid
                 if (stopBefore) { // maybe real stop mark was deleted because on same frame as logo/hborder stop mark
-                    int diff = (iStopA - stopBefore->position) /  macontext.Video.Info.framesPerSecond;
+                    int diffStopA      = (iStopA - stopBefore->position)        /  macontext.Video.Info.framesPerSecond;
+                    int diffAspectStop = (end->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
                     char *markType = marks.TypeToText(stopBefore->type);
-                    dsyslog("cMarkAdStandalone::CheckStop(): found %s stop mark (%d) before aspect ratio end mark (%d), %ds before assumed stop", markType, stopBefore->position, end->position, diff);
+                    dsyslog("cMarkAdStandalone::CheckStop(): found %s stop mark (%d) %ds before aspect ratio end mark (%d), %ds before assumed stop", markType, stopBefore->position, diffAspectStop, end->position, diffStopA);
                     FREE(strlen(markType)+1, "text");
                     free(markType);
-                    if (diff <= 682) { // changed from 312 to 682, for broadcast length from info file too long
+                    if ((diffStopA <= 760) && (diffAspectStop <= 19)) { // changed from 682 to 760, for broadcast length from info file too long
+                                                                        // changed from 10 to 19, for longer ad found between broadcasts
                         dsyslog("cMarkAdStandalone::CheckStop(): there is an advertising before aspect ratio change, use stop mark (%d) before as end mark", stopBefore->position);
                         end = stopBefore;
                         // cleanup possible info logo or logo detection failure short before end mark
