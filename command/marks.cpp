@@ -532,6 +532,12 @@ char *cMarks::TypeToText(const int type) {
             }
             else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
+        case MT_OVERLAPCHANGE:
+            if (asprintf(&text, "overlap") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
+            break;
         case MT_INTRODUCTIONCHANGE:
             if (asprintf(&text, "introduction") != -1) {
                 ALLOC(strlen(text)+1, "text");
@@ -553,8 +559,8 @@ char *cMarks::TypeToText(const int type) {
                 else esyslog("cMarks::TypeToText(): asprintf failed");
             }
             else {
-                esyslog("cMarks::TypeToText(): type 0x%X not valid", type);
-                if (asprintf(&text, "not valid") != -1) {
+                esyslog("cMarks::TypeToText(): type 0x%X unknown", type);
+                if (asprintf(&text, "unknown") != -1) {
                     ALLOC(strlen(text)+1, "text");
                 }
                 else esyslog("cMarks::TypeToText(): asprintf failed");
