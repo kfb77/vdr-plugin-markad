@@ -1902,7 +1902,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
         // separator after introduction logo, in this case it can not be a introduction logo
         // examples of separator frames after introduction logo
         // no seperator frame
-	//  0    91     0     0 =  91  NEW
+        //  0    91     0     0 =  91  NEW
         //  0    76    11     6 =  93
         //  0    24   102     9 = 135
         //  0   147     0     0 = 147
