@@ -19,7 +19,6 @@
  */
 class cMark {
     public:
-
 /**
  * mark constructor
  * @param typeParam        mark type
@@ -74,6 +73,19 @@ class cMark {
             prev = prevParam;
         }
 
+/**
+ * set PTS based time offset text from mark position
+ * @param time pointer to char array, NULL is valid and clears value
+ */
+        void SetTime(char* time);
+
+/**
+ * get PTS based time offset text from mark position
+ * @return char array of time stamp with format HH:MM:SS.FF, NULL if not set
+ */
+        char *GetTime();
+
+
         int type         = MT_UNDEFINED;   //!< mark type
                                            //!<
         int oldType      = MT_UNDEFINED;   //!< old mark type after mark moved
@@ -98,11 +110,12 @@ class cMark {
  */
         cMark &operator=(const cMark &foo);
 
-        cMark *next;                         //!< next mark
-                                             //!<
-        cMark *prev;                         //!< previous mark
-                                             //!<
-
+        cMark *next         = NULL;       //!< next mark
+                                          //!<
+        cMark *prev         = NULL;       //!< previous mark
+                                          //!<
+        char *timeOffsetPTS = NULL;       //!< time stamp of the mark position
+                                          //!<
 };
 
 /**
@@ -158,6 +171,14 @@ class cMarks {
  * @return time string
  */
         char *IndexToHMSF(const int frameNumber, const bool isVDR = false);
+
+/**
+ * get PTS based time offset of mark position
+ * @param mark pointer to mark
+ * @return char array of time stamp with format HH:MM:SS.FF
+ */
+        char *GetTime(cMark *mark);
+
 
 /**
  * delete weak marks between two positions
@@ -329,13 +350,13 @@ class cMarks {
 
         cIndex *recordingIndexMarks = NULL;  //!< recording index
                                              //!<
-        char filename[1024];                 //!< name of marks file (default: marks)
+        char filename[1024]         = {0};   //!< name of marks file (default: marks)
                                              //!<
-        cMark *first;                        //!< pointer to first mark
+        cMark *first                = NULL;  //!< pointer to first mark
                                              //!<
-        cMark *last;                         //!< pointer to last mark
+        cMark *last                 = NULL;  //!< pointer to last mark
                                              //!<
-        int count;                           //!< number of current marks
+        int count                   = 0;     //!< number of current marks
                                              //!<
 };
 #endif

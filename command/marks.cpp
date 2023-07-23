@@ -39,8 +39,9 @@ cMark::cMark(const int typeParam, const int oldTypeParam, const int newTypeParam
     }
     else comment = NULL;
 
-    prev = NULL;
-    next = NULL;
+    prev          = NULL;
+    next          = NULL;
+    timeOffsetPTS = NULL;
 }
 
 
@@ -49,6 +50,36 @@ cMark::~cMark() {
         FREE(strlen(comment)+1, "comment");
         free(comment);
     }
+    if (timeOffsetPTS) {
+        FREE(strlen(timeOffsetPTS)+1, "timeOffsetPTS");
+        free(timeOffsetPTS);
+    }
+}
+
+
+/**
+ * set PTS based time offset text from mark position
+ * @param mark pointer to mark
+ * @param time pointer to char array, NULL is valid and clears value
+ */
+void cMark::SetTime(char* time) {
+    if (!time) {
+        if (timeOffsetPTS) {
+            FREE(strlen(timeOffsetPTS)+1, "timeOffsetPTS");
+            free(timeOffsetPTS);
+        }
+    }
+    else timeOffsetPTS = time;
+}
+
+
+/**
+ * get PTS based time offset text from mark position
+ * @param mark pointer to mark
+ * @return char array of time stamp with format HH:MM:SS.FF, NULL if not set
+ */
+char *cMark::GetTime() {
+    return timeOffsetPTS;
 }
 
 
@@ -606,8 +637,7 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType, const
         }
     }
     char *comment = NULL;
-    char *indexToHMSF = IndexToHMSF(mark->position);
-    if (indexToHMSF) { ALLOC(strlen(indexToHMSF)+1, "indexToHMSF"); }
+    char *indexToHMSF = GetTime(mark);
     cMark *newMark = NULL;
     char* typeText = TypeToText(mark->type);
 
@@ -634,8 +664,6 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType, const
            free(typeText);
            FREE(strlen(comment)+1, "comment");
            free(comment);
-           FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-           free(indexToHMSF);
        }
    }
    return newMark;
@@ -648,6 +676,10 @@ void cMarks::RegisterIndex(cIndex *recordingIndex) {
 
 
 char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR) {
+    if (!recordingIndexMarks) {
+        esyslog("cMarks::IndexToHMSF(): frame (%d): recording index not set", frameNumber);
+        return NULL;
+    }
     char *indexToHMSF = NULL;
     double Seconds = 0;
     int f = 0;
@@ -664,8 +696,26 @@ char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR) {
     int m = s / 60 % 60;
     int h = s / 3600;
     s %= 60;
-    if (asprintf(&indexToHMSF, "%d:%02d:%02d.%02d", h, m, s, f) == -1) return NULL;   // this has to be managed in the calling function
+    if (asprintf(&indexToHMSF, "%d:%02d:%02d.%02d", h, m, s, f) == -1) return NULL;  // memory debug managed by calling function
     return indexToHMSF;
+}
+
+
+/**
+ * get PTS based time offset of mark position
+ * @param mark pointer to mark
+ * @return char array of time stamp with format HH:MM:SS.FF
+ */
+char *cMarks::GetTime(cMark *mark) {
+    if (!mark) return NULL;
+    char *time = mark->GetTime();
+    if (!time) {
+        time = IndexToHMSF(mark->position, false);
+        if (time) { ALLOC(strlen(time)+1, "timeOffsetPTS"); }
+        mark->SetTime(time);
+    }
+    if (!time) esyslog("cMarks::GetTime(): frame (%d): faild to get time from index", mark->position);
+    return time;
 }
 
 
@@ -755,8 +805,7 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
         dsyslog("cMarks::Save(): mark frame number     (%d)", mark->position);
         dsyslog("cMarks::Save(): vdr mark frame number (%d)", vdrMarkPosition);
 #endif
-        char *indexToHMSF_PTS = IndexToHMSF(mark->position, false);     // PTS based timestamp
-        if (indexToHMSF_PTS) { ALLOC(strlen(indexToHMSF_PTS)+1, "indexToHMSF_PTS"); }
+        char *indexToHMSF_PTS = GetTime(mark);                          // PTS based timestamp
         char *indexToHMSF_VDR = IndexToHMSF(vdrMarkPosition, true);     // vdr based timestamp
         if (indexToHMSF_VDR) { ALLOC(strlen(indexToHMSF_VDR)+1, "indexToHMSF_VDR"); }
 #ifdef DEBUG_SAVEMARKS
@@ -770,10 +819,6 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
         if (indexToHMSF_VDR) {
             FREE(strlen(indexToHMSF_VDR)+1, "indexToHMSF_VDR");
             free(indexToHMSF_VDR);
-        }
-        if (indexToHMSF_PTS) {
-            FREE(strlen(indexToHMSF_PTS)+1, "indexToHMSF_PTS");
-            free(indexToHMSF_PTS);
         }
         mark = mark->Next();
     }
