@@ -705,10 +705,19 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, c
             avFrameRef = DecodePacket(&avpkt);  // free in DecodePacket
             if (avFrameRef) {
                 stateEAGAIN=false;
+#if LIBAVCODEC_VERSION_INT < ((60<<16)+(22<<8)+100)
                 if (avFrameRef->interlaced_frame != interlaced_frame) {
-                    dsyslog("cDecoder::GetFrameInfo(): %s video format",(avFrameRef->interlaced_frame) ? "interlaced" : "non interlaced");
+                    if (interlaced_frame == -1) dsyslog("cDecoder::GetFrameInfo(): %s video format", (avFrameRef->interlaced_frame) ? "interlaced" : "progressive");
+                    else dsyslog("cDecoder::GetFrameInfo(): frame (%6d): changed to %s video format", currFrameNumber, (avFrameRef->interlaced_frame) ? "interlaced" : "progressive");
                     interlaced_frame = avFrameRef->interlaced_frame;
                 }
+#else
+                if (AV_FRAME_FLAG_INTERLACED != interlaced_frame) {
+                    if (interlaced_frame == -1) dsyslog("cDecoder::GetFrameInfo(): %s video format", (AV_FRAME_FLAG_INTERLACED) ? "interlaced" : "progressive");
+                    else dsyslog("cDecoder::GetFrameInfo(): frame (%6d): changed to %s video format", currFrameNumber, (AV_FRAME_FLAG_INTERLACED) ? "interlaced" : "progressive");
+                    interlaced_frame = AV_FRAME_FLAG_INTERLACED;
+                }
+#endif
                 for (int i = 0; i < PLANES; i++) {
                     if (avFrameRef->data[i]) {
                         maContext->Video.Data.Plane[i] = avFrameRef->data[i];
