@@ -16,10 +16,13 @@
 
 #define MAXREADFRAMES 3000
 
-#define TOP_LEFT 0
-#define TOP_RIGHT 1
-#define BOTTOM_LEFT 2
+#define TOP_LEFT     0
+#define TOP_RIGHT    1
+#define BOTTOM_LEFT  2
 #define BOTTOM_RIGHT 3
+
+#define LOGOSEARCH_ERROR  -1
+#define LOGOSEARCH_FOUND   0
 
 /**
  * logo after sobel transformation

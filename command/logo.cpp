@@ -1414,17 +1414,19 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
         dsyslog("cExtractLogo::SearchLogo(): maContext not valid");
         return -1;
     }
-    if (!recordingIndexLogo) return -1;
-    if (startFrame < 0) return -1;
+    if (!recordingIndexLogo) return LOGOSEARCH_ERROR;
+    if (startFrame < 0)      return LOGOSEARCH_ERROR;
 
-    struct timeval startTime, stopTime;
-    int iFrameNumber = 0;
-    int iFrameCountAll = 0;
-    int logoHeight = 0;
-    int logoWidth = 0;
-    bool retStatus = true;
-    bool readNextFile = true;
-    int maxLogoPixel = 0;
+    struct timeval startTime;
+    struct timeval stopTime;
+
+    int  iFrameNumber   = 0;
+    int  iFrameCountAll = 0;
+    int  logoHeight     = 0;
+    int  logoWidth      = 0;
+    bool retStatus      = true;
+    bool readNextFile   = true;
+    int  maxLogoPixel   = 0;
 
 
     gettimeofday(&startTime, NULL);
@@ -1456,7 +1458,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
         delete hborder;
         FREE(sizeof(*vborder), "vborder");
         delete vborder;
-        return -1;
+        return LOGOSEARCH_ERROR;
     }
 
 // set start point
@@ -1481,7 +1483,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
             delete hborder;
             FREE(sizeof(*vborder), "vborder");
             delete vborder;
-            return -1;
+            return LOGOSEARCH_ERROR;
         }
         maContext->Video.Info.height = ptr_cDecoder->GetVideoHeight();
         maContext->Video.Info.width = ptr_cDecoder->GetVideoWidth();
@@ -1500,7 +1502,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
                 delete hborder;
                 FREE(sizeof(*vborder), "vborder");
                 delete vborder;
-                return -1;
+                return LOGOSEARCH_ERROR;
             }
 
             // write an early start mark for running recordings
@@ -1553,22 +1555,22 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
                         int vBorderIFrame = -1;
                         int isHBorder = hborder->Process(iFrameNumber, &hBorderIFrame);
                         int isVBorder = vborder->Process(iFrameNumber, &vBorderIFrame);
-                        if (isHBorder) {  // -1 invisible, 1 visible
+                        if (isHBorder != HBORDER_ERROR) {
                             if (hBorderIFrame >= 0) {  // we had a change
                                 if (isHBorder == HBORDER_VISIBLE){
                                     dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d)", hBorderIFrame, iFrameNumber);
-                                    iFrameCountValid-=DeleteFrames(maContext, hBorderIFrame, iFrameNumber);
+                                    iFrameCountValid -= DeleteFrames(maContext, hBorderIFrame, iFrameNumber);
                                 }
                                 else {
                                     dsyslog("cExtractLogo::SearchLogo(): no horizontal border from frame (%d)", iFrameNumber);
                                 }
                             }
                         }
-                        if (isVBorder) { // -1 invisible, 1 visible
+                        if (isVBorder != VBORDER_ERROR) {
                             if (vBorderIFrame >= 0) {  // we had a change
                                 if (isVBorder == VBORDER_VISIBLE) {
                                     dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d)", vBorderIFrame, iFrameNumber);
-                                    iFrameCountValid-=DeleteFrames(maContext, vBorderIFrame, iFrameNumber);
+                                    iFrameCountValid -= DeleteFrames(maContext, vBorderIFrame, iFrameNumber);
                                 }
                                 else {
                                     dsyslog("cExtractLogo::SearchLogo(): no vertical border from frame (%d)", iFrameNumber);
@@ -1784,9 +1786,9 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
         sec--;
     }
     logoSearchTime_ms += sec * 1000 + usec / 1000;
-    if (retStatus) return 0;
+    if (retStatus) return LOGOSEARCH_FOUND;
     else {
         if (iFrameNumber > 0) return iFrameNumber;
-        else return -1;
+        else return LOGOSEARCH_ERROR;
     }
 }
