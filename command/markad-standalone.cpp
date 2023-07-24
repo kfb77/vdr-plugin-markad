@@ -3781,8 +3781,6 @@ void cMarkAdStandalone::SilenceOptimization() {
                 diffAfter = 1000 * (soundStartAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): found sound start (%5d) %7dms after", mark->position, soundStartAfter->position, diffAfter);
             }
-            // select best mark
-            if ((diffBefore <= 3080) && (diffAfter <= 460)) diffBefore = INT_MAX; // first silence is in ad
             // try silence before start position
             if (soundStartBefore && (soundStartBefore->position != mark->position)) { // do not move to same frame
                 int maxBefore = 0;
@@ -3791,10 +3789,28 @@ void cMarkAdStandalone::SilenceOptimization() {
                         maxBefore = 4479;
                         break;
                     case MT_LOGOSTART:
-                        maxBefore = 4479;  // do not increase, we will get position before separation picture
+                        // select best mark (before / after)
+                        //  <220> /  2910    // second silence is after separtion picture
+                        // <1120> /  1200    // second silence is in broadcast
+                        // <1200> /   320    // second silence is in broadcast
+                        //  3600  / <3300>   // logo starts in ad, first silence is in ad
+                        //  3600  / <3360>   // logo starts in ad, first silence is in ad
+                        //  3580  / <3460>   // logo starts in ad, first silence is in ad
+                        if ((diffBefore <= 1200) && (diffAfter >=  320))      diffAfter  = INT_MAX;
+                        else if ((diffBefore <= 3600) && (diffAfter <= 3460)) diffBefore = INT_MAX;
+                        maxBefore = 5399;  // do not increase, will get silence before separation picture
                         break;
                     case MT_VPSSTART:
                         maxBefore = 17199;  // do not increase, we will get position before broadcast start
+                        break;
+                    case MT_MOVEDSTART:
+                        switch (mark->newType) {
+                            case MT_INTRODUCTIONSTART:
+                                maxBefore = 2040;  // changed from 1960 to 2040
+                                break;
+                            default:
+                                maxBefore = 0;
+                        }
                         break;
                     default:
                         maxBefore = 0;
@@ -3854,7 +3870,10 @@ void cMarkAdStandalone::SilenceOptimization() {
                 dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): found sound stop  (%5d) %7dms after", mark->position, soundStopAfter->position, diffAfter);
             }
             // select best mark
-            if ((diffBefore <= 240) && (diffAfter <= 1080)) diffAfter = INT_MAX; // sound stop near before and after mark, use sound stop before, next is in ad
+            // examples >< is correct decision
+            // before, after
+            //   >40<, 2280
+            if ((diffBefore <= 40) && (diffAfter >= 2280)) diffAfter = INT_MAX; // sound stop near before and after mark, use sound stop before, next is in ad
             // try silence after stop mark
             if (soundStopAfter && (soundStopAfter->position != mark->position)) {
                 int maxAfter = 0;
