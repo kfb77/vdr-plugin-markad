@@ -2573,8 +2573,8 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             if (comment) { ALLOC(strlen(comment)+1, "comment"); }
             break;
         case MT_ASPECTSTART:
-            if (!mark->AspectRatioBefore.num) {
-                if (asprintf(&comment, "aspect ratio start with %2d:%d (%6d)*", mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position) == -1) comment = NULL;
+            if ((mark->AspectRatioBefore.num == 0) || (mark->AspectRatioBefore.den == 0)) {
+                if (asprintf(&comment, "recoring start with aspect ratio %2d:%d (%6d)*", mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position) == -1) comment = NULL;
                 if (comment) { ALLOC(strlen(comment)+1, "comment"); }
             }
             else {

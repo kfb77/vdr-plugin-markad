@@ -1963,6 +1963,9 @@ cMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContextParam, cMarkCriteria *markCr
     markCriteria              = markCriteriaParam;
     recordingIndexMarkAdVideo = recordingIndex;
 
+    aspectRatio.num = 0;
+    aspectRatio.den = 0;
+
     sceneChange = new cMarkAdSceneChange(maContext);
     ALLOC(sizeof(*sceneChange), "sceneChange");
 
@@ -2060,16 +2063,10 @@ bool cMarkAdVideo::AddMark(int type, int position, const sAspectRatio *before, c
 }
 
 
-bool cMarkAdVideo::AspectRatioChange(const sAspectRatio &AspectRatioA, const sAspectRatio &AspectRatioB, bool &start) {
-    start = false;
-    if ((AspectRatioA.num == 0) || (AspectRatioA.den == 0) || (AspectRatioB.num == 0) || (AspectRatioB.den == 0)) {
-        if (((AspectRatioA.num == 4) || (AspectRatioB.num == 4)) && ((AspectRatioA.den == 3) || (AspectRatioB.den == 3))) {
-            start = true;
-        }
-        else {
-            return false;
-        }
-    }
+bool cMarkAdVideo::AspectRatioChange(const sAspectRatio &AspectRatioA, const sAspectRatio &AspectRatioB) {
+    if (((AspectRatioA.num == 0) || (AspectRatioA.den == 0)) &&
+        ((AspectRatioB.num == 4) && (AspectRatioB.den == 3))) return true;
+
     if ((AspectRatioA.num != AspectRatioB.num) && (AspectRatioA.den != AspectRatioB.den)) return true;
     return false;
 }
@@ -2084,7 +2081,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
     else useFrame = iFrameCurrent;
     ResetMarks();
 
-    // detect scene change
+    // scene change detection
     if (markCriteria->GetDetectionState(MT_SCENECHANGE)) {
         if (sceneChange->Process(useFrame) == SCENE_CHANGED) {
             if (maContext->Config->fullDecode) {
@@ -2098,13 +2095,15 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
         }
     }
 
-    // detect black screen
+    // black screen change detection
     if ((frameCurrent > 0) && markCriteria->GetDetectionState(MT_BLACKCHANGE)) { // first frame can be invalid result
         int blackret;
         blackret = blackScreen->Process(useFrame);
         if (blackret > 0) AddMark(MT_NOBLACKSTART, useFrame);  // first frame without blackscreen is start mark position
         if (blackret < 0) AddMark(MT_NOBLACKSTOP, useFrame);
     }
+
+    // hborder change detection
     int hret = HBORDER_ERROR;
     if (markCriteria->GetDetectionState(MT_HBORDERCHANGE)) {
         int hborderframenumber;
@@ -2119,10 +2118,10 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
     }
     else if (hborder) hborder->Clear();
 
-    int vret = VBORDER_ERROR;
+    // vborder change detection
     if (markCriteria->GetDetectionState(MT_VBORDERCHANGE)) {
         int vborderframenumber;
-        vret = vborder->Process(useFrame, &vborderframenumber);
+        int vret = vborder->Process(useFrame, &vborderframenumber);
         if ((vret == VBORDER_VISIBLE) && (vborderframenumber >= 0)) {
             if (hret == HBORDER_VISIBLE) {
                 maContext->Video.Info.frameDarkOpeningCredits = vborderframenumber;
@@ -2137,48 +2136,37 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
     }
     else if (vborder) vborder->Clear();
 
-    bool start;
-    if (AspectRatioChange(maContext->Video.Info.AspectRatio, aspectRatio, start)) {
-        if ((logo->Status() == LOGO_VISIBLE) && (!start)) {
-            AddMark(MT_LOGOSTOP, iFrameBefore);
-            logo->SetStatusLogoInvisible();
-        }
-
-        if ((vret == VBORDER_VISIBLE) && (!start)) {
-            AddMark(MT_VBORDERSTOP, iFrameBefore);
-            vborder->SetStatusBorderInvisible();
-        }
-
-        if ((hret == HBORDER_VISIBLE) && (!start)) {
-            AddMark(MT_HBORDERSTOP, iFrameBefore);
-            hborder->SetStatusBorderInvisible();
-        }
-
-        int startFrame;
-        if (start && !maContext->Config->fullDecode) startFrame = iFrameBefore;
-        else startFrame = frameCurrent;
-
-        if (((maContext->Info.AspectRatio.num == 4) && (maContext->Info.AspectRatio.den == 3)) ||
-            ((maContext->Info.AspectRatio.num == 0) && (maContext->Info.AspectRatio.den == 0))) {
-            if ((maContext->Video.Info.AspectRatio.num == 4) && (maContext->Video.Info.AspectRatio.den == 3)) {
-                AddMark(MT_ASPECTSTART, startFrame, &aspectRatio, &maContext->Video.Info.AspectRatio);
+    // aspect ratio change detection
+    if (markCriteria->GetDetectionState(MT_ASPECTCHANGE)) {
+        if (AspectRatioChange(aspectRatio, maContext->Video.Info.AspectRatio)) {
+            if ((maContext->Info.AspectRatio.num == 4) && (maContext->Info.AspectRatio.den == 3)) {
+                if ((maContext->Video.Info.AspectRatio.num == 4) && (maContext->Video.Info.AspectRatio.den == 3)) {
+                    AddMark(MT_ASPECTSTART, aspectRatioBeforeFrame, &aspectRatio, &maContext->Video.Info.AspectRatio);
+                }
+                else {
+                    int stopPos = recordingIndexMarkAdVideo->GetIFrameBefore(frameCurrent - 1);
+                    if (maContext->Video.Info.interlaced) stopPos -= 2;  // one frame before for interlaced, one frame before to get last full frame with old aspect ratio
+                    AddMark(MT_ASPECTSTOP, stopPos, &aspectRatio, &maContext->Video.Info.AspectRatio);
+                }
             }
             else {
-                AddMark(MT_ASPECTSTOP, iFrameBefore, &aspectRatio, &maContext->Video.Info.AspectRatio);
+                if ((maContext->Video.Info.AspectRatio.num == 16) && (maContext->Video.Info.AspectRatio.den == 9)) {
+                // do not set a initial 16:9 aspect ratio start mark for 16:9 videos, not useful
+                    if ((aspectRatio.num != 0) || (aspectRatio.den != 0)) AddMark(MT_ASPECTSTART, aspectRatioBeforeFrame, &aspectRatio, &maContext->Video.Info.AspectRatio);
+                }
+                else {
+                    int stopPos = recordingIndexMarkAdVideo->GetIFrameBefore(frameCurrent - 1);
+                    if (maContext->Video.Info.interlaced) stopPos -= 2;
+                    AddMark(MT_ASPECTSTOP, stopPos, &aspectRatio, &maContext->Video.Info.AspectRatio);
+                }
             }
+            aspectRatio.num = maContext->Video.Info.AspectRatio.num;   // store new aspect ratio
+            aspectRatio.den = maContext->Video.Info.AspectRatio.den;
         }
-        else {
-            if ((maContext->Video.Info.AspectRatio.num == 16) && (maContext->Video.Info.AspectRatio.den == 9)) {
-                AddMark(MT_ASPECTSTART, startFrame, &aspectRatio, &maContext->Video.Info.AspectRatio);
-            }
-            else {
-                AddMark(MT_ASPECTSTOP, iFrameBefore, &aspectRatio, &maContext->Video.Info.AspectRatio);
-            }
-        }
+        else aspectRatioBeforeFrame = frameCurrent;
     }
-    aspectRatio.num = maContext->Video.Info.AspectRatio.num;
-    aspectRatio.den = maContext->Video.Info.AspectRatio.den;
 
+    // logo change detection
     if (markCriteria->GetDetectionState(MT_LOGOCHANGE)) {
         int logoframenumber = 0;
         int lret=logo->Process(iFrameBefore, iFrameCurrent, frameCurrent, &logoframenumber);

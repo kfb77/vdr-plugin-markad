@@ -129,7 +129,6 @@ int cDecoder::GetFileNumber() {
 void cDecoder::Reset(){
     fileNumber = 0;
     currFrameNumber = -1;
-    msgGetFrameInfo = false;
     dtsBefore = -1;
 }
 
@@ -747,11 +746,11 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, c
                     }
                 }
                 else {
-                    if ((DAR.num == 64) && (DAR.den == 45)) {  // // generic PAR MPEG-2 for PAL
+                    if ((DAR.num == 64) && (DAR.den == 45)) {        // generic PAR MPEG-2 for PAL
                         DAR.num = 16;
                         DAR.den =  9;
                     }
-                    else if ((DAR.num == 16) && (DAR.den == 11)) {  // // generic PAR MPEG-4 for PAL
+                    else if ((DAR.num == 16) && (DAR.den == 11)) {   // generic PAR MPEG-4 for PAL
                         DAR.num = 16;
                         DAR.den =  9;
                     }
@@ -785,10 +784,7 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, c
                 }
                 if ((maContext->Video.Info.AspectRatio.num != DAR.num) ||
                    ( maContext->Video.Info.AspectRatio.den != DAR.den)) {
-                    if (msgGetFrameInfo) dsyslog("cDecoder::GetFrameInfo(): aspect ratio changed from (%d:%d) to (%d:%d) at frame %d",
-                                                                            maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den,
-                                                                            DAR.num, DAR.den,
-                                                                            currFrameNumber);
+                    dsyslog("cDecoder::GetFrameInfo(): aspect ratio changed from (%d:%d) to (%d:%d) at frame %d", maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den, DAR.num, DAR.den, currFrameNumber);
                     maContext->Video.Info.AspectRatio.num = DAR.num;
                     maContext->Video.Info.AspectRatio.den = DAR.den;
                 }

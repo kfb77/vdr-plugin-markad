@@ -631,6 +631,7 @@ class cMarkAdVideo {
             vborder                   = NULL;
             logo                      = NULL;
             aspectRatio               = {};
+	    aspectRatioBeforeFrame    = 0;
             recordingIndexMarkAdVideo = NULL;
             videoMarks                = {};
             return *this;
@@ -683,10 +684,9 @@ class cMarkAdVideo {
  * check if video aspect ratio changes between the two aspect ratios
  * @param[in]  AspectRatioA first video aspact ratio
  * @param[in]  AspectRatioB second video aspect ratio
- * @param[out] start true if aspect ratio change to 4:3 at video decoding start, from 0:0 (unknown) to 4:3
  * @return true if aspect ratio changed, false otherwise
  */
-        bool AspectRatioChange(const sAspectRatio &AspectRatioA, const sAspectRatio &AspectRatioB, bool &start);
+        bool AspectRatioChange(const sAspectRatio &AspectRatioA, const sAspectRatio &AspectRatioB);
 
         sMarkAdContext *maContext         = NULL; //!< markad context
                                                   //!<
@@ -694,9 +694,9 @@ class cMarkAdVideo {
                                                   //!<
         cIndex *recordingIndexMarkAdVideo = NULL; //!< recording index
                                                   //!<
-        sMarkAdMarks videoMarks          = {};   //!< array of marks to add to list
+        sMarkAdMarks videoMarks          = {};    //!< array of marks to add to list
                                                   //!<
-        sAspectRatio aspectRatio          = {};   //!< video display aspect ratio (DAR)
+        sAspectRatio aspectRatio          = {0};  //!< video display aspect ratio (DAR)
                                                   //!<
         cMarkAdSceneChange *sceneChange   = NULL; //!< pointer to class cMarkAdsceneChange
                                                   //!<
@@ -707,6 +707,8 @@ class cMarkAdVideo {
         cMarkAdBlackBordersVert *vborder  = NULL; //!< pointer to class cMarkAdBlackBordersVert
                                                   //!<
         cMarkAdLogo *logo                 = NULL; //!< pointer to class cMarkAdLogo
+                                                  //!<
+        int aspectRatioBeforeFrame        = 0;    //!< last frame number before aspect ratio change, needed for stop mark
                                                   //!<
 };
 #endif

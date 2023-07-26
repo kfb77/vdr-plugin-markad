@@ -315,9 +315,6 @@ class cDecoder {
                                                //!<
         } FrameData;                           //!< decoded frame picture data
                                                //!<
-
-        bool msgGetFrameInfo = true;           //!< true if we will send frame info log message, false otherwise
-                                               //!<
         int interlaced_frame = -1;             //!< -1 undefined, 0 the content of the picture is progressive, 1 the content of the picture is interlaced
                                                //!<
         bool stateEAGAIN = false;              //!< true if decoder needs more frames, false otherwise
