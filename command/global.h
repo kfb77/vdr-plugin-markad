@@ -103,9 +103,12 @@
 #define MT_INTRODUCTIONCHANGE             0xD20
 #define MT_INTRODUCTIONSTART              0xD21
 
-#define MT_ADINFRAMECHANGE                0xD30
-#define MT_NOADINFRAMESTART               0xD31  // used to replace start mark, frame after ad in frame ends
-#define MT_NOADINFRAMESTOP                0xD32  // used to replace stop mark, frame before ad in frame starts
+#define MT_CLOSINGCREDITSCHANGE           0xD30
+#define MT_CLOSINGCREDITSSTOP             0xD32
+
+#define MT_ADINFRAMECHANGE                0xD40
+#define MT_NOADINFRAMESTART               0xD41  // used to replace start mark, frame after ad in frame ends
+#define MT_NOADINFRAMESTOP                0xD42  // used to replace stop mark, frame before ad in frame starts
 
 /**
  * logo size structure

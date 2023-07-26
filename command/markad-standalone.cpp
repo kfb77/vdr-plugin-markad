@@ -819,7 +819,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
 
     if (newPosition > stopMark->position) {
         dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): closing credits found, move stop mark to position (%d)", newPosition);
-        marks.Move(stopMark, newPosition, MT_UNDEFINED, "closing credits");
+        marks.Move(stopMark, newPosition, MT_CLOSINGCREDITSSTOP, "closing credits");
         return true;
     }
     else {

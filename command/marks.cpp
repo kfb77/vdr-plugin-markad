@@ -575,6 +575,12 @@ char *cMarks::TypeToText(const int type) {
             }
             else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
+        case MT_CLOSINGCREDITSCHANGE:
+            if (asprintf(&text, "closing credits") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
+            break;
         case MT_ADINFRAMECHANGE:
             if (asprintf(&text, "ad in frame") != -1) {
                 ALLOC(strlen(text)+1, "text");
