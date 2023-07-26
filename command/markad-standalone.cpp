@@ -3392,6 +3392,10 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                         if (innerLength > 1000) move = false;  // only move if we found no long blackscreen between introduction logo and logo start
                     }
                     if (move) markLogo = marks.Move(markLogo, introductionStartPosition, MT_INTRODUCTIONSTART, "introduction logo");
+                    if (!markLogo) {
+                        esyslog("cMarkAdStandalone::LogoMarkOptimization(): move mark failed");
+                        break;
+                    }
                     save = true;
                 }
             }
@@ -3431,6 +3435,10 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                     else newStopPosition--; // get frame before ad in frame as stop mark
                     if (evaluateLogoStopStartPair) evaluateLogoStopStartPair->AddAdInFrame(newStopPosition, markLogo->position);  // store info that we found here adinframe
                     markLogo = marks.Move(markLogo, newStopPosition, MT_NOADINFRAMESTOP, "advertising in frame");
+                    if (!markLogo) {
+                        esyslog("cMarkAdStandalone::LogoMarkOptimization(): move mark failed");
+                        break;
+                    }
                     save = true;
                }
             }

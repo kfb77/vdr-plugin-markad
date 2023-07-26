@@ -629,19 +629,32 @@ void cMarks::ChangeType(cMark *mark, const int newType) {
 cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType, const char* reason) {
     if (!mark) return NULL;
     if (!reason) return NULL;
-    if (newType != MT_UNDEFINED) {
-        // check if old and new type is valid
-        if ((mark->type & 0x0F) != (newType & 0x0F)) {
-            esyslog("cMarks::Move(): old mark (%d) type 0x%X and new type 0x%X is invalid", mark->position, mark->type, newType);
-            return NULL;
-        }
-        // prevent move to position on with a mark exists with different base type (START/STOP)
-        const cMark *checkPos = Get(newPosition);
-        if (checkPos && ((checkPos->type & 0x0F) != (newType & 0x0F))) {  // will result in invalid sequence
-            esyslog("cMarks::Move(): move failed, mark with different type exists on new position (%d) type 0x%X, new type 0x%X", newPosition, checkPos->type, newType);
-            return NULL;
-        }
+    // check if old and new type is valid
+    if ((mark->type & 0x0F) != (newType & 0x0F)) {
+        esyslog("cMarks::Move(): old mark (%d) type 0x%X and new type 0x%X is invalid", mark->position, mark->type, newType);
+        return NULL;
     }
+    // prevent move to position on with a mark exists with different base type (START/STOP)
+    const cMark *checkPos = Get(newPosition);
+    if (checkPos && ((checkPos->type & 0x0F) != (newType & 0x0F))) {  // will result in invalid sequence
+        esyslog("cMarks::Move(): move failed, mark with different type exists on new position (%d) type 0x%X, new type 0x%X", newPosition, checkPos->type, newType);
+        return NULL;
+    }
+    // prevent invalid sequence after move
+    const cMark *beforeNewPos = GetPrev(newPosition, MT_ALL);
+    if (beforeNewPos && (beforeNewPos->position == mark->position)) beforeNewPos = GetPrev(mark->position, MT_ALL);
+    if (beforeNewPos && ((beforeNewPos->type & 0x0F) == (newType & 0x0F))) {
+        esyslog("cMarks::Move(): move to (%d) will result in invalid sequence, mark before (%d) has same type", newPosition, beforeNewPos->position);
+        return NULL;
+    }
+    const cMark *afterNewPos = GetNext(newPosition, MT_ALL);
+    if (afterNewPos && (afterNewPos->position == mark->position)) afterNewPos = GetNext(mark->position, MT_ALL);
+    if (afterNewPos && ((afterNewPos->type & 0x0F) == (newType & 0x0F))) {
+        esyslog("cMarks::Move(): move to (%d) will result in invalid sequence, mark after (%d) has save type", newPosition, afterNewPos->position);
+        return NULL;
+    }
+
+    // delete old mark, add new mark
     char *comment = NULL;
     char *indexToHMSF = GetTime(mark);
     cMark *newMark = NULL;
