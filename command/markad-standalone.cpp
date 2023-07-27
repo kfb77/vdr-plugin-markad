@@ -1657,19 +1657,6 @@ void cMarkAdStandalone::CheckStart() {
         marks.Del(MT_LOGOSTOP);
     }
 
-    // check hborder start mark position
-    if (begin->type == MT_HBORDERSTART) { // we found a valid hborder start mark, check black screen because of closing credits from broadcast before
-        cMark *blackMark = blackMarks.GetNext(begin->position, MT_NOBLACKSTART);
-        if (blackMark) {
-            int diff =(blackMark->position - begin->position) / macontext.Video.Info.framesPerSecond;
-            dsyslog("cMarkAdStandalone::CheckStart(): black screen (%d) after, distance %ds", blackMark->position, diff);
-            if (diff <= 6) {
-                dsyslog("cMarkAdStandalone::CheckStart(): move horizontal border (%d) to end of black screen (%d)", begin->position, blackMark->position);
-                marks.Move(begin, blackMark->position, MT_UNDEFINED, "black screen");
-            }
-        }
-   }
-
 // count logo STOP/START pairs
     int countStopStart = 0;
     cMark *mark = marks.GetFirst();
