@@ -398,9 +398,11 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMax  =  98;
     }
 
+    // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
+    // RTLplus                  4:3  720W  576H:->  214W  66H TOP_LEFT
     if (strcmp(maContext->Info.ChannelName, "RTLplus") == 0) {               // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
         logo.widthMin  = 168;
-        logo.widthMax  = 168;
+        logo.widthMax  = 214;
     }
 
     // SIXX                    16:9  720W  576H:->  106W  54H TOP_RIGHT
@@ -409,10 +411,18 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     // SIXX                     4:3  720W  576H:->  144W  56H TOP_RIGHT
     // SIXX                     4:3  720W  576H:->  164W  70H TOP_RIGHT
     if (strcmp(maContext->Info.ChannelName, "SIXX") == 0) {
-        logo.widthMin  =  98;
-        logo.widthMax  = 164;
-        logo.heightMin =  54;
-        logo.heightMax =  70;
+        if ((logoAspectRatio.num == 16) && (logoAspectRatio.den == 9)) {
+            logo.widthMin  =  98;
+            logo.widthMax  = 164;
+            logo.heightMin =  54;
+            logo.heightMax =  56;
+        }
+        else {
+            logo.widthMin  =  98;
+            logo.widthMax  = 164;
+            logo.heightMin =  54;
+            logo.heightMax =  70;
+        }
     }
 
     // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT
@@ -559,7 +569,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
             break;
         case 720:
             if (logo.widthMin  == 0) logo.widthMin  =  50; // arte                    16:9  720W  576H:->   50W 108H TOP_LEFT
-            if (logo.widthMax  == 0) logo.widthMax  = 168; // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
+            if (logo.widthMax  == 0) logo.widthMax  = 214; // RTLplus                  4:3  720W  576H:->  214W  66H TOP_LEFT
             if (logo.heightMin == 0) logo.heightMin =  48; // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT
             if (logo.heightMax == 0) logo.heightMax = 112; // Welt_der_Wunder         16:9  720W  576H:->   96W 112H TOP_LEFT
             break;
