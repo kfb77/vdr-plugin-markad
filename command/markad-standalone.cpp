@@ -3282,7 +3282,7 @@ void cMarkAdStandalone::BorderMarkOptimization() {
             int diffBlack = 1000 * (blackMark->position - mark->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::BlackMarkOptimization(): black screen (%d) %dms after border start mark (%d)", blackMark->position, diffBlack, mark->position);
             if (diffBlack <= 2560) { // changed from 1520 to 2560
-                marks.Move(mark, blackMark->position - 1, MT_UNDEFINED, "black screen before border");
+                marks.Move(mark, blackMark->position - 1, MT_NOBLACKSTART, "black screen before border");
                 marks.Save(directory, &macontext, false);
                 return;
             }
