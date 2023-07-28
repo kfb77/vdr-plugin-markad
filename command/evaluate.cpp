@@ -1692,14 +1692,15 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         int secondFramePortionQuote = secondSumFramePortion / AdInFrameType1.frameCountFinal;
         if (firstFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of        best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[firstFrameCorner], firstSumFramePortion, AdInFrameType1.frameCountFinal, firstFramePortionQuote);
         if (secondFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of second best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[secondFrameCorner], secondSumFramePortion, AdInFrameType1.frameCountFinal, secondFramePortionQuote);
-        if ((firstFramePortionQuote <= 505) ||
+        if ((firstFramePortionQuote <= 663) ||
            ((firstFramePortionQuote <= 735) && (secondFramePortionQuote <= 74))) {
                                               // example for no ad in frame (static scene with vertial or horizontal lines, blinds, windows frames or stairs):
-                                              // best frame portion qoute 735, second best frame portion qoute 74 -> picture frame in background
-                                              // best frame portion qoute 699, second best frame portion qoute 20 -> blinds in background with vertical lines
-                                              // best frame portion qoute 501, second best frame portion qoute 79
-                                              // best frame portion qoute 504, second best frame portion qoute 11
-                                              // best frame portion qoute 505, second best frame portion qoute 85
+                                              // best frame portion qoute 735, second best frame portion qoute  74 -> picture frame in background
+                                              // best frame portion qoute 699, second best frame portion qoute  20 -> blinds in background with vertical lines
+                                              // best frame portion qoute 663, second best frame portion qoute 380 -> wall in background
+                                              // best frame portion qoute 505, second best frame portion qoute  85
+                                              // best frame portion qoute 504, second best frame portion qoute  11
+                                              // best frame portion qoute 501, second best frame portion qoute  79
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): not enought frame pixel found on best corner found, advertising in frame type 1 not valid");
             AdInFrameType1.startFinal = -1;
         }
