@@ -122,9 +122,9 @@ void cMarkCriteria::SetMarkTypeState(const int type, const int state) {
         case MT_CHANNELCHANGE:
             channel = state;
             if (channel == CRITERIA_USED) {
-                SetDetectionState(MT_SCENECHANGE,   false);
+                SetDetectionState(MT_SCENECHANGE,    true);   // channel change give not exact video frame mark
                 SetDetectionState(MT_SOUNDCHANGE,   false);
-                SetDetectionState(MT_BLACKCHANGE,   false);
+                SetDetectionState(MT_BLACKCHANGE,    true);   // channel change give not exact video frame mark
                 SetDetectionState(MT_LOGOCHANGE,    false);
                 SetDetectionState(MT_VBORDERCHANGE, false);
                 SetDetectionState(MT_HBORDERCHANGE, false);
