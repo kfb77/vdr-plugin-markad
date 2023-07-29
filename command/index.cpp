@@ -254,7 +254,7 @@ int cIndex::GetVideoFrameToPTS(const int64_t pts, const bool before) {
         int frameNumber = -1;
         int64_t pts     =  0;
     } frame;
-#ifdef DEBUG_RING_PTS_ERROR
+#ifdef DEBUG_RING_PTS_LOOKUP
     int64_t ptsMin =  INT64_MAX;
     int64_t ptsMax =  0;
     dsyslog("----------------------------------------------------------------------------------------------------------------------");
@@ -262,7 +262,7 @@ int cIndex::GetVideoFrameToPTS(const int64_t pts, const bool before) {
     if (!before) frame.pts = INT64_MAX;
 
     for (std::vector<sPTS_RingbufferElement>::iterator ptsIterator = ptsRing.begin(); ptsIterator != ptsRing.end(); ++ptsIterator) { // get framenumber after
-#ifdef DEBUG_RING_PTS_ERROR
+#ifdef DEBUG_RING_PTS_LOOKUP
         dsyslog("cIndex::GetVideoFrameToPTS(): frame (%6d) PTS %" PRId64, ptsIterator->frameNumber, ptsIterator->pts);
         ptsMin = std::min(ptsMin, ptsIterator->pts);
         ptsMax = std::max(ptsMax, ptsIterator->pts);
@@ -280,7 +280,7 @@ int cIndex::GetVideoFrameToPTS(const int64_t pts, const bool before) {
             }
         }
     }
-#ifdef DEBUG_RING_PTS_ERROR
+#ifdef DEBUG_RING_PTS_LOOKUP
     dsyslog("cIndex::GetVideoFrameToPTS(): PTS      min: %" PRId64, ptsMin);
     dsyslog("cIndex::GetVideoFrameToPTS(): PTS searched: %" PRId64, pts);
     dsyslog("cIndex::GetVideoFrameToPTS(): PTS      max: %" PRId64, ptsMax);

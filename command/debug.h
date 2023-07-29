@@ -85,7 +85,7 @@
 // #define DEBUG_RING_PTS_ADD
 
 // debug PTS ring buffer missed PTS
-// #define DEBUG_RING_PTS_ERROR
+// #define DEBUG_RING_PTS_LOOKUP 
 
 // debug video cut
 // #define DEBUG_CUT <streamindex>
