@@ -244,8 +244,9 @@ class cMarks {
  * change mark type (START or STOP)
  * @param mark    mark to move
  * @param newType new type of mark, allow values are MT_START or MT_STOP
+ * @return mark with new type
  */
-        void ChangeType(cMark *mark, const int newType);
+        cMark *ChangeType(cMark *mark, const int newType);
 
 
 /**

@@ -158,7 +158,7 @@ void cMarks::DelFromTo(const int from, const int to, const short int type) {
     cMark *mark = first;
     while (mark) {
         if (mark->position > to) return;
-        if ((mark->position >= from) && ((mark->type & 0xF0) == type)) {
+        if ((mark->position >= from) && ((type == MT_ALL) || ((mark->type & 0xF0) == type))) {
             cMark *tmpMark = mark->Next();
             Del(mark);
             mark = tmpMark;
@@ -608,18 +608,18 @@ char *cMarks::TypeToText(const int type) {
 }
 
 
-void cMarks::ChangeType(cMark *mark, const int newType) {
-    if (!mark) return;
-    if ((newType != MT_START) && (newType != MT_STOP)) return;
+cMark *cMarks::ChangeType(cMark *mark, const int newType) {
+    if (!mark) return NULL;
+    if ((newType != MT_START) && (newType != MT_STOP)) return NULL;
     mark->type = MT_TYPECHANGE | newType;
     char *comment = NULL;
-    if (asprintf(&comment,"%s used as %s mark",mark->comment, (newType == MT_START)? "START" : "STOP") == -1) return;
+    if (asprintf(&comment,"%s used as %s mark",mark->comment, (newType == MT_START)? "START" : "STOP") == -1) return NULL;
     ALLOC(strlen(comment)+1, "comment");
 
     FREE(strlen(mark->comment)+1, "comment");
     free(mark->comment);
     mark->comment = comment;
-    return;
+    return mark;
 }
 
 

@@ -731,8 +731,11 @@ int cMarkAdStandalone::CheckStop() {
         cMark *hBorderStart = marks.GetNext(iStopA, MT_HBORDERSTART);
         if (hBorderStart) {
             dsyslog("cMarkAdStandalone::CheckStop(): use hborder start mark (%d) from next broadcast as end mark", hBorderStart->position);
-            marks.ChangeType(hBorderStart, MT_STOP);
-            end = hBorderStart;
+            end = marks.ChangeType(hBorderStart, MT_STOP);
+            if (end) {
+                marks.DelFromTo(end->position + 1, INT_MAX, MT_ALL);  // delete all marks after end mark
+                end = marks.Move(end, end->position - 1, MT_TYPECHANGESTOP, "use hborder start as stop");  // one frame before hborder start is end mark
+            }
         }
     }
 
