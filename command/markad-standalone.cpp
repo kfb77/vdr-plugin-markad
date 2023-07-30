@@ -2911,7 +2911,7 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
             return false;
         }
         if (!ptr_cDecoder->IsVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(&macontext, true, macontext.Config->fullDecode, false)) continue; // interlaced videos will not decode each frame
+        if (!ptr_cDecoder->GetFrameInfo(&macontext, true, macontext.Config->fullDecode, false, false)) continue; // interlaced videos will not decode each frame
         if (!macontext.Config->fullDecode && !ptr_cDecoder->IsVideoIFrame()) continue;
 
 #ifdef DEBUG_OVERLAP
@@ -2962,7 +2962,7 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
             return false;
         }
         if (!ptr_cDecoder->IsVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(&macontext, true, macontext.Config->fullDecode, false)) continue; // interlaced videos will not decode each frame
+        if (!ptr_cDecoder->GetFrameInfo(&macontext, true, macontext.Config->fullDecode, false, false)) continue; // interlaced videos will not decode each frame
         if (!macontext.Config->fullDecode && !ptr_cDecoder->IsVideoIFrame()) continue;
 
 #ifdef DEBUG_OVERLAP
@@ -3085,7 +3085,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
         while(mark && (ptr_cDecoder->GetNextPacket(false, false))) {
             if (abortNow) return;
             if (ptr_cDecoder->IsVideoPacket()) {
-                if (ptr_cDecoder->GetFrameInfo(&macontext, true, macontext.Config->fullDecode, false)) {
+                if (ptr_cDecoder->GetFrameInfo(&macontext, true, macontext.Config->fullDecode, false, false)) {
                     int frameNumber = ptr_cDecoder->GetFrameNumber();
                     int frameDistance = 1;
                     if (!macontext.Config->fullDecode) frameDistance = frameNumber - oldFrameNumber;  // get distance between to frame numbers
@@ -4237,7 +4237,7 @@ bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
         iFrameCurrent = frameCurrent;
         checkAudio = true;
     }
-    if (ptr_cDecoder->GetFrameInfo(&macontext, markCriteria.GetDetectionState(MT_VIDEO), macontext.Config->fullDecode, markCriteria.GetDetectionState(MT_SOUNDCHANGE))) {
+    if (ptr_cDecoder->GetFrameInfo(&macontext, markCriteria.GetDetectionState(MT_VIDEO), macontext.Config->fullDecode, markCriteria.GetDetectionState(MT_SOUNDCHANGE),  markCriteria.GetDetectionState(MT_CHANNELCHANGE))) {
         if (ptr_cDecoder->IsVideoPacket()) {
             if ((ptr_cDecoder->GetFileNumber() == 1) && ptr_cDecoder->IsInterlacedVideo()) {
                 // found some Finnish H.264 interlaced recordings who changed real bite rate in second TS file header

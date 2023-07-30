@@ -1528,7 +1528,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
                 dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at frame (%d), got %d valid frames of %d frames read", ptr_cDecoder->GetFrameNumber(), iFrameCountValid, iFrameCountAll);
                 retStatus=false;
             }
-            if ((ptr_cDecoder->GetFrameInfo(maContext, true, false, false) && retStatus)) {
+            if ((ptr_cDecoder->GetFrameInfo(maContext, true, false, false, false) && retStatus)) {
                 if (ptr_cDecoder->IsVideoPacket()) {
                     iFrameNumber = ptr_cDecoder->GetFrameNumber();
                     if (maxLogoPixel == 0) maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);

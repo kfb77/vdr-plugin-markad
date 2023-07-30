@@ -474,7 +474,7 @@ bool cDecoder::SeekToFrame(sMarkAdContext *maContext, int frameNumber) {
             }
             continue;
         }
-        if (currFrameNumber >= iFrameBefore) GetFrameInfo(maContext, true, false, false);  // preload decoder buffer
+        if (currFrameNumber >= iFrameBefore) GetFrameInfo(maContext, true, false, false, false);  // preload decoder buffer
     }
     dsyslog("cDecoder::SeekToFrame(): successful");
     return true;
@@ -686,7 +686,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
 }
 
 
-bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, const bool decodeFull, const bool decodeVolume) {
+bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, const bool decodeFull, const bool decodeVolume, const bool decodeChannel) {
     if (!maContext) {
         esyslog("cDecoder::GetFrameInfo(): frame (%5d): markad context not set", currFrameNumber);
         return false;
@@ -844,7 +844,7 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, c
             maContext->Audio.Info.volume = -1;
         }
 
-        if (IsAudioAC3Packet()) {
+        if (decodeChannel && IsAudioAC3Packet()) {
             if (avpkt.stream_index > MAXSTREAMS) {
                 esyslog("cDecoder::GetFrameInfo(): to much streams %i", avpkt.stream_index);
                 return false;
