@@ -439,15 +439,16 @@ AVPacket *cDecoder::GetPacket() {
 
 
 bool cDecoder::SeekToFrame(sMarkAdContext *maContext, int frameNumber) {
-    dsyslog("cDecoder::SeekToFrame(): (%d)", frameNumber);
+    dsyslog("cDecoder::SeekToFrame(): current frame position (%d), seek to frame (%d)", currFrameNumber, frameNumber);
     if (!avctx) return false;
     if (!maContext) return false;
     if (currFrameNumber > frameNumber) {
         dsyslog("cDecoder::SeekToFrame(): current frame position (%d), could not seek backward to frame (%d)", currFrameNumber, frameNumber);
         return false;
     }
+    bool logDecode = true;
 
-    int iFrameBefore = recordingIndexDecoder->GetIFrameBefore(frameNumber);
+    int iFrameBefore = recordingIndexDecoder->GetIFrameBefore(frameNumber - 1);  // start decoding from iFrame before to fill decoder buffer
     if (iFrameBefore == -1) {
         iFrameBefore = 0;
         dsyslog("cDecoder::SeekFrame(): index does not yet contain frame (%5d), decode from current frame (%d) to build index", frameNumber, currFrameNumber);
@@ -474,9 +475,15 @@ bool cDecoder::SeekToFrame(sMarkAdContext *maContext, int frameNumber) {
             }
             continue;
         }
-        if (currFrameNumber >= iFrameBefore) GetFrameInfo(maContext, true, false, false, false);  // preload decoder buffer
+        if (currFrameNumber >= iFrameBefore) {
+            if (logDecode) {
+                dsyslog("cDecoder::SeekToFrame(): start decode at frame (%d)", currFrameNumber);
+                logDecode = false;
+            }
+            GetFrameInfo(maContext, true, maContext->Config->fullDecode, false, false);  // preload decoder bufferA
+        }
     }
-    dsyslog("cDecoder::SeekToFrame(): successful");
+    dsyslog("cDecoder::SeekToFrame(): (%d) successful", currFrameNumber);
     return true;
 }
 
