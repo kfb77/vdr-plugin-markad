@@ -3179,22 +3179,17 @@ void cMarkAdStandalone::MarkadCut() {
         // set start and end mark of first part
         cMark *startMark = marks.GetFirst();
         if ((startMark->type & 0x0F) != MT_START) {
-            esyslog("got invalid start mark at (%i) type 0x%X", startMark->position, startMark->type);
+            esyslog("got invalid start mark at (%d) type 0x%X", startMark->position, startMark->type);
             return;
         }
-        int startPosition;
-        startPosition = recordingIndexMark->GetIFrameBefore(startMark->position - 1);  // go before mark position to preload decoder pipe
-        startPosition = recordingIndexMark->GetIFrameBefore(startPosition - 1);        // go again one iFrame back to be sure we can decode start mark position
-        if (startPosition < 0) startPosition = 0;
-
         cMark *stopMark = startMark->Next();
         if ((stopMark->type & 0x0F) != MT_STOP) {
-            esyslog("got invalid stop mark at (%i) type 0x%X", stopMark->position, stopMark->type);
+            esyslog("got invalid stop mark at (%d) type 0x%X", stopMark->position, stopMark->type);
             return;
         }
 
         // open output file
-        ptr_cDecoder->SeekToFrame(&macontext, startPosition);  // seek to start posiition to get correct input video parameter
+        ptr_cDecoder->SeekToFrame(&macontext, startMark->position - 1);  // seek to start posiition to get correct input video parameter
         if (!ptr_cEncoder->OpenFile(directory, ptr_cDecoder)) {
             esyslog("failed to open output file");
             FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
@@ -3206,31 +3201,26 @@ void cMarkAdStandalone::MarkadCut() {
         bool nextFile = true;
         // process input file
         while(nextFile && ptr_cDecoder->DecodeDir(directory)) {
-            while(ptr_cDecoder->GetNextPacket(false, false)) {
+            while(ptr_cDecoder->GetNextPacket(false, false)) {  // no frame index, no PTS ring buffer
                 int frameNumber = ptr_cDecoder->GetFrameNumber();
-                // seek to startPosition
-                if  (frameNumber < startPosition) {
+                // seek to frame before startPosition
+                if  (frameNumber < startMark->position) {
                     LogSeparator();
-                    dsyslog("cMarkAdStandalone::MarkadCut(): decoding from frame (%d) for start mark (%d) to frame (%d) in pass: %d", startPosition, startMark->position, stopMark->position, pass);
-                    ptr_cDecoder->SeekToFrame(&macontext, startPosition);
-                    frameNumber = ptr_cDecoder->GetFrameNumber();
+                    dsyslog("cMarkAdStandalone::MarkadCut(): decoding for start mark (%d) to end mark (%d) in pass: %d", startMark->position, stopMark->position, pass);
+                    if (frameNumber < startMark->position -1) ptr_cDecoder->SeekToFrame(&macontext, startMark->position - 1);  // first start mark need no seek
+                    continue;
                 }
                 // stop mark reached, set next startPosition
                 if  (frameNumber > stopMark->position) {
                     if (stopMark->Next() && stopMark->Next()->Next()) {  // next mark pair
                         startMark = stopMark->Next();
                         if ((startMark->type & 0x0F) != MT_START) {
-                            esyslog("got invalid start mark at (%i) type 0x%X", startMark->position, startMark->type);
+                            esyslog("got invalid start mark at (%d) type 0x%X", startMark->position, startMark->type);
                             return;
                         }
-
-                        startPosition = recordingIndexMark->GetIFrameBefore(startMark->position - 1);  // go before mark position to preload decoder pipe
-                        startPosition = recordingIndexMark->GetIFrameBefore(startPosition - 1);        // go again one iFrame back to be sure we can decode start mark position
-                        if (startPosition < 0) startPosition = frameNumber;
-
                         stopMark = startMark->Next();
                         if ((stopMark->type & 0x0F) != MT_STOP) {
-                            esyslog("got invalid stop mark at (%i) type 0x%X", stopMark->position, stopMark->type);
+                            esyslog("got invalid stop mark at (%d) type 0x%X", stopMark->position, stopMark->type);
                             return;
                         }
                     }
@@ -3243,12 +3233,7 @@ void cMarkAdStandalone::MarkadCut() {
                 // read packet
                 AVPacket *pkt = ptr_cDecoder->GetPacket();
                 if (!pkt) {
-                    esyslog("failed to get packet from input stream");
-                    return;
-                }
-                // preload decoder pipe
-                if ((macontext.Config->fullEncode) && (frameNumber < startMark->position)) {
-                    ptr_cDecoder->DecodePacket(pkt);
+                    esyslog("failed to get packet from input stream at frame (%d)", frameNumber);
                     continue;
                 }
                 // decode/encode/write packet
@@ -3270,7 +3255,7 @@ void cMarkAdStandalone::MarkadCut() {
             }
         }
         if (!ptr_cEncoder->CloseFile(ptr_cDecoder)) {
-            dsyslog("failed to close output file");
+            esyslog("failed to close output file");
             return;
         }
     }
