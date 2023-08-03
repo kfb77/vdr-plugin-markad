@@ -2623,8 +2623,15 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             sceneMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, NULL, inBroadCast);
             if (comment) {
 #ifdef DEBUG_WEAK_MARKS
-                char *indexToHMSF = marks.GetTime(mark);
-                if (indexToHMSF) dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
+                char *indexToHMSF = marks.IndexToHMSF(mark->position);
+                if (indexToHMSF) {
+                    ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
+                    if (indexToHMSF) {
+                        dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
+                        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                        free(indexToHMSF);
+                    }
+                }
 #endif
                 FREE(strlen(comment)+1, "comment");
                 free(comment);
@@ -2634,8 +2641,15 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             silenceMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, NULL, inBroadCast);
             if (comment) {
 #ifdef DEBUG_WEAK_MARKS
-                char *indexToHMSF = marks.GetTime(mark);
-                if (indexToHMSF) dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
+                char *indexToHMSF = marks.IndexToHMSF(mark->position);
+                if (indexToHMSF) {
+                    ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
+                    if (indexToHMSF) {
+                        dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
+                        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                        free(indexToHMSF);
+                    }
+                }
 #endif
                 FREE(strlen(comment)+1, "comment");
                 free(comment);
@@ -2645,8 +2659,15 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             blackMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, NULL, inBroadCast);
             if (comment) {
 #ifdef DEBUG_WEAK_MARKS
-                char *indexToHMSF = marks.GetTime(mark);
-                if (indexToHMSF) dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
+                char *indexToHMSF = marks.IndexToHMSF(mark->position);
+                if (indexToHMSF) {
+                    ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
+                    if (indexToHMSF) {
+                        dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
+                        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                        free(indexToHMSF);
+                    }
+                }
 #endif
                 FREE(strlen(comment)+1, "comment");
                 free(comment);
