@@ -1426,17 +1426,21 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
         if ((val > maxBrightness) &&
            ((val > maxBrightnessGrey) || (maxPixel > 73))) {  // TLC use one dark grey separator picture between broadcasts, changed from 50 to 73
             if (blackScreenstatus != BLACKSCREEN_INVISIBLE) {
+                int ret = BLACKSCREEN_INVISIBLE;
+                if (blackScreenstatus == BLACKSCREEN_UNINITIALIZED) ret = BLACKSCREEN_NOCHANGE;
                 blackScreenstatus = BLACKSCREEN_INVISIBLE;
-                return 1; // detected stop of black screen
+                return ret; // detected stop of black screen
             }
-            return 0;
+            return BLACKSCREEN_NOCHANGE;   // no change of black screen
         }
     }
-    if (blackScreenstatus == BLACKSCREEN_INVISIBLE) {
+    if (blackScreenstatus != BLACKSCREEN_VISIBLE) {
+        int ret = BLACKSCREEN_VISIBLE;
+        if (blackScreenstatus == BLACKSCREEN_UNINITIALIZED) ret = BLACKSCREEN_NOCHANGE;
         blackScreenstatus = BLACKSCREEN_VISIBLE;
-        return -1; // detected start of black screen
+        return ret; // detected start of black screen
     }
-    return 0;
+    return BLACKSCREEN_NOCHANGE;
 }
 
 
@@ -2106,8 +2110,8 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
     if ((frameCurrent > 0) && markCriteria->GetDetectionState(MT_BLACKCHANGE)) { // first frame can be invalid result
         int blackret;
         blackret = blackScreen->Process(useFrame);
-        if (blackret > 0) AddMark(MT_NOBLACKSTART, useFrame);  // first frame without blackscreen is start mark position
-        if (blackret < 0) AddMark(MT_NOBLACKSTOP, useFrame);
+        if (blackret == BLACKSCREEN_INVISIBLE) AddMark(MT_NOBLACKSTART, useFrame);  // first frame without blackscreen is start mark position
+        if (blackret == BLACKSCREEN_VISIBLE)   AddMark(MT_NOBLACKSTOP, useFrame);
     }
 
     // hborder change detection

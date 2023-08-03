@@ -51,6 +51,7 @@ enum {
 enum {
     BLACKSCREEN_UNINITIALIZED = -2,
     BLACKSCREEN_INVISIBLE     = -1,
+    BLACKSCREEN_NOCHANGE      =  0,
     BLACKSCREEN_VISIBLE       =  1
 };
 
@@ -481,10 +482,10 @@ class cMarkAdBlackScreen {
         void Clear();
 
     private:
-        int blackScreenstatus;             //!< status of black screen detection
-                                           //!<
-        sMarkAdContext *maContext = NULL;  //!< markad context
-                                           //!<
+        int blackScreenstatus = BLACKSCREEN_UNINITIALIZED; //!< status of black screen detection
+                                                           //!<
+        sMarkAdContext *maContext = NULL;                  //!< markad context
+                                                           //!<
 };
 
 
@@ -631,7 +632,7 @@ class cMarkAdVideo {
             vborder                   = NULL;
             logo                      = NULL;
             aspectRatio               = {};
-	    aspectRatioBeforeFrame    = 0;
+            aspectRatioBeforeFrame    = 0;
             recordingIndexMarkAdVideo = NULL;
             videoMarks                = {};
             return *this;
