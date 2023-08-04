@@ -1162,16 +1162,9 @@ void cMarkAdStandalone::CheckStart() {
 
 // check if aspect ratio from VDR info file is valid
     if ((macontext.Info.AspectRatio.num == 0) || (macontext.Video.Info.AspectRatio.den == 0)) {
-        if (marks.Count(MT_ASPECTCHANGE, 0xF0) > 0) {
-            isyslog("no video aspect ratio found in vdr info file, we have aspect ratio changes, assume 4:3");
-            macontext.Info.AspectRatio.num = 4;
-            macontext.Info.AspectRatio.den = 3;
-        }
-        else {
-            isyslog("no video aspect ratio found in vdr info file, we have no aspect ratio changes, assume 16:9");
-            macontext.Info.AspectRatio.num = 16;
-            macontext.Info.AspectRatio.den =  9;
-        }
+        isyslog("no video aspect ratio found in vdr info file, assume 16:9");
+        macontext.Info.AspectRatio.num = 16;
+        macontext.Info.AspectRatio.den =  9;
     }
     // end of start part can not be 4:3 if broadcast is 16:9
     if ((macontext.Info.AspectRatio.num       == 16) && (macontext.Info.AspectRatio.den       == 9) &&
