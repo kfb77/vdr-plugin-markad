@@ -1535,8 +1535,6 @@ void cMarkAdStandalone::CheckStart() {
                                 else {
                                     if (indexToHMSF) {
                                         dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, distance not valid", lNextStart->position, indexToHMSF, distanceStopNextStart);
-                                        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-                                        free(indexToHMSF);
                                         break;
                                     }
                                 }
