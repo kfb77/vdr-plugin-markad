@@ -2101,7 +2101,9 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
     CheckStartMark();
 
 // check for short stop/start logo pair at start part in case of late recording start, ad between broadcasts are short, ad in broadcast are long
+    LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): final check start mark");
+    DebugMarks();     //  only for debugging
     cMark *firstStart = marks.GetNext(-1, MT_LOGOSTART);
     if (firstStart) {
         cMark *firstStop  = marks.GetNext(firstStart->position, MT_LOGOSTOP);
@@ -2109,9 +2111,10 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
             cMark *secondStart = marks.GetNext(firstStop->position, MT_LOGOSTART);
             if (secondStart) {
                 int lengthFirstAd       = (secondStart->position - firstStop->position) / macontext.Video.Info.framesPerSecond;
-                int newDiffAfterAssumed = (secondStart->position - iStart) / macontext.Video.Info.framesPerSecond;
+                int newDiffAfterAssumed = (secondStart->position - iStart)              / macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::CheckMarks(): first logo stop mark (%d), next logo start mark (%d), length ad %ds, start %ds after assumed start", firstStop->position, secondStart->position, lengthFirstAd, newDiffAfterAssumed);
-                if ((lengthFirstAd <= 41) && (newDiffAfterAssumed <= 387)) {  // changed from 359 to 363 to 365 to 387
+                if ((lengthFirstAd >= 1)  && (lengthFirstAd <= 41) && (newDiffAfterAssumed <= 387)) {  // changed from 365 to 387
+                                                                                                       // very short first ad is logo detection failure
                     dsyslog("cMarkAdStandalone::CheckMarks(): first ad too short for in broadcast, delete start (%d) and stop (%d) mark", firstStart->position, firstStop->position);
                     marks.Del(firstStart->position);
                     marks.Del(firstStop->position);
