@@ -1207,6 +1207,7 @@ void cMarkAdStandalone::CheckStart() {
         if (aStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): found aspect ratio start mark at (%d), video info is %d:%d", aStart->position, macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
             if ((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) { // we have a aspect ratio start mark, check if valid
+                markCriteria.SetMarkTypeState(MT_ASPECTCHANGE, CRITERIA_USED);  // use aspect ratio marks for detection, even if we have to use another start mark
                 while (aStart && (aStart->position <= (16 * macontext.Video.Info.framesPerSecond))) {    // to near at start of recording is from broadcast before
                     dsyslog("cMarkAdStandalone::CheckStart(): aspect ratio start mark (%d) too early, try next", aStart->position);
                     aStart = marks.GetNext(aStart->position, MT_ASPECTSTART);
@@ -1222,7 +1223,6 @@ void cMarkAdStandalone::CheckStart() {
                     marks.Del(MT_CHANNELSTART);  // delete channel marks from previos recording
                     marks.Del(MT_CHANNELSTOP);
                     video->ClearBorder();
-                    markCriteria.SetMarkTypeState(MT_ASPECTCHANGE, CRITERIA_USED);
                 }
             }
         }
@@ -1553,6 +1553,7 @@ void cMarkAdStandalone::CheckStart() {
                 marks.DelWeakFromTo(0, INT_MAX, MT_LOGOCHANGE);   // maybe the is a assumed start from converted channel stop
                 if ((markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED) ||
                     (markCriteria.GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_USED) ||
+                    (markCriteria.GetMarkTypeState(MT_ASPECTCHANGE)  == CRITERIA_USED) ||
                     (markCriteria.GetMarkTypeState(MT_CHANNELCHANGE) == CRITERIA_USED)) {
                     dsyslog("cMarkAdStandalone::CheckStart(): stronger marks are set for detection, use logo mark only for start mark, delete logo marks after (%d)", begin->position);
                     marks.DelFromTo(begin->position + 1, INT_MAX, MT_LOGOCHANGE);
