@@ -2495,7 +2495,14 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     if (!mark->type) return;
     if ((macontext.Config) && (macontext.Config->logoExtraction != -1)) return;
     if (gotendmark) return;
-
+    if (mark->type <= MT_UNDEFINED) {
+        esyslog("cMarkAdStandalone::AddMark(): mark type 0x%X invalid", mark->type);
+        return;
+    }
+    if (mark->position < 0) {
+        esyslog("cMarkAdStandalone::AddMark(): mark position (%d) invalidi, type 0x%X", mark->position, mark->type);
+        return;
+    }
 
     // set comment of the new mark
     char *comment = NULL;
