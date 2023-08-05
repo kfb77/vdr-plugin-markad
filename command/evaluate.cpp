@@ -1253,8 +1253,9 @@ bool cDetectLogoStopStart::IsLogoChange() {
     bool status                  =  true;
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
+#ifdef DEBUG_MARK_OPTIMIZATION
         dsyslog("cDetectLogoStopStart::isLogoChange(): frame (%5d) and frame (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
-
+#endif
         // calculate matches
         count ++;
         if ((*cornerResultIt).rate[maContext->Video.Logo.corner] > 250) {  // match on logo corner
