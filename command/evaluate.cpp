@@ -1670,10 +1670,12 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     // check if we have a frame
     int firstSumFramePortion  =  0;
     int secondSumFramePortion =  0;
+    int allSumFramePortion    =  0;
     int firstFrameCorner      = -1;
     int secondFrameCorner     = -1;
     for (int corner = 0; corner < CORNERS; corner++) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of frame portion from corner %-12s: %7d", aCorner[corner], AdInFrameType1.sumFramePortionFinal[corner]);
+        allSumFramePortion += AdInFrameType1.sumFramePortionFinal[corner];
         if (corner == maContext->Video.Logo.corner) continue;  // ignore logo corner, we have a static picture in that corner
         if (AdInFrameType1.sumFramePortionFinal[corner] > firstSumFramePortion) {
             firstSumFramePortion  = AdInFrameType1.sumFramePortionFinal[corner];
@@ -1741,25 +1743,28 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     // check if we have more than one logo
     // no ad in frame, second logo:
     // high matches qoute 992, frame portion quote 521  -> second logo a with a frame
-    // high matches qoute 981, frame portion quote 710  -> second logo with a horizental line
+    // high matches qoute 981, frame portion quote 710  -> second logo with a horizental line (conflict)
     //
     // ad in frame, no second logo:
-    // high matches qoute 997, frame portion quote 577  -> second logo after ad in frame (conflict)
+    // high matches qoute 998, frame portion quote 398, average of all corners 513  -> text under frame
+    // high matches qoute 997, frame portion quote 577                              -> second logo after ad in frame
     // high matches qoute 834, frame portion quote 494
-    // high matches qoute 711, frame portion quote 560  -> ad in frame with second logo before
+    // high matches qoute 711, frame portion quote 560                              -> ad in frame with second logo before
     // high matches qoute 690, frame portion quote 314
     // high matches qoute 644, frame portion quote 204
     //
     //
+    int allFramePortionQuote = allSumFramePortion / AdInFrameType1.frameCountFinal / 4;
+    dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): average of all corners portion quote: %3d", allFramePortionQuote);
     int countLogo = 0;
     for (int corner = 0; corner < CORNERS; corner++) {
         int logoQuote         = 1000 * isCornerLogo[corner] / countFrames;
         int framePortionQuote = 0;
         if (AdInFrameType1.frameCountFinal > 0) framePortionQuote = AdInFrameType1.sumFramePortionFinal[corner] / AdInFrameType1.frameCountFinal;
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): corner %-12s: %4d high matches, high matches qoute %3d (of %2d frames)", aCorner[corner], isCornerLogo[corner], logoQuote, countFrames);
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo():                    : frame portion quote %3d (of %3d frames)", framePortionQuote, AdInFrameType1.frameCountFinal);
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): corner %-12s: %4d high matches, high matches qoute %3d: (of %2d frames)", aCorner[corner], isCornerLogo[corner], logoQuote, countFrames);
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo():                    : corner portion quote: %3d (of %3d frames)", framePortionQuote, AdInFrameType1.frameCountFinal);
         if (corner == maContext->Video.Logo.corner) continue;  // in logo corner we expect logo
-        if ((logoQuote >= 981) && (framePortionQuote <= 710)) {
+        if ((logoQuote > 834) && (framePortionQuote <= 521) && (allFramePortionQuote < 513)) {
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): additional logo found in corner %s", aCorner[corner]);
             countLogo++;
         }
