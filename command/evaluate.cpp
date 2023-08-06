@@ -11,21 +11,21 @@
 
 
 
-bool cEvaluateChannel::IsInfoLogoChannel(char *channelName) {
+bool cEvaluateChannel::IsInfoLogoChannel(const char *channelName) {
     // for performance reason only known and tested channels
     if ((strcmp(channelName, "kabel_eins") != 0) &&
-        (strcmp(channelName, "DMAX") != 0) &&
-        (strcmp(channelName, "SIXX") != 0) &&
-        (strcmp(channelName, "SAT_1") != 0) &&
-        (strcmp(channelName, "WELT") != 0) &&
-        (strcmp(channelName, "RTL2") != 0)) {
+        (strcmp(channelName, "DMAX")       != 0) &&
+        (strcmp(channelName, "SIXX")       != 0) &&
+        (strcmp(channelName, "SAT_1")      != 0) &&
+        (strcmp(channelName, "WELT")       != 0) &&
+        (strcmp(channelName, "RTL2")       != 0)) {
        return false;
     }
     return true;
 }
 
 
-bool cEvaluateChannel::IsLogoChangeChannel(char *channelName) {
+bool cEvaluateChannel::IsLogoChangeChannel(const char *channelName) {
     // for performance reason only known and tested channels
     if (strcmp(channelName, "TELE_5") != 0) {  // has logo changes
         return false;
@@ -34,22 +34,22 @@ bool cEvaluateChannel::IsLogoChangeChannel(char *channelName) {
 }
 
 
-bool cEvaluateChannel::ClosingCreditsChannel(char *channelName) {
+bool cEvaluateChannel::ClosingCreditsChannel(const char *channelName) {
     // for performance reason only known and tested channels
     if ((strcmp(channelName, "kabel_eins") != 0) &&
-        (strcmp(channelName, "SAT_1") != 0) &&
-        (strcmp(channelName, "SIXX") != 0) &&
-        (strcmp(channelName, "DMAX") != 0) &&
-        (strcmp(channelName, "Pro7_MAXX") != 0) &&
-        (strcmp(channelName, "RTL2") != 0) &&
-        (strcmp(channelName, "ProSieben") != 0)) {
+        (strcmp(channelName, "SAT_1")      != 0) &&
+        (strcmp(channelName, "SIXX")       != 0) &&
+        (strcmp(channelName, "DMAX")       != 0) &&
+        (strcmp(channelName, "Pro7_MAXX")  != 0) &&
+        (strcmp(channelName, "RTL2")       != 0) &&
+        (strcmp(channelName, "ProSieben")  != 0)) {
         return false;
     }
     return true;
 }
 
 
-bool cEvaluateChannel::AdInFrameWithLogoChannel(char *channelName) {
+bool cEvaluateChannel::AdInFrameWithLogoChannel(const char *channelName) {
 // for performance reason only for known and tested channels for now
     if ((strcmp(channelName, "kabel_eins")     != 0) &&
         (strcmp(channelName, "Pro7_MAXX")      != 0) &&
@@ -68,7 +68,7 @@ bool cEvaluateChannel::AdInFrameWithLogoChannel(char *channelName) {
 }
 
 
-bool cEvaluateChannel::IntroductionLogoChannel(char *channelName) {
+bool cEvaluateChannel::IntroductionLogoChannel(const char *channelName) {
 // for performance reason only for known and tested channels for now
     if ((strcmp(channelName, "kabel_eins") != 0) &&
         (strcmp(channelName, "SIXX")       != 0) &&

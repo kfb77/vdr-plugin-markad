@@ -656,7 +656,7 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType, const
 
     // delete old mark, add new mark
     char *comment = NULL;
-    char *indexToHMSF = GetTime(mark);
+    const char *indexToHMSF = GetTime(mark);
     cMark *newMark = NULL;
     char* typeText = TypeToText(mark->type);
 
@@ -824,7 +824,7 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
         dsyslog("cMarks::Save(): mark frame number     (%d)", mark->position);
         dsyslog("cMarks::Save(): vdr mark frame number (%d)", vdrMarkPosition);
 #endif
-        char *indexToHMSF_PTS = GetTime(mark);                          // PTS based timestamp
+        const char *indexToHMSF_PTS = GetTime(mark);                          // PTS based timestamp
         char *indexToHMSF_VDR = IndexToHMSF(vdrMarkPosition, true);     // vdr based timestamp
         if (indexToHMSF_VDR) { ALLOC(strlen(indexToHMSF_VDR)+1, "indexToHMSF_VDR"); }
 #ifdef DEBUG_SAVEMARKS

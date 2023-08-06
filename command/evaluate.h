@@ -36,31 +36,31 @@ class cEvaluateChannel {
  * check if channel could have info logos
  * @return true if channel could have info logos, false otherwise
  */
-        bool IsInfoLogoChannel(char *channelName);
+        bool IsInfoLogoChannel(const char *channelName);
 
 /**
  * check if channel could have logo changes
  * @return true if channel could have logo changes, false otherwise
  */
-        bool IsLogoChangeChannel(char *channelName);
+        bool IsLogoChangeChannel(const char *channelName);
 
 /**
  * check if channel could have closing credits without logo
  * @return true if channel could have closing credits without logo, false otherwise
  */
-        bool ClosingCreditsChannel(char *channelName);
+        bool ClosingCreditsChannel(const char *channelName);
 
 /**
  * check if channel could have advertising in frame with logo
  * @return true if channel advertising in frame with logo, false otherwise
  */
-        bool AdInFrameWithLogoChannel(char *channelName);
+        bool AdInFrameWithLogoChannel(const char *channelName);
 
 /**
  * check for introduction logo
  * @return true if introduction logo detected, false otherwise
  */
-        bool IntroductionLogoChannel(char *channelName);
+        bool IntroductionLogoChannel(const char *channelName);
 };
 
 
