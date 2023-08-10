@@ -2125,6 +2125,80 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
         }
     }
 
+// if we have a VPS events, move start and stop mark to VPS event
+    LogSeparator();
+    if (macontext.Config->useVPS) {
+        LogSeparator();
+        dsyslog("cMarkAdStandalone::CheckMarks(): apply VPS events");
+        DebugMarks();     //  only for debugging
+        int vpsOffset = vps->GetStart(); // VPS start mark
+        if (vpsOffset >= 0) {
+            isyslog("VPS start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
+            AddMarkVPS(vpsOffset, MT_START, false);
+        }
+        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS start event found");
+
+        vpsOffset = vps->GetPauseStart();     // VPS pause start mark = stop mark
+        if (vpsOffset >= 0) {
+            isyslog("VPS pause start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
+            AddMarkVPS(vpsOffset, MT_STOP, true);
+        }
+        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause start event found");
+
+        vpsOffset = vps->GetPauseStop();     // VPS pause stop mark = start mark
+        if (vpsOffset >= 0) {
+            isyslog("VPS pause stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
+            AddMarkVPS(vpsOffset, MT_START, true);
+        }
+        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause stop event found");
+
+        vpsOffset = vps->GetStop();     // VPS stop mark
+        if (vpsOffset >= 0) {
+            isyslog("VPS stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
+            AddMarkVPS(vpsOffset, MT_STOP, false);
+        }
+        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS stop event found");
+
+// once again check marks
+        mark = marks.GetFirst();
+        while (mark) {
+            if (((mark->type & 0x0F)==MT_START) && (mark->Next()) && ((mark->Next()->type & 0x0F)==MT_START)) {  // two start marks, delete second
+                dsyslog("cMarkAdStandalone::CheckMarks(): start mark (%i) followed by start mark (%i) delete non VPS mark", mark->position, mark->Next()->position);
+                if (mark->type == MT_VPSSTART) {
+                    marks.Del(mark->Next());
+                    continue;
+                }
+                if (mark->Next()->type == MT_VPSSTART) {
+                    cMark *tmp=mark;
+                    mark = mark->Next();
+                    marks.Del(tmp);
+                    continue;
+                }
+            }
+            if (((mark->type & 0x0F)==MT_STOP) && (mark->Next()) && ((mark->Next()->type & 0x0F)==MT_STOP)) {  // two stop marks, delete second
+                dsyslog("cMarkAdStandalone::CheckMarks(): stop mark (%i) followed by stop mark (%i) delete non VPS mark", mark->position, mark->Next()->position);
+                if (mark->type == MT_VPSSTOP) {
+                    marks.Del(mark->Next());
+                    continue;
+                }
+                if (mark->Next()->type == MT_VPSSTOP) {
+                    cMark *tmp=mark;
+                    mark = mark->Next();
+                    marks.Del(tmp);
+                    continue;
+                }
+            }
+            if (((mark->type & 0x0F) == MT_START) && (!mark->Next())) {      // delete start mark at the end
+                if (marks.GetFirst()->position != mark->position) {        // do not delete start mark
+                    dsyslog("cMarkAdStandalone::CheckMarks(): START mark at the end, deleting %i", mark->position);
+                    marks.Del(mark);
+                    break;
+                }
+            }
+            mark = mark->Next();
+        }
+    }
+
 // check for better end mark not very far away from assuemd end
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): check for better end mark in case of recording length is too big");
@@ -2253,7 +2327,6 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
         }
     }
 
-
 // delete short START STOP logo marks because they are previes not detected above or due to next broadcast
 // delete short STOP START logo marks because they are logo detection failure
 // delete short STOP START hborder marks because some channels display information in the border
@@ -2335,80 +2408,6 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
             }
         }
         mark = mark->Next();
-    }
-
-// if we have a VPS events, move start and stop mark to VPS event
-    LogSeparator();
-    if (macontext.Config->useVPS) {
-        LogSeparator();
-        dsyslog("cMarkAdStandalone::CheckMarks(): apply VPS events");
-        DebugMarks();     //  only for debugging
-        int vpsOffset = vps->GetStart(); // VPS start mark
-        if (vpsOffset >= 0) {
-            isyslog("VPS start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-            AddMarkVPS(vpsOffset, MT_START, false);
-        }
-        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS start event found");
-
-        vpsOffset = vps->GetPauseStart();     // VPS pause start mark = stop mark
-        if (vpsOffset >= 0) {
-            isyslog("VPS pause start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-            AddMarkVPS(vpsOffset, MT_STOP, true);
-        }
-        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause start event found");
-
-        vpsOffset = vps->GetPauseStop();     // VPS pause stop mark = start mark
-        if (vpsOffset >= 0) {
-            isyslog("VPS pause stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-            AddMarkVPS(vpsOffset, MT_START, true);
-        }
-        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause stop event found");
-
-        vpsOffset = vps->GetStop();     // VPS stop mark
-        if (vpsOffset >= 0) {
-            isyslog("VPS stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-            AddMarkVPS(vpsOffset, MT_STOP, false);
-        }
-        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS stop event found");
-
-// once again check marks
-        mark = marks.GetFirst();
-        while (mark) {
-            if (((mark->type & 0x0F)==MT_START) && (mark->Next()) && ((mark->Next()->type & 0x0F)==MT_START)) {  // two start marks, delete second
-                dsyslog("cMarkAdStandalone::CheckMarks(): start mark (%i) followed by start mark (%i) delete non VPS mark", mark->position, mark->Next()->position);
-                if (mark->type == MT_VPSSTART) {
-                    marks.Del(mark->Next());
-                    continue;
-                }
-                if (mark->Next()->type == MT_VPSSTART) {
-                    cMark *tmp=mark;
-                    mark = mark->Next();
-                    marks.Del(tmp);
-                    continue;
-                }
-            }
-            if (((mark->type & 0x0F)==MT_STOP) && (mark->Next()) && ((mark->Next()->type & 0x0F)==MT_STOP)) {  // two stop marks, delete second
-                dsyslog("cMarkAdStandalone::CheckMarks(): stop mark (%i) followed by stop mark (%i) delete non VPS mark", mark->position, mark->Next()->position);
-                if (mark->type == MT_VPSSTOP) {
-                    marks.Del(mark->Next());
-                    continue;
-                }
-                if (mark->Next()->type == MT_VPSSTOP) {
-                    cMark *tmp=mark;
-                    mark = mark->Next();
-                    marks.Del(tmp);
-                    continue;
-                }
-            }
-            if (((mark->type & 0x0F) == MT_START) && (!mark->Next())) {      // delete start mark at the end
-                if (marks.GetFirst()->position != mark->position) {        // do not delete start mark
-                    dsyslog("cMarkAdStandalone::CheckMarks(): START mark at the end, deleting %i", mark->position);
-                    marks.Del(mark);
-                    break;
-                }
-            }
-            mark = mark->Next();
-        }
     }
 
     marks.DelInvalidSequence();
