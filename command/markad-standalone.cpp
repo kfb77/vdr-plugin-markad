@@ -1171,33 +1171,38 @@ void cMarkAdStandalone::CheckStart() {
         (macontext.Video.Info.AspectRatio.num ==  4) && (macontext.Video.Info.AspectRatio.den == 3)) {
         dsyslog("cMarkAdStandalone::CheckStart(): broadcast at end of start part is 4:3, VDR info tells 16:9, info file is wrong");
         SwapAspectRatio();
+        macontext.Info.checkedAspectRatio = true;  // now we are sure, aspect ratio is correct
     }
     // very short start/stop pairs (broadcast) are impossible, these must be stop/start (ad) pairs
-    cMark *aspectStart = marks.GetNext(-1, MT_ASPECTSTART); // first start can be on position 0
-    if (aspectStart) {
-        cMark *aspectStop = marks.GetNext(aspectStart->position, MT_ASPECTSTOP);
-        if (aspectStop) {
-            int diff    = (aspectStop->position - aspectStart->position) / macontext.Video.Info.framesPerSecond;
-            int iStartS = iStart / macontext.Video.Info.framesPerSecond;
-            dsyslog("cMarkAdStandalone::CheckStart(): aspect ratio start (%d) stop (%d): length %ds", aspectStart->position, aspectStop->position, diff);
-            if (diff <= 60) {
-                dsyslog("cMarkAdStandalone::CheckStart(): length %ds for first broadcast too short, pre recording time is %ds, VDR info file must be wrong", diff, iStartS);
-                SwapAspectRatio();
+    if (!macontext.Info.checkedAspectRatio) {
+        cMark *aspectStart = marks.GetNext(-1, MT_ASPECTSTART); // first start can be on position 0
+        if (aspectStart) {
+            cMark *aspectStop = marks.GetNext(aspectStart->position, MT_ASPECTSTOP);
+            if (aspectStop) {
+                int diff    = (aspectStop->position - aspectStart->position) / macontext.Video.Info.framesPerSecond;
+                int iStartS = iStart / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::CheckStart(): aspect ratio start (%d) stop (%d): length %ds", aspectStart->position, aspectStop->position, diff);
+                if (diff <= 60) {
+                    dsyslog("cMarkAdStandalone::CheckStart(): length %ds for first broadcast too short, pre recording time is %ds, VDR info file must be wrong", diff, iStartS);
+                    SwapAspectRatio();
+                    macontext.Info.checkedAspectRatio = true;  // now we are sure, aspect ratio is correct
+                }
             }
         }
     }
     // if broadcast is 16:9, we can not have a aspect ratio stop/start sequence in start part
-    if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
+    if (!macontext.Info.checkedAspectRatio && (macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
         cMark *aspectStop = marks.GetNext(-1, MT_ASPECTSTOP);
         if (aspectStop) {
-            aspectStart = marks.GetNext(aspectStop->position, MT_ASPECTSTART);
+            cMark *aspectStart = marks.GetNext(aspectStop->position, MT_ASPECTSTART);
             if (aspectStart) {
                 dsyslog("cMarkAdStandalone::CheckStart(): vdr info tells 16:9 but we have aspect ratio stop (%d) and start (%d), info is invalid", aspectStop->position, aspectStart->position);
                 SwapAspectRatio();
+                macontext.Info.checkedAspectRatio = true;  // now we are sure, aspect ratio is correct
             }
         }
     }
-    macontext.Info.checkedAspectRatio = true;  // now we are sure, aspect ratio is correct
+    if (!macontext.Info.checkedAspectRatio) macontext.Info.checkedAspectRatio = true;  // now we are sure, aspect ratio is correct
 
 // aspect ratio start
    if (!begin) {
