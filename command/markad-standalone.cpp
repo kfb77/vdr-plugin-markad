@@ -1188,7 +1188,7 @@ void cMarkAdStandalone::CheckStart() {
     }
     // if broadcast is 16:9, we can not have a aspect ratio stop/start sequence in start part
     if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
-        cMark *aspectStop = marks.GetNext(0, MT_ASPECTSTOP);
+        cMark *aspectStop = marks.GetNext(-1, MT_ASPECTSTOP);
         if (aspectStop) {
             aspectStart = marks.GetNext(aspectStop->position, MT_ASPECTSTART);
             if (aspectStart) {
