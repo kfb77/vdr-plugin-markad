@@ -321,8 +321,11 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "DMAX") == 0) {                  // DMAX                    16:9  720W  576H:->  126W  74H TOP_LEFT
         logo.widthMin  = 126;
     }
-    if (strcmp(maContext->Info.ChannelName, "kabel_eins") == 0) {            // kabel_eins              16:9  720W  576H:->   86W  72H TOP_RIGHT
-        logo.widthMax  =  88;                                                // kabel_eins              16:9  720W  576H:->   88W  72H TOP_RIGHT
+
+    // kabel_eins              16:9  720W  576H:->   88W  72H TOP_RIGHT
+    if (strcmp(maContext->Info.ChannelName, "kabel_eins") == 0) {
+        logo.widthMax  =  88;
+        logo.heightMin =  72;
     }
     if (strcmp(maContext->Info.ChannelName, "MDR_Sachsen") == 0) {           // MDR_Sachsen             16:9  720W  576H:->   92W  56H TOP_LEFT
         logo.heightMin =  56;
@@ -472,9 +475,13 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
                                                                              // VOX                      4:3  720W  576H:->  126W  70H TOP_LEFT
         logo.heightMin =  70;
     }
-    if (strcmp(maContext->Info.ChannelName, "WELT") == 0) {                  // WELT                    16:9  720W  576H:->  222W  60H BOTTOM_LEFT
+
+    // WELT                    16:9  720W  576H:->  226W  62H BOTTOM_LEFT
+    if (strcmp(maContext->Info.ChannelName, "WELT") == 0) {
+        logo.heightMax = 64;
         logo.widthMax  = INT_MAX;  // news ticker
     }
+
     if (strcmp(maContext->Info.ChannelName, "Welt_der_Wunder") == 0) {       // Welt_der_Wunder         16:9  720W  576H:->   94W 108H TOP_LEFT
                                                                              // Welt_der_Wunder         16:9  720W  576H:->   96W 112H TOP_LEFT
         logo.widthMin  =  94;
