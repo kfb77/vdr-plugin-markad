@@ -515,7 +515,7 @@ int cMarkAdStandalone::CheckStop() {
                         // if this is a channel with logo changes there could be one short before end mark, use lower value
                         // do not increase because of SIXX and SAT.1 has very short logo change at the end of recording, which are sometimes not detected
                         // sometimes we can not detect it at the end of the broadcast the info logo because text changes (noch eine Folge -> <Name der Folge>)
-                        if (IsInfoLogoChannel(macontext.Info.ChannelName)) maxDeltaLogoStart = 8000;
+                        if (IsInfoLogoChannel(macontext.Info.ChannelName)) maxDeltaLogoStart = 7759;  // changed from 8000 to 7759, undecected info logo before end
                         if (deltaLogoStart <= maxDeltaLogoStart) {
                             cMark *prevLogoStop = marks.GetPrev(prevLogoStart->position, MT_LOGOSTOP);
                             if (prevLogoStop && evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(prevLogoStop->position, prevLogoStart->position) == STATUS_YES)) {
