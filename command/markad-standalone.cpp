@@ -469,8 +469,8 @@ int cMarkAdStandalone::CheckStop() {
                     dsyslog("cMarkAdStandalone::CheckStop(): found %s stop mark (%d) %ds before aspect ratio end mark (%d), %ds before assumed stop", markType, stopBefore->position, diffAspectStop, end->position, diffStopA);
                     FREE(strlen(markType)+1, "text");
                     free(markType);
-                    if ((diffStopA <= 760) && (diffAspectStop <= 19)) { // changed from 682 to 760, for broadcast length from info file too long
-                                                                        // changed from 10 to 19, for longer ad found between broadcasts
+                    if ((diffStopA <= 760) && (diffAspectStop <= 39)) { // changed from 682 to 760, for broadcast length from info file too long
+                                                                        // changed from 19 to 39, for longer ad found between broadcasts
                         dsyslog("cMarkAdStandalone::CheckStop(): there is an advertising before aspect ratio change, use stop mark (%d) before as end mark", stopBefore->position);
                         end = stopBefore;
                         // cleanup possible info logo or logo detection failure short before end mark
