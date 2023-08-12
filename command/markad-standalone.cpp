@@ -4108,19 +4108,24 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     case MT_MOVEDSTART:
                         switch (mark->newType) {
                             case MT_SOUNDSTART:
-                                // select best mark
+                                // select best mark, default: use before
                                 // before / after
-                                //   <40> /  1000  (conflict)
+                                //   <40> /   560
+                                //   <40> /  1000
                                 //   <40> /  2520
                                 //   <40> /  2640
+                                //  <160> /   480
                                 //  <160> /  2720
-                                //  <560> /   280  (conflict)
+                                //  <560> /   280
                                 // <1200> /    40  (conflict)
                                 //
-                                //    40  /   <40>
-                                //    60  /   <20>
+                                //    40  /   <40> (conflict)
+                                //    60  /   <20> (conflict)
                                 //   120  / <2880> (conflict)
-                                //   160  / <1560>
+                                //   160  / <1360> (conflict)  // first scene change is in ad
+                                //   160  / <1560> (conflict)
+                                //   240  /   <40> (conflict)
+                                //  1060  /   <60>
                                 //  1520  /   <80>
                                 //  1920  /  <160>
                                 //  2320  /   <80>
@@ -4131,12 +4136,11 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                                 //  3320  /   <40>
                                 //  3400  /  <120>
                                 //  4120  /  <160>
-                                if ((diffBefore <= 160) && (diffAfter >= 2520))       diffAfter  = INT_MAX;
-                                else if ((diffBefore <= 4120) && (diffAfter <= 1560)) diffBefore = INT_MAX;
+                                if ((diffBefore >= 1060) && (diffAfter <= 160)) diffBefore = INT_MAX;
                                 maxBefore = 4400;  // changed from 3799 to 4400
                                 break;
                             case MT_INTRODUCTIONSTART:
-                                maxBefore = 3799;
+                                maxBefore = 4880;  // changed from 3799 to 4880
                                 break;
                             default:
                                 maxBefore = 0;
@@ -4150,12 +4154,20 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     if (mark->type == MT_MOVEDSTART) {
                         char *markType = marks.TypeToText(mark->newType);
                         if (markType) {
-                            if (asprintf(&comment, "scene start before %s start", markType) == -1) esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                            if (asprintf(&comment, "scene start before %s start", markType) == -1) {
+                                esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                                return;
+                            }
                             FREE(strlen(markType)+1, "text");
                             free(markType);
                         }
                     }
-                    else if (asprintf(&comment, "scene start before") == -1) esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                    else {
+                        if (asprintf(&comment, "scene start before") == -1) {
+                            esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                            return;
+                        }
+                    }
                     if (comment) {
                         ALLOC(strlen(comment)+1, "comment");
                         mark = marks.Move(mark, sceneStartBefore->position, MT_SCENESTART, comment);
@@ -4177,10 +4189,10 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxAfter = 1200;
                         break;
                     case MT_CHANNELSTART:
-                        maxAfter = 360;  // changed from 240 to 280 to 360
+                        maxAfter = 740;  // changed from 360 to 460 to 620 to 740
                         break;
                     case MT_VPSSTART:
-                        maxAfter = 1200;
+                        maxAfter = 2880; // changed from 1200 to 2880
                         break;
 
                     case MT_MOVEDSTART:
@@ -4203,12 +4215,20 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     if (mark->type == MT_MOVEDSTART) {
                         char *markType = marks.TypeToText(mark->newType);
                         if (markType) {
-                            if (asprintf(&comment, "scene start after %s start", markType) == -1) esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                            if (asprintf(&comment, "scene start after %s start", markType) == -1) {
+                                esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                                return;
+                            }
                             FREE(strlen(markType)+1, "text");
                             free(markType);
                         }
                     }
-                    else if (asprintf(&comment, "scene start after") == -1) esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                    else {
+                        if (asprintf(&comment, "scene start after") == -1) {
+                            esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                            return;
+                        }
+                    }
                     if (comment) {
                         ALLOC(strlen(comment)+1, "comment");
                         mark = marks.Move(mark, sceneStartAfter->position, MT_SCENESTART, comment);
@@ -4243,7 +4263,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 int maxAfter = 0;
                 switch (mark->type) {
                     case MT_LOGOSTOP:
-                        // select best mark (before / after)
+                        // select best mark (before / after), default: after
                         //   <80> / 1040    logo stop detected too late
                         //  <200> /   80    logo fading out after bradcast
                         //  <280> / 2680    delayed logo stop from pattern in background
@@ -4251,10 +4271,15 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         // <1080> / 4920    delayed logo stop from pattern in background
                         if ((diffStopBefore <= 920) && (diffStopAfter <= 2680))       diffStopAfter = INT_MAX;
                         else if ((diffStopBefore <= 1080) && (diffStopAfter >= 4920)) diffStopAfter = INT_MAX;
-                        maxAfter = 21200;  // changed from 11920 to 13520 to 21200, very long closing credits as still image without frame
+                        maxAfter = 5139;  // do not increase, will get scene change in ad, no schene change before because broadcast fade out to ad, TODO detect fade out scene changes
                         break;
                     case MT_CHANNELSTOP:
-                        maxAfter = 520;  // changed from 120 to 240 to 520
+                        // select best mark (before / after), default: after
+                        //  <80> /  360
+                        // <140> / 1460
+                        // <160> / 1440
+                        if ((diffStopBefore <= 160) && (diffStopAfter >= 360)) diffStopAfter = INT_MAX;
+                        maxAfter = 1460;  // changed from 240 to 1460
                         break;
                     case MT_VPSSTOP:
                         maxAfter = 8200;
@@ -4262,8 +4287,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     case MT_MOVEDSTOP:
                         switch (mark->newType) {
                            case MT_SOUNDSTOP:
-                                // select best mark (before / after)
+                                // select best mark (before / after), default: after
                                 // 1160  /  <80>
+                                //  480  /  <80>
                                 //  <40> /  720   second scene change in in ad
                                 //  <40> / 1040
                                 //  <40> / 1800   // fade out last scene
@@ -4272,7 +4298,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                                 // <120> / 1200    delayed logo stop from pattern in background
                                 // <160> /  920
                                 // <760> / 1320
-                                if ((diffStopBefore <= 760) && (diffStopAfter <= 2280)) diffStopAfter = INT_MAX;
+                                if ((diffStopBefore <= 760) && (diffStopAfter >= 720)) diffStopAfter = INT_MAX;
                                 maxAfter = 2459;  // do not increase for (VPS stop -> sound stop)
                                 break;
                            default:
@@ -4287,12 +4313,20 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     if (mark->type == MT_MOVEDSTOP) {
                         char *markType = marks.TypeToText(mark->newType);
                         if (markType) {
-                            if (asprintf(&comment, "scene end after %s stop", markType) == -1) esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                            if (asprintf(&comment, "scene end after %s stop", markType) == -1) {
+                                esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                                return;
+                            }
                             FREE(strlen(markType)+1, "text");
                             free(markType);
                         }
                     }
-                    else if (asprintf(&comment, "scene end after") == -1) esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                    else {
+                        if (asprintf(&comment, "scene end after") == -1) {
+                            esyslog("cMarkAdStandalone::SceneChangeOptimization(): asprintf failed");
+                            return;
+                        }
+                    }
                     if (comment) {
                         ALLOC(strlen(comment)+1, "comment");
                         mark = marks.Move(mark, sceneStopAfter->position, MT_SCENESTOP, comment);
