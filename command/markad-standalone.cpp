@@ -3924,16 +3924,19 @@ void cMarkAdStandalone::SilenceOptimization() {
                         maxBefore = 4479;
                         break;
                     case MT_LOGOSTART:
-                        // select best mark (before / after)
-                        //  <220> /  2910    // second silence is after separtion picture
-                        // <1120> /  1200    // second silence is in broadcast
-                        // <1200> /   320    // second silence is in broadcast
-                        //  3600  / <3300>   // logo starts in ad, first silence is in ad
-                        //  3600  / <3360>   // logo starts in ad, first silence is in ad
-                        //  3580  / <3460>   // logo starts in ad, first silence is in ad
-                        if ((diffBefore <= 1200) && (diffAfter >=  320))      diffAfter  = INT_MAX;
-                        else if ((diffBefore <= 3600) && (diffAfter <= 3460)) diffBefore = INT_MAX;
-                        maxBefore = 5399;  // do not increase, will get silence before separation picture
+                        // select best mark (before / after), defaut: before
+                        //  <220> /    2910    // second silence is after separtion picture
+                        //  <360> /      40    // fade in logo
+                        // <1120> /    1200    // second silence is in broadcast
+                        // <1200> /     320    // second silence is in broadcast
+                        // <3600> / 1428740
+                        //
+                        //  3520  / <3380>     // logo starts in ad, first silence is in ad
+                        //  3580  / <3460>     // logo starts in ad, first silence is in ad
+                        //  3600  / <3300>     // logo starts in ad, first silence is in ad
+                        //  3600  / <3360>     // logo starts in ad, first silence is in ad
+                        if ((diffBefore >= 3520) && (diffAfter <= 3460)) diffBefore = INT_MAX;
+                        maxBefore = 4479;      // 4480 / 1212560 is silence before separator
                         break;
                     case MT_VPSSTART:
                         maxBefore = 17199;  // do not increase, we will get position before broadcast start
