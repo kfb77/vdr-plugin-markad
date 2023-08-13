@@ -5117,7 +5117,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
             esyslog("libavcodec header version %s", AV_STRINGIFY(LIBAVCODEC_VERSION));
             esyslog("header and library mismatch, do not report decoder bugs");
         }
-        if (ver < LIBAVCODEC_VERSION_VALID) esyslog("your libavcodec is deprecated, please update");
+        if (ver < LIBAVCODEC_VERSION_VALID) isyslog("your libavcodec is deprecated, please update");
         FREE(strlen(libver)+1, "libver");
         free(libver);
     }
