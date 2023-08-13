@@ -978,7 +978,7 @@ void cMarkAdStandalone::SwapAspectRatio() {
             if (aMark->type == MT_ASPECTSTOP) {
                 aMark->type = MT_ASPECTSTART;
                 if (macontext.Config->fullDecode) {
-                    if (macontext.Video.Info.interlaced) aMark->position = aMark->position + 2;
+                    if (macontext.Video.Info.interlaced) aMark->position = aMark->position + 3;  // one full picture forward and the îget the next half picture for full decode
                     else                                 aMark->position = aMark->position + 1;
                 }
                 else aMark->position = recordingIndexMark->GetIFrameAfter(aMark->position + 1);
