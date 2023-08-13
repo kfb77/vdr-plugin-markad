@@ -1190,9 +1190,11 @@ void cMarkAdStandalone::CheckStart() {
             }
         }
     }
-    // if broadcast is 16:9, we can not have a aspect ratio stop/start sequence in start part
+    // if broadcast is 16:9, we can not have a aspect ratio stop/start sequence in start part, expect of 4:3 broadast before
+    // invalid example: stop  aspect ratio       at 0:02:36.60  (start of broadcast 4:3)
+    //                  start aspect ratio       at 0:05:46.07  (stop  of broadcast, start of ad 16:9)
     if (!macontext.Info.checkedAspectRatio && (macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
-        cMark *aspectStop = marks.GetNext(-1, MT_ASPECTSTOP);
+        cMark *aspectStop = marks.GetNext(0, MT_ASPECTSTOP);  // dont use aspect stop on position 0, this can be 4:3 broadcast before
         if (aspectStop) {
             cMark *aspectStart = marks.GetNext(aspectStop->position, MT_ASPECTSTART);
             if (aspectStart) {
