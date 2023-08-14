@@ -1756,7 +1756,8 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     // high matches qoute 644, frame portion quote 204
     //
     //
-    int allFramePortionQuote = allSumFramePortion / AdInFrameType1.frameCountFinal / 4;
+    int allFramePortionQuote = 0;
+    if (AdInFrameType1.frameCountFinal > 0) allFramePortionQuote = allSumFramePortion / AdInFrameType1.frameCountFinal / 4;
     dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): average of all corners portion quote: %3d", allFramePortionQuote);
     int countLogo = 0;
     for (int corner = 0; corner < CORNERS; corner++) {
