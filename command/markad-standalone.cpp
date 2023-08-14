@@ -2218,13 +2218,6 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
         if (lastStartMark && ((lastStartMark->type & 0x0F) == MT_START)) {
             cMark *prevStopMark = marks.GetPrev(lastStartMark->position);
             if (prevStopMark && ((prevStopMark->type & 0x0F) == MT_STOP)) {
-                // check if mark type sequence is possible
-                bool invalidSequence = false;
-                if ((lastStopMark->type == MT_ASPECTSTOP) && (lastStartMark->type == MT_LOGOSTART) && (prevStopMark->type == MT_LOGOSTOP)) {
-                    dsyslog("cMarkAdStandalone::CheckMarks(): invalid mark type sequence, last pair is from next broadcast");
-                    invalidSequence = true;
-                }
-                // check distance of last marks
                 int lastBroadcast        = (lastStopMark->position  - lastStartMark->position) / macontext.Video.Info.framesPerSecond;
                 int diffLastStopAssumed  = (lastStopMark->position  - newStopA)                / macontext.Video.Info.framesPerSecond;
                 int diffLastStartAssumed = (lastStartMark->position - newStopA)                / macontext.Video.Info.framesPerSecond;
@@ -2320,11 +2313,10 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     dsyslog("cMarkAdStandalone::CheckMarks():         max length of last broadcast     <  %4ds", maxLastBroadcast);
                     dsyslog("cMarkAdStandalone::CheckMarks():         max length of last advertisement <  %4ds", maxLastBroadcast);
 
-                    if (invalidSequence ||
-                       ((diffLastStopAssumed >= minLastStopAssumed) && (diffLastStartAssumed >= minLastStartAssumed) && (diffPrevStopAssumed >= minPrevStopAssumed)) ||
-                       // very short last broadcast is preview after broadcast
-                       ((lastBroadcast <= maxLastBroadcast) && (lastStopMark->position > (newStopA - (19 * macontext.Video.Info.framesPerSecond)))) ||
-                       ((lastAd        <= maxLastAd)        && (lastStopMark->position > newStopA))) {  // very short ads are only between broadcast
+                    if (((diffLastStopAssumed >= minLastStopAssumed) && (diffLastStartAssumed >= minLastStartAssumed) && (diffPrevStopAssumed >= minPrevStopAssumed)) ||
+                        // very short last broadcast is preview after broadcast
+                        ((lastBroadcast <= maxLastBroadcast) && (lastStopMark->position > (newStopA - (19 * macontext.Video.Info.framesPerSecond)))) ||
+                        ((lastAd        <= maxLastAd)        && (lastStopMark->position > newStopA))) {  // very short ads are only between broadcast
                         dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, assume too big recording length", prevStopMark->position);
                         marks.Del(lastStopMark->position);
                         marks.Del(lastStartMark->position);
