@@ -57,7 +57,7 @@ struct sRecordings {
     time_t       vpsStopTime       = 0;
     time_t       vpsPauseStartTime = 0;
     time_t       vpsPauseStopTime  = 0;
-    tChannelID   channelID;
+    tChannelID   channelID         = tChannelID::InvalidID;
     cEpgEventLog *epgEventLog;
 };
 

@@ -21,6 +21,9 @@
 // debug all VPS VDR events with runningStatus > 0 from <channel>
 // #define DEBUG_VPS_VDR "<channel>"
 
+// debug duplicate eventID
+// #define DEBUG_DUP_EVENTID
+
 
 #ifdef DEBUG_MEM
     #include <vdr/plugin.h>
