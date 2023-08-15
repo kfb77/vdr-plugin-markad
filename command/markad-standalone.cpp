@@ -687,6 +687,27 @@ int cMarkAdStandalone::CheckStop() {
         else dsyslog("cMarkAdStandalone::CheckStop(): no MT_LOGOSTOP mark found");
     }
 
+    // no end mark found, try if we can use a start mark of next bradcast as end mark
+    if (!end) {  // no valid stop mark found, try if there is a MT_CHANNELSTART from next broadcast
+        cMark *channelStart = marks.GetNext(iStopA, MT_CHANNELSTART);
+        if (channelStart) {
+            dsyslog("cMarkAdStandalone::CheckStop(): use channel start mark (%d) from next broadcast as end mark", channelStart->position);
+            marks.ChangeType(channelStart, MT_STOP);
+            end = channelStart;
+        }
+    }
+    if (!end) { // try to get hborder start mark from next broadcast as stop mark
+        cMark *hBorderStart = marks.GetNext(iStopA, MT_HBORDERSTART);
+        if (hBorderStart) {
+            dsyslog("cMarkAdStandalone::CheckStop(): use hborder start mark (%d) from next broadcast as end mark", hBorderStart->position);
+            end = marks.ChangeType(hBorderStart, MT_STOP);
+            if (end) {
+                marks.DelFromTo(end->position + 1, INT_MAX, MT_ALL);  // delete all marks after end mark
+                end = marks.Move(end, end->position - 1, MT_TYPECHANGESTOP, "use hborder start as stop");  // one frame before hborder start is end mark
+            }
+        }
+    }
+
 // try black screen mark as end mark
     if (!end) {
         cMark *blackEnd = blackMarks.GetNext(iStopA - (4 * macontext.Video.Info.framesPerSecond), MT_NOBLACKSTOP);    // accept 4s before iStopA
@@ -718,26 +739,6 @@ int cMarkAdStandalone::CheckStop() {
         }
     }
 
-    // no end mark found, try if we can use a start mark of next bradcast as end mark
-    if (!end) {  // no valid stop mark found, try if there is a MT_CHANNELSTART from next broadcast
-        cMark *channelStart = marks.GetNext(iStopA, MT_CHANNELSTART);
-        if (channelStart) {
-            dsyslog("cMarkAdStandalone::CheckStop(): use channel start mark (%d) from next broadcast as end mark", channelStart->position);
-            marks.ChangeType(channelStart, MT_STOP);
-            end = channelStart;
-        }
-    }
-    if (!end || (end->type == MT_NOBLACKSTOP)) { // try to get hborder start mark from next broadcast as stop mark
-        cMark *hBorderStart = marks.GetNext(iStopA, MT_HBORDERSTART);
-        if (hBorderStart) {
-            dsyslog("cMarkAdStandalone::CheckStop(): use hborder start mark (%d) from next broadcast as end mark", hBorderStart->position);
-            end = marks.ChangeType(hBorderStart, MT_STOP);
-            if (end) {
-                marks.DelFromTo(end->position + 1, INT_MAX, MT_ALL);  // delete all marks after end mark
-                end = marks.Move(end, end->position - 1, MT_TYPECHANGESTOP, "use hborder start as stop");  // one frame before hborder start is end mark
-            }
-        }
-    }
 
     if (!end) {  // no end mark found at all, set end mark at the end of the recording
         dsyslog("cMarkAdStandalone::CheckStop(): no stop mark found, add stop mark at the last frame (%d)", iFrameCurrent);
