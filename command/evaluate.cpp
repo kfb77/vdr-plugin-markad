@@ -1721,10 +1721,11 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         int secondFramePortionQuote = secondSumFramePortion / AdInFrameType1.frameCountFinal;
         if (firstFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of        best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[firstFrameCorner], firstSumFramePortion, AdInFrameType1.frameCountFinal, firstFramePortionQuote);
         if (secondFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of second best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[secondFrameCorner], secondSumFramePortion, AdInFrameType1.frameCountFinal, secondFramePortionQuote);
-        if ((firstFramePortionQuote <= 565) || // changed from 663 to 565
+        if ((firstFramePortionQuote <  557) || // changed from 663 to 565 to 557
            ((firstFramePortionQuote <= 735) && (secondFramePortionQuote <= 74))) {
                                                // exaple of ad in frame
                                                // best frame portion qoute 565, second best frame portion qoute 322
+                                               // best frame portion qoute 557, second best frame portion qoute 408
                                                //
                                                // example for no ad in frame (static scene with vertial or horizontal lines, blinds, windows frames or stairs):
                                                // best frame portion qoute 735, second best frame portion qoute  74 -> picture frame in background
