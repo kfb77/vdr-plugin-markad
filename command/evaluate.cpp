@@ -13,12 +13,18 @@
 
 bool cEvaluateChannel::IsInfoLogoChannel(const char *channelName) {
     // for performance reason only known and tested channels
-    if ((strcmp(channelName, "kabel_eins") != 0) &&
-        (strcmp(channelName, "DMAX")       != 0) &&
-        (strcmp(channelName, "SIXX")       != 0) &&
-        (strcmp(channelName, "SAT_1")      != 0) &&
-        (strcmp(channelName, "WELT")       != 0) &&
-        (strcmp(channelName, "RTL2")       != 0)) {
+    if ((strcmp(channelName, "kabel_eins")    != 0) &&
+        (strcmp(channelName, "kabel_eins_HD") != 0) &&
+        (strcmp(channelName, "DMAX")          != 0) &&
+        (strcmp(channelName, "DMAX_HD")       != 0) &&
+        (strcmp(channelName, "SIXX")          != 0) &&
+        (strcmp(channelName, "SIXX_HD")       != 0) &&
+        (strcmp(channelName, "SAT_1")         != 0) &&
+        (strcmp(channelName, "SAT_1_HD")      != 0) &&
+        (strcmp(channelName, "WELT")          != 0) &&
+        (strcmp(channelName, "WELT_HD")       != 0) &&
+        (strcmp(channelName, "RTL2")          != 0) &&
+        (strcmp(channelName, "RTL2_HD")       != 0)) {
        return false;
     }
     return true;
@@ -27,7 +33,8 @@ bool cEvaluateChannel::IsInfoLogoChannel(const char *channelName) {
 
 bool cEvaluateChannel::IsLogoChangeChannel(const char *channelName) {
     // for performance reason only known and tested channels
-    if (strcmp(channelName, "TELE_5") != 0) {  // has logo changes
+    if ((strcmp(channelName, "TELE_5")    != 0) &&  // has special logo changes
+        (strcmp(channelName, "TELE_5_HD") != 0)) {
         return false;
     }
     return true;
@@ -36,13 +43,20 @@ bool cEvaluateChannel::IsLogoChangeChannel(const char *channelName) {
 
 bool cEvaluateChannel::ClosingCreditsChannel(const char *channelName) {
     // for performance reason only known and tested channels
-    if ((strcmp(channelName, "kabel_eins") != 0) &&
-        (strcmp(channelName, "SAT_1")      != 0) &&
-        (strcmp(channelName, "SIXX")       != 0) &&
-        (strcmp(channelName, "DMAX")       != 0) &&
-        (strcmp(channelName, "Pro7_MAXX")  != 0) &&
-        (strcmp(channelName, "RTL2")       != 0) &&
-        (strcmp(channelName, "ProSieben")  != 0)) {
+    if ((strcmp(channelName, "kabel_eins")    != 0) &&
+        (strcmp(channelName, "kabel_eins_HD") != 0) &&
+        (strcmp(channelName, "SAT_1")         != 0) &&
+        (strcmp(channelName, "SAT_1_HD")      != 0) &&
+        (strcmp(channelName, "SIXX")          != 0) &&
+        (strcmp(channelName, "SIXX_HD")       != 0) &&
+        (strcmp(channelName, "DMAX")          != 0) &&
+        (strcmp(channelName, "DMAX_HD")       != 0) &&
+        (strcmp(channelName, "Pro7_MAXX")     != 0) &&
+        (strcmp(channelName, "Pro7_MAXX_HD")  != 0) &&
+        (strcmp(channelName, "RTL2")          != 0) &&
+        (strcmp(channelName, "RTL2_HD")       != 0) &&
+        (strcmp(channelName, "ProSieben")     != 0) &&
+        (strcmp(channelName, "ProSieben_HD")  != 0)) {
         return false;
     }
     return true;
@@ -51,17 +65,26 @@ bool cEvaluateChannel::ClosingCreditsChannel(const char *channelName) {
 
 bool cEvaluateChannel::AdInFrameWithLogoChannel(const char *channelName) {
 // for performance reason only for known and tested channels for now
-    if ((strcmp(channelName, "kabel_eins")     != 0) &&
-        (strcmp(channelName, "Pro7_MAXX")      != 0) &&
-        (strcmp(channelName, "ProSieben_MAXX") != 0) &&
-        (strcmp(channelName, "RTL2")           != 0) &&
-        (strcmp(channelName, "RTLZWEI")        != 0) &&
-        (strcmp(channelName, "RTL_Television") != 0) &&
-        (strcmp(channelName, "SAT_1")          != 0) &&
-        (strcmp(channelName, "SIXX")           != 0) &&
-        (strcmp(channelName, "VOX")            != 0) &&
-        (strcmp(channelName, "VOXup")          != 0) &&
-        (strcmp(channelName, "WELT")           != 0)) {
+    if ((strcmp(channelName, "kabel_eins")        != 0) &&
+        (strcmp(channelName, "kabel_eins_HD")     != 0) &&
+        (strcmp(channelName, "Pro7_MAXX")         != 0) &&
+        (strcmp(channelName, "Pro7_MAXX_HD")      != 0) &&
+        (strcmp(channelName, "ProSieben_MAXX")    != 0) &&
+        (strcmp(channelName, "ProSieben_MAXX_HD") != 0) &&
+        (strcmp(channelName, "RTL2")              != 0) &&
+        (strcmp(channelName, "RTL2_HD")           != 0) &&
+        (strcmp(channelName, "RTLZWEI")           != 0) &&
+        (strcmp(channelName, "RTLZWEI_HD")        != 0) &&
+        (strcmp(channelName, "RTL_Television")    != 0) &&
+        (strcmp(channelName, "RTL_Television_HD") != 0) &&
+        (strcmp(channelName, "SAT_1")             != 0) &&
+        (strcmp(channelName, "SAT_1_HD")          != 0) &&
+        (strcmp(channelName, "SIXX")              != 0) &&
+        (strcmp(channelName, "SIXX_HD")           != 0) &&
+        (strcmp(channelName, "VOX")               != 0) &&
+        (strcmp(channelName, "VOX_HD")            != 0) &&
+        (strcmp(channelName, "VOXup")             != 0) &&
+        (strcmp(channelName, "VOXup_HD")          != 0)) {
         return false;
     }
     return true;
@@ -70,10 +93,14 @@ bool cEvaluateChannel::AdInFrameWithLogoChannel(const char *channelName) {
 
 bool cEvaluateChannel::IntroductionLogoChannel(const char *channelName) {
 // for performance reason only for known and tested channels for now
-    if ((strcmp(channelName, "kabel_eins") != 0) &&
-        (strcmp(channelName, "SIXX")       != 0) &&
-        (strcmp(channelName, "SAT_1")      != 0) &&
-        (strcmp(channelName, "RTL2")       != 0)) {
+    if ((strcmp(channelName, "kabel_eins")    != 0) &&
+        (strcmp(channelName, "kabel_eins_HD") != 0) &&
+        (strcmp(channelName, "SIXX")          != 0) &&
+        (strcmp(channelName, "SIXX_HD")       != 0) &&
+        (strcmp(channelName, "SAT_1")         != 0) &&
+        (strcmp(channelName, "SAT_1_HD")      != 0) &&
+        (strcmp(channelName, "RTL2")          != 0) &&
+        (strcmp(channelName, "RTL2_HD")       != 0)) {
         return false;
     }
     return true;
