@@ -1909,20 +1909,19 @@ int cDetectLogoStopStart::IntroductionLogo() {
         // examples of separator frames before introduction logo
         //  59     0     0    -1 =  58
         //  -1   325(l)  0     0 = 324  // fading out logo on black sceen between broadcast before and introduction logo, logo start mark is after introduction logo (conflict)
-        //  -1  1000(l) -1    -1 = 997  // black screen with logo, last frame from previous broadcast
+        //  -1  1000(l) -1    -1 = 997  // black screen with logo, last frame from previous broadcast (conflict)
         //
         // example of no separator frames (l = logo corner)
         //  34   206(l)   0     0 = 240
         //   0   201(l)  30     0 = 231
         //   0    35(l) 109     0 = 144
-        //   0    91(l)   0     0 =  91
         //   0   147(l)   0     0 = 147
-        //  -1   241(l)   0    -1 = 239   // dark scene with introduction logo
+        //   0    91(l)   0     0 =  91
+        //   0    74(l)   0     0 =  74
         // new separator image before introduction logo, restart detection
-        if (((countLow  >= 3) && (sumPixel < 91)) ||
-           ((countZero == 3) && (sumPixel >= 997))) { // special case:  black screen with logo, last frame from previous broadcast
+        if ((countLow >= 3) && (sumPixel <   74)) {  // changed from 91 to 74
 #ifdef DEBUG_MARK_OPTIMIZATION
-            dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator found at frame (%5d)", (*cornerResultIt).frameNumber1);
+            dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator before introduction found at frame (%5d)", (*cornerResultIt).frameNumber1);
 #endif
             separatorFrameBefore = (*cornerResultIt).frameNumber1;
             introductionLogo.start      = -1;
@@ -1940,22 +1939,29 @@ int cDetectLogoStopStart::IntroductionLogo() {
         // separator after introduction logo, in this case it can not be a introduction logo
         // examples of separator frames after introduction logo
         // no seperator frame
-        //  0    91     0     0 =  91  NEW
-        //  0    76    11     6 =  93
-        //  0    24   102     9 = 135
-        //  0   147     0     0 = 147
-        //  0   540     0     0 = 540  dark scene with introduction logo (conflict)
+        //  0    76     11     6 =  93
+        //
+        //  0    24    102     9 = 135
+        //  0   109(l)   0    15 = 124 NEW
+        //
+        //  0   540      0     0 = 540  dark scene with introduction logo (conflict)
+        //  0   147      0     0 = 147
+        //  0    91      0     0 =  91
+        //  0    74(l)   0     0 =  74  NEW
         //
         // separator frame
         //  0     0     0     0 =   0
         //  0     1    33     0 =  34
-        // 52     0   114     0 = 166
+        // 52     0   114     0 = 166  (conflict)
         //  3     7    66    29 = 105
         if ((separatorFrameBefore >= 0) &&
            (((countZero == 0) && (sumPixel <= 105)) ||
             ((countZero == 1) && (sumPixel <   93)) ||
-            ((countZero == 2) && (sumPixel <= 166)) ||
-            ((countZero >= 3) && (sumPixel <   91)))) {
+            ((countZero == 2) && (sumPixel <  124)) ||
+            ((countZero >= 3) && (sumPixel <   74)))) {  // changed from 91 to 74
+#ifdef DEBUG_MARK_OPTIMIZATION
+            dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator after introduction found at frame (%5d)", (*cornerResultIt).frameNumber1);
+#endif
             separatorFrameAfter = (*cornerResultIt).frameNumber1;
         }
 
