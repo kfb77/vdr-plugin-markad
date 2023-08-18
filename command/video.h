@@ -697,7 +697,7 @@ class cMarkAdVideo {
                                                   //!<
         sMarkAdMarks videoMarks          = {};    //!< array of marks to add to list
                                                   //!<
-        sAspectRatio aspectRatio          = {0};  //!< video display aspect ratio (DAR)
+        sAspectRatio aspectRatio;                 //!< video display aspect ratio (DAR)
                                                   //!<
         cMarkAdSceneChange *sceneChange   = NULL; //!< pointer to class cMarkAdsceneChange
                                                   //!<

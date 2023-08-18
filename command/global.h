@@ -239,9 +239,9 @@ typedef struct sMarkAdMark {
                                           //!<
     int channelsAfter              = 0;   //!< audio channel count after mark (set if channel changed at this mark)
                                           //!<
-    sAspectRatio AspectRatioBefore = {0}; //!< video aspect ratio before mark (set if video aspect ratio changed at this mark)
+    sAspectRatio AspectRatioBefore;       //!< video aspect ratio before mark (set if video aspect ratio changed at this mark)
                                           //!<
-    sAspectRatio AspectRatioAfter  = {0}; //!< video aspect ratio after mark (set if video aspect ratio changed at this mark)
+    sAspectRatio AspectRatioAfter;        //!< video aspect ratio after mark (set if video aspect ratio changed at this mark)
                                           //!<
 } sMarkAdMark;
 
