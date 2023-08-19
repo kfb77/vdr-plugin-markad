@@ -101,7 +101,7 @@ void cMarkCriteria::SetMarkTypeState(const int type, const int state) {
                 SetDetectionState(MT_LOGOCHANGE,    false);
                 SetDetectionState(MT_VBORDERCHANGE, false);
                 SetDetectionState(MT_ASPECTCHANGE,  false);
-                SetDetectionState(MT_CHANNELCHANGE, false);
+                if (GetMarkTypeState(MT_CHANNELCHANGE) < CRITERIA_AVAILABLE) SetDetectionState(MT_CHANNELCHANGE, false); // if we have 6 channel, but no channel change, keep channel detection
             }
             if (hborder == CRITERIA_UNAVAILABLE) {
                 SetDetectionState(MT_HBORDERCHANGE, false);

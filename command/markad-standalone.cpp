@@ -2656,6 +2656,8 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
                 if (iStart == 0) marks.DelWeakFromTo(marks.GetFirst()->position, INT_MAX, MT_CHANNELCHANGE); // only if we have selected a start mark
                 // disable all video detection
                 video->ClearBorder();
+                // use now channel change for detection
+                if (markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED) markCriteria.SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE);
                 markCriteria.SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED);
             }
             macontext.Audio.Info.channelChange = true;
