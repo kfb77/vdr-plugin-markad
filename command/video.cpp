@@ -1385,20 +1385,20 @@ void cMarkAdBlackScreen::Clear() {
 //          1 blackscreen end (notice: this is a START mark)
 //
 int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) {
-#define BLACKNESS 19  // maximum brightness to detect a blackscreen, +1 to detect end of blackscreen, changed from 20 to 19
+#define BLACKNESS 16  // maximum brightness to detect a blackscreen, +1 to detect end of blackscreen, changed from 20 to 19 to 16
     if (!maContext) return 0;
     if (!maContext->Video.Data.valid) return 0;
     if (maContext->Video.Info.framesPerSecond == 0) return 0;
     if (!maContext->Video.Info.height) {
-        dsyslog("cMarkAdBlackScreen::Process() missing maContext->Video.Info.height");
+        dsyslog("cMarkAdBlackScreen::Process(): missing maContext->Video.Info.height");
         return 0;
     }
     if (!maContext->Video.Info.width) {
-        dsyslog("cMarkAdBlackScreen::Process() missing maContext->Video.Info.width");
+        dsyslog("cMarkAdBlackScreen::Process(): missing maContext->Video.Info.width");
         return 0;
     }
     if (!maContext->Video.Data.Plane[0]) {
-        dsyslog("cMarkAdBlackScreen::Process() Video.Data.Plane[0] missing");
+        dsyslog("cMarkAdBlackScreen::Process(): Video.Data.Plane[0] missing");
         return 0;
     }
     int end = maContext->Video.Info.height * maContext->Video.Info.width;
