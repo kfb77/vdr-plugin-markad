@@ -2718,7 +2718,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         case MT_BLACKCHANGE:
             blackMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, NULL, inBroadCast);
             if (comment) {
-#ifdef DEBUG_WEAK_MARKS
+#if defined(DEBUG_WEAK_MARKS) || defined(DEBUG_BLACKSCREEN)
                 char *indexToHMSF = marks.IndexToHMSF(mark->position);
                 if (indexToHMSF) {
                     ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
