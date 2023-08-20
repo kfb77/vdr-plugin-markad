@@ -3247,6 +3247,8 @@ void cMarkAdStandalone::MarkadCut() {
             esyslog("got invalid stop mark at (%d) type 0x%X", stopMark->position, stopMark->type);
             return;
         }
+        int stopPos = stopMark->position;
+        if (ptr_cDecoder->IsInterlacedVideo()) stopPos++;  // add one frame for full decode last frame
 
         // open output file
         ptr_cDecoder->SeekToFrame(&macontext, startMark->position - 1);  // seek to start posiition to get correct input video parameter
@@ -3271,7 +3273,7 @@ void cMarkAdStandalone::MarkadCut() {
                     continue;
                 }
                 // stop mark reached, set next startPosition
-                if  (frameNumber > stopMark->position) {
+                if  (frameNumber > stopPos) {
                     if (stopMark->Next() && stopMark->Next()->Next()) {  // next mark pair
                         startMark = stopMark->Next();
                         if ((startMark->type & 0x0F) != MT_START) {
@@ -3283,6 +3285,8 @@ void cMarkAdStandalone::MarkadCut() {
                             esyslog("got invalid stop mark at (%d) type 0x%X", stopMark->position, stopMark->type);
                             return;
                         }
+                        stopPos = stopMark->position;
+                        if (ptr_cDecoder->IsInterlacedVideo()) stopPos++;  // add one frame for full decode last frame
                     }
                     else {
                         nextFile = false;
