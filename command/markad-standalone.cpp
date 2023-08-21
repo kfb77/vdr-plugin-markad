@@ -5178,7 +5178,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     #error "libavcodec not installed or version not supported, please install or update libavcodec"
 #endif
 #if LIBAVCODEC_VERSION_INT < LIBAVCODEC_VERSION_VALID
-    #warning "libavcodec version is deprecated, please update"
+    #warning "libavcodec version is deprecated for markad, please update"
 #endif
 
     int ver = avcodec_version();
