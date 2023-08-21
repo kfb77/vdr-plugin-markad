@@ -183,6 +183,11 @@ class cMarkAdStandalone : public cEvaluateChannel {
         void CheckStartMark();
 
 /**
+ * check for channel end mark
+ */
+        cMark *Check_CHANNELSTOP();
+
+/**
  * check for hborder end mark
  */
         cMark *Check_HBORDERSTOP();

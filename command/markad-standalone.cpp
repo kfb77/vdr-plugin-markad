@@ -186,6 +186,92 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
 }
 
 
+// try MT_CHANNELSTOP
+cMark *cMarkAdStandalone::Check_CHANNELSTOP() {
+    // cleanup short channel stop/start pairs, they are stream errors
+    cMark *channelStop = marks.GetNext(-1, MT_CHANNELSTOP);
+    while (true) {
+        if (!channelStop) break;
+        cMark *channelStart = marks.GetNext(channelStop->position, MT_CHANNELSTART);
+        if (!channelStart) break;
+        int lengthChannel = 1000 * (channelStart->position - channelStop->position) / macontext.Video.Info.framesPerSecond;
+        dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): channel stop (%6d) start (%6d): length %6dms", channelStop->position, channelStart->position, lengthChannel);
+        if (lengthChannel <= 280) {
+            dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): channel stop (%6d) start (%6d): length too short, delete marks", channelStop->position, channelStart->position);
+            int tmp = channelStop->position;
+            marks.Del(channelStop->position);
+            marks.Del(channelStart->position);
+            channelStop = marks.GetNext(tmp, MT_CHANNELSTOP);
+        }
+        else channelStop = marks.GetNext(channelStop->position, MT_CHANNELSTOP);
+    }
+    // cleanup logo marks near by channel start marks, they are useless info logo
+    cMark *channelStart = marks.GetNext(-1, MT_CHANNELSTART);
+    while (channelStart) {
+#define CHANNEL_LOGO_MARK 60
+        cMark *logo = marks.GetAround(CHANNEL_LOGO_MARK * macontext.Video.Info.framesPerSecond, channelStart->position, MT_LOGOCHANGE, 0xF0);
+        while (logo) {
+            dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): delete logo mark (%d) around channel start (%d)", logo->position, channelStart->position);
+            marks.Del(logo->position);
+            logo = marks.GetAround(CHANNEL_LOGO_MARK * macontext.Video.Info.framesPerSecond, channelStart->position, MT_LOGOCHANGE, 0xF0);
+        }
+        channelStart = marks.GetNext(channelStart->position, MT_CHANNELSTART);
+    }
+
+    // search for channel stop mark
+    cMark *end = marks.GetAround(390 * macontext.Video.Info.framesPerSecond, iStopA, MT_CHANNELSTOP);   // changed from 360 to 390
+    if (end) dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): MT_CHANNELSTOP (%d) found near by assumed stop (%d)", end->position, iStopA);
+    else {
+        end = marks.GetPrev(INT_MAX, MT_CHANNELSTOP);   // try last channel stop
+        if (end) {
+            int diffAssumed = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): last MT_CHANNELSTOP (%d) found %ds before assumed stop (%d)", end->position, diffAssumed, iStopA);
+            if (diffAssumed > 543) {
+                dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): last MT_CHANNELSTOP too far before assumed stop");
+                end = NULL;
+            }
+        }
+    }
+
+    // check if channel stop mark is valid end mark
+    if (end) {
+        cMark *cStart = marks.GetPrev(end->position, MT_CHANNELSTART);      // if there is short befor a channel start, this stop mark belongs to next recording
+        if (cStart) {
+            if ((end->position - cStart->position) < (macontext.Video.Info.framesPerSecond * 120)) {
+                dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): MT_CHANNELSTART short before MT_CHANNELSTOP found at frame %d with delta %ds, MT_CHANNELSTOP is not valid, try to find stop mark short before", cStart->position, static_cast<int> ((end->position - cStart->position) / macontext.Video.Info.framesPerSecond));
+                end = marks.GetAround(macontext.Video.Info.framesPerSecond * 120, iStopA - (macontext.Video.Info.framesPerSecond * 120), MT_CHANNELSTOP);
+                if (end) dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): new MT_CHANNELSTOP found short before at frame (%d)", end->position);
+            }
+            else {
+                cMark *cStartFirst = marks.GetNext(0, MT_CHANNELSTART);  // get first channel start mark
+                cMark *movedFirst  = marks.First();                      // maybe first mark is a moved channel mark
+                if (movedFirst && (movedFirst->type == MT_MOVEDSTART) && (movedFirst->oldType == MT_CHANNELSTART)) cStartFirst = movedFirst;
+                if (cStartFirst) {
+                    int deltaC = (end->position - cStartFirst->position) / macontext.Video.Info.framesPerSecond;
+                    if (deltaC < 244) {  // changed from 287 to 244, found shortest last part, do not reduce
+                        dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): first channel start mark (%d) and possible channel end mark (%d) to near %ds, this belongs to the next recording", cStartFirst->position, end->position, deltaC);
+                        dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): delete channel marks at (%d) and (%d)", cStartFirst->position, end->position);
+                        marks.Del(cStartFirst->position);
+                        marks.Del(end->position);
+                        end = NULL;
+                    }
+                }
+            }
+        }
+    }
+
+    if (end) {
+        marks.DelWeakFromTo(marks.GetFirst()->position + 1, end->position, MT_CHANNELCHANGE); // delete all weak marks, except start mark
+        dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): MT_CHANNELSTOP end mark (%d) found", end->position);
+        return end;
+    }
+    else {
+        dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): no MT_CHANNELSTOP mark found");
+        return NULL;
+    }
+}
+
+
 // try MT_HBORDERSTOP
 cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
     cMark *end = NULL;
@@ -386,74 +472,14 @@ int cMarkAdStandalone::CheckStop() {
         }
         aStart = marks.GetNext(aStart->position, MT_ASPECTSTART);
     }
-    // if we use channel marks
-    if (markCriteria.GetMarkTypeState(MT_CHANNELCHANGE) == CRITERIA_USED) {
-        // delete short channel stop/start pairs, they are stream errors
-        cMark *channelStop = marks.GetNext(-1, MT_CHANNELSTOP);
-        while (true) {
-            if (!channelStop) break;
-            cMark *channelStart = marks.GetNext(channelStop->position, MT_CHANNELSTART);
-            if (!channelStart) break;
-            int lengthChannel = 1000 * (channelStart->position - channelStop->position) / macontext.Video.Info.framesPerSecond;
-            dsyslog("cMarkAdStandalone::CheckStop(): channel stop (%6d) start (%6d): length %6dms", channelStop->position, channelStart->position, lengthChannel);
-            if (lengthChannel <= 280) {
-                dsyslog("cMarkAdStandalone::CheckStop(): channel stop (%6d) start (%6d): length too short, delete marks", channelStop->position, channelStart->position);
-                int tmp = channelStop->position;
-                marks.Del(channelStop->position);
-                marks.Del(channelStart->position);
-                channelStop = marks.GetNext(tmp, MT_CHANNELSTOP);
-            }
-            else channelStop = marks.GetNext(channelStop->position, MT_CHANNELSTOP);
-        }
-    // cleanup logo marks near by channel start marks, they are useless info logo
-        cMark *channelStart = marks.GetNext(-1, MT_CHANNELSTART);
-        while (channelStart) {
-#define CHANNEL_LOGO_MARK 60
-            cMark *logo = marks.GetAround(CHANNEL_LOGO_MARK * macontext.Video.Info.framesPerSecond, channelStart->position, MT_LOGOCHANGE, 0xF0);
-            while (logo) {
-                dsyslog("cMarkAdStandalone::CheckStop(): delete logo mark (%d) around channel start (%d)", logo->position, channelStart->position);
-                marks.Del(logo->position);
-                logo = marks.GetAround(CHANNEL_LOGO_MARK * macontext.Video.Info.framesPerSecond, channelStart->position, MT_LOGOCHANGE, 0xF0);
-            }
-            channelStart = marks.GetNext(channelStart->position, MT_CHANNELSTART);
-        }
-    }
-
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStop(): marks after first cleanup:");
     DebugMarks();     //  only for debugging
     dsyslog("cMarkAdStandalone::CheckStop(): start end mark selection");
 
 // try MT_CHANNELSTOP
-    cMark *end = marks.GetAround(390 * macontext.Video.Info.framesPerSecond, iStopA, MT_CHANNELSTOP);   // changed from 360 to 390
-    if (end) {
-        dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTOP found at frame %i", end->position);
-        cMark *cStart = marks.GetPrev(end->position, MT_CHANNELSTART);      // if there is short befor a channel start, this stop mark belongs to next recording
-        if (cStart) {
-            if ((end->position - cStart->position) < (macontext.Video.Info.framesPerSecond * 120)) {
-                dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTART found short before at frame %i with delta %ds, MT_CHANNELSTOP is not valid, try to find stop mark short before", cStart->position, static_cast<int> ((end->position - cStart->position) / macontext.Video.Info.framesPerSecond));
-                end = marks.GetAround(macontext.Video.Info.framesPerSecond * 120, iStopA - (macontext.Video.Info.framesPerSecond * 120), MT_CHANNELSTOP);
-                if (end) dsyslog("cMarkAdStandalone::CheckStop(): MT_CHANNELSTOP found short before at frame (%d)", end->position);
-            }
-            else {
-                cMark *cStartFirst = marks.GetNext(0, MT_CHANNELSTART);  // get first channel start mark
-                cMark *movedFirst  = marks.First();                      // maybe first mark is a moved channel mark
-                if (movedFirst && (movedFirst->type == MT_MOVEDSTART) && (movedFirst->oldType == MT_CHANNELSTART)) cStartFirst = movedFirst;
-                if (cStartFirst) {
-                    int deltaC = (end->position - cStartFirst->position) / macontext.Video.Info.framesPerSecond;
-                    if (deltaC < 244) {  // changed from 287 to 244, found shortest last part, do not reduce
-                    dsyslog("cMarkAdStandalone::CheckStop(): first channel start mark (%d) and possible channel end mark (%d) to near %ds, this belongs to the next recording", cStartFirst->position, end->position, deltaC);
-                    dsyslog("cMarkAdStandalone::CheckStop(): delete channel marks at (%d) and (%d)", cStartFirst->position, end->position);
-                    marks.Del(cStartFirst->position);
-                    marks.Del(end->position);
-                    end = NULL;
-                    }
-                }
-            }
-        }
-    }
-    else dsyslog("cMarkAdStandalone::CheckStop(): no MT_CHANNELSTOP mark found");
-    if (end) marks.DelWeakFromTo(marks.GetFirst()->position + 1, end->position, MT_CHANNELCHANGE); // delete all weak marks, except start mark
+    cMark *end = NULL;
+    if (markCriteria.GetMarkTypeState(MT_CHANNELCHANGE) >= CRITERIA_UNKNOWN) end = Check_CHANNELSTOP();
 
 // try MT_ASPECTSTOP
     if (!end) {
