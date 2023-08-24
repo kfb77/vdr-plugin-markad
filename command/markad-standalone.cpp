@@ -824,7 +824,7 @@ int cMarkAdStandalone::CheckStop() {
             int closingCreditsLength = (nextLogoStart->position - end->position) / macontext.Video.Info.framesPerSecond;
             if (closingCreditsLength <= 2) {
                 dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) %ds after end mark (%d), no closing credits without logo follows", nextLogoStart->position, closingCreditsLength, end->position);
-                markCriteria.SetClosingCreditsState(CRITERIA_UNAVAILABLE);
+                markCriteria.SetClosingCreditsState(end->position, CRITERIA_UNAVAILABLE);
             }
         }
     }
@@ -4460,7 +4460,7 @@ void cMarkAdStandalone::ProcessOverlap() {
         // check logo end mark
         if (lastStop->type == MT_LOGOSTOP) {
             if ((evaluateLogoStopStartPair->GetIsAdInFrame(lastStop->position) != STATUS_YES)) {
-                if ((markCriteria.GetClosingCreditsState() >= CRITERIA_UNKNOWN) && ((lastStop->type == MT_LOGOSTOP) || (lastStop->type == MT_MOVEDSTOP))) {
+                if ((markCriteria.GetClosingCreditsState(lastStop->position) >= CRITERIA_UNKNOWN) && ((lastStop->type == MT_LOGOSTOP) || (lastStop->type == MT_MOVEDSTOP))) {
                     dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after logo end mark");
                     if (MoveLastStopAfterClosingCredits(lastStop)) {
                         save = true;

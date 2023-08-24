@@ -60,14 +60,14 @@ class cMarkCriteria : public cMarks {
  * get status of possible closing credits without logo
  * @return status
  */
-        int GetClosingCreditsState();
+        int GetClosingCreditsState(const int position);
 
 
 /**
  * set status of closing credits without logo
  * @return status
  */
-        void SetClosingCreditsState(const int state);
+        void SetClosingCreditsState(const int position, const int state);
 
 
 /**
@@ -101,7 +101,9 @@ class cMarkCriteria : public cMarks {
         int channel               = CRITERIA_UNKNOWN;  //!< status of channel changes in broadcast
                                                        //!<
 
-        int closingCredits        = CRITERIA_UNKNOWN;  //!< status of closing credits after end mark
+        int closingCreditsState   = CRITERIA_UNKNOWN;  //!< status of closing credits after end mark
+                                                       //!<
+        int closingCreditsPos     = -1;                //!<
                                                        //!<
 
         bool sceneDetection       = true;              //!< true if we have to detect scene changes, false otherwise

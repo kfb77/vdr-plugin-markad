@@ -146,9 +146,25 @@ void cMarkCriteria::ListMarkTypeState() {
 }
 
 
-int cMarkCriteria::GetClosingCreditsState() {
-    dsyslog("cMarkCriteria::GetClosingCreditState(): closing credits state is %d", closingCredits);
-    return closingCredits;
+int cMarkCriteria::GetClosingCreditsState(const int position) {
+    if (position == closingCreditsPos) {
+        char *stateToText = StateToText(closingCreditsState);
+        dsyslog("cMarkCriteria::GetClosingCreditState(): closing credits state for (%d) is %s", position, stateToText);
+        FREE(strlen(stateToText)+1, "state");
+        free(stateToText);
+        return closingCreditsState;
+    }
+    else return CRITERIA_UNKNOWN;
+}
+
+
+void cMarkCriteria::SetClosingCreditsState(const int position, const int state) {
+    char *stateToText = StateToText(state);
+    dsyslog("cMarkCriteria::SetClosingCreditState(): set closing credits state for (%d) to %s", position, stateToText);
+    FREE(strlen(stateToText)+1, "state");
+    free(stateToText);
+    closingCreditsState = state;
+    closingCreditsPos   = position;
 }
 
 
@@ -191,12 +207,6 @@ char *cMarkCriteria::StateToText(const int state) {
             break;
        }
     return text;
-}
-
-
-void cMarkCriteria::SetClosingCreditsState(const int state) {
-    dsyslog("cMarkCriteria::SetClosingCreditState(): set closing credits state to %d", state);
-    closingCredits = state;
 }
 
 
