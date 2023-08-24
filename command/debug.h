@@ -97,6 +97,9 @@
 // debug mark optimization
 // #define DEBUG_MARK_OPTIMIZATION
 
+// debug ad in frame detection
+// #define DEBUG_ADINFRAME
+
 // debug timestamps from final marks to save
 // #define DEBUG_SAVEMARKS
 
