@@ -4087,13 +4087,28 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 int maxBefore = 0;
                 switch (mark->type) {
                     case MT_LOGOSTART:
-                        maxBefore = 4120;  // changed from 2880 to 4120
+                        // select best mark, default: use before
+                        // before / after
+                        //  <560> / 160    fade in logo
+                        //  <880> / 240    fade in logo
+                        // <1200> / 120    fade in logo
+                        // <1600> / 360    fade in logo
+                        // <1800> /  80    fade in logo
+                        //
+                        //    40 / <400>   logo start before broadcast start (conflict)
+                        //   360 /  <80>   (conflict)
+                        //  2320 / <140>
+                        //  4840 / <240>
+                        //  4380 / <280>   scene fade in after logo start
+                        if ((diffBefore >= 2320) && (diffAfter <= 280)) diffBefore = INT_MAX;
+                        maxBefore = 7400;  // changed from 4680 to 7400
                         break;
                     case MT_CHANNELSTART:
+                        // select best mark, default: use before
+                        // before / after
+                        // 40 / <120>
+                        if (diffAfter <= 120) diffBefore = INT_MAX;
                         maxBefore = 40;
-                        break;
-                    case MT_VPSSTART:
-                        maxBefore = 4200;
                         break;
                     case MT_MOVEDSTART:
                         switch (mark->newType) {
@@ -4108,6 +4123,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                                 //  <160> /  2720
                                 //  <560> /   280
                                 // <1200> /    40  (conflict)
+                                // <5060> /  1100  sound start wong because of conflict
                                 //
                                 //    40  /   <40> (conflict)
                                 //    60  /   <20> (conflict)
@@ -4115,19 +4131,28 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                                 //   160  / <1360> (conflict)  // first scene change is in ad
                                 //   160  / <1560> (conflict)
                                 //   240  /   <40> (conflict)
+                                //   520  /   <40> (conflict)
+                                //   800  /  <360>
+                                //  1040  /  <160>
                                 //  1060  /   <60>
                                 //  1520  /   <80>
+                                //  1880  /  <680>
                                 //  1920  /  <160>
                                 //  2320  /   <80>
+                                //  2320  /  <240>
                                 //  2560  /   <80>
                                 //  2560  /   <40>
                                 //  3200  /  <120>
                                 //  3200  /  <160>
                                 //  3320  /   <40>
                                 //  3400  /  <120>
+                                //  3920  / <1000>
                                 //  4120  /  <160>
-                                if ((diffBefore >= 1060) && (diffAfter <= 160)) diffBefore = INT_MAX;
-                                maxBefore = 4400;  // changed from 3799 to 4400
+                                if ((diffBefore >= 800) && (diffAfter <= 1000)) diffBefore = INT_MAX;
+                                maxBefore = 5060;  // changed from 4400 to 5060
+                                break;
+                            case MT_VPSSTART:
+                                maxBefore = 400;
                                 break;
                             case MT_INTRODUCTIONSTART:
                                 maxBefore = 4880;  // changed from 3799 to 4880
@@ -4156,16 +4181,15 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxAfter = 1200;
                         break;
                     case MT_CHANNELSTART:
-                        maxAfter = 740;  // changed from 360 to 460 to 620 to 740
+                        maxAfter = 1800;  // changed from 1020 to 1800
                         break;
-                    case MT_VPSSTART:
-                        maxAfter = 2880; // changed from 1200 to 2880
-                        break;
-
                     case MT_MOVEDSTART:
                         switch (mark->newType) {
                             case MT_SOUNDSTART:
                                 maxAfter = 2880;  // changed from 1200 to 2880
+                                break;
+                            case MT_VPSSTART:
+                                maxAfter = 4360;  // changed from 4280 to 4360
                                 break;
                             case MT_INTRODUCTIONSTART:
                                 maxAfter = 1200;
@@ -4206,45 +4230,93 @@ void cMarkAdStandalone::SceneChangeOptimization() {
             if ((sceneStopAfter) && (sceneStopAfter->position != mark->position)) {
                 int maxAfter = 0;
                 switch (mark->type) {
+                    case MT_ASSUMEDSTOP:
+                        maxAfter = 5800;
+                        break;
                     case MT_LOGOSTOP:
                         // select best mark (before / after), default: after
-                        //   <80> / 1040    logo stop detected too late
-                        //  <200> /   80    logo fading out after bradcast
-                        //  <280> / 2680    delayed logo stop from pattern in background
-                        //  <920> /  120    delayed logo stop from pattern in background
-                        // <1080> / 4920    delayed logo stop from pattern in background
-                        if ((diffStopBefore <= 920) && (diffStopAfter <= 2680))       diffStopAfter = INT_MAX;
-                        else if ((diffStopBefore <= 1080) && (diffStopAfter >= 4920)) diffStopAfter = INT_MAX;
-                        maxAfter = 5139;  // do not increase, will get scene change in ad, no schene change before because broadcast fade out to ad, TODO detect fade out scene changes
+                        //    120 / <2000>   fade out logo  (conflict)
+                        //    200 / <2080>   fade out logo
+                        //    240 / <1880>   fade out logo
+                        //    400 / <1560>   fade out logo
+                        //    440 /  <960>   fade out logo
+                        //    440 / <4800>   early fade out logo (Nickelodeon)
+                        //    520 /  <800>   fade out logo
+                        //
+                        //   <40> /   760    logo stop detected too late
+                        //   <80> /  1040    logo stop detected too late
+                        //   <80> /  3240    delayed logo stop from bright background
+                        //  <120> /  1120    delayed logo stop from bright background
+                        //  <120> /  1840    delayed logo stop from bright background
+                        //
+                        //  <160> /   240    logo stop in ad                               (conflict)
+                        //  <200> /    80    logo fading out after broadcast end           (conflict)
+                        //  <280> /  2680    delayed logo stop from pattern in background
+                        //  <440> /  4080    delayed logo stop from pattern in background
+                        //  <680> /  4320    fade out logo in ad                           (conflict)
+                        //  <840> /  4960    delayed logo stop from bright background      (conflict)
+                        //  <920> /   120    delayed logo stop from pattern in background  (conflict)
+                        // <1080> /  4920    delayed logo stop from pattern in background  (conflict)
+                        if ((diffStopBefore <= 120) && (diffStopAfter >= 760)) diffStopAfter = INT_MAX;
+                        else if ((diffStopBefore <= 280) && (diffStopAfter > 2080)) diffStopAfter = INT_MAX;
+                        maxAfter = 5139;  // do not increase, will get scene change in ad, no schene change before because broadcast fade out to ad
+                                          // TODO detect fade out scene changes
                         break;
                     case MT_CHANNELSTOP:
                         // select best mark (before / after), default: after
                         //  <80> /  360
+                        // <120> /  160
                         // <140> / 1460
                         // <160> / 1440
-                        if ((diffStopBefore <= 160) && (diffStopAfter >= 360)) diffStopAfter = INT_MAX;
+                        // <340> / 1300
+                        if ((diffStopBefore <= 340) && (diffStopAfter >= 160)) diffStopAfter = INT_MAX;
                         maxAfter = 1460;  // changed from 240 to 1460
-                        break;
-                    case MT_VPSSTOP:
-                        maxAfter = 8200;
                         break;
                     case MT_MOVEDSTOP:
                         switch (mark->newType) {
                            case MT_SOUNDSTOP:
-                                // select best mark (before / after), default: after
-                                // 1160  /  <80>
-                                //  480  /  <80>
-                                //  <40> /  720   second scene change in in ad
-                                //  <40> / 1040
-                                //  <40> / 1800   // fade out last scene
-                                //  <40> / 2280
-                                // <120> / 1080
-                                // <120> / 1200    delayed logo stop from pattern in background
-                                // <160> /  920
-                                // <760> / 1320
-                                if ((diffStopBefore <= 760) && (diffStopAfter >= 720)) diffStopAfter = INT_MAX;
-                                maxAfter = 2459;  // do not increase for (VPS stop -> sound stop)
-                                break;
+                               switch(mark->oldType) {
+                                   case MT_LOGOSTOP:
+                                       // select best mark (before / after), default: after
+                                       // 1160  /  <80>
+                                       //  480  /  <80>
+                                       //
+                                       //  <40> /   80
+                                       //  <40> /  720   second scene change in in ad
+                                       //  <40> / 1040
+                                       //  <40> / 1800   // fade out last scene
+                                       //  <40> / 2280
+                                       //
+                                       // <120> /  720
+                                       // <120> / 1080
+                                       // <120> / 1200    delayed logo stop from pattern in background
+                                       // <160> /  920
+                                       // <400> /  760
+                                       // <640> /  240    NEW
+                                       // <760> / 1320
+                                       if (diffStopBefore <= 40) diffStopAfter = INT_MAX;
+                                       else if ((diffStopBefore <= 760) && (diffStopAfter >= 240)) diffStopAfter = INT_MAX;
+                                       maxAfter = 2459;
+                                       break;
+                                   case MT_CHANNELSTOP:
+                                       maxAfter = 640;
+                                       break;
+                                   case MT_VPSSTOP:
+                                       // select best mark (before / after), default: after
+                                       // <200> / 80
+                                       if (diffStopBefore <= 200) diffStopAfter = INT_MAX;
+                                       maxAfter = 2459;
+                                       break;
+                                   case MT_ASSUMEDSTOP:
+                                       maxAfter = 40;
+                                       break;
+                                   default:
+                                       maxAfter = 0;
+                               }
+                               break;
+                           case MT_VPSSTOP:
+                               maxAfter = 3000;  // changed from 2080 to 3000
+                               break;
                            default:
                                maxAfter = 0;
                         }
@@ -4271,13 +4343,13 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     case MT_CHANNELSTOP:
                         maxBefore = 80;  // changed from 40 to 80
                         break;
-                    case MT_VPSSTOP:
-                        maxBefore = 2280;
-                        break;
                     case MT_MOVEDSTOP:
                         switch (mark->newType) {
                            case MT_SOUNDSTOP:
                                 maxBefore = 2280;
+                                break;
+                           case MT_VPSSTOP:
+                                maxBefore = 1320;   // chaned from 120 to 1320
                                 break;
                            case MT_NOADINFRAMESTOP:  // correct the missed start of ad in frame before stop mark
                                 maxBefore = 1600;
