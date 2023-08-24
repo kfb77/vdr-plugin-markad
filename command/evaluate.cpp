@@ -1856,17 +1856,19 @@ int cDetectLogoStopStart::IntroductionLogo() {
 #define INTRODUCTION_MAX_DIFF_END       4319   // max distance of introduction logo end to start mark (endPos)
 
    for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
-#ifdef DEBUG_MARK_OPTIMIZATION
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
 #endif
 
         // separator frame before introduction logo
         int sumPixel        = 0;
-        int countZero       = 0;
+        int countNoMatch    = 0;
+        int countNoPixel    = 0;
         int countLow        = 0;
         int countStillImage = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
-            if ((*cornerResultIt).rate[corner]  <=  0) countZero++;
+            if ((*cornerResultIt).rate[corner]  <=  0) countNoMatch++;
+            if ((*cornerResultIt).rate[corner]  <   0) countNoPixel++;
             if ((*cornerResultIt).rate[corner]  <= 65) countLow++;
             if (((*cornerResultIt).rate[corner] <=  0) || ((*cornerResultIt).rate[corner] > 507)) countStillImage++; // changed from 142 to 507
             sumPixel += (*cornerResultIt).rate[corner];
@@ -1874,7 +1876,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
         // examples of separator frames before introduction logo
         //  59     0     0    -1 =  58
         //  -1   325(l)  0     0 = 324  // fading out logo on black sceen between broadcast before and introduction logo, logo start mark is after introduction logo (conflict)
-        //  -1  1000(l) -1    -1 = 997  // black screen with logo, last frame from previous broadcast (conflict)
+        //  -1  1000(l) -1    -1 = 997  // black screen with logo, last frame from previous broadcast
         //
         // example of no separator frames (l = logo corner)
         //  34   206(l)   0     0 = 240
@@ -1883,9 +1885,11 @@ int cDetectLogoStopStart::IntroductionLogo() {
         //   0   147(l)   0     0 = 147
         //   0    91(l)   0     0 =  91
         //   0    74(l)   0     0 =  74
+        //   0    65(l)   0    -1 =  64
         // new separator image before introduction logo, restart detection
-        if ((countLow >= 3) && (sumPixel <   74)) {  // changed from 91 to 74
-#ifdef DEBUG_MARK_OPTIMIZATION
+        if (((countNoMatch >= 3) && (sumPixel <   64)) ||  // changed from 74 to 64
+            ((countNoPixel == 3) && (sumPixel == 997))) {  // special case blackscreen with logo, end of previous broadcast
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
             dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator before introduction found at frame (%5d)", (*cornerResultIt).frameNumber1);
 #endif
             separatorFrameBefore = (*cornerResultIt).frameNumber1;
@@ -1907,12 +1911,13 @@ int cDetectLogoStopStart::IntroductionLogo() {
         //  0    76     11     6 =  93
         //
         //  0    24    102     9 = 135
-        //  0   109(l)   0    15 = 124 NEW
+        //  0   109(l)   0    15 = 124
         //
         //  0   540      0     0 = 540  dark scene with introduction logo (conflict)
         //  0   147      0     0 = 147
         //  0    91      0     0 =  91
-        //  0    74(l)   0     0 =  74  NEW
+        //  0    74(l)   0     0 =  74
+        //  0    65      0    -1 =  64
         //
         // separator frame
         //  0     0     0     0 =   0
@@ -1920,11 +1925,11 @@ int cDetectLogoStopStart::IntroductionLogo() {
         // 52     0   114     0 = 166  (conflict)
         //  3     7    66    29 = 105
         if ((separatorFrameBefore >= 0) &&
-           (((countZero == 0) && (sumPixel <= 105)) ||
-            ((countZero == 1) && (sumPixel <   93)) ||
-            ((countZero == 2) && (sumPixel <  124)) ||
-            ((countZero >= 3) && (sumPixel <   74)))) {  // changed from 91 to 74
-#ifdef DEBUG_MARK_OPTIMIZATION
+           (((countNoMatch == 0) && (sumPixel <= 105)) ||
+            ((countNoMatch == 1) && (sumPixel <   93)) ||
+            ((countNoMatch == 2) && (sumPixel <  124)) ||
+            ((countNoMatch >= 3) && (sumPixel <   64)))) {  // changed from 74 to 64
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
             dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator after introduction found at frame (%5d)", (*cornerResultIt).frameNumber1);
 #endif
             separatorFrameAfter = (*cornerResultIt).frameNumber1;
@@ -1935,14 +1940,14 @@ int cDetectLogoStopStart::IntroductionLogo() {
                                                                                                       // countStillImage: changed from 3 to 4
             if (stillImage.start == -1) {
                 stillImage.start = (*cornerResultIt).frameNumber1;
-#ifdef DEBUG_MARK_OPTIMIZATION
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
                 dsyslog("cDetectLogoStopStart::IntroductionLogo(): still image start at frame (%5d)", stillImage.start);
 #endif
             }
             stillImage.end = (*cornerResultIt).frameNumber2;
         }
         else {
-#ifdef DEBUG_MARK_OPTIMIZATION
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
             if (stillImage.end >= 0) dsyslog("cDetectLogoStopStart::IntroductionLogo(): still image end at frame (%5d)", stillImage.end);
 #endif
             if ((stillImage.end - stillImage.start) >= (stillImage.endFinal - stillImage.startFinal)) {

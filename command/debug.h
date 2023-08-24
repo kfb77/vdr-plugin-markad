@@ -85,7 +85,7 @@
 // #define DEBUG_RING_PTS_ADD
 
 // debug PTS ring buffer missed PTS
-// #define DEBUG_RING_PTS_LOOKUP 
+// #define DEBUG_RING_PTS_LOOKUP
 
 // debug video cut
 // #define DEBUG_CUT <streamindex>
@@ -99,6 +99,9 @@
 
 // debug ad in frame detection
 // #define DEBUG_ADINFRAME
+
+// debug introduction logo detection
+// #define DEBUG_INTRODUCTION
 
 // debug closing credits detection
 // #define DEBUG_CLOSINGCREDITS
