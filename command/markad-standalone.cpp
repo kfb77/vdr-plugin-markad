@@ -3617,24 +3617,21 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 int maxBefore = -1;
                 switch (mark->type) {
                     case MT_LOGOSTART:
-                        maxBefore = 5399;  // changed from 5520 to 5399, very short blackscreen before separator picture
+                        maxBefore = 5399;  // do not increase, will get black screen before last ad
                         break;
                     case MT_CHANNELSTART:
                         maxBefore = 80;
                         break;
-                    case MT_VPSSTART:
-                        maxBefore = 50440;  // changed from 8680 to 50440
-                        break;
                     case MT_MOVEDSTART:
                         switch (mark->newType) {
-                            case MT_SOUNDSTART:
-                                // select best mark, before (length) / after (length), <> = best
-                                // 2640 (880) / <80> (1920)
-                                if ((diffBefore >= 2640) && (diffAfter <= 80)) diffBefore = INT_MAX;
-                                maxBefore = 2880;
-                                break;
                             case MT_INTRODUCTIONSTART:
                                 maxBefore = 4920;  // changed from 2880 to 4920
+                                break;
+                            case MT_VPSSTART:
+                                // select best mark (before / after), defaut: before
+                                // 25800 / <2000>
+                                if ((diffBefore >= 25800) && (diffAfter <= 2000)) diffBefore = INT_MAX;
+                                maxBefore = 50520;  // changed from 8760 to 50520
                                 break;
                             default:
                                 maxBefore = -1;
@@ -3666,13 +3663,12 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 int maxAfter = -1;
                 switch (mark->type) {
                     case MT_LOGOSTART:
-                        maxAfter = 1000;
+                        maxAfter = 14160;  // changed from 1320 to 14160
                         break;
                     case MT_MOVEDSTART:
                         switch (mark->newType) {
-                            case MT_SOUNDSTART:
-                                maxAfter = 4120;   // changed from 1000 to 1720 to 4120 (long blackscreen at start of broadcast, silence before)
-                                if (mark->oldType == MT_VPSSTART) maxAfter = 66040;  // changed from 32360 to 66040
+                            case MT_VPSSTART:
+                                maxAfter = 2000;
                                 break;
                             case MT_INTRODUCTIONSTART:
                                 maxAfter = 1000;
@@ -3683,9 +3679,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         break;
                     case MT_CHANNELSTART:
                         maxAfter = 2320;   // changed from 1640 to 2140 to 2320
-                        break;
-                    case MT_VPSSTART:
-                        maxAfter = 67600;
                         break;
                     default:
                         maxAfter = -1;
@@ -3740,28 +3733,23 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 }
                 else stopAfter = NULL; // no pair, this is invalid
             }
-            // select best mark
-            if ((diffBefore <=  600) && (lengthBefore >= 640)) diffAfter = INT_MAX;  // use long black screen short before stop mark
-            if ((diffBefore <= 2000) && (diffAfter <= 20))     diffAfter = INT_MAX;  // second black screen is in ad
             // try black screen after stop marks
             if (stopAfter) {  // move even to same position to prevent scene change for move again
                 int maxAfter = -1;
                 switch (mark->type) {
                     case MT_LOGOSTOP:
+                        // select best mark (before / after), defaut: before
+                        if ((diffAfter >= 3360) && (lengthAfter <= 40)) diffAfter = INT_MAX; // very short black screen from preview after broadcast
                         if ((mark->position == marks.GetLast()->position) && (lengthAfter >= 2520)) maxAfter = 10800;  // trust wery long black screens at end as separator
                         else maxAfter =  4920;
                         break;
                     case MT_MOVEDSTOP:
                         switch (mark->newType) {
                             case MT_VPSSTOP:
-                                maxAfter = 6160;
-                                break;
-                            case MT_SOUNDSTOP:
-                                if ((mark->oldType == MT_VPSSTOP) && (lengthAfter >= 920))  maxAfter = 6160; // trust long blackscreen after VPS stop
-                                else maxAfter = 3079;  // do not increase, valid black screen must be near sound stop
+                                maxAfter = 176720;   // changed from 40360 to 176720
                                 break;
                             case MT_CLOSINGCREDITSSTOP:
-                                maxAfter = 100;
+                                maxAfter = 7200;   // chnaged from 100 to 7200
                                 break;
                             case MT_NOADINFRAMESTOP:
                                 maxAfter = 3439;
@@ -3772,9 +3760,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         break;
                     case MT_CHANNELSTOP:
                         maxAfter = 320;
-                        break;
-                    case MT_VPSSTOP:
-                        maxAfter = 176640;  // changed from 82120 to 176640
                         break;
                     default:
                         maxAfter = -1;
@@ -3812,9 +3797,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                             case MT_VPSSTOP:
                                 maxBefore = 4520;
                                 break;
-                            case MT_SOUNDSTOP:
-                                maxBefore = 3439;  // changed from 4520 to 3440 (length 3840)
-                                break;
                             case MT_NOADINFRAMESTOP:
                                 maxBefore = 17720;    // changed from 4520 to 17720, correct too short detected ad in frame
                                 break;
@@ -3824,9 +3806,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         break;
                     case MT_CHANNELSTOP:
                         maxBefore = 2040;
-                        break;
-                    case MT_VPSSTOP:
-                        maxBefore = 4520;
                         break;
                     default:
                         maxBefore = -1;
