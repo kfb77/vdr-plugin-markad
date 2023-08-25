@@ -57,11 +57,7 @@ cMark::~cMark() {
 }
 
 
-/**
- * set PTS based time offset text from mark position
- * @param mark pointer to mark
- * @param time pointer to char array, NULL is valid and clears value
- */
+// set PTS based time offset text from mark position
 void cMark::SetTime(char* time) {
     if (!time) {
         if (timeOffsetPTS) {
@@ -73,11 +69,7 @@ void cMark::SetTime(char* time) {
 }
 
 
-/**
- * get PTS based time offset text from mark position
- * @param mark pointer to mark
- * @return char array of time stamp with format HH:MM:SS.FF, NULL if not set
- */
+// get PTS based time offset text from mark position
 char *cMark::GetTime() {
     return timeOffsetPTS;
 }

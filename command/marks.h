@@ -23,6 +23,7 @@ class cMark {
  * mark constructor
  * @param typeParam        mark type
  * @param oldTypeParam     original mark type before move
+ * @param newTypeParam     new mark type after move
  * @param positionParam    mark position
  * @param commentParam     mark comment
  * @param inBroadCastParam true if mark is in broadcast, false if mark is in advertising
@@ -155,10 +156,11 @@ class cMarks {
 
 /**
  * add mark
- * @param type mark type
- * @param oldType original mark type before movecOSDMessage
- * @param position mark position
- * @param comment mark comment
+ * @param type        mark type
+ * @param oldType     original mark type before move
+ * @param newType     new mark type after move
+ * @param position    mark position
+ * @param comment     mark comment
  * @param inBroadCast true if mark is in broacast, false if mark is in advertising
  * @return ointer to new mark
  */
@@ -253,6 +255,7 @@ class cMarks {
  * move mark position
  * @param mark        mark to move
  * @param newPosition new position of mark
+ * @param newType     new type of mark
  * @param reason      reason of move, added to comment
  * @return mark with new position
  */

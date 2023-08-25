@@ -323,9 +323,9 @@ typedef struct sMarkAdContext {
         struct sInfo {
             int width                   = 0;      //!< width of the video in pixel
                                                   //!<
-            int height                  = 0;;     //!< height of the video in pixel
+            int height                  = 0;      //!< height of the video in pixel
                                                   //!<
-            int pixFmt                  = 0;;     //!< pixel format (see libavutil/pixfmt.h)
+            int pixFmt                  = 0;      //!< pixel format (see libavutil/pixfmt.h)
                                                   //!<
             sAspectRatio AspectRatio    = {};     //!< current video aspect ratio, set by decoder for each frame
                                                   //!<

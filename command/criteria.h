@@ -103,7 +103,7 @@ class cMarkCriteria : public cMarks {
 
         int closingCreditsState   = CRITERIA_UNKNOWN;  //!< status of closing credits after end mark
                                                        //!<
-        int closingCreditsPos     = -1;                //!<
+        int closingCreditsPos     = -1;                //!< mark position from status
                                                        //!<
 
         bool sceneDetection       = true;              //!< true if we have to detect scene changes, false otherwise

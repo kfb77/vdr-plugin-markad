@@ -151,7 +151,9 @@ class cDecoder {
  * increase i-frame counter if video i-frame <br>
  * add presentation timestamp for each frame to ring buffer <br>
  * add offset from recording start for each i-frame to recording index <br>
- * @param ignorePTS_Ringbuffer no not fill PTS ring buffer, true if called by logo search to avoid out of sequence elements
+ *
+ * @param buildIndex    true will build i-frame index, false otherwise
+ * @param buildPTSIndex true will fill PTS ring buffer, false will not fill PTS ring buffer (e.g. if called by logo search to avoid out of sequence elements)
  * @return true if successful, false if av_read_frame failed (e.g. end of file)
  */
         bool GetNextPacket(const bool buildIndex, bool buildPTSIndex);
@@ -188,6 +190,8 @@ class cDecoder {
  * @param[in,out] maContext       markad context
  * @param[in]     decodeVideo     true if we do decoding of video frames, false if we do no decoding at all
  * @param[in]     decodeFull      true if we do full decoding of all video frames, false if we decode only i-frames
+ * @param[in]     decodeVolume    true if we decode volume of audio frames, false otherwise
+ * @param[in]     decodeChannel   true if we decode count of channel from audio frames, false otherwise
  */
         bool GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, const bool decodeFull, const bool decodeVolume, const bool decodeChannel);
 

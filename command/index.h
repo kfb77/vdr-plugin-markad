@@ -79,6 +79,7 @@ class cIndex {
 
 /** get first video frame number after given presentation timestamp of AC3 frame PTS
  * @param pts  presentation timestamp
+ * @param before true will return frame number before PTS, false will return frame number after PTS
  * @return first frame number after given presentation timestamp
  */
         int GetVideoFrameToPTS(const int64_t pts, const bool before = false);
