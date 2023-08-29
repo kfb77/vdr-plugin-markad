@@ -3872,21 +3872,32 @@ void cMarkAdStandalone::SilenceOptimization() {
                         //  <220> /    2910    // second silence is after separtion picture
                         //  <360> /      40    // fade in logo
                         // <1120> /    1200    // second silence is in broadcast
-                        // <1200> /     320    // second silence is in broadcast
-                        // <3600> / 1428740
+                        // <1200> /     320    // second silence is in broadcast   (conflict)
+                        // <3620> /    1440    // late logo fade in                (conflict)
                         //
+                        //   600  /   <80>     // silence before and after separator
+                        //  1040  /  <360>     // first silence in closing credits of broadcast before
+                        //  1100  /   <60>     // silence before and after separator
+                        //
+                        //  2040  /  <380>     // silence before and after seperator
+                        //  2980  /  <460>     // silence before and after seperator
                         //  3520  / <3380>     // logo starts in ad, first silence is in ad
                         //  3580  / <3460>     // logo starts in ad, first silence is in ad
                         //  3600  / <3300>     // logo starts in ad, first silence is in ad
                         //  3600  / <3360>     // logo starts in ad, first silence is in ad
-                        if ((diffBefore >= 3520) && (diffAfter <= 3460)) diffBefore = INT_MAX;
-                        maxBefore = 4479;      // 4480 / 1212560 is silence before separator
-                        break;
-                    case MT_VPSSTART:
-                        maxBefore = 17199;  // do not increase, we will get position before broadcast start
+                        if ((diffBefore >=  600) && (diffAfter <=  360)) diffBefore = INT_MAX;
+                        if ((diffBefore >= 2040) && (diffAfter <= 3460)) diffBefore = INT_MAX;
+                        maxBefore = 4479;      // 4480 / 1212560 is silence before separator, no silence after
                         break;
                     case MT_MOVEDSTART:
                         switch (mark->newType) {
+                            case MT_VPSSTART:
+                                // select best mark (before / after), defaut: before
+                                //  17200  / <2680> // first silence before preview
+                                //  21660  / <7760> // first silence in broadcast before
+                                if ((diffBefore >= 17200) && (diffAfter <= 7760)) diffBefore = INT_MAX;
+                                maxBefore = 25840;  // changes from 600 to 25840
+                                break;
                             case MT_INTRODUCTIONSTART:
                                 maxBefore = 2040;  // changed from 1960 to 2040
                                 break;
@@ -3916,10 +3927,16 @@ void cMarkAdStandalone::SilenceOptimization() {
                         maxAfter = 19400;  // changed from 13440 to 19400
                         break;
                     case MT_LOGOSTART:
-                        maxAfter = 6200;
+                        maxAfter = 6239;  // silence in broadcast after 6240ms
                         break;
-                    case MT_VPSSTART:
-                        maxAfter = 53400;  // changed from 21600 to 53400
+                    case MT_MOVEDSTART:
+                        switch (mark->newType) {
+                            case MT_VPSSTART:
+                                maxAfter = 50919;  // first silence in broadcast after 50920ms
+                                break;
+                            default:
+                                maxAfter = 0;
+                        }
                         break;
                     default:
                         maxAfter = 0;
@@ -3951,22 +3968,39 @@ void cMarkAdStandalone::SilenceOptimization() {
                 diffAfter = 1000 * (soundStopAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): found sound stop  (%5d) %7dms after", mark->position, soundStopAfter->position, diffAfter);
             }
-            // select best mark
-            // examples >< is correct decision
-            // before, after
-            //   >40<, 2280
-            if ((diffBefore <= 40) && (diffAfter >= 2280)) diffAfter = INT_MAX; // sound stop near before and after mark, use sound stop before, next is in ad
             // try silence after stop mark
             if (soundStopAfter && (soundStopAfter->position != mark->position)) {
                 int maxAfter = 0;
                 switch (mark->type) {
-                    case MT_LOGOSTOP:
-                        maxAfter = 3879; // do not increase, we will get position after seperation picture (e.g. "Werbung")
-                        if ((strcmp(macontext.Info.ChannelName, "Disney_Channel") == 0) ||  // fading out logo long before
-                            (strcmp(macontext.Info.ChannelName, "Nickelodeon")    == 0)) maxAfter = 4920;  // changed from 4880 to 4920
+                    case MT_ASSUMEDSTOP:
+                        maxAfter = 303760;  // changed from 168480 to 303760
                         break;
-                    case MT_VPSSTOP:
-                        maxAfter = 23019;  // changed from 37099 to 23019, do not increase, will miss valid sound stop before
+                    case MT_LOGOSTOP:
+                        // select best mark (before / after), defaut: before
+                        //   <40> / 2280
+                        //   <80> / 2800  second silence is in ad
+                        //  <160> / 4000  second silence is in ad
+                        //  <880> / 3960  second silence is in ad
+                        // <1000> / 3920  second silence is in ad
+                        // <1040> / 3960  second silence is in ad
+                        // <1120> / 3960  second silence is in ad
+                        if ((diffBefore <= 1120) && (diffAfter >= 2280)) diffAfter = INT_MAX;
+                        maxAfter = 4039;  // do not increase, will get silence after separator
+                        if ((strcmp(macontext.Info.ChannelName, "Nickelodeon") == 0) ||
+                            (strcmp(macontext.Info.ChannelName, "Disney_Channel") == 0)) maxAfter = 4920;  // very early fade out logo channels, changed from 4880 to 4920
+                        break;
+                    case MT_MOVEDSTOP:
+                        switch (mark->newType) {
+                            case MT_VPSSTOP:
+                                // select best mark (before / after), defaut: before
+                                // <4100> / <23020>   // second silence if after preview
+                                // <4400> / <20600>   // second silence if after preview
+                                if ((diffBefore <= 4400) && (diffAfter >= 20600)) diffAfter = INT_MAX;
+                                maxAfter = 31699;  // silence in next broadcast 31700ms after
+                                break;
+                            default:
+                                maxAfter = 0;
+                        }
                         break;
                     default:
                         maxAfter = 0;
@@ -3986,11 +4020,23 @@ void cMarkAdStandalone::SilenceOptimization() {
             if (!moved && soundStopBefore) {
                 int maxBefore = 0;
                 switch (mark->type) {
+                    case MT_ASSUMEDSTOP:
+                        maxBefore = 51519;  // silence 51520ms before in broadcast found
+                        break;
                     case MT_LOGOSTOP:
                         maxBefore = 4240;  // changed from 2800 to 4240
                         break;
-                    case MT_VPSSTOP:
-                        maxBefore = 7060;
+                    case MT_CHANNELSTOP:
+                        maxBefore = 1100;
+                        break;
+                    case MT_MOVEDSTOP:
+                        switch (mark->newType) {
+                            case MT_VPSSTOP:
+                                maxBefore = 23320;
+                                break;
+                            default:
+                                maxBefore = 0;
+                        }
                         break;
                     default:
                         maxBefore = 0;
