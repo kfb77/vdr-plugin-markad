@@ -226,8 +226,12 @@ cMark *cMarkAdStandalone::Check_CHANNELSTOP() {
         if (end) {
             int diffAssumed = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): last MT_CHANNELSTOP (%d) found %ds before assumed stop (%d)", end->position, diffAssumed, iStopA);
-            if (diffAssumed > 543) {
+            if (diffAssumed >= 414) { // changed from 429 to 414
                 dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): last MT_CHANNELSTOP too far before assumed stop");
+                end = NULL;
+            }
+            if (diffAssumed <= -561) {
+                dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): last MT_CHANNELSTOP too far after assumed stop");
                 end = NULL;
             }
         }
