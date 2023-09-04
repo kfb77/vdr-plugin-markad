@@ -563,6 +563,7 @@ int cMarkAdStandalone::CheckStop() {
             lEnd = marks.GetPrev(lEnd->position, MT_LOGOSTOP);   // try logo end mark before
             if (lEnd && haveBlackSeparator(lEnd)) end = lEnd;
         }
+        if (end) dsyslog("cMarkAdStandalone::CheckStop(): found logo end mark based on very long black screen around at (%d)", end->position);
 
         if (!end) {
             // cleanup very short start/stop pairs around possible end marks, these are logo detection failures
@@ -678,7 +679,9 @@ int cMarkAdStandalone::CheckStop() {
                     }
                     else dsyslog("cMarkAdStandalone::CheckStop(): next logo stop mark too far after assumed end");
                 }
-                // check if previous logo stop/start pair are closing credits, in this case use previous logo stop mark
+
+                // check previous logo stop/start pair are closing credits, in this case use previous logo stop mark
+                dsyslog("cMarkAdStandalone::CheckStop(): check if previous logo stop/start pair are closing credits, in this case use previous logo stop mark");
                 cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
                 cMark *prevLogoStop  = NULL;
                 if (prevLogoStart) prevLogoStop = marks.GetPrev(prevLogoStart->position, MT_LOGOSTOP);
@@ -686,16 +689,24 @@ int cMarkAdStandalone::CheckStop() {
 #define MAX_BEFORE_ASUMED_STOP 203 // changed from 281 to 203
                     int diffAssumedPrevLogoStop = (iStopA - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
                     int diffAssumedEnd          = (iStopA - end->position)          / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckStop(): closing credits check of previous logo pair: stop (%d) start (%d): %ds (expect < %ds) before assumed stop (%d)", prevLogoStop->position, prevLogoStart->position, diffAssumedPrevLogoStop, MAX_BEFORE_ASUMED_STOP, iStopA);
-                    dsyslog("cMarkAdStandalone::CheckStop(): current end mark (%d): %ds before assumed stop (%d)", end->position, diffAssumedEnd, iStopA);
-                    if ((prevLogoStart->position > marks.GetFirst()->position) && (diffAssumedPrevLogoStop < MAX_BEFORE_ASUMED_STOP) && abs(diffAssumedPrevLogoStop) < (diffAssumedEnd) && evaluateLogoStopStartPair) {
-                        // check closing credits, but not if we got first start mark as start mark of the pair, this could be closing credit of recording before
-                        if (evaluateLogoStopStartPair->GetIsClosingCredits(prevLogoStop->position, prevLogoStart->position == STATUS_YES)) {
-                            dsyslog("cMarkAdStandalone::CheckStop(): previous stop (%d) start (%d): are closing credits, use this logo stop mark", prevLogoStop->position, prevLogoStart->position);
-                            end = prevLogoStop;
+                    dsyslog("cMarkAdStandalone::CheckStop(): closing credits check of previous logo pair: stop (%d) start (%d)", prevLogoStop->position, prevLogoStart->position);
+                    dsyslog("cMarkAdStandalone::CheckStop(): current        end mark (%5d): %3ds before assumed stop (%5d)", end->position, diffAssumedEnd, iStopA);
+                    dsyslog("cMarkAdStandalone::CheckStop(): previous logo stop mark (%5d): %3ds before assumed stop (%5d) (expect <= %ds)", prevLogoStop->position, diffAssumedPrevLogoStop, iStopA, MAX_BEFORE_ASUMED_STOP);
+                    if (prevLogoStart->position > marks.GetFirst()->position) {
+                        if (diffAssumedPrevLogoStop < MAX_BEFORE_ASUMED_STOP) {
+                            if (evaluateLogoStopStartPair) {
+                                // check closing credits, but not if we got first start mark as start mark of the pair, this could be closing credit of recording before
+                                if (evaluateLogoStopStartPair->GetIsClosingCredits(prevLogoStop->position, prevLogoStart->position) == STATUS_YES) {
+                                    dsyslog("cMarkAdStandalone::CheckStop(): previous stop (%d) start (%d): are closing credits, use this logo stop mark", prevLogoStop->position, prevLogoStart->position);
+                                    end = prevLogoStop;
+                                }
+                                else dsyslog("cMarkAdStandalone::CheckStop(): no closing credit found");
+                            }
+                            else dsyslog("cMarkAdStandalone::CheckStop(): evaluateLogoStopStartPair() failed");
                         }
+                        else dsyslog("cMarkAdStandalone::CheckStop(): diffAssumedPrevLogoStop %d >= MAX_BEFORE_ASUMED_STOP %d", diffAssumedPrevLogoStop, MAX_BEFORE_ASUMED_STOP);
                     }
-                    else dsyslog("cMarkAdStandalone::CheckStop(): closing credits check of previous logo pair: stop (%d) start (%d): %ds (expect < %ds) before assumed stop (%d) is not valid as end mark", prevLogoStop->position, prevLogoStart->position, diffAssumedPrevLogoStop, MAX_BEFORE_ASUMED_STOP, iStopA);
+                    else dsyslog("cMarkAdStandalone::CheckStop(): prevLogoStart->position (%d) <= marks.GetFirst()->position (%d)", prevLogoStart->position, marks.GetFirst()->position);
                     CleanupUndetectedInfoLogo(end);
                     prevLogoStop = marks.GetPrev(end->position, MT_LOGOSTOP); // maybe different if deleted above
                     if (prevLogoStop) {
