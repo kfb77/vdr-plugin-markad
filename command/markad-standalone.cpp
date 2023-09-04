@@ -1541,7 +1541,7 @@ void cMarkAdStandalone::CheckStart() {
             }
 
             // check if logo start mark is too early
-            if (lStart && (lStart->position  < (15 * macontext.Video.Info.framesPerSecond))) {  // need same seconds to have a stable logo status
+            if (lStart && (lStart->position  < (12 * macontext.Video.Info.framesPerSecond))) {  // need same seconds to have a stable logo status, changed from 13 to 12
                 cMark *lNextStart = marks.GetNext(lStart->position, MT_LOGOSTART);
                 if (lNextStart && (lNextStart->position  >= (15 * macontext.Video.Info.framesPerSecond))) {  // found later logo start mark
                     int diffAssumed = (lNextStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
