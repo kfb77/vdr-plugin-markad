@@ -398,9 +398,9 @@ void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *end) {
 bool cMarkAdStandalone::haveBlackSeparator(const cMark *mark) {
     if (!mark) return false;
     if (mark->type == MT_LOGOSTART) {  // check start mark, sequence MT_NOBLACKSTOP -> MT_LOGOSTOP -> MT_NOBLACKSTART -> MT_LOGOSTART (mark) is start if broadcast
-        cMark *stopBefore = marks.GetPrev(mark->position, MT_LOGOSTOP);
+        cMark *stopBefore = marks.GetPrev(mark->position, MT_LOGOSTOP);  // black screen can start very short after logo stop
         if (!stopBefore) return false;
-        cMark *blackStop = blackMarks.GetPrev(stopBefore->position, MT_NOBLACKSTOP);
+        cMark *blackStop = blackMarks.GetPrev(stopBefore->position + 2, MT_NOBLACKSTOP);  // black screen can start very short after logo stop
         if (!blackStop) return false;
         cMark *blackStart = blackMarks.GetPrev(mark->position, MT_NOBLACKSTART);
         if (!blackStart) return false;
@@ -408,13 +408,13 @@ bool cMarkAdStandalone::haveBlackSeparator(const cMark *mark) {
         int diffStartBlack = 1000 * (mark->position       - blackStart->position) / macontext.Video.Info.framesPerSecond;
         dsyslog("cMarkAdStandalone::haveBlackSeparator(): black screen separator sequence MT_NOBLACKSTOP  (%5d), MT_LOGOSTOP  (%5d), distance %5dms", blackStop->position,  stopBefore->position, diffStopBlack);
         dsyslog("cMarkAdStandalone::haveBlackSeparator(): black screen separator sequence MT_NOBLACKSTART (%5d), MT_LOGOSTART (%5d), distance %5dms", blackStart->position, mark->position,       diffStartBlack);
-        if ((blackStart->position > stopBefore->position) && (diffStopBlack <= 2240) && (diffStartBlack <= 40)) return true;
+        if ((blackStart->position > stopBefore->position) && (diffStopBlack <= 2240) && (diffStartBlack <= 200)) return true;  // changed from 40 to 200
         else dsyslog("cMarkAdStandalone::haveBlackSeparator(): distance too big, sequence is invalid");
     }
     if (mark->type == MT_LOGOSTOP) { // check stop mark, sequence MT_NOBLACKSTOP -> MT_LOGOSTOP (mark) -> MT_NOBLACKSTART -> MT_LOGOSTART is end if broadcast
         cMark *startAfter = marks.GetNext(mark->position, MT_LOGOSTART);
         if (!startAfter) return false;
-        cMark *blackStop = blackMarks.GetPrev(mark->position, MT_NOBLACKSTOP);
+        cMark *blackStop = blackMarks.GetPrev(mark->position + 2, MT_NOBLACKSTOP); // black screen can start very short after logo stop
         if (!blackStop) return false;
         cMark *blackStart = blackMarks.GetPrev(startAfter->position, MT_NOBLACKSTART);
         if (!blackStart) return false;
@@ -422,7 +422,7 @@ bool cMarkAdStandalone::haveBlackSeparator(const cMark *mark) {
         int diffStartBlack = 1000 * (startAfter->position - blackStart->position) / macontext.Video.Info.framesPerSecond;
         dsyslog("cMarkAdStandalone::haveBlackSeparator(): black screen separator sequence MT_NOBLACKSTOP  (%5d), MT_LOGOSTOP  (%5d), distance %5dms", blackStop->position,  mark->position,       diffStopBlack);
         dsyslog("cMarkAdStandalone::haveBlackSeparator(): black screen separator sequence MT_NOBLACKSTART (%5d), MT_LOGOSTART (%5d), distance %5dms", blackStart->position, startAfter->position, diffStartBlack);
-        if ((blackStart->position > mark->position) && (diffStopBlack <= 1680) && (diffStartBlack <= 1120)) return true;
+        if ((blackStart->position > mark->position) && (diffStopBlack <= 1680) && (diffStartBlack <= 1400)) return true;  // chaanged from 1120 to 1400
         else dsyslog("cMarkAdStandalone::haveBlackSeparator(): distance too big, sequence is invalid");
     }
     return false;
@@ -556,14 +556,14 @@ int cMarkAdStandalone::CheckStop() {
         // remove logo change marks
         RemoveLogoChangeMarks();
         // try to select best logo end mark based on long black screen mark around
-        dsyslog("cMarkAdStandalone::CheckStop(): search for best logo end mark (based on very long black screen around)");
+        dsyslog("cMarkAdStandalone::CheckStop(): search for best logo end mark (based on black screen around)");
         cMark *lEnd = marks.GetAround(60 * macontext.Video.Info.framesPerSecond, iStopA, MT_LOGOSTOP);
         if (lEnd && haveBlackSeparator(lEnd)) end = lEnd;
         if (lEnd && !end) {
             lEnd = marks.GetPrev(lEnd->position, MT_LOGOSTOP);   // try logo end mark before
             if (lEnd && haveBlackSeparator(lEnd)) end = lEnd;
         }
-        if (end) dsyslog("cMarkAdStandalone::CheckStop(): found logo end mark based on very long black screen around at (%d)", end->position);
+        if (end) dsyslog("cMarkAdStandalone::CheckStop(): found logo end mark based on black screen around at (%d)", end->position);
 
         if (!end) {
             // cleanup very short start/stop pairs around possible end marks, these are logo detection failures
@@ -1550,6 +1550,7 @@ void cMarkAdStandalone::CheckStart() {
                 lStart = NULL;
                 marks.DelFromTo(begin->position + 1, begin->position + (8 * macontext.Video.Info.framesPerSecond), MT_LOGOCHANGE); // delete logo mark short after end mark, they are undected info / intruduction logos
             }
+            else dsyslog("cMarkAdStandalone::CheckStart(): logo start mark (%d) has no black separator", lStart->position);
 
             // check if logo start mark is too early
             if (lStart && (lStart->position  < (12 * macontext.Video.Info.framesPerSecond))) {  // need same seconds to have a stable logo status, changed from 13 to 12
