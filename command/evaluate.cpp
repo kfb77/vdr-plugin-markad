@@ -1390,13 +1390,13 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
     int countFrames           = 0;
     int countDark             = 0;
 
-#ifdef DEBUG_MARK_OPTIMIZATION
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_CLOSINGCREDITS)
     dsyslog("cDetectLogoStopStart::ClosingCredit(():      1. frame    2. frame:   matches (frame portion of 2. frame)");
     dsyslog("cDetectLogoStopStart::ClosingCredit(():                              TOP_LEFT     TOP_RIGHT    BOTTOM_LEFT  BOTTOM_RIGHT");
 #endif
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
-#ifdef DEBUG_MARK_OPTIMIZATION
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_CLOSINGCREDITS)
         dsyslog("cDetectLogoStopStart::ClosingCredit(): frame (%5d) and (%5d): %5d (%4d) %5d (%4d) %5d (%4d) %5d (%4d)", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).framePortion[0], (*cornerResultIt).rate[1], (*cornerResultIt).framePortion[1], (*cornerResultIt).rate[2], (*cornerResultIt).framePortion[2], (*cornerResultIt).rate[3], (*cornerResultIt).framePortion[3]);
 #endif
 
@@ -1468,8 +1468,10 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
 
     // check if we have a frame
     int maxSumFramePortion =  0;
+    int allSumFramePortion =  0;
     int frameCorner        = -1;
     for (int corner = 0; corner < CORNERS; corner++) {
+        allSumFramePortion += ClosingCredits.sumFramePortion[corner];
         if (noLogoCorner && (corner ==  maContext->Video.Logo.corner)) continue;  // if we are called from Info logo, we can false detect the info logo as frame
         if (ClosingCredits.sumFramePortion[corner] > maxSumFramePortion) {
             maxSumFramePortion = ClosingCredits.sumFramePortion[corner];
@@ -1478,13 +1480,18 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
     }
     if (ClosingCredits.frameCount > 0) {
         int framePortionQuote = maxSumFramePortion / ClosingCredits.frameCount;
-        if (frameCorner >= 0) dsyslog("cDetectLogoStopStart::ClosingCredit(): sum of frame portion from best corner %s: %d from %d frames, quote %d", aCorner[frameCorner], maxSumFramePortion, ClosingCredits.frameCount, framePortionQuote);
-        if (framePortionQuote <= 419) {  // changed from 311 to 419
-                                         // prevent to detect background frame as closing credit
-                                         // example of no closing credits
-                                         // quote 419, kitchen cabinet in background
+        int allPortionQuote   = allSumFramePortion / ClosingCredits.frameCount / 4;
+        if (frameCorner >= 0) {
+            dsyslog("cDetectLogoStopStart::ClosingCredit(): sum of frame portion from best corner %s: %d from %d frames, quote %d", aCorner[frameCorner], maxSumFramePortion, ClosingCredits.frameCount, framePortionQuote);
+            dsyslog("cDetectLogoStopStart::ClosingCredit(): sum of frame portion from all corner: quote %d", allPortionQuote);
+        }
+        // example of closing credits
+        // best quote 402, all quote 269
+        // example of no closing credits
+        // best quote 419, all quote ?    -> kitchen cabinet in background
+        if ((framePortionQuote <= 419) && (allPortionQuote < 269)) {
             dsyslog("cDetectLogoStopStart::ClosingCredit(): not enought frame pixel found, closing credits not valid");
-            closingCreditsFrame = -1;  // no valid ad in a frame
+            closingCreditsFrame = -1;  // no valid closing credits
         }
     }
 

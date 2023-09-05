@@ -100,6 +100,9 @@
 // debug ad in frame detection
 // #define DEBUG_ADINFRAME
 
+// debug closing credits detection
+// #define DEBUG_CLOSINGCREDITS
+
 // debug timestamps from final marks to save
 // #define DEBUG_SAVEMARKS
 
