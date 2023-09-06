@@ -205,19 +205,6 @@ cMark *cMarkAdStandalone::Check_CHANNELSTOP() {
         }
         else channelStop = marks.GetNext(channelStop->position, MT_CHANNELSTOP);
     }
-    // cleanup logo marks near by channel start marks, they are useless info logo
-    cMark *channelStart = marks.GetNext(-1, MT_CHANNELSTART);
-    while (channelStart) {
-#define CHANNEL_LOGO_MARK 60
-        cMark *logo = marks.GetAround(CHANNEL_LOGO_MARK * macontext.Video.Info.framesPerSecond, channelStart->position, MT_LOGOCHANGE, 0xF0);
-        while (logo) {
-            dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): delete logo mark (%d) around channel start (%d)", logo->position, channelStart->position);
-            marks.Del(logo->position);
-            logo = marks.GetAround(CHANNEL_LOGO_MARK * macontext.Video.Info.framesPerSecond, channelStart->position, MT_LOGOCHANGE, 0xF0);
-        }
-        channelStart = marks.GetNext(channelStart->position, MT_CHANNELSTART);
-    }
-
     // search for channel stop mark
     cMark *end = marks.GetAround(390 * macontext.Video.Info.framesPerSecond, iStopA, MT_CHANNELSTOP);   // changed from 360 to 390
     if (end) dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): MT_CHANNELSTOP (%d) found near by assumed stop (%d)", end->position, iStopA);
@@ -236,7 +223,6 @@ cMark *cMarkAdStandalone::Check_CHANNELSTOP() {
             }
         }
     }
-
     // check if channel stop mark is valid end mark
     if (end) {
         cMark *cStart = marks.GetPrev(end->position, MT_CHANNELSTART);      // if there is short befor a channel start, this stop mark belongs to next recording
@@ -264,9 +250,21 @@ cMark *cMarkAdStandalone::Check_CHANNELSTOP() {
         }
     }
 
-    if (end) {
+    if (end) {  // we found a channel end mark
         marks.DelWeakFromTo(marks.GetFirst()->position + 1, end->position, MT_CHANNELCHANGE); // delete all weak marks, except start mark
         dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): MT_CHANNELSTOP end mark (%d) found", end->position);
+        // cleanup logo marks near by channel start marks, they are useless info logo
+        cMark *channelStart = marks.GetNext(-1, MT_CHANNELSTART);
+        while (channelStart) {
+#define CHANNEL_LOGO_MARK 60
+            cMark *logo = marks.GetAround(CHANNEL_LOGO_MARK * macontext.Video.Info.framesPerSecond, channelStart->position, MT_LOGOCHANGE, 0xF0);
+            while (logo) {
+                dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): delete logo mark (%d) around channel start (%d)", logo->position, channelStart->position);
+                marks.Del(logo->position);
+                logo = marks.GetAround(CHANNEL_LOGO_MARK * macontext.Video.Info.framesPerSecond, channelStart->position, MT_LOGOCHANGE, 0xF0);
+            }
+            channelStart = marks.GetNext(channelStart->position, MT_CHANNELSTART);
+        }
         return end;
     }
     else {
