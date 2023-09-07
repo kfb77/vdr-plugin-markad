@@ -595,6 +595,7 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
 // contrast 189, brightness 127
 // contrast 189, brightness 117
 // contrast 188, brightness 173
+// contrast 109, brightness 165  NEW
 //
 // contrast  94, brightness 191
 // contrast  91, brightness 173
@@ -614,7 +615,7 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
     else {  // logo with low pixel count
         if (((contrastLogo <=  20)                          && (brightnessLogo >  197)) ||
             ((contrastLogo >   20) && (contrastLogo <=  94) && (brightnessLogo >= 173)) ||
-            ((contrastLogo >   94) && (contrastLogo <= 140) && (brightnessLogo >  166)) ||
+            ((contrastLogo >   94) && (contrastLogo <= 140) && (brightnessLogo >= 165)) ||
             ((contrastLogo >  140)                          && (brightnessLogo >= 117))) {
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cMarkAdLogo::ReduceBrightness():  contrast/brightness in logo area is invalid for brightness reduction (low pixel logo)");
@@ -919,7 +920,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         }
 
         // check area intensitiy
-#define MAX_AREA_INTENSITY 73  // change from 94 to 80 to 75 to 73
+#define MAX_AREA_INTENSITY 69  // change from 73 to 69
                                // notice: there can be very bright logo parts in dark areas, this will result in a lower brightness
                                // we handle this cases in ReduceBrightness() when we detect contrast
 #define AREA_INTENSITY_NO_TRUST 70 // we do not trust very close result under this area intensity
