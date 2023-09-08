@@ -338,10 +338,6 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     // NICK_CC+1               16:9  720W  576H:->  146W  88H TOP_LEFT
     // NICK_CC+1               16:9  720W  576H:->  146W  92H TOP_LEFT
     // NICK_CC+1               16:9  720W  576H:->  148W  92H TOP_LEFT
-    // Nick_Comedy_Central+1   16:9  720W  576H:->  144W  94H TOP_LEFT
-    // Nick_Comedy_Central+1   16:9  720W  576H:->  146W  88H TOP_LEFT
-    // Nick_Comedy_Central+1   16:9  720W  576H:->  146W  90H TOP_LEFT
-    // Nick_Comedy_Central+1   16:9  720W  576H:->  148W  94H TOP_LEFT
     // Nickelodeon             16:9  720W  576H:->  146W  88H TOP_LEFT
     // Nickelodeon             16:9  720W  576H:->  146W  90H TOP_LEFT
     // Nickelodeon             16:9  720W  576H:->  180W  78H TOP_LEFT
@@ -352,13 +348,18 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     // NICK_MTV+               16:9  720W  576H:->  146W  88H TOP_LEFT
     // NICK_MTV+               16:9  720W  576H:->  146W  90H TOP_LEFT
     if ((strcmp(maContext->Info.ChannelName, "NICK_CC+1")             == 0) ||
-        (strcmp(maContext->Info.ChannelName, "Nick_Comedy_Central+1") == 0) ||
         (strcmp(maContext->Info.ChannelName, "NICK_MTV+")             == 0) ||
         (strcmp(maContext->Info.ChannelName, "Nickelodeon"))          == 0) {
         logo.widthMin  = 144;
         logo.widthMax  = 184;
         logo.heightMin =  78;
         logo.heightMax =  96;
+    }
+
+    // Nick_Comedy_Central+1   16:9  720W  576H:->  138W  80H TOP_LEFT
+    // Nick_Comedy_Central+1   16:9  720W  576H:->  144W  94H TOP_LEFT
+    if (strcmp(maContext->Info.ChannelName, "Nick_Comedy_Central+1") == 0) {
+        logo.widthMin  = 138;
     }
 
     if ((strcmp(maContext->Info.ChannelName, "n-tv") == 0) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
@@ -427,10 +428,10 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
             logo.heightMax =  70;
         }
     }
-
-    // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT
+    // SUPER_RTL               16:9  720W  576H:->  160W  66H TOP_LEFT     -> logo RTL SUPER
+    // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT     -> logo SUPER RTL
     if (strcmp(maContext->Info.ChannelName, "SUPER_RTL") == 0) {
-        logo.widthMax  =  98;
+        logo.widthMax  = 160;
         logo.heightMin =  48;
     }
 
@@ -501,9 +502,14 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMin  =  88;
         logo.widthMax  =  210;
     }
-    if (strcmp(maContext->Info.ChannelName, "Das_Erste_HD") == 0) {          // Das_Erste_HD            16:9 1280W  720H:->  146W 114H TOP_RIGHT
-        logo.widthMax  = 148;     // 2 more pixel for better match
+
+    // Das_Erste_HD            16:9 1280W  720H:->  148W 114H TOP_RIGHT
+    // Das_Erste_HD            16:9 1280W  720H:->  148W 128H TOP_RIGHT
+    // Das_Erste_HD            16:9 1280W  720H:->  244W  96H TOP_RIGHT      <- check eins Kinderprogramm Logo
+    if (strcmp(maContext->Info.ChannelName, "Das_Erste_HD") == 0) {
+        logo.widthMax  = 244;
     }
+
     if (strcmp(maContext->Info.ChannelName, "Einsfestival_HD") == 0) {       // Einsfestival_HD         16:9 1280W  720H:->  300W  80H TOP_RIGHT
         logo.widthMax  = 300;
     }
@@ -513,6 +519,12 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "hr-fernsehen_HD") == 0) {       // hr-fernsehen_HD         16:9 1280W  720H:->  198W  98H TOP_LEFT
         logo.heightMax =  98;
     }
+
+    // KiKA_HD                 16:9 1280W  720H:->  228W 112H TOP_LEFT
+    if (strcmp(maContext->Info.ChannelName, "KiKA_HD") == 0) {
+        logo.widthMin  = 228;
+    }
+
     if (strcmp(maContext->Info.ChannelName, "MDR_Sachsen_HD") == 0) {        // MDR_Sachsen_HD          16:9 1280W  720H:->  160W  70H TOP_LEFT
         logo.heightMax =  70;
     }
@@ -537,6 +549,11 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
                                                                              // ZDF_HD                  16:9 1280W  720H:->  186W  96H TOP_LEFT
                                                                              // ZDF_HD                  16:9 1280W  720H:->  188W  96H TOP_LEFT
         logo.widthMax =  188;
+    }
+
+    // ZDFinfo_HD              16:9 1280W  720H:->  196W  86H TOP_LEFT
+    if (strcmp(maContext->Info.ChannelName, "ZDFinfo_HD") == 0) {
+        logo.heightMax =  86;
     }
 
 // 1280x1080
