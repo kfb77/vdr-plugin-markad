@@ -1440,9 +1440,9 @@ int cExtractLogo::AudioInBroadcast(const sMarkAdContext *maContext, const int iF
 }
 
 
-int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCriteria, int startFrame) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
+int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCriteria, int startFrame, const bool force) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
     dsyslog("----------------------------------------------------------------------------");
-    dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d", startFrame, logoAspectRatio.num, logoAspectRatio.den);
+    dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d, force = %d", startFrame, logoAspectRatio.num, logoAspectRatio.den, force);
 
     if (!maContext) {
         dsyslog("cExtractLogo::SearchLogo(): maContext not valid");
@@ -1745,8 +1745,8 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
         }
 
         if ((bestLogoCorner >= 0) &&
-           (((startFrame == 0) && ((bestLogoInfo.hits >= 14)) || // this is the very last try, use what we have, bettet than nothing, chaned from 14 to 8
-                                  ((bestLogoInfo.hits >= 2) && (sumHits <= bestLogoInfo.hits + 1))) ||  // changed from 6 to 2
+          ((((bestLogoInfo.hits >= 14) && force) || // this is the very last try, use what we have, bettet than nothing, chaned from 14 to 8
+            ((bestLogoInfo.hits >=  2) && (sumHits <= bestLogoInfo.hits + 1))) ||  // changed from 6 to 2
              (bestLogoInfo.hits >= 50) || // we have a good result
             ((bestLogoInfo.hits >= 40) && (sumHits <= bestLogoInfo.hits + 10)) ||  // if most hits are in the same corner than less are enough
             ((bestLogoInfo.hits >= 30) && (sumHits <= bestLogoInfo.hits + 7)) ||   // if almost all hits are in the same corner than less are enough
