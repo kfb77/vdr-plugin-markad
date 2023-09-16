@@ -559,7 +559,11 @@ int cMarkAdStandalone::CheckStop() {
         if (lEnd && haveBlackSeparator(lEnd)) end = lEnd;
         if (lEnd && !end) {
             lEnd = marks.GetPrev(lEnd->position, MT_LOGOSTOP);   // try logo end mark before
-            if (lEnd && haveBlackSeparator(lEnd)) end = lEnd;
+            if (lEnd) {
+                int diffEnd = (iStopA - lEnd->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::CheckStop(): previous logo stop (%d) %ds before assumed end (%d)", lEnd->position, diffEnd, iStopA);
+                if ((diffEnd < 1360) && haveBlackSeparator(lEnd)) end = lEnd;
+            }
         }
         if (end) dsyslog("cMarkAdStandalone::CheckStop(): found logo end mark based on black screen around at (%d)", end->position);
 
