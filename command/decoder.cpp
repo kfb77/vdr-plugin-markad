@@ -195,7 +195,7 @@ bool cDecoder::DecodeFile(const char *filename) {
         codec = avcodec_find_decoder(codec_id);
 #endif
         if (!codec) {  // ignore not supported DVB subtitle by libavcodec
-#if LIBAVCODEC_VERSION_INT < ((59<<16)+(37<<8)+100)
+#if LIBAVCODEC_VERSION_INT < ((59<<16)+(18<<8)+100)
             if (codec_id == 100359)
 #else
             if (codec_id ==  98314)
