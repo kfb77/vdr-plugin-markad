@@ -1113,10 +1113,10 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     int  countFrames           =  0;
     int  countDark             =  0;
 
-#define INFO_LOGO_MACTH_MIN 210
+#define INFO_LOGO_MACTH_MIN 209  // changed from 210 to 209
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
-#ifdef DEBUG_MARK_OPTIMIZATION
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INFOLOGO)
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): frame (%5d) and (%5d) matches %5d %5d %5d %5d", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).rate[1], (*cornerResultIt).rate[2], (*cornerResultIt).rate[3]);
 #endif
 
@@ -1139,25 +1139,30 @@ bool cDetectLogoStopStart::IsInfoLogo() {
             ((countZero >= 3) && (sumPixel <  122))) { // changed from 132 to 122
             countSeparatorFrame++;
             lastSeparatorFrame = (*cornerResultIt).frameNumber2;
-#ifdef DEBUG_MARK_OPTIMIZATION
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INFOLOGO)
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): separator frame (%d)", lastSeparatorFrame);
 #endif
         }
 
         if (((*cornerResultIt).rate[maContext->Video.Logo.corner] > INFO_LOGO_MACTH_MIN) || // do not rededuce to prevent false positiv
-            ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 142) && (lowMatchCornerCount == 0)) { // allow one lower match for the change from new logo to normal logo
-            if ((*cornerResultIt).rate[maContext->Video.Logo.corner] <= INFO_LOGO_MACTH_MIN) lowMatchCornerCount++;
+            ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 142) && (lowMatchCornerCount <= 1)) { // allow one lower match for the change from new logo to normal logo
+            if ((*cornerResultIt).rate[maContext->Video.Logo.corner] <= INFO_LOGO_MACTH_MIN) {
+                lowMatchCornerCount++;
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INFOLOGO)
+                dsyslog("cDetectLogoStopStart::IsInfoLogo(): lowMatchCornerCount %d", lowMatchCornerCount);
+#endif
+            }
             if (infoLogo.start == 0) {
                 infoLogo.start = (*cornerResultIt).frameNumber1;
-#ifdef DEBUG_MARK_OPTIMIZATION
-                dsyslog("cDetectLogoStopStart::IsInfoLogo(): info log: start (%d)", infoLogo.start);
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INFOLOGO)
+                dsyslog("cDetectLogoStopStart::IsInfoLogo(): start info log: start frame (%d)", infoLogo.start);
 #endif
                 }
             infoLogo.end = (*cornerResultIt).frameNumber2;
         }
         else {
-#ifdef DEBUG_MARK_OPTIMIZATION
-            dsyslog("cDetectLogoStopStart::IsInfoLogo(): info log: start (%d), end (%d), matchLogoCornerCount %d, matchRestCornerCount (%d)", infoLogo.start, infoLogo.end, infoLogo.matchLogoCornerCount, infoLogo.matchRestCornerCount);
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INFOLOGO)
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): end info log: start frame (%d), end frame (%d), matchLogoCornerCount %d, matchRestCornerCount (%d)", infoLogo.start, infoLogo.end, infoLogo.matchLogoCornerCount, infoLogo.matchRestCornerCount);
 #endif
             if ((infoLogo.end - infoLogo.start) > (infoLogo.endFinal - infoLogo.startFinal)) {
                 infoLogo.startFinal                = infoLogo.start;
@@ -1169,6 +1174,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
             infoLogo.end                  = 0;
             infoLogo.matchLogoCornerCount = 0;
             infoLogo.matchRestCornerCount = 0;
+            lowMatchCornerCount           = 0;
         }
     }
     if ((infoLogo.end - infoLogo.start) > (infoLogo.endFinal - infoLogo.startFinal)) {

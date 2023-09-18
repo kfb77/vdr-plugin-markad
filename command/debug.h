@@ -97,6 +97,9 @@
 // debug mark optimization
 // #define DEBUG_MARK_OPTIMIZATION
 
+// debug info logo detection
+// #define DEBUG_INFOLOGO
+
 // debug ad in frame detection
 // #define DEBUG_ADINFRAME
 
