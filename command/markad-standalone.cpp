@@ -6283,8 +6283,8 @@ int main(int argc, char *argv[]) {
             cmasta->ProcessOverlap();  // overlap detection
             gettimeofday(&endTime4, NULL);
 
-            cmasta->SilenceOptimization();       // mark optimization with mute scene (seems to be more reliable than black screen)
             cmasta->BlackScreenOptimization();   // mark optimization with black scene
+            cmasta->SilenceOptimization();       // mark optimization with mute scene
             cmasta->BorderMarkOptimization();    // vborder and hborder mark optimization (to correct too eary black screen start marks from closing credit of previous recording)
             cmasta->SceneChangeOptimization();   // final optimization with scene changes (if we habe nothing else, try this as last resort)
 
