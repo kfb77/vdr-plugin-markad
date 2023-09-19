@@ -256,10 +256,9 @@ class cMarks {
  * @param mark        mark to move
  * @param newPosition new position of mark
  * @param newType     new type of mark
- * @param reason      reason of move, added to comment
  * @return mark with new position
  */
-        cMark *Move(cMark *mark, const int newPosition, const int newType, const char* reason);
+        cMark *Move(cMark *mark, const int newPosition, const int newType);
 
 
 /**

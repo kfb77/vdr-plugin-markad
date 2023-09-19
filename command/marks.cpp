@@ -618,9 +618,8 @@ cMark *cMarks::ChangeType(cMark *mark, const int newType) {
 // move mark to new posiition
 // return pointer to new mark
 //
-cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType, const char* reason) {
+cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType) {
     if (!mark) return NULL;
-    if (!reason) return NULL;
     // check if old and new type is valid
     if ((mark->type & 0x0F) != (newType & 0x0F)) {
         esyslog("cMarks::Move(): old mark (%d) type 0x%X and new type 0x%X is invalid", mark->position, mark->type, newType);
@@ -650,23 +649,19 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType, const
     char *comment = NULL;
     const char *indexToHMSF = GetTime(mark);
     cMark *newMark = NULL;
-    char* typeText = TypeToText(mark->type);
+    char* typeText = TypeToText(newType);
 
     if (indexToHMSF && typeText) {
-       if (asprintf(&comment,"moved %s mark                 (%6d) %s %-15s %s (%6d) at %s, %s detected%s",
-                                    ((mark->type & 0x0F) == MT_START) ? "start" : "stop ",
-                                             newPosition,
-                                                  (newPosition > mark->position) ? "after " : "before",
-                                                     typeText,
-                                                        ((mark->type & 0x0F) == MT_START) ? "start" : "stop ",
-                                                                 mark->position,
-                                                                       indexToHMSF,
-                                                                           reason,
-                                                                                      ((mark->type & 0x0F) == MT_START) ? "*" : "") != -1) {
+       char suffix[10] = {0};
+       if (newPosition > mark->position)      strcpy(suffix,"after ");
+       else if (newPosition < mark->position) strcpy(suffix,"before");
+       if (asprintf(&comment,"%s %s -> %s %s (%d)", mark->comment, indexToHMSF, typeText, suffix, newPosition)) {
            ALLOC(strlen(comment)+1, "comment");
-           isyslog("%s",comment);
+           dsyslog("cMarks::Move(): %s",comment);
 
-           int oldType = mark->type;
+           int oldType = MT_UNDEFINED;
+           if (((mark->type & 0xF0) == MT_MOVED) && (mark->newType != MT_UNDEFINED)) oldType = mark->newType;
+	   else oldType = mark->type;
            int type = ((mark->type & 0x0F) == MT_START) ? MT_MOVEDSTART : MT_MOVEDSTOP;
            Del(mark);
            newMark = Add(type, oldType, newType, newPosition, comment);
