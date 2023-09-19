@@ -825,10 +825,10 @@ int cMarkAdStandalone::CheckStop() {
     }
 
 
-    if (!end) {  // no end mark found at all, set end mark at the end of the recording
-        dsyslog("cMarkAdStandalone::CheckStop(): no stop mark found, add stop mark at the last frame (%d)", iFrameCurrent);
+    if (!end) {  // no end mark found at all, set end mark to assumed end
+        dsyslog("cMarkAdStandalone::CheckStop(): no stop mark found, add end mark at assumed end (%d)", iStopA);
         sMarkAdMark mark = {};
-        mark.position = iFrameCurrent;  // we are lost, add a end mark at the last iframe
+        mark.position = iStopA;  // we are lost, add a end mark at assumed end
         mark.type     = MT_ASSUMEDSTOP;
         AddMark(&mark);
         end = marks.GetPrev(INT_MAX, MT_STOP, 0x0F);  // make sure we got a stop mark
