@@ -35,6 +35,11 @@ class cVPS {
         int GetStop() {return vpsStop;};
 
 /**
+ * set VPS stop event offset
+ */
+        void SetStop(const int state) {vpsStop = state;};
+
+/**
  * get VPS pause start event offset
  * @return offset from start of recording in s
  */
