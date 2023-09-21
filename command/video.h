@@ -276,20 +276,6 @@ class cMarkAdLogo : cLogoSize {
  */
         int Process(const int iFrameBefore, const int iFrameCurrent, const int frameCurrent, int *logoFrameNumber);
 
-/**
- * get logo detection status of area
- * @return #eLogoStatus
- */
-        int Status() {
-            return area.status;
-        }
-
-/**
- * set logo dection status of area to LOGO_INVISIBLE
- */
-        void SetStatusLogoInvisible() {
-            if (area.status == LOGO_VISIBLE) area.status = LOGO_INVISIBLE;
-        }
 
 /**
  * set logo dection status of area to LOGO_UNINITIALIZED
@@ -515,13 +501,6 @@ class cMarkAdBlackBordersHoriz {
  */
         int Process(const int frameNumber, int *borderFrame);
 
-/**
- * set horizontal border status to VBORDER_INVISIBLE
- */
-        void SetStatusBorderInvisible() {
-            borderstatus = HBORDER_INVISIBLE;
-            borderframenumber = -1;
-        }
 
 /**
  * clear horizontal border detection status
@@ -564,13 +543,6 @@ class cMarkAdBlackBordersVert {
  */
         int Process(int frameNumber, int *borderFrame);
 
-/**
- * set vertical border status to VBORDER_INVISIBLE
- */
-        void SetStatusBorderInvisible() {
-            borderstatus = VBORDER_INVISIBLE;
-            borderframenumber = -1;
-        }
 
 /**
  * clear vertical border detection status

@@ -86,13 +86,6 @@ class cExtractLogo : public cLogoSize {
  */
         bool CompareLogoPair(const sLogoInfo *logo1, const sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0 = 0, int match12 = 0, int *rate0 = NULL);
 
-/**
- * request programm abort
- */
-        void SetAbort() {
-            abort = true;
-        };
-
         bool abort = false;  //!< true if programm abort is requestet, false otherwise
                              //!<
     private:
