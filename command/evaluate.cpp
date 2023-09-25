@@ -1460,8 +1460,9 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
                                                                                                           ClosingCredits.start, ClosingCredits.end, startOffset, endOffset, length);
 
     if ((ClosingCredits.start > 0) && (ClosingCredits.end > 0) && // we found something
-        (startOffset <= 4320) && (length < 19000) && // do not reduce start offset, if logo fade out, we got start a little too late
-                                                     // startOffset increases from 1440 to 4320 because of silence detection before closing credits detection
+        (startOffset <= 4320) && (length <= 28720) && // do not reduce start offset, if logo fade out, we got start a little too late
+                                                      // changed length from 19000 to 28720, long ad in frame between broadcast, detect as closing credit to get correct start mark
+                                                      // startOffset increases from 1440 to 4320 because of silence detection before closing credits detection
            ((length >= CLOSING_CREDITS_LENGTH_MIN) || ((endOffset < 480) && length > 1440))) {  // if we check from info logo:
                                                                                                 // - we would not have the complete part, so it should go nearly to end
                                                                                                 //   and need a smaller min length
