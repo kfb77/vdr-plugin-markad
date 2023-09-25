@@ -1599,8 +1599,8 @@ void cMarkAdStandalone::CheckStart() {
                             int distance = 1000 * (lNextStop->position  - lStart->position)    / macontext.Video.Info.framesPerSecond;
                             int lengthAd = 1000 * (lNextStart->position - lNextStop->position) / macontext.Video.Info.framesPerSecond;
                             dsyslog("cMarkAdStandalone::CheckStart(): next logo stop (%d) start (%d), distance %dms, length %dms", lNextStop->position, lNextStart->position, distance, lengthAd);
-                            if ((distance <= 6800) && (lengthAd <= 6840)) { // lengthAd changed from 4400 to 6840
-                                                                            // distance changed from 1280 to 6800
+                            if ((distance <= 8040) && (lengthAd <= 6840)) { // distance changed from 6800 to 8040
+                                                                            // lengthAd changed from 4400 to 6840
                                 dsyslog("cMarkAdStandalone::CheckStart(): logo stop/start pair after closing credits is invalid, deleting");
                                 marks.Del(lNextStop->position);
                                 marks.Del(lNextStart->position);
