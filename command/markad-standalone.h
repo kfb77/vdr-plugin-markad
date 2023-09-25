@@ -170,7 +170,7 @@ class cMarkAdStandalone : public cEvaluateChannel {
  * check if separator black screen before logo start mark / around logo stop mark
  * @param mark mark to check
  */
-        bool haveBlackSeparator(const cMark *mark);
+        bool HaveBlackSeparator(const cMark *mark);
 
 /**
  * check for start mark
