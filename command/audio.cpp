@@ -109,7 +109,7 @@ void cMarkAdAudio::Silence(__attribute__((unused)) const int frameNumber) {
         if ((silencePTS >= 0) && (soundPTS >= 0)) {
             int soundFrame = recordingIndexAudio->GetVideoFrameToPTS(soundPTS, false); // get video frame with pts after audio frame
             if (soundFrame >= 0) {
-                if ((silenceFrame >= 0) && (silenceFrame < soundFrame)) { // add both marks only if they have different frame numbers
+                if ((silenceFrame >= 0) && (silenceFrame <= soundFrame - 2)) { // add both marks only if silence part is at least 2 frame long
                     AddMark(MT_SOUNDSTOP,  silenceFrame,  0, 0);
                     AddMark(MT_SOUNDSTART, soundFrame  , 0, 0);
                 }

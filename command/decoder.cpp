@@ -829,10 +829,12 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, c
                         const int16_t *samples = reinterpret_cast<int16_t*>(avFrameRef->data[channel]);
                         for (int sample = 0; sample < avFrameRef->nb_samples; sample++) {
                             level += abs(samples[sample]);
-#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+#if !defined(DEBUG_VOLUME)
+    #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
                             if ((level / avFrameRef->nb_samples / avFrameRef->ch_layout.nb_channels) > MAX_SILENCE_VOLUME) break;  // non silence reached
-#else
+    #else
                             if ((level / avFrameRef->nb_samples / avFrameRef->channels)              > MAX_SILENCE_VOLUME) break;  // non silence reached
+    #endif
 #endif
                         }
                     }
