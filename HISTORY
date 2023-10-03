@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-10-03: Version 3.3.6
+- tune thresholds for black screen, silence and scene change optimization
+- some minor bug fixes and optimizations, see git
+
 2023-08-23: Version 3.3.5
 - additional compare channelID for VDR VPS events, thx to MarkusE@vdr-portal.de for reporting and testing
 - fix broken build with gcc 4.8 (easyVDR3, yavdr0.6)
