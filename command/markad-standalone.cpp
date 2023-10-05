@@ -3594,13 +3594,21 @@ void cMarkAdStandalone::BlackScreenOptimization() {
     cMark *mark = marks.GetFirst();
 #define START_STOP_BLACK (macontext.Video.Info.framesPerSecond / 2)    // black picture before start and after stop mark
     while (mark) {
+        char used[10] = "none";
+        int diffAfterStat  = -1;
+        int diffBeforeStat = -1;
+        int lengthBefore   = 0;
+        int lengthAfter    = 0;
+        // store old mark types
+        char *markType    = marks.TypeToText(mark->type);
+        char *markOldType = marks.TypeToText(mark->oldType);
+        char *markNewType = marks.TypeToText(mark->newType);
         // optimize start marks
         if ((mark->type & 0x0F) == MT_START) {
             // log available start marks
             bool moved         = false;
-            int diffBefore     = INT_MAX;
             int diffAfter      = INT_MAX;
-            int lengthAfter    = 0;
+            int diffBefore     = INT_MAX;
             cMark *stopBefore  = NULL;
             cMark *stopAfter   = NULL;
             cMark *startBefore = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTART); // new part starts after the black screen
@@ -3608,8 +3616,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
             if (startBefore) {
                 stopBefore = blackMarks.GetPrev(startBefore->position, MT_NOBLACKSTOP);
                 if (stopBefore) {
-                    int lengthBefore = 0;
                     diffBefore = 1000 * (mark->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
+                    diffBeforeStat = diffBefore;
                     lengthBefore = 1000 * (startBefore->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::BlackScreenOptimization(): start mark (%6d): found black screen from (%6d) to (%6d), %7dms before -> length %5dms", mark->position, stopBefore->position, startBefore->position, diffBefore, lengthBefore);
                 }
@@ -3619,6 +3627,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 stopAfter = blackMarks.GetPrev(startAfter->position, MT_NOBLACKSTOP);
                 if (stopAfter) {
                     diffAfter = 1000 * (startAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
+                    diffAfterStat = diffAfter;
                     lengthAfter = 1000 * (startAfter->position - stopAfter->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::BlackScreenOptimization(): start mark (%6d): found black screen from (%6d) to (%6d), %7dms after  -> length %5dms", mark->position, stopAfter->position, startAfter->position, diffAfter, lengthAfter);
                 }
@@ -3629,10 +3638,12 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 int maxBefore = -1;
                 switch (mark->type) {
                     case MT_LOGOSTART:
-                        maxBefore = 5399;  // do not increase, will get black screen before last ad
+                        // select best mark (before (length)/ after (length)), defaut: before
+                        if ((lengthBefore >= 1640) && (diffBefore <= 8640)) maxBefore = 8640;
+                        else maxBefore = 5399;  // do not increase, will get black screen before last ad
                         break;
                     case MT_CHANNELSTART:
-                        maxBefore = 80;
+                        maxBefore = 1240;   // changed from 80 to 1240
                         break;
                     case MT_MOVEDSTART:
                         switch (mark->newType) {
@@ -3641,9 +3652,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                                 break;
                             case MT_VPSSTART:
                                 // select best mark (before / after), defaut: before
-                                // 25800 / <2000>
                                 if ((diffBefore >= 25800) && (diffAfter <= 2000)) diffBefore = INT_MAX;
-                                maxBefore = 50520;  // changed from 8760 to 50520
+                                maxBefore = 11579;  // black screen before preview 11580ms before VPS start event
                                 break;
                             default:
                                 maxBefore = -1;
@@ -3663,6 +3673,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         }
                     }
                     mark = marks.Move(mark, newPos, MT_NOBLACKSTART);
+                    strcpy(used,"before");
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -3675,7 +3686,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 int maxAfter = -1;
                 switch (mark->type) {
                     case MT_LOGOSTART:
-                        maxAfter = 14160;  // changed from 1320 to 14160
+                        maxAfter = 4440;
                         break;
                     case MT_MOVEDSTART:
                         switch (mark->newType) {
@@ -3708,6 +3719,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         }
                     }
                     mark = marks.Move(mark, newPos, MT_NOBLACKSTART);
+                    strcpy(used,"after");
                     if (mark) {
                         save = true;
                     }
@@ -3718,17 +3730,16 @@ void cMarkAdStandalone::BlackScreenOptimization() {
         // optimize stop marks
         if ((mark->type & 0x0F) == MT_STOP) {
             // log available stop marks
-            bool moved       = false;
-            int diffAfter    = INT_MAX;
-            int diffBefore   = INT_MAX;
-            int lengthBefore = 0;
-            int lengthAfter  = 0;
+            bool moved               = false;
+            int diffAfter            = INT_MAX;
+            int diffBefore           = INT_MAX;
             const cMark *startBefore = NULL;
             const cMark *startAfter  = NULL;
             const cMark *stopBefore  = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTOP);
             const cMark *stopAfter   = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTOP);
             if (stopBefore) {
                 diffBefore = 1000 * (mark->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
+                diffBeforeStat = diffBefore;
                 startBefore = blackMarks.GetNext(stopBefore->position, MT_NOBLACKSTART);
                 if (startBefore) {
                     lengthBefore = 1000 * (startBefore->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
@@ -3738,6 +3749,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
             }
             if (stopAfter) {
                 diffAfter = 1000 * (stopAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
+                diffAfterStat = diffAfter;
                 startAfter = blackMarks.GetNext(stopAfter->position, MT_NOBLACKSTART);
                 if (startAfter) {
                     lengthAfter = 1000 * (startAfter->position - stopAfter->position) / macontext.Video.Info.framesPerSecond;
@@ -3749,16 +3761,22 @@ void cMarkAdStandalone::BlackScreenOptimization() {
             if (stopAfter) {  // move even to same position to prevent scene change for move again
                 int maxAfter = -1;
                 switch (mark->type) {
+                    case MT_NOBLACKSTOP:
+                        maxAfter =  0;  // use mid of black screen for end marks
+                        break;
                     case MT_LOGOSTOP:
-                        // select best mark (before / after), defaut: before
-                        if ((diffAfter >= 3360) && (lengthAfter <= 40)) diffAfter = INT_MAX; // very short black screen from preview after broadcast
-                        if ((mark->position == marks.GetLast()->position) && (lengthAfter >= 2520)) maxAfter = 10800;  // trust wery long black screens at end as separator
-                        else maxAfter =  4920;
+                        // select best mark (before (length) / after (length)), defaut: after
+                        if ((diffBefore <= 5920) && (lengthBefore >= 140)) diffAfter = INT_MAX;
+                        else if ((mark->position != marks.GetLast()->position) && (diffAfter >= 3360) && (lengthAfter <= 40)) diffAfter = INT_MAX;
+                        else if ((diffBefore <= 3000) && (diffAfter >= 6120)) diffAfter = INT_MAX;
+                        maxAfter =  5040;  // changed from 4920 to 5040 (160), TELE5 fade out logo
                         break;
                     case MT_MOVEDSTOP:
                         switch (mark->newType) {
                             case MT_VPSSTOP:
-                                maxAfter = 176720;   // changed from 40360 to 176720
+                                // select best mark (before (length) / after (length)), defaut: after
+                                if ((diffBefore <= 4380) && (diffAfter >= 12380)) diffAfter = INT_MAX;
+                                maxAfter = 26059;   // black screen in after preview after 26060ms
                                 break;
                             case MT_CLOSINGCREDITSSTOP:
                                 maxAfter = 7200;   // chnaged from 100 to 7200
@@ -3789,6 +3807,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         }
                     }
                     mark = marks.Move(mark, newPos, MT_NOBLACKSTOP);
+                    strcpy(used,"after");
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -3800,9 +3819,11 @@ void cMarkAdStandalone::BlackScreenOptimization() {
             if (!moved && stopBefore) {  // move even to same position to prevent scene change for move again
                 int maxBefore = -1;
                 switch (mark->type) {
+                    case MT_ASSUMEDSTOP:
+                        maxBefore = 21960;
+                        break;
                     case MT_LOGOSTOP:
-                        maxBefore =  4520;
-                        if (lengthBefore >= 560) maxBefore = 6400;  // long blackscreen between broadcast end and preview with logo
+                        maxBefore =  6640;  // changed from 4520 to 6640 (800)
                         break;
                     case MT_MOVEDSTOP:
                         switch (mark->newType) {
@@ -3835,6 +3856,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         }
                     }
                     mark = marks.Move(mark, newPos, MT_NOBLACKSTOP);
+                    strcpy(used,"before");
                     if (mark) {
                         save = true;
                     }
@@ -3842,6 +3864,14 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 }
             }
         }
+        tsyslog("OPTIMIZATION\tBLACKSCREEN\t2\t%d\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%s", macontext.Config->fullDecode, ((mark->type & 0x0F) == MT_STOP) ? "stop" : "start",  markType, markOldType, markNewType, diffBeforeStat, lengthBefore, diffAfterStat, lengthAfter, used);
+        FREE(strlen(markType)+1, "text");
+        free(markType);
+        FREE(strlen(markOldType)+1, "text");
+        free(markOldType);
+        FREE(strlen(markNewType)+1, "text");
+        free(markNewType);
+
         mark = mark->Next();
     }
     // save marks
