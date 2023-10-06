@@ -1829,7 +1829,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
 
 // for performance reason only for known and tested channels for now
     if (!IntroductionLogoChannel(maContext->Info.ChannelName)) {
-        dsyslog(" cDetectLogoStopStart::IntroductionLogo(): skip this channel");
+        dsyslog("cDetectLogoStopStart::IntroductionLogo(): skip this channel");
         return -1;
     }
 
@@ -1852,7 +1852,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
     int separatorFrameBefore = -1;
     int separatorFrameAfter  = -1;
 
-#define INTRODUCTION_MIN_LENGTH          4320
+#define INTRODUCTION_MIN_LENGTH          4961  // changed from 4320 to 4961, prevent to get separator scene with length 4960ms before broadcast start
 #define INTRODUCTION_MAX_LENGTH         13040  // changed from 10559  to 13040
                                                // found introduction logo with length 13040, try to fix preview problem later TODO
                                                // do not increase to prevent to detect preview as introduction logo
