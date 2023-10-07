@@ -3309,7 +3309,6 @@ void cMarkAdStandalone::MarkadCut() {
             return;
         }
         int stopPos = stopMark->position;
-        if (ptr_cDecoder->IsInterlacedVideo()) stopPos++;  // add one frame for full decode last frame
 
         // open output file
         ptr_cDecoder->SeekToFrame(&macontext, startMark->position - 1);  // seek to start posiition to get correct input video parameter
@@ -3347,7 +3346,6 @@ void cMarkAdStandalone::MarkadCut() {
                             return;
                         }
                         stopPos = stopMark->position;
-                        if (ptr_cDecoder->IsInterlacedVideo()) stopPos++;  // add one frame for full decode last frame
                     }
                     else {
                         nextFile = false;
