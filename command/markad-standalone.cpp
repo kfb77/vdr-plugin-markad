@@ -5280,7 +5280,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         FREE(strlen(libver)+1, "libver");
         free(libver);
     }
-    tsyslog("libavcodec config: %s",avcodec_configuration());
+    dsyslog("libavcodec config: %s",avcodec_configuration());
     isyslog("on %s", directory);
 
     if (bIgnoreTimerInfo) {

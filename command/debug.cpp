@@ -97,7 +97,7 @@ void memAlloc(int size, int line, char *file, char *var) {
     pthread_mutex_lock(&mutex);
     memUseSum += size;
     if (memUseSum > memUseMax) memUseMax = memUseSum;
-    tsyslog("debugmem: alloc %7d bytes, file %s, line %4d, variable: %s", size, file, line, var);
+//    tsyslog("debugmem: alloc %7d bytes, file %s, line %4d, variable: %s", size, file, line, var);
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
         if ((memLine->size == size) && (strcmp(memLine->file, file) == 0) && (strcmp(memLine->var, var) == 0)) {
             memLine->count++;
@@ -114,7 +114,7 @@ void memAlloc(int size, int line, char *file, char *var) {
 void memFree(int size, int line, char *file, char *var) {
     pthread_mutex_lock(&mutex);
     memUseSum -= size;
-    tsyslog("debugmem:  free %7d bytes, file %s, line %4d, variable: %s", size, file, line, var);
+//    tsyslog("debugmem:  free %7d bytes, file %s, line %4d, variable: %s", size, file, line, var);
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
         if ((memLine->size == size) && (strcmp(memLine->file, file) == 0) && (strcmp(memLine->var, var) == 0)) {  // try file match
             if (memLine->count <= 0) break;
