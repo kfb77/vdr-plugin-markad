@@ -2346,20 +2346,15 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     switch(lastStopMark->type) {
                         case MT_ASSUMEDSTOP:
                             // too long broadcast length from info file, delete last stop:
-                            //   0 / -231 / -355  NEW
-                            // 296 / -383 / -419
-                            // 346 / -224 / -535
-                            // 351 / -154 / -506
-                            // 369 /   25 / -542
-                            // 400 / -190 / -535
-                            // 423 /  -50 / -549
-                            // 442 / -130 / -564
-                            // 471 / -154 / -542
-                            // 547 /  -83 / -567
+                            //   0 / -184 / -631 (conflict)
+                            //   0 / -231 / -355 (conflict)
+                            // correct end mark, do not delete last stop
+                            //   0 / -230 / -581
+                            //   0 / -220 / -353
                             minLastStopAssumed  =    0;
                             minLastStartAssumed = -383;
-                            minPrevStopAssumed  = -567;
-                            maxLastBroadcast    =   92;  // changed from 50 to 92
+                            minPrevStopAssumed  = -352;
+                            maxLastBroadcast    =   88;  //  shartest valid last ad 89s
                             maxLastAd           =   -1;
                             break;
                         case MT_NOBLACKSTOP:
