@@ -49,10 +49,12 @@ enum {
 };
 
 enum {
-    BLACKSCREEN_UNINITIALIZED = -2,
+    BLACKSCREEN_UNINITIALIZED = -3,
+    BLACKLOWER_INVISIBLE      = -2,
     BLACKSCREEN_INVISIBLE     = -1,
     BLACKSCREEN_NOCHANGE      =  0,
-    BLACKSCREEN_VISIBLE       =  1
+    BLACKSCREEN_VISIBLE       =  1,
+    BLACKLOWER_VISIBLE        =  2
 };
 
 enum {
@@ -468,7 +470,9 @@ class cMarkAdBlackScreen {
         void Clear();
 
     private:
-        int blackScreenstatus = BLACKSCREEN_UNINITIALIZED; //!< status of black screen detection
+        int blackScreenStatus = BLACKSCREEN_UNINITIALIZED; //!< status of black screen detection
+                                                           //!<
+        int blackLowerStatus  = BLACKSCREEN_UNINITIALIZED; //!< status of lower part black screen detection
                                                            //!<
         sMarkAdContext *maContext = NULL;                  //!< markad context
                                                            //!<

@@ -1737,6 +1737,16 @@ void cMarkAdStandalone::CheckStart() {
         }
     }
 
+// try lower black border mark, this is end of previous recording
+    if (!begin) {
+        dsyslog("cMarkAdStandalone::CheckStart(): search for end of lower black border as start mark");
+        const cMark *noLowerBlackStart = blackMarks.GetAround(120 * macontext.Video.Info.framesPerSecond, iStartA, MT_NOBLACKLOWERSTART);
+        if (noLowerBlackStart) {
+            begin = marks.Add(MT_NOBLACKLOWERSTART, MT_UNDEFINED, MT_UNDEFINED, noLowerBlackStart->position, "end   lower black border", false);
+            dsyslog("cMarkAdStandalone::CheckStart(): found end of lower black border from previous broadcast, use as start mark (%d)", begin->position);
+        }
+    }
+
     // no start mark found at all, set start after pre timer
     if (!begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, assume start time at pre recording time");
@@ -2644,6 +2654,14 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             if (asprintf(&comment, "end   scene (%d)*", mark->position) == -1) comment = NULL;
             if (comment) { ALLOC(strlen(comment)+1, "comment"); }
             break;
+        case MT_NOBLACKLOWERSTART:
+            if (asprintf(&comment, "end   lower black border (%d)*", mark->position) == -1) comment = NULL;
+            if (comment) { ALLOC(strlen(comment)+1, "comment"); }
+            break;
+        case MT_NOBLACKLOWERSTOP:
+            if (asprintf(&comment, "start lower black border (%d) ", mark->position) == -1) comment = NULL;
+            if (comment) { ALLOC(strlen(comment)+1, "comment"); }
+            break;
         case MT_NOBLACKSTART:
             if (asprintf(&comment, "end   black screen (%d)*", mark->position) == -1) comment = NULL;
             if (comment) { ALLOC(strlen(comment)+1, "comment"); }
@@ -2756,35 +2774,28 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         case MT_SOUNDCHANGE:
             silenceMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, NULL, inBroadCast);
             if (comment) {
-#ifdef DEBUG_WEAK_MARKS
                 char *indexToHMSF = marks.IndexToHMSF(mark->position);
                 if (indexToHMSF) {
                     ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
-                    if (indexToHMSF) {
-                        dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
-                        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-                        free(indexToHMSF);
-                    }
+                    dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
+                    FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                    free(indexToHMSF);
                 }
-#endif
                 FREE(strlen(comment)+1, "comment");
                 free(comment);
             }
             break;
+        case MT_BLACKLOWERCHANGE:
         case MT_BLACKCHANGE:
             blackMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, NULL, inBroadCast);
             if (comment) {
-#if defined(DEBUG_WEAK_MARKS) || defined(DEBUG_BLACKSCREEN)
                 char *indexToHMSF = marks.IndexToHMSF(mark->position);
                 if (indexToHMSF) {
                     ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
-                    if (indexToHMSF) {
-                        dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
-                        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-                        free(indexToHMSF);
-                    }
+                    dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
+                    FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+                    free(indexToHMSF);
                 }
-#endif
                 FREE(strlen(comment)+1, "comment");
                 free(comment);
             }
@@ -3823,6 +3834,216 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 }
             }
         }
+        mark = mark->Next();
+    }
+    // save marks
+    if (save) marks.Save(directory, &macontext, false);
+}
+
+
+void cMarkAdStandalone::BlackLowerOptimization() {
+    bool save = false;
+    LogSeparator(false);
+    dsyslog("cMarkAdStandalone::BlackLowerOptimization(): start mark optimization with lower black border");
+    DebugMarks();
+    cMark *mark = marks.GetFirst();
+    while (mark) {
+        char used[10] = "none";
+        int diffAfterStat  = -1;
+        int diffBeforeStat = -1;
+        int lengthBefore   = 0;
+        int lengthAfter    = 0;
+        // store old mark types
+        char *markType    = marks.TypeToText(mark->type);
+        char *markOldType = marks.TypeToText(mark->oldType);
+        char *markNewType = marks.TypeToText(mark->newType);
+        // optimize start marks
+        if ((mark->type & 0x0F) == MT_START) {
+            // log available start marks
+            bool moved         = false;
+            int diffAfter      = INT_MAX;
+            int diffBefore     = INT_MAX;
+            cMark *stopBefore  = NULL;
+            cMark *stopAfter   = NULL;
+            cMark *startBefore = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKLOWERSTART); // new part starts after the black screen
+            cMark *startAfter  = blackMarks.GetNext(mark->position - 1, MT_NOBLACKLOWERSTART); // new part starts after the black screen
+            if (startBefore) {
+                stopBefore = blackMarks.GetPrev(startBefore->position, MT_NOBLACKLOWERSTOP);
+                if (stopBefore) {
+                    diffBefore = 1000 * (mark->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
+                    diffBeforeStat = diffBefore;
+                    lengthBefore = 1000 * (startBefore->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::BlackLowerOptimization(): start mark (%6d): found lower black border from (%6d) to (%6d), %7dms before -> length %5dms", mark->position, stopBefore->position, startBefore->position, diffBefore, lengthBefore);
+                }
+                else startBefore = NULL; // no pair, this is invalid
+            }
+            if (startAfter) {
+                cMark *nextStartAfter = blackMarks.GetNext(startAfter->position, MT_NOBLACKLOWERSTART);  // near next lower border is part of the same closing credits
+                if (nextStartAfter) {
+                    int diffNext = (nextStartAfter->position - startAfter->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::BlackLowerOptimization(): start mark (%6d): first lower black border start (%6d), second lower black border start (%6d), distance %ds", mark->position, startAfter->position, nextStartAfter->position, diffNext);
+                    if (diffNext <= 2) startAfter = nextStartAfter;
+                }
+                stopAfter = blackMarks.GetPrev(startAfter->position, MT_NOBLACKLOWERSTOP);
+                if (stopAfter) {
+                    diffAfter = 1000 * (startAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
+                    diffAfterStat = diffAfter;
+                    lengthAfter = 1000 * (startAfter->position - stopAfter->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::BlackLowerOptimization(): start mark (%6d): found lower black border from (%6d) to (%6d), %7dms after  -> length %5dms", mark->position, stopAfter->position, startAfter->position, diffAfter, lengthAfter);
+                }
+                else startAfter = NULL; // no pair, this is invalid
+            }
+            // try lower black border before start mark
+            if (startBefore) {
+                int maxBefore = -1;
+                switch (mark->type) {
+                    case MT_MOVEDSTART:
+                        switch (mark->newType) {
+                            case MT_VPSSTART:
+                                maxBefore = 116600;  // changed from 108120 to 116600
+                                break;
+                            default:
+                                maxBefore = -1;
+                        }
+                        break;
+                    default:
+                        maxBefore = -1;
+                }
+                if (diffBefore <= maxBefore) {  // move even to same position to prevent scene change do a move
+                    mark = marks.Move(mark, startBefore->position, MT_NOBLACKLOWERSTART);
+                    strcpy(used,"before");
+                    if (mark) {
+                        moved = true;
+                        save  = true;
+                    }
+                    else break;
+                }
+            }
+            // try lower black border after start mark
+            if (!moved && startAfter) {
+                int maxAfter = -1;
+                switch (mark->type) {
+                    case MT_MOVEDSTART:
+                        switch (mark->newType) {
+                            case MT_VPSSTART:
+                                maxAfter = 123880;  // changed from 105480 to 123880
+                                break;
+                            default:
+                                maxAfter = -1;
+                        }
+                        break;
+                    default:
+                        maxAfter = -1;
+                }
+                if (diffAfter <= maxAfter) {
+                    mark = marks.Move(mark, startAfter->position, MT_NOBLACKLOWERSTART);
+                    strcpy(used,"after");
+                    if (mark) {
+                        save = true;
+                    }
+                    else break;
+                }
+            }
+        }
+        // optimize stop marks
+        if ((mark->type & 0x0F) == MT_STOP) {
+            // log available stop marks
+            bool moved               = false;
+            int diffAfter            = INT_MAX;
+            int diffBefore           = INT_MAX;
+            const cMark *startBefore = NULL;
+            const cMark *startAfter  = NULL;
+            const cMark *stopBefore  = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKLOWERSTOP);
+            const cMark *stopAfter   = blackMarks.GetNext(mark->position - 1, MT_NOBLACKLOWERSTOP);
+            if (stopBefore) {
+                diffBefore = 1000 * (mark->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
+                diffBeforeStat = diffBefore;
+                startBefore = blackMarks.GetNext(stopBefore->position, MT_NOBLACKLOWERSTART);
+                if (startBefore) {
+                    lengthBefore = 1000 * (startBefore->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::BlackLowerOptimization(): stop  mark (%6d): found lower black border from (%6d) to (%6d), %7dms before -> length %5dms", mark->position, stopBefore->position, startBefore->position, diffBefore, lengthBefore);
+                }
+                else stopBefore = NULL; // no pair, this is invalid
+            }
+            if (stopAfter) {
+                cMark *nextStopAfter = blackMarks.GetNext(stopAfter->position, MT_NOBLACKLOWERSTOP);  // near next lower border is part of the same closing credits
+                if (nextStopAfter) {
+                    int diffNext = (nextStopAfter->position - stopAfter->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::BlackLowerOptimization(): stop  mark (%6d): first lower black border stop (%6d), second lower black border stop (%6d), distance %ds", mark->position, stopAfter->position, nextStopAfter->position, diffNext);
+                    if (diffNext <= 2) stopAfter = nextStopAfter;
+                }
+                diffAfter = 1000 * (stopAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
+                diffAfterStat = diffAfter;
+                startAfter = blackMarks.GetNext(stopAfter->position, MT_NOBLACKLOWERSTART);
+                if (startAfter) {
+                    lengthAfter = 1000 * (startAfter->position - stopAfter->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::BlackLowerOptimization(): stop  mark (%6d): found lower black border from (%6d) to (%6d), %7dms after  -> length %5dms", mark->position, stopAfter->position, startAfter->position, diffAfter, lengthAfter);
+                }
+                else stopAfter = NULL; // no pair, this is invalid
+            }
+            // try lower black border after stop marks
+            if (stopAfter) {
+                int maxAfter = -1;
+                switch (mark->type) {
+                    case MT_MOVEDSTOP:
+                        switch (mark->newType) {
+                            case MT_VPSSTOP:
+                                maxAfter = 85639;  // black screen in next broadcast 85640ms after
+                                break;
+                            default:
+                                maxAfter = -1;
+                        }
+                        break;
+                    default:
+                        maxAfter = -1;
+                }
+                if (diffAfter <= maxAfter) {  // move even to same position to prevent scene change for move again
+                    mark = marks.Move(mark, stopAfter->position, MT_NOBLACKLOWERSTOP);
+                    strcpy(used,"after");
+                    if (mark) {
+                        moved = true;
+                        save  = true;
+                    }
+                    else break;
+                }
+            }
+            // try lower black border before stop mark
+            if (!moved && stopBefore) {
+                int maxBefore = -1;
+                switch (mark->type) {
+                    case MT_ASSUMEDSTOP:
+                        maxBefore = 51040;
+                        break;
+                    case MT_MOVEDSTOP:
+                        switch (mark->newType) {
+                            case MT_VPSSTOP:
+                                maxBefore = 117800;
+                                break;
+                            default:
+                                maxBefore = -1;
+                        }
+                        break;
+                    default:
+                        maxBefore = -1;
+                }
+                if (diffBefore <= maxBefore) {
+                    mark = marks.Move(mark, stopBefore->position, MT_NOBLACKLOWERSTOP);
+                    strcpy(used,"before");
+                    if (mark) {
+                        save = true;
+                    }
+                    else break;
+                }
+            }
+        }
+        tsyslog("OPTIMIZATION\tBLACKLOWER\t1\t%d\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%s", macontext.Config->fullDecode, ((mark->type & 0x0F) == MT_STOP) ? "stop" : "start",  markType, markOldType, markNewType, diffBeforeStat, lengthBefore, diffAfterStat, lengthAfter, used);
+        FREE(strlen(markType)+1, "text");
+        free(markType);
+        FREE(strlen(markOldType)+1, "text");
+        free(markOldType);
+        FREE(strlen(markNewType)+1, "text");
+        free(markNewType);
+
         mark = mark->Next();
     }
     // save marks
@@ -6238,6 +6459,7 @@ int main(int argc, char *argv[]) {
             cmasta->BlackScreenOptimization();   // mark optimization with black scene
             cmasta->SilenceOptimization();       // mark optimization with mute scene
             cmasta->BorderMarkOptimization();    // vborder and hborder mark optimization (to correct too eary black screen start marks from closing credit of previous recording)
+            cmasta->BlackLowerOptimization();    // mark optimization with lower black border
             cmasta->SceneChangeOptimization();   // final optimization with scene changes (if we habe nothing else, try this as last resort)
 
         }

@@ -495,6 +495,12 @@ char *cMarks::TypeToText(const int type) {
             }
             else esyslog("cMarks::TypeToText(): asprintf failed");
             break;
+        case MT_BLACKLOWERCHANGE:
+            if (asprintf(&text, "lower black border") != -1) {
+                ALLOC(strlen(text)+1, "text");
+            }
+            else esyslog("cMarks::TypeToText(): asprintf failed");
+            break;
         case MT_BLACKCHANGE:
             if (asprintf(&text, "black screen") != -1) {
                 ALLOC(strlen(text)+1, "text");
@@ -661,7 +667,7 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType) {
 
            int oldType = MT_UNDEFINED;
            if (((mark->type & 0xF0) == MT_MOVED) && (mark->newType != MT_UNDEFINED)) oldType = mark->newType;
-	   else oldType = mark->type;
+           else oldType = mark->type;
            int type = ((mark->type & 0x0F) == MT_START) ? MT_MOVEDSTART : MT_MOVEDSTOP;
            Del(mark);
            newMark = Add(type, oldType, newType, newPosition, comment);

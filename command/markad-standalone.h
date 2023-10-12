@@ -142,6 +142,11 @@ class cMarkAdStandalone : public cEvaluateChannel {
         void BlackScreenOptimization();
 
 /**
+ * optimize marks based on lower black border
+ */
+        void BlackLowerOptimization();
+
+/**
  * optimize marks based on mute scene
  */
         void SilenceOptimization();
