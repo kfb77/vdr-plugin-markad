@@ -82,6 +82,8 @@ class cMarkAdAudio {
                                                                  //!<
         int silenceFrame               = -1;                     //!< frame number of first detected silence
                                                                  //!<
+        bool hasZero                   = false;                  //!< true if we got 0 volume
+                                                                 //!<
         int64_t soundPTS               = -1;                     //!< PTS of first detected sound
                                                                  //!<
         int retry                      = 0;                      //!< retry count to get video frame after first sound PTS

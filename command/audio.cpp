@@ -70,12 +70,12 @@ bool cMarkAdAudio::ChannelChange(int channelsBefore, int channelsAfter) {
 void cMarkAdAudio::Silence(__attribute__((unused)) const int frameNumber) {
     if (macontext->Audio.Info.volume >= 0) {
 #ifdef DEBUG_VOLUME
-        dsyslog("cMarkAdAudio::Silence(): frame (%5d): macontext->Audio.Info.volume %4d, silenceFrame (%5d), silenceStatus %d", frameNumber, macontext->Audio.Info.volume, silenceFrame, silenceStatus);
+        dsyslog("cMarkAdAudio::Silence(): frame (%5d): macontext->Audio.Info.volume %4d, silenceFrame (%5d), silenceStatus %2d, hasZero %d", frameNumber, macontext->Audio.Info.volume, silenceFrame, silenceStatus, hasZero);
 #endif
         switch (silenceStatus) {
             case SILENCE_UNINITIALIZED:
                 if (macontext->Audio.Info.volume <= MAX_SILENCE_VOLUME) silenceStatus = SILENCE_TRUE;
-                else                                            silenceStatus = SILENCE_FALSE;
+                else                                                    silenceStatus = SILENCE_FALSE;
                 break;
             case SILENCE_FALSE:
                 if (macontext->Audio.Info.volume <= MAX_SILENCE_VOLUME) {
@@ -93,9 +93,10 @@ void cMarkAdAudio::Silence(__attribute__((unused)) const int frameNumber) {
                 if (macontext->Audio.Info.volume > MAX_SILENCE_VOLUME) {  // end of silence
                     silenceStatus = SILENCE_FALSE;
                     soundPTS      = macontext->Audio.Info.PTS;
-               }
+                }
                 break;
         }
+        if ((silenceStatus == SILENCE_TRUE) && (macontext->Audio.Info.volume == 0)) hasZero = true;
     }
     // sometimes audio frame PTS is before video frame PTS in stream
     if (retry >= 10) { // give up
@@ -104,19 +105,21 @@ void cMarkAdAudio::Silence(__attribute__((unused)) const int frameNumber) {
         silenceFrame = -1;
         soundPTS     = -1;
         retry        =  0;
+        hasZero      = false;
     }
     else {
         if ((silencePTS >= 0) && (soundPTS >= 0)) {
             int soundFrame = recordingIndexAudio->GetVideoFrameToPTS(soundPTS, false); // get video frame with pts after audio frame
             if (soundFrame >= 0) {
-                if ((silenceFrame >= 0) && (silenceFrame < soundFrame)) { // add both marks only if silence part is at least 1 video frame long
+                if (hasZero && (silenceFrame >= 0) && (silenceFrame < soundFrame)) { // add both marks only if silence part is at least 1 video frame long
                     AddMark(MT_SOUNDSTOP,  silenceFrame,  0, 0);
-                    AddMark(MT_SOUNDSTART, soundFrame  , 0, 0);
+                    AddMark(MT_SOUNDSTART, soundFrame  ,  0, 0);
                 }
                 silencePTS   = -1;
                 silenceFrame = -1;
                 soundPTS     = -1;
                 retry        =  0;
+                hasZero      = false;
             }
             else retry++;
         }
