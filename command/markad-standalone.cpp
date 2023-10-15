@@ -1651,15 +1651,21 @@ void cMarkAdStandalone::CheckStart() {
                             if (lNextStart) {  // now we have logo start/stop/start, this can be a preview before broadcast start
                                 indexToHMSF = marks.GetTime(lNextStart);
                                 int distanceStopNextStart = (lNextStart->position - lStop->position) / macontext.Video.Info.framesPerSecond;
-                                if (distanceStopNextStart <= 136) { // found start mark short after start/stop, use this as start mark, changed from 68 to 76 to 136
-                                    if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, use this start mark", lNextStart->position, indexToHMSF, distanceStopNextStart);
-                                    lStart = lNextStart;
-                                }
-                                else {
-                                    if (indexToHMSF) {
-                                        dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, distance not valid", lNextStart->position, indexToHMSF, distanceStopNextStart);
+                                if (distanceStopNextStart > 1) {        // very short stop/start can be undetected info logo
+                                    if (distanceStopNextStart <= 136) { // found start mark short after start/stop, use this as start mark, changed from 68 to 76 to 136
+                                        if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, use this start mark", lNextStart->position, indexToHMSF, distanceStopNextStart);
+                                        lStart = lNextStart;
+                                    }
+                                    else {
+                                        if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, length too big", lNextStart->position, indexToHMSF, distanceStopNextStart);
                                         break;
                                     }
+                                }
+                                else {
+                                    if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) at %s %ds after logo start/stop marks, length too small, delete marks", lNextStart->position, indexToHMSF, distanceStopNextStart);
+                                    marks.Del(lStop);
+                                    marks.Del(lNextStart);
+                                    break;
                                 }
                             }
                             else break;

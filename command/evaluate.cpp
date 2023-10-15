@@ -386,12 +386,12 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
 #define LOGO_INFO_NEXT_STOP_MIN                    2120  // min distance of next logo stop/start pair to merge, changed from 3000 to 2120
 
     int maxNextStop = 0;
-    if (iStart > 0) maxNextStop = 6000;                  // we are in start mark, less risk of deleting valid stop mark
+    if (iStart > 0) maxNextStop = 5920;                  // we are in start mark, less risk of deleting valid stop mark
     else            maxNextStop = 4560;                  // max distance of next logo stop/start pair to merge
                                                          // if info logo is very similar to logo, we false detect this as logo
-                                                         // in this case we will have only a short logo interuption when info logo fade in/out, merge this range
-                                                         // nearest logo stop 4560ms after info logo found, do not merge with real stop mark
-                                                         // changed from 7280 to 4560
+                                                         // first logo start mark: nearest info logo after logo start 5920ms
+                                                         // do not merge real start mark with info logo stop/start
+                                                         // last logo stop mark: nearest logo stop 4560ms after info logo found, do not merge with real stop mark
     // check length
     int length = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / framesPerSecond;
     dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: length %dms (expect >=%dms and <=%dms)",
@@ -402,13 +402,12 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     cMark *markStop_AfterPair = marks->GetNext(logoStopStartPair->stopPosition, MT_LOGOSTOP);
     if (markStop_AfterPair) {  // we have a next logo stop
         delta_Stop_AfterPair = 1000 * (markStop_AfterPair->position - logoStopStartPair->startPosition) / framesPerSecond;
-        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: next stop mark (%d) distance %dms (expect <=%dms)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, markStop_AfterPair->position, delta_Stop_AfterPair, maxNextStop);
+        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: next stop mark (%d) distance %dms (expect <%dms for merge)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, markStop_AfterPair->position, delta_Stop_AfterPair, maxNextStop);
     }
 
     // maybe we have a wrong start/stop pair between, check if merge with next pair can help
-    if ((length < LOGO_INFO_LENGTH_MIN) ||  // this pair is too short
-       ((delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair < maxNextStop) && (length < 11800))) { // next pair is too near, do not merge big pairs
-        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): short pair or very near next start mark, try to merge with next pair");
+    if ((length < LOGO_INFO_LENGTH_MIN) && (delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair < maxNextStop) && (length < 11800)) { // next pair is too near, do not merge big pairs
+        dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): short pair and very near next start mark, try to merge with next pair");
 
         // try next logo stop/start pair
         cMark *pairNextStart = marks->GetNext(logoStopStartPair->startPosition, MT_LOGOSTART);
@@ -536,7 +535,8 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
         int diff = 1000 * (blackStart->position - logoStopStartPair->stopPosition) / framesPerSecond;
         int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;
         dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen around logo stop mark from (%d) to (%d), length %dms, end of blackscreen %dms after logo stop mark", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position, lengthBlack, diff);
-        if ((lengthBlack > 680) && (lengthBlack < 4400)) {  // too long blackscreen can be opening credits
+        if ((lengthBlack >= 560) && (lengthBlack < 4400)) {  // too long blackscreen can be opening credits
+                                                             // changed from 680 to 560
             dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ----- stop (%d) start (%d) pair: blacksceen around logo stop mark, no info logo part", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
             logoStopStartPair->isInfoLogo = STATUS_NO;
             return;
@@ -1214,10 +1214,11 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         if (diffStart < 1920) newStartPos = infoLogo.startFinal;  // do not increase
         if (diffEnd <= 1800) newEndPos = infoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): final range start (%d) end (%d)", newStartPos, newEndPos);
-#define INFO_LOGO_MIN_LENGTH  2880  // changed from 4000 to 3360 to 2880
+#define INFO_LOGO_MIN_LENGTH  3761  // changed from 2880 to 3761
+                                    // prevent to get info box after preview as info logo, length 3760
 #define INFO_LOGO_MAX_LENGTH 17040  // chnaged from 15640 to 15880 to 17040
                                     // RTL2 has very long info logos
-#define INFO_LOGO_MIN_QUOTE     58  // changed from 69 to 58 (catch more than one change of info logo)
+#define INFO_LOGO_MIN_QUOTE     61  // no info logo: separator image with part time logo 60
         int quote  = 100  * (infoLogo.endFinal - infoLogo.startFinal) / (newEndPos - newStartPos);
         int length = 1000 * (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo: start (%d), end (%d), length %dms (expect >=%dms and <=%dms), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
