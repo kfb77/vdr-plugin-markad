@@ -4665,20 +4665,17 @@ void cMarkAdStandalone::ProcessOverlap() {
     cMark *lastStop = marks.GetLast();
     if (lastStop) {
         // check logo end mark
-        if (lastStop->type == MT_LOGOSTOP) {
-            if ((evaluateLogoStopStartPair->GetIsAdInFrame(lastStop->position) != STATUS_YES)) {
-                if ((markCriteria.GetClosingCreditsState(lastStop->position) >= CRITERIA_UNKNOWN) && ((lastStop->type == MT_LOGOSTOP) || (lastStop->type == MT_MOVEDSTOP))) {
-                    dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after logo end mark");
-                    if (MoveLastStopAfterClosingCredits(lastStop)) {
-                        save = true;
-                        dsyslog("cMarkAdStandalone::ProcessOverlap(): moved logo end mark after closing credit");
-                    }
+        if ((lastStop->type == MT_LOGOSTOP) || ((lastStop->type == MT_MOVEDSTOP) && (lastStop->newType != MT_NOADINFRAMESTOP))) { // prevent double detection of ad in frame and closing credits
+            if (markCriteria.GetClosingCreditsState(lastStop->position) >= CRITERIA_UNKNOWN) {
+                dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after logo end mark");
+                if (MoveLastStopAfterClosingCredits(lastStop)) {
+                    save = true;
+                    dsyslog("cMarkAdStandalone::ProcessOverlap(): moved logo end mark after closing credit");
                 }
             }
-            else dsyslog("cMarkAdStandalone::ProcessOverlap(): last stop mark (%d) is moved because of advertisement in frame, no closing credits can follow", lastStop->position);
         }
         // check border end mark
-        if ((lastStop->type == MT_HBORDERSTOP) || (lastStop->type == MT_MOVEDSTOP)) {
+        if ((lastStop->type == MT_HBORDERSTOP)) {
             dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after border or moved end mark");
             if (MoveLastStopAfterClosingCredits(lastStop)) {
                 save = true;

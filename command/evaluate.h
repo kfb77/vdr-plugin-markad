@@ -174,12 +174,6 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
  */
         void AddAdInFrame(const int startPosition, const int stopPosition);
 
-/**
- * get adinframe status
- * @param startPosition frame number of the adinframe
- * @return value of isAdInFrame
- */
-        int GetIsAdInFrame(const int startPosition);
 
 /**
  * get closing credits status
