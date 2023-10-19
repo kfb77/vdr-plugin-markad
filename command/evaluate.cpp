@@ -69,6 +69,8 @@ bool cEvaluateChannel::AdInFrameWithLogoChannel(const char *channelName) {
         (strcmp(channelName, "kabel_eins_HD")     != 0) &&
         (strcmp(channelName, "Pro7_MAXX")         != 0) &&
         (strcmp(channelName, "Pro7_MAXX_HD")      != 0) &&
+        (strcmp(channelName, "ProSieben")         != 0) &&
+        (strcmp(channelName, "ProSieben_HD")      != 0) &&
         (strcmp(channelName, "ProSieben_MAXX")    != 0) &&
         (strcmp(channelName, "ProSieben_MAXX_HD") != 0) &&
         (strcmp(channelName, "RTL2")              != 0) &&
@@ -84,7 +86,9 @@ bool cEvaluateChannel::AdInFrameWithLogoChannel(const char *channelName) {
         (strcmp(channelName, "VOX")               != 0) &&
         (strcmp(channelName, "VOX_HD")            != 0) &&
         (strcmp(channelName, "VOXup")             != 0) &&
-        (strcmp(channelName, "VOXup_HD")          != 0)) {
+        (strcmp(channelName, "VOXup_HD")          != 0) &&
+        (strcmp(channelName, "WELT")              != 0) &&
+        (strcmp(channelName, "WELT_HD")           != 0)) {
         return false;
     }
     return true;
@@ -1647,7 +1651,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): select best found possible ad in frame sequence before logo stop mark");
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): before possible ad in frame from (%d) to (%d), length %d frames", AdInFrame.startFinal, AdInFrame.endFinal, AdInFrame.endFinal - AdInFrame.startFinal);
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): last   possible ad in frame from (%d) to (%d), length %d frames", AdInFrame.start, AdInFrame.end, AdInFrame.end - AdInFrame.start);
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): stopOffset %dms, AD_IN_FRAME_STOP_OFFSET_MAX %dms", stopOffset, AD_IN_FRAME_START_OFFSET_MAX);
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): stopOffset %dms, AD_IN_FRAME_START_OFFSET_MAX %dms", stopOffset, AD_IN_FRAME_START_OFFSET_MAX);
         if (((AdInFrame.end - AdInFrame.start) > (AdInFrame.endFinal - AdInFrame.startFinal)) ||
             (stopOffset > AD_IN_FRAME_STOP_OFFSET_MAX)) {  // adinframe before logo stop must be near logo stop
             AdInFrame.startFinal      = AdInFrame.start;
@@ -1703,6 +1707,10 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         // example for no ad in frame (static scene with vertial or horizontal lines, blinds, windows frames or stairs):
         // best corner 663, second best corner 377, average of all corners 461   door frame in background (conflict)
         //
+        // best corner 787, second best corner 191, average of all corners 245   car in foreground
+        // best corner 782, second best corner 269, average of all corners 328   news ticker on buttom
+        // best corner 768, second best corner 442, average of all corners 420   static scene with blinds in background
+        // best corner 618, second best corner 563, average of all corners 385   door fram
         // best corner 607, second best corner   0, average of all corners 163
         // best corner 504, second best corner  85, average of all corners 196
         // best corner 500, second best corner  87, average of all corners 173
@@ -1715,7 +1723,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         // best corner 258, second best corner 200, average of all corners 231
         // best corner 249, second best corner  81, average of all corners 208
         //
-        if ((firstFramePortionQuote <= 607) && (secondFramePortionQuote <= 318) && (allFramePortionQuote <= 258)) {
+        if ((firstFramePortionQuote <= 787) && (secondFramePortionQuote <= 563) && (allFramePortionQuote <= 420)) {
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): not enought frame pixel found on best corner found, advertising in frame not valid");
             return -1;
         }
@@ -1731,6 +1739,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     // high matches quote 994, corner portion quote: 644, all corners portion quote: 285
     // high matches quote 992, corner portion quote: 525, all corners portion quote: 274
     // high matches quote 991, corner portion quote: 507, all corners portion quote: 245
+    // high matches quote 982, corner portion quote: 712, all corners portion quote: 252  NEW
     // high matches quote 975, corner portion quote: 447, all corners portion quote: 199
     // high matches quote 947, corner portion quote: 134, all corners portion quote: 111
     // high matches quote 855, corner portion quote: 265, all corners portion quote: 154
@@ -1747,7 +1756,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): corner %-12s: %4d high matches, high matches quote %3d: (of %2d frames)", aCorner[corner], isCornerLogo[corner], logoQuote, countFrames);
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo():                    : corner portion quote: %3d (of %3d frames)", framePortionQuote, AdInFrame.frameCountFinal);
         if (corner == maContext->Video.Logo.corner) continue;  // in logo corner we expect logo
-        if ((logoQuote >= 855) && (framePortionQuote <= 644) && (allFramePortionQuote <= 376)) {
+        if ((logoQuote >= 855) && (framePortionQuote <= 712) && (allFramePortionQuote <= 376)) {
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): additional logo found in corner %s", aCorner[corner]);
             countLogo++;
         }
@@ -1774,14 +1783,14 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
 
     // check advertising in frame
 #define AD_IN_FRAME_LENGTH_MAX 34680  // changed from 30720 to 34680
-#define AD_IN_FRAME_LENGTH_MIN  8880  // changed from 8280 to 8880
+#define AD_IN_FRAME_LENGTH_MIN  6960  // shortest ad in frame found 6960ms, changed from 8880 to 6960
     int startOffset = 1000 * (AdInFrame.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
     int stopOffset  = 1000 * (endPos - AdInFrame.endFinal) / maContext->Video.Info.framesPerSecond;
     int length      = 1000 * (AdInFrame.endFinal - AdInFrame.startFinal) / maContext->Video.Info.framesPerSecond;
     dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start (%d) end (%d)", AdInFrame.startFinal, AdInFrame.endFinal);
-    dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start offset %dms (expect <=%dms for start marks), stop offset %dms (expect <=%dms for stop mark), length %dms (expect >%dms and <=%dms)", startOffset, AD_IN_FRAME_START_OFFSET_MAX, stopOffset, AD_IN_FRAME_STOP_OFFSET_MAX, length, AD_IN_FRAME_LENGTH_MIN, AD_IN_FRAME_LENGTH_MAX);
+    dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start offset %dms (expect <=%dms for start marks), stop offset %dms (expect <=%dms for stop mark), length %dms (expect >=%dms and <=%dms)", startOffset, AD_IN_FRAME_START_OFFSET_MAX, stopOffset, AD_IN_FRAME_STOP_OFFSET_MAX, length, AD_IN_FRAME_LENGTH_MIN, AD_IN_FRAME_LENGTH_MAX);
 
-    if ((length > AD_IN_FRAME_LENGTH_MIN) && (length <= AD_IN_FRAME_LENGTH_MAX)) { // do not reduce min to prevent false positive, do not increase to detect 10s ad in frame
+    if ((length >= AD_IN_FRAME_LENGTH_MIN) && (length <= AD_IN_FRAME_LENGTH_MAX)) { // do not reduce min to prevent false positive, do not increase to detect 10s ad in frame
         if ((isStartMark && (startOffset <= AD_IN_FRAME_START_OFFSET_MAX)) ||      // an ad in frame with logo after start mark must be near start mark, changed from 5 to 4
            (!isStartMark && (stopOffset  <= AD_IN_FRAME_STOP_OFFSET_MAX))) {       // an ad in frame with logo before stop mark must be near stop mark
                                                                                    // maybe we have a preview direct after ad in frame and missed stop mark
