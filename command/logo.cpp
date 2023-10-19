@@ -318,8 +318,12 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.corner    = TOP_LEFT;                                           // "neue Folge" size matches as valid logo
     }
 
-    if (strcmp(maContext->Info.ChannelName, "DMAX") == 0) {                  // DMAX                    16:9  720W  576H:->  126W  74H TOP_LEFT
+    // DMAX                    16:9  720W  576H:->  126W  74H TOP_LEFT
+    // DMAX                    16:9  720W  576H:->  126W  76H TOP_LEFT
+    // DMAX                    16:9  720W  576H:->  128W  76H TOP_LEFT
+    if (strcmp(maContext->Info.ChannelName, "DMAX") == 0) {
         logo.widthMin  = 126;
+        logo.heightMax =  76;
     }
 
     // kabel_eins              16:9  720W  576H:->   88W  72H TOP_RIGHT
@@ -358,8 +362,10 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
 
     // Nick_Comedy_Central+1   16:9  720W  576H:->  138W  80H TOP_LEFT
     // Nick_Comedy_Central+1   16:9  720W  576H:->  144W  94H TOP_LEFT
+    // Nick_Comedy_Central+1   16:9  720W  576H:->  120W 116H TOP_RIGHT
     if (strcmp(maContext->Info.ChannelName, "Nick_Comedy_Central+1") == 0) {
-        logo.widthMin  = 138;
+        logo.widthMin  = 120;
+        logo.heightMax = 116;
     }
 
     if ((strcmp(maContext->Info.ChannelName, "n-tv") == 0) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
@@ -408,6 +414,13 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMin  = 168;
         logo.widthMax  = 214;
     }
+
+    // RTLup                   16:9  720W  576H:->  142W  68H TOP_LEFT
+    // RTLup                    4:3  720W  576H:->  166W  66H TOP_LEFT
+    if (strcmp(maContext->Info.ChannelName, "RTLup") == 0) {
+        logo.widthMax  = 166;
+    }
+
 
     // SIXX                    16:9  720W  576H:->  106W  54H TOP_RIGHT
     // SIXX                    16:9  720W  576H:->  118W  56H TOP_RIGHT
@@ -494,9 +507,12 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "3sat_HD") == 0) {
         logo.widthMax  = 185;
     }
-    if (strcmp(maContext->Info.ChannelName, "ARD-alpha_HD") == 0) {          // ARD-alpha_HD            16:9 1280W  720H:->  206W  76H TOP_LEFT
-        logo.heightMax  = 76;
+
+    // ARD_alpha_HD            16:9 1280W  720H:->  206W  76H TOP_LEFT
+    if (strcmp(maContext->Info.ChannelName, "ARD_alpha_HD") == 0) {
+        logo.widthMax  = 206;
     }
+
     if (strcmp(maContext->Info.ChannelName, "arte_HD") == 0) {               // arte_HD (vertical)      16:9 1280W  720H:->   88W 134H TOP_LEFT
                                                                              // arte_HD (horizontal)    16:9 1280W  720H:->  210W  70H TOP_LEFT
         logo.widthMin  =  88;
@@ -595,7 +611,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
             if (logo.widthMin  == 0) logo.widthMin  =  50; // arte                    16:9  720W  576H:->   50W 108H TOP_LEFT
             if (logo.widthMax  == 0) logo.widthMax  = 214; // RTLplus                  4:3  720W  576H:->  214W  66H TOP_LEFT
             if (logo.heightMin == 0) logo.heightMin =  48; // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT
-            if (logo.heightMax == 0) logo.heightMax = 112; // Welt_der_Wunder         16:9  720W  576H:->   96W 112H TOP_LEFT
+            if (logo.heightMax == 0) logo.heightMax = 116; // Nick_Comedy_Central+1   16:9  720W  576H:->  120W 116H TOP_RIGHT
             break;
         case 1280:
             if (logo.widthMin  == 0) logo.widthMin  =   88; // arte_HD (vertical)      16:9 1280W  720H:->   88W 134H TOP_LEFT
