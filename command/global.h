@@ -254,7 +254,7 @@ typedef struct sMarkAdMark {
  * array of new marks to add
  */
 typedef struct sMarkAdMarks {
-    static const int maxCount = 5; //!< maximum elements of the array
+    static const int maxCount = 6; //!< maximum elements of the array
                                    //!<
     int Count                 = 0; //!< current count of elements in the array
                                    //!<
