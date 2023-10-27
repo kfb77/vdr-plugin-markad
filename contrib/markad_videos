@@ -20,6 +20,7 @@ import shutil
 import atexit
 import pathlib
 import filecmp
+import glob
 
 
 
@@ -531,6 +532,9 @@ class CheckPath:
             if config.maxrecordings <= 0:
                 log.isyslog("maximum recording limit reached")
                 exit(0)
+            # remove debug pictures
+            for filename in glob.glob(self.ConvertPath(self.root) + "/F__*.pgm"):
+                os.remove(filename)
             config.maxrecordings -= 1
             cmd = '%s/markad --logocachedir=%s --loglevel=%i --autologo=%i --threads=%i --astopoffs=%i --priority=%i' % (config.bindir, config.logocachedir, config.markad_loglevel, config.autologo, config.threads, config.astopoffs, config.nice)
             if config.log2rec: cmd = cmd + " --log2rec"
