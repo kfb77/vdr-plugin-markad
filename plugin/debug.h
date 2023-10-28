@@ -12,9 +12,6 @@
 // debug pause und resume of markad process
 // #define DEBUG_PAUSE_CONTINUE
 
-// debug vdr locks
-// #define DEBUG_LOCKS
-
 // debug all VPS EIT events with runningStatus > 0 from <channel>
 // #define DEBUG_VPS_EIT "<channel>"
 
@@ -24,6 +21,10 @@
 // debug duplicate eventID
 // #define DEBUG_DUP_EVENTID
 
+// debug vdr locks
+// #define DEBUG_LOCKS
+
+#define LOCK_TIMEOUT 60000  // 0 for infinite wait
 
 #ifdef DEBUG_MEM
     #include <vdr/plugin.h>

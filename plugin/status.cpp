@@ -718,7 +718,7 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
 #ifdef DEBUG_LOCKS
         dsyslog("markad: GetEventID(): WANT   timers READ");
 #endif
-    if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
+    if (const cTimers *Timers = cTimers::GetTimersRead(StateKey, LOCK_TIMEOUT)) {
 #ifdef DEBUG_LOCKS
         dsyslog("markad: GetEventID(): LOCKED timers READ");
 #endif
@@ -739,6 +739,9 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
         }
 #if APIVERSNUM>=20301
     }
+    else {
+        esyslog("markad: cStatusMarkAd::GetEventID(): lock timers failed");
+    }
 #endif
     if (!timer) {
         esyslog("markad: cannot find timer for <%s>", Name);
@@ -751,13 +754,13 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
         return;
     }
     *timerStartTime = timer->StartTime();
-    *timerStopTime = timer->StopTime();
+    *timerStopTime  = timer->StopTime();
 
     if (!timer->Event()) {
         dsyslog("markad: cStatusMarkAd::GetEventID(): timer for %s has no event", Name);
     }
     else { // we found the event
-        const cEvent *event    = timer->Event();
+        const cEvent *event = timer->Event();
         if (event) {
             *eventID                  = event->EventID();
             *channelID                = event->ChannelID();
@@ -887,7 +890,7 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device, const char *FileName) {
 #ifdef DEBUG_LOCKS
         dsyslog("markad: LogoExists(): WANT timers READ");
 #endif
-    if (const cTimers *Timers = cTimers::GetTimersRead(StateKey)) {
+    if (const cTimers *Timers = cTimers::GetTimersRead(StateKey, LOCK_TIMEOUT)) {
 #ifdef DEBUG_LOCKS
         dsyslog("markad: LogoExists(): LOCKED timers READ");
 #endif
@@ -921,6 +924,9 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device, const char *FileName) {
         dsyslog("markad: LogoExists(): UNLOCK timers READ");
 #endif
         StateKey.Remove();
+    }
+    else {
+        esyslog("markad: cStatusMarkAd::LogoExists(): lock timers failed");
     }
 #endif
 
