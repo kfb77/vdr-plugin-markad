@@ -141,7 +141,6 @@ bool cEpgHandlerMarkad::HandleEvent(cEvent *Event) {
 
 int cStatusMarkAd::Get_EIT_EventID(const sRecordings *recording, const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *schedule, const bool nextEvent) {
 #if APIVERSNUM>=20301  // feature not supported with old VDRs
-    LOCK_SCHEDULES_READ
     tEventID eitEventID  = eitEvent->getEventId();
     if (nextEvent) event = schedule->GetFollowingEvent();
 
@@ -230,7 +229,6 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
         // for all types of events
         if ((eventID == recs[i].eventID) && (channelID == recs[i].channelID) && (runningStatus == 4) && (recs[i].eventNextID == 0)) {
             dsyslog("markad: StatusMarkAd::FindRecording(): index %d, eventID %4d, next event missing", i, recs[i].eventID);
-            LOCK_SCHEDULES_READ
             const cSchedule *schedule = NULL;
             if (eitEvent) schedule = Schedule;
             else schedule = event->Schedule();
@@ -763,7 +761,6 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
         if (event) {
             *eventID                  = event->EventID();
             *channelID                = event->ChannelID();
-            LOCK_SCHEDULES_READ
             const cSchedule *schedule = event->Schedule();
             if (schedule) {
                 const cEvent *eventNext = schedule->GetFollowingEvent();
