@@ -1407,8 +1407,10 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
     // calulate limit with hysteresis
     int maxBrightnessAll;
     int maxBrightnessLower;
+
     if (blackScreenStatus == BLACKSCREEN_INVISIBLE) maxBrightnessAll = BLACKNESS * maContext->Video.Info.width * maContext->Video.Info.height;
-    else maxBrightnessAll   = (BLACKNESS + 1) * maContext->Video.Info.width * maContext->Video.Info.height;
+    else maxBrightnessAll = (BLACKNESS + 1) * maContext->Video.Info.width * maContext->Video.Info.height;
+
     if (blackLowerStatus == BLACKLOWER_INVISIBLE) maxBrightnessLower = BLACKNESS * maContext->Video.Info.width * PIXEL_COUNT_LOWER;
     else maxBrightnessLower = (BLACKNESS + 1) * maContext->Video.Info.width * PIXEL_COUNT_LOWER;
 
@@ -1429,7 +1431,7 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
     }
     debugValAll   /= (maContext->Video.Info.width * maContext->Video.Info.height);
     debugValLower /= (maContext->Video.Info.width * PIXEL_COUNT_LOWER);
-    dsyslog("cMarkAdBlackScreen::Process(): frame (%d) blackness %3d (expect <%d for start, >%d for end), max pixel %d, lower %d", frameCurrent, debugValAll, BLACKNESS, BLACKNESS, debugMaxPixel, debugValLower);
+    dsyslog("cMarkAdBlackScreen::Process(): frame (%d): blackScreenStatus %d, blackness %3d (expect <%d for start, >%d for end), max pixel %3d, blackLowerStatus %d, lower %3d", frameCurrent, blackScreenStatus, debugValAll, BLACKNESS, BLACKNESS, debugMaxPixel, blackLowerStatus, debugValLower);
 #endif
     int valAll   = 0;
     int valLower = 0;
@@ -1438,11 +1440,10 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
         for (int y = 0; y < maContext->Video.Info.height; y++) {
             int pixel = maContext->Video.Data.Plane[0][x + y * maContext->Video.Data.PlaneLinesize[0]];
             valAll += pixel;
-            if (y > maContext->Video.Info.height - PIXEL_COUNT_LOWER) valLower += pixel;
+            if (y > (maContext->Video.Info.height - PIXEL_COUNT_LOWER)) valLower += pixel;
             if (pixel > maxPixel) maxPixel = pixel;
-            if ((valAll   > maxBrightnessAll) &&
-                (valLower > maxBrightnessLower) &&
-               ((valAll   > maxBrightnessGrey) || (maxPixel > 73))) {  // TLC use one dark grey separator picture between broadcasts, changed from 50 to 73
+            if ((valAll > maxBrightnessAll) &&
+               ((valAll > maxBrightnessGrey) || (maxPixel > 73))) {  // TLC use one dark grey separator picture between broadcasts, changed from 50 to 73
                 // full blackscreen invisible
                 if (blackScreenStatus != BLACKSCREEN_INVISIBLE) {
                     int ret = BLACKSCREEN_INVISIBLE;
@@ -1450,6 +1451,8 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
                     blackScreenStatus = BLACKSCREEN_INVISIBLE;
                     return ret; // detected stop of black screen
                 }
+            }
+            if ((valLower > maxBrightnessLower) && (blackScreenStatus == BLACKSCREEN_INVISIBLE)) {  // only report if no active blackscreen
                 // lower black border invisible
                 if (blackLowerStatus != BLACKLOWER_INVISIBLE) {
                     int ret = BLACKLOWER_INVISIBLE;
@@ -1461,14 +1464,14 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
             }
         }
     }
-    // full blackscreen visible
+    // now full blackscreen visible
     if (((valAll <= maxBrightnessAll) || ((valAll <= maxBrightnessGrey) && (maxPixel <= 73))) && (blackScreenStatus != BLACKSCREEN_VISIBLE)) {
         int ret = BLACKSCREEN_VISIBLE;
         if (blackScreenStatus == BLACKSCREEN_UNINITIALIZED) ret = BLACKSCREEN_NOCHANGE;
         blackScreenStatus = BLACKSCREEN_VISIBLE;
         return ret; // detected start of black screen
     }
-    // lower black border visible, only report lower black border if we have no full black screen
+    // now lower black border visible, only report lower black border if we have no full black screen
     if (blackLowerStatus != BLACKLOWER_VISIBLE) {
         int ret = BLACKLOWER_VISIBLE;
         if (blackLowerStatus == BLACKSCREEN_UNINITIALIZED) ret = BLACKSCREEN_NOCHANGE;
