@@ -786,7 +786,7 @@ int cMarkAdStandalone::CheckStop() {
         }
     }
     if (!end) { // try to get hborder start mark from next broadcast as stop mark
-        cMark *hBorderStart = marks.GetNext(iStopA, MT_HBORDERSTART);
+        cMark *hBorderStart = marks.GetNext((iStopA - (4 *  macontext.Video.Info.framesPerSecond)), MT_HBORDERSTART);  // accept 4s before iStopA
         if (hBorderStart) {
             dsyslog("cMarkAdStandalone::CheckStop(): use hborder start mark (%d) from next broadcast as end mark", hBorderStart->position);
             end = marks.ChangeType(hBorderStart, MT_STOP);
