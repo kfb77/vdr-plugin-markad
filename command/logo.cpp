@@ -1470,13 +1470,14 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
     struct timeval startTime;
     struct timeval stopTime;
 
-    int  iFrameNumber   = 0;
-    int  iFrameCountAll = 0;
-    int  logoHeight     = 0;
-    int  logoWidth      = 0;
-    bool retStatus      = true;
-    bool readNextFile   = true;
-    int  maxLogoPixel   = 0;
+    int  iFrameNumber     = 0;
+    int  iFrameCountAll   = 0;
+    int  logoHeight       = 0;
+    int  logoWidth        = 0;
+    bool retStatus        = true;
+    bool readNextFile     = true;
+    int  maxLogoPixel     = 0;
+    bool resetAspectRatio = false;
 
 
     gettimeofday(&startTime, NULL);
@@ -1592,6 +1593,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
                     }
 
                     if ((logoAspectRatio.num == 0) || (logoAspectRatio.den == 0)) {
+                        resetAspectRatio    = true;
                         logoAspectRatio.num = maContext->Video.Info.AspectRatio.num;
                         logoAspectRatio.den = maContext->Video.Info.AspectRatio.den;
                         dsyslog("cExtractLogo::SearchLogo(): aspect ratio set to %d:%d", logoAspectRatio.num, logoAspectRatio.den);
@@ -1826,7 +1828,13 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
     delete vborder;
 
     if (retStatus) dsyslog("cExtractLogo::SearchLogo(): finished successfully, last frame %i", iFrameNumber);
-    else dsyslog("cExtractLogo::SearchLogo(): failed, last frame %i", iFrameNumber);
+    else {
+        dsyslog("cExtractLogo::SearchLogo(): failed, last frame %i", iFrameNumber);
+        if (resetAspectRatio) {
+            logoAspectRatio.num = maContext->Video.Info.AspectRatio.num;
+            logoAspectRatio.den = maContext->Video.Info.AspectRatio.den;
+        }
+    }
     dsyslog("----------------------------------------------------------------------------");
     gettimeofday(&stopTime, NULL);
     time_t sec = stopTime.tv_sec - startTime.tv_sec;
