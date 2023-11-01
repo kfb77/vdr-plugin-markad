@@ -894,8 +894,13 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     // to very bright pictures, so ignore them...
     int brightnessState = BRIGHTNESS_UNINITIALIZED;
     int contrastReduced = -1;
+#define AREA_INTENSITY_NO_TRUST 70 // we do not trust very close result under this area intensity
+#define QUOTE_NO_TRUST        0.75 // at least this quote of matches we should have
+#define AREA_INTENSITY_TRUST    54 // we trust detection, use higher invisable value
+#define QUOTE_TRUST              2 // uplift factor for logo invisable threshold
     if (processed == 1) {   // we have only 1 plane (no coloured logo
 
+        if (area.intensity <= AREA_INTENSITY_TRUST) logo_imark *= QUOTE_TRUST;  // in dark scene we can use stronger detection, don't miss logo invisable for down shiftet logo in add (Pro7_MAXX)
         // prevent to detect logo start on very bright background, this is not possible
         if ((area.status == LOGO_INVISIBLE) && (rPixel > (mPixel * logo_vmark)) && area.intensity >= 218) {  // possible state change from invisible to visible
 #ifdef DEBUG_LOGO_DETECTION
@@ -923,8 +928,6 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 #define MAX_AREA_INTENSITY 69  // change from 73 to 69
                                // notice: there can be very bright logo parts in dark areas, this will result in a lower brightness
                                // we handle this cases in ReduceBrightness() when we detect contrast
-#define AREA_INTENSITY_NO_TRUST 70 // we do not trust very close result under this area intensity
-#define QUOTE_NO_TRUST 0.75        // at least this quote of matches we should have
         if (((area.intensity > MAX_AREA_INTENSITY) ||                                            // if area is bright
             // if we have a change from logo visable to logo invisable with very close result, verify it
             ((area.intensity >= AREA_INTENSITY_NO_TRUST) && (area.status == LOGO_VISIBLE) && (rPixel < (mPixel * logo_imark)) && (rPixel > (QUOTE_NO_TRUST * mPixel * logo_imark))) ||
