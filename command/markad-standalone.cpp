@@ -2247,10 +2247,10 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                 int lengthFirstAd       = 1000 * (secondStart->position - firstStop->position) / macontext.Video.Info.framesPerSecond;
                 int newDiffAfterAssumed = (secondStart->position - iStart)              / macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::CheckMarks(): first logo stop mark (%d), next logo start mark (%d), length ad %dms, start %ds after assumed start", firstStop->position, secondStart->position, lengthFirstAd, newDiffAfterAssumed);
-                if ((lengthFirstAd >= 800)  && (lengthFirstAd <= 41520) && (newDiffAfterAssumed <= 387)) {  // changed from 840 to 800
-                                                                                                            // changed from 41000 to 41520
-                                                                                                            // changed from 365 to 387
-                                                                                                            // very short first ad is logo detection failure
+                if ((lengthFirstAd >= 800)  && (lengthFirstAd <= 41520) && (newDiffAfterAssumed < 371)) {  // changed from 840 to 800
+                                                                                                           // changed from 41000 to 41520
+                                                                                                           // changed from 387 to 371 (undetected logo change)
+                                                                                                           // very short first ad is logo detection failure
                     dsyslog("cMarkAdStandalone::CheckMarks(): first ad too short for in broadcast, delete start (%d) and stop (%d) mark", firstStart->position, firstStop->position);
                     marks.Del(firstStart->position);
                     marks.Del(firstStop->position);
