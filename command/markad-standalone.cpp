@@ -478,6 +478,9 @@ int cMarkAdStandalone::CheckStop() {
         }
         aStart = marks.GetNext(aStart->position, MT_ASPECTSTART);
     }
+    // remove logo change marks
+    if (markCriteria.GetMarkTypeState(MT_CHANNELCHANGE) >= CRITERIA_UNKNOWN) RemoveLogoChangeMarks();
+
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStop(): marks after first cleanup:");
     DebugMarks();     //  only for debugging
@@ -555,8 +558,6 @@ int cMarkAdStandalone::CheckStop() {
 
 // try MT_LOGOSTOP
     if (!end) {  // try logo stop mark
-        // remove logo change marks
-        RemoveLogoChangeMarks();
         // try to select best logo end mark based on long black screen mark around
         dsyslog("cMarkAdStandalone::CheckStop(): search for best logo end mark (based on black screen around)");
         cMark *lEnd = marks.GetAround(60 * macontext.Video.Info.framesPerSecond, iStopA, MT_LOGOSTOP);
