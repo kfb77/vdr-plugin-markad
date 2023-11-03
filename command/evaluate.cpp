@@ -133,7 +133,7 @@ cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
 void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maContext, cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA) {
     if (!marks) return;
 
-#define LOGO_CHANGE_NEXT_STOP_MIN     7000  // in ms, do not increase, 7s is the shortest found distance between two logo changes
+#define LOGO_CHANGE_NEXT_STOP_MIN     6840  // in ms, do not increase, 6840ms is the shortest found distance between two logo changes
                                             // next stop max (=lenght next valid broadcast) found: 1242s
 #define LOGO_CHANGE_IS_ADVERTISING_MIN 300  // in s
 #define LOGO_CHANGE_IS_BROADCAST_MIN   240  // in s
