@@ -1391,7 +1391,7 @@ void cMarkAdBlackScreen::Clear() {
 //          1 blackscreen end (notice: this is a START mark)
 //
 int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) {
-#define BLACKNESS 17  // maximum brightness to detect a blackscreen, +1 to detect end of blackscreen
+#define BLACKNESS 19  // maximum brightness to detect a blackscreen, +1 to detect end of blackscreen, changed from 17 to 19 because of undetected black screen
     if (!maContext) return 0;
     if (!maContext->Video.Data.valid) return 0;
     if (maContext->Video.Info.framesPerSecond == 0) return 0;
