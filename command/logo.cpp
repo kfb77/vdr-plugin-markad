@@ -1763,7 +1763,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
         }
 
         if ((bestLogoCorner >= 0) &&
-          ((((bestLogoInfo.hits >= 14) && force) || // this is the very last try, use what we have, bettet than nothing, chaned from 14 to 8
+          ((((bestLogoInfo.hits >= 12) && force) || // this is the very last try, use what we have, bettet than nothing, changed from 14 to 12
             ((bestLogoInfo.hits >=  2) && (sumHits <= bestLogoInfo.hits + 1))) ||  // changed from 6 to 2
              (bestLogoInfo.hits >= 50) || // we have a good result
             ((bestLogoInfo.hits >= 40) && (sumHits <= bestLogoInfo.hits + 10)) ||  // if most hits are in the same corner than less are enough
