@@ -45,6 +45,7 @@ bool cEvaluateChannel::ClosingCreditsChannel(const char *channelName) {
     // for performance reason only known and tested channels
     if ((strcmp(channelName, "kabel_eins")    != 0) &&
         (strcmp(channelName, "kabel_eins_HD") != 0) &&
+        (strcmp(channelName, "krone_tv")      != 0) &&
         (strcmp(channelName, "SAT_1")         != 0) &&
         (strcmp(channelName, "SAT_1_HD")      != 0) &&
         (strcmp(channelName, "SIXX")          != 0) &&
