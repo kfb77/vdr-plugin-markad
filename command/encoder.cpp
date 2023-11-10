@@ -768,7 +768,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
 
     codecCtxArrayOut[streamIndexOut]->thread_count = threadCount;
     if (avcodec_open2(codecCtxArrayOut[streamIndexOut], codec, NULL) < 0) {
-        dsyslog("cEncoder::InitEncoderCodec(): avcodec_open2 for stream %i failed", streamIndexOut);
+        esyslog("cEncoder::InitEncoderCodec(): avcodec_open2 for stream %d failed", streamIndexOut);
         dsyslog("cEncoder::InitEncoderCodec(): call avcodec_free_context for stream %d", streamIndexOut);
         FREE(sizeof(*codecCtxArrayOut[streamIndexOut]), "codecCtxArrayOut[streamIndex]");
         avcodec_free_context(&codecCtxArrayOut[streamIndexOut]);
