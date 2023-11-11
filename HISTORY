@@ -2,7 +2,7 @@ VDR Plugin 'markad' Revision History
 ----------------------------------
 
 2023-11-11: Version 3.4.0
-- new feature: decect black lower border with text (closing credits) as end
+- new feature: detect black lower border with text (closing credits) as end
 - tune thresholds for black screen, silence and scene change optimization
 - plugin: remove unnecessary LOCK_SCHEDULES_READ
 - plugin: use timeout for locks
