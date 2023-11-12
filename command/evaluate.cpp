@@ -13,9 +13,7 @@
 
 bool cEvaluateChannel::IsInfoLogoChannel(const char *channelName) {
     // for performance reason only known and tested channels
-    if ((strcmp(channelName, "kabel_eins")    != 0) &&
-        (strcmp(channelName, "kabel_eins_HD") != 0) &&
-        (strcmp(channelName, "DMAX")          != 0) &&
+    if ((strcmp(channelName, "DMAX")    != 0) &&
         (strcmp(channelName, "DMAX_HD")       != 0) &&
         (strcmp(channelName, "SIXX")          != 0) &&
         (strcmp(channelName, "SIXX_HD")       != 0) &&
