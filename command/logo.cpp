@@ -418,6 +418,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     // RTLup                   16:9  720W  576H:->  142W  68H TOP_LEFT
     // RTLup                    4:3  720W  576H:->  166W  66H TOP_LEFT
     if (strcmp(maContext->Info.ChannelName, "RTLup") == 0) {
+        logo.widthMin  = 142;
         logo.widthMax  = 166;
     }
 
@@ -485,9 +486,12 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "TOGGO_plus") == 0) {            // TOGGO_plus              16:9  720W  576H:->  104W  56H TOP_LEFT
         logo.heightMin =  56;
     }
-    if (strcmp(maContext->Info.ChannelName, "VOX") == 0) {                   // VOX                     16:9  720W  576H:->  108W  70H TOP_LEFT
-                                                                             // VOX                      4:3  720W  576H:->  126W  70H TOP_LEFT
+
+    // VOX                     16:9  720W  576H:->  108W  70H TOP_LEFT
+    // VOX                      4:3  720W  576H:->  126W  70H TOP_LEFT
+    if (strcmp(maContext->Info.ChannelName, "VOX") == 0) {
         logo.heightMin =  70;
+        logo.heightMax =  70;
     }
 
     // WELT                    16:9  720W  576H:->  226W  62H BOTTOM_LEFT
