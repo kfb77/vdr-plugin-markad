@@ -1873,6 +1873,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
         }
         // examples of separator frames before introduction logo
         //  59     0     0    -1 =  58
+        //  48    14     0     0 =  62  NEW
         //  -1   325(l)  0     0 = 324  // fading out logo on black sceen between broadcast before and introduction logo, logo start mark is after introduction logo (conflict)
         //  -1  1000(l) -1    -1 = 997  // black screen with logo, last frame from previous broadcast
         //
@@ -1885,8 +1886,10 @@ int cDetectLogoStopStart::IntroductionLogo() {
         //   0    74(l)   0     0 =  74
         //   0    65(l)   0    -1 =  64
         // new separator image before introduction logo, restart detection
-        if (((countNoMatch >= 3) && (sumPixel <   64)) ||  // changed from 74 to 64
-            ((countNoPixel == 3) && (sumPixel == 997))) {  // special case blackscreen with logo, end of previous broadcast
+        if (((countNoMatch == 2) && (sumPixel <   63)) ||
+            ((countNoMatch >= 3) && (sumPixel <   64)) ||  // changed from 74 to 64
+            ((countNoPixel == 3) && (sumPixel == 997) && (introductionLogo.start == -1))) {  // special case blackscreen with logo, end of previous broadcast
+                                                                                             // but not if we have a detected seperator, prevent false detection of black screen in boradcast
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
             dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator before introduction found at frame (%5d)", (*cornerResultIt).frameNumber1);
 #endif
@@ -1910,6 +1913,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
         //
         //  0    24    102     9 = 135
         //  0   109(l)   0    15 = 124
+        //  2    79(l)   0     0 =  81  NEW
         //
         //  0   540      0     0 = 540  dark scene with introduction logo (conflict)
         //  0   147      0     0 = 147
@@ -1925,7 +1929,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
         if ((separatorFrameBefore >= 0) &&
            (((countNoMatch == 0) && (sumPixel <= 105)) ||
             ((countNoMatch == 1) && (sumPixel <   93)) ||
-            ((countNoMatch == 2) && (sumPixel <  124)) ||
+            ((countNoMatch == 2) && (sumPixel <   81)) ||   // changed from 124 to 81
             ((countNoMatch >= 3) && (sumPixel <   64)))) {  // changed from 74 to 64
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
             dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator after introduction found at frame (%5d)", (*cornerResultIt).frameNumber1);
@@ -1939,14 +1943,14 @@ int cDetectLogoStopStart::IntroductionLogo() {
             if (stillImage.start == -1) {
                 stillImage.start = (*cornerResultIt).frameNumber1;
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
-                dsyslog("cDetectLogoStopStart::IntroductionLogo(): still image start at frame (%5d)", stillImage.start);
+//                dsyslog("cDetectLogoStopStart::IntroductionLogo(): still image start at frame (%5d)", stillImage.start);
 #endif
             }
             stillImage.end = (*cornerResultIt).frameNumber2;
         }
         else {
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
-            if (stillImage.end >= 0) dsyslog("cDetectLogoStopStart::IntroductionLogo(): still image end at frame (%5d)", stillImage.end);
+//            if (stillImage.end >= 0) dsyslog("cDetectLogoStopStart::IntroductionLogo(): still image end at frame (%5d)", stillImage.end);
 #endif
             if ((stillImage.end - stillImage.start) >= (stillImage.endFinal - stillImage.startFinal)) {
                 stillImage.startFinal = stillImage.start;
@@ -1958,7 +1962,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
 
         // detect introduction logo
         if (separatorFrameBefore >= 0) { // introduction logo start is after seperator frame
-            if ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 144) { // changed from 162 to 144 (change from intro logo to normal logo)
+            if ((*cornerResultIt).rate[maContext->Video.Logo.corner] > 99) { // changed from 135 to 99 (change from one intro logo to another intro logo, kabel eins)
                 if (introductionLogo.start == -1) introductionLogo.start = (*cornerResultIt).frameNumber1;
                 introductionLogo.end = (*cornerResultIt).frameNumber2;
             }
@@ -1967,6 +1971,9 @@ int cDetectLogoStopStart::IntroductionLogo() {
                     introductionLogo.startFinal = introductionLogo.start;
                     introductionLogo.endFinal   = introductionLogo.end;
                 }
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
+                dsyslog("cDetectLogoStopStart::IntroductionLogo(): end of introduction logo becaue too low logo corner match");
+#endif
                 introductionLogo.start = -1;
                 introductionLogo.end   = -1;
             }
