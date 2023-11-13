@@ -4295,12 +4295,12 @@ void cMarkAdStandalone::SilenceOptimization() {
                         maxAfter = 227620;  // changed from 55600 to 227620
                         break;
                     case MT_LOGOSTART:
-                        maxAfter = 12880;  // changed from 6239 to 12880, false detected, too early logo start from patten background
+                        maxAfter = 18799;  // silence in broadcast 18800ms after logo start
                         break;
                     case MT_MOVEDSTART:
                         switch (mark->newType) {
                             case MT_VPSSTART:
-                                maxAfter = 123760;  // changeed from 50919 to 123760
+                                maxAfter = 57079;  // first silence in broadcast 57080ms after start
                                 break;
                             default:
                                 maxAfter = 0;
@@ -4344,7 +4344,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 int maxAfter = 0;
                 switch (mark->type) {
                     case MT_ASSUMEDSTOP:
-                        maxAfter = 303760;
+                        maxAfter = 135719;  // silence in next broadcast after 135720ms
                         break;
                     case MT_LOGOSTOP:
                         // select best mark (before / after), defaut: before
@@ -4355,6 +4355,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                         maxAfter = 4359;  // silence after seperator picture 4360ms after stop
                         if ((strcmp(macontext.Info.ChannelName, "Nickelodeon") == 0) ||
                             (strcmp(macontext.Info.ChannelName, "Disney_Channel") == 0)) maxAfter = 7960;  // very early fade out logo channels
+                        if ((mark->position == marks.GetLast()->position) && (strcmp(macontext.Info.ChannelName, "TLC") == 0)) maxAfter = 31640;  // long closing credits without logo and without frame
                         break;
                     case MT_MOVEDSTOP:
                         switch (mark->newType) {
