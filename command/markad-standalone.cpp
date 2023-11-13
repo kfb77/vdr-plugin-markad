@@ -3661,8 +3661,12 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 switch (mark->type) {
                     case MT_LOGOSTART:
                         // select best mark (before (length)/ after (length)), defaut: before
+                        // 3020 (120) / <20> (120)   black screen before and after separator
+                        // 2020 (120) / <40> (140)   black screen before and after separator
+                        if ((diffBefore >= 2020) && (diffAfter <= 40)) diffBefore = INT_MAX;  // black screen before and after separator
                         if ((lengthBefore >= 1640) && (diffBefore <= 8640)) maxBefore = 8640;
                         else maxBefore = 5399;  // do not increase, will get black screen before last ad
+                        if (lengthBefore <= 40) maxBefore = 4299;  // black screen before preview 4300ms (40) before logo stop
                         break;
                     case MT_CHANNELSTART:
                         maxBefore = 1240;   // changed from 80 to 1240
@@ -3670,7 +3674,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     case MT_MOVEDSTART:
                         switch (mark->newType) {
                             case MT_INTRODUCTIONSTART:
-                                maxBefore = 4920;  // changed from 2880 to 4920
+                                maxBefore = 4599;  // black screen before preview 4600ms before introduction logo
                                 break;
                             case MT_VPSSTART:
                                 // select best mark (before / after), defaut: before
@@ -3723,7 +3727,10 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         }
                         break;
                     case MT_CHANNELSTART:
-                        maxAfter = 2320;   // changed from 1640 to 2140 to 2320
+                        maxAfter = 4319;   // black sceen after start of broadcast 4320ms (3840)
+                        break;
+                    case MT_ASPECTSTART:
+                        maxAfter = 1000;   // valid black screen 1000ms (650)
                         break;
                     default:
                         maxAfter = -1;
@@ -3788,10 +3795,23 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         break;
                     case MT_LOGOSTOP:
                         // select best mark (before (length) / after (length)), defaut: after
-                        if ((diffBefore <= 5920) && (lengthBefore >= 140)) diffAfter = INT_MAX;
+                        //   <20> (100) / 4000 (120)  second blackscreen after separator
+                        //  <600> (640) / 3240  (80)  second blackscreen after preview
+                        // <2480> (600) / 2680 (320)  second blackscreen after preview
+                        // <2680> (760) /  160 (120)  second blackscreen after preview
+                        //
+                        // 231760 (520) / 2920  (80)  black screen after preview (SIXX)
+                        //                5040 (160)  black screen after preview
+                        if ((diffBefore <= 5920) && (lengthBefore >= 100) && (diffAfter >= 160) && (lengthAfter <= 320)) diffAfter = INT_MAX;   // first blackscreen before logo end and second after separator/preview
                         else if ((mark->position != marks.GetLast()->position) && (diffAfter >= 3360) && (lengthAfter <= 40)) diffAfter = INT_MAX;
                         else if ((diffBefore <= 3000) && (diffAfter >= 6120)) diffAfter = INT_MAX;
-                        maxAfter =  5040;  // changed from 4920 to 5040 (160), TELE5 fade out logo
+
+                        if (diffBefore >= 231760) {  // no black screen near before
+                            if ((diffAfter >= 2920) && (lengthAfter <= 80)) diffAfter = INT_MAX;        // near short black screen from preview after logo stop
+                            else if ((diffAfter >= 5040) && (lengthAfter <= 160)) diffAfter = INT_MAX;  // long black screen from preview after logo stop
+                        }
+                        maxAfter =  5039;
+                        if ((mark->position == marks.GetLast()->position) && (strcmp(macontext.Info.ChannelName, "TLC") == 0)) maxAfter = 32400;  // long closing credits without logo and without frame
                         break;
                     case MT_MOVEDSTOP:
                         switch (mark->newType) {
@@ -3801,10 +3821,13 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                                 maxAfter = 26059;   // black screen in after preview after 26060ms
                                 break;
                             case MT_CLOSINGCREDITSSTOP:
-                                maxAfter = 7200;   // chnaged from 100 to 7200
+                                maxAfter = 11040;   // chnaged from 7200 to 11040 (incomplete detected closing credits)
                                 break;
                             case MT_NOADINFRAMESTOP:
                                 maxAfter = 3439;
+                                break;
+                            case MT_TYPECHANGESTOP:
+                                maxAfter = 560;   // length 15360ms from closing credits
                                 break;
                             default:
                                 maxAfter = -1;
