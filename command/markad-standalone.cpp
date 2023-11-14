@@ -3970,7 +3970,7 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                     case MT_MOVEDSTART:
                         switch (mark->newType) {
                             case MT_VPSSTART:
-                                maxAfter = 123880;  // changed from 105480 to 123880
+                                maxAfter = 161480;  // changed from 123880 to 161480
                                 break;
                             default:
                                 maxAfter = -1;
