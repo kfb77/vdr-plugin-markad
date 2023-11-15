@@ -1291,11 +1291,14 @@ void cMarkAdStandalone::CheckStart() {
     //                  stop  aspect ratio       at 0:00:00.00, inBroadCast 0 (start previous broadcast 4:3, double episodes without ad in between)
     //                  start aspect ratio       at 0:07:53.88, inBroadCast 1 (stop broadcast, start of ad 16:9)
     //
-    // valid example:   stop  aspect ratio       at 0:00:00.00, inBroadCast 0 (start of previos recording 4:3)
+    // valid example:   stop  aspect ratio       at 0:00:00.00, inBroadCast 0 (start of previous recording 4:3)
     //                  start aspect ratio       at 0:02:26.63, inBroadCast 1 (end of previous 4:3 recording, start of ad)
     //
     //                  stop  aspect ratio       at 0:00:42.00, inBroadCast 0 (start of previous 4:3 broadcast after 16:9 ad
-    //                  start aspect ratio       at 0:04:28.72, inBroadCast 1 (end of previous 4:3 broadcast (length 226s)
+    //                  start aspect ratio       at 0:04:28.72, inBroadCast 1 (end of previous 4:3 broadcast, length 226s)
+    //
+    //                  stop  aspect ratio       at 0:00:18.20, inBroadCast 0 (start of previous recording 4:3)
+    //                  start aspect ratio       at 0:04:59.83, inBroadCast 1 (end of previous 4:3 recording, start of ad, length 281s)
     //
     if (!macontext.Info.checkedAspectRatio && (macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
         cMark *aspectStop = marks.GetNext(-1, MT_ASPECTSTOP);
@@ -1304,7 +1307,7 @@ void cMarkAdStandalone::CheckStart() {
             if (aspectStart) {
                 int adLength = (aspectStart->position - aspectStop->position) / macontext.Video.Info.framesPerSecond;
                 dsyslog("cMarkAdStandalone::CheckStart(): length of first ad: %ds", adLength);
-                if (((aspectStop->position > 0) && aspectStop->position < (41 * macontext.Video.Info.framesPerSecond)) || // 4:3 recording
+                if (((aspectStop->position > 0) && aspectStop->position < (18 * macontext.Video.Info.framesPerSecond)) || // add -> prev 4:3 recording -> add or 16:9 broadcast
                     (aspectStop->position == 0) && (adLength >= 473)) {  // previous 4:3 recording too long, must be double episodes without ad in between, changed from 600 to 473
                     dsyslog("cMarkAdStandalone::CheckStart(): vdr info file tells 16:9 but we have aspect ratio stop (%d) and start (%d), info is invalid", aspectStop->position, aspectStart->position);
                     SwapAspectRatio();
