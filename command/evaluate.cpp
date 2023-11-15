@@ -161,15 +161,15 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): stop (%d) start (%d) pair", logoPairIterator->stopPosition, logoPairIterator->startPosition);
         // check for info logo section
         if (IsInfoLogoChannel(maContext->Info.ChannelName)) IsInfoLogo(marks, blackMarks, &(*logoPairIterator), maContext->Video.Info.framesPerSecond, iStart);
-        else logoPairIterator->isInfoLogo = STATUS_NO;
+        else logoPairIterator->isInfoLogo = STATUS_DISABLED;
 
         // check for logo change section
         if (IsLogoChangeChannel(maContext->Info.ChannelName)) IsLogoChange(marks, &(*logoPairIterator), maContext->Video.Info.framesPerSecond, iStart, chkSTART);
-        else logoPairIterator->isLogoChange = STATUS_NO;
+        else logoPairIterator->isLogoChange = STATUS_DISABLED;
 
         // check for closing credits section
         if (ClosingCreditsChannel(maContext->Info.ChannelName)) IsClosingCredits(marks, &(*logoPairIterator));
-        else logoPairIterator->isClosingCredits = STATUS_NO;
+        else logoPairIterator->isClosingCredits = STATUS_DISABLED;
 
         // global informations about logo pairs
         // mark after pair

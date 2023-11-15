@@ -18,10 +18,11 @@
  * evaluate stop/start pair status
  */
 enum eEvaluateStatus {
-    STATUS_ERROR   = -2,
-    STATUS_NO      = -1,
-    STATUS_UNKNOWN =  0,
-    STATUS_YES     =  1
+    STATUS_ERROR    = -3,
+    STATUS_DISABLED = -2,
+    STATUS_NO       = -1,
+    STATUS_UNKNOWN  =  0,
+    STATUS_YES      =  1
 };
 
 
