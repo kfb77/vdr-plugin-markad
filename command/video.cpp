@@ -1711,7 +1711,7 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
 #ifdef DEBUG_VBORDER
                 minBrightness = std::min(brightness, minBrightness);
                 maxBrightness = std::max(brightness, maxBrightness);
-                dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d) has a dark picture: %d, delay vborder start at (%7d), minBrightnexx %d, maxBrightnexx %d", frameNumber, brightness, darkFrameNumber, minBrightness, maxBrightness);
+                dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d) has a dark picture: %d, delay vborder start at (%7d), minBrightness %d, maxBrightness %d", frameNumber, brightness, darkFrameNumber, minBrightness, maxBrightness);
 #endif
             }
             else {
