@@ -172,8 +172,16 @@ class cMarkAdStandalone : public cEvaluateChannel {
         void SwapAspectRatio();
 
 /**
+ * check if separator slience before logo start mark
+ * @param mark mark to check
+ * @return true if separator found
+ */
+        bool HaveSilenceSeparator(const cMark *mark);
+
+/**
  * check if separator black screen before logo start mark / around logo stop mark
  * @param mark mark to check
+ * @return true if separator found
  */
         bool HaveBlackSeparator(const cMark *mark);
 
