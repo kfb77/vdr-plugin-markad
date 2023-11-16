@@ -203,6 +203,11 @@ class cMarkAdStandalone : public cEvaluateChannel {
         cMark *Check_VBORDERSTOP();
 
 /**
+ * check for logo end mark
+ */
+        cMark *Check_LOGOSTOP();
+
+/**
  * cleanup undetected info logo before end mark
  */
         void CleanupUndetectedInfoLogo(const cMark *end);

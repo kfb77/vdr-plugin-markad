@@ -376,6 +376,233 @@ cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
 }
 
 
+// try MT_LOGOSTOP
+cMark *cMarkAdStandalone::Check_LOGOSTOP() {
+    cMark *end = NULL;
+    // try to select best logo end mark based on long black screen mark around
+    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for best logo end mark (based on black screen around)");
+    cMark *lEnd = marks.GetAround(263 * macontext.Video.Info.framesPerSecond, iStopA, MT_LOGOSTOP);  // changed from 60 to 263 for too long recording length from vdr info
+    if (lEnd && HaveBlackSeparator(lEnd)) end = lEnd;
+    if (lEnd && !end) {
+        lEnd = marks.GetPrev(lEnd->position, MT_LOGOSTOP);   // try logo end mark before
+        if (lEnd) {
+            int diffEnd = (iStopA - lEnd->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): previous logo stop (%d) %ds before assumed end (%d)", lEnd->position, diffEnd, iStopA);
+            if ((diffEnd < 1360) && HaveBlackSeparator(lEnd)) end = lEnd;
+        }
+    }
+    if (end) {
+        dsyslog("cMarkAdStndalone::Check_LOGOSTOP(): found logo end mark based on black screen around at (%d)", end->position);
+        marks.DelFromTo(end->position - (60 * macontext.Video.Info.framesPerSecond), end->position - 1, MT_LOGOCHANGE);  // delete info logo/log changes at end
+        return end;
+    }
+
+    // cleanup very short start/stop pairs around possible end marks, these are logo detection failures
+    LogSeparator(false);
+    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for best logo end mark (cleanup very short logo start/stop pairs around possible logo end marks)");
+    while (true) {
+        end = marks.GetAround(400 * macontext.Video.Info.framesPerSecond, iStopA, MT_LOGOSTOP);
+        if (end) {
+            int iStopDelta = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
+            #define MAX_LOGO_BEFORE_ASSUMED 253   // changed from 269 to 253, do not increase, we will lost last part
+            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): MT_LOGOSTOP found at frame (%d), %ds (expect < %ds) before assumed stop (%d)", end->position, iStopDelta, MAX_LOGO_BEFORE_ASSUMED, iStopA);
+            if (iStopDelta >= MAX_LOGO_BEFORE_ASSUMED) {
+                   dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo stop mark too far before assumed stop");
+                    end = NULL;
+                    break;
+            }
+            else {
+                cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
+                if (prevLogoStart) {
+                    int deltaLogoStart = 1000 * (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
+                    int maxDeltaLogoStart = 83000;  // changed from 18200 to 48700 to 83000
+                    // if this is a channel with logo changes there could be one short before end mark, use lower value
+                    // do not increase because of SIXX and SAT.1 has very short logo change at the end of recording, which are sometimes not detected
+                    // sometimes we can not detect it at the end of the broadcast the info logo because text changes (noch eine Folge -> <Name der Folge>)
+                    if (IsInfoLogoChannel(macontext.Info.ChannelName)) maxDeltaLogoStart = 7759;  // changed from 8000 to 7759, undecected info logo before end
+                    if (deltaLogoStart <= maxDeltaLogoStart) {
+                        cMark *prevLogoStop = marks.GetPrev(prevLogoStart->position, MT_LOGOSTOP);
+                        if (prevLogoStop && evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(prevLogoStop->position, prevLogoStart->position) == STATUS_YES)) {
+                            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): previous logo stop (%d) start (%d) pair are closing credits, use this stop mark as end mark", prevLogoStop->position, prevLogoStart->position);
+                            end = prevLogoStop;
+                            break;
+                        }
+                        else {
+                            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo start (%d) stop (%d) pair is invalid, logo start mark only %dms before, delete marks", prevLogoStart->position, end->position, deltaLogoStart);
+                            marks.Del(end);
+                            marks.Del(prevLogoStart);
+                        }
+                    }
+                    else {
+                        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo start mark (%d) is %dms (expect >%d) before logo stop mark (%d), logo stop mark is valid ", prevLogoStart->position, deltaLogoStart, maxDeltaLogoStart, end->position);
+                        break;
+                    }
+                }
+                else {
+                    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): no previous logo start mark found");
+                    break;
+                }
+            }
+        }
+        else {
+            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): no more logo stop mark found");
+            break;
+        }
+    }
+    // detect very short channel start before, in this case logo stop is invalid
+    if (end) {
+        cMark *prevChannelStart = marks.GetPrev(end->position, MT_CHANNELSTART);
+        if (prevChannelStart) {
+           int deltaChannelStart = (end->position - prevChannelStart->position) / macontext.Video.Info.framesPerSecond;
+           if (deltaChannelStart <= 20) {
+               dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo stop mark (%d) is invalid, channel start mark (%d) only %ds before", end->position, prevChannelStart->position, deltaChannelStart);
+               end = NULL;
+            }
+        }
+    }
+
+    // for broadcast without hborder check border start mark from next bradcast before logo stop
+    // in this case logo stop mark is from next recording, use border start mark as end mark
+    bool typeChange = false;
+    if (end && (markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) <= CRITERIA_UNKNOWN)) {
+        cMark *hBorderStart = marks.GetPrev(end->position, MT_HBORDERSTART);
+        if (hBorderStart) {
+            const cMark *hBorderStartPrev = marks.GetPrev(hBorderStart->position, MT_HBORDERSTART);
+            if (!hBorderStartPrev) {
+                int deltahBorder = (hBorderStart->position - iStopA) / macontext.Video.Info.framesPerSecond;
+                int deltaLogo    = (end->position          - iStopA) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): found MT_HBORDERSTART at (%d) %ds after assumed end (and no other MT_HBORDERSTART before), logo stop mark at (%d) %ds after assumed end", hBorderStart->position, deltahBorder, end->position, deltaLogo);
+                if ((deltaLogo >= 0) && (deltahBorder >= -1)) {
+                    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo stop mark at (%d) %ds after assumed end is invalid, use MT_HBORDERSTART (%d) as end mark", end->position, deltaLogo, hBorderStart->position);
+                    marks.ChangeType(hBorderStart, MT_STOP);
+                    end = hBorderStart;
+                    typeChange = true;
+                }
+            }
+        }
+    }
+
+    // check if logo end mark is valid
+    if (end && !typeChange) {
+        LogSeparator(false);
+        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check logo end mark (%d), cleanup undetected info logos", end->position);
+        // check if end mark and next start mark are closing credits
+        const cMark *logoStart = marks.GetNext(end->position, MT_LOGOSTART);
+        if (logoStart && evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(end->position, logoStart->position) == STATUS_YES)) {
+            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): closing credits after this logo stop (%d), this is the end mark", end->position);
+            CleanupUndetectedInfoLogo(end);
+        }
+        else {
+            // check if next stop/start pair are closing credits, in this case, next stop mark is end mark
+            cMark *nextLogoStop  = marks.GetNext(end->position, MT_LOGOSTOP);
+            cMark *nextLogoStart = NULL;
+            if (nextLogoStop) nextLogoStart = marks.GetNext(nextLogoStop->position, MT_LOGOSTART);
+            if (nextLogoStart && nextLogoStop) {
+                int diffAssumed = (nextLogoStop->position - iStopA) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): next logo stop (%d) start (%d) pair found, stop mark is %ds after assumed end", nextLogoStop->position, nextLogoStart->position, diffAssumed);
+                if (diffAssumed < 184) {
+                    if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(nextLogoStart->position, nextLogoStart->position) == STATUS_YES)) {
+                        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): next logo stop (%d) start (%d) pair are closing credits, this stop mark is end mark", nextLogoStop->position, nextLogoStart->position);
+                        end = nextLogoStop;
+                    }
+                    else dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): next logo stop (%d) start (%d) pair are no closing credits", nextLogoStop->position, nextLogoStart->position);
+                }
+                else dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): next logo stop mark too far after assumed end");
+            }
+
+            // check previous logo stop/start pair are closing credits, in this case use previous logo stop mark
+            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check if previous logo stop/start pair are closing credits, in this case use previous logo stop mark");
+            cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
+            cMark *prevLogoStop  = NULL;
+            if (prevLogoStart) prevLogoStop = marks.GetPrev(prevLogoStart->position, MT_LOGOSTOP);
+            if (prevLogoStart && prevLogoStop) {
+#define MAX_BEFORE_ASUMED_STOP 203 // changed from 281 to 203
+                int diffAssumedPrevLogoStop = (iStopA - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
+                int diffAssumedEnd          = (iStopA - end->position)          / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): closing credits check of previous logo pair: stop (%d) start (%d)", prevLogoStop->position, prevLogoStart->position);
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): current        end mark (%5d): %3ds before assumed stop (%5d)", end->position, diffAssumedEnd, iStopA);
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): previous logo stop mark (%5d): %3ds before assumed stop (%5d) (expect <= %ds)", prevLogoStop->position, diffAssumedPrevLogoStop, iStopA, MAX_BEFORE_ASUMED_STOP);
+                if (prevLogoStart->position > marks.GetFirst()->position) {
+                    if (diffAssumedPrevLogoStop < MAX_BEFORE_ASUMED_STOP) {
+                       if (evaluateLogoStopStartPair) {
+                           // check closing credits, but not if we got first start mark as start mark of the pair, this could be closing credit of recording before
+                           if (evaluateLogoStopStartPair->GetIsClosingCredits(prevLogoStop->position, prevLogoStart->position) == STATUS_YES) {
+                                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): previous stop (%d) start (%d): are closing credits, use this logo stop mark", prevLogoStop->position, prevLogoStart->position);
+                                end = prevLogoStop;
+                            }
+                            else dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): no closing credit found");
+                        }
+                        else dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): evaluateLogoStopStartPair() failed");
+                    }
+                    else dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): diffAssumedPrevLogoStop %d >= MAX_BEFORE_ASUMED_STOP %d", diffAssumedPrevLogoStop, MAX_BEFORE_ASUMED_STOP);
+                }
+                else dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): prevLogoStart->position (%d) <= marks.GetFirst()->position (%d)", prevLogoStart->position, marks.GetFirst()->position);
+                CleanupUndetectedInfoLogo(end);
+                prevLogoStop = marks.GetPrev(end->position, MT_LOGOSTOP); // maybe different if deleted above
+                if (prevLogoStop) {
+                    int deltaLogo = (end->position - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
+#define CHECK_STOP_BEFORE_MIN 14 // if stop before is too near, maybe recording length is too big
+                    if (deltaLogo < CHECK_STOP_BEFORE_MIN) {
+                        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo stop before too near %ds (expect >=%ds), use (%d) as stop mark", deltaLogo, CHECK_STOP_BEFORE_MIN, prevLogoStop->position);
+                        end = prevLogoStop;
+                    }
+                    else dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo stop before at (%d) too far away %ds (expect <%ds), no alternative", prevLogoStop->position, deltaLogo, CHECK_STOP_BEFORE_MIN);
+                }
+            }
+        }
+    }
+
+    // check if very eary logo end mark is end of preview
+    if (end && !typeChange) {
+        int beforeAssumed = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
+        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): end mark (%d) %ds before assumed stop (%d)", end->position, beforeAssumed, iStopA);
+        if (beforeAssumed >= 218) {
+            cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
+            // ad before
+            cMark *prevLogoStop = NULL;
+            if (prevLogoStart) prevLogoStop = marks.GetPrev(prevLogoStart->position, MT_LOGOSTOP);
+            // broadcast after
+            cMark *nextLogoStart = marks.GetNext(end->position, MT_LOGOSTART);
+            cMark *nextLogoStop = NULL;
+            if (nextLogoStart) nextLogoStop = marks.GetNext(end->position, MT_LOGOSTOP);
+
+            if (prevLogoStart && prevLogoStop && nextLogoStart && !nextLogoStop) {  // debug log for future use
+                int adBefore = (prevLogoStart->position - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): advertising before from (%d) to (%d) %3ds", prevLogoStart->position, prevLogoStop->position, adBefore);
+                int adAfter = (nextLogoStart->position - end->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): advertising after  from (%d) to (%d) %3ds", end->position, nextLogoStart->position, adAfter);
+                int broadcastBefore = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): broadcast   before from (%d) to (%d) %3ds", prevLogoStart->position, end->position, broadcastBefore);
+
+                if (broadcastBefore <= 115) {  // end mark invalid there is only a very short broadcast after end mark, changed from 34 to 115
+                    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): broadcast before only %ds, end mark (%d) is invalid", broadcastBefore, end->position);
+                    end = NULL;
+                }
+            }
+        }
+    }
+
+    // check previous logo stop mark against VPS stop event, if any
+    if (end) {
+        cMark *prevLogoStop = marks.GetPrev(end->position, MT_LOGOSTOP); // maybe different if deleted above
+        if (prevLogoStop) {
+            int vpsOffset = vps->GetStop(); // get VPS stop mark
+            if (vpsOffset >= 0) {
+                int vpsStopFrame = recordingIndexMark->GetFrameFromOffset(vpsOffset * 1000);
+                int diffAfterVPS = (prevLogoStop->position - vpsStopFrame) / macontext.Video.Info.framesPerSecond;
+                if (diffAfterVPS >= 0) {
+                    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): VPS stop event at (%d) is %ds after previous logo stop (%d), use this as end mark", vpsStopFrame, diffAfterVPS, prevLogoStop->position);
+                    end = prevLogoStop;
+                }
+            }
+        }
+    }
+    else dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): no MT_LOGOSTOP mark found");
+    return end;
+}
+
+
+
 // detect short logo stop/start before assumed stop mark, they can be undetected info logos or text previews over the logo (e.g. SAT.1)
 // only called if we are sure this is the correct logo end mark (closing credit detected)
 // prevent to later move end mark to previous logo stop mark from undetected logo change
@@ -397,6 +624,7 @@ void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *end) {
     }
 }
 
+
 bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
     if (!mark) return false;
     if (mark->type == MT_LOGOSTART) {  // check start mark, sequence MT_NOBLACKSTOP -> MT_LOGOSTOP -> MT_NOBLACKSTART -> MT_LOGOSTART (mark) is start if broadcast
@@ -416,16 +644,26 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
     if (mark->type == MT_LOGOSTOP) { // check stop mark, sequence MT_NOBLACKSTOP -> MT_LOGOSTOP (mark) -> MT_NOBLACKSTART -> MT_LOGOSTART is end if broadcast
         cMark *startAfter = marks.GetNext(mark->position, MT_LOGOSTART);
         if (!startAfter) return false;
-        cMark *blackStop = blackMarks.GetPrev(mark->position + 2, MT_NOBLACKSTOP); // black screen can start very short after logo stop
-        if (!blackStop) return false;
-        cMark *blackStart = blackMarks.GetPrev(startAfter->position, MT_NOBLACKSTART);
+        cMark *blackStart = blackMarks.GetPrev(mark->position + 2, MT_NOBLACKSTOP); // black screen start can start very short after logo stop
         if (!blackStart) return false;
-        int diffStopBlack  = 1000 * (mark->position       - blackStop->position)  / macontext.Video.Info.framesPerSecond;
-        int diffStartBlack = 1000 * (startAfter->position - blackStart->position) / macontext.Video.Info.framesPerSecond;
-        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen separator sequence MT_NOBLACKSTOP  (%5d), MT_LOGOSTOP  (%5d), distance %5dms", blackStop->position,  mark->position,       diffStopBlack);
-        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen separator sequence MT_NOBLACKSTART (%5d), MT_LOGOSTART (%5d), distance %5dms", blackStart->position, startAfter->position, diffStartBlack);
-        if ((blackStart->position > mark->position) && (diffStopBlack <= 1680) && (diffStartBlack <= 1400)) return true;  // chaanged from 1120 to 1400
-        else dsyslog("cMarkAdStandalone::HaveBlackSeparator(): distance too big, sequence is invalid");
+        cMark *blackStop = blackMarks.GetPrev(startAfter->position, MT_NOBLACKSTART);
+        if (!blackStop) return false;
+        int diffStopBlack  = 1000 * (mark->position       - blackStart->position) / macontext.Video.Info.framesPerSecond;
+        int diffStartBlack = 1000 * (startAfter->position - blackStop->position)  / macontext.Video.Info.framesPerSecond;
+        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen separator sequence MT_NOBLACKSTOP  (%5d), MT_LOGOSTOP  (%5d), distance %5dms before", blackStart->position,  mark->position,       diffStopBlack);
+        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen separator sequence MT_NOBLACKSTART (%5d), MT_LOGOSTART (%5d), distance %5dms before", blackStop->position, startAfter->position, diffStartBlack);
+        if (blackStop->position >= (mark->position - 2)) {
+            if ((diffStopBlack <= 2920) && (diffStartBlack <= 3280)) return true; // changed from 2760 to 2920
+            else dsyslog("cMarkAdStandalone::HaveBlackSeparator(): distance too big, sequence is invalid");
+        }
+        else dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen stop (%d) after logo stop (%d), sequence is invalid", blackStop->position, mark->position);
+        // check if we have a very long blackscreen short before logo stop mark
+        blackStop = blackMarks.GetNext(blackStart->position, MT_NOBLACKSTART);   // this can be different from above
+        if (!blackStop) return false;
+        int lengthBlack  = 1000 * (blackStop->position - blackStart->position)  / macontext.Video.Info.framesPerSecond;
+        int distLogoStop = 1000 * (mark->position      - blackStop->position) / macontext.Video.Info.framesPerSecond;
+        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen before logo stop (%5d) from (%5d) to (%5d), length %dms, end of black screen %dms before logo stop", mark->position, blackStart->position, blackStop->position, lengthBlack, distLogoStop);
+        if ((distLogoStop >= -2880)  && (distLogoStop <= 2200) && (lengthBlack >= 2320)) return true;
     }
     return false;
 }
@@ -557,226 +795,7 @@ int cMarkAdStandalone::CheckStop() {
     if (!end && (markCriteria.GetMarkTypeState(MT_VBORDERCHANGE) >= CRITERIA_UNKNOWN)) end = Check_VBORDERSTOP();
 
 // try MT_LOGOSTOP
-    if (!end) {  // try logo stop mark
-        // try to select best logo end mark based on long black screen mark around
-        dsyslog("cMarkAdStandalone::CheckStop(): search for best logo end mark (based on black screen around)");
-        cMark *lEnd = marks.GetAround(60 * macontext.Video.Info.framesPerSecond, iStopA, MT_LOGOSTOP);
-        if (lEnd && HaveBlackSeparator(lEnd)) end = lEnd;
-        if (lEnd && !end) {
-            lEnd = marks.GetPrev(lEnd->position, MT_LOGOSTOP);   // try logo end mark before
-            if (lEnd) {
-                int diffEnd = (iStopA - lEnd->position) / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::CheckStop(): previous logo stop (%d) %ds before assumed end (%d)", lEnd->position, diffEnd, iStopA);
-                if ((diffEnd < 1360) && HaveBlackSeparator(lEnd)) end = lEnd;
-            }
-        }
-        if (end) dsyslog("cMarkAdStandalone::CheckStop(): found logo end mark based on black screen around at (%d)", end->position);
-
-        if (!end) {
-            // cleanup very short start/stop pairs around possible end marks, these are logo detection failures
-            LogSeparator(false);
-            dsyslog("cMarkAdStandalone::CheckStop(): search for best logo end mark (cleanup very short logo start/stop pairs around possible logo end marks)");
-            while (true) {
-                end = marks.GetAround(400 * macontext.Video.Info.framesPerSecond, iStopA, MT_LOGOSTOP);
-                if (end) {
-                    int iStopDelta = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
-                    #define MAX_LOGO_BEFORE_ASSUMED 253   // changed from 269 to 253, do not increase, we will lost last part
-                    dsyslog("cMarkAdStandalone::CheckStop(): MT_LOGOSTOP found at frame (%d), %ds (expect < %ds) before assumed stop (%d)", end->position, iStopDelta, MAX_LOGO_BEFORE_ASSUMED, iStopA);
-                    if (iStopDelta >= MAX_LOGO_BEFORE_ASSUMED) {
-                        dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark too far before assumed stop");
-                        end = NULL;
-                        break;
-                    }
-                    else {
-                        cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
-                        if (prevLogoStart) {
-                            int deltaLogoStart = 1000 * (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
-                            int maxDeltaLogoStart = 83000;  // changed from 18200 to 48700 to 83000
-                            // if this is a channel with logo changes there could be one short before end mark, use lower value
-                            // do not increase because of SIXX and SAT.1 has very short logo change at the end of recording, which are sometimes not detected
-                            // sometimes we can not detect it at the end of the broadcast the info logo because text changes (noch eine Folge -> <Name der Folge>)
-                            if (IsInfoLogoChannel(macontext.Info.ChannelName)) maxDeltaLogoStart = 7759;  // changed from 8000 to 7759, undecected info logo before end
-                            if (deltaLogoStart <= maxDeltaLogoStart) {
-                                cMark *prevLogoStop = marks.GetPrev(prevLogoStart->position, MT_LOGOSTOP);
-                                if (prevLogoStop && evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(prevLogoStop->position, prevLogoStart->position) == STATUS_YES)) {
-                                    dsyslog("cMarkAdStandalone::CheckStop(): previous logo stop (%d) start (%d) pair are closing credits, use this stop mark as end mark", prevLogoStop->position, prevLogoStart->position);
-                                    end = prevLogoStop;
-                                    break;
-                                }
-                                else {
-                                    dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) stop (%d) pair is invalid, logo start mark only %dms before, delete marks", prevLogoStart->position, end->position, deltaLogoStart);
-                                    marks.Del(end);
-                                    marks.Del(prevLogoStart);
-                                }
-                            }
-                            else {
-                                dsyslog("cMarkAdStandalone::CheckStop(): logo start mark (%d) is %dms (expect >%d) before logo stop mark (%d), logo stop mark is valid ", prevLogoStart->position, deltaLogoStart, maxDeltaLogoStart, end->position);
-                                break;
-                            }
-                        }
-                        else {
-                            dsyslog("cMarkAdStandalone::CheckStop(): no previous logo start mark found");
-                            break;
-                        }
-                    }
-                }
-                else {
-                    dsyslog("cMarkAdStandalone::CheckStop(): no more logo stop mark found");
-                    break;
-                }
-            }
-        }
-        // detect very short channel start before, in this case logo stop is invalid
-        if (end) {
-            cMark *prevChannelStart = marks.GetPrev(end->position, MT_CHANNELSTART);
-            if (prevChannelStart) {
-               int deltaChannelStart = (end->position - prevChannelStart->position) / macontext.Video.Info.framesPerSecond;
-               if (deltaChannelStart <= 20) {
-                   dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d) is invalid, channel start mark (%d) only %ds before", end->position, prevChannelStart->position, deltaChannelStart);
-                   end = NULL;
-                }
-            }
-        }
-
-        // for broadcast without hborder check border start mark from next bradcast before logo stop
-        // in this case logo stop mark is from next recording, use border start mark as end mark
-        bool typeChange = false;
-        if (end && (markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) <= CRITERIA_UNKNOWN)) {
-            cMark *hBorderStart = marks.GetPrev(end->position, MT_HBORDERSTART);
-            if (hBorderStart) {
-                const cMark *hBorderStartPrev = marks.GetPrev(hBorderStart->position, MT_HBORDERSTART);
-                if (!hBorderStartPrev) {
-                    int deltahBorder = (hBorderStart->position - iStopA) / macontext.Video.Info.framesPerSecond;
-                    int deltaLogo    = (end->position          - iStopA) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckStop(): found MT_HBORDERSTART at (%d) %ds after assumed end (and no other MT_HBORDERSTART before), logo stop mark at (%d) %ds after assumed end", hBorderStart->position, deltahBorder, end->position, deltaLogo);
-                    if ((deltaLogo >= 0) && (deltahBorder >= -1)) {
-                        dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark at (%d) %ds after assumed end is invalid, use MT_HBORDERSTART (%d) as end mark", end->position, deltaLogo, hBorderStart->position);
-                        marks.ChangeType(hBorderStart, MT_STOP);
-                        end = hBorderStart;
-                        typeChange = true;
-                    }
-                }
-            }
-        }
-
-        // check if logo end mark is valid
-        if (end && !typeChange) {
-            LogSeparator(false);
-            dsyslog("cMarkAdStandalone::CheckStop(): check logo end mark (%d), cleanup undetected info logos", end->position);
-            // check if end mark and next start mark are closing credits
-            const cMark *logoStart = marks.GetNext(end->position, MT_LOGOSTART);
-            if (logoStart && evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(end->position, logoStart->position) == STATUS_YES)) {
-                dsyslog("cMarkAdStandalone::CheckStop(): closing credits after this logo stop (%d), this is the end mark", end->position);
-                CleanupUndetectedInfoLogo(end);
-            }
-            else {
-                // check if next stop/start pair are closing credits, in this case, next stop mark is end mark
-                cMark *nextLogoStop  = marks.GetNext(end->position, MT_LOGOSTOP);
-                cMark *nextLogoStart = NULL;
-                if (nextLogoStop) nextLogoStart = marks.GetNext(nextLogoStop->position, MT_LOGOSTART);
-                if (nextLogoStart && nextLogoStop) {
-                    int diffAssumed = (nextLogoStop->position - iStopA) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckStop(): next logo stop (%d) start (%d) pair found, stop mark is %ds after assumed end", nextLogoStop->position, nextLogoStart->position, diffAssumed);
-                    if (diffAssumed < 184) {
-                        if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCredits(nextLogoStart->position, nextLogoStart->position) == STATUS_YES)) {
-                            dsyslog("cMarkAdStandalone::CheckStop(): next logo stop (%d) start (%d) pair are closing credits, this stop mark is end mark", nextLogoStop->position, nextLogoStart->position);
-                            end = nextLogoStop;
-                        }
-                        else dsyslog("cMarkAdStandalone::CheckStop(): next logo stop (%d) start (%d) pair are no closing credits", nextLogoStop->position, nextLogoStart->position);
-                    }
-                    else dsyslog("cMarkAdStandalone::CheckStop(): next logo stop mark too far after assumed end");
-                }
-
-                // check previous logo stop/start pair are closing credits, in this case use previous logo stop mark
-                dsyslog("cMarkAdStandalone::CheckStop(): check if previous logo stop/start pair are closing credits, in this case use previous logo stop mark");
-                cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
-                cMark *prevLogoStop  = NULL;
-                if (prevLogoStart) prevLogoStop = marks.GetPrev(prevLogoStart->position, MT_LOGOSTOP);
-                if (prevLogoStart && prevLogoStop) {
-#define MAX_BEFORE_ASUMED_STOP 203 // changed from 281 to 203
-                    int diffAssumedPrevLogoStop = (iStopA - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
-                    int diffAssumedEnd          = (iStopA - end->position)          / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckStop(): closing credits check of previous logo pair: stop (%d) start (%d)", prevLogoStop->position, prevLogoStart->position);
-                    dsyslog("cMarkAdStandalone::CheckStop(): current        end mark (%5d): %3ds before assumed stop (%5d)", end->position, diffAssumedEnd, iStopA);
-                    dsyslog("cMarkAdStandalone::CheckStop(): previous logo stop mark (%5d): %3ds before assumed stop (%5d) (expect <= %ds)", prevLogoStop->position, diffAssumedPrevLogoStop, iStopA, MAX_BEFORE_ASUMED_STOP);
-                    if (prevLogoStart->position > marks.GetFirst()->position) {
-                        if (diffAssumedPrevLogoStop < MAX_BEFORE_ASUMED_STOP) {
-                            if (evaluateLogoStopStartPair) {
-                                // check closing credits, but not if we got first start mark as start mark of the pair, this could be closing credit of recording before
-                                if (evaluateLogoStopStartPair->GetIsClosingCredits(prevLogoStop->position, prevLogoStart->position) == STATUS_YES) {
-                                    dsyslog("cMarkAdStandalone::CheckStop(): previous stop (%d) start (%d): are closing credits, use this logo stop mark", prevLogoStop->position, prevLogoStart->position);
-                                    end = prevLogoStop;
-                                }
-                                else dsyslog("cMarkAdStandalone::CheckStop(): no closing credit found");
-                            }
-                            else dsyslog("cMarkAdStandalone::CheckStop(): evaluateLogoStopStartPair() failed");
-                        }
-                        else dsyslog("cMarkAdStandalone::CheckStop(): diffAssumedPrevLogoStop %d >= MAX_BEFORE_ASUMED_STOP %d", diffAssumedPrevLogoStop, MAX_BEFORE_ASUMED_STOP);
-                    }
-                    else dsyslog("cMarkAdStandalone::CheckStop(): prevLogoStart->position (%d) <= marks.GetFirst()->position (%d)", prevLogoStart->position, marks.GetFirst()->position);
-                    CleanupUndetectedInfoLogo(end);
-                    prevLogoStop = marks.GetPrev(end->position, MT_LOGOSTOP); // maybe different if deleted above
-                    if (prevLogoStop) {
-                        int deltaLogo = (end->position - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
-#define CHECK_STOP_BEFORE_MIN 14 // if stop before is too near, maybe recording length is too big
-                        if (deltaLogo < CHECK_STOP_BEFORE_MIN) {
-                            dsyslog("cMarkAdStandalone::CheckStop(): logo stop before too near %ds (expect >=%ds), use (%d) as stop mark", deltaLogo, CHECK_STOP_BEFORE_MIN, prevLogoStop->position);
-                            end = prevLogoStop;
-                        }
-                        else dsyslog("cMarkAdStandalone::CheckStop(): logo stop before at (%d) too far away %ds (expect <%ds), no alternative", prevLogoStop->position, deltaLogo, CHECK_STOP_BEFORE_MIN);
-                    }
-                }
-            }
-        }
-
-        // check if very eary logo end mark is end of preview
-        if (end && !typeChange) {
-            int beforeAssumed = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
-            dsyslog("cMarkAdStandalone::CheckStop(): end mark (%d) %ds before assumed stop (%d)", end->position, beforeAssumed, iStopA);
-            if (beforeAssumed >= 218) {
-                cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
-                // ad before
-                cMark *prevLogoStop = NULL;
-                if (prevLogoStart) prevLogoStop = marks.GetPrev(prevLogoStart->position, MT_LOGOSTOP);
-                // broadcast after
-                cMark *nextLogoStart = marks.GetNext(end->position, MT_LOGOSTART);
-                cMark *nextLogoStop = NULL;
-                if (nextLogoStart) nextLogoStop = marks.GetNext(end->position, MT_LOGOSTOP);
-
-                if (prevLogoStart && prevLogoStop && nextLogoStart && !nextLogoStop) {  // debug log for future use
-                    int adBefore = (prevLogoStart->position - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckStop(): advertising before from (%d) to (%d) %3ds", prevLogoStart->position, prevLogoStop->position, adBefore);
-                    int adAfter = (nextLogoStart->position - end->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckStop(): advertising after  from (%d) to (%d) %3ds", end->position, nextLogoStart->position, adAfter);
-                    int broadcastBefore = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckStop(): broadcast   before from (%d) to (%d) %3ds", prevLogoStart->position, end->position, broadcastBefore);
-
-                    if (broadcastBefore <= 115) {  // end mark invalid there is only a very short broadcast after end mark, changed from 34 to 115
-                        dsyslog("cMarkAdStandalone::CheckStop(): broadcast before only %ds, end mark (%d) is invalid", broadcastBefore, end->position);
-                        end = NULL;
-                    }
-                }
-            }
-        }
-
-        // check previous logo stop mark against VPS stop event, if any
-        if (end) {
-            cMark *prevLogoStop = marks.GetPrev(end->position, MT_LOGOSTOP); // maybe different if deleted above
-            if (prevLogoStop) {
-                int vpsOffset = vps->GetStop(); // get VPS stop mark
-                if (vpsOffset >= 0) {
-                    int vpsStopFrame = recordingIndexMark->GetFrameFromOffset(vpsOffset * 1000);
-                    int diffAfterVPS = (prevLogoStop->position - vpsStopFrame) / macontext.Video.Info.framesPerSecond;
-                    if (diffAfterVPS >= 0) {
-                        dsyslog("cMarkAdStandalone::CheckStop(): VPS stop event at (%d) is %ds after previous logo stop (%d), use this as end mark", vpsStopFrame, diffAfterVPS, prevLogoStop->position);
-                        end = prevLogoStop;
-                    }
-                }
-            }
-        }
-        else dsyslog("cMarkAdStandalone::CheckStop(): no MT_LOGOSTOP mark found");
-    }
-
+    if (!end && (markCriteria.GetMarkTypeState(MT_LOGOCHANGE) >= CRITERIA_UNKNOWN)) end = Check_LOGOSTOP();
     // no end mark found, try if we can use a start mark of next bradcast as end mark
     if (!end) {  // no valid stop mark found, try if there is a MT_CHANNELSTART from next broadcast
         cMark *channelStart = marks.GetNext(iStopA, MT_CHANNELSTART);
