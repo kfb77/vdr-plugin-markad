@@ -393,7 +393,8 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
     }
     if (end) {
         dsyslog("cMarkAdStndalone::Check_LOGOSTOP(): found logo end mark based on black screen around at (%d)", end->position);
-        marks.DelFromTo(end->position - (60 * macontext.Video.Info.framesPerSecond), end->position - 1, MT_LOGOCHANGE);  // delete info logo/log changes at end
+        marks.DelFromTo(end->position - (90 * macontext.Video.Info.framesPerSecond), end->position - 1, MT_LOGOCHANGE);  // delete info logo/log changes at end, changed from 60 to 90
+        evaluateLogoStopStartPair->SetIsAdInFrame(end->position, STATUS_DISABLED);  // before long black screen there is no ad in frame
         return end;
     }
 
@@ -3583,11 +3584,11 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 ptr_cDecoder->DecodeDir(directory);
             }
             // detect frames
-            if (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position)) {
+            if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsAdInFrame(markLogo->position) >= STATUS_UNKNOWN) && (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position))) {
                 int newStopPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(false);
                 if (newStopPosition >= 0) {
                     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", newStopPosition, markLogo->position);
-                    if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->IncludesInfoLogo(newStopPosition, markLogo->position))) {
+                    if (evaluateLogoStopStartPair->IncludesInfoLogo(newStopPosition, markLogo->position)) {
                         dsyslog("cMarkAdStandalone::LogoMarkOptimization(): deleted info logo part in this range, this could not be a advertising in frame");
                         newStopPosition = -1;
                     }
@@ -3595,14 +3596,14 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 if (newStopPosition != -1) {
                     if (!macontext.Config->fullDecode) newStopPosition = recordingIndexMark->GetIFrameBefore(newStopPosition - 1);  // we got first frame of ad, go one iFrame back for stop mark
                     else newStopPosition--; // get frame before ad in frame as stop mark
-                    if (evaluateLogoStopStartPair) evaluateLogoStopStartPair->AddAdInFrame(newStopPosition, markLogo->position);  // store info that we found here adinframe
+                    evaluateLogoStopStartPair->AddAdInFrame(newStopPosition, markLogo->position);  // store info that we found here adinframe
                     markLogo = marks.Move(markLogo, newStopPosition, MT_NOADINFRAMESTOP);
                     if (!markLogo) {
                         esyslog("cMarkAdStandalone::LogoMarkOptimization(): move mark failed");
                         break;
                     }
                     save = true;
-               }
+                }
             }
         }
         markLogo = markLogo->Next();

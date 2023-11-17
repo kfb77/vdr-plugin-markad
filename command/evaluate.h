@@ -146,6 +146,19 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
         bool GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo, int *isStartMarkInBroadcast, const int endRange);
 
 /**
+ * get ad in frame status if logo stop frame
+ * @param stopPosition  frame number of the logo stop mark
+ * @return state new state
+ */
+        int GetIsAdInFrame(const int stopPosition);
+/**
+ * set ad in frame status to <state>
+ * @param stopPosition  frame number of the logo stop mark
+ * @param state new state
+ */
+        void SetIsAdInFrame(const int stopPosition, const int state);
+
+/**
  * set info logo status to STATUS_YES
  * @param stopPosition  frame number of the logo stop mark
  * @param startPosition frame number of the logo start mark
