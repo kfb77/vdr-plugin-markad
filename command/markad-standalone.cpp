@@ -878,22 +878,6 @@ int cMarkAdStandalone::CheckStop() {
     }
     else esyslog("could not find a end mark");
 
-    // delete all black screen marks expect start or end mark
-    dsyslog("cMarkAdStandalone::CheckStop(): move all black screen marks except start and end mark to black screen list");
-    cMark *mark = marks.GetFirst();
-    while (mark) {
-        if (mark != marks.GetFirst()) {
-            if (mark == marks.GetLast()) break;
-            if ((mark->type & 0xF0) == MT_BLACKCHANGE) {
-                cMark *tmp = mark;
-                mark = mark->Next();
-                marks.Del(tmp);
-                continue;
-            }
-        }
-        mark = mark->Next();
-    }
-
     // cleanup detection failures (e.g. very long dark scenes)
     if (markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_UNAVAILABLE) marks.DelType(MT_HBORDERCHANGE, 0xF0);
     if (markCriteria.GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_UNAVAILABLE) marks.DelType(MT_VBORDERCHANGE, 0xF0);
