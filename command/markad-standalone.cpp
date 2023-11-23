@@ -2736,12 +2736,19 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         case MT_CHANNELSTOP:
             if ((mark->position > chkSTART) && (mark->position < iStopA * 2 / 3) && !macontext.Audio.Info.channelChange) {
                 dsyslog("cMarkAdStandalone::AddMark(): first audio channel change is after chkSTART, disable video decoding detection now");
-                if (iStart == 0) marks.DelWeakFromTo(marks.GetFirst()->position, INT_MAX, MT_CHANNELCHANGE); // only if we have selected a start mark
                 // disable all video detection
                 video->ClearBorder();
                 // use now channel change for detection
-                if (markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED) markCriteria.SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE);
                 markCriteria.SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED);
+                if (markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED) {
+                    markCriteria.SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE);
+                    cMark *hborderStop = marks.GetAround(1 * macontext.Video.Info.framesPerSecond, mark->position, MT_HBORDERSTOP);
+                    if (hborderStop) {  // use hborder stop, we have no scene change or black screen to optimize channel stop mark, will result false optimization
+                        dsyslog("cMarkAdStandalone::AddMark(): keep hborder stop (%d), ignore channel stop (%d)", hborderStop->position, mark->position);
+                        return;
+                    }
+                }
+                if (iStart == 0) marks.DelWeakFromTo(marks.GetFirst()->position, INT_MAX, MT_CHANNELCHANGE); // only if we have selected a start mark
             }
             macontext.Audio.Info.channelChange = true;
             if (asprintf(&comment, "audio channel change from %d to %d (%d) ", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = NULL;
