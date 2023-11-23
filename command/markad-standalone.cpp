@@ -388,7 +388,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         if (lEnd) {
             int diffEnd = (iStopA - lEnd->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): previous logo stop (%d) %ds before assumed end (%d)", lEnd->position, diffEnd, iStopA);
-            if ((diffEnd < 1360) && HaveBlackSeparator(lEnd)) end = lEnd;
+            if ((diffEnd < 290) && HaveBlackSeparator(lEnd)) end = lEnd;  // changed from 1360 to 290
         }
     }
     if (end) {
