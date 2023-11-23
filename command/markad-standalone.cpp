@@ -1286,37 +1286,24 @@ void cMarkAdStandalone::CheckStart() {
             }
         }
     }
-    // if broadcast is 16:9, we can not have a aspect ratio stop/start sequence in start part, expect of 4:3 broadast before
-    // invalid example: stop  aspect ratio       at 0:02:36.60  (start of broadcast 4:3)
-    //                  start aspect ratio       at 0:05:46.07  (stop  of broadcast, start of ad 16:9)
-    //
-    //                  stop  aspect ratio       at 0:00:00.00  (start previous broadcast 4:3, double episodes without ad in between)
-    //                  start aspect ratio       at 0:07:53.88  (stop broadcast, start of ad 16:9)
-    //
-    //                  stop  aspect ratio       at 0:00:00.00, inBroadCast 0 (start previous broadcast 4:3, double episodes without ad in between)
-    //                  start aspect ratio       at 0:07:53.88, inBroadCast 1 (stop broadcast, start of ad 16:9)
-    //
-    // valid example:   stop  aspect ratio       at 0:00:00.00, inBroadCast 0 (start of previous recording 4:3)
-    //                  start aspect ratio       at 0:02:26.63, inBroadCast 1 (end of previous 4:3 recording, start of ad)
-    //
-    //                  stop  aspect ratio       at 0:00:42.00, inBroadCast 0 (start of previous 4:3 broadcast after 16:9 ad
-    //                  start aspect ratio       at 0:04:28.72, inBroadCast 1 (end of previous 4:3 broadcast, length 226s)
-    //
-    //                  stop  aspect ratio       at 0:00:18.20, inBroadCast 0 (start of previous recording 4:3)
-    //                  start aspect ratio       at 0:04:59.83, inBroadCast 1 (end of previous 4:3 recording, start of ad, length 281s)
-    //
+    // if broadcast is 16:9, check aspect ratio from info file
+    // example of marks with wrong aspect ratio from info file:
+    // MT_ASPECTSTOP 19s before, MT_ASPECTSTART 309s after assumed start (3000), length of first ad: 328s
     if (!macontext.Info.checkedAspectRatio && (macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
-        cMark *aspectStop = marks.GetNext(-1, MT_ASPECTSTOP);
-        if (aspectStop) {
+        cMark *aspectStop = marks.GetNext(-1, MT_ASPECTCHANGE, 0xF0);
+        if (aspectStop && aspectStop->type == MT_ASPECTSTOP) {
             cMark *aspectStart = marks.GetNext(aspectStop->position, MT_ASPECTSTART);
             if (aspectStart) {
+                int diffStopAssumed = (iStart - aspectStop->position)  / macontext.Video.Info.framesPerSecond;
+                int diffStartAssumed =(aspectStart->position - iStart) / macontext.Video.Info.framesPerSecond;
                 int adLength = (aspectStart->position - aspectStop->position) / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::CheckStart(): length of first ad: %ds", adLength);
-                if (((aspectStop->position > 0) && aspectStop->position < (18 * macontext.Video.Info.framesPerSecond)) || // add -> prev 4:3 recording -> add or 16:9 broadcast
-                    (aspectStop->position == 0) && (adLength >= 473)) {  // previous 4:3 recording too long, must be double episodes without ad in between, changed from 600 to 473
-                    dsyslog("cMarkAdStandalone::CheckStart(): vdr info file tells 16:9 but we have aspect ratio stop (%d) and start (%d), info is invalid", aspectStop->position, aspectStart->position);
-                    SwapAspectRatio();
-                    macontext.Info.checkedAspectRatio = true;  // now we are sure, aspect ratio is correct
+                dsyslog("cMarkAdStandalone::CheckStart(): MT_ASPECTSTOP %3ds before, MT_ASPECTSTART %3ds after assumed start (%d), length of first ad: %3ds", diffStopAssumed, diffStartAssumed, iStartA, adLength);
+                if (aspectStop->position > 10 * macontext.Video.Info.framesPerSecond) {  // give time to detect a logo start mark
+                    cMark *logoStart = marks.GetPrev(aspectStop->position, MT_LOGOSTART);
+                    if (!logoStart) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): wrong aspect ratio in info file: no logo start mark before MT_ASPECTSTOP %ds, first part must be ad", aspectStop->position);
+                        SwapAspectRatio();
+                    }
                 }
             }
         }
