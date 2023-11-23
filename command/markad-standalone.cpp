@@ -4024,6 +4024,9 @@ void cMarkAdStandalone::BlackLowerOptimization() {
             if (stopAfter) {
                 int maxAfter = -1;
                 switch (mark->type) {
+                    case MT_ASSUMEDSTOP:
+                        maxAfter = 68200;
+                        break;
                     case MT_MOVEDSTOP:
                         switch (mark->newType) {
                             case MT_VPSSTOP:
