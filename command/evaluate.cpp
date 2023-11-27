@@ -1726,7 +1726,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         if (firstFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of        best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[firstFrameCorner], firstSumFramePortion, AdInFrame.frameCountFinal, firstFramePortionQuote);
         if (secondFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of second best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[secondFrameCorner], secondSumFramePortion, AdInFrame.frameCountFinal, secondFramePortionQuote);
         // example of ad in frame
-        // best corner 568, second best corner 377, average of all corners 449
+        // best corner 568, second best corner 377, average of all corners 449   (conflict)
         //
         // example for no ad in frame (static scene with vertial or horizontal lines, blinds, windows frames or stairs):
         // best corner 663, second best corner 377, average of all corners 461   door frame in background (conflict)
@@ -1734,7 +1734,9 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         // best corner 787, second best corner 191, average of all corners 245   car in foreground
         // best corner 782, second best corner 269, average of all corners 328   news ticker on buttom
         // best corner 768, second best corner 442, average of all corners 420   static scene with blinds in background
-        // best corner 618, second best corner 563, average of all corners 385   door fram
+        // best corner 714, second best corner 360, average of all corners 471   static scene with frame in background
+        // best corner 619, second best corner 392, average of all corners 442   door frame
+        // best corner 618, second best corner 563, average of all corners 385   door frame
         // best corner 607, second best corner   0, average of all corners 163
         // best corner 504, second best corner  85, average of all corners 196
         // best corner 500, second best corner  87, average of all corners 173
@@ -1747,7 +1749,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         // best corner 258, second best corner 200, average of all corners 231
         // best corner 249, second best corner  81, average of all corners 208
         //
-        if ((firstFramePortionQuote <= 787) && (secondFramePortionQuote <= 563) && (allFramePortionQuote <= 420)) {
+        if ((firstFramePortionQuote <= 787) && (secondFramePortionQuote <= 563) && (allFramePortionQuote <= 471)) {
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): not enought frame pixel found on best corner found, advertising in frame not valid");
             return -1;
         }
