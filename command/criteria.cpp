@@ -112,7 +112,7 @@ void cMarkCriteria::SetMarkTypeState(const int type, const int state) {
             if (aspectratio == CRITERIA_USED) {
                 SetDetectionState(MT_SCENECHANGE,   false);
                 SetDetectionState(MT_SOUNDCHANGE,   false);
-                SetDetectionState(MT_BLACKCHANGE,   false);
+                SetDetectionState(MT_BLACKCHANGE,    true);   // aspect ratio changes are not frame exact, use black screen to optimize
                 SetDetectionState(MT_LOGOCHANGE,    false);
                 SetDetectionState(MT_VBORDERCHANGE, false);
                 SetDetectionState(MT_HBORDERCHANGE, false);
