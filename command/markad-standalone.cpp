@@ -396,17 +396,17 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
     // try to select best logo end mark based on long black screen mark around
     dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for best logo end mark (based on black screen around)");
     cMark *lEnd = marks.GetAround(263 * macontext.Video.Info.framesPerSecond, iStopA, MT_LOGOSTOP);  // changed from 60 to 263 for too long recording length from vdr info
-    if (lEnd && HaveBlackSeparator(lEnd)) end = lEnd;
+    if (lEnd && (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd))) end = lEnd;
     if (lEnd && !end) {
         lEnd = marks.GetPrev(lEnd->position, MT_LOGOSTOP);   // try logo end mark before
         if (lEnd) {
             int diffEnd = (iStopA - lEnd->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): previous logo stop (%d) %ds before assumed end (%d)", lEnd->position, diffEnd, iStopA);
-            if ((diffEnd < 290) && HaveBlackSeparator(lEnd)) end = lEnd;  // changed from 1360 to 290
+            if ((diffEnd < 290) && (HaveBlackSeparator(lEnd) || (HaveSilenceSeparator(lEnd)))) end = lEnd;  // changed from 1360 to 290
         }
     }
     if (end) {
-        dsyslog("cMarkAdStndalone::Check_LOGOSTOP(): found logo end mark based on black screen around at (%d)", end->position);
+        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): found logo end mark based on separator at (%d)", end->position);
         marks.DelFromTo(end->position - (90 * macontext.Video.Info.framesPerSecond), end->position - 1, MT_LOGOCHANGE);  // delete info logo/log changes at end, changed from 60 to 90
         evaluateLogoStopStartPair->SetIsAdInFrame(end->position, STATUS_DISABLED);  // before long black screen there is no ad in frame
         return end;
