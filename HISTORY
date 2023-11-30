@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-11-30: Version 3.4.1
+- optimize broadcast logo start mark selection
+- optimize broadcast logo end mark selection
+- some minor bug fixes and optimizations, see git
+
 2023-11-11: Version 3.4.0
 - new feature: detect black lower border with text (closing credits) as end
 - tune thresholds for black screen, silence and scene change optimization
