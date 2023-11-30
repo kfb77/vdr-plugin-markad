@@ -151,8 +151,9 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
  * @return state new state
  */
         int GetIsAdInFrame(const int stopPosition);
+
 /**
- * set ad in frame status to <state>
+ * set ad in frame status to state
  * @param stopPosition  frame number of the logo stop mark
  * @param state new state
  */
