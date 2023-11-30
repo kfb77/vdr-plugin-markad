@@ -1607,13 +1607,14 @@ void cMarkAdStandalone::CheckStart() {
             const char *indexToHMSF = marks.GetTime(lStart);
             if (indexToHMSF) dsyslog("cMarkAdStandalone::CheckStart(): logo start mark found on position (%d) at %s", lStart->position, indexToHMSF);
             cMark *checkStart = lStart;
+            LogSeparator();
             dsyslog("cMarkAdStandalone::CheckStart(): check for black screen or silence separator");
             while (true) {
                 int diffStart   = (checkStart->position - lStart->position) / macontext.Video.Info.framesPerSecond;
                 int diffAssumed = (checkStart->position - iStartA)          / macontext.Video.Info.framesPerSecond;
                 const char *indexToHMSFCheck = marks.GetTime(checkStart);
 #define MAX_DIFF_START 116
-#define MAX_AFTER_ASSUMED 232
+#define MAX_AFTER_ASSUMED 239    // changed from 232 to 239
                 if (indexToHMSF) {
                     dsyslog("cMarkAdStandalone::CheckStart(): check logo start mark (%d) at %s, %ds (>= %ds) after previous start, %ds (<= %ds) after assumed start", checkStart->position, indexToHMSFCheck, diffStart, MAX_DIFF_START, diffAssumed, MAX_AFTER_ASSUMED);
                 }
@@ -1634,6 +1635,7 @@ void cMarkAdStandalone::CheckStart() {
                     if (!checkStart) break;
                 }
             }
+            LogSeparator();
 
             // check if logo start mark is too early
             if (lStart && (lStart->position  < (11 * macontext.Video.Info.framesPerSecond))) {  // need same seconds to have a stable logo status, changed from 12 to 11
