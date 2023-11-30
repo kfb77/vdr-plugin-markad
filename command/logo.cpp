@@ -324,6 +324,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (strcmp(maContext->Info.ChannelName, "DMAX") == 0) {
         logo.widthMin  = 126;
         logo.heightMax =  76;
+        logo.corner    = TOP_LEFT;   // "neue Folge" has same size as logo
     }
 
     // kabel_eins              16:9  720W  576H:->   88W  72H TOP_RIGHT
@@ -514,6 +515,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
 
     // ARD_alpha_HD            16:9 1280W  720H:->  206W  76H TOP_LEFT
     if (strcmp(maContext->Info.ChannelName, "ARD_alpha_HD") == 0) {
+        logo.heightMax =  76;
         logo.widthMax  = 206;
     }
 
@@ -525,8 +527,10 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
 
     // Das_Erste_HD            16:9 1280W  720H:->  148W 114H TOP_RIGHT
     // Das_Erste_HD            16:9 1280W  720H:->  148W 128H TOP_RIGHT
-    // Das_Erste_HD            16:9 1280W  720H:->  244W  96H TOP_RIGHT      <- check eins Kinderprogramm Logo
+    // Das_Erste_HD            16:9 1280W  720H:->  244W 114H TOP_RIGHT
+    // Das_Erste_HD            16:9 1280W  720H:->  244W  96H TOP_RIGHT    <- check eins Kinderprogramm Logo
     if (strcmp(maContext->Info.ChannelName, "Das_Erste_HD") == 0) {
+        logo.widthMin  = 148;
         logo.widthMax  = 244;
     }
 
@@ -555,6 +559,11 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if ((strcmp(maContext->Info.ChannelName, "NDR_FS_HH_HD")  == 0) ||
         (strcmp(maContext->Info.ChannelName, "NDR_FS_NDS_HD") == 0)) {
         logo.heightMax =  88;
+    }
+
+    // phoenix_HD              16:9 1280W  720H:->  168W  72H TOP_LEFT
+    if (strcmp(maContext->Info.ChannelName, "phoenix_HD") == 0) {
+        logo.widthMax =  168;
     }
 
     if (strcmp(maContext->Info.ChannelName, "rbb_Berlin_HD") == 0) {         // rbb_Berlin_HD           16:9 1280W  720H:->  178W  90H TOP_RIGHT
