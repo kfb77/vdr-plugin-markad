@@ -1754,24 +1754,32 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
 
         }
 
-        // find best and second best corner
-        sLogoInfo bestLogoInfo = {};
+        // find, second and third best corner
+        sLogoInfo bestLogoInfo       = {};
         sLogoInfo secondBestLogoInfo = {};
-        int bestLogoCorner = -1;
-        int secondBestLogoCorner = -1;
+        sLogoInfo thirdBestLogoInfo  = {};
+        int bestLogoCorner           = -1;
+        int secondBestLogoCorner     = -1;
+        int thirdBestLogoCorner      = -1;
         int sumHits = 0;
 
         for (int corner = 0; corner < CORNERS; corner++) {  // search for the best hits of each corner
             sumHits += actLogoInfo[corner].hits;
             if (actLogoInfo[corner].hits > bestLogoInfo.hits) {
-                bestLogoInfo = actLogoInfo[corner];
+                bestLogoInfo   = actLogoInfo[corner];
                 bestLogoCorner = corner;
             }
         }
         for (int corner = 0; corner < CORNERS; corner++) {  // search for second best hits of each corner
             if ((actLogoInfo[corner].hits > secondBestLogoInfo.hits) && (corner != bestLogoCorner)) {
-                secondBestLogoInfo = actLogoInfo[corner];
+                secondBestLogoInfo   = actLogoInfo[corner];
                 secondBestLogoCorner = corner;
+            }
+        }
+        for (int corner = 0; corner < CORNERS; corner++) {  // search for third best hits of each corner
+            if ((actLogoInfo[corner].hits > thirdBestLogoInfo.hits) && (corner != bestLogoCorner) && (corner != secondBestLogoCorner)) {
+                thirdBestLogoInfo   = actLogoInfo[corner];
+                thirdBestLogoCorner = corner;
             }
         }
 
@@ -1801,12 +1809,22 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
                    ((startFrame == 0) && (secondBestLogoInfo.hits >= 13)))  {
                     dsyslog("cExtractLogo::SearchLogo(): try with second best corner %s at frame %d with %d similars", aCorner[secondBestLogoCorner], secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
                     if (this->Resize(maContext, &secondBestLogoInfo, &logoHeight, &logoWidth, secondBestLogoCorner)) {
-                        bestLogoInfo = secondBestLogoInfo;
+                        bestLogoInfo   = secondBestLogoInfo;
                         bestLogoCorner = secondBestLogoCorner;
                     }
                     else {
                         dsyslog("cExtractLogo::SearchLogo(): resize logo from second best failed");
-                        retStatus = false;
+                        if (thirdBestLogoInfo.hits >= 100) {  // in rare cases we have 3 logos
+                            if (this->Resize(maContext, &thirdBestLogoInfo, &logoHeight, &logoWidth, thirdBestLogoCorner)) {
+                                bestLogoInfo   = thirdBestLogoInfo;
+                                bestLogoCorner = thirdBestLogoCorner;
+                            }
+                            else {
+                                dsyslog("cExtractLogo::SearchLogo(): resize logo from third best failed");
+                                retStatus = false;
+                            }
+                        }
+                        else retStatus = false;
                     }
                 }
                 else retStatus = false;
