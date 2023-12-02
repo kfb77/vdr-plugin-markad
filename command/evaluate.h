@@ -175,11 +175,18 @@ class cEvaluateLogoStopStartPair : public cEvaluateChannel {
         void SetIsClosingCredits(const int stopPosition, const int startPosition);
 
 /**
- * get closing credits status
+ * get closing credits status before start mark
  * @param startPosition frame number of the logo start mark
  * @return value of isClosingCredits
  */
-        int GetIsClosingCredits(const int startPosition);
+        int GetIsClosingCreditsBefore(const int startPosition);
+
+/**
+ * get closing credits status after mark
+ * @param stopPosition frame number of the logo stop mark
+ * @return value of isClosingCredits
+ */
+        int GetIsClosingCreditsAfter(const int stopPosition);
 
 /**
  * add adinframe pair
