@@ -1776,9 +1776,11 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     // high matches quote 997, corner portion quote: 274, all corners portion quote: 376
     // high matches quote 998, corner portion quote: 417, all corners portion quote: 274
     // high matches quote 994, corner portion quote: 644, all corners portion quote: 285
+    // high matches quote 994, corner portion quote: 366, all corners portion quote: 472 NEW
+    // high matches quote 993, corner portion quote: 764, all corners portion quote: 401
     // high matches quote 992, corner portion quote: 525, all corners portion quote: 274
     // high matches quote 991, corner portion quote: 507, all corners portion quote: 245
-    // high matches quote 982, corner portion quote: 712, all corners portion quote: 252  NEW
+    // high matches quote 982, corner portion quote: 712, all corners portion quote: 252
     // high matches quote 975, corner portion quote: 447, all corners portion quote: 199
     // high matches quote 947, corner portion quote: 134, all corners portion quote: 111
     // high matches quote 855, corner portion quote: 265, all corners portion quote: 154
@@ -1795,7 +1797,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): corner %-12s: %4d high matches, high matches quote %3d: (of %2d frames)", aCorner[corner], isCornerLogo[corner], logoQuote, countFrames);
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo():                    : corner portion quote: %3d (of %3d frames)", framePortionQuote, AdInFrame.frameCountFinal);
         if (corner == maContext->Video.Logo.corner) continue;  // in logo corner we expect logo
-        if ((logoQuote >= 855) && (framePortionQuote <= 712) && (allFramePortionQuote <= 376)) {
+        if ((logoQuote >= 855) && (framePortionQuote <= 764) && (allFramePortionQuote <= 472)) {
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): additional logo found in corner %s", aCorner[corner]);
             countLogo++;
         }
