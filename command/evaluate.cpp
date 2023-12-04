@@ -1244,6 +1244,12 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     }
 
     // check info logo
+#define INFO_LOGO_MAX_AFTER_START  6239  // max distance for info logo start to range start (logo stop)
+#define INFO_LOGO_MIN_LENGTH       3761  // changed from 2880 to 3761
+                                         // prevent to get info box after preview as info logo, length 3760
+#define INFO_LOGO_MAX_LENGTH      17040  // chnaged from 15640 to 15880 to 17040
+                                         // RTL2 has very long info logos
+#define INFO_LOGO_MIN_QUOTE          61  // no info logo: separator image with part time logo 60
     if (found) {
         // ignore short parts at start and end, this is fade in and fade out
         int diffStart = 1000 * (infoLogo.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
@@ -1251,23 +1257,24 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         int newStartPos = startPos;
         int newEndPos = endPos;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo start diff %dms, end diff %dms", diffStart, diffEnd);
-        if (diffStart < 1920) newStartPos = infoLogo.startFinal;  // do not increase
-        if (diffEnd <= 1800) newEndPos = infoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
-        dsyslog("cDetectLogoStopStart::IsInfoLogo(): final range start (%d) end (%d)", newStartPos, newEndPos);
-#define INFO_LOGO_MIN_LENGTH  3761  // changed from 2880 to 3761
-                                    // prevent to get info box after preview as info logo, length 3760
-#define INFO_LOGO_MAX_LENGTH 17040  // chnaged from 15640 to 15880 to 17040
-                                    // RTL2 has very long info logos
-#define INFO_LOGO_MIN_QUOTE     61  // no info logo: separator image with part time logo 60
-        int quote  = 100  * (infoLogo.endFinal - infoLogo.startFinal) / (newEndPos - newStartPos);
-        int length = 1000 * (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
-        dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo: start (%d), end (%d), length %dms (expect >=%dms and <=%dms), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
-        if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE)) {
-            dsyslog("cDetectLogoStopStart::IsInfoLogo(): found info logo");
+        if (diffStart > INFO_LOGO_MAX_AFTER_START) {
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo start (%d) too far from logo stop (%d)", infoLogo.startFinal, startPos);
+            found = false;
         }
         else {
-            dsyslog("cDetectLogoStopStart::IsInfoLogo(): no info logo found");
-            found = false;
+            if (diffStart < 1920) newStartPos = infoLogo.startFinal;  // do not increase
+            if (diffEnd <= 1800) newEndPos = infoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): final range start (%d) end (%d)", newStartPos, newEndPos);
+            int quote  = 100  * (infoLogo.endFinal - infoLogo.startFinal) / (newEndPos - newStartPos);
+            int length = 1000 * (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo: start (%d), end (%d), length %dms (expect >=%dms and <=%dms), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
+            if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE)) {
+                dsyslog("cDetectLogoStopStart::IsInfoLogo(): found info logo");
+            }
+            else {
+                dsyslog("cDetectLogoStopStart::IsInfoLogo(): no info logo found");
+                found = false;
+            }
         }
     }
 
