@@ -833,7 +833,8 @@ int cMarkAdStandalone::CheckStop() {
 // try MT_LOGOSTOP
     if (!end && (markCriteria.GetMarkTypeState(MT_LOGOCHANGE) >= CRITERIA_UNKNOWN)) end = Check_LOGOSTOP();
     // no end mark found, try if we can use a start mark of next bradcast as end mark
-    if (!end) {  // no valid stop mark found, try if there is a MT_CHANNELSTART from next broadcast
+    if (!end && (markCriteria.GetMarkTypeState(MT_CHANNELCHANGE) != CRITERIA_USED)) {  // no valid stop mark found, try if there is a MT_CHANNELSTART from next broadcast
+                                                                                        // not possible is we use channel mark in this broadcast
         cMark *channelStart = marks.GetNext(iStopA, MT_CHANNELSTART);
         if (channelStart) {
             dsyslog("cMarkAdStandalone::CheckStop(): use channel start mark (%d) from next broadcast as end mark", channelStart->position);
