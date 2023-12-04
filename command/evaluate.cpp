@@ -1889,8 +1889,8 @@ int cDetectLogoStopStart::IntroductionLogo() {
     int separatorFrameAfter  = -1;
 
 #define INTRODUCTION_MIN_LENGTH          4961  // changed from 4320 to 4961, prevent to get separator scene with length 4960ms before broadcast start
-#define INTRODUCTION_MAX_LENGTH         13040  // changed from 10559  to 13040
-                                               // found introduction logo with length 13040, try to fix preview problem later TODO
+#define INTRODUCTION_MAX_LENGTH         13840  // changed from 13040 to 13080
+                                               // found introduction logo with length 13840 (kabel eins), try to fix preview problem later TODO
                                                // do not increase to prevent to detect preview as introduction logo
 #define INTRODUCTION_MAX_DIFF_SEPARATOR 10119  // max distance from sepatator frame to introduction logo start, changed from 12480 to 10119
                                                // prevent to get ad in frame 10120 before broadcast start as introduction logo
