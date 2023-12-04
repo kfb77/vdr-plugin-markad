@@ -1874,10 +1874,6 @@ int cDetectLogoStopStart::IntroductionLogo() {
         int end              = -1;
         int startFinal       = -1;
         int endFinal         = -1;
-        int countDark        =  0;
-        int countDarkFinal   =  0;
-        int countFrames      =  0;
-        int countFramesFinal =  0;
     } introductionLogo;
 
     struct sStillImage {
@@ -1924,8 +1920,6 @@ int cDetectLogoStopStart::IntroductionLogo() {
             if (((*cornerResultIt).rate[corner] <=  0) || ((*cornerResultIt).rate[corner] > 507)) countStillImage++; // changed from 142 to 507
             sumPixel += (*cornerResultIt).rate[corner];
         }
-        if (darkCorner == 3) introductionLogo.countDark++;  // if all corners but logo corner has no match, this is a very dark scene
-        introductionLogo.countFrames++;
         // examples of separator frames before introduction logo
         //  59     0     0    -1 =  58
         //  48    14     0     0 =  62  NEW
@@ -1953,10 +1947,6 @@ int cDetectLogoStopStart::IntroductionLogo() {
             introductionLogo.end              = -1;
             introductionLogo.startFinal       = -1;
             introductionLogo.endFinal         = -1;
-            introductionLogo.countDark        =  0;
-            introductionLogo.countDarkFinal   =  0;
-            introductionLogo.countFrames      =  0;
-            introductionLogo.countFramesFinal =  0;
             separatorFrameAfter               = -1;
             stillImage.start                  = -1;
             stillImage.startFinal             = -1;
@@ -2029,18 +2019,14 @@ int cDetectLogoStopStart::IntroductionLogo() {
                 if ((introductionLogo.end - introductionLogo.start) >= (introductionLogo.endFinal - introductionLogo.startFinal)) {
                     introductionLogo.startFinal       = introductionLogo.start;
                     introductionLogo.endFinal         = introductionLogo.end;
-                    introductionLogo.countDarkFinal   = introductionLogo.countDark;
-                    introductionLogo.countFramesFinal = introductionLogo.countFrames;
                 }
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
                 dsyslog("cDetectLogoStopStart::IntroductionLogo(): end of introduction logo without seperator because too low logo corner match");
-                dsyslog("cDetectLogoStopStart::IntroductionLogo(): current      range: from (%d) to (%d), frames %d, dark %d", introductionLogo.start, introductionLogo.end, introductionLogo.countFrames, introductionLogo.countDark);
-                dsyslog("cDetectLogoStopStart::IntroductionLogo(): current best range: from (%d) to (%d), frames %d, dark %d", introductionLogo.startFinal, introductionLogo.endFinal, introductionLogo.countFramesFinal, introductionLogo.countDarkFinal);
+                dsyslog("cDetectLogoStopStart::IntroductionLogo(): current      range: from (%d) to (%d)", introductionLogo.start, introductionLogo.end);
+                dsyslog("cDetectLogoStopStart::IntroductionLogo(): current best range: from (%d) to (%d)", introductionLogo.startFinal, introductionLogo.endFinal);
 #endif
                 introductionLogo.start       = -1;
                 introductionLogo.end         = -1;
-                introductionLogo.countDark   =  0;
-                introductionLogo.countFrames =  0;
             }
         }
     }
@@ -2049,8 +2035,6 @@ int cDetectLogoStopStart::IntroductionLogo() {
     if ((introductionLogo.end - introductionLogo.start) >= (introductionLogo.endFinal - introductionLogo.startFinal)) {
         introductionLogo.startFinal       = introductionLogo.start;
         introductionLogo.endFinal         = introductionLogo.end;
-        introductionLogo.countDarkFinal   = introductionLogo.countDark;
-        introductionLogo.countFramesFinal = introductionLogo.countFrames;
     }
     dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d)", introductionLogo.startFinal, introductionLogo.endFinal);
 
@@ -2086,14 +2070,6 @@ int cDetectLogoStopStart::IntroductionLogo() {
     }
 
 // check introduction logo
-    // check dark frames, detection with a long dark scene before logo start mark is not possible, maybe closing credits from broadcast before
-    int darkQuote = 0;
-    if (introductionLogo.countFramesFinal > 0) darkQuote = 1000 * introductionLogo.countDarkFinal / introductionLogo.countFramesFinal;
-    dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), count frames %d, dark frames %d, quote %d", introductionLogo.startFinal, introductionLogo.endFinal,introductionLogo.countFramesFinal, introductionLogo.countDarkFinal, darkQuote);
-    if (darkQuote >= 210) {
-        dsyslog("cDetectLogoStopStart::IntroductionLogo(): scene before logo start mark too dark");
-        return -1;
-    }
     // check length and distances
     int diffEnd       = 1000 * (endPos                      - introductionLogo.endFinal)   / maContext->Video.Info.framesPerSecond;
     int diffSeparator = 1000 * (introductionLogo.startFinal - separatorFrameBefore)   / maContext->Video.Info.framesPerSecond;
