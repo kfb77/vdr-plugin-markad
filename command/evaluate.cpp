@@ -1248,8 +1248,8 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 #define INFO_LOGO_MIN_LENGTH       3761  // changed from 2880 to 3761
                                          // prevent to get info box after preview as info logo, length 3760
 #define INFO_LOGO_MAX_LENGTH      17040  // chnaged from 15640 to 15880 to 17040
-                                         // RTL2 has very long info logos
-#define INFO_LOGO_MIN_QUOTE          61  // no info logo: separator image with part time logo 60
+    // RTL2 has very long info logos
+#define INFO_LOGO_MIN_QUOTE          67  // changed from 65 to 67, no info logo: separator image with part time logo 66
     if (found) {
         // ignore short parts at start and end, this is fade in and fade out
         int diffStart = 1000 * (infoLogo.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
