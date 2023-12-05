@@ -1446,9 +1446,9 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
         int noPixelCount       = 0;
         int darkCorner         = 0;
         for (int corner = 0; corner < CORNERS; corner++) {
-            if (((*cornerResultIt).rate[corner] >= 230) || ((*cornerResultIt).rate[corner] == -1)) similarCorners++; // prevent false positiv from static scenes, changed from 220 to 230
-            if (((*cornerResultIt).rate[corner] >= 260) || ((*cornerResultIt).rate[corner] == -1)) moreSimilarCorners++;   // changed from 899 to 807 to 715 to 260
-            if (((*cornerResultIt).rate[corner] >= 545) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;  // changed from 924 to 605 to 545
+            if (((*cornerResultIt).rate[corner] >= 205) || ((*cornerResultIt).rate[corner] == -1)) similarCorners++;      // changed from 230 to 205
+            if (((*cornerResultIt).rate[corner] >= 260) || ((*cornerResultIt).rate[corner] == -1)) moreSimilarCorners++;  // changed from 715 to 260
+            if (((*cornerResultIt).rate[corner] >= 545) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;        // changed from 605 to 545
             if ( (*cornerResultIt).rate[corner] ==  -1) noPixelCount++;
             if (((*cornerResultIt).rate[corner] <=   0) && (corner != maContext->Video.Logo.corner)) darkCorner++;   // if we have no match, this can be a too dark corner
         }
@@ -1456,12 +1456,20 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
         if (darkCorner >= 2) countDark++;  // if at least two corners but logo corner has no match, this is a very dark scene
 
         if ((similarCorners >= 3) && (noPixelCount < CORNERS)) {  // at least 3 corners has a match, at least one corner has pixel
-            if (ClosingCredits.start == -1) ClosingCredits.start = (*cornerResultIt).frameNumber1;
+            if (ClosingCredits.start == -1) {
+                ClosingCredits.start = (*cornerResultIt).frameNumber1;
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_CLOSINGCREDITS)
+                dsyslog("cDetectLogoStopStart::ClosingCredit(): start");
+#endif
+            }
             ClosingCredits.end = (*cornerResultIt).frameNumber2;
             ClosingCredits.frameCount++;
             for (int corner = 0; corner < CORNERS; corner++) ClosingCredits.sumFramePortion[corner] += framePortion[corner];
         }
         else {
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_CLOSINGCREDITS)
+            if (ClosingCredits.start != -1) dsyslog("cDetectLogoStopStart::ClosingCredit(): end");
+#endif
             if ((ClosingCredits.end - ClosingCredits.start) >= (minLength * maContext->Video.Info.framesPerSecond / 1000)) {  // first long enough part is the closing credit
                 break;
             }
