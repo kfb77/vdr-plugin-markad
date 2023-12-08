@@ -12,9 +12,6 @@
 #include <string.h>
 
 #include "audio.h"
-extern "C"{
-#include "debug.h"
-}
 
 
 cMarkAdAudio::cMarkAdAudio(sMarkAdContext *maContext, cIndex *recordingIndex) {
