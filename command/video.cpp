@@ -984,9 +984,13 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 #ifdef DEBUG_LOGO_DETECTION
                 dsyslog("cMarkAdLogo::Detect(): frame (%6d) pixel quote after brighness reduction: %d%%", frameCurrent, quote);
 #endif
-                if (quote > 22) return LOGO_NOCHANGE; // there is a pattern on the backbround, no logo detection possible
-                // changed from 27 to 25
-
+                if (quote > 22) { // changed from 27 to 25
+                    if ((quote >= 60) && (area.status == LOGO_INVISIBLE)) {  // prevent false logo start detection from patten background
+                        area.counter--;
+                        if (area.counter < 0) area.counter = 0;
+                    }
+                    return LOGO_NOCHANGE; // there is a pattern on the backbround, no logo detection possible
+                }
                 // check new brightness
                 if (((area.intensity >  164) && (rPixel >  0)) || // still too bright, we can not use the result
                         // chaged from 160 to 164 for separator image without logo
