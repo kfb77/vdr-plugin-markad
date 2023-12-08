@@ -18,348 +18,348 @@
  * class for a single mark
  */
 class cMark {
-    public:
-/**
- * mark constructor
- * @param typeParam        mark type
- * @param oldTypeParam     original mark type before move
- * @param newTypeParam     new mark type after move
- * @param positionParam    mark position
- * @param commentParam     mark comment
- * @param inBroadCastParam true if mark is in broadcast, false if mark is in advertising
- */
-        explicit cMark(const int typeParam = MT_UNDEFINED, const int oldTypeParam = MT_UNDEFINED, const int newTypeParam = MT_UNDEFINED, const int positionParam = 0, const char *commentParam = NULL, const bool inBroadCastParam = false);
+public:
+    /**
+     * mark constructor
+     * @param typeParam        mark type
+     * @param oldTypeParam     original mark type before move
+     * @param newTypeParam     new mark type after move
+     * @param positionParam    mark position
+     * @param commentParam     mark comment
+     * @param inBroadCastParam true if mark is in broadcast, false if mark is in advertising
+     */
+    explicit cMark(const int typeParam = MT_UNDEFINED, const int oldTypeParam = MT_UNDEFINED, const int newTypeParam = MT_UNDEFINED, const int positionParam = 0, const char *commentParam = NULL, const bool inBroadCastParam = false);
 
-        ~cMark();
+    ~cMark();
 
-/**
- * get next mark
- * @return next mark
- */
-        cMark *Next() {
-            return next;
-        };
+    /**
+     * get next mark
+     * @return next mark
+     */
+    cMark *Next() {
+        return next;
+    };
 
-/**
- * get previous mark
- * @return previous mark
- */
-        cMark *Prev() {
-            return prev;
-        };
+    /**
+     * get previous mark
+     * @return previous mark
+     */
+    cMark *Prev() {
+        return prev;
+    };
 
-/**
- * set previous and next mark
- * @param prevParam previous mark
- * @param nextParam next mark
- */
-        void Set(cMark *prevParam, cMark *nextParam) {
-            prev = prevParam;
-            next = nextParam;
-        }
+    /**
+     * set previous and next mark
+     * @param prevParam previous mark
+     * @param nextParam next mark
+     */
+    void Set(cMark *prevParam, cMark *nextParam) {
+        prev = prevParam;
+        next = nextParam;
+    }
 
-/**
- * set next mark
- * @param nextParam next mark
- */
-        void SetNext(cMark *nextParam) {
-            next = nextParam;
-        }
+    /**
+     * set next mark
+     * @param nextParam next mark
+     */
+    void SetNext(cMark *nextParam) {
+        next = nextParam;
+    }
 
-/**
- * set previous mark
- * @param prevParam previous mark
- */
-        void SetPrev(cMark *prevParam) {
-            prev = prevParam;
-        }
+    /**
+     * set previous mark
+     * @param prevParam previous mark
+     */
+    void SetPrev(cMark *prevParam) {
+        prev = prevParam;
+    }
 
-/**
- * set PTS based time offset text from mark position
- * @param time pointer to char array, NULL is valid and clears value
- */
-        void SetTime(char* time);
+    /**
+     * set PTS based time offset text from mark position
+     * @param time pointer to char array, NULL is valid and clears value
+     */
+    void SetTime(char* time);
 
-/**
- * get PTS based time offset text from mark position
- * @return char array of time stamp with format HH:MM:SS.FF, NULL if not set
- */
-        char *GetTime();
+    /**
+     * get PTS based time offset text from mark position
+     * @return char array of time stamp with format HH:MM:SS.FF, NULL if not set
+     */
+    char *GetTime();
 
 
-        int type         = MT_UNDEFINED;   //!< mark type
-                                           //!<
-        int oldType      = MT_UNDEFINED;   //!< old mark type after mark moved
-                                           //!<
-        int newType      = MT_UNDEFINED;   //!< new mark type after mark moved
-                                           //!<
-        int position     = -1;             //!< mark frame position
-                                           //!<
-        char *comment    = NULL;           //!< mark comment
-                                           //!<
-        bool inBroadCast = false;          //!< true if mark is in broadcast, false if mark is in advertising
-                                           //!<
+    int type         = MT_UNDEFINED;   //!< mark type
+    //!<
+    int oldType      = MT_UNDEFINED;   //!< old mark type after mark moved
+    //!<
+    int newType      = MT_UNDEFINED;   //!< new mark type after mark moved
+    //!<
+    int position     = -1;             //!< mark frame position
+    //!<
+    char *comment    = NULL;           //!< mark comment
+    //!<
+    bool inBroadCast = false;          //!< true if mark is in broadcast, false if mark is in advertising
+    //!<
 
-    private:
-/**
- * copy mark Object (not used)
- */
-        cMark(const cMark &cMarkCopy);
+private:
+    /**
+     * copy mark Object (not used)
+     */
+    cMark(const cMark &cMarkCopy);
 
-/**
- * = operator for mark object (not used)
- */
-        cMark &operator=(const cMark &foo);
+    /**
+     * = operator for mark object (not used)
+     */
+    cMark &operator=(const cMark &foo);
 
-        cMark *next         = NULL;       //!< next mark
-                                          //!<
-        cMark *prev         = NULL;       //!< previous mark
-                                          //!<
-        char *timeOffsetPTS = NULL;       //!< time stamp of the mark position
-                                          //!<
+    cMark *next         = NULL;       //!< next mark
+    //!<
+    cMark *prev         = NULL;       //!< previous mark
+    //!<
+    char *timeOffsetPTS = NULL;       //!< time stamp of the mark position
+    //!<
 };
 
 /**
  * class contains current marks
  */
 class cMarks {
-    public:
-        cMarks();
-        ~cMarks();
+public:
+    cMarks();
+    ~cMarks();
 
-/**
- * register recording index
- * @param recordingIndex recording index
- */
-        void RegisterIndex(cIndex *recordingIndex);
+    /**
+     * register recording index
+     * @param recordingIndex recording index
+     */
+    void RegisterIndex(cIndex *recordingIndex);
 
-/**
- * calculate count of marks
- * @param type type of marks to count
- * @param mask type mask
- * @return counf of mark
- */
-        int Count(const int type = 0xFF, const int mask = 0xFF);
+    /**
+     * calculate count of marks
+     * @param type type of marks to count
+     * @param mask type mask
+     * @return counf of mark
+     */
+    int Count(const int type = 0xFF, const int mask = 0xFF);
 
-/**
- * set marks filename
- * @param fileNameParam name of marks file
- */
-        void SetFileName(const char *fileNameParam) {
-            if (fileNameParam) {
-                strncpy(filename, fileNameParam , sizeof(filename));
-                filename[sizeof(filename)-1] = 0;
+    /**
+     * set marks filename
+     * @param fileNameParam name of marks file
+     */
+    void SetFileName(const char *fileNameParam) {
+        if (fileNameParam) {
+            strncpy(filename, fileNameParam, sizeof(filename));
+            filename[sizeof(filename)-1] = 0;
 
-            }
         }
+    }
 
 
-/**
- * add mark
- * @param type        mark type
- * @param oldType     original mark type before move
- * @param newType     new mark type after move
- * @param position    mark position
- * @param comment     mark comment
- * @param inBroadCast true if mark is in broacast, false if mark is in advertising
- * @return ointer to new mark
- */
-        cMark *Add(const int type, const int oldType, const int newType, const int position, const char *comment = NULL, const bool inBroadCast = false);
+    /**
+     * add mark
+     * @param type        mark type
+     * @param oldType     original mark type before move
+     * @param newType     new mark type after move
+     * @param position    mark position
+     * @param comment     mark comment
+     * @param inBroadCast true if mark is in broacast, false if mark is in advertising
+     * @return ointer to new mark
+     */
+    cMark *Add(const int type, const int oldType, const int newType, const int position, const char *comment = NULL, const bool inBroadCast = false);
 
-/**
- * convert frame number to time string
- * @param frameNumber frame number
- * @param isVDR true: calculate timestamp based on frame number, false: calculate timestamp based on PTS of frame number
- * @return time string
- */
-        char *IndexToHMSF(const int frameNumber, const bool isVDR = false);
+    /**
+     * convert frame number to time string
+     * @param frameNumber frame number
+     * @param isVDR true: calculate timestamp based on frame number, false: calculate timestamp based on PTS of frame number
+     * @return time string
+     */
+    char *IndexToHMSF(const int frameNumber, const bool isVDR = false);
 
-/**
- * get PTS based time offset of mark position
- * @param mark pointer to mark
- * @return char array of time stamp with format HH:MM:SS.FF
- */
-        char *GetTime(cMark *mark);
-
-
-/**
- * delete weak marks between two positions
- * @param from start position
- * @param to   end position
- * @param type delete marks weaker than this type
- */
-        void DelWeakFromTo(const int from, const int to, const short int type);
-
-/**
- * delete marks between two positions
- * @param from start position
- * @param to   end position
- * @param type mark type to delete
- */
-        void DelFromTo(const int from, const int to, const short int type);
-
-/**
- * delete marks from/to position
- * @param position position frame number
- * @param fromStart true to delete all marks from start to position, false to delete all marks from position to end
- */
-        void DelTill(const int position, const bool fromStart = true);
-
-/**
- * delete all marks after position to last mark
- * @param position start position to delete from
- */
-        void DelAfterFromToEnd(const int position);
-
-/**
- * delete all marks
- */
-        void DelAll();
+    /**
+     * get PTS based time offset of mark position
+     * @param mark pointer to mark
+     * @return char array of time stamp with format HH:MM:SS.FF
+     */
+    char *GetTime(cMark *mark);
 
 
-/**
- * delete marks with invalid squence (double start or stop marks)
- */
-        void DelInvalidSequence();
+    /**
+     * delete weak marks between two positions
+     * @param from start position
+     * @param to   end position
+     * @param type delete marks weaker than this type
+     */
+    void DelWeakFromTo(const int from, const int to, const short int type);
 
-/**
- * delete mark
- * @param mark mark to delete
- */
-        void Del(cMark *mark);
+    /**
+     * delete marks between two positions
+     * @param from start position
+     * @param to   end position
+     * @param type mark type to delete
+     */
+    void DelFromTo(const int from, const int to, const short int type);
 
-/**
- * delete all marks of given type
- * @param type mark type
- * @param mask binary mask for type
- */
-        void DelType(const int type, const int mask);
+    /**
+     * delete marks from/to position
+     * @param position position frame number
+     * @param fromStart true to delete all marks from start to position, false to delete all marks from position to end
+     */
+    void DelTill(const int position, const bool fromStart = true);
 
-/**
- * delete mark
- * @param position position to delete
- */
-        void Del(const int position);
+    /**
+     * delete all marks after position to last mark
+     * @param position start position to delete from
+     */
+    void DelAfterFromToEnd(const int position);
 
-
-/**
- * change mark type (START or STOP)
- * @param mark    mark to move
- * @param newType new type of mark, allow values are MT_START or MT_STOP
- * @return mark with new type
- */
-        cMark *ChangeType(cMark *mark, const int newType);
-
-
-/**
- * move mark position
- * @param mark        mark to move
- * @param newPosition new position of mark
- * @param newType     new type of mark
- * @return mark with new position
- */
-        cMark *Move(cMark *mark, const int newPosition, const int newType);
+    /**
+     * delete all marks
+     */
+    void DelAll();
 
 
-/**
- * get first mark
- * @return first mark
- */
-        cMark *First();
+    /**
+     * delete marks with invalid squence (double start or stop marks)
+     */
+    void DelInvalidSequence();
+
+    /**
+     * delete mark
+     * @param mark mark to delete
+     */
+    void Del(cMark *mark);
+
+    /**
+     * delete all marks of given type
+     * @param type mark type
+     * @param mask binary mask for type
+     */
+    void DelType(const int type, const int mask);
+
+    /**
+     * delete mark
+     * @param position position to delete
+     */
+    void Del(const int position);
 
 
-/**
- * get mark from position
- * @param position frame position
- * @return mark from position
- */
-        cMark *Get(const int position);
-
-/**
- * get nearest mark
- * @param frames   maximum frames distance
- * @param position position to search around
- * @param type     type of next mark
- * @param mask     binary mask for type
- * @return nearest mark
- */
-        cMark *GetAround(const int frames, const int position, const int type = 0xFF, const int mask = 0xFF);
-
-/**
- * get previous mark
- * @param position position to start search of next mark
- * @param type     type of next mark
- * @param mask     binary mask for type
- * @return previous mark
- */
-        cMark *GetPrev(const int position, const int type = 0xFF, const int mask = 0xFF);
-
-/**
- * get next mark
- * @param position position to start search of next mark
- * @param type     type of next mark
- * @param mask     binary mask for type
- * @return next mark
- */
-        cMark *GetNext(const int position, const int type = 0xFF, const int mask = 0xFF);
-
-/**
- * get first mark
- * @return first mark
- */
-        cMark *GetFirst() {
-            return first;
-        }
-
-/**
- * get last mark
- * @return last mark
- */
-        cMark *GetLast() {
-            return last;
-        }
-
-/**
- * backup marks file
- * @param directory recording directory
- * @return true if successful, false otherwise
- */
-        bool Backup(const char *directory);
-
-/**
- * save marks to recording directory
- * @param directory recording directory
- * @param maContext markad context
- * @param force     true if to save in any cases, false if only save when not running recording
- * @return true if successfuly saved, false otherwise
- */
-        bool Save(const char *directory, const sMarkAdContext *maContext, const bool force);
+    /**
+     * change mark type (START or STOP)
+     * @param mark    mark to move
+     * @param newType new type of mark, allow values are MT_START or MT_STOP
+     * @return mark with new type
+     */
+    cMark *ChangeType(cMark *mark, const int newType);
 
 
-/**
- * calculate length of the braodcast without advertisement
- * @return count frames of the broadcast without advertisement
- */
-        int Length();
+    /**
+     * move mark position
+     * @param mark        mark to move
+     * @param newPosition new position of mark
+     * @param newType     new type of mark
+     * @return mark with new position
+     */
+    cMark *Move(cMark *mark, const int newPosition, const int newType);
 
-/**
- * convert mark type to text
- * @param type type of the mark
- * @return text of the mark type
- */
-        char *TypeToText(const int type);
 
-    private:
+    /**
+     * get first mark
+     * @return first mark
+     */
+    cMark *First();
 
-        cIndex *recordingIndexMarks = NULL;  //!< recording index
-                                             //!<
-        char filename[1024]         = {0};   //!< name of marks file (default: marks)
-                                             //!<
-        cMark *first                = NULL;  //!< pointer to first mark
-                                             //!<
-        cMark *last                 = NULL;  //!< pointer to last mark
-                                             //!<
-        int count                   = 0;     //!< number of current marks
-                                             //!<
+
+    /**
+     * get mark from position
+     * @param position frame position
+     * @return mark from position
+     */
+    cMark *Get(const int position);
+
+    /**
+     * get nearest mark
+     * @param frames   maximum frames distance
+     * @param position position to search around
+     * @param type     type of next mark
+     * @param mask     binary mask for type
+     * @return nearest mark
+     */
+    cMark *GetAround(const int frames, const int position, const int type = 0xFF, const int mask = 0xFF);
+
+    /**
+     * get previous mark
+     * @param position position to start search of next mark
+     * @param type     type of next mark
+     * @param mask     binary mask for type
+     * @return previous mark
+     */
+    cMark *GetPrev(const int position, const int type = 0xFF, const int mask = 0xFF);
+
+    /**
+     * get next mark
+     * @param position position to start search of next mark
+     * @param type     type of next mark
+     * @param mask     binary mask for type
+     * @return next mark
+     */
+    cMark *GetNext(const int position, const int type = 0xFF, const int mask = 0xFF);
+
+    /**
+     * get first mark
+     * @return first mark
+     */
+    cMark *GetFirst() {
+        return first;
+    }
+
+    /**
+     * get last mark
+     * @return last mark
+     */
+    cMark *GetLast() {
+        return last;
+    }
+
+    /**
+     * backup marks file
+     * @param directory recording directory
+     * @return true if successful, false otherwise
+     */
+    bool Backup(const char *directory);
+
+    /**
+     * save marks to recording directory
+     * @param directory recording directory
+     * @param maContext markad context
+     * @param force     true if to save in any cases, false if only save when not running recording
+     * @return true if successfuly saved, false otherwise
+     */
+    bool Save(const char *directory, const sMarkAdContext *maContext, const bool force);
+
+
+    /**
+     * calculate length of the braodcast without advertisement
+     * @return count frames of the broadcast without advertisement
+     */
+    int Length();
+
+    /**
+     * convert mark type to text
+     * @param type type of the mark
+     * @return text of the mark type
+     */
+    char *TypeToText(const int type);
+
+private:
+
+    cIndex *recordingIndexMarks = NULL;  //!< recording index
+    //!<
+    char filename[1024]         = {0};   //!< name of marks file (default: marks)
+    //!<
+    cMark *first                = NULL;  //!< pointer to first mark
+    //!<
+    cMark *last                 = NULL;  //!< pointer to last mark
+    //!<
+    int count                   = 0;     //!< number of current marks
+    //!<
 };
 #endif

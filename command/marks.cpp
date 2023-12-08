@@ -16,7 +16,7 @@
 #include <fcntl.h>
 #include "global.h"
 #ifdef WINDOWS
-   #include "win32/mingw64.h"
+#include "win32/mingw64.h"
 #endif
 
 #include "marks.h"
@@ -219,7 +219,7 @@ void cMarks::DelInvalidSequence() {
     while (mark) {
 
         // if first mark is a stop mark, remove it
-        if (((mark->type & 0x0F) == MT_STOP) && (mark == first)){
+        if (((mark->type & 0x0F) == MT_STOP) && (mark == first)) {
             dsyslog("cMarks::DelInvalidSequence(): Start with STOP mark (%d) type 0x%X, delete first mark", mark->position, mark->type);
             cMark *tmp = mark;
             mark = mark->Next();
@@ -229,7 +229,7 @@ void cMarks::DelInvalidSequence() {
 
         // cleanup of start followed by start or stop followed by stop
         if ((((mark->type & 0x0F) == MT_STOP)  && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_STOP)) || // two stop or start marks, keep strong marks, delete weak
-            (((mark->type & 0x0F) == MT_START) && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_START))) {
+                (((mark->type & 0x0F) == MT_START) && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_START))) {
             dsyslog("cMarks::DelInvalidSequence(): mark (%d) type 0x%X, followed by same mark (%d) type 0x%X", mark->position, mark->type, mark->Next()->position, mark->Next()->type);
             if (mark->type < mark->Next()->type) {
                 dsyslog(" cMarks::DelInvalidSequence() delete mark (%d)", mark->position);
@@ -385,7 +385,7 @@ cMark *cMarks::Add(const int type, const int oldType, const int newType, const i
             Del(dupMark->position);
             return NULL;
         }
-        if (type > dupMark->type){   // keep the stronger mark
+        if (type > dupMark->type) {  // keep the stronger mark
             if (dupMark->comment && comment) {
                 FREE(strlen(dupMark->comment)+1, "comment");
                 free(dupMark->comment);
@@ -471,136 +471,136 @@ cMark *cMarks::Add(const int type, const int oldType, const int newType, const i
 char *cMarks::TypeToText(const int type) {
     char *text = NULL;
     switch (type & 0xFF0) {
-        case MT_UNDEFINED:
-            if (asprintf(&text, "undefined") != -1) {
+    case MT_UNDEFINED:
+        if (asprintf(&text, "undefined") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_ASSUMED:
+        if (asprintf(&text, "assumed") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_SCENECHANGE:
+        if (asprintf(&text, "scene") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_SOUNDCHANGE:
+        if (asprintf(&text, "sound") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_BLACKLOWERCHANGE:
+        if (asprintf(&text, "lower black border") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_BLACKCHANGE:
+        if (asprintf(&text, "black screen") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_LOGOCHANGE:
+        if (asprintf(&text, "logo") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_CHANNELCHANGE:
+        if (asprintf(&text, "channel") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_VBORDERCHANGE:
+        if (asprintf(&text, "vertical border") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_HBORDERCHANGE:
+        if (asprintf(&text, "horizontal border") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_ASPECTCHANGE:
+        if (asprintf(&text, "aspect ratio") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_MOVED:
+        if (asprintf(&text, "moved") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_TYPECHANGE:
+        if (asprintf(&text, "type changed") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_VPSCHANGE:
+        if (asprintf(&text, "VPS event") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_RECORDINGCHANGE:
+        if (asprintf(&text, "recording") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_OVERLAPCHANGE:
+        if (asprintf(&text, "overlap") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_INTRODUCTIONCHANGE:
+        if (asprintf(&text, "introduction") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_CLOSINGCREDITSCHANGE:
+        if (asprintf(&text, "closing credits") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    case MT_ADINFRAMECHANGE:
+        if (asprintf(&text, "ad in frame") != -1) {
+            ALLOC(strlen(text)+1, "text");
+        }
+        else esyslog("cMarks::TypeToText(): asprintf failed");
+        break;
+    default:
+        // special type
+        if (type == MT_ALL) {
+            if (asprintf(&text, "all") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
             else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_ASSUMED:
-            if (asprintf(&text, "assumed") != -1) {
+        }
+        else {
+            esyslog("cMarks::TypeToText(): type 0x%X unknown", type);
+            if (asprintf(&text, "unknown") != -1) {
                 ALLOC(strlen(text)+1, "text");
             }
             else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_SCENECHANGE:
-            if (asprintf(&text, "scene") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_SOUNDCHANGE:
-            if (asprintf(&text, "sound") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_BLACKLOWERCHANGE:
-            if (asprintf(&text, "lower black border") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_BLACKCHANGE:
-            if (asprintf(&text, "black screen") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_LOGOCHANGE:
-            if (asprintf(&text, "logo") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_CHANNELCHANGE:
-            if (asprintf(&text, "channel") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_VBORDERCHANGE:
-            if (asprintf(&text, "vertical border") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_HBORDERCHANGE:
-            if (asprintf(&text, "horizontal border") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_ASPECTCHANGE:
-            if (asprintf(&text, "aspect ratio") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_MOVED:
-            if (asprintf(&text, "moved") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_TYPECHANGE:
-            if (asprintf(&text, "type changed") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_VPSCHANGE:
-            if (asprintf(&text, "VPS event") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_RECORDINGCHANGE:
-            if (asprintf(&text, "recording") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_OVERLAPCHANGE:
-            if (asprintf(&text, "overlap") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_INTRODUCTIONCHANGE:
-            if (asprintf(&text, "introduction") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_CLOSINGCREDITSCHANGE:
-            if (asprintf(&text, "closing credits") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        case MT_ADINFRAMECHANGE:
-            if (asprintf(&text, "ad in frame") != -1) {
-                ALLOC(strlen(text)+1, "text");
-            }
-            else esyslog("cMarks::TypeToText(): asprintf failed");
-            break;
-        default:
-            // special type
-            if (type == MT_ALL) {
-                if (asprintf(&text, "all") != -1) {
-                    ALLOC(strlen(text)+1, "text");
-                }
-                else esyslog("cMarks::TypeToText(): asprintf failed");
-            }
-            else {
-                esyslog("cMarks::TypeToText(): type 0x%X unknown", type);
-                if (asprintf(&text, "unknown") != -1) {
-                    ALLOC(strlen(text)+1, "text");
-                }
-                else esyslog("cMarks::TypeToText(): asprintf failed");
-            }
-            break;
+        }
+        break;
     }
     return text;
 }
@@ -658,27 +658,27 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType) {
     char* typeText = TypeToText(newType);
 
     if (indexToHMSF && typeText) {
-       char suffix[10] = {0};
-       if (newPosition > mark->position)      strcpy(suffix,"after ");
-       else if (newPosition < mark->position) strcpy(suffix,"before");
-       if (asprintf(&comment,"%s %s -> %s %s (%d)", mark->comment, indexToHMSF, typeText, suffix, newPosition)) {
-           ALLOC(strlen(comment)+1, "comment");
-           dsyslog("cMarks::Move(): %s",comment);
+        char suffix[10] = {0};
+        if (newPosition > mark->position)      strcpy(suffix,"after ");
+        else if (newPosition < mark->position) strcpy(suffix,"before");
+        if (asprintf(&comment,"%s %s -> %s %s (%d)", mark->comment, indexToHMSF, typeText, suffix, newPosition)) {
+            ALLOC(strlen(comment)+1, "comment");
+            dsyslog("cMarks::Move(): %s",comment);
 
-           int oldType = MT_UNDEFINED;
-           if (((mark->type & 0xF0) == MT_MOVED) && (mark->newType != MT_UNDEFINED)) oldType = mark->newType;
-           else oldType = mark->type;
-           int type = ((mark->type & 0x0F) == MT_START) ? MT_MOVEDSTART : MT_MOVEDSTOP;
-           Del(mark);
-           newMark = Add(type, oldType, newType, newPosition, comment);
+            int oldType = MT_UNDEFINED;
+            if (((mark->type & 0xF0) == MT_MOVED) && (mark->newType != MT_UNDEFINED)) oldType = mark->newType;
+            else oldType = mark->type;
+            int type = ((mark->type & 0x0F) == MT_START) ? MT_MOVEDSTART : MT_MOVEDSTOP;
+            Del(mark);
+            newMark = Add(type, oldType, newType, newPosition, comment);
 
-           FREE(strlen(typeText)+1, "text");
-           free(typeText);
-           FREE(strlen(comment)+1, "comment");
-           free(comment);
-       }
-   }
-   return newMark;
+            FREE(strlen(typeText)+1, "text");
+            free(typeText);
+            FREE(strlen(comment)+1, "comment");
+            free(comment);
+        }
+    }
+    return newMark;
 }
 
 
@@ -723,7 +723,9 @@ char *cMarks::GetTime(cMark *mark) {
     char *time = mark->GetTime();
     if (!time) {
         time = IndexToHMSF(mark->position, false);
-        if (time) { ALLOC(strlen(time)+1, "timeOffsetPTS"); }
+        if (time) {
+            ALLOC(strlen(time)+1, "timeOffsetPTS");
+        }
         mark->SetTime(time);
     }
     if (!time) esyslog("cMarks::GetTime(): frame (%d): faild to get time from index", mark->position);
@@ -819,7 +821,9 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
 #endif
         const char *indexToHMSF_PTS = GetTime(mark);                          // PTS based timestamp
         char *indexToHMSF_VDR = IndexToHMSF(vdrMarkPosition, true);     // vdr based timestamp
-        if (indexToHMSF_VDR) { ALLOC(strlen(indexToHMSF_VDR)+1, "indexToHMSF_VDR"); }
+        if (indexToHMSF_VDR) {
+            ALLOC(strlen(indexToHMSF_VDR)+1, "indexToHMSF_VDR");
+        }
 #ifdef DEBUG_SAVEMARKS
         dsyslog("cMarks::Save(): mark frame number     (%d): indexToHMSF_PTS %s", mark->position,  indexToHMSF_PTS);
         dsyslog("cMarks::Save(): vdr mark frame number (%d): indexToHMSF_VDR %s", vdrMarkPosition, indexToHMSF_VDR);

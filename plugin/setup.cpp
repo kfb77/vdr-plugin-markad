@@ -86,26 +86,26 @@ eOSState cSetupMarkAd::ProcessKey(eKeys Key) {
     eOSState state = cOsdMenu::ProcessKey(Key);
     if (HasSubMenu()) return osContinue;
     switch (state) {
-        case osContinue:
-            if (((Key == kLeft) || (Key == kRight)) && (Current() == 0)) write();
-            if ((Key == kDown) || (Key == kUp)) {
-                if (Current() == lpos) {
-                    SetHelp(NULL, NULL, NULL, tr("show list"));
-                }
-                else {
-                    SetHelp(NULL, NULL, NULL, NULL);
-                }
+    case osContinue:
+        if (((Key == kLeft) || (Key == kRight)) && (Current() == 0)) write();
+        if ((Key == kDown) || (Key == kUp)) {
+            if (Current() == lpos) {
+                SetHelp(NULL, NULL, NULL, tr("show list"));
             }
-            break;
-        case osUnknown:
-            if ((Key == kBlue) && (Current() == lpos)) return AddSubMenu(new cSetupMarkAdList(setup));
-            if (Key == kOk) {
-                Store();
-                state = osBack;
+            else {
+                SetHelp(NULL, NULL, NULL, NULL);
             }
-            break;
-        default:
-            break;
+        }
+        break;
+    case osUnknown:
+        if ((Key == kBlue) && (Current() == lpos)) return AddSubMenu(new cSetupMarkAdList(setup));
+        if (Key == kOk) {
+            Store();
+            state = osBack;
+        }
+        break;
+    default:
+        break;
     }
     return state;
 }
@@ -177,13 +177,13 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup) :cOsdMenu("",CHNUMWIDTH)
 
 #if APIVERSNUM>=20301
                 cStateKey StateKey;
-    #ifdef DEBUG_LOCKS
+#ifdef DEBUG_LOCKS
                 dsyslog("markad: cSetupMarkAdList(): WANT   channels READ");
-    #endif
+#endif
                 if (const cChannels *Channels = cChannels::GetChannelsRead(StateKey, LOCK_TIMEOUT)) {
-    #ifdef DEBUG_LOCKS
+#ifdef DEBUG_LOCKS
                     dsyslog("markad: cSetupMarkAdList(): LOCKED channels READ");
-    #endif
+#endif
                     for (const cChannel *channel=Channels->First(); channel; channel=Channels->Next(channel))
 #else
                 for (cChannel *channel = Channels.First(); channel; channel = Channels.Next(channel))
@@ -212,9 +212,9 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup) :cOsdMenu("",CHNUMWIDTH)
                     FREE(strlen(name)+1, "name");
                     free(name);
 #if APIVERSNUM>=20301
-    #ifdef DEBUG_LOCKS
+#ifdef DEBUG_LOCKS
                     dsyslog("markad: cSetupMarkAdList(): UNLOCK channels READ");
-    #endif
+#endif
                     StateKey.Remove();
                 }
                 else {
@@ -248,13 +248,13 @@ eOSState cSetupMarkAdList::ProcessKey (eKeys Key) {
     if (HasSubMenu()) return osContinue;
     if (state == osUnknown) {
         switch (Key) {
-            case kOk:
-            case kBlue:
-            case kBack:
-                state = osBack;
-                break;
-            default:
-                break;
+        case kOk:
+        case kBlue:
+        case kBack:
+            state = osBack;
+            break;
+        default:
+            break;
         }
     }
     return state;

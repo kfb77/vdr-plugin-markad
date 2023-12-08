@@ -129,7 +129,7 @@ bool cEpgHandlerMarkad::HandleEvent(cEvent *Event) {
     LOCK_CHANNELS_READ;
     const cChannel *channel = Channels->GetByChannelID(Event->ChannelID(), true);
     if ((channel) && (strcmp( channel->Name(), DEBUG_VPS_VDR) == 0)) {
-           dsyslog("markad: cEpgHandlerMarkad::HandleEvent():    eventID %5d,          RunningStatus %d, channel: %s %s, title: %s", Event->EventID(), Event->RunningStatus(), *Event->ChannelID().ToString(), channel->Name(), Event->Title());
+        dsyslog("markad: cEpgHandlerMarkad::HandleEvent():    eventID %5d,          RunningStatus %d, channel: %s %s, title: %s", Event->EventID(), Event->RunningStatus(), *Event->ChannelID().ToString(), channel->Name(), Event->Title());
     }
 #endif
     StatusMarkAd->FindRecording(Event, NULL, NULL);
@@ -149,7 +149,7 @@ int cStatusMarkAd::Get_EIT_EventID(const sRecordings *recording, const cEvent *e
     time_t stopTimeEIT    = startTimeEIT + eitEvent->getDuration();
 
     if ((!nextEvent && (startTimeEIT >= recording->timerStartTime) && (stopTimeEIT <= recording->timerStopTime)) || // VPS range is in timer range
-        (nextEvent  && (startTimeEIT >  recording->timerStartTime) && (stopTimeEIT  > recording->timerStopTime))) { // VPS range is after timer range
+            (nextEvent  && (startTimeEIT >  recording->timerStartTime) && (stopTimeEIT  > recording->timerStopTime))) { // VPS range is after timer range
 
         struct tm startTimer = *localtime(&recording->timerStartTime);
         char timerStartTimer[20] = {0};
@@ -292,18 +292,18 @@ void cStatusMarkAd::SetVPSStatus(const int index, int runningStatus, const bool 
         // VPS RunningStatus: 0=undefined, 1=not running, 2=starts in a few seconds, 3=pausing, 4=running
         char *statusText = NULL;
         switch (runningStatus) {
-            case 1:
-                if (asprintf(&statusText, "not running") == -1) return;
-                break;
-            case 2:
-                if (asprintf(&statusText, "starts in a few seconds") == -1) return;
-                break;
-            case 3:
-                if (asprintf(&statusText, "pausing") == -1) return;
-                break;
-            case 4:
-                if (asprintf(&statusText, "running") == -1) return;
-                break;
+        case 1:
+            if (asprintf(&statusText, "not running") == -1) return;
+            break;
+        case 2:
+            if (asprintf(&statusText, "starts in a few seconds") == -1) return;
+            break;
+        case 3:
+            if (asprintf(&statusText, "pausing") == -1) return;
+            break;
+        case 4:
+            if (asprintf(&statusText, "running") == -1) return;
+            break;
         }
         ALLOC(strlen(statusText)+1, "statusText");
 
@@ -716,7 +716,7 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
     const cTimer *timer = NULL;
     cStateKey StateKey;
 #ifdef DEBUG_LOCKS
-        dsyslog("markad: GetEventID(): WANT   timers READ");
+    dsyslog("markad: GetEventID(): WANT   timers READ");
 #endif
     if (const cTimers *Timers = cTimers::GetTimersRead(StateKey, LOCK_TIMEOUT)) {
 #ifdef DEBUG_LOCKS
@@ -776,7 +776,7 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
     }
 #if APIVERSNUM>=20301
 #ifdef DEBUG_LOCKS
-        dsyslog("markad: GetEventID(): UNLOCK timers READ");
+    dsyslog("markad: GetEventID(): UNLOCK timers READ");
 #endif
     StateKey.Remove();
 #endif
@@ -801,7 +801,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         // check if markad is running for the same recording, this can happen if we have a short recording interuption
         int runningPos = Get(FileName, NULL);
         if (runningPos >= 0) {
-        isyslog("markad: is running on the same recording %s", FileName);
+            isyslog("markad: is running on the same recording %s", FileName);
             Remove(runningPos, true);
         }
 
@@ -872,8 +872,8 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
                 }
                 else {
                     Continue(FileName);
-               }
-           }
+                }
+            }
         }
         else dsyslog("markad: cStatusMarkAd::Recording(): unknown recording %s stopped", FileName);
     }
@@ -888,7 +888,7 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device, const char *FileName) {
     const cTimer *timer = NULL;
     cStateKey StateKey;
 #ifdef DEBUG_LOCKS
-        dsyslog("markad: LogoExists(): WANT timers READ");
+    dsyslog("markad: LogoExists(): WANT timers READ");
 #endif
     if (const cTimers *Timers = cTimers::GetTimersRead(StateKey, LOCK_TIMEOUT)) {
 #ifdef DEBUG_LOCKS
@@ -1172,11 +1172,11 @@ char *cStatusMarkAd::GetStatus() {
                 status = tmp;
             }
         }
-     }
-     if (!status) {
-         if (asprintf(&status, "markad: no active recording with running markad found\n") != -1) return status;
-     }
-     return status;
+    }
+    if (!status) {
+        if (asprintf(&status, "markad: no active recording with running markad found\n") != -1) return status;
+    }
+    return status;
 }
 
 

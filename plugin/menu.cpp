@@ -18,24 +18,24 @@ cOsdMarkAd::cOsdMarkAd(struct sRecordings *Entry) {
     const char *status;
 
     switch (entry->Status) {
-        case 'R':
-            status = tr("running");
-            break;
-        case 'S':
-            status = tr("sleeping");
-            break;
-        case 'D':
-            status = tr("inactive");
-            break;
-        case 'Z':
-            status = tr("zombie");
-            break;
-        case 'T':
-            status = tr("stopped");
-            break;
-        default:
-           status = tr("unknown");
-           break;
+    case 'R':
+        status = tr("running");
+        break;
+    case 'S':
+        status = tr("sleeping");
+        break;
+    case 'D':
+        status = tr("inactive");
+        break;
+    case 'Z':
+        status = tr("zombie");
+        break;
+    case 'T':
+        status = tr("stopped");
+        break;
+    default:
+        status = tr("unknown");
+        break;
     }
 
     char *buf = NULL;
@@ -118,20 +118,20 @@ void cMenuMarkAd::SetHelpText(struct sRecordings *Entry) {
     }
 
     switch (Entry->Status) {
-        case 'R':
-        case 'S':
-            SetHelp(tr("Pause"),NULL);
-            break;
-        case 'D':
-        case 'Z':
-            SetHelp(NULL,NULL);
-            break;
-        case 'T':
-            SetHelp(NULL,tr("Continue"));
-            break;
-        default:
-            SetHelp(NULL,NULL);
-            break;
+    case 'R':
+    case 'S':
+        SetHelp(tr("Pause"),NULL);
+        break;
+    case 'D':
+    case 'Z':
+        SetHelp(NULL,NULL);
+        break;
+    case 'T':
+        SetHelp(NULL,tr("Continue"));
+        break;
+    default:
+        SetHelp(NULL,NULL);
+        break;
     }
 }
 
@@ -141,66 +141,66 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key) {
 
     eOSState state=osUnknown;
     switch (Key) {
-        case kRed:
-            osd=static_cast<cOsdMarkAd *>(Get(Current()));
-            if ((osd) && (osd->Selectable())) {
-                struct sRecordings *entry=osd->GetEntry();
-                if ((entry) && (entry->Pid) && (entry->Status!='T')) {
-                    dsyslog("sending TSTP to %i",entry->Pid);
-                    kill(entry->Pid,SIGTSTP);
-                    entry->ChangedbyUser=true;
-                    SetHelp(NULL,tr("Continue"));
+    case kRed:
+        osd=static_cast<cOsdMarkAd *>(Get(Current()));
+        if ((osd) && (osd->Selectable())) {
+            struct sRecordings *entry=osd->GetEntry();
+            if ((entry) && (entry->Pid) && (entry->Status!='T')) {
+                dsyslog("sending TSTP to %i",entry->Pid);
+                kill(entry->Pid,SIGTSTP);
+                entry->ChangedbyUser=true;
+                SetHelp(NULL,tr("Continue"));
+            }
+        }
+        break;
+    case kGreen:
+        osd=static_cast<cOsdMarkAd *>(Get(Current()));
+        if ((osd) && (osd->Selectable())) {
+            struct sRecordings *entry=osd->GetEntry();
+            if ((entry) && (entry->Pid)) {
+                dsyslog("sending CONT to %i",entry->Pid);
+                kill(entry->Pid,SIGCONT);
+                entry->ChangedbyUser=true;
+                SetHelp(tr("Pause"),NULL);
+            }
+        }
+        break;
+    case kUp:
+        CursorUp();
+        osd=static_cast<cOsdMarkAd *>(Get(Current()));
+        if ((osd) && (osd->Selectable())) {
+            SetHelpText(osd->GetEntry());
+            lastpos=Current();
+        }
+        break;
+    case kDown:
+        CursorDown();
+        osd=static_cast<cOsdMarkAd *>(Get(Current()));
+        if ((osd) && (osd->Selectable())) {
+            SetHelpText(osd->GetEntry());
+            lastpos=Current();
+        }
+        break;
+    case kOk:
+        state = osBack;
+        break;
+    case kNone:
+        if (time(NULL)>(last+2)) {
+            if (write()) {
+                cOsdMarkAd *osdCurrent = static_cast<cOsdMarkAd *>(Get(Current()));
+                if ((osdCurrent) && (osdCurrent->Selectable())) {
+                    SetHelpText(osdCurrent->GetEntry());
                 }
             }
-            break;
-        case kGreen:
-            osd=static_cast<cOsdMarkAd *>(Get(Current()));
-            if ((osd) && (osd->Selectable())) {
-                struct sRecordings *entry=osd->GetEntry();
-                if ((entry) && (entry->Pid)) {
-                    dsyslog("sending CONT to %i",entry->Pid);
-                    kill(entry->Pid,SIGCONT);
-                    entry->ChangedbyUser=true;
-                    SetHelp(tr("Pause"),NULL);
-                }
+            else {
+                SetHelpText(NULL);
             }
-            break;
-        case kUp:
-            CursorUp();
-            osd=static_cast<cOsdMarkAd *>(Get(Current()));
-            if ((osd) && (osd->Selectable())) {
-                SetHelpText(osd->GetEntry());
-                lastpos=Current();
-            }
-            break;
-        case kDown:
-            CursorDown();
-            osd=static_cast<cOsdMarkAd *>(Get(Current()));
-            if ((osd) && (osd->Selectable())) {
-                SetHelpText(osd->GetEntry());
-                lastpos=Current();
-            }
-            break;
-        case kOk:
-            state = osBack;
-            break;
-        case kNone:
-            if (time(NULL)>(last+2)) {
-                if (write()) {
-                    cOsdMarkAd *osdCurrent = static_cast<cOsdMarkAd *>(Get(Current()));
-                    if ((osdCurrent) && (osdCurrent->Selectable())) {
-                        SetHelpText(osdCurrent->GetEntry());
-                    }
-                }
-                else {
-                    SetHelpText(NULL);
-                }
-                last = time(NULL);
-            }
-            break;
-        default:
-            state = cOsdMenu::ProcessKey(Key);
-            break;
+            last = time(NULL);
+        }
+        break;
+    default:
+        state = cOsdMenu::ProcessKey(Key);
+        break;
     }
     return state;
 }

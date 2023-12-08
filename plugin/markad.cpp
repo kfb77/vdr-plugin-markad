@@ -113,54 +113,54 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
     int c;
     while ((c = getopt_long(argc, argv, "b:l:", long_options, NULL)) != -1) {
         switch (c) {
-            case 'b':
-                if ((access(optarg,R_OK | X_OK)) != -1) {
-                    if (bindir) {
-                        FREE(strlen(bindir)+1, "bindir");
-                        free(bindir);
-                    }
-                    bindir=strdup(optarg);
-                    ALLOC(strlen(bindir)+1, "bindir");
+        case 'b':
+            if ((access(optarg,R_OK | X_OK)) != -1) {
+                if (bindir) {
+                    FREE(strlen(bindir)+1, "bindir");
+                    free(bindir);
                 }
-                else {
-                    fprintf(stderr,"markad: can't access bin directory: %s\n", optarg);
-                    return false;
-                }
-                break;
-            case 'l':
-                if ((access(optarg,R_OK)) != -1) {
-                    if (logodir) {
-                        FREE(strlen(logodir)+1, "logodir");
-                        free(logodir);
-                    }
-                    logodir=strdup(optarg);
-                    ALLOC(strlen(logodir)+1, "logodir");
-                }
-                else {
-                    fprintf(stderr,"markad: can't access logo directory: %s\n", optarg);
-                    return false;
-                }
-                break;
-            case '1':
-                loglevel = atoi(optarg);
-                break;
-            case '2':
-                astopoffs = atoi(optarg);
-                break;
-            case '3':
-                fprintf(stderr,"markad: parameter --cDecoder: is depreciated, please remove it from your configuration\n");
-                break;
-            case '4':
-                MarkadCut = true;
-                break;
-            case '5':
-                ac3ReEncode = true;
-                break;
-            case '6':
-                autoLogoConf = atoi(optarg);
-                break;
-            default:
+                bindir=strdup(optarg);
+                ALLOC(strlen(bindir)+1, "bindir");
+            }
+            else {
+                fprintf(stderr,"markad: can't access bin directory: %s\n", optarg);
                 return false;
+            }
+            break;
+        case 'l':
+            if ((access(optarg,R_OK)) != -1) {
+                if (logodir) {
+                    FREE(strlen(logodir)+1, "logodir");
+                    free(logodir);
+                }
+                logodir=strdup(optarg);
+                ALLOC(strlen(logodir)+1, "logodir");
+            }
+            else {
+                fprintf(stderr,"markad: can't access logo directory: %s\n", optarg);
+                return false;
+            }
+            break;
+        case '1':
+            loglevel = atoi(optarg);
+            break;
+        case '2':
+            astopoffs = atoi(optarg);
+            break;
+        case '3':
+            fprintf(stderr,"markad: parameter --cDecoder: is depreciated, please remove it from your configuration\n");
+            break;
+        case '4':
+            MarkadCut = true;
+            break;
+        case '5':
+            ac3ReEncode = true;
+            break;
+        case '6':
+            autoLogoConf = atoi(optarg);
+            break;
+        default:
+            return false;
         }
     }
     return true;

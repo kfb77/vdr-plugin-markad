@@ -70,28 +70,28 @@ void cMarkAdAudio::Silence(__attribute__((unused)) const int frameNumber) {
         dsyslog("cMarkAdAudio::Silence(): frame (%5d): macontext->Audio.Info.volume %4d, silenceFrame (%5d), silenceStatus %2d, hasZero %d", frameNumber, macontext->Audio.Info.volume, silenceFrame, silenceStatus, hasZero);
 #endif
         switch (silenceStatus) {
-            case SILENCE_UNINITIALIZED:
-                if (macontext->Audio.Info.volume <= MAX_SILENCE_VOLUME) silenceStatus = SILENCE_TRUE;
-                else                                                    silenceStatus = SILENCE_FALSE;
-                break;
-            case SILENCE_FALSE:
-                if (macontext->Audio.Info.volume <= MAX_SILENCE_VOLUME) {
-                    silenceStatus = SILENCE_TRUE;
-                    silencePTS    = macontext->Audio.Info.PTS;
-                    silenceFrame  = recordingIndexAudio->GetVideoFrameToPTS(silencePTS, true); // get video frame from PTS before audio PTS
-                    if (silenceFrame < 0) esyslog("cMarkAdAudio::Silence(): no video frame found before audio PTS %" PRId64, silencePTS);
-                }
-                else {
-                    silencePTS   = -1;
-                    silenceFrame = -1;
-                }
-                break;
-            case SILENCE_TRUE:
-                if (macontext->Audio.Info.volume > MAX_SILENCE_VOLUME) {  // end of silence
-                    silenceStatus = SILENCE_FALSE;
-                    soundPTS      = macontext->Audio.Info.PTS;
-                }
-                break;
+        case SILENCE_UNINITIALIZED:
+            if (macontext->Audio.Info.volume <= MAX_SILENCE_VOLUME) silenceStatus = SILENCE_TRUE;
+            else                                                    silenceStatus = SILENCE_FALSE;
+            break;
+        case SILENCE_FALSE:
+            if (macontext->Audio.Info.volume <= MAX_SILENCE_VOLUME) {
+                silenceStatus = SILENCE_TRUE;
+                silencePTS    = macontext->Audio.Info.PTS;
+                silenceFrame  = recordingIndexAudio->GetVideoFrameToPTS(silencePTS, true); // get video frame from PTS before audio PTS
+                if (silenceFrame < 0) esyslog("cMarkAdAudio::Silence(): no video frame found before audio PTS %" PRId64, silencePTS);
+            }
+            else {
+                silencePTS   = -1;
+                silenceFrame = -1;
+            }
+            break;
+        case SILENCE_TRUE:
+            if (macontext->Audio.Info.volume > MAX_SILENCE_VOLUME) {  // end of silence
+                silenceStatus = SILENCE_FALSE;
+                soundPTS      = macontext->Audio.Info.PTS;
+            }
+            break;
         }
         if ((silenceStatus == SILENCE_TRUE) && (macontext->Audio.Info.volume == 0)) hasZero = true;
     }
@@ -110,7 +110,7 @@ void cMarkAdAudio::Silence(__attribute__((unused)) const int frameNumber) {
             if (soundFrame >= 0) {
                 if (hasZero && (silenceFrame >= 0) && (silenceFrame < soundFrame)) { // add both marks only if silence part is at least 1 video frame long
                     AddMark(MT_SOUNDSTOP,  silenceFrame,  0, 0);
-                    AddMark(MT_SOUNDSTART, soundFrame  ,  0, 0);
+                    AddMark(MT_SOUNDSTART, soundFrame,  0, 0);
                 }
                 silencePTS   = -1;
                 silenceFrame = -1;
@@ -129,7 +129,7 @@ sMarkAdMarks *cMarkAdAudio::Process(const int frameNumber) {
     Silence(frameNumber);  // check volume
 
     // check channel change
-    for (short int stream = 0; stream < MAXSTREAMS; stream++){
+    for (short int stream = 0; stream < MAXSTREAMS; stream++) {
         if ((macontext->Audio.Info.Channels[stream] != 0) && (channels[stream] == 0)) dsyslog("cMarkAdAudio::ChannelChange(): new audio stream %d start at frame (%d)", stream, macontext->Audio.Info.channelChangeFrame);
         if (ChannelChange(macontext->Audio.Info.Channels[stream], channels[stream])) {
             if (macontext->Audio.Info.Channels[stream] > 2) {  // channel start

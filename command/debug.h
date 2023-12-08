@@ -11,7 +11,7 @@
 #include "global.h"
 
 #ifdef POSIX
-  #include <syslog.h> // only part of posix systems.
+#include <syslog.h> // only part of posix systems.
 #endif
 
 #define LOG_TRACE 8
@@ -116,22 +116,22 @@ extern int SysLogLevel;
 extern void syslog_with_tid(int priority, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
 
 #ifdef POSIX
-   #define esyslog(a...) void( (SysLogLevel > 0) ? syslog_with_tid(LOG_ERR, a) : void() )
-   #define isyslog(a...) void( (SysLogLevel > 1) ? syslog_with_tid(LOG_INFO, a) : void() )
-   #define dsyslog(a...) void( (SysLogLevel > 2) ? syslog_with_tid(LOG_DEBUG, a) : void() )
-   #define tsyslog(a...) void( (SysLogLevel > 3) ? syslog_with_tid(LOG_TRACE, a) : void() )
+#define esyslog(a...) void( (SysLogLevel > 0) ? syslog_with_tid(LOG_ERR, a) : void() )
+#define isyslog(a...) void( (SysLogLevel > 1) ? syslog_with_tid(LOG_INFO, a) : void() )
+#define dsyslog(a...) void( (SysLogLevel > 2) ? syslog_with_tid(LOG_DEBUG, a) : void() )
+#define tsyslog(a...) void( (SysLogLevel > 3) ? syslog_with_tid(LOG_TRACE, a) : void() )
 #else
-   /* no POSIX, no syslog */
-   #include <cstdio>
-   #define esyslog(a...) if (SysLogLevel > 0) fprintf(stderr, a)
-   #define isyslog(a...) if (SysLogLevel > 1) fprintf(stdout, a)
-   #define dsyslog(a...) if (SysLogLevel > 2) fprintf(stdout, a)
-   #define tsyslog(a...) if (SysLogLevel > 3) fprintf(stdout, a)
+/* no POSIX, no syslog */
+#include <cstdio>
+#define esyslog(a...) if (SysLogLevel > 0) fprintf(stderr, a)
+#define isyslog(a...) if (SysLogLevel > 1) fprintf(stdout, a)
+#define dsyslog(a...) if (SysLogLevel > 2) fprintf(stdout, a)
+#define tsyslog(a...) if (SysLogLevel > 3) fprintf(stdout, a)
 #endif
 
 
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_LOGO_SAVE)
-    bool SaveSobel(const char *fileName, uchar *picture, const int width, const int height);
+bool SaveSobel(const char *fileName, uchar *picture, const int width, const int height);
 #endif
 
 
@@ -141,13 +141,13 @@ void SaveFrameBuffer(const sMarkAdContext *maContext, const char *fileName);
 
 
 #ifdef DEBUG_MEM
-    #define ALLOC(size, var) memAlloc(size, __LINE__, const_cast<char *>(__FILE__), const_cast<char *>(var))
-    #define FREE(size, var) memFree(size, __LINE__, const_cast<char *>(__FILE__), const_cast<char *>(var))
-    void memAlloc(int size, int line, char *file, char *var);
-    void memFree(int size, int line, char *file, char *var);
-    void memList();
+#define ALLOC(size, var) memAlloc(size, __LINE__, const_cast<char *>(__FILE__), const_cast<char *>(var))
+#define FREE(size, var) memFree(size, __LINE__, const_cast<char *>(__FILE__), const_cast<char *>(var))
+void memAlloc(int size, int line, char *file, char *var);
+void memFree(int size, int line, char *file, char *var);
+void memList();
 #else
-    #define ALLOC(size, var)
-    #define FREE(size, var)
+#define ALLOC(size, var)
+#define FREE(size, var)
 #endif
 #endif

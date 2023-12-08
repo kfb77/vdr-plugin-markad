@@ -27,20 +27,20 @@
 #define LOCK_TIMEOUT 60000  // 0 for infinite wait
 
 #ifdef DEBUG_MEM
-    #include <vdr/plugin.h>
+#include <vdr/plugin.h>
 
-    #define ALLOC(size, var) memAlloc(size, __LINE__, const_cast<char *>(__FILE__), const_cast<char *>(var))
-    #define FREE(size, var) memFree(size, __LINE__, const_cast<char *>(__FILE__),const_cast<char *>(var))
+#define ALLOC(size, var) memAlloc(size, __LINE__, const_cast<char *>(__FILE__), const_cast<char *>(var))
+#define FREE(size, var) memFree(size, __LINE__, const_cast<char *>(__FILE__),const_cast<char *>(var))
 
 
-    void memAlloc(int size, int line, char *file, char *var);
-    void memFree(int size, int line, char *file, char *var);
-    void memList();
-    char *memListSVDR();
-    void memClear();
+void memAlloc(int size, int line, char *file, char *var);
+void memFree(int size, int line, char *file, char *var);
+void memList();
+char *memListSVDR();
+void memClear();
 
 #else
-    #define ALLOC(size, var)
-    #define FREE(size, var)
+#define ALLOC(size, var)
+#define FREE(size, var)
 #endif
 #endif

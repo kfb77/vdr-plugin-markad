@@ -9,7 +9,7 @@
 #include <sys/time.h>
 #include "global.h"
 #ifdef WINDOWS
-   #include "win32/mingw64.h"
+#include "win32/mingw64.h"
 #endif
 
 #include "decoder.h"
@@ -18,7 +18,7 @@
 extern long int decodeTime_us;
 
 
-void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_list vl){
+void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_list vl) {
     if (level <= AVLOGLEVEL) {
         char *logMsg = NULL;
         int rc = 0;
@@ -34,9 +34,9 @@ void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_lis
         if (logMsg[strlen(logMsg) - 1] == '\n') logMsg[strlen(logMsg) - 1] = 0;
 
         if ((strcmp(logMsg, "co located POCs unavailable") == 0) || // this will happen with h.264 coding because of partitial decoding
-            (strcmp(logMsg, "mmco: unref short failure") == 0) ||
-            (strcmp(logMsg, "number of reference frames (0+5) exceeds max (4; probably corrupt input), discarding one") == 0)) {
-                tsyslog("AVlog(): %s", logMsg);
+                (strcmp(logMsg, "mmco: unref short failure") == 0) ||
+                (strcmp(logMsg, "number of reference frames (0+5) exceeds max (4; probably corrupt input), discarding one") == 0)) {
+            tsyslog("AVlog(): %s", logMsg);
         }
         else dsyslog("AVlog(): %s", logMsg);
 #ifdef DEBUG_MEM
@@ -126,7 +126,7 @@ int cDecoder::GetFileNumber() {
 }
 
 
-void cDecoder::Reset(){
+void cDecoder::Reset() {
     fileNumber = 0;
     currFrameNumber = -1;
     dtsBefore = -1;
@@ -200,7 +200,7 @@ bool cDecoder::DecodeFile(const char *filename) {
 #else
             if (codec_id ==  98314)
 #endif
-            {  // not supported by libavcodec
+            {   // not supported by libavcodec
                 dsyslog("cDecoder::DecodeFile(): ignore unsupported subtitle codec for stream %i codec id %d", streamIndex, codec_id);
                 continue;
             }
@@ -251,21 +251,21 @@ int cDecoder::GetVideoType() {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             switch (avctx->streams[i]->codecpar->codec_id) {
-                case AV_CODEC_ID_MPEG2VIDEO:
-                    dsyslog("cDecoder::GetVideoType(): video coding format: H.262");
-                    return MARKAD_PIDTYPE_VIDEO_H262;
-                    break;
-                case AV_CODEC_ID_H264:
-                    dsyslog("cDecoder::GetVideoType(): video coding format: H.264");
-                    return MARKAD_PIDTYPE_VIDEO_H264;
-                    break;
-                case AV_CODEC_ID_H265:
-                    dsyslog("cDecoder::GetVideoType(): video coding format: H.265");
-                    return MARKAD_PIDTYPE_VIDEO_H265;
-                    break;
-                default:
-                    dsyslog("cDecoder::GetVideoType(): video coding format unknown, coded id: %i", avctx->streams[i]->codecpar->codec_id);
-                    return 0;
+            case AV_CODEC_ID_MPEG2VIDEO:
+                dsyslog("cDecoder::GetVideoType(): video coding format: H.262");
+                return MARKAD_PIDTYPE_VIDEO_H262;
+                break;
+            case AV_CODEC_ID_H264:
+                dsyslog("cDecoder::GetVideoType(): video coding format: H.264");
+                return MARKAD_PIDTYPE_VIDEO_H264;
+                break;
+            case AV_CODEC_ID_H265:
+                dsyslog("cDecoder::GetVideoType(): video coding format: H.265");
+                return MARKAD_PIDTYPE_VIDEO_H265;
+                break;
+            default:
+                dsyslog("cDecoder::GetVideoType(): video coding format unknown, coded id: %i", avctx->streams[i]->codecpar->codec_id);
+                return 0;
             }
         }
 #else
@@ -278,8 +278,8 @@ int cDecoder::GetVideoType() {
                 dsyslog("cDecoder::GetVideoType(): found H.264 Video");
                 return MARKAD_PIDTYPE_VIDEO_H264;
             }
-           dsyslog("cDecoder::GetVideoType(): unknown coded id %i", avctx->streams[i]->codec->codec_id);
-           return 0;
+            dsyslog("cDecoder::GetVideoType(): unknown coded id %i", avctx->streams[i]->codec->codec_id);
+            return 0;
         }
 #endif
     }
@@ -409,7 +409,9 @@ bool cDecoder::GetNextPacket(const bool buildFrameIndex, const bool buildPTS_Ind
             int64_t offsetTime_ms = -1;
             if (avpkt.pts != AV_NOPTS_VALUE) {
                 int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
-                if ( tmp_pts < 0 ) { tmp_pts += 0x200000000; }   // libavodec restart at 0 if pts greater than 0x200000000
+                if ( tmp_pts < 0 ) {
+                    tmp_pts += 0x200000000;    // libavodec restart at 0 if pts greater than 0x200000000
+                }
                 offsetTime_ms = 1000 * tmp_pts * av_q2d(avctx->streams[avpkt.stream_index]->time_base);
                 offsetTime_ms_LastRead = offsetTime_ms_LastFile + offsetTime_ms;
             }
@@ -520,25 +522,25 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
     else {
         if (IsAudioPacket()) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-    #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-        avFrame->nb_samples     = codecCtxArray[avpkt->stream_index]->ch_layout.nb_channels;
-        avFrame->format         = codecCtxArray[avpkt->stream_index]->sample_fmt;
-        int ret                 = av_channel_layout_copy(&avFrame->ch_layout, &codecCtxArray[avpkt->stream_index]->ch_layout);
-        if (ret < 0) {
-            dsyslog("cDecoder::DecodePacket(): av_channel_layout_copy failed, rc = %d", ret);
-            return NULL;
-        }
-    #else
-        avFrame->nb_samples     = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codecpar->channel_layout);
-        avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codecpar->channel_layout;
-    #endif
-        avFrame->format         = avctx->streams[avpkt->stream_index]->codecpar->format;
-        avFrame->sample_rate    = avctx->streams[avpkt->stream_index]->codecpar->sample_rate;
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+            avFrame->nb_samples     = codecCtxArray[avpkt->stream_index]->ch_layout.nb_channels;
+            avFrame->format         = codecCtxArray[avpkt->stream_index]->sample_fmt;
+            int ret                 = av_channel_layout_copy(&avFrame->ch_layout, &codecCtxArray[avpkt->stream_index]->ch_layout);
+            if (ret < 0) {
+                dsyslog("cDecoder::DecodePacket(): av_channel_layout_copy failed, rc = %d", ret);
+                return NULL;
+            }
 #else
-        avFrame->nb_samples     = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codec->channel_layout);
-        avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codec->channel_layout;
-        avFrame->format         = codecCtxArray[avpkt->stream_index]->sample_fmt;
-        avFrame->sample_rate    = avctx->streams[avpkt->stream_index]->codec->sample_rate;
+            avFrame->nb_samples     = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codecpar->channel_layout);
+            avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codecpar->channel_layout;
+#endif
+            avFrame->format         = avctx->streams[avpkt->stream_index]->codecpar->format;
+            avFrame->sample_rate    = avctx->streams[avpkt->stream_index]->codecpar->sample_rate;
+#else
+            avFrame->nb_samples     = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codec->channel_layout);
+            avFrame->channel_layout = avctx->streams[avpkt->stream_index]->codec->channel_layout;
+            avFrame->format         = codecCtxArray[avpkt->stream_index]->sample_fmt;
+            avFrame->sample_rate    = avctx->streams[avpkt->stream_index]->codec->sample_rate;
 #endif
         }
         else {
@@ -577,27 +579,27 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
     rc=avcodec_send_packet(codecCtxArray[avpkt->stream_index],avpkt);
     if (rc  < 0) {
         switch (rc) {
-            case AVERROR(EAGAIN):
-                dsyslog("cDecoder::DecodePacket(): avcodec_send_packet error EAGAIN at frame %d", currFrameNumber);
-                break;
-            case AVERROR(ENOMEM):
-                dsyslog("cDecoder::DecodePacket(): avcodec_send_packet error ENOMEM at frame %d", currFrameNumber);
-                break;
-            case AVERROR(EINVAL):
-                dsyslog("cDecoder::DecodePacket(): avcodec_send_packet error EINVAL at frame %d", currFrameNumber);
-                break;
-            case AVERROR_INVALIDDATA:
-                dsyslog("cDecoder::DecodePacket:(): avcodec_send_packet error AVERROR_INVALIDDATA at frame %d", currFrameNumber);
-                break;
+        case AVERROR(EAGAIN):
+            dsyslog("cDecoder::DecodePacket(): avcodec_send_packet error EAGAIN at frame %d", currFrameNumber);
+            break;
+        case AVERROR(ENOMEM):
+            dsyslog("cDecoder::DecodePacket(): avcodec_send_packet error ENOMEM at frame %d", currFrameNumber);
+            break;
+        case AVERROR(EINVAL):
+            dsyslog("cDecoder::DecodePacket(): avcodec_send_packet error EINVAL at frame %d", currFrameNumber);
+            break;
+        case AVERROR_INVALIDDATA:
+            dsyslog("cDecoder::DecodePacket:(): avcodec_send_packet error AVERROR_INVALIDDATA at frame %d", currFrameNumber);
+            break;
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
-            case AAC_AC3_PARSE_ERROR_SYNC:
-                dsyslog("cDecoder::DecodePacket:(): avcodec_send_packet error AAC_AC3_PARSE_ERROR_SYNC at frame %d", currFrameNumber);
-                break;
+        case AAC_AC3_PARSE_ERROR_SYNC:
+            dsyslog("cDecoder::DecodePacket:(): avcodec_send_packet error AAC_AC3_PARSE_ERROR_SYNC at frame %d", currFrameNumber);
+            break;
 #endif
-            default:
-                dsyslog("cDecoder::DecodePacket(): avcodec_send_packet failed with rc=%d at frame %d",rc,currFrameNumber);
-                break;
-            }
+        default:
+            dsyslog("cDecoder::DecodePacket(): avcodec_send_packet failed with rc=%d at frame %d",rc,currFrameNumber);
+            break;
+        }
         if (avFrame) {
             FREE(sizeof(*avFrame), "avFrame");
             av_frame_free(&avFrame);
@@ -607,16 +609,16 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
     rc = avcodec_receive_frame(codecCtxArray[avpkt->stream_index],avFrame);
     if (rc < 0) {
         switch (rc) {
-            case AVERROR(EAGAIN):  // no error
+        case AVERROR(EAGAIN):  // no error
 //                dsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EAGAIN at frame %d", currFrameNumber);
-                stateEAGAIN=true;
-                break;
-            case AVERROR(EINVAL):
-                dsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EINVAL at frame %d", currFrameNumber);
-                break;
-            default:
-                dsyslog("cDecoder::DecodePacket(): avcodec_receive_frame: decode of frame (%d) failed with return code %i", currFrameNumber, rc);
-                break;
+            stateEAGAIN=true;
+            break;
+        case AVERROR(EINVAL):
+            dsyslog("cDecoder::DecodePacket(): avcodec_receive_frame error EINVAL at frame %d", currFrameNumber);
+            break;
+        default:
+            dsyslog("cDecoder::DecodePacket(): avcodec_receive_frame: decode of frame (%d) failed with return code %i", currFrameNumber, rc);
+            break;
         }
         if (avFrame) {
             FREE(sizeof(*avFrame), "avFrame");
@@ -650,12 +652,12 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
     }
 
     else {
-       dsyslog("cDecoder::DecodePacket(): packet type of stream %i not supported", avpkt->stream_index);
-       if (avFrame) {
+        dsyslog("cDecoder::DecodePacket(): packet type of stream %i not supported", avpkt->stream_index);
+        if (avFrame) {
             FREE(sizeof(*avFrame), "avFrame");
             av_frame_free(&avFrame);
         }
-       return NULL;
+        return NULL;
     }
     if ( !frame_ready ) {
         stateEAGAIN=true;
@@ -741,8 +743,8 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, c
                 }
                 if ((DAR.num == 1) && (DAR.den == 1)) {
                     if ((avFrameRef->width == 1280) && (avFrameRef->height  ==  720) ||   // HD ready
-                        (avFrameRef->width == 1920) && (avFrameRef->height  == 1080) ||   // full HD
-                        (avFrameRef->width == 3840) && (avFrameRef->height  == 2160)) {   // UHD
+                            (avFrameRef->width == 1920) && (avFrameRef->height  == 1080) ||   // full HD
+                            (avFrameRef->width == 3840) && (avFrameRef->height  == 2160)) {   // UHD
                         DAR.num = 16;
                         DAR.den = 9;
                     }
@@ -762,8 +764,8 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, c
                         DAR.den =  9;
                     }
                     else if ((DAR.num == 32) && (DAR.den == 17)) {
-                         DAR.num = 16;
-                         DAR.den =  9;
+                        DAR.num = 16;
+                        DAR.den =  9;
                     }
                     else if ((DAR.num == 16) && (DAR.den == 15)) {  // generic PAR MPEG-2 for PAL
                         DAR.num = 4;
@@ -774,10 +776,10 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, c
                         DAR.den = 3;
                     }
                     else if ((DAR.num == 4) && (DAR.den == 3)) {
-                            if ((avFrameRef->width == 1440) && (avFrameRef->height  == 1080)) { // H.264 1440x1080 PAR 4:3 -> DAR 16:9
-                                DAR.num = 16;
-                                DAR.den =  9;
-                            }
+                        if ((avFrameRef->width == 1440) && (avFrameRef->height  == 1080)) { // H.264 1440x1080 PAR 4:3 -> DAR 16:9
+                            DAR.num = 16;
+                            DAR.den =  9;
+                        }
                     }
                     else if ((DAR.num == 3) && (DAR.den == 2)) {  // H.264 1280x1080
                         DAR.num = 16;
@@ -790,7 +792,7 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, c
                     }
                 }
                 if ((maContext->Video.Info.AspectRatio.num != DAR.num) ||
-                   ( maContext->Video.Info.AspectRatio.den != DAR.den)) {
+                        ( maContext->Video.Info.AspectRatio.den != DAR.den)) {
                     dsyslog("cDecoder::GetFrameInfo(): aspect ratio changed from (%d:%d) to (%d:%d) at frame %d", maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den, DAR.num, DAR.den, currFrameNumber);
                     maContext->Video.Info.AspectRatio.num = DAR.num;
                     maContext->Video.Info.AspectRatio.den = DAR.den;
@@ -830,11 +832,11 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, c
                         for (int sample = 0; sample < avFrameRef->nb_samples; sample++) {
                             level += abs(samples[sample]);
 #if !defined(DEBUG_VOLUME)
-    #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
                             if ((level / avFrameRef->nb_samples / avFrameRef->ch_layout.nb_channels) > MAX_SILENCE_VOLUME) break;  // non silence reached
-    #else
+#else
                             if ((level / avFrameRef->nb_samples / avFrameRef->channels)              > MAX_SILENCE_VOLUME) break;  // non silence reached
-    #endif
+#endif
 #endif
                         }
                     }
@@ -859,21 +861,21 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, c
                 return false;
             }
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-    #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
             if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codecpar->ch_layout.nb_channels) {
                 dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d) PTS %" PRId64, avpkt.stream_index, maContext->Audio.Info.Channels[avpkt.stream_index], avctx->streams[avpkt.stream_index]->codecpar->ch_layout.nb_channels, currFrameNumber, avpkt.pts);
                 maContext->Audio.Info.Channels[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codecpar->ch_layout.nb_channels;
-    #else
+#else
             if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codecpar->channels) {
                 dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d) PTS %" PRId64, avpkt.stream_index, maContext->Audio.Info.Channels[avpkt.stream_index], avctx->streams[avpkt.stream_index]->codecpar->channels, currFrameNumber, avpkt.pts);
                 maContext->Audio.Info.Channels[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codecpar->channels;
-    #endif
+#endif
 #else
             if (maContext->Audio.Info.Channels[avpkt.stream_index] != avctx->streams[avpkt.stream_index]->codec->channels) {
                 dsyslog("cDecoder::GetFrameInfo(): audio channels of stream %d changed from %d to %d at frame (%d) PTS %" PRId64, avpkt.stream_index,
-                                                                                                        maContext->Audio.Info.Channels[avpkt.stream_index],
-                                                                                                        avctx->streams[avpkt.stream_index]->codec->channels,
-                                                                                                        currFrameNumber, avpkt.pts);
+                        maContext->Audio.Info.Channels[avpkt.stream_index],
+                        avctx->streams[avpkt.stream_index]->codec->channels,
+                        currFrameNumber, avpkt.pts);
                 maContext->Audio.Info.Channels[avpkt.stream_index] = avctx->streams[avpkt.stream_index]->codec->channels;
 #endif
                 maContext->Audio.Info.channelChangeFrame = currFrameNumber;
@@ -1004,17 +1006,17 @@ bool cDecoder::IsSubtitlePacket() {
 }
 
 
-int cDecoder::GetFrameNumber(){
+int cDecoder::GetFrameNumber() {
     return currFrameNumber;
 }
 
 
-int cDecoder::GetIFrameCount(){
+int cDecoder::GetIFrameCount() {
     return iFrameCount;
 }
 
 
-bool cDecoder::IsInterlacedVideo(){
+bool cDecoder::IsInterlacedVideo() {
     if (interlaced_frame > 0) return true;
     return false;
 }

@@ -45,33 +45,33 @@ struct setup {
 
 
 class cSetupMarkAd : public cMenuSetupPage {
-    private:
-        const char *processTexts[3];
-        const char *autoLogoTexts[3];
-        struct setup *setup;
-        int autologomenue;
-        int fulldecode;
-        int processduring;
-        int usevps = 0;
-        int logvps = 0;
-        int whilerecording;
-        int whilereplaying;
-        int osdmsg;
-        int svdrPort = 6419;
-        int verbose;
-        int nomargins;
-        int secondpass;
-        int hidemainmenuentry;
-        int log2rec;
-        int logoonly;
-        int deferredshutdown;
-        void write(void);
-        int lpos;
-    protected:
-        virtual void Store(void);
-    public:
-        explicit cSetupMarkAd(struct setup *Setup);
-        eOSState ProcessKey(eKeys Key);
+private:
+    const char *processTexts[3];
+    const char *autoLogoTexts[3];
+    struct setup *setup;
+    int autologomenue;
+    int fulldecode;
+    int processduring;
+    int usevps = 0;
+    int logvps = 0;
+    int whilerecording;
+    int whilereplaying;
+    int osdmsg;
+    int svdrPort = 6419;
+    int verbose;
+    int nomargins;
+    int secondpass;
+    int hidemainmenuentry;
+    int log2rec;
+    int logoonly;
+    int deferredshutdown;
+    void write(void);
+    int lpos;
+protected:
+    virtual void Store(void);
+public:
+    explicit cSetupMarkAd(struct setup *Setup);
+    eOSState ProcessKey(eKeys Key);
 };
 
 

@@ -18,46 +18,46 @@
  * send OSD message to VDR
  */
 class cOSDMessage {
-    public:
+public:
 
-/** constuctor
- * @param hostName   name or IP address of VDR
- * @param portNumber port number for OSD messages
- */
-        cOSDMessage(const char *hostName, int portNumber);
+    /** constuctor
+     * @param hostName   name or IP address of VDR
+     * @param portNumber port number for OSD messages
+     */
+    cOSDMessage(const char *hostName, int portNumber);
 
-        ~cOSDMessage();
+    ~cOSDMessage();
 
-/**
- * send message to VDR OSD
- * @param format message format
- * @return 0 for success, -1 otherwise
- */
-        int Send(const char *format, ...);
+    /**
+     * send message to VDR OSD
+     * @param format message format
+     * @return 0 for success, -1 otherwise
+     */
+    int Send(const char *format, ...);
 
-    private:
+private:
 
-/**
- * copy OSM object (not used)
- */
-        cOSDMessage(const cOSDMessage &cOSDMessageCopy);
+    /**
+     * copy OSM object (not used)
+     */
+    cOSDMessage(const cOSDMessage &cOSDMessageCopy);
 
-/**
- * = operator for OSM object (not used)
- */
-        cOSDMessage &operator=(const cOSDMessage &foo);
+    /**
+     * = operator for OSM object (not used)
+     */
+    cOSDMessage &operator=(const cOSDMessage &foo);
 
-        char *host;                                      //!< VDR host name or IP address
-                                                         //!<
-        int port;                                        //!< VDR port number to send OSD messages
-                                                         //!<
-        char *msg     = NULL;                            //!< OSD message
-                                                         //!<
-        pthread_t tid = 0;                               //!< thread id of the OSD message
-                                                         //!<
-        static void *SendMessage(void *osd);             //!< send OSD message
-                                                         //!<
-        bool ReadReply(int fd, char **reply = NULL);     //!< read reply from OSD
-                                                         //!<
+    char *host;                                      //!< VDR host name or IP address
+    //!<
+    int port;                                        //!< VDR port number to send OSD messages
+    //!<
+    char *msg     = NULL;                            //!< OSD message
+    //!<
+    pthread_t tid = 0;                               //!< thread id of the OSD message
+    //!<
+    static void *SendMessage(void *osd);             //!< send OSD message
+    //!<
+    bool ReadReply(int fd, char **reply = NULL);     //!< read reply from OSD
+    //!<
 };
 #endif

@@ -19,24 +19,24 @@ cMarkCriteria::~cMarkCriteria() {
 int cMarkCriteria::GetMarkTypeState(const int type) {
     int state = CRITERIA_UNKNOWN;
     switch (type) {
-        case MT_LOGOCHANGE:
-            state = logo;
-            break;
-        case MT_VBORDERCHANGE:
-            state = vborder;
-            break;
-        case MT_HBORDERCHANGE:
-            state = hborder;
-            break;
-        case MT_ASPECTCHANGE:
-            state = aspectratio;
-            break;
-        case MT_CHANNELCHANGE:
-            state = channel;
-            break;
-        default:
-            esyslog("cMarkCriteria::GetMarkTypeState(): type 0x%X not valid", type);
-            return CRITERIA_UNKNOWN;
+    case MT_LOGOCHANGE:
+        state = logo;
+        break;
+    case MT_VBORDERCHANGE:
+        state = vborder;
+        break;
+    case MT_HBORDERCHANGE:
+        state = hborder;
+        break;
+    case MT_ASPECTCHANGE:
+        state = aspectratio;
+        break;
+    case MT_CHANNELCHANGE:
+        state = channel;
+        break;
+    default:
+        esyslog("cMarkCriteria::GetMarkTypeState(): type 0x%X not valid", type);
+        return CRITERIA_UNKNOWN;
     }
     char *typeToText  = TypeToText(type);
     char *stateToText = StateToText(state);
@@ -62,77 +62,77 @@ void cMarkCriteria::SetMarkTypeState(const int type, const int state) {
         free(stateToText);
     }
     switch (type) {
-         case MT_LOGOCHANGE:
-            logo = state;
-            if (logo == CRITERIA_USED) {
-                SetDetectionState(MT_VBORDERCHANGE, false);
-                SetDetectionState(MT_HBORDERCHANGE, false);
-                SetDetectionState(MT_ASPECTCHANGE,  false);
-                if (GetMarkTypeState(MT_CHANNELCHANGE) < CRITERIA_AVAILABLE) SetDetectionState(MT_CHANNELCHANGE, false); // if we have 6 channel, but no channel change, keep channel detection
-            }
-            if (logo == CRITERIA_UNKNOWN) {
-                SetDetectionState(MT_LOGOCHANGE,    true);
-            }
-            if (logo == CRITERIA_DISABLED) {
-                SetDetectionState(MT_LOGOCHANGE,    false);
-            }
-            break;
-         case MT_VBORDERCHANGE:
-            vborder = state;
-            if (vborder == CRITERIA_USED) {
-                SetDetectionState(MT_SCENECHANGE,   false);
-                SetDetectionState(MT_SOUNDCHANGE,   false);
-                SetDetectionState(MT_BLACKCHANGE,   false);
-                SetDetectionState(MT_LOGOCHANGE,    false);
-                SetDetectionState(MT_HBORDERCHANGE, false);
-                SetDetectionState(MT_ASPECTCHANGE,  false);
-                SetDetectionState(MT_CHANNELCHANGE, false);
-            }
-            if (vborder == CRITERIA_UNAVAILABLE) {
-                SetDetectionState(MT_VBORDERCHANGE, false);
-            }
-            break;
-        case MT_HBORDERCHANGE:
-            hborder = state;
-            if (hborder == CRITERIA_USED) {
-                SetDetectionState(MT_SCENECHANGE,   false);
-                SetDetectionState(MT_SOUNDCHANGE,   false);
-                SetDetectionState(MT_BLACKCHANGE,   false);
-                SetDetectionState(MT_LOGOCHANGE,    false);
-                SetDetectionState(MT_VBORDERCHANGE, false);
-                SetDetectionState(MT_ASPECTCHANGE,  false);
-                if (GetMarkTypeState(MT_CHANNELCHANGE) < CRITERIA_AVAILABLE) SetDetectionState(MT_CHANNELCHANGE, false); // if we have 6 channel, but no channel change, keep channel detection
-            }
-            if (hborder == CRITERIA_UNAVAILABLE) {
-                SetDetectionState(MT_HBORDERCHANGE, false);
-            }
-            break;
-        case MT_ASPECTCHANGE:
-            aspectratio = state;
-            if (aspectratio == CRITERIA_USED) {
-                SetDetectionState(MT_SCENECHANGE,   false);
-                SetDetectionState(MT_SOUNDCHANGE,   false);
-                SetDetectionState(MT_BLACKCHANGE,    true);   // aspect ratio changes are not frame exact, use black screen to optimize
-                SetDetectionState(MT_LOGOCHANGE,    false);
-                SetDetectionState(MT_VBORDERCHANGE, false);
-                SetDetectionState(MT_HBORDERCHANGE, false);
-                SetDetectionState(MT_CHANNELCHANGE, false);
-            }
-            break;
-        case MT_CHANNELCHANGE:
-            channel = state;
-            if (channel == CRITERIA_USED) {
-                SetDetectionState(MT_SCENECHANGE,    true);   // channel change give not exact video frame mark
-                SetDetectionState(MT_SOUNDCHANGE,   false);
-                SetDetectionState(MT_BLACKCHANGE,    true);   // channel change give not exact video frame mark
-                SetDetectionState(MT_LOGOCHANGE,    false);
-                SetDetectionState(MT_VBORDERCHANGE, false);
-                SetDetectionState(MT_HBORDERCHANGE, false);
-                SetDetectionState(MT_ASPECTCHANGE,  false);
-            }
-            break;
-        default:
-            esyslog("cMarkCriteria::SetMarkTypeState(): type 0x%X not valid", type);
+    case MT_LOGOCHANGE:
+        logo = state;
+        if (logo == CRITERIA_USED) {
+            SetDetectionState(MT_VBORDERCHANGE, false);
+            SetDetectionState(MT_HBORDERCHANGE, false);
+            SetDetectionState(MT_ASPECTCHANGE,  false);
+            if (GetMarkTypeState(MT_CHANNELCHANGE) < CRITERIA_AVAILABLE) SetDetectionState(MT_CHANNELCHANGE, false); // if we have 6 channel, but no channel change, keep channel detection
+        }
+        if (logo == CRITERIA_UNKNOWN) {
+            SetDetectionState(MT_LOGOCHANGE,    true);
+        }
+        if (logo == CRITERIA_DISABLED) {
+            SetDetectionState(MT_LOGOCHANGE,    false);
+        }
+        break;
+    case MT_VBORDERCHANGE:
+        vborder = state;
+        if (vborder == CRITERIA_USED) {
+            SetDetectionState(MT_SCENECHANGE,   false);
+            SetDetectionState(MT_SOUNDCHANGE,   false);
+            SetDetectionState(MT_BLACKCHANGE,   false);
+            SetDetectionState(MT_LOGOCHANGE,    false);
+            SetDetectionState(MT_HBORDERCHANGE, false);
+            SetDetectionState(MT_ASPECTCHANGE,  false);
+            SetDetectionState(MT_CHANNELCHANGE, false);
+        }
+        if (vborder == CRITERIA_UNAVAILABLE) {
+            SetDetectionState(MT_VBORDERCHANGE, false);
+        }
+        break;
+    case MT_HBORDERCHANGE:
+        hborder = state;
+        if (hborder == CRITERIA_USED) {
+            SetDetectionState(MT_SCENECHANGE,   false);
+            SetDetectionState(MT_SOUNDCHANGE,   false);
+            SetDetectionState(MT_BLACKCHANGE,   false);
+            SetDetectionState(MT_LOGOCHANGE,    false);
+            SetDetectionState(MT_VBORDERCHANGE, false);
+            SetDetectionState(MT_ASPECTCHANGE,  false);
+            if (GetMarkTypeState(MT_CHANNELCHANGE) < CRITERIA_AVAILABLE) SetDetectionState(MT_CHANNELCHANGE, false); // if we have 6 channel, but no channel change, keep channel detection
+        }
+        if (hborder == CRITERIA_UNAVAILABLE) {
+            SetDetectionState(MT_HBORDERCHANGE, false);
+        }
+        break;
+    case MT_ASPECTCHANGE:
+        aspectratio = state;
+        if (aspectratio == CRITERIA_USED) {
+            SetDetectionState(MT_SCENECHANGE,   false);
+            SetDetectionState(MT_SOUNDCHANGE,   false);
+            SetDetectionState(MT_BLACKCHANGE,    true);   // aspect ratio changes are not frame exact, use black screen to optimize
+            SetDetectionState(MT_LOGOCHANGE,    false);
+            SetDetectionState(MT_VBORDERCHANGE, false);
+            SetDetectionState(MT_HBORDERCHANGE, false);
+            SetDetectionState(MT_CHANNELCHANGE, false);
+        }
+        break;
+    case MT_CHANNELCHANGE:
+        channel = state;
+        if (channel == CRITERIA_USED) {
+            SetDetectionState(MT_SCENECHANGE,    true);   // channel change give not exact video frame mark
+            SetDetectionState(MT_SOUNDCHANGE,   false);
+            SetDetectionState(MT_BLACKCHANGE,    true);   // channel change give not exact video frame mark
+            SetDetectionState(MT_LOGOCHANGE,    false);
+            SetDetectionState(MT_VBORDERCHANGE, false);
+            SetDetectionState(MT_HBORDERCHANGE, false);
+            SetDetectionState(MT_ASPECTCHANGE,  false);
+        }
+        break;
+    default:
+        esyslog("cMarkCriteria::SetMarkTypeState(): type 0x%X not valid", type);
     }
 }
 
@@ -174,121 +174,121 @@ void cMarkCriteria::SetClosingCreditsState(const int position, const int state) 
 char *cMarkCriteria::StateToText(const int state) {
     char *text = NULL;
     switch (state) {
-        case CRITERIA_USED:
-            if (asprintf(&text, "used") != -1) {
-                ALLOC(strlen(text)+1, "state");
-            }
-            break;
-        case CRITERIA_AVAILABLE:
-            if (asprintf(&text, "available") != -1) {
-                ALLOC(strlen(text)+1, "state");
-            }
-            break;
-        case CRITERIA_UNKNOWN:
-            if (asprintf(&text, "unknown") != -1) {
-                ALLOC(strlen(text)+1, "state");
-            }
-            break;
-        case CRITERIA_UNAVAILABLE:
-            if (asprintf(&text, "unavailable") != -1) {
-                ALLOC(strlen(text)+1, "state");
-            }
-            break;
-        case CRITERIA_DISABLED:
-            if (asprintf(&text, "DISBALED") != -1) {
-                ALLOC(strlen(text)+1, "state");
-            }
-            break;
-        default:
-            if (asprintf(&text, "state invalid") != -1) {
-                ALLOC(strlen(text)+1, "state");
-            }
-            esyslog("cMarkCriteria::StateToText(): state %d not valid", state);
-            break;
-       }
+    case CRITERIA_USED:
+        if (asprintf(&text, "used") != -1) {
+            ALLOC(strlen(text)+1, "state");
+        }
+        break;
+    case CRITERIA_AVAILABLE:
+        if (asprintf(&text, "available") != -1) {
+            ALLOC(strlen(text)+1, "state");
+        }
+        break;
+    case CRITERIA_UNKNOWN:
+        if (asprintf(&text, "unknown") != -1) {
+            ALLOC(strlen(text)+1, "state");
+        }
+        break;
+    case CRITERIA_UNAVAILABLE:
+        if (asprintf(&text, "unavailable") != -1) {
+            ALLOC(strlen(text)+1, "state");
+        }
+        break;
+    case CRITERIA_DISABLED:
+        if (asprintf(&text, "DISBALED") != -1) {
+            ALLOC(strlen(text)+1, "state");
+        }
+        break;
+    default:
+        if (asprintf(&text, "state invalid") != -1) {
+            ALLOC(strlen(text)+1, "state");
+        }
+        esyslog("cMarkCriteria::StateToText(): state %d not valid", state);
+        break;
+    }
     return text;
 }
 
 
 bool cMarkCriteria::GetDetectionState(const int type) {
     bool state = true;
-   switch (type) {
-       case MT_SCENECHANGE:
-            state = sceneDetection;
-            break;
-       case MT_SOUNDCHANGE:
-            state = soundDetection;
-            break;
-       case MT_BLACKCHANGE:
-            state = blackscreenDetection;
-            break;
-       case MT_LOGOCHANGE:
-            state = logoDetection;
-            break;
-       case MT_VBORDERCHANGE:
-            state = vborderDetection;
-            break;
-       case MT_HBORDERCHANGE:
-            state = hborderDetection;
-            break;
-       case MT_ASPECTCHANGE:
-            state = aspectratioDetection;
-            break;
-       case MT_CHANNELCHANGE:
-            state = channelDetection;
-            break;
-       case MT_VIDEO:
-            state = videoDecoding;
-            break;
-       case MT_AUDIO:
-            state = audioDecoding;
-            break;
-       default:
-            esyslog("cMarkCriteria::GetDetectionState(): type 0x%X not valid", type);
+    switch (type) {
+    case MT_SCENECHANGE:
+        state = sceneDetection;
+        break;
+    case MT_SOUNDCHANGE:
+        state = soundDetection;
+        break;
+    case MT_BLACKCHANGE:
+        state = blackscreenDetection;
+        break;
+    case MT_LOGOCHANGE:
+        state = logoDetection;
+        break;
+    case MT_VBORDERCHANGE:
+        state = vborderDetection;
+        break;
+    case MT_HBORDERCHANGE:
+        state = hborderDetection;
+        break;
+    case MT_ASPECTCHANGE:
+        state = aspectratioDetection;
+        break;
+    case MT_CHANNELCHANGE:
+        state = channelDetection;
+        break;
+    case MT_VIDEO:
+        state = videoDecoding;
+        break;
+    case MT_AUDIO:
+        state = audioDecoding;
+        break;
+    default:
+        esyslog("cMarkCriteria::GetDetectionState(): type 0x%X not valid", type);
     }
     return state;
 }
 
 
 void cMarkCriteria::SetDetectionState(const int type, const bool state) {
-   switch (type) {
-        case MT_SCENECHANGE:
-            sceneDetection = state;
-            break;
-        case MT_SOUNDCHANGE:
-            soundDetection = state;
-            break;
-        case MT_BLACKCHANGE:
-            blackscreenDetection = state;
-            break;
-        case MT_LOGOCHANGE:
-            logoDetection = state;
-            break;
-        case MT_VBORDERCHANGE:
-            vborderDetection = state;
-            break;
-        case MT_HBORDERCHANGE:
-            hborderDetection = state;
-            break;
-        case MT_ASPECTCHANGE:
-            aspectratioDetection = state;
-            break;
-        case MT_CHANNELCHANGE:
-            channelDetection = state;
-            break;
-        case MT_ALL:
-            sceneDetection       = state;
-            soundDetection       = state;
-            blackscreenDetection = state;
-            logoDetection        = state;
-            vborderDetection     = state;
-            hborderDetection     = state;
-            aspectratioDetection = state;
-            channelDetection     = state;
-            break;
-        default:
-            esyslog("cMarkCriteria::SetDetectionState(): type 0x%X not valid", type);
-            break;
+    switch (type) {
+    case MT_SCENECHANGE:
+        sceneDetection = state;
+        break;
+    case MT_SOUNDCHANGE:
+        soundDetection = state;
+        break;
+    case MT_BLACKCHANGE:
+        blackscreenDetection = state;
+        break;
+    case MT_LOGOCHANGE:
+        logoDetection = state;
+        break;
+    case MT_VBORDERCHANGE:
+        vborderDetection = state;
+        break;
+    case MT_HBORDERCHANGE:
+        hborderDetection = state;
+        break;
+    case MT_ASPECTCHANGE:
+        aspectratioDetection = state;
+        break;
+    case MT_CHANNELCHANGE:
+        channelDetection = state;
+        break;
+    case MT_ALL:
+        sceneDetection       = state;
+        soundDetection       = state;
+        blackscreenDetection = state;
+        logoDetection        = state;
+        vborderDetection     = state;
+        hborderDetection     = state;
+        aspectratioDetection = state;
+        channelDetection     = state;
+        break;
+    default:
+        esyslog("cMarkCriteria::SetDetectionState(): type 0x%X not valid", type);
+        break;
     }
     if (GetDetectionState(MT_SCENECHANGE) || GetDetectionState(MT_BLACKCHANGE) || GetDetectionState(MT_LOGOCHANGE) || GetDetectionState(MT_VBORDERCHANGE) || GetDetectionState(MT_HBORDERCHANGE) || GetDetectionState(MT_ASPECTCHANGE)) videoDecoding = true;
     else videoDecoding = false;

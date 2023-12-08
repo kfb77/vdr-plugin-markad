@@ -99,17 +99,17 @@ char *memListSVDR() {
                 dump = tmp;
             }
         }
-     }
-     pthread_mutex_unlock(&mutex);
-     return dump;
+    }
+    pthread_mutex_unlock(&mutex);
+    return dump;
 }
 
 
 void memClear() {
     pthread_mutex_lock(&mutex);
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
-       free(memLine->file);
-       free(memLine->var);
+        free(memLine->file);
+        free(memLine->var);
     }
     memUseVector.clear();
     pthread_mutex_unlock(&mutex);

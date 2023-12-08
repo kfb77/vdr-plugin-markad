@@ -22,110 +22,110 @@ enum eCriteria {
  * store valid mark creteria for bradcast
  */
 class cMarkCriteria : public cMarks {
-    public:
+public:
 
-/**
- * cDecoder constructor
- */
-        cMarkCriteria();
-        ~cMarkCriteria();
-
-
-/**
- * get status of a mark type
- * @return status
- */
-        int GetMarkTypeState(const int type);
+    /**
+     * cDecoder constructor
+     */
+    cMarkCriteria();
+    ~cMarkCriteria();
 
 
-/**
- * set status of a mark type
- * @return status
- */
-        void SetMarkTypeState(const int type, const int state);
+    /**
+     * get status of a mark type
+     * @return status
+     */
+    int GetMarkTypeState(const int type);
 
 
-/**
- * list mark type stati
- */
-        void ListMarkTypeState();
-
-/**
- *  get detection state of marks from type
- */
-        bool GetDetectionState(const int type);
+    /**
+     * set status of a mark type
+     * @return status
+     */
+    void SetMarkTypeState(const int type, const int state);
 
 
-/**
- * get status of possible closing credits without logo
- * @return status
- */
-        int GetClosingCreditsState(const int position);
+    /**
+     * list mark type stati
+     */
+    void ListMarkTypeState();
+
+    /**
+     *  get detection state of marks from type
+     */
+    bool GetDetectionState(const int type);
 
 
-/**
- * set status of closing credits without logo
- * @return status
- */
-        void SetClosingCreditsState(const int position, const int state);
+    /**
+     * get status of possible closing credits without logo
+     * @return status
+     */
+    int GetClosingCreditsState(const int position);
 
 
-/**
- * turn on/of detection of marks from type
- */
-        void SetDetectionState(const int type, const bool state);
+    /**
+     * set status of closing credits without logo
+     * @return status
+     */
+    void SetClosingCreditsState(const int position, const int state);
 
 
-/**
- * list detection stati
- */
-        void ListDetection();
+    /**
+     * turn on/of detection of marks from type
+     */
+    void SetDetectionState(const int type, const bool state);
 
 
-    private:
-/**
- * convert state to printable text
- * @param state
- * @return state in printable text
- */
-        char *StateToText(const int state);
+    /**
+     * list detection stati
+     */
+    void ListDetection();
 
-        int logo                  = CRITERIA_UNKNOWN;  //!< status of logo in broadcast
-                                                       //!<
-        int hborder               = CRITERIA_UNKNOWN;  //!< status of hborder in broadcast
-                                                       //!<
-        int vborder               = CRITERIA_UNKNOWN;  //!< status of vborder in broadcast
-                                                       //!<
-        int aspectratio           = CRITERIA_UNKNOWN;  //!< status of aspact ration in broadcast
-                                                       //!<
-        int channel               = CRITERIA_UNKNOWN;  //!< status of channel changes in broadcast
-                                                       //!<
 
-        int closingCreditsState   = CRITERIA_UNKNOWN;  //!< status of closing credits after end mark
-                                                       //!<
-        int closingCreditsPos     = -1;                //!< mark position from status
-                                                       //!<
+private:
+    /**
+     * convert state to printable text
+     * @param state
+     * @return state in printable text
+     */
+    char *StateToText(const int state);
 
-        bool sceneDetection       = true;              //!< true if we have to detect scene changes, false otherwise
-                                                       //!<
-        bool soundDetection       = true;              //!< true if we have to detect silence, false otherwise
-                                                       //!<
-        bool blackscreenDetection = true;              //!< true if we have to detect black screens, false otherwise
-                                                       //!<
-        bool logoDetection        = true;              //!< true if we have to detect logo, false otherwise
-                                                       //!<
-        bool vborderDetection     = true;              //!< true if we have to detect vertical border, false otherwise
-                                                       //!<
-        bool hborderDetection     = true;              //!< true if we have to detect horizontal border, false otherwise
-                                                       //!<
-        bool aspectratioDetection = true;              //!< true if we have to detect video aspect ratio changes, false otherwise
-                                                       //!<
-        bool channelDetection     = true;              //!< true if we have to detect channel changes, false otherwise
-                                                       //!<
+    int logo                  = CRITERIA_UNKNOWN;  //!< status of logo in broadcast
+    //!<
+    int hborder               = CRITERIA_UNKNOWN;  //!< status of hborder in broadcast
+    //!<
+    int vborder               = CRITERIA_UNKNOWN;  //!< status of vborder in broadcast
+    //!<
+    int aspectratio           = CRITERIA_UNKNOWN;  //!< status of aspact ration in broadcast
+    //!<
+    int channel               = CRITERIA_UNKNOWN;  //!< status of channel changes in broadcast
+    //!<
 
-        bool videoDecoding        = true;              //!< true if we have do decode video stream, false otherwise
-                                                       //!<
-        bool audioDecoding        = true;              //!< true if we have do decode audio stream, false otherwise
-                                                       //!<
+    int closingCreditsState   = CRITERIA_UNKNOWN;  //!< status of closing credits after end mark
+    //!<
+    int closingCreditsPos     = -1;                //!< mark position from status
+    //!<
+
+    bool sceneDetection       = true;              //!< true if we have to detect scene changes, false otherwise
+    //!<
+    bool soundDetection       = true;              //!< true if we have to detect silence, false otherwise
+    //!<
+    bool blackscreenDetection = true;              //!< true if we have to detect black screens, false otherwise
+    //!<
+    bool logoDetection        = true;              //!< true if we have to detect logo, false otherwise
+    //!<
+    bool vborderDetection     = true;              //!< true if we have to detect vertical border, false otherwise
+    //!<
+    bool hborderDetection     = true;              //!< true if we have to detect horizontal border, false otherwise
+    //!<
+    bool aspectratioDetection = true;              //!< true if we have to detect video aspect ratio changes, false otherwise
+    //!<
+    bool channelDetection     = true;              //!< true if we have to detect channel changes, false otherwise
+    //!<
+
+    bool videoDecoding        = true;              //!< true if we have do decode video stream, false otherwise
+    //!<
+    bool audioDecoding        = true;              //!< true if we have do decode audio stream, false otherwise
+    //!<
 };
 #endif
