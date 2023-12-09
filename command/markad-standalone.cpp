@@ -482,7 +482,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
 
     // cleanup very short start/stop pairs around possible end marks, these are logo detection failures
     LogSeparator(false);
-    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for best logo end mark");
+    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for nearest logo end mark to assumed stop");
     while (true) {
         end = marks.GetAround(400 * macontext.Video.Info.framesPerSecond, iStopA, MT_LOGOSTOP);
         if (end) {
@@ -497,16 +497,15 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
             else {
                 cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
                 if (prevLogoStart) {
-                    int deltaLogoStart = (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
-                    const int minDeltaLogoStart = 18;   // very short logo stop/start before can be undetected info logo or logo change
-                    const int maxDeltaLogoStart = 83;
-                    if ((deltaLogoStart > minDeltaLogoStart) && (deltaLogoStart < maxDeltaLogoStart)) {
-                        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo start (%d) stop (%d) pair is invalid, logo start mark %dm before (expect >=%ds, <=%ds), delete marks", prevLogoStart->position, end->position, deltaLogoStart, minDeltaLogoStart, maxDeltaLogoStart);
+                    int deltaLogoStart = 1000 * (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
+#define MIN_LOGO_START_STOP 600   // very short logo start/stop can be false positiv logo detection
+                    if (deltaLogoStart <= MIN_LOGO_START_STOP ) {
+                        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): very short logo start (%d) stop (%d) pair is invalid, length %dms (expect >%ds), delete marks", prevLogoStart->position, end->position, deltaLogoStart, MIN_LOGO_START_STOP);
                         marks.Del(end);
                         marks.Del(prevLogoStart);
                     }
                     else {
-                        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo start mark (%d) is %ds (expect <=%ds, >=%ds) before logo stop mark (%d), logo stop mark is valid end mark", prevLogoStart->position, deltaLogoStart, minDeltaLogoStart, maxDeltaLogoStart, end->position);
+                        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo start mark (%d) is %dms (expect >%dms) before logo stop mark (%d), logo stop mark is valid end mark", prevLogoStart->position, deltaLogoStart, MIN_LOGO_START_STOP, end->position);
                         break;
                     }
                 }
