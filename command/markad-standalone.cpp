@@ -4452,13 +4452,14 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxAfter = 18799;  // silence in broadcast 18800ms after logo start
                     break;
                 case MT_VBORDERSTART:
-                    if (mark->position == marks.GetFirst()->position) maxAfter = 1800; // only optimize start mark, we can miss real vborder start because of black screen between broadcast
+                    // only optimize start mark, we can miss real vborder start because of black screen between broadcast
+                    if (mark->position == marks.GetFirst()->position) maxAfter = 7340; // changed from 1800 to 7340
                     else maxAfter = 0;
                     break;
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        maxAfter = 57079;  // first silence in broadcast 57080ms after start
+                        maxAfter = 34119;  // first silence in broadcast 34120ms after start
                         break;
                     default:
                         maxAfter = 0;
@@ -4530,7 +4531,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                         // <50400> (bb) / 7320  second silence is i next broadcast
                         if ((diffBefore <= 50400) && blackLowerBefore && (diffAfter >= 7320)) diffAfter = INT_MAX;
                         else if ((diffBefore <= 5480) && (diffAfter >= 20600)) diffAfter = INT_MAX;
-                        maxAfter = 36449;  // silence after preview 36460ms after VPS stop
+                        maxAfter = 31479;  // silence after preview 31480ms after VPS stop
                         break;
                     default:
                         maxAfter = 0;
@@ -4556,7 +4557,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 int maxBefore = 0;
                 switch (mark->type) {
                 case MT_ASSUMEDSTOP:
-                    maxBefore = 51519;
+                    maxBefore = 76620;   // changed from 51519 to 76620
                     break;
                 case MT_LOGOSTOP:
                     maxBefore = 11680;  // changed from 4240 to 5840 to 11680
@@ -4568,7 +4569,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     switch (mark->newType) {
                     case MT_VPSSTOP:
                         if (blackLowerBefore) maxBefore = 50400;  // lower black screen around sound stop
-                        else maxBefore = 37640;  // changed from 22079 to 37640
+                        else maxBefore = 28279;  // silence in broadcast 28280ms before VPS stop
                         break;
                     case MT_TYPECHANGESTOP:
                         maxBefore = 5600;
