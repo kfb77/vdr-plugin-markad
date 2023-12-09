@@ -1169,7 +1169,7 @@ bool cExtractLogo::CompareLogoPairRotating(const sMarkAdContext *maContext, sLog
         logoEndColumn   = 185;
     }
     else {
-        if (strcmp(maContext->Info.ChannelName, "SAT_1_HD") == 0) { // TODO
+        if (strcmp(maContext->Info.ChannelName, "SAT_1_HD") == 0) {
             logoStartLine   =  60;
             logoEndLine     = 133;
             logoStartColumn = 196;
