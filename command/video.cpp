@@ -1517,7 +1517,6 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
 #define CHECKHEIGHT 5           // changed from 8 to 5
 #define BRIGHTNESS_H_SURE   22  // changed from 20 to 22
 #define BRIGHTNESS_H_MAYBE 131  // some channel have logo in border, so we will get a higher value, changed from 118 to 131
-#define VOFFSET 0               // changed from 5 to 0, test if offset is necessary, delete of not, TODO
 #define NO_HBORDER        1000
     if (!maContext) return HBORDER_ERROR;
     if (!maContext->Video.Data.valid) return HBORDER_ERROR;
@@ -1527,7 +1526,7 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
         dsyslog("cMarkAdBlackBordersHoriz::Process() video hight missing");
         return HBORDER_ERROR;
     }
-    int height = maContext->Video.Info.height - VOFFSET;
+    int height = maContext->Video.Info.height;
 
     if (!maContext->Video.Data.PlaneLinesize[0]) {
         dsyslog("cMarkAdBlackBordersHoriz::Process() Video.Data.PlaneLinesize[0] not initalized");
@@ -1552,8 +1551,8 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
 
     // if we have a bottom border, test top border
     if (valBottom <= BRIGHTNESS_H_MAYBE) {
-        start = VOFFSET * maContext->Video.Data.PlaneLinesize[0];
-        end = maContext->Video.Data.PlaneLinesize[0] * (CHECKHEIGHT+VOFFSET);
+        start = maContext->Video.Data.PlaneLinesize[0];
+        end = maContext->Video.Data.PlaneLinesize[0] * CHECKHEIGHT;
         cnt = 0;
         xz  = 0;
         for (int x = start; x < end; x++) {
