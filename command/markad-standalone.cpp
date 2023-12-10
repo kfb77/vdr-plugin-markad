@@ -413,14 +413,14 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
     // try to select best logo end mark based on long black screen or silence
     LogSeparator(false);
     DebugMarks();     //  only for debugging
-    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for best logo end mark based on black screen or silence");
+    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for logo end mark based black screen, silence or closing logo sequence seperator");
     // search from nearest logo stop mark to end
     cMark *lEnd = lEndAssumed;
     while (!end && lEnd) {
         int diffAssumed = (lEnd->position - iStopA) / macontext.Video.Info.framesPerSecond;
-        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo stop (%d) %ds after assumed end (%d)", lEnd->position, diffAssumed, iStopA);
+        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check for seperator for logo stop (%d), %ds after assumed end (%d) ---------------------", lEnd->position, diffAssumed, iStopA);
         if (diffAssumed >= 300) break;
-        if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd)) {
+        if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveClosingLogo(lEnd)) {
             end = lEnd;
             break;
         }
@@ -432,9 +432,9 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         lEnd = marks.GetPrev(lEnd->position, MT_LOGOSTOP);   // try previous logo stop mark as end mark
         if (!lEnd) break;
         int diffAssumed = (iStopA - lEnd->position) / macontext.Video.Info.framesPerSecond;
-        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo stop (%d) %ds before assumed end (%d)", lEnd->position, diffAssumed, iStopA);
+        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check for seperator for logo stop (%d), %ds before assumed end (%d) --------------------", lEnd->position, diffAssumed, iStopA);
         if (diffAssumed >= 300) break;
-        if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd)) {
+        if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveClosingLogo(lEnd)) {
             end = lEnd;
         }
     }
@@ -714,6 +714,37 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
     }
     return false;
 }
+
+
+bool cMarkAdStandalone::HaveClosingLogo(const cMark *mark) {  // closing logo sequence from kabel eins
+    if (!mark) return false;
+    if (mark->type == MT_LOGOSTOP) {
+        cMark *start1Before = marks.GetPrev(mark->position, MT_LOGOSTART);
+        if (!start1Before) return false;
+        cMark *stop1Before = marks.GetPrev(start1Before->position, MT_LOGOSTOP);
+        if (!stop1Before) return false;
+        cMark *start2Before = marks.GetPrev(stop1Before->position, MT_LOGOSTART);
+        if (!start2Before) return false;
+        cMark *stop2Before = marks.GetPrev(start2Before->position, MT_LOGOSTOP);
+        if (!stop2Before) return false;
+        int diffStart1Mark  = 1000 * (mark->position         - start1Before->position) / macontext.Video.Info.framesPerSecond;
+        int diffStop1Start1 = 1000 * (start1Before->position - stop1Before->position)  / macontext.Video.Info.framesPerSecond;
+        int diffStart2Stop1 = 1000 * (stop1Before->position  - start2Before->position) / macontext.Video.Info.framesPerSecond;
+        int diffStop2Start2 = 1000 * (start2Before->position - stop2Before->position)  / macontext.Video.Info.framesPerSecond;
+        dsyslog("cMarkAdStandalone::HaveClosingLogo(): MT_LOGOSTOP (%d) %dms MT_LOGOSTART (%d) %dms MT_LOGOSTOP (%d) %dms MT_LOGOSTART (%d) %dms end (%d)", stop2Before->position, diffStop2Start2, start2Before->position, diffStart2Stop1, stop1Before->position, diffStop1Start1, start1Before->position, diffStart1Mark, mark->position);
+        // valid examples
+        // MT_LOGOSTOP (185315) 1080ms MT_LOGOSTART (185342) 8160ms MT_LOGOSTOP (185546) 840ms MT_LOGOSTART (185567) 18880ms end (186039)
+        if ((diffStop2Start2 <=  1080) &&       // change from logo to closing logo
+                (diffStart2Stop1 >=  8160) &&   // closing logo deteted as logo
+                (diffStop1Start1 <=   840) &&   // change from closing logo to logo
+                (diffStart1Mark  >= 18800)) {   // end part between closing logo and broadcast end
+            dsyslog("cMarkAdStandalone::HaveClosingLogo(): found closing logo sequence");
+            return true;
+        }
+    }
+    return false;
+}
+
 
 int cMarkAdStandalone::CheckStop() {
     LogSeparator(true);

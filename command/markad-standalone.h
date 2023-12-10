@@ -172,6 +172,13 @@ private:
     void SwapAspectRatio();
 
     /**
+     * check if there is a  closing logo sequence from kabel eins
+     * @param mark mark to check
+     * @return true if separator found
+     */
+    bool HaveClosingLogo(const cMark *mark);
+
+    /**
      * check if separator slience before logo start mark
      * @param mark mark to check
      * @return true if separator found
