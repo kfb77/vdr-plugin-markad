@@ -263,18 +263,20 @@ cMark *cMarkAdStandalone::Check_CHANNELSTOP() {
             }
         }
     }
-
-    dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): cleanup logo start/stop marks near by channel start marks, they are useless info logo");
-    cMark *channelStart = marks.GetNext(-1, MT_CHANNELSTART);
-    while (channelStart) {
+    if (markCriteria.GetMarkTypeState(MT_CHANNELCHANGE) >= CRITERIA_USED) {
+        dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): cleanup logo start/stop marks near by channel start marks, they are useless info logo");
+        cMark *channelStart = marks.GetNext(-1, MT_CHANNELSTART);
+        while (channelStart) {
 #define CHANNEL_LOGO_MARK 60
-        cMark *logoMark = marks.GetAround(CHANNEL_LOGO_MARK * macontext.Video.Info.framesPerSecond, channelStart->position, MT_LOGOCHANGE, 0xF0);
-        while (logoMark) {
-            dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): delete logo mark (%d) around channel start (%d)", logoMark->position, channelStart->position);
-            marks.Del(logoMark->position);
-            logoMark = marks.GetAround(CHANNEL_LOGO_MARK * macontext.Video.Info.framesPerSecond, channelStart->position, MT_LOGOCHANGE, 0xF0);
+            cMark *logoMark = marks.GetAround(CHANNEL_LOGO_MARK * macontext.Video.Info.framesPerSecond, channelStart->position, MT_LOGOCHANGE, 0xF0);
+            while (logoMark) {
+                int diff = abs((channelStart->position - logoMark->position) / macontext.Video.Info.framesPerSecond);
+                dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): delete logo mark (%d), %ds around channel start (%d)", logoMark->position, diff, channelStart->position);
+                marks.Del(logoMark->position);
+                logoMark = marks.GetAround(CHANNEL_LOGO_MARK * macontext.Video.Info.framesPerSecond, channelStart->position, MT_LOGOCHANGE, 0xF0);
+            }
+            channelStart = marks.GetNext(channelStart->position, MT_CHANNELSTART);
         }
-        channelStart = marks.GetNext(channelStart->position, MT_CHANNELSTART);
     }
 
     if (end) {  // we found a channel end mark
