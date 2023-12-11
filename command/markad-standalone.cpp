@@ -692,17 +692,16 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
         if (!startAfter) return false;
         cMark *blackStart = blackMarks.GetPrev(mark->position + 2, MT_NOBLACKSTOP); // black screen start can start very short after logo stop
         if (!blackStart) return false;
-        cMark *blackStop = blackMarks.GetPrev(startAfter->position, MT_NOBLACKSTART);
+        cMark *blackStop = blackMarks.GetNext(blackStart->position, MT_NOBLACKSTART);
         if (!blackStop) return false;
         int diffStopBlack  = 1000 * (mark->position       - blackStart->position) / macontext.Video.Info.framesPerSecond;
+        int diffStopLogo   = 1000 * (blackStop->position  - mark->position)       / macontext.Video.Info.framesPerSecond;
         int diffStartBlack = 1000 * (startAfter->position - blackStop->position)  / macontext.Video.Info.framesPerSecond;
-        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen separator sequence MT_NOBLACKSTOP  (%5d), MT_LOGOSTOP  (%5d), distance %5dms before", blackStart->position,  mark->position,       diffStopBlack);
-        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen separator sequence MT_NOBLACKSTART (%5d), MT_LOGOSTART (%5d), distance %5dms before", blackStop->position, startAfter->position, diffStartBlack);
-        if (blackStop->position >= (mark->position - 2)) {
-            if ((diffStopBlack <= 2920) && (diffStartBlack <= 3280)) return true; // changed from 2760 to 2920
-            else dsyslog("cMarkAdStandalone::HaveBlackSeparator(): distance too big, sequence is invalid");
-        }
-        else dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen stop (%d) after logo stop (%d), sequence is invalid", blackStop->position, mark->position);
+        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_NOBLACKSTOP (%5d) %dms MT_LOGOSTOP (%d) %dms MT_NOBLACKSTART (%d) %dms MT_LOGOSTART (%5d)", blackStart->position, diffStopBlack, mark->position, diffStopLogo, blackStop->position, diffStartBlack, startAfter->position);
+        if ((diffStopBlack >= -40) && (diffStopBlack <= 2920) &&     // changed from 0 to -40
+                (diffStopLogo >= 0) && (diffStopLogo <= 3000) &&
+                (diffStartBlack >= -80) && (diffStartBlack <= 3280)) return true;
+        else dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): sequence is invalid", mark->position);
         // check if we have a very long blackscreen short before logo stop mark
         blackStop = blackMarks.GetNext(blackStart->position, MT_NOBLACKSTART);   // this can be different from above
         if (!blackStop) return false;
