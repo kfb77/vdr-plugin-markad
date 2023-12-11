@@ -239,7 +239,7 @@ void cMarks::DelInvalidSequence() {
                 continue;
             }
             else {
-                dsyslog(" cMarks::DelInvalidSequence() delete mark (%d)", mark->Next()->position);
+                dsyslog("cMarks::DelInvalidSequence(): delete mark (%d)", mark->Next()->position);
                 Del(mark->Next());
             }
         }
