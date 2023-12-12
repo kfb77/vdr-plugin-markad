@@ -1476,7 +1476,7 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
     }
 
     // now lower black border visible, only report lower black border if we have no full black screen
-    if ((valLower <= maxBrightnessLower) && (blackLowerStatus != BLACKLOWER_VISIBLE)) {
+    if ((valLower <= maxBrightnessLower) && (blackLowerStatus != BLACKLOWER_VISIBLE) && (blackScreenStatus != BLACKSCREEN_VISIBLE)) {
         int ret = BLACKLOWER_VISIBLE;
         if (blackLowerStatus == BLACKSCREEN_UNINITIALIZED) ret = BLACKSCREEN_NOCHANGE;
         blackLowerStatus = BLACKLOWER_VISIBLE;
