@@ -531,18 +531,6 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
             break;
         }
     }
-    // detect very short channel start before, in this case logo stop is invalid
-    if (end) {
-        cMark *prevChannelStart = marks.GetPrev(end->position, MT_CHANNELSTART);
-        if (prevChannelStart) {
-            int deltaChannelStart = (end->position - prevChannelStart->position) / macontext.Video.Info.framesPerSecond;
-            if (deltaChannelStart <= 20) {
-                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo stop mark (%d) is invalid, channel start mark (%d) only %ds before", end->position, prevChannelStart->position, deltaChannelStart);
-                end = NULL;
-            }
-        }
-    }
-
     // for broadcast without hborder check border start mark from next bradcast before logo stop
     // in this case logo stop mark is from next recording, use border start mark as end mark
     bool typeChange = false;
@@ -885,7 +873,19 @@ int cMarkAdStandalone::CheckStop() {
 
 // try MT_LOGOSTOP
     if (!end && (markCriteria.GetMarkTypeState(MT_LOGOCHANGE) >= CRITERIA_UNKNOWN)) end = Check_LOGOSTOP();
-    // no end mark found, try if we can use a start mark of next bradcast as end mark
+    // detect very short channel start before, this is start from next broadcast
+    if (end && (markCriteria.GetMarkTypeState(MT_CHANNELCHANGE) < CRITERIA_USED)) {
+        cMark *prevChannelStart = marks.GetPrev(end->position, MT_CHANNELSTART);
+        if (prevChannelStart) {
+            int deltaChannelStart = 1000 * (end->position - prevChannelStart->position) / macontext.Video.Info.framesPerSecond;
+            if (deltaChannelStart <= 1000) {
+                dsyslog("cMarkAdStandalone::CheckStop(): channel start mark (%d) %dms before logo end mark (%d) is start of next broadcast, delete mark", prevChannelStart->position, deltaChannelStart, end->position);
+                marks.Del(prevChannelStart->position);
+            }
+        }
+    }
+
+// no end mark found, try if we can use a start mark of next bradcast as end mark
     if (!end && (markCriteria.GetMarkTypeState(MT_CHANNELCHANGE) != CRITERIA_USED)) {  // no valid stop mark found, try if there is a MT_CHANNELSTART from next broadcast
         // not possible is we use channel mark in this broadcast
         cMark *channelStart = marks.GetNext(iStopA, MT_CHANNELSTART);
