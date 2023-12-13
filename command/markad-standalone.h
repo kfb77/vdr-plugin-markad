@@ -218,6 +218,11 @@ private:
     cMark *Check_VBORDERSTOP();
 
     /**
+     * check for logo start mark
+     */
+    cMark *Check_LOGOSTART();
+
+    /**
      * check for logo end mark
      */
     cMark *Check_LOGOSTOP();
