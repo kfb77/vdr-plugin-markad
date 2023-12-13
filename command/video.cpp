@@ -2221,7 +2221,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
                 else {
                     int stopPos = recordingIndexMarkAdVideo->GetIFrameBefore(frameCurrent - 1);
                     if (maContext->Video.Info.interlaced) {
-                        stopPos -= 2;  // one frame before for interlaced, one frame before to get last full frame with old aspect ratio
+                        stopPos--;  // one frame before to get last full frame with old aspect ratio
                         if (stopPos < 0) stopPos = 0;
                     }
                     AddMark(MT_ASPECTSTOP, stopPos, &aspectRatio, &maContext->Video.Info.AspectRatio);
@@ -2235,7 +2235,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
                 else {
                     int stopPos = recordingIndexMarkAdVideo->GetIFrameBefore(frameCurrent - 1);
                     if (maContext->Video.Info.interlaced) {
-                        stopPos -= 2;  // one frame before for interlaced, one frame before to get last full frame with old aspect ratio
+                        stopPos--;  // one frame before to get last full frame with old aspect ratio
                         if (stopPos < 0) stopPos = 0;
                     }
                     AddMark(MT_ASPECTSTOP, stopPos, &aspectRatio, &maContext->Video.Info.AspectRatio);
