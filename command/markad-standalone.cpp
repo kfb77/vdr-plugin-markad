@@ -5822,6 +5822,11 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     if (errno == 0) isyslog("starting markad v%s (%libit)", VERSION, lb);
     else isyslog("starting markad v%s", VERSION);
 
+    // log hostname and user
+    char hostname[64];
+    gethostname(hostname, 64);
+    dsyslog("running on %s", hostname);
+
     // check avcodec library version
 #if LIBAVCODEC_VERSION_INT < LIBAVCODEC_VERSION_DEPRECATED
 #error "libavcodec not installed or version not supported, please install or update libavcodec"
