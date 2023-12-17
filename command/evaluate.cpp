@@ -386,7 +386,9 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
 #define LOGO_INFO_LONG_BLACKSCREEN_LENGTH          5000  // length of a long blackscreen
 #define LOGO_INFO_BROADCAST_AFTER_MIN              1160  // min length of broadcast after info logo, changed from 4000 to 1160
 
-#define LOGO_INFO_NEXT_STOP_MIN                    2120  // min distance of next logo stop/start pair to merge, changed from 3000 to 2120
+// min distance of next logo stop/start pair to merge
+// info logo detected as logo, but not fade in/out (kabel eins)
+#define LOGO_INFO_NEXT_STOP_MIN                    1760  // changed from 2120 to 1760
 
     int maxNextStop = 0;
     if (iStart > 0) maxNextStop = 5920;                  // we are in start mark, less risk of deleting valid stop mark
@@ -409,7 +411,9 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     }
 
     // maybe we have a wrong start/stop pair between, check if merge with next pair can help
-    if ((length < LOGO_INFO_LENGTH_MIN) && (delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair < maxNextStop) && (length < 11800)) { // next pair is too near, do not merge big pairs
+    if ((length < LOGO_INFO_LENGTH_MIN) ||                                          // too short for info logo
+            ((delta_Stop_AfterPair > 0) && (delta_Stop_AfterPair < maxNextStop) &&  // next pair is too near
+             (length < 11800))) {                                                   // do not merge big pairs
         dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): short pair and very near next start mark, try to merge with next pair");
 
         // try next logo stop/start pair
