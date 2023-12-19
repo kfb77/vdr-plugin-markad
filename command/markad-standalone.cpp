@@ -1633,6 +1633,10 @@ void cMarkAdStandalone::CheckStart() {
                     video->ClearBorder();
                 }
             }
+            else { // video is 16:9 but we have a aspect start mark, must be end previous 4:3 broadcast, broadcast start must be after that
+                dsyslog("cMarkAdStandalone::CheckStart(): 16:9 video, aspect ratio start (%d) from end of previous 4:3 broadcast, delete marks before", aStart->position);
+                marks.DelTill(aStart->position, true);  // keep aspect ratio start mark, maybe we use it if we have no logo start mark
+            }
         }
     }
 
@@ -1894,7 +1898,7 @@ void cMarkAdStandalone::CheckStart() {
 
 
     // now we have the final start mark, do fine tuning
-    marks.DelTill(begin->position);    // delete all marks till start mark
+    marks.DelTill(begin->position, true);    // delete all marks till start mark
     const char *indexToHMSF = marks.GetTime(begin);
     char *typeName    = marks.TypeToText(begin->type);
     if (indexToHMSF && typeName) isyslog("using %s start mark on position (%d) at %s as broadcast start", typeName, begin->position, indexToHMSF);

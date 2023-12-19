@@ -175,6 +175,7 @@ void cMarks::DelTill(const int position, const bool fromStart) {
         next = mark->Next();
         if (fromStart) {
             if (mark->position < position) {
+                dsyslog("cMarks::DelTill(): delete mark (%d)", mark->position);
                 Del(mark);
             }
         }
