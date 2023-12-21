@@ -919,10 +919,17 @@ int cMarkAdStandalone::CheckStop() {
         cMark *hBorderStart = marks.GetNext((iStopA - (4 *  macontext.Video.Info.framesPerSecond)), MT_HBORDERSTART);  // accept 4s before iStopA
         if (hBorderStart) {
             dsyslog("cMarkAdStandalone::CheckStop(): use hborder start mark (%d) from next broadcast as end mark", hBorderStart->position);
-            end = marks.ChangeType(hBorderStart, MT_STOP);
-            if (end) {
-                marks.DelFromTo(end->position + 1, INT_MAX, MT_ALL);  // delete all marks after end mark
-                end = marks.Move(end, end->position - 1, MT_TYPECHANGESTOP);  // one frame before hborder start is end mark
+            if (markCriteria.GetMarkTypeState(MT_LOGOCHANGE) == CRITERIA_USED) {  // if we use logo marks, there must be a valid logo stop mark before hborder start
+                cMark *lStop = marks.GetPrev(hBorderStart->position, MT_LOGOSTOP);  // try to find a early logo stop, maybe too long broadcast from info fileA
+                if (lStop) {
+                    int diffAssumed = (iStopA - lStop->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::CheckStop(): logo stop (%d) %ds before hborder start (%d)", lStop->position, diffAssumed, hBorderStart->position);
+                    if (diffAssumed <= 251) end = lStop;
+                }
+            }
+            if (!end) {
+                end = marks.ChangeType(hBorderStart, MT_STOP);
+                if (end) end = marks.Move(end, end->position - 1, MT_TYPECHANGESTOP);  // one frame before hborder start is end mark
             }
         }
     }
