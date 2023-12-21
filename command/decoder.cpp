@@ -93,7 +93,7 @@ cDecoder::~cDecoder() {
 }
 
 
-int cDecoder::GetErrorCount() {
+int cDecoder::GetErrorCount() const {
     return decodeErrorCount;
 }
 
@@ -121,7 +121,7 @@ bool cDecoder::DecodeDir(const char *recDir) {
 }
 
 
-int cDecoder::GetFileNumber() {
+int cDecoder::GetFileNumber() const {
     return fileNumber;
 }
 
@@ -1006,17 +1006,17 @@ bool cDecoder::IsSubtitlePacket() {
 }
 
 
-int cDecoder::GetFrameNumber() {
+int cDecoder::GetFrameNumber() const {
     return currFrameNumber;
 }
 
 
-int cDecoder::GetIFrameCount() {
+int cDecoder::GetIFrameCount() const {
     return iFrameCount;
 }
 
 
-bool cDecoder::IsInterlacedVideo() {
+bool cDecoder::IsInterlacedVideo() const {
     if (interlaced_frame > 0) return true;
     return false;
 }

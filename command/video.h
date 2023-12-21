@@ -195,13 +195,13 @@ private:
      * @param hist2 histogram 2
      * @return different pixels if similar, <0 otherwise
      */
-    int AreSimilar(const simpleHistogram &hist1, const simpleHistogram &hist2);
+    int AreSimilar(const simpleHistogram &hist1, const simpleHistogram &hist2) const;
 
     /**
      * get a simple histogram of current frame
      * @param[in,out] dest histogram
      */
-    void GetHistogram(simpleHistogram &dest);
+    void GetHistogram(simpleHistogram &dest) const;
 
     /**
      * detect overlaps before and after advertising
@@ -321,7 +321,7 @@ private:
      * @param[in]  plane  plane number
      * @return true if sucessful, false otherwise
      */
-    bool SetCoordinates(int *xstart, int *xend, int *ystart, int *yend, const int plane);
+    bool SetCoordinates(int *xstart, int *xend, int *ystart, int *yend, const int plane) const;
 
     /**
      * reduce brightness of logo corner
@@ -495,7 +495,7 @@ public:
      * get first frame number with border
      * @return first frame number with border
      */
-    int GetFirstBorderFrame();
+    int GetFirstBorderFrame() const;
 
     /**
      * process horizontal border detection of current frame
@@ -537,7 +537,7 @@ public:
      * get first frame number with border
      * @return first frame number with border
      */
-    int GetFirstBorderFrame();
+    int GetFirstBorderFrame() const;
 
     /**
      * process vertical border detection of current frame
@@ -666,7 +666,7 @@ private:
      * @param[in]  AspectRatioB second video aspect ratio
      * @return true if aspect ratio changed, false otherwise
      */
-    bool AspectRatioChange(const sAspectRatio &AspectRatioA, const sAspectRatio &AspectRatioB);
+    static bool AspectRatioChange(const sAspectRatio &AspectRatioA, const sAspectRatio &AspectRatioB);
 
     sMarkAdContext *maContext         = NULL; //!< markad context
     //!<

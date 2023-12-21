@@ -71,7 +71,7 @@ private:
      *  @param channelsAfter  number of channels now
      *  @return true if channel count are different, false if not
      */
-    bool ChannelChange(int channelsBefore, int channelsAfter);
+    static bool ChannelChange(int channelsBefore, int channelsAfter);
 
 
     sMarkAdContext *macontext      = NULL;                   //!< markad context

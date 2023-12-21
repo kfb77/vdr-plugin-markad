@@ -16,7 +16,7 @@ cMarkCriteria::~cMarkCriteria() {
 }
 
 
-int cMarkCriteria::GetMarkTypeState(const int type) {
+int cMarkCriteria::GetMarkTypeState(const int type) const {
     int state = CRITERIA_UNKNOWN;
     switch (type) {
     case MT_LOGOCHANGE:
@@ -137,7 +137,7 @@ void cMarkCriteria::SetMarkTypeState(const int type, const int state) {
 }
 
 
-void cMarkCriteria::ListMarkTypeState() {
+void cMarkCriteria::ListMarkTypeState() const {
     GetMarkTypeState(MT_LOGOCHANGE);
     GetMarkTypeState(MT_VBORDERCHANGE);
     GetMarkTypeState(MT_HBORDERCHANGE);
@@ -146,7 +146,7 @@ void cMarkCriteria::ListMarkTypeState() {
 }
 
 
-int cMarkCriteria::GetClosingCreditsState(const int position) {
+int cMarkCriteria::GetClosingCreditsState(const int position) const {
     if (position == closingCreditsPos) {
         char *stateToText = StateToText(closingCreditsState);
         dsyslog("cMarkCriteria::GetClosingCreditState(): closing credits state for (%d) is %s", position, stateToText);
@@ -210,7 +210,7 @@ char *cMarkCriteria::StateToText(const int state) {
 }
 
 
-bool cMarkCriteria::GetDetectionState(const int type) {
+bool cMarkCriteria::GetDetectionState(const int type) const {
     bool state = true;
     switch (type) {
     case MT_SCENECHANGE:
@@ -305,7 +305,7 @@ void cMarkCriteria::SetDetectionState(const int type, const bool state) {
 }
 
 
-void cMarkCriteria::ListDetection() {
+void cMarkCriteria::ListDetection() const {
     dsyslog("cMarkCriteria::ListDetectionState(): MT_SCENECHANGE:     %s", GetDetectionState(MT_SCENECHANGE)   ? "on" : "off");
     dsyslog("cMarkCriteria::ListDetectionState(): MT_SOUNDCHANGE:     %s", GetDetectionState(MT_SOUNDCHANGE)   ? "on" : "off");
     dsyslog("cMarkCriteria::ListDetectionState(): MT_BLACKCHANGE:     %s", GetDetectionState(MT_BLACKCHANGE)   ? "on" : "off");

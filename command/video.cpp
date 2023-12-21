@@ -330,7 +330,7 @@ bool cMarkAdLogo::Save(const int frameNumber, uchar **picture, const short int p
 }
 
 
-bool cMarkAdLogo::SetCoordinates(int *xstart, int *xend, int *ystart, int *yend, const int plane) {
+bool cMarkAdLogo::SetCoordinates(int *xstart, int *xend, int *ystart, int *yend, const int plane) const {
     switch (area.corner) {
     case TOP_LEFT:
         *xstart = 0;
@@ -1500,7 +1500,7 @@ cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(sMarkAdContext *maContextPara
 }
 
 
-int cMarkAdBlackBordersHoriz::GetFirstBorderFrame() {
+int cMarkAdBlackBordersHoriz::GetFirstBorderFrame() const {
     if (borderstatus != HBORDER_VISIBLE) return borderframenumber;
     else return -1;
 }
@@ -1628,7 +1628,7 @@ void cMarkAdBlackBordersVert::Clear(const bool isRestart) {
 }
 
 
-int cMarkAdBlackBordersVert::GetFirstBorderFrame() {
+int cMarkAdBlackBordersVert::GetFirstBorderFrame() const {
     if (borderstatus != VBORDER_VISIBLE) return borderframenumber;
     else return -1;
 }
@@ -1801,7 +1801,7 @@ void cMarkAdOverlap::Clear() {
 }
 
 
-void cMarkAdOverlap::GetHistogram(simpleHistogram &dest) {
+void cMarkAdOverlap::GetHistogram(simpleHistogram &dest) const {
     memset(dest, 0, sizeof(simpleHistogram));
     int startY =  maContext->Video.Info.height * 0.22;  // ignore top part because there can be info border at start after the advertising, changed from 0.16 to 0.2 to 0.22
     int endY   =  maContext->Video.Info.height * 0.82; // ignore bottom part because there can info border text at start after the advertising, changed from 0.87 to 0.82
@@ -1814,7 +1814,7 @@ void cMarkAdOverlap::GetHistogram(simpleHistogram &dest) {
 }
 
 
-int cMarkAdOverlap::AreSimilar(const simpleHistogram &hist1, const simpleHistogram &hist2) { // return > 0 if similar, else <= 0
+int cMarkAdOverlap::AreSimilar(const simpleHistogram &hist1, const simpleHistogram &hist2) const { // return > 0 if similar, else <= 0
     long int similar = 0;  // prevent integer overflow
     for (int i = 0; i < 256; i++) {
         similar += abs(hist1[i] - hist2[i]);  // calculte difference, smaller is more similar

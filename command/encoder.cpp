@@ -467,7 +467,7 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
 // check stats to avoid assert in avcodec_open2
 // Assertion picture_number < rcc->num_entries failed at src/libavcodec/ratecontrol.c:587
 //
-bool cEncoder::CheckStats(const int max_b_frames) {
+bool cEncoder::CheckStats(const int max_b_frames) const {
     if (!stats_in.data) return false;
     char *p = stats_in.data;
     int line = 0;

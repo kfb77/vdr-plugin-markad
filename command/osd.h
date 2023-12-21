@@ -57,7 +57,7 @@ private:
     //!<
     static void *SendMessage(void *posd);             //!< send OSD message
     //!<
-    bool ReadReply(int fd, char **reply = NULL);     //!< read reply from OSD
+    static bool ReadReply(int fd, char **reply = NULL);     //!< read reply from OSD
     //!<
 };
 #endif

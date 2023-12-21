@@ -37,31 +37,31 @@ public:
      * check if channel could have info logos
      * @return true if channel could have info logos, false otherwise
      */
-    bool IsInfoLogoChannel(const char *channelName);
+    static bool IsInfoLogoChannel(const char *channelName);
 
     /**
      * check if channel could have logo changes
      * @return true if channel could have logo changes, false otherwise
      */
-    bool IsLogoChangeChannel(const char *channelName);
+    static bool IsLogoChangeChannel(const char *channelName);
 
     /**
      * check if channel could have closing credits without logo
      * @return true if channel could have closing credits without logo, false otherwise
      */
-    bool ClosingCreditsChannel(const char *channelName);
+    static bool ClosingCreditsChannel(const char *channelName);
 
     /**
      * check if channel could have advertising in frame with logo
      * @return true if channel advertising in frame with logo, false otherwise
      */
-    bool AdInFrameWithLogoChannel(const char *channelName);
+    static bool AdInFrameWithLogoChannel(const char *channelName);
 
     /**
      * check for introduction logo
      * @return true if introduction logo detected, false otherwise
      */
-    bool IntroductionLogoChannel(const char *channelName);
+    static bool IntroductionLogoChannel(const char *channelName);
 };
 
 
@@ -111,7 +111,7 @@ public:
      * @param[in]     marks             object with all marks
      * @param[in,out] logoStopStartPair structure of logo/stop start pair, result is stored here, isClosingCredits is set to -1 if the part is no logo change
      */
-    void IsClosingCredits(cMarks *marks, sLogoStopStartPair *logoStopStartPair);
+    static void IsClosingCredits(cMarks *marks, sLogoStopStartPair *logoStopStartPair);
 
     /**
      * check if logo stop/start pair could be a logo change
@@ -121,7 +121,7 @@ public:
      * @param[in]     iStart            assumed start mark position
      * @param[in]     chkSTART          search for start mark position
      */
-    void IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart, const int chkSTART);
+    static void IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart, const int chkSTART);
 
     /**
      * check if logo stop/start pair could be an info logo
@@ -131,7 +131,7 @@ public:
      * @param framesPerSecond   video frame rate
      * @param iStart            assumed start frame number
      */
-    void IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart);
+    static void IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart);
 
     /**
      * get next logo stop/start pair

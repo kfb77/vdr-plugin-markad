@@ -87,7 +87,7 @@ cMarks::~cMarks() {
 }
 
 
-int cMarks::Count(const int type, const int mask) {
+int cMarks::Count(const int type, const int mask) const {
     if (type == 0xFF) return count;
     if (!first) return 0;
 
@@ -757,7 +757,7 @@ bool cMarks::Backup(const char *directory) {
 }
 
 
-int cMarks::Length() {
+int cMarks::Length() const {
     if (!first) {
         esyslog("cMarks::Length(): no marks found");
         return 0;

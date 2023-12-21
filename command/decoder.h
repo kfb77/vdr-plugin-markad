@@ -77,7 +77,7 @@ public:
      * get number of decoding error
      * @return number of decoding errors
      */
-    int GetErrorCount();
+    int GetErrorCount() const;
 
     /**
      * set decoder to first/next file of the directory
@@ -97,7 +97,7 @@ public:
      * get currently in progress TS file number
      * @return file number
      */
-    int GetFileNumber();
+    int GetFileNumber() const;
 
     /**
      * reset decoder to first frame of first file
@@ -251,18 +251,18 @@ public:
     /** get current frame number
      * @return current frame number
      */
-    int GetFrameNumber();
+    int GetFrameNumber() const;
 
     /** get current number of processed i-frames
      * @return current number of processed i-frames
      */
-    int GetIFrameCount();
+    int GetIFrameCount() const;
 
     /**
      * check if video stream is interlaced
      * @return true if video stream is interlaced, false otherwise
      */
-    bool IsInterlacedVideo();
+    bool IsInterlacedVideo() const;
 
     /** get number of i-frames between to frames
      * @param beginFrame

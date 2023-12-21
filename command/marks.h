@@ -139,7 +139,7 @@ public:
      * @param mask type mask
      * @return counf of mark
      */
-    int Count(const int type = 0xFF, const int mask = 0xFF);
+    int Count(const int type = 0xFF, const int mask = 0xFF) const;
 
     /**
      * set marks filename
@@ -248,7 +248,7 @@ public:
      * @param newType new type of mark, allow values are MT_START or MT_STOP
      * @return mark with new type
      */
-    cMark *ChangeType(cMark *mark, const int newType);
+    static cMark *ChangeType(cMark *mark, const int newType);
 
 
     /**
@@ -340,14 +340,14 @@ public:
      * calculate length of the braodcast without advertisement
      * @return count frames of the broadcast without advertisement
      */
-    int Length();
+    int Length() const;
 
     /**
      * convert mark type to text
      * @param type type of the mark
      * @return text of the mark type
      */
-    char *TypeToText(const int type);
+    static char *TypeToText(const int type);
 
 private:
 

@@ -145,7 +145,7 @@ private:
      * @param[in,out] logoWidth  logo width
      * @param corner             logo corner
      */
-    void CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, int *logoHeight, int *logoWidth, const int corner);
+    void CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, int *logoHeight, int *logoWidth, const int corner) const;
 
     /**
      * check if found logo size and corner is valid
@@ -155,7 +155,7 @@ private:
      * @param logoCorner corner of logo
      * @return true if logo size and corner is valid, false otherwise
      */
-    bool CheckLogoSize(const sMarkAdContext *maContext, const int logoHeight, const int logoWidth, const int logoCorner);
+    bool CheckLogoSize(const sMarkAdContext *maContext, const int logoHeight, const int logoWidth, const int logoCorner) const;
 
     /**
      * remove white frame and resize logo
@@ -176,7 +176,7 @@ private:
      * @param plane           pixel plane number
      * @return true if there are no pixel, false otherwise
      */
-    bool IsWhitePlane(const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
+    static bool IsWhitePlane(const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
 
     /**
      * check of logo had a changed colour

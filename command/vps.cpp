@@ -58,7 +58,7 @@ cVPS::~cVPS() {
 }
 
 
-int cVPS::Length() {
+int cVPS::Length() const {
     if ((vpsStart >= 0) && (vpsStop >= 0)) {
         int length = vpsStop - vpsStart;
         if ((vpsPauseStart >= 0) && (vpsPauseStop >= 0)) length -= (vpsPauseStop - vpsPauseStart);

@@ -349,7 +349,7 @@ private:
      * write a separator line to log file
      * @param main true write "=", false write "-"
      */
-    void LogSeparator(const bool main = false);
+    static void LogSeparator(const bool main = false);
 
     /**
      * write all curent detected mark to log file

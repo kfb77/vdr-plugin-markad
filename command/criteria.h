@@ -35,7 +35,7 @@ public:
      * get status of a mark type
      * @return status
      */
-    int GetMarkTypeState(const int type);
+    int GetMarkTypeState(const int type) const;
 
 
     /**
@@ -48,19 +48,19 @@ public:
     /**
      * list mark type stati
      */
-    void ListMarkTypeState();
+    void ListMarkTypeState() const;
 
     /**
      *  get detection state of marks from type
      */
-    bool GetDetectionState(const int type);
+    bool GetDetectionState(const int type) const;
 
 
     /**
      * get status of possible closing credits without logo
      * @return status
      */
-    int GetClosingCreditsState(const int position);
+    int GetClosingCreditsState(const int position) const;
 
 
     /**
@@ -79,7 +79,7 @@ public:
     /**
      * list detection stati
      */
-    void ListDetection();
+    void ListDetection() const;
 
 
 private:
@@ -88,7 +88,7 @@ private:
      * @param state
      * @return state in printable text
      */
-    char *StateToText(const int state);
+    static char *StateToText(const int state);
 
     int logo                  = CRITERIA_UNKNOWN;  //!< status of logo in broadcast
     //!<

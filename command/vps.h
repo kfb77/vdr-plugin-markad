@@ -26,7 +26,7 @@ public:
      * get VPS start event offset
      * @return offset from start of recording in s
      */
-    int GetStart() {
+    int GetStart() const {
         return vpsStart;
     };
 
@@ -34,7 +34,7 @@ public:
      * get VPS stop event offset
      * @return offset from start of recording in s
      */
-    int GetStop() {
+    int GetStop() const {
         return vpsStop;
     };
 
@@ -49,7 +49,7 @@ public:
      * get VPS pause start event offset
      * @return offset from start of recording in s
      */
-    int GetPauseStart() {
+    int GetPauseStart() const {
         return vpsPauseStart;
     };
 
@@ -57,7 +57,7 @@ public:
      * get VPS pause stop event offset
      * @return offset from start of recording in s
      */
-    int GetPauseStop()  {
+    int GetPauseStop() const {
         return vpsPauseStop;
     };
 
@@ -65,7 +65,7 @@ public:
      * get length of broadcast based on VPS events
      * @return length of recording in s
      */
-    int Length();
+    int Length() const;
 
 private:
     int vpsStart      = -1;  //!< VPS start event offset from recodering start in s

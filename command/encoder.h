@@ -159,7 +159,7 @@ private:
      * @param max_b_frames number of maximum b-frames
      * @return true of valid, false otherwise
      */
-    bool CheckStats(const int max_b_frames);
+    bool CheckStats(const int max_b_frames) const;
 
     sMarkAdContext *maContext;                                    //!< markad context
     //!<
