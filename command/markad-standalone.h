@@ -50,24 +50,41 @@ public:
      */
     cMarkAdStandalone(const cMarkAdStandalone &origin) {   //  copy constructor, not used, only for formal reason
         strcpy(title,origin.title);
-        ptitle = title;
-        directory = origin.directory;
-        video = NULL;
-        audio = NULL;
-        osd = NULL;
-        duplicate = origin.duplicate,
-        isREEL = origin.isREEL;
-        MaxFiles = origin.MaxFiles;
-        framecnt = origin.framecnt;
-        gotendmark = origin.gotendmark;
-        waittime = origin.waittime;
-        iwaittime = origin.iwaittime;
-        bIgnoreTimerInfo = origin.bIgnoreTimerInfo;
-        bLiveRecording = origin.bLiveRecording;
-        chkSTART = origin.chkSTART;
-        chkSTOP = origin.chkSTOP;
-        inBroadCast = origin.inBroadCast;
-        indexFile = origin.indexFile;
+        ptitle                    = title;
+        directory                 = origin.directory;
+        video                     = NULL;
+        audio                     = NULL;
+        osd                       = NULL;
+        duplicate                 = origin.duplicate,
+        isREEL                    = origin.isREEL;
+        MaxFiles                  = origin.MaxFiles;
+        framecnt                  = origin.framecnt;
+        gotendmark                = origin.gotendmark;
+        waittime                  = origin.waittime;
+        iwaittime                 = origin.iwaittime;
+        bIgnoreTimerInfo          = origin.bIgnoreTimerInfo;
+        bLiveRecording            = origin.bLiveRecording;
+        chkSTART                  = origin.chkSTART;
+        chkSTOP                   = origin.chkSTOP;
+        inBroadCast               = origin.inBroadCast;
+        indexFile                 = origin.indexFile;
+        evaluateLogoStopStartPair = origin.evaluateLogoStopStartPair;
+        ptr_cDecoderLogoChange    = origin.ptr_cDecoderLogoChange;
+        iStopinBroadCast          = origin.iStopinBroadCast;
+        endMarkPos                = origin.endMarkPos;
+        iStopA                    = origin.iStopA;
+        iStartA                   = origin.iStartA;
+        iStop                     = origin.iStop;
+        iStart                    = origin.iStart;
+        length                    = origin.length;
+        startTime                 = origin.startTime;
+        macontext                 = origin.macontext;
+        vps                       = NULL;
+        recordingIndexMark        = origin.recordingIndexMark;
+        iFrameBefore              = origin.iFrameBefore;
+        iFrameCurrent             = origin.iFrameCurrent;
+        frameCurrent              = origin.frameCurrent;
+        checkAudio                = origin.checkAudio;
         sleepcnt = origin.sleepcnt;
     };
 
@@ -109,6 +126,9 @@ public:
         ptr_cDecoderLogoChange    = origin->ptr_cDecoderLogoChange;
         evaluateLogoStopStartPair = origin->evaluateLogoStopStartPair;
         vps                       = origin->vps;
+        checkAudio                = origin->checkAudio;
+        startTime                 = origin->startTime;
+        iStopinBroadCast          = origin->iStopinBroadCast;
         return *this;
     }
 

@@ -588,12 +588,15 @@ public:
      * copy constructor, not used, only for formal reason
      */
     cMarkAdVideo(const cMarkAdVideo &origin) {
-        maContext = origin.maContext;
-        blackScreen = NULL;
-        hborder = NULL;
-        vborder = NULL;
-        logo = NULL;
-//            overlap = NULL;
+        maContext                 = origin.maContext;
+        blackScreen               = NULL;
+        hborder                   = NULL;
+        vborder                   = NULL;
+        logo                      = NULL;
+        markCriteria              = NULL;
+        recordingIndexMarkAdVideo = NULL;
+        sceneChange               = NULL;
+        aspectRatioBeforeFrame    = 0;
     };
 
     /**
