@@ -622,8 +622,8 @@ void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *mark) {
 
         int deltaStop = 1000 * (nextLogoStop->position  - mark->position)         / macontext.Video.Info.framesPerSecond;
         int adLength  = 1000 * (nextLogoStart->position - nextLogoStop->position) / macontext.Video.Info.framesPerSecond;
-        dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): log start mark (%d), next logo stop (%d) %dms, logo start (%d), ad length %dms", mark->position, nextLogoStop->position, deltaStop, nextLogoStart->position, adLength);
-        if ((deltaStop <= 960) && (adLength <= 6240)) {
+        dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): logo start mark (%d), next logo stop (%d) %dms, logo start (%d), ad length %dms", mark->position, nextLogoStop->position, deltaStop, nextLogoStart->position, adLength);
+        if ((deltaStop <= 28680) && (adLength <= 6240)) {  // changed from 960 to 28680
             dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): undetected info logo from (%d) to (%d), delete marks", nextLogoStop->position, nextLogoStart->position);
             marks.Del(nextLogoStop->position);
             marks.Del(nextLogoStart->position);
