@@ -51,7 +51,7 @@ public:
      * @param aspectRatio    video aspect ratio for requested logo
      * @param recordingIndex recording index
      */
-    explicit cExtractLogo(sMarkAdContext *maContext, const sAspectRatio aspectRatio, cIndex *recordingIndex);
+    explicit cExtractLogo(sMarkAdContext *maContext, const sAspectRatio AspectRatio, cIndex *recordingIndex);
     ~cExtractLogo();
 
     /**

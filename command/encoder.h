@@ -100,7 +100,7 @@ public:
      * @param ptr_cDecoder decoder class
      * @return true if sucessful, flase otherwise
      */
-    bool WritePacket(AVPacket *pktIn, cDecoder *ptr_cDecoder);
+    bool WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder);
 
     /**
      * close output file
@@ -116,7 +116,7 @@ private:
      * @param avFrame      decodes frame
      * @param avpkt        encoded packet
      */
-    bool EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodexCtx, AVFrame *avFrame, AVPacket *avpkt);
+    bool EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacket *avpkt);
 
     /**
      * init encoder codec

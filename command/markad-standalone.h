@@ -230,7 +230,7 @@ private:
     /**
      * cleanup undetected info logo before end mark
      */
-    void CleanupUndetectedInfoLogo(const cMark *end);
+    void CleanupUndetectedInfoLogo(const cMark *mark);
 
     /**
      * check for end mark
@@ -323,7 +323,7 @@ private:
     /**
      * cleanup marks that make no sense
      */
-    void CheckMarks(const int endPos);
+    void CheckMarks(const int endMarkPos);
 
     /**
      * write a separator line to log file

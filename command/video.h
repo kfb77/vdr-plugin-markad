@@ -255,7 +255,7 @@ public:
      * @param markCriteriaParam mark critaria
      * @param recordingIndex    recording index
      */
-    explicit cMarkAdLogo(sMarkAdContext *maContext, cMarkCriteria *markCriteriaParam, cIndex *recordingIndex);
+    explicit cMarkAdLogo(sMarkAdContext *maContextParam, cMarkCriteria *markCriteriaParam, cIndex *recordingIndex);
 
     ~cMarkAdLogo();
 
@@ -503,7 +503,7 @@ public:
      * @param borderFrame frame number of detected border
      * @return border detection status
      */
-    int Process(const int frameNumber, int *borderFrame);
+    int Process(const int FrameNumber, int *borderFrame);
 
 
     /**
@@ -581,7 +581,7 @@ public:
      * @param markCriteriaParam mark criteria
      * @param recordingIndex    recording index
      */
-    explicit cMarkAdVideo(sMarkAdContext *maContext, cMarkCriteria *markCriteriaParam, cIndex *recordingIndex);
+    explicit cMarkAdVideo(sMarkAdContext *maContextParam, cMarkCriteria *markCriteriaParam, cIndex *recordingIndex);
     ~cMarkAdVideo();
 
     /**

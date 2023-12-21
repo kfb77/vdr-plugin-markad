@@ -55,7 +55,7 @@ private:
     //!<
     pthread_t tid = 0;                               //!< thread id of the OSD message
     //!<
-    static void *SendMessage(void *osd);             //!< send OSD message
+    static void *SendMessage(void *posd);             //!< send OSD message
     //!<
     bool ReadReply(int fd, char **reply = NULL);     //!< read reply from OSD
     //!<

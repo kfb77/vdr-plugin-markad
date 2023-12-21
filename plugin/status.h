@@ -80,12 +80,12 @@ private:
     bool Replaying();
     int Get(const char *FileName, const char *Name = NULL);
     int Add(const char *FileName, const char *Name, const tEventID eventID, const tEventID eventNextID, const tChannelID channelID, const time_t timerStartTime, const time_t timerStopTime, bool timerVPS);
-    void Remove(int Position, bool Kill = false);
+    void Remove(int pos, bool Kill = false);
     void Remove(const char *Name, bool Kill = false);
     void Pause(const char *FileName);
     void Continue(const char *FileName);
     bool LogoExists(const cDevice *Device, const char *FileName);
-    void GetEventID(const cDevice *Device,const char *FileName, tEventID *eventID, tEventID *eventNextID, tChannelID *channelID, time_t *timerStartTime, time_t *timerStopTime, bool *timerVPS);
+    void GetEventID(const cDevice *Device,const char *Name, tEventID *eventID, tEventID *eventNextID, tChannelID *channelID, time_t *timerStartTime, time_t *timerStopTime, bool *timerVPS);
     void SaveVPSTimer(const char *FileName, const bool timerVPS);
     void SaveVPSEvents(const int index);
     bool StoreVPSStatus(const char *status, const int index);
@@ -104,9 +104,9 @@ public:
     char *GetStatus();
     void Check(void);
     bool GetNextActive(struct sRecordings **RecEntry);
-    bool Start(const char *FileName, const char *Name, const tEventID eventID, const tEventID eventNextID, const tChannelID channelID, const time_t timerStartTime, const time_t timerStopTime, const bool timerVPS, const bool Direct);
+    bool Start(const char *FileName, const char *Name, const tEventID eventID, const tEventID eventNextID, const tChannelID channelID, const time_t timerStartTime, const time_t timerStopTime, const bool timerVPS, const bool direct);
     int Get_EIT_EventID(const sRecordings *recording, const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *schedule, const bool nextEvent);
-    void FindRecording(const cEvent *event, const SI::EIT::Event *EitEvent, const cSchedule *Schedule);
+    void FindRecording(const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *Schedule);
     void SetVPSStatus(const int index, int runningStatus, const bool eventEIT);
 };
 

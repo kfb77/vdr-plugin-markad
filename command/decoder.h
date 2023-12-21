@@ -156,7 +156,7 @@ public:
      * @param buildPTSIndex true will fill PTS ring buffer, false will not fill PTS ring buffer (e.g. if called by logo search to avoid out of sequence elements)
      * @return true if successful, false if av_read_frame failed (e.g. end of file)
      */
-    bool GetNextPacket(const bool buildIndex, bool buildPTSIndex);
+    bool GetNextPacket(const bool buildFrameIndex, bool buildPTS_Index);
 
     /**
      * get current packet
