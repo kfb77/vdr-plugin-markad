@@ -180,6 +180,7 @@ void cMarks::DelTill(const int position, const bool fromStart) {
             }
         }
         else {
+            dsyslog("cMarks::DelTill(): delete mark (%d)", mark->position);
             Del(mark);
         }
         mark = next;

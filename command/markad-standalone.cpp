@@ -887,6 +887,14 @@ int cMarkAdStandalone::CheckStop() {
 // try MT_HBORDERSTOP
     if ((markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED) ||   // try hborder end if hborder used even if we got another end mark, maybe we found a better one
             (!end && (markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) >= CRITERIA_UNKNOWN))) end = Check_HBORDERSTOP();
+    // cleanup all marks after hborder start from next broadcast
+    if (!end && (markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) <= CRITERIA_UNKNOWN)) {
+        cMark *hBorderStart = marks.GetNext(iStopA - (60 * macontext.Video.Info.framesPerSecond), MT_HBORDERSTART);
+        if (hBorderStart) {
+            dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after hborder start (%d) from next broadcast", hBorderStart->position);
+            marks.DelTill(hBorderStart->position, false);
+        }
+    }
 
 // try MT_VBORDERSTOP
     if (!end && (markCriteria.GetMarkTypeState(MT_VBORDERCHANGE) >= CRITERIA_UNKNOWN)) end = Check_VBORDERSTOP();
