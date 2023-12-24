@@ -4782,8 +4782,17 @@ void cMarkAdStandalone::SceneChangeOptimization() {
             bool moved     = false;
             int diffAfter  = INT_MAX;
             int diffBefore = INT_MAX;
-            cMark *sceneStartBefore = sceneMarks.GetPrev(mark->position + 1, MT_SCENESTART);  // allow to get same position
-            cMark *sceneStartAfter  = sceneMarks.GetNext(mark->position - 1, MT_SCENESTART);  // allow to get same position
+            cMark *sceneStartBefore = NULL;
+            cMark *sceneStartAfter  = NULL;
+            if (mark->type == MT_ASPECTSTART) {   // change of aspect ratio results in a scene change, but they are sometimes a few frames to early
+                sceneStartBefore = sceneMarks.GetPrev(mark->position, MT_SCENESTART);      // do not allow to get same position
+                sceneStartAfter  = sceneMarks.GetNext(mark->position, MT_SCENESTART);      // do not allow to get same position
+            }
+            else {
+                sceneStartBefore = sceneMarks.GetPrev(mark->position + 1, MT_SCENESTART);  // allow to get same position
+                sceneStartAfter  = sceneMarks.GetNext(mark->position - 1, MT_SCENESTART);  // allow to get same position
+            }
+
             if (sceneStartBefore) {
                 diffBefore = 1000 * (mark->position - sceneStartBefore->position) / macontext.Video.Info.framesPerSecond;
                 diffBeforeStat = diffBefore;
@@ -4893,6 +4902,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 case MT_LOGOSTART:
                     maxAfter = 1200;
                     break;
+                case MT_ASPECTSTART:
+                    maxAfter =  120;
+                    break;
                 case MT_CHANNELSTART:
                     maxAfter = 1800;  // changed from 1020 to 1800
                     break;
@@ -4957,53 +4969,66 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     break;
                 case MT_LOGOSTOP:
                     // select best mark (before / after), default: after
-                    //    120 / <2000>   fade out logo
-                    //    200 / <2080>   fade out logo
-                    //    240 / <1880>   fade out logo
-                    //    400 / <1560>   fade out logo
+                    //    240 /   <80>   very short fade out logo
+                    //   2200 /  <200>   short fade out logo
+                    //   1200 /  <200>   short fade out logo
+                    //    960 /  <240>   short fade out logo
+                    //    880 /  <520>   fade out logo
                     //    440 /  <960>   fade out logo
-                    //    520 /  <800>   fast fade out logo
+                    //    400 / <1560>   fade out logo
+                    //    240 / <1880>   fade out logo
+                    //    200 / <2080>   fade out logo
+                    //    120 / <2000>   fade out logo
                     //
                     //    240 / <4640>   early fade out logo (Disney Channel)
                     //    440 / <4800>   early fade out logo (Nickelodeon)
                     //
+                    //  <200> /    80    logo fading out after broadcast end           (conflict)
+                    //  <240> /  3760    delayed logo stop                             (conflict)
+                    //  <240> /  2080    delayed logo stop from pattern in backgroud   (conflict)
+                    //  <360> /   880    delayed logo stop from pattern in background  (conflict)
+                    //  <760> /   320    delayed logo stop from bright background      (conflict)
+                    //  <920> /   120    delayed logo stop from pattern in background  (conflict)
+                    // <1720> /  2040    delayed logo stop from pattern in background  (conflict)
+                    //
+                    // use very near scene change before
                     //   <40> /   760    logo stop detected too late
                     //   <80> /  1040    logo stop detected too late
                     //   <80> /  3240    delayed logo stop from bright background
-                    //
+                    if ((diffBefore <= 80) && (diffAfter >= 760)) diffAfter = INT_MAX;
+
+                    // near scene change before and scene change after too near for fading out logo -> delayed logo stop
                     //  <120> /  1120    delayed logo stop from bright background
                     //  <120> /  1840    delayed logo stop from bright background
-                    //  <200> /  1520    logo stop after bradcast end
-                    //  <240> /  1080    delayed logo stop from pattern in background
-                    //  <240> /  3760    delayed logo stop                             (conflict)
-                    //  <280> /  1600    delayed logo stop from pattern in backgroud
-                    //  <240> /  2080    delayed logo stop from pattern in backgroud   (conflict)
-                    //  <280> /  2680    delayed logo stop from pattern in background  (conflict)
-                    //  <320> /  1680    delayed logo stop from pattern in background               NEW
-                    //  <920> /   120    delayed logo stop from pattern in background
-                    // <1600> /   600    delayed logo stop
-                    // <1720> /  2040    delayed logo stop from pattern in background  (conflict)
-                    // <2640> /   360    delayed logo stop from pattern in background
-                    //
                     //  <160> /   240    logo stop in ad
-                    //  <200> /    80    logo fading out after broadcast end
+                    //  <200> /  1520    logo stop after broadcast end
+                    //  <240> /  1080    delayed logo stop from pattern in background
+                    //  <280> /  1600    delayed logo stop from pattern in backgroud
                     //  <320> /   160    delayed logo stop from pattern in background
-                    //  <360> /   880    delayed logo stop from pattern in background  (conflict)
-                    //  <760> /   320    delayed logo stop from bright background
-                    //
+                    //  <320> /  1680    delayed logo stop from pattern in background
+                    else if ((diffBefore >= 120) && (diffBefore <=  320) && (diffAfter >= 160) && (diffAfter <= 1840)) diffAfter = INT_MAX;
+
+                    // scene change after too far for short fading out logo and too near for long fading out logo -> delayed logo stop
+                    // <1600> /   600    delayed logo stop
+                    // <2640> /   360    delayed logo stop from pattern in background
+                    else if ((diffBefore >= 1600) && (diffBefore <= 2640) && (diffAfter >= 360) && (diffAfter <= 600)) diffAfter = INT_MAX;
+
+                    // scene change after too far away, better use scene change before, expect channels with very early fade out logo
+                    //  <280> /  2680    delayed logo stop from pattern in background  (conflict)
                     //  <160> /  3920    delayed logo stop from bright background
                     //  <440> /  4080    delayed logo stop from pattern in background
                     //  <680> /  4320    fade out logo in ad
                     //  <840> /  4960    delayed logo stop from bright background
                     // <1080> /  4920    delayed logo stop from pattern in background
-                    if      ((diffBefore <=   80) && (diffAfter >=  760)) diffAfter = INT_MAX;      // use very near scene change before
-                    else if ((diffBefore <=  320) && (diffAfter <  1880)) diffAfter = INT_MAX;      // scene change after too near for fading out logo -> delayed logo stop
-                    else if ((diffBefore <= 2640) && (diffAfter <   800)) diffAfter = INT_MAX;      // scene change after too near for fading out logo -> delayed logo stop
-                    else if ((diffBefore <= 1080) && (diffAfter >= 3920) &&
+                    else if ((diffBefore <= 1080) && (diffAfter >= 2680) &&
                              (strcmp(macontext.Info.ChannelName, "Nickelodeon") != 0) &&
-                             (strcmp(macontext.Info.ChannelName, "Disney_Channel") != 0)) diffAfter = INT_MAX;   // scene change after too far away, better use scene change before, expect channels with early fade out logo
+                             (strcmp(macontext.Info.ChannelName, "Disney_Channel") != 0)) diffAfter = INT_MAX;
+
                     maxAfter = 5139;  // do not increase, will get scene change in ad, no schene change before because broadcast fade out to ad
                     // TODO detect fade out scene changes
+                    break;
+                case MT_HBORDERSTOP:
+                    if (mark->position == marks.GetLast()->position) maxAfter = 10160;   // closing credits overlaps border
                     break;
                 case MT_CHANNELSTOP:
                     // select best mark (before / after), default: after
@@ -5019,6 +5044,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_NOBLACKLOWERSTOP:   // move after closing credits
+                        // select best mark (before / after), default: after
+                        //  <80> / 2240
+                        if ((diffBefore <= 80) && (diffAfter >= 2240)) diffAfter = INT_MAX;
                         maxAfter = 2360;   // changed from 1840 to 2360
                         break;
                     case MT_SOUNDSTOP:
@@ -5098,6 +5126,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
+                    case MT_NOBLACKLOWERSTOP:
+                        maxBefore = 80;
+                        break;
                     case MT_SOUNDSTOP:
                         maxBefore = 4720;   // changed from 4440 to 4720
                         break;
