@@ -584,8 +584,9 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         }
     }
 
-    // check previous logo stop mark against VPS stop event, if any
+    // now we have a logo end mark
     if (end) {
+        // check previous logo stop mark against VPS stop event, if any
         cMark *prevLogoStop = marks.GetPrev(end->position, MT_LOGOSTOP); // maybe different if deleted above
         if (prevLogoStop) {
             int vpsOffset = vps->GetStop(); // get VPS stop mark
@@ -596,6 +597,15 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
                     dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): VPS stop event at (%d) is %ds after previous logo stop (%d), use this as end mark", vpsStopFrame, diffAfterVPS, prevLogoStop->position);
                     end = prevLogoStop;
                 }
+            }
+        }
+        // check if there could follow closing credits, prevent false detection of closing credits from opening creditis of next broadcast
+        cMark *nextLogoStart = marks.GetNext(end->position);
+        if (nextLogoStart) {
+            int closingCreditsLength = (nextLogoStart->position - end->position) / macontext.Video.Info.framesPerSecond;
+            if (closingCreditsLength <= 2) {
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo start (%d) %ds after end mark (%d), no closing credits without logo can follow", nextLogoStart->position, closingCreditsLength, end->position);
+                markCriteria.SetClosingCreditsState(end->position, CRITERIA_UNAVAILABLE);
             }
         }
     }
@@ -967,7 +977,7 @@ int cMarkAdStandalone::CheckStop() {
         indexToHMSF = marks.GetTime(end);
         char *markType = marks.TypeToText(end->type);
         if (indexToHMSF && markType) {
-            isyslog("using %s stop mark on position (%i) at %s as end mark", markType, end->position, indexToHMSF);
+            isyslog("using %s stop mark on position (%d) at %s as end mark", markType, end->position, indexToHMSF);
             FREE(strlen(markType)+1, "text");
             free(markType);
         }
@@ -980,20 +990,9 @@ int cMarkAdStandalone::CheckStop() {
         mark.position = iStopA;  // we are lost, add a end mark at assumed end
         mark.type     = MT_ASSUMEDSTOP;
         AddMark(&mark);
-        end = marks.GetPrev(INT_MAX, MT_STOP, 0x0F);  // make sure we got a stop mark
+        end = marks.Get(iStopA);
     }
 
-    // now we have a end mark, check if the could follow closing credits, prevent false detection of closing credits from opening creditis of next broadcast
-    if (end && (end->type == MT_LOGOSTOP)) {
-        cMark *nextLogoStart = marks.GetNext(end->position);
-        if (nextLogoStart) {
-            int closingCreditsLength = (nextLogoStart->position - end->position) / macontext.Video.Info.framesPerSecond;
-            if (closingCreditsLength <= 2) {
-                dsyslog("cMarkAdStandalone::CheckStop(): logo start (%d) %ds after end mark (%d), no closing credits without logo can follow", nextLogoStart->position, closingCreditsLength, end->position);
-                markCriteria.SetClosingCreditsState(end->position, CRITERIA_UNAVAILABLE);
-            }
-        }
-    }
 
     // delete all marks after end mark
     if (end) { // be save, if something went wrong end = NULL
