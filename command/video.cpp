@@ -2216,7 +2216,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
         if (AspectRatioChange(aspectRatio, maContext->Video.Info.AspectRatio)) {
             if ((maContext->Info.AspectRatio.num == 4) && (maContext->Info.AspectRatio.den == 3)) {
                 if ((maContext->Video.Info.AspectRatio.num == 4) && (maContext->Video.Info.AspectRatio.den == 3)) {
-                    AddMark(MT_ASPECTSTART, aspectRatioBeforeFrame, &aspectRatio, &maContext->Video.Info.AspectRatio);
+                    AddMark(MT_ASPECTSTART, frameCurrent, &aspectRatio, &maContext->Video.Info.AspectRatio);
                 }
                 else {
                     int stopPos = recordingIndexMarkAdVideo->GetIFrameBefore(frameCurrent - 1);
