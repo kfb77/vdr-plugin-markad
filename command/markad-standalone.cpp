@@ -3903,7 +3903,9 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     case MT_VPSSTART:
                         // select best mark (before / after), defaut: before
                         // <50480> (520) / 89400 (1240)
-                        if ((diffBefore >= 25800) && (diffAfter <= 2000)) diffBefore = INT_MAX;
+                        //
+                        //  25000  (600) / <7560> (280)
+                        if ((diffBefore >= 25000) && (diffAfter <= 7560)) diffBefore = INT_MAX;
                         if (lengthBefore >= 520) maxBefore = 50480;  // long black screen is start mark
                         else maxBefore = 11579;  // black screen before preview 11580ms before VPS start event
                         break;
@@ -3930,7 +3932,15 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
             // try black screen after start mark
@@ -3980,7 +3990,15 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     if (mark) {
                         save = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
         }
@@ -4116,7 +4134,15 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
             // try black screen before stop mark
@@ -4127,7 +4153,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxBefore = 21960;
                     break;
                 case MT_LOGOSTOP:
-                    maxBefore =  6640;  // changed from 4520 to 6640 (800)
+                    maxBefore = 6519;  // black screen between end of broadcast and closing credits with logo before 6520ms before logo stop
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
@@ -4164,7 +4190,15 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     if (mark) {
                         save = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
         }
