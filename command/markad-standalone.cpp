@@ -2747,7 +2747,8 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
 
     timeText = marks.GetTime(mark);
     if (timeText) {
-        if (((mark->type & 0xF0) >= MT_LOGOCHANGE) || (mark->type == MT_RECORDINGSTART)) {  // keep strong marks, they are better than VPS marks
+        if ((((mark->type & 0xF0) >= MT_LOGOCHANGE) || (mark->type == MT_RECORDINGSTART)) &&  // keep strong marks, they are better than VPS marks
+                ((mark->type != MT_TYPECHANGESTOP) || (vpsFrame >= mark->position))) {        // keep broadcast start from next recording only if before VPS event
             dsyslog("cMarkAdStandalone::AddMarkVPS(): keep mark at frame (%d) type 0x%X at %s", mark->position, mark->type, timeText);
         }
         else { // replace weak marks
