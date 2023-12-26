@@ -3411,12 +3411,13 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
                 if (length <= 4920) gapStartMax = 9;                // short overlaps are weak, can be a false positive
                 else gapStartMax = 14;
             }
-            if ((*mark2)->type == MT_ASPECTSTART)  gapStartMax = 7; // for strong marks we can check with a lower value
-            if ((*mark2)->type == MT_VBORDERSTART) gapStartMax = 7; // for strong marks we can check with a lower value
+            else if (((*mark2)->type == MT_LOGOSTART) && (lengthBefore >= 38080)) gapStartMax = 21;  // trust long overlaps, there can be info logo after logo start mark
+
+            if (((*mark2)->type == MT_ASPECTSTART) || ((*mark2)->type == MT_VBORDERSTART)) gapStartMax = 7; // for strong marks we can check with a lower value
             dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): maximum valid gap after start mark: %ds", gapStartMax);
-            if ((lengthBefore >= 46640) ||                                // very long overlaps should be valid
-                    ((gapStop < 23) && (gapStart == 0)) ||              // if we hit start mark, trust greater stop gap, maybe we have no correct stop mark, changed from 34 to 23
-                    ((gapStop < 15) && (gapStart < gapStartMax))) {     // we can not detect all similars during a scene changes, changed from 27 to 15
+            if ((lengthBefore >= 46640) ||                            // very long overlaps should be valid
+                    ((gapStop < 23) && (gapStart == 0)) ||            // if we hit start mark, trust greater stop gap, maybe we have no correct stop mark, changed from 34 to 23
+                    ((gapStop < 15) && (gapStart <= gapStartMax))) {  // we can not detect all similars during a scene changes, changed from 27 to 15
                 // but if it is too far away it is a false positiv
                 // changed gapStop from 36 to 27
                 dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): overlap gap to marks are valid, before stop mark %ds, after start mark %ds, length %dms", gapStop, gapStart, lengthBefore);
