@@ -649,7 +649,7 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType) {
     const cMark *afterNewPos = GetNext(newPosition, MT_ALL);
     if (afterNewPos && (afterNewPos->position == mark->position)) afterNewPos = GetNext(mark->position, MT_ALL);
     if (afterNewPos && ((afterNewPos->type & 0x0F) == (newType & 0x0F))) {
-        esyslog("cMarks::Move(): move to (%d) will result in invalid sequence, mark after (%d) has save type", newPosition, afterNewPos->position);
+        esyslog("cMarks::Move(): move to (%d) will result in invalid sequence, mark after (%d) has same type", newPosition, afterNewPos->position);
         return NULL;
     }
 
