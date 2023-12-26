@@ -3,6 +3,7 @@ version.h
 command/markad
 command/.dependencies
 command/*.swp
+command/*.orig
 command/*.o
 command/*~
 command/po/*.pot
@@ -13,6 +14,7 @@ command/html/*
 
 plugin/.dependencies
 plugin/*.swp
+plugin/*.orig
 plugin/*.o
 plugin/*.so
 plugin/*~
