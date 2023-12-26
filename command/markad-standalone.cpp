@@ -4241,20 +4241,20 @@ void cMarkAdStandalone::BlackLowerOptimization() {
             int diffAfter      = INT_MAX;
             cMark *stopAfter   = NULL;
             cMark *stopBefore  = NULL;
-            cMark *startBefore = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKLOWERSTART); // new part starts after the black screen
-            cMark *startAfter  = blackMarks.GetNext(mark->position - 1, MT_NOBLACKLOWERSTART); // new part starts after the black screen
+            cMark *startBefore = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKLOWERSTOP);  // start of black lower border before logo start mark
+            cMark *startAfter  = blackMarks.GetNext(mark->position - 1, MT_NOBLACKLOWERSTOP);  // start of black lower border after  logo start mark
             if (startBefore) {
-                stopBefore = blackMarks.GetPrev(startBefore->position, MT_NOBLACKLOWERSTOP);
+                stopBefore = blackMarks.GetNext(startBefore->position, MT_NOBLACKLOWERSTART);  // end   of black lower border before logo start mark
                 if (stopBefore) {
                     diffBefore = 1000 * (mark->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
                     diffBeforeStat = diffBefore;
-                    lengthBefore = 1000 * (startBefore->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::BlackLowerOptimization(): start mark (%6d): found lower black border from (%6d) to (%6d), %7dms before -> length %5dms", mark->position, stopBefore->position, startBefore->position, diffBefore, lengthBefore);
+                    lengthBefore = 1000 * (stopBefore->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::BlackLowerOptimization(): start mark (%6d): found lower black border from (%6d) to (%6d), %7dms before -> length %5dms", mark->position, startBefore->position, stopBefore->position, diffBefore, lengthBefore);
                 }
                 else startBefore = NULL; // no pair, this is invalid
             }
             if (startAfter) {
-                stopAfter = blackMarks.GetNext(startAfter->position, MT_NOBLACKLOWERSTART);
+                stopAfter = blackMarks.GetNext(startAfter->position, MT_NOBLACKLOWERSTART);  // get end of black lower border
                 if (stopAfter) {
                     diffAfter   = 1000 * (startAfter->position - mark->position)       / macontext.Video.Info.framesPerSecond;
                     lengthAfter = 1000 * (stopAfter->position  - startAfter->position) / macontext.Video.Info.framesPerSecond;
@@ -4288,7 +4288,12 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        maxBefore = 116600;  // changed from 108120 to 116600
+                        // lower black border in broadcast before
+                        // 43160ms (320)
+                        //
+                        // valid lower black border
+                        if (lengthBefore <= 320) maxBefore =  43159;
+                        else                     maxBefore = 116600;
                         break;
                     default:
                         maxBefore = -1;
@@ -4304,7 +4309,15 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
             // lower black border after start mark
@@ -4335,7 +4348,15 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                     if (mark) {
                         save = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
         }
@@ -4401,12 +4422,13 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                         //  19080ms (220)
                         //
                         //  valid black screen closing credits
+                        //   33280ms  (800)
                         //   66040ms (1200)
                         //  127840ms (1200)
                         //  177720ms (1200)
                         //
-                        if (lengthAfter >= 1200) maxAfter = 177720;
-                        else                     maxAfter =  19079;
+                        if (lengthAfter >= 800) maxAfter = 177720;
+                        else                    maxAfter =  19079;
                         break;
                     default:
                         maxAfter = -1;
@@ -4422,7 +4444,15 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
             // try lower black border before stop mark
@@ -4450,7 +4480,15 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                     if (mark) {
                         save = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
         }
