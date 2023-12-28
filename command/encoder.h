@@ -96,7 +96,7 @@ public:
     bool OpenFile(const char *directory, cDecoder *ptr_cDecoder);
 
     /** write packet to output file
-     * @param pktIn packet from input stream
+     * @param avpktIn      packet from input stream
      * @param ptr_cDecoder decoder class
      * @return true if sucessful, flase otherwise
      */
@@ -112,7 +112,7 @@ public:
 private:
     /** encode frame
      * @param ptr_cDecoder decoder
-     * @param avCodexCtx   codec context
+     * @param avCodecCtx   codec context
      * @param avFrame      decodes frame
      * @param avpkt        encoded packet
      */

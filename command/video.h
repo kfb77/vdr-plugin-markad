@@ -251,7 +251,7 @@ public:
 
     /**
      * class to detect logo
-     * @param maContext         markad context
+     * @param maContextParam    markad context
      * @param markCriteriaParam mark critaria
      * @param recordingIndex    recording index
      */
@@ -499,8 +499,8 @@ public:
 
     /**
      * process horizontal border detection of current frame
-     * @param frameNumber current frame number
-     * @param borderFrame frame number of detected border
+     * @param  FrameNumber current frame number
+     * @param  borderFrame frame number of detected border
      * @return border detection status
      */
     int Process(const int FrameNumber, int *borderFrame);
@@ -577,7 +577,7 @@ public:
 
     /**
      * constructor of class to check packet for video based marks
-     * @param maContext         markad context
+     * @param maContextParam    markad context
      * @param markCriteriaParam mark criteria
      * @param recordingIndex    recording index
      */

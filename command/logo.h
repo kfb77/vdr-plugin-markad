@@ -48,7 +48,7 @@ public:
     /**
      * constuctor for class to search end extract logo from recording
      * @param maContext      markad context
-     * @param aspectRatio    video aspect ratio for requested logo
+     * @param AspectRatio    video aspect ratio for requested logo
      * @param recordingIndex recording index
      */
     explicit cExtractLogo(sMarkAdContext *maContext, const sAspectRatio AspectRatio, cIndex *recordingIndex);
