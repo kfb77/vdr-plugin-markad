@@ -685,8 +685,10 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
         int silenceStartSilenceStop = 1000 * (silenceStop->position  - silenceStart->position) / macontext.Video.Info.framesPerSecond;
         int silenceStopLogoStart    = 1000 * (startAfter->position   - silenceStop->position)  / macontext.Video.Info.framesPerSecond;
         dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTOP (%d) %dms MT_SOUNDSTOP (%d) %dms MT_SOUNDSTART (%d) %dms MT_LOGOSTART (%d)", mark->position, logoStopSilenceStart, silenceStart->position, silenceStartSilenceStop, silenceStop->position, silenceStopLogoStart, startAfter->position);
-        if ((logoStopSilenceStart <= 240) && (silenceStartSilenceStop >= 1480)) { // long silence short after logo stop mark is end mark
-            dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo stop mark (%d): long silence after found", mark->position);
+        // valid sequence
+        // MT_LOGOSTOP (77290) 5040ms MT_SOUNDSTOP (77416) 160ms MT_SOUNDSTART (77420) 40ms MT_LOGOSTART (77421)
+        if ((logoStopSilenceStart <= 5040) && (silenceStartSilenceStop >= 160) && (silenceStopLogoStart >= 40)) { // silence short after logo stop mark is end mark
+            dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo stop mark (%d): silence after logo stop found", mark->position);
             return true;
         }
     }
