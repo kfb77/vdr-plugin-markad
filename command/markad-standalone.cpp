@@ -4598,7 +4598,15 @@ void cMarkAdStandalone::SilenceOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
             // try silence after start position
@@ -4636,7 +4644,15 @@ void cMarkAdStandalone::SilenceOptimization() {
                     if (mark) {
                         save  = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
         }
@@ -4647,17 +4663,25 @@ void cMarkAdStandalone::SilenceOptimization() {
             int diffBefore        = INT_MAX;
             int diffAfter         = INT_MAX;
             bool blackLowerBefore = false;
+            bool blackBefore      = false;
             cMark *soundStopBefore = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
             cMark *soundStopAfter  = silenceMarks.GetNext(mark->position - 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
             if (soundStopBefore) {
                 diffBefore = 1000 * (mark->position - soundStopBefore->position) / macontext.Video.Info.framesPerSecond;
                 diffBeforeStat = diffBefore;
+                // check black screen for silence before
+                cMark *blackStart = blackMarks.GetAround(macontext.Video.Info.framesPerSecond, soundStopBefore->position, MT_NOBLACKSTOP);
+                if (blackStart) {
+                    const cMark *blackStop = blackMarks.GetNext(blackStart->position, MT_NOBLACKSTART);
+                    if (blackStop && (blackStop->position >= soundStopBefore->position)) blackBefore = true;
+                }
+                // check black lower border for silence before
                 cMark *blackLowerStart = blackMarks.GetPrev(soundStopBefore->position, MT_NOBLACKLOWERSTOP);
                 if (blackLowerStart) {
                     const cMark *blackLowerStop = blackMarks.GetNext(blackLowerStart->position, MT_NOBLACKLOWERSTART);
                     if (blackLowerStop && (blackLowerStop->position >= soundStopBefore->position)) blackLowerBefore = true;
                 }
-                dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): found sound stop  (%5d) %8dms before, black lower border around %d", mark->position, soundStopBefore->position, diffBefore, blackLowerBefore);
+                dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): found sound stop  (%5d) %8dms before, black screen around %d, black lower border around %d", mark->position, soundStopBefore->position, diffBefore, blackBefore, blackLowerBefore);
             }
             if (soundStopAfter) {
                 diffAfter = 1000 * (soundStopAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
@@ -4709,7 +4733,15 @@ void cMarkAdStandalone::SilenceOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
             // try silence before stop mark
@@ -4717,7 +4749,10 @@ void cMarkAdStandalone::SilenceOptimization() {
                 int maxBefore = 0;
                 switch (mark->type) {
                 case MT_ASSUMEDSTOP:
-                    maxBefore = 76620;   // changed from 51519 to 76620
+                    // valid silence before
+                    // 132120ms before, black screen around 1, black lower border around 0
+                    if (blackBefore) maxBefore = 132120;
+                    else             maxBefore =  76620;   // changed from 51519 to 76620
                     break;
                 case MT_LOGOSTOP:
                     maxBefore = 11680;  // changed from 4240 to 5840 to 11680
@@ -4749,7 +4784,15 @@ void cMarkAdStandalone::SilenceOptimization() {
                     if (mark) {
                         save = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
         }
