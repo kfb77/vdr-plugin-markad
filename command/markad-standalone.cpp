@@ -625,6 +625,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
 // only called if we are sure this is the correct logo end mark (closing credit detected or separator detected)
 // prevent to later move end mark/start mark to previous/after logo mark from undetected logo change
 void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *mark) {
+    if (!mark) return;
     if (mark->type == MT_LOGOSTART) { // cleanup logo
         cMark *nextLogoStop = marks.GetNext(mark->position, MT_LOGOSTOP);
         if (!nextLogoStop) return;
@@ -641,21 +642,23 @@ void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *mark) {
             marks.Del(nextLogoStart->position);
         }
     }
-    if (mark->type == MT_LOGOSTOP) {  // cleanup logo stop/start marks short before end tark
+    if (mark->type == MT_LOGOSTOP) {  // cleanup logo stop/start marks short before end mark
         while (true) {
             cMark *prevLogoStart = marks.GetPrev(mark->position, MT_LOGOSTART);
-            if (!prevLogoStart) break;
+            if (!prevLogoStart) return;
             cMark *prevLogoStop = marks.GetPrev(prevLogoStart->position, MT_LOGOSTOP);
-            if (!prevLogoStop) break;
-            int deltaEndLogoStart = 1000 * (mark->position - prevLogoStart->position)         / macontext.Video.Info.framesPerSecond;
-            int adLength          = 1000 * (prevLogoStart->position - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
-            dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): logo start (%5d) stop (%5d): start %dms before end mark, ad length %dms", prevLogoStart->position, prevLogoStop->position, deltaEndLogoStart, adLength);
-            if ((deltaEndLogoStart <= 30000) && (adLength <= 17000)) {
+            if (!prevLogoStop) return;
+            int stopStart = 1000 * (prevLogoStart->position - prevLogoStop->position)  / macontext.Video.Info.framesPerSecond;
+            int startEnd  = 1000 * (mark->position          - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): logo stop (%d) -> %dms -> start (%d) -> %dms -> end mark (%d)", prevLogoStop->position, stopStart, prevLogoStart->position, startEnd, mark->position);
+            // valid info logo sequence
+            // logo stop (77361) -> 12840ms -> start (77682) -> 71680ms -> end mark (79474)
+            if ((stopStart <= 30000) && (startEnd <= 71680)) {
                 dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): logo start (%5d) stop (%5d): undetected info logo or text preview over the logo, delete marks", prevLogoStart->position, prevLogoStop->position);
                 marks.Del(prevLogoStart);
                 marks.Del(prevLogoStop);
             }
-            else break;
+            else return;
         }
     }
 }
