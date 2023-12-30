@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2023-12-31: Version 3.4.3
+- optimize broadcast start and end detection
+- tune thresholds for black screen, black lower border, silence and scene change optimization
+- some minor bug fixes and optimizations, see git
+
 2023-12-24: Version 3.4.2
 - fix gcc 13 warning: _FORTIFY_SOURCE redefined
 - tune thresholds for black screen, black lower border, silence and scene change optimization
