@@ -2207,25 +2207,6 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
         }
     }
 
-// delete all black screen marks expect start or end mark
-    LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckMarks(): delete invalid black screen marks");
-    DebugMarks();     //  only for debugging
-    mark = marks.GetFirst();
-    while (mark) {
-        if (mark != marks.GetFirst()) {
-            if (mark == marks.GetLast()) break;
-            if ((mark->type & 0xF0) == MT_BLACKCHANGE) {
-                cMark *tmp = mark;
-                mark = mark->Next();
-                dsyslog("cMarkAdStandalone::CheckMarks(): delete black screen mark (%i)", tmp->position);
-                marks.Del(tmp);
-                continue;
-            }
-        }
-        mark = mark->Next();
-    }
-
 // delete very short logo stop/start pairs
 // contains start mark, do not delete
 // diff 880 lengthAfter 203
