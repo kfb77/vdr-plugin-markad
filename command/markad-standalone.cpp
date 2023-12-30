@@ -2208,35 +2208,34 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
     }
 
 // delete very short logo stop/start pairs
-// contains start mark, do not delete
-// diff 880 lengthAfter 203
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): delete very short logo stop/start pairs");
     DebugMarks();     //  only for debugging
     mark = marks.GetFirst();
     while (mark) {
-        if ((mark->type == MT_LOGOSTOP) && mark->Next() && (mark->Next()->type == MT_LOGOSTART)) {
-            int diff = 1000 * (mark->Next()->position - mark->position) /  macontext.Video.Info.framesPerSecond;
-            int lengthAfter  = -1;
-            int lengthBefore = -1;
-            if (mark->Next()->Next() && (mark->Next()->Next()->type == MT_LOGOSTOP)) {
-                lengthAfter = (mark->Next()->Next()->position - mark->Next()->position) /  macontext.Video.Info.framesPerSecond;
-            }
-            if (mark->Prev() && (mark->Prev()->type == MT_LOGOSTART)) {
-                lengthBefore = (mark->position - mark->Prev()->position) /  macontext.Video.Info.framesPerSecond;
-            }
-            dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair, length %dms, distance before %ds after %ds", mark->position, mark->Next()->position, diff, lengthBefore, lengthAfter);
-            if ((diff <= 80) || ((diff < 160 ) && (lengthBefore < 696) && (lengthAfter < 139))) {
-                // do not increase length because of very short real logo interuption between broacast and preview
-                // changed from 520 to 200 to 160
-                // do not delete a short stop/start before or after a long broadcast part, changed from 816 to 696
-                // this pair contains start mark, lengthAfter changed from 203 to 139
-                dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair, too short, deleting", mark->position, mark->Next()->position);
-                cMark *tmp = mark->Next()->Next();
-                marks.Del(mark->Next());
-                marks.Del(mark);
-                mark = tmp;
-                continue;
+        if (mark->type == MT_LOGOSTOP) {
+            cMark *prevLogoStart = marks.GetPrev(mark->position, MT_LOGOSTART);
+            cMark *nextLogoStart = marks.GetNext(mark->position, MT_LOGOSTART);
+            if (prevLogoStart && nextLogoStart) {
+                cMark *nextLogoStop = marks.GetNext(mark->position, MT_LOGOSTOP);
+                if (nextLogoStop) {
+                    int prevLogoStart_Stop = 1000 * (mark->position - prevLogoStart->position) /  macontext.Video.Info.framesPerSecond;
+                    int stop_nextLogoStart = 1000 * (nextLogoStart->position - mark->position) /  macontext.Video.Info.framesPerSecond;
+                    int nextLogoStart_nextLogoStop = 1000 * (nextLogoStop->position - nextLogoStart->position) /  macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::CheckMarks(): MT_LOGOSTART (%5d) -> %7dms -> MT_LOGOSTOP (%5d) -> %7dms -> MT_LOGOSTART (%5d) -> %7dms -> MT_LOGOSTOP (%5d)", prevLogoStart->position, prevLogoStart_Stop, mark->position, stop_nextLogoStart, nextLogoStart->position, nextLogoStart_nextLogoStop, nextLogoStop->position);
+                    // valid short stop/start, do not delete
+                    // MT_LOGOSTART (48867) ->    4880ms -> MT_LOGOSTOP (48989) ->     760ms -> MT_LOGOSTART (49008) ->  795000ms -> MT_LOGOSTOP (68883)
+                    //
+                    // invalid stop/start pair, delete pair
+                    if ((stop_nextLogoStart <= 80) || ((stop_nextLogoStart < 160 ) && (prevLogoStart_Stop < 696000) && (nextLogoStart_nextLogoStop < 139000))) {
+                        dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair, too short, deleting", mark->position, nextLogoStart->position);
+                        cMark *tmp = nextLogoStop;
+                        marks.Del(nextLogoStart);
+                        marks.Del(mark);
+                        mark = tmp;
+                        continue;
+                    }
+                }
             }
         }
         mark = mark->Next();
