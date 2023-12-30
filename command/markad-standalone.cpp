@@ -423,6 +423,39 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         return NULL;  // no logo stop mark around assumed stop
     }
 
+    // try to select best logo end mark based on closing credits follow
+    if (!end && evaluateLogoStopStartPair) {
+        LogSeparator(false);
+        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for best logo end mark based on closing credits after logo stop");
+        // search from nearest logo stop mark to end
+        cMark *lEnd = lEndAssumed;
+        while (!end && lEnd) {
+            int status = evaluateLogoStopStartPair->GetIsClosingCreditsAfter(lEnd->position);
+            int diffAssumed = (lEnd->position - iStopA) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d): %ds after assumed stop (%d), closing credits status %d", lEnd->position, diffAssumed, iStopA, status);
+            if (diffAssumed >= 300) break;
+            if (status == STATUS_YES) {
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d) closing credits follow, valid end mark found", lEnd->position);
+                end = lEnd;
+            }
+            lEnd = marks.GetNext(lEnd->position, MT_LOGOSTOP);
+        }
+        // search before nearest logo stop mark
+        lEnd = lEndAssumed;
+        while (!end) {
+            lEnd = marks.GetPrev(lEnd->position, MT_LOGOSTOP);
+            if (!lEnd) break;
+            int status = evaluateLogoStopStartPair->GetIsClosingCreditsAfter(lEnd->position);
+            int diffAssumed = (iStopA - lEnd->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d): %ds before assumed stop (%d), closing credits status %d", lEnd->position, diffAssumed, iStopA, status);
+            if (diffAssumed >= 300) break;
+            if (status == STATUS_YES) {
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d) closing credits follow, valid end mark found", lEnd->position);
+                end = lEnd;
+            }
+        }
+    }
+
     // try to select best logo end mark based on long black screen or silence
     LogSeparator(false);
     DebugMarks();     //  only for debugging
@@ -451,39 +484,6 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         if (diffAssumed >= 300) break;
         if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveClosingLogo(lEnd)) {
             end = lEnd;
-        }
-    }
-
-    // try to select best logo end mark based on closing credits follow
-    if (!end && evaluateLogoStopStartPair) {
-        LogSeparator(false);
-        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for best logo end mark based on closing credits after logo stop");
-        // search from nearest logo stop mark to end
-        lEnd = lEndAssumed;
-        while (!end && lEnd) {
-            int status = evaluateLogoStopStartPair->GetIsClosingCreditsAfter(lEnd->position);
-            int diffAssumed = (lEnd->position - iStopA) / macontext.Video.Info.framesPerSecond;
-            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d): %ds after assumed stop (%d), closing credits status %d", lEnd->position, diffAssumed, iStopA, status);
-            if (diffAssumed >= 300) break;
-            if (status == STATUS_YES) {
-                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d) closing credits follow, valid end mark found", lEnd->position);
-                end = lEnd;
-            }
-            lEnd = marks.GetNext(lEnd->position, MT_LOGOSTOP);
-        }
-        // search before nearest logo stop mark
-        lEnd = lEndAssumed;
-        while (!end) {
-            lEnd = marks.GetPrev(lEnd->position, MT_LOGOSTOP);
-            if (!lEnd) break;
-            int status = evaluateLogoStopStartPair->GetIsClosingCreditsAfter(lEnd->position);
-            int diffAssumed = (iStopA - lEnd->position) / macontext.Video.Info.framesPerSecond;
-            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d): %ds before assumed stop (%d), closing credits status %d", lEnd->position, diffAssumed, iStopA, status);
-            if (diffAssumed >= 300) break;
-            if (status == STATUS_YES) {
-                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d) closing credits follow, valid end mark found", lEnd->position);
-                end = lEnd;
-            }
         }
     }
 
