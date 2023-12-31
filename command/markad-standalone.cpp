@@ -424,7 +424,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
     }
 
     // try to select best logo end mark based on closing credits follow
-    if (!end && evaluateLogoStopStartPair) {
+    if (evaluateLogoStopStartPair) {
         LogSeparator(false);
         dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for best logo end mark based on closing credits after logo stop");
         // search from nearest logo stop mark to end
