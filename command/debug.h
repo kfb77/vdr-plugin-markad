@@ -87,9 +87,8 @@
 // debug PTS ring buffer missed PTS
 // #define DEBUG_RING_PTS_LOOKUP
 
-// debug video cut
-// #define DEBUG_CUT <streamindex>
-// #define DEBUG_CUT 0
+// debug PTS and DTS of video cut
+// #define DEBUG_CUT
 
 // debug encoder
 // #define DEBUG_ENCODER

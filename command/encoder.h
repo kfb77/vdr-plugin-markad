@@ -190,24 +190,25 @@ private:
      * encoder status
      */
     struct sEncoderStatus {
-        int64_t videoStartPTS = INT64_MAX;       //!< decoded presentation timestamp of of the video stream from first mark
+        int64_t videoStartPTS           = INT64_MAX;  //!< decoded presentation timestamp of of the video stream from first mark
         //!<
-        int frameBefore = -2;                    //!< decoded frame number before current frame
+        int frameBefore                 = -2;         //!< decoded frame number before current frame
         //!<
-        int64_t *ptsInBefore = NULL;             //!< presentation timestamp of the previous frame from each input stream
+        int64_t *ptsInBefore            = NULL;       //!< presentation timestamp of the previous frame from each input stream
         //!<
-        int64_t *dtsInBefore = NULL;             //!< decoding timestamp of the previous frame from each input stream
+        int64_t *dtsInBefore            = NULL;       //!< decoding timestamp of the previous frame from each input stream
         //!<
-        int64_t ptsOutBefore = -1;               //!< presentation timestamp of the previous frame from video output stream
+        int64_t ptsOutBefore            = -1;         //!< presentation timestamp of the previous frame from video output stream
         //!<
 
-        int64_t pts_dts_CutOffset = 0;           //!< offset from the cuted out frames
+        int64_t pts_dts_CutOffset       = 0;          //!< offset from the cuted out frames
         //!<
-        int64_t *pts_dts_CyclicalOffset = NULL;  //!< offset from pts/dts cyclicle of each frame, multiple of 0x200000000
+        int64_t *pts_dts_CyclicalOffset = NULL;       //!< offset from pts/dts cyclicle of each frame, multiple of 0x200000000
         //!<
-        bool videoEncodeError = false;           //!< true if we got an encoder error, false otherwise
+        bool videoEncodeError           = false;      //!< true if we got an encoder error, false otherwise
         //!<
-    } EncoderStatus;                             //!< encoder status
+    } EncoderStatus;                                  //!< encoder status
+
     //!<
     int *streamMap = NULL;                       //!< input stream to output stream map
     //!<
@@ -225,10 +226,10 @@ private:
     //!<
 
 #ifdef DEBUG_CUT
-    int64_t inputPacketPTSbefore[MAXSTREAMS] = {0};
-    int64_t beforeDecodePacketPTSbefore[MAXSTREAMS] = {0};
-    int64_t beforeEncodeFramePTSbefore[MAXSTREAMS] = {0};
-    int64_t afterEncodePacketPTSbefore[MAXSTREAMS] = {0};
-    int packet_out = 0;
+    int64_t inputPacketPTSbefore[MAXSTREAMS]  = {0};
+    int64_t inputFramePTSbefore[MAXSTREAMS]   = {0};
+    int64_t outputPacketPTSbefore[MAXSTREAMS] = {0};
+    int64_t outputFramePTSbefore[MAXSTREAMS]  = {0};
+    int frameOut = 0;
 #endif
 };

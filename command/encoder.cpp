@@ -196,14 +196,14 @@ cEncoder::~cEncoder() {
 
 
 void cEncoder::Reset(const int passEncoder) {
-    EncoderStatus.videoStartPTS = INT64_MAX;
-    EncoderStatus.frameBefore = -2;
-    EncoderStatus.ptsOutBefore = -1;
-    EncoderStatus.pts_dts_CutOffset = 0; // offset from the cut out frames
+    EncoderStatus.videoStartPTS          = INT64_MAX;
+    EncoderStatus.frameBefore            = -2;
+    EncoderStatus.ptsOutBefore           = -1;
+    EncoderStatus.pts_dts_CutOffset      = 0;     // offset from the cut out frames
     EncoderStatus.pts_dts_CyclicalOffset = NULL;  // offset from pts/dts cyclicle, multiple of 0x200000000
-    pass = passEncoder;
+    pass                                 = passEncoder;
 #ifdef DEBUG_CUT
-    packet_out = 0;
+    frameOut = 0;
 #endif
 }
 
@@ -866,11 +866,10 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
     if (streamIndexOut == -1) return true; // no target for this this stream
 
 #ifdef DEBUG_CUT
-    if (streamIndexIn == DEBUG_CUT) {
+    if (pass == 2) {
         dsyslog("cEncoder::WritePacket(): ----------------------------------------------------------------------------------------------------------------------");
-        dsyslog("cEncoder::WritePacket(): stream index %d packet  (%6d): input PTS %10ld DTS %10ld", streamIndexIn, frameNumber, avpktIn->pts, avpktIn->dts);
-        dsyslog("cEncoder::WritePacket():                                   diff PTS %10ld", avpktIn->pts - inputPacketPTSbefore[streamIndexOut]);
-        inputPacketPTSbefore[streamIndexOut] = avpktIn->pts;
+        dsyslog("cEncoder::WritePacket(): in  packet (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", frameNumber, streamIndexIn, avpktIn->pts, avpktIn->dts, avpktIn->pts - inputPacketPTSbefore[streamIndexIn], EncoderStatus.pts_dts_CutOffset);
+        inputPacketPTSbefore[streamIndexIn] = avpktIn->pts;
     }
 #endif
 
@@ -915,12 +914,12 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
 
     // set video start infos
     if (ptr_cDecoder->IsVideoPacket()) {
-        if ((frameNumber - EncoderStatus.frameBefore) > 1) {  // first frame after stark mark position
+        if ((frameNumber - EncoderStatus.frameBefore) > 1) {  // first frame after start mark position
             if (EncoderStatus.dtsInBefore[streamIndexIn] == 0) EncoderStatus.dtsInBefore[streamIndexIn] = avpktIn->dts - avpktIn->duration; // first frame has no before, init with dts of start mark
             dsyslog("cEncoder::WritePacket(): start cut at            frame (%6d)                 PTS %" PRId64, frameNumber, avpktIn->pts);
             EncoderStatus.videoStartPTS = avpktIn->pts;
             EncoderStatus.pts_dts_CutOffset += (avpktIn->dts - EncoderStatus.dtsInBefore[streamIndexIn] - avpktIn->duration);
-            dsyslog("cEncoder::WritePacket(): new dts/pts offset %" PRId64, EncoderStatus.pts_dts_CutOffset);
+            dsyslog("cEncoder::WritePacket(): new pts/dts offset %" PRId64, EncoderStatus.pts_dts_CutOffset);
         }
     }
     EncoderStatus.frameBefore = frameNumber;
@@ -928,8 +927,8 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
     // drop packets with pts before video start
     if (avpktIn->pts < EncoderStatus.videoStartPTS) {
 #ifdef DEBUG_CUT
-        if (streamIndexIn == DEBUG_CUT) {
-            dsyslog("cEncoder::WritePacket(): input  stream index %d frame   (%6d)                 PTS %" PRId64 " is lower then video start pts %" PRId64 ", drop packet", streamIndexIn, frameNumber, avpktIn->pts, EncoderStatus.videoStartPTS);
+        if (pass == 2) {
+            dsyslog("cEncoder::WritePacket(): in  packet (%5d) stream index %d PTS %10ld is lower then video start pts %10ld, drop packet", frameNumber, streamIndexIn, avpktIn->pts, EncoderStatus.videoStartPTS);
         }
 #endif
         return true;
@@ -970,16 +969,17 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         }
 
         // decode packet
-#ifdef DEBUG_CUT
-        if (streamIndexIn == DEBUG_CUT) {
-            dsyslog("cEncoder::WritePacket(): stream index %d packet  (%6d): decode packet", streamIndexIn, frameNumber);
-            beforeDecodePacketPTSbefore[streamIndexOut] = avpktIn->pts;
-        }
-#endif
         AVFrame *avFrame = ptr_cDecoder->DecodePacket(avpktIn);
         if (!avFrame) {  // this is no error, maybe we only need more frames to decode (e.g. interlaced video)
             return true;
         }
+#ifdef DEBUG_CUT
+        if (pass == 2) {
+            dsyslog("cEncoder::WritePacket(): in  frame  (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", frameNumber, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - inputFramePTSbefore[streamIndexIn], EncoderStatus.pts_dts_CutOffset);
+            inputFramePTSbefore[streamIndexIn] = avFrame->pts;
+        }
+#endif
+        //encode frame
         codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio = avFrame->sample_aspect_ratio; // set encoder pixel aspect ratio to decoded frames aspect ratio
         avFrame->pts = avFrame->pts - EncoderStatus.pts_dts_CutOffset; // correct pts after cut
 
@@ -1051,15 +1051,13 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
             avFrame = avFrameOut;
         }
 
-        //encode frame
 #ifdef DEBUG_CUT
-        if (streamIndexIn == DEBUG_CUT) {
-            dsyslog("cEncoder::WritePacket(): stream index %d frame   (%6d): encode frame", streamIndexOut, frameNumber);
-            dsyslog("cEncoder::WritePacket(): stream index %d frame   (%6d): PTS %10ld", streamIndexOut, frameNumber, avFrame->pts);
-            dsyslog("                                                 diff before %10ld", avFrame->pts - beforeEncodeFramePTSbefore[streamIndexOut]);
-            beforeEncodeFramePTSbefore[streamIndexOut] = avFrame->pts;
+        if (pass == 2) {
+            dsyslog("cEncoder::WritePacket(): out frame  (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", frameOut, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - outputFramePTSbefore[streamIndexOut], EncoderStatus.pts_dts_CutOffset);
+            outputFramePTSbefore[streamIndexOut] = avFrame->pts;
         }
 #endif
+        //encode frame
         AVPacket avpktOut;
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
         av_init_packet(&avpktOut);
@@ -1132,16 +1130,14 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
                 stats_in.size = strLength + oldLength + 1;
                 ALLOC(stats_in.size, "stats_in");
             }
-#ifdef DEBUG_CUT
-            if (codecCtxArrayOut[streamIndexOut]->stats_out) dsyslog("cEncoder::WritePacket(): output stream %d frame %d stats_in length %" PRId64, streamIndexOut, frameNumber, stats_in.size);
-#endif
         }
         avpktOut.stream_index = streamIndexOut;
         avpktOut.pos = -1;   // byte position in stream unknown
 #ifdef DEBUG_CUT
-        if (streamIndexIn == DEBUG_CUT) {
-            dsyslog("cEncoder::WritePacket(): stream index %d packet  (%6d): write packet (%6d) iFrame %d", avpktOut.stream_index, frameNumber, packet_out, ptr_cDecoder->IsVideoIFrame());
-            packet_out++;
+        if (pass == 2) {
+            dsyslog("cEncoder::WritePacket(): out packet (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", frameOut, avpktOut.stream_index, avpktOut.pts, avpktOut.dts, avpktOut.pts - outputPacketPTSbefore[streamIndexOut], EncoderStatus.pts_dts_CutOffset);
+            if (ptr_cDecoder->IsVideoPacket()) frameOut++;
+            outputPacketPTSbefore[streamIndexOut] = avpktOut.pts;
         }
 #endif
         // write packet
