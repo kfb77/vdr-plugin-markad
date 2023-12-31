@@ -1415,8 +1415,10 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
 void cMarkAdStandalone::CheckStart() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStart(): checking start at frame (%d) check start planed at (%d)", frameCurrent, chkSTART);
-    dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %i", iStartA);
+    int maxStart = iStartA + (length * macontext.Video.Info.framesPerSecond / 2);  // half of recording
+    dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %d, max allowed start frame (%d)", iStartA, maxStart);
     DebugMarks();     //  only for debugging
+
 #define IGNORE_AT_START 12   // ignore this number of frames at the start for start marks, they are initial marks from recording before, changed from 11 to 12
 
     // set initial mark criterias
@@ -1806,6 +1808,11 @@ void cMarkAdStandalone::CheckStart() {
                         vStart = NULL;
                     }
                 }
+            }
+            // prevent to get start of next broadcast as start of this very short broadcast
+            if (vStart && (vStart->position > maxStart)) {
+                dsyslog("cMarkAdStandalone::CheckStart(): vborder start mark (%d) after max start mark (%d) is invalid", vStart->position, maxStart);
+                vStart = NULL;
             }
             if (vStart) {
                 if (vStart->position >= IGNORE_AT_START) { // early position is a vborder from previous recording
