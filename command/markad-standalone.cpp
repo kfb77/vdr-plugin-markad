@@ -3564,10 +3564,12 @@ void cMarkAdStandalone::MarkadCut() {
             while(ptr_cDecoder->GetNextPacket(false, false)) {  // no frame index, no PTS ring buffer
                 int frameNumber = ptr_cDecoder->GetFrameNumber();
                 // seek to frame before startPosition
-                if  (frameNumber < startMark->position) {
-                    LogSeparator();
-                    dsyslog("cMarkAdStandalone::MarkadCut(): decoding for start mark (%d) to end mark (%d) in pass: %d", startMark->position, stopMark->position, pass);
-                    if (frameNumber < startMark->position -1) ptr_cDecoder->SeekToFrame(&macontext, startMark->position - 1);  // first start mark need no seek
+                if  (frameNumber < startMark->position) {  // will be called until we got next video frame, skip audio frame before
+                    if (frameNumber < (startMark->position - 1)) {  // seek to next video frame before start mark
+                        LogSeparator();
+                        dsyslog("cMarkAdStandalone::MarkadCut(): decoding for start mark (%d) to end mark (%d) in pass: %d", startMark->position, stopMark->position, pass);
+                        ptr_cDecoder->SeekToFrame(&macontext, startMark->position - 1); // one frame before start frame, future iteratations will get video start frame
+                    }
                     continue;
                 }
                 // stop mark reached, set next startPosition
