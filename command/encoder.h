@@ -190,7 +190,7 @@ private:
      * encoder status
      */
     struct sEncoderStatus {
-        int64_t videoStartPTS           = INT64_MAX;  //!< decoded presentation timestamp of of the video stream from first mark
+        int64_t videoStartDTS           = INT64_MAX;  //!< DTS timestamp of of the video stream from first mark
         //!<
         int frameBefore                 = -2;         //!< decoded frame number before current frame
         //!<

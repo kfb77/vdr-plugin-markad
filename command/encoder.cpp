@@ -196,7 +196,7 @@ cEncoder::~cEncoder() {
 
 
 void cEncoder::Reset(const int passEncoder) {
-    EncoderStatus.videoStartPTS          = INT64_MAX;
+    EncoderStatus.videoStartDTS          = INT64_MAX;
     EncoderStatus.frameBefore            = -2;
     EncoderStatus.ptsOutBefore           = -1;
     EncoderStatus.pts_dts_CutOffset      = 0;     // offset from the cut out frames
@@ -917,7 +917,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         if ((frameNumber - EncoderStatus.frameBefore) > 1) {  // first frame after start mark position
             if (EncoderStatus.dtsInBefore[streamIndexIn] == 0) EncoderStatus.dtsInBefore[streamIndexIn] = avpktIn->dts - avpktIn->duration; // first frame has no before, init with dts of start mark
             dsyslog("cEncoder::WritePacket(): start cut at            frame (%6d)                 PTS %" PRId64, frameNumber, avpktIn->pts);
-            EncoderStatus.videoStartPTS = avpktIn->pts;
+            EncoderStatus.videoStartDTS = avpktIn->dts;
             EncoderStatus.pts_dts_CutOffset += (avpktIn->dts - EncoderStatus.dtsInBefore[streamIndexIn] - avpktIn->duration);
             dsyslog("cEncoder::WritePacket(): new pts/dts offset %" PRId64, EncoderStatus.pts_dts_CutOffset);
         }
@@ -925,10 +925,10 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
     EncoderStatus.frameBefore = frameNumber;
 
     // drop packets with pts before video start
-    if (avpktIn->pts < EncoderStatus.videoStartPTS) {
+    if (avpktIn->dts < EncoderStatus.videoStartDTS) {
 #ifdef DEBUG_CUT
         if (pass == 2) {
-            dsyslog("cEncoder::WritePacket(): in  packet (%5d) stream index %d PTS %10ld is lower then video start pts %10ld, drop packet", frameNumber, streamIndexIn, avpktIn->pts, EncoderStatus.videoStartPTS);
+            dsyslog("cEncoder::WritePacket(): in  packet (%5d) stream index %d DTS %10ld is lower then video start DTS %10ld, drop packet", frameNumber, streamIndexIn, avpktIn->dts, EncoderStatus.videoStartDTS);
         }
 #endif
         return true;
