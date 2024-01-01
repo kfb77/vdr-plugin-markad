@@ -561,6 +561,11 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.heightMax =  88;
     }
 
+    // ONE_HD                  16:9 1280W  720H:->  232W  80H TOP_RIGHT
+    if (strcmp(maContext->Info.ChannelName, "ONE_HD") == 0) {
+        logo.widthMin =  232;
+    }
+
     // phoenix_HD              16:9 1280W  720H:->  168W  72H TOP_LEFT
     if (strcmp(maContext->Info.ChannelName, "phoenix_HD") == 0) {
         logo.widthMax =  168;
