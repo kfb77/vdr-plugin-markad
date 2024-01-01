@@ -458,7 +458,6 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
 
     // try to select best logo end mark based on long black screen or silence
     LogSeparator(false);
-    DebugMarks();     //  only for debugging
     dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for logo end mark based black screen, silence or closing logo sequence seperator");
     // search from nearest logo stop mark to end
     cMark *lEnd = lEndAssumed;
