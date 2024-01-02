@@ -59,8 +59,6 @@ Prerequisites:
 - Set "use VPS" to yes in the VDR plugin setup menu. If you use markad from command line, additional add parameter --vps to your markad call.
 - pre timer must be smaller than post timer if you do not use VPS controlled timer
 
-It will only work with channels that send a valid VPS signal (see comment in plugin/status.cpp for examples).
-It does not work with channels managed by the epg2vdr plugin.
 markad do not trust the VPS events. They will only be used if it found no usual criteria.
 The VPS events are checked at the end of the recording and only used if they appear valid.
 If markad is running during the recording, the VPS marks are applied after the end of the recording.
