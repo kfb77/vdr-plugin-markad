@@ -5278,8 +5278,9 @@ void cMarkAdStandalone::ProcessOverlap() {
     }
     cMark *lastStop = marks.GetLast();
     if (lastStop) {
-        // check logo end mark
-        if ((lastStop->type == MT_LOGOSTOP) || ((lastStop->type == MT_MOVEDSTOP) && (lastStop->newType != MT_NOADINFRAMESTOP))) { // prevent double detection of ad in frame and closing credits
+        // check end mark
+        if ((lastStop->type == MT_LOGOSTOP) ||
+                ((lastStop->type == MT_MOVEDSTOP) && (lastStop->newType != MT_NOADINFRAMESTOP) && (lastStop->newType != MT_TYPECHANGESTOP))) { // prevent double detection of ad in frame and closing credits
             if (markCriteria.GetClosingCreditsState(lastStop->position) >= CRITERIA_UNKNOWN) {
                 dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after logo end mark");
                 if (MoveLastStopAfterClosingCredits(lastStop)) {
