@@ -223,6 +223,16 @@ private:
     void CheckStartMark();
 
     /**
+     * check for logo start mark
+     */
+    cMark *Check_LOGOSTART();
+
+    /**
+     * check for hborder start mark
+     */
+    cMark *Check_HBORDERSTART();
+
+    /**
      * check for channel end mark
      */
     cMark *Check_CHANNELSTOP();
@@ -236,11 +246,6 @@ private:
      * check for vborder end mark
      */
     cMark *Check_VBORDERSTOP();
-
-    /**
-     * check for logo start mark
-     */
-    cMark *Check_LOGOSTART();
 
     /**
      * check for logo end mark
