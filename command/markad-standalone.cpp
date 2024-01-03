@@ -4828,7 +4828,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     // valid silence before
                     // 132120ms before, black screen around 1, black lower border around 0
                     if (blackBefore) maxBefore = 132120;
-                    else             maxBefore =  76620;   // changed from 51519 to 76620
+                    else             maxBefore =  76760;   // changed from 76620 to 76760
                     break;
                 case MT_LOGOSTOP:
                     maxBefore = 11680;  // changed from 4240 to 5840 to 11680
@@ -4843,7 +4843,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                         else maxBefore = 28279;  // silence in broadcast 28280ms before VPS stop
                         break;
                     case MT_TYPECHANGESTOP:
-                        maxBefore = 5600;
+                        maxBefore = 6200;   // changed from 5600 to 6200
                         break;
                     default:
                         maxBefore = 0;
