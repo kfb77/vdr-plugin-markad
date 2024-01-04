@@ -1485,7 +1485,13 @@ void cMarkAdStandalone::CheckStart() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStart(): checking start at frame (%d) check start planed at (%d)", frameCurrent, chkSTART);
     int maxStart = iStartA + (length * macontext.Video.Info.framesPerSecond / 2);  // half of recording
-    dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %d, max allowed start frame (%d)", iStartA, maxStart);
+    char *indexToHMSFStart = marks.IndexToHMSF(iStartA);
+    if (indexToHMSFStart) {
+        ALLOC(strlen(indexToHMSFStart) + 1, "indexToHMSFStart");
+        dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %d at %s, max allowed start frame (%d)", iStartA, indexToHMSFStart, maxStart);
+        FREE(strlen(indexToHMSFStart) + 1, "indexToHMSFStart");
+        free(indexToHMSFStart);
+    }
     DebugMarks();     //  only for debugging
 
     // set initial mark criterias
