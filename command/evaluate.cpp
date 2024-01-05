@@ -1592,9 +1592,10 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
 
     int retFrame              = -1;
 
-#define AD_IN_FRAME_STOP_OFFSET_MAX  15479  // changed from 15800 to 15479 because of false detection, do not increase
-    // accept missing detection if preview direct after ad in frame
+#define AD_IN_FRAME_STOP_OFFSET_MAX  15479  // changed from 15800 to 15479 because of false detection, do not increase, accept missing detection of preview direct after ad in frame without logo interuption
 #define AD_IN_FRAME_START_OFFSET_MAX  4319  // changed from 4799 to 4319
+#define AD_IN_FRAME_LENGTH_MAX       34680  // changed from 30720 to 34680
+#define AD_IN_FRAME_LENGTH_MIN        6960  // shortest ad in frame found 6960ms, changed from 8880 to 6960
     // prevent to get additional info logo as frame
     int isCornerLogo[CORNERS] = {0};
     int countFrames           =  0;
@@ -1707,13 +1708,19 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
 
     // select best found possible ad in frame sequence, in case of ad in frame before stop mark go to end position
     if (!isStartMark) {
-        int stopOffset = 1000 * (endPos - AdInFrame.endFinal) / maContext->Video.Info.framesPerSecond;
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): select best found possible ad in frame sequence before logo stop mark");
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): before possible ad in frame from (%d) to (%d), length %d frames", AdInFrame.startFinal, AdInFrame.endFinal, AdInFrame.endFinal - AdInFrame.startFinal);
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): last   possible ad in frame from (%d) to (%d), length %d frames", AdInFrame.start, AdInFrame.end, AdInFrame.end - AdInFrame.start);
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): stopOffset %dms, AD_IN_FRAME_START_OFFSET_MAX %dms", stopOffset, AD_IN_FRAME_START_OFFSET_MAX);
-        if (((AdInFrame.end - AdInFrame.start) > (AdInFrame.endFinal - AdInFrame.startFinal)) ||
-                (stopOffset > AD_IN_FRAME_STOP_OFFSET_MAX)) {  // adinframe before logo stop must be near logo stop
+        int stopOffsetBefore = 1000 * (endPos             - AdInFrame.endFinal)   / maContext->Video.Info.framesPerSecond;
+        int stopOffsetLast   = 1000 * (endPos             - AdInFrame.end)        / maContext->Video.Info.framesPerSecond;
+        int lengthBefore     = 1000 * (AdInFrame.endFinal - AdInFrame.startFinal) / maContext->Video.Info.framesPerSecond;
+        int lengthLast       = 1000 * (AdInFrame.end      - AdInFrame.start)      / maContext->Video.Info.framesPerSecond;
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): select best found possible ad in frame before logo stop mark, min length %dms, max stop offset %dms", AD_IN_FRAME_LENGTH_MIN, AD_IN_FRAME_STOP_OFFSET_MAX);
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): before possible ad in frame from (%d) to (%d), length %5dms, stop offset %5dms", AdInFrame.startFinal, AdInFrame.endFinal, lengthBefore, stopOffsetBefore);
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): last   possible ad in frame from (%d) to (%d), length %5dms, stop offset %5dms", AdInFrame.start, AdInFrame.end, lengthLast, stopOffsetLast);
+        // example:
+        // before possible ad in frame from (39133) to (39732), length 23960ms, stop offset 12480ms   -> static scene at end of part
+        // last   possible ad in frame from (39802) to (40044), length  9680ms, stop offset     0ms   -> ad in frame
+        if ((lengthLast > lengthBefore) ||   // last part is longer
+                (stopOffsetBefore > AD_IN_FRAME_STOP_OFFSET_MAX) ||  // before part is too far from stop mark
+                ((stopOffsetLast == 0) && (lengthLast >= AD_IN_FRAME_LENGTH_MIN))) {  // last part up to stop mark and long enough
             AdInFrame.startFinal      = AdInFrame.start;
             AdInFrame.endFinal        = AdInFrame.end;
             AdInFrame.frameCountFinal = AdInFrame.frameCount;
@@ -1847,8 +1854,6 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
     else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): no still image before advertising in frame found");
 
     // check advertising in frame
-#define AD_IN_FRAME_LENGTH_MAX 34680  // changed from 30720 to 34680
-#define AD_IN_FRAME_LENGTH_MIN  6960  // shortest ad in frame found 6960ms, changed from 8880 to 6960
     int startOffset = 1000 * (AdInFrame.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
     int stopOffset  = 1000 * (endPos - AdInFrame.endFinal) / maContext->Video.Info.framesPerSecond;
     int length      = 1000 * (AdInFrame.endFinal - AdInFrame.startFinal) / maContext->Video.Info.framesPerSecond;
