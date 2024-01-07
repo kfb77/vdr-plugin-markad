@@ -4347,7 +4347,7 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                         int diffNext        = 1000 * (nextStopAfter->position  - stopAfter->position)      / macontext.Video.Info.framesPerSecond;
                         int nextDiffAfter   = 1000 * (nextStartAfter->position - mark->position)           / macontext.Video.Info.framesPerSecond;
                         int nextLengthAfter = 1000 * (nextStopAfter->position  - nextStartAfter->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::BlackLowerOptimization(): stop  mark (%6d): lower black border from (%6d) to (%6d), %7dms after  -> length %5dms, distance %dms", mark->position, nextStartAfter->position, nextStopAfter->position, nextDiffAfter, nextLengthAfter, diffNext);
+                        dsyslog("cMarkAdStandalone::BlackLowerOptimization(): start mark (%6d): lower black border from (%6d) to (%6d), %7dms after  -> length %5dms, distance %dms", mark->position, nextStartAfter->position, nextStopAfter->position, nextDiffAfter, nextLengthAfter, diffNext);
                         if (diffNext > 2360) break;
                         if (nextLengthAfter >= lengthAfter) {
                             startAfter  = nextStartAfter;
@@ -4357,7 +4357,7 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                         }
                         nextStartAfter = blackMarks.GetNext(nextStartAfter->position, MT_NOBLACKLOWERSTOP);
                     }
-                    dsyslog("cMarkAdStandalone::BlackLowerOptimization(): stop  mark (%6d): lower black border from (%6d) to (%6d), %7dms after  -> length %5dms", mark->position, startAfter->position, stopAfter->position, diffAfter, lengthAfter);
+                    dsyslog("cMarkAdStandalone::BlackLowerOptimization(): start mark (%6d): lower black border from (%6d) to (%6d), %7dms after  -> length %5dms", mark->position, startAfter->position, stopAfter->position, diffAfter, lengthAfter);
                 }
                 else startAfter = NULL; // no pair, this is invalid
             }
