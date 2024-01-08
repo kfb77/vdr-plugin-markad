@@ -37,20 +37,22 @@ extern "C" {
 #endif
 
 
-// libavcodec versions
+// suported libavcodec versions
 //
-// full suported markad ffmpeg versions (based on Ubuntu LTS has Standard Support)
+// full suported markad ffmpeg versions (based on Ubuntu LTS has Standard Support, 5 years)
 //
-// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4.2  (Ubuntu 22.04, End of Standard Support: April 2027, updated 16.06.2023)
-// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 54<<8)+100)   ffmpeg 4.2.7  (Ubuntu 20.04, End of Standard Support: April 2025, updated 16.06.2023)
+// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4.2  (Ubuntu 22.04, End of Standard Support: April 2027)
+// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 54<<8)+100)   ffmpeg 4.2.7  (Ubuntu 20.04, End of Standard Support: April 2025)
 #define LIBAVCODEC_VERSION_VALID ((58<<16)+( 54<<8)+100)   // oldest full suported version
 
-// deprecated markad ffmpeg versions (based on Ubuntu LTS is End of Standard Support but still has Extended Security Maintenance)
+
+// deprecated markad ffmpeg versions (based on Ubuntu LTS is End of Standard Support but still has Extended Security Maintenance, 10 years)
 //
 // #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   ffmpeg 3.4.11 (Ubuntu 18.04, End of Life: April 2028)
 // #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 60<<8)+100)   ffmpeg 2.8.17 (Ubuntu 16.04) End of Life: April 2026)
 // #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 57<<8)+100)   ffmpeg 2.7.2  (Ubuntu 14.04, End of Life: April 2024)
 #define LIBAVCODEC_VERSION_DEPRECATED ((56<<16)+( 57<<8)+100)   // oldest deprecated version, older is invalid
+
 
 // end of life markad ffmpeg versions (based on Ubuntu LTS has no support at all)
 //
