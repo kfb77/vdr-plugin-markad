@@ -1,6 +1,6 @@
 #!/bin/bash
 # extract all logo sizes from markad.log
 
-VIDEO="/srv/vdr/video"
+VIDEO="/media/Video/VDR"
 
 grep -r "time to find logo in recording:" --include "markad.log" $VIDEO | awk -F  ":" '{printf "%s %s\n", $1, $6}' | awk '{printf "%3ds %3dms %s\n", $2, $3, $1}' | sort --numeric-sort -k1,1 -k2,2

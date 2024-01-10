@@ -1,6 +1,6 @@
 #!/bin/bash
 # extract all logo sizes from markad.log
 
-VIDEO="/srv/vdr/video"
+VIDEO="/media/Video/VDR"
 
 grep --text -r "ERROR: " --include "markad.log" $VIDEO | sort

@@ -1,7 +1,7 @@
 #!/bin/bash
 # extract all logo sizes from markad.log
 
-VIDEO="/srv/vdr/video"
+VIDEO="/media/Video/VDR"
 
 echo -e "source\tversion\tfull\tmark\ttype\told\tnew\tbefore\tlength\tafter\tlength\tresult"
 grep --text -r -P 'TRACE: OPTIMIZATION\t' --include "markad.log" $VIDEO | awk -F  "TRACE: OPTIMIZATION\t" '{printf "%s\t%s\n", $2, $1}'

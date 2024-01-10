@@ -98,7 +98,7 @@ class Config:
     def __init__(self):  # define the default configuration
         self.verbose = False
         self.config = "/etc/markad_videos.conf"
-        self.path = "/srv/vdr/video"
+        self.path = "/media/Video/VDR"
         self.bindir = "/usr/bin"
         self.user = "vdr"
         self.group = "vdr"
@@ -127,7 +127,7 @@ class Config:
         self.mirror_path = None
         self.mirror_movies = "movies"
         self.mirror_series = "series"
-        self.mirror_update = "/srv/vdr/video"
+        self.mirror_update = "/media/Video/VDR"
 
     def ConfigFile(self):
         if not os.path.exists(self.config):
@@ -615,7 +615,7 @@ parser = argparse.ArgumentParser(description='run markad on all new VDR recordin
 parser.add_argument('-v', '--verbose', dest="verbose", action='store_true', default=False, help='log to std out')
 parser.add_argument('-l', '--loglevel=', metavar="<level>", type=int, choices=range(0, 5), dest="loglevel", action="store", help='sets --loglevel to the specified value, 0=no logging 1=error 2=info 3=debug 4=trace (default 1)')
 parser.add_argument('--markad_loglevel=', metavar="<level>", type=int, choices=range(0, 5), dest="markad_loglevel", action="store", help='sets --loglevel for markad to the specified value, 0=no logging 1=error 2=info 3=debug 4=trace (default 1)')
-parser.add_argument('-p', '--path=', dest="path",  metavar="<path>", action="store", help='path to the VDR recording directory (default: /srv/vdr/video)')
+parser.add_argument('-p', '--path=', dest="path",  metavar="<path>", action="store", help='path to the VDR recording directory (default: /media/Video/VDR)')
 parser.add_argument('--nice=', dest="nice",  metavar="<value>", choices=range(0, 20), action="store", help='set niceness of scheduling priority (default 19)')
 parser.add_argument('--minfree=', metavar="GB", type=int, dest="minfree", action="store", help='minimum free disk space in GBs for all disk consuming operations (default 0 no limit)')
 parser.add_argument('--maxrecordings=', metavar="", type=int, dest="maxrecordings", action="store", help='maximum recordings to process (default 1000)')

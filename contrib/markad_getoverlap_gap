@@ -1,7 +1,7 @@
 #!/bin/bash
 # extract all logo sizes from markad.log
 
-VIDEO="/srv/vdr/video"
+VIDEO="/media/Video/VDR"
 
 grep -r "cMarkAdStandalone::ProcessMarkOverlap(): overlap gap to marks are valid, before stop mark" --include "markad.log" $VIDEO | awk -F  " " '{printf "%s:%s:%s:%s\n", $1, $17, $21, $23}' | awk -F  ":" '{printf "%s -> before stop %s after start %s length %s\n", $1, $3, $4, $5}' | sort --numeric-sort -k5,5 | tail -n 15
 echo

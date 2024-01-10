@@ -13,7 +13,7 @@ fi
 if [ -n "$2" ]; then
     VIDEO=$2
 else
-    VIDEO="/srv/vdr/video"
+    VIDEO="/media/Video/VDR"
 fi
 
 echo "use video directory: $VIDEO"
