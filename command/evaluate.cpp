@@ -59,7 +59,9 @@ bool cEvaluateChannel::ClosingCreditsChannel(const char *channelName) {
             (strcmp(channelName, "RTL2")          != 0) &&
             (strcmp(channelName, "RTL2_HD")       != 0) &&
             (strcmp(channelName, "ProSieben")     != 0) &&
-            (strcmp(channelName, "ProSieben_HD")  != 0)) {
+            (strcmp(channelName, "ProSieben_HD")  != 0) &&
+            (strcmp(channelName, "ZDF")           != 0) &&
+            (strcmp(channelName, "ZDF_HD")        != 0)) {
         return false;
     }
     return true;
