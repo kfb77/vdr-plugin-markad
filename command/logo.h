@@ -13,6 +13,7 @@
 #include "decoder.h"
 #include "video.h"
 #include "audio.h"
+#include "tools.h"
 
 #define MAXREADFRAMES 3000
 
@@ -42,7 +43,7 @@ struct sLogoInfo {
 /**
  * class to extract logo from recording
  */
-class cExtractLogo : public cLogoSize {
+class cExtractLogo : private cLogoSize, cTools {
 public:
 
     /**
@@ -155,7 +156,7 @@ private:
      * @param logoCorner corner of logo
      * @return true if logo size and corner is valid, false otherwise
      */
-    bool CheckLogoSize(const sMarkAdContext *maContext, const int logoHeight, const int logoWidth, const int logoCorner) const;
+    bool CheckLogoSize(const sMarkAdContext *maContext, const int logoHeight, const int logoWidth, const int logoCorner);
 
     /**
      * remove white frame and resize logo

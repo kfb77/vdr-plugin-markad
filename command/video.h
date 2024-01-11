@@ -12,6 +12,7 @@
 #include "global.h"
 #include "index.h"
 #include "criteria.h"
+#include "tools.h"
 
 #define LOGO_VMAXCOUNT 3       //!< count of IFrames for detection of "logo visible"
 //!<
@@ -246,7 +247,7 @@ private:
 /**
  * class to detect logo in recording
  */
-class cMarkAdLogo : cLogoSize {
+class cMarkAdLogo : private cLogoSize, cTools {
 public:
 
     /**

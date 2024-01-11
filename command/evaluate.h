@@ -13,6 +13,7 @@
 #include "global.h"
 #include "marks.h"
 #include "video.h"
+#include "tools.h"
 
 /**
  * evaluate stop/start pair status
@@ -30,38 +31,38 @@ enum eEvaluateStatus {
 /**
  * class to evalute channel special logos types
  */
-class cEvaluateChannel {
+class cEvaluateChannel : protected cTools {
 public:
 
     /**
      * check if channel could have info logos
      * @return true if channel could have info logos, false otherwise
      */
-    static bool IsInfoLogoChannel(const char *channelName);
+    bool IsInfoLogoChannel(const char *channelName);
 
     /**
      * check if channel could have logo changes
      * @return true if channel could have logo changes, false otherwise
      */
-    static bool IsLogoChangeChannel(const char *channelName);
+    bool IsLogoChangeChannel(const char *channelName);
 
     /**
      * check if channel could have closing credits without logo
      * @return true if channel could have closing credits without logo, false otherwise
      */
-    static bool ClosingCreditsChannel(const char *channelName);
+    bool ClosingCreditsChannel(const char *channelName);
 
     /**
      * check if channel could have advertising in frame with logo
      * @return true if channel advertising in frame with logo, false otherwise
      */
-    static bool AdInFrameWithLogoChannel(const char *channelName);
+    bool AdInFrameWithLogoChannel(const char *channelName);
 
     /**
      * check for introduction logo
      * @return true if introduction logo detected, false otherwise
      */
-    static bool IntroductionLogoChannel(const char *channelName);
+    bool IntroductionLogoChannel(const char *channelName);
 };
 
 

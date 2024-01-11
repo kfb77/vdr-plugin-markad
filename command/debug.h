@@ -111,6 +111,9 @@
 // debug timestamps from final marks to save
 // #define DEBUG_SAVEMARKS
 
+// debug channel name compare
+// #define DEBUG_CHANNEL_NAME
+
 extern int SysLogLevel;
 extern void syslog_with_tid(int priority, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
 

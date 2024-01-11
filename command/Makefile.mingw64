@@ -53,6 +53,7 @@ OBJS+= marks.o
 OBJS+= markad-standalone.o
 OBJS+= criteria.o
 OBJS+= vps.o
+OBJS+= tools.o
 
 WIN32_SRC:=$(wildcard win32/*.cpp)
 

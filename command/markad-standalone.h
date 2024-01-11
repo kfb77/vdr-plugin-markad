@@ -11,6 +11,7 @@
 #include <sys/time.h>
 
 #include "debug.h"
+#include "tools.h"
 #include "global.h"
 #include "video.h"
 #include "audio.h"
@@ -33,7 +34,7 @@ class cOSDMessage;
 /**
  * markad main class
  */
-class cMarkAdStandalone : public cEvaluateChannel {
+class cMarkAdStandalone : private cEvaluateChannel {
 public:
 
     /**

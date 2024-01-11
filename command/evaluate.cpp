@@ -13,106 +13,74 @@
 
 bool cEvaluateChannel::IsInfoLogoChannel(const char *channelName) {
     // for performance reason only known and tested channels
-    if ((strcmp(channelName, "DMAX")          != 0) &&
-            (strcmp(channelName, "DMAX_HD")       != 0) &&
-            (strcmp(channelName, "kabel_eins")    != 0) &&   // only for info (e.g. Teletext)
-            (strcmp(channelName, "kabel_eins_HD") != 0) &&
-            (strcmp(channelName, "SIXX")          != 0) &&
-            (strcmp(channelName, "SIXX_HD")       != 0) &&
-            (strcmp(channelName, "SAT_1")         != 0) &&
-            (strcmp(channelName, "SAT_1_HD")      != 0) &&
-            (strcmp(channelName, "WELT")          != 0) &&
-            (strcmp(channelName, "WELT_HD")       != 0) &&
-            (strcmp(channelName, "RTL2")          != 0) &&
-            (strcmp(channelName, "RTL2_HD")       != 0)) {
-        return false;
+    if (CompareChannelName(channelName, "DMAX",           IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "kabel_eins", IGNORE_HD | IGNORE_COUNTRY) ||   // only for info (e.g. Teletext)
+            CompareChannelName(channelName, "SIXX",       IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "SAT_1",      IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "WELT",       IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "RTL2",       IGNORE_HD | IGNORE_COUNTRY)) {
+        return true;
     }
-    return true;
+    return false;
 }
 
 
 bool cEvaluateChannel::IsLogoChangeChannel(const char *channelName) {
     // for performance reason only known and tested channels
-    if ((strcmp(channelName, "TELE_5")    != 0) &&  // has special logo changes
-            (strcmp(channelName, "TELE_5_HD") != 0)) {
-        return false;
+    if (CompareChannelName(channelName, "TELE_5", IGNORE_HD | IGNORE_COUNTRY)) {  // has special logo changes
+        return true;
     }
-    return true;
+    return false;
 }
 
 
 bool cEvaluateChannel::ClosingCreditsChannel(const char *channelName) {
     // for performance reason only known and tested channels
-    if ((strcmp(channelName, "kabel_eins")    != 0) &&
-            (strcmp(channelName, "kabel_eins_HD") != 0) &&
-            (strcmp(channelName, "krone_tv")      != 0) &&
-            (strcmp(channelName, "SAT_1")         != 0) &&
-            (strcmp(channelName, "SAT_1_HD")      != 0) &&
-            (strcmp(channelName, "SAT_1_Gold")    != 0) &&
-            (strcmp(channelName, "SAT_1_Gold_HD") != 0) &&
-            (strcmp(channelName, "SIXX")          != 0) &&
-            (strcmp(channelName, "SIXX_HD")       != 0) &&
-            (strcmp(channelName, "DMAX")          != 0) &&
-            (strcmp(channelName, "DMAX_HD")       != 0) &&
-            (strcmp(channelName, "Pro7_MAXX")     != 0) &&
-            (strcmp(channelName, "Pro7_MAXX_HD")  != 0) &&
-            (strcmp(channelName, "RTL2")          != 0) &&
-            (strcmp(channelName, "RTL2_HD")       != 0) &&
-            (strcmp(channelName, "ProSieben")     != 0) &&
-            (strcmp(channelName, "ProSieben_HD")  != 0) &&
-            (strcmp(channelName, "ZDF")           != 0) &&
-            (strcmp(channelName, "ZDF_HD")        != 0)) {
-        return false;
+    if (CompareChannelName(channelName, "kabel_eins",     IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "krone_tv",   IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "SAT_1",      IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "SAT_1_Gold", IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "SIXX",       IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "DMAX",       IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "Pro7_MAXX",  IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "RTL2",       IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "ProSieben",  IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "ZDF",        IGNORE_HD | IGNORE_COUNTRY)) {
+        return true;
     }
-    return true;
+    return false;
 }
 
 
 bool cEvaluateChannel::AdInFrameWithLogoChannel(const char *channelName) {
 // for performance reason only for known and tested channels for now
-    if ((strcmp(channelName, "kabel_eins")        != 0) &&
-            (strcmp(channelName, "kabel_eins_HD")     != 0) &&
-            (strcmp(channelName, "Pro7_MAXX")         != 0) &&
-            (strcmp(channelName, "Pro7_MAXX_HD")      != 0) &&
-            (strcmp(channelName, "ProSieben")         != 0) &&
-            (strcmp(channelName, "ProSieben_HD")      != 0) &&
-            (strcmp(channelName, "ProSieben_MAXX")    != 0) &&
-            (strcmp(channelName, "ProSieben_MAXX_HD") != 0) &&
-            (strcmp(channelName, "RTL2")              != 0) &&
-            (strcmp(channelName, "RTL2_HD")           != 0) &&
-            (strcmp(channelName, "RTLZWEI")           != 0) &&
-            (strcmp(channelName, "RTLZWEI_HD")        != 0) &&
-            (strcmp(channelName, "RTL_Television")    != 0) &&
-            (strcmp(channelName, "RTL_Television_HD") != 0) &&
-            (strcmp(channelName, "SAT_1")             != 0) &&
-            (strcmp(channelName, "SAT_1_HD")          != 0) &&
-            (strcmp(channelName, "SIXX")              != 0) &&
-            (strcmp(channelName, "SIXX_HD")           != 0) &&
-            (strcmp(channelName, "VOX")               != 0) &&
-            (strcmp(channelName, "VOX_HD")            != 0) &&
-            (strcmp(channelName, "VOXup")             != 0) &&
-            (strcmp(channelName, "VOXup_HD")          != 0) &&
-            (strcmp(channelName, "WELT")              != 0) &&
-            (strcmp(channelName, "WELT_HD")           != 0)) {
-        return false;
+    if (CompareChannelName(channelName, "kabel_eins",         IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "Pro7_MAXX",      IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "ProSieben",      IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "ProSieben_MAXX", IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "RTL2",           IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "RTLZWEI",        IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "RTL_Television", IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "SAT_1",          IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "SIXX",           IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "VOX",            IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "VOXup",          IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "WELT",           IGNORE_HD | IGNORE_COUNTRY)) {
+        return true;
     }
-    return true;
+    return false;
 }
 
 
 bool cEvaluateChannel::IntroductionLogoChannel(const char *channelName) {
 // for performance reason only for known and tested channels for now
-    if ((strcmp(channelName, "kabel_eins")    != 0) &&
-            (strcmp(channelName, "kabel_eins_HD") != 0) &&
-            (strcmp(channelName, "SIXX")          != 0) &&
-            (strcmp(channelName, "SIXX_HD")       != 0) &&
-            (strcmp(channelName, "SAT_1")         != 0) &&
-            (strcmp(channelName, "SAT_1_HD")      != 0) &&
-            (strcmp(channelName, "RTL2")          != 0) &&
-            (strcmp(channelName, "RTL2_HD")       != 0)) {
-        return false;
+    if (CompareChannelName(channelName, "kabel_eins", IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "SIXX",   IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "SAT_1",  IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "RTL2",   IGNORE_HD | IGNORE_COUNTRY)) {
+        return true;
     }
-    return true;
+    return false;
 }
 
 

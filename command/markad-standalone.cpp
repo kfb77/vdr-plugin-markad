@@ -805,7 +805,7 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     int diffStopLogo   = 1000 * (blackStop->position  - mark->position)       / macontext.Video.Info.framesPerSecond;
                     int diffStartBlack = 1000 * (startAfter->position - blackStop->position)  / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_NOBLACKSTOP (%5d) -> %dms -> MT_LOGOSTOP (%5d) -> %4dms -> MT_NOBLACKSTART (%5d) -> %4dms -> MT_LOGOSTART (%5d)", blackStart->position, diffStopBlack, mark->position, diffStopLogo, blackStop->position, diffStartBlack, startAfter->position);
-                    if ((diffStopBlack <= 2920) && (diffStopLogo <= 3000) && (diffStartBlack <= 3280)) {
+                    if ((diffStopBlack <= 2920) &&  (diffStopLogo >= 0) && (diffStopLogo <= 3000) && (diffStartBlack <= 3280)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is valid", mark->position);
                         return true;
                     }
@@ -840,12 +840,15 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     int diffLogoStopBlackStart  = 1000 * (blackStart->position - mark->position)       /  macontext.Video.Info.framesPerSecond;
                     int diffBlackStartBlackStop = 1000 * (blackStop->position  - blackStart->position) /  macontext.Video.Info.framesPerSecond;
                     int diffBlackStopLogoStart  = 1000 * (logoStart->position  - blackStop->position)  /  macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%5d) -> %4dms -> MT_NOBLACKSTOP (%5d) -> %4dms ->  MT_NOBLACKSTART (%5d) -> %4dms -> MT_LOGOSTART (%5d)", mark->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, logoStart->position);
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%5d) -> %5dms -> MT_NOBLACKSTOP (%5d) -> %5dms ->  MT_NOBLACKSTART (%5d) -> %5dms -> MT_LOGOSTART (%5d)", mark->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, logoStart->position);
                     // valid sequence
                     // MT_LOGOSTOP (72310) -> 4240ms -> MT_NOBLACKSTOP (72416) ->  440ms ->  MT_NOBLACKSTART (72427) ->   800ms -> MT_LOGOSTART (72447)
                     // MT_LOGOSTOP (84786) ->  120ms -> MT_NOBLACKSTOP (84789) ->  240ms ->  MT_NOBLACKSTART (84795) ->  1800ms -> MT_LOGOSTART (84840)
                     // MT_LOGOSTOP (86549) ->   80ms -> MT_NOBLACKSTOP (86551) ->  280ms ->  MT_NOBLACKSTART (86558) -> 31800ms -> MT_LOGOSTART (87353)
-                    if ((diffLogoStopBlackStart <= 4240) && (diffBlackStartBlackStop >= 240) && (diffBlackStopLogoStart <= 31800)) {
+                    // invalid example
+                    // MT_LOGOSTOP (96429) -> 2920ms -> MT_NOBLACKSTOP (96502) -> 2920ms ->  MT_NOBLACKSTART (96575) ->  4520ms -> MT_LOGOSTART (96688)
+                    // info logo                        start opening credits                end opening credits                   end info logo
+                    if ((diffLogoStopBlackStart <= 4240) && (diffBlackStartBlackStop >= 240) && (diffBlackStartBlackStop < 2920) && (diffBlackStopLogoStart <= 31800)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is valid", mark->position);
                         return true;
                     }
@@ -4194,7 +4197,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     //
                     // special case TLC end mark
                     // 8680ms (160) -> invalid: black screen after ad, end selected after long closing credits without logo and without frame
-                    if ((mark->position == marks.GetLast()->position) && (strcmp(macontext.Info.ChannelName, "TLC") == 0) && (diffAfter > 8680)) maxAfter = 32400;
+                    if ((mark->position == marks.GetLast()->position) && CompareChannelName(macontext.Info.ChannelName, "TLC", IGNORE_HD) && (diffAfter > 8680)) maxAfter = 32400;
                     else {
                         //
                         // short before black screen from broadcast end, long black screen after preview
@@ -4852,9 +4855,9 @@ void cMarkAdStandalone::SilenceOptimization() {
                     // <11680> / 1040    second silence is after preview
                     if ((diffBefore <= 11680) && (diffAfter >= 1040)) diffAfter = INT_MAX;
 
-                    if ((mark->position == marks.GetLast()->position) && (diffAfter > 8600) && (strcmp(macontext.Info.ChannelName, "TLC") == 0)) maxAfter = 31640;
-                    else if ((strcmp(macontext.Info.ChannelName, "Nickelodeon") == 0) ||
-                             (strcmp(macontext.Info.ChannelName, "Disney_Channel") == 0)) maxAfter = 7960;  // very early fade out logo channels
+                    if ((mark->position == marks.GetLast()->position) && (diffAfter > 8600) && CompareChannelName(macontext.Info.ChannelName, "TLC", IGNORE_HD)) maxAfter = 31640;
+                    else if (CompareChannelName(macontext.Info.ChannelName, "Nickelodeon", IGNORE_HD) ||
+                             CompareChannelName(macontext.Info.ChannelName, "Disney_Channel", IGNORE_HD)) maxAfter = 7960;  // very early fade out logo channels
                     else maxAfter = 4359;  // silence after seperator picture 4360ms after stop
                     break;
                 case MT_MOVEDSTOP:
@@ -5229,8 +5232,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     //  <840> /  4960    delayed logo stop from bright background
                     // <1080> /  4920    delayed logo stop from pattern in background
                     else if ((diffBefore <= 1080) && (diffAfter >= 2680) &&
-                             (strcmp(macontext.Info.ChannelName, "Nickelodeon") != 0) &&
-                             (strcmp(macontext.Info.ChannelName, "Disney_Channel") != 0)) diffAfter = INT_MAX;
+                             CompareChannelName(macontext.Info.ChannelName, "Nickelodeon", IGNORE_HD) &&
+                             CompareChannelName(macontext.Info.ChannelName, "Disney_Channel", IGNORE_HD)) diffAfter = INT_MAX;
 
                     maxAfter = 5139;  // do not increase, will get scene change in ad, no schene change before because broadcast fade out to ad
                     // TODO detect fade out scene changes
@@ -5968,11 +5971,11 @@ bool cMarkAdStandalone::LoadInfo() {
                     if (macontext.Info.ChannelName[i] == '.') macontext.Info.ChannelName[i] = '_';
                     if (macontext.Info.ChannelName[i] == '/') macontext.Info.ChannelName[i] = '_';
                 }
-                if ((strcmp(macontext.Info.ChannelName, "SAT_1") == 0) || (strcmp(macontext.Info.ChannelName, "SAT_1_HD")) == 0) {
+                if (CompareChannelName(macontext.Info.ChannelName, "SAT_1", IGNORE_HD)) {
                     dsyslog("cMarkAdStandalone::LoadInfo(): channel %s has a rotating logo", macontext.Info.ChannelName);
                     macontext.Video.Logo.isRotating = true;
                 }
-                if ((strcmp(macontext.Info.ChannelName, "TELE_5") == 0) || (strcmp(macontext.Info.ChannelName, "TELE_5_HD")) == 0) {
+                if (CompareChannelName(macontext.Info.ChannelName, "TELE_5", IGNORE_HD)) {
                     dsyslog("cMarkAdStandalone::LoadInfo(): channel %s has logo in the border", macontext.Info.ChannelName);
                     macontext.Video.Logo.isInBorder = true;
                 }
