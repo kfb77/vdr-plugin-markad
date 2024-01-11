@@ -2084,7 +2084,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
     dsyslog("cDetectLogoStopStart::IntroductionLogo(): final introduction logo range: start (%d), end (%d), avg frame portion %d", introductionLogo.startFinal, introductionLogo.endFinal, introductionLogo.framePortionFinal);
 
     // check frame portion quote to prevent to false detect ad in frame without logo as introdition logo
-    if (introductionLogo.framePortionFinal >= 551) {
+    if (introductionLogo.framePortionFinal >= 356) {  // changed from 551 to 356
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): frame portion quote to high, ad in frame without logo before detected");
         return -1;
     }
