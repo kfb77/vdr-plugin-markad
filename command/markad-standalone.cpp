@@ -4770,7 +4770,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxAfter = 227620;  // changed from 55600 to 227620
                     break;
                 case MT_LOGOSTART:
-                    maxAfter = 18799;  // silence in broadcast 18800ms after logo start
+                    maxAfter = 4319;  // silence in broadcast after openen credists 4320ms after logo start
                     break;
                 case MT_VBORDERSTART:
                     // only optimize start mark, we can miss real vborder start because of black screen between broadcast
@@ -4869,8 +4869,9 @@ void cMarkAdStandalone::SilenceOptimization() {
                         // select best mark (before / after), defaut: before
                         // <5480>       / 25940
                         //
-                        // <50400> (bb) / 7320  second silence is i next broadcast
-                        if ((diffBefore <= 50400) && blackLowerBefore && (diffAfter >= 7320)) diffAfter = INT_MAX;
+                        // <50400> (bb) / 7320  second silence is from next broadcast
+                        // <57280> (bb) / 2640  second silence is from next broadcast
+                        if ((diffBefore <= 57280) && blackLowerBefore && (diffAfter >= 2640)) diffAfter = INT_MAX;
                         else if ((diffBefore <= 5480) && (diffAfter >= 20600)) diffAfter = INT_MAX;
                         maxAfter = 31479;  // silence after preview 31480ms after VPS stop
                         break;
@@ -4920,7 +4921,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if (blackLowerBefore) maxBefore = 50400;  // lower black screen around sound stop
+                        if (blackLowerBefore) maxBefore = 57280;  // lower black screen around sound stop
                         else maxBefore = 28279;  // silence in broadcast 28280ms before VPS stop
                         break;
                     case MT_TYPECHANGESTOP:
