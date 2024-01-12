@@ -1597,6 +1597,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
         else {
             dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): delete too early horizontal border mark (%d)", hStart->position);
             marks.Del(hStart->position);
+            hStart = NULL;
             if (marks.Count(MT_HBORDERCHANGE, 0xF0) == 0) {
                 dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border since start, use it for mark detection");
                 markCriteria.SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED);
