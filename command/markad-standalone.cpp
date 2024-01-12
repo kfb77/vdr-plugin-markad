@@ -433,7 +433,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
             int status = evaluateLogoStopStartPair->GetIsClosingCreditsAfter(lEnd->position);
             int diffAssumed = (lEnd->position - iStopA) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d): %ds after assumed stop (%d), closing credits status %d", lEnd->position, diffAssumed, iStopA, status);
-            if (diffAssumed >= 300) break;
+            if ((diffAssumed < 0) || (diffAssumed >= 300)) break;
             if (status == STATUS_YES) {
                 dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d) closing credits follow, valid end mark found", lEnd->position);
                 end = lEnd;
@@ -448,7 +448,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
             int status = evaluateLogoStopStartPair->GetIsClosingCreditsAfter(lEnd->position);
             int diffAssumed = (iStopA - lEnd->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d): %ds before assumed stop (%d), closing credits status %d", lEnd->position, diffAssumed, iStopA, status);
-            if (diffAssumed >= 300) break;
+            if ((diffAssumed < 0) || (diffAssumed >= 300)) break;
             if (status == STATUS_YES) {
                 dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d) closing credits follow, valid end mark found", lEnd->position);
                 end = lEnd;
