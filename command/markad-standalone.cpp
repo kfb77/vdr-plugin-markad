@@ -4021,15 +4021,17 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 switch (mark->type) {
                 case MT_LOGOSTART:
                     // select best mark (before (length)/ after (length)), defaut: before
-                    // 3020 (120) / <20> (120)   black screen before and after separator
-                    // 2020 (120) / <40> (140)   black screen before and after separator
-                    //
                     // invalid black screen after broadcast start
-                    //     -     /   2440 (80)   black screen ater broadcast start
-                    if ((diffBefore >= 2020) && (diffAfter <= 40)) diffBefore = INT_MAX;  // black screen before and after separator
-                    if ((lengthBefore >= 1640) && (diffBefore <= 8640)) maxBefore = 8640;
-                    else maxBefore = 5399;  // do not increase, will get black screen before last ad
-                    if (lengthBefore <= 40) maxBefore = 4299;  // black screen before preview 4300ms (40) before logo stop
+                    //     -     /   2440 (80)   black screen after broadcast start
+
+                    // black screen before separator and between separator ans broadcast start
+                    // 3020 (120) / <20> (120)   black screen before separator and between separator ans broadcast start
+                    // 2020 (120) / <40> (140)   black screen before separator and between separator ans broadcast start
+                    if ((diffBefore >= 2020) && (diffAfter <= 40)) diffBefore = INT_MAX;
+
+                    if ((lengthBefore >= 1640) && (diffBefore <= 8640)) maxBefore = 8640;  // allow for long blackscreen more distance
+                    else if (lengthBefore <= 40) maxBefore = 4299;                         // black screen before preview 4300ms (40) before logo stop
+                    else maxBefore = 5399;                                                 // do not increase, will get black screen before last ad
                     break;
                 case MT_CHANNELSTART:
                     maxBefore = 1240;   // changed from 80 to 1240
@@ -4319,7 +4321,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         maxBefore = 15200;
                         break;
                     case MT_NOADINFRAMESTOP:
-                        maxBefore = 17720;    // changed from 4520 to 17720, correct too short detected ad in frame
+                        if (lengthBefore > diffBefore) maxBefore = -1;  // long black closing credits before ad in frame, keep this
+                        else maxBefore = 17720;    // changed from 4520 to 17720, correct too short detected ad in frame
                         break;
                     default:
                         maxBefore = -1;
