@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-01-14: Version 3.4.5
+- compare channel names case insensitive, thx to Schwabe@vdr-portal.de and wmautner@vdr-portal.de for reporting
+- fix heap-use-after-free
+- some minor bug fixes and optimizations, see git
+
 2024-01-07: Version 3.4.4
 - optimize broadcast logo start and stop mark selection
 - fix short broken audio after stop mark cut position
