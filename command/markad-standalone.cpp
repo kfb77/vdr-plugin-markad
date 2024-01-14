@@ -4449,12 +4449,12 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        // lower black border in broadcast before
-                        // 43160ms (320)
-                        //
-                        // valid lower black border
-                        if (lengthBefore <= 320) maxBefore =  43159;
-                        else                     maxBefore = 116600;
+                        // invalid lower black border before from broadcast before
+                        //  43160ms before -> length   320ms
+                        // 106600ms before -> length  3640ms    (lower part dark scene in broadcast)
+                        if (lengthBefore <= 320)       maxBefore =  43159;   // too short for lower black border closing credits
+                        else if (lengthBefore >= 3640) maxBefore = 106599;   // too long  for lower black border closing credits
+                        else                           maxBefore = 116600;
                         break;
                     default:
                         maxBefore = -1;
