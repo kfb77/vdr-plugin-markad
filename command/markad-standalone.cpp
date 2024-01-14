@@ -5257,16 +5257,15 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     //    880 /  <520>   fade out logo        (conflict)
                     //    440 /  <960>   fade out logo        (conflict)
                     //    400 / <1560>   fade out logo        (conflict)
-                    //    240 / <1880>   fade out logo
+                    //    240 / <1880>   fade out logo        (conflict)
                     //    200 / <2080>   fade out logo
-                    //    120 / <2000>   fade out logo
+                    //    120 / <2000>   fade out logo        (conflict)
                     //
                     //    240 / <4640>   early fade out logo (Disney Channel)
                     //    440 / <4800>   early fade out logo (Nickelodeon)
                     //
                     //  <200> /    80    logo fading out after broadcast end           (conflict)
                     //  <240> /  3760    delayed logo stop                             (conflict)
-                    //  <240> /  2080    delayed logo stop from pattern in backgroud   (conflict)
                     //  <920> /   120    delayed logo stop from pattern in background  (conflict)
                     // <1720> /  2040    delayed logo stop from pattern in background  (conflict)
                     //
@@ -5280,22 +5279,28 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     // near scene change before and scene change after too near for fading out logo -> delayed logo stop
                     //  <120> /  1120    delayed logo stop from bright background
                     //  <120> /  1840    delayed logo stop from bright background
+                    //  <120> /  2000    logo stop at start of next broadcast
+                    //  <120> /  2960    logo stop at start of next broadcast
                     //  <160> /   240    logo stop in ad
+                    //  <160> /  2720    logo stop at start of next broadcast
                     //  <200> /  1520    logo stop after broadcast end
                     //  <240> /  1080    delayed logo stop from pattern in background
-                    //  <280> /  1600    delayed logo stop from pattern in backgroud
+                    //  <240> /  2080    delayed logo stop from pattern in background
+                    //  <280> /  1600    delayed logo stop from pattern in background
                     //  <320> /   160    delayed logo stop from pattern in background
                     //  <320> /  1680    delayed logo stop from pattern in background
                     //  <360> /   880    delayed logo stop from pattern in background
                     //  <440> /   120    delayed logo stop from frame in background
                     //  <680> /  1160    delayed logo stop from frame in background
-                    else if ((diffBefore >= 120) && (diffBefore <=  680) && (diffAfter >= 120) && (diffAfter <= 1840)) diffAfter = INT_MAX;
+                    else if ((diffBefore >= 120) && (diffBefore <=  680) && (diffAfter >= 120) && (diffAfter <= 2960)) diffAfter = INT_MAX;
 
                     // scene change after too far for short fading out logo and too near for long fading out logo -> delayed logo stop
-                    //  <760> /   320    delayed logo stop  NEW
+                    //  <760> /   320    delayed logo stop
                     // <1600> /   600    delayed logo stop
+                    // <1800> /   760    delayed logo stop
+                    // <2400> /   280    delayed logo stop
                     // <2640> /   360    delayed logo stop from pattern in background
-                    else if ((diffBefore >= 760) && (diffBefore <= 2640) && (diffAfter >= 320) && (diffAfter <= 600)) diffAfter = INT_MAX;
+                    else if ((diffBefore >= 760) && (diffBefore <= 2640) && (diffAfter >= 280) && (diffAfter <= 760)) diffAfter = INT_MAX;
 
                     // scene change after too far away, better use scene change before, expect channels with very early fade out logo
                     //  <280> /  2680    delayed logo stop from pattern in background  (conflict)
@@ -5338,13 +5343,14 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         break;
                     case MT_SOUNDSTOP:
                         // select best mark (before / after), default: after
-                        //  4560  /  <80>  long static scene before end of broadcast
-                        //  1640  /  <80>
-                        //  3680  /  <80>
-                        //  2800  / <120>
-                        //  2840  / <120>
-                        //  2560  / <160>
-                        //   280  / <680>   sound stop before last scene (conflict)
+                        //  4560 /   <80>  long static scene before end of broadcast
+                        //  1640 /   <80>
+                        //  3680 /   <80>
+                        //  2800 /  <120>
+                        //  2840 /  <120>
+                        //  2560 /  <160>
+                        //   280 /  <680>   sound stop before last scene (conflict)
+                        //  9780 / <3260>   sound stop in closing scene
                         //
                         //  sound stop short after last scene
                         //   <40> / 1760    sound stop short after last scene
@@ -5355,13 +5361,15 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         // <4360> /  840    delayed logo stop from bright background, sound stop after separator picture
                         // <4440> /  560    delayed logo stop from bright background, sound stop after separator picture
                         // <4720> /  280    delayed logo stop from bright background, sound stop after separator picture
-                        else if ((diffBefore >= 4360) && (diffBefore <= 4720) && (diffAfter >= 280) && (diffAfter <= 840)) diffAfter = INT_MAX;
+                        // <5080> / 1960    delayed logo stop from bright background, sound stop after separator picture
+                        else if ((diffBefore >= 4360) && (diffBefore <= 5080) && (diffAfter >= 280) && (diffAfter <= 1960)) diffAfter = INT_MAX;
 
-                        maxAfter = 2459;
+                        maxAfter = 3260;  // changed rom 2459 to 3260
                         break;
                     case MT_VPSSTOP:
                         // select best mark (before / after), default: after
                         //  8400 /    <40>   long static scene before VPS stop
+                        //   680 /   <960>
                         //
                         //  7640 /  <1540>   static scene after VPS stop and before broadcast end
                         //  2800 /  <3880>   static scene after VPS stop and before broadcast end
@@ -5375,8 +5383,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         // <8440> /  3920    (conflict)
 
                         //  <240> /  2660
-                        // <1040> /   800
-                        if ((diffBefore <= 1040) && (diffAfter >= 800) && (diffAfter <= 2660)) diffAfter = INT_MAX;
+                        // <1040> /   800    (conflict)
+                        if ((diffBefore <= 240) && (diffAfter <= 2660)) diffAfter = INT_MAX;
 
                         // long opening scene from next broadcast
                         //   <80> /  6720    long opening scene from next broadcast
@@ -5390,7 +5398,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     case MT_NOADINFRAMESTOP:
                         // select best mark (before / after), default: after
                         // <200> / 760
-                        if ((diffBefore <= 200) && (diffAfter >= 760)) diffAfter = INT_MAX;
+                        // <440> / 360
+                        if ((diffBefore <= 440) && (diffAfter >= 360)) diffAfter = INT_MAX;
                         maxAfter = 760;
                         break;
                     default:
