@@ -748,8 +748,10 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
                     dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_SOUNDSTOP (%6d) -> %4dms MT_LOGOSTOP (%6d) -> %4dms -> MT_SOUNDSTART (%6d) -> %6dms -> MT_LOGOSTART (%6d)", silenceStart->position, silenceStartLogoStop, mark->position, logoStopSilenceStop, silenceStop->position, silenceStopLogoStart, logoStart->position);
                     // valid sequence
                     // MT_SOUNDSTOP ( 72667) ->  560ms MT_LOGOSTOP ( 72681) ->  240ms -> MT_SOUNDSTART ( 72687) ->   1920ms -> MT_LOGOSTART ( 72735)
-                    // MT_SOUNDSTOP (106916) ->   40ms MT_LOGOSTOP (106918) ->   20ms -> MT_SOUNDSTART (106919) -> 123000ms -> MT_LOGOSTART (113069)
-                    if ((silenceStartLogoStop <= 560) && (logoStopSilenceStop <= 240) && (silenceStopLogoStart <= 123000)) {
+                    //
+                    // invalid example
+                    // MT_SOUNDSTOP ( 88721) ->  120ms MT_LOGOSTOP ( 88724) ->  240ms -> MT_SOUNDSTART ( 88730) ->  65560ms -> MT_LOGOSTART ( 90369)  -> stop mark before last ad
+                    if ((silenceStartLogoStop <= 560) && (logoStopSilenceStop <= 240) && (silenceStopLogoStart < 65560)) {
                         dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo stop mark (%d): silence sequence is valid", mark->position);
                         return true;
                     }
