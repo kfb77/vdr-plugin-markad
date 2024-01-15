@@ -1601,7 +1601,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
                 if ((*cornerResultIt).rate[corner] <= 0) darkCorner++;   // if we have no match, this can be a too dark corner
             }
             // check ad in frame
-            if (((*cornerResultIt).rate[corner] >= 109) || ((*cornerResultIt).rate[corner] == -1)) similarCornersLow++;  // changed from 138 to 109
+            if (((*cornerResultIt).rate[corner] >= 94) || ((*cornerResultIt).rate[corner] == -1)) similarCornersLow++;  // changed from 109 to 94
             if ((*cornerResultIt).rate[corner]  >= 253) similarCornersHigh++;  // changed from 310 to 253
 
             // check logo in corner
