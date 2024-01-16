@@ -1575,7 +1575,8 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
             ((borderstatus <  HBORDER_VISIBLE) && (valBottom <= BRIGHTNESS_H_SURE) && (valTop <= BRIGHTNESS_H_SURE))) {
         // hborder detected
 #ifdef DEBUG_HBORDER
-        dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder ++++++: borderstatus %d, borderframenumber (%d), duration %d", FrameNumber, borderstatus, borderframenumber, (FrameNumber - borderframenumber) / maContext->Video.Info.framesPerSecond);
+        int duration = (FrameNumber - borderframenumber) / maContext->Video.Info.framesPerSecond;
+        dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder ++++++: borderstatus %d, borderframenumber (%d), duration %ds", FrameNumber, borderstatus, borderframenumber, duration);
 #endif
         if (borderframenumber == -1) {  // got first frame with hborder
             borderframenumber = FrameNumber;
