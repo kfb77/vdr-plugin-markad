@@ -759,6 +759,29 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
                 }
             }
         }
+        // sequence MT_SOUNDSTOP -> MT_SOUNDSTART -> MT_LOGOSTOP -> MT_LOGOSTART
+        silenceStart = silenceMarks.GetPrev(mark->position, MT_SOUNDSTOP);
+        if (silenceStart) {
+            cMark *silenceStop = silenceMarks.GetNext(silenceStart->position, MT_SOUNDSTART);
+            if (silenceStop) {
+                cMark *logoStart = marks.GetNext(mark->position, MT_LOGOSTART);
+                if (logoStart) {
+                    int silenceStartSilenceStop = 1000 * (silenceStop->position - silenceStart->position) / macontext.Video.Info.framesPerSecond;
+                    int silenceStopLogoStop     = 1000 * (mark->position        - silenceStop->position)  / macontext.Video.Info.framesPerSecond;
+                    int logoStopLogoStart       = 1000 * (logoStart->position   - mark->position)         / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_SOUNDSTOP (%6d) -> %5dms -> MT_SOUNDSTART (%6d) -> %5dms -> MT_LOGOSTOP (%6d) -> %5dms -> MT_LOGOSTART (%6d)", silenceStart->position, silenceStartSilenceStop, silenceStop->position, silenceStopLogoStop, mark->position, logoStopLogoStart, logoStart->position);
+                    // valid sequence
+                    // MT_SOUNDSTOP ( 96076) ->   320ms -> MT_SOUNDSTART ( 96092) ->   360ms -> MT_LOGOSTOP ( 96110) -> 13620ms -> MT_LOGOSTART ( 96791)
+                    // MT_SOUNDSTOP ( 96076) ->   320ms -> MT_SOUNDSTART ( 96092) ->   380ms -> MT_LOGOSTOP ( 96111) -> 13600ms -> MT_LOGOSTART ( 96791)
+                    //
+                    if ((silenceStartSilenceStop >= 320) && (silenceStopLogoStop >= 0) && (silenceStopLogoStop <= 380) && (logoStopLogoStart <= 13620)) {
+                        dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo stop mark (%d): silence sequence is valid", mark->position);
+                        return true;
+                    }
+                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo stop mark (%d): silence sequence is invalid", mark->position);
+                }
+            }
+        }
     }
     return false;
 }
