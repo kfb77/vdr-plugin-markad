@@ -1514,10 +1514,10 @@ void cMarkAdBlackBordersHoriz::Clear(const bool isRestart) {
 
 
 int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
-#define CHECKHEIGHT 5           // changed from 8 to 5
-#define BRIGHTNESS_H_SURE   22  // changed from 20 to 22
-#define BRIGHTNESS_H_MAYBE 131  // some channel have logo in border, so we will get a higher value, changed from 118 to 131
-#define NO_HBORDER        1000
+#define CHECKHEIGHT           5  // changed from 8 to 5
+#define BRIGHTNESS_H_SURE    22  // changed from 20 to 22
+#define BRIGHTNESS_H_MAYBE  137  // some channel have logo or infos in border, so we will detect a higher value, changed from 131 to 137
+#define NO_HBORDER          200  // internal limit for early loop exit, must be more than BRIGHTNESS_H_MAYBE
     if (!maContext) return HBORDER_ERROR;
     if (!maContext->Video.Data.valid) return HBORDER_ERROR;
     if (maContext->Video.Info.framesPerSecond == 0) return HBORDER_ERROR;
