@@ -620,7 +620,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if ((logo.widthMin == 0) && (logo.widthMax == 0) && (logo.heightMin == 0) && (logo.heightMax == 0)) {
         dsyslog("cExtractLogo::CheckLogoSize(): no channel specific logo size rule for %s, use default size", maContext->Info.ChannelName);
     }
-    else dsyslog("cExtractLogo::CheckLogoSize(): channel specific logo size rule for %s found: W%d->%d, H%d->%d", maContext->Info.ChannelName, logo.widthMin, logo.widthMax, logo.heightMin, logo.heightMax);
+    else dsyslog("cExtractLogo::CheckLogoSize(): channel specific logo size rule for %s found: W %d->%d, H %d->%d", maContext->Info.ChannelName, logo.widthMin, logo.widthMax, logo.heightMin, logo.heightMax);
 
 // set default values
     switch (maContext->Video.Info.width) {
