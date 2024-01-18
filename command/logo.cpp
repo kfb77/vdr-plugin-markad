@@ -513,16 +513,16 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMax  = 185;
     }
 
-    // ARD_alpha_HD            16:9 1280W  720H:->  206W  76H TOP_LEFT
+    // ARD_alpha_HD            16:9 1280W  720H:->  206W  78H TOP_LEFT
     if (CompareChannelName(maContext->Info.ChannelName, "ARD_alpha_HD", IGNORE_NOTHING)) {
-        logo.heightMax =  76;
+        logo.heightMax =  78;
         logo.widthMax  = 206;
     }
 
-    if (CompareChannelName(maContext->Info.ChannelName, "arte_HD", IGNORE_NOTHING)) {               // arte_HD (vertical)      16:9 1280W  720H:->   88W 134H TOP_LEFT
-        // arte_HD (horizontal)    16:9 1280W  720H:->  210W  70H TOP_LEFT
+    // arte_HD                 16:9 1280W  720H:->   88W 134H TOP_LEFT
+    if (CompareChannelName(maContext->Info.ChannelName, "arte_HD", IGNORE_NOTHING)) {
         logo.widthMin  =  88;
-        logo.widthMax  =  210;
+        logo.widthMax  =  88;
     }
 
     // Das_Erste_HD            16:9 1280W  720H:->  148W 114H TOP_RIGHT
