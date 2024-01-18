@@ -1566,8 +1566,14 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): stronger marks are set for detection, use logo mark only for start mark, delete logo marks after (%d)", begin->position);
         marks.DelFromTo(begin->position + 1, INT_MAX, MT_LOGOCHANGE);
     }
-    else markCriteria.SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_USED);
-
+    else {
+        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo marks set for detection, cleanup late hborder and vborder stop marks from previous broadcast");
+        const cMark *delMark = marks.GetAround(10 * macontext.Video.Info.framesPerSecond, begin->position, MT_VBORDERSTOP, 0xFF);
+        if (delMark) marks.Del(delMark->position);
+        delMark = marks.GetAround(10 * macontext.Video.Info.framesPerSecond, begin->position, MT_HBORDERSTOP, 0xFF);
+        if (delMark) marks.Del(delMark->position);
+        markCriteria.SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_USED);
+    }
     if (!macontext.Video.Logo.isInBorder) {
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): disable border detection and delete border marks");  // avoid false detection of border
         marks.DelType(MT_HBORDERCHANGE, 0xF0);  // there could be hborder from an advertising in the recording
