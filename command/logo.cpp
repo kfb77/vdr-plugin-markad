@@ -1753,6 +1753,12 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
             retStatus = false;
         }
     }
+
+    // search for valid logo matches
+    int logoCorner[CORNERS]     = {-1, -1, -1, -1};
+    sLogoInfo logoInfo[CORNERS] = {};
+    int rankResult              = -1;
+
     if (retStatus) {
         dsyslog("cExtractLogo::SearchLogo(): %d valid frames of %d frames read, got enough iFrames at frame (%d), start analyze", iFrameCountValid, iFrameCountAll, ptr_cDecoder->GetFrameNumber());
         sLogoInfo actLogoInfo[CORNERS] = {};
@@ -1766,103 +1772,106 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
 
         }
 
-        // find, second and third best corner
-        sLogoInfo bestLogoInfo       = {};
-        sLogoInfo secondBestLogoInfo = {};
-        sLogoInfo thirdBestLogoInfo  = {};
-        int bestLogoCorner           = -1;
-        int secondBestLogoCorner     = -1;
-        int thirdBestLogoCorner      = -1;
+        // order corner matches
         int sumHits = 0;
-
         for (int corner = 0; corner < CORNERS; corner++) {  // search for the best hits of each corner
             sumHits += actLogoInfo[corner].hits;
-            if (actLogoInfo[corner].hits > bestLogoInfo.hits) {
-                bestLogoInfo   = actLogoInfo[corner];
-                bestLogoCorner = corner;
+            if ((actLogoInfo[corner].hits > 0) && (actLogoInfo[corner].hits > logoInfo[0].hits)) {
+                logoInfo[0]   = actLogoInfo[corner];
+                logoCorner[0] = corner;
             }
         }
         for (int corner = 0; corner < CORNERS; corner++) {  // search for second best hits of each corner
-            if ((actLogoInfo[corner].hits > secondBestLogoInfo.hits) && (corner != bestLogoCorner)) {
-                secondBestLogoInfo   = actLogoInfo[corner];
-                secondBestLogoCorner = corner;
+            if ((actLogoInfo[corner].hits > 0) && (actLogoInfo[corner].hits > logoInfo[1].hits) && (corner != logoCorner[0])) {
+                logoInfo[1]   = actLogoInfo[corner];
+                logoCorner[1] = corner;
             }
         }
         for (int corner = 0; corner < CORNERS; corner++) {  // search for third best hits of each corner
-            if ((actLogoInfo[corner].hits > thirdBestLogoInfo.hits) && (corner != bestLogoCorner) && (corner != secondBestLogoCorner)) {
-                thirdBestLogoInfo   = actLogoInfo[corner];
-                thirdBestLogoCorner = corner;
+            if ((actLogoInfo[corner].hits > 0) && (actLogoInfo[corner].hits > logoInfo[2].hits) && (corner != logoCorner[0]) && (corner != logoCorner[1])) {
+                logoInfo[2]   = actLogoInfo[corner];
+                logoCorner[2] = corner;
             }
         }
+        dsyslog("cExtractLogo::SearchLogo(): corner rank:");
+        for (int rank = 0; rank < CORNERS - 1; rank++) {
+            if (logoCorner[rank] < 0) break;
+            dsyslog("cExtractLogo::SearchLogo(): %d.: %-12s %3d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].hits);
+        }
 
-        if ((bestLogoCorner >= 0) &&
-                ((((bestLogoInfo.hits >= 12) && force) || // this is the very last try, use what we have, bettet than nothing, changed from 14 to 12
-                  ((bestLogoInfo.hits >=  2) && (sumHits <= bestLogoInfo.hits + 1))) ||  // changed from 6 to 2
-                 (bestLogoInfo.hits >= 46) || // we have a good result, changed from 50 to 46
-                 ((bestLogoInfo.hits >= 40) && (sumHits <= bestLogoInfo.hits + 10)) ||  // if most hits are in the same corner than less are enough
-                 ((bestLogoInfo.hits >= 30) && (sumHits <= bestLogoInfo.hits + 7)) ||   // if almost all hits are in the same corner than less are enough
-                 ((bestLogoInfo.hits >= 10) && (sumHits == bestLogoInfo.hits)))) {      // if all hits are in the same corner than less are enough
-            int secondLogoHeight = logoHeight;
-            int secondLogoWidth = logoWidth;
-            dsyslog("cExtractLogo::SearchLogo(): best corner is %s at frame %d with %d similars", aCorner[bestLogoCorner], bestLogoInfo.iFrameNumber, bestLogoInfo.hits);
-            if (this->Resize(maContext, &bestLogoInfo, &logoHeight, &logoWidth, bestLogoCorner)) {
-                if ((secondBestLogoInfo.hits > 50) && (secondBestLogoInfo.hits > (bestLogoInfo.hits * 0.8))) { // decreased from 0.9 to 0.8
-                    dsyslog("cExtractLogo::SearchLogo(): try with second best corner %d at frame %d with %d similars", secondBestLogoCorner, secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
-                    if (this->Resize(maContext, &secondBestLogoInfo, &secondLogoHeight, &secondLogoWidth, secondBestLogoCorner)) {
-                        dsyslog("cExtractLogo::SearchLogo(): resize logo from second best corner is valid, still no clear result");
-                        retStatus=false;
-                    }
-                    else dsyslog("cExtractLogo::SearchLogo(): resize logo failed from second best corner, use best corner");
-                }
-            }
-            else {
-                dsyslog("cExtractLogo::SearchLogo(): resize logo from best corner failed");
-                if ((secondBestLogoInfo.hits >= 38) ||  // reduced from 50 to 40 to 38
-                        ((startFrame == 0) && (secondBestLogoInfo.hits >= 13)))  {
-                    dsyslog("cExtractLogo::SearchLogo(): try with second best corner %s at frame %d with %d similars", aCorner[secondBestLogoCorner], secondBestLogoInfo.iFrameNumber, secondBestLogoInfo.hits);
-                    if (this->Resize(maContext, &secondBestLogoInfo, &logoHeight, &logoWidth, secondBestLogoCorner)) {
-                        bestLogoInfo   = secondBestLogoInfo;
-                        bestLogoCorner = secondBestLogoCorner;
-                    }
-                    else {
-                        dsyslog("cExtractLogo::SearchLogo(): resize logo from second best failed");
-                        if (thirdBestLogoInfo.hits >= 100) {  // in rare cases we have 3 logos
-                            if (this->Resize(maContext, &thirdBestLogoInfo, &logoHeight, &logoWidth, thirdBestLogoCorner)) {
-                                bestLogoInfo   = thirdBestLogoInfo;
-                                bestLogoCorner = thirdBestLogoCorner;
-                            }
-                            else {
-                                dsyslog("cExtractLogo::SearchLogo(): resize logo from third best failed");
-                                retStatus = false;
-                            }
+        // try good matches
+        int done = -1;
+        for (int rank = 0; rank < CORNERS - 1; rank++) {
+            dsyslog("cExtractLogo::SearchLogo(): check %d. best corner -----------------------------------------------------------------------------------", rank);
+            if (logoCorner[rank] < 0) break;    // no more matches
+            if ((logoInfo[rank].hits >= 46) ||                                                 // we have a good result, changed from 50 to 46
+                    ((logoInfo[rank].hits >= 40) && (sumHits <= logoInfo[rank].hits + 10)) ||  // if most hits are in the same corner than less are enough
+                    ((logoInfo[rank].hits >= 30) && (sumHits <= logoInfo[rank].hits +  7)) ||  // if almost all hits are in the same corner than less are enough
+                    ((logoInfo[rank].hits >= 10) && (sumHits == logoInfo[rank].hits))) {       // if all hits are in the same corner than less are enough
+                dsyslog("cExtractLogo::SearchLogo(): %d. best corner is %s at frame %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].iFrameNumber, logoInfo[rank].hits);
+                // check possible logo
+                int secondLogoHeight = logoHeight;
+                int secondLogoWidth  = logoWidth;
+                if (this->Resize(maContext, &logoInfo[rank], &logoHeight, &logoWidth, logoCorner[rank])) {  // logo can be valid
+                    done = rank;
+                    rankResult = rank;
+                    dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. best corner %s was successful, H %d W %d", rank, aCorner[logoCorner[rank]], logoHeight, logoWidth);
+                    // check next best possible logo corner
+                    if ((logoInfo[rank + 1].hits > 50) && (logoInfo[rank + 1].hits > (logoInfo[rank].hits * 0.8))) { // next best logo corner has high matches
+                        dsyslog("cExtractLogo::SearchLogo(): %d. best corner %d at frame %d with %d similars", rank + 1, logoCorner[rank + 1], logoInfo[rank + 1].iFrameNumber, logoInfo[rank + 1].hits);
+                        if (this->Resize(maContext, &logoInfo[rank + 1], &secondLogoHeight, &secondLogoWidth, logoCorner[rank + 1])) { // second best logo can be valid
+                            dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. and %d. best corner is valid, still no clear result", rank, rank + 1);
+                            rankResult = -1;
+                            break;
                         }
-                        else retStatus = false;
+                        else {
+                            dsyslog("cExtractLogo::SearchLogo(): resize logo failed from %d. best corner, use %d. best corner", rank + 1, rank);
+                            break;
+                        }
                     }
+                    else break;
                 }
-                else retStatus = false;
+                else dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. best corner failed", rank + 1);
             }
-        }
-        else {
-            if (bestLogoCorner >= 0) dsyslog("cExtractLogo::SearchLogo(): no valid logo found, best logo at frame %i with %i similars at corner %s", bestLogoInfo.iFrameNumber, bestLogoInfo.hits, aCorner[bestLogoCorner]);
-            else dsyslog("cExtractLogo::SearchLogo(): no logo found");
-            retStatus = false;
         }
 
-        if (retStatus) {
-            if (!Save(maContext, &bestLogoInfo, logoHeight, logoWidth, bestLogoCorner)) {
-                dsyslog("cExtractLogo::SearchLogo(): logo save failed");
-                retStatus = false;
+        // try low matches
+        if ((rankResult == -1) && force) {  // last try to get a logo
+            for (int rank = done + 1; rank < CORNERS - 1; rank++) {
+                if (logoCorner[rank] < 0) break;    // no more matches
+                if ((logoInfo[rank].hits >= 6) ||  // this is the very last try, use what we have, bettet than nothing, changed from 14 to 12
+                        ((logoInfo[rank].hits >=  2) && (sumHits <= logoInfo[rank].hits + 1))) {  // all machtes in one corner
+                    dsyslog("cExtractLogo::SearchLogo(): try low match with %d best corner %s at frame %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].iFrameNumber, logoInfo[rank].hits);
+                    if (this->Resize(maContext, &logoInfo[rank], &logoHeight, &logoWidth, logoCorner[rank])) {
+                        rankResult = rank;
+                        break;
+                    }
+                }
             }
+        }
+    }
+    else dsyslog("cExtractLogo::SearchLogo(): no similar frames for logo detection found");
+
+    if (rankResult < 0) {
+        dsyslog("cExtractLogo::SearchLogo(): no valid logo found");
+        retStatus = false;
+    }
+
+    if (retStatus) {
+        dsyslog("cExtractLogo::SearchLogo(): save corner %s as logo, H %d W %d", aCorner[logoCorner[rankResult]], logoHeight, logoWidth);
+        if (!Save(maContext, &logoInfo[rankResult], logoHeight, logoWidth, logoCorner[rankResult])) {
+            dsyslog("cExtractLogo::SearchLogo(): logo save failed");
+            retStatus = false;
         }
     }
     FREE(sizeof(*ptr_Logo), "SearchLogo-ptr_Logo");  // new cMarkAdLogo(maContext, recordingIndexLogo);
     delete ptr_Logo;
 
-    // restore maContext
+// restore maContext
     maContext->Video = maContextSaveState.Video;     // restore state of calling video context
     maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
 
-    // delete all used classes
+// delete all used classes
     FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
     delete ptr_cDecoder;
     FREE(sizeof(*hborder), "hborder");

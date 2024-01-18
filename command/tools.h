@@ -23,6 +23,12 @@ public:
     cTools();
     ~cTools();
 
+    /**
+    * compare channel name pair
+    * @param nameA      first name
+    * @param nameB      second name
+    * @param flags      compaire criteria
+    */
     bool CompareChannelName(const char *nameA, const char *nameB, const int flags);
 };
 #endif
