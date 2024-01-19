@@ -1655,6 +1655,99 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
     return hStart;
 }
 
+cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
+    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): search for vborder start mark");
+    cMark *vStart = marks.GetAround(240 * macontext.Video.Info.framesPerSecond + iStartA, iStartA, MT_VBORDERSTART);
+    if (!vStart) {
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no vertical border at start found, ignore vertical border detection");
+        markCriteria.SetDetectionState(MT_VBORDERCHANGE, false);
+        marks.DelType(MT_VBORDERSTART, 0xFF);  // maybe we have a vborder start from a preview or in a doku, delete it
+        const cMark *vStop = marks.GetAround(240 * macontext.Video.Info.framesPerSecond + iStartA, iStartA, MT_VBORDERSTOP);
+        if (vStop) {
+            int pos = vStop->position;
+            char *comment = NULL;
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop without start mark found (%i), possible start mark of the following recording", pos);
+            marks.Del(pos);
+            if (asprintf(&comment,"assumed start from vertical border stop (%d)", pos) == -1) comment = NULL;
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
+            marks.Add(MT_ASSUMEDSTART, MT_UNDEFINED, MT_UNDEFINED, pos, comment);
+            if (comment) {
+                FREE(strlen(comment)+1, "comment");
+                free(comment);
+            }
+        }
+        return NULL;
+    }
+
+    // found vborder start
+    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start found at (%d)", vStart->position);
+    cMark *vStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is not valid
+    if (vStop) {
+        cMark *vNextStart = marks.GetNext(vStop->position, MT_VBORDERSTART);
+        int markDiff = (vStop->position - vStart->position) / macontext.Video.Info.framesPerSecond;
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop found at (%d), %ds after vertical border start", vStop->position, markDiff);
+        if (vNextStart) {
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start (%d) after vertical border stop (%d) found, start mark at (%d) is valid", vNextStart->position, vStop->position, vStart->position);
+        }
+        else { // we have only start/stop vborder in start part, this is from broadcast before
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no vertical border start found after start (%d) and stop (%d)", vStart->position, vStop->position);
+            if ((vStart->position < IGNORE_AT_START) && (markDiff <= 140)) {  // vbordet start/stop from previous broadcast
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop at (%d) %ds after vertical border start (%d) in start part found, this is from previous broadcast, delete marks", vStop->position, markDiff, vStart->position);
+                markCriteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE);
+                marks.Del(vStop);
+                marks.Del(vStart);
+                return NULL;
+            }
+        }
+    }
+
+    // prevent to get start of next broadcast as start of this very short broadcast
+    if (vStart->position > maxStart) {
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark (%d) after max start mark (%d) is invalid", vStart->position, maxStart);
+        return NULL;
+    }
+
+    if (vStart->position < IGNORE_AT_START) { // early position is a vborder from previous recording
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): delete too early vertical border start found at (%d)", vStart->position);
+        const cMark *vBorderStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);
+        marks.Del(vStart->position);
+        if (!vBorderStop || (vBorderStop->position > iStart + 420 * macontext.Video.Info.framesPerSecond)) {
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border since start, use it for mark detection");
+            markCriteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED);
+            if (!macontext.Video.Logo.isInBorder) {
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): logo marks can not be valid, delete it");
+                marks.DelType(MT_LOGOCHANGE, 0xF0);
+            }
+        }
+        return NULL;
+    }
+
+    // found valid vertical border start mark
+    markCriteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED);
+
+    // check logo stop/start after to prevent to get closing credit from previous recording as start
+    cMark *logoStop  = marks.GetNext(vStart->position, MT_LOGOSTOP);
+    if (logoStop) {
+        int diffStop  = (logoStop->position  - vStart->position) / macontext.Video.Info.framesPerSecond;
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): found logo stop (%d) %ds after vborder start (%d)", logoStop->position, diffStop, vStart->position);
+        if ((diffStop <= 25)) {  // changed from 10 to 25
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark position (%d) includes previous closing credits, use logo start (%d) instead", vStart->position, logoStop->position);
+            marks.Del(vStart->position);
+            logoStop = marks.ChangeType(logoStop, MT_START);
+            return logoStop;
+        }
+    }
+    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): delete logo marks if any");
+    marks.DelType(MT_LOGOCHANGE, 0xF0); // delete logo marks, vborder is stronger
+
+    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): delete HBORDER marks if any");
+    marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
+    return vStart;
+}
+
+
 
 void cMarkAdStandalone::CheckStart() {
     LogSeparator(true);
@@ -1940,98 +2033,7 @@ void cMarkAdStandalone::CheckStart() {
     if (!begin) begin = Check_HBORDERSTART();
 
 // vertical border start
-    if (!begin) {
-        dsyslog("cMarkAdStandalone::CheckStart(): search for vborder start mark");
-        cMark *vStart = marks.GetAround(240 * macontext.Video.Info.framesPerSecond + iStartA, iStartA, MT_VBORDERSTART);
-        if (!vStart) {
-            dsyslog("cMarkAdStandalone::CheckStart(): no vertical border at start found, ignore vertical border detection");
-            markCriteria.SetDetectionState(MT_VBORDERCHANGE, false);
-            marks.DelType(MT_VBORDERSTART, 0xFF);  // maybe we have a vborder start from a preview or in a doku, delete it
-            const cMark *vStop = marks.GetAround(240 * macontext.Video.Info.framesPerSecond + iStartA, iStartA, MT_VBORDERSTOP);
-            if (vStop) {
-                int pos = vStop->position;
-                char *comment = NULL;
-                dsyslog("cMarkAdStandalone::CheckStart(): vertical border stop without start mark found (%i), possible start mark of the following recording", pos);
-                marks.Del(pos);
-                if (asprintf(&comment,"assumed start from vertical border stop (%d)", pos) == -1) comment = NULL;
-                if (comment) {
-                    ALLOC(strlen(comment)+1, "comment");
-                }
-                marks.Add(MT_ASSUMEDSTART, MT_UNDEFINED, MT_UNDEFINED, pos, comment);
-                if (comment) {
-                    FREE(strlen(comment)+1, "comment");
-                    free(comment);
-                }
-            }
-        }
-        else {
-            dsyslog("cMarkAdStandalone::CheckStart(): vertical border start found at (%d)", vStart->position);
-            cMark *vStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is not valid
-            if (vStop) {
-                cMark *vNextStart = marks.GetNext(vStop->position, MT_VBORDERSTART);
-                int markDiff = static_cast<int> (vStop->position - vStart->position) / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::CheckStart(): vertical border stop found at (%d), %ds after vertical border start", vStop->position, markDiff);
-                if (vNextStart) {
-                    dsyslog("cMarkAdStandalone::CheckStart(): vertical border start (%d) after vertical border stop (%d) found, start mark at (%d) is valid", vNextStart->position, vStop->position, vStart->position);
-                }
-                else { // we have only start/stop vborder in start part, this is from broadcast before
-                    dsyslog("cMarkAdStandalone::CheckStart(): no vertical border start found after start (%d) and stop (%d)", vStart->position, vStop->position);
-                    if ((vStart->position < IGNORE_AT_START) && (markDiff <= 140)) {  // vbordet start/stop from previous broadcast
-                        dsyslog("cMarkAdStandalone::CheckStart(): vertical border stop at (%d) %ds after vertical border start (%d) in start part found, this is from previous broadcast, delete marks", vStop->position, markDiff, vStart->position);
-                        markCriteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE);
-                        marks.Del(vStop);
-                        marks.Del(vStart);
-                        vStart = NULL;
-                    }
-                }
-            }
-            // prevent to get start of next broadcast as start of this very short broadcast
-            if (vStart && (vStart->position > maxStart)) {
-                dsyslog("cMarkAdStandalone::CheckStart(): vborder start mark (%d) after max start mark (%d) is invalid", vStart->position, maxStart);
-                vStart = NULL;
-            }
-            if (vStart) {
-                if (vStart->position >= IGNORE_AT_START) { // early position is a vborder from previous recording
-                    // found valid vertical border start mark
-                    begin = vStart;                        // found valid vertical border start mark
-                    markCriteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED);
-
-                    // we found a vborder, check logo stop/start after to prevent to get closing credit from previous recording as start
-                    cMark *logoStop  = marks.GetNext(begin->position, MT_LOGOSTOP);
-                    cMark *logoStart = marks.GetNext(begin->position, MT_LOGOSTART);
-                    if (logoStop && logoStart && (logoStart->position > logoStop->position)) {
-                        int diffStop  = (logoStop->position  - begin->position) / macontext.Video.Info.framesPerSecond;
-                        int diffStart = (logoStart->position - begin->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::CheckStart(): found logo stop (%d) %ds and logo start (%d) %ds after vborder start (%d)", logoStop->position, diffStop, logoStart->position, diffStart, begin->position);
-                        if ((diffStop <= 25) && (diffStart <= 28)) {  // changed from 1/4 to 10/13 to 25/28
-                            dsyslog("cMarkAdStandalone::CheckStart(): vborder start mark position (%d) includes previous closing credits, use logo start (%d) instead", begin->position, logoStart->position);
-                            marks.Del(begin->position);
-                            begin = logoStart;
-                        }
-                    }
-                    if (begin->type != MT_LOGOSTART) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): delete logo marks if any");
-                        marks.DelType(MT_LOGOCHANGE, 0xF0); // delete logo marks, vborder is stronger
-                    }
-                    dsyslog("cMarkAdStandalone::CheckStart(): delete HBORDER marks if any");
-                    marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
-                }
-                else {
-                    dsyslog("cMarkAdStandalone::CheckStart(): delete too early vertical border start found at (%d)", vStart->position);
-                    const cMark *vBorderStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);
-                    marks.Del(vStart->position);
-                    if (!vBorderStop || (vBorderStop->position > iStart + 420 * macontext.Video.Info.framesPerSecond)) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): vertical border since start, use it for mark detection");
-                        markCriteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED);
-                        if (!macontext.Video.Logo.isInBorder) {
-                            dsyslog("cMarkAdStandalone::CheckStart(): logo marks can not be valid, delete it");
-                            marks.DelType(MT_LOGOCHANGE, 0xF0);
-                        }
-                    }
-                }
-            }
-        }
-    }
+    if (!begin) begin = Check_VBORDERSTART(maxStart);
 
 // try logo start mark
     if (!begin) begin = Check_LOGOSTART();

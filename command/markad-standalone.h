@@ -234,6 +234,11 @@ private:
     cMark *Check_HBORDERSTART();
 
     /**
+     * check for vborder start mark
+     */
+    cMark *Check_VBORDERSTART(const int maxStart);
+
+    /**
      * check for channel end mark
      */
     cMark *Check_CHANNELSTOP();
