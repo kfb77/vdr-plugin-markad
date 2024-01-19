@@ -466,7 +466,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         LogSeparator(false);
         dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check for separator for logo stop (%d), %ds after assumed end (%d)", lEnd->position, diffAssumed, iStopA);
         if (diffAssumed > 300) break;
-        if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveClosingLogo(lEnd)) {
+        if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveInfoLogoSequence(lEnd)) {
             end = lEnd;
             break;
         }
@@ -481,7 +481,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         LogSeparator(false);
         dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check for separator for logo stop (%d), %ds before assumed end (%d)", lEnd->position, diffAssumed, iStopA);
         if (diffAssumed > 349) break;   // changed from 300 to 349
-        if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveClosingLogo(lEnd)) {
+        if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveInfoLogoSequence(lEnd)) {
             end = lEnd;
         }
     }
@@ -912,8 +912,26 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
 }
 
 
-bool cMarkAdStandalone::HaveClosingLogo(const cMark *mark) {  // closing logo sequence from kabel eins
+bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {  // special case opening/closing logo sequence from kabel eins, unable to detect info logo change from this channel
     if (!mark) return false;
+    // check logo start mark
+    if (mark->type == MT_LOGOSTART) {
+        cMark *stop1After = marks.GetNext(mark->position, MT_LOGOSTOP);
+        if (!stop1After) return false;
+        cMark *start2After = marks.GetNext(stop1After->position, MT_LOGOSTART);
+        if (!start2After) return false;
+        int diffMarkStop1After        = 1000 * (stop1After->position  - mark->position)       / macontext.Video.Info.framesPerSecond;
+        int diffStop1AfterStart2After = 1000 * (start2After->position - stop1After->position) / macontext.Video.Info.framesPerSecond;
+        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTART (%5d) -> %dms -> MT_LOGOSTOP (%5d) -> %dms -> MT_LOGOSTART (%5d)", mark->position, diffMarkStop1After, stop1After->position, diffStop1AfterStart2After, start2After->position);
+        // valid example
+        // MT_LOGOSTART ( 5439) -> 5920ms -> MT_LOGOSTOP ( 5587) -> 1120ms -> MT_LOGOSTART ( 5615)
+        if ((diffMarkStop1After <= 5920) && (diffStop1AfterStart2After <= 1120)) {
+            dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): found opening info logo sequence");
+            return true;
+        }
+        else dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): logo start mark (%d): opening info logo sequence is invalid", mark->position);
+    }
+    // check logo stop mark
     if (mark->type == MT_LOGOSTOP) {
         cMark *start1Before = marks.GetPrev(mark->position, MT_LOGOSTART);
         if (!start1Before) return false;
@@ -927,7 +945,7 @@ bool cMarkAdStandalone::HaveClosingLogo(const cMark *mark) {  // closing logo se
         int diffStop1Start1 = 1000 * (start1Before->position - stop1Before->position)  / macontext.Video.Info.framesPerSecond;
         int diffStart2Stop1 = 1000 * (stop1Before->position  - start2Before->position) / macontext.Video.Info.framesPerSecond;
         int diffStop2Start2 = 1000 * (start2Before->position - stop2Before->position)  / macontext.Video.Info.framesPerSecond;
-        dsyslog("cMarkAdStandalone::HaveClosingLogo(): MT_LOGOSTOP (%5d) %dms MT_LOGOSTART (%5d) %dms MT_LOGOSTOP (%5d) %dms MT_LOGOSTART (%5d) %dms MT_LOGOSTOP (%5d)", stop2Before->position, diffStop2Start2, start2Before->position, diffStart2Stop1, stop1Before->position, diffStop1Start1, start1Before->position, diffStart1Mark, mark->position);
+        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTOP (%5d) %dms MT_LOGOSTART (%5d) %dms MT_LOGOSTOP (%5d) %dms MT_LOGOSTART (%5d) %dms MT_LOGOSTOP (%5d)", stop2Before->position, diffStop2Start2, start2Before->position, diffStart2Stop1, stop1Before->position, diffStop1Start1, start1Before->position, diffStart1Mark, mark->position);
         // valid examples
         // MT_LOGOSTOP (185315) 1080ms MT_LOGOSTART (185342)  8160ms MT_LOGOSTOP (185546) 840ms MT_LOGOSTART (185567)  18880ms MT_LOGOSTOP (186039)
         //
@@ -937,9 +955,10 @@ bool cMarkAdStandalone::HaveClosingLogo(const cMark *mark) {  // closing logo se
                 (diffStart2Stop1 >=  8160) && (diffStart2Stop1 <= 10000) && // closing logo deteted as logo
                 (diffStop1Start1 <=   840) &&                               // change from closing logo to logo
                 (diffStart1Mark  >= 18800) && (diffStart1Mark  <= 20000)) { // end part between closing logo and broadcast end
-            dsyslog("cMarkAdStandalone::HaveClosingLogo(): found closing logo sequence");
+            dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): found closing info logo sequence");
             return true;
         }
+        else dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): logo stop mark (%d): closing logo info sequence is invalid", mark->position);
     }
     return false;
 }
@@ -1485,7 +1504,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) too late for valid broadcast start", lStart->position);
             break;
         }
-        if (HaveBlackSeparator(lStart) || HaveSilenceSeparator(lStart)) {
+        if (HaveBlackSeparator(lStart) || HaveSilenceSeparator(lStart) || HaveInfoLogoSequence(lStart)) {
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark has separator, start mark (%d) is valid", lStart->position);
             marks.DelFromTo(lStart->position + 1, lStart->position + (8 * macontext.Video.Info.framesPerSecond), MT_LOGOCHANGE); // delete logo mark short after end mark, they are undected info / intruduction logos
             begin = lStart;
