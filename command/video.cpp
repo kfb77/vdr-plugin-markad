@@ -489,12 +489,13 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
 // no separation images (bright picture with logo)
 // rp=    0, contrast  23, brightness 207, plane 1: pixel diff  17, plane 2: pixel diff  26
 // rp=    0, contrast  20, brightness 201, plane 1: pixel diff  10, plane 2: pixel diff   9
+// rp=    0, contrast  19, brightness 199, plane 1: pixel diff  15, plane 2: pixel diff  10
 // rp=    0, contrast  18, brightness 210, plane 1: pixel diff  21, plane 2: pixel diff  20
 // rp=    0, contrast  18, brightness 209, plane 1: pixel diff  23, plane 2: pixel diff  24
 // rp=    0, contrast  18, brightness 200, plane 1: pixel diff  10, plane 2: pixel diff   9
 //
 #define LOW_PIXEL_LOGO 61  // changed from 18 to 61
-    if ((maContext->Video.Logo.pixelRatio > LOW_PIXEL_LOGO) && (area.status == LOGO_VISIBLE) && (area.rPixel[0] == 0) && (brightnessLogo < 200) && (contrastLogo <= 20)) {  // we have a very low contrast, now check plane 1 and plane 2
+    if ((maContext->Video.Logo.pixelRatio > LOW_PIXEL_LOGO) && (area.status == LOGO_VISIBLE) && (area.rPixel[0] == 0) && (brightnessLogo < 199) && (contrastLogo <= 20)) {  // we have a very low contrast, now check plane 1 and plane 2, changed from 200 to 199
         int diffPixel_12[2] = {0};
         for (int line =  1; line <  (maContext->Video.Info.height / 2) - 1; line++) {  // ignore first and last line, they have sometimes weird pixel
             for (int column = 1; column < (maContext->Video.Info.width / 2) - 2; column++) { // ignore first and last column, they have sometimes weird pixel
@@ -592,6 +593,10 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
 // brightness reduction does not work very well if we have only a few pixel
 //
 // not detected logo in bright area, also not detected with bridgtness reduction, take it as invalid
+// contrast 202, brightness 100 NEW
+// contrast 199, brightness 102 NEW
+// contrast 198, brightness 107 NEW
+//
 // contrast 189, brightness 127
 // contrast 189, brightness 117
 // contrast 188, brightness 173
@@ -620,7 +625,8 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
                 ((contrastLogo >   20) && (contrastLogo <=  51) && (brightnessLogo >= 184)) ||
                 ((contrastLogo >   51) && (contrastLogo <=  94) && (brightnessLogo >= 173)) ||
                 ((contrastLogo >   94) && (contrastLogo <= 140) && (brightnessLogo >= 165)) ||
-                ((contrastLogo >  140)                          && (brightnessLogo >= 117))) {
+                ((contrastLogo >  140) && (contrastLogo <= 197) && (brightnessLogo >= 117)) ||
+                ((contrastLogo >  197)                          && (brightnessLogo >= 100))) {
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cMarkAdLogo::ReduceBrightness():  contrast/brightness in logo area is invalid for brightness reduction (low pixel logo)");
 #endif
