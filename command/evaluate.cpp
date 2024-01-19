@@ -1882,9 +1882,11 @@ int cDetectLogoStopStart::IntroductionLogo() {
     } stillImage;
 
 
-    int retFrame             = -1;
-    int separatorFrameBefore = -1;
-    int separatorFrameAfter  = -1;
+    int retFrame              = -1;
+    int sumPixelBefore        =  0;
+    int sumFramePortionBefore =  0;
+    int separatorFrameBefore  = -1;
+    int separatorFrameAfter   = -1;
 
 #define INTRODUCTION_MIN_LENGTH          4961  // changed from 4320 to 4961, prevent to get separator scene with length 4960ms before broadcast start
 #define INTRODUCTION_MAX_LENGTH         13840
@@ -1932,12 +1934,13 @@ int cDetectLogoStopStart::IntroductionLogo() {
         //   0    74(l)   0     0 =  74
         //   0    65(l)   0    -1 =  64
         // new separator image before introduction logo, restart detection
-        if (((countNoMatch == 2) && (sumPixel <   63)) ||
+        if (((sumPixelBefore == 4000) && (sumFramePortionBefore >= 2578) && (sumPixel <= 225)) || // change from ad in frame without logo to start of broadcast with info logo
+                ((countNoMatch == 2) && (sumPixel <   63)) ||
                 ((countNoMatch >= 3) && (sumPixel <   64)) ||  // changed from 74 to 64
                 ((countNoPixel == 3) && (sumPixel == 997) && (introductionLogo.start == -1))) {  // special case blackscreen with logo, end of previous broadcast
             // but not if we have a detected separator, prevent false detection of black screen in boradcast
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
-            dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator before introduction found at frame (%5d)", (*cornerResultIt).frameNumber1);
+            dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator before introduction found at frame (%5d), sumPixel %d, sumPixelBefore %d, sumFramePortion %d, sumFramePortionBefore %d", (*cornerResultIt).frameNumber1, sumPixel, sumPixelBefore, sumFramePortion, sumFramePortionBefore);
 #endif
             separatorFrameBefore = (*cornerResultIt).frameNumber1;
             introductionLogo.start             = -1;
@@ -2034,6 +2037,8 @@ int cDetectLogoStopStart::IntroductionLogo() {
                 introductionLogo.frames       =  0;
             }
         }
+        sumPixelBefore        = sumPixel;
+        sumFramePortionBefore = sumFramePortion;
     }
 
     // select final introduction logo range
