@@ -90,9 +90,9 @@ const char *cPluginMarkAd::CommandLineHelp(void) {
            "            --autologo=<option>  0 = disable, only use logos from logo cache directory\n"
            "                                 1 = deprecated, do not use\n"
            "                                 2 = enable (default)\n"
-           "                                     if there is no suitable logo in the logo cache directroy markad will\n"
+           "                                     if there is no suitable logo in the logo cache directory markad will\n"
            "                                     try to find the logo from recording and store it in the recording directory\n"
-           "                                     If this option is set you can not configure this feature from the VDR menue\n";
+           "                                     If this option is set you can not configure this feature from the VDR menu\n";
 }
 
 
@@ -281,7 +281,7 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value) {
     else if (!strcasecmp(Name,"Log2Rec")) setup.Log2Rec = atoi(Value);
     else if (!strcasecmp(Name,"LogoOnly")) setup.LogoOnly = atoi(Value);
     else if (!strcasecmp(Name,"DeferredShutdown")) setup.DeferredShutdown = atoi(Value);
-    else if (!strcasecmp(Name,"AutoLogoExtraction")) setup.autoLogoMenue = atoi(Value);
+    else if (!strcasecmp(Name,"AutoLogoExtraction")) setup.autoLogoMenu = atoi(Value);
     else if (!strcasecmp(Name,"FullDecode")) setup.fulldecode = atoi(Value);
     else return false;
     return true;
@@ -373,7 +373,7 @@ cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int
             const char *Title = NULL;
             if (ReadTitle(Option)) Title = reinterpret_cast<char *>(&title);
             tChannelID channelID;
-            if (statusMonitor->Start(Option, Title, 0, 0, channelID, 0, 0, false, true)) { // start markad via SVDRP command, timerVPS will be detected by markad, we dont know this here
+            if (statusMonitor->Start(Option, Title, 0, 0, channelID, 0, 0, false, true)) { // start markad via SVDRP command, timerVPS will be detected by markad, we don't know this here
                 return cString::sprintf("Started markad for %s", Option);
             }
             else {

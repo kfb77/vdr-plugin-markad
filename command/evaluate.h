@@ -29,7 +29,7 @@ enum eEvaluateStatus {
 
 
 /**
- * class to evalute channel special logos types
+ * class to evaluate channel special logos types
  */
 class cEvaluateChannel : protected cTools {
 public:
@@ -80,7 +80,7 @@ public:
         //!<
         int startPosition          = -1;              //!< frame number of logo start mark
         //!<
-        int isLogoChange           = STATUS_UNKNOWN;  //!< status of logo chnage, value #eEvaluateStatus
+        int isLogoChange           = STATUS_UNKNOWN;  //!< status of logo change, value #eEvaluateStatus
         //!<
         int isAdInFrame            = STATUS_UNKNOWN;  //!< status of advertising in frame, value #eEvaluateStatus
         //!<
@@ -101,7 +101,7 @@ public:
      * @param marks           object with all marks
      * @param blackMarks      object with all black screen marks
      * @param iStart          assumed start frame position
-     * @param chkSTART        frame postion to check start part
+     * @param chkSTART        frame position to check start part
      * @param iStopA          assumed end mark position
      */
     void CheckLogoStopStartPairs(sMarkAdContext *maContext, cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA);
@@ -227,12 +227,12 @@ private:
 class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
 public:
     /**
-     * contructor for class to dectect special logo stop/start pair
+     * constructor for class to dectect special logo stop/start pair
      * @param maContextParam                 markad context
      * @param markCriteriaParam              mark criteria
      * @param ptr_cDecoderParam              decoder
      * @param recordingIndexParam            recording index
-     * @param evaluateLogoStopStartPairParam class to evalute logo stop/start pairs
+     * @param evaluateLogoStopStartPairParam class to evaluate logo stop/start pairs
      */
     cDetectLogoStopStart(sMarkAdContext *maContextParam, cMarkCriteria *markCriteriaParam, cDecoder *ptr_cDecoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam);
 
@@ -241,9 +241,9 @@ public:
     /**
      * find first pixel in a sobel transformed picture
      * @param      picture sobel transformed picture
-     * @param      corner  corner source of picture
-     * @param      width   width of the picture
-     * @param      height  height of the picture
+     * @param      corner  source corner of picture
+     * @param      width   picture width
+     * @param      height  picture height
      * @param      startX  x position to start search
      * @param      startY  y position to start search
      * @param      offsetX x offset for each search step (usually +1 or -1)
@@ -255,8 +255,8 @@ public:
     /**
      * find start position of a possible frame in a sobel transformed picture
      * @param         picture sobel transformed picture
-     * @param         width   width of the picture
-     * @param         height  height of the picture
+     * @param         width   picture width
+     * @param         height  picture height
      * @param[in,out] startX  in: x position to start search, out: x position of possible frame
      * @param[in,out] startY  in: y position to start search, out: y position of possible frame
      * @param         offsetX x offset for each search step (usually +1 or -1)
@@ -268,8 +268,8 @@ public:
     /**
      * find start position of a possible frame in a sobel transformed picture
      * @param         picture sobel transformed picture
-     * @param         width   width of the picture
-     * @param         height  height of the picture
+     * @param         width   picture width
+     * @param         height  picture height
      * @param[in]     startX  x position to start search (start pixel)
      * @param[in]     startY  y position to start search (start pixel)
      * @param         offsetX x offset for each search step (usually +1 or -1)
@@ -283,8 +283,8 @@ public:
      * detect a frame in a sobel transformed picture
      * @param frameNumber current frame number
      * @param picture     plane 0 of sobel transformed picture
-     * @param width       width of picture in pixel
-     * @param height      height of picture in pixel
+     * @param width       picture width in pixel
+     * @param height      picture height in pixel
      * @param corner      source corner of picture
      */
     int DetectFrame(const int frameNumber, const uchar *picture, const int width, const int height, const int corner);
@@ -342,7 +342,7 @@ private:
     //!<
     cIndex *recordingIndex;                                 //!< recording index
     //!<
-    cEvaluateLogoStopStartPair *evaluateLogoStopStartPair;  //!< class to evalute logo stop/start pairs
+    cEvaluateLogoStopStartPair *evaluateLogoStopStartPair;  //!< class to evaluate logo stop/start pairs
     //!<
     int startPos = 0;                                       //!< frame number of start position to compare
     //!<

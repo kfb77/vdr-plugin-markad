@@ -46,9 +46,9 @@ Command line options:
                --autologo=<option>   0 = disable, only use logos from logo cache directory
                                      1 = deprecated, do not use
                                      2 = enable (default)
-                                         if there is no suitable logo in the logo cache directroy markad will
+                                         if there is no suitable logo in the logo cache directory markad will
                                          try to find the logo from recording and store it in the recording directory
-                                         If this option is set you can not configure this feature from the VDR menue
+                                         If this option is set you can not configure this feature from the VDR menu
 
 --------------------------------------------------------------------------------------------------------------------------------------------------
 

@@ -259,7 +259,7 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
 
     char *datePart = strrchr(buffCutName, '/');
     if (!datePart) {
-        dsyslog("cEncoder::OpenFile(): faild to find last '/'");
+        dsyslog("cEncoder::OpenFile(): failed to find last '/'");
         FREE(strlen(buffCutName)+1, "buffCutName");
         free(buffCutName);
         return false;
@@ -268,7 +268,7 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
 
     char *cutName = strrchr(buffCutName, '/');
     if (!cutName) {
-        dsyslog("cEncoder::OpenFile(): faild to find last '/'");
+        dsyslog("cEncoder::OpenFile(): failed to find last '/'");
         FREE(strlen(buffCutName)+1, "buffCutName");
         free(buffCutName);
         return false;
@@ -424,7 +424,7 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
 #endif
     }
     else {
-        dsyslog("cEncoder::ChangeEncoderCodec(): codec of input stream %i not suported", streamIndexIn);
+        dsyslog("cEncoder::ChangeEncoderCodec(): codec of input stream %i not supported", streamIndexIn);
         return false;
     }
     codecCtxArrayOut[streamIndexOut]->thread_count = threadCount;
@@ -863,7 +863,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
     int streamIndexIn = avpktIn->stream_index;
     if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) return false; // prevent to overrun stream array
     int streamIndexOut = streamMap[streamIndexIn];
-    if (streamIndexOut == -1) return true; // no target for this this stream
+    if (streamIndexOut == -1) return true; // no target for this stream
 
 #ifdef DEBUG_CUT
     if (pass == 2) {
@@ -938,10 +938,10 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
     EncoderStatus.ptsInBefore[streamIndexIn] = avpktIn->pts;
     EncoderStatus.dtsInBefore[streamIndexIn] = avpktIn->dts;
 
-    // reencode packet if needed
-    if ((streamIndexOut >= 0) &&  // only reencode if stream is in streamMap
+    // re-encode packet if needed
+    if ((streamIndexOut >= 0) &&  // only re-encode if stream is in streamMap
             ((maContext->Config->ac3ReEncode && ptr_cDecoder->IsAudioAC3Packet()) ||
-             (maContext->Config->fullEncode && !ptr_cDecoder->IsSubtitlePacket()))) {  // even with full encode, do no reencode subtitle, use it as it is
+             (maContext->Config->fullEncode && !ptr_cDecoder->IsSubtitlePacket()))) {  // even with full encode, do no re-encode subtitle, use it as it is
 
         // check valid stream index
         if (streamIndexOut >= static_cast<int>(avctxOut->nb_streams)) return false;
@@ -1033,7 +1033,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
 #ifdef DEBUG_ENCODER
         SaveFrame(frameNumber, avFrame);
 #endif
-        // resample by libav not suported planar audio
+        // resample by libav not supported planar audio
         AVFrame *avFrameOut = NULL;
         if (ptr_cDecoder->IsAudioPacket() && (codecCtxArrayIn[streamIndexIn]->sample_fmt == AV_SAMPLE_FMT_S16P)) {
             avFrameOut = av_frame_alloc();
@@ -1146,8 +1146,8 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         av_packet_unref(&avpktOut);
     }
     else {
-        if (!maContext->Config->fullEncode || ptr_cDecoder->IsSubtitlePacket()) {  // no reencode, copy input packet to output stream, never reencode subtitle
-            if (streamIndexOut >= static_cast<int>(avctxOut->nb_streams)) return true;  // ignore high streamindex from input stream, they are unsuported subtitle
+        if (!maContext->Config->fullEncode || ptr_cDecoder->IsSubtitlePacket()) {  // no re-encode, copy input packet to output stream, never re-encode subtitle
+            if (streamIndexOut >= static_cast<int>(avctxOut->nb_streams)) return true;  // ignore high streamindex from input stream, they are unsupported subtitle
             // correct pts after cut
             avpktIn->pts = avpktIn->pts - EncoderStatus.pts_dts_CutOffset;
             avpktIn->dts = avpktIn->dts - EncoderStatus.pts_dts_CutOffset;

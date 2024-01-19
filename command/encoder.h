@@ -73,7 +73,7 @@ class cEncoder {
 public:
 
     /**
-     * contructor
+     * constructor
      * @param macontext markad context
      */
     explicit cEncoder(sMarkAdContext *macontext);
@@ -98,14 +98,14 @@ public:
     /** write packet to output file
      * @param avpktIn      packet from input stream
      * @param ptr_cDecoder decoder class
-     * @return true if sucessful, flase otherwise
+     * @return true if successful, flase otherwise
      */
     bool WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder);
 
     /**
      * close output file
      * @param ptr_cDecoder decoder class
-     * @return true if sucessful, false otherwise
+     * @return true if successful, false otherwise
      */
     bool CloseFile(cDecoder *ptr_cDecoder);
 
@@ -140,7 +140,7 @@ private:
 
     /**
      * save video frame as picture, used for debugging
-     * @param frame   frame number
+     * @param frame   framenumber
      * @param avFrame frame data
      */
     void SaveFrame(const int frame, AVFrame *avFrame);
@@ -190,7 +190,7 @@ private:
      * encoder status
      */
     struct sEncoderStatus {
-        int64_t videoStartDTS           = INT64_MAX;  //!< DTS timestamp of of the video stream from first mark
+        int64_t videoStartDTS           = INT64_MAX;  //!< DTS timestamp of the video stream from first mark
         //!<
         int frameBefore                 = -2;         //!< decoded frame number before current frame
         //!<

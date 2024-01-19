@@ -22,7 +22,7 @@
 // #define DEBUG_LOGO_DETECT_FRAME_CORNER <framenumber>
 // #define DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE <count frames>
 
-// write logo detection informations in log file
+// write logo detection information in log file
 // #define DEBUG_LOGO_DETECTION
 
 // debug overlap detection

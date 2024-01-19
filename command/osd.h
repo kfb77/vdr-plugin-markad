@@ -20,7 +20,7 @@
 class cOSDMessage {
 public:
 
-    /** constuctor
+    /** constructor
      * @param hostName   name or IP address of VDR
      * @param portNumber port number for OSD messages
      */

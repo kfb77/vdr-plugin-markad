@@ -37,13 +37,13 @@ extern "C" {
 #endif
 
 
-// suported libavcodec versions
+// supported libavcodec versions
 //
-// full suported markad ffmpeg versions (based on Ubuntu LTS has Standard Support, 5 years)
+// full supported markad ffmpeg versions (based on Ubuntu LTS has Standard Support, 5 years)
 //
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4.2  (Ubuntu 22.04, End of Standard Support: April 2027)
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 54<<8)+100)   ffmpeg 4.2.7  (Ubuntu 20.04, End of Standard Support: April 2025)
-#define LIBAVCODEC_VERSION_VALID ((58<<16)+( 54<<8)+100)   // oldest full suported version
+#define LIBAVCODEC_VERSION_VALID ((58<<16)+( 54<<8)+100)   // oldest full supported version
 
 
 // deprecated markad ffmpeg versions (based on Ubuntu LTS is End of Standard Support but still has Extended Security Maintenance, 10 years)
@@ -84,14 +84,14 @@ public:
     /**
      * set decoder to first/next file of the directory
      * @param recDir name of the recording directory
-     * @return true if first/next ts file found, false otherweise
+     * @return true if first/next ts file found, false otherwise
      */
     bool DecodeDir(const char *recDir);
 
     /**
      * setup decoder codec context for current file
      * @param filename file name
-     * @return true if setup was succesful, false otherwiese
+     * @return true if setup was successful, false otherwiese
      */
     bool DecodeFile(const char * filename);
 

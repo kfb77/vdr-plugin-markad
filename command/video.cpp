@@ -237,7 +237,7 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
     }
     fclose(pFile);
 
-    // calulate pixel ratio for special logo detection
+    // calculate pixel ratio for special logo detection
     if (area.mPixel[plane] == 0) {
         for (int i = 0; i < width * height; i++) {
             if (!area.mask[plane][i]) area.mPixel[plane]++;
@@ -380,7 +380,7 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
 
 // set coorginates for logo pixel part in logo corner
     if ((logo_xstart == 0) && (logo_xend == 0) && (logo_ystart == 0) && (logo_yend == 0)) {
-        switch (area.corner) {  // logo is usualy in the inner part of the logo corner
+        switch (area.corner) {  // logo is usually in the inner part of the logo corner
 #define LOGO_MIN_PIXEL 30  // big enough to get in the main part of the logo
         case TOP_LEFT: {
             // xend and yend from logo coordinates
@@ -988,7 +988,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 }
                 int quote = 100 * black / (logoHeight * logoWidth);
 #ifdef DEBUG_LOGO_DETECTION
-                dsyslog("cMarkAdLogo::Detect(): frame (%6d) pixel quote after brighness reduction: %d%%", frameCurrent, quote);
+                dsyslog("cMarkAdLogo::Detect(): frame (%6d) pixel quote after brightness reduction: %d%%", frameCurrent, quote);
 #endif
                 if (quote > 22) { // changed from 27 to 25
                     if ((quote >= 60) && (area.status == LOGO_INVISIBLE)) {  // prevent false logo start detection from patten background
@@ -1029,7 +1029,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 if ((brightnessState == BRIGHTNESS_ERROR) && (area.intensity >= AREA_INTENSITY_NO_TRUST) && (area.status == LOGO_VISIBLE) &&
                         (rPixel < (mPixel * logo_imark)) && (rPixel > (QUOTE_NO_TRUST * mPixel * logo_imark))) return LOGO_NOCHANGE;
             }
-            // dont belive brightness reduction for NITRO if we got a low contrast, logo too transparent, changed from 217
+            // don't believe brightness reduction for NITRO if we got a low contrast, logo too transparent, changed from 217
             if ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * logo_imark)) && (contrastReduced < 217) && CompareChannelName(maContext->Info.ChannelName, "NITRO", IGNORE_HD)) return LOGO_NOCHANGE;
         }
         // if we have still no match, try to copy colour planes into grey planes
@@ -1262,7 +1262,7 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
                                 ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
                                 if (ptr_cExtractLogo->SearchLogo(maContext, markCriteria, iFrameCurrent, true) > 0) dsyslog("cMarkAdLogo::Process(): no logo found in recording");
                                 else dsyslog("cMarkAdLogo::Process(): new logo for %s found in recording",buf);
-                                FREE(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo"); // ptr_cExtraceLogo is valid because it it used above
+                                FREE(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo"); // ptr_cExtraceLogo is valid because it was used above
                                 delete ptr_cExtractLogo;
                                 ptr_cExtractLogo = NULL;
                                 if (Load(maContext->Config->recDir,buf,0) == 0) {  // try again recording directory
@@ -1364,7 +1364,7 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber) {
     }
     if (!prevHistogram) {
         prevHistogram = currentHistogram;
-        return SCENE_UNINITALISIZED;
+        return SCENE_UNINITIALIZED;
     }
 
     // calculate distance between pevios und current frame
@@ -1422,7 +1422,7 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
         return 0;
     }
 #define PIXEL_COUNT_LOWER 90
-    // calulate limit with hysteresis
+    // calculate limit with hysteresis
     int maxBrightnessAll;
     int maxBrightnessLower;
 
@@ -1535,7 +1535,7 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
     int height = maContext->Video.Info.height;
 
     if (!maContext->Video.Data.PlaneLinesize[0]) {
-        dsyslog("cMarkAdBlackBordersHoriz::Process() Video.Data.PlaneLinesize[0] not initalized");
+        dsyslog("cMarkAdBlackBordersHoriz::Process() Video.Data.PlaneLinesize[0] not initialized");
         return HBORDER_ERROR;
     }
     int start     = (height - CHECKHEIGHT) * maContext->Video.Data.PlaneLinesize[0];
@@ -1895,7 +1895,7 @@ void cMarkAdOverlap::Detect(sOverlapPos *ptr_OverlapPos) {
 #ifdef DEBUG_OVERLAP
             if (simil >= 0) dsyslog("cMarkAdOverlap::Detect(): +++++     similar frame (%5d) (index %3d) and (%5d) (index %3d) -> simil %5d (max %d) length %2dms similarMaxCnt %2d)", histbuf[OV_BEFORE][indexBeforeStopMark].frameNumber, indexBeforeStopMark, histbuf[OV_AFTER][indexAfterStartMark].frameNumber, indexAfterStartMark, simil, similarCutOff, simLength, similarMinLength);
 #endif
-            // found long enought overlap, store position
+            // found long enough overlap, store position
 
             if ((simLength >= similarMinLength) &&
                     ((histbuf[OV_BEFORE][tmpindexBeforeStopMark].frameNumber - histbuf[OV_BEFORE][firstSimilarBeforeStopMark].frameNumber) >= (ptr_OverlapPos->similarBeforeEnd - ptr_OverlapPos->similarBeforeStart))) { // new overlap is longer than current overlap

@@ -1,7 +1,7 @@
 #
 # Makefile for a Video Disk Recorder plugin + program
 #
-# dont remove the next line, its needed for the VDR Makefile
+# don't remove the next line, its needed for the VDR Makefile
 # $(LIBDIR)/$@.$(APIVERSION)
 
 ### The version number of this plugin (taken from the main source file):

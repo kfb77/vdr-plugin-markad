@@ -730,7 +730,7 @@ char *cMarks::GetTime(cMark *mark) {
         }
         mark->SetTime(time);
     }
-    if (!time) esyslog("cMarks::GetTime(): frame (%d): faild to get time from index", mark->position);
+    if (!time) esyslog("cMarks::GetTime(): frame (%d): failed to get time from index", mark->position);
     return time;
 }
 

@@ -135,7 +135,7 @@ public:
 
     /**
      * calculate count of marks
-     * @param type type of marks to count
+     * @param type marks type to count
      * @param mask type mask
      * @return counf of mark
      */
@@ -200,7 +200,7 @@ public:
 
     /**
      * delete marks from/to position
-     * @param position position frame number
+     * @param position frame number position
      * @param fromStart true to delete all marks from start to position, false to delete all marks from position to end
      */
     void DelTill(const int position, const bool fromStart = true);
@@ -224,7 +224,7 @@ public:
 
     /**
      * delete mark
-     * @param mark mark to delete
+     * @param mark delete this mark
      */
     void Del(cMark *mark);
 
@@ -237,14 +237,14 @@ public:
 
     /**
      * delete mark
-     * @param position position to delete
+     * @param position delete this position
      */
     void Del(const int position);
 
 
     /**
      * change mark type (START or STOP)
-     * @param mark    mark to move
+     * @param mark    move this mark
      * @param newType new type of mark, allow values are MT_START or MT_STOP
      * @return mark with new type
      */
@@ -253,7 +253,7 @@ public:
 
     /**
      * move mark position
-     * @param mark        mark to move
+     * @param mark        move this mark
      * @param newPosition new position of mark
      * @param newType     new type of mark
      * @return mark with new position
@@ -278,8 +278,8 @@ public:
     /**
      * get nearest mark
      * @param frames   maximum frames distance
-     * @param position position to search around
-     * @param type     type of next mark
+     * @param position search around this position
+     * @param type     next mark type
      * @param mask     binary mask for type
      * @return nearest mark
      */
@@ -287,8 +287,8 @@ public:
 
     /**
      * get previous mark
-     * @param position position to start search of next mark
-     * @param type     type of next mark
+     * @param position start search of next mark at this position
+     * @param type     next mark type
      * @param mask     binary mask for type
      * @return previous mark
      */
@@ -296,8 +296,8 @@ public:
 
     /**
      * get next mark
-     * @param position position to start search of next mark
-     * @param type     type of next mark
+     * @param position start search of next mark at this position
+     * @param type     next mark type
      * @param mask     binary mask for type
      * @return next mark
      */
@@ -331,7 +331,7 @@ public:
      * @param directory recording directory
      * @param maContext markad context
      * @param force     true if to save in any cases, false if only save when not running recording
-     * @return true if successfuly saved, false otherwise
+     * @return true if successfully saved, false otherwise
      */
     bool Save(const char *directory, const sMarkAdContext *maContext, const bool force);
 
@@ -344,7 +344,7 @@ public:
 
     /**
      * convert mark type to text
-     * @param type type of the mark
+     * @param type mark type
      * @return text of the mark type
      */
     static char *TypeToText(const int type);

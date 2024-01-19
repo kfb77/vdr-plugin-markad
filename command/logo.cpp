@@ -97,7 +97,7 @@ void cExtractLogo::GetLogoSize(const sMarkAdContext *maContext, int *logoHeight,
 
 // check plane if the is a logo colour schnage
 // calculate quote of white pictures
-// return: true if only some frames have have pixels in plane >=1, a channel with logo coulor change is detected
+// return: true if only some frames have pixels in plane >=1, a channel with logo coulor change is detected
 //         false if almost all frames have pixel in plane >=1, this is realy a coloured logo
 //
 bool cExtractLogo::IsLogoColourChange(const sMarkAdContext *maContext, const int corner, const int plane) {
@@ -797,7 +797,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 if (cutLine >= LOGO_MIN_LETTERING_H) {
                     if ((((rightBlackPixel - leftBlackPixel) >= 38) && ((*logoHeight - cutLine) > 8)) || // cut our "love your" from TLC with 38 pixel width, do not cut out lines in the logo
                             (((rightBlackPixel - leftBlackPixel) <= 20) && ((*logoHeight - cutLine) <= 8))) { // cut out small pixel errors
-                        dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, qoute %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, *logoHeight - cutLine, leftBlackPixel, rightBlackPixel, quoteAfterCut);
+                        dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, quote %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, *logoHeight - cutLine, leftBlackPixel, rightBlackPixel, quoteAfterCut);
                         CutOut(bestLogoInfo, *logoHeight - cutLine, 0, logoHeight, logoWidth, bestLogoCorner);
                     }
                     else dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, width is invalid", cutLine, rightBlackPixel - leftBlackPixel, *logoHeight - cutLine, leftBlackPixel, rightBlackPixel);
@@ -1008,7 +1008,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                         cutColumn = column;
                     }
                 }
-                if (cutColumn > static_cast<int>((*logoWidth * 0.5))) {  // do not cut too mutch, could be a space in the logo (e.g. VOXup)
+                if (cutColumn > static_cast<int>((*logoWidth * 0.5))) {  // do not cut too much, could be a space in the logo (e.g. VOXup)
                     if ((bottomBlackPixel - topBlackPixel) <= 19) {
                         dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
                         CutOut(bestLogoInfo, 0, *logoWidth - cutColumn, logoHeight, logoWidth, bestLogoCorner);
@@ -1660,12 +1660,12 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
 
                     iFrameCountValid++;
                     if (!maContext->Video.Data.valid) {
-                        dsyslog("cExtractLogo::SearchLogo(): faild to get video data of frame (%d)", iFrameNumber);
+                        dsyslog("cExtractLogo::SearchLogo(): failed to get video data of frame (%d)", iFrameNumber);
                         continue;
                     }
                     for (int corner = 0; corner < CORNERS; corner++) {
-                        int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, dont analyse, only fill area
-                        //                       -2: called by cExtractLogo, dont analyse, only fill area, store logos in /tmp for debug
+                        int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, don't analyse, only fill area
+                        //                       -2: called by cExtractLogo, don't analyse, only fill area, store logos in /tmp for debug
                         area->corner = corner;
                         ptr_Logo->Detect(0, iFrameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
 

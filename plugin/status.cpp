@@ -144,7 +144,7 @@ int cStatusMarkAd::Get_EIT_EventID(const sRecordings *recording, const cEvent *e
     tEventID eitEventID  = eitEvent->getEventId();
     if (nextEvent) event = schedule->GetFollowingEvent();
 
-    //  this is no real VPS control, we can only handle VPS events in the timer start/stop range, keep pre/post timer big enought, try to find in each EIT event
+    //  this is no real VPS control, we can only handle VPS events in the timer start/stop range, keep pre/post timer big enough, try to find in each EIT event
     time_t startTimeEIT   = eitEvent->getStartTime();
     time_t stopTimeEIT    = startTimeEIT + eitEvent->getDuration();
 
@@ -197,7 +197,7 @@ int cStatusMarkAd::Get_EIT_EventID(const sRecordings *recording, const cEvent *e
 }
 
 void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *Schedule) {
-    if (!setup->useVPS) return; // no VPS confugured
+    if (!setup->useVPS) return; // no VPS configured
     if (max_recs == -1) return; // no recording running, nothing to do
 
 #if APIVERSNUM>=20301  // feature not supported with old VDRs
@@ -254,7 +254,7 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
             }
             if ((recs[i].eitEventID == eitEventID)) {
                 if (recs[i].runningStatus != runningStatus) {
-                    SetVPSStatus(i, runningStatus, (eitEvent)); // store recording running status from EIT Event, with epg2vdr it is differnt from VDR event
+                    SetVPSStatus(i, runningStatus, (eitEvent)); // store recording running status from EIT Event, with epg2vdr it is different from VDR event
                 }
             }
             if ((recs[i].runningStatus == 4) && (runningStatus == 4) && (eitEventID == recs[i].eitEventNextID)) {  // next event got EIT start, for private channels this is the only stop event
@@ -623,8 +623,8 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
         ALLOC(strlen(autoLogoOption)+1, "autoLogoOption");
     }
     else {
-        if (setup->autoLogoMenue >= 0) {
-            if(! asprintf(&autoLogoOption, " --autologo=%i ", setup->autoLogoMenue)) {
+        if (setup->autoLogoMenu >= 0) {
+            if(! asprintf(&autoLogoOption, " --autologo=%i ", setup->autoLogoMenu)) {
                 esyslog("markad: asprintf ouf of memory");
                 return false;
             }
@@ -793,7 +793,7 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
 void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const char *FileName, bool On) {
     if (!FileName) return; // we cannot operate without a filename
     if (!bindir)   return; // we cannot operate without bindir
-    if (!logodir)  return; // we dont want to operate without logodir
+    if (!logodir)  return; // we don't want to operate without logodir
 
     if (On) {
         runningRecordings++;
@@ -814,7 +814,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         GetEventID(Device, Name, &eventID, &eventNextID, &channelID, &timerStartTime, &timerStopTime, &timerVPS);
         SaveVPSTimer(FileName, timerVPS);
 
-        if ((setup->ProcessDuring == PROCESS_NEVER) && setup->useVPS) {  // markad start disabled per config menue, add recording for VPS detection
+        if ((setup->ProcessDuring == PROCESS_NEVER) && setup->useVPS) {  // markad start disabled per config menu, add recording for VPS detection
             int pos = Add(FileName, Name, eventID, eventNextID, channelID, timerStartTime, timerStopTime, timerVPS);
             if (pos >= 0) dsyslog("markad: cStatusMarkAd::Recording(): added recording <%s> channelID %s, event ID %u, eventNextID %u at index %i only for VPS detection", Name, *channelID.ToString(), eventID, eventNextID, pos);
             return;
@@ -826,7 +826,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
 
         bool autoLogo = false;
         if (setup->autoLogoConf >= 0) autoLogo = (setup->autoLogoConf > 0);
-        else autoLogo = (setup->autoLogoMenue > 0);
+        else autoLogo = (setup->autoLogoMenu > 0);
 
         if (!autoLogo && setup->LogoOnly && !LogoExists(Device,FileName)) {   // we can find the logo in the recording
             isyslog("markad: no logo found for %s", Name);

@@ -23,9 +23,9 @@
 #define LOGO_IMARK 0.18        //!< percentage of pixels for invisible changed from 0,15 to 0,18
 //!<
 
-#define MIN_H_BORDER_SECS  79  //!< minimum lenght of horizontal border, changed from 97 to 79, shortest full hborder, after this logo in border results in lower values
+#define MIN_H_BORDER_SECS  79  //!< minimum length of horizontal border, changed from 97 to 79, shortest full hborder, after this logo in border results in lower values
 //!<
-#define MIN_V_BORDER_SECS 224  //!< minimum lenght of vertical border before it is accepted <br>
+#define MIN_V_BORDER_SECS 224  //!< minimum length of vertical border before it is accepted <br>
 //!< changed from 140 to 224 <br>
 //!< need a long sequence to prevent long darks scenes detected as border <br>
 //!< keep it greater than MIN_H_BORDER_SECS for detecting long black screens
@@ -44,7 +44,7 @@ enum eLogoStatus {
 };
 
 enum {
-    SCENE_UNINITALISIZED = -2,
+    SCENE_UNINITIALIZED  = -2,
     SCENE_NOCHANGE       =  0,
     SCENE_CHANGED        =  1
 };
@@ -85,13 +85,13 @@ enum {
  * corner area after sobel transformation
  */
 typedef struct sAreaT {
-    uchar **sobel      = NULL;       //!< monochrome picture from edge after sobel transformation, memory will be alocated after we know video resolution
+    uchar **sobel      = NULL;       //!< monochrome picture from edge after sobel transformation, memory will be allocated after we know video resolution
     //!<
 
-    uchar **mask       = NULL;       //!< monochrome mask of logo, memory will be alocated after we know video resolution
+    uchar **mask       = NULL;       //!< monochrome mask of logo, memory will be allocated after we know video resolution
     //!<
 
-    uchar **result     = NULL;       //!< result of sobel + mask, memory will be alocated after we know video resolution
+    uchar **result     = NULL;       //!< result of sobel + mask, memory will be allocated after we know video resolution
     //!<
 
     int rPixel[PLANES];              //!< black pixel in result
@@ -135,14 +135,14 @@ public:
     /**
      * calculate default logo size dependent on video resolution, used to extract logo from recording
      * @param width video width in pixel
-     * @return default logo width and heigth in pixel
+     * @return default logo width and height in pixel
      */
     sLogoSize GetDefaultLogoSize(const int width);
 
     /**
      * calculatate maximum logo size dependent on video resolution
      * @param width video width in pixel
-     * @return maximum valid logo width and heigth in pixel
+     * @return maximum valid logo width and height in pixel
      */
     sLogoSize GetMaxLogoSize(const int width);
 
@@ -160,7 +160,7 @@ private:
 
 
 /**
- * class to detect overlaping scenes before and after advertising
+ * class to detect overlapping scenes before and after advertising
  */
 class cMarkAdOverlap {
 public:
@@ -237,7 +237,7 @@ private:
     //!<
     int lastFrameNumber;               //!< last processed frame number
     //!<
-    int similarCutOff;                 //!< maximum different pixel to treat picture as similar, depends on resulution
+    int similarCutOff;                 //!< maximum different pixel to treat picture as similar, depends on resolution
     //!<
     int similarMinLength;              //!< minimum similar frames for a overlap
     //!<
@@ -319,22 +319,22 @@ private:
      * @param[out] xend   x position of logo end
      * @param[out] ystart y position of logo start
      * @param[out] yend   y position of logo end
-     * @param[in]  plane  plane number
-     * @return true if sucessful, false otherwise
+     * @param[in]  plane  number of plane
+     * @return true if successful, false otherwise
      */
     bool SetCoordinates(int *xstart, int *xend, int *ystart, int *yend, const int plane) const;
 
     /**
      * reduce brightness of logo corner
      * @param[in]  frameNumber     frame number, only used to debug
-     * @param[out] contrastReduced logo area brightness after reduction if sucessful, otherwise unchanged
+     * @param[out] contrastReduced logo area brightness after reduction if successful, otherwise unchanged
      * @return return code #eBrightness value
      */
     int ReduceBrightness(const int frameNumber, int *contrastReduced);
 
     /**
      * sobel transform one plane of the picture
-     * @param plane plane number
+     * @param plane number of plane
      * @param boundary count pixel of outer frame to ignore in sobel transformation, need for logo extraction to avoid corner lines
      * @return true if successful, false otherwise
      */
@@ -343,8 +343,8 @@ private:
     /**
      * load logo from file in directory
      * @param directory source directory
-     * @param file file name
-     * @param plane plane number
+     * @param file name of file
+     * @param plane number of plane
      * @return 0 on success, -1 file not found, -2 format error in logo file
      */
     int Load(const char *directory, const char *file, const int plane);
@@ -352,7 +352,7 @@ private:
     /**
      * save the area.corner picture after sobel transformation to /tmp
      * @param frameNumber frame number
-     * @param picture picture to save
+     * @param picture save picture
      * @param plane number
      * @param debug = NULL: save was called by --extract function, != NULL: save was called by debug statements, add debug identifier to filename
      * return: true if successful, false otherwise
@@ -362,7 +362,7 @@ private:
     /**
      * save the original corner picture /tmp and add debug identifier to filename
      * @param frameNumber frame number
-     * @param debug debug identifier
+     * @param debug identifier for debug
      * @return: true if successful, false otherwise
      */
     void SaveFrameCorner(const int frameNumber, const int debug);
@@ -438,7 +438,7 @@ private:
     //!<
     int prevFrameNumber       = 0;     //!< previous frame number
     //!<
-    int *prevHistogram        = NULL;  //!< histogram of previos frame
+    int *prevHistogram        = NULL;  //!< histogram of previous frame
     //!<
 };
 
@@ -653,7 +653,7 @@ private:
 
     /**
      * add a new mark to array of new marks
-     * @param type     type of the mark
+     * @param type     mark type
      * @param position frame number
      * @param before   video aspect ratio before mark position
      * @param after    video aspect ratio after mark position
@@ -671,7 +671,7 @@ private:
 
     sMarkAdContext *maContext         = NULL; //!< markad context
     //!<
-    cMarkCriteria *markCriteria       = NULL; //!< poiter to class for marks and decoding criterias
+    cMarkCriteria *markCriteria       = NULL; //!< pointer to class for marks and decoding criteria
     //!<
     cIndex *recordingIndexMarkAdVideo = NULL; //!< recording index
     //!<

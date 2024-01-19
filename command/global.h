@@ -132,7 +132,7 @@ typedef struct sLogoSize {
 typedef struct sMarkAdConfig {
     char logFile[20] = {};      //!< name of the markad log file
     //!<
-    char logoDirectory[1024];   //!< logo cache directory (defaut /var/lib/markad)
+    char logoDirectory[1024];   //!< logo cache directory (default /var/lib/markad)
     //!<
     char markFileName[1024];    //!< name of the marks file (default marks)
     //!<
@@ -156,8 +156,8 @@ typedef struct sMarkAdConfig {
     //!<
     int posttimer;              //!< time in second in the recording after assumed end of broadcast
     //!<
-    bool useVPS = false;        //!< <b>true:</b> use informations from vps file to optimize marks
-    //!< <b>false:</b> do not use informations from vps file to optimize marks
+    bool useVPS = false;        //!< <b>true:</b> use information from vps file to optimize marks
+    //!< <b>false:</b> do not use information from vps file to optimize marks
     bool MarkadCut = false;     //!< cut video after mark detection
     //!<
     bool ac3ReEncode = false;   //!< re-encode AC3 stream and adapt audio volume

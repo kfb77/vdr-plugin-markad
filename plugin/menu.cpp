@@ -91,9 +91,9 @@ bool cMenuMarkAd::write() {
         if (Entry) {
             if (!header) {
                 header=true;
-                Add(new cOsdItem(tr("Recording\t Status"),osUnknown,false));  // freed by vdr on menue close
+                Add(new cOsdItem(tr("Recording\t Status"),osUnknown,false));  // freed by vdr on menu close
             }
-            cOsdMarkAd *osd = new cOsdMarkAd(Entry);  // freed by vdr on menue close
+            cOsdMarkAd *osd = new cOsdMarkAd(Entry);  // freed by vdr on menu close
             if (osd) {
                 Add(osd);
                 if (osd->Index()==lastpos) SetCurrent(osd);
@@ -103,7 +103,7 @@ bool cMenuMarkAd::write() {
     while (Entry);
 
     if (!header) {
-        Add(new cOsdItem(tr("no running markad found"),osUnknown,false),true);  // freed by vdr on menue close
+        Add(new cOsdItem(tr("no running markad found"),osUnknown,false),true);  // freed by vdr on menu close
         lastpos=0;
     }
     Display();

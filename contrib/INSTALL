@@ -1,7 +1,7 @@
 markad_videos
 
-This programm let markad run on a video directory to build all missing markad files.
-See markad_video -h and markad_video.conf for more informations.
+This program let markad run on a video directory to build all missing markad files.
+See markad_video -h and markad_video.conf for more information.
 
 Install instruction to execute markad_video each hour:
 Requirements:

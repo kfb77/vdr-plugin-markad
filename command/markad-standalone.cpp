@@ -239,7 +239,7 @@ cMark *cMarkAdStandalone::Check_CHANNELSTOP() {
     }
     // check if channel stop mark is valid end mark
     if (end) {
-        cMark *cStart = marks.GetPrev(end->position, MT_CHANNELSTART);      // if there is short befor a channel start, this stop mark belongs to next recording
+        cMark *cStart = marks.GetPrev(end->position, MT_CHANNELSTART);      // if there is short before a channel start, this stop mark belongs to next recording
         if (cStart) {
             if ((end->position - cStart->position) < (macontext.Video.Info.framesPerSecond * 120)) {
                 dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): MT_CHANNELSTART short before MT_CHANNELSTOP found at frame %d with delta %ds, MT_CHANNELSTOP is not valid, try to find stop mark short before", cStart->position, static_cast<int> ((end->position - cStart->position) / macontext.Video.Info.framesPerSecond));
@@ -345,7 +345,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
     if (end) {
         dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): found MT_HBORDERSTOP end mark (%d)", end->position);
         cMark *channelStart = marks.GetPrev(end->position, MT_CHANNELSTART);
-        // cleanup channel start mark short befor hborder stop, this is start mark of next broadcast
+        // cleanup channel start mark short before hborder stop, this is start mark of next broadcast
         if (channelStart) {
             int diff = 1000 * (end->position - channelStart->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): channel start (%d) from next braodcast %dms before hborder stop (%d) found, delete channel mark", channelStart->position, diff, end->position);
@@ -458,13 +458,13 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
 
     // try to select best logo end mark based on long black screen or silence
     LogSeparator(false);
-    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for logo end mark based black screen, silence or closing logo sequence seperator");
+    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for logo end mark based black screen, silence or closing logo sequence separator");
     // search from nearest logo stop mark to end
     cMark *lEnd = lEndAssumed;
     while (!end && lEnd) {
         int diffAssumed = (lEnd->position - iStopA) / macontext.Video.Info.framesPerSecond;
         LogSeparator(false);
-        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check for seperator for logo stop (%d), %ds after assumed end (%d)", lEnd->position, diffAssumed, iStopA);
+        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check for separator for logo stop (%d), %ds after assumed end (%d)", lEnd->position, diffAssumed, iStopA);
         if (diffAssumed > 300) break;
         if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveClosingLogo(lEnd)) {
             end = lEnd;
@@ -479,7 +479,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         if (!lEnd) break;
         int diffAssumed = (iStopA - lEnd->position) / macontext.Video.Info.framesPerSecond;
         LogSeparator(false);
-        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check for seperator for logo stop (%d), %ds before assumed end (%d)", lEnd->position, diffAssumed, iStopA);
+        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check for separator for logo stop (%d), %ds before assumed end (%d)", lEnd->position, diffAssumed, iStopA);
         if (diffAssumed > 349) break;   // changed from 300 to 349
         if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveClosingLogo(lEnd)) {
             end = lEnd;
@@ -1669,7 +1669,7 @@ void cMarkAdStandalone::CheckStart() {
     }
     DebugMarks();     //  only for debugging
 
-    // set initial mark criterias
+    // set initial mark criteria
     if (marks.Count(MT_HBORDERSTART) == 0) markCriteria.SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_UNAVAILABLE);  // if we have no hborder start, broadcast can not have hborder
     else if ((marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 0)) markCriteria.SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE);  // if we have a vborder start and no vboder stop
 
@@ -1732,7 +1732,7 @@ void cMarkAdStandalone::CheckStart() {
 
             if (macontext.Info.Channels[stream]) {
                 if ((macontext.Info.Channels[stream] == 6) && (macontext.Audio.Options.ignoreDolbyDetection == false)) {
-                    isyslog("DolbyDigital5.1 audio whith 6 channels in stream %d detected", stream);
+                    isyslog("DolbyDigital5.1 audio with 6 channels in stream %d detected", stream);
                     markCriteria.SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE);
                     if (macontext.Audio.Info.channelChange) {
                         dsyslog("cMarkAdStandalone::CheckStart(): channel change detected");
@@ -1907,7 +1907,7 @@ void cMarkAdStandalone::CheckStart() {
                 // we have valid a aspect ratio start mark from a 4:3 recording, advertisement are 16:9, delete all other marks and disable all other detection
                 if (begin) {
                     marks.DelWeakFromTo(0, INT_MAX, MT_ASPECTCHANGE); // delete all weak marks
-                    marks.Del(MT_CHANNELSTART);  // delete channel marks from previos recording
+                    marks.Del(MT_CHANNELSTART);  // delete channel marks from previous recording
                     marks.Del(MT_CHANNELSTOP);
                     video->ClearBorder();
                 }
@@ -2492,7 +2492,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                             }
                             else dsyslog("cMarkAdStandalone::CheckMarks(): no preview between (%d) and (%d), length advertising before %ds or after %dms is not valid", mark->position, mark->Next()->position, lengthAdBefore, lengthAdAfter);
                         }
-                        else dsyslog("cMarkAdStandalone::CheckMarks(): not long enought ad before and after preview, maybe logo detection failure");
+                        else dsyslog("cMarkAdStandalone::CheckMarks(): not long enough ad before and after preview, maybe logo detection failure");
                     }
                     else dsyslog("cMarkAdStandalone::CheckMarks(): no preview because no MT_LOGOSTOP before or MT_LOGOSTART after found");
                 }
@@ -2689,7 +2689,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
 
                 // check length of last broadcast and distance to assumed end
                 if ((lastStopMark->type & 0xF0) < MT_CHANNELCHANGE) {  // trust channel marks and better
-                    int minLastStopAssumed;    // trusted distance to assumed assumed stop depents on hardness of marks
+                    int minLastStopAssumed;    // trusted distance to assumed stop depents on hardness of marks
                     int minLastStartAssumed;
                     int minPrevStopAssumed;
                     int maxLastBroadcast;
@@ -3150,7 +3150,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         return;
     }
 
-    // add weak marks only to seperate marks object
+    // add weak marks only to separate marks object
     switch (mark->type & 0xF0) {
     case MT_SCENECHANGE:
         sceneMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, NULL, inBroadCast);
@@ -3639,7 +3639,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
     mark = marks.GetFirst();
     int oldFrameNumber = 0;
 
-    // read and decode all video frames, we want to be sure we have a valid decoder state, this is a debug function, we dont care about performance
+    // read and decode all video frames, we want to be sure we have a valid decoder state, this is a debug function, we don't care about performance
     while(mark && (ptr_cDecoder->DecodeDir(directory))) {
         while(mark && (ptr_cDecoder->GetNextPacket(false, false))) {
             if (abortNow) return;
@@ -3885,7 +3885,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             if (markLogo->position > marks.GetFirst()->position) { // never saw a advertising in frame after first start mark
                 LogSeparator(false);
                 int searchEndPosition = markLogo->position + (60 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
-                // somtimes advertising in frame has text in "e.g. Werbung"
+                // sometimes advertising in frame has text in "e.g. Werbung"
                 // check longer range to prevent to detect text as second logo
                 // changed from 35 to 60
 
@@ -3943,7 +3943,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             // check for advertising in frame with logo before logo stop mark position
             LogSeparator(false);
             int searchStartPosition = markLogo->position - (45 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s, changed from 35 to 45
-            // somtimes there is a closing credit in frame with logo before
+            // sometimes there is a closing credit in frame with logo before
             const char *indexToHMSFStopMark = marks.GetTime(markLogo);
             char *indexToHMSFSearchPosition = marks.IndexToHMSF(searchStartPosition);
             if (indexToHMSFSearchPosition) {
@@ -4054,7 +4054,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 int maxBefore = -1;
                 switch (mark->type) {
                 case MT_LOGOSTART:
-                    // select best mark (before (length)/ after (length)), defaut: before
+                    // select best mark (before (length)/ after (length)), default: before
                     // invalid black screen after broadcast start
                     //     -     /   2440 (80)   black screen after broadcast start
 
@@ -4076,7 +4076,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         maxBefore = 4599;  // black screen before preview 4600ms before introduction logo
                         break;
                     case MT_VPSSTART:
-                        // select best mark (before / after), defaut: before
+                        // select best mark (before / after), default: before
                         // <50480> (520) /  89400  (1240)
 
                         //  25000  (600) /  <7560>  (280)
@@ -4136,7 +4136,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        // select best mark (before / after), defaut: before
+                        // select best mark (before / after), default: before
                         // - / 66840 (4160)  very long black screen before broadcast start
                         //
                         // black screen after with silence around
@@ -4146,7 +4146,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         else                          maxAfter =  2000;
                         break;
                     case MT_INTRODUCTIONSTART:
-                        // select best mark (before / after), defaut: before
+                        // select best mark (before / after), default: before
                         // - / 3760 (3800)  long black screen from end of previous broadcast is detected as part of the introduction logo
                         maxAfter = 3760;
                         break;
@@ -4238,7 +4238,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxAfter =  0;  // use mid of black screen for end marks
                     break;
                 case MT_LOGOSTOP:
-                    // select best mark (before (length) / after (length)), defaut: after
+                    // select best mark (before (length) / after (length)), default: after
                     //
                     // special case TLC end mark
                     // 8680ms (160) -> invalid: black screen after ad, end selected after long closing credits without logo and without frame
@@ -4282,7 +4282,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        // select best mark (before (length) / after (length)), defaut: after
+                        // select best mark (before (length) / after (length)), default: after
                         // <3520> (200) /  8500 (180)  second blackscreen after preview
                         // <5300> (200) / 11200 (220)  second blackscreen after preview
                         //
@@ -4297,7 +4297,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         }
                         break;
                     case MT_CLOSINGCREDITSSTOP:
-                        // select best mark (before (length) / after (length)), defaut: after
+                        // select best mark (before (length) / after (length)), default: after
                         // <15200> (240) / 15080 (160)  black screen between closind credis and ad in frame, all detected as closing credits
                         maxAfter = 11040;   // chnaged from 7200 to 11040 (incomplete detected closing credits)
                         break;
@@ -4762,7 +4762,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxBefore = 4479;
                     break;
                 case MT_LOGOSTART:
-                    // select best mark (before / after), defaut: before
+                    // select best mark (before / after), default: before
                     if ((diffBefore >=  600) && (diffAfter <=  360)) diffBefore = INT_MAX;
                     if ((diffBefore >= 2040) && (diffAfter <= 3460)) diffBefore = INT_MAX;
                     maxBefore = 4559;  // silence before separator 4560ms before start
@@ -4771,6 +4771,8 @@ void cMarkAdStandalone::SilenceOptimization() {
                     switch (mark->newType) {
                     case MT_VPSSTART:
                         // select best mark (before / after), defaut: before
+                        // select best mark (before / after), default: before
+                        //       -      / <43440> (880)
                         // <51440> (bb) / 6400    second silence in broadcast
                         if ((diffBefore >= 17200) && !blackLowerBefore && (diffAfter <= 7760)) diffBefore = INT_MAX;
                         if (blackLowerBefore) maxBefore = 51440;   // black lower border short before silence
@@ -4906,11 +4908,23 @@ void cMarkAdStandalone::SilenceOptimization() {
                     else if (CompareChannelName(macontext.Info.ChannelName, "Nickelodeon", IGNORE_HD) ||
                              CompareChannelName(macontext.Info.ChannelName, "Disney_Channel", IGNORE_HD)) maxAfter = 7960;  // very early fade out logo channels
                     else maxAfter = 4359;  // silence after seperator picture 4360ms after stop
+                    // select best mark (before / after), default: before
+                    //   8360 (lbb) / 1720    first silence in broadcast
+                    //  <5840>      / 4000    second silence is after preview, logo stop delayed from bright background  (conflict)
+
+                    // second silence is after preview
+                    // <11600>      / 1120    second silence is after preview
+                    // <11680>      / 1040    second silence is after preview
+                    if ((diffBefore <= 11680) && (diffAfter >= 1040) && (diffAfter <= 1140)) diffAfter = INT_MAX;
+
+                    if (CompareChannelName(macontext.Info.ChannelName, "Nickelodeon", IGNORE_HD) ||
+                            CompareChannelName(macontext.Info.ChannelName, "Disney_Channel", IGNORE_HD)) maxAfter = 7960;  // very early fade out logo channels
+                    else maxAfter = 4359;  // silence after separator picture 4360ms after stop
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        // select best mark (before / after), defaut: before
+                        // select best mark (before / after), default: before
                         // <5480>       / 25940
                         //
                         // <50400> (bb) / 7320  second silence is from next broadcast
@@ -5036,12 +5050,12 @@ void cMarkAdStandalone::SceneChangeOptimization() {
             cMark *sceneStartBefore = NULL;
             cMark *sceneStartAfter  = NULL;
             if (mark->type == MT_ASPECTSTART) {   // change of aspect ratio results in a scene change, but they are sometimes a few frames to early
-                sceneStartBefore = sceneMarks.GetPrev(mark->position, MT_SCENESTART);      // do not allow to get same position
-                sceneStartAfter  = sceneMarks.GetNext(mark->position, MT_SCENESTART);      // do not allow to get same position
+                sceneStartBefore = sceneMarks.GetPrev(mark->position, MT_SCENESTART);      // do not allow one to get same position
+                sceneStartAfter  = sceneMarks.GetNext(mark->position, MT_SCENESTART);      // do not allow one to get same position
             }
             else {
-                sceneStartBefore = sceneMarks.GetPrev(mark->position + 1, MT_SCENESTART);  // allow to get same position
-                sceneStartAfter  = sceneMarks.GetNext(mark->position - 1, MT_SCENESTART);  // allow to get same position
+                sceneStartBefore = sceneMarks.GetPrev(mark->position + 1, MT_SCENESTART);  // allow one to get same position
+                sceneStartAfter  = sceneMarks.GetNext(mark->position - 1, MT_SCENESTART);  // allow one to get same position
             }
 
             if (sceneStartBefore) {
@@ -5202,7 +5216,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
             int diffAfter  = INT_MAX;
             int diffBefore = INT_MAX;
             cMark *sceneStopBefore = sceneMarks.GetPrev(mark->position + 1, MT_SCENESTOP);
-            cMark *sceneStopAfter  = sceneMarks.GetNext(mark->position - 1, MT_SCENESTOP);  // allow to get same position
+            cMark *sceneStopAfter  = sceneMarks.GetNext(mark->position - 1, MT_SCENESTOP);  // allow one to get same position
             if (sceneStopBefore) {
                 diffBefore = 1000 * (mark->position - sceneStopBefore->position) / macontext.Video.Info.framesPerSecond;
                 diffBeforeStat = diffBefore;
@@ -6370,7 +6384,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 #endif
     char *datePart = strrchr(tmpDir, '/');
     if (!datePart) {
-        dsyslog("cMarkAdStandalone::cMarkAdStandalone(): faild to find last '/'");
+        dsyslog("cMarkAdStandalone::cMarkAdStandalone(): failed to find last '/'");
         FREE(strlen(tmpDir+1), "tmpDir");
         free(tmpDir);
         return;
@@ -6378,7 +6392,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     *datePart = 0;    // cut off date part
     char *recName = strrchr(tmpDir, '/');
     if (!recName) {
-        dsyslog("cMarkAdStandalone::cMarkAdStandalone(): faild to find last '/'");
+        dsyslog("cMarkAdStandalone::cMarkAdStandalone(): failed to find last '/'");
         FREE(strlen(tmpDir+1), "tmpDir");
         free(tmpDir);
         return;
@@ -6693,8 +6707,8 @@ int usage(int svdrpport) {
            "                --fulldecode\n"
            "                  decode all video frame types and set mark position to all frame types\n"
            "                --fullencode=<streams>\n"
-           "                  full reencode video generated by --cut\n"
-           "                  use it only on powerfull CPUs, it will double overall run time\n"
+           "                  full re-encode video generated by --cut\n"
+           "                  use it only on powerful CPUs, it will double overall run time\n"
            "                  <streams>  all  = keep all video and audio streams of the recording\n"
            "                             best = only encode best video and best audio stream, drop rest\n"
            "\ncmd: one of\n"

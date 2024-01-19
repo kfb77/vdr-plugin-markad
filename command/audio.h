@@ -53,7 +53,7 @@ private:
 
     /**
      *  add a new mark ti mark array
-     *  @param type           type of the mark (MT_CHANNELSTART or MT_CHANNELSTOP)
+     *  @param type           mark type (MT_CHANNELSTART or MT_CHANNELSTOP)
      *  @param position frame number of the mark
      *  @param channelsBefore number of channels before change
      *  @param channelsAfter  number of channels after change

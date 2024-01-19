@@ -47,7 +47,7 @@ class cExtractLogo : private cLogoSize, cTools {
 public:
 
     /**
-     * constuctor for class to search end extract logo from recording
+     * constructor for class to search end extract logo from recording
      * @param maContext      markad context
      * @param AspectRatio    video aspect ratio for requested logo
      * @param recordingIndex recording index
@@ -60,7 +60,7 @@ public:
      * @param maContext    markad context
      * @param markCriteria mark criteria
      * @param startFrame   frame number to start search
-     * @param force        force finding a logo, even on weak matches
+     * @param force        finding a logo, even on weak matches
      * @return last read frame during search
      */
     int SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCriteria, int startFrame, const bool force);
@@ -80,14 +80,14 @@ public:
      * @param logoHeight logo height
      * @param logoWidth  logo width
      * @param corner     logo corner
-     * @param match0     minimun requested rate of similars in pane 0 to thread as similar
-     * @param match12    minimun requested rate of similars in pane 1 and 2 to thread as similar
+     * @param match0     minimum requested rate of similars in pane 0 to thread as similar
+     * @param match12    minimum requested rate of similars in pane 1 and 2 to thread as similar
      * @param[out] rate0 match rate of the two logos
      * @return true if logo pair is similar, false otherwise
      */
     bool CompareLogoPair(const sLogoInfo *logo1, const sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0 = 0, int match12 = 0, int *rate0 = NULL);
 
-    bool abort = false;  //!< true if programm abort is requestet, false otherwise
+    bool abort = false;  //!< true if program abort is requestet, false otherwise
     //!<
 private:
     /**
@@ -107,10 +107,10 @@ private:
      * check if logo is valid
      * @param maContext       markad context
      * @param ptr_actLogoInfo logo pixel map
-     * @param logoHeight      logo heigth
+     * @param logoHeight      logo height
      * @param logoWidth       logo width
      * @param corner          logo corner
-     * @return true if logo is valif
+     * @return true if logo is valid
      */
     bool CheckValid(const sMarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
 
@@ -172,7 +172,7 @@ private:
     /**
      * check of plane has pixel
      * @param ptr_actLogoInfo logo pixel
-     * @param logoHeight      logo heigth
+     * @param logoHeight      logo height
      * @param logoWidth       logo width
      * @param plane           pixel plane number
      * @return true if there are no pixel, false otherwise
@@ -183,7 +183,7 @@ private:
      * check of logo had a changed colour
      * @param maContext markad context
      * @param corner    logo corner
-     * @param plane     plane number
+     * @param plane     number of plane
      * @return true if logo changed colour, false otherwise
      */
     bool IsLogoColourChange(const sMarkAdContext *maContext, const int corner, const int plane);
@@ -202,7 +202,7 @@ private:
      * @param maContext    markad context
      * @param ptr_cDecoder decoder
      * @param minFrame     minimum framenumber we need
-     * @return true if we have enought frames, false otherwise
+     * @return true if we have enough frames, false otherwise
      */
     bool WaitForFrames(sMarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame);
 

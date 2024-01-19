@@ -38,7 +38,7 @@ class cMarkAdStandalone : private cEvaluateChannel {
 public:
 
     /**
-     * markad main constuctor
+     * markad main constructor
      * @param directoryParam recording directory
      * @param config         markad context configuration
      * @param recordingIndex recording index
@@ -194,21 +194,21 @@ private:
 
     /**
      * check if there is a  closing logo sequence from kabel eins
-     * @param mark mark to check
+     * @param mark check this mark
      * @return true if separator found
      */
     bool HaveClosingLogo(const cMark *mark);
 
     /**
      * check if separator slience before logo start mark
-     * @param mark mark to check
+     * @param mark check this mark
      * @return true if separator found
      */
     bool HaveSilenceSeparator(const cMark *mark);
 
     /**
      * check if separator black screen before logo start mark / around logo stop mark
-     * @param mark mark to check
+     * @param mark check this mark
      * @return true if separator found
      */
     bool HaveBlackSeparator(const cMark *mark);
@@ -290,7 +290,7 @@ private:
      * get start time of the recording from: <br>
      * -# file access time (atime) of recording directory, if the volume is mounted with noatime (no change of atime after creation)
      * -# file modification time (mtime) from VDR info file
-     * @param start start time of the broadcast
+     * @param start time of the broadcast start
      * @param fd    stream pointer to VDR info file
      * @return time of recording start
      */
@@ -299,7 +299,7 @@ private:
 #if defined(DEBUG_OVERLAP_FRAME_RANGE)
     /**
      * save frame, used for debug
-     * @param frame  frame number
+     * @param frame  framenumber
      * @param path   target path
      * @param suffix fine name suffix
      */
@@ -314,7 +314,7 @@ private:
 
     /**
      * add or replace marks by VPS events if we have not found stronger marks than black screen marks
-     * @param offset  offset from recording start of the VPS event
+     * @param offset  recording start offset of the VPS event
      * @param type    MT_START or MT_STOP
      * @param isPause true if event is VPS pause, false otherwise
      */
@@ -377,7 +377,7 @@ private:
 
     /**
      * process overlap detection with stop/start pair
-     * @param[in]      overlap overlap detection object
+     * @param[in]      overlap detection object
      * @param[in, out] mark1   stop mark before advertising, set to start position of detected overlap
      * @param[in, out] mark2   start mark after advertising, set to end position of detected overlap
      * @return true if overlap was detected, false otherwise
@@ -442,7 +442,7 @@ private:
     //!<
     int iwaittime = 0;                                             //!< time waited for continuation of interrupted recording
     //!<
-    bool bIgnoreTimerInfo = false;                                 //!< true if confugured to ignore timer infos from info file, false otherwise
+    bool bIgnoreTimerInfo = false;                                 //!< true if configured to ignore timer infos from info file, false otherwise
     //!<
     bool bLiveRecording = false;                                   //!< true if markad was started during recording, false otherwise
     //!<
@@ -458,7 +458,7 @@ private:
     //!<
     int iStopA = 0;                                                //!< assumed end frame position (negative if unset)
     //!<
-    int endMarkPos = 0;                                            //!< from checkStop calulated end position of the recording
+    int endMarkPos = 0;                                            //!< from checkStop calculated end position of the recording
     //!<
     bool iStopinBroadCast = false;                                 //!< true if we are in broadcast at iStop position, false otherwise
     //!<

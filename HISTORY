@@ -63,7 +63,7 @@ VDR Plugin 'markad' Revision History
 2023-06-22: Version 3.3.0
 - new feature: detect scene change and use it to optimize marks
 - performance improvement by saving unnecessary detection
-- fix unsuported DVB subtitel codec id for ffmpeg >= 5.1.1
+- fix unsupported DVB subtitel codec id for ffmpeg >= 5.1.1
 - some minor bug fixes and optimizations, see git
 
 2023-06-08: Version 3.2.9
@@ -273,7 +273,7 @@ VDR Plugin 'markad' Revision History
 - some minor bug fixes and optimizations, see git
 
 2021-05-08: Version 3.0.2
-- make svdr port configurable from vdr menue
+- make svdr port configurable from vdr menu
 - markad Makefile: use bindir, mandir and locdir from vdr.pc as prefix
 - fix H.264 1440x1080 PAR 4:3 -> DAR 16:9
 - add some code documentation
@@ -469,7 +469,7 @@ VDR Plugin 'markad' Revision History
 - some minor bug fixes and optimizations, see git
 
 2020-04-25: Version 2.0.2
-- make option "extract logos" available in the VDR menue
+- make option "extract logos" available in the VDR menu
 - pay attention of --threads in cDecoder
 - fix bug for recordings with more than one AC3 stream
 - some minor bug fixes and optimizations, see git
@@ -480,7 +480,7 @@ VDR Plugin 'markad' Revision History
 2020-04-12: Version 2.0.0
 - beta version of the new features:
 - add feature cut video based on marks
-- add feature AC3 reencode
+- add feature AC3 re-encode
 - add feature auto logo extraction
 
 2020-04-18: Version 1.0.5
@@ -526,7 +526,7 @@ VDR Plugin 'markad' Revision History
 - Fixed output of marks on channels without logos
 - Added finnish logos and translation from Rolf Ahrensberg
 - Added spanish translation from Javier Bradineras
-- Added more informations in markad logfile
+- Added more information in markad logfile
 
 2011-02-23: Version 0.1.0
 - New demuxer

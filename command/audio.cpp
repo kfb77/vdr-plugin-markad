@@ -56,7 +56,7 @@ void cMarkAdAudio::AddMark(int type, int position, const int channelsBefore, con
 
 
 bool cMarkAdAudio::ChannelChange(int channelsBefore, int channelsAfter) {
-    if ((channelsBefore == 0) || (channelsAfter == 0)) return false;  // no channel count informations
+    if ((channelsBefore == 0) || (channelsAfter == 0)) return false;  // no channel count information
     if ((channelsBefore != 2) && (channelsBefore != 6)) return false; // invalid channel count, maybe malformed audio packet
     if ((channelsAfter  != 2) && (channelsAfter  != 6)) return false; // invalid channel count, maybe malformed audio packet
     if (channelsBefore != channelsAfter) return true;

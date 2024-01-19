@@ -38,7 +38,7 @@ struct setup {
     bool MarkadCut         = false;
     bool ac3ReEncode       = false;
     int autoLogoConf       = -1;
-    int autoLogoMenue      = 2;
+    int autoLogoMenu      = 2;
     bool fulldecode        = false;
     const char *PluginName = NULL;
 };
@@ -49,7 +49,7 @@ private:
     const char *processTexts[3];
     const char *autoLogoTexts[3];
     struct setup *setup;
-    int autologomenue;
+    int autologomenu;
     int fulldecode;
     int processduring;
     int usevps = 0;

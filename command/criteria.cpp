@@ -195,7 +195,7 @@ char *cMarkCriteria::StateToText(const int state) {
         }
         break;
     case CRITERIA_DISABLED:
-        if (asprintf(&text, "DISBALED") != -1) {
+        if (asprintf(&text, "DISABLED") != -1) {
             ALLOC(strlen(text)+1, "state");
         }
         break;

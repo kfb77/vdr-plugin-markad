@@ -33,7 +33,7 @@ void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_lis
 #endif
         if (logMsg[strlen(logMsg) - 1] == '\n') logMsg[strlen(logMsg) - 1] = 0;
 
-        if ((strcmp(logMsg, "co located POCs unavailable") == 0) || // this will happen with h.264 coding because of partitial decoding
+        if ((strcmp(logMsg, "co located POCs unavailable") == 0) || // this will happen with h.264 coding because of partial decoding
                 (strcmp(logMsg, "mmco: unref short failure") == 0) ||
                 (strcmp(logMsg, "number of reference frames (0+5) exceeds max (4; probably corrupt input), discarding one") == 0)) {
             tsyslog("AVlog(): %s", logMsg);

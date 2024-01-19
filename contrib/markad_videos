@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# this programm let markad run on a video directory to build all missing markad files
-# see markad_video -h and markad_video.conf for more informations
+# this program let markad run on a video directory to build all missing markad files
+# see markad_video -h and markad_video.conf for more information
 
 import sys
 import os
