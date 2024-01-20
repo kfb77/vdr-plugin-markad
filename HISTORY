@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-01-21: Version 3.4.6
+- fix spelling, thx to Christoph Martin <martin@uni-mainz.de> for the patch
+- add example markad.conf, thx to Manuel Reimer for this hint
+- optimize logo corner selection for low matches and more than one logo, thx to Schwabe@www.vdr-portal.de for reporting
+- some minor bug fixes and optimizations, see git
+
 2024-01-14: Version 3.4.5
 - compare channel names case insensitive, thx to Schwabe@vdr-portal.de and wmautner@vdr-portal.de for reporting
 - fix heap-use-after-free
