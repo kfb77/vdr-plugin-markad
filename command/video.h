@@ -363,7 +363,6 @@ private:
      * save the original corner picture /tmp and add debug identifier to filename
      * @param frameNumber frame number
      * @param debug identifier for debug
-     * @return: true if successful, false otherwise
      */
     void SaveFrameCorner(const int frameNumber, const int debug);
 

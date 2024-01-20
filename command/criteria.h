@@ -40,7 +40,8 @@ public:
 
     /**
      * set status of a mark type
-     * @return status
+     * @param type   mark type
+     * @param state  set to this state
      */
     void SetMarkTypeState(const int type, const int state);
 
@@ -65,7 +66,8 @@ public:
 
     /**
      * set status of closing credits without logo
-     * @return status
+     * @param position  frame number
+     * @param state     set to this state
      */
     void SetClosingCreditsState(const int position, const int state);
 
