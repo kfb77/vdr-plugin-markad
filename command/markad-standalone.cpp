@@ -2800,7 +2800,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     if (((diffLastStopAssumed >= minLastStopAssumed) && (diffLastStartAssumed >= minLastStartAssumed) && (diffPrevStopAssumed >= minPrevStopAssumed)) ||
                             // very short last broadcast is preview after broadcast
                             ((lastBroadcast <= maxLastBroadcast) && (lastStopMark->position >= (newStopA - (19 * macontext.Video.Info.framesPerSecond)))) ||
-                            ((lastAd <= maxLastAd) && (diffLastStopAssumed >= 0) && (diffPrevStopAssumed > -756))) {  // very short ads are only between broadcast, changed from -801 to -756
+                            ((lastAd <= maxLastAd) && (diffLastStopAssumed >= 0) && (diffPrevStopAssumed > -665))) {  // very short ads are only between broadcast, changed from -756 to -665
                         dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, assume too big recording length", prevStopMark->position);
                         marks.Del(lastStopMark->position);
                         marks.Del(lastStartMark->position);
