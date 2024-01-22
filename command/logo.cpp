@@ -327,11 +327,17 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.corner    = TOP_LEFT;   // "neue Folge" has same size as logo
     }
 
+    //  K-TV                    16:9  720W  576H:->  122W  78H TOP_RIGHT
+    if (CompareChannelName(maContext->Info.ChannelName, "K-TV", IGNORE_NOTHING)) {
+        logo.widthMin  =  122;
+    }
+
     // kabel_eins              16:9  720W  576H:->   88W  72H TOP_RIGHT
     if (CompareChannelName(maContext->Info.ChannelName, "kabel_eins", IGNORE_NOTHING)) {
         logo.widthMax  =  88;
         logo.heightMin =  72;
     }
+
     if (CompareChannelName(maContext->Info.ChannelName, "MDR_Sachsen", IGNORE_NOTHING)) {           // MDR_Sachsen             16:9  720W  576H:->   92W  56H TOP_LEFT
         logo.heightMin =  56;
     }
