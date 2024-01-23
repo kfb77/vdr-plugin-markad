@@ -4030,8 +4030,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     lengthBefore = 1000 * (startBefore->position - stopBefore->position)  / macontext.Video.Info.framesPerSecond;
                     diffBeforeStat = diffBefore;
                     // check if there is silence between or very ahort before black screen
-                    cMark *silence = silenceMarks.GetNext(startBefore->position - (0.5 * macontext.Video.Info.framesPerSecond), MT_SOUNDSTOP);
-                    if (silence && (silence->position <= (stopBefore->position + (0.5 * macontext.Video.Info.framesPerSecond)))) silenceBefore = true;
+                    cMark *silence = silenceMarks.GetAround(1.1 * macontext.Video.Info.framesPerSecond, startBefore->position, MT_SOUNDSTOP);
+                    if (silence) silenceBefore = true;
                     dsyslog("cMarkAdStandalone::BlackScreenOptimization(): start mark (%6d): found black screen from (%6d) to (%6d), %7dms before -> length %5dms, silence around %d", mark->position, stopBefore->position, startBefore->position, diffBefore, lengthBefore, silenceBefore);
                 }
                 else startBefore = NULL; // no pair, this is invalid
@@ -4043,8 +4043,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     lengthAfter = 1000 * (startAfter->position - stopAfter->position) / macontext.Video.Info.framesPerSecond;
                     diffAfterStat = diffAfter;
                     // check if there is silence between black screen
-                    cMark *silence = silenceMarks.GetNext(startAfter->position - (0.5 * macontext.Video.Info.framesPerSecond), MT_SOUNDSTOP);
-                    if (silence && (silence->position <= (stopAfter->position + (0.5 * macontext.Video.Info.framesPerSecond)))) silenceAfter = true;
+                    cMark *silence = silenceMarks.GetAround(1.1 * macontext.Video.Info.framesPerSecond, startAfter->position, MT_SOUNDSTOP);
+                    if (silence) silenceAfter = true;
                     dsyslog("cMarkAdStandalone::BlackScreenOptimization(): start mark (%6d): found black screen from (%6d) to (%6d), %7dms after  -> length %5dms, silence around %d", mark->position, stopAfter->position, startAfter->position, diffAfter, lengthAfter, silenceAfter);
                 }
                 else startAfter = NULL; // no pair, this is invalid
@@ -4079,9 +4079,13 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         // select best mark (before / after), default: before
                         // <50480> (520) /  89400  (1240)
 
+                        // blackscreen with silence before VPS start (preview) and after VPS start (broadcast start)
+                        // 26660 (220) silence / 44100 (220) silence
+                        if (silenceBefore && (diffBefore <= 26660) && silenceAfter && (diffAfter <= 44100)) diffBefore = INT_MAX;
+
                         //  25000  (600) /  <7560>  (280)
                         //    -          / <55640>   (40)
-                        if (!silenceBefore && (diffBefore >= 25000) && (diffAfter <= 55640)) diffBefore = INT_MAX;
+                        else if (!silenceBefore && (diffBefore >= 25000) && (diffAfter <= 55640)) diffBefore = INT_MAX;
 
                         //  48040 (1000) / <26560> (2400)   // first black screen in broadcast before
                         else if ((diffBefore >= 48040) && (lengthBefore <= 1000) && (diffAfter <= 26560) && (lengthAfter >= 2400)) diffBefore = INT_MAX;
@@ -4090,6 +4094,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         // 69480ms before -> length    40ms, silence around 1
                         if (silenceBefore)            maxBefore = 69480;
                         else if (lengthBefore >= 520) maxBefore = 50480;  // long black screen is start mark
+                        else if (lengthBefore >= 200) maxBefore = 24320;  // long black screen is start mark
                         else                          maxBefore = 11579;  // black screen before preview 11580ms before VPS start event
                         break;
                     default:
@@ -4148,7 +4153,9 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     case MT_INTRODUCTIONSTART:
                         // select best mark (before / after), default: before
                         // - / 3760 (3800)  long black screen from end of previous broadcast is detected as part of the introduction logo
-                        maxAfter = 3760;
+                        // - / 3200  (120)  first blackscreen in broadcast
+                        if (lengthAfter >= 3800) maxAfter = 3760;
+                        else                     maxAfter = 3199;
                         break;
                     default:
                         maxAfter = -1;
@@ -4244,36 +4251,31 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     // 8680ms (160) -> invalid: black screen after ad, end selected after long closing credits without logo and without frame
                     if ((mark->position == marks.GetLast()->position) && CompareChannelName(macontext.Info.ChannelName, "TLC", IGNORE_HD) && (diffAfter > 8680)) maxAfter = 32400;
                     else {
+                        // valid black screen with silence around
+                        //                  <5040> (s 160)  fade out logo
 
                         // short before black screen from broadcast end, long black screen after preview
-                        //   <20>  (100) / 4000 (120)  second black screen after separator
-                        //   <40>  (160) / 3920 (180)  second black screen after separator
-                        //  <280>  (320) / 3940 (640)  second black screen after separator
+                        //   <20>  (100) /  4000 (120)  second black screen after separator
+                        //   <40>  (160) /  3920 (180)  second black screen after separator
+                        //  <280>  (320) /  3940 (640)  second black screen after separator
                         if ((diffBefore <= 280) && (diffAfter >= 3920)) diffAfter = INT_MAX;
 
                         // long black screen at end of broadcast, short black screen after preview
-                        //  <600>  (640) / 3240  (80)  second black screen after preview
-                        //  <800> (1000) / 2080 (520)  second black screen after preview
-                        // <2480>  (600) / 2680 (320)  second black screen after preview
-                        // <2680>  (760) /  160 (120)  second black screen after preview
-                        // <4580>  (880) / 1300 (160)  second black screen after preview
+                        //  <600>  (640) /  3240  (80)  second black screen after preview
+                        //  <800> (1000) /  2080 (520)  second black screen after preview
+                        // <2480>  (600) /  2680 (320)  second black screen after preview
+                        // <2680>  (760) /   160 (120)  second black screen after preview
+                        // <4580>  (880) /  1300 (160)  second black screen after preview
                         else if ((diffBefore <= 4580) && (lengthBefore >= 640) && (diffAfter <= 3240) && (lengthAfter <= 520)) diffAfter = INT_MAX;
 
-                        // black screen with silence between
-                        //                 5040 (s 160)  fade out logo
-                        //
-                        // but this is valid black screen
-                        // 564680   (40) / 4360  (40)  Nickelodeon, early fade out logo and very short black screen at broadcast end
-                        else if ((mark->position != marks.GetLast()->position) && (diffAfter >= 3360) && (lengthAfter <= 40)) diffAfter = INT_MAX;
-
-                        // no black screen near before and short black screen after is after preview
-                        //  14200 (1440) / 2040  (80)  black screen after preview
-                        //  42280 (1440) / 2040  (80)  black screen after preview
-                        //                 2520  (80)  black screen after preview
-                        // 231760  (520) / 2920  (80)  black screen after preview (SIXX)
-                        // but this is a valid black screen:
-                        // 972400  (160) / 1680  (80)  (TLC)
-                        else if ((diffBefore >= 14200) && (diffAfter >= 2040) && (diffAfter <= 2920) && (lengthAfter == 80)) diffAfter = INT_MAX;
+                        // no black screen near before, but short black screen after is after/in preview
+                        //   47560 (1120) /  1400 (120)  black screen in preview after stop (SIXX)
+                        //   14200 (1440) /  2040  (80)  black screen after preview
+                        //   42280 (1440) /  2040  (80)  black screen after preview
+                        //                   2520  (80)  black screen after preview
+                        //  231760  (520) /  2920  (80)  black screen after preview (SIXX)
+                        // 1466760  (160) /  3480  (80)  black screen after preview (RTLZWEI)
+                        else if ((diffBefore >= 14200) && (diffAfter >= 1400) && (diffAfter <= 3480) && (lengthAfter >= 80) && (lengthAfter <= 120)) diffAfter = INT_MAX;
 
                         if (silenceAfter) maxAfter = 5040;    // silence between black screen
                         else              maxAfter = 5039;
@@ -4283,18 +4285,22 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     switch (mark->newType) {
                     case MT_VPSSTOP:
                         // select best mark (before (length) / after (length)), default: after
-                        // <3520> (200) /  8500 (180)  second blackscreen after preview
-                        // <5300> (200) / 11200 (220)  second blackscreen after preview
-                        //
-                        //  15200  (80) / 20120  (80)  both wrong, first in broadcast, second in next broadcast
-                        if ((diffBefore <= 5300) && (diffAfter >= 8500)) diffAfter = INT_MAX;   // first black screen before VPS stop, second after
-                        if (silenceAfter) maxAfter = 176680;   // black screen with silence between is a stronger indicator for valid end mark
-                        else {
-                            // valid example
-                            // 103880 (80) / <82120> (3000)
-                            if (lengthAfter >= 3000) maxAfter = 82120;
-                            else                     maxAfter = 20119;   // black screen in next broadcast after 20120ms
-                        }
+                        // 1061800 (240)  / <24600>  (200)
+                        // 103880   (80)  / <82120> (3000)
+
+                        // invalid black screen
+                        //   15200  (80)  /  20120    (80)  both wrong, first in broadcast, second in next broadcast
+
+                        // black screen before is end of broadcast, black screen after is end of preview
+                        //   <3520> (200) /   8500   (180)  second blackscreen after preview
+                        //   <5300> (200) /  11200   (220)  second blackscreen after preview
+                        //   <5800> (220) /  75580   (200)  second blackscreen after preview
+                        if ((diffBefore <= 5800) && (diffAfter >= 8500)) diffAfter = INT_MAX;   // first black screen before VPS stop, second after
+
+                        if (silenceAfter)             maxAfter = 176680;   // black screen with silence between is a stronger indicator for valid end mark
+                        else if (lengthAfter >= 3000) maxAfter =  82120;
+                        else if (lengthAfter >=  200) maxAfter =  24600;
+                        else                          maxAfter =  20119;   // black screen in next broadcast after 20120ms
                         break;
                     case MT_CLOSINGCREDITSSTOP:
                         // select best mark (before (length) / after (length)), default: after
@@ -4359,7 +4365,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        maxBefore = 5300;  // changed from 4520 to 5300
+                        maxBefore = 5800;  // changed from 5300 to 5800
                         break;
                     case MT_CLOSINGCREDITSSTOP:
                         maxBefore = 15200;
