@@ -679,9 +679,9 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
             if (silenceStart) {
                 cMark *silenceStop = silenceMarks.GetNext(silenceStart->position, MT_SOUNDSTART);
                 if (silenceStop) {
-                    int logoStopSilenceStart    = (silenceStart->position - mark->position)         / macontext.Video.Info.framesPerSecond;
-                    int silenceStartSilenceStop = (silenceStop->position  - silenceStart->position) / macontext.Video.Info.framesPerSecond;
-                    int silenceStopLogoStart    = (mark->position         - silenceStart->position) / macontext.Video.Info.framesPerSecond;
+                    int logoStopSilenceStart    = 1000 * (silenceStart->position - mark->position)         / macontext.Video.Info.framesPerSecond;
+                    int silenceStartSilenceStop = 1000 * (silenceStop->position  - silenceStart->position) / macontext.Video.Info.framesPerSecond;
+                    int silenceStopLogoStart    = 1000 * (mark->position         - silenceStart->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTOP (%d) -> %dms -> MT_SOUNDSTOP (%d) -> %dms -> MT_SOUNDSTART (%d) -> %dms -> MT_LOGOSTART (%d)", logoStop->position, logoStopSilenceStart, silenceStart->position, silenceStartSilenceStop, silenceStop->position, silenceStopLogoStart, mark->position);
                     // valid example
                     if ((logoStopSilenceStart <= 0) && (silenceStartSilenceStop <= 0) && (silenceStopLogoStart <= 0)) {  // TODO
