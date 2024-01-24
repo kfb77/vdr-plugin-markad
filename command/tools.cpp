@@ -54,7 +54,9 @@ bool cTools::CompareChannelName(const char *nameA, const char *nameB, const int 
 
     // compare names
     if (name1.compare(name2) == 0) {
+#ifdef DEBUG_CHANNEL_NAME
         dsyslog("cTools::CompareChannelName(): identical -> nameA %s, nameB %s, name1 %s, name2 %s, flags %d", nameA, nameB, name1.c_str(), name2.c_str(), flags);
+#endif
         return true;  // we have an exact match
     }
     else {
