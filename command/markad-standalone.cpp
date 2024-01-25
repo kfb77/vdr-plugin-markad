@@ -4893,7 +4893,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxAfter = 135719;  // silence in next broadcast after 135720ms
                     break;
                 case MT_LOGOSTOP:
-                    // select best mark (before / after), default: before
+                    // select best mark (before / after), default: after
                     //   8360 (lbb) / 1720    first silence in broadcast
                     //  <5840>      / 4000    second silence is after preview, logo stop delayed from bright background  (conflict)
 
@@ -4909,7 +4909,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        // select best mark (before / after), default: before
+                        // select best mark (before / after), default: after
                         // <5480>       / 25940
                         //
                         // <50400> (bb) / 7320  second silence is from next broadcast
