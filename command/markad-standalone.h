@@ -224,6 +224,11 @@ private:
     void CheckStartMark();
 
     /**
+     * check for channel start mark
+     */
+    cMark *Check_CHANNELSTART();
+
+    /**
      * check for logo start mark
      */
     cMark *Check_LOGOSTART();
