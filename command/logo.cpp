@@ -1485,7 +1485,8 @@ int cExtractLogo::AudioInBroadcast(const sMarkAdContext *maContext, const int iF
 }
 
 
-int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCriteria, int startFrame, const bool force) {  // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
+// return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
+int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCriteria, int startFrame, const bool force) {
     dsyslog("----------------------------------------------------------------------------");
     dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d, force = %d", startFrame, logoAspectRatio.num, logoAspectRatio.den, force);
 
@@ -1810,10 +1811,11 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
         for (int rank = 0; rank < CORNERS - 1; rank++) {
             dsyslog("cExtractLogo::SearchLogo(): check %d. best corner -----------------------------------------------------------------------------------", rank);
             if (logoCorner[rank] < 0) break;    // no more matches
-            if ((logoInfo[rank].hits >= 46) ||                                                 // we have a good result, changed from 50 to 46
-                    ((logoInfo[rank].hits >= 40) && (sumHits <= logoInfo[rank].hits + 10)) ||  // if most hits are in the same corner than less are enough
-                    ((logoInfo[rank].hits >= 30) && (sumHits <= logoInfo[rank].hits +  7)) ||  // if almost all hits are in the same corner than less are enough
-                    ((logoInfo[rank].hits >= 10) && (sumHits == logoInfo[rank].hits))) {       // if all hits are in the same corner than less are enough
+            if ((logoInfo[rank].hits >= 40) ||                                                 // we have a good result, changed from 50 to 46 to 40
+                    ((logoInfo[rank].hits >= 30) && (sumHits <= logoInfo[rank].hits + 8)) ||   // if almost all hits are in the same corner than less are enough
+                    ((logoInfo[rank].hits >= 20) && (sumHits <= logoInfo[rank].hits + 7)) ||   // if almost all hits are in the same corner than less are enough
+                    ((logoInfo[rank].hits >= 10) && (sumHits <= logoInfo[rank].hits + 6)) ||   // if almost all hits are in the same corner than less are enough
+                    ((logoInfo[rank].hits >=  5) && (sumHits == logoInfo[rank].hits))) {       // if all hits are in the same corner than less are enough
                 dsyslog("cExtractLogo::SearchLogo(): %d. best corner is %s at frame %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].iFrameNumber, logoInfo[rank].hits);
                 // check possible logo
                 int secondLogoHeight = logoHeight;
@@ -1823,7 +1825,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
                     rankResult = rank;
                     dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. best corner %s was successful, H %d W %d", rank, aCorner[logoCorner[rank]], logoHeight, logoWidth);
                     // check next best possible logo corner
-                    if ((logoInfo[rank + 1].hits > 50) && (logoInfo[rank + 1].hits > (logoInfo[rank].hits * 0.8))) { // next best logo corner has high matches
+                    if (logoInfo[rank + 1].hits > (logoInfo[rank].hits * 0.8)) { // next best logo corner has high matches
                         dsyslog("cExtractLogo::SearchLogo(): %d. best corner %d at frame %d with %d similars", rank + 1, logoCorner[rank + 1], logoInfo[rank + 1].iFrameNumber, logoInfo[rank + 1].hits);
                         if (this->Resize(maContext, &logoInfo[rank + 1], &secondLogoHeight, &secondLogoWidth, logoCorner[rank + 1])) { // second best logo can be valid
                             dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. and %d. best corner is valid, still no clear result", rank, rank + 1);
@@ -1844,9 +1846,10 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
         // try low matches
         if ((rankResult == -1) && force) {  // last try to get a logo
             for (int rank = done + 1; rank < CORNERS - 1; rank++) {
+                dsyslog("cExtractLogo::SearchLogo(): check %d. best corner -----------------------------------------------------------------------------------", rank);
                 if (logoCorner[rank] < 0) break;    // no more matches
-                if ((logoInfo[rank].hits >= 6) ||  // this is the very last try, use what we have, bettet than nothing, changed from 14 to 12
-                        ((logoInfo[rank].hits >=  2) && (sumHits <= logoInfo[rank].hits + 1))) {  // all machtes in one corner
+                if ((logoInfo[rank].hits >= 4) ||  // this is the very last try, use what we have, bettet than nothing, changed from 6 to 4
+                        ((logoInfo[rank].hits >=  2) && (sumHits == logoInfo[rank].hits))) {  // all machtes in one corner
                     dsyslog("cExtractLogo::SearchLogo(): try low match with %d best corner %s at frame %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].iFrameNumber, logoInfo[rank].hits);
                     if (this->Resize(maContext, &logoInfo[rank], &logoHeight, &logoWidth, logoCorner[rank])) {
                         rankResult = rank;
