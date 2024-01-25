@@ -1751,12 +1751,12 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     // found valid vertical border start mark
     markCriteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED);
 
-    // check logo stop/start after to prevent to get closing credit from previous recording as start
+    // check logo stop after vborder stop to prevent to get closing credit from previous recording as start mark
     cMark *logoStop  = marks.GetNext(vStart->position, MT_LOGOSTOP);
     if (logoStop) {
         int diffStop  = (logoStop->position  - vStart->position) / macontext.Video.Info.framesPerSecond;
         dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): found logo stop (%d) %ds after vborder start (%d)", logoStop->position, diffStop, vStart->position);
-        if ((diffStop <= 25)) {  // changed from 10 to 25
+        if ((diffStop <= 51)) {  // changed from 25 to 51
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark position (%d) includes previous closing credits, use logo start (%d) instead", vStart->position, logoStop->position);
             marks.Del(vStart->position);
             logoStop = marks.ChangeType(logoStop, MT_START);
