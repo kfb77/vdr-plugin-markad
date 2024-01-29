@@ -4189,13 +4189,15 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     switch (mark->newType) {
                     case MT_VPSSTART:
                         // select best mark (before / after), default: before
-                        // - / 66840 (4160)  very long black screen before broadcast start
+                        // - / <66840> (4160) silence around 0, very long black screen before broadcast start
+                        // - /  <5880> (1880)  silence around 0
                         //
                         // black screen after with silence around
-                        //    -          / <55640> (40) silence
+                        //    -          / <55640> (40) silence around 0
                         if (silenceAfter)             maxAfter = 55640;
                         else if (lengthAfter >= 4160) maxAfter = 66840;
-                        else                          maxAfter =  2000;
+                        else if (lengthAfter >= 1880) maxAfter =  5880;
+                        else                          maxAfter =  2000;   // changed from 2000 to 5880
                         break;
                     case MT_INTRODUCTIONSTART:
                         // select best mark (before / after), default: before
@@ -4315,18 +4317,25 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         // <4580>  (880) /  1300 (160)  second black screen after preview
                         else if ((diffBefore <= 4580) && (lengthBefore >= 640) && (diffAfter <= 3240) && (lengthAfter <= 520)) diffAfter = INT_MAX;
 
-                        // no black screen near before, but short black screen after is after/in preview
+                        // invalid black screen: no black screen near before, but short black screen after is after/in preview
                         //   47560 (1120) /  1400 (120)  black screen in preview after stop (SIXX)
                         //   14200 (1440) /  2040  (80)  black screen after preview
                         //   42280 (1440) /  2040  (80)  black screen after preview
                         //                   2520  (80)  black screen after preview
                         //  231760  (520) /  2920  (80)  black screen after preview (SIXX)
                         // 1466760  (160) /  3480  (80)  black screen after preview (RTLZWEI)
-                        else if ((diffBefore >= 14200) && (diffAfter >= 1400) && (diffAfter <= 3480) && (lengthAfter >= 80) && (lengthAfter <= 120)) diffAfter = INT_MAX;
+                        //  293600  (520) /  3600  (80)  black screen after preview (SIXX)
+                        else if ((diffBefore >= 14200) && (diffAfter >= 1400) && (diffAfter <= 3600) && (lengthAfter >= 80) && (lengthAfter <= 120)) diffAfter = INT_MAX;
 
                         if (silenceAfter) maxAfter = 5040;    // silence between black screen
                         else              maxAfter = 5039;
                     }
+                    break;
+                case MT_VBORDERSTOP:
+                    maxAfter = 480;  // black closing credits
+                    break;
+                case MT_CHANNELSTOP:
+                    maxAfter = 320;
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
@@ -4363,9 +4372,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     default:
                         maxAfter = -1;
                     }
-                    break;
-                case MT_CHANNELSTOP:
-                    maxAfter = 320;
                     break;
                 default:
                     maxAfter = -1;
