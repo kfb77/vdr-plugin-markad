@@ -5337,19 +5337,21 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         break;
                     case MT_SOUNDSTOP:
                         // select best mark (before / after), default: after
-                        //  4560 /   <80>  long static scene before end of broadcast
+                        //   800 /   <80>  sound stop short before last scene
                         //  1640 /   <80>
                         //  3680 /   <80>
+                        //  4560 /   <80>  long static scene before end of broadcast
                         //  2800 /  <120>
                         //  2840 /  <120>
                         //  2560 /  <160>
-                        //   280 /  <680>   sound stop before last scene (conflict)
+                        //   280 /  <680>   sound stop before last scene
                         //  9780 / <3260>   sound stop in closing scene
+                        //
+                        //  <800> /   80    sound stop short after last scene (conflict)
                         //
                         //  sound stop short after last scene
                         //   <40> / 1760    sound stop short after last scene
-                        //  <800> /   80    sound stop short after last scene
-                        if ((diffBefore <= 800) && (diffAfter >= 80)) diffAfter = INT_MAX;
+                        if ((diffBefore <= 40) && (diffAfter >= 1760)) diffAfter = INT_MAX;
 
                         // long static scene before sound stop is separator picture
                         // <4360> /  840    delayed logo stop from bright background, sound stop after separator picture
