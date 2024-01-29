@@ -4041,6 +4041,13 @@ void cMarkAdStandalone::LogoMarkOptimization() {
 }
 
 
+bool cMarkAdStandalone::FadeOutLogo() {
+    if ((CompareChannelName(macontext.Info.ChannelName, "Nickelodeon", IGNORE_HD)) ||
+            (CompareChannelName(macontext.Info.ChannelName, "NICK_MTV+", IGNORE_HD))) return true;
+    return false;
+}
+
+
 void cMarkAdStandalone::BlackScreenOptimization() {
     bool save = false;
     LogSeparator(false);
@@ -5293,16 +5300,12 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     //   2200 /  <200>   short fade out logo
                     //   1200 /  <200>   short fade out logo
                     //    960 /  <240>   short fade out logo
-                    //    880 /  <520>   fade out logo        (conflict)
+                    //   1040 /  <280>   short fade out logo (Nickelodeon)
                     //    520 /  <800>   early logo stop before end (Nickelodeon)
                     //    640 /  <840>   early logo stop before end (Nickelodeon)
                     //    440 /  <960>   early logo stop before end (Nickelodeon)
-                    //    440 /  <960>   fade out logo        (conflict)
-                    //    400 / <1560>   fade out logo        (conflict)
-                    //    240 / <1880>   fade out logo        (conflict)
-                    //    200 / <2080>   fade out logo
-                    //    120 / <2000>   fade out logo        (conflict)
-                    //
+                    //    120 / <2000>   fade out logo (Nickelodeon)
+                    //    200 / <2080>   fade out logo (Nickelodeon)
                     //    240 / <4640>   early fade out logo (Disney Channel)
                     //    440 / <4800>   early fade out logo (Nickelodeon)
                     //
@@ -5321,7 +5324,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     //   <80> /  3240    delayed logo stop from bright background
                     if ((diffBefore <= 80) && (diffAfter >= 240)) diffAfter = INT_MAX;
 
-                    // near scene change before and scene change after too near for fading out logo -> delayed logo stop
+                    // near scene change before and far scene change after, delayed logo stop
                     //  <120> /  1120    delayed logo stop from bright background
                     //  <120> /  1840    delayed logo stop from bright background
                     //  <120> /  2000    logo stop at start of next broadcast
@@ -5335,7 +5338,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     //  <320> /   160    delayed logo stop from pattern in background
                     //  <320> /  1680    delayed logo stop from pattern in background
                     //  <360> /   880    delayed logo stop from pattern in background
-                    else if ((diffBefore >= 120) && (diffBefore <= 360) && (diffAfter >= 160) && (diffAfter <= 2960)) diffAfter = INT_MAX;
+                    //  <560> /   360    delayed logo stop from pattern in background
+                    else if (!FadeOutLogo() && (diffBefore >= 120) && (diffBefore <= 560) && (diffAfter >= 160) && (diffAfter <= 2960)) diffAfter = INT_MAX;
 
                     // scene change after too far for short fading out logo and too near for long fading out logo -> delayed logo stop
                     //  <760> /   320    delayed logo stop
@@ -5343,7 +5347,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     // <1800> /   760    delayed logo stop
                     // <2400> /   280    delayed logo stop
                     // <2640> /   360    delayed logo stop from pattern in background
-                    else if ((diffBefore >= 760) && (diffBefore <= 2640) && (diffAfter >= 280) && (diffAfter <= 760)) diffAfter = INT_MAX;
+                    else if (!FadeOutLogo() && (diffBefore >= 760) && (diffBefore <= 2640) && (diffAfter >= 280) && (diffAfter <= 760)) diffAfter = INT_MAX;
 
                     // logo stop in separator picture
                     // <4280> / 2080   N24 DOKU
@@ -5406,7 +5410,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         //
                         //  sound stop short after last scene
                         //   <40> / 1760    sound stop short after last scene
-                        if ((diffBefore <= 40) && (diffAfter >= 1760)) diffAfter = INT_MAX;
+                        //   <40> /  800    sound stop short after last scene
+                        if ((diffBefore <= 40) && (diffAfter >= 800)) diffAfter = INT_MAX;
 
                         // long static scene before sound stop is separator picture
                         // <4360> /  840    delayed logo stop from bright background, sound stop after separator picture

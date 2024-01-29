@@ -157,6 +157,11 @@ public:
      */
     void LogoMarkOptimization();
 
+    /** check if channel have fade out logo
+     * @return true if channel have fade out logo, false otherwise
+    */
+    bool FadeOutLogo();
+
     /**
      * optimize marks based on black screen
      */
