@@ -6879,7 +6879,7 @@ int main(int argc, char *argv[]) {
             {0, 0, 0, 0}
         };
 
-        int option = getopt_long  (argc, argv, "bd:i:l:p:r:vBGIL:ORT:V", long_options, &option_index);
+        int option = getopt_long(argc, argv, "bd:i:l:p:r:vBGIL:ORT:V", long_options, &option_index);
         if (option == -1) break;
 
         switch (option) {
@@ -7123,7 +7123,7 @@ int main(int argc, char *argv[]) {
             config.pts = true;
             break;
         default:
-            printf ("? getopt returned character code 0%o ? (option_index %d)\n", option,option_index);
+            printf ("markad: invalid option -%c\n", option);
         }
     }
 
