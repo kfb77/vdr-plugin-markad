@@ -24,7 +24,6 @@ struct setup {
     bool OSDMessage;
     int  svdrPort          = 6419;
     bool Verbose;
-    bool GenIndex;
     bool NoMargins;
     bool SecondPass;
     bool HideMainMenuEntry;

@@ -639,10 +639,9 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
     }
     ALLOC(strlen(svdrPortOption)+1, "svdrPortOption");
 
-    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
+    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->Verbose ? " -v " : "",
-                                   setup->GenIndex ? " -G " : "",
                                    setup->OSDMessage ? svdrPortOption : "",
                                    setup->NoMargins ? " -i 4 " : "",
                                    setup->SecondPass ? "" : " --pass1only ",
