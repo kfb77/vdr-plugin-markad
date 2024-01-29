@@ -2692,8 +2692,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     int minLastStopAssumed;    // trusted distance to assumed stop depents on hardness of marks
                     int minLastStartAssumed;
                     int minPrevStopAssumed;
-                    int maxLastBroadcast;
-                    int maxLastAd;
+                    int minLastBroadcast;
                     switch(lastStopMark->type) {
                     case MT_ASSUMEDSTOP:
                         // too long broadcast length from info file, delete last stop:
@@ -2705,8 +2704,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                         minLastStopAssumed  =    0;
                         minLastStartAssumed = -383;
                         minPrevStopAssumed  = -352;
-                        maxLastBroadcast    =   88;  //  shartest valid last ad 89s
-                        maxLastAd           =   -1;
+                        minLastBroadcast    =   89;  //  shortest valid last ad 89s
                         break;
                     case MT_NOBLACKSTOP:
                         // too long broadcast length from info file, delete last stop:
@@ -2729,8 +2727,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                         minLastStopAssumed  =   73;
                         minLastStartAssumed = -384;
                         minPrevStopAssumed  = -541;
-                        maxLastBroadcast    =   -1;
-                        maxLastAd           =   -1;
+                        minLastBroadcast    =    0;
                         break;
                     case MT_LOGOSTOP:
                         // too long broadcast length from info file, delete last stop:
@@ -2748,36 +2745,37 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                         minLastStopAssumed  =  -12;
                         minLastStartAssumed = -205;
                         minPrevStopAssumed  = -314;
-                        maxLastBroadcast    =   79;  // shortest last part of a broadcast with logo end mark
-                        maxLastAd           =   15;  // changed from 4 to 15
+                        minLastBroadcast    =   79;  // shortest last part of a broadcast with logo end mark
                         break;
                     case MT_VBORDERSTOP:
                         minLastStopAssumed  =  288;
                         minLastStartAssumed =   56;
                         minPrevStopAssumed  = -477;
-                        maxLastBroadcast    =   -1;
-                        maxLastAd           =   -1;
+                        minLastBroadcast    =    0;
                         break;
                     default:
                         minLastStopAssumed  = 1000;  // do nothing
                         minLastStartAssumed = 1000;
                         minPrevStopAssumed  = 1000;
-                        maxLastBroadcast    =   -1;
-                        maxLastAd           =   -1;
+                        minLastBroadcast    =    0;
                     }
                     dsyslog("cMarkAdStandalone::CheckMarks(): select previous stop if: end mark        >= %4ds after assumed end (%d)", minLastStopAssumed, newStopA);
                     dsyslog("cMarkAdStandalone::CheckMarks():                          last start mark >= %4ds after assumed end (%d)", minLastStartAssumed, newStopA);
                     dsyslog("cMarkAdStandalone::CheckMarks():                          last stop  mark >= %4ds after assumed end (%d)", minPrevStopAssumed, newStopA);
-                    dsyslog("cMarkAdStandalone::CheckMarks():         max length of last broadcast     <  %4ds", maxLastBroadcast);
-                    dsyslog("cMarkAdStandalone::CheckMarks():         max length of last advertisement <  %4ds", maxLastBroadcast);
-
-                    if (((diffLastStopAssumed >= minLastStopAssumed) && (diffLastStartAssumed >= minLastStartAssumed) && (diffPrevStopAssumed >= minPrevStopAssumed)) ||
-                            // very short last broadcast is preview after broadcast
-                            ((lastBroadcast <= maxLastBroadcast) && (lastStopMark->position >= (newStopA - (19 * macontext.Video.Info.framesPerSecond)))) ||
-                            ((lastAd <= maxLastAd) && (diffLastStopAssumed >= 0) && (diffPrevStopAssumed > -665))) {  // very short ads are only between broadcast, changed from -756 to -665
+                    // check end sequence
+                    if ((diffLastStopAssumed >= minLastStopAssumed) && (diffLastStartAssumed >= minLastStartAssumed) && (diffPrevStopAssumed >= minPrevStopAssumed)) {
                         dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, assume too big recording length", prevStopMark->position);
                         marks.Del(lastStopMark->position);
                         marks.Del(lastStartMark->position);
+                    }
+                    else {
+                        // very short last broadcast is preview after broadcast
+                        dsyslog("cMarkAdStandalone::CheckMarks(): min length of last broadcast < %4ds", minLastBroadcast);
+                        if (lastBroadcast < minLastBroadcast) {
+                            dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, last broadcast too short", prevStopMark->position);
+                            marks.Del(lastStopMark->position);
+                            marks.Del(lastStartMark->position);
+                        }
                     }
                 }
             }
@@ -2792,7 +2790,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
     dsyslog("cMarkAdStandalone::CheckMarks(): remove logo and hborder detection failure marks");
     DebugMarks();     //  only for debugging
 
-    // first pass, delete all very short STOP START logo marks because they are logo detection failure
+// first pass, delete all very short STOP START logo marks because they are logo detection failure
     mark = marks.GetFirst();
     while (mark) {
         if ((mark->type == MT_LOGOSTOP) && (mark->Next()) && (mark->Next()->type == MT_LOGOSTART)) {
@@ -2809,7 +2807,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
         mark = mark->Next();
     }
 
-    // second pass, delete rest
+// second pass, delete rest
     mark = marks.GetFirst();
     while (mark) {
         if ((mark->position > marks.GetFirst()->position) && (mark->type == MT_LOGOSTART) && mark->Next() && mark->Next()->type == MT_LOGOSTOP) {  // do not delete selected start mark
