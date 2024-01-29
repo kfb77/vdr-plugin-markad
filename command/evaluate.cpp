@@ -1100,6 +1100,10 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         int end                       = 0;
         int startFinal                = 0;
         int endFinal                  = 0;
+        int staticCount               = 0;
+        int staticCountFinal          = 0;
+        int frameCount                = 0;
+        int frameCountFinal           = 0;
         int matchLogoCornerCount      = 0;
         int matchRestCornerCount      = 0;
         int matchLogoCornerCountFinal = 0;
@@ -1123,11 +1127,13 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         int sumPixel              = 0;
         int countZero             = 0;
         int darkCorner            = 0;
+        bool isStatic             = true;
 
         for (int corner = 0; corner < CORNERS; corner++) {
             if (((corner == maContext->Video.Logo.corner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) infoLogo.matchLogoCornerCount++;
             if (((corner != maContext->Video.Logo.corner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) infoLogo.matchRestCornerCount++;
             if ((*cornerResultIt).rate[corner] <= 0) countZero++;
+            if (((*cornerResultIt).rate[corner] > 0) && ((*cornerResultIt).rate[corner] < 308)) isStatic = false;  // if all corner has high match, this is a separator picture
             sumPixel += (*cornerResultIt).rate[corner];
             if (((*cornerResultIt).rate[corner] <=   0) && (corner != maContext->Video.Logo.corner)) darkCorner++;   // if we have no match, this can be a too dark corner
         }
@@ -1155,23 +1161,29 @@ bool cDetectLogoStopStart::IsInfoLogo() {
             if (infoLogo.start == 0) {
                 infoLogo.start = (*cornerResultIt).frameNumber1;
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INFOLOGO)
-                dsyslog("cDetectLogoStopStart::IsInfoLogo(): start info log: start frame (%d)", infoLogo.start);
+                dsyslog("cDetectLogoStopStart::IsInfoLogo(): start info logo at frame (%d)", infoLogo.start);
 #endif
             }
             infoLogo.end = (*cornerResultIt).frameNumber2;
+            infoLogo.frameCount++;
+            if (isStatic) infoLogo.staticCount++;
         }
         else {
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INFOLOGO)
-            dsyslog("cDetectLogoStopStart::IsInfoLogo(): end info log: start frame (%d), end frame (%d), matchLogoCornerCount %d, matchRestCornerCount (%d)", infoLogo.start, infoLogo.end, infoLogo.matchLogoCornerCount, infoLogo.matchRestCornerCount);
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): end info log: start frame (%d), end frame (%d), matchLogoCornerCount %d, matchRestCornerCount (%d), frameCount %d, staticCount %d", infoLogo.start, infoLogo.end, infoLogo.matchLogoCornerCount, infoLogo.matchRestCornerCount, infoLogo.frameCount, infoLogo.staticCount);
 #endif
             if ((infoLogo.end - infoLogo.start) > (infoLogo.endFinal - infoLogo.startFinal)) {
                 infoLogo.startFinal                = infoLogo.start;
                 infoLogo.endFinal                  = infoLogo.end;
+                infoLogo.frameCountFinal           = infoLogo.frameCount;
+                infoLogo.staticCountFinal          = infoLogo.staticCount;
                 infoLogo.matchLogoCornerCountFinal = infoLogo.matchLogoCornerCount;
                 infoLogo.matchRestCornerCountFinal = infoLogo.matchRestCornerCount;
             }
             infoLogo.start                = 0;  // reset state
             infoLogo.end                  = 0;
+            infoLogo.frameCount           = 0;
+            infoLogo.staticCount          = 0;
             infoLogo.matchLogoCornerCount = 0;
             infoLogo.matchRestCornerCount = 0;
             lowMatchCornerCount           = 0;
@@ -1180,16 +1192,26 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     if ((infoLogo.end - infoLogo.start) > (infoLogo.endFinal - infoLogo.startFinal)) {
         infoLogo.startFinal                = infoLogo.start;
         infoLogo.endFinal                  = infoLogo.end;
+        infoLogo.frameCountFinal           = infoLogo.frameCount;
+        infoLogo.staticCountFinal          = infoLogo.staticCount;
         infoLogo.matchLogoCornerCountFinal = infoLogo.matchLogoCornerCount;
         infoLogo.matchRestCornerCountFinal = infoLogo.matchRestCornerCount;
     }
 
+    // check if we have a static preview picture
+    int staticQuote = 0;
+    if (infoLogo.frameCountFinal > 0) staticQuote = 1000 * infoLogo.staticCountFinal / infoLogo.frameCountFinal;
+    dsyslog("cDetectLogoStopStart::IsInfoLogo(): static picture quote %d", staticQuote);
+    if (staticQuote >= 990) found = false;
+
     // check if "no logo" corner has same matches as logo corner, in this case it must be a static scene (e.g. static preview picture in frame or adult warning) and no info logo
-    infoLogo.matchRestCornerCountFinal /= 3;
-    dsyslog("cDetectLogoStopStart::IsInfoLogo(): count matches greater than limit of %d: %d logo corner, avg rest corners %d", INFO_LOGO_MACTH_MIN, infoLogo.matchLogoCornerCountFinal, infoLogo.matchRestCornerCountFinal);
-    if (infoLogo.matchLogoCornerCountFinal <= (infoLogo.matchRestCornerCountFinal + 3)) {  // changed from 2 to 3
-        dsyslog("cDetectLogoStopStart::IsInfoLogo(): too much similar corners, this must be a static ad or preview picture");
-        found = false;
+    if (found) {
+        infoLogo.matchRestCornerCountFinal /= 3;
+        dsyslog("cDetectLogoStopStart::IsInfoLogo(): count matches greater than limit of %d: %d logo corner, avg rest corners %d", INFO_LOGO_MACTH_MIN, infoLogo.matchLogoCornerCountFinal, infoLogo.matchRestCornerCountFinal);
+        if (infoLogo.matchLogoCornerCountFinal <= (infoLogo.matchRestCornerCountFinal + 3)) {  // changed from 2 to 3
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): too much similar corners, this must be a static ad or preview picture");
+            found = false;
+        }
     }
 
     // check separator image
