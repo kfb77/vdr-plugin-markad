@@ -4770,6 +4770,9 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_ASSUMEDSTART:
                     maxBefore = 4479;
                     break;
+                case MT_NOBLACKLOWERSTART:
+                    maxBefore = 82980;
+                    break;
                 case MT_LOGOSTART:
                     // select best mark (before / after), default: before
                     // invalid silence
@@ -4900,17 +4903,16 @@ void cMarkAdStandalone::SilenceOptimization() {
                     break;
                 case MT_LOGOSTOP:
                     // select best mark (before / after), default: after
-                    //   8360 (lbb) / 1720    first silence in broadcast
-                    //  <5840>      / 4000    second silence is after preview, logo stop delayed from bright background  (conflict)
+                    //  <640>       / 6480    second silence is after preview (Disney_Channel)
 
                     // second silence is after preview
+                    //  <5840>      / 4000    second silence is after preview, logo stop delayed from bright background
                     // <11600>      / 1120    second silence is after preview
                     // <11680>      / 1040    second silence is after preview
-                    if ((diffBefore <= 11680) && (diffAfter >= 1040) && (diffAfter <= 1140)) diffAfter = INT_MAX;
+                    if ((diffBefore >= 5840) && (diffBefore <= 11680) && (diffAfter >= 1040) && (diffAfter <= 4000)) diffAfter = INT_MAX;
 
-                    if (CompareChannelName(macontext.Info.ChannelName, "Nickelodeon", IGNORE_HD) ||
-                            CompareChannelName(macontext.Info.ChannelName, "Disney_Channel", IGNORE_HD)) maxAfter = 7960;  // very early fade out logo channels
-                    else maxAfter = 4359;  // silence after separator picture 4360ms after stop
+                    if (FadeOutLogo()) maxAfter = 7960;  // very early fade out logo channels
+                    else               maxAfter = 4359;  // silence after separator picture 4360ms after stop
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
