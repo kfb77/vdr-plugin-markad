@@ -483,19 +483,19 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
 //
 // separation image without logo, still too bright after reduction, but need to detect as logo invisible to get a logo stop mark
 // rp=    0, contrast  20, brightness 197, plane 1: pixel diff  40, plane 2: pixel diff  40  -> bright blue separator frame (with "ZDF")
+// rp=    0, contrast  23, brightness 198, plane 1: pixel diff  37, plane 2: pixel diff  40  -> bright yellow separator frame (with "ZWEI") NEW
 // rp=    0, contrast  24, brightness 215, plane 1: pixel diff  29, plane 2: pixel diff  37  -> bright blue separator frame (with "ZDF")  (conflict)
-// rp=    0, contrast   0, brightness 197, plane 1: pixel diff  96, plane 2: pixel diff  26  -> bright yellow separator frame (with "ZWEI")
 //
 // no separation images (bright picture with logo)
-// rp=    0, contrast  23, brightness 207, plane 1: pixel diff  17, plane 2: pixel diff  26
-// rp=    0, contrast  20, brightness 201, plane 1: pixel diff  10, plane 2: pixel diff   9
 // rp=    0, contrast  19, brightness 199, plane 1: pixel diff  15, plane 2: pixel diff  10
-// rp=    0, contrast  18, brightness 210, plane 1: pixel diff  21, plane 2: pixel diff  20
+// rp=    0, contrast  20, brightness 201, plane 1: pixel diff  10, plane 2: pixel diff   9
+// rp=    0, contrast  23, brightness 207, plane 1: pixel diff  17, plane 2: pixel diff  26
 // rp=    0, contrast  18, brightness 209, plane 1: pixel diff  23, plane 2: pixel diff  24
 // rp=    0, contrast  18, brightness 200, plane 1: pixel diff  10, plane 2: pixel diff   9
+// rp=    0, contrast  18, brightness 210, plane 1: pixel diff  21, plane 2: pixel diff  20
 //
 #define LOW_PIXEL_LOGO 61  // changed from 18 to 61
-    if ((maContext->Video.Logo.pixelRatio > LOW_PIXEL_LOGO) && (area.status == LOGO_VISIBLE) && (area.rPixel[0] == 0) && (brightnessLogo < 199) && (contrastLogo <= 20)) {  // we have a very low contrast, now check plane 1 and plane 2, changed from 200 to 199
+    if ((maContext->Video.Logo.pixelRatio > LOW_PIXEL_LOGO) && (area.status == LOGO_VISIBLE) && (area.rPixel[0] == 0) && (brightnessLogo <= 198) && (contrastLogo <= 23)) {  // we have a very low contrast, now check plane 1 and plane 2, changed from 200 to 198
         int diffPixel_12[2] = {0};
         for (int line =  1; line <  (maContext->Video.Info.height / 2) - 1; line++) {  // ignore first and last line, they have sometimes weird pixel
             for (int column = 1; column < (maContext->Video.Info.width / 2) - 2; column++) { // ignore first and last column, they have sometimes weird pixel
@@ -515,7 +515,7 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
 #endif
         // if we have also low pixel diff in plane 1 and plane 2, this is a separation image
         // we can not use contrast because there is a soft colour change from right to left
-        if ((diffPixel_12[0] <= 96) && (diffPixel_12[1] <= 40)) {
+        if ((diffPixel_12[0] <= 40) && (diffPixel_12[1] <= 40)) {
             dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%d): separation image detected", frameNumber);
             return BRIGHTNESS_SEPARATOR;
         }
