@@ -1911,7 +1911,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
     int separatorFrameAfter   = -1;
 
 #define INTRODUCTION_MIN_LENGTH          4961  // changed from 4320 to 4961, prevent to get separator scene with length 4960ms before broadcast start
-#define INTRODUCTION_MAX_LENGTH         13840
+#define INTRODUCTION_MAX_LENGTH         29080  // changed from 13840 to 29080, RTL2 have very long introduction logo
 #define INTRODUCTION_MAX_DIFF_SEPARATOR 20160  // max distance from sepatator frame to introduction logo start, changed from 10119 to 20160
     // somtime broacast start without logo before intruduction logo
     // sometime we have a undetected info logo or ad in frame without log before introduction logo and separtion frame is far before
@@ -2079,7 +2079,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
     dsyslog("cDetectLogoStopStart::IntroductionLogo(): final introduction logo range: start (%d), end (%d), avg frame portion %d", introductionLogo.startFinal, introductionLogo.endFinal, introductionLogo.framePortionFinal);
 
     // check frame portion quote to prevent to false detect ad in frame without logo as introdition logo
-    if (introductionLogo.framePortionFinal >= 356) {  // changed from 551 to 356
+    if (introductionLogo.framePortionFinal >= 336) {  // changed from 356 to 336
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): frame portion quote to high, ad in frame without logo before detected");
         return -1;
     }

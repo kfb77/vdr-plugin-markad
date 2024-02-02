@@ -103,7 +103,7 @@
 // #define DEBUG_ADINFRAME
 
 // debug introduction logo detection
-// #define DEBUG_INTRODUCTION
+#define DEBUG_INTRODUCTION
 
 // debug closing credits detection
 // #define DEBUG_CLOSINGCREDITS
