@@ -657,7 +657,8 @@ void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *mark) {
             dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): logo stop (%d) -> %dms -> start (%d) -> %dms -> end mark (%d)", prevLogoStop->position, stopStart, prevLogoStart->position, startEnd, mark->position);
             // valid info logo sequence
             // logo stop (77361) -> 12840ms -> start (77682) -> 71680ms -> end mark (79474)
-            if ((stopStart <= 30000) && (startEnd <= 71680)) {
+            // logo stop (78852) -> 12720ms -> start (79170) -> 75400ms -> end mark (81055)
+            if ((stopStart <= 30000) && (startEnd <= 75400)) {
                 dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): logo start (%5d) stop (%5d): undetected info logo or text preview over the logo, delete marks", prevLogoStart->position, prevLogoStop->position);
                 marks.Del(prevLogoStart);
                 marks.Del(prevLogoStop);
