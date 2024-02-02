@@ -1141,8 +1141,8 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         countFrames++;
         if (darkCorner == 3) countDark++;  // if all corners but logo corner has no match, this is a very dark scene
 
-        if (((countZero >= 2) && (sumPixel <=  45)) || // changed from  60 to  45, too big values results in false detection of a separation image, do not increase
-                ((countZero >= 3) && (sumPixel <  122))) { // changed from 132 to 122
+        if (((countZero >= 2) && (sumPixel <= 45)) ||     // changed from 60 to 45, too big values results in false detection of a separation image, do not increase
+                ((countZero >= 3) && (sumPixel < 122))) { // changed from 132 to 122
             countSeparatorFrame++;
             lastSeparatorFrame = (*cornerResultIt).frameNumber2;
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INFOLOGO)
@@ -1217,7 +1217,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     // check separator image
     if (found) {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): count separator frames %d", countSeparatorFrame);
-        if (countSeparatorFrame > 4) {
+        if (countSeparatorFrame > 5) {  // changed from 4 to 5, got more from change from info logo to normal logo
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): too much separator frames, this can not be a info logo");
             found = false;
         }
