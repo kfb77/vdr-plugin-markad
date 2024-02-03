@@ -239,8 +239,11 @@ void cPluginMarkAd::MainThreadHook(void) {
 cString cPluginMarkAd::Active(void) {
     // Return a message string if shutdown should be postponed
     dsyslog("markad: got shutdown request");
-    if (statusMonitor->MarkAdRunning() && (setup.DeferredShutdown))
+    if (statusMonitor->MarkAdRunning() && (setup.DeferredShutdown)) {
+        dsyslog("markad: markad still running, shutdown request rejected");
         return tr("markad still running");
+    }
+    dsyslog("markad: shutdown request accepted");
     return NULL;
 }
 
