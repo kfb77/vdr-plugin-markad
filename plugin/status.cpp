@@ -639,6 +639,23 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
     }
     ALLOC(strlen(svdrPortOption)+1, "svdrPortOption");
 
+    // prepare cmd option
+    char *cmdOption = NULL;
+    if (setup->ProcessDuring == PROCESS_AFTER) {
+        if(!asprintf(&cmdOption, " after")) {
+            esyslog("markad: asprintf svdrPortOption ouf of memory");
+            return false;
+        }
+        else ALLOC(strlen(cmdOption) + 1, "cmdOption");
+    }
+    if (setup->ProcessDuring == PROCESS_DURING) {
+        if(!asprintf(&cmdOption, " --online=%d before ", direct ? 1 : 2)) {
+            esyslog("markad: asprintf cmdOption ouf of memory");
+            return false;
+        }
+        else ALLOC(strlen(cmdOption) + 1, "cmdOption");
+    }
+
     cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->Verbose ? " -v " : "",
@@ -654,12 +671,14 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
                                    autoLogoOption ? autoLogoOption : "",
                                    setup->fulldecode ? " --fulldecode " : "",
                                    logodir,
-                                   direct ? "-O after" : "--online=2 before",
+                                   cmdOption,
                                    FileName);
     FREE(strlen(autoLogoOption)+1, "autoLogoOption");
     free(autoLogoOption);
     FREE(strlen(svdrPortOption)+1, "svdrPortOption");
     free(svdrPortOption);
+    FREE(strlen(svdrPortOption)+1, "cmdOption");
+    free(cmdOption);
 
     usleep(1000000); // wait 1 second
     if (SystemExec(cmd) != -1) {
