@@ -164,7 +164,9 @@ typedef struct sMarkAdConfig {
     //!<
     int autoLogo = 2;           //!< 0 = off, 1 = deprecated, 2 = on
     //!<
-    const char *recDir;         //!< name of the recording directory
+    const char *cmd    = NULL;  //!< cmd parameter
+    //!<
+    const char *recDir = NULL;  //!< name of the recording directory
     //!<
     bool backupMarks;           //!< <b>true:</b> backup marks file before override <br>
     //!< <b>false:</b> do not backup marks file

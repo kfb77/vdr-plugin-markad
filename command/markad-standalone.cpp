@@ -6422,6 +6422,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     char hostname[64];
     gethostname(hostname, 64);
     dsyslog("running on %s", hostname);
+    if (config->cmd) dsyslog("called with parameter cmd = %s", config->cmd);
 
     // check avcodec library version
 #if LIBAVCODEC_VERSION_INT < LIBAVCODEC_VERSION_DEPRECATED
@@ -7184,24 +7185,29 @@ int main(int argc, char *argv[]) {
     if (optind < argc) {
         while (optind < argc) {
             if (strcmp(argv[optind], "after" ) == 0 ) {
+                config.cmd = argv[optind];
                 bAfter = bFork = bNice = SYSLOG = true;
             }
             else if (strcmp(argv[optind], "before" ) == 0 ) {
+                config.cmd = argv[optind];
                 if (!config.online) config.online = 1;
                 config.before = bFork = bNice = SYSLOG = true;
             }
             else if (strcmp(argv[optind], "edited" ) == 0 ) {
+                config.cmd = argv[optind];
                 bEdited = true;
             }
             else if (strcmp(argv[optind], "nice" ) == 0 ) {
+                config.cmd = argv[optind];
                 bNice = true;
             }
             else if (strcmp(argv[optind], "-" ) == 0 ) {
+                config.cmd = argv[optind];
                 bImmediateCall = true;
             }
             else {
                 if ( strstr(argv[optind], ".rec") != NULL ) {
-                    recDir=realpath(argv[optind], NULL);
+                    recDir = realpath(argv[optind], NULL);
                     config.recDir = recDir;
                 }
             }
