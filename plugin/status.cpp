@@ -238,7 +238,7 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
                     tEventID eventNextID = eventNext->EventID();
                     if (eventNextID != eventID) {
                         char *log = NULL;
-                        if ((recs[i].epgEventLog) && (asprintf(&log, "------------------------------------> new VPS %s event: channelID %s, eventID: %7d, eitEventID: %7d, runningStatus: %u -> got next eventID %d", (eitEvent) ? "EIT" : "VDR", *channelID.ToString(), eventID, eitEventID, runningStatus, eventNextID) != -1)) recs[i].epgEventLog->Log(log);
+                        if ((recs[i].epgEventLog) && (asprintf(&log, "------------------------------------> new   VPS %s event: channelID %s, eventID: %7d, eitEventID: %7d, runningStatus: %u -> got next eventID %d", (eitEvent) ? "EIT" : "VDR", *channelID.ToString(), eventID, eitEventID, runningStatus, eventNextID) != -1)) recs[i].epgEventLog->Log(log);
                         if (log) free(log);
                         recs[i].eventNextID = eventNextID;  // before start of recording we are the next recording self
                     }
@@ -259,22 +259,28 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
             }
             if ((recs[i].runningStatus == 4) && (runningStatus == 4) && (eitEventID == recs[i].eitEventNextID)) {  // next event got EIT start, for private channels this is the only stop event
                 char *log = NULL;
-                if ((recs[i].epgEventLog) && (asprintf(&log, "------------------------------------> new VPS EIT Event: eventID: %7d, eitEventID: %7d, runningStatus: %u -> next event started", eventID, eitEventID, runningStatus) != -1)) recs[i].epgEventLog->Log(log);
+                if ((recs[i].epgEventLog) && (asprintf(&log, "------------------------------------> new   VPS EIT Event: eventID: %7d, eitEventID: %7d, runningStatus: %u -> next event started", eventID, eitEventID, runningStatus) != -1)) recs[i].epgEventLog->Log(log);
                 if (log) free(log);
                 SetVPSStatus(i, 1, (eitEvent)); // store recording stop
             }
         }
 
         // process VDR event
-        if (!eitEvent && recs[i].ignoreEIT) {
+        if (!eitEvent) {
             if ((eventID == recs[i].eventID) && (channelID == recs[i].channelID)) {
+                if (!recs[i].ignoreEIT) {
+                    char *log = NULL;
+                    if ((recs[i].epgEventLog) && (asprintf(&log, "------------------------------------> first VPS VDR Event: channelID %s, eventID: %7d, eitEventID: %7d, runningStatus: %u -> ignore future EIT events", *channelID.ToString(), eventID, eitEventID, runningStatus) != -1)) recs[i].epgEventLog->Log(log);
+                    if (log) free(log);
+                    recs[i].ignoreEIT = true;
+                }
                 if (recs[i].runningStatus != runningStatus) {
                     SetVPSStatus(i, runningStatus, (eitEvent)); // store recording running status
                 }
             }
             if ((recs[i].runningStatus == 4) && (runningStatus == 4) && (eventID == recs[i].eventNextID) && (channelID == recs[i].channelID)) {  // next event got VPS start, for private channels this is the only stop event
                 char *log = NULL;
-                if ((recs[i].epgEventLog) && (asprintf(&log, "------------------------------------> new VPS VDR Event: channelID %s, eventID: %7d, eitEventID: %7d, runningStatus: %u -> next event started", *channelID.ToString(), eventID, eitEventID, runningStatus) != -1)) recs[i].epgEventLog->Log(log);
+                if ((recs[i].epgEventLog) && (asprintf(&log, "------------------------------------> new   VPS VDR Event: channelID %s, eventID: %7d, eitEventID: %7d, runningStatus: %u -> next event started", *channelID.ToString(), eventID, eitEventID, runningStatus) != -1)) recs[i].epgEventLog->Log(log);
                 if (log) free(log);
                 SetVPSStatus(i, 1, (eitEvent)); // store recording stop
             }
@@ -1227,9 +1233,7 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID ev
             recs[pos].vpsPauseStopTime  = 0;
             recs[pos].timerVPS          = timerVPS;
             recs[pos].channelID         = channelID;
-
-            if (eventID <= 0xFFFF) recs[pos].ignoreEIT = true;  // no epg2vdr plugin, we do not need EIT events
-            else recs[pos].ignoreEIT = false;                   // epg2vdr plugin used, we need to use EIT events, VDR events will not work
+            recs[pos].ignoreEIT         = false;
 
             if (setup->useVPS && setup->logVPS) {
                 recs[pos].epgEventLog = new cEpgEventLog(FileName);
@@ -1263,13 +1267,6 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID ev
                 if (asprintf(&log, "timer info: eventID %u, eventNextID %u", eventID, eventNextID) != -1) recs[pos].epgEventLog->Log(log);
                 if (log) free(log);
                 if (asprintf(&log, "timer info: start %s, stop %s", timerStart, timerStop) != -1) recs[pos].epgEventLog->Log(log);
-                if (log) free(log);
-                if (!recs[pos].ignoreEIT) {
-                    if (asprintf(&log, "timer info: eventID %d > 0xFFFF: channel under control of epg2vdr, use HandleEitEvent()", eventID) != -1) recs[pos].epgEventLog->Log(log);
-                }
-                else {
-                    if (asprintf(&log, "timer info: eventID %d <= 0xFFFF: channel not under control of epg2vdr, use HandleEvent() and ignore HandleEitEvent()", eventID) != -1) recs[pos].epgEventLog->Log(log);
-                }
                 if (log) free(log);
             }
             return pos;
