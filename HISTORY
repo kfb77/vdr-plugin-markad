@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-02-04: Version 3.4.8
+- fix EIT event handling with epg2vdr
+- fix markad parameter when called after recording
+  thx to vdr_rossi@www.vdr-portal.de for reporting
+- some minor bug fixes and optimizations, see git
+
 2024-01-29: Version 3.4.7
 - optimize logo corner selection for low matches because of static pattern in background
   thx to Schwabe@www.vdr-portal.de for reporting
