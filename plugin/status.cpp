@@ -35,8 +35,9 @@ cEpgEventLog::~cEpgEventLog() {
 }
 
 
-void cEpgEventLog::Log(const time_t recStart, const int event, const int state, const int newState, const char* action) {
+void cEpgEventLog::LogState(const int severity, const sRecording *recording, const int newState, const char* action) {
     if (!eventLogFile) return;
+    if (!recording) return;
     if (!action) return;
     char *message = NULL;
 
@@ -47,44 +48,93 @@ void cEpgEventLog::Log(const time_t recStart, const int event, const int state, 
 
     char timeVPS[20] = {0};
     strftime(timeVPS, 20, "%d.%m.%Y %H:%M:%S", &now);
-    int offset = difftime(curr_time, recStart);
+    int offset = difftime(curr_time, recording->recStart);
     int h = offset/60/60;
     int m = (offset - h*60*60) / 60;
     int s = offset - h*60*60 - m*60;
 
-    dsyslog("markad: %02d:%02d:%02d state: %d, event: %d, new state: %d -> %s", h, m, s, state, event, newState, action);
-    if (asprintf(&message, "%s VPS status: time offset: %02d:%02d:%02d, eventID: %d, old state %d, new state: %d -> %s", timeNow, h, m, s, event, state, newState, action) == -1) {
-        esyslog("markad: cEpgEventLog::Log(): asprintf failed");
+    switch (severity) {
+    case VPS_ERROR:
+        esyslog("markad: VPS -> %s: offset: %02d:%02d:%02d, eventID: %d, state: %d, new state: %d -> %s", recording->title, h, m, s, recording->eventID, recording->runningStatus, newState, action);
+        if (asprintf(&message, "%s ERROR: time offset: %02d:%02d:%02d, eventID: %d, old state %d, new state: %d -> %s", timeNow, h, m, s, recording->eventID, recording->runningStatus, newState, action) == -1) {
+            esyslog("markad: cEpgEventLog::Log(): asprintf failed");
+            return;
+        }
+        break;
+    case VPS_INFO:
+        isyslog("markad: VPS -> %s: offset: %02d:%02d:%02d, eventID: %d, state: %d, new state: %d -> %s", recording->title, h, m, s, recording->eventID, recording->runningStatus, newState, action);
+        if (asprintf(&message, "%s INFO:  time offset: %02d:%02d:%02d, eventID: %d, old state %d, new state: %d -> %s", timeNow, h, m, s, recording->eventID, recording->runningStatus, newState, action) == -1) {
+            esyslog("markad: cEpgEventLog::Log(): asprintf failed");
+            return;
+        }
+        break;
+    case VPS_DEBUG:
+        dsyslog("markad: VPS -> %s: offset: %02d:%02d:%02d, eventID: %d, state: %d, new state: %d -> %s", recording->title, h, m, s, recording->eventID, recording->runningStatus, newState, action);
+        if (asprintf(&message, "%s DEBUG: time offset: %02d:%02d:%02d, eventID: %d, old state %d, new state: %d -> %s", timeNow, h, m, s, recording->eventID, recording->runningStatus, newState, action) == -1) {
+            esyslog("markad: cEpgEventLog::Log(): asprintf failed");
+            return;
+        }
+        break;
+    default:
+        esyslog("markad: VPS -> invalid severity %d", severity);
         return;
     }
     ALLOC(strlen(message)+1, "message");
 
     fprintf(eventLogFile,"%s\n", message);
+    fflush(eventLogFile);
     FREE(strlen(message)+1, "message");
     free(message);
-    fflush(eventLogFile);
 }
 
 
-void cEpgEventLog::Log(const char *message) {
+void cEpgEventLog::LogEvent(const int severity, const char *title, char *eventLog) {
+    if (!title) return;
     if (!eventLogFile) return;
-    if (!message) return;
+    if (!eventLog) return;
 
     char *messageLog = NULL;
     time_t curr_time = time(NULL);
     struct tm now = *localtime(&curr_time);
     char timeNow[20] = {0};
     strftime(timeNow, 20, "%d.%m.%Y %H:%M:%S", &now);
-    if (asprintf(&messageLog, "%s %s", timeNow, message) == -1) {
-        esyslog("markad: cEpgEventLog::Log(): asprintf failed");
+
+    // syslog output
+    switch (severity) {
+    case VPS_ERROR:
+        esyslog("markad: VPS -> %s: %s", title, eventLog);
+        if (asprintf(&messageLog, "%s ERROR: %s", timeNow, eventLog) == -1) {
+            esyslog("markad: cEpgEventLog::Log(): asprintf failed");
+            return;
+        }
+        break;
+    case VPS_INFO:
+        isyslog("markad: VPS -> %s: %s", title, eventLog);
+        if (asprintf(&messageLog, "%s INFO:  %s", timeNow, eventLog) == -1) {
+            esyslog("markad: cEpgEventLog::Log(): asprintf failed");
+            return;
+        }
+        break;
+    case VPS_DEBUG:
+        dsyslog("markad: VPS -> %s: %s", title, eventLog);
+        if (asprintf(&messageLog, "%s DEBUG: %s", timeNow, eventLog) == -1) {
+            esyslog("markad: cEpgEventLog::Log(): asprintf failed");
+            return;
+        }
+        break;
+    default:
+        esyslog("markad: VPS -> invalid severity %d for message %s", severity, eventLog);
         return;
     }
-    ALLOC(strlen(message)+1, "messageLog");
-
+    // logfile in recording directory output
+    ALLOC(strlen(messageLog) + 1, "messageLog");
     fprintf(eventLogFile,"%s\n", messageLog);
-    FREE(strlen(message)+1, "messageLog");
-    free(messageLog);
     fflush(eventLogFile);
+
+    FREE(strlen(messageLog) + 1, "messageLog");
+    free(messageLog);
+    FREE(strlen(eventLog) + 1, "eventLog");
+    free(eventLog);
 }
 
 
@@ -139,7 +189,7 @@ bool cEpgHandlerMarkad::HandleEvent(cEvent *Event) {
 }
 
 
-int cStatusMarkAd::Get_EIT_EventID(const sRecordings *recording, const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *schedule, const bool nextEvent) {
+int cStatusMarkAd::Get_EIT_EventID(const sRecording *recording, const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *schedule, const bool nextEvent) {
 #if APIVERSNUM>=20301  // feature not supported with old VDRs
     tEventID eitEventID  = eitEvent->getEventId();
     if (nextEvent) event = schedule->GetFollowingEvent();
@@ -175,21 +225,27 @@ int cStatusMarkAd::Get_EIT_EventID(const sRecordings *recording, const cEvent *e
         strftime(timerStopEvent, 20, "%d.%m.%Y %H:%M:%S", &stopEvent);
 
 
-        char *log = NULL;
-        if (recording->epgEventLog) {
-            if (nextEvent) recording->epgEventLog->Log("NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN");
-            else           recording->epgEventLog->Log("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
+        char *eventLog = NULL;
+        if (nextEvent) {
+            if (recording->epgEventLog && (asprintf(&eventLog, "received EIT event for VDR next    event -> start: %s, stop: %s, eitEventID: %7u, channelID: %s", timerStartEIT, timerStopEIT, eitEventID, *schedule->ChannelID().ToString()) != -1)) {
+                ALLOC(strlen(eventLog) + 1, "eventLog");
+                recording->epgEventLog->LogEvent(VPS_DEBUG, recording->title, eventLog);
+            }
+            if (recording->epgEventLog && (asprintf(&eventLog, "found EIT eventID %u for next VDR eventID %u", eitEventID, recording->eventNextID) != -1)) {
+                ALLOC(strlen(eventLog) + 1, "eventLog");
+                recording->epgEventLog->LogEvent(VPS_DEBUG, recording->title, eventLog);
+            }
         }
-        if ((recording->epgEventLog) && (asprintf(&log, "timer             -> start: %s, stop: %s, eventID:    %7d, channelID: %s, title: %s", timerStartTimer, timerStopTimer, recording->eventID, *recording->channelID.ToString(), recording->Name) != -1)) recording->epgEventLog->Log(log);
-        if (log) free(log);
-        if ((recording->epgEventLog) && (asprintf(&log, "EIT event %s -> start: %s, stop: %s, eitEventID: %7u, channelID: %s", (nextEvent) ? "next    " : "current", timerStartEIT, timerStopEIT, eitEventID, *schedule->ChannelID().ToString()) != -1)) recording->epgEventLog->Log(log);
-        if (log) free(log);
-        if ((recording->epgEventLog) && (asprintf(&log, "VDR event %s -> start: %s, stop: %s, eventID     %7u,                                 title: %s", (nextEvent) ? "next    " : "current", timerStartEvent, timerStopEvent, event->EventID(), event->Title()) != -1)) recording->epgEventLog->Log(log);
-        if (log) free(log);
-
-        if ((recording->epgEventLog) && (asprintf(&log, "found eitEventID %u for %s event", eitEventID, (nextEvent) ? "next    " : "current") != -1)) recording->epgEventLog->Log(log);
-        if (log) free(log);
-        if (recording->epgEventLog) recording->epgEventLog->Log("===============================================================================================================================");
+        else {
+            if (recording->epgEventLog && (asprintf(&eventLog, "received EIT event for VDR current event -> start: %s, stop: %s, eitEventID: %7u, channelID: %s", timerStartEIT, timerStopEIT, eitEventID, *schedule->ChannelID().ToString()) != -1)) {
+                ALLOC(strlen(eventLog) + 1, "eventLog");
+                recording->epgEventLog->LogEvent(VPS_DEBUG, recording->title, eventLog);
+            }
+            if (recording->epgEventLog && (asprintf(&eventLog, "found EIT eventID %u for current VDR eventID %u", eitEventID, recording->eventID) != -1)) {
+                ALLOC(strlen(eventLog) + 1, "eventLog");
+                recording->epgEventLog->LogEvent(VPS_DEBUG, recording->title, eventLog);
+            }
+        }
         return eitEventID;
     }
 #endif
@@ -212,17 +268,16 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
     }
 
     for (int i = 0; i <= max_recs; i++) {
-        if (recs[i].eventID       ==  0) continue;   // this slot is not activ
-        if (recs[i].runningStatus == -1) continue;   // we have a final invalid state, no more state updates
-        if (recs[i].channelID     == tChannelID::InvalidID) {
+        if (recs[i].eventID        ==  0) continue;   // this slot is not activ
+        if (recs[i].runningStatus  == -1) continue;   // we have a final invalid state, no more state updates
+        if (recs[i].eventChannelID == tChannelID::InvalidID) {
             dsyslog("markad: StatusMarkAd::FindRecording(): eventID %d: channelID invalid", eventID);
             continue;
         }
 
         // recording is now running but and we have no next event, try to get next eventID now
         // for all types of events
-        if ((eventID == recs[i].eventID) && (channelID == recs[i].channelID) && (runningStatus == 4) && (recs[i].eventNextID == 0)) {
-            dsyslog("markad: StatusMarkAd::FindRecording(): index %d, eventID %4d, next event missing", i, recs[i].eventID);
+        if ((eventID == recs[i].eventID) && (channelID == recs[i].eventChannelID) && (runningStatus == 4) && (recs[i].eventNextID == 0)) {
             const cSchedule *schedule = NULL;
             if (eitEvent) schedule = Schedule;
             else schedule = event->Schedule();
@@ -231,18 +286,20 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
                 if (eventNext) {
                     tEventID eventNextID = eventNext->EventID();
                     if (eventNextID != eventID) {
-                        char *log = NULL;
-                        if ((recs[i].epgEventLog) && (asprintf(&log, "------------------------------------> new   VPS %s event: channelID %s, eventID: %7d, eitEventID: %7d, runningStatus: %u -> got next eventID %d", (eitEvent) ? "EIT" : "VDR", *channelID.ToString(), eventID, eitEventID, runningStatus, eventNextID) != -1)) recs[i].epgEventLog->Log(log);
-                        if (log) free(log);
-                        recs[i].eventNextID = eventNextID;  // before start of recording we are the next recording self
+                        char *eventLog = NULL;
+                        if ((recs[i].epgEventLog) && (asprintf(&eventLog, "complete VDR event: eventID: %7d, channelID %s, set next VDR eventID %d", eventID, *channelID.ToString(), eventNextID) != -1)) {
+                            ALLOC(strlen(eventLog) + 1, "eventLog");
+                            recs[i].epgEventLog->LogEvent(VPS_DEBUG, recs[i].title, eventLog);
+                        }
                     }
+                    recs[i].eventNextID = eventNextID;  // before start of recording we are the next recording self
                 }
             }
         }
 
         // process EIT event
         if (eitEvent && !recs[i].ignoreEIT) {
-            if (recs[i].channelID == Schedule->ChannelID()) {  // we do not know the EIT Event ID, with epg2vdr it is different from timer eventID
+            if (recs[i].eventChannelID == Schedule->ChannelID()) {  // we do not know the EIT Event ID, with epg2vdr it is different from timer eventID
                 if (recs[i].eitEventID     == 0) recs[i].eitEventID     = Get_EIT_EventID(&recs[i], event, eitEvent, Schedule, false);
                 if (recs[i].eitEventNextID == 0) recs[i].eitEventNextID = Get_EIT_EventID(&recs[i], event, eitEvent, Schedule, true);
             }
@@ -252,30 +309,36 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
                 }
             }
             if ((recs[i].runningStatus == 4) && (runningStatus == 4) && (eitEventID == recs[i].eitEventNextID)) {  // next event got EIT start, for private channels this is the only stop event
-                char *log = NULL;
-                if ((recs[i].epgEventLog) && (asprintf(&log, "------------------------------------> new   VPS EIT Event: eventID: %7d, eitEventID: %7d, runningStatus: %u -> next event started", eventID, eitEventID, runningStatus) != -1)) recs[i].epgEventLog->Log(log);
-                if (log) free(log);
+                char *eventLog = NULL;
+                if ((recs[i].epgEventLog) && (asprintf(&eventLog, "received EIT Event: eventID: %7d, eitEventID: %7d, runningStatus: %u -> next event started", eventID, eitEventID, runningStatus) != -1)) {
+                    ALLOC(strlen(eventLog) + 1, "eventLog");
+                    recs[i].epgEventLog->LogEvent(VPS_INFO, recs[i].title, eventLog);
+                }
                 SetVPSStatus(i, 1, (eitEvent)); // store recording stop
             }
         }
 
         // process VDR event
         if (!eitEvent) {
-            if ((eventID == recs[i].eventID) && (channelID == recs[i].channelID)) {
+            if ((eventID == recs[i].eventID) && (channelID == recs[i].eventChannelID)) {
                 if (!recs[i].ignoreEIT) {
-                    char *log = NULL;
-                    if ((recs[i].epgEventLog) && (asprintf(&log, "------------------------------------> first VPS VDR Event: channelID %s, eventID: %7d, eitEventID: %7d, runningStatus: %u -> ignore future EIT events", *channelID.ToString(), eventID, eitEventID, runningStatus) != -1)) recs[i].epgEventLog->Log(log);
-                    if (log) free(log);
+                    char *eventLog = NULL;
+                    if ((recs[i].epgEventLog) && (asprintf(&eventLog, "received VDR Event: eventID: %7d, channelID %s, runningStatus: %u -> ignore future EIT events", eventID, *channelID.ToString(), runningStatus) != -1)) {
+                        ALLOC(strlen(eventLog) + 1, "eventLog");
+                        recs[i].epgEventLog->LogEvent(VPS_DEBUG, recs[i].title, eventLog);
+                    }
                     recs[i].ignoreEIT = true;
                 }
                 if (recs[i].runningStatus != runningStatus) {
                     SetVPSStatus(i, runningStatus, (eitEvent)); // store recording running status
                 }
             }
-            if ((recs[i].runningStatus == 4) && (runningStatus == 4) && (eventID == recs[i].eventNextID) && (channelID == recs[i].channelID)) {  // next event got VPS start, for private channels this is the only stop event
-                char *log = NULL;
-                if ((recs[i].epgEventLog) && (asprintf(&log, "------------------------------------> new   VPS VDR Event: channelID %s, eventID: %7d, eitEventID: %7d, runningStatus: %u -> next event started", *channelID.ToString(), eventID, eitEventID, runningStatus) != -1)) recs[i].epgEventLog->Log(log);
-                if (log) free(log);
+            if ((recs[i].runningStatus == 4) && (runningStatus == 4) && (eventID == recs[i].eventNextID) && (channelID == recs[i].eventChannelID)) {  // next event got VPS start, for private channels this is the only stop event
+                char *eventLog = NULL;
+                if ((recs[i].epgEventLog) && (asprintf(&eventLog, "received VDR Event: channelID %s, eventID: %7d, runningStatus: %u -> next event started", *channelID.ToString(), eventID, runningStatus) != -1)) {
+                    ALLOC(strlen(eventLog) + 1, "eventLog");
+                    recs[i].epgEventLog->LogEvent(VPS_INFO, recs[i].title, eventLog);
+                }
                 SetVPSStatus(i, 1, (eitEvent)); // store recording stop
             }
         }
@@ -287,7 +350,7 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
 
 void cStatusMarkAd::SetVPSStatus(const int index, int runningStatus, const bool eventEIT) {
     // process changed running status
-    char *logAll = NULL;
+    char *eventLogAll = NULL;
     if (recs[index].epgEventLog) {
         // VPS RunningStatus: 0=undefined, 1=not running, 2=starts in a few seconds, 3=pausing, 4=running
         char *statusText = NULL;
@@ -307,53 +370,57 @@ void cStatusMarkAd::SetVPSStatus(const int index, int runningStatus, const bool 
         }
         ALLOC(strlen(statusText)+1, "statusText");
 
-        if (asprintf(&logAll, "------------------------------------> new VPS %s Event:                                eventID: %7d, eitEventID: %7d, runningStatus: %u -> %s", (eventEIT) ? "EIT" : "VDR", recs[index].eventID, recs[index].eitEventID, runningStatus, statusText) != -1) recs[index].epgEventLog->Log(logAll);
-        if (logAll) free(logAll);
+        if (asprintf(&eventLogAll, "received %s event: eventID: %7d, eitEventID: %7d, runningStatus: %u -> %s", (eventEIT) ? "EIT" : "VDR", recs[index].eventID, recs[index].eitEventID, runningStatus, statusText) != -1) {
+            ALLOC(strlen(eventLogAll) + 1, "eventLog");
+            recs[index].epgEventLog->LogEvent(VPS_DEBUG, recs[index].title, eventLogAll);
+        }
         FREE(strlen(statusText)+1, "statusText");
         free(statusText);
     }
     if ((recs[index].runningStatus == 0) && (runningStatus == 1)) { // VPS event not running
-        if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, runningStatus, "before recording start");
+        if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_INFO, &recs[index], runningStatus, "before broadcast start");
         recs[index].runningStatus = 1;
         return;
     }
 
     if ((recs[index].runningStatus == 0) && (runningStatus == 4)) {  // to late recording start
-        if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, -1, "recording start after VPS timer start is invalid");
+        if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_ERROR, &recs[index], -1, "VPS event 4 (running) without event 1 (not yet running) or event 2 (starts shortly) before is invalid");
         recs[index].runningStatus = -1;
         return;
     }
 
     if ((recs[index].runningStatus <= 1) && (runningStatus == 2)) { // VPS event start expected in a few seconds
-        if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, runningStatus, "recording starts in a few seconds");
+        if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_DEBUG, &recs[index], runningStatus, "broadcat starts in a few seconds");
         recs[index].runningStatus = 2;
         return;
     }
 
     if ((recs[index].runningStatus == 4) && (runningStatus == 2)) {
-        if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, recs[index].runningStatus, "ignore");
+        if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_DEBUG, &recs[index], recs[index].runningStatus, "ignore event");
         return;
     }
 
     if ((recs[index].runningStatus == 2) && (runningStatus == 1)) {
-        if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, recs[index].runningStatus, "ignore");
+        if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_DEBUG, &recs[index], recs[index].runningStatus, "ignore event");
         return;
     }
 
     if (((recs[index].runningStatus == 1) || (recs[index].runningStatus == 2)) && (runningStatus == 4)) { // VPS start
         if (recs[index].vpsStartTime && recs[index].vpsStopTime) {
-            if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, runningStatus, "ignore");
-            char *log = NULL;
-            if ((recs[index].epgEventLog) && (asprintf(&log, "VPS event 'running' at status %i after we had start and stop events, ignoring event", recs[index].runningStatus) != -1)) recs[index].epgEventLog->Log(log);
-            if (log) free(log);
+            if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_DEBUG, &recs[index], runningStatus, "ignore event");
+            char *eventLog = NULL;
+            if ((recs[index].epgEventLog) && (asprintf(&eventLog, "VPS event 'running' at status %d after we had start and stop events, ignoring event", recs[index].runningStatus) != -1)) {
+                ALLOC(strlen(eventLog) + 1, "eventLog");
+                recs[index].epgEventLog->LogEvent(VPS_DEBUG, recs[index].title, eventLog);
+            }
         }
         else {
             if (StoreVPSStatus("START", index)) {
-                if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, runningStatus, "recording start");
+                if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_INFO, &recs[index], runningStatus, "broadcast start");
                 recs[index].runningStatus = 4;
             }
             else {
-                if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, recs[index].runningStatus, "ignore");
+                if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_DEBUG, &recs[index], recs[index].runningStatus, "ignore event");
             }
         }
         return;
@@ -361,11 +428,11 @@ void cStatusMarkAd::SetVPSStatus(const int index, int runningStatus, const bool 
 
     if ((recs[index].runningStatus == 4) && (runningStatus == 1)) {  // VPS stop
         if (StoreVPSStatus("STOP", index)) {
-            if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, runningStatus, "recording end");
+            if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_INFO, &recs[index], runningStatus, "broadcast end");
             recs[index].runningStatus = 1;
         }
         else {
-            if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, runningStatus, "invalid VPS sequence, abort VPS detection");
+            if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_ERROR, &recs[index], runningStatus, "invalid VPS sequence, abort VPS detection");
             recs[index].runningStatus = -1;
         }
         return;
@@ -373,30 +440,32 @@ void cStatusMarkAd::SetVPSStatus(const int index, int runningStatus, const bool 
 
     if ((recs[index].runningStatus == 4) && (runningStatus == 3)) { // VPS pause start
         if (StoreVPSStatus("PAUSE_START", index)) {
-            if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, runningStatus, "pause start");
+            if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_INFO, &recs[index], runningStatus, "broadcast pause start");
             recs[index].runningStatus = 3;
         }
         else {
-            if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, runningStatus, "ignore");
+            if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_DEBUG, &recs[index], runningStatus, "ignore event");
         }
         return;
     }
 
     if ((recs[index].runningStatus == 3) && (runningStatus == 4)) { // VPS pause stop
         if (StoreVPSStatus("PAUSE_STOP", index)) {
-            if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, runningStatus, "pause stop");
+            if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_INFO, &recs[index], runningStatus, "broadcast pause stop");
             recs[index].runningStatus = 4;
         }
         else {
-            if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, recs[index].runningStatus, "ignore");
+            if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_DEBUG, &recs[index], recs[index].runningStatus, "ignore event");
         }
         return;
     }
 
-    logAll = NULL;
-    if ((recs[index].epgEventLog) && (asprintf(&logAll, "ununexpected VPS event %d at status %d, ignoring this and future events", runningStatus, recs[index].runningStatus) != -1)) recs[index].epgEventLog->Log(logAll);
-    if (logAll) free(logAll);
-    if (recs[index].epgEventLog) recs[index].epgEventLog->Log(recs[index].recStart, recs[index].eventID, recs[index].runningStatus, -1, "invalid");
+    eventLogAll = NULL;
+    if ((recs[index].epgEventLog) && (asprintf(&eventLogAll, "ununexpected VPS event %d at status %d, ignoring this and future events", runningStatus, recs[index].runningStatus) != -1)) {
+        ALLOC(strlen(eventLogAll) + 1, "eventLog");
+        recs[index].epgEventLog->LogEvent(VPS_ERROR, recs[index].title, eventLogAll);
+    }
+    if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_ERROR, &recs[index], -1, "invalid event");
     recs[index].runningStatus = -1;
     return;
 }
@@ -430,18 +499,18 @@ void cStatusMarkAd::SaveVPSTimer(const char *FileName, const bool timerVPS) {
 
 void cStatusMarkAd::SaveVPSEvents(const int index) {
     if ((index < 0) || (index >= MAXDEVICES * MAXRECEIVERS)) {
-        dsyslog("markad: cStatusMarkAd::SaveVPSEvents(): index %i out of range", index);
+        dsyslog("markad: cStatusMarkAd::SaveVPSEvents(): index %d out of range", index);
     }
     if (recs[index].runningStatus == -1 ) {
-        esyslog("markad: VPS event sequence not valid for recording <%s>", recs[index].Name);
+        esyslog("markad: VPS -> %s: event sequence not valid", recs[index].title);
         return;
     }
     if (!recs[index].vpsStartTime)  {
-        esyslog("markad: no VPS start event for recording <%s>", recs[index].Name);
+        esyslog("markad: VPS -> %s: no start event", recs[index].title);
         return;
     }
     if (!recs[index].vpsStopTime)  {
-        esyslog("markad: no VPS stop event for recording <%s>", recs[index].Name);
+        esyslog("markad: VPS -> %s: no stop event", recs[index].title);
         return;
     }
 
@@ -450,15 +519,15 @@ void cStatusMarkAd::SaveVPSEvents(const int index) {
     struct tm timeVPStm;
     char *fileVPS = NULL;
 
-    if (!asprintf(&fileVPS, "%s/%s", recs[index].FileName, "markad.vps")) {
-        esyslog("markad: cStatusMarkAd::SaveVPSEvents(): recording <%s> asprintf failed", recs[index].Name);
+    if (!asprintf(&fileVPS, "%s/%s", recs[index].fileName, "markad.vps")) {
+        esyslog("markad: cStatusMarkAd::SaveVPSEvents(): recording <%s> asprintf failed", recs[index].title);
         return;
     }
     ALLOC(strlen(fileVPS)+1, "fileVPS");
 
     FILE *pFile = fopen(fileVPS,"a+");
     if (!pFile) {
-        esyslog("markad: cStatusMarkAd::SaveVPSEvents(): recording <%s> open file %s failed", recs[index].Name, fileVPS);
+        esyslog("markad: cStatusMarkAd::SaveVPSEvents(): recording <%s> open file %s failed", recs[index].title, fileVPS);
         FREE(strlen(fileVPS)+1, "fileVPS");
         free(fileVPS);
         return;
@@ -507,7 +576,7 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
     struct tm now = *localtime(&curr_time);
     char timeVPS[20] = {0};
     strftime(timeVPS, 20, "%d.%m.%Y %H:%M:%S", &now);
-    dsyslog("markad: StatusMarkAd::StoreVPSStatus(): recording <%s> got VPS %s event at %s", recs[index].Name, status, timeVPS);
+    dsyslog("markad: VPS %s: got VPS %s event at %s", recs[index].title, status, timeVPS);
     if (strcmp(status,"START") == 0) {
         recs[index].vpsStartTime=curr_time;
         return true;
@@ -528,29 +597,35 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
                 return true;
             }
             else {
-                char *log = NULL;
-                if ((recs[index].epgEventLog) && (asprintf(&log, "VPS pause stop already received, pause stop now set to last event") != -1)) recs[index].epgEventLog->Log(log);
-                if (log) free(log);
+                char *eventLog = NULL;
+                if ((recs[index].epgEventLog) && (asprintf(&eventLog, "VPS pause stop already received, pause stop now set to last event") != -1)) {
+                    ALLOC(strlen(eventLog) + 1, "eventLog");
+                    recs[index].epgEventLog->LogEvent(VPS_DEBUG, recs[index].title, eventLog);
+                }
                 recs[index].vpsPauseStopTime=curr_time;
                 return true;
             }
         }
         else {
-            char *log = NULL;
-            if ((recs[index].epgEventLog) && (asprintf(&log, "VPS pause stop to fast after pause start, ignoring") != -1)) recs[index].epgEventLog->Log(log);
-            if (log) free(log);
+            char *eventLog = NULL;
+            if ((recs[index].epgEventLog) && (asprintf(&eventLog, "VPS pause stop to fast after pause start, ignoring") != -1)) {
+                ALLOC(strlen(eventLog) + 1, "eventLog");
+                recs[index].epgEventLog->LogEvent(VPS_ERROR, recs[index].title, eventLog);
+            }
             return false;
         }
     }
     if (strcmp(status,"STOP") == 0) {
         if ( curr_time >  recs[index].vpsStartTime + 60) {  // a valid STOP must be at least 1 min after START
-            recs[index].vpsStopTime=curr_time;
+            recs[index].vpsStopTime = curr_time;
             return true;
         }
         else {
-            char *log = NULL;
-            if ((recs[index].epgEventLog) && (asprintf(&log, "VPS stop to fast after start, invalid VPS sequence, abort VPS detection") != -1)) recs[index].epgEventLog->Log(log);
-            if (log) free(log);
+            char *eventLog = NULL;
+            if ((recs[index].epgEventLog) && (asprintf(&eventLog, "VPS stop to fast after start, invalid VPS sequence, abort VPS detection") != -1)) {
+                ALLOC(strlen(eventLog) + 1, "eventLog");
+                recs[index].epgEventLog->LogEvent(VPS_ERROR, recs[index].title, eventLog);
+            }
             return false;
         }
     }
@@ -611,7 +686,7 @@ void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSE
 }
 
 
-bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID eventID, const tEventID eventNextID, const tChannelID channelID, const time_t timerStartTime, const time_t timerStopTime, const bool timerVPS, const bool direct) {
+bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool direct, sRecording *recording) {
     if ((direct) && (Get(FileName) != -1)) return false;
 
     char *autoLogoOption = NULL;
@@ -684,9 +759,9 @@ bool cStatusMarkAd::Start(const char *FileName, const char *Name, const tEventID
     if (SystemExec(cmd) != -1) {
         dsyslog("markad: cStatusMarkAd::Start(): executing %s", *cmd);
         usleep(200000);
-        int pos = Add(FileName, Name, eventID, eventNextID, channelID, timerStartTime, timerStopTime, timerVPS);
-        bool gotPID = getPid(pos); // will set recs[pos].Pid
-        dsyslog("markad: cStatusMarkAd::Start(): index %d, pid %d, filename %s: running markad stored in list", pos, recs[pos].Pid, FileName ? FileName : "<NULL>");
+        int pos = Add(Name, FileName, recording);
+        bool gotPID = getPid(pos); // will set recs[pos].pid
+        dsyslog("markad: cStatusMarkAd::Start(): index %d, pid %d, filename %s: running markad stored in list", pos, recs[pos].pid, FileName ? FileName : "<NULL>");
         if (gotPID && getStatus(pos)) {
             if (setup->ProcessDuring == PROCESS_AFTER) {
                 if (!direct) {
@@ -715,30 +790,30 @@ void cStatusMarkAd::TimerChange(const cTimer *Timer, eTimerChange Change) {
 }
 
 
-void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID *eventID, tEventID *eventNextID,  tChannelID *channelID, time_t *timerStartTime, time_t *timerStopTime, bool *timerVPS) {
+void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, sRecording *recording) {
     if (!Name)           return;
     if (!Device)         return;
-    if (!eventID)        return;
-    if (!eventNextID)    return;
-    if (!timerStartTime) return;
-    if (!timerStopTime)  return;
+    if (!recording)      return;
 
 #if APIVERSNUM>=20301  // feature not supported with old VDRs
-    *timerStartTime = 0;
-    *timerStopTime  = 0;
-    *eventID        = 0;
-    *eventNextID    = 0;
-    int timeDiff    = INT_MAX;
+    recording->timerStartTime = 0;
+    recording->timerStopTime  = 0;
+    recording->eventID        = 0;
+    recording->eventNextID    = 0;
+    int timeDiff              = INT_MAX;
 
+
+// search for timer to recording
+    dsyslog("markad: cStatusMarkAd::GetEventID(): recording: %s, device: %s, search for timer", Name, *Device->DeviceName());
 #if APIVERSNUM>=20301
     const cTimer *timer = NULL;
     cStateKey StateKey;
 #ifdef DEBUG_LOCKS
-    dsyslog("markad: GetEventID(): WANT   timers READ");
+    dsyslog("markad: cStatusMarkAd:GetEventID(): WANT   timers READ");
 #endif
     if (const cTimers *Timers = cTimers::GetTimersRead(StateKey, LOCK_TIMEOUT)) {
 #ifdef DEBUG_LOCKS
-        dsyslog("markad: GetEventID(): LOCKED timers READ");
+        dsyslog("markad: cStatusMarkAd:GetEventID(): LOCKED timers READ");
 #endif
         for (const cTimer *Timer = Timers->First(); Timer; Timer = Timers->Next(Timer))
 #else
@@ -749,7 +824,7 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
             if (Timer->Recording() && const_cast<cDevice *>(Device)->IsTunedToTransponder(Timer->Channel())) {
                 if (Timer->File() && (strcmp(Name, Timer->File()) == 0)) {
                     if (abs(Timer->StartTime() - time(NULL)) < timeDiff) {  // maybe we have two timer on same channel with same name, take the nearest start time
-                        timer=Timer;
+                        timer = Timer;
                         timeDiff = abs(Timer->StartTime() - time(NULL));
                     }
                 }
@@ -771,23 +846,37 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
 #endif
         return;
     }
-    *timerStartTime = timer->StartTime();
-    *timerStopTime  = timer->StopTime();
+    recording->timerStartTime   = timer->StartTime();
+    recording->timerStopTime    = timer->StopTime();
+    recording->timerChannelID   = timer->Channel()->GetChannelID();
+    recording->timerChannelName = strdup(timer->Channel()->Name());
+    ALLOC(strlen(recording->timerChannelName) + 1, "timerChannelName");
+    dsyslog("markad: cStatusMarkAd::GetEventID(): recording: %s, timer title: %s, channelID: %s", Name, timer->File(), *recording->timerChannelID.ToString());
+    dsyslog("markad: cStatusMarkAd::GetEventID(): recording: %s, timer start: %s, stop: %s", Name, strtok(ctime(&recording->timerStartTime), "\n"), strtok(ctime(&recording->timerStopTime), "\n"));
+    if (timer->HasFlags(tfVps)) {
+        dsyslog("markad: cStatusMarkAd::GetEventID(): timer <%s> uses VPS", timer->File());
+        recording->timerVPS = true;
+    }
 
+    // search for event to timer
     if (!timer->Event()) {
         dsyslog("markad: cStatusMarkAd::GetEventID(): timer for %s has no event", Name);
     }
     else { // we found the event
         const cEvent *event = timer->Event();
         if (event) {
-            *eventID                  = event->EventID();
-            *channelID                = event->ChannelID();
+            recording->eventTitle = strdup(event->Title());
+            ALLOC(strlen(recording->eventTitle) + 1, "eventTitle");
+            recording->eventID        = event->EventID();
+            recording->eventChannelID = event->ChannelID();
+            recording->eventStartTime = event->StartTime();
+            recording->eventStopTime  = event->EndTime();
             const cSchedule *schedule = event->Schedule();
             if (schedule) {
                 const cEvent *eventNext = schedule->GetFollowingEvent();
                 if (eventNext) {
-                    *eventNextID = eventNext->EventID();
-                    if (*eventNextID == *eventID) *eventNextID = 0;  // before start of recording we are the next recording self
+                    recording->eventNextID = eventNext->EventID();
+                    if (recording->eventNextID == recording->eventID) recording->eventNextID = 0;  // before start of recording we are the next recording self
                 }
             }
         }
@@ -797,12 +886,14 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, tEventID
     dsyslog("markad: GetEventID(): UNLOCK timers READ");
 #endif
     StateKey.Remove();
-#endif
-    dsyslog("markad: cStatusMarkAd::GetEventID(): recording <%s>, timer <%s>, channelID %s, eventID %u, eventNextID %u, start: %s, stop: %s", Name, timer->File(), *(channelID->ToString()), *eventID, *eventNextID, strtok(ctime(timerStartTime), "\n"), strtok(ctime(timerStopTime), "\n"));
+    dsyslog("markad: cStatusMarkAd::GetEventID(): recording: %s, event title: %s, channelID: %s", Name, recording->eventTitle, *recording->eventChannelID.ToString());
+    dsyslog("markad: cStatusMarkAd::GetEventID(): recording: %s, event eventID: %u, eventNextID: %u", Name, recording->eventID, recording->eventNextID);
+    dsyslog("markad: cStatusMarkAd::GetEventID(): recording: %s, event start: %s, stop: %s", Name, strtok(ctime(&recording->eventStartTime), "\n"), strtok(ctime(&recording->eventStopTime), "\n"));
     if (timer->HasFlags(tfVps)) {
         dsyslog("markad: cStatusMarkAd::GetEventID(): timer <%s> uses VPS", timer->File());
-        *timerVPS = true;
+        recording->timerVPS = true;
     }
+#endif
 #endif
     return;
 }
@@ -813,9 +904,10 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
     if (!bindir)   return; // we cannot operate without bindir
     if (!logodir)  return; // we don't want to operate without logodir
 
+// recording started
     if (On) {
         runningRecordings++;
-        dsyslog("markad: cStatusMarkAd::Recording(): recording <%s> [%s] started, recording count now %d", Name, FileName, runningRecordings);
+        dsyslog("markad: cStatusMarkAd::Recording():  recording: %s, file name: %s, started, recording count now %d", Name, FileName, runningRecordings);
         // check if markad is running for the same recording, this can happen if we have a short recording interuption
         int runningPos = Get(FileName, NULL);
         if (runningPos >= 0) {
@@ -823,18 +915,13 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
             Remove(runningPos, true);
         }
 
-        tEventID eventID        = 0;
-        tEventID eventNextID    = 0;
-        time_t   timerStartTime = 0;
-        time_t   timerStopTime  = 0;
-        bool     timerVPS       = false;
-        tChannelID channelID;
-        GetEventID(Device, Name, &eventID, &eventNextID, &channelID, &timerStartTime, &timerStopTime, &timerVPS);
-        SaveVPSTimer(FileName, timerVPS);
+        sRecording recording;
+        GetEventID(Device, Name, &recording);
+        SaveVPSTimer(FileName, recording.timerVPS);
 
         if ((setup->ProcessDuring == PROCESS_NEVER) && setup->useVPS) {  // markad start disabled per config menu, add recording for VPS detection
-            int pos = Add(FileName, Name, eventID, eventNextID, channelID, timerStartTime, timerStopTime, timerVPS);
-            if (pos >= 0) dsyslog("markad: cStatusMarkAd::Recording(): added recording <%s> channelID %s, event ID %u, eventNextID %u at index %i only for VPS detection", Name, *channelID.ToString(), eventID, eventNextID, pos);
+            int pos = Add(Name, FileName, &recording);
+            if (pos >= 0) dsyslog("markad: cStatusMarkAd::Recording(): added recording <%s> channelID %s, event ID %u, eventNextID %u at index %i only for VPS detection", Name, *recording.eventChannelID.ToString(), recording.eventID, recording.eventNextID, pos);
             return;
         }
         if (setup->ProcessDuring == PROCESS_NEVER) {
@@ -852,10 +939,11 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         }
 
         // Start markad with recording
-        if (!Start(FileName, Name, eventID, eventNextID, channelID, timerStartTime, timerStopTime, timerVPS, false)) {
+        if (!Start(Name, FileName, false, &recording)) {
             esyslog("markad: failed starting on <%s>", FileName);
         }
     }
+// recording ended
     else {
         runningRecordings--;
         if (runningRecordings < 0) runningRecordings = 0;
@@ -865,10 +953,10 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
 #endif
         int pos = Get(FileName, Name);
         if (pos >= 0) {
-            dsyslog("markad: cStatusMarkAd::Recording(): index %d, pid %d, filename %s: recording stopped", pos, recs[pos].Pid, FileName);
+            dsyslog("markad: cStatusMarkAd::Recording(): recording: %s, index %d, pid %d, recording stopped", recs[pos].title, pos, recs[pos].pid);
             if (setup->useVPS) SaveVPSEvents(pos);  // store to get error messages for incomplete sequence
             if ((setup->ProcessDuring == PROCESS_DURING) || (setup->ProcessDuring == PROCESS_NEVER)) { // PROCESS_NEVER: recording maybe in list from vps detection
-                dsyslog("markad: cStatusMarkAd::Recording(): remove recording <%s> [%s] from list", Name, FileName);
+                dsyslog("markad: cStatusMarkAd::Recording(): recording: %s, remove from list", recs[pos].title);
                 Remove(pos, false);
             }
 
@@ -893,7 +981,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
                 }
             }
         }
-        else dsyslog("markad: cStatusMarkAd::Recording(): unknown recording %s stopped", FileName);
+        else esyslog("markad: cStatusMarkAd::Recording(): unknown recording %s stopped", FileName);
     }
 }
 
@@ -997,14 +1085,14 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device, const char *FileName) {
 
 bool cStatusMarkAd::getStatus(int Position) {
     if (Position < 0) return false;
-    if (!recs[Position].Pid) return false;
+    if (!recs[Position].pid) return false;
     int ret = 0;
     char procname[256] = "";
-    snprintf(procname, sizeof(procname), "/proc/%i/stat", recs[Position].Pid);
+    snprintf(procname, sizeof(procname), "/proc/%i/stat", recs[Position].pid);
     FILE *fstat = fopen(procname, "r");
     if (fstat) {
         // found a running markad
-        ret = fscanf(fstat, "%*10d %*255s %c", &recs[Position].Status);
+        ret = fscanf(fstat, "%*10d %*255s %c", &recs[Position].status);
         fclose(fstat);
     }
     else {
@@ -1015,7 +1103,7 @@ bool cStatusMarkAd::getStatus(int Position) {
         }
     }
 #ifdef DEBUG_PAUSE_CONTINUE
-    if (ret != 1) dsyslog("markad: cStatusMarkAd::getStatus(): markad terminated for index %i, recording %s", Position, recs[Position].FileName ? recs[Position].FileName : "<NULL>");
+    if (ret != 1) dsyslog("markad: cStatusMarkAd::getStatus(): markad terminated for index %i, recording %s", Position, recs[Position].fileName ? recs[Position].fileName : "<NULL>");
 #endif
     return (ret == 1);
 }
@@ -1023,11 +1111,11 @@ bool cStatusMarkAd::getStatus(int Position) {
 
 bool cStatusMarkAd::getPid(int Position) {
     if (Position < 0) return false;
-    if (!recs[Position].FileName) return false;
-    if (recs[Position].Pid) return true;
+    if (!recs[Position].fileName) return false;
+    if (recs[Position].pid) return true;
     int ret = 0;
     char *buf;
-    if (asprintf(&buf, "%s/markad.pid", recs[Position].FileName) == -1) return false;
+    if (asprintf(&buf, "%s/markad.pid", recs[Position].fileName) == -1) return false;
     ALLOC(strlen(buf)+1, "buf");
 
     usleep(500*1000);   // wait 500ms to give markad time to create pid file
@@ -1037,7 +1125,7 @@ bool cStatusMarkAd::getPid(int Position) {
         free(buf);
         int pid;
         ret = fscanf(fpid, "%10i\n", &pid);
-        if (ret == 1) recs[Position].Pid = pid;
+        if (ret == 1) recs[Position].pid = pid;
         fclose(fpid);
     }
     else {
@@ -1054,17 +1142,17 @@ bool cStatusMarkAd::getPid(int Position) {
 }
 
 
-bool cStatusMarkAd::GetNextActive(struct sRecordings **RecEntry) {
+bool cStatusMarkAd::GetNextActive(struct sRecording **RecEntry) {
     if (!RecEntry) return false;
     *RecEntry = NULL;
 
     if (actpos >= (MAXDEVICES*MAXRECEIVERS)) return false;
 
     do {
-        if ((recs[actpos].FileName) && (recs[actpos].Pid)) {
+        if ((recs[actpos].fileName) && (recs[actpos].pid)) {
             if (getStatus(actpos)) {
                 /* check if recording directory still exists */
-                if (access(recs[actpos].FileName, R_OK) == -1) {
+                if (access(recs[actpos].fileName, R_OK) == -1) {
                     Remove(actpos,true);
                 } else {
                     *RecEntry = &recs[actpos++];
@@ -1081,18 +1169,18 @@ bool cStatusMarkAd::GetNextActive(struct sRecordings **RecEntry) {
 
 
 void cStatusMarkAd::Check() {
-    struct sRecordings *tmpRecs = NULL;
+    struct sRecording *tmpRecs = NULL;
     ResetActPos();
     while (GetNextActive(&tmpRecs)) ;
 }
 
 
 bool cStatusMarkAd::MarkAdRunning() {
-    struct sRecordings *tmpRecs = NULL;
+    struct sRecording *tmpRecs = NULL;
     ResetActPos();
     bool running = false;
     while (GetNextActive(&tmpRecs)) {
-        if (tmpRecs->Name) dsyslog("markad: markad is running for recording %s, defere shutdown", tmpRecs->Name);
+        if (tmpRecs->title) dsyslog("markad: markad is running for recording %s, defere shutdown", tmpRecs->title);
         else dsyslog("markad: markad is running for unknown recording, defere shutdown");
         running = true;
     }
@@ -1102,8 +1190,8 @@ bool cStatusMarkAd::MarkAdRunning() {
 
 int cStatusMarkAd::Get(const char *FileName, const char *Name) {
     for (int i = 0; i < (MAXDEVICES * MAXRECEIVERS); i++) {
-        if (Name && recs[i].Name && !strcmp(recs[i].Name, Name)) return i;
-        if (FileName && recs[i].FileName && !strcmp(recs[i].FileName, FileName)) return i;
+        if (Name && recs[i].title && !strcmp(recs[i].title, Name)) return i;
+        if (FileName && recs[i].fileName && !strcmp(recs[i].fileName, FileName)) return i;
     }
     return -1;
 }
@@ -1119,39 +1207,51 @@ void cStatusMarkAd::Remove(const char *Name, bool Kill) {
 
 void cStatusMarkAd::Remove(int pos, bool Kill) {
     if (pos < 0) return;
-//    dsyslog("markad: cStatusMarkAd::Remove(): index %d, pid %d, filename %s: remove from list", pos, recs[pos].Pid, (recs[pos].FileName) ? recs[pos].FileName : "<NULL>");
-    if (recs[pos].FileName) {
-        if (recs[pos].runningStatus == 4) isyslog("markad: got no VPS stop event for recording %s", recs[pos].FileName);
-        FREE(strlen(recs[pos].FileName)+1, "recs[pos].FileName");
-        free(recs[pos].FileName);
-        recs[pos].FileName = NULL;
+    if (recs[pos].fileName) {
+        dsyslog("markad: cStatusMarkAd::Remove(): index %d, pid %d, filename %s: remove from list", pos, recs[pos].pid, (recs[pos].fileName) ? recs[pos].fileName : "<NULL>");
+        if (recs[pos].runningStatus == 4) isyslog("markad: got no VPS stop event for recording %s", recs[pos].fileName);
+        FREE(strlen(recs[pos].fileName) + 1, "recs[pos].fileName");
+        free(recs[pos].fileName);
+        recs[pos].fileName = NULL;
     }
-
-    if (recs[pos].Name) {
-        FREE(strlen(recs[pos].Name)+1, "recs[pos].Name");
-        free(recs[pos].Name);
-        recs[pos].Name = NULL;
+    // recoring title / timer title
+    if (recs[pos].title) {
+        FREE(strlen(recs[pos].title) + 1, "recs[pos].title");
+        free(recs[pos].title);
+        recs[pos].title = NULL;
     }
-    if ((Kill) && (recs[pos].Pid)) {
+    // event title
+    if (recs[pos].eventTitle) {
+        FREE(strlen(recs[pos].eventTitle) + 1, "eventTitle");
+        free(recs[pos].eventTitle);
+        recs[pos].eventTitle = NULL;
+    }
+    // timer channel name
+    if (recs[pos].timerChannelName) {
+        FREE(strlen(recs[pos].timerChannelName) + 1, "timerChannelName");
+        free(recs[pos].timerChannelName);
+        recs[pos].timerChannelName = NULL;
+    }
+    if ((Kill) && (recs[pos].pid)) {
         if (getStatus(pos)) {
-            if ((recs[pos].Status == 'R') || (recs[pos].Status == 'S')) {
-                dsyslog("markad: cStatusMarkAd::Remove(): index %d, pid %d: terminating markad process", pos, recs[pos].Pid);
-                kill(recs[pos].Pid, SIGTERM);
+            if ((recs[pos].status == 'R') || (recs[pos].status == 'S')) {
+                dsyslog("markad: cStatusMarkAd::Remove(): index %d, pid %d: terminating markad process", pos, recs[pos].pid);
+                kill(recs[pos].pid, SIGTERM);
             }
             else {
-                dsyslog("markad: cStatusMarkAd::Remove(): index %d, pid %d: killing markad process", pos, recs[pos].Pid);
-                kill(recs[pos].Pid, SIGKILL);
+                dsyslog("markad: cStatusMarkAd::Remove(): index %d, pid %d: killing markad process", pos, recs[pos].pid);
+                kill(recs[pos].pid, SIGKILL);
             }
         }
     }
-    recs[pos].Status            = 0;
-    recs[pos].Pid               = 0;
-    recs[pos].ChangedbyUser     = false;
+    recs[pos].status            = 0;
+    recs[pos].pid               = 0;
+    recs[pos].changedByUser     = false;
     recs[pos].ignoreEIT         = false;
     recs[pos].eventID           = 0;
     recs[pos].eventNextID       = 0;
     recs[pos].eitEventID        = 0;
-    recs[pos].eitEventNextID        = 0;
+    recs[pos].eitEventNextID    = 0;
     recs[pos].timerStartTime    = 0;
     recs[pos].timerStopTime     = 0;
     recs[pos].runningStatus     = 0;
@@ -1169,7 +1269,7 @@ void cStatusMarkAd::Remove(int pos, bool Kill) {
 
     max_recs = -1;
     for (int i = 0; i < (MAXDEVICES*MAXRECEIVERS); i++) {
-        if (recs[i].FileName) {
+        if (recs[i].fileName) {
             max_recs = i;
         }
     }
@@ -1179,11 +1279,11 @@ void cStatusMarkAd::Remove(int pos, bool Kill) {
 char *cStatusMarkAd::GetStatus() {
     char *status = NULL;  // vdr will free this memory
     for (int pos = 0; pos < (MAXDEVICES*MAXRECEIVERS); pos++) {
-        if (!recs[pos].FileName) continue;
-        dsyslog("markad: cStatusMarkAd::GetStatus(): active recording with markad running: %s",recs[pos].FileName);
+        if (!recs[pos].fileName) continue;
+        dsyslog("markad: cStatusMarkAd::GetStatus(): active recording with markad running: %s",recs[pos].fileName);
         char *line = NULL;
         char *tmp = NULL;
-        if (asprintf(&line, "markad: running for %s\n", recs[pos].FileName) != -1) {
+        if (asprintf(&line, "markad: running for %s\n", recs[pos].fileName) != -1) {
             if (asprintf(&tmp, "%s%s", (status) ? status : "", line) != -1) {
                 free(status);
                 free(line);
@@ -1198,35 +1298,44 @@ char *cStatusMarkAd::GetStatus() {
 }
 
 
-int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID eventID, const tEventID eventNextID, const tChannelID channelID, const time_t timerStartTime, const time_t timerStopTime, bool timerVPS) {
-    for (int pos = 0; pos < (MAXDEVICES*MAXRECEIVERS); pos++) {
-        if (!recs[pos].FileName) {
-            recs[pos].FileName = strdup(FileName);
-            ALLOC(strlen(recs[pos].FileName)+1, "recs[pos].FileName");
+int cStatusMarkAd::Add(const char *Name, const char *FileName, sRecording *recording) {
+    for (int pos = 0; pos < (MAXDEVICES * MAXRECEIVERS); pos++) {
+        if (!recs[pos].fileName) {
+            // file name
+            recs[pos].fileName = strdup(FileName);
+            ALLOC(strlen(recs[pos].fileName)+1, "recs[pos].fileName");
+            // recording title / timer title
             if (Name) {
-                recs[pos].Name = strdup(Name);
-                ALLOC(strlen(recs[pos].Name)+1, "recs[pos].Name");
+                recs[pos].title = strdup(Name);
+                ALLOC(strlen(recs[pos].title)+1, "recs[pos].title");
             }
             else {
-                recs[pos].Name = NULL;
+                recs[pos].title = NULL;
             }
-            recs[pos].Status            = 0;
-            recs[pos].Pid               = 0;
-            recs[pos].ChangedbyUser     = false;
-            recs[pos].eventID           = eventID;
-            recs[pos].eventNextID       = eventNextID;
+            // event title
+            recs[pos].eventTitle = recording->eventTitle;  // allocated by GetEventID
+
+            recs[pos].status            = 0;
+            recs[pos].pid               = 0;
+            recs[pos].changedByUser     = false;
+            recs[pos].eventID           = recording->eventID;
+            recs[pos].eventNextID       = recording->eventNextID;
             recs[pos].eitEventID        = 0;
             recs[pos].eitEventNextID    = 0;
-            recs[pos].timerStartTime    = timerStartTime;
-            recs[pos].timerStopTime     = timerStopTime;
+            recs[pos].timerStartTime    = recording->timerStartTime;
+            recs[pos].timerStopTime     = recording->timerStopTime;
+            recs[pos].eventStartTime    = recording->eventStartTime;
+            recs[pos].eventStopTime     = recording->eventStopTime;
             recs[pos].runningStatus     = 0;
             recs[pos].recStart          = time(NULL);
             recs[pos].vpsStartTime      = 0;
             recs[pos].vpsStopTime       = 0;
             recs[pos].vpsPauseStartTime = 0;
             recs[pos].vpsPauseStopTime  = 0;
-            recs[pos].timerVPS          = timerVPS;
-            recs[pos].channelID         = channelID;
+            recs[pos].timerVPS          = recording->timerVPS;
+            recs[pos].eventChannelID    = recording->eventChannelID;
+            recs[pos].timerChannelID    = recording->timerChannelID;
+            recs[pos].timerChannelName  = recording->timerChannelName;
             recs[pos].ignoreEIT         = false;
 
             if (setup->useVPS && setup->logVPS) {
@@ -1239,29 +1348,86 @@ int cStatusMarkAd::Add(const char *FileName, const char *Name, const tEventID ev
             }
             if (pos > max_recs) max_recs = pos;
 
-            struct tm start = *localtime(&timerStartTime);
-            char timerStart[20] = {0};
-            strftime(timerStart, 20, "%d.%m.%Y %H:%M:%S", &start);
-            struct tm stop = *localtime(&timerStopTime);
-            char timerStop[20] = {0};
-            strftime(timerStop, 20, "%d.%m.%Y %H:%M:%S", &stop);
-            char *log = NULL;
-            if (recs[pos].epgEventLog) {
-                if (asprintf(&log, "timer info: recording index %d", pos) != -1) recs[pos].epgEventLog->Log(log);
-                if (log) free(log);
+            if (recs[pos].epgEventLog && recs[pos].title) {
+                char *eventLog = NULL;
 
-                if (channelID == tChannelID::InvalidID) {
-                    if (asprintf(&log, "timer info: channelID missing") != -1) recs[pos].epgEventLog->Log(log);
+                // timer infos
+                struct tm start = *localtime(&recs[pos].timerStartTime);
+                char timerStart[20] = {0};
+                strftime(timerStart, 20, "%d.%m.%Y %H:%M:%S", &start);
+                struct tm stop = *localtime(&recs[pos].timerStopTime);
+                char timerStop[20] = {0};
+                strftime(timerStop, 20, "%d.%m.%Y %H:%M:%S", &stop);
+
+                if (asprintf(&eventLog, "timer recording index: %d", pos) != -1) {
+                    ALLOC(strlen(eventLog) + 1, "eventLog");
+                    recs[pos].epgEventLog->LogEvent(VPS_DEBUG, recs[pos].title, eventLog);
+                }
+                if (asprintf(&eventLog, "VDR timer title: %s", recs[pos].title) != -1) {
+                    ALLOC(strlen(eventLog) + 1, "eventLog");
+                    recs[pos].epgEventLog->LogEvent(VPS_DEBUG, recs[pos].title, eventLog);
+                }
+                if (recording->timerChannelID == tChannelID::InvalidID) {
+                    if (asprintf(&eventLog, "VDR timer channelID missing") != -1) {
+                        ALLOC(strlen(eventLog) + 1, "eventLog");
+                        recs[pos].epgEventLog->LogEvent(VPS_ERROR, recs[pos].title, eventLog);
+                    }
                 }
                 else {
-                    if (asprintf(&log, "timer info: channelID %s", *channelID.ToString()) != -1) recs[pos].epgEventLog->Log(log);
+                    if (asprintf(&eventLog, "VDR timer channelID: %s", *recs[pos].timerChannelID.ToString()) != -1) {
+                        ALLOC(strlen(eventLog) + 1, "eventLog");
+                        recs[pos].epgEventLog->LogEvent(VPS_DEBUG, recs[pos].title, eventLog);
+                    }
                 }
-                if (log) free(log);
+                if (recs[pos].timerChannelName && asprintf(&eventLog, "VDR timer channel name: %s", recs[pos].timerChannelName) != -1) {
+                    ALLOC(strlen(eventLog) + 1, "eventLog");
+                    recs[pos].epgEventLog->LogEvent(VPS_DEBUG, recs[pos].title, eventLog);
+                }
+                if (asprintf(&eventLog, "VDR timer start: %s, stop: %s", timerStart, timerStop) != -1) {
+                    ALLOC(strlen(eventLog) + 1, "eventLog");
+                    recs[pos].epgEventLog->LogEvent(VPS_DEBUG, recs[pos].title, eventLog);
+                }
 
-                if (asprintf(&log, "timer info: eventID %u, eventNextID %u", eventID, eventNextID) != -1) recs[pos].epgEventLog->Log(log);
-                if (log) free(log);
-                if (asprintf(&log, "timer info: start %s, stop %s", timerStart, timerStop) != -1) recs[pos].epgEventLog->Log(log);
-                if (log) free(log);
+                // event infos
+                start = *localtime(&recs[pos].eventStartTime);
+                char eventStart[20] = {0};
+                strftime(eventStart, 20, "%d.%m.%Y %H:%M:%S", &start);
+                stop = *localtime(&recs[pos].eventStopTime);
+                char eventStop[20] = {0};
+                strftime(eventStop, 20, "%d.%m.%Y %H:%M:%S", &stop);
+
+                if (asprintf(&eventLog, "VDR event title: %s", recs[pos].eventTitle) != -1) {
+                    ALLOC(strlen(eventLog) + 1, "eventLog");
+                    recs[pos].epgEventLog->LogEvent(VPS_DEBUG, recs[pos].title, eventLog);
+                }
+                if (recording->eventChannelID == tChannelID::InvalidID) {
+                    if (asprintf(&eventLog, "VDR event channelID missing") != -1) {
+                        ALLOC(strlen(eventLog) + 1, "eventLog");
+                        recs[pos].epgEventLog->LogEvent(VPS_ERROR, recs[pos].title, eventLog);
+                    }
+                }
+                else {
+                    if (asprintf(&eventLog, "VDR event channelID: %s", *recs[pos].eventChannelID.ToString()) != -1) {
+                        ALLOC(strlen(eventLog) + 1, "eventLog");
+                        recs[pos].epgEventLog->LogEvent(VPS_DEBUG, recs[pos].title, eventLog);
+                    }
+                }
+                if (asprintf(&eventLog, "VDR event eventID: %u, eventNextID: %u", recs[pos].eventID, recs[pos].eventNextID) != -1) {
+                    ALLOC(strlen(eventLog) + 1, "eventLog");
+                    recs[pos].epgEventLog->LogEvent(VPS_DEBUG, recs[pos].title, eventLog);
+                }
+                if (asprintf(&eventLog, "VDR event start: %s, stop: %s", eventStart, eventStop) != -1) {
+                    ALLOC(strlen(eventLog) + 1, "eventLog");
+                    recs[pos].epgEventLog->LogEvent(VPS_DEBUG, recs[pos].title, eventLog);
+                }
+
+                // check start/stop time
+                if ((recs[pos].eventStartTime < recs[pos].timerStartTime) || (recs[pos].eventStopTime > recs[pos].timerStopTime)) {
+                    if (asprintf(&eventLog, "VDR event start/stop time invalid") != -1) {
+                        ALLOC(strlen(eventLog) + 1, "eventLog");
+                        recs[pos].epgEventLog->LogEvent(VPS_ERROR, recs[pos].title, eventLog);
+                    }
+                }
             }
             return pos;
         }
@@ -1276,15 +1442,15 @@ void cStatusMarkAd::Pause(const char *FileName) {
 #endif
     for (int i = 0; i < (MAXDEVICES * MAXRECEIVERS); i++) {
         if (FileName) {
-            if ((recs[i].FileName) && (!strcmp(recs[i].FileName,FileName)) && (recs[i].Pid) && (!recs[i].ChangedbyUser)) {
-                dsyslog("markad: cStatusMarkAd::Pause(): index %d, pid %d, filename %s: pause markad process", i, recs[i].Pid, FileName);
-                kill(recs[i].Pid, SIGTSTP);
+            if ((recs[i].fileName) && (!strcmp(recs[i].fileName,FileName)) && (recs[i].pid) && (!recs[i].changedByUser)) {
+                dsyslog("markad: cStatusMarkAd::Pause(): index %d, pid %d, filename %s: pause markad process", i, recs[i].pid, FileName);
+                kill(recs[i].pid, SIGTSTP);
             }
         }
         else {
-            if ((recs[i].Pid) && (!recs[i].ChangedbyUser)) {
-                dsyslog("markad: cStatusMarkAd::Pause(): index %d, pid %d, filename %s: pause markad process", i, recs[i].Pid, recs[i].FileName ? recs[i].FileName : "<NULL>");
-                kill(recs[i].Pid, SIGTSTP);
+            if ((recs[i].pid) && (!recs[i].changedByUser)) {
+                dsyslog("markad: cStatusMarkAd::Pause(): index %d, pid %d, filename %s: pause markad process", i, recs[i].pid, recs[i].fileName ? recs[i].fileName : "<NULL>");
+                kill(recs[i].pid, SIGTSTP);
             }
         }
     }
@@ -1297,15 +1463,15 @@ void cStatusMarkAd::Continue(const char *FileName) {
 #endif
     for (int i = 0; i < (MAXDEVICES*MAXRECEIVERS); i++) {
         if (FileName) {
-            if ((recs[i].FileName) && (!strcmp(recs[i].FileName,FileName)) && (recs[i].Pid) && (!recs[i].ChangedbyUser) ) {
-                dsyslog("markad: cStatusMarkAd::Continue(): index %d, pid %i, filename %s: resume markad process", i, recs[i].Pid, recs[i].FileName);
-                kill(recs[i].Pid, SIGCONT);
+            if ((recs[i].fileName) && (!strcmp(recs[i].fileName,FileName)) && (recs[i].pid) && (!recs[i].changedByUser) ) {
+                dsyslog("markad: cStatusMarkAd::Continue(): index %d, pid %i, filename %s: resume markad process", i, recs[i].pid, recs[i].fileName);
+                kill(recs[i].pid, SIGCONT);
             }
         }
         else {
-            if ((recs[i].Pid) && (!recs[i].ChangedbyUser)) {
-                dsyslog("markad: cStatusMarkAd::Continue(): index %d, pid %d, filename %s: resume markad process", i, recs[i].Pid, recs[i].FileName ? recs[i].FileName : "<NULL>");
-                kill(recs[i].Pid, SIGCONT);
+            if ((recs[i].pid) && (!recs[i].changedByUser)) {
+                dsyslog("markad: cStatusMarkAd::Continue(): index %d, pid %d, filename %s: resume markad process", i, recs[i].pid, recs[i].fileName ? recs[i].fileName : "<NULL>");
+                kill(recs[i].pid, SIGCONT);
             }
         }
     }

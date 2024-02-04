@@ -13,11 +13,11 @@
 #include "debug.h"
 
 
-cOsdMarkAd::cOsdMarkAd(struct sRecordings *Entry) {
+cOsdMarkAd::cOsdMarkAd(struct sRecording *Entry) {
     entry = Entry;
     const char *status;
 
-    switch (entry->Status) {
+    switch (entry->status) {
     case 'R':
         status = tr("running");
         break;
@@ -39,7 +39,7 @@ cOsdMarkAd::cOsdMarkAd(struct sRecordings *Entry) {
     }
 
     char *buf = NULL;
-    if (asprintf(&buf, "%s\t %s", entry->Name ? entry->Name : entry->FileName,status) != -1) {
+    if (asprintf(&buf, "%s\t %s", entry->title ? entry->title : entry->fileName,status) != -1) {
         ALLOC(strlen(buf)+1, "buf");
         SetText(buf,true);
         FREE(strlen(buf)+1, "buf");
@@ -47,12 +47,12 @@ cOsdMarkAd::cOsdMarkAd(struct sRecordings *Entry) {
     }
     else {
         // fallback
-        SetText(entry->Name ? entry->Name : entry->FileName,true);
+        SetText(entry->title ? entry->title : entry->fileName, true);
     }
 }
 
 
-cMenuMarkAd::cMenuMarkAd(cStatusMarkAd *Status):cOsdMenu(tr("markad status"),15) {
+cMenuMarkAd::cMenuMarkAd(cStatusMarkAd *Status):cOsdMenu(tr("markad status"), 15) {
     status = Status;
     int width = 0;
 
@@ -84,7 +84,7 @@ bool cMenuMarkAd::write() {
     Clear();
 
     bool header=false;
-    struct sRecordings *Entry=NULL;
+    struct sRecording *Entry=NULL;
     status->ResetActPos();
     do {
         status->GetNextActive(&Entry);
@@ -111,13 +111,13 @@ bool cMenuMarkAd::write() {
 }
 
 
-void cMenuMarkAd::SetHelpText(struct sRecordings *Entry) {
+void cMenuMarkAd::SetHelpText(struct sRecording *Entry) {
     if (!Entry) {
         SetHelp(NULL,NULL);
         return;
     }
 
-    switch (Entry->Status) {
+    switch (Entry->status) {
     case 'R':
     case 'S':
         SetHelp(tr("Pause"),NULL);
@@ -144,11 +144,11 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key) {
     case kRed:
         osd=static_cast<cOsdMarkAd *>(Get(Current()));
         if ((osd) && (osd->Selectable())) {
-            struct sRecordings *entry=osd->GetEntry();
-            if ((entry) && (entry->Pid) && (entry->Status!='T')) {
-                dsyslog("sending TSTP to %i",entry->Pid);
-                kill(entry->Pid,SIGTSTP);
-                entry->ChangedbyUser=true;
+            struct sRecording *entry=osd->GetEntry();
+            if ((entry) && (entry->pid) && (entry->status!='T')) {
+                dsyslog("sending TSTP to %i",entry->pid);
+                kill(entry->pid,SIGTSTP);
+                entry->changedByUser=true;
                 SetHelp(NULL,tr("Continue"));
             }
         }
@@ -156,11 +156,11 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key) {
     case kGreen:
         osd=static_cast<cOsdMarkAd *>(Get(Current()));
         if ((osd) && (osd->Selectable())) {
-            struct sRecordings *entry=osd->GetEntry();
-            if ((entry) && (entry->Pid)) {
-                dsyslog("sending CONT to %i",entry->Pid);
-                kill(entry->Pid,SIGCONT);
-                entry->ChangedbyUser=true;
+            struct sRecording *entry=osd->GetEntry();
+            if ((entry) && (entry->pid)) {
+                dsyslog("sending CONT to %i",entry->pid);
+                kill(entry->pid,SIGCONT);
+                entry->changedByUser=true;
                 SetHelp(tr("Pause"),NULL);
             }
         }

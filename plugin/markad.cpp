@@ -368,13 +368,14 @@ bool cPluginMarkAd::ReadTitle(const char *Directory) {
 
 
 cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int &ReplyCode) {
-    // Process SVDRP command
+// Process SVDRP command
+    // start markad via SVDRP command, timerVPS will be detected by markad, we don't know this here
     if (strcasecmp(Command, "MARK") == 0) {
         if (Option) {
             const char *Title = NULL;
             if (ReadTitle(Option)) Title = reinterpret_cast<char *>(&title);
-            tChannelID channelID;
-            if (statusMonitor->Start(Option, Title, 0, 0, channelID, 0, 0, false, true)) { // start markad via SVDRP command, timerVPS will be detected by markad, we don't know this here
+            sRecording recording;
+            if (statusMonitor->Start(Title, Option, true, &recording)) {
                 return cString::sprintf("Started markad for %s", Option);
             }
             else {

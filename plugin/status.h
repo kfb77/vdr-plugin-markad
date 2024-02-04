@@ -17,6 +17,47 @@
 #define UNUSED(x) x
 #endif
 
+enum eVpsLog {
+    VPS_ERROR = 0,
+    VPS_INFO  = 1,
+    VPS_DEBUG = 2,
+};
+
+
+class cEpgEventLog;
+
+struct sRecording {
+    char        *title             = NULL;
+    char        *fileName          = NULL;
+    pid_t        pid               = 0;
+    char         status            = 0;
+    bool         changedByUser     = false;
+    bool         ignoreEIT         = false;
+    // event
+    char        *eventTitle        = NULL;
+    tEventID     eventID           = 0;
+    tEventID     eventNextID       = 0;
+    tEventID     eitEventID        = 0;
+    tEventID     eitEventNextID    = 0;
+    time_t       eventStartTime    = 0;
+    time_t       eventStopTime     = 0;
+    tChannelID   eventChannelID    = tChannelID::InvalidID;
+    // timer
+    time_t       timerStartTime    = 0;
+    time_t       timerStopTime     = 0;
+    bool         timerVPS          = false;
+    tChannelID   timerChannelID    = tChannelID::InvalidID;
+    char        *timerChannelName  = NULL;
+    // VPS
+    int          runningStatus     = 0;
+    time_t       recStart          = 0;
+    time_t       vpsStartTime      = 0;
+    time_t       vpsStopTime       = 0;
+    time_t       vpsPauseStartTime = 0;
+    time_t       vpsPauseStopTime  = 0;
+    cEpgEventLog *epgEventLog;
+};
+
 
 // epg event log
 class cEpgEventLog {
@@ -30,36 +71,12 @@ public:
         eventLogFile = NULL;
         return *this;
     };
-    void Log(const time_t recStart, const int event, const int state, const int newState, const char* action);
-    void Log(const char *message);
+    void LogState(const int severity, const sRecording *recording, const int newState, const char* action);
+    void LogEvent(const int severity, const char *title, char *eventLog);
 private:
     FILE *eventLogFile = NULL;
 };
 
-
-struct sRecordings {
-    char         *Name             = NULL;
-    char         *FileName         = NULL;
-    pid_t        Pid               = 0;
-    char         Status            = 0;
-    bool         ChangedbyUser     = false;
-    bool         ignoreEIT         = false;
-    tEventID     eventID           = 0;
-    tEventID     eventNextID       = 0;
-    tEventID     eitEventID        = 0;
-    tEventID     eitEventNextID    = 0;
-    time_t       timerStartTime    = 0;
-    time_t       timerStopTime     = 0;
-    bool         timerVPS          = false;
-    int          runningStatus     = 0;
-    time_t       recStart          = 0;
-    time_t       vpsStartTime      = 0;
-    time_t       vpsStopTime       = 0;
-    time_t       vpsPauseStartTime = 0;
-    time_t       vpsPauseStopTime  = 0;
-    tChannelID   channelID         = tChannelID::InvalidID;
-    cEpgEventLog *epgEventLog;
-};
 
 class cEpgHandlerMarkad;
 
@@ -67,7 +84,7 @@ class cEpgHandlerMarkad;
 // --- cStatusMarkAd
 class cStatusMarkAd : public cStatus {
 private:
-    struct sRecordings recs[MAXDEVICES*MAXRECEIVERS];
+    struct sRecording recs[MAXDEVICES*MAXRECEIVERS];
     int             max_recs = -1;
     const char      *bindir  = NULL;
     const char      *logodir = NULL;
@@ -79,13 +96,13 @@ private:
     bool getStatus(int Position);
     bool Replaying();
     int Get(const char *FileName, const char *Name = NULL);
-    int Add(const char *FileName, const char *Name, const tEventID eventID, const tEventID eventNextID, const tChannelID channelID, const time_t timerStartTime, const time_t timerStopTime, bool timerVPS);
+    int Add(const char *Name, const char *FileName, sRecording *recording);
     void Remove(int pos, bool Kill = false);
     void Remove(const char *Name, bool Kill = false);
     void Pause(const char *FileName);
     void Continue(const char *FileName);
     bool LogoExists(const cDevice *Device, const char *FileName);
-    void GetEventID(const cDevice *Device,const char *Name, tEventID *eventID, tEventID *eventNextID, tChannelID *channelID, time_t *timerStartTime, time_t *timerStopTime, bool *timerVPS);
+    void GetEventID(const cDevice *Device,const char *Name, sRecording *recording);
     void SaveVPSTimer(const char *FileName, const bool timerVPS);
     void SaveVPSEvents(const int index);
     bool StoreVPSStatus(const char *status, const int index);
@@ -103,9 +120,9 @@ public:
     }
     char *GetStatus();
     void Check(void);
-    bool GetNextActive(struct sRecordings **RecEntry);
-    bool Start(const char *FileName, const char *Name, const tEventID eventID, const tEventID eventNextID, const tChannelID channelID, const time_t timerStartTime, const time_t timerStopTime, const bool timerVPS, const bool direct);
-    int Get_EIT_EventID(const sRecordings *recording, const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *schedule, const bool nextEvent);
+    bool GetNextActive(struct sRecording **RecEntry);
+    bool Start(const char *Name, const char *FileName, const bool direct, sRecording *recording);
+    int Get_EIT_EventID(const sRecording *recording, const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *schedule, const bool nextEvent);
     void FindRecording(const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *Schedule);
     void SetVPSStatus(const int index, int runningStatus, const bool eventEIT);
 };

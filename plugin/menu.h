@@ -12,10 +12,10 @@
 
 class cOsdMarkAd : public cOsdItem {
 private:
-    struct sRecordings *entry;
+    struct sRecording *entry;
 public:
-    explicit cOsdMarkAd(struct sRecordings *Entry);
-    struct sRecordings *GetEntry() {
+    explicit cOsdMarkAd(struct sRecording *Entry);
+    struct sRecording *GetEntry() {
         return entry;
     }
 };
@@ -24,7 +24,7 @@ public:
 class cMenuMarkAd : public cOsdMenu {
 private:
     cStatusMarkAd *status = NULL;
-    void SetHelpText(struct sRecordings *Entry);
+    void SetHelpText(struct sRecording *Entry);
     bool write();
     time_t last = time(NULL);;
     int lastpos = 0;

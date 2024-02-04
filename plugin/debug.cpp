@@ -78,7 +78,7 @@ void memList() {
     dsyslog("markad: debugmem unmachted alloc start ----------------------------------------------------------------");
     for (std::vector<memUse>::iterator memLine = memUseVector.begin(); memLine != memUseVector.end(); ++memLine) {
         if (memLine->count == 0) continue;
-        dsyslog("markad: debugmem unmachted alloc %6d times %7d bytes, file %s, line %4d, variable: %s", memLine->count, memLine->size, memLine->file, memLine->line, memLine->var);
+        esyslog("markad: debugmem unmachted alloc %6d times %7d bytes, file %s, line %4d, variable: %s", memLine->count, memLine->size, memLine->file, memLine->line, memLine->var);
     }
     dsyslog("markad: debugmem unmachted alloc end ------------------------------------------------------------------");
     pthread_mutex_unlock(&mutex);
