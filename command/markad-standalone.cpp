@@ -4062,8 +4062,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
 #define START_STOP_BLACK (macontext.Video.Info.framesPerSecond / 2)    // black picture before start and after stop mark
     while (mark) {
         char used[10] = "none";
-        int diffAfterStat  = -1;
-        int diffBeforeStat = -1;
         int lengthBefore   = 0;
         int lengthAfter    = 0;
         // store old mark types
@@ -4087,7 +4085,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 if (stopBefore) {
                     diffBefore   = 1000 * (mark->position        - startBefore->position) / macontext.Video.Info.framesPerSecond;
                     lengthBefore = 1000 * (startBefore->position - stopBefore->position)  / macontext.Video.Info.framesPerSecond;
-                    diffBeforeStat = diffBefore;
                     // check if there is silence between or very ahort before black screen
                     cMark *silence = silenceMarks.GetAround(1.1 * macontext.Video.Info.framesPerSecond, startBefore->position, MT_SOUNDSTOP);
                     if (silence) silenceBefore = true;
@@ -4100,7 +4097,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 if (stopAfter) {
                     diffAfter   = 1000 * (startAfter->position - mark->position)      / macontext.Video.Info.framesPerSecond;
                     lengthAfter = 1000 * (startAfter->position - stopAfter->position) / macontext.Video.Info.framesPerSecond;
-                    diffAfterStat = diffAfter;
                     // check if there is silence between black screen
                     cMark *silence = silenceMarks.GetAround(1.1 * macontext.Video.Info.framesPerSecond, startAfter->position, MT_SOUNDSTOP);
                     if (silence) silenceAfter = true;
@@ -4273,7 +4269,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
             const cMark *stopAfter   = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTOP);
             if (stopBefore) {
                 diffBefore = 1000 * (mark->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
-                diffBeforeStat = diffBefore;
                 startBefore = blackMarks.GetNext(stopBefore->position, MT_NOBLACKSTART);
                 if (startBefore) {
                     bool  silenceBefore      = false;
@@ -4287,7 +4282,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
             }
             if (stopAfter) {
                 diffAfter = 1000 * (stopAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
-                diffAfterStat = diffAfter;
                 startAfter = blackMarks.GetNext(stopAfter->position, MT_NOBLACKSTART);
                 if (startAfter) {
                     lengthAfter = 1000 * (startAfter->position - stopAfter->position) / macontext.Video.Info.framesPerSecond;
@@ -4308,40 +4302,37 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 case MT_LOGOSTOP:
                     // select best mark (before (length) / after (length)), default: after
                     //
-                    // special case TLC end mark
-                    // 8680ms (160) -> invalid: black screen after ad, end selected after long closing credits without logo and without frame
-                    if ((mark->position == marks.GetLast()->position) && CompareChannelName(macontext.Info.ChannelName, "TLC", IGNORE_HD) && (diffAfter > 8680)) maxAfter = 32400;
-                    else {
-                        // valid black screen with silence around
-                        //                  <5040> (s 160)  fade out logo
+                    // valid black screen with silence around
+                    //                  <5040> (s 160)  fade out logo
 
-                        // short before black screen from broadcast end, long black screen after preview
-                        //   <20>  (100) /  4000 (120)  second black screen after separator
-                        //   <40>  (160) /  3920 (180)  second black screen after separator
-                        //  <280>  (320) /  3940 (640)  second black screen after separator
-                        if ((diffBefore <= 280) && (diffAfter >= 3920)) diffAfter = INT_MAX;
+                    // short before black screen from broadcast end, long black screen after preview
+                    //   <20>  (100) /  4000 (120)  second black screen after separator
+                    //   <40>  (160) /  3920 (180)  second black screen after separator
+                    //  <280>  (320) /  3940 (640)  second black screen after separator
+                    if ((diffBefore <= 280) && (diffAfter >= 3920)) diffAfter = INT_MAX;
 
-                        // long black screen at end of broadcast, short black screen after preview
-                        //  <600>  (640) /  3240  (80)  second black screen after preview
-                        //  <800> (1000) /  2080 (520)  second black screen after preview
-                        // <2480>  (600) /  2680 (320)  second black screen after preview
-                        // <2680>  (760) /   160 (120)  second black screen after preview
-                        // <4580>  (880) /  1300 (160)  second black screen after preview
-                        else if ((diffBefore <= 4580) && (lengthBefore >= 640) && (diffAfter <= 3240) && (lengthAfter <= 520)) diffAfter = INT_MAX;
+                    // long black screen at end of broadcast, short black screen after preview
+                    //  <600>  (640) /  3240  (80)  second black screen after preview
+                    //  <800> (1000) /  2080 (520)  second black screen after preview
+                    // <2480>  (600) /  2680 (320)  second black screen after preview  NEW
+                    // <2680>  (760) /   160 (120)  second black screen after preview
+                    // <4580>  (880) /  1300 (160)  second black screen after preview
+                    else if ((diffBefore <= 4580) && (lengthBefore >= 600) && (diffAfter <= 3240) && (lengthAfter <= 520)) diffAfter = INT_MAX;
 
-                        // invalid black screen: no black screen near before, but short black screen after is after/in preview
-                        //   47560 (1120) /  1400 (120)  black screen in preview after stop (SIXX)
-                        //   14200 (1440) /  2040  (80)  black screen after preview
-                        //   42280 (1440) /  2040  (80)  black screen after preview
-                        //                   2520  (80)  black screen after preview
-                        //  231760  (520) /  2920  (80)  black screen after preview (SIXX)
-                        // 1466760  (160) /  3480  (80)  black screen after preview (RTLZWEI)
-                        //  293600  (520) /  3600  (80)  black screen after preview (SIXX)
-                        else if ((diffBefore >= 14200) && (diffAfter >= 1400) && (diffAfter <= 3600) && (lengthAfter >= 80) && (lengthAfter <= 120)) diffAfter = INT_MAX;
+                    // invalid black screen: no black screen near before, but short black screen after is after/in preview
+                    //   47560 (1120) /  1400 (120)  black screen in preview after stop (SIXX)
+                    //   14200 (1440) /  2040  (80)  black screen after preview
+                    //   42280 (1440) /  2040  (80)  black screen after preview
+                    //                   2520  (80)  black screen after preview
+                    //  231760  (520) /  2920  (80)  black screen after preview (SIXX)
+                    // 1466760  (160) /  3480  (80)  black screen after preview (RTLZWEI)
+                    //  293600  (520) /  3600  (80)  black screen after preview (SIXX)
+                    // but these are valid black screens
+                    // 1087680  (160) /  1680  (80)  fade out logo (TLC)
+                    else if (!FadeOutLogo() && (diffBefore >= 14200) && (diffAfter >= 1400) && (diffAfter <= 3600) && (lengthAfter >= 80) && (lengthAfter <= 120)) diffAfter = INT_MAX;
 
-                        if (silenceAfter) maxAfter = 5040;    // silence between black screen
-                        else              maxAfter = 5039;
-                    }
+                    if (silenceAfter) maxAfter = 5040;    // silence between black screen
+                    else              maxAfter = 5039;
                     break;
                 case MT_VBORDERSTOP:
                     maxAfter = 480;  // black closing credits
@@ -4478,7 +4469,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 }
             }
         }
-        tsyslog("OPTIMIZATION\tBLACKSCREEN\t2\t%d\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%s", macontext.Config->fullDecode, ((mark->type & 0x0F) == MT_STOP) ? "stop" : "start",  markType, markOldType, markNewType, diffBeforeStat, lengthBefore, diffAfterStat, lengthAfter, used);
         FREE(strlen(markType)+1, "text");
         free(markType);
         FREE(strlen(markOldType)+1, "text");
