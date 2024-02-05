@@ -103,10 +103,13 @@
 // #define DEBUG_ADINFRAME
 
 // debug introduction logo detection
-#define DEBUG_INTRODUCTION
+// #define DEBUG_INTRODUCTION
 
 // debug closing credits detection
 // #define DEBUG_CLOSINGCREDITS
+
+// debug frame detection for closing credits or ad in frame
+// #define DEBUG_FRAME_DETECTION
 
 // debug timestamps from final marks to save
 // #define DEBUG_SAVEMARKS
@@ -132,8 +135,8 @@ extern void syslog_with_tid(int priority, const char *format, ...) __attribute__
 #endif
 
 
-#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_LOGO_SAVE)
-bool SaveSobel(const char *fileName, uchar *picture, const int width, const int height);
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_LOGO_SAVE) || defined(DEBUG_FRAME_DETECTION)
+bool SaveSobel(const char *fileName, const uchar *picture, const int width, const int height);
 #endif
 
 

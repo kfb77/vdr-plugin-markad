@@ -753,7 +753,7 @@ int cDetectLogoStopStart::FindFrameFirstPixel(const uchar *picture, const int co
         searchY += offsetY;
         if ((searchY < 0) || (searchY >= height)) break;
     }
-#ifdef DEBUG_MARK_OPTIMIZATION
+#ifdef DEBUG_FRAME_DETECTION
     dsyslog("-----------------------------------------------------------------------------------------------------------------------------------------------");
     dsyslog("cDetectLogoStopStart::FindFrameFirstPixel(): search for first pixel: start (%d,%d), direction (%d,%d): found (%d,%d)", startX, startY, offsetX, offsetY, foundX, foundY);
 #endif
@@ -775,7 +775,7 @@ int cDetectLogoStopStart::FindFrameStartPixel(const uchar *picture, const int wi
     }
     if (abs(firstPixelX - startX) > abs(firstPixelY - startY)) startY = firstPixelY;  // prevent to get out of line from a single pixel, only one coordinate can change
     else startX = firstPixelX;
-#ifdef DEBUG_MARK_OPTIMIZATION
+#ifdef DEBUG_FRAME_DETECTION
     dsyslog("cDetectLogoStopStart::FindFrameStartPixel(): search for start pixel: first pixel (%d,%d), direction (%d,%d): found (%d,%d)", firstPixelX, firstPixelY, offsetX, offsetY, startX, startY);
 #endif
     int endX = -1;
@@ -833,7 +833,7 @@ int cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, const int widt
     int portion = 0;
     if ((lengthX > 50) || (lengthY > 50) || // we have a part of the frame found, a vertical or horizontal line
             ((lengthX > 8) && (lengthY > 8))) portion = 1000 * lengthX / width + 1000 * lengthY / height;
-#ifdef DEBUG_MARK_OPTIMIZATION
+#ifdef DEBUG_FRAME_DETECTION
     dsyslog("cDetectLogoStopStart::FindFrameEndPixel(): search for end pixel: direction (%2d,%2d): found frame from (%d,%d) to (%d,%d), length (%d,%d) -> portion %d", offsetX, offsetY, startX, startY, *endX, *endY, lengthX, lengthY, portion);
 #endif
     return portion;
@@ -848,13 +848,21 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
 
     int portion =  0;
 
-#ifdef DEBUG_MARK_OPTIMIZATION
+#ifdef DEBUG_FRAME_DETECTION
     dsyslog("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
     dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: search for frame", frameNumber, corner);
+    // save plane 0 of sobel transformation
+    char *fileName = NULL;
+    if (asprintf(&fileName,"%s/F__%07d-P0-C%1d.pgm", maContext->Config->recDir, frameNumber, corner) >= 1) {
+        ALLOC(strlen(fileName)+1, "fileName");
+        SaveSobel(fileName, picture, width, height);
+        FREE(strlen(fileName)+1, "fileName");
+        free(fileName);
+    }
 #endif
 
     switch (corner) {
-    case 0: // TOP_LEFT
+    case TOP_LEFT:
         portion = FindFrameFirstPixel(picture, corner, width, height, 10, 0, 1, 1); // search from top left to bottom right
         // do not start at corner, maybe conrner was not exactly detected
         if (portion < 230) {  // maybe we have a text under frame or the logo
@@ -871,37 +879,46 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
         }
         break;
 
-    case 1: // TOP_RIGHT
+    case TOP_RIGHT:
         portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, 0, -1, 1); // search from top right to bottom left
-        if (portion < 180) {  // maybe we have a text under frame or the logo
-            portion = FindFrameFirstPixel(picture, corner, width, height, width / 2, 0, -1, 1); // search from top mid to bottom left
+        if (portion <= 275) {  // maybe we have a text under frame or the logo
+            int portionTMP = FindFrameFirstPixel(picture, corner, width, height, width / 2, 0, -1, 1); // search from top mid to bottom left
+            if (portionTMP > portion) portion = portionTMP;
+            if (portion <= 275) {  // maybe we have a text right of frame
+                portionTMP = FindFrameFirstPixel(picture, corner, width, height, 0, height, 1, -1); // search from bottom left to top right
+                if (portionTMP > portion) portion = portionTMP;
+            }
         }
         break;
 
-    case 2: // BOTTOM_LEFT
+    case BOTTOM_LEFT:
         portion = FindFrameFirstPixel(picture, corner, width, height, 0, height - 1, 1, -1); // search from buttom left to top right
-        if (portion < 180) {  // maybe we have a text under frame
-            portion = FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, 1, -1); // search from bottom mid to top right
-            if (portion < 180) {  // maybe we have only a part of the frame
-                portion = FindFrameFirstPixel(picture, corner, width, height, width / 3, height - 1, 1, -1); // search from bottom 1/3 left to top right
-                if (portion < 180) {  // maybe we have only a part of the frame
-                    portion = FindFrameFirstPixel(picture, corner, width, height, 0, height / 2, 1, -1); // search from mid right  to top right
-                    if (portion < 180) {  // maybe we have only a part of the frame
-                        portion = FindFrameFirstPixel(picture, corner, width, height, width, 0, -1, 1); // search from top right to buttom left (horizontal line with text below)
+        if (portion <= 326) {  // maybe we have a text under frame
+            int portionTMP = FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, 1, -1); // search from bottom mid to top right
+            if (portionTMP > portion) portion = portionTMP;
+            if (portion <= 326) {  // maybe we have only a part of the frame
+                portionTMP = FindFrameFirstPixel(picture, corner, width, height, width / 3, height - 1, 1, -1); // search from bottom 1/3 left to top right
+                if (portionTMP > portion) portion = portionTMP;
+                if (portion <= 326) {  // maybe we have only a part of the frame
+                    portionTMP = FindFrameFirstPixel(picture, corner, width, height, 0, height / 2, 1, -1); // search from mid right  to top right
+                    if (portionTMP > portion) portion = portionTMP;
+                    if (portion <= 326) {  // maybe we have only a part of the frame
+                        portionTMP = FindFrameFirstPixel(picture, corner, width, height, width, 0, -1, 1); // search from top right to buttom left (horizontal line with text below)
+                        if (portionTMP > portion) portion = portionTMP;
                     }
                 }
             }
         }
         break;
 
-    case 3: // BOTTOM_RIGHT
+    case BOTTOM_RIGHT:
         portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, height - 1, -1, -1);         // search from buttom right to top left
         if (portion < 180) {  // maybe we have a text under frame
             portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, height / 2, -1, -1);     // search from mid right to top left
             if (portion < 180) {  // maybe we have a text under frame
                 portion = FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, -1, -1); // search from buttom mid right to top left
                 if (portion < 180) {  // maybe we have a logo under frame (e.g. SAT.1)
-                    portion = FindFrameFirstPixel(picture, corner, width, height, width * 2 / 3, 0, -1, 1); // search from 2/3 right top to left button
+                    portion = FindFrameFirstPixel(picture, corner, width, height, width * 2 / 3, 0, -1, 1);   // search from 2/3 right top to left button
                 }
             }
         }
@@ -911,7 +928,7 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
         return 0;
     } // case
 
-#ifdef DEBUG_MARK_OPTIMIZATION
+#ifdef DEBUG_FRAME_DETECTION
     dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: portion %3d", frameNumber, corner, portion);
 #endif
 
@@ -1532,6 +1549,7 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
         }
         // example of closing credits
         // best quote 402, all quote 269
+        //
         // example of no closing credits
         // best quote 419, all quote ?    -> kitchen cabinet in background
         if ((framePortionQuote <= 419) && (allPortionQuote < 269)) {

@@ -11,10 +11,10 @@
 // save picture to recording directory
 // return: true if successful
 //
-#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_LOGO_SAVE)
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_LOGO_SAVE) || defined(DEBUG_FRAME_DETECTION)
 #include <stdio.h>
 #include <stdlib.h>
-bool SaveSobel(const char *fileName, uchar *picture, const int width, const int height) {
+bool SaveSobel(const char *fileName, const uchar *picture, const int width, const int height) {
     if (!fileName) return false;
     if ((width == 0) || (height == 0)) {
         dsyslog("SaveSobel: logo width or logo height not set");
