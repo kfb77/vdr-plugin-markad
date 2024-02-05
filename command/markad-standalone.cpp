@@ -2459,12 +2459,13 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     dsyslog("cMarkAdStandalone::CheckMarks(): MT_LOGOSTART (%6d) -> %7dms -> MT_LOGOSTOP (%6d) -> %7dms -> MT_LOGOSTART (%6d) -> %7dms -> MT_STOP (%6d)", prevLogoStart->position, prevLogoStart_Stop, mark->position, stop_nextLogoStart, nextLogoStart->position, nextLogoStart_nextStop, nextStop->position);
                     // valid short stop/start, do not delete
                     // MT_LOGOSTART ( 48867) ->    4880ms -> MT_LOGOSTOP ( 48989) ->     760ms -> MT_LOGOSTART ( 49008) ->  795000ms -> MT_STOP (68883)
+                    // MT_LOGOSTART ( 51224) ->   29800ms -> MT_LOGOSTOP ( 51969) ->     920ms -> MT_LOGOSTART ( 51992) ->  622840ms -> MT_STOP ( 67563)  NEW
                     //
                     // invalid stop/start pair, delete pair
-                    // MT_LOGOSTART (  5313) ->   32600ms -> MT_LOGOSTOP (  6128) ->     800ms -> MT_LOGOSTART (  6148) -> 2065960ms -> MT_STOP ( 57797) -> undetected logo change
+                    // MT_LOGOSTART (  5313) ->   32600ms -> MT_LOGOSTOP (  6128) ->     800ms -> MT_LOGOSTART (  6148) -> 2065960ms -> MT_STOP ( 57797) -> undetected logo change (conflict)
                     // MT_LOGOSTART (196548) ->    5160ms -> MT_LOGOSTOP (196677) ->     960ms -> MT_LOGOSTART (196701) ->  400480ms -> MT_STOP (206713) -> undetected logo change
-                    if ((prevLogoStart_Stop >= 5160) && (stop_nextLogoStart <= 960 ) && (nextLogoStart_nextStop >= 400480)) {
-                        dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair, too short, deleting", mark->position, nextLogoStart->position);
+                    if ((prevLogoStart_Stop >= 5160) && (stop_nextLogoStart <= 960 ) && (nextLogoStart_nextStop <= 400480)) {
+                        dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair too short, deleting", mark->position, nextLogoStart->position);
                         cMark *tmp = nextStop;
                         marks.Del(nextLogoStart);
                         marks.Del(mark);
