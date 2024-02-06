@@ -487,6 +487,7 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
 // rp=    0, contrast  24, brightness 215, plane 1: pixel diff  29, plane 2: pixel diff  37  -> bright blue separator frame (with "ZDF")  (conflict)
 //
 // no separation images (bright picture with logo)
+// rp=    0, contrast  23, brightness 191, plane 1: pixel diff   7, plane 2: pixel diff  14
 // rp=    0, contrast  19, brightness 199, plane 1: pixel diff  15, plane 2: pixel diff  10
 // rp=    0, contrast  20, brightness 201, plane 1: pixel diff  10, plane 2: pixel diff   9
 // rp=    0, contrast  23, brightness 207, plane 1: pixel diff  17, plane 2: pixel diff  26
@@ -495,7 +496,7 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
 // rp=    0, contrast  18, brightness 210, plane 1: pixel diff  21, plane 2: pixel diff  20
 //
 #define LOW_PIXEL_LOGO 61  // changed from 18 to 61
-    if ((maContext->Video.Logo.pixelRatio > LOW_PIXEL_LOGO) && (area.status == LOGO_VISIBLE) && (area.rPixel[0] == 0) && (brightnessLogo <= 198) && (contrastLogo <= 23)) {  // we have a very low contrast, now check plane 1 and plane 2, changed from 200 to 198
+    if ((maContext->Video.Logo.pixelRatio > LOW_PIXEL_LOGO) && (area.status == LOGO_VISIBLE) && (area.rPixel[0] == 0) && (brightnessLogo >= 197) && (brightnessLogo <= 198) && (contrastLogo <= 23)) {  // we have a very low contrast, now check plane 1 and plane 2, changed from 200 to 198
         int diffPixel_12[2] = {0};
         for (int line =  1; line <  (maContext->Video.Info.height / 2) - 1; line++) {  // ignore first and last line, they have sometimes weird pixel
             for (int column = 1; column < (maContext->Video.Info.width / 2) - 2; column++) { // ignore first and last column, they have sometimes weird pixel
