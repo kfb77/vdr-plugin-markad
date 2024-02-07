@@ -4493,8 +4493,6 @@ void cMarkAdStandalone::BlackLowerOptimization() {
         char used[10]      = "none";
         int lengthBefore   = 0;
         int lengthAfter    = 0;
-        int diffBeforeStat = -1;
-        int diffAfterStat  = -1;
         // store old mark types
         char *markType    = marks.TypeToText(mark->type);
         char *markOldType = marks.TypeToText(mark->oldType);
@@ -4513,7 +4511,6 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                 stopBefore = blackMarks.GetNext(startBefore->position, MT_NOBLACKLOWERSTART);  // end   of black lower border before logo start mark
                 if (stopBefore) {
                     diffBefore = 1000 * (mark->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
-                    diffBeforeStat = diffBefore;
                     lengthBefore = 1000 * (stopBefore->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::BlackLowerOptimization(): start mark (%6d): found lower black border from (%6d) to (%6d), %7dms before -> length %5dms", mark->position, startBefore->position, stopBefore->position, diffBefore, lengthBefore);
                 }
@@ -4638,7 +4635,6 @@ void cMarkAdStandalone::BlackLowerOptimization() {
             const cMark *stopAfter   = NULL;
             if (startBefore) {
                 diffBefore = 1000 * (mark->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
-                diffBeforeStat = diffBefore;
                 stopBefore = blackMarks.GetNext(startBefore->position, MT_NOBLACKLOWERSTART);
                 if (stopBefore) {
                     lengthBefore = 1000 * (stopBefore->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
@@ -4758,7 +4754,6 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                 }
             }
         }
-        tsyslog("OPTIMIZATION\tBLACKLOWER\t1\t%d\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%s", macontext.Config->fullDecode, ((mark->type & 0x0F) == MT_STOP) ? "stop" : "start",  markType, markOldType, markNewType, diffBeforeStat, lengthBefore, diffAfterStat, lengthAfter, used);
         FREE(strlen(markType)+1, "text");
         free(markType);
         FREE(strlen(markOldType)+1, "text");
