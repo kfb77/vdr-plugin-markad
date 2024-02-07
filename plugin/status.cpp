@@ -219,12 +219,6 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
             continue;
         }
 
-#ifdef DEBUG_DUP_EVENTID
-        if ((eventID == recs[i].eventID) && !(channelID == recs[i].channelID)) {
-            dsyslog("markad: StatusMarkAd::FindRecording(): duplicate eventID %d: channelID of recording %s, channelID of VPS event %s", eventID, *recs[i].channelID.ToString(), *channelID.ToString());
-        }
-#endif
-
         // recording is now running but and we have no next event, try to get next eventID now
         // for all types of events
         if ((eventID == recs[i].eventID) && (channelID == recs[i].channelID) && (runningStatus == 4) && (recs[i].eventNextID == 0)) {

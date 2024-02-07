@@ -18,9 +18,6 @@
 // debug all VPS VDR events with runningStatus > 0 from <channel>
 // #define DEBUG_VPS_VDR "<channel>"
 
-// debug duplicate eventID
-// #define DEBUG_DUP_EVENTID
-
 // debug vdr locks
 // #define DEBUG_LOCKS
 
