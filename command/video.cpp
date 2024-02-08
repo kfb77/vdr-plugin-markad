@@ -1633,6 +1633,7 @@ void cMarkAdBlackBordersVert::Clear(const bool isRestart) {
     if (isRestart) borderstatus = VBORDER_RESTART;
     else           borderstatus = VBORDER_UNINITIALIZED;
     borderframenumber = -1;
+    darkFrameNumber   = INT_MAX;
 }
 
 
@@ -1690,7 +1691,7 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
 
 #ifdef DEBUG_VBORDER
     dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d): vborder status: %d, valLeft: %10d, valRight: %10d", frameNumber, borderstatus, valLeft, valRight);
-    if (darkFrameNumber < INT_MAX) dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d):  frist vborder in dark picture: (%5d)]", frameNumber, darkFrameNumber);
+    if (darkFrameNumber < INT_MAX) dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d):  frist vborder in dark picture: (%5d)", frameNumber, darkFrameNumber);
     if (borderframenumber >= 0) dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d):  frist vborder: [bright (%5d), dark (%5d)], duration: %ds", frameNumber, borderframenumber, darkFrameNumber, static_cast<int> ((frameNumber - borderframenumber) / maContext->Video.Info.framesPerSecond));
 #endif
 #define BRIGHTNESS_MIN 23679342      // do not increase, we will never find vborder start
