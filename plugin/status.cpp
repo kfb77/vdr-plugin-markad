@@ -522,7 +522,7 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
         }
     }
     if (strcmp(status,"PAUSE_STOP") == 0) {
-        if (curr_time > recs[index].vpsPauseStartTime + 60) { // PAUSE STOP must be at least 1 min after PAUSE START
+        if (curr_time > recs[index].vpsPauseStartTime + 50) { // PAUSE STOP must be at least 1 min after PAUSE START, changed from 60 to 50
             if (recs[index].vpsPauseStopTime == 0) {
                 recs[index].vpsPauseStopTime=curr_time;
                 return true;
