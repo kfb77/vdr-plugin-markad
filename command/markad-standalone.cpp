@@ -231,7 +231,7 @@ cMark *cMarkAdStandalone::Check_CHANNELSTOP() {
                 dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): last MT_CHANNELSTOP too far before assumed stop");
                 end = NULL;
             }
-            if (diffAssumed <= -561) {
+            if (diffAssumed <= -547) { // changed from -561 to -547
                 dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): last MT_CHANNELSTOP too far after assumed stop");
                 end = NULL;
             }
