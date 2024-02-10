@@ -920,7 +920,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
             return LOGO_NOCHANGE;
         }
 
-        // prevent to detect background patten as logo
+        // prevent to detect background patten as logo start
         if ((area.status == LOGO_INVISIBLE) && (rPixel > (mPixel * logo_vmark))) {  // possible state change from invisible to visible
             int black = 0;
             for (int i = 0; i < logoHeight * logoWidth; i++) {
@@ -930,9 +930,17 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cMarkAdLogo::Detect(): frame (%6d) pixel quote: %d%%", frameCurrent, quote);
 #endif
-            if (quote > 45) return LOGO_NOCHANGE; // there is a pattern on the backbround, no logo detection possible
-            // changed from 27 to 45
-            // do not reduce, we need to detect logo on trees or gras background
+            // pattern in background, no logo detection possible
+            if (quote >= 46) {
+                return LOGO_NOCHANGE;
+                // changed from 27 to 45
+                // do not reduce, we need to detect logo on trees or gras background
+            }
+            // pattern in bright background, no current logo, no logo detection possible
+            if ((quote >= 45) && (area.intensity >= 160)) {
+                area.counter--;       // assume only pattern, no logo
+                return LOGO_NOCHANGE;
+            }
         }
 
         // check area intensitiy
