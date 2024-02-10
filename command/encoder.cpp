@@ -384,8 +384,13 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
     if (!avCodecCtxIn) return false;
 
 
+#if LIBAVCODEC_VERSION_INT >= ((60<<16)+(39<<8)+100)
+    dsyslog("cEncoder::ChangeEncoderCodec(): call avcodec_free_context");
+    avcodec_free_context(&codecCtxArrayOut[streamIndexOut]);
+#else
     dsyslog("cEncoder::ChangeEncoderCodec(): call avcodec_close");
     avcodec_close(codecCtxArrayOut[streamIndexOut]);
+#endif
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100)  // ffmpeg 4.5
     const AVCodec *codec = avcodec_find_encoder(avctxIn->streams[streamIndexIn]->codecpar->codec_id);
 #elif LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
