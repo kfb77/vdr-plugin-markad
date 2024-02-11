@@ -2458,9 +2458,9 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                 cMark *nextStop = marks.GetNext(mark->position, MT_STOP, 0x0F);  // last stop mark can be a different type
                 if (nextStop) {
                     int prevLogoStart_Stop     = 1000 * (mark->position          - prevLogoStart->position) /  macontext.Video.Info.framesPerSecond;
-                    int stop_nextLogoStart     = 1000 * (nextLogoStart->position - mark->position)          /  macontext.Video.Info.framesPerSecond;
+                    long int stop_nextLogoStart     = 1000 * (nextLogoStart->position - mark->position)          /  macontext.Video.Info.framesPerSecond;
                     int nextLogoStart_nextStop = 1000 * (nextStop->position      - nextLogoStart->position) /  macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckMarks(): MT_LOGOSTART (%6d) -> %7dms -> MT_LOGOSTOP (%6d) -> %7dms -> MT_LOGOSTART (%6d) -> %7dms -> MT_STOP (%6d)", prevLogoStart->position, prevLogoStart_Stop, mark->position, stop_nextLogoStart, nextLogoStart->position, nextLogoStart_nextStop, nextStop->position);
+                    dsyslog("cMarkAdStandalone::CheckMarks(): MT_LOGOSTART (%6d) -> %7dms -> MT_LOGOSTOP (%6d) -> %7ldms -> MT_LOGOSTART (%6d) -> %7dms -> MT_STOP (%6d)", prevLogoStart->position, prevLogoStart_Stop, mark->position, stop_nextLogoStart, nextLogoStart->position, nextLogoStart_nextStop, nextStop->position);
                     // valid short stop/start, do not delete
                     // MT_LOGOSTART ( 48867) ->    4880ms -> MT_LOGOSTOP ( 48989) ->     760ms -> MT_LOGOSTART ( 49008) ->  795000ms -> MT_STOP (68883)
                     // MT_LOGOSTART ( 51224) ->   29800ms -> MT_LOGOSTOP ( 51969) ->     920ms -> MT_LOGOSTART ( 51992) ->  622840ms -> MT_STOP ( 67563)  NEW
@@ -4266,7 +4266,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
         if ((mark->type & 0x0F) == MT_STOP) {
             // log available stop marks
             bool  moved              = false;
-            int   diffBefore         = INT_MAX;
+            long int diffBefore      = INT_MAX;
             int   diffAfter          = INT_MAX;
             bool  silenceAfter       = false;
             const cMark *startBefore = NULL;
@@ -4282,7 +4282,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     // check if there is silence between black screen
                     cMark *silence = silenceMarks.GetNext(stopBefore->position, MT_SOUNDSTOP);
                     if (silence && (silence->position <= startBefore->position)) silenceBefore = true;
-                    dsyslog("cMarkAdStandalone::BlackScreenOptimization(): stop  mark (%6d): found black screen from (%6d) to (%6d), %7dms before -> length %5dms, silence between %d", mark->position, stopBefore->position, startBefore->position, diffBefore, lengthBefore, silenceBefore);
+                    dsyslog("cMarkAdStandalone::BlackScreenOptimization(): stop  mark (%6d): found black screen from (%6d) to (%6d), %7ldms before -> length %5dms, silence between %d", mark->position, stopBefore->position, startBefore->position, diffBefore, lengthBefore, silenceBefore);
                 }
                 else stopBefore = NULL; // no pair, this is invalid
             }
@@ -4633,7 +4633,7 @@ void cMarkAdStandalone::BlackLowerOptimization() {
         if ((mark->type & 0x0F) == MT_STOP) {
             // log available stop marks
             bool moved               = false;
-            int diffBefore           = INT_MAX;
+            long int diffBefore      = INT_MAX;
             int diffAfter            = INT_MAX;
             const cMark *startBefore = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKLOWERSTOP);
             const cMark *startAfter  = blackMarks.GetNext(mark->position - 1, MT_NOBLACKLOWERSTOP);
@@ -4644,7 +4644,7 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                 stopBefore = blackMarks.GetNext(startBefore->position, MT_NOBLACKLOWERSTART);
                 if (stopBefore) {
                     lengthBefore = 1000 * (stopBefore->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::BlackLowerOptimization(): stop  mark (%6d): lower black border from (%6d) to (%6d), %7dms before -> length %5dms", mark->position, startBefore->position, stopBefore->position, diffBefore, lengthBefore);
+                    dsyslog("cMarkAdStandalone::BlackLowerOptimization(): stop  mark (%6d): lower black border from (%6d) to (%6d), %7ldms before -> length %5dms", mark->position, startBefore->position, stopBefore->position, diffBefore, lengthBefore);
                 }
                 else startBefore = NULL; // no pair, this is invalid
             }
@@ -4937,7 +4937,7 @@ void cMarkAdStandalone::SilenceOptimization() {
         if ((mark->type & 0x0F) == MT_STOP) {
             // log available marks
             bool moved = false;
-            int diffBefore        = INT_MAX;
+            long int diffBefore   = INT_MAX;
             int diffAfter         = INT_MAX;
             bool blackLowerBefore = false;
             cMark *soundStopBefore = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
@@ -4947,7 +4947,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 cMark *soundStartBefore = silenceMarks.GetNext(soundStopBefore->position, MT_SOUNDSTART);
                 if (soundStartBefore) {
                     int lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): found silence from (%5d) to (%5d) %8dms before, length %4dms", mark->position, soundStopBefore->position, soundStartBefore->position, diffBefore, lengthBefore);
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): found silence from (%5d) to (%5d) %8ldms before, length %4dms", mark->position, soundStopBefore->position, soundStartBefore->position, diffBefore, lengthBefore);
                 }
                 // check black lower border for silence before
                 const cMark *blackLowerStart = blackMarks.GetPrev(soundStopBefore->position, MT_NOBLACKLOWERSTOP);
@@ -5277,14 +5277,14 @@ void cMarkAdStandalone::SceneChangeOptimization() {
         // check stop mark
         if ((mark->type & 0x0F) == MT_STOP) {
             // log available marks
-            bool moved     = false;
-            int diffAfter  = INT_MAX;
-            int diffBefore = INT_MAX;
+            bool moved          = false;
+            int diffAfter       = INT_MAX;
+            long int diffBefore = INT_MAX;
             cMark *sceneStopBefore = sceneMarks.GetPrev(mark->position + 1, MT_SCENESTOP);
             cMark *sceneStopAfter  = sceneMarks.GetNext(mark->position - 1, MT_SCENESTOP);  // allow one to get same position
             if (sceneStopBefore) {
                 diffBefore = 1000 * (mark->position - sceneStopBefore->position) / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::SceneChangeOptimization(): stop  mark (%6d): found scene stop  (%6d) %5dms before", mark->position, sceneStopBefore->position, diffBefore);
+                dsyslog("cMarkAdStandalone::SceneChangeOptimization(): stop  mark (%6d): found scene stop  (%6d) %5ldms before", mark->position, sceneStopBefore->position, diffBefore);
             }
             if (sceneStopAfter) {
                 diffAfter = 1000 * (sceneStopAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
