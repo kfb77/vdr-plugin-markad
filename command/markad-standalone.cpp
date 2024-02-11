@@ -2746,7 +2746,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                 dsyslog("cMarkAdStandalone::CheckMarks(): stop  mark before (%5d) %4ds after assumed end (%5d)", prevStopMark->position,  diffPrevStopAssumed, newStopA);
 
                 // check length of last broadcast and distance to assumed end
-                if ((lastStopMark->type & 0xF0) < MT_CHANNELCHANGE) {  // trust channel marks and better
+                if (((lastStopMark->type & 0xF0) < MT_CHANNELCHANGE) || ((lastStopMark->type & 0xF0) == MT_MOVED)) {  // trust channel marks and better
                     int minLastStopAssumed;    // trusted distance to assumed stop depents on hardness of marks
                     int minLastStartAssumed;
                     int minPrevStopAssumed;
@@ -2810,6 +2810,12 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                         minLastStartAssumed =   56;
                         minPrevStopAssumed  = -477;
                         minLastBroadcast    =    0;
+                        break;
+                    case MT_MOVEDSTOP:
+                        minLastStopAssumed  = 1000;  // do nothing
+                        minLastStartAssumed = 1000;
+                        minPrevStopAssumed  = 1000;
+                        minLastBroadcast    =    2;
                         break;
                     default:
                         minLastStopAssumed  = 1000;  // do nothing
