@@ -773,7 +773,9 @@ int cDetectLogoStopStart::FindFrameStartPixel(const uchar *picture, const int wi
         if (picture[(startY + offsetY) * width + startX] == 0) startY += offsetY;  // next position has pixel
         else break;
     }
-    if (abs(firstPixelX - startX) > abs(firstPixelY - startY)) startY = firstPixelY;  // prevent to get out of line from a single pixel, only one coordinate can change
+    if (abs(firstPixelX - startX) > abs(firstPixelY - startY)) {
+        startY = firstPixelY;  // prevent to get out of line from a single pixel, only one coordinate can change
+    }
     else startX = firstPixelX;
 #ifdef DEBUG_FRAME_DETECTION
     dsyslog("cDetectLogoStopStart::FindFrameStartPixel(): search for start pixel: first pixel (%d,%d), direction (%d,%d): found (%d,%d)", firstPixelX, firstPixelY, offsetX, offsetY, startX, startY);
