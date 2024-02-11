@@ -1912,7 +1912,11 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     }
 
     // found valid vertical border start mark
-    markCriteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED);
+    if (markCriteria.GetMarkTypeState(MT_ASPECTCHANGE) == CRITERIA_USED) {
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): use vertical border only as start mark, keep using aspect ratio detection");
+        markCriteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_AVAILABLE);
+    }
+    else markCriteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED);
 
     // check logo stop after vborder stop to prevent to get closing credit from previous recording as start mark
     cMark *logoStop  = marks.GetNext(vStart->position, MT_LOGOSTOP);
