@@ -4862,12 +4862,15 @@ void cMarkAdStandalone::SilenceOptimization() {
                     switch (mark->newType) {
                     case MT_VPSSTART:
                         // select best mark (before / after), default: before
-                        // <94360> (120) / 830600  (240)
-                        //       -       / <43440> (880)
-
+                        // <94360> (120) /  830600  (240)
+                        //       -       /  <43440> (880)
+                        //
                         // with black border
                         // <51440> (bb) / 6400    second silence in broadcast
-                        if ((diffBefore >= 17200) && !blackLowerBefore && (diffAfter <= 7760)) diffBefore = INT_MAX;
+                        //
+                        // silence before preview and before broadcast start, no black border
+                        //   7440 (480) /  <2400> (120)   silence before preview and before broadcast start
+                        if (!blackLowerBefore && (diffBefore >= 7440) && (diffAfter <= 2400)) diffBefore = INT_MAX;
 
                         if (blackLowerBefore)         maxBefore = 51440;   // black lower border short before silence
                         else if (lengthBefore >= 120) maxBefore = 94360;
@@ -4956,6 +4959,7 @@ void cMarkAdStandalone::SilenceOptimization() {
             // log available marks
             bool moved = false;
             long int diffBefore   = INT_MAX;
+            int lengthAfter       = 0;
             int diffAfter         = INT_MAX;
             bool blackLowerBefore = false;
             cMark *soundStopBefore = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
@@ -4978,7 +4982,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 diffAfter = 1000 * (soundStopAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
                 cMark *soundStartAfter = silenceMarks.GetNext(soundStopAfter->position, MT_SOUNDSTART);
                 if (soundStartAfter) {
-                    int lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / macontext.Video.Info.framesPerSecond;
+                    lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): found silence from (%5d) to (%5d) %8dms after,  length %4dms", mark->position, soundStopAfter->position, soundStartAfter->position, diffAfter, lengthAfter);
                 }
             }
@@ -4990,19 +4994,29 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxAfter = 135719;  // silence in next broadcast after 135720ms
                     break;
                 case MT_LOGOSTOP:
-                    // select best mark (before / after), default: afterA
-                    // 96880 (2400) / 4560 (240)  long fade out logo (Disney_Channel)
-
+                    // select best mark (before / after), default: after
+                    //  96880 (2400) /  4560 (240)  long fade out logo (Disney_Channel)
+                    // 218000  (480) / 17800 (120)  very early logo stop before end (TLC)
+                    //
                     //  <640>       / 6480    second silence is after preview (Disney_Channel)
-
+                    //
+                    // both silence invalid
+                    // 244080 (560) / 2440 (120)  // after silence is in preview
+                    //
                     // second silence is after preview
                     //  <5840>      / 4000    second silence is after preview, logo stop delayed from bright background
                     // <11600>      / 1120    second silence is after preview
                     // <11680>      / 1040    second silence is after preview
                     if ((diffBefore >= 5840) && (diffBefore <= 11680) && (diffAfter >= 1040) && (diffAfter <= 4000)) diffAfter = INT_MAX;
 
-                    if (FadeOutLogo()) maxAfter = 7960;  // very early fade out logo channels
-                    else               maxAfter = 3639;  // silence after separator picture 3640ms after stop
+                    if (FadeOutLogo() && (mark->position == marks.GetLast()->position) && (lengthAfter >= 120)) maxAfter = 17800;  // very early logo stop before end
+                    else if (FadeOutLogo())                                                                     maxAfter =  7960;  // very early fade out logo channels
+                    else                                                                                        maxAfter =  2239;  // silence after separator picture 2240ms after stop
+                    break;
+                case MT_VBORDERSTOP:
+                    // select best mark (before / after), default: after
+                    // <540> (320) / 43820 (740)  vborder stop in dark opening credits from next broadcast
+                    maxAfter = 0;
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
@@ -5058,6 +5072,9 @@ void cMarkAdStandalone::SilenceOptimization() {
                     break;
                 case MT_CHANNELSTOP:
                     maxBefore = 1100;
+                    break;
+                case MT_VBORDERSTOP:
+                    maxBefore = 540;
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
