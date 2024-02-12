@@ -686,7 +686,7 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
                 if (logoStop) {
                     int logoStopSilenceStart    = 1000 * (silenceStart->position - logoStop->position)     / macontext.Video.Info.framesPerSecond;
                     int silenceStartSilenceStop = 1000 * (silenceStop->position  - silenceStart->position) / macontext.Video.Info.framesPerSecond;
-                    int silenceStopLogoStart    = 1000 * (mark->position         - silenceStart->position) / macontext.Video.Info.framesPerSecond;
+                    int silenceStopLogoStart    = 1000 * (mark->position         - silenceStop->position)  / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTOP (%d) -> %5dms -> MT_SOUNDSTOP (%d) -> %5dms -> MT_SOUNDSTART (%d) -> %5dms -> MT_LOGOSTART (%d)", logoStop->position, logoStopSilenceStart, silenceStart->position, silenceStartSilenceStop, silenceStop->position, silenceStopLogoStart, mark->position);
                     // valid example
                     // MT_LOGOSTOP (8870) -> 29440ms -> MT_SOUNDSTOP (  9606) -> 680ms -> MT_SOUNDSTART (9623) -> 1400ms -> MT_LOGOSTART (9641)
