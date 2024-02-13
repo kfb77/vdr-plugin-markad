@@ -5241,6 +5241,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         if ((diffBefore >= 2160) && (diffAfter <= 320)) diffBefore = INT_MAX;
 
                         //  long scene after VPS start, long static scene or closing credits from end of previous broadcast
+                        //   580 /  <1300>  NEW
+                        //  1860 /  <1580>
                         //  1860 /  <1640>
                         //  2720 /  <2760>
                         //   320 /  <3640>
@@ -5251,8 +5253,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         //  1760 /  <6640>
                         //  1440 /  <8240>
                         //   960 / <11320>
-                        //    40 /  <5480>
-                        else if ((diffBefore >= 40) && (diffBefore <= 2720) && (diffAfter >= 1640) && (diffAfter <= 11320)) diffBefore = INT_MAX;
+                        else if ((diffBefore >= 40) && (diffBefore <= 2720) && (diffAfter >= 1300) && (diffAfter <= 11320)) diffBefore = INT_MAX;
 
                         maxBefore = 2820;  // changd from 580 to 2820
                         break;
@@ -5435,7 +5436,6 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     // select best mark (before / after), default: after
                     //   360 /  <80>  channel change short before last scene
 
-                    //  <20> /   20   (conflic)
                     //  <80> /  360
                     // <120> /  160
                     // <140> / 1460
@@ -5443,7 +5443,13 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     // <340> / 1300
                     // <480> /  200
                     // <600> /  840
-                    if ((diffBefore >= 80) && (diffBefore <= 600) && (diffAfter >= 160) && (diffAfter <= 1460)) diffAfter = INT_MAX;
+                    // <640> /  880
+                    if ((diffBefore >= 80) && (diffBefore <= 640) && (diffAfter >= 160) && (diffAfter <= 1460)) diffAfter = INT_MAX;
+
+                    //  <20> /   20
+                    //  <40> /  960
+                    else if (diffBefore <= 40) diffAfter = INT_MAX;
+
                     maxAfter = 1460;  // changed from 240 to 1460
                     break;
                 case MT_MOVEDSTOP:
@@ -5469,9 +5475,10 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         //  <800> /   80    sound stop short after last scene (conflict)
                         //
                         //  sound stop short after last scene
+                        //   <40> /   40    sound stop short after last scene
                         //   <40> / 1760    sound stop short after last scene
                         //   <40> /  800    sound stop short after last scene
-                        if ((diffBefore <= 40) && (diffAfter >= 800)) diffAfter = INT_MAX;
+                        if ((diffBefore <= 40) && (diffAfter >= 40) && (diffAfter <= 1760)) diffAfter = INT_MAX;
 
                         // long static scene before sound stop is separator picture
                         // <4360> /  840    delayed logo stop from bright background, sound stop after separator picture
@@ -5500,6 +5507,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         //  <160> /  3840
                         //  <240> /  2660
                         //  <320> /   680
+                        //  <320> /  1360
                         //  <440> /  1560
                         // <1040> /   800   (conflict)
                         // <1440> /  6040   (conflict)
@@ -5553,7 +5561,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     if (mark->position == marks.GetLast()->position) maxBefore = 440;
                     break;
                 case MT_CHANNELSTOP:
-                    maxBefore = 600;  // changed from 340 to 600
+                    maxBefore = 640;  // changed from 600 to 640
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
