@@ -6137,8 +6137,9 @@ bool cMarkAdStandalone::LoadInfo() {
                     dsyslog("cMarkAdStandalone::LoadInfo(): channel %s has a rotating logo", macontext.Info.ChannelName);
                     macontext.Video.Logo.isRotating = true;
                 }
-                if (CompareChannelName(macontext.Info.ChannelName, "TELE_5", IGNORE_HD) ||
-                        CompareChannelName(macontext.Info.ChannelName, "arte", IGNORE_HD)) {
+                if (CompareChannelName(macontext.Info.ChannelName, "arte",IGNORE_HD) ||
+                        CompareChannelName(macontext.Info.ChannelName, "ONE_HD", IGNORE_HD) ||
+                        CompareChannelName(macontext.Info.ChannelName, "TELE_5", IGNORE_HD)) {
                     dsyslog("cMarkAdStandalone::LoadInfo(): channel %s has logo in the border", macontext.Info.ChannelName);
                     macontext.Video.Logo.isInBorder = true;
                 }
