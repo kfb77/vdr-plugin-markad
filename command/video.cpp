@@ -837,8 +837,8 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         logo_imark *= 0.8;
     }
     if (maContext->Video.Logo.isTransparent) { // reduce if we have a transparent logo (e.g. SRF_zwei_HD)
-        logo_vmark *= 0.95;
-        logo_imark *= 0.95;
+        logo_vmark *= 0.9;
+        logo_imark *= 0.9;
     }
 
     for (int plane = 0; plane < PLANES; plane++) {
