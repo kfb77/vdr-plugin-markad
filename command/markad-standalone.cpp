@@ -402,10 +402,11 @@ cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
                     marks.Del(end->position);
                     end = NULL;
                 }
-                else {
-                    dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): vertial border start and stop found, delete weak marks except start mark");
-                    marks.DelWeakFromTo(marks.GetFirst()->position + 1, INT_MAX, MT_VBORDERCHANGE);
-                }
+            }
+            // we use vborder and we found final vborder end mark
+            if (end && (markCriteria.GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_USED)) {
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): vertial border end mark found, delete weak marks except start mark");
+                marks.DelWeakFromTo(marks.GetFirst()->position + 1, INT_MAX, MT_VBORDERCHANGE);
             }
         }
     }
