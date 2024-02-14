@@ -832,7 +832,10 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     float logo_vmark = LOGO_VMARK;
     float logo_imark = LOGO_IMARK;
 
-    if (maContext->Video.Logo.isRotating) logo_vmark *= 0.8;  // reduce if we have a rotating logo (e.g. SAT_1), changed from 0.9 to 0.8
+    if (maContext->Video.Logo.isRotating) {  // reduce if we have a rotating logo (e.g. SAT_1), changed from 0.9 to 0.8
+        logo_vmark *= 0.8;
+        logo_imark *= 0.8;
+    }
     if (maContext->Video.Logo.isTransparent) { // reduce if we have a transparent logo (e.g. SRF_zwei_HD)
         logo_vmark *= 0.95;
         logo_imark *= 0.95;
