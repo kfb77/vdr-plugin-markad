@@ -962,7 +962,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                  ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * logo_imark))))) {                                            // status is logo and we found no logo
             // reduce brightness and increase contrast
             brightnessState = ReduceBrightness(frameCurrent, &contrastReduced);
-            if (brightnessState > BRIGHTNESS_VALID) {  // we got a new contrast, redo logo detection
+            if (brightnessState >= BRIGHTNESS_VALID) {  // we got a new contrast, redo logo detection
                 area.rPixel[0] = 0;
                 rPixel = 0;
                 mPixel = 0;
