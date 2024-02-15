@@ -1222,7 +1222,7 @@ int cMarkAdStandalone::CheckStop() {
 
 // try black screen mark as end mark
     if (!end) {
-        cMark *blackEnd = blackMarks.GetNext(iStopA - (4 * macontext.Video.Info.framesPerSecond), MT_NOBLACKSTOP);    // accept 4s before iStopA
+        cMark *blackEnd = blackMarks.GetAround(1 * 60 * macontext.Video.Info.framesPerSecond, iStopA, MT_NOBLACKSTOP);
         if (blackEnd) {
             int diff = (blackEnd->position - iStopA) / macontext.Video.Info.framesPerSecond;
             cMark *blackStop  = blackEnd;
