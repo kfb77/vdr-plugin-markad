@@ -485,7 +485,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         int diffAssumed = (iStopA - lEnd->position) / macontext.Video.Info.framesPerSecond;
         LogSeparator(false);
         dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check for separator for logo stop (%d), %ds before assumed end (%d)", lEnd->position, diffAssumed, iStopA);
-        if (diffAssumed > 349) break;   // changed from 300 to 349
+        if (diffAssumed >= 314) break;   // changed from 349 to 314
         if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveInfoLogoSequence(lEnd)) {
             end = lEnd;
         }
