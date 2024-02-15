@@ -1550,11 +1550,11 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
             dsyslog("cDetectLogoStopStart::ClosingCredit(): sum of frame portion from all corner: quote %d", allPortionQuote);
         }
         // example of closing credits
-        // best quote 402, all quote 269
+        // tbd
         //
         // example of no closing credits
-        // best quote 419, all quote ?    -> kitchen cabinet in background
-        if ((framePortionQuote <= 419) && (allPortionQuote < 269)) {
+        // best quote 643, all quote 321  -> long static separator picture
+        if ((framePortionQuote <= 643) && (allPortionQuote <= 321)) {
             dsyslog("cDetectLogoStopStart::ClosingCredit(): not enough frame pixel found, closing credits not valid");
             closingCreditsFrame = -1;  // no valid closing credits
         }
