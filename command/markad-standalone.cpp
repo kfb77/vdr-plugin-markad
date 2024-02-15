@@ -496,6 +496,12 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         CleanupUndetectedInfoLogo(end);
         dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): found logo end mark (%d)", end->position);
         evaluateLogoStopStartPair->SetIsAdInFrame(end->position, STATUS_DISABLED);  // before closing credits oder separator there is no ad in frame
+        cMark *logoStart = marks.GetNext(end->position, MT_LOGOSTART);
+        if (logoStart) {
+            int diffStart = 1000 * (logoStart->position - end->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): next logo start mark (%d) %dms after end mark (%d)", logoStart->position, diffStart, end->position);
+            if (diffStart <= 880) markCriteria.SetClosingCreditsState(end->position, CRITERIA_UNAVAILABLE);  // early logo start after, there are no closing credits without logo
+        }
         return end;
     }
 
