@@ -4071,6 +4071,7 @@ bool cMarkAdStandalone::FadeOutLogo() {
     if ((CompareChannelName(macontext.Info.ChannelName, "Disney_Channel", IGNORE_HD))   ||
             (CompareChannelName(macontext.Info.ChannelName, "Nickelodeon", IGNORE_HD))   ||
             (CompareChannelName(macontext.Info.ChannelName, "NICK_MTV+", IGNORE_HD)) ||
+            (CompareChannelName(macontext.Info.ChannelName, "TELE_5", IGNORE_HD)) ||
             (CompareChannelName(macontext.Info.ChannelName, "TLC",       IGNORE_HD))) return true;
     return false;
 }
