@@ -694,11 +694,12 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
                     int logoStopSilenceStart    = 1000 * (silenceStart->position - logoStop->position)     / macontext.Video.Info.framesPerSecond;
                     int silenceStartSilenceStop = 1000 * (silenceStop->position  - silenceStart->position) / macontext.Video.Info.framesPerSecond;
                     int silenceStopLogoStart    = 1000 * (mark->position         - silenceStop->position)  / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTOP (%d) -> %5dms -> MT_SOUNDSTOP (%d) -> %5dms -> MT_SOUNDSTART (%d) -> %5dms -> MT_LOGOSTART (%d)", logoStop->position, logoStopSilenceStart, silenceStart->position, silenceStartSilenceStop, silenceStop->position, silenceStopLogoStart, mark->position);
+                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTOP (%4d) -> %5dms -> MT_SOUNDSTOP (%4d) -> %5dms -> MT_SOUNDSTART (%4d) -> %5dms -> MT_LOGOSTART (%4d)", logoStop->position, logoStopSilenceStart, silenceStart->position, silenceStartSilenceStop, silenceStop->position, silenceStopLogoStart, mark->position);
                     // valid example
-                    // MT_LOGOSTOP (8870) -> 29440ms -> MT_SOUNDSTOP (  9606) -> 680ms -> MT_SOUNDSTART (9623) -> 1400ms -> MT_LOGOSTART (9641)
-                    // MT_LOGOSTOP (4496) ->   560ms -> MT_SOUNDSTOP (  4510) -> 160ms -> MT_SOUNDSTART (4514) -> 1520ms -> MT_LOGOSTART (4548)
-                    if ((logoStopSilenceStart <= 29440) && (silenceStartSilenceStop >= 160) && (silenceStopLogoStart <= 1520)) {
+                    // MT_LOGOSTOP (8870) -> 29440ms -> MT_SOUNDSTOP (9606) ->   680ms -> MT_SOUNDSTART (9623) ->  1400ms -> MT_LOGOSTART (9641)
+                    // MT_LOGOSTOP (4496) ->   560ms -> MT_SOUNDSTOP (4510) ->   160ms -> MT_SOUNDSTART (4514) ->  1520ms -> MT_LOGOSTART (4548)
+                    // MT_LOGOSTOP (3536) ->  1520ms -> MT_SOUNDSTOP (3574) ->   440ms -> MT_SOUNDSTART (3585) ->  1880ms -> MT_LOGOSTART (3632)
+                    if ((logoStopSilenceStart <= 29440) && (silenceStartSilenceStop >= 160) && (silenceStopLogoStart <= 1880)) {
                         dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence sequence is valid", mark->position);
                         return true;
                     }
