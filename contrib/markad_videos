@@ -512,11 +512,11 @@ class CheckPath:
         return((isMarksNotFound or isCutNotFound) and isVideoDir)
 
     def ConvertPath(self, path):
-        newPath = path.replace('&','\&')
-        newPath = newPath.replace('(','\(')
-        newPath = newPath.replace(')','\)')
-        newPath = newPath.replace("'","\\'")
-        newPath = newPath.replace(';','\;')
+        newPath = path.replace('&','\\&')
+        newPath = newPath.replace('(','\\(')
+        newPath = newPath.replace(')','\\)')
+        newPath = newPath.replace("'","\\\'")
+        newPath = newPath.replace(';','\\;')
         return(newPath)
 
     def CheckMirrorDelete(self):
