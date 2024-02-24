@@ -1267,6 +1267,14 @@ int cMarkAdStandalone::CheckStop() {
     // delete all marks after end mark
     if (end) { // be save, if something went wrong end = NULL
         dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after final stop mark at (%d)", end->position);
+        cMark *startBefore = marks.GetPrev(end->position, MT_START, 0x0F);
+        if (!startBefore) {
+            esyslog("cMarkAdStandalone::CheckStop(): invalid marks, no start mark before end mark");
+            sMarkAdMark mark = {};
+            mark.position = 0;
+            mark.type     = MT_RECORDINGSTART;
+            AddMark(&mark);
+        }
         marks.DelTill(end->position, false);
     }
     else esyslog("could not find a end mark");
