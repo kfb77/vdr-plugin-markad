@@ -4586,9 +4586,10 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                     switch (mark->newType) {
                     case MT_VPSSTART:
                         // invalid lower black border before from broadcast before
+                        //  11200ms before -> length   280ms
                         //  43160ms before -> length   320ms
                         // 106600ms before -> length  3640ms    (lower part dark scene in broadcast)
-                        if (lengthBefore <= 320)       maxBefore =  43159;   // too short for lower black border closing credits
+                        if      (lengthBefore <=  280) maxBefore =  11199;   // too short for lower black border closing credits
                         else if (lengthBefore >= 3640) maxBefore = 106599;   // too long  for lower black border closing credits
                         else                           maxBefore = 116600;
                         break;
