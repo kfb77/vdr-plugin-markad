@@ -497,7 +497,7 @@ class CheckPath:
                 continue
 
             if actFile == "markad.pid":
-                log.isyslog(" markad is running "+self.root)
+                log.isyslog("markad is running "+self.root)
                 return(False)
             log.isyslog("unexpected file found: "+self.root+"/"+actFile)
 
