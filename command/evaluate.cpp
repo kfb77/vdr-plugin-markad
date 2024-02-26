@@ -585,7 +585,7 @@ int cEvaluateLogoStopStartPair::GetIsAdInFrame(const int stopPosition) {
     }
 
     dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrame(): stop (%d) mark not found", stopPosition);
-    return STATUS_ERROR;
+    return STATUS_UNKNOWN;
 }
 
 
