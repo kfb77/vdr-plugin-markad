@@ -1707,7 +1707,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         // check for too early or too late logo start, can be start of last part from previous broadcast or start of first ad
         int diffAssumed = (iStartA - lStart->position) / macontext.Video.Info.framesPerSecond;
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds before assumed start (%d)", lStart->position, diffAssumed, iStartA);
-        if ((diffAssumed >= 124) || (diffAssumed <= -518)) {  // changed from 132 to 124
+        if ((diffAssumed >= 124) || (diffAssumed <= -296)) {  // changed from 132 to 124, changed from -518 to -296
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds before assumed start too early or too late", lStart->position, diffAssumed);
             cMark *lNext = marks.GetNext(lStart->position, MT_LOGOSTART);  // get next logo start mark
             marks.Del(lStart);
