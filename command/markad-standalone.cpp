@@ -6487,6 +6487,18 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     dsyslog("running on %s", hostname);
     if (config->cmd) dsyslog("called with parameter cmd = %s", config->cmd);
 
+    //  give vdr markad plugin time to pause this process until recording end
+    if (strcmp(config->cmd, "after") == 0) {
+        isyslog("started from markad plugin for processing after recording");
+        sleep(10);
+    }
+
+    // ignore --vps if markad runs during recording
+    if ((strcmp(config->cmd, "before") == 0) && config->useVPS) {
+        esyslog("markad runs during recording, ignore invalid --vps parameter");
+        config->useVPS = false;
+    }
+
     // check avcodec library version
 #if LIBAVCODEC_VERSION_INT < LIBAVCODEC_VERSION_DEPRECATED
 #error "libavcodec not installed or version not supported, please install or update libavcodec"
