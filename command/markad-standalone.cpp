@@ -2093,10 +2093,13 @@ void cMarkAdStandalone::CheckStart() {
     // before we can check border marks, we have to check with is valid
     if (macontext.Video.Info.frameDarkOpeningCredits >= 0) { // check for very long dark opening credits
         dsyslog("cMarkAdStandalone::CheckStart(): found very long dark opening credits start at frame (%d), check which type of border mark is valid", macontext.Video.Info.frameDarkOpeningCredits);
-        const cMark *hStop = marks.GetNext(iStartA, MT_HBORDERSTOP);
-        const cMark *vStop = marks.GetNext(iStartA, MT_VBORDERSTOP);
-        if (hStop && !vStop) {
-            dsyslog("cMarkAdStandalone::CheckStart(): hborder stop found but no vborder stop, recording has vborder, change hborder start to vborder start at (%d), delete all hborder marks", macontext.Video.Info.frameDarkOpeningCredits);
+        const cMark *hStop  = marks.GetNext(iStartA, MT_HBORDERSTOP);
+        const cMark *hStart = NULL;
+        if (hStop) hStart = marks.GetNext(hStop->position, MT_HBORDERSTART);
+        const cMark *vStop  = marks.GetNext(iStartA, MT_VBORDERSTOP);
+        if (hStop && !hStart && !vStop) {
+            dsyslog("cMarkAdStandalone::CheckStart(): hborder stop and no hborder start found but no vborder stop, recording has vborder");
+            dsyslog("cMarkAdStandalone::CheckStart(): change hborder start to vborder start at (%d), delete all hborder marks", macontext.Video.Info.frameDarkOpeningCredits);
             marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
             marks.Add(MT_VBORDERSTART, MT_UNDEFINED, MT_UNDEFINED, macontext.Video.Info.frameDarkOpeningCredits, "start of opening credits", true);
         }
