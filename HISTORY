@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-03-02: Version 3.4.10
+- fix VPS use if started from plugin
+- fix quotes for Python 3.12
+- some minor bug fixes and optimizations, see git
+
 2024-02-11: Version 3.4.9
 - replace deprecated avcodec_close with avcodec_free_context for libavcodec >= 60.39.100
 - fix integer overflow in very long recording
