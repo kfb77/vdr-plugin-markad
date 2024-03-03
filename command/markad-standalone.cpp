@@ -1395,15 +1395,15 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
             // check for closing credits if no other checks will be done, only part of the loop elements in recording end range
             if ((isInfoLogo <= STATUS_NO) && (isLogoChange <= STATUS_NO)) ptr_cDetectLogoStopStart->ClosingCredit();
 
-            // check for info logo
-            if ((iStart > 0) && (isStartMarkInBroadcast == STATUS_YES)) {  // we are called by CheckStart and we are in broadcast
+            // check for info logo if  we are called by CheckStart and we are in broadcast
+            if ((iStart > 0) && evaluateLogoStopStartPair->IntroductionLogoChannel(macontext.Info.ChannelName) && (isStartMarkInBroadcast == STATUS_YES)) {
                 // do not delete info logo, it can be introduction logo, it looks the same
                 // expect we have another start very short before
                 cMark *lStartBefore = marks.GetPrev(stopPosition, MT_LOGOSTART);
                 if (lStartBefore) {
                     int diffStart = 1000 * (stopPosition - lStartBefore->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): logo start (%d) %dms before stop mark (%d)", lStartBefore->position, diffStart, stopPosition);
-                    if (diffStart > 1240) {  // do info logo check if we have a logo start mark short before, some channel send a early info log after boradcast start
+                    if (diffStart > 1240) {  // do info logo check if we have a logo start mark short before, some channel send a early info log after broadcast start
                         // changed from 1160 to 1240
                         dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): do not check for info logo, we are in start range, it can be introducion logo");
                         doInfoCheck = false;
