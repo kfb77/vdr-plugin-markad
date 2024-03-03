@@ -5237,7 +5237,6 @@ void cMarkAdStandalone::SceneChangeOptimization() {
     DebugMarks();
     cMark *mark = marks.GetFirst();
     while (mark) {
-        char used[10]      = "none";
         // store old mark types
         char *markType    = marks.TypeToText(mark->type);
         char *markOldType = marks.TypeToText(mark->oldType);
@@ -5359,12 +5358,19 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 }
                 if (diffBefore <= maxBefore) {
                     mark = marks.Move(mark, sceneStartBefore->position, MT_SCENESTART);
-                    strcpy(used, "before");
                     if (mark) {
                         moved = true;
                         save  = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
             // try scene change after start mark
@@ -5406,11 +5412,18 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 }
                 if ((diffAfter <= maxAfter) && (sceneStartAfter->position != mark->position)) {
                     mark = marks.Move(mark, sceneStartAfter->position, MT_SCENESTART);
-                    strcpy(used, "after");
                     if (mark) {
                         save = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
         }
@@ -5559,8 +5572,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         //  2800 /  <120>
                         //  2840 /  <120>
                         //  2560 /  <160>
-                        //   280 /  <680>   sound stop before last scene
+                        //   280 /  <680>   sound stop before last scene (conflict)
                         //  9780 / <3260>   sound stop in closing scene
+                        // 36100 / <3380>   sound stop in closing scene
                         //
                         //  <800> /   80    sound stop short after last scene (conflict)
                         //
@@ -5568,7 +5582,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         //   <40> /   40    sound stop short after last scene
                         //   <40> / 1760    sound stop short after last scene
                         //   <40> /  800    sound stop short after last scene
-                        if ((diffBefore <= 40) && (diffAfter >= 40) && (diffAfter <= 1760)) diffAfter = INT_MAX;
+                        //  <400> / 2800    sound stop short after last scene
+                        if ((diffBefore >= 40) && (diffBefore <= 400) && (diffAfter >= 40) && (diffAfter <= 2800)) diffAfter = INT_MAX;
 
                         // long static scene before sound stop is separator picture
                         // <4360> /  840    delayed logo stop from bright background, sound stop after separator picture
@@ -5578,7 +5593,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         // <5080> / 2120    delayed logo stop from bright background, sound stop after separator picture
                         else if ((diffBefore >= 4360) && (diffBefore <= 5080) && (diffAfter >= 280) && (diffAfter <= 2120)) diffAfter = INT_MAX;
 
-                        maxAfter = 3260;  // changed rom 2459 to 3260
+                        maxAfter = 3380;
                         break;
                     case MT_VPSSTOP:
                         // select best mark (before / after), default: after
@@ -5629,12 +5644,19 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 }
                 if (diffAfter <= maxAfter) {  // logo is fading out before end of broadcast scene, move forward
                     mark = marks.Move(mark, sceneStopAfter->position, MT_SCENESTOP);
-                    strcpy(used, "after");
                     if (mark) {
                         moved = true;
                         save  = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
             // try scene change before stop mark
@@ -5676,11 +5698,18 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 }
                 if (diffBefore <= maxBefore) {
                     mark = marks.Move(mark, sceneStopBefore->position, MT_SCENESTOP);
-                    strcpy(used, "before");
                     if (mark) {
                         save = true;
                     }
-                    else break;
+                    else {
+                        FREE(strlen(markType)+1, "text");
+                        free(markType);
+                        FREE(strlen(markOldType)+1, "text");
+                        free(markOldType);
+                        FREE(strlen(markNewType)+1, "text");
+                        free(markNewType);
+                        break;
+                    }
                 }
             }
         }
