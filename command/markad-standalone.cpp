@@ -1691,7 +1691,6 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         }
         if (HaveBlackSeparator(lStart) || HaveSilenceSeparator(lStart) || HaveInfoLogoSequence(lStart)) {
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark has separator, start mark (%d) is valid", lStart->position);
-            marks.DelFromTo(lStart->position + 1, lStart->position + (8 * macontext.Video.Info.framesPerSecond), MT_LOGOCHANGE); // delete logo mark short after end mark, they are undected info / intruduction logos
             begin = lStart;
             break;
         }
