@@ -375,14 +375,16 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.heightMax = 116;
     }
 
-    if ((CompareChannelName(maContext->Info.ChannelName, "n-tv", IGNORE_NOTHING)) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
-            (CompareChannelName(maContext->Info.ChannelName, "ntv", IGNORE_NOTHING))) {                //  ntv                     16:9  720W  576H:->  226W  60H BOTTOM_LEFT
+    if ((CompareChannelName(maContext->Info.ChannelName, "n-tv", IGNORE_COUNTRY)) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
+            (CompareChannelName(maContext->Info.ChannelName, "ntv", IGNORE_COUNTRY))) {             //  ntv                     16:9  720W  576H:->  226W  60H BOTTOM_LEFT
         logo.widthMax  = INT_MAX;  // news ticker
         logo.heightMin =  58;
     }
-    if (CompareChannelName(maContext->Info.ChannelName, "ProSieben", IGNORE_NOTHING)) {             // ProSieben               16:9  720W  576H:->   84W  66H TOP_RIGHT
-        // ProSieben                4:3  720W  576H:->  100W  66H TOP_RIGHT
-        logo.widthMax  =  100;
+
+    // ProSieben               16:9  720W  576H:->   84W  66H TOP_RIGHT
+    // ProSieben               16:9  720W  576H:->   86W  66H TOP_RIGHT
+    if (CompareChannelName(maContext->Info.ChannelName, "ProSieben", IGNORE_NOTHING)) {
+        logo.widthMax  =  66;
     }
 
     // Pro7_MAXX               16:9  720W  576H:->  114W  64H TOP_RIGHT
@@ -499,6 +501,11 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (CompareChannelName(maContext->Info.ChannelName, "VOX", IGNORE_NOTHING)) {
         logo.heightMin =  70;
         logo.heightMax =  70;
+    }
+
+    // VOXup                   16:9  720W  576H:->  110W  66H TOP_LEFT
+    if (CompareChannelName(maContext->Info.ChannelName, "VOXup", IGNORE_NOTHING)) {
+        logo.heightMax =  66;
     }
 
     // WELT                    16:9  720W  576H:->  226W  62H BOTTOM_LEFT
