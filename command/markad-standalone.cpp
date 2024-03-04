@@ -2498,6 +2498,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
 // MT_LOGOSTART ( 82313) ->    3160ms -> MT_LOGOSTOP ( 82392) ->     280ms -> MT_LOGOSTART ( 82399) ->  381160ms -> MT_STOP ( 91928) -> second of double logo change (TELE 5)
 // MT_LOGOSTART ( 38739) ->    3240ms -> MT_LOGOSTOP ( 38820) ->     640ms -> MT_LOGOSTART ( 38836) -> 1222360ms -> MT_STOP ( 69395) -> logo change (TELE 5)
 // MT_LOGOSTART ( 83792) ->    3240ms -> MT_LOGOSTOP ( 83873) ->     640ms -> MT_LOGOSTART ( 83889) ->  349560ms -> MT_STOP ( 92628) -> logo change (TELE 5)
+// MT_LOGOSTART (126382) ->    3240ms -> MT_LOGOSTOP (126463) ->     640ms -> MT_LOGOSTART (126479) -> 1303560ms -> MT_STOP (159068) -> logo change (TELE 5)
 // MT_LOGOSTART ( 41268) ->    3280ms -> MT_LOGOSTOP ( 41350) ->     640ms -> MT_LOGOSTART ( 41366) -> 1185880ms -> MT_STOP ( 71013) -> logo change (TELE 5)
 // MT_LOGOSTART ( 41268) ->    3280ms -> MT_LOGOSTOP ( 41350) ->     640ms -> MT_LOGOSTART ( 41366) -> 1186840ms -> MT_STOP ( 71037) -> logo change (TELE 5)
 // MT_LOGOSTART ( 82897) ->    3360ms -> MT_LOGOSTOP ( 82981) ->     640ms -> MT_LOGOSTART ( 82997) ->  283880ms -> MT_STOP ( 90094) -> logo change (TELE 5)
@@ -2516,7 +2517,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     if (evaluateLogoStopStartPair->IsLogoChangeChannel(macontext.Info.ChannelName) &&
                             (prevLogoStart_Stop     >= 1120) && (prevLogoStart_Stop     <=    8440) &&
                             (stop_nextLogoStart     >=  280) && (stop_nextLogoStart     <=    1120) &&
-                            (nextLogoStart_nextStop >=  560) && (nextLogoStart_nextStop <= 1242400)) {
+                            (nextLogoStart_nextStop >=  560) && (nextLogoStart_nextStop <= 1303560)) {
                         dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair too short, deleting", mark->position, nextLogoStart->position);
                         cMark *tmp = nextStop;
                         marks.Del(nextLogoStart);
