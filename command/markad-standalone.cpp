@@ -847,11 +847,13 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     int diffLogoStopBlackStart  = 1000 * (blackStart->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
                     int diffBlackStartBlackStop = 1000 * (blackStop->position  - blackStart->position) / macontext.Video.Info.framesPerSecond;
                     int diffBlackStopLogoStart  = 1000 * (mark->position       - blackStop->position)  / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%4d)-> %4dms -> MT_NOBLACKSTOP (%4d) -> %4dms -> MT_NOBLACKSTART (%4d) -> %4dms -> MT_LOGOSTART (%4d)", stopBefore->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, mark->position);
-                    // valid example
-                    // MT_LOGOSTOP (6419)->   40ms -> MT_NOBLACKSTOP (6420) -> 360ms -> MT_NOBLACKSTART (6429) ->  200ms -> MT_LOGOSTART (6434)
-                    // MT_LOGOSTOP (3536)-> 1680ms -> MT_NOBLACKSTOP (3578) -> 320ms -> MT_NOBLACKSTART (3586) -> 1800ms -> MT_LOGOSTART (3631)  (TELE 5, fade in logo)
-                    if ((diffLogoStopBlackStart <= 1680) && (diffBlackStartBlackStop >= 320) && (diffBlackStopLogoStart <= 1800)) {
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%4d)-> %5dms -> MT_NOBLACKSTOP (%4d) -> %4dms -> MT_NOBLACKSTART (%4d) -> %4dms -> MT_LOGOSTART (%4d)", stopBefore->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, mark->position);
+// valid example
+// MT_LOGOSTOP (6419)->    40ms -> MT_NOBLACKSTOP (6420) ->  360ms -> MT_NOBLACKSTART (6429) ->  200ms -> MT_LOGOSTART (6434)
+// MT_LOGOSTOP (3536)->  1680ms -> MT_NOBLACKSTOP (3578) ->  320ms -> MT_NOBLACKSTART (3586) -> 1800ms -> MT_LOGOSTART (3631)  (TELE 5, fade in logo)
+// MT_LOGOSTOP (5887)->  4880ms -> MT_NOBLACKSTOP (6009) ->  440ms -> MT_NOBLACKSTART (6020) -> 1040ms -> MT_LOGOSTART (6046)  (Kabel 1 Austria, separator picture before)
+// MT_LOGOSTOP (4860)-> 30040ms -> MT_NOBLACKSTOP (5611) ->  440ms -> MT_NOBLACKSTART (5622) -> 1040ms -> MT_LOGOSTART (5648)  (kabel eins, ad in frame without logo before)
+                    if ((diffLogoStopBlackStart <= 30040) && (diffBlackStartBlackStop >= 320) && (diffBlackStopLogoStart <= 1800)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen sequence is valid");
                         return true;
                     }
