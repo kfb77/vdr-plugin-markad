@@ -4152,7 +4152,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
     cMark *mark = marks.GetFirst();
 #define START_STOP_BLACK (macontext.Video.Info.framesPerSecond / 2)    // black picture before start and after stop mark
     while (mark) {
-        char used[10] = "none";
         int lengthBefore   = 0;
         int lengthAfter    = 0;
         // store old mark types
@@ -4167,6 +4166,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
             int diffAfter      = INT_MAX;
             bool silenceBefore = false;
             bool silenceAfter  = false;
+            // stop of black screen is start mark
             cMark *stopBefore  = NULL;
             cMark *stopAfter   = NULL;
             cMark *startBefore = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTART); // new part starts after the black screen
@@ -4177,7 +4177,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     diffBefore   = 1000 * (mark->position        - startBefore->position) / macontext.Video.Info.framesPerSecond;
                     lengthBefore = 1000 * (startBefore->position - stopBefore->position)  / macontext.Video.Info.framesPerSecond;
                     // check if there is silence between or very ahort before black screen
-                    cMark *silence = silenceMarks.GetAround(1.1 * macontext.Video.Info.framesPerSecond, startBefore->position, MT_SOUNDSTOP);
+                    cMark *silence = silenceMarks.GetAround(1.1 * macontext.Video.Info.framesPerSecond, stopBefore->position, MT_SOUNDSTOP); // silence around black screen start
                     if (silence) silenceBefore = true;
                     dsyslog("cMarkAdStandalone::BlackScreenOptimization(): start mark (%6d): found black screen from (%6d) to (%6d), %7dms before -> length %5dms, silence around %d", mark->position, stopBefore->position, startBefore->position, diffBefore, lengthBefore, silenceBefore);
                 }
@@ -4189,7 +4189,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     diffAfter   = 1000 * (startAfter->position - mark->position)      / macontext.Video.Info.framesPerSecond;
                     lengthAfter = 1000 * (startAfter->position - stopAfter->position) / macontext.Video.Info.framesPerSecond;
                     // check if there is silence between black screen
-                    cMark *silence = silenceMarks.GetAround(1.1 * macontext.Video.Info.framesPerSecond, startAfter->position, MT_SOUNDSTOP);
+                    cMark *silence = silenceMarks.GetAround(1.1 * macontext.Video.Info.framesPerSecond, stopAfter->position, MT_SOUNDSTOP); // silence around black screen start
                     if (silence) silenceAfter = true;
                     dsyslog("cMarkAdStandalone::BlackScreenOptimization(): start mark (%6d): found black screen from (%6d) to (%6d), %7dms after  -> length %5dms, silence around %d", mark->position, stopAfter->position, startAfter->position, diffAfter, lengthAfter, silenceAfter);
                 }
@@ -4227,8 +4227,12 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         break;
                     case MT_VPSSTART:
                         // select best mark (before / after), default: before
-                        // <50480> (520) /  89400  (1240)
-
+                        // valid black screen without silence
+                        // <50480> (520) /  89400 (1240)
+                        //
+                        // invalid black screen without silence
+                        // 21600   (600) / 826200   (40)   blackscreen in broadcast before and in broadcast after  (conflict)
+                        //
                         // blackscreen with silence before VPS start (preview) and after VPS start (broadcast start)
                         // 26660 (220) silence / <44100> (220) silence
                         if (silenceBefore && (diffBefore <= 26660) && silenceAfter && (diffAfter <= 44100)) diffBefore = INT_MAX;
@@ -4265,7 +4269,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         }
                     }
                     mark = marks.Move(mark, newPos, MT_NOBLACKSTART);
-                    strcpy(used,"before");
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -4287,6 +4290,16 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 switch (mark->type) {
                 case MT_LOGOSTART:
                     maxAfter = 2439;  //  first black screen in broadcast 2440ms after logo start
+                    break;
+                case MT_HBORDERSTART:
+                    if (silenceAfter && (lengthAfter >= 1520)) maxAfter = 4520;  // separator picture with hbrder before start
+                    else                                       maxAfter =   -1;
+                    break;
+                case MT_CHANNELSTART:
+                    maxAfter = 4319;   // black sceen after start of broadcast 4320ms (3840)
+                    break;
+                case MT_ASPECTSTART:
+                    maxAfter = 1000;   // valid black screen 1000ms (650)
                     break;
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
@@ -4315,12 +4328,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         maxAfter = -1;
                     }
                     break;
-                case MT_CHANNELSTART:
-                    maxAfter = 4319;   // black sceen after start of broadcast 4320ms (3840)
-                    break;
-                case MT_ASPECTSTART:
-                    maxAfter = 1000;   // valid black screen 1000ms (650)
-                    break;
                 default:
                     maxAfter = -1;
                 }
@@ -4337,7 +4344,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         }
                     }
                     mark = marks.Move(mark, newPos, MT_NOBLACKSTART);
-                    strcpy(used,"after");
                     if (mark) {
                         save = true;
                     }
@@ -4403,8 +4409,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     // 1190120 (1720) /  <1600>  (120)  fade out logo channel (TELE 5)
                     // 1087680  (160) /  <1680>   (80)  fade out logo channel (TLC)
                     //
-                    // valid black screen with silence around after
-                    //                   <5040> (160s)  fade out logo
+                    // valid black screen with silence around
+                    //                   <5040> (160)  fade out logo
                     //
                     // black screen from before logo stop to after logo stop
                     //  <20>  (100) / 4000 (120)  second black screen after separator
@@ -4421,6 +4427,11 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     // <4580>  (880) /  1300 (160)  second black screen after preview
                     else if ((diffBefore <= 4580) && (lengthBefore >= 600) && (diffAfter <= 3240) && (lengthAfter <= 520)) diffAfter = INT_MAX;
 
+                    // invalid black screen from channel with fade out logo: no black screen near before, but short black screen after is after/in preview
+                    // 1295800  (100) /  4540 (100)  black screen after preview (Das Erste)
+                    // 1815820  (440) /  4620 (440)  black screen after preview (Das Erste)
+                    //
+
                     // invalid black screen from channel without fade out logo: no black screen near before, but short black screen after is after/in preview
                     //   47560 (1120) /  1400 (120)  black screen in preview after stop (SIXX)
                     //   14200 (1440) /  2040  (80)  black screen after preview
@@ -4430,11 +4441,10 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     //   49320 (2000) /  2960  (40)  black screen after add (RTLZWEI)
                     // 1466760  (160) /  3480  (80)  black screen after preview (RTLZWEI)
                     //  293600  (520) /  3600  (80)  black screen after preview (SIXX)
-                    // but these are valid black screens
-                    else if (!FadeOutLogo() && (diffBefore >= 14200) && (diffAfter >= 1400) && (diffAfter <= 3600) && (lengthAfter >= 40) && (lengthAfter <= 120)) diffAfter = INT_MAX;
+                    else if (!FadeOutLogo() && (diffBefore >= 14200) && (diffAfter >= 1400) && (diffAfter <= 4540) && (lengthAfter >= 40) && (lengthAfter <= 120)) diffAfter = INT_MAX;
 
                     if (silenceAfter) maxAfter = 5040;    // trust black screen with silence around
-                    else              maxAfter = 5039;
+                    else              maxAfter = 4619;
                     break;
                 case MT_VBORDERSTOP:
                     maxAfter = 480;  // black closing credits
@@ -4498,7 +4508,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         }
                     }
                     mark = marks.Move(mark, newPos, MT_NOBLACKSTOP);
-                    strcpy(used,"after");
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -4560,7 +4569,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         }
                     }
                     mark = marks.Move(mark, newPos, MT_NOBLACKSTOP);
-                    strcpy(used,"before");
                     if (mark) {
                         save = true;
                     }
