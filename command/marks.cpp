@@ -217,6 +217,8 @@ void cMarks::DelAll() {
 
 
 void cMarks::DelInvalidSequence() {
+    if (!first || !last) return;
+
     cMark *mark = first;
     while (mark) {
 
@@ -229,23 +231,29 @@ void cMarks::DelInvalidSequence() {
             continue;
         }
 
-        // cleanup of start followed by start or stop followed by stop
-        if ((((mark->type & 0x0F) == MT_STOP)  && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_STOP)) || // two stop or start marks, keep strong marks, delete weak
-                (((mark->type & 0x0F) == MT_START) && (mark->Next()) && ((mark->Next()->type & 0x0F) == MT_START))) {
-            dsyslog("cMarks::DelInvalidSequence(): mark (%d) type 0x%X, followed by same mark (%d) type 0x%X", mark->position, mark->type, mark->Next()->position, mark->Next()->type);
-            if (mark->type < mark->Next()->type) {
-                dsyslog(" cMarks::DelInvalidSequence() delete mark (%d)", mark->position);
-                cMark *tmp = mark;
-                mark = mark->Next();
-                Del(tmp);
-                continue;
-            }
-            else {
-                dsyslog("cMarks::DelInvalidSequence(): delete mark (%d)", mark->Next()->position);
-                Del(mark->Next());
+        // cleanup of start mark followed by start mark or stop mark followed by stop mark
+        cMark *markNext = mark->Next();
+        if (markNext) {
+            if ((((mark->type & 0x0F) == MT_STOP)  && ((markNext->type & 0x0F) == MT_STOP)) || // two stop or start marks, keep strong marks, delete weak
+                    (((mark->type & 0x0F) == MT_START) && ((markNext->type & 0x0F) == MT_START))) {
+                dsyslog("cMarks::DelInvalidSequence(): mark (%d) type 0x%X, followed by same mark (%d) type 0x%X", mark->position, mark->type, markNext->position, markNext->type);
+
+                // first mark is stronger or equal, delete second mark of pair, but never delete start mark
+                if (((mark->position == first->position) || (mark->type >= markNext->type)) && (markNext->position != last->position)) {
+                    dsyslog(" cMarks::DelInvalidSequence() delete mark (%d)", markNext->position);
+                    Del(markNext);
+                }
+                // second mark is stronger, delete first mark of pair, but never delete end mark
+                else if ((markNext->position == last->position) || (mark->type < markNext->type)) {
+                    dsyslog(" cMarks::DelInvalidSequence() delete mark (%d)", mark->position);
+                    cMark *tmp = mark;
+                    mark = markNext;
+                    Del(tmp);
+                    continue;
+                }
             }
         }
-        mark = mark->Next();
+        mark = markNext;
     }
 }
 
