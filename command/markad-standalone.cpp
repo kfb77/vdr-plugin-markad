@@ -4605,7 +4605,6 @@ void cMarkAdStandalone::BlackLowerOptimization() {
     DebugMarks();
     cMark *mark = marks.GetFirst();
     while (mark) {
-        char used[10]      = "none";
         int lengthBefore   = 0;
         int lengthAfter    = 0;
         // store old mark types
@@ -4683,7 +4682,6 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                 }
                 if (diffBefore <= maxBefore) {  // move even to same position to prevent scene change do a move
                     mark = marks.Move(mark, startBefore->position, MT_NOBLACKLOWERSTART);
-                    strcpy(used,"before");
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -4723,7 +4721,6 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                 }
                 if (diffAfter <= maxAfter) {
                     mark = marks.Move(mark, stopAfter->position, MT_NOBLACKLOWERSTART);  // use end of black lower closing credits
-                    strcpy(used,"after");
                     if (mark) {
                         save = true;
                     }
@@ -4796,17 +4793,18 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        //  black screen in next broadcast
-                        //  19080ms (220)
+                        //  invalid black screen in next broadcast
+                        //  19080ms  (220) -> in next broadcast
+                        //  17800ms (2860) -> long dark scene in next broadcast
                         //
-                        //  valid black screen closing credits
+                        //  valid black lower border from closing credits
                         //   33280ms  (800)
                         //   66040ms (1200)
                         //  127840ms (1200)
                         //  177720ms (1200)
                         //
-                        if (lengthAfter >= 800) maxAfter = 177720;
-                        else                    maxAfter =  19079;
+                        if ((lengthAfter >= 800) && (lengthAfter <= 1200)) maxAfter = 177720;
+                        else                                               maxAfter =  17799;
                         break;
                     default:
                         maxAfter = -1;
@@ -4817,7 +4815,6 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                 }
                 if (diffAfter <= maxAfter) {  // move even to same position to prevent scene change for move again
                     mark = marks.Move(mark, stopAfter->position, MT_NOBLACKLOWERSTOP);
-                    strcpy(used,"after");
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -4854,7 +4851,6 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                 }
                 if (diffBefore <= maxBefore) {
                     mark = marks.Move(mark, stopBefore->position, MT_NOBLACKLOWERSTOP);
-                    strcpy(used,"before");
                     if (mark) {
                         save = true;
                     }
