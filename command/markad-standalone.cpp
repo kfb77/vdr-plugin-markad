@@ -981,6 +981,27 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
             }
 
         }
+        // check sequence: MT_LOGOSTOP -> MT_LOGOSTART -> MT_NOBLACKSTOP -> MT_NOBLACKSTART  (long black screen short after near logo start, opening credids of next braadcast)
+        cMark *logoStart = marks.GetNext(mark->position, MT_LOGOSTART);
+        if (logoStart) {
+            blackStart = blackMarks.GetNext(logoStart->position, MT_NOBLACKSTOP);
+            if (blackStart) {
+                cMark *blackStop = blackMarks.GetNext(logoStart->position, MT_NOBLACKSTART);
+                if (blackStop) {
+                    int diffLogoStopLogoStart  = 1000 * (logoStart->position - mark->position)       /  macontext.Video.Info.framesPerSecond;
+                    int diffLogoStartBlackStart  = 1000 * (blackStart->position - logoStart->position)       /  macontext.Video.Info.framesPerSecond;
+                    int diffBlackStartBlackStop  = 1000 * (blackStop->position - blackStart->position)       /  macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%5d) -> %4dms -> MT_LOGOSTART (%5d) -> %4dms ->  MT_NOBLACKSTOP (%5d) -> %4dms -> MT_NOBLACKSTART (%5d)", mark->position, diffLogoStopLogoStart, logoStart->position, diffLogoStartBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position);
+                    // valid sequence
+                    // MT_LOGOSTOP (178106) -> 7080ms -> MT_LOGOSTART (178283) ->   40ms ->  MT_NOBLACKSTOP (178284) -> 6680ms -> MT_NOBLACKSTART (178451)
+                    if ((diffLogoStopLogoStart <= 7080) && (diffLogoStartBlackStart <= 40) && (diffBlackStartBlackStop >= 6680)) {
+                        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is valid", mark->position);
+                        return true;
+                    }
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is invalid", mark->position);
+                }
+            }
+        }
     }
     return false;
 }
