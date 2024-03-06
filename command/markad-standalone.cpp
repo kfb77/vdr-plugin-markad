@@ -336,8 +336,12 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
         if (markCriteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED) {
             cMark *hBorderLast = marks.GetPrev(INT_MAX, MT_HBORDERCHANGE, 0xF0);
             if (hBorderLast && (hBorderLast->type == MT_HBORDERSTOP)) {
-                dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): last hboder mark (%d) is stop mark, this must be end mark", hBorderLast->position);
-                end = hBorderLast;
+                int diffAssumed = (iStopA - hBorderLast->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): last hboder mark (%d) is stop mark, %ds before assumed stop (%d)", hBorderLast->position, diffAssumed, iStopA);
+                if (diffAssumed <= 600) {
+                    dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): last hboder mark stop (%d) selected as end mark", hBorderLast->position);
+                    end = hBorderLast;
+                }
             }
         }
     }
