@@ -2631,12 +2631,15 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
     }
 
 
-    // delete start stop hborder pairs at before chkSTART if there are no other hborder marks, they are a preview with hborder before recording start
+    // delete start/stop hborder pairs before chkSTART if there are no other hborder marks, they are a preview with hborder before recording start
     mark = marks.GetFirst();
-    if (mark && (mark->type == MT_HBORDERSTART) && mark->Next() && (mark->Next()->type == MT_HBORDERSTOP) && (mark->Next()->position < chkSTART) && (marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 1)) {
-        dsyslog("cMarkAdStandalone::CheckMarks(): preview with hborder before recording start found, delete start (%d) stop (%d)", mark->position, mark->Next()->position);
-        marks.Del(mark->Next()->position);
-        marks.Del(mark->position);
+    if (mark && (mark->type == MT_HBORDERSTART) && (marks.Count(MT_HBORDERSTART) == 1)) {
+        cMark *markNext = mark->Next();
+        if (markNext && (markNext->type == MT_HBORDERSTOP) && (markNext->position < chkSTART) && (markNext->position != marks.GetLast()->position) && (marks.Count(MT_HBORDERSTOP) == 1)) {
+            dsyslog("cMarkAdStandalone::CheckMarks(): preview with hborder before recording start found, delete start (%d) stop (%d)", mark->position, mark->Next()->position);
+            marks.Del(markNext->position);
+            marks.Del(mark->position);
+        }
     }
     // delete short START STOP hborder marks with logo start mark between, because they are advertisement with border in the advertisement
     mark = marks.GetFirst();
