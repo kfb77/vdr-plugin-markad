@@ -790,7 +790,6 @@ int cMarks::Length() const {
 bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const bool force) {
     if (!directory) return false;
     if (!maContext) return false;
-    if (!first) return false;  // no marks to save
     if (abortNow) return false;  // do not save marks if aborted
 
     if (!maContext->Info.isRunningRecording && !force) {
