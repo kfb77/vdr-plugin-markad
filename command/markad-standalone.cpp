@@ -1807,7 +1807,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
             int lengthBroadcast = (hStop->position - hStart->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): next horizontal border stop mark (%d), length of broadcast %ds", hStop->position, lengthBroadcast);
             const cMark *hNextStart = marks.GetNext(hStop->position, MT_HBORDERSTART);
-            if ((((hStart->position == 0) || (lengthBroadcast <= 235)) && !hNextStart) || // hborder preview or hborder brodcast before broadcast start, changed from 231 to 235
+            if ((((hStart->position == 0) || (lengthBroadcast <= 291)) && !hNextStart) || // hborder preview or hborder brodcast before broadcast start, changed from 235 to 291
                     (lengthBroadcast <=  74)) {                                           // very short broadcast length is never valid
                 dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start (%d) and stop (%d) mark from previous recording, delete all marks from up to hborder stop", hStart->position, hStop->position);
                 // delete hborder start/stop marks because we ignore hborder start mark
