@@ -1730,17 +1730,24 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
 
     lStart = lStartAssumed;
     while (!begin && lStart) {
-        // check for too early or too late logo start, can be start of last part from previous broadcast or start of first ad
+        // check for too early, can be start of last part from previous broadcast
         int diffAssumed = (iStartA - lStart->position) / macontext.Video.Info.framesPerSecond;
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds before assumed start (%d)", lStart->position, diffAssumed, iStartA);
-        if ((diffAssumed >= 124) || (diffAssumed <= -296)) {  // changed from 132 to 124, changed from -518 to -296
-            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds before assumed start too early or too late", lStart->position, diffAssumed);
+        if (diffAssumed >= 124) {  // changed from 132 to 124
+            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds before assumed start too early", lStart->position, diffAssumed);
             cMark *lNext = marks.GetNext(lStart->position, MT_LOGOSTART);  // get next logo start mark
             marks.Del(lStart);
             lStart = lNext;
             continue;
         }
-        else begin = lStart;  // start with nearest start mark to assumed start
+        // check for too late logo start, can be of first ad
+        if (diffAssumed <= -296) {  // not more then 296s after assumed start, later start mark can be start of first ad
+            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds after assumed start too late", lStart->position, -diffAssumed);
+            break;
+        }
+        else {
+            begin = lStart;  // start with nearest start mark to assumed start
+        }
 
         // check next logo stop/start pair
         cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
