@@ -591,7 +591,7 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
         }
     }
     if (strcmp(status,"PAUSE_STOP") == 0) {
-        if (curr_time > recs[index].vpsPauseStartTime + 50) { // PAUSE STOP must be at least 1 min after PAUSE START, changed from 60 to 50
+        if (curr_time >= recs[index].vpsPauseStartTime + 40) { // PAUSE STOP must be at least 40s after PAUSE START, changed from 50 to 40
             if (recs[index].vpsPauseStopTime == 0) {
                 recs[index].vpsPauseStopTime=curr_time;
                 return true;
@@ -608,7 +608,7 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
         }
         else {
             char *eventLog = NULL;
-            if ((recs[index].epgEventLog) && (asprintf(&eventLog, "VPS pause stop to fast after pause start, ignoring") != -1)) {
+            if ((recs[index].epgEventLog) && (asprintf(&eventLog, "VPS pause stop too fast after pause start, ignoring") != -1)) {
                 ALLOC(strlen(eventLog) + 1, "eventLog");
                 recs[index].epgEventLog->LogEvent(VPS_ERROR, recs[index].title, eventLog);
             }
