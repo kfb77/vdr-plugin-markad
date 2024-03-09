@@ -240,12 +240,12 @@ void cMarks::DelInvalidSequence() {
 
                 // first mark is stronger or equal, delete second mark of pair, but never delete start mark
                 if (((mark->position == first->position) || (mark->type >= markNext->type)) && (markNext->position != last->position)) {
-                    dsyslog(" cMarks::DelInvalidSequence() delete mark (%d)", markNext->position);
+                    dsyslog("cMarks::DelInvalidSequence() delete second mark (%d)", markNext->position);
                     Del(markNext);
                 }
                 // second mark is stronger, delete first mark of pair, but never delete end mark
                 else if ((markNext->position == last->position) || (mark->type < markNext->type)) {
-                    dsyslog(" cMarks::DelInvalidSequence() delete mark (%d)", mark->position);
+                    dsyslog(" cMarks::DelInvalidSequence() delete first mark (%d)", mark->position);
                     cMark *tmp = mark;
                     mark = markNext;
                     Del(tmp);
@@ -253,7 +253,7 @@ void cMarks::DelInvalidSequence() {
                 }
             }
         }
-        mark = markNext;
+        mark = mark->Next();
     }
 }
 
