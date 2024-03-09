@@ -1,6 +1,14 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-03-09: Version 3.4.11
+- optimize logo size check
+  thx to schwabe@www.vdr-portal.de for reporting
+- allow min 40s VPS pause events
+  thx to nobanzai@www.vdr-portal.de  for reporting
+- add script for markad test build with Debian/Ubuntu (contrib/debian_test_build)
+- some minor bug fixes and optimizations, see git
+
 2024-03-02: Version 3.4.10
 - fix VPS use if started from plugin
 - fix quotes for Python 3.12
