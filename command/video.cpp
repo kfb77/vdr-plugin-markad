@@ -81,9 +81,9 @@ int cLogoSize::GetMaxLogoPixel(const int width) {
 }
 
 
-cMarkAdLogo::cMarkAdLogo(sMarkAdContext *maContextParam, cMarkCriteria *markCriteriaParam, cIndex *recordingIndex) {
+cMarkAdLogo::cMarkAdLogo(sMarkAdContext *maContextParam, cCriteria *criteriaParam, cIndex *recordingIndex) {
     maContext                = maContextParam;
-    markCriteria             = markCriteriaParam;
+    criteria                 = criteriaParam;
     recordingIndexMarkAdLogo = recordingIndex;
 
     // 3x3 GX Sobel mask
@@ -251,11 +251,6 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
         logoWidth = width;
         logoHeight = height;
 
-        // set status for channel with transparent logos
-        if (CompareChannelName(maContext->Info.ChannelName, "SRF_zwei", IGNORE_HD)) {
-            dsyslog("cMarkAdLogo::Load(): channel %s has transparent logo, work with lower match values", maContext->Info.ChannelName);
-            maContext->Video.Logo.isTransparent = true;
-        }
     }
 
     maContext->Video.Logo.corner = area.corner;
@@ -834,11 +829,11 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     float logo_vmark = LOGO_VMARK;
     float logo_imark = LOGO_IMARK;
 
-    if (maContext->Video.Logo.isRotating) {  // reduce if we have a rotating logo (e.g. SAT_1), changed from 0.9 to 0.8
+    if (criteria->LogoRotating(maContext->Info.ChannelName)) {  // reduce if we have a rotating logo (e.g. SAT_1), changed from 0.9 to 0.8
         logo_vmark *= 0.8;
         logo_imark *= 0.8;
     }
-    if (maContext->Video.Logo.isTransparent) { // reduce if we have a transparent logo (e.g. SRF_zwei_HD)
+    if (criteria->LogoTransparent(maContext->Info.ChannelName)) { // reduce if we have a transparent logo (e.g. SRF_zwei_HD)
         logo_vmark *= 0.9;
         logo_imark *= 0.9;
     }
@@ -949,7 +944,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         }
 
         // check area intensitiy
-        if (maContext->Video.Logo.isTransparent && (area.intensity >= 189)) return LOGO_NOCHANGE; // transparent logo decetion on bright backbround is imposible
+        if (criteria->LogoTransparent(maContext->Info.ChannelName) && (area.intensity >= 189)) return LOGO_NOCHANGE; // transparent logo decetion on bright backbround is imposible
 #define MAX_AREA_INTENSITY 69  // change from 73 to 69
         // notice: there can be very bright logo parts in dark areas, this will result in a lower brightness
         // we handle this cases in ReduceBrightness() when we detect contrast
@@ -1247,7 +1242,7 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
             dsyslog("cMarkAdLogo::Process(): aspect ratio changed from %i:%i to %i:%i, reload logo", area.AspectRatio.num, area.AspectRatio.den, maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den);
             if (maContext->Info.checkedAspectRatio && (maContext->Info.AspectRatio.num == 4) && (maContext->Info.AspectRatio.den == 3) && (maContext->Video.Info.AspectRatio.num == 16) && (maContext->Video.Info.AspectRatio.den == 9)) {
                 dsyslog("cMarkAdLogo::Process(): recording is 4:3, current frame is 16:9, we do not need a logo");
-                markCriteria->SetDetectionState(MT_LOGOCHANGE, false);
+                criteria->SetDetectionState(MT_LOGOCHANGE, false);
             }
             else {
                 char *buf=NULL;
@@ -1273,9 +1268,9 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
                         else {
                             if (maContext->Config->autoLogo > 0) {
                                 isyslog("no logo for %s (%d:%d) found in logo cache or recording directory, extract logo from recording", maContext->Info.ChannelName, maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den);
-                                cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext, maContext->Video.Info.AspectRatio, recordingIndexMarkAdLogo);  // search logo from current frame
+                                cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext, criteria, maContext->Video.Info.AspectRatio, recordingIndexMarkAdLogo);  // search logo from current frame
                                 ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
-                                if (ptr_cExtractLogo->SearchLogo(maContext, markCriteria, iFrameCurrent, true) > 0) dsyslog("cMarkAdLogo::Process(): no logo found in recording");
+                                if (ptr_cExtractLogo->SearchLogo(maContext, criteria, iFrameCurrent, true) > 0) dsyslog("cMarkAdLogo::Process(): no logo found in recording");
                                 else dsyslog("cMarkAdLogo::Process(): new logo for %s found in recording",buf);
                                 FREE(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo"); // ptr_cExtraceLogo is valid because it was used above
                                 delete ptr_cExtractLogo;
@@ -1293,7 +1288,7 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
                     }
                     if (!logoStatus) {
                         isyslog("no valid logo found for %s %d:%d, disable logo detection", maContext->Info.ChannelName, maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den);
-                        markCriteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_DISABLED);
+                        criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_DISABLED);
                     }
                     FREE(strlen(buf)+1, "buf");
                     free(buf);
@@ -2042,9 +2037,9 @@ void cMarkAdOverlap::Process(sOverlapPos *ptr_OverlapPos, const int frameNumber,
 }
 
 
-cMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContextParam, cMarkCriteria *markCriteriaParam, cIndex *recordingIndex) {
+cMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContextParam, cCriteria *criteriaParam, cIndex *recordingIndex) {
     maContext                 = maContextParam;
-    markCriteria              = markCriteriaParam;
+    criteria                  = criteriaParam;
     recordingIndexMarkAdVideo = recordingIndex;
 
     aspectRatio.num = 0;
@@ -2062,7 +2057,7 @@ cMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContextParam, cMarkCriteria *markCr
     vborder = new cMarkAdBlackBordersVert(maContext);
     ALLOC(sizeof(*vborder), "vborder");
 
-    logo = new cMarkAdLogo(maContext, markCriteria, recordingIndexMarkAdVideo);
+    logo = new cMarkAdLogo(maContext, criteria, recordingIndexMarkAdVideo);
     ALLOC(sizeof(*logo), "cMarkAdVideo_logo");
 
     Clear(false);
@@ -2101,10 +2096,10 @@ void cMarkAdVideo::Clear(const bool isRestart) {
         aspectRatio.den=0;
     }
     if (isRestart) {  // only clear if detection is disabled
-        if (blackScreen && !markCriteria->GetDetectionState(MT_BLACKCHANGE))   blackScreen->Clear();
-        if (logo        && !markCriteria->GetDetectionState(MT_LOGOCHANGE))    logo->Clear(true);
-        if (vborder     && !markCriteria->GetDetectionState(MT_VBORDERCHANGE)) vborder->Clear(true);
-        if (hborder     && !markCriteria->GetDetectionState(MT_HBORDERCHANGE)) hborder->Clear(true);
+        if (blackScreen && !criteria->GetDetectionState(MT_BLACKCHANGE))   blackScreen->Clear();
+        if (logo        && !criteria->GetDetectionState(MT_LOGOCHANGE))    logo->Clear(true);
+        if (vborder     && !criteria->GetDetectionState(MT_VBORDERCHANGE)) vborder->Clear(true);
+        if (hborder     && !criteria->GetDetectionState(MT_HBORDERCHANGE)) hborder->Clear(true);
     }
     else {
         if (blackScreen) blackScreen->Clear();
@@ -2166,7 +2161,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
     ResetMarks();
 
     // scene change detection
-    if (markCriteria->GetDetectionState(MT_SCENECHANGE)) {
+    if (criteria->GetDetectionState(MT_SCENECHANGE)) {
         if (sceneChange->Process(useFrame) == SCENE_CHANGED) {
             if (maContext->Config->fullDecode) {
                 AddMark(MT_SCENESTOP,  useFrame - 1);
@@ -2180,7 +2175,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
     }
 
     // black screen change detection
-    if ((frameCurrent > 0) && markCriteria->GetDetectionState(MT_BLACKCHANGE)) { // first frame can be invalid result
+    if ((frameCurrent > 0) && criteria->GetDetectionState(MT_BLACKCHANGE)) { // first frame can be invalid result
         int blackret = blackScreen->Process(useFrame);
         switch (blackret) {
         case BLACKSCREEN_INVISIBLE:
@@ -2202,7 +2197,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
 
     // hborder change detection
     int hret = HBORDER_ERROR;
-    if (markCriteria->GetDetectionState(MT_HBORDERCHANGE)) {
+    if (criteria->GetDetectionState(MT_HBORDERCHANGE)) {
         int hborderframenumber;
         hret = hborder->Process(useFrame, &hborderframenumber);  // we get start frame of hborder back
         if ((hret == HBORDER_VISIBLE) && (hborderframenumber >= 0)) {
@@ -2216,7 +2211,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
     else if (hborder) hborder->Clear();
 
     // vborder change detection
-    if (markCriteria->GetDetectionState(MT_VBORDERCHANGE)) {
+    if (criteria->GetDetectionState(MT_VBORDERCHANGE)) {
         int vborderframenumber;
         int vret = vborder->Process(useFrame, &vborderframenumber);
         if ((vret == VBORDER_VISIBLE) && (vborderframenumber >= 0)) {
@@ -2234,7 +2229,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
     else if (vborder) vborder->Clear();
 
     // aspect ratio change detection
-    if (markCriteria->GetDetectionState(MT_ASPECTCHANGE)) {
+    if (criteria->GetDetectionState(MT_ASPECTCHANGE)) {
         if (AspectRatioChange(aspectRatio, maContext->Video.Info.AspectRatio)) {
             if ((maContext->Info.AspectRatio.num == 4) && (maContext->Info.AspectRatio.den == 3)) {
                 if ((maContext->Video.Info.AspectRatio.num == 4) && (maContext->Video.Info.AspectRatio.den == 3)) {
@@ -2270,7 +2265,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
     }
 
     // logo change detection
-    if (markCriteria->GetDetectionState(MT_LOGOCHANGE)) {
+    if (criteria->GetDetectionState(MT_LOGOCHANGE)) {
         int logoframenumber = 0;
         int lret=logo->Process(iFrameBefore, iFrameCurrent, frameCurrent, &logoframenumber);
         if ((lret >= -1) && (lret != 0) && (logoframenumber != -1)) {

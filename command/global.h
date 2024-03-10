@@ -358,15 +358,6 @@ typedef struct sMarkAdContext {
             //!<
             int pixelRatio     = INT_MAX; //!< ratio of pixel in logo area, calculated: 1000 * logo pixel / (width * height)
             //!<
-            bool isRotating    = false;   //!< <b>true:</b>  logo is rotating <br>
-            //!< <b>false:</b> logo is not rotating
-            //!<
-            bool isInBorder    = false;   //!< <b>true:</b>  logo is in the border <br>
-            //!< <b>false:</b> logo is not in the border
-            //!<
-            bool isTransparent = false;   //!< <b>true:</b>  logo is transparent, expect bad detection <br>
-            //!< <b>false:</b> logo is not transparent
-            //!<
         } Logo;                           //!< logo infos
         //!<
 

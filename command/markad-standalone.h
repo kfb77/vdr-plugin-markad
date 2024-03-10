@@ -157,11 +157,6 @@ public:
      */
     void LogoMarkOptimization();
 
-    /** check if channel have fade out logo
-     * @return true if channel have fade out logo, false otherwise
-    */
-    bool FadeOutLogo();
-
     /**
      * optimize marks based on black screen
      */
@@ -425,7 +420,7 @@ private:
     //!<
     sMarkAdContext macontext = {};                                 //!< markad context
     //!<
-    cMarkCriteria markCriteria;                                    //!< status of possible mark types of the broadcast
+    cCriteria criteria;                                           //!< status of possible mark types of the broadcast
     //!<
     cVPS *vps = NULL;                                              //!< VPS events of the broadast
     //!<

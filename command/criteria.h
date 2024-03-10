@@ -9,6 +9,7 @@
 #define __criteria_h_
 
 #include "marks.h"
+#include "tools.h"
 
 enum eCriteria {
     CRITERIA_USED        =  2,
@@ -18,17 +19,47 @@ enum eCriteria {
     CRITERIA_DISABLED    = -2,
 };
 
+
+
 /**
- * store valid mark creteria for bradcast
+ * store valid mark creteria for broadcast
  */
-class cMarkCriteria : public cMarks {
+class cCriteria : public cMarks, cTools {
 public:
 
     /**
-     * cDecoder constructor
+     * cCriteria constructor
      */
-    cMarkCriteria();
-    ~cMarkCriteria();
+    cCriteria();
+    ~cCriteria();
+
+    /**
+     * get status of channel uses fade in/out/fade logo
+     * @parameter channelName name of the channel
+     * @return status
+     */
+    bool LogoFadeOut(const char *channelName);
+
+    /**
+     * get status of channel if logo is in hborder or vborder
+     * @parameter channelName name of the channel
+     * @return status
+     */
+    bool LogoInBorder(const char *channelName);
+
+    /**
+     * get status of channel has logo rotating
+     * @parameter channelName name of the channel
+     * @return status
+     */
+    bool LogoRotating(const char *channelName);
+
+    /**
+     * get status of channel logo rotating
+     * @parameter channelName name of the channel
+     * @return status
+     */
+    bool LogoTransparent(const char *channelName);
 
 
     /**

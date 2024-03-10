@@ -229,12 +229,12 @@ public:
     /**
      * constructor for class to dectect special logo stop/start pair
      * @param maContextParam                 markad context
-     * @param markCriteriaParam              mark criteria
+     * @param criteriaParam                  detection criteria
      * @param ptr_cDecoderParam              decoder
      * @param recordingIndexParam            recording index
      * @param evaluateLogoStopStartPairParam class to evaluate logo stop/start pairs
      */
-    cDetectLogoStopStart(sMarkAdContext *maContextParam, cMarkCriteria *markCriteriaParam, cDecoder *ptr_cDecoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam);
+    cDetectLogoStopStart(sMarkAdContext *maContextParam, cCriteria *criteriaParam, cDecoder *ptr_cDecoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam);
 
     ~cDetectLogoStopStart();
 
@@ -336,7 +336,7 @@ private:
 
     sMarkAdContext *maContext;                              //!< markad context
     //!<
-    cMarkCriteria *markCriteria;                            //!< class for mark detection criteria
+    cCriteria *criteria;                                    //!< class for mark detection criteria
     //!<
     cDecoder *ptr_cDecoder;                                 //!< decoder
     //!<

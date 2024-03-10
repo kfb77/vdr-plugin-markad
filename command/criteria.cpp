@@ -8,15 +8,56 @@
 #include "debug.h"
 #include "criteria.h"
 
-cMarkCriteria::cMarkCriteria() {
+
+cCriteria::cCriteria() {
+}
+cCriteria::~cCriteria() {
 }
 
 
-cMarkCriteria::~cMarkCriteria() {
+bool cCriteria::LogoFadeOut(const char *channelName) {
+    if (!channelName) return false;
+
+    if (CompareChannelName(channelName, "Das_Erste",      IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "Nickelodeon",    IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "NICK_MTV+",      IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "TLC",            IGNORE_HD)) return true;
+
+    return false;
 }
 
 
-int cMarkCriteria::GetMarkTypeState(const int type) const {
+bool cCriteria::LogoInBorder(const char *channelName) {
+    if (!channelName) return false;
+
+    if (CompareChannelName(channelName, "arte",   IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "NITRO",  IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "ONE_HD", IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "TELE_5", IGNORE_HD)) return true;
+
+    return false;
+}
+
+
+bool cCriteria::LogoRotating(const char *channelName) {
+    if (!channelName) return false;
+    if (CompareChannelName(channelName, "SAT_1", IGNORE_HD)) return true;
+    return false;
+}
+
+
+bool cCriteria::LogoTransparent(const char *channelName) {
+    if (!channelName) return false;
+    if (CompareChannelName(channelName, "SRF_zwei", IGNORE_HD)) return true;
+    return false;
+
+}
+
+
+
+int cCriteria::GetMarkTypeState(const int type) const {
     int state = CRITERIA_UNKNOWN;
     switch (type) {
     case MT_LOGOCHANGE:
@@ -51,7 +92,7 @@ int cMarkCriteria::GetMarkTypeState(const int type) const {
 }
 
 
-void cMarkCriteria::SetMarkTypeState(const int type, const int state) {
+void cCriteria::SetMarkTypeState(const int type, const int state) {
     char *typeToText  = TypeToText(type);
     char *stateToText = StateToText(state);
     if (typeToText && stateToText) {
@@ -137,7 +178,7 @@ void cMarkCriteria::SetMarkTypeState(const int type, const int state) {
 }
 
 
-void cMarkCriteria::ListMarkTypeState() const {
+void cCriteria::ListMarkTypeState() const {
     GetMarkTypeState(MT_LOGOCHANGE);
     GetMarkTypeState(MT_VBORDERCHANGE);
     GetMarkTypeState(MT_HBORDERCHANGE);
@@ -146,7 +187,7 @@ void cMarkCriteria::ListMarkTypeState() const {
 }
 
 
-int cMarkCriteria::GetClosingCreditsState(const int position) const {
+int cCriteria::GetClosingCreditsState(const int position) const {
     if (position == closingCreditsPos) {
         char *stateToText = StateToText(closingCreditsState);
         dsyslog("cMarkCriteria::GetClosingCreditState(): closing credits state for (%d) is %s", position, stateToText);
@@ -158,7 +199,7 @@ int cMarkCriteria::GetClosingCreditsState(const int position) const {
 }
 
 
-void cMarkCriteria::SetClosingCreditsState(const int position, const int state) {
+void cCriteria::SetClosingCreditsState(const int position, const int state) {
     char *stateToText = StateToText(state);
     dsyslog("cMarkCriteria::SetClosingCreditState(): set closing credits state for (%d) to %s", position, stateToText);
     FREE(strlen(stateToText)+1, "state");
@@ -171,7 +212,7 @@ void cMarkCriteria::SetClosingCreditsState(const int position, const int state) 
 // define text to mark status of broadcast
 // return pointer to text, calling function has to free memory
 //
-char *cMarkCriteria::StateToText(const int state) {
+char *cCriteria::StateToText(const int state) {
     char *text = NULL;
     switch (state) {
     case CRITERIA_USED:
@@ -210,7 +251,7 @@ char *cMarkCriteria::StateToText(const int state) {
 }
 
 
-bool cMarkCriteria::GetDetectionState(const int type) const {
+bool cCriteria::GetDetectionState(const int type) const {
     bool state = true;
     switch (type) {
     case MT_SCENECHANGE:
@@ -250,7 +291,7 @@ bool cMarkCriteria::GetDetectionState(const int type) const {
 }
 
 
-void cMarkCriteria::SetDetectionState(const int type, const bool state) {
+void cCriteria::SetDetectionState(const int type, const bool state) {
     switch (type) {
     case MT_SCENECHANGE:
         sceneDetection = state;
@@ -305,7 +346,7 @@ void cMarkCriteria::SetDetectionState(const int type, const bool state) {
 }
 
 
-void cMarkCriteria::ListDetection() const {
+void cCriteria::ListDetection() const {
     dsyslog("cMarkCriteria::ListDetectionState(): MT_SCENECHANGE:     %s", GetDetectionState(MT_SCENECHANGE)   ? "on" : "off");
     dsyslog("cMarkCriteria::ListDetectionState(): MT_SOUNDCHANGE:     %s", GetDetectionState(MT_SOUNDCHANGE)   ? "on" : "off");
     dsyslog("cMarkCriteria::ListDetectionState(): MT_BLACKCHANGE:     %s", GetDetectionState(MT_BLACKCHANGE)   ? "on" : "off");

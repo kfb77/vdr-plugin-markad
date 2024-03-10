@@ -694,9 +694,9 @@ bool cEvaluateLogoStopStartPair::IncludesInfoLogo(const int stopPosition, const 
 }
 
 
-cDetectLogoStopStart::cDetectLogoStopStart(sMarkAdContext *maContextParam, cMarkCriteria *markCriteriaParam, cDecoder *ptr_cDecoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam) {
+cDetectLogoStopStart::cDetectLogoStopStart(sMarkAdContext *maContextParam, cCriteria *criteriaParam, cDecoder *ptr_cDecoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam) {
     maContext                 = maContextParam;
-    markCriteria              = markCriteriaParam;
+    criteria                  = criteriaParam;
     ptr_cDecoder              = ptr_cDecoderParam;
     recordingIndex            = recordingIndexParam;
     evaluateLogoStopStartPair = evaluateLogoStopStartPairParam;
@@ -976,11 +976,11 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
     endPos = recordingIndex->GetIFrameBefore(endFrame);
     dsyslog("cDetectLogoStopStart::Detect(): detect from i-frame (%d) to i-frame (%d)", startPos, endPos);
 
-    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, markCriteria, recordingIndex);
+    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, criteria, recordingIndex);
     ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
     sAreaT *area = ptr_Logo->GetArea();
 
-    cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext, maContext->Video.Info.AspectRatio, recordingIndex);
+    cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext, criteria, maContext->Video.Info.AspectRatio, recordingIndex);
     ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
 
     sLogoInfo *logo1[CORNERS];

@@ -52,18 +52,18 @@ public:
      * @param AspectRatio    video aspect ratio for requested logo
      * @param recordingIndex recording index
      */
-    explicit cExtractLogo(sMarkAdContext *maContext, const sAspectRatio AspectRatio, cIndex *recordingIndex);
+    explicit cExtractLogo(sMarkAdContext *maContext, cCriteria *criteriaParam, const sAspectRatio AspectRatio, cIndex *recordingIndex);
     ~cExtractLogo();
 
     /**
      * search and extract logo from recording
      * @param maContext    markad context
-     * @param markCriteria mark criteria
+     * @param criteria     detection criteria
      * @param startFrame   frame number to start search
      * @param force        finding a logo, even on weak matches
      * @return last read frame during search
      */
-    int SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCriteria, int startFrame, const bool force);
+    int SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int startFrame, const bool force);
 
     /**
      * get default logo size
@@ -247,19 +247,21 @@ private:
 
     sMarkAdContext *maContextLogoSize = NULL;         //!< markad context
     //!<
-    cIndex *recordingIndexLogo = NULL;                //!< recording index
+    cCriteria *criteria               = NULL;         //!< detection criteria
+    //!<
+    cIndex *recordingIndexLogo        = NULL;         //!< recording index
     //!<
     std::vector<sLogoInfo> logoInfoVector[CORNERS];   //!< infos of all proccessed logos
     //!<
-    int recordingFrameCount = 0;                      //!< frame count of the recording
+    int recordingFrameCount           = 0;            //!< frame count of the recording
     //!<
-    sAspectRatio logoAspectRatio = {};                //!< video aspect ratio
+    sAspectRatio logoAspectRatio      = {};           //!< video aspect ratio
     //!<
-    int AudioState = 0;                               //!< 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
+    int AudioState                    = 0;            //!< 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
     //!<
-    int iFrameCountValid = 0;                         //!< number of valid i-frames
+    int iFrameCountValid              = 0;            //!< number of valid i-frames
     //!<
-    const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" }; //!< array to transform enum corner to text
+    const char *aCorner[CORNERS]      = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" }; //!< array to transform enum corner to text
     //!<
 
 

@@ -36,11 +36,12 @@ extern int logoSearchTime_ms;
 
 
 
-cExtractLogo::cExtractLogo(sMarkAdContext *maContext, const sAspectRatio AspectRatio, cIndex *recordingIndex) {
+cExtractLogo::cExtractLogo(sMarkAdContext *maContext, cCriteria *criteriaParam, const sAspectRatio AspectRatio, cIndex *recordingIndex) {
+    maContextLogoSize   = maContext;
+    criteria            = criteriaParam;
     logoAspectRatio.num = AspectRatio.num;
     logoAspectRatio.den = AspectRatio.den;
-    recordingIndexLogo = recordingIndex;
-    maContextLogoSize = maContext;
+    recordingIndexLogo  = recordingIndex;
 }
 
 
@@ -1156,7 +1157,7 @@ int cExtractLogo::Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLog
     int hits=0;
 
     for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
-        if (maContext->Video.Logo.isRotating) {
+        if (criteria->LogoRotating(maContext->Info.ChannelName)) {
             if (CompareLogoPairRotating(maContext, &(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
                 hits++;
                 actLogo->hits++;
@@ -1493,7 +1494,7 @@ int cExtractLogo::AudioInBroadcast(const sMarkAdContext *maContext, const int iF
 
 
 // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
-int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCriteria, int startFrame, const bool force) {
+int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int startFrame, const bool force) {
     dsyslog("----------------------------------------------------------------------------");
     dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d, force = %d", startFrame, logoAspectRatio.num, logoAspectRatio.den, force);
 
@@ -1525,7 +1526,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
     cDecoder *ptr_cDecoder = new cDecoder(maContext->Config->threads, recordingIndexLogo);
     ALLOC(sizeof(*ptr_cDecoder), "ptr_cDecoder");
 
-    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, markCriteria, recordingIndexLogo);
+    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, criteria, recordingIndexLogo);
     ALLOC(sizeof(*ptr_Logo), "SearchLogo-ptr_Logo");
 
     cMarkAdBlackBordersHoriz *hborder = new cMarkAdBlackBordersHoriz(maContext);
@@ -1639,7 +1640,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cMarkCriteria *markCrite
                         continue;
                     }
 
-                    if (!maContext->Video.Logo.isInBorder) {
+                    if (!criteria->LogoInBorder(maContext->Info.ChannelName)) {
                         int hBorderIFrame = -1;
                         int vBorderIFrame = -1;
                         int isHBorder = hborder->Process(iFrameNumber, &hBorderIFrame);
