@@ -4961,14 +4961,16 @@ void cMarkAdStandalone::SilenceOptimization() {
                     switch (mark->newType) {
                     case MT_VPSSTART:
                         // select best mark (before / after), default: before
-                        // valid silence without black screen / black border
-                        //  <94360> (120) / 830600 (240)      (conflict)
-                        // <141480> (120) / 423520 (200)  ntv (conflict)
+                        // valid silence before without black screen / black border
+                        //  <94360> (120) /  830600  (240)         (conflict)
+                        // <141480> (120) /  423520  (200)     ntv (conflict)
                         //
-                        //        -       / <41880> (120)
-                        //        -       / <43440> (880)
-                        //        -       / <45040> (120)
-                        //        -       / <65040> (120) WELT
+                        // valid silence after without black screen / black border
+                        //        -       /  <41880> (120)
+                        //        -       /  <43440> (880)
+                        //        -       /  <45040> (120)
+                        //        -       /  <65040> (120)   WELT
+                        //        -       / <213920> (120)   ntv
                         //
                         // invalid silence without black screen / black border
                         //  37860  (440) /       -          silence before preview
@@ -5030,8 +5032,8 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if      (lengthAfter >= 120) maxAfter = 65040;  // trust long silence
-                        else                         maxAfter = 34119;  // first silence in broadcast 34120ms after start
+                        if      (lengthAfter >= 120) maxAfter = 213920;  // trust long silence
+                        else                         maxAfter =  34119;  // first silence in broadcast 34120ms after start
                         break;
                     default:
                         maxAfter = 0;
