@@ -5356,7 +5356,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         if ((diffBefore >= 2160) && (diffAfter <= 320)) diffBefore = INT_MAX;
 
                         //  long scene after VPS start, long static scene or closing credits from end of previous broadcast
-                        //   580 /  <1300>  NEW
+                        //   580 /  <1300>
                         //  1860 /  <1580>
                         //  1860 /  <1640>
                         //  2720 /  <2760>
@@ -5368,7 +5368,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         //  1760 /  <6640>
                         //  1440 /  <8240>
                         //   960 / <11320>
-                        else if ((diffBefore >= 40) && (diffBefore <= 2720) && (diffAfter >= 1300) && (diffAfter <= 11320)) diffBefore = INT_MAX;
+                        //   880 / <13440>
+                        else if ((diffBefore >= 40) && (diffBefore <= 2720) && (diffAfter >= 1300) && (diffAfter <= 13440)) diffBefore = INT_MAX;
 
                         maxBefore = 2820;  // changd from 580 to 2820
                         break;
