@@ -35,28 +35,28 @@ public:
 
     /**
      * get status of channel uses fade in/out/fade logo
-     * @parameter channelName name of the channel
+     * @param channelName name of the channel
      * @return status
      */
     bool LogoFadeOut(const char *channelName);
 
     /**
      * get status of channel if logo is in hborder or vborder
-     * @parameter channelName name of the channel
+     * @param channelName name of the channel
      * @return status
      */
     bool LogoInBorder(const char *channelName);
 
     /**
      * get status of channel has logo rotating
-     * @parameter channelName name of the channel
+     * @param channelName name of the channel
      * @return status
      */
     bool LogoRotating(const char *channelName);
 
     /**
      * get status of channel logo rotating
-     * @parameter channelName name of the channel
+     * @param channelName name of the channel
      * @return status
      */
     bool LogoTransparent(const char *channelName);

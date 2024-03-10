@@ -49,6 +49,7 @@ public:
     /**
      * constructor for class to search end extract logo from recording
      * @param maContext      markad context
+     * @param criteriaParam   detection criteria
      * @param AspectRatio    video aspect ratio for requested logo
      * @param recordingIndex recording index
      */
