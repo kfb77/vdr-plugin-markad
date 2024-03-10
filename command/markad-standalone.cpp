@@ -1263,7 +1263,16 @@ int cMarkAdStandalone::CheckStop() {
                 if (blackStop) blackStart = blackMarks.GetNext(blackStop->position, MT_NOBLACKSTART);
             }
             if (blackStop) {
-                end = marks.Add(MT_NOBLACKSTOP, MT_UNDEFINED, MT_UNDEFINED, blackStop->position, "black screen", false);
+                char *comment = NULL;
+                if (asprintf(&comment, "end   black screen (%d)*", blackStop->position) == -1) comment = NULL;
+                if (comment) {
+                    ALLOC(strlen(comment)+1, "comment");
+                }
+                end = marks.Add(MT_NOBLACKSTOP, MT_UNDEFINED, MT_UNDEFINED, blackStop->position, comment, false);
+                if (comment) {
+                    FREE(strlen(comment)+1, "comment");
+                    free(comment);
+                }
                 dsyslog("cMarkAdStandalone::CheckStop(): black screen end mark (%d) %ds after assumed stop (%d)", end->position, diff, iStopA);
             }
         }
@@ -2155,12 +2164,21 @@ void cMarkAdStandalone::CheckStart() {
         begin = NULL;
     }
 
-// try black screen mark
+// try black screen as start mark
     if (!begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): search for end of black screen as start mark");
         const cMark *noBlackStart = blackMarks.GetAround(120 * macontext.Video.Info.framesPerSecond, iStartA, MT_NOBLACKSTART);
         if (noBlackStart) {
-            begin = marks.Add(MT_NOBLACKSTART, MT_UNDEFINED, MT_UNDEFINED, noBlackStart->position, "black screen end", false);
+            char *comment = NULL;
+            if (asprintf(&comment, "start black screen (%d)*", noBlackStart->position) == -1) comment = NULL;
+            if (comment) {
+                ALLOC(strlen(comment)+1, "comment");
+            }
+            begin = marks.Add(MT_NOBLACKSTART, MT_UNDEFINED, MT_UNDEFINED, noBlackStart->position, comment, false);
+            if (comment) {
+                FREE(strlen(comment)+1, "comment");
+                free(comment);
+            }
             dsyslog("cMarkAdStandalone::CheckStart(): found end of black screen as start mark (%d)", begin->position);
         }
     }
