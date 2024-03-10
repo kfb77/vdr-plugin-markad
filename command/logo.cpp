@@ -385,7 +385,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     // ProSieben               16:9  720W  576H:->   84W  66H TOP_RIGHT
     // ProSieben               16:9  720W  576H:->   86W  66H TOP_RIGHT
     if (CompareChannelName(maContext->Info.ChannelName, "ProSieben", IGNORE_NOTHING)) {
-        logo.widthMax  =  66;
+        logo.heightMax =  66;
     }
 
     // Pro7_MAXX               16:9  720W  576H:->  114W  64H TOP_RIGHT
