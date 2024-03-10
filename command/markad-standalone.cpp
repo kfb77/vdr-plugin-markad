@@ -4260,7 +4260,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         // invalid black screen without silence
                         // 21600   (600) / 826200   (40)   blackscreen in broadcast before and in broadcast after  (conflict)
                         //
-                        // blackscreen with silence before VPS start (preview) and after VPS start (broadcast start)
+                        // blackscreen with silence before VPS start (preview) and black screen with silence after VPS start (broadcast start)
                         // 26660 (220) silence / <44100> (220) silence
                         if (silenceBefore && (diffBefore <= 26660) && silenceAfter && (diffAfter <= 44100)) diffBefore = INT_MAX;
 
@@ -4268,8 +4268,11 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         //    -          / <55640>   (40)
                         else if (!silenceBefore && (diffBefore >= 25000) && (diffAfter <= 55640)) diffBefore = INT_MAX;
 
+                        // first black screen in broadcast before, second blackscreen is start of broadcast, no silence around
                         //  48040 (1000) / <26560> (2400)   // first black screen in broadcast before
-                        else if ((diffBefore >= 48040) && (lengthBefore <= 1000) && (diffAfter <= 26560) && (lengthAfter >= 2400)) diffBefore = INT_MAX;
+                        //  74080 (1520) / <13280>   (80)   // first black screen in broadcast before
+                        else if (!silenceBefore && (diffBefore >= 48040) && (diffBefore <= 74080) && (lengthBefore >= 1000) && (lengthBefore <= 1520) &&
+                                 !silenceAfter && (diffAfter >= 13280) && (diffAfter <= 26560) && (lengthAfter >= 80) && (lengthAfter <= 2400)) diffBefore = INT_MAX;
 
                         // valid blackscreen before with silence
                         //  69480ms before -> length    40ms, silence around 1
