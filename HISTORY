@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-03-10: Version 3.4.12
+- fix heap-use-after-free
+- fix logo size check
+
 2024-03-09: Version 3.4.11
 - optimize logo size check
   thx to schwabe@www.vdr-portal.de for reporting
