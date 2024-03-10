@@ -2844,8 +2844,9 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                         // correct end mark, do not delete last stop
                         //   0 / -230 / -581
                         //   0 / -220 / -353
+                        //   0 / -273 / -284
                         minLastStopAssumed  =    0;
-                        minLastStartAssumed = -383;
+                        minLastStartAssumed = -272;
                         minPrevStopAssumed  = -352;
                         minLastBroadcast    =   89;  //  shortest valid last ad 89s
                         break;
