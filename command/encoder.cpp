@@ -343,11 +343,29 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
                 streamMap[index] = -1;
             }
             else {
-                ret = InitEncoderCodec(ptr_cDecoder, directory, index, streamMap[index]);
-                if ( !ret ) {
-                    dsyslog("cEncoder::OpenFile(): InitEncoderCodec failed");
+                if (!InitEncoderCodec(ptr_cDecoder, directory, index, streamMap[index])) {
+                    esyslog("cEncoder::OpenFile(): InitEncoderCodec failed");
+                    // cleanup memory
                     FREE(strlen(filename)+1, "filename");
                     free(filename);
+                    FREE(sizeof(int64_t) * avctxIn->nb_streams, "pts_dts_CyclicalOffset");
+                    free(EncoderStatus.pts_dts_CyclicalOffset);
+                    FREE(sizeof(int64_t) * avctxIn->nb_streams, "ptsInBefore");
+                    free(EncoderStatus.ptsInBefore);
+                    FREE(sizeof(int64_t) * avctxIn->nb_streams, "dtsInBefore");
+                    free(EncoderStatus.dtsInBefore);
+                    FREE(sizeof(int) * avctxIn->nb_streams, "streamMap");
+                    free(streamMap);
+                    for (unsigned int i = 0; i < avctxIn->nb_streams; i++) {
+                        if (codecCtxArrayOut[i]) {
+                            avcodec_free_context(&codecCtxArrayOut[i]);
+                            FREE(sizeof(*codecCtxArrayOut[i]), "codecCtxArrayOut[streamIndex]");
+                        }
+                    }
+                    FREE(sizeof(AVCodecContext *) * avctxIn->nb_streams, "codecCtxArrayOut");
+                    free(codecCtxArrayOut);
+                    FREE(sizeof(SwrContext *) * avctxIn->nb_streams, "swrArray");
+                    free(swrArray);
                     return false;
                 }
             }
@@ -734,7 +752,16 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
                 av_opt_set_int(swrArray[streamIndexOut], "out_sample_rate", codecCtxArrayIn[streamIndexIn]->sample_rate, 0);
                 av_opt_set_sample_fmt(swrArray[streamIndexOut], "in_sample_fmt", AV_SAMPLE_FMT_S16P, 0);
                 av_opt_set_sample_fmt(swrArray[streamIndexOut], "out_sample_fmt", AV_SAMPLE_FMT_S16,  0);
-                swr_init(swrArray[streamIndexOut]);
+                dsyslog("cEncoder::InitEncoderCodec(): swr_init for output stream index %d", streamIndexOut);
+                int rc = swr_init(swrArray[streamIndexOut]);
+                if (rc < 0) {
+                    char errTXT[64] = {0};
+                    av_strerror(rc, errTXT, sizeof(errTXT));
+                    esyslog("cEncoder::InitEncoderCodec(): failed to init audio resampling context for output stream index %d: %s", streamIndexOut, errTXT);
+                    FREE(sizeof(swrArray[streamIndexOut]), "swr");  // only pointer size as marker
+                    swr_free(&swrArray[streamIndexOut]);
+                    return false;
+                }
 
             }
             else codecCtxArrayOut[streamIndexOut]->sample_fmt = codecCtxArrayIn[streamIndexIn]->sample_fmt;
