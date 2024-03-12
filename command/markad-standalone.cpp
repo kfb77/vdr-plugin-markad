@@ -4685,6 +4685,9 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
+                        // valid lower black border before from closing credits of broadcast before
+                        //   7880ms before -> length 11840ms
+                        //
                         // invalid lower black border before from broadcast before
                         //  10620ms before -> length   180ms
                         //  11200ms before -> length   280ms
@@ -4701,8 +4704,8 @@ void cMarkAdStandalone::BlackLowerOptimization() {
                 default:
                     maxBefore = -1;
                 }
-                if (diffBefore <= maxBefore) {  // move even to same position to prevent scene change do a move
-                    mark = marks.Move(mark, startBefore->position, MT_NOBLACKLOWERSTART);
+                if (diffBefore < maxBefore) {
+                    mark = marks.Move(mark, startBefore->position, MT_NOBLACKLOWERSTOP);  // move to end of black lower border (closing credits)
                     if (mark) {
                         moved = true;
                         save  = true;
