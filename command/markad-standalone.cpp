@@ -902,7 +902,9 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     int diffStopLogo   = 1000 * (blackStop->position  - mark->position)       / macontext.Video.Info.framesPerSecond;
                     int diffStartBlack = 1000 * (startAfter->position - blackStop->position)  / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_NOBLACKSTOP (%5d) -> %dms -> MT_LOGOSTOP (%5d) -> %4dms -> MT_NOBLACKSTART (%5d) -> %4dms -> MT_LOGOSTART (%5d)", blackStart->position, diffStopBlack, mark->position, diffStopLogo, blackStop->position, diffStartBlack, startAfter->position);
-                    if ((diffStopBlack <= 2920) &&  (diffStopLogo >= 0) && (diffStopLogo <= 3000) && (diffStartBlack <= 3280)) {
+// valid sequence
+// MT_NOBLACKSTOP (90520) -> 360ms -> MT_LOGOSTOP (90529) ->  200ms -> MT_NOBLACKSTART (90534) -> 3960ms -> MT_LOGOSTART (90633)
+                    if ((diffStopBlack <= 2920) &&  (diffStopLogo >= 0) && (diffStopLogo <= 3000) && (diffStartBlack <= 3960)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is valid", mark->position);
                         return true;
                     }
