@@ -741,19 +741,42 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
                 codecCtxArrayOut[streamIndexOut]->sample_fmt = AV_SAMPLE_FMT_S16;
                 swrArray[streamIndexOut] = swr_alloc();
                 ALLOC(sizeof(swrArray[streamIndexOut]), "swr");  // only pointer size as marker
-#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-                av_opt_set_int(swrArray[streamIndexOut], "in_channel_layout", codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask, 0);
-                av_opt_set_int(swrArray[streamIndexOut], "out_channel_layout", codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask,  0);
+                int rc = 0;
+#if LIBAVCODEC_VERSION_INT >= ((61<<16)+( 1<<8)+100)
+                rc = av_opt_set_chlayout(swrArray[streamIndexOut], "in_chlayout", &codecCtxArrayIn[streamIndexIn]->ch_layout, 0);
+                if (rc < 0) {
+                    char errTXT[64] = {0};
+                    av_strerror(rc, errTXT, sizeof(errTXT));
+                    esyslog("cEncoder::InitEncoderCodec(): av_opt_set_chlayout in_chlayout failed: %s", errTXT);
+                }
+                rc = av_opt_set_chlayout(swrArray[streamIndexOut], "out_chlayout", &codecCtxArrayIn[streamIndexIn]->ch_layout, 0);
+                if (rc < 0) {
+                    char errTXT[64] = {0};
+                    av_strerror(rc, errTXT, sizeof(errTXT));
+                    esyslog("cEncoder::InitEncoderCodec(): av_opt_set_chlayout out_chlayout failed: %s", errTXT);
+                }
+#elif LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+                rc = av_opt_set_int(swrArray[streamIndexOut], "in_channel_layout",  codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask, 0);
+                if (rc < 0) {
+                    char errTXT[64] = {0};
+                    av_strerror(rc, errTXT, sizeof(errTXT));
+                    esyslog("cEncoder::InitEncoderCodec(): av_opt_set_int in_channel_layout to %lu failed: %s", codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask, errTXT);
+                }
+                rc = av_opt_set_int(swrArray[streamIndexOut], "out_channel_layout", codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask, 0);
+                if (rc < 0) {
+                    char errTXT[64] = {0};
+                    av_strerror(rc, errTXT, sizeof(errTXT));
+                    esyslog("cEncoder::InitEncoderCodec(): av_opt_set_int out_channel_layout to %lu failed: %s", codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask, errTXT);
+                }
 #else
-                av_opt_set_int(swrArray[streamIndexOut], "in_channel_layout", codecCtxArrayIn[streamIndexIn]->channel_layout, 0);
-                av_opt_set_int(swrArray[streamIndexOut], "out_channel_layout", codecCtxArrayIn[streamIndexIn]->channel_layout,  0);
+                if (av_opt_set_int(swrArray[streamIndexOut], "in_channel_layout",  codecCtxArrayIn[streamIndexIn]->channel_layout,   0) < 0) esyslog("cEncoder::InitEncoderCodec(): av_opt_set_int in_channel_layout failed");
+                if (av_opt_set_int(swrArray[streamIndexOut], "out_channel_layout", codecCtxArrayIn[streamIndexIn]->channel_layout,   0) < 0) esyslog("cEncoder::InitEncoderCodec(): av_opt_set_int out_channel_layout failed");
 #endif
-                av_opt_set_int(swrArray[streamIndexOut], "in_sample_rate", codecCtxArrayIn[streamIndexIn]->sample_rate, 0);
-                av_opt_set_int(swrArray[streamIndexOut], "out_sample_rate", codecCtxArrayIn[streamIndexIn]->sample_rate, 0);
-                av_opt_set_sample_fmt(swrArray[streamIndexOut], "in_sample_fmt", AV_SAMPLE_FMT_S16P, 0);
-                av_opt_set_sample_fmt(swrArray[streamIndexOut], "out_sample_fmt", AV_SAMPLE_FMT_S16,  0);
-                dsyslog("cEncoder::InitEncoderCodec(): swr_init for output stream index %d", streamIndexOut);
-                int rc = swr_init(swrArray[streamIndexOut]);
+                if (av_opt_set_int(swrArray[streamIndexOut], "in_sample_rate",     codecCtxArrayIn[streamIndexIn]->sample_rate,      0) < 0) esyslog("cEncoder::InitEncoderCodec(): av_opt_set_int in_sample_rate failed");
+                if (av_opt_set_int(swrArray[streamIndexOut], "out_sample_rate",    codecCtxArrayIn[streamIndexIn]->sample_rate,      0) < 0) esyslog("cEncoder::InitEncoderCodec(): av_opt_set_int out_sample_rate failed");
+                if (av_opt_set_sample_fmt(swrArray[streamIndexOut], "in_sample_fmt",  AV_SAMPLE_FMT_S16P, 0) < 0) esyslog("cEncoder::InitEncoderCodec(): av_opt_set_sample_fmt in_sample_fmt failed");
+                if (av_opt_set_sample_fmt(swrArray[streamIndexOut], "out_sample_fmt", AV_SAMPLE_FMT_S16,  0) < 0) esyslog("cEncoder::InitEncoderCodec(): av_opt_set_sample_fmt out_sample_fmt failed");
+                rc = swr_init(swrArray[streamIndexOut]);
                 if (rc < 0) {
                     char errTXT[64] = {0};
                     av_strerror(rc, errTXT, sizeof(errTXT));
