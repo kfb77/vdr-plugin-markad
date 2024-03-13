@@ -2921,7 +2921,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                         minLastStopAssumed  = 1000;  // do nothing
                         minLastStartAssumed = 1000;
                         minPrevStopAssumed  = 1000;
-                        minLastBroadcast    =    2;
+                        minLastBroadcast    =    5;
                         break;
                     default:
                         minLastStopAssumed  = 1000;  // do nothing
