@@ -821,11 +821,14 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, sRecordi
     for (cTimer *Timer = Timers.First(); Timer; Timer = Timers.Next(Timer))
 #endif
         {
-            if (Timer->Recording() && const_cast<cDevice *>(Device)->IsTunedToTransponder(Timer->Channel())) {
-                if (Timer->File() && (strcmp(Name, Timer->File()) == 0)) {
-                    if (abs(Timer->StartTime() - time(NULL)) < timeDiff) {  // maybe we have two timer on same channel with same name, take the nearest start time
-                        timer = Timer;
-                        timeDiff = abs(Timer->StartTime() - time(NULL));
+            if (Timer->Recording()) {
+                dsyslog("markad: cStatusMarkAd:GetEventID(): timer recording: %s", Timer->File());
+                if (const_cast<cDevice *>(Device)->IsTunedToTransponder(Timer->Channel())) {
+                    if (Timer->File() && (strcmp(Name, Timer->File()) == 0)) {
+                        if (abs(Timer->StartTime() - time(NULL)) < timeDiff) {  // maybe we have two timer on same channel with same name, take the nearest start time
+                            timer = Timer;
+                            timeDiff = abs(Timer->StartTime() - time(NULL));
+                        }
                     }
                 }
             }
@@ -837,7 +840,7 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, sRecordi
     }
 #endif
     if (!timer) {
-        esyslog("markad: cannot find timer for <%s>", Name);
+        esyslog("markad: timer for <%s> not found", Name);
 #if APIVERSNUM>=20301
 #ifdef DEBUG_LOCKS
         dsyslog("markad: GetEventID(): UNLOCK timers READ");
