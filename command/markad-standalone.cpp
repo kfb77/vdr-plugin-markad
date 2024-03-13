@@ -4975,10 +4975,11 @@ void cMarkAdStandalone::SilenceOptimization() {
                     break;
                 case MT_LOGOSTART:
                     // select best mark (before / after), default: before
-                    // 3960 (120) / 1618200 (320)  delayed logo start from bright background
+                    // <4320> (400) / 1646880  (80)  fade in logo (Das Erste)
+                    // <4520> (200) / 1435720 (320)  delayed logo start from bright backgraound
                     if ((diffBefore >=  600) && (diffAfter <=  360)) diffBefore = INT_MAX;
                     if ((diffBefore >= 2040) && (diffAfter <= 3460)) diffBefore = INT_MAX;
-                    maxBefore = 3960;
+                    maxBefore = 4520;
                     break;
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
@@ -4988,7 +4989,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                         //  <94360> (120) /  830600  (240)         (conflict)
                         // <141480> (120) /  423520  (200)     ntv (conflict)
                         //
-                        // valid silence after without black screen / black border
+                        // valid silence after without black screen / lower border
                         //        -       /  <41880> (120)
                         //        -       /  <43440> (880)
                         //        -       /  <45040> (120)
@@ -4996,7 +4997,9 @@ void cMarkAdStandalone::SilenceOptimization() {
                         //        -       / <213920> (120)   ntv
                         //
                         // invalid silence without black screen / black border
-                        //  37860  (440) /       -          silence before preview
+                        //  37860  (440) /      -          silence before preview
+                        //        -      /  26600  (360)   silence before first ad (conflict)
+                        //        -      / 141960  (160)   silence before first ad
                         //
                         // with black border
                         // <51440> (bb) / 6400              second silence in broadcast
@@ -5055,7 +5058,10 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if      (lengthAfter >= 120) maxAfter = 213920;  // trust long silence
+                        // invalid silence without black screen / black border
+                        //        -      / 141960  (160)   silence before first ad
+                        if      (lengthAfter >  160) maxAfter = 213920;  // trust long silence
+                        else if (lengthAfter >= 120) maxAfter = 141959;  // trust long silence
                         else                         maxAfter =  34119;  // first silence in broadcast 34120ms after start
                         break;
                     default:
