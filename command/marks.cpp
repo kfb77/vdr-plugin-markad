@@ -505,8 +505,8 @@ char *cMarks::TypeToText(const int type) {
         }
         else esyslog("cMarks::TypeToText(): asprintf failed");
         break;
-    case MT_BLACKLOWERCHANGE:
-        if (asprintf(&text, "lower black border") != -1) {
+    case MT_LOWERBORDERCHANGE:
+        if (asprintf(&text, "lower border") != -1) {
             ALLOC(strlen(text)+1, "text");
         }
         else esyslog("cMarks::TypeToText(): asprintf failed");
@@ -638,7 +638,7 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType) {
     if (!mark) return NULL;
     // check if old and new type is valid
     if ((mark->type & 0x0F) != (newType & 0x0F)) {
-        esyslog("cMarks::Move(): old mark (%d) type 0x%X and new type 0x%X is invalid", mark->position, mark->type, newType);
+        esyslog("cMarks::Move(): old mark (%d) type 0x%X and new mark (%d) type 0x%X is invalid", mark->position, mark->type, newPosition, newType);
         return NULL;
     }
     // prevent move to position on with a mark exists with different base type (START/STOP)

@@ -163,9 +163,9 @@ public:
     void BlackScreenOptimization();
 
     /**
-     * optimize marks based on lower black border
+     * optimize marks based on lower border
      */
-    void BlackLowerOptimization();
+    void LowerBorderOptimization();
 
     /**
      * optimize marks based on mute scene

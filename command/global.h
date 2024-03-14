@@ -33,86 +33,86 @@ typedef unsigned char uchar;
 #define CORNERS 4
 
 // global types
-#define MT_UNDEFINED         (unsigned char) 0x00
-#define MT_START             (unsigned char) 0x01
-#define MT_STOP              (unsigned char) 0x02
+#define MT_UNDEFINED          (unsigned char) 0x00
+#define MT_START              (unsigned char) 0x01
+#define MT_STOP               (unsigned char) 0x02
 
 // mark types
-#define MT_ASSUMED           (unsigned char) 0x10
-#define MT_ASSUMEDSTART      (unsigned char) 0x11
-#define MT_ASSUMEDSTOP       (unsigned char) 0x12
+#define MT_ASSUMED            (unsigned char) 0x10
+#define MT_ASSUMEDSTART       (unsigned char) 0x11
+#define MT_ASSUMEDSTOP        (unsigned char) 0x12
 
-#define MT_SCENECHANGE       (unsigned char) 0x20
-#define MT_SCENESTART        (unsigned char) 0x21
-#define MT_SCENESTOP         (unsigned char) 0x22
+#define MT_SCENECHANGE        (unsigned char) 0x20
+#define MT_SCENESTART         (unsigned char) 0x21
+#define MT_SCENESTOP          (unsigned char) 0x22
 
-#define MT_SOUNDCHANGE       (unsigned char) 0x30
-#define MT_SOUNDSTART        (unsigned char) 0x31
-#define MT_SOUNDSTOP         (unsigned char) 0x32
+#define MT_SOUNDCHANGE        (unsigned char) 0x30
+#define MT_SOUNDSTART         (unsigned char) 0x31
+#define MT_SOUNDSTOP          (unsigned char) 0x32
 
-#define MT_BLACKLOWERCHANGE  (unsigned char) 0x40
-#define MT_NOBLACKLOWERSTART (unsigned char) 0x41
-#define MT_NOBLACKLOWERSTOP  (unsigned char) 0x42
+#define MT_LOWERBORDERCHANGE  (unsigned char) 0x40
+#define MT_NOLOWERBORDERSTART (unsigned char) 0x41
+#define MT_NOLOWERBORDERSTOP  (unsigned char) 0x42
 
-#define MT_BLACKCHANGE       (unsigned char) 0x50
-#define MT_NOBLACKSTART      (unsigned char) 0x51
-#define MT_NOBLACKSTOP       (unsigned char) 0x52
+#define MT_BLACKCHANGE        (unsigned char) 0x50
+#define MT_NOBLACKSTART       (unsigned char) 0x51
+#define MT_NOBLACKSTOP        (unsigned char) 0x52
 
-#define MT_LOGOCHANGE        (unsigned char) 0x60
-#define MT_LOGOSTART         (unsigned char) 0x61
-#define MT_LOGOSTOP          (unsigned char) 0x62
+#define MT_LOGOCHANGE         (unsigned char) 0x60
+#define MT_LOGOSTART          (unsigned char) 0x61
+#define MT_LOGOSTOP           (unsigned char) 0x62
 
-#define MT_VBORDERCHANGE     (unsigned char) 0x70
-#define MT_VBORDERSTART      (unsigned char) 0x71
-#define MT_VBORDERSTOP       (unsigned char) 0x72
+#define MT_VBORDERCHANGE      (unsigned char) 0x70
+#define MT_VBORDERSTART       (unsigned char) 0x71
+#define MT_VBORDERSTOP        (unsigned char) 0x72
 
-#define MT_HBORDERCHANGE     (unsigned char) 0x80
-#define MT_HBORDERSTART      (unsigned char) 0x81
-#define MT_HBORDERSTOP       (unsigned char) 0x82
+#define MT_HBORDERCHANGE      (unsigned char) 0x80
+#define MT_HBORDERSTART       (unsigned char) 0x81
+#define MT_HBORDERSTOP        (unsigned char) 0x82
 
-#define MT_ASPECTCHANGE      (unsigned char) 0x90
-#define MT_ASPECTSTART       (unsigned char) 0x91
-#define MT_ASPECTSTOP        (unsigned char) 0x92
+#define MT_ASPECTCHANGE       (unsigned char) 0x90
+#define MT_ASPECTSTART        (unsigned char) 0x91
+#define MT_ASPECTSTOP         (unsigned char) 0x92
 
-#define MT_CHANNELCHANGE     (unsigned char) 0xA0
-#define MT_CHANNELSTART      (unsigned char) 0xA1
-#define MT_CHANNELSTOP       (unsigned char) 0xA2
+#define MT_CHANNELCHANGE      (unsigned char) 0xA0
+#define MT_CHANNELSTART       (unsigned char) 0xA1
+#define MT_CHANNELSTOP        (unsigned char) 0xA2
 
-#define MT_TYPECHANGE        (unsigned char) 0xB0
-#define MT_TYPECHANGESTART   (unsigned char) 0xB1
-#define MT_TYPECHANGESTOP    (unsigned char) 0xB2
+#define MT_TYPECHANGE         (unsigned char) 0xB0
+#define MT_TYPECHANGESTART    (unsigned char) 0xB1
+#define MT_TYPECHANGESTOP     (unsigned char) 0xB2
 
-#define MT_VPSCHANGE         (unsigned char) 0xC0
-#define MT_VPSSTART          (unsigned char) 0xC1
-#define MT_VPSSTOP           (unsigned char) 0xC2
+#define MT_VPSCHANGE          (unsigned char) 0xC0
+#define MT_VPSSTART           (unsigned char) 0xC1
+#define MT_VPSSTOP            (unsigned char) 0xC2
 
-#define MT_RECORDINGCHANGE   (unsigned char) 0xD0
-#define MT_RECORDINGSTART    (unsigned char) 0xD1
-#define MT_RECORDINGSTOP     (unsigned char) 0xD2
+#define MT_RECORDINGCHANGE    (unsigned char) 0xD0
+#define MT_RECORDINGSTART     (unsigned char) 0xD1
+#define MT_RECORDINGSTOP      (unsigned char) 0xD2
 
-#define MT_MOVED             (unsigned char) 0xE0
-#define MT_MOVEDSTART        (unsigned char) 0xE1
-#define MT_MOVEDSTOP         (unsigned char) 0xE2
+#define MT_MOVED              (unsigned char) 0xE0
+#define MT_MOVEDSTART         (unsigned char) 0xE1
+#define MT_MOVEDSTOP          (unsigned char) 0xE2
 
 // global types
-#define MT_VIDEO             (unsigned char) 0xFD  // dummy type for video decoding state
-#define MT_AUDIO             (unsigned char) 0xFE  // dummy type for audio decoding state
-#define MT_ALL               (unsigned char) 0xFF
+#define MT_VIDEO              (unsigned char) 0xFD  // dummy type for video decoding state
+#define MT_AUDIO              (unsigned char) 0xFE  // dummy type for audio decoding state
+#define MT_ALL                (unsigned char) 0xFF
 
 // subtypes for moved marks
-#define MT_OVERLAPCHANGE                    0xD10
-#define MT_OVERLAPSTART                     0xD11
-#define MT_OVERLAPSTOP                      0xD12
+#define MT_OVERLAPCHANGE                     0xD10
+#define MT_OVERLAPSTART                      0xD11
+#define MT_OVERLAPSTOP                       0xD12
 
-#define MT_INTRODUCTIONCHANGE               0xD20
-#define MT_INTRODUCTIONSTART                0xD21
+#define MT_INTRODUCTIONCHANGE                0xD20
+#define MT_INTRODUCTIONSTART                 0xD21
 
-#define MT_CLOSINGCREDITSCHANGE             0xD30
-#define MT_CLOSINGCREDITSSTOP               0xD32
+#define MT_CLOSINGCREDITSCHANGE              0xD30
+#define MT_CLOSINGCREDITSSTOP                0xD32
 
-#define MT_ADINFRAMECHANGE                  0xD40
-#define MT_NOADINFRAMESTART                 0xD41  // used to replace start mark, frame after ad in frame ends
-#define MT_NOADINFRAMESTOP                  0xD42  // used to replace stop mark, frame before ad in frame starts
+#define MT_ADINFRAMECHANGE                   0xD40
+#define MT_NOADINFRAMESTART                  0xD41  // used to replace start mark, frame after ad in frame ends
+#define MT_NOADINFRAMESTOP                   0xD42  // used to replace stop mark, frame before ad in frame starts
 
 /**
  * logo size structure

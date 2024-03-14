@@ -472,7 +472,7 @@ public:
 private:
     int blackScreenStatus = BLACKSCREEN_UNINITIALIZED; //!< status of black screen detection
     //!<
-    int blackLowerStatus  = BLACKSCREEN_UNINITIALIZED; //!< status of lower part black screen detection
+    int lowerBorderStatus = BLACKSCREEN_UNINITIALIZED; //!< status of lower part black screen detection
     //!<
     sMarkAdContext *maContext = NULL;                  //!< markad context
     //!<
