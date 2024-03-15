@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-03-16: Version 3.4.13
+- use av_opt_set_chlayout for libavcodec >= 61.1.100
+- some minor bug fixes and optimizations, see git
+
 2024-03-10: Version 3.4.12
 - fix heap-use-after-free
 - fix logo size check
