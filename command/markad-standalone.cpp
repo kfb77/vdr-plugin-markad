@@ -1136,7 +1136,7 @@ int cMarkAdStandalone::CheckStop() {
                 }
             }
         }
-        if (!end) end = marks.GetAround(360 * (macontext.Video.Info.framesPerSecond), iStopA, MT_ASPECTSTOP);      // try MT_ASPECTSTOP
+        if (!end) end = marks.GetAround(400 * (macontext.Video.Info.framesPerSecond), iStopA, MT_ASPECTSTOP);      // changed from 360 to 400
         if (end) {
             dsyslog("cMarkAdStandalone::CheckStop(): MT_ASPECTSTOP found at frame (%d)", end->position);
             if ((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) {
