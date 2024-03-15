@@ -1754,7 +1754,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             continue;
         }
         // check for too late logo start, can be of first ad
-        if (diffAssumed <= -296) {  // not more then 296s after assumed start, later start mark can be start of first ad
+        if (diffAssumed <= -162) {  // not more then 296s after assumed start, later start mark can be start of first ad, changed from -296 to -162
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds after assumed start too late", lStart->position, -diffAssumed);
             break;
         }
@@ -2191,7 +2191,7 @@ void cMarkAdStandalone::CheckStart() {
     if (!begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): search for any start mark");
         marks.DelTill(IGNORE_AT_START);    // we do not want to have a initial mark from previous recording as a start mark
-        begin = marks.GetAround(240 * macontext.Video.Info.framesPerSecond, iStartA, MT_START, 0x0F);  // not too big search range
+        begin = marks.GetAround(160 * macontext.Video.Info.framesPerSecond, iStartA, MT_START, 0x0F);  // not too big search range, changed from 240 to 160
         if (begin) {
             dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) type 0x%X after search for any type", begin->position, begin->type);
             if ((begin->type == MT_ASSUMEDSTART) || (begin->inBroadCast) || !criteria.GetDetectionState(MT_LOGOCHANGE)) { // test on inBroadCast because we have to take care of black screen marks in an ad, MT_ASSUMEDSTART is from converted channel stop of previous broadcast
