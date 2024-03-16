@@ -822,13 +822,11 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, sRecordi
 #endif
         {
             if (Timer->Recording()) {
-                dsyslog("markad: cStatusMarkAd:GetEventID(): timer recording: %s", Timer->File());
-                if (const_cast<cDevice *>(Device)->IsTunedToTransponder(Timer->Channel())) {
-                    if (Timer->File() && (strcmp(Name, Timer->File()) == 0)) {
-                        if (abs(Timer->StartTime() - time(NULL)) < timeDiff) {  // maybe we have two timer on same channel with same name, take the nearest start time
-                            timer = Timer;
-                            timeDiff = abs(Timer->StartTime() - time(NULL));
-                        }
+                dsyslog("markad: cStatusMarkAd:GetEventID(): found timer recording: %s", Timer->File());
+                if (Timer->File() && (strcmp(Name, Timer->File()) == 0)) {
+                    if (abs(Timer->StartTime() - time(NULL)) < timeDiff) {  // maybe we have two timer the same file name, take the nearest start time
+                        timer = Timer;
+                        timeDiff = abs(Timer->StartTime() - time(NULL));
                     }
                 }
             }
