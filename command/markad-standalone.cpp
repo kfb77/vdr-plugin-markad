@@ -4732,16 +4732,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        // valid lower border before from closing credits of broadcast before
-                        //  <9040> (4480) /  594120 (320)
-                        // <41880> (1920) / 1101720  (40)
-                        //
-                        // valid lower border after from closing credits of broadcast before
-                        //  16960 (15200) / <64600> (   before is too long for lower border closing credits
-                        //
-                        // invalid lower border before from broadcast before
-                        // tbd
-                        if (lengthBefore < 15200) maxBefore = 41880;
+                        if ((lengthBefore >= 640) && (lengthBefore <= 4480)) maxBefore = 41880;
                         break;
                     default:
                         maxBefore = -1;
@@ -4774,11 +4765,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        // invalid lower border, lower border is in broadcast
-                        //
-                        // valid lower border from closing credits
-                        if (lengthAfter >= 600) maxAfter = 127840;
-                        else                    maxAfter =  86639;
+                        if ((lengthAfter > 320) && (lengthAfter <= 5680)) maxAfter = 130640;
                         break;
                     default:
                         maxAfter = -1;
@@ -4863,10 +4850,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        // valid lower border from closing credits after VPS stop event
-                        // 657080 (240) / <121680> (1920)
-                        //
-                        maxAfter = 121680;
+                        if ((lengthAfter >= 1560) && (lengthAfter <= 1920)) maxAfter = 161240;
                         break;
                     default:
                         maxAfter = -1;
@@ -4897,14 +4881,13 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 int maxBefore = -1;
                 switch (mark->type) {
                 case MT_ASSUMEDSTOP:
-                    // valid lower border before
                     if (lengthBefore >= 1560) maxBefore = 216200;
                     else                      maxBefore =  51040;
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        maxBefore = 117800;
+                        if (lengthBefore > 240) maxBefore = 117800;
                         break;
                     default:
                         maxBefore = -1;
