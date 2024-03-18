@@ -854,7 +854,9 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     int diffLogoStopBlackStop  = 1000 * (blackStop->position - stopBefore->position)  / macontext.Video.Info.framesPerSecond;
                     int diffBlackStopLogoStart = 1000 * (mark->position - blackStop->position)        / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_NOBLACKSTOP (%d) -> %3dms -> MT_LOGOSTOP (%d) -> %3dms -> MT_NOBLACKSTART (%d) -> %3dms -> MT_LOGOSTART (%d)", blackStart->position, diffBlackStartLogoStop, stopBefore->position, diffLogoStopBlackStop, blackStop->position, diffBlackStopLogoStart, mark->position);
-                    if ((diffBlackStartLogoStop <= 0) && (diffLogoStopBlackStop <= 0) && (diffBlackStopLogoStart <= 0)) { // TODO
+                    // valid sequence
+                    // MT_NOBLACKSTOP (8245) -> 4760ms -> MT_LOGOSTOP (8364) -> 5000ms -> MT_NOBLACKSTART (8489) -> 2360ms -> MT_LOGOSTART (8548)  -> TELE 5
+                    if ((diffBlackStartLogoStop <= 4760) && (diffLogoStopBlackStop <= 5000) && (diffBlackStopLogoStart <= 2360)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen sequence is valid");
                         return true;
                     }
@@ -961,17 +963,20 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     int diffLogoStopBlackStart  = 1000 * (blackStart->position - mark->position)       /  macontext.Video.Info.framesPerSecond;
                     int diffBlackStartBlackStop = 1000 * (blackStop->position  - blackStart->position) /  macontext.Video.Info.framesPerSecond;
                     int diffBlackStopLogoStart  = 1000 * (logoStart->position  - blackStop->position)  /  macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%5d) -> %5dms -> MT_NOBLACKSTOP (%5d) -> %5dms ->  MT_NOBLACKSTART (%5d) -> %5dms -> MT_LOGOSTART (%5d)", mark->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, logoStart->position);
-                    // valid sequence
-                    // MT_LOGOSTOP (72310) ->  4240ms -> MT_NOBLACKSTOP (72416) ->   440ms ->  MT_NOBLACKSTART (72427) ->   800ms -> MT_LOGOSTART (72447)
-                    // MT_LOGOSTOP (84786) ->   120ms -> MT_NOBLACKSTOP (84789) ->   240ms ->  MT_NOBLACKSTART (84795) ->  1800ms -> MT_LOGOSTART (84840)
-                    // MT_LOGOSTOP (86549) ->    80ms -> MT_NOBLACKSTOP (86551) ->   280ms ->  MT_NOBLACKSTART (86558) -> 31800ms -> MT_LOGOSTART (87353)
-                    // MT_LOGOSTOP (91313) ->   180ms -> MT_NOBLACKSTOP (91322) ->   120ms ->  MT_NOBLACKSTART (91328) ->  1940ms -> MT_LOGOSTART (91425)
-                    //
-                    // invalid example
-                    // MT_LOGOSTOP (96429) ->  2920ms -> MT_NOBLACKSTOP (96502) ->  2920ms ->  MT_NOBLACKSTART (96575) ->  4520ms -> MT_LOGOSTART (96688)
-                    // info logo                         start opening credits                 end opening credits                   end info logo
-                    if ((diffLogoStopBlackStart <= 4240) && (diffBlackStartBlackStop >= 120) && (diffBlackStartBlackStop < 2920) && (diffBlackStopLogoStart <= 31800)) {
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%5d) -> %5dms -> MT_NOBLACKSTOP (%5d) -> %5dms ->  MT_NOBLACKSTART (%5d) -> %6dms -> MT_LOGOSTART (%5d)", mark->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, logoStart->position);
+// valid sequence
+// MT_LOGOSTOP (86549) ->    80ms -> MT_NOBLACKSTOP (86551) ->   280ms ->  MT_NOBLACKSTART (86558) ->  31800ms -> MT_LOGOSTART (87353)
+// MT_LOGOSTOP (84786) ->   120ms -> MT_NOBLACKSTOP (84789) ->   240ms ->  MT_NOBLACKSTART (84795) ->   1800ms -> MT_LOGOSTART (84840)
+// MT_LOGOSTOP (91313) ->   180ms -> MT_NOBLACKSTOP (91322) ->   120ms ->  MT_NOBLACKSTART (91328) ->   1940ms -> MT_LOGOSTART (91425)
+// MT_LOGOSTOP (72210) ->  1400ms -> MT_NOBLACKSTOP (72245) ->   200ms ->  MT_NOBLACKSTART (72250) -> 104320ms -> MT_LOGOSTART (74858)  TLC (conflict)
+// MT_LOGOSTOP (72310) ->  4240ms -> MT_NOBLACKSTOP (72416) ->   440ms ->  MT_NOBLACKSTART (72427) ->    800ms -> MT_LOGOSTART (72447)
+//
+// invalid example
+// MT_LOGOSTOP (96429) ->  2920ms -> MT_NOBLACKSTOP (96502) ->  2920ms ->  MT_NOBLACKSTART (96575) ->   4520ms -> MT_LOGOSTART (96688)
+// info logo                         start opening credits                 end opening credits                    end info logo
+//
+// MT_LOGOSTOP (81485) ->  4040ms -> MT_NOBLACKSTOP (81586) ->   160ms ->  MT_NOBLACKSTART (81590) ->  95920ms -> MT_LOGOSTART (83988) -> RTLZWEI, sequence in preview
+                    if ((diffLogoStopBlackStart <= 4240) && (diffBlackStartBlackStop >= 120) && (diffBlackStartBlackStop < 2920) && (diffBlackStopLogoStart < 95920)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is valid", mark->position);
                         return true;
                     }
