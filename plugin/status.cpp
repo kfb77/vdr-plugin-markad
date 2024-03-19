@@ -721,14 +721,14 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool dir
             esyslog("markad: asprintf svdrPortOption ouf of memory");
             return false;
         }
-        else ALLOC(strlen(cmdOption) + 1, "cmdOption");
+        ALLOC(strlen(cmdOption) + 1, "cmdOption");
     }
     if (setup->ProcessDuring == PROCESS_DURING) {
         if(!asprintf(&cmdOption, " --online=%d before ", direct ? 1 : 2)) {
             esyslog("markad: asprintf cmdOption ouf of memory");
             return false;
         }
-        else ALLOC(strlen(cmdOption) + 1, "cmdOption");
+        ALLOC(strlen(cmdOption) + 1, "cmdOption");
     }
 
     cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
@@ -752,8 +752,10 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool dir
     free(autoLogoOption);
     FREE(strlen(svdrPortOption)+1, "svdrPortOption");
     free(svdrPortOption);
-    FREE(strlen(svdrPortOption)+1, "cmdOption");
-    free(cmdOption);
+    if (cmdOption) {
+        FREE(strlen(cmdOption) + 1, "cmdOption");
+        free(cmdOption);
+    }
 
     usleep(1000000); // wait 1 second
     if (SystemExec(cmd) != -1) {
