@@ -342,8 +342,10 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (CompareChannelName(maContext->Info.ChannelName, "MDR_Sachsen", IGNORE_NOTHING)) {           // MDR_Sachsen             16:9  720W  576H:->   92W  56H TOP_LEFT
         logo.heightMin =  56;
     }
-    if (CompareChannelName(maContext->Info.ChannelName, "kabel_eins_Doku", IGNORE_NOTHING)) {       // kabel_eins_Doku         16:9  720W  576H:->  130W  64H TOP_RIGHT
-        // kabel_eins_Doku         16:9  720W  576H:->  132W  64H TOP_RIGHT
+
+    // kabel_eins_Doku         16:9  720W  576H:->  132W  64H TOP_RIGHT
+    if (CompareChannelName(maContext->Info.ChannelName, "kabel_eins_Doku", IGNORE_NOTHING)) {
+        logo.widthMin  = 130;
         logo.widthMax  = 132;
     }
 
@@ -546,6 +548,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (CompareChannelName(maContext->Info.ChannelName, "Das_Erste_HD", IGNORE_NOTHING)) {
         logo.widthMin  = 148;
         logo.widthMax  = 244;
+        logo.heightMax = 128;
     }
 
     if (CompareChannelName(maContext->Info.ChannelName, "Einsfestival_HD", IGNORE_NOTHING)) {       // Einsfestival_HD         16:9 1280W  720H:->  300W  80H TOP_RIGHT
@@ -554,8 +557,12 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (CompareChannelName(maContext->Info.ChannelName, "EinsPlus_HD", IGNORE_NOTHING)) {           // EinsPlus_HD             16:9 1280W  720H:->  334W  86H TOP_RIGHT
         logo.widthMax  = 335;
     }
-    if (CompareChannelName(maContext->Info.ChannelName, "hr-fernsehen_HD", IGNORE_NOTHING)) {       // hr-fernsehen_HD         16:9 1280W  720H:->  198W  98H TOP_LEFT
-        logo.heightMax =  98;
+
+    // hr-fernsehen_HD         16:9 1280W  720H:->  196W  98H TOP_LEFT
+    // hr-fernsehen_HD         16:9 1280W  720H:->  214W 100H TOP_LEFT
+    if (CompareChannelName(maContext->Info.ChannelName, "hr-fernsehen_HD", IGNORE_NOTHING)) {
+        logo.widthMax  = 214;
+        logo.heightMax = 100;
     }
 
     // KiKA_HD                 16:9 1280W  720H:->  228W 112H TOP_LEFT
