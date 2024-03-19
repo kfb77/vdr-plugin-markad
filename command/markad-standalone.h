@@ -207,6 +207,13 @@ private:
     bool HaveSilenceSeparator(const cMark *mark);
 
     /**
+     * check if closing credit with lower border form previous broadcast before logo start mark
+     * @param mark check this mark
+     * @return true if closing credits with lower border from broadcast before found
+     */
+    bool HaveLowerBorder(const cMark *mark);
+
+    /**
      * check if separator black screen before logo start mark / around logo stop mark
      * @param mark check this mark
      * @return true if separator found

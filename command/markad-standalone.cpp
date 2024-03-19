@@ -684,6 +684,26 @@ void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *mark) {
 }
 
 
+bool cMarkAdStandalone::HaveLowerBorder(const cMark *mark) {
+    if (!mark) return false;
+    cMark *lowerStart = blackMarks.GetPrev(mark->position, MT_NOLOWERBORDERSTOP);
+    if (!lowerStart) return false;
+    cMark *lowerStop = blackMarks.GetNext(lowerStart->position, MT_NOLOWERBORDERSTART);
+    if (!lowerStop) return false;
+    int lengthClosing = 1000 * (lowerStop->position - lowerStart->position) / macontext.Video.Info.framesPerSecond;
+    int diff          = 1000 * (mark->position      - lowerStart->position) / macontext.Video.Info.framesPerSecond;
+    dsyslog("cMarkAdStandalone::HaveLowerBorder(): lower border from (%d) to (%d), length %dms, distance %dms", lowerStart->position, lowerStop->position, lengthClosing, diff);
+    // vaid example
+    // lower border from (3725) to (3836), length 4440ms, distance 11920ms
+    if ((lengthClosing >= 4400) && (lengthClosing <= 4440) && (diff <= 11920)) {
+        dsyslog("cMarkAdStandalone::HaveLowerBorder(): logo start mark (%d): lower border closing credits are valid", mark->position);
+        return true;
+    }
+    dsyslog("cMarkAdStandalone::HaveLowerBorder(): logo start mark (%d): lower border closing credits are invalid", mark->position);
+    return false;
+}
+
+
 bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
     if (!mark) return false;
     // check start mark
@@ -1686,17 +1706,21 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
 
     // try to select best logo end mark based on closing credits follow
     if (evaluateLogoStopStartPair) {
-        LogSeparator(false);
-        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): search for best logo start mark based on closing credits before logo start");
         // search from nearest logo start mark to end
         lStart = lStartAssumed;
         while (!begin && lStart) {
+            LogSeparator(false);
+            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check logo start mark (%d) based on closing credits before logo start", lStart->position);
             int status = evaluateLogoStopStartPair->GetIsClosingCreditsBefore(lStart->position);
             int diffAssumed = (lStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d): %ds after assumed start (%d), closing credits status %d", lStart->position, diffAssumed, iStartA, status);
             if (diffAssumed >= 300) break;
             if (status == STATUS_YES) {
-                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) closing credits before, valid start mark found", lStart->position);
+                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) has closing credits in frame before, valid start mark found", lStart->position);
+                begin = lStart;
+                break;
+            }
+            if (HaveLowerBorder(lStart)) {
                 begin = lStart;
                 break;
             }
@@ -1707,13 +1731,19 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         while (!begin) {
             lStart = marks.GetPrev(lStart->position, MT_LOGOSTART);
             if (!lStart) break;
+            LogSeparator(false);
+            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check logo start mark (%d) based on closing credits after logo start", lStart->position);
             int status = evaluateLogoStopStartPair->GetIsClosingCreditsBefore(lStart->position);
             int diffAssumed = (iStartA - lStart->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d): %ds before assumed start (%d), closing credits status %d", lStart->position, diffAssumed, iStartA, status);
             if (diffAssumed >= 300) break;
             if (status == STATUS_YES) {
-                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) closing credits before, valid start mark found", lStart->position);
+                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) has closing credits in frame before, valid start mark found", lStart->position);
                 begin = lStart;
+            }
+            if (HaveLowerBorder(lStart)) {
+                begin = lStart;
+                break;
             }
         }
     }
