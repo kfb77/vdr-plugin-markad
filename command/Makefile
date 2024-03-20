@@ -5,16 +5,19 @@
 # use this, if you want to debug heap memory consumption
 # DEBUG_MEM_MARKAD=1
 
+### Dependencies:
+PKG_CONFIG ?= pkg-config
+
+STRIP ?= strip
 
 ### The version number of this plugin (taken from the main source file):
-
 $(shell GITVERSION=`git rev-parse --short HEAD 2> /dev/null`; if [ "$$GITVERSION" ]; then sed "s/\";/ ($$GITVERSION)\";/" ../version.dist > ../version.h; else cp ../version.dist ../version.h; fi)
 VERSION = $(shell grep 'static const char \*VERSION *=' ../version.h | awk '{ print $$6 }' | sed -e 's/[";]//g')
 
 # check if we want to build without vdr
 ifndef NO_VDR
 # Use package data if installed...otherwise assume we're under the VDR source directory:
-PKGCFG = $(if $(VDRDIR),$(shell pkg-config --variable=$(1) $(VDRDIR)/vdr.pc),$(shell PKG_CONFIG_PATH="$$PKG_CONFIG_PATH:../../../.." pkg-config --variable=$(1) vdr))
+PKGCFG = $(if $(VDRDIR),$(shell $(PKG_CONFIG) --variable=$(1) $(VDRDIR)/vdr.pc),$(shell PKG_CONFIG_PATH="$$PKG_CONFIG_PATH:../../../.." $(PKG_CONFIG) --variable=$(1) vdr))
 BINDIR = $(call PKGCFG,bindir)
 MANDIR = $(call PKGCFG,mandir)
 LIBDIR = $(call PKGCFG,libdir)
@@ -58,9 +61,6 @@ ifeq ($(CXXVERSION),13)                 # prevent "warning: "_FORTIFY_SOURCE" re
 endif
 
 
-PKG-CONFIG ?= pkg-config
-STRIP ?= strip
-
 ### Includes and Defines (add further entries here):
 PKG-LIBS += libavcodec libavutil libavformat libavfilter libswresample
 PKG-INCLUDES += libavcodec libavutil libavformat libavfilter libswresample
@@ -87,8 +87,8 @@ $(info sanitize option is set)
 endif
 
 
-INCLUDES += $(shell $(PKG-CONFIG) --cflags $(PKG-INCLUDES))
-LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
+INCLUDES += $(shell $(PKG_CONFIG) --cflags $(PKG-INCLUDES))
+LIBS     += $(shell $(PKG_CONFIG) --libs $(PKG-LIBS)) -pthread
 
 
 ### The object files (add further files here):
@@ -101,18 +101,15 @@ all: markad i18n
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $(DEFINES) $(INCLUDES) $<
 
-### Dependencies:
-PKG-CONFIG ?= pkg-config
-STRIP ?= strip
 
-
+### debug heap allocations
 ifdef DEBUG_MEM_MARKAD
 DEFINES += -DDEBUG_MEM
 $(info option DEBUG_MEM_MARKAD is set)
 endif
 
-INCLUDES += $(shell $(PKG-CONFIG) --cflags $(PKG-INCLUDES))
-LIBS     += $(shell $(PKG-CONFIG) --libs $(PKG-LIBS)) -pthread
+INCLUDES += $(shell $(PKG_CONFIG) --cflags $(PKG-INCLUDES))
+LIBS     += $(shell $(PKG_CONFIG) --libs $(PKG-LIBS)) -pthread
 
 
 ### The main target:

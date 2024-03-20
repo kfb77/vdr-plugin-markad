@@ -5,7 +5,7 @@
 # no installation will be done !
 
 rm -f -r /tmp/vdr-plugin-markad
-sudo apt-get install build-essential git pkg-config vdr-dev libavcodec-dev libavformat-dev libavfilter-dev libswresample-dev
+sudo apt-get install build-essential git pkgconf vdr-dev libavcodec-dev libavformat-dev libavfilter-dev libswresample-dev
 
 cd /tmp
 sudo git clone -b V03 https://github.com/kfb77/vdr-plugin-markad

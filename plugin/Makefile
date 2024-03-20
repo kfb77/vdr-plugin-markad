@@ -10,6 +10,10 @@
 
 PLUGIN = markad
 
+### Dependencies:
+PKG_CONFIG ?= pkg-config
+
+STRIP ?= strip
 
 # use this, if you want to debug heap memory consumption
 # DEBUG_MEM_PLUGIN=1
@@ -20,7 +24,7 @@ VERSION = $(shell grep 'static const char \*VERSION *=' version.h | awk '{ print
 
 ### The directory environment:
 # Use package data if installed...otherwise assume we're under the VDR source directory:
-PKGCFG = $(if $(VDRDIR),$(shell pkg-config --variable=$(1) $(VDRDIR)/vdr.pc),$(shell PKG_CONFIG_PATH="$$PKG_CONFIG_PATH:../../../.." pkg-config --variable=$(1) vdr))
+PKGCFG = $(if $(VDRDIR),$(shell $(PKG_CONFIG) --variable=$(1) $(VDRDIR)/vdr.pc),$(shell PKG_CONFIG_PATH="$$PKG_CONFIG_PATH:../../../.." $(PKG_CONFIG) --variable=$(1) vdr))
 LIBDIR = $(call PKGCFG,libdir)
 LOCDIR = $(call PKGCFG,locdir)
 #
