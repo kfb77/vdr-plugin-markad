@@ -4313,10 +4313,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     // rule 1: black screen before separator and between separator and broadcast start
                     if ((diffBefore >= 2020) && (diffBefore <= 3020) && (diffAfter <= 40)) diffBefore = INT_MAX;
 
-                    if ((lengthBefore >= 1640) && (diffBefore <= 8640)) maxBefore = 8640;  // allow for long blackscreen more distance
-                    else if (silenceBefore && (lengthBefore >= 160))    maxBefore = 5880;
-                    else if (lengthBefore <= 40)                        maxBefore = 4299;  // very short black screen before preview 4300ms (40) before logo stop
-                    else                                                maxBefore = 5399;   // do not increase, will get black screen before last ad
+                    if (silenceBefore && criteria.LogoFadeOut(macontext.Info.ChannelName) && (lengthBefore >= 160)) maxBefore = 6840;
+                    else                                                                                            maxBefore = 5399;
                     break;
                 case MT_CHANNELSTART:
                     maxBefore = 1240;
@@ -4473,6 +4471,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 }
                 else stopAfter = NULL; // no pair, this is invalid
             }
+
             // try black screen after stop marks
             if (stopAfter) {  // move even to same position to prevent scene change for move again
                 int maxAfter = -1;
@@ -4486,6 +4485,9 @@ void cMarkAdStandalone::BlackScreenOptimization() {
 
                     // rule 2: long black screen at end of broadcast, short black screen after preview
                     else if ((diffBefore <= 4580) && (lengthBefore >= 600) && (diffAfter <= 3240) && (lengthAfter <= 520)) diffAfter = INT_MAX;
+
+                    // rule 3: very long black before logo stop is closing credits
+                    else if ((diffBefore <= 10680) && (lengthBefore >= 4480)) diffAfter = INT_MAX;
 
                     if (criteria.LogoFadeOut(macontext.Info.ChannelName) && silenceAfter) maxAfter = 5040;
                     else if (silenceAfter)                                                maxAfter = 5039;
@@ -4510,11 +4512,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         // rule 3: valid black screen with silence around before
                         else if (silenceBefore && !silenceAfter && (diffBefore <= 6260) && (diffAfter >= 4180)) diffAfter = INT_MAX;
 
-                        if (silenceAfter)             maxAfter = 176680;   // black screen with silence between is a stronger indicator for valid end mark
-                        else if (lengthAfter >= 3000) maxAfter =  82120;
-                        else if (lengthAfter >=  200) maxAfter =  24600;
-                        else if (lengthAfter >=   80) maxAfter =  20119;
-                        else                          maxAfter =   7439;   // black screen in next broadcast after 7440ms
+                        if (lengthAfter >= 80) maxAfter = 231480;
+                        else                   maxAfter =   7439;   // black screen in next broadcast after 7440ms
                         break;
                     case MT_CLOSINGCREDITSSTOP:
                         maxAfter = 11040;
@@ -4568,7 +4567,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxBefore = 21960;
                     break;
                 case MT_LOGOSTOP:
-                    maxBefore = 6519;  // black screen between end of broadcast and closing credits with logo before 6520ms before logo stop
+                    if (!criteria.LogoFadeOut(macontext.Info.ChannelName) && lengthBefore >= 4480) maxBefore = 10680;
+                    else                                                                           maxBefore =  6519;
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
