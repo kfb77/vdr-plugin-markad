@@ -5004,8 +5004,8 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if (lengthAfter >= 120) maxAfter = 82320;  // trust long silence
-                        else                    maxAfter = 34119;  // first silence in broadcast 34120ms after start
+                        if ((lengthAfter >= 120) && (lengthAfter <= 240)) maxAfter = 213920;   // typical silence length at start
+                        else                                              maxAfter =  34119;
                         break;
                     default:
                         maxAfter = 0;
@@ -5077,10 +5077,10 @@ void cMarkAdStandalone::SilenceOptimization() {
                     break;
                 case MT_LOGOSTOP:
                     // rule 1: second silence is after preview
-                    if ((diffBefore >= 5840) && (diffBefore <= 11680) && (diffAfter >= 1040) && (diffAfter <= 4000)) diffAfter = INT_MAX;
+                    if ((diffBefore <= 11680) && (diffAfter >= 1040) && (diffAfter <= 6640)) diffAfter = INT_MAX;
 
-                    if (criteria.LogoFadeOut(macontext.Info.ChannelName)) maxAfter =  7960;
-                    else                                                  maxAfter =  2239;
+                    if (criteria.LogoFadeOut(macontext.Info.ChannelName)) maxAfter = 4560;
+                    else                                                  maxAfter = 2239;
                     break;
                 case MT_VBORDERSTOP:
                     maxAfter = 0;
@@ -5094,10 +5094,9 @@ void cMarkAdStandalone::SilenceOptimization() {
                         // rule 2: silence short before and far after
                         else if ((diffBefore <= 5480) && (diffAfter >= 20600)) diffAfter = INT_MAX;
 
-                        if      (lengthAfter >= 3000) maxAfter = 81920;
-                        else if (lengthAfter >=  280) maxAfter = 52920;
-                        else if (lengthAfter >=  120) maxAfter = 45400;
-                        else                          maxAfter = 31479;
+                        if     ((lengthAfter >= 120) && (lengthAfter <= 440)) maxAfter = 335480;   // typical silene at broadcast end
+                        else if (lengthAfter >= 3000)                         maxAfter =  81920;   // very long silence
+                        else                                                  maxAfter =  31479;
                         break;
                     default:
                         maxAfter = 0;
