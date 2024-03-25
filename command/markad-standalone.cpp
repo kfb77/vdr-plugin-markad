@@ -2919,7 +2919,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                         minLastStopAssumed  =    0;
                         minLastStartAssumed = -272;
                         minPrevStopAssumed  = -352;
-                        minLastBroadcast    =   89;  //  shortest valid last ad 89s
+                        minLastBroadcast    =  129;  // changed from 89 to 129
                         break;
                     case MT_NOBLACKSTOP:
                         // too long broadcast length from info file, delete last stop:
@@ -2942,7 +2942,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                         minLastStopAssumed  =   73;
                         minLastStartAssumed = -384;
                         minPrevStopAssumed  = -541;
-                        minLastBroadcast    =    0;
+                        minLastBroadcast    =  169;  // changed from 65 to 169
                         break;
                     case MT_LOGOSTOP:
                         // too long broadcast length from info file, delete last stop:
