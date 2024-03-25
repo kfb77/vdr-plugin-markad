@@ -4623,10 +4623,14 @@ void cMarkAdStandalone::BlackScreenOptimization() {
 
 
 void cMarkAdStandalone::LowerBorderOptimization() {
-    bool save = false;
     LogSeparator(false);
     dsyslog("cMarkAdStandalone::LowerBorderOptimization(): start mark optimization with lower black or white border");
+    if (criteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED) {
+        dsyslog("cMarkAdStandalone::LowerBorderOptimization(): broadcast has hborder, no optimization with lower border possible");
+        return;
+    }
     DebugMarks();
+    bool save = false;
     cMark *mark = marks.GetFirst();
     while (mark) {
         int lengthBefore   = 0;
@@ -4722,7 +4726,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if ((lengthAfter > 320) && (lengthAfter <= 5680)) maxAfter = 130640;
+                        if ((lengthAfter > 560) && (lengthAfter <= 5680)) maxAfter = 130640;
                         break;
                     default:
                         maxAfter = -1;
@@ -4844,7 +4848,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if (lengthBefore > 240) maxBefore = 117800;
+                        if (lengthBefore > 880) maxBefore = 117800;
                         break;
                     default:
                         maxBefore = -1;
