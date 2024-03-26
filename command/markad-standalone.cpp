@@ -2222,17 +2222,20 @@ void cMarkAdStandalone::CheckStart() {
         dsyslog("cMarkAdStandalone::CheckStart(): search for end of black screen as start mark");
         const cMark *noBlackStart = blackMarks.GetAround(120 * macontext.Video.Info.framesPerSecond, iStartA, MT_NOBLACKSTART);
         if (noBlackStart) {
-            char *comment = NULL;
-            if (asprintf(&comment, "start black screen (%d)*", noBlackStart->position) == -1) comment = NULL;
-            if (comment) {
-                ALLOC(strlen(comment)+1, "comment");
+            cMark *nextMark = marks.GetNext(noBlackStart->position, MT_ALL);
+            if (!nextMark || ((nextMark->type & 0x0F) == MT_STOP)) {  // do not insert black screen start before other start mark
+                char *comment = NULL;
+                if (asprintf(&comment, "start black screen (%d)*", noBlackStart->position) == -1) comment = NULL;
+                if (comment) {
+                    ALLOC(strlen(comment)+1, "comment");
+                }
+                begin = marks.Add(MT_NOBLACKSTART, MT_UNDEFINED, MT_UNDEFINED, noBlackStart->position, comment, false);
+                if (comment) {
+                    FREE(strlen(comment)+1, "comment");
+                    free(comment);
+                }
+                dsyslog("cMarkAdStandalone::CheckStart(): found end of black screen as start mark (%d)", begin->position);
             }
-            begin = marks.Add(MT_NOBLACKSTART, MT_UNDEFINED, MT_UNDEFINED, noBlackStart->position, comment, false);
-            if (comment) {
-                FREE(strlen(comment)+1, "comment");
-                free(comment);
-            }
-            dsyslog("cMarkAdStandalone::CheckStart(): found end of black screen as start mark (%d)", begin->position);
         }
     }
 
@@ -2275,22 +2278,32 @@ void cMarkAdStandalone::CheckStart() {
         dsyslog("cMarkAdStandalone::CheckStart(): search for end of lower border as start mark");
         const cMark *noLowerBlackStart = blackMarks.GetAround(120 * macontext.Video.Info.framesPerSecond, iStartA, MT_NOLOWERBORDERSTART);
         if (noLowerBlackStart) {
-            begin = marks.Add(MT_NOLOWERBORDERSTART, MT_UNDEFINED, MT_UNDEFINED, noLowerBlackStart->position, "end   lower border", false);
-            dsyslog("cMarkAdStandalone::CheckStart(): found end of lower border from previous broadcast, use as start mark (%d)", begin->position);
+            cMark *nextMark = marks.GetNext(noLowerBlackStart->position, MT_ALL);
+            if (!nextMark || ((nextMark->type & 0x0F) == MT_STOP)) {  // do not insert black screen start before other start mark
+                begin = marks.Add(MT_NOLOWERBORDERSTART, MT_UNDEFINED, MT_UNDEFINED, noLowerBlackStart->position, "end   lower border", false);
+                dsyslog("cMarkAdStandalone::CheckStart(): found end of lower border from previous broadcast, use as start mark (%d)", begin->position);
+            }
         }
     }
 
     // no start mark found at all, set start after pre timer
     if (!begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, assume start time at pre recording time");
-        marks.DelTill(iStart);
-        marks.Del(MT_NOBLACKSTART);  // delete all black screen marks
-        marks.Del(MT_NOBLACKSTOP);
-        sMarkAdMark mark = {};
-        mark.position = iStart;
-        mark.type = MT_ASSUMEDSTART;
-        AddMark(&mark);
-        begin = marks.GetFirst();
+        cMark *nextMark = marks.GetNext(iStart, MT_ALL);
+        if (!nextMark || ((nextMark->type & 0x0F) == MT_STOP)) {  // do not insert black screen start before other start mark
+            marks.DelTill(iStart);
+            marks.Del(MT_NOBLACKSTART);  // delete all black screen marks
+            marks.Del(MT_NOBLACKSTOP);
+            sMarkAdMark mark = {};
+            mark.position = iStart;
+            mark.type = MT_ASSUMEDSTART;
+            AddMark(&mark);
+            begin = marks.GetFirst();
+        }
+        else {
+            dsyslog("cMarkAdStandalone::CheckStart(): use start mark (%d) after assumed start (%d)", nextMark->position, iStart);
+            begin = nextMark;
+        }
     }
 
 
