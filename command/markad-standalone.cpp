@@ -1292,7 +1292,9 @@ int cMarkAdStandalone::CheckStop() {
             cMark *blackStart = blackMarks.GetNext(blackEnd->position, MT_NOBLACKSTART);
             while (true) {
                 if (!blackStop || !blackStart) break;
-                if ((blackStart->position - blackStop->position) > 1) break;
+                const cMark *markBefore = marks.GetPrev(blackStop->position, MT_ALL);
+                if (((markBefore->type & 0x0F) == MT_START) &&                    // do not accept stop mark before
+                        (blackStart->position - blackStop->position) > 1) break;  // do not accept only 1 frame black
                 blackStop                 = blackMarks.GetNext(blackStop->position, MT_NOBLACKSTOP);
                 if (blackStop) blackStart = blackMarks.GetNext(blackStop->position, MT_NOBLACKSTART);
             }
@@ -1326,11 +1328,18 @@ int cMarkAdStandalone::CheckStop() {
 
     if (!end) {  // no end mark found at all, set end mark to assumed end
         dsyslog("cMarkAdStandalone::CheckStop(): no stop mark found, add end mark at assumed end (%d)", iStopA);
-        sMarkAdMark mark = {};
-        mark.position = iStopA;  // we are lost, add a end mark at assumed end
-        mark.type     = MT_ASSUMEDSTOP;
-        AddMark(&mark);
-        end = marks.Get(iStopA);
+        cMark *markBefore = marks.GetPrev(iStopA, MT_ALL);
+        if (markBefore && ((markBefore->type & 0x0F) == MT_STOP)) {
+            dsyslog("cMarkAdStandalone::CheckStop(): mark before (%d) assumed stop (%d) is a stop mark, use this as end mark", markBefore->position, iStopA);
+            end = markBefore;
+        }
+        else {
+            sMarkAdMark mark = {};
+            mark.position = iStopA;  // we are lost, add a end mark at assumed end
+            mark.type     = MT_ASSUMEDSTOP;
+            AddMark(&mark);
+            end = marks.Get(iStopA);
+        }
     }
 
 
