@@ -19,6 +19,7 @@ bool cCriteria::LogoFadeOut(const char *channelName) {
     if (!channelName) return false;
 
     if (CompareChannelName(channelName, "Das_Erste",      IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "DMAX",           IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "Nickelodeon",    IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "NICK_MTV+",      IGNORE_HD)) return true;
