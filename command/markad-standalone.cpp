@@ -1953,8 +1953,15 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
         }
     }
     else { // we found no hborder start mark
-        dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): no horizontal border start mark found, disable horizontal border detection");
-        criteria.SetDetectionState(MT_HBORDERCHANGE, false);
+        // check if we have a hborder double episode
+        if ((marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 0)) {
+            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start mark found, but no hboder stop mark, we have a double episode");
+            criteria.SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED);
+        }
+        else {
+            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): no horizontal border start mark found, disable horizontal border detection");
+            criteria.SetDetectionState(MT_HBORDERCHANGE, false);
+        }
         dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): delete horizontal border marks, if any");
         marks.DelType(MT_HBORDERCHANGE, 0xF0);  // mybe the is a late invalid hborder start marks, exists sometimes with old vborder recordings
         return NULL;
