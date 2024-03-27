@@ -33,10 +33,11 @@ bool cCriteria::LogoFadeOut(const char *channelName) {
 bool cCriteria::LogoInBorder(const char *channelName) {
     if (!channelName) return false;
 
-    if (CompareChannelName(channelName, "arte",   IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "NITRO",  IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "ONE_HD", IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "TELE_5", IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "arte",      IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "NITRO",     IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "ONE_HD",    IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "SUPER_RTL", IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "TELE_5",    IGNORE_HD)) return true;
 
     return false;
 }
