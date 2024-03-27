@@ -1521,7 +1521,7 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
             ClosingCredits.start, ClosingCredits.end, startOffset, endOffset, length);
 
     if ((ClosingCredits.start > 0) && (ClosingCredits.end > 0) && // we found something
-            (startOffset <= 4320) && (length <= 28720) && // do not reduce start offset, if logo fade out, we got start a little too late
+            (startOffset <= 4320) && (endOffset < 87200) && (length <= 28720) && // do not reduce start offset, if logo fade out, we got start a little too late
             // changed length from 19000 to 28720, long ad in frame between broadcast, detect as closing credit to get correct start mark
             // startOffset increases from 1440 to 4320 because of silence detection before closing credits detection
             ((length >= CLOSING_CREDITS_LENGTH_MIN) || ((endOffset < 480) && length > 1440))) {  // if we check from info logo:
@@ -1558,7 +1558,8 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
         //
         // example of no closing credits
         // best quote 643, all quote 321  -> long static separator picture
-        if ((framePortionQuote <= 643) && (allPortionQuote <= 321)) {
+        // best quote 403, all quote 465  -> long static ad picture
+        if ((framePortionQuote <= 643) && (allPortionQuote <= 465)) {
             dsyslog("cDetectLogoStopStart::ClosingCredit(): not enough frame pixel found, closing credits not valid");
             closingCreditsFrame = -1;  // no valid closing credits
         }
