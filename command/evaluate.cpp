@@ -1264,7 +1264,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 
     // check info logo
 #define INFO_LOGO_MAX_AFTER_START  6239  // max distance for info logo start to range start (logo stop)
-#define INFO_LOGO_MIN_LENGTH       3761  // changed from 2880 to 3761
+#define INFO_LOGO_MIN_LENGTH       3801  // changed from 3761 to 3801
     // prevent to get info box after preview as info logo, length 3760
 #define INFO_LOGO_MAX_LENGTH      17040  // chnaged from 15640 to 15880 to 17040
     // RTL2 has very long info logos
