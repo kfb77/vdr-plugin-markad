@@ -1,10 +1,15 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-03-31: Version 3.5.1
+- fix start mark for hborder double episode
+- tune thresholds for new lower border feature
+- some minor bug fixes and optimizations, see git
+
 2024-03-23: Version 3.5.0
 - new feature: detect lower white border as closing credits
 - new feature: select logo start mark based on lower border closing credits before
-- new feature: optimze VPS marks based on lower border closing credits
+- new feature: optimize VPS marks based on lower border closing credits
 - Makefile: pkg-config can be overwritten with PKG_CONFIG
 - some minor bug fixes and optimizations, see git
 
@@ -357,7 +362,7 @@ VDR Plugin 'markad' Revision History
 
 2021-03-12: Version 2.6.6
 - fix missing deletion from recording list
-- optimze mark positions for interlaced video
+- optimize mark positions for interlaced video
 - change --autologo default to 2
 - some minor bug fixes and optimizations, see git
 
@@ -372,7 +377,7 @@ VDR Plugin 'markad' Revision History
 
 2021-02-26: Version 2.6.3
 - check return code of subdir makes
-- optimze coloured logo detection in bright area
+- optimize coloured logo detection in bright area
 - some minor bug fixes and optimizations, see git
 
 2021-02-15: Version 2.6.2
@@ -436,7 +441,7 @@ VDR Plugin 'markad' Revision History
 - some minor bug fixes and optimizations, see git
 
 2020-10-09: Version 2.4.2
-- reduce brightness of too bright frames to optimze logo detection
+- reduce brightness of too bright frames to optimize logo detection
 - fix compiler errors under Ubuntu 16.04
 - some minor bug fixes and optimizations, see git
 
