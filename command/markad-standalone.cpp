@@ -2045,13 +2045,27 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     }
     else criteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED);
 
-    // check logo stop after vborder stop to prevent to get closing credit from previous recording as start mark
+    // check logo start after vborder start to prevent to get closing credit from previous recording as start mark
+    if (criteria.LogoInBorder(macontext.Info.ChannelName)) {
+        cMark *logoStart  = marks.GetNext(vStart->position, MT_LOGOSTART);
+        if (logoStart) {
+            int diffStart  = (logoStart->position  - vStart->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): found logo start (%d) %ds after vborder start (%d)", logoStart->position, diffStart, vStart->position);
+            if ((diffStart >= 10) && (diffStart <= 30)) {  // near logo start is fade in logo
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark position (%d) includes previous closing credits, use logo start (%d) instead", vStart->position, logoStart->position);
+                marks.Del(vStart->position);
+                return logoStart;
+            }
+        }
+    }
+
+    // check logo stop after vborder start to prevent to get closing credit from previous recording as start mark
     cMark *logoStop  = marks.GetNext(vStart->position, MT_LOGOSTOP);
     if (logoStop) {
         int diffStop  = (logoStop->position  - vStart->position) / macontext.Video.Info.framesPerSecond;
         dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): found logo stop (%d) %ds after vborder start (%d)", logoStop->position, diffStop, vStart->position);
-        if ((diffStop <= 51)) {  // changed from 25 to 51
-            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark position (%d) includes previous closing credits, use logo start (%d) instead", vStart->position, logoStop->position);
+        if (diffStop <= 51) {  // changed from 25 to 51
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark position (%d) includes previous closing credits, use logo stop (%d) instead", vStart->position, logoStop->position);
             marks.Del(vStart->position);
             logoStop = marks.ChangeType(logoStop, MT_START);
             return logoStop;
