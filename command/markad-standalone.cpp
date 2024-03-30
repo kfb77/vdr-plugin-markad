@@ -1778,7 +1778,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     lStart = lStartAssumed;
     while (!begin && lStart) {
         int diffAssumed = (lStart->position - iStartA)          / macontext.Video.Info.framesPerSecond;
-#define MAX_AFTER_ASSUMED 266    // changed from 239 to 266
+#define MAX_AFTER_ASSUMED 293    // changed from 266 to 293
         LogSeparator();
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check logo start mark (%d), %ds (<= %ds) after assumed start", lStart->position, diffAssumed, MAX_AFTER_ASSUMED);
         if (diffAssumed > MAX_AFTER_ASSUMED) {
@@ -1810,7 +1810,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             continue;
         }
         // check for too late logo start, can be of first ad
-        if (diffAssumed <= -162) {  // not more then 296s after assumed start, later start mark can be start of first ad, changed from -296 to -162
+        if (diffAssumed <= -162) {  // later start mark can be start of first ad, changed from -296 to -162
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds after assumed start too late", lStart->position, -diffAssumed);
             break;
         }
