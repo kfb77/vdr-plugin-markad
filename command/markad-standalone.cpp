@@ -5351,8 +5351,12 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxBefore = 600;   // changed from 360 to 600
                     break;
                 case MT_LOGOSTART:
-                    if ((diffBefore > 2840) && (diffAfter <= 280)) diffBefore = INT_MAX;
-                    maxBefore = 8080;  // changed from 7400 to 8080
+                    // rule 1: very near scene change after, not so far scene change before
+                    if ((diffBefore >= 2320) && (diffAfter <= 140)) diffBefore = INT_MAX;
+                    // rule 2: near scene change after, far scene change before
+                    else if ((diffBefore > 2840) && (diffAfter <= 280)) diffBefore = INT_MAX;
+
+                    maxBefore = 6399;
                     break;
                 case MT_CHANNELSTART:
                     if (diffAfter <= 1060) diffBefore = INT_MAX;
@@ -5517,7 +5521,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     switch (mark->newType) {
                     case MT_NOLOWERBORDERSTOP:   // move after closing credits
                         // rule 1: scene change very short before and long after
-                        if ((diffBefore <= 80) && (diffAfter >= 2240)) diffAfter = INT_MAX;
+                        if ((diffBefore <= 80) && (diffAfter >= 880)) diffAfter = INT_MAX;
                         maxAfter = 2520;
                         break;
                     case MT_SOUNDSTOP:
@@ -5531,7 +5535,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         break;
                     case MT_VPSSTOP:
                         // rule 1: scene change short before
-                        if ((diffBefore >= 160) && (diffBefore <= 440) && (diffAfter >= 680) && (diffAfter <= 3840)) diffAfter = INT_MAX;
+                        if ((diffBefore >= 160) && (diffBefore <= 480) && (diffAfter >= 680) && (diffAfter <= 3840)) diffAfter = INT_MAX;
 
                         // rule 2: long opening scene from next broadcast
                         else if ((diffBefore <= 80) && (diffAfter >= 6720)) diffAfter = INT_MAX;   // long opening scene from next broadcast
