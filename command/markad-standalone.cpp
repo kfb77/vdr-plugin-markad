@@ -4762,7 +4762,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if ((lengthBefore >= 640) && (lengthBefore <= 4480)) maxBefore = 41880;
+                        if ((lengthBefore >= 640) && (lengthBefore <= 4480)) maxBefore = 139360;
                         break;
                     default:
                         maxBefore = -1;
@@ -4856,8 +4856,8 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                         int diffNext        = 1000 * (nextStopAfter->position  - stopAfter->position)      / macontext.Video.Info.framesPerSecond;
                         int nextDiffAfter   = 1000 * (nextStartAfter->position - mark->position)           / macontext.Video.Info.framesPerSecond;
                         int nextLengthAfter = 1000 * (nextStopAfter->position  - nextStartAfter->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::LowerBorderOptimization(): stop  mark (%6d): lower border from (%6d) to (%6d), %7dms after  -> length %5dms, distance %dms", mark->position, nextStartAfter->position, nextStopAfter->position, nextDiffAfter, nextLengthAfter, diffNext);
-                        if (diffNext > 3840) break;  // changed from 3520 to 3840
+                        dsyslog("cMarkAdStandalone::LowerBorderOptimization(): stop  mark (%6d): lower border from (%6d) to (%6d), %7dms after  -> length %5dms, distance %5dms", mark->position, nextStartAfter->position, nextStopAfter->position, nextDiffAfter, nextLengthAfter, diffNext);
+                        if ((lengthAfter > 80) && (diffNext > 3840)) break;  // ignore very short low border, they are dark scenes, changed from 3520 to 3840
                         if (nextLengthAfter >= lengthAfter) {
                             startAfter  = nextStartAfter;
                             stopAfter   = nextStopAfter;
@@ -5167,9 +5167,9 @@ void cMarkAdStandalone::SilenceOptimization() {
                         // rule 2: silence short before and far after
                         else if ((diffBefore <= 5480) && (diffAfter >= 20600)) diffAfter = INT_MAX;
 
-                        if     ((lengthAfter >= 120) && (lengthAfter <= 440)) maxAfter = 335480;   // typical silene at broadcast end
+                        if      ((lengthAfter > 160) && (lengthAfter <= 440)) maxAfter = 335480;   // typical silene at broadcast end
                         else if (lengthAfter >= 3000)                         maxAfter =  81920;   // very long silence
-                        else                                                  maxAfter =  31479;
+                        else                                                  maxAfter =  45400;
                         break;
                     default:
                         maxAfter = 0;
