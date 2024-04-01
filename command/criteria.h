@@ -34,6 +34,13 @@ public:
     ~cCriteria();
 
     /**
+     * get status of channel have exact VPS events
+     * @param channelName name of the channel
+     * @return status
+     */
+    bool GoodVPS(const char *channelName);
+
+    /**
      * get status of channel uses fade in/out/fade logo
      * @param channelName name of the channel
      * @return status

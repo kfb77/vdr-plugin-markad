@@ -8,6 +8,7 @@
 #include "tools.h"
 #include "debug.h"
 #include <string>
+#include <cstring>
 #include <algorithm>
 
 cTools::cTools() {
@@ -22,9 +23,9 @@ bool cTools::CompareChannelName(const char *nameA, const char *nameB, const int 
 
     // remove "_HD"
     if (flags & IGNORE_HD) {
-        size_t pos = name1.find( "_HD" );
+        size_t pos = name1.find("_HD");
         if (pos != std::string::npos) name1.replace(pos, 3, "");
-        pos = name2.find( "_HD" );
+        pos = name2.find("_HD");
         if (pos != std::string::npos) name2.replace(pos, 3, "");
     }
 
@@ -34,10 +35,21 @@ bool cTools::CompareChannelName(const char *nameA, const char *nameB, const int 
 
     // remove _Austria
     if (flags & IGNORE_COUNTRY) {
-        size_t pos = name1.find( "_AUSTRIA" );
+        size_t pos = name1.find("_AUSTRIA");
         if (pos != std::string::npos) name1.replace(pos, 8, "");
-        pos = name2.find( "_AUSTRIA" );
+        pos = name2.find("_AUSTRIA");
         if (pos != std::string::npos) name2.replace(pos, 8, "");
+    }
+
+    // remove cities
+    if (flags & IGNORE_CITY) {
+        for (const char *city : cities) {
+            size_t pos    = name1.find(city);
+            size_t length = strlen(city);
+            if (pos != std::string::npos) name1.replace(pos, length, "");
+            pos = name2.find(city);
+            if (pos != std::string::npos) name2.replace(pos, length, "");
+        }
     }
 
     // remove fill character "_"
