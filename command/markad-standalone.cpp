@@ -2224,9 +2224,15 @@ void cMarkAdStandalone::CheckStart() {
                     aStart = marks.GetNext(aStart->position, MT_ASPECTSTART);
                     if (aStart && aStart->position > (iStartA +  (300 * macontext.Video.Info.framesPerSecond))) aStart = NULL; // too late, this can be start of second part
                 }
+                // check if we have a 4:3 double episode
                 if (aStart) {
-                    begin = aStart;
-                    dsyslog("cMarkAdStandalone::CheckStart(): valid aspect ratio start mark (%d) found", aStart->position);
+                    int diffAssumed = (iStart - aStart->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::CheckStart(): aspect ratio start mark (%d) %ds before assumed start (%d)", aStart->position, diffAssumed, iStartA);
+                    if (diffAssumed < 263) {
+                        begin = aStart;
+                        dsyslog("cMarkAdStandalone::CheckStart(): valid aspect ratio start mark (%d) found", aStart->position);
+                    }
+                    else dsyslog("cMarkAdStandalone::CheckStart(): ignore too early aspect ratio start mark (%d)", aStart->position);
                 }
                 // we have valid a aspect ratio start mark from a 4:3 recording, advertisement are 16:9, delete all other marks and disable all other detection
                 if (begin) {
