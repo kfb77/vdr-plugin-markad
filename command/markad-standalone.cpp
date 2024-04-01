@@ -2049,6 +2049,28 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         return NULL;
     }
 
+    // check if we have a logo start after vborder start to prevent a false vborder start/stop from dark scene as start mark
+    if (criteria.LogoInBorder(macontext.Info.ChannelName)) {
+        cMark *logoStart  = marks.GetAround(30 * macontext.Video.Info.framesPerSecond, vStart->position, MT_LOGOSTART);
+        if (!logoStart) {
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no logo start mark around vborder start (%d), delete invalid vborder marks from dark scene", vStart->position);
+            marks.DelType(MT_VBORDERCHANGE, 0xF0);
+            return NULL;
+        }
+    }
+    else {
+        cMark *logoStart  = marks.GetPrev(vStart->position, MT_ALL);
+        if (logoStart && (logoStart->type == MT_LOGOSTART)) {
+            int diff = (vStart->position - logoStart->position) / macontext.Video.Info.framesPerSecond;
+            if (diff > 50) {
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): logo start mark (%d) direct %ds before vborder start (%d) found, delete invalid vborder marks from dark scene", logoStart->position, diff, vStart->position);
+                marks.DelType(MT_VBORDERCHANGE, 0xF0);
+                return NULL;
+            }
+
+        }
+    }
+
     // found valid vertical border start mark
     if (criteria.GetMarkTypeState(MT_ASPECTCHANGE) == CRITERIA_USED) {
         dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): use vertical border only as start mark, keep using aspect ratio detection");
