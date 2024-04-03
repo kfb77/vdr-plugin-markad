@@ -2676,7 +2676,22 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
 // MT_LOGOSTART ( 49708) ->  593600ms -> MT_LOGOSTOP ( 64548) ->     120ms -> MT_LOGOSTART ( 64551) ->   14880ms -> MT_STOP (64923)
 // MT_LOGOSTART ( 37720) ->   26280ms -> MT_LOGOSTOP ( 38377) ->     840ms -> MT_LOGOSTART ( 38398) ->  254120ms -> MT_STOP (44751)
 //
-// invalid stop/start pair from logo change short after logo start mark, delete pair
+
+// invalid stop/start pair from change introduction logo (detected as logo) to normal logo
+// MT_LOGOSTART ( 99981) ->    7720ms -> MT_LOGOSTOP (100174) ->    1120ms -> MT_LOGOSTART (100202) -> 1098840ms -> MT_STOP (127673) -> introdution logo change (kabel eins)
+                    if (evaluateLogoStopStartPair->IntroductionLogoChannel(macontext.Info.ChannelName) &&
+                            (prevLogoStart_Stop     <= 7720) &&
+                            (stop_nextLogoStart     <= 1120) &&
+                            (nextLogoStart_nextStop >= 1098840)) {
+                        dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from introduction logo, deleting", mark->position, nextLogoStart->position);
+                        cMark *tmp = nextStop;
+                        marks.Del(nextLogoStart);
+                        marks.Del(mark);
+                        mark = tmp;
+                        continue;
+                    }
+
+// invalid stop/start pair from undetected logo change short after logo start mark, delete pair
 // MT_LOGOSTART ( 82313) ->    1120ms -> MT_LOGOSTOP ( 82341) ->     640ms -> MT_LOGOSTART ( 82357) ->    1400ms -> MT_STOP ( 82392) -> first of double logo change (TELE 5)
 // MT_LOGOSTART ( 87621) ->    1560ms -> MT_LOGOSTOP ( 87660) ->     640ms -> MT_LOGOSTART ( 87676) ->  193000ms -> MT_STOP ( 92501) -> logo change (TELE 5)
 // MT_LOGOSTART ( 82313) ->    3160ms -> MT_LOGOSTOP ( 82392) ->     280ms -> MT_LOGOSTART ( 82399) ->  381160ms -> MT_STOP ( 91928) -> second of double logo change (TELE 5)
@@ -2702,7 +2717,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                             (prevLogoStart_Stop     >= 1120) && (prevLogoStart_Stop     <=    8440) &&
                             (stop_nextLogoStart     >=  280) && (stop_nextLogoStart     <=    1120) &&
                             (nextLogoStart_nextStop >=  560) && (nextLogoStart_nextStop <= 1303560)) {
-                        dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair too short, deleting", mark->position, nextLogoStart->position);
+                        dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from logo change, deleting", mark->position, nextLogoStart->position);
                         cMark *tmp = nextStop;
                         marks.Del(nextLogoStart);
                         marks.Del(mark);
