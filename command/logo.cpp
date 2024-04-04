@@ -388,6 +388,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     // ProSieben               16:9  720W  576H:->   86W  66H TOP_RIGHT
     if (CompareChannelName(maContext->Info.ChannelName, "ProSieben", IGNORE_NOTHING)) {
         logo.heightMax =  66;
+        logo.widthMax  =  86;
     }
 
     // Pro7_MAXX               16:9  720W  576H:->  114W  64H TOP_RIGHT
@@ -415,9 +416,13 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.heightMin =  78;
         logo.heightMax = 110;
     }
-    if (CompareChannelName(maContext->Info.ChannelName, "RTLZWEI", IGNORE_NOTHING)) {               // RTLZWEI                 16:9  720W  576H:->   82W  78H BOTTOM_RIGHT
-        // RTLZWEI                  4:3  720W  576H:->   98W  80H BOTTOM_RIGHT
+
+    // RTLZWEI                 16:9  720W  576H:->   82W  80H BOTTOM_RIGHT
+    // RTLZWEI                 16:9  720W  576H:->   84W  80H BOTTOM_RIGHT
+    // RTLZWEI                  4:3  720W  576H:->   98W  80H BOTTOM_RIGHT
+    if (CompareChannelName(maContext->Info.ChannelName, "RTLZWEI", IGNORE_NOTHING)) {
         logo.widthMax  =  98;
+        logo.heightMax =  80;
     }
 
     // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
