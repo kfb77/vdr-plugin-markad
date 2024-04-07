@@ -1519,7 +1519,13 @@ int cMarkAdBlackBordersHoriz::GetFirstBorderFrame() const {
 }
 
 
+int cMarkAdBlackBordersHoriz::State() const {
+    return borderstatus;
+}
+
+
 void cMarkAdBlackBordersHoriz::Clear(const bool isRestart) {
+    dsyslog("cMarkAdBlackBordersHoriz::Clear():  clear hborder state");
     if (isRestart) borderstatus = HBORDER_RESTART;
     else           borderstatus = HBORDER_UNINITIALIZED;
     borderframenumber = -1;
@@ -2205,7 +2211,9 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
             else AddMark(MT_HBORDERSTOP, iFrameBefore);  // we use iFrame before current frame as stop mark, this was the last frame with hborder
         }
     }
-    else if (hborder) hborder->Clear();
+    else {
+        if (hborder && (hborder->State() != HBORDER_UNINITIALIZED)) hborder->Clear();
+    }
 
     // vborder change detection
     if (criteria->GetDetectionState(MT_VBORDERCHANGE)) {
@@ -2253,6 +2261,12 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
                         if (stopPos < 0) stopPos = 0;
                     }
                     AddMark(MT_ASPECTSTOP, stopPos, &aspectRatio, &maContext->Video.Info.AspectRatio);
+                    // 16:9 -> 4:3, this is end of broadcast (16:9) and start of next broadcast (4:3)
+                    // if we have activ hborder add hborder stop mark, because hborder state will be cleared
+                    if (hborder->State() == HBORDER_VISIBLE) {
+                        dsyslog("cMarkAdVideo::Process(): hborder activ during aspect ratio change from 16:9 to 4:3, add hborder stop mark");
+                        AddMark(MT_HBORDERSTOP, stopPos - 1);
+                    }
                 }
             }
             aspectRatio.num = maContext->Video.Info.AspectRatio.num;   // store new aspect ratio

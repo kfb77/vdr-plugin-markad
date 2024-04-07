@@ -505,6 +505,11 @@ public:
      */
     int Process(const int FrameNumber, int *borderFrame);
 
+    /**
+     * get horizontal border detection status
+     * @return border detection status
+     */
+    int State() const;
 
     /**
      * clear horizontal border detection status
