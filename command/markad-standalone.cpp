@@ -1248,8 +1248,20 @@ int cMarkAdStandalone::CheckStop() {
     if (!end && (criteria.GetMarkTypeState(MT_HBORDERCHANGE) <= CRITERIA_UNKNOWN)) {
         cMark *hBorderStart = marks.GetNext(iStopA - (60 * macontext.Video.Info.framesPerSecond), MT_HBORDERSTART);
         if (hBorderStart) {
-            dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after hborder start (%d) from next broadcast", hBorderStart->position);
-            marks.DelTill(hBorderStart->position, false);
+            // use logo stop mark short after hborder as end mark
+            cMark *logoStop = marks.GetNext(hBorderStart->position, MT_LOGOSTOP);
+            if (logoStop) {
+                int diff = (logoStop->position - hBorderStart->position) / macontext.Video.Info.framesPerSecond;
+                if (diff <= 2) {
+                    dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d) %ds after hborder start mark (%d), use it as end mark", logoStop->position, diff, hBorderStart->position);
+                    marks.Del(hBorderStart->position);
+                    end = logoStop;
+                }
+            }
+            else {
+                dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after hborder start (%d) from next broadcast", hBorderStart->position);
+                marks.DelTill(hBorderStart->position, false);
+            }
         }
     }
 
@@ -1282,8 +1294,8 @@ int cMarkAdStandalone::CheckStop() {
         }
     }
     // try to get hborder start mark from next broadcast as stop mark
-    if (!end) {
-        cMark *hBorderStart = marks.GetNext((iStopA - (4 *  macontext.Video.Info.framesPerSecond)), MT_HBORDERSTART);  // accept 4s before iStopA
+    if (!end && (criteria.GetMarkTypeState(MT_HBORDERCHANGE) != CRITERIA_USED)) {
+        cMark *hBorderStart = marks.GetNext((iStopA - (30 *  macontext.Video.Info.framesPerSecond)), MT_HBORDERSTART);  // accept 30s before iStopA
         if (hBorderStart) {
             dsyslog("cMarkAdStandalone::CheckStop(): found hborder start mark (%d) from next broadcast at end of recording", hBorderStart->position);
             cMark *prevMark = marks.GetPrev(hBorderStart->position, MT_ALL);
