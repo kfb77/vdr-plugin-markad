@@ -5158,11 +5158,13 @@ void cMarkAdStandalone::SilenceOptimization() {
             int lengthAfter       = 0;
             int diffAfter         = INT_MAX;
             bool lowerBefore      = false;
-            cMark *soundStopBefore = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
-            cMark *soundStopAfter  = silenceMarks.GetNext(mark->position - 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
+            cMark *soundStopBefore  = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
+            cMark *soundStartBefore = NULL;
+            cMark *soundStopAfter   = silenceMarks.GetNext(mark->position - 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
+            cMark *soundStartAfter  = NULL;
             if (soundStopBefore) {
                 diffBefore = 1000 * (mark->position - soundStopBefore->position) / macontext.Video.Info.framesPerSecond;
-                cMark *soundStartBefore = silenceMarks.GetNext(soundStopBefore->position, MT_SOUNDSTART);
+                soundStartBefore = silenceMarks.GetNext(soundStopBefore->position, MT_SOUNDSTART);
                 if (soundStartBefore) {
                     int lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): silence from (%5d) to (%5d) %8ldms before, length %4dms", mark->position, soundStopBefore->position, soundStartBefore->position, diffBefore, lengthBefore);
@@ -5176,7 +5178,7 @@ void cMarkAdStandalone::SilenceOptimization() {
             }
             if (soundStopAfter) {
                 diffAfter = 1000 * (soundStopAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
-                cMark *soundStartAfter = silenceMarks.GetNext(soundStopAfter->position, MT_SOUNDSTART);
+                soundStartAfter = silenceMarks.GetNext(soundStopAfter->position, MT_SOUNDSTART);
                 if (soundStartAfter) {
                     bool blackAfter       = false;
                     const cMark *black = blackMarks.GetAround(macontext.Video.Info.framesPerSecond, soundStopAfter->position, MT_BLACKCHANGE, 0xF0);
@@ -5223,7 +5225,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxAfter = 0;
                 }
                 if (diffAfter <= maxAfter) {
-                    int newPos = soundStopAfter->position;
+                    int newPos = soundStartAfter->position;
                     if (!macontext.Config->fullDecode) newPos = recordingIndexMark->GetIFrameAfter(newPos);
                     mark = marks.Move(mark, newPos, MT_SOUNDSTOP);
                     if (mark) {
@@ -5275,7 +5277,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxBefore = 0;
                 }
                 if ((diffBefore <= maxBefore) && (soundStopBefore->position != mark->position)) {
-                    int newPos = soundStopBefore->position;
+                    int newPos = soundStartBefore->position;
                     if (!macontext.Config->fullDecode) newPos = recordingIndexMark->GetIFrameAfter(newPos);
                     mark = marks.Move(mark, newPos, MT_SOUNDSTOP);
                     if (mark) {
