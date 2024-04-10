@@ -369,7 +369,7 @@ bool cMarkAdLogo::SetCoordinates(int *xstart, int *xend, int *ystart, int *yend,
 //        BRIGHTNESS_SEPARATOR:                   possible separation image detected
 //        BRIGHTNESS_ERROR:                       if correction not possible
 //
-int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {  // frameNumber used only for debugging
+int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber, int *contrastReduced) {  // frameNumber used only for debugging
     int xstart, xend, ystart, yend;
     if (!SetCoordinates(&xstart, &xend, &ystart, &yend, 0)) return BRIGHTNESS_ERROR;
 
@@ -474,49 +474,7 @@ int cMarkAdLogo::ReduceBrightness(const int frameNumber, int *contrastReduced) {
     dsyslog("cMarkAdLogo::ReduceBrightness(): logo area before reduction:  contrast %3d, brightness %3d", contrastLogo, brightnessLogo);
 #endif
 
-// check if we have a separation image (very bright with very log contrast in all planes)
-//
-// separation image without logo, still too bright after reduction, but need to detect as logo invisible to get a logo stop mark
-// rp=    0, contrast  20, brightness 197, plane 1: pixel diff  40, plane 2: pixel diff  40  -> bright blue separator frame (with "ZDF") (conflict)
-// rp=    0, contrast  23, brightness 198, plane 1: pixel diff  37, plane 2: pixel diff  40  -> bright yellow separator frame (with "ZWEI")
-// rp=    0, contrast  24, brightness 215, plane 1: pixel diff  29, plane 2: pixel diff  37  -> bright blue separator frame (with "ZDF")  (conflict)
-//
-// no separation images (bright picture with logo)
-// rp=    0, contrast  23, brightness 191, plane 1: pixel diff   7, plane 2: pixel diff  14
-// rp=    0, contrast  23, brightness 198, plane 1: pixel diff  39, plane 2: pixel diff  25  NEW
-// rp=    0, contrast  19, brightness 199, plane 1: pixel diff  15, plane 2: pixel diff  10
-// rp=    0, contrast  20, brightness 201, plane 1: pixel diff  10, plane 2: pixel diff   9
-// rp=    0, contrast  23, brightness 207, plane 1: pixel diff  17, plane 2: pixel diff  26
-// rp=    0, contrast  18, brightness 209, plane 1: pixel diff  23, plane 2: pixel diff  24
-// rp=    0, contrast  18, brightness 200, plane 1: pixel diff  10, plane 2: pixel diff   9
-// rp=    0, contrast  18, brightness 210, plane 1: pixel diff  21, plane 2: pixel diff  20
-//
 #define LOW_PIXEL_LOGO 61  // changed from 18 to 61
-    if ((maContext->Video.Logo.pixelRatio > LOW_PIXEL_LOGO) && (area.status == LOGO_VISIBLE) && (area.rPixel[0] == 0) && (brightnessLogo >= 197) && (brightnessLogo <= 198) && (contrastLogo <= 23)) {  // we have a very low contrast, now check plane 1 and plane 2, changed from 200 to 198
-        int diffPixel_12[2] = {0};
-        for (int line =  1; line <  (maContext->Video.Info.height / 2) - 1; line++) {  // ignore first and last line, they have sometimes weird pixel
-            for (int column = 1; column < (maContext->Video.Info.width / 2) - 2; column++) { // ignore first and last column, they have sometimes weird pixel
-                for (int plane = 1; plane < PLANES; plane++) {
-                    int diff = abs(maContext->Video.Data.Plane[plane][line * maContext->Video.Data.PlaneLinesize[plane] + column] - maContext->Video.Data.Plane[plane][line * maContext->Video.Data.PlaneLinesize[plane] + column + 1]);
-                    if (diff > diffPixel_12[plane - 1]) {
-                        diffPixel_12[plane -1] = diff;
-//                      if (plane == 1) dsyslog("+++ new max pixel: plane %d line %d column %d pixel %3d", plane, line, column, diff);
-                    }
-                }
-            }
-        }
-#ifdef DEBUG_LOGO_DETECTION
-        for (int plane = 1; plane < PLANES; plane++) {
-            dsyslog("cMarkAdLogo::ReduceBrightness(): plane %d: pixel diff %3d", plane, diffPixel_12[plane - 1]);
-        }
-#endif
-        // if we have also low pixel diff in plane 1 and plane 2, this is a separation image
-        // we can not use contrast because there is a soft colour change from right to left
-        if ((diffPixel_12[0] <= 37) && (diffPixel_12[1] <= 40)) {
-            dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%d): separation image detected", frameNumber);
-            return BRIGHTNESS_SEPARATOR;
-        }
-    }
 
 // check if contrast and brightness is valid
 // build a curve from examples
