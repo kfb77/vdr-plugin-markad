@@ -23,7 +23,7 @@
 #define LOGO_IMARK 0.18        //!< percentage of pixels for invisible changed from 0,15 to 0,18
 //!<
 
-#define MIN_H_BORDER_SECS 113  //!< minimum length of horizontal border, changed from 85 to 113, found short 112s hborder in normal broadast
+#define MIN_H_BORDER_SECS 120  //!< minimum length of horizontal border, changed from 113 to 120, found 116s black opening credits in broadast
 //!<
 #define MIN_V_BORDER_SECS 224  //!< minimum length of vertical border before it is accepted <br>
 //!< changed from 140 to 224 <br>
