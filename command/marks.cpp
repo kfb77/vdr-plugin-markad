@@ -146,11 +146,11 @@ void cMarks::DelWeakFromTo(const int from, const int to, const short int type) {
 // delete all marks <from> <to> of <type>
 // include <from> and <to>
 //
-void cMarks::DelFromTo(const int from, const int to, const short int type) {
+void cMarks::DelFromTo(const int from, const int to, const int type, const int mask) {
     cMark *mark = first;
     while (mark) {
         if (mark->position > to) return;
-        if ((mark->position >= from) && ((type == MT_ALL) || ((mark->type & 0xF0) == type))) {
+        if ((mark->position >= from) && ((type == MT_ALL) || ((mark->type & mask) == type))) {
             cMark *tmpMark = mark->Next();
             Del(mark);
             mark = tmpMark;

@@ -359,8 +359,10 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
         // cleanup channel start mark short before hborder stop, this is start mark of next broadcast
         if (channelStart) {
             int diff = 1000 * (end->position - channelStart->position) / macontext.Video.Info.framesPerSecond;
-            dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): channel start (%d) from next braodcast %dms before hborder stop (%d) found, delete channel mark", channelStart->position, diff, end->position);
-            if (diff <= 1000) marks.Del(channelStart->position);
+            if (diff <= 1000) {
+                marks.Del(channelStart->position);
+                dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): channel start (%d) from next braodcast %dms before hborder stop (%d) found, delete channel mark", channelStart->position, diff, end->position);
+            }
         }
         // optimize hborder end mark with logo stop mark in case of next broadcast is also with hborder
         if (criteria.LogoInBorder(macontext.Info.ChannelName)) {
@@ -1268,7 +1270,7 @@ int cMarkAdStandalone::CheckStop() {
                         dsyslog("cMarkAdStandalone::CheckStop(): there is an advertising before aspect ratio change, use stop mark (%d) before as end mark", stopBefore->position);
                         end = stopBefore;
                         // cleanup possible info logo or logo detection failure short before end mark
-                        if (end->type == MT_LOGOSTOP) marks.DelFromTo(end->position - (60 * macontext.Video.Info.framesPerSecond), end->position - 1, MT_LOGOCHANGE);
+                        if (end->type == MT_LOGOSTOP) marks.DelFromTo(end->position - (60 * macontext.Video.Info.framesPerSecond), end->position - 1, MT_LOGOCHANGE, 0xF0);
                     }
                 }
             }
@@ -1278,8 +1280,7 @@ int cMarkAdStandalone::CheckStop() {
 
 // try MT_HBORDERSTOP
     // try hborder end if hborder used even if we got another end mark, maybe we found a better one, but not if we have a hborder end mark
-    if (((!end || (end->type != MT_HBORDERSTOP)) && (criteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED)) ||
-            (!end && (criteria.GetMarkTypeState(MT_HBORDERCHANGE) >= CRITERIA_UNKNOWN))) {
+    if (!end || ((end->type != MT_HBORDERSTOP) && (criteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED))) {
         cMark *hBorder = Check_HBORDERSTOP();
         if (hBorder) end = hBorder;  // do not override an existing end mark with NULL
     }
@@ -1435,9 +1436,9 @@ int cMarkAdStandalone::CheckStop() {
     }
     else esyslog("could not find a end mark");
 
-    // cleanup detection failures (e.g. very long dark scenes)
-    if (criteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_UNAVAILABLE) marks.DelType(MT_HBORDERCHANGE, 0xF0);
-    if (criteria.GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_UNAVAILABLE) marks.DelType(MT_VBORDERCHANGE, 0xF0);
+    // cleanup detection failures (e.g. very long dark scenes), keep start end end mark, they can be from different type
+    if (criteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_UNAVAILABLE) marks.DelFromTo(marks.First()->position + 1, end->position - 1, MT_HBORDERCHANGE, 0xF0);
+    if (criteria.GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_UNAVAILABLE) marks.DelFromTo(marks.First()->position + 1, end->position - 1, MT_VBORDERCHANGE, 0xF0);
 
     iStop = iStopA = 0;
     gotendmark = true;
@@ -1572,14 +1573,14 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
                     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
                 }
                 evaluateLogoStopStartPair->SetIsInfoLogo(stopPosition, startPosition);
-                marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
+                marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE, 0xF0);  // maybe there a false start/stop inbetween
             }
             // check logo change
             if ((isLogoChange >= STATUS_UNKNOWN) && ptr_cDetectLogoStopStart->IsLogoChange()) {
                 if (indexToHMSFStop && indexToHMSFStart) {
                     isyslog("logo change between frame (%6d) at %s and (%6d) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
                 }
-                marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE);  // maybe there a false start/stop inbetween
+                marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE, 0xF0);  // maybe there a false start/stop inbetween
             }
         }
     }
@@ -1959,7 +1960,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             (criteria.GetMarkTypeState(MT_ASPECTCHANGE)  == CRITERIA_USED) ||
             (criteria.GetMarkTypeState(MT_CHANNELCHANGE) == CRITERIA_USED)) {
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): stronger marks are set for detection, use logo mark only for start mark, delete logo marks after (%d)", begin->position);
-        marks.DelFromTo(begin->position + 1, INT_MAX, MT_LOGOCHANGE);
+        marks.DelFromTo(begin->position + 1, INT_MAX, MT_LOGOCHANGE, 0xF0);
     }
     else {
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo marks set for detection, cleanup late hborder and vborder stop marks from previous broadcast");
@@ -3328,13 +3329,13 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
                 // remove marks witch will become invalid after applying VPS event
                 switch (type) {
                 case MT_START:
-                    marks.DelFromTo(0, mark->position - 1, 0xFF);
+                    marks.DelFromTo(0, mark->position - 1, MT_ALL, 0xFF);
                     break;
                 case MT_STOP: {  // delete all marks between stop mark before VPS stop event (included) and current end mark (not included)
                     int delStart = vpsFrame;
                     const cMark *prevMark = marks.GetPrev(vpsFrame);
                     if (prevMark && ((prevMark->type & 0x0F) == MT_STOP)) delStart = prevMark->position;
-                    marks.DelFromTo(delStart, mark->position - 1, 0xFF);
+                    marks.DelFromTo(delStart, mark->position - 1, MT_ALL, 0xFF);
                 }
                 break;
                 default:

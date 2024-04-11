@@ -195,8 +195,9 @@ public:
      * @param from start position
      * @param to   end position
      * @param type mark type to delete
+     * @param type mask for type
      */
-    void DelFromTo(const int from, const int to, const short int type);
+    void DelFromTo(const int from, const int to, const int type, const int mask);
 
     /**
      * delete marks from/to position
