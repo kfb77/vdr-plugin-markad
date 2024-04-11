@@ -1,6 +1,13 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-04-11: Version 3.5.2
+- fix end mark for 6 channel double episodes with hborder
+- fix start mark for 4:3 double episode
+- fix logo end mark if hborder broadcast follows
+- fix hborder end mark if 4:3 broadcast follows
+- some minor bug fixes and optimizations, see git
+
 2024-03-31: Version 3.5.1
 - fix start mark for hborder double episode
 - tune thresholds for new lower border feature
