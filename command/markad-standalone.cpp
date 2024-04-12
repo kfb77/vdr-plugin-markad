@@ -1028,7 +1028,8 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
             }
         }
 
-        // check sequence: MT_LOGOSTOP -> MT_NOBLACKSTOP -> MT_NOBLACKSTART -> MT_LOGOSTART  (black screen between logo end mark and start of next broadcast)
+        // check sequence: MT_LOGOSTOP -> MT_NOBLACKSTOP -> MT_NOBLACKSTART -> MT_LOGOSTART
+        // black screen between logo end mark and start of next broadcast, near (depends on fade out logo) by logo end mark
         cMark *blackStart = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTOP);
         if (blackStart) {
             blackStop = blackMarks.GetNext(blackStart->position, MT_NOBLACKSTART);
@@ -1039,18 +1040,29 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     int diffBlackStartBlackStop = 1000 * (blackStop->position  - blackStart->position) /  macontext.Video.Info.framesPerSecond;
                     int diffBlackStopLogoStart  = 1000 * (logoStart->position  - blackStop->position)  /  macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%5d) -> %5dms -> MT_NOBLACKSTOP (%5d) -> %5dms ->  MT_NOBLACKSTART (%5d) -> %6dms -> MT_LOGOSTART (%5d)", mark->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, logoStart->position);
-// valid sequence
-// MT_LOGOSTOP (86549) ->    80ms -> MT_NOBLACKSTOP (86551) ->   280ms ->  MT_NOBLACKSTART (86558) ->  31800ms -> MT_LOGOSTART (87353)
-// MT_LOGOSTOP (84786) ->   120ms -> MT_NOBLACKSTOP (84789) ->   240ms ->  MT_NOBLACKSTART (84795) ->   1800ms -> MT_LOGOSTART (84840)
-// MT_LOGOSTOP (91313) ->   180ms -> MT_NOBLACKSTOP (91322) ->   120ms ->  MT_NOBLACKSTART (91328) ->   1940ms -> MT_LOGOSTART (91425)  (conflict)
-// MT_LOGOSTOP (72210) ->  1400ms -> MT_NOBLACKSTOP (72245) ->   200ms ->  MT_NOBLACKSTART (72250) -> 104320ms -> MT_LOGOSTART (74858)  TLC
-// MT_LOGOSTOP (72310) ->  4240ms -> MT_NOBLACKSTOP (72416) ->   440ms ->  MT_NOBLACKSTART (72427) ->    800ms -> MT_LOGOSTART (72447)
+// channel with fade out logo
+// valid sequence:
+// MT_LOGOSTOP (72210) ->  1400ms -> MT_NOBLACKSTOP (72245) ->   200ms ->  MT_NOBLACKSTART (72250) -> 104320ms -> MT_LOGOSTART (74858) -> TLC
+// MT_LOGOSTOP (86133) ->  1320ms -> MT_NOBLACKSTOP (86166) ->  2120ms ->  MT_NOBLACKSTART (86219) ->  16000ms -> MT_LOGOSTART (86619) -> Disney Channel
+// MT_LOGOSTOP (72310) ->  4240ms -> MT_NOBLACKSTOP (72416) ->   440ms ->  MT_NOBLACKSTART (72427) ->    800ms -> MT_LOGOSTART (72447) -> Disney Channel
 //
-// invalid example
-// MT_LOGOSTOP (81485) ->  4040ms -> MT_NOBLACKSTOP (81586) ->   160ms ->  MT_NOBLACKSTART (81590) ->  95920ms -> MT_LOGOSTART (83988) -> RTLZWEI, sequence in preview
+// invalid sequence:
 // MT_LOGOSTOP (38975) ->  1360ms -> MT_NOBLACKSTOP (39009) ->   120ms ->  MT_NOBLACKSTART (39012) ->   4520ms -> MT_LOGOSTART (39125) -> Nickelodeon, black screen after preview
 // MT_LOGOSTOP (39756) ->  1480ms -> MT_NOBLACKSTOP (39793) ->   120ms ->  MT_NOBLACKSTART (39796) ->   4520ms -> MT_LOGOSTART (39909) -> Nickelodeon, black screen after preview
-                    if ((diffLogoStopBlackStart <= 4240) && (diffBlackStartBlackStop >= 200) && (diffBlackStartBlackStop < 104320) && (diffBlackStopLogoStart < 95920)) {
+//
+                    if (criteria.LogoFadeOut(macontext.Info.ChannelName) &&
+                            (diffLogoStopBlackStart <= 4240) && (diffBlackStartBlackStop >= 200) && (diffBlackStopLogoStart <= 104320)) {
+                        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is valid", mark->position);
+                        return true;
+                    }
+// channel without fade out logo
+// valid sequence:
+// MT_LOGOSTOP (81055) ->     0ms -> MT_NOBLACKSTOP (81055) ->    40ms ->  MT_NOBLACKSTART (81056) ->   1680ms -> MT_LOGOSTART (81098) -> RTL2
+//
+// invalid sequence:
+// MT_LOGOSTOP (81485) ->  4040ms -> MT_NOBLACKSTOP (81586) ->   160ms ->  MT_NOBLACKSTART (81590) ->  95920ms -> MT_LOGOSTART (83988) -> RTLZWEI, sequence in preview
+                    if (!criteria.LogoFadeOut(macontext.Info.ChannelName) &&
+                            (diffLogoStopBlackStart < 4040) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 1680)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is valid", mark->position);
                         return true;
                     }
