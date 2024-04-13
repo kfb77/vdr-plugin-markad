@@ -1035,7 +1035,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                     }
                 }
                 if (cutColumn > static_cast<int>((*logoWidth * 0.5))) {  // do not cut too much, could be a space in the logo (e.g. VOXup)
-                    if ((bottomBlackPixel - topBlackPixel) <= 19) {
+                    if ((bottomBlackPixel - topBlackPixel) <= 24) {  // chnaged from 19 to 24 (ZDF HD tivi)
                         dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
                         CutOut(bestLogoInfo, 0, *logoWidth - cutColumn, logoHeight, logoWidth, bestLogoCorner);
                     }
