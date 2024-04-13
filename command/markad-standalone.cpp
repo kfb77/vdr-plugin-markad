@@ -4846,7 +4846,8 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if ((lengthBefore >= 640) && (lengthBefore <= 4480)) maxBefore = 139360;
+                        if (criteria.GoodVPS(macontext.Info.ChannelName))         maxBefore =  40059;
+                        else if ((lengthBefore >= 640) && (lengthBefore <= 4480)) maxBefore = 139360;
                         break;
                     default:
                         maxBefore = -1;
@@ -4964,7 +4965,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if ((lengthAfter >= 1560) && (lengthAfter <= 1920)) maxAfter = 161240;
+                        if ((lengthAfter >= 1560) && (lengthAfter <= 29800)) maxAfter = 161240;
                         break;
                     default:
                         maxAfter = -1;
