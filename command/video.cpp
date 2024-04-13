@@ -483,9 +483,8 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
     // false negativ, logo is visible but not detected
     // contrast 192, brightness 109
     // contrast 190, brightness 104
-    if (((contrastLogo > 162) && (brightnessLogo < 104) && (maContext->Video.Logo.pixelRatio >  LOW_PIXEL_LOGO)) ||   // contrastLogo changed from 164 to 162
-            // brightnessLogo changed from 110 to 104
-            // do not increase, we will get undetected logos in bright area
+    // contrast 216, brightness  96
+    if (((contrastLogo > 162) && (brightnessLogo < 96) && (maContext->Video.Logo.pixelRatio >  LOW_PIXEL_LOGO)) ||
             ((contrastLogo > 162) && (brightnessLogo <  91) && (maContext->Video.Logo.pixelRatio <= LOW_PIXEL_LOGO))) {
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): very high contrast with not very high brightness in logo area, trust detection");
