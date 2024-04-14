@@ -1336,7 +1336,7 @@ int cMarkAdStandalone::CheckStop() {
     }
     // try to get hborder start mark from next broadcast as stop mark
     if (!end && (criteria.GetMarkTypeState(MT_HBORDERCHANGE) != CRITERIA_USED)) {
-        cMark *hBorderStart = marks.GetNext((iStopA - (30 *  macontext.Video.Info.framesPerSecond)), MT_HBORDERSTART);  // accept 30s before iStopA
+        cMark *hBorderStart = marks.GetNext((iStopA - (240 *  macontext.Video.Info.framesPerSecond)), MT_HBORDERSTART);  // accept max 4 min before iStopA
         if (hBorderStart) {
             dsyslog("cMarkAdStandalone::CheckStop(): found hborder start mark (%d) from next broadcast at end of recording", hBorderStart->position);
             cMark *prevMark = marks.GetPrev(hBorderStart->position, MT_ALL);
