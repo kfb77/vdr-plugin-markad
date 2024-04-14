@@ -283,10 +283,12 @@ cMark *cMarkAdStandalone::Check_CHANNELSTOP() {
     if (end) {  // we found a channel end mark
         cMark *startMark = marks.GetFirst();
         int startChannelPos = startMark->position;
-        // take care of first 2 marks, can be hborder start and hborder stop if we have two broadcasts with 6 channels in the recording
+        // take care of first 2 marks,
+        // can be hborder start and hborder stop if we have two broadcasts with 6 channels and hborder only in second bronadcast in the recording
+        // can be black screen start and hborder stop if we have two broadcasts with both 6 channels and hborder in the recording
         if (criteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_AVAILABLE) {
             const cMark *nextMark  = marks.GetNext(startMark->position, MT_ALL);
-            if (nextMark && (startMark->type == MT_HBORDERSTART) && (nextMark->type == MT_HBORDERSTOP)) startChannelPos = nextMark->position;
+            if (nextMark && (nextMark->type == MT_HBORDERSTOP)) startChannelPos = nextMark->position;
         }
         marks.DelWeakFromTo(startChannelPos + 1, end->position, MT_CHANNELCHANGE); // delete all weak marks, except start mark
         dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): MT_CHANNELSTOP end mark (%d) found", end->position);
