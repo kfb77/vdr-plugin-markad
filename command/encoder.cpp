@@ -402,11 +402,14 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
     if (!avCodecCtxIn) return false;
 
 
+    // cleanup output codec context
 #if LIBAVCODEC_VERSION_INT >= ((60<<16)+(39<<8)+100)
     dsyslog("cEncoder::ChangeEncoderCodec(): call avcodec_free_context");
+    FREE(sizeof(*codecCtxArrayOut[streamIndexOut]), "codecCtxArrayOut[streamIndex]");
     avcodec_free_context(&codecCtxArrayOut[streamIndexOut]);
 #else
     dsyslog("cEncoder::ChangeEncoderCodec(): call avcodec_close");
+    FREE(sizeof(*codecCtxArrayOut[streamIndexOut]), "codecCtxArrayOut[streamIndex]");
     avcodec_close(codecCtxArrayOut[streamIndexOut]);
 #endif
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100)  // ffmpeg 4.5
@@ -422,15 +425,23 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
     }
     dsyslog("cEncoder::ChangeEncoderCodec(): using decoder id %s for output stream %i", codec->long_name, streamIndexOut);
 
-    codecCtxArrayOut[streamIndexOut]->time_base.num =  avCodecCtxIn->time_base.num;
+    // allocate output codec context
+    codecCtxArrayOut[streamIndexOut] = avcodec_alloc_context3(codec);
+    if (!codecCtxArrayOut[streamIndexOut]) {
+        esyslog("cEncoder::ChangeEncoderCodec(): failed to allocate codec context for output stream %d", streamIndexOut);
+        return false;
+    }
+    ALLOC(sizeof(*codecCtxArrayOut[streamIndexOut]), "codecCtxArrayOut[streamIndex]");
+
+    codecCtxArrayOut[streamIndexOut]->time_base.num = avCodecCtxIn->time_base.num;
     codecCtxArrayOut[streamIndexOut]->time_base.den = avCodecCtxIn->time_base.den;
     if (ptr_cDecoder->IsVideoStream(streamIndexIn)) {
         codecCtxArrayOut[streamIndexOut]->pix_fmt = avCodecCtxIn->pix_fmt;
-        codecCtxArrayOut[streamIndexOut]->height = avCodecCtxIn->height;
-        codecCtxArrayOut[streamIndexOut]->width = avCodecCtxIn->width;
+        codecCtxArrayOut[streamIndexOut]->height  = avCodecCtxIn->height;
+        codecCtxArrayOut[streamIndexOut]->width   = avCodecCtxIn->width;
     }
     else if (ptr_cDecoder->IsAudioStream(streamIndexIn)) {
-        codecCtxArrayOut[streamIndexOut]->sample_fmt = avCodecCtxIn->sample_fmt;
+        codecCtxArrayOut[streamIndexOut]->sample_fmt  = avCodecCtxIn->sample_fmt;
         codecCtxArrayOut[streamIndexOut]->sample_rate = avCodecCtxIn->sample_rate;
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 37<<8)+100)
         int rc = av_channel_layout_copy(&codecCtxArrayOut[streamIndexOut]->ch_layout, &codecCtxArrayIn[streamIndexIn]->ch_layout);
@@ -439,11 +450,11 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
             return false;
         }
 #elif LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-        codecCtxArrayOut[streamIndexOut]->ch_layout.u.mask = avCodecCtxIn->ch_layout.u.mask;
+        codecCtxArrayOut[streamIndexOut]->ch_layout.u.mask      = avCodecCtxIn->ch_layout.u.mask;
         codecCtxArrayOut[streamIndexOut]->ch_layout.nb_channels = avCodecCtxIn->ch_layout.nb_channels;
 #else
         codecCtxArrayOut[streamIndexOut]->channel_layout = avCodecCtxIn->channel_layout;
-        codecCtxArrayOut[streamIndexOut]->channels = avCodecCtxIn->channels;
+        codecCtxArrayOut[streamIndexOut]->channels       = avCodecCtxIn->channels;
 #endif
     }
     else {
