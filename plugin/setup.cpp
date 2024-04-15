@@ -58,7 +58,7 @@ void cSetupMarkAd::write(void) {
         Add(new cMenuEditBoolItem(tr("scan only channels with logo"), &logoonly), true);
         lpos = Current();
         Add(new cMenuEditBoolItem(tr("deferred shutdown"), &deferredshutdown));
-        Add(new cMenuEditBoolItem(tr("ignore timer margins"), &nomargins));
+        Add(new cMenuEditBoolItem(tr("ignore timer margins (deprecated, will be removed in next version)"), &nomargins));
         Add(new cMenuEditBoolItem(tr("optimize marks (overlaps and logo marks adjustments"), &secondpass));
         Add(new cMenuEditBoolItem(tr("OSD message"), &osdmsg));
         Add(new cMenuEditIntItem(tr("SVDR port number"), &svdrPort));

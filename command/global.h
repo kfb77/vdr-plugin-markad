@@ -147,7 +147,7 @@ typedef struct sMarkAdConfig {
     //!
     int logoHeight;             //!< height for logo extraction
     //!<
-    int ignoreInfo;             //!< <b>true:</b> ignore vdr info file <br>
+    int ignoreInfo = 0;         //!< <b>true:</b> ignore vdr info file <br>
     //!< <b>false:</b> use data from vdr info file
     //!<
     int threads;                //!< number of threads for decoder and encoder

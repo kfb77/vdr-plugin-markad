@@ -6548,6 +6548,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
     macontext.Info.tStart = iStart = iStop = iStopA = 0;
 
+    if (config->ignoreInfo != 0) esyslog("parameter ignoreinfo is deprecated and will be removed in next version");
     if ((config->ignoreInfo & IGNORE_TIMERINFO) == IGNORE_TIMERINFO) {
         bIgnoreTimerInfo = true;
     }
@@ -7066,41 +7067,39 @@ int main(int argc, char *argv[]) {
         int option_index = 0;
         static struct option long_options[] =
         {
-            {"background", 0, 0, 'b'},
-            {"disable", 1, 0, 'd'},
-            {"ignoreinfo", 1, 0, 'i' },
+            {"background",   0, 0, 'b'},
+            {"disable",      1, 0, 'd'},
+            {"ignoreinfo",   1, 0, 'i' },
             {"logocachedir", 1, 0, 'l'},
-            {"priority",1,0,'p'},
-            {"ioprio",1,0,'r'},
-            {"verbose", 0, 0, 'v'},
-
-            {"backupmarks", 0, 0, 'B'},
-            {"saveinfo",0, 0, 'I'},
-            {"extractlogo", 1, 0, 'L'},
-            {"OSD",0,0,'O' },
-            {"log2rec",0,0,'R'},
-            {"threads", 1, 0, 'T'},
-            {"version", 0, 0, 'V'},
-
-            {"markfile",1,0,1},
-            {"loglevel",1,0,2},
-            {"online",2,0,3},
-            {"nopid",0,0,4},
-            {"svdrphost",1,0,5},
-            {"svdrpport",1,0,6},
-            {"pass2only",0,0,7},
-            {"pass1only",0,0,8},
-            {"astopoffs",1,0,9},
-            {"posttimer",1,0,10},
-            {"cDecoder",0,0,11},
-            {"cut",0,0,12},
-            {"ac3reencode",0,0,13},
-            {"vps",0,0,14},
-            {"logfile",1,0,15},
-            {"autologo",1,0,16},
-            {"fulldecode",0,0,17},
-            {"fullencode",1,0,18},
-            {"pts",0,0,19},
+            {"priority",     1, 0, 'p'},
+            {"ioprio",       1, 0, 'r'},
+            {"verbose",      0, 0, 'v'},
+            {"backupmarks",  0, 0, 'B'},
+            {"saveinfo",     0, 0, 'I'},
+            {"extractlogo",  1, 0, 'L'},
+            {"OSD",          0, 0, 'O' },
+            {"log2rec",      0, 0, 'R'},
+            {"threads",      1, 0, 'T'},
+            {"version",      0, 0, 'V'},
+            {"markfile",     1, 0,  1},
+            {"loglevel",     1, 0,  2},
+            {"online",       2, 0,  3},
+            {"nopid",        0, 0,  4},
+            {"svdrphost",    1, 0,  5},
+            {"svdrpport",    1, 0,  6},
+            {"pass2only",    0, 0,  7},
+            {"pass1only",    0, 0,  8},
+            {"astopoffs",    1, 0,  9},
+            {"posttimer",    1, 0, 10},
+            {"cDecoder",     0, 0, 11},
+            {"cut",          0, 0, 12},
+            {"ac3reencode",  0, 0, 13},
+            {"vps",          0, 0, 14},
+            {"logfile",      1, 0, 15},
+            {"autologo",     1, 0, 16},
+            {"fulldecode",   0, 0, 17},
+            {"fullencode",   1, 0, 18},
+            {"pts",          0, 0, 19},
 
             {0, 0, 0, 0}
         };
@@ -7116,6 +7115,7 @@ int main(int argc, char *argv[]) {
         case 'i':
             // --ignoreinfo
             config.ignoreInfo = atoi(optarg);
+            fprintf(stderr, "markad: parameter ignoreinfo is deprecated and will be removed in next version\n");
             if ((config.ignoreInfo < 1) || (config.ignoreInfo > 255)) {
                 fprintf(stderr, "markad: invalid ignoreinfo option: %s\n", optarg);
                 return 2;
