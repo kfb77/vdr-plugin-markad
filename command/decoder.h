@@ -50,14 +50,12 @@ extern "C" {
 //
 // #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   ffmpeg 3.4.11 (Ubuntu 18.04, End of Life: April 2028)
 // #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 60<<8)+100)   ffmpeg 2.8.17 (Ubuntu 16.04) End of Life: April 2026)
-// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 57<<8)+100)   ffmpeg 2.7.2  (Ubuntu 14.04, End of Life: April 2024)
-#define LIBAVCODEC_VERSION_DEPRECATED ((56<<16)+( 57<<8)+100)   // oldest deprecated version, older is invalid
+#define LIBAVCODEC_VERSION_DEPRECATED ((56<<16)+( 60<<8)+100)   // oldest deprecated version, older is invalid
 
 
 // end of life markad ffmpeg versions (based on Ubuntu LTS has no support at all)
 //
-// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 26<<8)+100)   ffmpeg 2      (Debian 8 Jessie)
-// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+(  1<<8)+  0)   ffmpeg 2.4    (Rasbian Jessie)
+// #if LIBAVCODEC_VERSION_INT >= ((54<<16)+( 35<<8)+1)     avconv 9.20  (Ubuntu 14.04, End of Life: April 2024)
 
 
 /**
