@@ -58,6 +58,35 @@ cVPS::~cVPS() {
 }
 
 
+void cVPS::LogMatch(char *channel, cMarks *marks) const {
+    if (!marks) return;
+    int diffStart = -1;
+    int diffStop = -1;
+    int startVPS = GetStart();
+    if (startVPS >= 0) {
+        cMark *start = marks->GetFirst();
+        if (start && ((start->type & 0x0F) == MT_START) && (start->type != MT_VPSSTART) && (start->oldType != MT_VPSSTART)) {
+            int startMark = start->GetTimeSeconds();
+            if (startMark >= 0) {
+                diffStart = abs(startMark - startVPS);
+                dsyslog("VPS start:      %s: event: %6ds, mark: %6ds, difference: %5ds", channel, startVPS, startMark, diffStart);
+            }
+        }
+    }
+    int stopVPS = GetStop();
+    if (stopVPS >= 0) {
+        cMark *stop = marks->GetLast();
+        if (stop && ((stop->type & 0x0F) == MT_STOP) && (stop->type != MT_VPSSTOP) && (stop->oldType != MT_VPSSTOP)) {
+            int stopMark = stop->GetTimeSeconds();
+            if (stopMark >= 0) {
+                diffStop = abs(stopMark - stopVPS);
+                dsyslog("VPS stop:       %s: event: %6ds, mark: %6ds, difference: %5ds", channel, stopVPS, stopMark, diffStop);
+            }
+        }
+    }
+    if ((diffStart >= 0) && (diffStop >= 0)) dsyslog("VPS difference: %s: %6ds", channel, diffStart + diffStop);
+}
+
 int cVPS::Length() const {
     if ((vpsStart >= 0) && (vpsStop >= 0)) {
         int length = vpsStop - vpsStart;

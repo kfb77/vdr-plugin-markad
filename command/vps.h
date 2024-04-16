@@ -5,6 +5,10 @@
  *
  */
 
+#ifndef __vps_h_
+#define __vps_h_
+
+#include "marks.h"
 
 /**
  * class for VPS events
@@ -67,6 +71,13 @@ public:
      */
     int Length() const;
 
+    /**
+     * log match of start and end mark with VPS events
+     * @param channel name of channel
+     * @param marks object with all marks
+     */
+    void LogMatch(char *channel, cMarks *marks) const;
+
 private:
     int vpsStart      = -1;  //!< VPS start event offset from recodering start in s
     //!<
@@ -77,3 +88,4 @@ private:
     int vpsPauseStop  = -1;  //!< VPS pause start event offset from recodering start in s
     //!<
 };
+#endif

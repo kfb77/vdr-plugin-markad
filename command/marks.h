@@ -77,8 +77,15 @@ public:
     /**
      * set PTS based time offset text from mark position
      * @param time pointer to char array, NULL is valid and clears value
+     * @param offset in seconds from recording start
      */
-    void SetTime(char* time);
+    void SetTime(char* time, int offset);
+
+    /**
+     * get time offset in seconds from recording start from mark position
+     * @return offset from recording start in seconds
+     */
+    int GetTimeSeconds() const;
 
     /**
      * get PTS based time offset text from mark position
@@ -116,6 +123,8 @@ private:
     cMark *prev         = NULL;       //!< previous mark
     //!<
     char *timeOffsetPTS = NULL;       //!< time stamp of the mark position
+    //!<
+    int secOffsetPTS    = -1;         //!< offset in seconds to recording start of the mark position
     //!<
 };
 
@@ -170,9 +179,10 @@ public:
      * convert frame number to time string
      * @param frameNumber frame number
      * @param isVDR true: calculate timestamp based on frame number, false: calculate timestamp based on PTS of frame number
+     * @param offsetSeconds offset in seconds since recording start
      * @return time string
      */
-    char *IndexToHMSF(const int frameNumber, const bool isVDR = false);
+    char *IndexToHMSF(const int frameNumber, const bool isVDR, int *offsetSeconds = NULL);
 
     /**
      * get PTS based time offset of mark position
@@ -195,7 +205,7 @@ public:
      * @param from start position
      * @param to   end position
      * @param type mark type to delete
-     * @param type mask for type
+     * @param mask apply mask for type
      */
     void DelFromTo(const int from, const int to, const int type, const int mask);
 

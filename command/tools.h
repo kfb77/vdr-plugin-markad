@@ -33,6 +33,9 @@ public:
     bool CompareChannelName(const char *nameA, const char *nameB, const int flags);
 
 private:
+    /**
+    * list of cities in channel name to ignore
+    */
     const char* cities[15] = {
         "_BERLIN",
         "_BRANDENBURG",

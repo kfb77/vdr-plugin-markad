@@ -42,6 +42,7 @@ cMark::cMark(const int typeParam, const int oldTypeParam, const int newTypeParam
     prev          = NULL;
     next          = NULL;
     timeOffsetPTS = NULL;
+    secOffsetPTS  = -1;
 }
 
 
@@ -58,7 +59,7 @@ cMark::~cMark() {
 
 
 // set PTS based time offset text from mark position
-void cMark::SetTime(char* time) {
+void cMark::SetTime(char* time, int offset) {
     if (!time) {
         if (timeOffsetPTS) {
             FREE(strlen(timeOffsetPTS)+1, "timeOffsetPTS");
@@ -66,8 +67,14 @@ void cMark::SetTime(char* time) {
         }
     }
     else timeOffsetPTS = time;
+    secOffsetPTS = offset;
 }
 
+
+// get PTS based time offset in seconds from mark position
+int cMark::GetTimeSeconds() const {
+    return secOffsetPTS;
+}
 
 // get PTS based time offset text from mark position
 char *cMark::GetTime() {
@@ -697,7 +704,7 @@ void cMarks::RegisterIndex(cIndex *recordingIndex) {
 }
 
 
-char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR) {
+char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR, int *offsetSeconds) {
     if (!recordingIndexMarks) {
         esyslog("cMarks::IndexToHMSF(): frame (%d): recording index not set", frameNumber);
         return NULL;
@@ -715,6 +722,7 @@ char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR) {
         return NULL;
     }
     int s = int(Seconds);
+    if (offsetSeconds) *offsetSeconds = s;
     int m = s / 60 % 60;
     int h = s / 3600;
     s %= 60;
@@ -730,16 +738,17 @@ char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR) {
  */
 char *cMarks::GetTime(cMark *mark) {
     if (!mark) return NULL;
-    char *time = mark->GetTime();
-    if (!time) {
-        time = IndexToHMSF(mark->position, false);
-        if (time) {
-            ALLOC(strlen(time)+1, "timeOffsetPTS");
+    char *timeChar = mark->GetTime();
+    if (!timeChar) {
+        int timeSec = -1;
+        timeChar = IndexToHMSF(mark->position, false, &timeSec);
+        if (timeChar) {
+            ALLOC(strlen(timeChar)+1, "timeOffsetPTS");
         }
-        mark->SetTime(time);
+        mark->SetTime(timeChar, timeSec);
     }
-    if (!time) esyslog("cMarks::GetTime(): frame (%d): failed to get time from index", mark->position);
-    return time;
+    if (!timeChar) esyslog("cMarks::GetTime(): frame (%d): failed to get time from index", mark->position);
+    return timeChar;
 }
 
 

@@ -1,0 +1,6 @@
+#!/bin/bash
+# show difference form VPS events to marks from markad.log
+
+VIDEO="/media/Video/VDR"
+
+grep -r "VPS difference:" --include "markad.log" $VIDEO | awk -F  ": " '{printf "%20-s %5ds\n", $3, $4}' | sort -k1,1 -k2,2n

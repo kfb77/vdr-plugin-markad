@@ -1180,7 +1180,7 @@ int cMarkAdStandalone::CheckStop() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStop(): start check stop (%d)", frameCurrent);
 
-    char *indexToHMSF = marks.IndexToHMSF(iStopA);
+    char *indexToHMSF = marks.IndexToHMSF(iStopA, false);
     if (indexToHMSF) {
         ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
         dsyslog("assumed stop position (%d) at %s", iStopA, indexToHMSF);
@@ -1551,12 +1551,12 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
             free(indexToHMSFStart);
         }
         // get time of marks and log marks
-        indexToHMSFStop = marks.IndexToHMSF(stopPosition);
+        indexToHMSFStop = marks.IndexToHMSF(stopPosition, false);
         if (indexToHMSFStop) {
             ALLOC(strlen(indexToHMSFStop)+1, "indexToHMSF");
         }
 
-        indexToHMSFStart = marks.IndexToHMSF(startPosition);
+        indexToHMSFStart = marks.IndexToHMSF(startPosition, false);
         if (indexToHMSFStart) {
             ALLOC(strlen(indexToHMSFStart)+1, "indexToHMSF");
         }
@@ -2214,7 +2214,7 @@ void cMarkAdStandalone::CheckStart() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStart(): checking start at frame (%d) check start planed at (%d)", frameCurrent, chkSTART);
     int maxStart = iStartA + (length * macontext.Video.Info.framesPerSecond / 2);  // half of recording
-    char *indexToHMSFStart = marks.IndexToHMSF(iStartA);
+    char *indexToHMSFStart = marks.IndexToHMSF(iStartA, false);
     if (indexToHMSFStart) {
         ALLOC(strlen(indexToHMSFStart) + 1, "indexToHMSFStart");
         dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %d at %s, max allowed start frame (%d)", iStartA, indexToHMSFStart, maxStart);
@@ -3296,7 +3296,7 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
     char *comment = NULL;
     char *timeText = NULL;
     if (!isPause) {
-        char *indexToHMSF = marks.IndexToHMSF(vpsFrame);
+        char *indexToHMSF = marks.IndexToHMSF(vpsFrame, false);
         if (indexToHMSF) {
             ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
         }
@@ -3306,7 +3306,7 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
         mark = ((type == MT_START)) ? marks.GetNext(0, MT_START, 0x0F) : marks.GetPrev(INT_MAX, MT_STOP, 0x0F);
     }
     else {
-        char *indexToHMSF = marks.IndexToHMSF(vpsFrame);
+        char *indexToHMSF = marks.IndexToHMSF(vpsFrame, false);
         if (indexToHMSF) {
             ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
         }
@@ -3565,7 +3565,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         sceneMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, NULL, inBroadCast);
         if (comment) {
 #ifdef DEBUG_WEAK_MARKS
-            char *indexToHMSF = marks.IndexToHMSF(mark->position);
+            char *indexToHMSF = marks.IndexToHMSF(mark->position, false);
             if (indexToHMSF) {
                 ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
                 if (indexToHMSF) {
@@ -3582,7 +3582,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     case MT_SOUNDCHANGE:
         silenceMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, NULL, inBroadCast);
         if (comment) {
-            char *indexToHMSF = marks.IndexToHMSF(mark->position);
+            char *indexToHMSF = marks.IndexToHMSF(mark->position, false);
             if (indexToHMSF) {
                 ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
                 dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
@@ -3597,7 +3597,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     case MT_BLACKCHANGE:
         blackMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, NULL, inBroadCast);
         if (comment) {
-            char *indexToHMSF = marks.IndexToHMSF(mark->position);
+            char *indexToHMSF = marks.IndexToHMSF(mark->position, false);
             if (indexToHMSF) {
                 ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
                 dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
@@ -3619,7 +3619,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         if (mark->type == MT_RECORDINGSTART) {
             if (asprintf(&indexToHMSF, "00:00:00.00") == -1) esyslog("cMarkAdStandalone::AddMark(): asprintf failed");  // we have no index to get time for position 0
         }
-        else indexToHMSF = marks.IndexToHMSF(mark->position);
+        else indexToHMSF = marks.IndexToHMSF(mark->position, false);
         if (indexToHMSF) {
             ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
             if (comment) isyslog("%s at %s", comment, indexToHMSF);
@@ -3832,7 +3832,7 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
     }
 
 // seek to start frame of overlap check
-    char *indexToHMSF = marks.IndexToHMSF(fRangeBegin);
+    char *indexToHMSF = marks.IndexToHMSF(fRangeBegin, false);
     if (indexToHMSF) {
         ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
         dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): start check %ds before start mark (%d) from frame (%d) at %s", OVERLAP_CHECK_BEFORE, (*mark1)->position, fRangeBegin, indexToHMSF);
@@ -3893,7 +3893,7 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
         return false;
     }
     if (fRangeBegin <  ptr_cDecoder->GetFrameNumber()) fRangeBegin = ptr_cDecoder->GetFrameNumber(); // on very short stop/start pairs we have no room to go before start mark
-    indexToHMSF = marks.IndexToHMSF(fRangeBegin);
+    indexToHMSF = marks.IndexToHMSF(fRangeBegin, false);
     if (indexToHMSF) {
         ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
         dsyslog("cMarkAdStandalone::ProcessMarkOverlap(): seek forward to frame (%d) at %s before start mark (%d) and start overlap check", fRangeBegin, indexToHMSF, (*mark2)->position);
@@ -3940,22 +3940,22 @@ bool cMarkAdStandalone::ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark
             int lengthBefore = 1000 * (overlapPos.similarBeforeEnd - overlapPos.similarBeforeStart + 1) / macontext.Video.Info.framesPerSecond; // include first and last
             int lengthAfter  = 1000 * (overlapPos.similarAfterEnd  - overlapPos.similarAfterStart + 1)  / macontext.Video.Info.framesPerSecond;
 
-            char *indexToHMSFbeforeStart = marks.IndexToHMSF(overlapPos.similarBeforeStart);
+            char *indexToHMSFbeforeStart = marks.IndexToHMSF(overlapPos.similarBeforeStart, false);
             if (indexToHMSFbeforeStart) {
                 ALLOC(strlen(indexToHMSFbeforeStart)+1, "indexToHMSFbeforeStart");
             }
 
-            char *indexToHMSFbeforeEnd   = marks.IndexToHMSF(overlapPos.similarBeforeEnd);
+            char *indexToHMSFbeforeEnd   = marks.IndexToHMSF(overlapPos.similarBeforeEnd, false);
             if (indexToHMSFbeforeEnd) {
                 ALLOC(strlen(indexToHMSFbeforeEnd)+1, "indexToHMSFbeforeEnd");
             }
 
-            char *indexToHMSFafterStart  = marks.IndexToHMSF(overlapPos.similarAfterStart);
+            char *indexToHMSFafterStart  = marks.IndexToHMSF(overlapPos.similarAfterStart, false);
             if (indexToHMSFafterStart) {
                 ALLOC(strlen(indexToHMSFafterStart)+1, "indexToHMSFafterStart");
             }
 
-            char *indexToHMSFafterEnd    = marks.IndexToHMSF(overlapPos.similarAfterEnd);
+            char *indexToHMSFafterEnd    = marks.IndexToHMSF(overlapPos.similarAfterEnd, false);
             if (indexToHMSFafterEnd) {
                 ALLOC(strlen(indexToHMSFafterEnd)+1, "indexToHMSFafterEnd");
             }
@@ -4274,7 +4274,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             int searchStartPosition = markLogo->position - (30 * macontext.Video.Info.framesPerSecond); // introduction logos are usually 10s, somettimes longer, changed from 12 to 30
             if (searchStartPosition < 0) searchStartPosition = 0;
 
-            char *indexToHMSFSearchStart = marks.IndexToHMSF(searchStartPosition);
+            char *indexToHMSFSearchStart = marks.IndexToHMSF(searchStartPosition, false);
             if (indexToHMSFSearchStart) {
                 ALLOC(strlen(indexToHMSFSearchStart)+1, "indexToHMSFSearchStart");
             }
@@ -4298,7 +4298,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 // check longer range to prevent to detect text as second logo
                 // changed from 35 to 60
 
-                char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition);
+                char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition, false);
                 if (indexToHMSFSearchEnd) {
                     ALLOC(strlen(indexToHMSFSearchEnd)+1, "indexToHMSFSearchEnd");
                 }
@@ -4354,7 +4354,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             int searchStartPosition = markLogo->position - (45 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s, changed from 35 to 45
             // sometimes there is a closing credit in frame with logo before
             const char *indexToHMSFStopMark = marks.GetTime(markLogo);
-            char *indexToHMSFSearchPosition = marks.IndexToHMSF(searchStartPosition);
+            char *indexToHMSFSearchPosition = marks.IndexToHMSF(searchStartPosition, false);
             if (indexToHMSFSearchPosition) {
                 ALLOC(strlen(indexToHMSFSearchPosition)+1, "indexToHMSF");
             }
@@ -6723,6 +6723,8 @@ cMarkAdStandalone::~cMarkAdStandalone() {
             if (adQuote > 37) esyslog("advertisement quote: %d%% very high, marks can be wrong", adQuote);  // changed from 34 to 37
             else dsyslog("advertisement quote: %d%%", adQuote);
         }
+        // log match of VPS events
+        vps->LogMatch(macontext.Info.ChannelName, &marks);
 
         dsyslog("processing statistics: ----------------------------------------------------------------------");
         time_t sec = endTime1.tv_sec - startTime1.tv_sec;
