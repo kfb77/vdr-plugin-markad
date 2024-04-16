@@ -5444,7 +5444,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         if ((diffBefore >= 2160) && (diffAfter <= 320)) diffBefore = INT_MAX;
 
                         // rule 2: long scene after VPS start, long static scene or closing credits from end of previous broadcast
-                        else if ((diffBefore >= 40) && (diffBefore <= 2720) && (diffAfter > 1320) && (diffAfter <= 13440)) diffBefore = INT_MAX;
+                        else if ((diffBefore >= 580) && (diffBefore <= 2720) && (diffAfter > 1320) && (diffAfter <= 13440)) diffBefore = INT_MAX;
 
                         maxBefore = 2820;  // changd from 580 to 2820
                         break;
@@ -5596,8 +5596,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxAfter = 2520;
                         break;
                     case MT_SOUNDSTOP:
-                        // rule 1: silence end is short after last scene
-                        if ((diffBefore <= 120) && (diffAfter >= 1600)) diffAfter = INT_MAX;
+                        // rule 1: silence end is around last scene
+                        if ((diffBefore <= 280) && (diffAfter >= 980)) diffAfter = INT_MAX;
 
                         // rule 2: long static scene before sound stop is separator picture
                         else if ((diffBefore >= 4360) && (diffBefore <= 5080) && (diffAfter >= 280) && (diffAfter <= 2120)) diffAfter = INT_MAX;
