@@ -2,6 +2,13 @@
 # Makefile for a Video Disk Recorder addon
 #
 
+ifdef VERBOSE
+Q =
+else
+Q = @
+endif
+export Q
+
 # use this, if you want to debug heap memory consumption
 # DEBUG_MEM_MARKAD=1
 
@@ -117,7 +124,8 @@ all: markad i18n
 
 ### Implicit rules:
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $(DEFINES) $(INCLUDES) $<
+	@echo CC $@
+	$(Q)$(CXX) $(CXXFLAGS) -c $(DEFINES) $(INCLUDES) $<
 
 ### Dependencies:
 MAKEDEP = $(CXX) -MM -MG
@@ -134,24 +142,29 @@ I18Nmsgs  = $(addprefix  $(DESTDIR)$(LOCDIR)/, $(addsuffix /LC_MESSAGES/markad.m
 I18Npot   = $(PODIR)/markad.pot
 
 %.mo: %.po
-	msgfmt -c -o $@ $<
+	@echo MO $@
+	$(Q)msgfmt -c -o $@ $<
 
 $(I18Npot): $(wildcard *.cpp *.h)
-	xgettext -C -cTRANSLATORS --no-wrap --no-location -k -ktr -ktrNOOP --msgid-bugs-address='<see README>' -o $@ $^
+	@echo GT $@
+	$(Q)xgettext -C -cTRANSLATORS --no-wrap --no-location -k -ktr -ktrNOOP --msgid-bugs-address='<see README>' -o $@ $^
 
 %.po: $(I18Npot)
-	msgmerge -U --no-wrap --no-location --backup=none -q $@ $<
+	@echo PO $@
+	$(Q)msgmerge -U --no-wrap --no-location --backup=none -q $@ $<
 	@touch $@
 
 $(I18Nmsgs): $(DESTDIR)$(LOCDIR)/%/LC_MESSAGES/markad.mo: $(PODIR)/%.mo
-	install -D -m644 $< $@
+	@echo IN $@
+	$(Q)install -D -m644 $< $@
 
 .PHONY: i18n
 i18n: $(I18Npot)
 
 ### Targets:
 markad: $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
+	@echo CC $@
+	$(Q)$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 
 
 install-doc:
