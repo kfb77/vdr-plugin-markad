@@ -731,11 +731,10 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool dir
         ALLOC(strlen(cmdOption) + 1, "cmdOption");
     }
 
-    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
+    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->Verbose ? " -v " : "",
                                    setup->OSDMessage ? svdrPortOption : "",
-                                   setup->NoMargins ? " -i 4 " : "",
                                    setup->SecondPass ? "" : " --pass1only ",
                                    setup->Log2Rec ? " -R " : "",
                                    setup->LogLevel ? setup->LogLevel : "",

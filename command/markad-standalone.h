@@ -22,12 +22,6 @@
 #include "criteria.h"
 #include "vps.h"
 
-
-#define IGNORE_VIDEOINFO 1
-#define IGNORE_AUDIOINFO 2
-#define IGNORE_TIMERINFO 4
-
-
 /* forward declarations */
 class cOSDMessage;
 
@@ -63,7 +57,6 @@ public:
         gotendmark                = origin.gotendmark;
         waittime                  = origin.waittime;
         iwaittime                 = origin.iwaittime;
-        bIgnoreTimerInfo          = origin.bIgnoreTimerInfo;
         bLiveRecording            = origin.bLiveRecording;
         chkSTART                  = origin.chkSTART;
         chkSTOP                   = origin.chkSTOP;
@@ -106,7 +99,6 @@ public:
         gotendmark                = origin->gotendmark;
         waittime                  = origin->waittime;
         iwaittime                 = origin->iwaittime;
-        bIgnoreTimerInfo          = origin->bIgnoreTimerInfo;
         bLiveRecording            = origin->bLiveRecording;
         chkSTART                  = origin->chkSTART;
         chkSTOP                   = origin->chkSTOP;
@@ -458,8 +450,6 @@ private:
     int waittime = 0;                                              //!< time waited for more frames if markad runs during recording
     //!<
     int iwaittime = 0;                                             //!< time waited for continuation of interrupted recording
-    //!<
-    bool bIgnoreTimerInfo = false;                                 //!< true if configured to ignore timer infos from info file, false otherwise
     //!<
     bool bLiveRecording = false;                                   //!< true if markad was started during recording, false otherwise
     //!<

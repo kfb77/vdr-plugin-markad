@@ -35,7 +35,6 @@ cPluginMarkAd::cPluginMarkAd(void) {
     setup.whileReplaying    = true;
     setup.OSDMessage        = false;
     setup.Verbose           = false;
-    setup.NoMargins         = false;
     setup.HideMainMenuEntry = false;
     setup.SecondPass        = true;
     setup.Log2Rec           = false;
@@ -276,7 +275,6 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value) {
     else if (!strcasecmp(Name,"OSDMessage")) setup.OSDMessage = atoi(Value);
     else if (!strcasecmp(Name,"svdrPort")) setup.svdrPort = atoi(Value);
     else if (!strcasecmp(Name,"Verbose")) setup.Verbose = atoi(Value);
-    else if (!strcasecmp(Name,"IgnoreMargins")) setup.NoMargins = atoi(Value);
     else if (!strcasecmp(Name,"HideMainMenuEntry")) setup.HideMainMenuEntry = atoi(Value)?true:false;
     else if (!strcasecmp(Name,"SecondPass")) setup.SecondPass = atoi(Value);
     else if (!strcasecmp(Name,"Log2Rec")) setup.Log2Rec = atoi(Value);

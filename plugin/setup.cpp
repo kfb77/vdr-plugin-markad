@@ -19,7 +19,6 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
     osdmsg            = setup->OSDMessage;
     svdrPort          = setup->svdrPort;
     verbose           = setup->Verbose;
-    nomargins         = setup->NoMargins;
     hidemainmenuentry = setup->HideMainMenuEntry;
     secondpass        = setup->SecondPass;
     log2rec           = setup->Log2Rec;
@@ -58,7 +57,6 @@ void cSetupMarkAd::write(void) {
         Add(new cMenuEditBoolItem(tr("scan only channels with logo"), &logoonly), true);
         lpos = Current();
         Add(new cMenuEditBoolItem(tr("deferred shutdown"), &deferredshutdown));
-        Add(new cMenuEditBoolItem(tr("ignore timer margins (deprecated, will be removed in next version)"), &nomargins));
         Add(new cMenuEditBoolItem(tr("optimize marks (overlaps and logo marks adjustments"), &secondpass));
         Add(new cMenuEditBoolItem(tr("OSD message"), &osdmsg));
         Add(new cMenuEditIntItem(tr("SVDR port number"), &svdrPort));
@@ -121,7 +119,6 @@ void cSetupMarkAd::Store(void) {
     SetupStore("logVPS", logvps);
     SetupStore("whileRecording", whilerecording);
     SetupStore("whileReplaying", whilereplaying);
-    SetupStore("IgnoreMargins", nomargins);
     SetupStore("SecondPass", secondpass);
     SetupStore("OSDMessage", osdmsg);
     SetupStore("svdrPort", svdrPort);
@@ -142,7 +139,6 @@ void cSetupMarkAd::Store(void) {
     setup->svdrPort = static_cast<int>(svdrPort);
     setup->SecondPass = static_cast<bool>(secondpass);
     setup->Verbose = static_cast<bool>(verbose);
-    setup->NoMargins = static_cast<bool>(nomargins);
     setup->HideMainMenuEntry = static_cast<bool>(hidemainmenuentry);
     setup->DeferredShutdown = static_cast<bool>(deferredshutdown);
     setup->autoLogoMenu = static_cast<int>(autologomenu);

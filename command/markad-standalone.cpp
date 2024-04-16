@@ -6351,66 +6351,61 @@ bool cMarkAdStandalone::LoadInfo() {
 
     macontext.Info.timerVPS = IsVPSTimer();
     if ((length) && (startTime)) {
-        if (!bIgnoreTimerInfo) {
-            time_t rStart = GetRecordingStart(startTime, fileno(f));
-            if (rStart) {
-                dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
-                dsyslog("cMarkAdStandalone::LoadInfo():     timer start at %s", strtok(ctime(&startTime), "\n"));
+        time_t rStart = GetRecordingStart(startTime, fileno(f));
+        if (rStart) {
+            dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
+            dsyslog("cMarkAdStandalone::LoadInfo():     timer start at %s", strtok(ctime(&startTime), "\n"));
 
-                // try VPS start event from markad.vps
-                macontext.Info.tStart = vps->GetStart(); // VPS start mark
-                if (macontext.Info.tStart >= 0) {
-                    dsyslog("cMarkAdStandalone::LoadInfo(): VPS start event at offset:           %5ds -> %d:%02d:%02dh", macontext.Info.tStart,  macontext.Info.tStart / 3600, (macontext.Info.tStart % 3600) / 60, macontext.Info.tStart % 60);
-                    int vpsStop = vps->GetStop();
-                    if (vpsStop > macontext.Info.tStart) {
-                        dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop  event at offset:           %5ds -> %d:%02d:%02dh", vpsStop, vpsStop / 3600, (vpsStop % 3600) / 60, vpsStop % 60);
-                        dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from vdr info file: %5ds -> %d:%02d:%02dh", length, length / 3600, (length % 3600) / 60, length % 60);
-                        int lengthVPS = vpsStop - macontext.Info.tStart;
-                        int diff      = lengthVPS - length;
-                        dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from VPS events:    %5ds -> %d:%02d:%02dh, %ds longer than length from vdr info file", lengthVPS, lengthVPS / 3600, (lengthVPS % 3600) / 60, length % 60, diff);
-                        // changed from  506 to  298
-                        // changed from -570 to -620
-                        if ((diff >= 298) || (diff < -620)) {
-                            dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop event seems to be invalid, use length from vdr info file");
-                            vps->SetStop(-1);  // set VPS stop event to invalid
-                        }
-                        else {
-                            dsyslog("cMarkAdStandalone::LoadInfo(): VPS events seems to be valid, use length from VPS events");
-                            length = lengthVPS;
-                        }
+            // try VPS start event from markad.vps
+            macontext.Info.tStart = vps->GetStart(); // VPS start mark
+            if (macontext.Info.tStart >= 0) {
+                dsyslog("cMarkAdStandalone::LoadInfo(): VPS start event at offset:           %5ds -> %d:%02d:%02dh", macontext.Info.tStart,  macontext.Info.tStart / 3600, (macontext.Info.tStart % 3600) / 60, macontext.Info.tStart % 60);
+                int vpsStop = vps->GetStop();
+                if (vpsStop > macontext.Info.tStart) {
+                    dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop  event at offset:           %5ds -> %d:%02d:%02dh", vpsStop, vpsStop / 3600, (vpsStop % 3600) / 60, vpsStop % 60);
+                    dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from vdr info file: %5ds -> %d:%02d:%02dh", length, length / 3600, (length % 3600) / 60, length % 60);
+                    int lengthVPS = vpsStop - macontext.Info.tStart;
+                    int diff      = lengthVPS - length;
+                    dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from VPS events:    %5ds -> %d:%02d:%02dh, %ds longer than length from vdr info file", lengthVPS, lengthVPS / 3600, (lengthVPS % 3600) / 60, length % 60, diff);
+                    // changed from  506 to  298
+                    // changed from -570 to -620
+                    if ((diff >= 298) || (diff < -620)) {
+                        dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop event seems to be invalid, use length from vdr info file");
+                        vps->SetStop(-1);  // set VPS stop event to invalid
                     }
-                }
-                if (macontext.Info.timerVPS) { //  VPS controlled recording start, we guess assume broascast start 45s after recording start
-                    isyslog("VPS controlled recording start");
-                    if (macontext.Info.tStart < 0) {
-                        dsyslog("cMarkAdStandalone::LoadInfo(): no VPS start event found");
-                        macontext.Info.tStart = 45;
-                    }
-                }
-
-                // try to get broadcast start offset from file infos
-                if (macontext.Info.tStart < 0) {
-                    macontext.Info.tStart = static_cast<int> (startTime - rStart);
-                    if (macontext.Info.tStart > 60 * 60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
-                        isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", macontext.Info.tStart);
-                        macontext.Info.tStart = 120;
-                    }
-                    if (macontext.Info.tStart < 0) {
-                        if (length + macontext.Info.tStart > 0) {
-                            startTime = rStart;
-                            isyslog("missed broadcast start by %02d:%02d min, event length %5ds", -macontext.Info.tStart / 60, -macontext.Info.tStart % 60, length);
-                            length += macontext.Info.tStart;
-                            isyslog("                                 corrected length %5ds", length);
-                        }
-                        else {
-                            isyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
-                            macontext.Info.tStart = 120;
-                        }
+                    else {
+                        dsyslog("cMarkAdStandalone::LoadInfo(): VPS events seems to be valid, use length from VPS events");
+                        length = lengthVPS;
                     }
                 }
             }
-            else {
-                macontext.Info.tStart = 0;
+            if (macontext.Info.timerVPS) { //  VPS controlled recording start, we guess assume broascast start 45s after recording start
+                isyslog("VPS controlled recording start");
+                if (macontext.Info.tStart < 0) {
+                    dsyslog("cMarkAdStandalone::LoadInfo(): no VPS start event found");
+                    macontext.Info.tStart = 45;
+                }
+            }
+
+            // try to get broadcast start offset from file infos
+            if (macontext.Info.tStart < 0) {
+                macontext.Info.tStart = static_cast<int> (startTime - rStart);
+                if (macontext.Info.tStart > 60 * 60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
+                    isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", macontext.Info.tStart);
+                    macontext.Info.tStart = 120;
+                }
+                if (macontext.Info.tStart < 0) {
+                    if (length + macontext.Info.tStart > 0) {
+                        startTime = rStart;
+                        isyslog("missed broadcast start by %02d:%02d min, event length %5ds", -macontext.Info.tStart / 60, -macontext.Info.tStart % 60, length);
+                        length += macontext.Info.tStart;
+                        isyslog("                                 corrected length %5ds", length);
+                    }
+                    else {
+                        isyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
+                        macontext.Info.tStart = 120;
+                    }
+                }
             }
         }
         else {
@@ -6548,14 +6543,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
     macontext.Info.tStart = iStart = iStop = iStopA = 0;
 
-    if (config->ignoreInfo != 0) esyslog("parameter ignoreinfo is deprecated and will be removed in next version");
-    if ((config->ignoreInfo & IGNORE_TIMERINFO) == IGNORE_TIMERINFO) {
-        bIgnoreTimerInfo = true;
-    }
-    else {
-        bIgnoreTimerInfo = false;
-    }
-
     if (!config->noPid) {
         CreatePidfile();
         if (abortNow) return;
@@ -6620,9 +6607,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     dsyslog("libavcodec config: %s",avcodec_configuration());
     isyslog("on %s", directory);
 
-    if (bIgnoreTimerInfo) {
-        isyslog("timer info usage disabled by user");
-    }
     if (config->before) sleep(10);
 
     char *tmpDir = strdup(directory);
@@ -6647,7 +6631,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     }
     if (strstr(recName, "/@")) {
         isyslog("live-recording, disabling pre-/post timer");
-        bIgnoreTimerInfo = true;
         bLiveRecording = true;
     }
     else {
@@ -6674,7 +6657,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     ALLOC(sizeof(*vps), "vps");
 
     if (!LoadInfo()) {
-        esyslog("failed loading info - logo %s%sdisabled", (config->logoExtraction != -1) ? "extraction" : "detection", bIgnoreTimerInfo ? " " : " and pre-/post-timer ");
+        esyslog("failed loading VDR info file");
         macontext.Info.tStart = iStart = iStop = iStopA = 0;
         criteria.SetDetectionState(MT_LOGOCHANGE, false);
     }
@@ -6881,9 +6864,6 @@ int usage(int svdrpport) {
            "-d              --disable=<option>\n"
            "                  <option>   1 = disable video decoding, 2 = disable audio\n"
            "                             decoding, 3 = disable video and audio decoding\n"
-           "-i              --ignoreinfo=<info>\n"
-           "                  ignores hints from info(.vdr) file\n"
-           "                  <info> 4 = ignore timer info\n"
            "-l              --logocachedir\n"
            "                  directory where logos stored, default /var/lib/markad\n"
            "-p              --priority=<priority>\n"
@@ -7069,7 +7049,6 @@ int main(int argc, char *argv[]) {
         {
             {"background",   0, 0, 'b'},
             {"disable",      1, 0, 'd'},
-            {"ignoreinfo",   1, 0, 'i' },
             {"logocachedir", 1, 0, 'l'},
             {"priority",     1, 0, 'p'},
             {"ioprio",       1, 0, 'r'},
@@ -7111,15 +7090,6 @@ int main(int argc, char *argv[]) {
         case 'b':
             // --background
             bFork = SYSLOG = true;
-            break;
-        case 'i':
-            // --ignoreinfo
-            config.ignoreInfo = atoi(optarg);
-            fprintf(stderr, "markad: parameter ignoreinfo is deprecated and will be removed in next version\n");
-            if ((config.ignoreInfo < 1) || (config.ignoreInfo > 255)) {
-                fprintf(stderr, "markad: invalid ignoreinfo option: %s\n", optarg);
-                return 2;
-            }
             break;
         case 'l':
             if ((strlen(optarg) + 1) > sizeof(config.logoDirectory)) {

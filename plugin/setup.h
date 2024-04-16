@@ -24,7 +24,6 @@ struct setup {
     bool OSDMessage;
     int  svdrPort          = 6419;
     bool Verbose;
-    bool NoMargins;
     bool SecondPass;
     bool HideMainMenuEntry;
     bool Log2Rec;
@@ -58,7 +57,6 @@ private:
     int osdmsg;
     int svdrPort = 6419;
     int verbose;
-    int nomargins;
     int secondpass;
     int hidemainmenuentry;
     int log2rec;
