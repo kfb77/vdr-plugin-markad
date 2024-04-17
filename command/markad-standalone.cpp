@@ -5089,16 +5089,12 @@ void cMarkAdStandalone::SilenceOptimization() {
                 cMark *soundStopBefore = silenceMarks.GetPrev(soundStartBefore->position, MT_SOUNDSTOP);
                 if (soundStopBefore) {
                     lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%5d) to (%5d) %8dms before, length %4dms", mark->position, soundStopBefore->position, soundStartBefore->position, diffBefore, lengthBefore);
-                }
-                cMark *lowerStart = blackMarks.GetPrev(soundStartBefore->position, MT_NOLOWERBORDERSTOP);
-                if (lowerStart) {
-                    cMark *lowerStop = blackMarks.GetNext(lowerStart->position, MT_NOLOWERBORDERSTART);
-                    if (lowerStop) {
-                        int diffBlackLowerBefore = 1000 * (soundStartBefore->position - lowerStop->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): lower border before start (%d) end (%d), %dms before", mark->position, lowerStart->position, lowerStop->position, diffBlackLowerBefore);
-                        if (diffBlackLowerBefore <= 80) lowerBefore = true;
-                    }
+                    bool blackBefore = false;
+                    const cMark *black = blackMarks.GetAround(macontext.Video.Info.framesPerSecond, soundStopBefore->position, MT_BLACKCHANGE, 0xF0);
+                    if (black) blackBefore = true;
+                    const cMark *lower = blackMarks.GetAround(macontext.Video.Info.framesPerSecond, soundStopBefore->position, MT_LOWERBORDERCHANGE, 0xF0);
+                    if (lower) blackBefore = true;
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%5d) to (%5d) %8dms before, length %4dms, black %d, lower %d", mark->position, soundStopBefore->position, soundStartBefore->position, diffBefore, lengthBefore, blackBefore, lowerBefore);
                 }
             }
             if (soundStartAfter) {
@@ -5106,7 +5102,13 @@ void cMarkAdStandalone::SilenceOptimization() {
                 cMark *soundStopAfter  = silenceMarks.GetPrev(soundStartAfter->position, MT_SOUNDSTOP);
                 if (soundStopAfter) {
                     lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%5d) to (%5d) %8dms after,  length %4dms", mark->position, soundStopAfter->position, soundStartAfter->position, diffAfter, lengthAfter);
+                    bool blackAfter = false;
+                    const cMark *black = blackMarks.GetAround(macontext.Video.Info.framesPerSecond, soundStopAfter->position, MT_BLACKCHANGE, 0xF0);
+                    if (black) blackAfter = true;
+                    bool lowerAfter = false;
+                    const cMark *lower = blackMarks.GetAround(macontext.Video.Info.framesPerSecond, soundStopAfter->position, MT_LOWERBORDERCHANGE, 0xF0);
+                    if (lower) blackAfter = true;
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%5d) to (%5d) %8dms after,  length %4dms, black %d, lower %d", mark->position, soundStopAfter->position, soundStartAfter->position, diffAfter, lengthAfter, blackAfter, lowerAfter);
                 }
             }
             // try silence before start position
@@ -5122,7 +5124,9 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_LOGOSTART:
                     if ((diffBefore >=  600) && (diffAfter <=  360)) diffBefore = INT_MAX;
                     if ((diffBefore >= 2040) && (diffAfter <= 3460)) diffBefore = INT_MAX;
-                    maxBefore = 4520;
+
+                    if (criteria.LogoFadeOut(macontext.Info.ChannelName)) maxBefore = 7340;
+                    else                                                  maxBefore = 3999;
                     break;
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
@@ -5215,6 +5219,7 @@ void cMarkAdStandalone::SilenceOptimization() {
             // log available marks
             bool moved = false;
             long int diffBefore   = INT_MAX;
+            int lengthBefore      = 0;
             int lengthAfter       = 0;
             int diffAfter         = INT_MAX;
             bool lowerBefore      = false;
@@ -5226,7 +5231,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 diffBefore = 1000 * (mark->position - soundStopBefore->position) / macontext.Video.Info.framesPerSecond;
                 soundStartBefore = silenceMarks.GetNext(soundStopBefore->position, MT_SOUNDSTART);
                 if (soundStartBefore) {
-                    int lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / macontext.Video.Info.framesPerSecond;
+                    lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): silence from (%5d) to (%5d) %8ldms before, length %4dms", mark->position, soundStopBefore->position, soundStartBefore->position, diffBefore, lengthBefore);
                 }
                 // check lower border for silence before
@@ -5272,6 +5277,9 @@ void cMarkAdStandalone::SilenceOptimization() {
 
                         // rule 2: silence short before and far after
                         else if ((diffBefore <= 5480) && (diffAfter >= 20600)) diffAfter = INT_MAX;
+
+                        // rule 3: very long silence before, short silence after
+                        else if ((diffBefore <= 31960) && (lengthBefore >= 3160) && (lengthAfter <= 340)) diffAfter = INT_MAX;
 
                         if      (criteria.GoodVPS(macontext.Info.ChannelName)) maxAfter =  31479;
                         else if ((lengthAfter > 160) && (lengthAfter <= 440))  maxAfter = 335480;   // typical silene at broadcast end
@@ -5324,8 +5332,8 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if (lowerBefore) maxBefore = 57280;  // lower border around sound stop
-                        else maxBefore = 28279;  // silence in broadcast 28280ms before VPS stop
+                        if (lowerBefore) maxBefore = 57280;
+                        else             maxBefore = 31960;
                         break;
                     case MT_TYPECHANGESTOP:
                         maxBefore = 6200;   // changed from 5600 to 6200
@@ -5365,7 +5373,7 @@ void cMarkAdStandalone::SilenceOptimization() {
 
         mark = mark->Next();
     }
-    // save marks
+// save marks
     if (save) marks.Save(directory, &macontext, false);
 }
 
