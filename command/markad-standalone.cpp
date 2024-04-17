@@ -906,7 +906,7 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
         }
 
         // check squence MT_LOGOSTOP -> MT_NOBLACKSTOP -> MT_NOBLACKSTART -> MT_LOGOSTART (mark)
-        blackStop = blackMarks.GetPrev(mark->position, MT_NOBLACKSTART);
+        blackStop = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTART);
         if (blackStop) {  // from above
             cMark *blackStart = blackMarks.GetPrev(blackStop->position, MT_NOBLACKSTOP);
             if (blackStart) {
@@ -920,14 +920,17 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
 // MT_LOGOSTOP (6419)->     40ms -> MT_NOBLACKSTOP (6420) ->  360ms -> MT_NOBLACKSTART (6429) ->  200ms -> MT_LOGOSTART (6434)
 // MT_LOGOSTOP (3536)->   1680ms -> MT_NOBLACKSTOP (3578) ->  320ms -> MT_NOBLACKSTART (3586) -> 1800ms -> MT_LOGOSTART (3631)  TELE 5, fade in logo
 // MT_LOGOSTOP (5887)->   4880ms -> MT_NOBLACKSTOP (6009) ->  440ms -> MT_NOBLACKSTART (6020) -> 1040ms -> MT_LOGOSTART (6046)  Kabel 1 Austria, separator picture before
-// MT_LOGOSTOP (4860)->  30040ms -> MT_NOBLACKSTOP (5611) ->  440ms -> MT_NOBLACKSTART (5622) -> 1040ms -> MT_LOGOSTART (5648)  kabel eins, ad in frame without logo before
+// MT_LOGOSTOP ( 7577)->  7040ms -> MT_NOBLACKSTOP (7753) ->   40ms -> MT_NOBLACKSTART (7754) ->    0ms -> MT_LOGOSTART (7754)  Comedy Central
+//
+// valid example (conflict)
+// MT_LOGOSTOP (4860)->  30040ms -> MT_NOBLACKSTOP (5611) ->  440ms -> MT_NOBLACKSTART (5622) -> 1040ms -> MT_LOGOSTART (5648)  kabel eins, ad in frame without logo before (conflict)
 // MT_LOGOSTOP (5279)-> 124400ms -> MT_NOBLACKSTOP (8389) ->   40ms -> MT_NOBLACKSTART (8390) -> 2600ms -> MT_LOGOSTART (8455)  Nickelodeon (conflict)
 //
 // invalid example
 // MT_LOGOSTOP (  204)-> 28600ms -> MT_NOBLACKSTOP (1634) ->   40ms -> MT_NOBLACKSTART (1636) -> 1900ms -> MT_LOGOSTART (1731)
 // MT_LOGOSTOP ( 1032)-> 68600ms -> MT_NOBLACKSTOP (4462) ->   40ms -> MT_NOBLACKSTART (4464) -> 1820ms -> MT_LOGOSTART (4555)
 // MT_LOGOSTOP ( 4997)-> 25260ms -> MT_NOBLACKSTOP (6260) ->   60ms -> MT_NOBLACKSTART (6263) -> 1820ms -> MT_LOGOSTART (6354)
-                    if ((diffLogoStopBlackStart < 30040) && (diffBlackStartBlackStop >= 320) && (diffBlackStopLogoStart <= 1800)) {
+                    if ((diffLogoStopBlackStart <= 7040) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 1800)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen sequence is valid");
                         return true;
                     }
@@ -1062,11 +1065,15 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
 // channel without fade out logo
 // valid sequence:
 // MT_LOGOSTOP (81055) ->     0ms -> MT_NOBLACKSTOP (81055) ->    40ms ->  MT_NOBLACKSTART (81056) ->   1680ms -> MT_LOGOSTART (81098) -> RTL2
+// MT_LOGOSTOP (84786) ->   120ms -> MT_NOBLACKSTOP (84789) ->   240ms ->  MT_NOBLACKSTART (84795) ->   1800ms -> MT_LOGOSTART (84840) -> Pro7 MAXX
+// MT_LOGOSTOP (86549) ->    80ms -> MT_NOBLACKSTOP (86551) ->   280ms ->  MT_NOBLACKSTART (86558) ->  31800ms -> MT_LOGOSTART (87353) -> Pro7 MAXX
+// MT_LOGOSTOP (82130) ->    80ms -> MT_NOBLACKSTOP (82132) ->   240ms ->  MT_NOBLACKSTART (82138) ->   1840ms -> MT_LOGOSTART (82184) -> Pro7 MAXX
+// MT_LOGOSTOP (78161) ->    80ms -> MT_NOBLACKSTOP (78163) ->   240ms ->  MT_NOBLACKSTART (78169) ->   2800ms -> MT_LOGOSTART (78239) -> Pro7 MAXX
 //
 // invalid sequence:
 // MT_LOGOSTOP (81485) ->  4040ms -> MT_NOBLACKSTOP (81586) ->   160ms ->  MT_NOBLACKSTART (81590) ->  95920ms -> MT_LOGOSTART (83988) -> RTLZWEI, sequence in preview
                     if (!criteria.LogoFadeOut(macontext.Info.ChannelName) &&
-                            (diffLogoStopBlackStart < 4040) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 1680)) {
+                            (diffLogoStopBlackStart <= 120) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 31800)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is valid", mark->position);
                         return true;
                     }
