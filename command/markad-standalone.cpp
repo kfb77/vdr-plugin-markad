@@ -4463,7 +4463,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     if ((diffBefore >= 2020) && (diffBefore <= 3020) && (diffAfter <= 40)) diffBefore = INT_MAX;
 
                     if (silenceBefore && criteria.LogoFadeOut(macontext.Info.ChannelName) && (lengthBefore >= 160)) maxBefore = 6840;
-                    else                                                                                            maxBefore = 4299;
+                    else                                                                                            maxBefore = 3999;
                     break;
                 case MT_CHANNELSTART:
                     maxBefore = 1240;
