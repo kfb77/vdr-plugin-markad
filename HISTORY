@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-04-20: Version 3.6.0
+- reduce build messages (thx to Mike838@www.vdr-portal.de)
+- change minimum libavcodec version to 56.60.100 (FFmpeg 2.8.17)
+- remove parameter 'ignore timer margins'
+- some minor bug fixes and optimizations, see git
+
 2024-04-16: Version 3.5.3
 - declare parameter 'ignore timer margins' as deprecated
 - fix crash in encoder at channel change
