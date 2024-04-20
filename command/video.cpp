@@ -901,8 +901,9 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
             }
         }
 
-        // check area intensitiy
-        if (criteria->LogoTransparent(maContext->Info.ChannelName) && (area.intensity >= 189)) return LOGO_NOCHANGE; // transparent logo decetion on bright backbround is imposible
+// check area intensitiy
+        // transparent logo decetion on bright backbround is imposible, changed from 189 to 176
+        if (criteria->LogoTransparent(maContext->Info.ChannelName) && (area.intensity >= 176)) return LOGO_NOCHANGE;
 #define MAX_AREA_INTENSITY 69  // change from 73 to 69
         // notice: there can be very bright logo parts in dark areas, this will result in a lower brightness
         // we handle this cases in ReduceBrightness() when we detect contrast
