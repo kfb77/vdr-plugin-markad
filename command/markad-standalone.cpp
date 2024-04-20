@@ -2123,7 +2123,9 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         }
         else { // we have only start/stop vborder in start part, this is from broadcast before
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no vertical border start found after start (%d) and stop (%d)", vStart->position, vStop->position);
-            if ((vStart->position < IGNORE_AT_START) && (markDiff <= 140)) {  // vbordet start/stop from previous broadcast
+            // example
+            // start vertical border    at 0:01:04.80 -> stop  vertical border    at 0:06:25.92 (321s) is from broadcast before
+            if ((vStart->position < IGNORE_AT_START) || (markDiff <= 321)) {  // vbordet start/stop from previous broadcast
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop at (%d) %ds after vertical border start (%d) in start part found, this is from previous broadcast, delete marks", vStop->position, markDiff, vStart->position);
                 criteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE);
                 marks.Del(vStop);
