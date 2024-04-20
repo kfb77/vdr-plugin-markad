@@ -4483,8 +4483,9 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 if (stopBefore) {
                     diffBefore   = 1000 * (mark->position        - startBefore->position) / macontext.Video.Info.framesPerSecond;
                     lengthBefore = 1000 * (startBefore->position - stopBefore->position)  / macontext.Video.Info.framesPerSecond;
-                    // check if there is silence between or very ahort before black screen
-                    cMark *silence = silenceMarks.GetAround(macontext.Video.Info.framesPerSecond, stopBefore->position, MT_SOUNDCHANGE, 0xF0); // silence around black screen start
+                    // check if there is silence around black screen
+                    cMark *silence = silenceMarks.GetAround(macontext.Video.Info.framesPerSecond, stopBefore->position, MT_SOUNDCHANGE, 0xF0);         // around black screen start
+                    if (!silence) silence = silenceMarks.GetAround(macontext.Video.Info.framesPerSecond, startBefore->position, MT_SOUNDCHANGE, 0xF0); // around black screen stop
                     if (silence) silenceBefore = true;
                     dsyslog("cMarkAdStandalone::BlackScreenOptimization(): start mark (%6d): found black screen from (%6d) to (%6d), %7dms before -> length %5dms, silence around %d", mark->position, stopBefore->position, startBefore->position, diffBefore, lengthBefore, silenceBefore);
                 }
@@ -4495,8 +4496,9 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 if (stopAfter) {
                     diffAfter   = 1000 * (startAfter->position - mark->position)      / macontext.Video.Info.framesPerSecond;
                     lengthAfter = 1000 * (startAfter->position - stopAfter->position) / macontext.Video.Info.framesPerSecond;
-                    // check if there is silence between black screen
-                    cMark *silence = silenceMarks.GetAround(1.1 * macontext.Video.Info.framesPerSecond, stopAfter->position, MT_SOUNDCHANGE, 0xF0); // silence around black screen start
+                    // check if there is silence around black screen
+                    cMark *silence = silenceMarks.GetAround(macontext.Video.Info.framesPerSecond, stopAfter->position, MT_SOUNDCHANGE, 0xF0);         // around black screen start
+                    if (!silence) silence = silenceMarks.GetAround(macontext.Video.Info.framesPerSecond, startAfter->position, MT_SOUNDCHANGE, 0xF0); // around black screen stop
                     if (silence) silenceAfter = true;
                     dsyslog("cMarkAdStandalone::BlackScreenOptimization(): start mark (%6d): found black screen from (%6d) to (%6d), %7dms after  -> length %5dms, silence around %d", mark->position, stopAfter->position, startAfter->position, diffAfter, lengthAfter, silenceAfter);
                 }
@@ -4510,11 +4512,14 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     // rule 1: black screen before separator and between separator and broadcast start
                     if ((diffBefore >= 2020) && (diffBefore <= 3020) && (diffAfter <= 40)) diffBefore = INT_MAX;
 
-                    if (silenceBefore && criteria.LogoFadeOut(macontext.Info.ChannelName) && (lengthBefore >= 160)) maxBefore = 6840;
+                    if (silenceBefore && criteria.LogoFadeOut(macontext.Info.ChannelName) && (lengthBefore >= 120)) maxBefore = 6840;
                     else                                                                                            maxBefore = 3999;
                     break;
                 case MT_CHANNELSTART:
                     maxBefore = 1240;
+                    break;
+                case MT_TYPECHANGESTART:
+                    maxBefore = 1740;
                     break;
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
@@ -4523,17 +4528,15 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         break;
                     case MT_VPSSTART:
                         // rule 1: blackscreen with silence before VPS start (preview) and black screen with silence after VPS start (broadcast start)
-                        if (silenceBefore && silenceAfter && (diffBefore <= 26660) && (diffAfter <= 44100)) diffBefore = INT_MAX;
+                        if (silenceBefore && silenceAfter && (diffBefore >= 26660) && (diffAfter <= 44100)) diffBefore = INT_MAX;
 
-                        // rule 2: long blackscreen after is start of broadcast, no silence around
-                        else if (!silenceBefore && !silenceAfter &&
-                                 (diffAfter >= 5880) && (diffAfter <= 66840) && (lengthAfter >= 80) && (lengthAfter  <= 4160)) diffBefore = INT_MAX;
+                        // rule 2: not so far blackscreen after is start of broadcast, no silence around
+                        else if (!silenceBefore && !silenceAfter && (diffBefore > 48040) && (diffAfter <= 26560) && (lengthAfter >= 80)) diffBefore = INT_MAX;
 
-                        if (criteria.GoodVPS(macontext.Info.ChannelName)) maxBefore =  26099;
-                        else if (silenceBefore)                           maxBefore = 154880;
-                        else if (lengthBefore >= 240)                     maxBefore =  50480;  // long black screen is start mark
-                        else if (lengthBefore >   80)                     maxBefore =  11579;  // long black screen is start mark
-                        else                                              maxBefore =      0;  // do not accept short black screen, too much false positiv
+                        if (criteria.GoodVPS(macontext.Info.ChannelName)) maxBefore = 26099;
+                        else if (silenceBefore)                           maxBefore = 81800;
+                        else if (lengthBefore > 80)                       maxBefore = 11579;
+                        else                                              maxBefore =     0;  // do not accept short black screen, too much false positiv
                         break;
                     default:
                         maxBefore = -1;
@@ -4588,10 +4591,9 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if (silenceAfter)             maxAfter = 55640;
-                        else if (lengthAfter >= 4160) maxAfter = 66840;
-                        else if (lengthAfter >=  120) maxAfter = 44100;
-                        else                          maxAfter =  1039;
+                        if (!criteria.GoodVPS(macontext.Info.ChannelName) && silenceAfter) maxAfter = 139480;
+                        else if (lengthAfter >= 80)                                        maxAfter =  21679;
+                        else                                                               maxAfter =      0;  // do not accept short black screen, too much false positiv
                         break;
                     case MT_INTRODUCTIONSTART:
                         if (lengthAfter >= 3800) maxAfter = 3760;
@@ -4770,8 +4772,9 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxBefore = 21960;
                     break;
                 case MT_LOGOSTOP:
-                    if (!criteria.LogoFadeOut(macontext.Info.ChannelName) && lengthBefore >= 4480) maxBefore = 10680;
-                    else                                                                           maxBefore =  6519;
+                    if (criteria.LogoFadeOut(macontext.Info.ChannelName)) maxBefore =     0;  // never use black screen before fade out logo
+                    else if (lengthBefore >= 4480)                        maxBefore = 10680;
+                    else                                                  maxBefore =  6519;
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
