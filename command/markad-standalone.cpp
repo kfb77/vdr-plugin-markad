@@ -5488,12 +5488,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxBefore = 600;   // changed from 360 to 600
                     break;
                 case MT_LOGOSTART:
-                    // rule 1: very near scene change after, not so far scene change before
-                    if ((diffBefore >= 2320) && (diffAfter <= 140)) diffBefore = INT_MAX;
-                    // rule 2: near scene change after, far scene change before
-                    else if ((diffBefore > 2840) && (diffAfter <= 280)) diffBefore = INT_MAX;
-
-                    maxBefore = 6399;
+                    maxBefore = 2840;
                     break;
                 case MT_CHANNELSTART:
                     if (diffAfter <= 1060) diffBefore = INT_MAX;
@@ -5620,26 +5615,10 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter = 8520;  // changed from 6480 to 8520
                     break;
                 case MT_LOGOSTOP:
-                    // rule 1: use very near scene change before
-                    if ((diffBefore <= 80) && (diffAfter >= 240)) diffAfter = INT_MAX;
+                    // rule 1: if not fade out logo, we have delayed logo stop from detection fault (bright picture or patten in background)
+                    if (!criteria.LogoFadeOut(macontext.Info.ChannelName)) diffAfter = INT_MAX;
 
-                    // rule 2: near scene change before and far scene change after, delayed logo stop
-                    else if (!criteria.LogoFadeOut(macontext.Info.ChannelName) &&
-                             (diffBefore >= 120) && (diffBefore <= 560) && (diffAfter >= 160) && (diffAfter <= 2960)) diffAfter = INT_MAX;
-
-                    // rule 3: scene change after too far for short fading out logo and too near for long fading out logo -> delayed logo stop
-                    else if (!criteria.LogoFadeOut(macontext.Info.ChannelName) &&
-                             (diffBefore >= 600) && (diffBefore <= 2640) && (diffAfter >= 280) && (diffAfter <= 760)) diffAfter = INT_MAX;
-
-                    // rule 4: logo stop in separator picture
-                    else if ((diffBefore == 4280) && (diffAfter == 2080)) diffAfter = INT_MAX;
-
-                    // rule 5: scene change after too far away, better use scene change before, expect channels with very early fade out logo
-                    else if ((diffBefore <= 1080) && (diffAfter >= 2680) &&
-                             !CompareChannelName(macontext.Info.ChannelName, "Nickelodeon", IGNORE_HD) &&
-                             !CompareChannelName(macontext.Info.ChannelName, "Disney_Channel", IGNORE_HD)) diffAfter = INT_MAX;
-
-                    maxAfter = 5139;  // do not increase, will get scene change in ad, no schene change before because broadcast fade out to ad
+                    maxAfter = 5139;
                     break;
                 case MT_HBORDERSTOP:
                     if ((diffBefore <= 440) && (diffAfter >= 1720)) diffAfter = INT_MAX;
@@ -5662,13 +5641,10 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxAfter = 2520;
                         break;
                     case MT_SOUNDSTOP:
-                        // rule 1: silence end is around last scene
-                        if ((diffBefore <= 280) && (diffAfter >= 980)) diffAfter = INT_MAX;
+                        // rule 1: alway use scene change before sound stop
+                        diffAfter = INT_MAX;
 
-                        // rule 2: long static scene before sound stop is separator picture
-                        else if ((diffBefore >= 4360) && (diffBefore <= 5080) && (diffAfter >= 280) && (diffAfter <= 2120)) diffAfter = INT_MAX;
-
-                        maxAfter = 3380;
+                        maxAfter = 0;
                         break;
                     case MT_VPSSTOP:
                         // rule 1: scene change short before
