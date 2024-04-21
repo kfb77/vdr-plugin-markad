@@ -368,17 +368,31 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
             }
         }
         // optimize hborder end mark with logo stop mark in case of next broadcast is also with hborder
-        if (criteria.LogoInBorder(macontext.Info.ChannelName)) {
-            cMark *logoStop     = marks.GetPrev(end->position, MT_LOGOSTOP);
-            cMark *hborderStart = marks.GetPrev(end->position, MT_HBORDERSTART);
-            if (logoStop && hborderStart) {
-                int deltaLogoStop = (end->position - logoStop->position) / macontext.Video.Info.framesPerSecond;
-                int deltaAssumed  = (iStopA        - logoStop->position) / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): MT_LOGOSTOP at (%d) %ds before hborder stop, %ds before assumed stop found", logoStop->position, deltaLogoStop, deltaAssumed);
-                if ((logoStop->position > hborderStart->position) && (deltaLogoStop <= 415) && (deltaAssumed <= 12)) {
-                    dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): use logo stop mark at (%d) before hborder stop (%d)", logoStop->position, end->position);
-                    end = logoStop;
-                }
+        // check sequence MT_HBORDERSTART -> MT_LOGOSTOP ->  MT_HBORDERSTOP (end)
+        cMark *logoStop     = marks.GetPrev(end->position, MT_LOGOSTOP);
+        cMark *hborderStart = marks.GetPrev(end->position, MT_HBORDERSTART);
+        if (logoStop && hborderStart) {
+            int deltaLogoStop = (end->position - logoStop->position) / macontext.Video.Info.framesPerSecond;
+            int deltaAssumed  = (iStopA        - logoStop->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): MT_LOGOSTOP at (%d) %ds before hborder stop, %ds before assumed stop found", logoStop->position, deltaLogoStop, deltaAssumed);
+            if ((logoStop->position > hborderStart->position) && (deltaLogoStop <= 415) && (deltaAssumed <= 12)) {
+                dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): use logo stop mark at (%d) before hborder stop (%d)", logoStop->position, end->position);
+                end = logoStop;
+            }
+        }
+        // optimize hborder end mark with logo stop mark in case of next broadcast is also with hborder and too early hborder stop from closing credits overlays hborder
+        // check sequence MT_HBORDERSTOP (end) -> MT_LOGOSTOP -> MT_HBORDERSTART (start of next broadcast)
+        logoStop     = marks.GetNext(end->position, MT_LOGOSTOP);
+        hborderStart = marks.GetNext(end->position, MT_HBORDERSTART);
+        if (logoStop && hborderStart) {
+            int hBorderStopLogoStop  = 1000 * (logoStop->position     - end->position)      / macontext.Video.Info.framesPerSecond;
+            int logoStophBorderStart = 1000 * (hborderStart->position - logoStop->position) /  macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): MT_HBORDERSTOP (%d) -> %dms -> MT_LOGOSTOP (%d) -> %dms -> MT_HBORDERSTART (%d)", end->position, hBorderStopLogoStop, logoStop->position, logoStophBorderStart, hborderStart->position);
+            // valid example
+            // MT_HBORDERSTOP (196569) -> 28000ms -> MT_LOGOSTOP (197269) -> 6040ms -> MT_HBORDERSTART (197420) RTLZWEI
+            if ((hBorderStopLogoStop <= 28000) && (logoStophBorderStart >= 0) && (logoStophBorderStart <= 6040)) {
+                dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): hborder end mark (%d) from closing credits overlays hborder, use logo stop after (%d)", end->position, logoStop->position);
+                end = logoStop;
             }
         }
     }
