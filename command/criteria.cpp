@@ -56,6 +56,15 @@ bool cCriteria::LogoInBorder(const char *channelName) {
 }
 
 
+bool cCriteria::InfoInBorder(const char *channelName) {
+    if (!channelName) return false;
+
+    if (CompareChannelName(channelName, "TELE_5",    IGNORE_HD)) return true;
+
+    return false;
+}
+
+
 bool cCriteria::LogoRotating(const char *channelName) {
     if (!channelName) return false;
     if (CompareChannelName(channelName, "SAT_1", IGNORE_HD)) return true;

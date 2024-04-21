@@ -488,8 +488,9 @@ public:
     /**
      * constructor of class to detect horizental border
      * @param maContextParam markad context
+     * @param criteriaParam  detection criteria
      */
-    explicit cMarkAdBlackBordersHoriz(sMarkAdContext *maContextParam);
+    explicit cMarkAdBlackBordersHoriz(sMarkAdContext *maContextParam, cCriteria *criteriaParam);
 
     /**
      * get first frame number with border
@@ -522,6 +523,8 @@ private:
     int borderframenumber;            //!< frame number of detected horizontal border
     //!<
     sMarkAdContext *maContext = NULL; //!< markad context
+    //!<
+    cCriteria *criteria       = NULL; //!< pointer to class with decoding states and criteria
     //!<
 };
 

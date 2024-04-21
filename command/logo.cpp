@@ -1541,7 +1541,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int
     cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, criteria, recordingIndexLogo);
     ALLOC(sizeof(*ptr_Logo), "SearchLogo-ptr_Logo");
 
-    cMarkAdBlackBordersHoriz *hborder = new cMarkAdBlackBordersHoriz(maContext);
+    cMarkAdBlackBordersHoriz *hborder = new cMarkAdBlackBordersHoriz(maContext, criteria);
     ALLOC(sizeof(*hborder), "hborder");
 
     cMarkAdBlackBordersVert *vborder = new cMarkAdBlackBordersVert(maContext);

@@ -55,6 +55,13 @@ public:
     bool LogoInBorder(const char *channelName);
 
     /**
+     * get status of channel if infos are in hborder or vborder
+     * @param channelName name of the channel
+     * @return status
+     */
+    bool InfoInBorder(const char *channelName);
+
+    /**
      * get status of channel has logo rotating
      * @param channelName name of the channel
      * @return status

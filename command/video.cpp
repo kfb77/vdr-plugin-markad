@@ -1465,7 +1465,8 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
 }
 
 
-cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(sMarkAdContext *maContextParam) {
+cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(sMarkAdContext *maContextParam, cCriteria *criteriaParam) {
+    criteria = criteriaParam;
     maContext = maContextParam;
     Clear();
 }
@@ -1498,6 +1499,9 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
     if (!maContext) return HBORDER_ERROR;
     if (!maContext->Video.Data.valid) return HBORDER_ERROR;
     if (maContext->Video.Info.framesPerSecond == 0) return HBORDER_ERROR;
+
+    int brightnessMaybe = BRIGHTNESS_H_SURE;
+    if (criteria->InfoInBorder(maContext->Info.ChannelName)) brightnessMaybe = BRIGHTNESS_H_MAYBE;
     *borderFrame = -1;   // framenumber of first hborder, otherwise -1
     if (!maContext->Video.Info.height) {
         dsyslog("cMarkAdBlackBordersHoriz::Process() video hight missing");
@@ -1527,7 +1531,7 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
     valBottom /= cnt;
 
     // if we have a bottom border, test top border
-    if (valBottom <= BRIGHTNESS_H_MAYBE) {
+    if (valBottom <= brightnessMaybe) {
         start = maContext->Video.Data.PlaneLinesize[0];
         end = maContext->Video.Data.PlaneLinesize[0] * CHECKHEIGHT;
         cnt = 0;
@@ -1545,10 +1549,10 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
     else valTop = NO_HBORDER;   // we have no botton border, so we do not have to calculate top border
 
 #ifdef DEBUG_HBORDER
-    dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder brightness top %4d bottom %4d (expect one <=%d and one <= %d)", FrameNumber, valTop, valBottom, BRIGHTNESS_H_SURE, BRIGHTNESS_H_MAYBE);
+    dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder brightness top %4d bottom %4d (expect one <=%d and one <= %d)", FrameNumber, valTop, valBottom, BRIGHTNESS_H_SURE, brightnessMaybe);
 #endif
 
-    if (((borderstatus == HBORDER_VISIBLE) && ((valTop <= BRIGHTNESS_H_MAYBE) && (valBottom <= BRIGHTNESS_H_SURE) || (valTop <= BRIGHTNESS_H_SURE) && (valBottom <= BRIGHTNESS_H_MAYBE))) ||
+    if (((borderstatus == HBORDER_VISIBLE) && ((valTop <= brightnessMaybe) && (valBottom <= BRIGHTNESS_H_SURE) || (valTop <= BRIGHTNESS_H_SURE) && (valBottom <= brightnessMaybe))) ||
             ((borderstatus <  HBORDER_VISIBLE) && (valBottom <= BRIGHTNESS_H_SURE) && (valTop <= BRIGHTNESS_H_SURE))) {
         // hborder detected
 #ifdef DEBUG_HBORDER
@@ -2012,7 +2016,7 @@ cMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContextParam, cCriteria *criteriaPa
     blackScreen = new cMarkAdBlackScreen(maContext);
     ALLOC(sizeof(*blackScreen), "blackScreen");
 
-    hborder = new cMarkAdBlackBordersHoriz(maContext);
+    hborder = new cMarkAdBlackBordersHoriz(maContext, criteria);
     ALLOC(sizeof(*hborder), "hborder");
 
     vborder = new cMarkAdBlackBordersVert(maContext);
