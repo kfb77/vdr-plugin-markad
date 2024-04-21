@@ -4992,7 +4992,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if ((lengthAfter >= 1560) && (lengthAfter <= 29800)) maxAfter = 161240;
+                        if ((lengthAfter >= 1560) && (lengthAfter <= 29800)) maxAfter = 213200;
                         break;
                     default:
                         maxAfter = -1;
