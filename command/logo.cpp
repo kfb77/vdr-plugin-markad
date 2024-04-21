@@ -347,6 +347,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
     if (CompareChannelName(maContext->Info.ChannelName, "kabel_eins_Doku", IGNORE_NOTHING)) {
         logo.widthMin  = 130;
         logo.widthMax  = 132;
+        logo.heightMin =  64;
     }
 
     // NICK_CC+1               16:9  720W  576H:->  146W  88H TOP_LEFT
@@ -439,26 +440,17 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         logo.widthMax  = 166;
     }
 
-
+    // sixx                    16:9  720W  576H:->  106W  54H TOP_RIGHT
     // SIXX                    16:9  720W  576H:->  106W  54H TOP_RIGHT
     // SIXX                    16:9  720W  576H:->  118W  56H TOP_RIGHT
     // SIXX                     4:3  720W  576H:->  130W  54H TOP_RIGHT
-    // SIXX                     4:3  720W  576H:->  144W  56H TOP_RIGHT
-    // SIXX                     4:3  720W  576H:->  164W  70H TOP_RIGHT
     if (CompareChannelName(maContext->Info.ChannelName, "SIXX", IGNORE_NOTHING)) {
-        if ((logoAspectRatio.num == 16) && (logoAspectRatio.den == 9)) {
-            logo.widthMin  =  98;
-            logo.widthMax  = 164;
-            logo.heightMin =  54;
-            logo.heightMax =  56;
-        }
-        else {
-            logo.widthMin  =  98;
-            logo.widthMax  = 164;
-            logo.heightMin =  54;
-            logo.heightMax =  70;
-        }
+        logo.widthMin  = 106;
+        logo.widthMax  = 130;
+        logo.heightMin =  54;
+        logo.heightMax =  56;
     }
+
     // SUPER_RTL               16:9  720W  576H:->  160W  66H TOP_LEFT     -> logo RTL SUPER
     // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT     -> logo SUPER RTL
     if (CompareChannelName(maContext->Info.ChannelName, "SUPER_RTL", IGNORE_NOTHING)) {
