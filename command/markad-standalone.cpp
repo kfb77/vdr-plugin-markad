@@ -367,10 +367,10 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
                 dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): channel start (%d) from next braodcast %dms before hborder stop (%d) found, delete channel mark", channelStart->position, diff, end->position);
             }
         }
-        // optimize hborder end mark with logo stop mark in case of next broadcast is also with hborder
-        // check sequence MT_HBORDERSTART -> MT_LOGOSTOP ->  MT_HBORDERSTOP (end)
-        cMark *logoStop     = marks.GetPrev(end->position, MT_LOGOSTOP);
-        cMark *hborderStart = marks.GetPrev(end->position, MT_HBORDERSTART);
+        // optimize hborder end mark with logo stop mark in case of next broadcast is also with hborder (black closing credits or black opening credits)
+        // check sequence MT_LOGOSTOP ->  MT_HBORDERSTOP (end) -> MT_HBORDERSTART
+        cMark *logoStop     = marks.GetPrev(end->position, MT_LOGOSTOP);       // end of this boradcast
+        cMark *hborderStart = marks.GetNext(end->position, MT_HBORDERSTART);   // start of next hborder broadcast
         if (logoStop && hborderStart) {
             int deltaLogoStop = (end->position - logoStop->position) / macontext.Video.Info.framesPerSecond;
             int deltaAssumed  = (iStopA        - logoStop->position) / macontext.Video.Info.framesPerSecond;
