@@ -65,7 +65,7 @@ bool cCriteria::InfoInBorder(const char *channelName) {
     if (!channelName) return false;
 
     if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "SUPER_RTL",      IGNORE_HD)) return true;
+//  if (CompareChannelName(channelName, "SUPER_RTL",      IGNORE_HD)) return true;  // channel has black framed ad
     if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD)) return true;
 
     return false;
