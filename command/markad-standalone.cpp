@@ -544,8 +544,9 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         end = marks.GetAround(400 * macontext.Video.Info.framesPerSecond, iStopA, MT_LOGOSTOP);
         if (end) {
             int iStopDelta = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
-#define MAX_LOGO_BEFORE_ASSUMED 105
-            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): MT_LOGOSTOP found at frame (%d), %ds (expect < %ds) before assumed stop (%d)", end->position, iStopDelta, MAX_LOGO_BEFORE_ASSUMED, iStopA);
+#define MAX_LOGO_BEFORE_ASSUMED 240
+// valid examples: 105, 117, 240
+            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): MT_LOGOSTOP found at frame (%d), %ds (expect <= %ds) before assumed stop (%d)", end->position, iStopDelta, MAX_LOGO_BEFORE_ASSUMED, iStopA);
             if (iStopDelta > MAX_LOGO_BEFORE_ASSUMED) {
                 dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo stop mark too far before assumed stop");
                 end = NULL;

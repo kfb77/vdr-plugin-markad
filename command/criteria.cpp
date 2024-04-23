@@ -38,6 +38,7 @@ bool cCriteria::LogoFadeOut(const char *channelName) {
     if (CompareChannelName(channelName, "SPORT1",         IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "TLC",            IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "VOX",            IGNORE_HD)) return true;
 
     return false;
 }
