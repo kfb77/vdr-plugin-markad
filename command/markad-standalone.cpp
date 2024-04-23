@@ -223,14 +223,19 @@ cMark *cMarkAdStandalone::Check_CHANNELSTOP() {
         dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): MT_CHANNELSTOP (%d) found %ds before assumed stop (%d)", end->position, diffAssumed, iStopA);
     }
     else {
-        end = marks.GetPrev(INT_MAX, MT_CHANNELSTOP);   // try last channel stop
+        // try last channel stop
+        end = marks.GetPrev(INT_MAX, MT_CHANNELSTOP);
         if (end) {
             int diffAssumed = (iStopA - end->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): last MT_CHANNELSTOP (%d) found %ds before assumed stop (%d)", end->position, diffAssumed, iStopA);
             cMark *channelStartAfter = marks.GetNext(end->position, MT_CHANNELSTART);
-            if ((diffAssumed > MAX_BEFORE_CHANNEL) && channelStartAfter) {
-                dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): last MT_CHANNELSTOP (%d) too far before assumed stop and MT_CHANNELSTART (%d) after exists", end->position, channelStartAfter->position);
-                end = NULL;
+            if (channelStartAfter) {
+                int diffChannelStartiStopA = (iStopA - channelStartAfter->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): MT_CHANNELSTART (%d) %ds before assumed stop (%d)", channelStartAfter->position, diffChannelStartiStopA, iStopA);
+                if ((diffAssumed > MAX_BEFORE_CHANNEL) && (diffChannelStartiStopA > 7)) {
+                    dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): last MT_CHANNELSTOP (%d) too far before assumed stop and MT_CHANNELSTART (%d) far before assumed stop", end->position, channelStartAfter->position);
+                    end = NULL;
+                }
             }
             if (diffAssumed <= -547) { // changed from -561 to -547
                 dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): last MT_CHANNELSTOP too far after assumed stop");
