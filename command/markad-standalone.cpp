@@ -2471,19 +2471,6 @@ void cMarkAdStandalone::CheckStart() {
         }
     }
 
-// try lower border mark, this is end of previous recording
-    if (!begin) {
-        dsyslog("cMarkAdStandalone::CheckStart(): search for end of lower border as start mark");
-        const cMark *noLowerBlackStart = blackMarks.GetAround(120 * macontext.Video.Info.framesPerSecond, iStartA, MT_NOLOWERBORDERSTART);
-        if (noLowerBlackStart) {
-            cMark *nextMark = marks.GetNext(noLowerBlackStart->position, MT_ALL);
-            if (!nextMark || ((nextMark->type & 0x0F) == MT_STOP)) {  // do not insert black screen start before other start mark
-                begin = marks.Add(MT_NOLOWERBORDERSTART, MT_UNDEFINED, MT_UNDEFINED, noLowerBlackStart->position, "end   lower border", false);
-                dsyslog("cMarkAdStandalone::CheckStart(): found end of lower border from previous broadcast, use as start mark (%d)", begin->position);
-            }
-        }
-    }
-
     // no start mark found at all, set start after pre timer
     if (!begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, assume start time at pre recording time");
