@@ -1304,22 +1304,24 @@ cMarkAdSceneChange::~cMarkAdSceneChange() {
 }
 
 
-int cMarkAdSceneChange::Process(const int currentFrameNumber) {
-    if (!maContext) return 0;
-    if (!maContext->Video.Data.valid) return 0;
-    if (maContext->Video.Info.framesPerSecond == 0) return 0;
+int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNumber) {
+    if (!maContext) return SCENE_ERROR;
+    if (!changeFrameNumber) return SCENE_ERROR;
+    if (!maContext->Video.Data.valid) return SCENE_ERROR;
+    if (maContext->Video.Info.framesPerSecond == 0) return SCENE_ERROR;
     if (!maContext->Video.Info.height) {
         dsyslog("cMarkAdSceneChange::Process(): missing maContext->Video.Info.height");
-        return 0;
+        return SCENE_ERROR;
     }
     if (!maContext->Video.Info.width) {
         dsyslog("cMarkAdSceneChange::Process(): missing maContext->Video.Info.width");
-        return 0;
+        return SCENE_ERROR;
     }
     if (!maContext->Video.Data.Plane[0]) {
         dsyslog("cMarkAdSceneChange::Process(): Video.Data.Plane[0] missing");
-        return 0;
+        return SCENE_ERROR;
     }
+
     // get simple histogramm from current frame
     int *currentHistogram = NULL;
     currentHistogram = static_cast<int *>(malloc(sizeof(int) * 256));
@@ -1343,15 +1345,74 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber) {
     }
     int diffQuote = 1000 * difference / (maContext->Video.Info.height * maContext->Video.Info.width * 2);
 #ifdef DEBUG_SCENE_CHANGE
-    dsyslog("cMarkAdSceneChange::Process(): previous frame (%7d) and current frame (%7d): difference %7ld, diffQute %4d", prevFrameNumber, currentFrameNumber, difference, diffQuote);
+    dsyslog("cMarkAdSceneChange::Process(): previous frame (%7d) and current frame (%7d): status %2d, blendCount %2d, blendFrame %7d, difference %7ld, diffQute %4d", prevFrameNumber, currentFrameNumber, sceneStatus, blendCount, blendFrame, difference, diffQuote);
 #endif
     FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
     free(prevHistogram);
+
+#define DIFF_SCENE_CHANGE 110
+#define DIFF_SCENE_BLEND_START  60
+#define DIFF_SCENE_BLEND_STOP   30
+#define SCENE_BLEND_FRAMES  5
+// end of scene
+    if (diffQuote >= DIFF_SCENE_CHANGE) {
+        if (blendFrame < 0) blendFrame = prevFrameNumber;
+        blendCount++;
+        if ((blendCount <= SCENE_BLEND_FRAMES) && (sceneStatus != SCENE_STOP)) {
+            if (blendCount < SCENE_BLEND_FRAMES) blendCount = SCENE_BLEND_FRAMES;  // use blendCount as active scene change
+            *changeFrameNumber = blendFrame;
+            sceneStatus        = SCENE_STOP;
+#ifdef DEBUG_SCENE_CHANGE
+            dsyslog("cMarkAdSceneChange::Process(): frame (%7d) end of scene", prevFrameNumber);
+#endif
+        }
+        else sceneStatus = SCENE_BLEND;
+    }
+// activ scene blend
+    else if (diffQuote >= DIFF_SCENE_BLEND_START) {
+        if (blendFrame < 0) blendFrame = prevFrameNumber;
+        blendCount++;
+        if ((blendCount == SCENE_BLEND_FRAMES)) {
+            *changeFrameNumber = blendFrame;
+            sceneStatus = SCENE_STOP;
+#ifdef DEBUG_SCENE_CHANGE
+            dsyslog("cMarkAdSceneChange::Process(): frame (%7d) scene blend start at frame (%d)", prevFrameNumber, blendFrame);
+#endif
+        }
+        else sceneStatus = SCENE_BLEND;
+    }
+// unclear result, keep state
+    else if ((diffQuote < DIFF_SCENE_BLEND_START) && (diffQuote > DIFF_SCENE_BLEND_STOP)) {
+#ifdef DEBUG_SCENE_CHANGE
+        if (sceneStatus == SCENE_BLEND) dsyslog("cMarkAdSceneChange::Process(): frame (%7d) scene blend continue at frame (%d)", prevFrameNumber, blendFrame);
+#endif
+    }
+// start of next scene
+    else {
+        if ((sceneStatus == SCENE_STOP) || ((sceneStatus == SCENE_BLEND) && (blendCount >= SCENE_BLEND_FRAMES))) {
+            *changeFrameNumber = prevFrameNumber;
+            sceneStatus        = SCENE_START;
+#ifdef DEBUG_SCENE_CHANGE
+            dsyslog("cMarkAdSceneChange::Process(): frame (%7d) start of scene", prevFrameNumber);
+#endif
+        }
+        else sceneStatus = SCENE_NOCHANGE;
+        blendFrame = -1;
+        blendCount =  0;
+    }
+
     prevHistogram   = currentHistogram;
     prevFrameNumber = currentFrameNumber;
 
-    if (diffQuote >= 110) return SCENE_CHANGED;  // changed from 169 to 158 to 125 to 110
-    return SCENE_NOCHANGE;
+#ifdef DEBUG_SCENE_CHANGE
+    if (*changeFrameNumber >= 0) {
+        if (sceneStatus == SCENE_START) dsyslog("cMarkAdSceneChange::Process(): new mark: MT_SCENESTART at frame (%7d)", *changeFrameNumber);
+        if (sceneStatus == SCENE_STOP)  dsyslog("cMarkAdSceneChange::Process(): new mark: MT_SCENESTOP  at frame (%7d)", *changeFrameNumber);
+    }
+#endif
+
+    if (*changeFrameNumber >= 0) return sceneStatus;
+    else return SCENE_NOCHANGE;
 }
 
 
@@ -2127,16 +2188,10 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
 
     // scene change detection
     if (criteria->GetDetectionState(MT_SCENECHANGE)) {
-        if (sceneChange->Process(useFrame) == SCENE_CHANGED) {
-            if (maContext->Config->fullDecode) {
-                AddMark(MT_SCENESTOP,  useFrame - 1);
-                AddMark(MT_SCENESTART, useFrame);
-            }
-            else {
-                AddMark(MT_SCENESTOP,  iFrameBefore);
-                AddMark(MT_SCENESTART, iFrameCurrent);
-            }
-        }
+        int changeFrame = -1;
+        int sceneRet = sceneChange->Process(useFrame, &changeFrame);
+        if (sceneRet == SCENE_START) AddMark(MT_SCENESTART, changeFrame);
+        if (sceneRet == SCENE_STOP)  AddMark(MT_SCENESTOP,  changeFrame);
     }
 
     // black screen change detection

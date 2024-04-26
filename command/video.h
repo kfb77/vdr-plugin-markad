@@ -44,9 +44,12 @@ enum eLogoStatus {
 };
 
 enum {
+    SCENE_ERROR          = -3,
     SCENE_UNINITIALIZED  = -2,
+    SCENE_STOP           = -1,
     SCENE_NOCHANGE       =  0,
-    SCENE_CHANGED        =  1
+    SCENE_BLEND          =  1,    // scene blend is active
+    SCENE_START          =  2
 };
 
 enum {
@@ -430,14 +433,20 @@ public:
      *          0 no status change <br>
      *          1 scene start
      */
-    int Process(const int currentFrameNumber);
+    int Process(const int currentFrameNumber, int *changeFrameNumber);
 
 private:
-    sMarkAdContext *maContext = NULL;  //!< markad context
+    sMarkAdContext *maContext = NULL;                  //!< markad context
     //!<
-    int prevFrameNumber       = 0;     //!< previous frame number
+    int prevFrameNumber       = -1;                    //!< previous frame number
     //!<
-    int *prevHistogram        = NULL;  //!< histogram of previous frame
+    int *prevHistogram        = NULL;                  //!< histogram of previous frame
+    //!<
+    int sceneStatus           = SCENE_UNINITIALIZED;   //!< status of scene change
+    //!<
+    int blendFrame            = -1;                    //!< frames number of first frame over blend limit
+    //!<
+    int blendCount            = 0;                     //!< number of frames over blend limit
     //!<
 };
 
