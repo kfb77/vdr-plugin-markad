@@ -2167,8 +2167,8 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
             if ((vStart->position < IGNORE_AT_START) || (markDiff <= 321)) {  // vbordet start/stop from previous broadcast
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop at (%d) %ds after vertical border start (%d) in start part found, this is from previous broadcast, delete marks", vStop->position, markDiff, vStart->position);
                 criteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE);
-                marks.Del(vStop);
-                marks.Del(vStart);
+                // broadcast start can not be before vborder stop from previous broadcast, keep vborder stop as possible start mark
+                marks.DelFromTo(0, vStop->position - 1, MT_ALL, 0xFF);
                 return NULL;
             }
         }
@@ -2430,28 +2430,6 @@ void cMarkAdStandalone::CheckStart() {
         begin = NULL;
     }
 
-// try black screen as start mark
-    if (!begin) {
-        dsyslog("cMarkAdStandalone::CheckStart(): search for end of black screen as start mark");
-        const cMark *noBlackStart = blackMarks.GetAround(120 * macontext.Video.Info.framesPerSecond, iStartA, MT_NOBLACKSTART);
-        if (noBlackStart) {
-            cMark *nextMark = marks.GetNext(noBlackStart->position, MT_ALL);
-            if (!nextMark || ((nextMark->type & 0x0F) == MT_STOP)) {  // do not insert black screen start before other start mark
-                char *comment = NULL;
-                if (asprintf(&comment, "start black screen (%d)*", noBlackStart->position) == -1) comment = NULL;
-                if (comment) {
-                    ALLOC(strlen(comment)+1, "comment");
-                }
-                begin = marks.Add(MT_NOBLACKSTART, MT_UNDEFINED, MT_UNDEFINED, noBlackStart->position, comment, false);
-                if (comment) {
-                    FREE(strlen(comment)+1, "comment");
-                    free(comment);
-                }
-                dsyslog("cMarkAdStandalone::CheckStart(): found end of black screen as start mark (%d)", begin->position);
-            }
-        }
-    }
-
 // no mark found, try anything
     if (!begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): search for any start mark");
@@ -2485,6 +2463,39 @@ void cMarkAdStandalone::CheckStart() {
             marks.DelTill(begin->position);
         }
     }
+
+    // still no start mark found, try vborder stop marks from previous broadcast
+    if (!begin) { // try hborder stop mark as start mark
+        cMark *vborderStop = marks.GetNext(0, MT_VBORDERSTOP);
+        if (vborderStop) {
+            dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, use MT_VBORDERSTOP (%d) from previous recoring as start mark", vborderStop->position);
+            begin = marks.ChangeType(vborderStop, MT_START);
+            marks.DelTill(begin->position);
+        }
+    }
+
+// try black screen as start mark
+    if (!begin) {
+        dsyslog("cMarkAdStandalone::CheckStart(): search for end of black screen as start mark");
+        const cMark *noBlackStart = blackMarks.GetAround(120 * macontext.Video.Info.framesPerSecond, iStartA, MT_NOBLACKSTART);
+        if (noBlackStart) {
+            cMark *nextMark = marks.GetNext(noBlackStart->position, MT_ALL);
+            if (!nextMark || ((nextMark->type & 0x0F) == MT_STOP)) {  // do not insert black screen start before other start mark
+                char *comment = NULL;
+                if (asprintf(&comment, "start black screen (%d)*", noBlackStart->position) == -1) comment = NULL;
+                if (comment) {
+                    ALLOC(strlen(comment)+1, "comment");
+                }
+                begin = marks.Add(MT_NOBLACKSTART, MT_UNDEFINED, MT_UNDEFINED, noBlackStart->position, comment, false);
+                if (comment) {
+                    FREE(strlen(comment)+1, "comment");
+                    free(comment);
+                }
+                dsyslog("cMarkAdStandalone::CheckStart(): found end of black screen as start mark (%d)", begin->position);
+            }
+        }
+    }
+
 
     // no start mark found at all, set start after pre timer
     if (!begin) {
