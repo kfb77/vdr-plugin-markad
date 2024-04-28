@@ -3445,7 +3445,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         return;
     }
     if (mark->position < 0) {
-        esyslog("cMarkAdStandalone::AddMark(): mark position (%d) invalidi, type 0x%X", mark->position, mark->type);
+        esyslog("cMarkAdStandalone::AddMark(): mark position (%d) invalid, type 0x%X", mark->position, mark->type);
         return;
     }
 
