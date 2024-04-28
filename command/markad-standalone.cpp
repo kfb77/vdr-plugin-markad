@@ -1370,7 +1370,8 @@ int cMarkAdStandalone::CheckStop() {
 
 // try MT_HBORDERSTOP
     // try hborder end if hborder used even if we got another end mark, maybe we found a better one, but not if we have a hborder end mark
-    if (!end || ((end->type != MT_HBORDERSTOP) && (criteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED))) {
+    if ((!end && (criteria.GetMarkTypeState(MT_HBORDERCHANGE) >= CRITERIA_UNKNOWN)) ||
+            (end && (end->type != MT_HBORDERSTOP) && (criteria.GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED))) {
         cMark *hBorder = Check_HBORDERSTOP();
         if (hBorder) end = hBorder;  // do not override an existing end mark with NULL
     }
