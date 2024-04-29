@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-05-02: Version 3.6.1
+- fix mark position for scene blend
+- prevent to get black framed ad as hborder
+- some minor bug fixes and optimizations, see git
+
 2024-04-20: Version 3.6.0
 - reduce build messages (thx to Mike838@www.vdr-portal.de)
 - change minimum libavcodec version to 56.60.100 (FFmpeg 2.8.17)
