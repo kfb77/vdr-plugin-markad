@@ -5494,7 +5494,11 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxBefore = 600;   // changed from 360 to 600
                     break;
                 case MT_LOGOSTART:
-                    maxBefore = 2840;
+                    // rule 1: logo start very short before broadcast start
+                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && (diffBefore >= 2720) && (diffAfter <= 40)) diffBefore = INT_MAX;
+
+                    if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxBefore = 4260;
+                    else                                                              maxBefore = 2840;
                     break;
                 case MT_CHANNELSTART:
                     if (diffAfter <= 1060) diffBefore = INT_MAX;
@@ -5503,8 +5507,15 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_SOUNDSTART:
-                        if ((diffBefore >= 60) && (diffAfter <= 920)) diffBefore = INT_MAX;
-                        maxBefore = 5060;  // changed from 4400 to 5060
+                        // rule 1: prefer scene change after silence
+                        if ((diffBefore >= 60) && (diffBefore <= 1680) && (diffAfter <= 2040)) diffBefore = INT_MAX;
+
+                        // rule 2: scene blend around silence, both are invalid
+                        else if ((diffBefore >= 4120) && (diffAfter >= 1160)) {
+                            diffBefore = INT_MAX;
+                            diffAfter = INT_MAX;
+                        }
+                        maxBefore = 1680;
                         break;
                     case MT_VPSSTART:
                         // rule 1: long scene before VPS start (closing scene), short scene after VPS start (broadcast start)
@@ -5561,7 +5572,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_SOUNDSTART:
-                        maxAfter = 2880;  // changed from 1200 to 2880
+                        maxAfter = 2040;
                         break;
                     case MT_NOLOWERBORDERSTART:
                         maxAfter = 5000;
@@ -5628,7 +5639,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     break;
                 case MT_HBORDERSTOP:
                     if ((diffBefore <= 440) && (diffAfter >= 1720)) diffAfter = INT_MAX;
-                    if (mark->position == marks.GetLast()->position) maxAfter = 10160;   // closing credits overlaps border
+                    maxAfter = 1239;
                     break;
                 case MT_CHANNELSTOP:
                     // rule 1:
@@ -5647,10 +5658,10 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxAfter = 2520;
                         break;
                     case MT_SOUNDSTOP:
-                        // rule 1: alway use scene change before sound stop
-                        diffAfter = INT_MAX;
+                        // rule 1: alway use scene change short before sound stop
+                        if ((diffBefore <= 4920) && (diffAfter > 20)) diffAfter = INT_MAX;
 
-                        maxAfter = 0;
+                        maxAfter = 20;
                         break;
                     case MT_VPSSTOP:
                         // rule 1: scene change short before
@@ -5715,7 +5726,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxBefore = 80;
                         break;
                     case MT_SOUNDSTOP:
-                        maxBefore = 9960;   // changed from 4720 to 9960
+                        maxBefore = 1079;
                         break;
                     case MT_VPSSTOP:
                         maxBefore = 8440;   // chaned from 1320 to 1440 to 8440
