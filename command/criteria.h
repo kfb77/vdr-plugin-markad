@@ -19,6 +19,13 @@ enum eCriteria {
     CRITERIA_DISABLED    = -2,
 };
 
+enum eFadeInOut {
+    FADE_ERROR = -1,
+    FADE_NONE  =  0,
+    FADE_IN    =  1,
+    FADE_OUT   =  2,
+};
+
 
 
 /**
@@ -45,7 +52,7 @@ public:
      * @param channelName name of the channel
      * @return status
      */
-    bool LogoFadeOut(const char *channelName);
+    int LogoFadeInOut(const char *channelName);
 
     /**
      * get status of channel if logo is in hborder or vborder

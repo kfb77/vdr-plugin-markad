@@ -27,23 +27,23 @@ bool cCriteria::GoodVPS(const char *channelName) {
 }
 
 
-bool cCriteria::LogoFadeOut(const char *channelName) {
-    if (!channelName) return false;
+int cCriteria::LogoFadeInOut(const char *channelName) {
+    if (!channelName) return FADE_ERROR;
 
-    if (CompareChannelName(channelName, "Das_Erste",      IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "DMAX",           IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "KiKA",           IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "Nickelodeon",    IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "NICK_MTV+",      IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "SPORT1",         IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "TLC",            IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "VOX",            IGNORE_HD)) return true;   // very short fade out
-    if (CompareChannelName(channelName, "VOXup",          IGNORE_HD)) return true;   // very short fade out
-    if (CompareChannelName(channelName, "ZDF",            IGNORE_HD)) return true;   // very short fade out
+    if (CompareChannelName(channelName, "Das_Erste",      IGNORE_HD)) return FADE_IN | FADE_OUT;
+    if (CompareChannelName(channelName, "DMAX",           IGNORE_HD)) return FADE_IN | FADE_OUT;
+    if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD)) return FADE_IN | FADE_OUT;
+    if (CompareChannelName(channelName, "KiKA",           IGNORE_HD)) return FADE_IN | FADE_OUT;
+    if (CompareChannelName(channelName, "Nickelodeon",    IGNORE_HD)) return FADE_IN | FADE_OUT;
+    if (CompareChannelName(channelName, "NICK_MTV+",      IGNORE_HD)) return FADE_IN | FADE_OUT;
+    if (CompareChannelName(channelName, "SPORT1",         IGNORE_HD)) return FADE_IN | FADE_OUT;
+    if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD)) return FADE_IN | FADE_OUT;
+    if (CompareChannelName(channelName, "TLC",            IGNORE_HD)) return FADE_IN | FADE_OUT;
+    if (CompareChannelName(channelName, "VOX",            IGNORE_HD)) return FADE_OUT;             // very short fade out
+    if (CompareChannelName(channelName, "VOXup",          IGNORE_HD)) return FADE_IN | FADE_OUT;   // very short fade out
+    if (CompareChannelName(channelName, "ZDF",            IGNORE_HD)) return FADE_IN | FADE_OUT;
 
-    return false;
+    return FADE_NONE;
 }
 
 
