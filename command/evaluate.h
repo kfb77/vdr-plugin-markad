@@ -132,7 +132,7 @@ public:
      * @param framesPerSecond   video frame rate
      * @param iStart            assumed start frame number
      */
-    static void IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart);
+    static void IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStopA);
 
     /**
      * get next logo stop/start pair
