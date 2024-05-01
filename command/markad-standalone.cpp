@@ -968,6 +968,7 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
         }
 
         // check squence MT_LOGOSTOP -> MT_NOBLACKSTOP -> MT_NOBLACKSTART -> MT_LOGOSTART (mark)
+        // black screen have to be short after end mark of previous broadcast
         blackStop = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTART);
         if (blackStop) {  // from above
             cMark *blackStart = blackMarks.GetPrev(blackStop->position, MT_NOBLACKSTOP);
@@ -977,22 +978,23 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     int diffLogoStopBlackStart  = 1000 * (blackStart->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
                     int diffBlackStartBlackStop = 1000 * (blackStop->position  - blackStart->position) / macontext.Video.Info.framesPerSecond;
                     int diffBlackStopLogoStart  = 1000 * (mark->position       - blackStop->position)  / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%5d)-> %5dms -> MT_NOBLACKSTOP (%4d) -> %4dms -> MT_NOBLACKSTART (%4d) -> %4dms -> MT_LOGOSTART (%4d)", stopBefore->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, mark->position);
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%5d)-> %5dms -> MT_NOBLACKSTOP (%5d) -> %4dms -> MT_NOBLACKSTART (%5d) -> %5dms -> MT_LOGOSTART (%5d)", stopBefore->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, mark->position);
 // valid example
-// MT_LOGOSTOP (6419)->     40ms -> MT_NOBLACKSTOP (6420) ->  360ms -> MT_NOBLACKSTART (6429) ->  200ms -> MT_LOGOSTART (6434)
-// MT_LOGOSTOP (3536)->   1680ms -> MT_NOBLACKSTOP (3578) ->  320ms -> MT_NOBLACKSTART (3586) -> 1800ms -> MT_LOGOSTART (3631)  TELE 5, fade in logo
-// MT_LOGOSTOP (5887)->   4880ms -> MT_NOBLACKSTOP (6009) ->  440ms -> MT_NOBLACKSTART (6020) -> 1040ms -> MT_LOGOSTART (6046)  Kabel 1 Austria, separator picture before
-// MT_LOGOSTOP ( 7577)->  7040ms -> MT_NOBLACKSTOP (7753) ->   40ms -> MT_NOBLACKSTART (7754) ->    0ms -> MT_LOGOSTART (7754)  Comedy Central
+// MT_LOGOSTOP ( 6419)->    40ms -> MT_NOBLACKSTOP ( 6420) ->  360ms -> MT_NOBLACKSTART ( 6429) ->   200ms -> MT_LOGOSTART ( 6434)
+// MT_LOGOSTOP ( 3536)->  1680ms -> MT_NOBLACKSTOP ( 3578) ->  320ms -> MT_NOBLACKSTART ( 3586) ->  1800ms -> MT_LOGOSTART ( 3631) TELE 5, fade in logo
+// MT_LOGOSTOP ( 5887)->  4880ms -> MT_NOBLACKSTOP ( 6009) ->  440ms -> MT_NOBLACKSTART ( 6020) ->  1040ms -> MT_LOGOSTART ( 6046) Kabel 1 Austria, separator picture before
+// MT_LOGOSTOP ( 7577)->  7040ms -> MT_NOBLACKSTOP ( 7753) ->   40ms -> MT_NOBLACKSTART ( 7754) ->     0ms -> MT_LOGOSTART ( 7754) Comedy Central
+// MT_LOGOSTOP (15548)->  2060ms -> MT_NOBLACKSTOP (15651) ->   80ms -> MT_NOBLACKSTART (15655) -> 38720ms -> MT_LOGOSTART (17591) Das Erste
 //
 // valid example (conflict)
-// MT_LOGOSTOP (4860)->  30040ms -> MT_NOBLACKSTOP (5611) ->  440ms -> MT_NOBLACKSTART (5622) -> 1040ms -> MT_LOGOSTART (5648)  kabel eins, ad in frame without logo before (conflict)
-// MT_LOGOSTOP (5279)-> 124400ms -> MT_NOBLACKSTOP (8389) ->   40ms -> MT_NOBLACKSTART (8390) -> 2600ms -> MT_LOGOSTART (8455)  Nickelodeon (conflict)
+// MT_LOGOSTOP ( 4860)-> 30040ms -> MT_NOBLACKSTOP ( 5611) ->  440ms -> MT_NOBLACKSTART ( 5622) ->  1040ms -> MT_LOGOSTART ( 5648) kabel eins, ad in frame without logo before (conflict)
+// MT_LOGOSTOP ( 5279)->124400ms -> MT_NOBLACKSTOP ( 8389) ->   40ms -> MT_NOBLACKSTART ( 8390) ->  2600ms -> MT_LOGOSTART ( 8455) Nickelodeon (conflict)
 //
 // invalid example
 // MT_LOGOSTOP (  204)-> 28600ms -> MT_NOBLACKSTOP (1634) ->   40ms -> MT_NOBLACKSTART (1636) -> 1900ms -> MT_LOGOSTART (1731)
 // MT_LOGOSTOP ( 1032)-> 68600ms -> MT_NOBLACKSTOP (4462) ->   40ms -> MT_NOBLACKSTART (4464) -> 1820ms -> MT_LOGOSTART (4555)
 // MT_LOGOSTOP ( 4997)-> 25260ms -> MT_NOBLACKSTOP (6260) ->   60ms -> MT_NOBLACKSTART (6263) -> 1820ms -> MT_LOGOSTART (6354)
-                    if ((diffLogoStopBlackStart <= 7040) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 1800)) {
+                    if ((diffLogoStopBlackStart <= 7040) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 38720)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen sequence is valid");
                         return true;
                     }
@@ -1130,14 +1132,16 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
 // valid sequence:
 // MT_LOGOSTOP (81055) ->     0ms -> MT_NOBLACKSTOP (81055) ->    40ms ->  MT_NOBLACKSTART (81056) ->   1680ms -> MT_LOGOSTART (81098) -> RTL2
 // MT_LOGOSTOP (84786) ->   120ms -> MT_NOBLACKSTOP (84789) ->   240ms ->  MT_NOBLACKSTART (84795) ->   1800ms -> MT_LOGOSTART (84840) -> Pro7 MAXX
-// MT_LOGOSTOP (86549) ->    80ms -> MT_NOBLACKSTOP (86551) ->   280ms ->  MT_NOBLACKSTART (86558) ->  31800ms -> MT_LOGOSTART (87353) -> Pro7 MAXX
+// MT_LOGOSTOP (86549) ->    80ms -> MT_NOBLACKSTOP (86551) ->   280ms ->  MT_NOBLACKSTART (86558) ->  31800ms -> MT_LOGOSTART (87353) -> Pro7 MAXX (conflict)
 // MT_LOGOSTOP (82130) ->    80ms -> MT_NOBLACKSTOP (82132) ->   240ms ->  MT_NOBLACKSTART (82138) ->   1840ms -> MT_LOGOSTART (82184) -> Pro7 MAXX
 // MT_LOGOSTOP (78161) ->    80ms -> MT_NOBLACKSTOP (78163) ->   240ms ->  MT_NOBLACKSTART (78169) ->   2800ms -> MT_LOGOSTART (78239) -> Pro7 MAXX
+// MT_LOGOSTOP (46818) ->   840ms -> MT_NOBLACKSTOP (46839) ->   160ms ->  MT_NOBLACKSTART (46843) ->   2680ms -> MT_LOGOSTART (46910) -> Comedy Central
 //
 // invalid sequence:
 // MT_LOGOSTOP (81485) ->  4040ms -> MT_NOBLACKSTOP (81586) ->   160ms ->  MT_NOBLACKSTART (81590) ->  95920ms -> MT_LOGOSTART (83988) -> RTLZWEI, sequence in preview
+// MT_LOGOSTOP (55728) ->    40ms -> MT_NOBLACKSTOP (55729) ->   120ms ->  MT_NOBLACKSTART (55732) ->   8440ms -> MT_LOGOSTART (55943) -> Comedy Central, sequence in preview
                     if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) &&
-                            (diffLogoStopBlackStart <= 120) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 31800)) {
+                            (diffLogoStopBlackStart <= 840) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 2800)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is valid", mark->position);
                         return true;
                     }
