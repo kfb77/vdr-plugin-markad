@@ -1812,13 +1812,19 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int
                 logoCorner[2] = corner;
             }
         }
+        for (int corner = 0; corner < CORNERS; corner++) {  // search for third best hits of each corner
+            if ((actLogoInfo[corner].hits > 0) && (actLogoInfo[corner].hits > logoInfo[3].hits) && (corner != logoCorner[0]) && (corner != logoCorner[1]) && (corner != logoCorner[2])) {
+                logoInfo[3]   = actLogoInfo[corner];
+                logoCorner[3] = corner;
+            }
+        }
         dsyslog("cExtractLogo::SearchLogo(): corner rank:");
-        for (int rank = 0; rank < CORNERS - 1; rank++) {
+        for (int rank = 0; rank < CORNERS; rank++) {
             if (logoCorner[rank] < 0) break;
             dsyslog("cExtractLogo::SearchLogo(): %d.: %-12s %3d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].hits);
         }
 
-        // try good matches
+        // try good matches, use max 3 best corners
         int done = -1;
         for (int rank = 0; rank < CORNERS - 1; rank++) {
             dsyslog("cExtractLogo::SearchLogo(): check %d. best corner -----------------------------------------------------------------------------------", rank);
@@ -1856,9 +1862,9 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int
         }
 
         // try low matches
-        if ((rankResult == -1) && force) {  // last try to get a logo
-            for (int rank = done + 1; rank < CORNERS - 1; rank++) {
-                dsyslog("cExtractLogo::SearchLogo(): check %d. best corner -----------------------------------------------------------------------------------", rank);
+        if ((rankResult == -1) && force) {  // last try to get a logo, use all corners
+            for (int rank = done + 1; rank < CORNERS; rank++) {
+                dsyslog("cExtractLogo::SearchLogo(): check %d. best corner for all corners -------------------------------------------------------------------", rank);
                 if (logoCorner[rank] < 0) break;    // no more matches
                 if ((logoInfo[rank].hits >= 4) ||  // this is the very last try, use what we have, bettet than nothing, changed from 6 to 4
                         ((logoInfo[rank].hits >=  2) && (sumHits == logoInfo[rank].hits))) {  // all machtes in one corner
