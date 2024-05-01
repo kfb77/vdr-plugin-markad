@@ -5198,7 +5198,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     if ((diffBefore >=  600) && (diffAfter <=  360)) diffBefore = INT_MAX;
                     if ((diffBefore >= 2040) && (diffAfter <= 3460)) diffBefore = INT_MAX;
 
-                    if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxBefore = 7340;
+                    if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxBefore = 8680;
                     else                                                              maxBefore = 3999;
                     break;
                 case MT_MOVEDSTART:
