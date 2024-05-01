@@ -13,15 +13,14 @@
 
 bool cEvaluateChannel::IsInfoLogoChannel(const char *channelName) {
     // for performance reason only known and tested channels
-    if (CompareChannelName(channelName, "DMAX",                IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "kabel_eins",      IGNORE_HD)                  ||   // only for info (e.g. Teletext)
-            CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD | IGNORE_COUNTRY) ||   // only for info (e.g. Teletext)
-            CompareChannelName(channelName, "SIXX",            IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "SAT_1",           IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "WELT",            IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "RTL2",            IGNORE_HD | IGNORE_COUNTRY)) {
-        return true;
-    }
+    if (CompareChannelName(channelName, "Comedy_Central",  IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "DMAX",            IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "kabel_eins",      IGNORE_HD))                  return true;   // only for info (e.g. Teletext)
+    if (CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD | IGNORE_COUNTRY)) return true;   // only for info (e.g. Teletext)
+    if (CompareChannelName(channelName, "SIXX",            IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "SAT_1",           IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "WELT",            IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "RTL2",            IGNORE_HD | IGNORE_COUNTRY)) return true;
     return false;
 }
 
