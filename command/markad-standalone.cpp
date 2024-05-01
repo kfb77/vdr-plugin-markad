@@ -2185,10 +2185,11 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
             // example
             // start vertical border    at 0:01:04.80 -> stop  vertical border    at 0:06:25.92 (321s) is from broadcast before
             if ((vStart->position < IGNORE_AT_START) || (markDiff <= 321)) {  // vbordet start/stop from previous broadcast
-                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop at (%d) %ds after vertical border start (%d) in start part found, this is from previous broadcast, delete marks", vStop->position, markDiff, vStart->position);
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop at (%d) %ds after vertical border start (%d) in start part found, this is from previous broadcast, delete all marks before", vStop->position, markDiff, vStart->position);
                 criteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE);
                 // broadcast start can not be before vborder stop from previous broadcast, keep vborder stop as possible start mark
-                marks.DelFromTo(0, vStop->position - 1, MT_ALL, 0xFF);
+                // keep all stop marks, maybe we need logo stop to detect valid logo start mark
+                marks.DelFromTo(0, vStop->position - 1, MT_START, 0x0F);
                 return NULL;
             }
         }
