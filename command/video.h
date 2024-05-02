@@ -427,8 +427,9 @@ public:
 
     /**
      * process scene change detection
-     * @param currentFrameNumber current frame number
-     * @return scene change status: <br>
+     * @param[in]   currentFrameNumber current frame number
+     * @param[out]  changeFrameNumber  frame number of scene change
+     * @return      scene change status: <br>
      *         -1 scene stop <br>
      *          0 no status change <br>
      *          1 scene start
