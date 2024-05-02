@@ -2474,9 +2474,22 @@ void cMarkAdStandalone::CheckStart() {
         }
     }
 
-    if (begin && ((begin->position  / macontext.Video.Info.framesPerSecond) < 1) && (begin->type != MT_RECORDINGSTART)) { // do not accept marks in the first second, the are from previous recording, expect manual set MT_RECORDINGSTART fpr missed recording start
+    if (begin && ((begin->position  / macontext.Video.Info.framesPerSecond) < 1) && (begin->type != MT_RECORDINGSTART)) { // do not accept marks in the first second, the are from previous recording, expect manual set MT_RECORDINGSTART for missed recording start
         dsyslog("cMarkAdStandalone::CheckStart(): start mark (%d) type 0x%X dropped because it is too early", begin->position, begin->type);
         begin = NULL;
+    }
+
+    // still no start mark found, try channel stop marks from previous broadcast
+    if (!begin) { // try hborder stop mark as start mark
+        cMark *channelStop  = marks.GetNext(0, MT_CHANNELSTOP);
+        if (channelStop) {
+            cMark *channelStart = marks.GetNext(channelStop->position, MT_CHANNELSTART);
+            if (!channelStart) { // if there is a channel start mark after, channel stop is not an end mark of previous broadcast
+                dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, use MT_CHANNELSTOP (%d) from previous recoring as start mark", channelStop->position);
+                begin = marks.ChangeType(channelStop, MT_START);
+                marks.DelTill(begin->position);
+            }
+        }
     }
 
     // still no start mark found, try hborder stop marks from previous broadcast
