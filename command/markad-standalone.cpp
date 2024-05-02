@@ -2132,17 +2132,17 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
         }
     }
     else { // we found no hborder start mark
-        // check if we have a hborder double episode
-        if ((marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 0)) {
-            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start mark found, but no hboder stop mark, we have a double episode");
+        // check if we have a hborder double episode from recording start
+        cMark *firstBorderStart = marks.GetNext(-1, MT_HBORDERSTART);
+        if (firstBorderStart && (firstBorderStart->position <= IGNORE_AT_START) && (marks.Count(MT_HBORDERSTART) > marks.Count(MT_HBORDERSTOP))) {
+            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start mark at recording start found, we have a double episode");
             criteria.SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED);
         }
         else {
-            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): no horizontal border start mark found, disable horizontal border detection");
+            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): no horizontal border start mark found, disable horizontal border detection and delete hborder marks. if any");
             criteria.SetDetectionState(MT_HBORDERCHANGE, false);
+            marks.DelType(MT_HBORDERCHANGE, 0xF0);  // maybe the is a late invalid hborder start marks, exists sometimes with old vborder recordings
         }
-        dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): delete horizontal border marks, if any");
-        marks.DelType(MT_HBORDERCHANGE, 0xF0);  // mybe the is a late invalid hborder start marks, exists sometimes with old vborder recordings
         return NULL;
     }
     return hStart;
