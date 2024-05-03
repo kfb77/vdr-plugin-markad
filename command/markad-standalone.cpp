@@ -5546,9 +5546,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     break;
                 case MT_LOGOSTART:
                     // rule 1: logo start very short before broadcast start
-                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && (diffBefore >= 2720) && (diffAfter <= 40)) diffBefore = INT_MAX;
+                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && (diffBefore >= 1640) && (diffAfter <= 80)) diffBefore = INT_MAX;
 
-                    if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxBefore = 4260;
+                    if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxBefore = 4800;
                     else                                                              maxBefore = 2840;
                     break;
                 case MT_CHANNELSTART:
@@ -5558,24 +5558,24 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_SOUNDSTART:
-                        // rule 1: prefer scene change after silence
-                        if ((diffBefore >= 60) && (diffBefore <= 1680) && (diffAfter <= 2040)) diffBefore = INT_MAX;
+                        // rule 1: prefer scene change short after silence
+                        if ((diffBefore >= 60) && (diffBefore <= 1680) && (diffAfter <= 920)) diffBefore = INT_MAX;
 
                         // rule 2: scene blend around silence, both are invalid
                         else if ((diffBefore >= 4120) && (diffAfter >= 1160)) {
                             diffBefore = INT_MAX;
                             diffAfter = INT_MAX;
                         }
-                        maxBefore = 1680;
+                        maxBefore = 1180;
                         break;
                     case MT_VPSSTART:
                         // rule 1: long scene before VPS start (closing scene), short scene after VPS start (broadcast start)
-                        if ((diffBefore >= 2160) && (diffAfter <= 320)) diffBefore = INT_MAX;
+                        if (!criteria.GoodVPS(macontext.Info.ChannelName) && (diffBefore >= 2160) && (diffAfter <= 320)) diffBefore = INT_MAX;
 
                         // rule 2: long scene after VPS start, long static scene or closing credits from end of previous broadcast
-                        else if ((diffBefore >= 580) && (diffBefore <= 2720) && (diffAfter > 1320) && (diffAfter <= 13440)) diffBefore = INT_MAX;
+                        else if (!criteria.GoodVPS(macontext.Info.ChannelName) && (diffBefore >= 580) && (diffBefore <= 2720) && (diffAfter > 1320) && (diffAfter <= 13440)) diffBefore = INT_MAX;
 
-                        maxBefore = 2820;  // changd from 580 to 2820
+                        maxBefore = 3340;
                         break;
                     case MT_INTRODUCTIONSTART:
                         maxBefore = 4880;  // changed from 3799 to 4880
@@ -5612,7 +5612,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter = 9160;  // changed from 1760 to 9160
                     break;
                 case MT_LOGOSTART:
-                    maxAfter = 1200;
+                    if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxAfter =    0; // with fade in logo, scene after is always false
+                    else                                                              maxAfter = 1200;
                     break;
                 case MT_ASPECTSTART:
                     maxAfter =  120;
@@ -5623,7 +5624,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_SOUNDSTART:
-                        maxAfter = 2040;
+                        maxAfter = 920;
                         break;
                     case MT_NOLOWERBORDERSTART:
                         maxAfter = 5000;
@@ -5684,9 +5685,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     break;
                 case MT_LOGOSTOP:
                     // rule 1: if not fade out logo, we have delayed logo stop from detection fault (bright picture or patten in background)
-                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT)) diffAfter = INT_MAX;
+                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && (diffAfter > 80)) diffAfter = INT_MAX;
 
-                    maxAfter = 5139;
+                    maxAfter = 4800;
                     break;
                 case MT_HBORDERSTOP:
                     if ((diffBefore <= 440) && (diffAfter >= 1720)) diffAfter = INT_MAX;
@@ -5709,10 +5710,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxAfter = 2520;
                         break;
                     case MT_SOUNDSTOP:
-                        // rule 1: alway use scene change short before sound stop
-                        if ((diffBefore <= 4920) && (diffAfter > 20)) diffAfter = INT_MAX;
-
-                        maxAfter = 20;
+                        maxAfter = 80;
                         break;
                     case MT_VPSSTOP:
                         // rule 1: scene change short before
@@ -5777,13 +5775,13 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxBefore = 80;
                         break;
                     case MT_SOUNDSTOP:
-                        maxBefore = 1079;
+                        maxBefore = 280;
                         break;
                     case MT_VPSSTOP:
                         maxBefore = 8440;   // chaned from 1320 to 1440 to 8440
                         break;
                     case MT_NOADINFRAMESTOP:  // correct the missed start of ad in frame before stop mark
-                        maxBefore = 1600;
+                        maxBefore = 999;
                         break;
                     default:
                         maxBefore = 0;
