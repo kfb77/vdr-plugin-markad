@@ -2858,6 +2858,23 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     long int stop_nextLogoStart = 1000 * (nextLogoStart->position - mark->position)          /  macontext.Video.Info.framesPerSecond;
                     int nextLogoStart_nextStop  = 1000 * (nextStop->position      - nextLogoStart->position) /  macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::CheckMarks(): MT_LOGOSTART (%6d) -> %7dms -> MT_LOGOSTOP (%6d) -> %7ldms -> MT_LOGOSTART (%6d) -> %7dms -> MT_STOP (%6d)", prevLogoStart->position, prevLogoStart_Stop, mark->position, stop_nextLogoStart, nextLogoStart->position, nextLogoStart_nextStop, nextStop->position);
+
+// cleanup logo detection failure
+// delete sequence long broadcast -> very short stop/start -> long broadcast
+// MT_LOGOSTART ( 15766) -> 1103180ms -> MT_LOGOSTOP ( 70925) ->    1040ms -> MT_LOGOSTART ( 70977) ->   83260ms -> MT_STOP ( 75140)
+// MT_LOGOSTART ( 70977) ->   83260ms -> MT_LOGOSTOP ( 75140) ->    1020ms -> MT_LOGOSTART ( 75191) -> 1536500ms -> MT_STOP (152016)
+                    if ((prevLogoStart_Stop     >= 83260) &&
+                            (stop_nextLogoStart     <= 1040) &&
+                            (nextLogoStart_nextStop >= 83260)) {
+                        dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from logo detection failure, deleting", mark->position, nextLogoStart->position);
+                        cMark *tmp = nextStop;
+                        marks.Del(nextLogoStart);
+                        marks.Del(mark);
+                        mark = tmp;
+                        continue;
+                    }
+
+// delete very short stop/start pair from introduction logo
 // valid short stop/start, do not delete
 // MT_LOGOSTART ( 48867) ->    4880ms -> MT_LOGOSTOP ( 48989) ->     760ms -> MT_LOGOSTART ( 49008) ->  795000ms -> MT_STOP (68883)
 // MT_LOGOSTART ( 51224) ->   29800ms -> MT_LOGOSTOP ( 51969) ->     920ms -> MT_LOGOSTART ( 51992) ->  622840ms -> MT_STOP (67563)
