@@ -2230,8 +2230,13 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         }
     }
     else {
+        // valid example:
+        // double episode 4:3 and vborder, too short vborder in broadcast before because closing credits overlay vborder, vborder start is valid start mark
+        // start aspect ratio       at 0:00:00.00, inBroadCast 0
+        // start logo               at 0:00:00.00, inBroadCast 1
+        // start vertical border    at 0:01:51.00, inBroadCast 1
         cMark *logoStart  = marks.GetPrev(vStart->position, MT_ALL);
-        if (logoStart && (logoStart->type == MT_LOGOSTART)) {
+        if (logoStart && (logoStart->type == MT_LOGOSTART) && (logoStart->position >= IGNORE_AT_START)) {
             int diff = (vStart->position - logoStart->position) / macontext.Video.Info.framesPerSecond;
             if (diff > 50) {
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): logo start mark (%d) direct %ds before vborder start (%d) found, delete invalid vborder marks from dark scene", logoStart->position, diff, vStart->position);
