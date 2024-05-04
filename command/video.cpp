@@ -903,17 +903,15 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 
 // check area intensitiy
         // transparent logo decetion on bright backbround is imposible, changed from 189 to 173
-        if (criteria->LogoTransparent(maContext->Info.ChannelName) && (area.intensity >= 173)) return LOGO_NOCHANGE;
+        if (criteria->LogoTransparent(maContext->Info.ChannelName) && (area.intensity >= 161)) return LOGO_NOCHANGE;  // changed from 173 to 161
 #define MAX_AREA_INTENSITY 69  // change from 73 to 69
         // notice: there can be very bright logo parts in dark areas, this will result in a lower brightness
         // we handle this cases in ReduceBrightness() when we detect contrast
         if (((area.intensity > MAX_AREA_INTENSITY) ||                                            // if area is bright
                 // if we have a change from logo visable to logo invisable with very close result, verify it
                 ((area.intensity >= AREA_INTENSITY_NO_TRUST) && (area.status == LOGO_VISIBLE) && (rPixel < (mPixel * logo_imark)) && (rPixel > (QUOTE_NO_TRUST * mPixel * logo_imark))) ||
-                ((area.intensity >= 56) && (maContext->Video.Logo.pixelRatio <= 16)) ||  // logo with low pixel count, check with lowe value
-                ((area.intensity >= 62) && CompareChannelName(maContext->Info.ChannelName, "NITRO", IGNORE_HD))) &&  // workaround for NITRO, this channel has a very transparent logo,
-                // brightness reduction needed earlyer, changed from 80 to 76 to 62
-                (area.intensity < 220) &&  // if we are to bright, this will not work, max changed from 200 to 220
+                ((area.intensity >= 56) && (maContext->Video.Logo.pixelRatio <= 16))) &&  // logo with low pixel count, check with lower value
+                (area.intensity < 220) &&  // if we are too bright, this will not work, max changed from 200 to 220
                 ((((area.status == LOGO_INVISIBLE) || (area.status == LOGO_UNINITIALIZED)) && (rPixel < (mPixel * logo_vmark))) || // only status is no logo visable
                  // and we have no clear result or
                  ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * logo_imark))))) {                                            // status is logo and we found no logo
@@ -998,8 +996,6 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 if ((brightnessState == BRIGHTNESS_ERROR) && (area.intensity >= AREA_INTENSITY_NO_TRUST) && (area.status == LOGO_VISIBLE) &&
                         (rPixel < (mPixel * logo_imark)) && (rPixel > (QUOTE_NO_TRUST * mPixel * logo_imark))) return LOGO_NOCHANGE;
             }
-            // don't believe brightness reduction for NITRO if we got a low contrast, logo too transparent, changed from 217
-            if ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * logo_imark)) && (contrastReduced < 217) && CompareChannelName(maContext->Info.ChannelName, "NITRO", IGNORE_HD)) return LOGO_NOCHANGE;
         }
         // if we have still no match, try to copy colour planes into grey planes
         // we can even try this if plane 0 is too bright, maybe plane 1 or 2 are better
