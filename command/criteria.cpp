@@ -81,6 +81,7 @@ bool cCriteria::LogoRotating(const char *channelName) {
 
 bool cCriteria::LogoTransparent(const char *channelName) {
     if (!channelName) return false;
+    if (CompareChannelName(channelName, "NITRO", IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "SRF_zwei", IGNORE_HD)) return true;
     return false;
 
