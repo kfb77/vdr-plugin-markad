@@ -285,404 +285,408 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         int heightMax =  0;
         int corner    = -1;
     } logo;
-// define size for special channels, special logos or to prevent false logo detection
-
-// 720x576
-    if (CompareChannelName(maContext->Info.ChannelName, "arte", IGNORE_NOTHING)) {                 // arte                    16:9  720W  576H:->   50W 108H TOP_LEFT
-        logo.widthMin  =  50;
-        logo.heightMax = 108;
-    }
-    if (CompareChannelName(maContext->Info.ChannelName, "ATV2", IGNORE_NOTHING)) {                  // ATV2                    16:9  720W  576H:->  118W  68H TOP_LEFT
-        logo.widthMin  = 110;
-        logo.widthMax  = 118;
-    }
-
-    // Disney_Channel          16:9  720W  576H:->  110W  70H TOP_LEFT
-    // Disney_Channel          16:9  720W  576H:->  110W  72H TOP_LEFT
-    // Disney_Channel          16:9  720W  576H:->  110W  74H TOP_LEFT
-    // Disney_Channel          16:9  720W  576H:->  122W  76H TOP_LEFT
-    // Disney_Channel          16:9  720W  576H:->  122W  78H TOP_LEFT
-    // Disney_Channel          16:9  720W  576H:->  122W  80H TOP_LEFT
-    // Disney_Channel          16:9  720W  576H:->  122W  82H TOP_LEFT
-    // Disney_Channel          16:9  720W  576H:->  122W  88H TOP_LEFT
-    // Disney_Channel          16:9  720W  576H:->  152W 106H TOP_LEFT
-    // Disney_Channel          16:9  720W  576H:->  152W 108H TOP_LEFT
-    // Disney_Channel           4:3  720W  576H:->  124W  70H TOP_LEFT
-    // Disney_Channel           4:3  720W  576H:->  124W  72H TOP_LEFT
-    // Disney_Channel           4:3  720W  576H:->  124W  74H TOP_LEFT
-    // Disney_Channel           4:3  720W  576H:->  126W  74H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "Disney_Channel", IGNORE_NOTHING)) {
-        logo.widthMin  = 110;
-        logo.widthMax  = 152;
-        logo.heightMin =  70;
-        logo.heightMax = 108;
-        logo.corner    = TOP_LEFT;                                           // "neue Folge" size matches as valid logo
-    }
-
-    // DMAX                    16:9  720W  576H:->  126W  74H TOP_LEFT
-    // DMAX                    16:9  720W  576H:->  126W  76H TOP_LEFT
-    // DMAX                    16:9  720W  576H:->  128W  76H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "DMAX", IGNORE_NOTHING)) {
-        logo.widthMin  = 126;
-        logo.heightMax =  76;
-        logo.corner    = TOP_LEFT;   // "neue Folge" has same size as logo
-    }
-
-    //  K-TV                    16:9  720W  576H:->  122W  78H TOP_RIGHT
-    if (CompareChannelName(maContext->Info.ChannelName, "K-TV", IGNORE_NOTHING)) {
-        logo.widthMin  =  122;
-    }
-
-    // kabel_eins              16:9  720W  576H:->   88W  72H TOP_RIGHT
-    if (CompareChannelName(maContext->Info.ChannelName, "kabel_eins", IGNORE_NOTHING)) {
-        logo.widthMax  =  88;
-        logo.heightMin =  72;
-    }
-
-    if (CompareChannelName(maContext->Info.ChannelName, "MDR_Sachsen", IGNORE_NOTHING)) {           // MDR_Sachsen             16:9  720W  576H:->   92W  56H TOP_LEFT
-        logo.heightMin =  56;
-    }
-
-    // kabel_eins_Doku         16:9  720W  576H:->  132W  64H TOP_RIGHT
-    if (CompareChannelName(maContext->Info.ChannelName, "kabel_eins_Doku", IGNORE_NOTHING)) {
-        logo.widthMin  = 130;
-        logo.widthMax  = 132;
-        logo.heightMin =  64;
-    }
-
-    // NICK_CC+1               16:9  720W  576H:->  146W  88H TOP_LEFT
-    // NICK_CC+1               16:9  720W  576H:->  146W  92H TOP_LEFT
-    // NICK_CC+1               16:9  720W  576H:->  148W  92H TOP_LEFT
-    // Nickelodeon             16:9  720W  576H:->  146W  88H TOP_LEFT
-    // Nickelodeon             16:9  720W  576H:->  146W  90H TOP_LEFT
-    // Nickelodeon             16:9  720W  576H:->  180W  78H TOP_LEFT
-    // Nickelodeon             16:9  720W  576H:->  180W  80H TOP_LEFT
-    // Nickelodeon             16:9  720W  576H:->  182W  78H TOP_LEFT
-    // Nickelodeon             16:9  720W  576H:->  184W  78H TOP_LEFT
-    // Nickelodeon             16:9  720W  576H:->  184W  80H TOP_LEFT
-    // NICK_MTV+               16:9  720W  576H:->  146W  88H TOP_LEFT
-    // NICK_MTV+               16:9  720W  576H:->  146W  90H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "NICK_CC+1", IGNORE_NOTHING) ||
-            CompareChannelName(maContext->Info.ChannelName, "NICK_MTV+", IGNORE_NOTHING) ||
-            CompareChannelName(maContext->Info.ChannelName, "Nickelodeon", IGNORE_NOTHING)) {
-        logo.widthMin  = 144;
-        logo.widthMax  = 184;
-        logo.heightMin =  78;
-        logo.heightMax =  96;
-    }
-
-    // Nick_Comedy_Central+1   16:9  720W  576H:->  138W  80H TOP_LEFT
-    // Nick_Comedy_Central+1   16:9  720W  576H:->  144W  94H TOP_LEFT
-    // Nick_Comedy_Central+1   16:9  720W  576H:->  120W 116H TOP_RIGHT
-    if (CompareChannelName(maContext->Info.ChannelName, "Nick_Comedy_Central+1", IGNORE_NOTHING)) {
-        logo.widthMin  = 120;
-        logo.heightMax = 116;
-    }
-
-    if ((CompareChannelName(maContext->Info.ChannelName, "n-tv", IGNORE_COUNTRY)) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
-            (CompareChannelName(maContext->Info.ChannelName, "ntv", IGNORE_COUNTRY))) {             //  ntv                     16:9  720W  576H:->  226W  60H BOTTOM_LEFT
-        logo.widthMax  = INT_MAX;  // news ticker
-        logo.heightMin =  58;
-    }
-
-    // ProSieben               16:9  720W  576H:->   84W  66H TOP_RIGHT
-    // ProSieben               16:9  720W  576H:->   86W  66H TOP_RIGHT
-    if (CompareChannelName(maContext->Info.ChannelName, "ProSieben", IGNORE_NOTHING)) {
-        logo.heightMax =  66;
-        logo.widthMax  =  86;
-    }
-
-    // Pro7_MAXX               16:9  720W  576H:->  114W  64H TOP_RIGHT
-    // Pro7_MAXX               16:9  720W  576H:->  140W  64H TOP_RIGHT
-    if (CompareChannelName(maContext->Info.ChannelName, "Pro7_MAXX", IGNORE_NOTHING)) {
-        logo.heightMax  =   64;
-    }
-
-    if (CompareChannelName(maContext->Info.ChannelName, "RTL_Television", IGNORE_NOTHING)) {        // RTL_Television          16:9  720W  576H:->  104W  60H TOP_LEFT (before 09/2021)
-        // RTL_Television          16:9  720W  576H:->  142W  60H TOP_LEFT (before 09/2021 RTL live logo)
-        // RTL_Television          16:9  720W  576H:->  126W  68H TOP_LEFT (after  09/2021)
-        // RTL_Television          16:9  720W  576H:->  146W  68H TOP_LEFT (after  09/2021 RTL live logo)
-        //
-        // no logo                 16:9  720W  576H:->  116W  66H TOP_LEFT ("neue Folge")
-        logo.widthMax  = 146 ;
-        logo.heightMax =  68 ;
-        logo.corner    = TOP_LEFT;
-    }
-    if (CompareChannelName(maContext->Info.ChannelName, "RTL2", IGNORE_NOTHING)) {                  // RTL2                    16:9  720W  576H:->   82W  78H BOTTOM_RIGHT (new logo)
-        // RTL2                    16:9  720W  576H:->   82W  80H BOTTOM_RIGHT (new Logo)
-        // RTL2                    16:9  720W  576H:->  108W 108H BOTTOM_RIGHT (old logo)
-        // RTL2                    16:9  720W  576H:->  108W 110H BOTTOM_RIGHT
-        logo.widthMin  =  82;
-        logo.widthMax  = 108;
-        logo.heightMin =  78;
-        logo.heightMax = 110;
-    }
-
-    // RTLZWEI                 16:9  720W  576H:->   82W  80H BOTTOM_RIGHT
-    // RTLZWEI                 16:9  720W  576H:->   84W  80H BOTTOM_RIGHT
-    // RTLZWEI                  4:3  720W  576H:->   98W  80H BOTTOM_RIGHT
-    if (CompareChannelName(maContext->Info.ChannelName, "RTLZWEI", IGNORE_NOTHING)) {
-        logo.widthMax  =  98;
-        logo.heightMax =  80;
-    }
-
-    // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
-    // RTLplus                  4:3  720W  576H:->  214W  66H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "RTLplus", IGNORE_NOTHING)) {               // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
-        logo.widthMin  = 168;
-        logo.widthMax  = 214;
-    }
-
-    // RTLup                   16:9  720W  576H:->  142W  68H TOP_LEFT
-    // RTLup                    4:3  720W  576H:->  166W  66H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "RTLup", IGNORE_NOTHING)) {
-        logo.widthMin  = 142;
-        logo.widthMax  = 166;
-    }
-
-    // sixx                    16:9  720W  576H:->  106W  54H TOP_RIGHT
-    // SIXX                    16:9  720W  576H:->  106W  54H TOP_RIGHT
-    // SIXX                    16:9  720W  576H:->  118W  56H TOP_RIGHT
-    // SIXX                     4:3  720W  576H:->  130W  54H TOP_RIGHT
-    if (CompareChannelName(maContext->Info.ChannelName, "SIXX", IGNORE_NOTHING)) {
-        logo.widthMin  = 106;
-        logo.widthMax  = 130;
-        logo.heightMin =  54;
-        logo.heightMax =  56;
-    }
-
-    // SUPER_RTL               16:9  720W  576H:->  160W  66H TOP_LEFT     -> logo RTL SUPER
-    // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT     -> logo SUPER RTL
-    if (CompareChannelName(maContext->Info.ChannelName, "SUPER_RTL", IGNORE_NOTHING)) {
-        logo.widthMax  = 160;
-        logo.heightMin =  48;
-    }
-
-    // TELE_5                  16:9  720W  576H:->  110W  66H BOTTOM_RIGHT
-    // TELE_5                  16:9  720W  576H:->   70W  76H TOP_LEFT
-    // TELE_5                  16:9  720W  576H:->   96W  76H TOP_LEFT
-    // TELE_5                  16:9  720W  576H:->   98W  76H TOP_LEFT
-    // TELE_5                   4:3  720W  576H:->   96W  76H BOTTOM_RIGHT
-    if (CompareChannelName(maContext->Info.ChannelName, "TELE_5", IGNORE_NOTHING)) {
-        switch (logoCorner) {
-        case TOP_LEFT:
-            logo.heightMin =  64;
-            logo.heightMax =  76;
-            logo.widthMin  =  69;
-            logo.widthMax  =  71;
-            break;
-        case BOTTOM_RIGHT:
-            logo.heightMin =  66;
-            logo.heightMax =  76;
-            logo.widthMin  =  70;
-            logo.widthMax  =  110;
-            break;
-        default:                   // no logo possible
-            logo.heightMin =  INT_MAX;
-            logo.heightMax =  0;
-            logo.widthMin  =  INT_MAX;
-            logo.widthMax  =  0;
-        }
-    }
-
-    // TLC                     16:9  720W  576H:->   94W  60H TOP_LEFT
-    // TLC                     16:9  720W  576H:->   98W  60H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "TLC", IGNORE_NOTHING)) {
-        logo.heightMin =  60;
-        logo.heightMax =  65;
-    }
-
-    if (CompareChannelName(maContext->Info.ChannelName, "TOGGO_plus", IGNORE_NOTHING)) {            // TOGGO_plus              16:9  720W  576H:->  104W  56H TOP_LEFT
-        logo.heightMin =  56;
-    }
-
-    // VOX                     16:9  720W  576H:->  108W  70H TOP_LEFT
-    // VOX                      4:3  720W  576H:->  126W  70H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "VOX", IGNORE_NOTHING)) {
-        logo.heightMin =  70;
-        logo.heightMax =  70;
-    }
-
-    // VOXup                   16:9  720W  576H:->  110W  66H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "VOXup", IGNORE_NOTHING)) {
-        logo.heightMax =  66;
-    }
-
-    // WELT                    16:9  720W  576H:->  226W  62H BOTTOM_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "WELT", IGNORE_NOTHING)) {
-        logo.heightMax = 64;
-        logo.widthMax  = INT_MAX;  // news ticker
-    }
-
-    if (CompareChannelName(maContext->Info.ChannelName, "Welt_der_Wunder", IGNORE_NOTHING)) {       // Welt_der_Wunder         16:9  720W  576H:->   94W 108H TOP_LEFT
-        // Welt_der_Wunder         16:9  720W  576H:->   96W 112H TOP_LEFT
-        logo.widthMin  =  94;
-        logo.heightMax = 112;
-    }
-
-// 1280x720
-    // 3sat_HD                 16:9 1280W  720H:->  178W  94H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "3sat_HD", IGNORE_NOTHING)) {
-        logo.widthMax  = 185;
-    }
-
-    // ARD_alpha_HD            16:9 1280W  720H:->  206W  78H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "ARD_alpha_HD", IGNORE_NOTHING)) {
-        logo.heightMax =  78;
-        logo.widthMax  = 206;
-    }
-
-    // arte_HD                 16:9 1280W  720H:->   88W 134H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "arte_HD", IGNORE_NOTHING)) {
-        logo.widthMin  =  88;
-        logo.widthMax  =  88;
-    }
-
-    // Das_Erste_HD            16:9 1280W  720H:->  148W 114H TOP_RIGHT
-    // Das_Erste_HD            16:9 1280W  720H:->  148W 128H TOP_RIGHT
-    // Das_Erste_HD            16:9 1280W  720H:->  244W 114H TOP_RIGHT
-    // Das_Erste_HD            16:9 1280W  720H:->  244W  96H TOP_RIGHT    <- check eins Kinderprogramm Logo
-    if (CompareChannelName(maContext->Info.ChannelName, "Das_Erste_HD", IGNORE_NOTHING)) {
-        logo.widthMin  = 148;
-        logo.widthMax  = 244;
-        logo.heightMax = 128;
-    }
-
-    if (CompareChannelName(maContext->Info.ChannelName, "Einsfestival_HD", IGNORE_NOTHING)) {       // Einsfestival_HD         16:9 1280W  720H:->  300W  80H TOP_RIGHT
-        logo.widthMax  = 300;
-    }
-    if (CompareChannelName(maContext->Info.ChannelName, "EinsPlus_HD", IGNORE_NOTHING)) {           // EinsPlus_HD             16:9 1280W  720H:->  334W  86H TOP_RIGHT
-        logo.widthMax  = 335;
-    }
-
-    // hr-fernsehen_HD         16:9 1280W  720H:->  196W  98H TOP_LEFT
-    // hr-fernsehen_HD         16:9 1280W  720H:->  214W 100H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "hr-fernsehen_HD", IGNORE_NOTHING)) {
-        logo.widthMax  = 214;
-        logo.heightMax = 100;
-    }
-
-    // KiKA_HD                 16:9 1280W  720H:->  228W 112H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "KiKA_HD", IGNORE_NOTHING)) {
-        logo.widthMin  = 228;
-    }
-
-    if (CompareChannelName(maContext->Info.ChannelName, "MDR_Sachsen_HD", IGNORE_NOTHING)) {        // MDR_Sachsen_HD          16:9 1280W  720H:->  160W  70H TOP_LEFT
-        logo.heightMax =  70;
-    }
-
-    // NDR_FS_HH_HD            16:9 1280W  720H:->  184W  86H TOP_LEFT
-    // NDR_FS_HH_HD            16:9 1280W  720H:->  184W  88H TOP_LEFT
-    // NDR_FS_NDS_HD           16:9 1280W  720H:->  184W  88H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "NDR_FS_HH_HD", IGNORE_NOTHING) ||
-            CompareChannelName(maContext->Info.ChannelName, "NDR_FS_NDS_HD", IGNORE_NOTHING)) {
-        logo.heightMax =  88;
-    }
-
-    // ONE_HD                  16:9 1280W  720H:->  232W  80H TOP_RIGHT
-    if (CompareChannelName(maContext->Info.ChannelName, "ONE_HD", IGNORE_NOTHING)) {
-        logo.widthMin =  232;
-    }
-
-    // phoenix_HD              16:9 1280W  720H:->  168W  72H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "phoenix_HD", IGNORE_NOTHING)) {
-        logo.widthMax =  168;
-    }
-
-    if (CompareChannelName(maContext->Info.ChannelName, "rbb_Berlin_HD", IGNORE_NOTHING)) {         // rbb_Berlin_HD           16:9 1280W  720H:->  178W  90H TOP_RIGHT
-        logo.widthMax =  178;
-    }
-
-    if (CompareChannelName(maContext->Info.ChannelName, "WDR_HD_Köln", IGNORE_NOTHING) ||         // WDR_HD_Köln             16:9 1280W  720H:->  224W  80H TOP_RIGHT
-            CompareChannelName(maContext->Info.ChannelName, "WDR_HD_Essen", IGNORE_NOTHING)) {
-        logo.heightMax =  80;
-    }
-    if (CompareChannelName(maContext->Info.ChannelName, "ZDF_HD", IGNORE_NOTHING)) {                // ZDF_HD                  16:9 1280W  720H:->  186W  94H TOP_LEFT
-        // ZDF_HD                  16:9 1280W  720H:->  186W  96H TOP_LEFT
-        // ZDF_HD                  16:9 1280W  720H:->  188W  96H TOP_LEFT
-        logo.widthMax =  188;
-    }
-
-    // ZDFinfo_HD              16:9 1280W  720H:->  196W  86H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "ZDFinfo_HD", IGNORE_NOTHING)) {
-        logo.heightMax =  86;
-    }
-
-// 1280x1080
-    if (CompareChannelName(maContext->Info.ChannelName, "ANIXE+", IGNORE_NOTHING)) {                // ANIXE+                  16:9 1280W 1080H:->  294W 170H TOP_LEFT
-        logo.widthMax  = 294;
-        logo.heightMax = 170;
-    }
-    if (CompareChannelName(maContext->Info.ChannelName, "Deluxe_Music_HD", IGNORE_NOTHING)) {       // Deluxe_Music_HD         16:9 1280W 1080H:->  334W 124H TOP_RIGHT
-        logo.widthMax  = 334;
-    }
-
-// 1440x1080
-    if (CompareChannelName(maContext->Info.ChannelName, "WELT_HD", IGNORE_NOTHING)) {               // WELT_HD                 16:9 1440W 1080H:->  396W 116H BOTTOM_LEFT
-        logo.widthMax  = INT_MAX;  // news ticker
-    }
-
-// 1920x1080
-    if (CompareChannelName(maContext->Info.ChannelName, "13th_Street_HD", IGNORE_NOTHING)) {        // 13th_Street_HD:         16:9 1920W 1080H:->  218W 194H TOP_LEFT
-        logo.widthMin  = 217;
-        logo.heightMax = 198;
-    }
-    // ANIXE_HD                16:9 1920W 1080H:->  396W 180H TOP_LEFT
-    if (CompareChannelName(maContext->Info.ChannelName, "ANIXE_HD", IGNORE_NOTHING)) {
-        logo.heightMin = 180;
-    }
-    if (CompareChannelName(maContext->Info.ChannelName, "münchen_tv_HD", IGNORE_NOTHING)) {
-        logo.widthMax  = 396;
-    }
-
-    if ((logo.widthMin == 0) && (logo.widthMax == 0) && (logo.heightMin == 0) && (logo.heightMax == 0)) {
-        dsyslog("cExtractLogo::CheckLogoSize(): no channel specific logo size rule for %s, use default size", maContext->Info.ChannelName);
-    }
-    else dsyslog("cExtractLogo::CheckLogoSize(): channel specific logo size rule for %s found: W %d->%d, H %d->%d", maContext->Info.ChannelName, logo.widthMin, logo.widthMax, logo.heightMin, logo.heightMax);
-
-// set default values
+// define size of logos to prevent false logo detection
     switch (maContext->Video.Info.width) {
+
     case 544:
+        // default values
         if (logo.widthMin  == 0) logo.widthMin  =  72; // TLC_Austria             16:9  544W  576H:->   72W  60H TOP_LEFT
         if (logo.widthMax  == 0) logo.widthMax  =  98; // DMAX_Austria            16:9  544W  576H:->   98W  90H TOP_LEFT
         if (logo.heightMin == 0) logo.heightMin =  60; // TLC_Austria             16:9  544W  576H:->   72W  60H TOP_LEFT
         if (logo.heightMax == 0) logo.heightMax =  91; // DMAX_Austria            16:9  544W  576H:->   98W  90H TOP_LEFT
         break;
+
     case 720:
+        if (CompareChannelName(maContext->Info.ChannelName, "arte", IGNORE_NOTHING)) {                 // arte                    16:9  720W  576H:->   50W 108H TOP_LEFT
+            logo.widthMin  =  50;
+            logo.heightMax = 108;
+        }
+        if (CompareChannelName(maContext->Info.ChannelName, "ATV2", IGNORE_NOTHING)) {                  // ATV2                    16:9  720W  576H:->  118W  68H TOP_LEFT
+            logo.widthMin  = 110;
+            logo.widthMax  = 118;
+        }
+
+        // Disney_Channel          16:9  720W  576H:->  110W  70H TOP_LEFT
+        // Disney_Channel          16:9  720W  576H:->  110W  72H TOP_LEFT
+        // Disney_Channel          16:9  720W  576H:->  110W  74H TOP_LEFT
+        // Disney_Channel          16:9  720W  576H:->  122W  76H TOP_LEFT
+        // Disney_Channel          16:9  720W  576H:->  122W  78H TOP_LEFT
+        // Disney_Channel          16:9  720W  576H:->  122W  80H TOP_LEFT
+        // Disney_Channel          16:9  720W  576H:->  122W  82H TOP_LEFT
+        // Disney_Channel          16:9  720W  576H:->  122W  88H TOP_LEFT
+        // Disney_Channel          16:9  720W  576H:->  152W 106H TOP_LEFT
+        // Disney_Channel          16:9  720W  576H:->  152W 108H TOP_LEFT
+        // Disney_Channel           4:3  720W  576H:->  124W  70H TOP_LEFT
+        // Disney_Channel           4:3  720W  576H:->  124W  72H TOP_LEFT
+        // Disney_Channel           4:3  720W  576H:->  124W  74H TOP_LEFT
+        // Disney_Channel           4:3  720W  576H:->  126W  74H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "Disney_Channel", IGNORE_NOTHING)) {
+            logo.widthMin  = 110;
+            logo.widthMax  = 152;
+            logo.heightMin =  70;
+            logo.heightMax = 108;
+            logo.corner    = TOP_LEFT;                                           // "neue Folge" size matches as valid logo
+        }
+
+        // DMAX                    16:9  720W  576H:->  126W  74H TOP_LEFT
+        // DMAX                    16:9  720W  576H:->  126W  76H TOP_LEFT
+        // DMAX                    16:9  720W  576H:->  128W  76H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "DMAX", IGNORE_NOTHING)) {
+            logo.widthMin  = 126;
+            logo.heightMax =  76;
+            logo.corner    = TOP_LEFT;   // "neue Folge" has same size as logo
+        }
+
+        //  K-TV                    16:9  720W  576H:->  122W  78H TOP_RIGHT
+        if (CompareChannelName(maContext->Info.ChannelName, "K-TV", IGNORE_NOTHING)) {
+            logo.widthMin  =  122;
+        }
+
+        // kabel_eins              16:9  720W  576H:->   88W  72H TOP_RIGHT
+        if (CompareChannelName(maContext->Info.ChannelName, "kabel_eins", IGNORE_NOTHING)) {
+            logo.widthMax  =  88;
+            logo.heightMin =  72;
+        }
+
+        if (CompareChannelName(maContext->Info.ChannelName, "MDR_Sachsen", IGNORE_NOTHING)) {           // MDR_Sachsen             16:9  720W  576H:->   92W  56H TOP_LEFT
+            logo.heightMin =  56;
+        }
+
+        // kabel_eins_Doku         16:9  720W  576H:->  132W  64H TOP_RIGHT
+        if (CompareChannelName(maContext->Info.ChannelName, "kabel_eins_Doku", IGNORE_NOTHING)) {
+            logo.widthMin  = 130;
+            logo.widthMax  = 132;
+            logo.heightMin =  64;
+        }
+
+        // NICK_CC+1               16:9  720W  576H:->  146W  88H TOP_LEFT
+        // NICK_CC+1               16:9  720W  576H:->  146W  92H TOP_LEFT
+        // NICK_CC+1               16:9  720W  576H:->  148W  92H TOP_LEFT
+        // Nickelodeon             16:9  720W  576H:->  146W  88H TOP_LEFT
+        // Nickelodeon             16:9  720W  576H:->  146W  90H TOP_LEFT
+        // Nickelodeon             16:9  720W  576H:->  180W  78H TOP_LEFT
+        // Nickelodeon             16:9  720W  576H:->  180W  80H TOP_LEFT
+        // Nickelodeon             16:9  720W  576H:->  182W  78H TOP_LEFT
+        // Nickelodeon             16:9  720W  576H:->  184W  78H TOP_LEFT
+        // Nickelodeon             16:9  720W  576H:->  184W  80H TOP_LEFT
+        // NICK_MTV+               16:9  720W  576H:->  146W  88H TOP_LEFT
+        // NICK_MTV+               16:9  720W  576H:->  146W  90H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "NICK_CC+1", IGNORE_NOTHING) ||
+                CompareChannelName(maContext->Info.ChannelName, "NICK_MTV+", IGNORE_NOTHING) ||
+                CompareChannelName(maContext->Info.ChannelName, "Nickelodeon", IGNORE_NOTHING)) {
+            logo.widthMin  = 144;
+            logo.widthMax  = 184;
+            logo.heightMin =  78;
+            logo.heightMax =  96;
+        }
+
+        // Nick_Comedy_Central+1   16:9  720W  576H:->  138W  80H TOP_LEFT
+        // Nick_Comedy_Central+1   16:9  720W  576H:->  144W  94H TOP_LEFT
+        // Nick_Comedy_Central+1   16:9  720W  576H:->  120W 116H TOP_RIGHT
+        if (CompareChannelName(maContext->Info.ChannelName, "Nick_Comedy_Central+1", IGNORE_NOTHING)) {
+            logo.widthMin  = 120;
+            logo.heightMax = 116;
+        }
+
+        if ((CompareChannelName(maContext->Info.ChannelName, "n-tv", IGNORE_COUNTRY)) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
+                (CompareChannelName(maContext->Info.ChannelName, "ntv", IGNORE_COUNTRY))) {             //  ntv                     16:9  720W  576H:->  226W  60H BOTTOM_LEFT
+            logo.widthMax  = INT_MAX;  // news ticker
+            logo.heightMin =  58;
+        }
+
+        // ProSieben               16:9  720W  576H:->   84W  66H TOP_RIGHT
+        // ProSieben               16:9  720W  576H:->   86W  66H TOP_RIGHT
+        if (CompareChannelName(maContext->Info.ChannelName, "ProSieben", IGNORE_NOTHING)) {
+            logo.heightMax =  66;
+            logo.widthMax  =  86;
+        }
+
+        // Pro7_MAXX               16:9  720W  576H:->  114W  64H TOP_RIGHT
+        // Pro7_MAXX               16:9  720W  576H:->  140W  64H TOP_RIGHT
+        if (CompareChannelName(maContext->Info.ChannelName, "Pro7_MAXX", IGNORE_NOTHING)) {
+            logo.heightMax  =   64;
+        }
+
+        if (CompareChannelName(maContext->Info.ChannelName, "RTL_Television", IGNORE_NOTHING)) {        // RTL_Television          16:9  720W  576H:->  104W  60H TOP_LEFT (before 09/2021)
+            // RTL_Television          16:9  720W  576H:->  142W  60H TOP_LEFT (before 09/2021 RTL live logo)
+            // RTL_Television          16:9  720W  576H:->  126W  68H TOP_LEFT (after  09/2021)
+            // RTL_Television          16:9  720W  576H:->  146W  68H TOP_LEFT (after  09/2021 RTL live logo)
+            //
+            // no logo                 16:9  720W  576H:->  116W  66H TOP_LEFT ("neue Folge")
+            logo.widthMax  = 146 ;
+            logo.heightMax =  68 ;
+            logo.corner    = TOP_LEFT;
+        }
+        if (CompareChannelName(maContext->Info.ChannelName, "RTL2", IGNORE_NOTHING)) {                  // RTL2                    16:9  720W  576H:->   82W  78H BOTTOM_RIGHT (new logo)
+            // RTL2                    16:9  720W  576H:->   82W  80H BOTTOM_RIGHT (new Logo)
+            // RTL2                    16:9  720W  576H:->  108W 108H BOTTOM_RIGHT (old logo)
+            // RTL2                    16:9  720W  576H:->  108W 110H BOTTOM_RIGHT
+            logo.widthMin  =  82;
+            logo.widthMax  = 108;
+            logo.heightMin =  78;
+            logo.heightMax = 110;
+        }
+
+        // RTLZWEI                 16:9  720W  576H:->   82W  80H BOTTOM_RIGHT
+        // RTLZWEI                 16:9  720W  576H:->   84W  80H BOTTOM_RIGHT
+        // RTLZWEI                  4:3  720W  576H:->   98W  80H BOTTOM_RIGHT
+        if (CompareChannelName(maContext->Info.ChannelName, "RTLZWEI", IGNORE_NOTHING)) {
+            logo.widthMax  =  98;
+            logo.heightMax =  80;
+        }
+
+        // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
+        // RTLplus                  4:3  720W  576H:->  214W  66H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "RTLplus", IGNORE_NOTHING)) {               // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
+            logo.widthMin  = 168;
+            logo.widthMax  = 214;
+        }
+
+        // RTLup                   16:9  720W  576H:->  142W  68H TOP_LEFT
+        // RTLup                    4:3  720W  576H:->  166W  66H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "RTLup", IGNORE_NOTHING)) {
+            logo.widthMin  = 142;
+            logo.widthMax  = 166;
+        }
+
+        // sixx                    16:9  720W  576H:->  106W  54H TOP_RIGHT
+        // SIXX                    16:9  720W  576H:->  106W  54H TOP_RIGHT
+        // SIXX                    16:9  720W  576H:->  118W  56H TOP_RIGHT
+        // SIXX                     4:3  720W  576H:->  130W  54H TOP_RIGHT
+        if (CompareChannelName(maContext->Info.ChannelName, "SIXX", IGNORE_NOTHING)) {
+            logo.widthMin  = 106;
+            logo.widthMax  = 130;
+            logo.heightMin =  54;
+            logo.heightMax =  56;
+        }
+
+        // SUPER_RTL               16:9  720W  576H:->  160W  66H TOP_LEFT     -> logo RTL SUPER
+        // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT     -> logo SUPER RTL
+        if (CompareChannelName(maContext->Info.ChannelName, "SUPER_RTL", IGNORE_NOTHING)) {
+            logo.widthMax  = 160;
+            logo.heightMin =  48;
+        }
+
+        // TELE_5                  16:9  720W  576H:->  110W  66H BOTTOM_RIGHT
+        // TELE_5                  16:9  720W  576H:->   70W  76H TOP_LEFT
+        // TELE_5                  16:9  720W  576H:->   96W  76H TOP_LEFT
+        // TELE_5                  16:9  720W  576H:->   98W  76H TOP_LEFT
+        // TELE_5                   4:3  720W  576H:->   96W  76H BOTTOM_RIGHT
+        if (CompareChannelName(maContext->Info.ChannelName, "TELE_5", IGNORE_NOTHING)) {
+            switch (logoCorner) {
+            case TOP_LEFT:
+                logo.heightMin =  64;
+                logo.heightMax =  76;
+                logo.widthMin  =  69;
+                logo.widthMax  =  71;
+                break;
+            case BOTTOM_RIGHT:
+                logo.heightMin =  66;
+                logo.heightMax =  76;
+                logo.widthMin  =  70;
+                logo.widthMax  =  110;
+                break;
+            default:                   // no logo possible
+                logo.heightMin =  INT_MAX;
+                logo.heightMax =  0;
+                logo.widthMin  =  INT_MAX;
+                logo.widthMax  =  0;
+            }
+        }
+
+        // TLC                     16:9  720W  576H:->   94W  60H TOP_LEFT
+        // TLC                     16:9  720W  576H:->   98W  60H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "TLC", IGNORE_NOTHING)) {
+            logo.heightMin =  60;
+            logo.heightMax =  65;
+        }
+
+        if (CompareChannelName(maContext->Info.ChannelName, "TOGGO_plus", IGNORE_NOTHING)) {            // TOGGO_plus              16:9  720W  576H:->  104W  56H TOP_LEFT
+            logo.heightMin =  56;
+        }
+
+        // VOX                     16:9  720W  576H:->  108W  70H TOP_LEFT
+        // VOX                      4:3  720W  576H:->  126W  70H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "VOX", IGNORE_NOTHING)) {
+            logo.heightMin =  70;
+            logo.heightMax =  70;
+        }
+
+        // VOXup                   16:9  720W  576H:->  110W  66H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "VOXup", IGNORE_NOTHING)) {
+            logo.heightMax =  66;
+        }
+
+        // WELT                    16:9  720W  576H:->  226W  62H BOTTOM_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "WELT", IGNORE_NOTHING)) {
+            logo.heightMax = 64;
+            logo.widthMax  = INT_MAX;  // news ticker
+        }
+
+        if (CompareChannelName(maContext->Info.ChannelName, "Welt_der_Wunder", IGNORE_NOTHING)) {       // Welt_der_Wunder         16:9  720W  576H:->   94W 108H TOP_LEFT
+            // Welt_der_Wunder         16:9  720W  576H:->   96W 112H TOP_LEFT
+            logo.widthMin  =  94;
+            logo.heightMax = 112;
+        }
+
+        // default values
         if (logo.widthMin  == 0) logo.widthMin  =  50; // arte                    16:9  720W  576H:->   50W 108H TOP_LEFT
         if (logo.widthMax  == 0) logo.widthMax  = 214; // RTLplus                  4:3  720W  576H:->  214W  66H TOP_LEFT
         if (logo.heightMin == 0) logo.heightMin =  48; // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT
         if (logo.heightMax == 0) logo.heightMax = 116; // Nick_Comedy_Central+1   16:9  720W  576H:->  120W 116H TOP_RIGHT
         break;
+
     case 1280:
+        // 3sat_HD                 16:9 1280W  720H:->  178W  94H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "3sat_HD", IGNORE_NOTHING)) {
+            logo.widthMax  = 185;
+        }
+
+        // ARD_alpha_HD            16:9 1280W  720H:->  206W  78H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "ARD_alpha_HD", IGNORE_NOTHING)) {
+            logo.heightMax =  78;
+            logo.widthMax  = 206;
+        }
+
+        // arte_HD                 16:9 1280W  720H:->   88W 134H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "arte_HD", IGNORE_NOTHING)) {
+            logo.widthMin  =  88;
+            logo.widthMax  =  88;
+        }
+
+        // Das_Erste_HD            16:9 1280W  720H:->  148W 114H TOP_RIGHT
+        // Das_Erste_HD            16:9 1280W  720H:->  148W 128H TOP_RIGHT
+        // Das_Erste_HD            16:9 1280W  720H:->  244W 114H TOP_RIGHT
+        // Das_Erste_HD            16:9 1280W  720H:->  244W  96H TOP_RIGHT    <- check eins Kinderprogramm Logo
+        if (CompareChannelName(maContext->Info.ChannelName, "Das_Erste_HD", IGNORE_NOTHING)) {
+            logo.widthMin  = 148;
+            logo.widthMax  = 244;
+            logo.heightMax = 128;
+        }
+
+        if (CompareChannelName(maContext->Info.ChannelName, "Einsfestival_HD", IGNORE_NOTHING)) {       // Einsfestival_HD         16:9 1280W  720H:->  300W  80H TOP_RIGHT
+            logo.widthMax  = 300;
+        }
+        if (CompareChannelName(maContext->Info.ChannelName, "EinsPlus_HD", IGNORE_NOTHING)) {           // EinsPlus_HD             16:9 1280W  720H:->  334W  86H TOP_RIGHT
+            logo.widthMax  = 335;
+        }
+
+        // hr-fernsehen_HD         16:9 1280W  720H:->  196W  98H TOP_LEFT
+        // hr-fernsehen_HD         16:9 1280W  720H:->  214W 100H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "hr-fernsehen_HD", IGNORE_NOTHING)) {
+            logo.widthMax  = 214;
+            logo.heightMax = 100;
+        }
+
+        // KiKA_HD                 16:9 1280W  720H:->  228W 112H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "KiKA_HD", IGNORE_NOTHING)) {
+            logo.widthMin  = 228;
+        }
+
+        if (CompareChannelName(maContext->Info.ChannelName, "MDR_Sachsen_HD", IGNORE_NOTHING)) {        // MDR_Sachsen_HD          16:9 1280W  720H:->  160W  70H TOP_LEFT
+            logo.heightMax =  70;
+        }
+
+        // NDR_FS_HH_HD            16:9 1280W  720H:->  184W  86H TOP_LEFT
+        // NDR_FS_HH_HD            16:9 1280W  720H:->  184W  88H TOP_LEFT
+        // NDR_FS_NDS_HD           16:9 1280W  720H:->  184W  88H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "NDR_FS_HH_HD", IGNORE_NOTHING) ||
+                CompareChannelName(maContext->Info.ChannelName, "NDR_FS_NDS_HD", IGNORE_NOTHING)) {
+            logo.heightMax =  88;
+        }
+
+        // ONE_HD                  16:9 1280W  720H:->  232W  80H TOP_RIGHT
+        if (CompareChannelName(maContext->Info.ChannelName, "ONE_HD", IGNORE_NOTHING)) {
+            logo.widthMin =  232;
+        }
+
+        // phoenix_HD              16:9 1280W  720H:->  168W  72H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "phoenix_HD", IGNORE_NOTHING)) {
+            logo.widthMax =  168;
+        }
+
+        if (CompareChannelName(maContext->Info.ChannelName, "rbb_Berlin_HD", IGNORE_NOTHING)) {         // rbb_Berlin_HD           16:9 1280W  720H:->  178W  90H TOP_RIGHT
+            logo.widthMax =  178;
+        }
+
+        if (CompareChannelName(maContext->Info.ChannelName, "WDR_HD_Köln", IGNORE_NOTHING) ||         // WDR_HD_Köln             16:9 1280W  720H:->  224W  80H TOP_RIGHT
+                CompareChannelName(maContext->Info.ChannelName, "WDR_HD_Essen", IGNORE_NOTHING)) {
+            logo.heightMax =  80;
+        }
+        if (CompareChannelName(maContext->Info.ChannelName, "ZDF_HD", IGNORE_NOTHING)) {                // ZDF_HD                  16:9 1280W  720H:->  186W  94H TOP_LEFT
+            // ZDF_HD                  16:9 1280W  720H:->  186W  96H TOP_LEFT
+            // ZDF_HD                  16:9 1280W  720H:->  188W  96H TOP_LEFT
+            logo.widthMax =  188;
+        }
+
+        // ZDFinfo_HD              16:9 1280W  720H:->  196W  86H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "ZDFinfo_HD", IGNORE_NOTHING)) {
+            logo.heightMax =  86;
+        }
+        if (CompareChannelName(maContext->Info.ChannelName, "ANIXE+", IGNORE_NOTHING)) {                // ANIXE+                  16:9 1280W 1080H:->  294W 170H TOP_LEFT
+            logo.widthMax  = 294;
+            logo.heightMax = 170;
+        }
+        if (CompareChannelName(maContext->Info.ChannelName, "Deluxe_Music_HD", IGNORE_NOTHING)) {       // Deluxe_Music_HD         16:9 1280W 1080H:->  334W 124H TOP_RIGHT
+            logo.widthMax  = 334;
+        }
+
+        // default values
         if (logo.widthMin  == 0) logo.widthMin  =   88; // arte_HD (vertical)      16:9 1280W  720H:->   88W 134H TOP_LEFT
         if (logo.widthMax  == 0) logo.widthMax  =  334; // EinsPlus_HD             16:9 1280W  720H:->  334W  86H TOP_RIGHT
         if (logo.heightMin == 0) logo.heightMin =   66; // SRF_zwei_HD             16:9 1280W  720H:->  172W  66H TOP_RIGHT
         if (logo.heightMax == 0) logo.heightMax =  170; // ANIXE+                  16:9 1280W 1080H:->  294W 170H TOP_LEFT
         break;
+
     case 1440:
+        if (CompareChannelName(maContext->Info.ChannelName, "WELT_HD", IGNORE_NOTHING)) {               // WELT_HD                 16:9 1440W 1080H:->  396W 116H BOTTOM_LEFT
+            logo.widthMax  = INT_MAX;  // news ticker
+        }
+
+        // default values
         if (logo.widthMin  == 0) logo.widthMin  =  124; // BILD_HD                 16:9 1440W 1080H:->  124W 168H TOP_LEFT (normal logo)
         if (logo.widthMax  == 0) logo.widthMax  =  250; // DMAX_HD                 16:9 1440W 1080H:->  250W 140H TOP_LEFT
         if (logo.heightMin == 0) logo.heightMin =  112; // WELT_HD                 16:9 1440W 1080H:->  396W 116H BOTTOM_LEFT
         if (logo.heightMax == 0) logo.heightMax =  204; // BILD_HD                 16:9 1440W 1080H:->  124W 204H TOP_LEFT (doku logo)
         break;
+
     case 1920:
-        if (logo.widthMin  == 0) logo.widthMin  =  202; // SAT_1_HD                16:9 1920W 1080H:->  202W 132H TOP_RIGHT
+        if (CompareChannelName(maContext->Info.ChannelName, "13th_Street_HD", IGNORE_NOTHING)) {        // 13th_Street_HD:         16:9 1920W 1080H:->  218W 194H TOP_LEFT
+            logo.widthMin  = 217;
+            logo.heightMax = 198;
+        }
+        // ANIXE_HD                16:9 1920W 1080H:->  396W 180H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "ANIXE_HD", IGNORE_NOTHING)) {
+            logo.heightMin = 180;
+        }
+
+        // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "arte_HD", IGNORE_NOTHING)) {
+            logo.widthMax = 130;
+        }
+
+        // default values
+        if (logo.widthMin  == 0) logo.widthMin  =  130; // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
         if (logo.widthMax  == 0) logo.widthMax  =  396; // ANIXE_HD                16:9 1920W 1080H:->  396W 180H TOP_LEFT
         if (logo.heightMin == 0) logo.heightMin =   96; // münchen_tv_HD           16:9 1920W 1080H:->  336W  96H TOP_LEFT
-        if (logo.heightMax == 0) logo.heightMax =  180; // ANIXE_HD                16:9 1920W 1080H:->  336W 180H TOP_LEFT
+        if (logo.heightMax == 0) logo.heightMax =  200; // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
         break;
+
     case 3840:
+        // default values
         if (logo.widthMin  == 0) logo.widthMin  = 1412; // RTL_UHD                 16:9 3840W 2160H:-> 1412W 218H TOP_LEFT
         if (logo.widthMax  == 0) logo.widthMax  = 1412; // RTL_UHD                 16:9 3840W 2160H:-> 1412W 218H TOP_LEFT
         if (logo.heightMin == 0) logo.heightMin =  218; // RTL_UHD                 16:9 3840W 2160H:-> 1412W 218H TOP_LEFT
         if (logo.heightMax == 0) logo.heightMax =  218; // RTL_UHD                 16:9 3840W 2160H:-> 1412W 218H TOP_LEFT
         break;
+
     default:
         dsyslog("cExtractLogo::CheckLogoSize(): no logo size rules for %dx%d", maContext->Video.Info.width, maContext->Video.Info.height);
         return false;
         break;
     }
+    dsyslog("cExtractLogo::CheckLogoSize(): channel logo size rule for %s: W %d->%d, H %d->%d", maContext->Info.ChannelName, logo.widthMin, logo.widthMax, logo.heightMin, logo.heightMax);
+
     if (logoWidth < logo.widthMin) {
         dsyslog("cExtractLogo::CheckLogoSize(): logo too narrow %d, expect min %d", logoWidth, logo.widthMin);
         return false;
