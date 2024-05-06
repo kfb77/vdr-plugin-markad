@@ -383,6 +383,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
             if ((logoStop->position > hborderStart->position) && (deltaLogoStop <= 415) && (deltaAssumed <= 12)) {
                 dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): use logo stop mark at (%d) before hborder stop (%d)", logoStop->position, end->position);
                 end = logoStop;
+                evaluateLogoStopStartPair->SetIsAdInFrame(end->position, STATUS_DISABLED);  // prevent to false detect hborder as adinframe
             }
         }
         // optimize hborder end mark with logo stop mark in case of next broadcast is also with hborder and too early hborder stop from closing credits overlays hborder
@@ -398,6 +399,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
             if ((hBorderStopLogoStop <= 28000) && (logoStophBorderStart >= 0) && (logoStophBorderStart <= 6040)) {
                 dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): hborder end mark (%d) from closing credits overlays hborder, use logo stop after (%d)", end->position, logoStop->position);
                 end = logoStop;
+                evaluateLogoStopStartPair->SetIsAdInFrame(end->position, STATUS_DISABLED);  // closing credits overlay hborder, prevent to false detect this as adinframe
             }
         }
     }

@@ -595,7 +595,12 @@ void cEvaluateLogoStopStartPair::SetIsAdInFrame(const int stopPosition, const in
         found->isAdInFrame = state;
         return;
     }
-    dsyslog("cEvaluateLogoStopStartPair::SetIsAdInFrame(): stop (%d) not found", stopPosition);
+    dsyslog("cEvaluateLogoStopStartPair::SetIsAdInFrame(): stop (%d) not found, add in list with state %d", stopPosition, state);
+    sLogoStopStartPair newPair;
+    newPair.stopPosition = stopPosition;
+    newPair.isAdInFrame  = state;
+    logoPairVector.push_back(newPair);
+    ALLOC(sizeof(sLogoStopStartPair), "logoPairVector");
 }
 
 
