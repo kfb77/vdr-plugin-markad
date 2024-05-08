@@ -168,7 +168,8 @@ void cCriteria::SetMarkTypeState(const int type, const int state) {
         }
         break;
     case MT_HBORDERCHANGE:
-        hborder = state;
+        if ((GetMarkTypeState(MT_ASPECTCHANGE) == CRITERIA_USED) && (state == CRITERIA_USED)) hborder = CRITERIA_AVAILABLE; // do not override use of aspect ratio
+        else hborder = state;
         if (hborder == CRITERIA_USED) {
             SetDetectionState(MT_SCENECHANGE,   false);
             SetDetectionState(MT_SOUNDCHANGE,   false);
