@@ -1736,7 +1736,7 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
     if (darkFrameNumber < INT_MAX) dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d):  frist vborder in dark picture: (%5d)", frameNumber, darkFrameNumber);
     if (borderframenumber >= 0) dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d):  frist vborder: [bright (%5d), dark (%5d)], duration: %ds", frameNumber, borderframenumber, darkFrameNumber, static_cast<int> ((frameNumber - borderframenumber) / maContext->Video.Info.framesPerSecond));
 #endif
-#define BRIGHTNESS_MIN 23679342      // do not increase, we will never find vborder start
+#define BRIGHTNESS_MIN 25306252      // changed from 23679342 to 25306252, based on a very dark scene without border
     if (((valLeft <= BRIGHTNESS_V_MAYBE) && (valRight <= BRIGHTNESS_V_SURE)) || ((valLeft <= BRIGHTNESS_V_SURE) && (valRight <= BRIGHTNESS_V_MAYBE))) {
         // vborder detected
         if (borderframenumber == -1) {   // first vborder detected
