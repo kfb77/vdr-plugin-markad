@@ -1481,38 +1481,6 @@ int cMarkAdStandalone::CheckStop() {
         }
     }
 
-// try black screen mark as end mark
-    if (!end) {
-        cMark *blackEnd = blackMarks.GetAround(1 * 60 * macontext.Video.Info.framesPerSecond, iStopA, MT_NOBLACKSTOP);
-        if (blackEnd) {
-            int diff = (blackEnd->position - iStopA) / macontext.Video.Info.framesPerSecond;
-            cMark *blackStop  = blackEnd;
-            cMark *blackStart = blackMarks.GetNext(blackEnd->position, MT_NOBLACKSTART);
-            while (true) {
-                if (!blackStop || !blackStart) break;
-                const cMark *markBefore = marks.GetPrev(blackStop->position, MT_ALL);
-                if (((markBefore->type & 0x0F) == MT_START) &&                    // do not accept stop mark before
-                        (blackStart->position - blackStop->position) > 1) break;  // do not accept only 1 frame black
-                blackStop                 = blackMarks.GetNext(blackStop->position, MT_NOBLACKSTOP);
-                if (blackStop) blackStart = blackMarks.GetNext(blackStop->position, MT_NOBLACKSTART);
-            }
-            if (blackStop) {
-                char *comment = NULL;
-                if (asprintf(&comment, "end   black screen (%d)*", blackStop->position) == -1) comment = NULL;
-                if (comment) {
-                    ALLOC(strlen(comment)+1, "comment");
-                }
-                end = marks.Add(MT_NOBLACKSTOP, MT_UNDEFINED, MT_UNDEFINED, blackStop->position, comment, false);
-                if (comment) {
-                    FREE(strlen(comment)+1, "comment");
-                    free(comment);
-                }
-                dsyslog("cMarkAdStandalone::CheckStop(): black screen end mark (%d) %ds after assumed stop (%d)", end->position, diff, iStopA);
-            }
-        }
-        else dsyslog("cMarkAdStandalone::CheckStop(): no black screen end mark found near assumed stop (%d)", iStopA);
-    }
-
     if (end) {
         indexToHMSF = marks.GetTime(end);
         char *markType = marks.TypeToText(end->type);
@@ -1522,9 +1490,7 @@ int cMarkAdStandalone::CheckStop() {
             free(markType);
         }
     }
-
-
-    if (!end) {  // no end mark found at all, set end mark to assumed end
+    else {  // no end mark found at all, set end mark to assumed end
         dsyslog("cMarkAdStandalone::CheckStop(): no stop mark found, add end mark at assumed end (%d)", iStopA);
         cMark *markBefore = marks.GetPrev(iStopA, MT_ALL);
         if (markBefore && ((markBefore->type & 0x0F) == MT_STOP)) {
