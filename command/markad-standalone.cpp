@@ -1915,7 +1915,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     }
 
     // search for logo start mark around assumed start
-    cMark *lStartAssumed = marks.GetAround(iStartA + (420 * macontext.Video.Info.framesPerSecond), iStartA, MT_LOGOSTART);
+    cMark *lStartAssumed = marks.GetAround(iStartA + (300 * macontext.Video.Info.framesPerSecond), iStartA, MT_LOGOSTART);  // do not allow morde than 5 minutes from assued start
     if (!lStartAssumed) {
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): no logo start mark found");
         return NULL;
@@ -1933,7 +1933,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             int status = evaluateLogoStopStartPair->GetIsClosingCreditsBefore(lStart->position);
             int diffAssumed = (lStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d): %ds after assumed start (%d), closing credits status %d", lStart->position, diffAssumed, iStartA, status);
-            if ((diffAssumed < -307) || (diffAssumed > 307)) break;  // chnaged from 300 to 307
+            if ((diffAssumed < -300) || (diffAssumed > 300)) break;
             if (status == STATUS_YES) {
                 dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) has closing credits in frame before, valid start mark found", lStart->position);
                 begin = lStart;
@@ -1955,7 +1955,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             int status = evaluateLogoStopStartPair->GetIsClosingCreditsBefore(lStart->position);
             int diffAssumed = (iStartA - lStart->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d): %ds before assumed start (%d), closing credits status %d", lStart->position, diffAssumed, iStartA, status);
-            if (diffAssumed >= 300) break;
+            if (diffAssumed > 300) break;
             if (status == STATUS_YES) {
                 dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) has closing credits in frame before, valid start mark found", lStart->position);
                 begin = lStart;
@@ -1972,10 +1972,9 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     lStart = lStartAssumed;
     while (!begin && lStart) {
         int diffAssumed = (lStart->position - iStartA)          / macontext.Video.Info.framesPerSecond;
-#define MAX_AFTER_ASSUMED 335    // changed from 293 to 335
         LogSeparator();
-        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check logo start mark (%d), %ds (<= %ds) after assumed start", lStart->position, diffAssumed, MAX_AFTER_ASSUMED);
-        if (diffAssumed > MAX_AFTER_ASSUMED) {
+        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check logo start mark (%d), %ds after assumed start", lStart->position, diffAssumed);
+        if (diffAssumed > 300) {
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) too late for valid broadcast start", lStart->position);
             break;
         }
@@ -1993,7 +1992,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         lStart = marks.GetPrev(lStart->position, MT_LOGOSTART);
         if (!lStart) break;
         int diffAssumed = (iStartA - lStart->position) / macontext.Video.Info.framesPerSecond;
-        if (diffAssumed >= 300) break;
+        if (diffAssumed > 300) break;
         LogSeparator(false);
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check logo start mark (%d) %ds before assumed start", lStart->position, diffAssumed);
         if (HaveBlackSeparator(lStart) || HaveSilenceSeparator(lStart) || HaveInfoLogoSequence(lStart)) {
@@ -2020,7 +2019,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             continue;
         }
         // check for too late logo start, can be of first ad
-        if (diffAssumed < -215) {  // later start mark can be start of first ad, changed from -211 to -215 (long ad before)
+        if (diffAssumed < -300) {  // do not accept start mark if it is more than 5 min after assumed start
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds after assumed start too late", lStart->position, -diffAssumed);
             break;
         }
