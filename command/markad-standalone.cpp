@@ -455,7 +455,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
 // try MT_LOGOSTOP
 cMark *cMarkAdStandalone::Check_LOGOSTOP() {
     cMark *end         = NULL;
-    cMark *lEndAssumed = marks.GetAround(400 * macontext.Video.Info.framesPerSecond, iStopA, MT_LOGOSTOP);
+    cMark *lEndAssumed = marks.GetAround(300 * macontext.Video.Info.framesPerSecond, iStopA, MT_LOGOSTOP); // do not allow more than 5 minutes away from assumed stop
     if (!lEndAssumed) {
         dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): no logo stop mark found");
         return NULL;  // no logo stop mark around assumed stop
@@ -472,7 +472,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
             if (diffAssumed >= 0) {
                 int status = evaluateLogoStopStartPair->GetIsClosingCreditsAfter(lEnd->position);
                 dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d): %ds after assumed stop (%d), closing credits status %d", lEnd->position, diffAssumed, iStopA, status);
-                if (diffAssumed >= 300) break;
+                if (diffAssumed > 300) break;
                 if (status == STATUS_YES) {
                     dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d) closing credits follow, valid end mark found", lEnd->position);
                     end = lEnd;
@@ -488,7 +488,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
             if (diffAssumed > 0) {
                 int status = evaluateLogoStopStartPair->GetIsClosingCreditsAfter(lEnd->position);
                 dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d): %ds before assumed stop (%d), closing credits status %d", lEnd->position, diffAssumed, iStopA, status);
-                if (diffAssumed >= 300) break;
+                if (diffAssumed > 300) break;
                 if (status == STATUS_YES) {
                     dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d) closing credits follow, valid end mark found", lEnd->position);
                     end = lEnd;
@@ -507,7 +507,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         int diffAssumed = (lEnd->position - iStopA) / macontext.Video.Info.framesPerSecond;
         LogSeparator(false);
         dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check for separator for logo stop (%d), %ds after assumed end (%d)", lEnd->position, diffAssumed, iStopA);
-        if (diffAssumed > 300 || diffAssumed <= -378) break;
+        if (diffAssumed > 300 || diffAssumed < -300) break;
         if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveInfoLogoSequence(lEnd)) {
             end = lEnd;
             break;
@@ -524,7 +524,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check for separator for logo stop (%d), %ds before assumed end (%d)", lEnd->position, diffAssumed, iStopA);
         // examples:
         // valid: 330 before iStartA
-        if (diffAssumed > 330) break;
+        if (diffAssumed > 300) break;
         if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveInfoLogoSequence(lEnd)) {
             end = lEnd;
         }
