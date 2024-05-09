@@ -1561,15 +1561,17 @@ void cMarkAdBlackBordersHoriz::Clear(const bool isRestart) {
 
 int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
 #define CHECKHEIGHT           5  // changed from 8 to 5
-#define BRIGHTNESS_H_SURE    22  // changed from 20 to 22
+#define BRIGHTNESS_H_SURE    22
 #define BRIGHTNESS_H_MAYBE  137  // some channel have logo or infos in border, so we will detect a higher value, changed from 131 to 137
 #define NO_HBORDER          200  // internal limit for early loop exit, must be more than BRIGHTNESS_H_MAYBE
     if (!maContext) return HBORDER_ERROR;
     if (!maContext->Video.Data.valid) return HBORDER_ERROR;
     if (maContext->Video.Info.framesPerSecond == 0) return HBORDER_ERROR;
 
+    int brightnessSure  = BRIGHTNESS_H_SURE;
+    if (criteria->LogoInBorder(maContext->Info.ChannelName)) brightnessSure = BRIGHTNESS_H_SURE + 1;  // for pixel from logo
     int brightnessMaybe = BRIGHTNESS_H_SURE;
-    if (criteria->InfoInBorder(maContext->Info.ChannelName)) brightnessMaybe = BRIGHTNESS_H_MAYBE;
+    if (criteria->InfoInBorder(maContext->Info.ChannelName)) brightnessMaybe = BRIGHTNESS_H_MAYBE;    // for pixel from info in border
     *borderFrame = -1;   // framenumber of first hborder, otherwise -1
     if (!maContext->Video.Info.height) {
         dsyslog("cMarkAdBlackBordersHoriz::Process() video hight missing");
@@ -1617,11 +1619,11 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
     else valTop = NO_HBORDER;   // we have no botton border, so we do not have to calculate top border
 
 #ifdef DEBUG_HBORDER
-    dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder brightness top %4d bottom %4d (expect one <=%d and one <= %d)", FrameNumber, valTop, valBottom, BRIGHTNESS_H_SURE, brightnessMaybe);
+    dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder brightness top %4d bottom %4d (expect one <=%d and one <= %d)", FrameNumber, valTop, valBottom, brightnessSure, brightnessMaybe);
 #endif
 
-    if (((borderstatus == HBORDER_VISIBLE) && ((valTop <= brightnessMaybe) && (valBottom <= BRIGHTNESS_H_SURE) || (valTop <= BRIGHTNESS_H_SURE) && (valBottom <= brightnessMaybe))) ||
-            ((borderstatus <  HBORDER_VISIBLE) && (valBottom <= BRIGHTNESS_H_SURE) && (valTop <= BRIGHTNESS_H_SURE))) {
+    if (((borderstatus == HBORDER_VISIBLE) && ((valTop <= brightnessMaybe) && (valBottom <= brightnessSure) || (valTop <= brightnessSure) && (valBottom <= brightnessMaybe))) ||
+            ((borderstatus <  HBORDER_VISIBLE) && (valBottom <= brightnessSure) && (valTop <= brightnessSure))) {
         // hborder detected
 #ifdef DEBUG_HBORDER
         int duration = (FrameNumber - borderframenumber) / maContext->Video.Info.framesPerSecond;
