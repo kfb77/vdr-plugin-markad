@@ -2958,7 +2958,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
             dsyslog("cMarkAdStandalone::CheckMarks(): no preview because no MT_LOGOSTART after found");
             continue;
         }
-        const cMark *startBefore = marks.GetPrev(stopBefore->position, MT_START, 0x0F);   // start mark can be MT_ASSUMEDSTART
+        cMark *startBefore = marks.GetPrev(stopBefore->position, MT_START, 0x0F);   // start mark can be MT_ASSUMEDSTART
         if (!startBefore) {
             dsyslog("cMarkAdStandalone::CheckMarks(): no preview because no MT_START before found");
             continue;
@@ -3001,11 +3001,10 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                         bool isThisClosingCredits = evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCreditsAfter(mark->position) == STATUS_YES);
                         if (!isThisClosingCredits || (stopMark->position != marks.GetFirst()->position)) {
                             isyslog("found preview between logo start mark (%d) and logo stop mark (%d) in advertisement, deleting marks", mark->position, stopMark->position);
-                            cMark *tmp = startAfter;
+                            cMark *tmp = startBefore;  // continue with mark before
                             marks.Del(mark);
                             marks.Del(stopMark);
                             mark = tmp;
-                            continue;
                         }
                         else dsyslog("cMarkAdStandalone::CheckMarks(): long advertisement before and logo stop before and this logo start mark are closing credits, this pair contains a start mark");
                     }
