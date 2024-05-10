@@ -40,7 +40,9 @@ int cCriteria::LogoFadeInOut(const char *channelName) {
     if (CompareChannelName(channelName, "NICK_MTV+",      IGNORE_HD)) return FADE_IN | FADE_OUT;
     if (CompareChannelName(channelName, "Pro7_MAXX",      IGNORE_HD)) return FADE_IN;
     if (CompareChannelName(channelName, "ProSieben_MAXX", IGNORE_HD)) return FADE_IN;
+    if (CompareChannelName(channelName, "ServusTV",       IGNORE_HD)) return FADE_OUT;
     if (CompareChannelName(channelName, "sixx",           IGNORE_HD)) return FADE_IN;
+    if (CompareChannelName(channelName, "SUPER_RTL",      IGNORE_HD)) return FADE_OUT;
     if (CompareChannelName(channelName, "SPORT1",         IGNORE_HD)) return FADE_IN | FADE_OUT;
     if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD)) return FADE_IN | FADE_OUT;
     if (CompareChannelName(channelName, "TLC",            IGNORE_HD)) return FADE_IN | FADE_OUT;
