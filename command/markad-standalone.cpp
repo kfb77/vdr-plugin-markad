@@ -4606,7 +4606,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
 
                         if (criteria.GoodVPS(macontext.Info.ChannelName)) maxBefore = 26099;
                         else if (silenceBefore)                           maxBefore = 81800;
-                        else if (lengthBefore > 80)                       maxBefore = 11579;
+                        else if (lengthBefore >= 240)                     maxBefore = 50480;
                         else                                              maxBefore =     0;  // do not accept short black screen, too much false positiv
                         break;
                     default:
