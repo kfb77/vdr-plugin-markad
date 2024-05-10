@@ -1,6 +1,9 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-05-10: Version 3.6.3
+- fix preview detection
+
 2024-05-10: Version 3.6.2
 - fix detection of hborder double episode
 - prevent to detect long dark scene as vborder
