@@ -5400,10 +5400,6 @@ void cMarkAdStandalone::SceneChangeOptimization() {
     DebugMarks();
     cMark *mark = marks.GetFirst();
     while (mark) {
-        // store old mark types
-        char *markType    = marks.TypeToText(mark->type);
-        char *markOldType = marks.TypeToText(mark->oldType);
-        char *markNewType = marks.TypeToText(mark->newType);
         // check start mark
         if ((mark->type & 0x0F) == MT_START) {
             // log available marks
@@ -5441,7 +5437,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && (diffBefore >= 1640) && (diffAfter <= 80)) diffBefore = INT_MAX;
 
                     if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxBefore = 4800;
-                    else                                                              maxBefore = 2840;
+                    else                                                              maxBefore = 1599;
                     break;
                 case MT_CHANNELSTART:
                     if (diffAfter <= 1060) diffBefore = INT_MAX;
@@ -5461,11 +5457,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxBefore = 1180;
                         break;
                     case MT_VPSSTART:
-                        // rule 1: long scene before VPS start (closing scene), short scene after VPS start (broadcast start)
-                        if (!criteria.GoodVPS(macontext.Info.ChannelName) && (diffBefore >= 2160) && (diffAfter <= 320)) diffBefore = INT_MAX;
-
-                        // rule 2: long scene after VPS start, long static scene or closing credits from end of previous broadcast
-                        else if (!criteria.GoodVPS(macontext.Info.ChannelName) && (diffBefore >= 580) && (diffBefore <= 2720) && (diffAfter > 1320) && (diffAfter <= 13440)) diffBefore = INT_MAX;
+                        // rule 1: VPS start in long static scene or closing credits from end of previous broadcast
+                        if (diffAfter >= 2760) diffBefore = INT_MAX;
 
                         maxBefore = 3340;
                         break;
@@ -5485,15 +5478,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
             // try scene change after start mark
@@ -5504,11 +5489,11 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter = 9160;  // changed from 1760 to 9160
                     break;
                 case MT_LOGOSTART:
-                    if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxAfter =    0; // with fade in logo, scene after is always false
-                    else                                                              maxAfter = 1200;
+                    if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxAfter =   0; // with fade in logo, scene after is always false
+                    else                                                              maxAfter = 959;
                     break;
                 case MT_ASPECTSTART:
-                    maxAfter =  120;
+                    maxAfter =  320;
                     break;
                 case MT_CHANNELSTART:
                     maxAfter = 1800;  // changed from 1020 to 1800
@@ -5522,7 +5507,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxAfter = 5000;
                         break;
                     case MT_VPSSTART:
-                        maxAfter = 11320;  // changed from 9560 to 11320
+                        maxAfter = 13440;
                         break;
                     case MT_INTRODUCTIONSTART:
                         maxAfter = 1200;
@@ -5539,15 +5524,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     if (mark) {
                         save = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
         }
@@ -5576,8 +5553,11 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter = 8520;  // changed from 6480 to 8520
                     break;
                 case MT_LOGOSTOP:
-                    // rule 1: if not fade out logo, we have delayed logo stop from detection fault (bright picture or patten in background)
-                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && (diffAfter > 80)) diffAfter = INT_MAX;
+                    // rule 1: fade out logo but delay logo stop detection from bright scene or pattern in background
+                    if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && (diffBefore <= 280) && (diffAfter >= 2440)) diffAfter = INT_MAX;
+
+                    // rule 2: if not fade out logo, we have delayed logo stop from detection fault (bright picture or patten in background)
+                    else if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && (diffAfter > 80)) diffAfter = INT_MAX;
 
                     maxAfter = 4800;
                     break;
@@ -5592,7 +5572,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     // rule 2:
                     else if (diffBefore <= 40) diffAfter = INT_MAX;
 
-                    maxAfter = 1460;  // changed from 240 to 1460
+                    maxAfter = 919;
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
@@ -5634,15 +5614,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
             // try scene change before stop mark
@@ -5653,7 +5625,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxBefore = 1120;
                     break;
                 case MT_LOGOSTOP:
-                    maxBefore = 4719;  // changed from 13279 to 4719, do not increse, closing credits detection will fail
+                    maxBefore = 1919;
                     break;
                 case MT_HBORDERSTOP:
                     if (mark->position == marks.GetLast()->position) maxBefore = 440;
@@ -5667,7 +5639,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxBefore = 80;
                         break;
                     case MT_SOUNDSTOP:
-                        maxBefore = 280;
+                        maxBefore = 2800;
                         break;
                     case MT_VPSSTOP:
                         maxBefore = 8440;   // chaned from 1320 to 1440 to 8440
@@ -5687,25 +5659,10 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     if (mark) {
                         save = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
         }
-        FREE(strlen(markType)+1, "text");
-        free(markType);
-        FREE(strlen(markOldType)+1, "text");
-        free(markOldType);
-        FREE(strlen(markNewType)+1, "text");
-        free(markNewType);
-
         mark = mark->Next();
     }
     // save marks
