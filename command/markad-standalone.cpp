@@ -4543,10 +4543,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
     while (mark) {
         int lengthBefore   = 0;
         int lengthAfter    = 0;
-        // store old mark types
-        char *markType    = marks.TypeToText(mark->type);
-        char *markOldType = marks.TypeToText(mark->oldType);
-        char *markNewType = marks.TypeToText(mark->newType);
         // optimize start marks
         if ((mark->type & 0x0F) == MT_START) {
             // log available start marks
@@ -4643,15 +4639,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
             // try black screen after start mark
@@ -4679,8 +4667,9 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     case MT_VPSSTART:
                         if (criteria.GoodVPS(macontext.Info.ChannelName)) maxAfter =   1980;
                         else if (silenceAfter)                            maxAfter = 139480;
-                        else if (lengthAfter >= 80)                       maxAfter =  21679;
-                        else                                              maxAfter =      0;  // do not accept short black screen, too much false positiv
+                        else if (diffBefore == INT_MAX)                   maxAfter = 124520;  // broadcast does not have a black screen before, trust black screen after
+                        else if (lengthAfter >= 80)                       maxAfter =  20960;
+                        else                                              maxAfter =   5400;  // use only very near short black screen
                         break;
                     case MT_INTRODUCTIONSTART:
                         if (lengthAfter >= 3800) maxAfter = 3760;
@@ -4709,15 +4698,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     if (mark) {
                         save = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
         }
@@ -4778,15 +4759,15 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     else if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) &&
                              (diffBefore <= 10680) && (lengthBefore >= 4480)) diffAfter = INT_MAX;
 
-                    if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && (lengthAfter >= 120)) maxAfter = 4960;
-                    else                                                                                         maxAfter = 1399;
+                    if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && (lengthAfter >= 80)) maxAfter = 4960;
+                    else                                                                                        maxAfter = 1399;
                     break;
                 case MT_HBORDERSTOP:
                     // rule 1: black screen with silence short before hborder stop is end of closing creditsA
                     if (silenceBefore && (diffBefore <= 360) && (diffAfter >= 700)) diffAfter = INT_MAX;
 
-                    if (silenceAfter) maxAfter = 10760;  // closing credits overlay hborder
-                    else              maxAfter =     0;
+                    if (silenceAfter && (lengthAfter >= 200)) maxAfter = 10760;  // closing credits overlay hborder
+                    else                                      maxAfter =     0;
                     break;
                 case MT_VBORDERSTOP:
                     maxAfter = 480;  // include black closing credits
@@ -4812,7 +4793,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         else if (silenceBefore && !silenceAfter && (diffBefore <= 6260) && (diffAfter >= 4180)) diffAfter = INT_MAX;
 
                         if (criteria.GoodVPS(macontext.Info.ChannelName)) maxAfter =  45939;
-                        else if (lengthAfter >= 80)                       maxAfter = 231480;
+                        else if (lengthAfter >= 80)                       maxAfter = 228359;
                         else                                              maxAfter =   7439;   // black screen in next broadcast after 7440ms
                         break;
                     case MT_CLOSINGCREDITSSTOP:
@@ -4848,15 +4829,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
             // try black screen before stop mark
@@ -4882,8 +4855,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         maxBefore = 15200;
                         break;
                     case MT_NOADINFRAMESTOP:
-                        if (lengthBefore > diffBefore) maxBefore = -1;  // long black closing credits before ad in frame, keep this
-                        else maxBefore = 17720;    // changed from 4520 to 17720, correct too short detected ad in frame
+                        if ((mark->position == marks.GetLast()->position) && (lengthBefore > diffBefore)) maxBefore =    -1;  // long black closing credits before ad in frame, keep this
+                        else                                                                              maxBefore = 17720;
                         break;
                     default:
                         maxBefore = -1;
@@ -4911,25 +4884,10 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     if (mark) {
                         save = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
         }
-        FREE(strlen(markType)+1, "text");
-        free(markType);
-        FREE(strlen(markOldType)+1, "text");
-        free(markOldType);
-        FREE(strlen(markNewType)+1, "text");
-        free(markNewType);
-
         mark = mark->Next();
     }
     // save marks
