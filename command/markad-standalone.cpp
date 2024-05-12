@@ -5183,16 +5183,13 @@ void cMarkAdStandalone::SilenceOptimization() {
     DebugMarks();
     cMark *mark = marks.GetFirst();
     while (mark) {
-        // store old mark types
-        char *markType    = marks.TypeToText(mark->type);
-        char *markOldType = marks.TypeToText(mark->oldType);
-        char *markNewType = marks.TypeToText(mark->newType);
         // optimize start marks
         if ((mark->type & 0x0F) == MT_START) {
             // log available marks
             bool moved = false;
             int diffBefore   = INT_MAX;
             int diffAfter    = INT_MAX;
+            int lengthAfter  = 0;
             cMark *soundStartBefore = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTART);
             cMark *soundStartAfter  = silenceMarks.GetNext(mark->position - 1, MT_SOUNDSTART);
             if (soundStartBefore) {
@@ -5213,7 +5210,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 diffAfter = 1000 * (soundStartAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
                 cMark *soundStopAfter  = silenceMarks.GetPrev(soundStartAfter->position, MT_SOUNDSTOP);
                 if (soundStopAfter) {
-                    int lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / macontext.Video.Info.framesPerSecond;
+                    lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / macontext.Video.Info.framesPerSecond;
                     bool blackAfter = false;
                     const cMark *black = blackMarks.GetAround(macontext.Video.Info.framesPerSecond, soundStopAfter->position, MT_BLACKCHANGE, 0xF0);
                     if (black) blackAfter = true;
@@ -5267,15 +5264,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
             // try silence after start position
@@ -5296,7 +5285,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        maxAfter = 231440;
+                        if (lengthAfter >= 120) maxAfter = 231440;
                         break;
                     default:
                         maxAfter = 0;
@@ -5312,15 +5301,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     if (mark) {
                         save  = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
         }
@@ -5374,7 +5355,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     if ((diffBefore <= 11680) && (diffAfter >= 1040) && (diffAfter <= 6640)) diffAfter = INT_MAX;
 
                     if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) maxAfter = 4640;
-                    else                                                               maxAfter = 2239;
+                    else                                                               maxAfter = 1079;
                     break;
                 case MT_VBORDERSTOP:
                     maxAfter = 0;
@@ -5391,8 +5372,8 @@ void cMarkAdStandalone::SilenceOptimization() {
                         // rule 3: very long silence before, short silence after
                         else if ((diffBefore <= 31960) && (lengthBefore >= 3160) && (lengthAfter <= 340)) diffAfter = INT_MAX;
 
-                        if (criteria.GoodVPS(macontext.Info.ChannelName)) maxAfter =  31479;
-                        else                                              maxAfter = 335480;
+                        if (criteria.GoodVPS(macontext.Info.ChannelName)) maxAfter = 31479;
+                        else                                              maxAfter = 98479;
                         break;
                     default:
                         maxAfter = 0;
@@ -5409,15 +5390,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
             // try silence before stop mark
@@ -5459,25 +5432,10 @@ void cMarkAdStandalone::SilenceOptimization() {
                     if (mark) {
                         save = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
         }
-        FREE(strlen(markType)+1, "text");
-        free(markType);
-        FREE(strlen(markOldType)+1, "text");
-        free(markOldType);
-        FREE(strlen(markNewType)+1, "text");
-        free(markNewType);
-
         mark = mark->Next();
     }
 // save marks
