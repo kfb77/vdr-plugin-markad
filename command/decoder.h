@@ -41,19 +41,20 @@ extern "C" {
 //
 // full supported markad ffmpeg versions (based on Ubuntu LTS has Standard Support, 5 years)
 //
+// #if LIBAVCODEC_VERSION_INT >= ((60<<16)+( 31<<8)+102)   ffmpeg 6.1.1  (Ubuntu 24.04, End of Standard Support: April 2029)
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4.2  (Ubuntu 22.04, End of Standard Support: April 2027)
 // #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 54<<8)+100)   ffmpeg 4.2.7  (Ubuntu 20.04, End of Standard Support: April 2025)
 #define LIBAVCODEC_VERSION_VALID ((58<<16)+( 54<<8)+100)   // oldest full supported version
 
 
-// deprecated markad ffmpeg versions (based on Ubuntu LTS is End of Standard Support but still has Extended Security Maintenance, 10 years)
+// deprecated markad ffmpeg versions without full features and with limited support (based on Ubuntu LTS is End of Standard Support + 5 years time for system update)
 //
 // #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   ffmpeg 3.4.11 (Ubuntu 18.04, End of Life: April 2028)
 // #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 60<<8)+100)   ffmpeg 2.8.17 (Ubuntu 16.04) End of Life: April 2026)
 #define LIBAVCODEC_VERSION_DEPRECATED ((56<<16)+( 60<<8)+100)   // oldest deprecated version, older is invalid
 
 
-// end of life markad ffmpeg versions (based on Ubuntu LTS has no support at all)
+// end of life markad ffmpeg versions
 //
 // #if LIBAVCODEC_VERSION_INT >= ((54<<16)+( 35<<8)+1)     avconv 9.20  (Ubuntu 14.04, End of Life: April 2024)
 
