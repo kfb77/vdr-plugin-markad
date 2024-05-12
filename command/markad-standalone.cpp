@@ -4922,60 +4922,46 @@ void cMarkAdStandalone::LowerBorderOptimization() {
     DebugMarks();
     bool save = false;
     cMark *mark = marks.GetFirst();
+#define MIN_LOWER_BORDER  640
+#define MAX_LOWER_BORDER 5680
     while (mark) {
         int lengthBefore   = 0;
         int lengthAfter    = 0;
-        // store old mark types
-        char *markType    = marks.TypeToText(mark->type);
-        char *markOldType = marks.TypeToText(mark->oldType);
-        char *markNewType = marks.TypeToText(mark->newType);
+
         // optimize start marks
         if ((mark->type & 0x0F) == MT_START) {
-            // log available start marks
-            bool moved         = false;
+            bool moved = false;
+            // get lower border before start mark
             int diffBefore     = INT_MAX;
-            int diffAfter      = INT_MAX;
-            cMark *stopAfter   = NULL;
             cMark *stopBefore  = NULL;
             cMark *startBefore = blackMarks.GetPrev(mark->position + 1, MT_NOLOWERBORDERSTOP);  // start of lower border before logo start mark
-            cMark *startAfter  = blackMarks.GetNext(mark->position - 1, MT_NOLOWERBORDERSTOP);  // start of lower border after  logo start mark
             if (startBefore) {
                 stopBefore = blackMarks.GetNext(startBefore->position, MT_NOLOWERBORDERSTART);  // end   of lower border before logo start mark
                 if (stopBefore) {
                     diffBefore = 1000 * (mark->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
                     lengthBefore = 1000 * (stopBefore->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::LowerBorderOptimization(): start mark (%6d): found lower border from (%6d) to (%6d), %7dms before -> length %5dms", mark->position, startBefore->position, stopBefore->position, diffBefore, lengthBefore);
+                    dsyslog("cMarkAdStandalone::LowerBorderOptimization(): start mark (%6d): lower border from (%6d) to (%6d), %7dms before -> length %5dms", mark->position, startBefore->position, stopBefore->position, diffBefore, lengthBefore);
                 }
                 else startBefore = NULL; // no pair, this is invalid
             }
-            if (startAfter) {
+            // get lower border after start mark
+            cMark *startAfter = blackMarks.GetNext(mark->position - 1, MT_NOLOWERBORDERSTOP);  // start of lower border after logo start mark
+            int diffAfter     = INT_MAX;
+            cMark *stopAfter  = NULL;
+            while (startAfter) { // get first long lower border start/stop after start mark
                 stopAfter = blackMarks.GetNext(startAfter->position, MT_NOLOWERBORDERSTART);  // get end of lower border
-                if (stopAfter) {
-                    diffAfter   = 1000 * (startAfter->position - mark->position)       / macontext.Video.Info.framesPerSecond;
-                    lengthAfter = 1000 * (stopAfter->position  - startAfter->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::LowerBorderOptimization(): stop  mark (%6d): lower border from (%6d) to (%6d), %7dms after  -> length %5dms", mark->position, startAfter->position, stopAfter->position, diffAfter, lengthAfter);
-                    // sometime there is too much white/black text in the lower border closing credits, we got a small interuption, use longest part
-                    cMark *nextStartAfter = blackMarks.GetNext(stopAfter->position, MT_NOLOWERBORDERSTOP);  // near next lower border is part of the same closing credits
-                    while (nextStartAfter) {
-                        cMark *nextStopAfter = blackMarks.GetNext(nextStartAfter->position, MT_NOLOWERBORDERSTART);
-                        if (!nextStopAfter) break;
-                        int diffNext        = 1000 * (nextStopAfter->position  - stopAfter->position)      / macontext.Video.Info.framesPerSecond;
-                        int nextDiffAfter   = 1000 * (nextStartAfter->position - mark->position)           / macontext.Video.Info.framesPerSecond;
-                        int nextLengthAfter = 1000 * (nextStopAfter->position  - nextStartAfter->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::LowerBorderOptimization(): start mark (%6d): lower border from (%6d) to (%6d), %7dms after  -> length %5dms, distance %dms", mark->position, nextStartAfter->position, nextStopAfter->position, nextDiffAfter, nextLengthAfter, diffNext);
-                        if (diffNext > 4600) break;   // changed from 2360 to 3840 to 4600
-                        if (nextLengthAfter >= lengthAfter) {
-                            startAfter  = nextStartAfter;
-                            stopAfter   = nextStopAfter;
-                            lengthAfter = nextLengthAfter;
-                            diffAfter   = nextDiffAfter;
-                        }
-                        nextStartAfter = blackMarks.GetNext(nextStartAfter->position, MT_NOLOWERBORDERSTOP);
-                    }
-                    dsyslog("cMarkAdStandalone::LowerBorderOptimization(): start mark (%6d): lower border from (%6d) to (%6d), %7dms after  -> length %5dms", mark->position, startAfter->position, stopAfter->position, diffAfter, lengthAfter);
-                }
-                else startAfter = NULL; // no pair, this is invalid
+                if (!stopAfter) break;
+                diffAfter   = 1000 * (startAfter->position - mark->position)       / macontext.Video.Info.framesPerSecond;
+                lengthAfter = 1000 * (stopAfter->position  - startAfter->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::LowerBorderOptimization(): start mark (%6d): lower border from (%6d) to (%6d), %7dms after  -> length %5dms", mark->position, startAfter->position, stopAfter->position, diffAfter, lengthAfter);
+                if ((lengthAfter >= MIN_LOWER_BORDER) && (lengthAfter <= MAX_LOWER_BORDER)) break;
+                startAfter = blackMarks.GetNext(startAfter->position, MT_NOLOWERBORDERSTOP);  // next start of lower border
             }
+            if ((lengthAfter < MIN_LOWER_BORDER) || (lengthAfter > MAX_LOWER_BORDER)) { // we got no valid result
+                startAfter = NULL;
+                stopAfter  = NULL;
+            }
+
             // try lower border before start mark
             if (startBefore) {
                 int maxBefore = -1;
@@ -4983,8 +4969,10 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if (criteria.GoodVPS(macontext.Info.ChannelName))         maxBefore =  40059;
-                        else if ((lengthBefore >= 640) && (lengthBefore <= 4480)) maxBefore = 139360;
+                        if ((lengthBefore >= MIN_LOWER_BORDER) && (lengthBefore <= MAX_LOWER_BORDER)) {
+                            if (criteria.GoodVPS(macontext.Info.ChannelName)) maxBefore =  40059;
+                            else                                              maxBefore = 139360;
+                        }
                         break;
                     default:
                         maxBefore = -1;
@@ -4999,15 +4987,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
             // lower border after start mark
@@ -5017,7 +4997,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if ((lengthAfter > 560) && (lengthAfter <= 5680)) maxAfter = 130640;
+                        maxAfter = 304480;
                         break;
                     default:
                         maxAfter = -1;
@@ -5032,29 +5012,19 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
             if (!moved) dsyslog("cMarkAdStandalone::LowerBorderOptimization(): no matching lower border found");
         }
         // optimize stop marks
         if ((mark->type & 0x0F) == MT_STOP) {
-            // log available stop marks
-            bool moved               = false;
+            bool moved = false;
+
+            // get lower border before stop mark
             long int diffBefore      = INT_MAX;
-            int diffAfter            = INT_MAX;
             const cMark *startBefore = blackMarks.GetPrev(mark->position + 1, MT_NOLOWERBORDERSTOP);
-            const cMark *startAfter  = blackMarks.GetNext(mark->position - 1, MT_NOLOWERBORDERSTOP);
             const cMark *stopBefore  = NULL;
-            const cMark *stopAfter   = NULL;
             if (startBefore) {
                 diffBefore = 1000 * (mark->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
                 stopBefore = blackMarks.GetNext(startBefore->position, MT_NOLOWERBORDERSTART);
@@ -5064,34 +5034,25 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 }
                 else startBefore = NULL; // no pair, this is invalid
             }
-            if (startAfter) {
-                stopAfter = blackMarks.GetNext(startAfter->position, MT_NOLOWERBORDERSTART);
-                if (stopAfter) {
-                    diffAfter   = 1000 * (startAfter->position - mark->position)       / macontext.Video.Info.framesPerSecond;
-                    lengthAfter = 1000 * (stopAfter->position  - startAfter->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::LowerBorderOptimization(): stop  mark (%6d): lower border from (%6d) to (%6d), %7dms after  -> length %5dms", mark->position, startAfter->position, stopAfter->position, diffAfter, lengthAfter);
-                    // sometime there is too much white text in the lower border closing credits, we got a small interuption, use longest part
-                    cMark *nextStartAfter = blackMarks.GetNext(stopAfter->position, MT_NOLOWERBORDERSTOP);  // near next lower border is part of the same closing credits
-                    while (nextStartAfter) {
-                        cMark *nextStopAfter = blackMarks.GetNext(nextStartAfter->position, MT_NOLOWERBORDERSTART);
-                        if (!nextStopAfter) break;
-                        int diffNext        = 1000 * (nextStopAfter->position  - stopAfter->position)      / macontext.Video.Info.framesPerSecond;
-                        int nextDiffAfter   = 1000 * (nextStartAfter->position - mark->position)           / macontext.Video.Info.framesPerSecond;
-                        int nextLengthAfter = 1000 * (nextStopAfter->position  - nextStartAfter->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::LowerBorderOptimization(): stop  mark (%6d): lower border from (%6d) to (%6d), %7dms after  -> length %5dms, distance %5dms", mark->position, nextStartAfter->position, nextStopAfter->position, nextDiffAfter, nextLengthAfter, diffNext);
-                        if ((lengthAfter > 80) && (diffNext > 3840)) break;  // ignore very short low border, they are dark scenes, changed from 3520 to 3840
-                        if (nextLengthAfter >= lengthAfter) {
-                            startAfter  = nextStartAfter;
-                            stopAfter   = nextStopAfter;
-                            lengthAfter = nextLengthAfter;
-                            diffAfter   = nextDiffAfter;
-                        }
-                        nextStartAfter = blackMarks.GetNext(nextStartAfter->position, MT_NOLOWERBORDERSTOP);
-                    }
-                    dsyslog("cMarkAdStandalone::LowerBorderOptimization(): stop  mark (%6d): lower border from (%6d) to (%6d), %7dms after  -> length %5dms", mark->position, startAfter->position, stopAfter->position, diffAfter, lengthAfter);
-                }
-                else startAfter = NULL; // no pair, this is invalid
+
+            // get lower border after stop mark
+            int diffAfter     = INT_MAX;
+            cMark *startAfter = blackMarks.GetNext(mark->position - 1, MT_NOLOWERBORDERSTOP);
+            cMark *stopAfter  = NULL;
+            while (startAfter) { // get first long lower border start/stop after start mark
+                stopAfter = blackMarks.GetNext(startAfter->position, MT_NOLOWERBORDERSTART);  // get end of lower border
+                if (!stopAfter) break;
+                diffAfter   = 1000 * (startAfter->position - mark->position)       / macontext.Video.Info.framesPerSecond;
+                lengthAfter = 1000 * (stopAfter->position  - startAfter->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::LowerBorderOptimization(): stop  mark (%6d): lower border from (%6d) to (%6d), %7dms after  -> length %5dms", mark->position, startAfter->position, stopAfter->position, diffAfter, lengthAfter);
+                if ((lengthAfter >= MIN_LOWER_BORDER) && (lengthAfter <= MAX_LOWER_BORDER)) break;
+                startAfter = blackMarks.GetNext(startAfter->position, MT_NOLOWERBORDERSTOP);  // next start of lower border
             }
+            if ((lengthAfter < MIN_LOWER_BORDER) || (lengthAfter > MAX_LOWER_BORDER)) { // we got no valid result
+                startAfter = NULL;
+                stopAfter  = NULL;
+            }
+
             // try lower border after stop marks
             if (stopAfter) {
                 int maxAfter = -1;
@@ -5102,7 +5063,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if ((lengthAfter >= 1560) && (lengthAfter <= 29800)) maxAfter = 213200;
+                        maxAfter = 257760;
                         break;
                     default:
                         maxAfter = -1;
@@ -5117,17 +5078,10 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
+
             // try lower border before stop mark
             if (!moved && stopBefore) {
                 int maxBefore = -1;
@@ -5154,26 +5108,11 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                         moved = true;
                         save  = true;
                     }
-                    else {
-                        FREE(strlen(markType)+1, "text");
-                        free(markType);
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                        break;
-                    }
+                    else break;
                 }
             }
             if (!moved) dsyslog("cMarkAdStandalone::LowerBorderOptimization(): no matching lower border found");
         }
-        FREE(strlen(markType)+1, "text");
-        free(markType);
-        FREE(strlen(markOldType)+1, "text");
-        free(markOldType);
-        FREE(strlen(markNewType)+1, "text");
-        free(markNewType);
-
         mark = mark->Next();
     }
     // save marks
