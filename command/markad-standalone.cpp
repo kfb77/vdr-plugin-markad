@@ -3196,112 +3196,118 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
         if (lastStartMark && ((lastStartMark->type & 0x0F) == MT_START)) {
             cMark *prevStopMark = marks.GetPrev(lastStartMark->position);
             if (prevStopMark && ((prevStopMark->type & 0x0F) == MT_STOP)) {
-                int lastBroadcast        = (lastStopMark->position  - lastStartMark->position) / macontext.Video.Info.framesPerSecond;
-                int diffLastStopAssumed  = (lastStopMark->position  - newStopA)                / macontext.Video.Info.framesPerSecond;
-                int diffLastStartAssumed = (lastStartMark->position - newStopA)                / macontext.Video.Info.framesPerSecond;
-                int diffPrevStopAssumed  = (prevStopMark->position  - newStopA)                / macontext.Video.Info.framesPerSecond;
-                int lastAd               = (lastStartMark->position - prevStopMark->position)  / macontext.Video.Info.framesPerSecond;
-                dsyslog("cMarkAdStandalone::CheckMarks(): end mark          (%5d) %4ds after assumed end (%5d), last broadcast length %ds, last ad length %ds", lastStopMark->position, diffLastStopAssumed, newStopA, lastBroadcast, lastAd);
-                dsyslog("cMarkAdStandalone::CheckMarks(): start mark before (%5d) %4ds after assumed end (%5d)", lastStartMark->position, diffLastStartAssumed, newStopA);
-                dsyslog("cMarkAdStandalone::CheckMarks(): stop  mark before (%5d) %4ds after assumed end (%5d)", prevStopMark->position,  diffPrevStopAssumed, newStopA);
+                cMark *prevStartMark = marks.GetPrev(prevStopMark->position);
+                if (prevStartMark && ((prevStartMark->type & 0x0F) == MT_START)) {
+                    int lastBroadcast        = (lastStopMark->position  - lastStartMark->position) / macontext.Video.Info.framesPerSecond;
+                    int prevBroadcast        = (prevStopMark->position  - prevStartMark->position) / macontext.Video.Info.framesPerSecond;
+                    int diffLastStopAssumed  = (lastStopMark->position  - newStopA)                / macontext.Video.Info.framesPerSecond;
+                    int diffLastStartAssumed = (lastStartMark->position - newStopA)                / macontext.Video.Info.framesPerSecond;
+                    int diffPrevStopAssumed  = (prevStopMark->position  - newStopA)                / macontext.Video.Info.framesPerSecond;
+                    int lastAd               = (lastStartMark->position - prevStopMark->position)  / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::CheckMarks(): last broadcast length %ds, last ad length %ds, previous broadcat length %d", lastBroadcast, lastAd, prevBroadcast);
+                    dsyslog("cMarkAdStandalone::CheckMarks(): end mark          (%5d) %4ds after assumed end (%5d)", lastStopMark->position, diffLastStopAssumed, newStopA);
+                    dsyslog("cMarkAdStandalone::CheckMarks(): start mark before (%5d) %4ds after assumed end (%5d)", lastStartMark->position, diffLastStartAssumed, newStopA);
+                    dsyslog("cMarkAdStandalone::CheckMarks(): stop  mark before (%5d) %4ds after assumed end (%5d)", prevStopMark->position,  diffPrevStopAssumed, newStopA);
 
-                // check length of last broadcast and distance to assumed end
-                if (((lastStopMark->type & 0xF0) < MT_CHANNELCHANGE) || ((lastStopMark->type & 0xF0) == MT_MOVED)) {  // trust channel marks and better
-                    int minLastStopAssumed  = 0;  // trusted distance to assumed stop depents on hardness of marks
-                    int minLastStartAssumed = 0;
-                    int minPrevStopAssumed  = 0;
-                    int minLastBroadcast    = 0;
-                    int minLastAd           = 0;  // very short lst ad is not in broadcast, this is between broadcast and next broadcast
-                    switch(lastStopMark->type) {
-                    case MT_ASSUMEDSTOP:
-                        // too long broadcast length from info file, delete last stop:
-                        //   0 / -172 / -536 NEW
-                        //   0 / -184 / -631
-                        //   0 / -231 / -355 (conflict)
-                        // correct end mark, do not delete last stop
-                        //   0 / -220 / -353
-                        //   0 / -230 / -581
-                        //   0 / -273 / -284
-                        minLastStopAssumed  =    0;
-                        minLastStartAssumed = -184;
-                        minPrevStopAssumed  = -631;
-                        minLastBroadcast    =  141;  // changed from 129 to 141
-                        minLastAd           =   46;
-                        break;
-                    case MT_NOBLACKSTOP:
-                        // too long broadcast length from info file, delete last stop:
-                        //  73 / -173 / -536
-                        //  93 / -278 / -541
-                        // 102 /  -98 / -515
-                        // 102 / -225 / -535
-                        // 123 / -189 / -500
-                        // 123 / -384 / -539
-                        // 147 /  -60 / -535
-                        // 169 / -226 / -537
-                        // 187 / -225 / -535
-                        // 209 /  -76 / -535
-                        // 416 /  -95 / -538
-                        // correct end mark, do not delete last stop
-                        // 154 / -217 / -510  (conflict)
-                        //  73 / -384 / -510  (conflict)
-                        //  68 / -124 / -534
-                        //  82 /  -78 / -504
-                        minLastStopAssumed  =   73;
-                        minLastStartAssumed = -384;
-                        minPrevStopAssumed  = -541;
-                        minLastBroadcast    =  169;  // changed from 65 to 169
-                        break;
-                    case MT_LOGOSTOP:
-                        // too long broadcast length from info file, delete last stop:
-                        // correct end mark, do not delete last stop
-                        // -9 / -169 / -284
-                        minLastStopAssumed  =   -8;
-                        minLastStartAssumed = -205;
-                        minPrevStopAssumed  = -314;
-                        minLastBroadcast    =   79;  // shortest last part of a broadcast with logo end mark
-                        break;
-                    case MT_VBORDERSTOP:
-                        minLastStopAssumed  =  288;
-                        minLastStartAssumed =   56;
-                        minPrevStopAssumed  = -477;
-                        minLastBroadcast    =    0;
-                        break;
-                    case MT_MOVEDSTOP:
-                        minLastStopAssumed  = 1000;  // do nothing
-                        minLastStartAssumed = 1000;
-                        minPrevStopAssumed  = 1000;
-                        minLastBroadcast    =    5;
-                        break;
-                    default:
-                        minLastStopAssumed  = 1000;  // do nothing
-                        minLastStartAssumed = 1000;
-                        minPrevStopAssumed  = 1000;
-                        minLastBroadcast    =    0;
-                    }
-                    dsyslog("cMarkAdStandalone::CheckMarks(): select previous stop if: end mark        >= %4ds after assumed end (%d)", minLastStopAssumed, newStopA);
-                    dsyslog("cMarkAdStandalone::CheckMarks():                          last start mark >= %4ds after assumed end (%d)", minLastStartAssumed, newStopA);
-                    dsyslog("cMarkAdStandalone::CheckMarks():                          last stop  mark >= %4ds after assumed end (%d)", minPrevStopAssumed, newStopA);
-                    // check end sequence
-                    if ((diffLastStopAssumed >= minLastStopAssumed) && (diffLastStartAssumed >= minLastStartAssumed) && (diffPrevStopAssumed >= minPrevStopAssumed)) {
-                        dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, assume too big recording length", prevStopMark->position);
-                        marks.Del(lastStopMark->position);
-                        marks.Del(lastStartMark->position);
-                    }
-                    else {
-                        // very short last broadcast is preview after broadcast
-                        dsyslog("cMarkAdStandalone::CheckMarks(): min length of last broadcast < %4ds", minLastBroadcast);
-                        if (lastBroadcast < minLastBroadcast) {
-                            dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, last broadcast too short", prevStopMark->position);
+                    // check length of last broadcast and distance to assumed end
+                    if (((lastStopMark->type & 0xF0) < MT_CHANNELCHANGE) || ((lastStopMark->type & 0xF0) == MT_MOVED)) {  // trust channel marks and better
+                        int minLastStopAssumed  = 0;  // trusted distance to assumed stop depents on hardness of marks
+                        int minLastStartAssumed = 0;
+                        int minPrevStopAssumed  = 0;
+                        int minLastBroadcast    = 0;
+                        int minLastAd           = 0;  // very short lst ad is not in broadcast, this is between broadcast and next broadcast
+                        switch(lastStopMark->type) {
+                        case MT_ASSUMEDSTOP:
+                            // too long broadcast length from info file, delete last stop:
+                            //   0 / -172 / -536 NEW
+                            //   0 / -184 / -631
+                            //   0 / -231 / -355 (conflict)
+                            // correct end mark, do not delete last stop
+                            //   0 / -220 / -353
+                            //   0 / -230 / -581
+                            //   0 / -273 / -284
+                            minLastStopAssumed  =    0;
+                            minLastStartAssumed = -184;
+                            minPrevStopAssumed  = -631;
+                            minLastBroadcast    =  141;  // changed from 129 to 141
+                            minLastAd           =   46;
+                            break;
+                        case MT_NOBLACKSTOP:
+                            // too long broadcast length from info file, delete last stop:
+                            //  73 / -173 / -536
+                            //  93 / -278 / -541
+                            // 102 /  -98 / -515
+                            // 102 / -225 / -535
+                            // 123 / -189 / -500
+                            // 123 / -384 / -539
+                            // 147 /  -60 / -535
+                            // 169 / -226 / -537
+                            // 187 / -225 / -535
+                            // 209 /  -76 / -535
+                            // 416 /  -95 / -538
+                            // correct end mark, do not delete last stop
+                            // 154 / -217 / -510  (conflict)
+                            //  73 / -384 / -510  (conflict)
+                            //  68 / -124 / -534
+                            //  82 /  -78 / -504
+                            minLastStopAssumed  =   73;
+                            minLastStartAssumed = -384;
+                            minPrevStopAssumed  = -541;
+                            minLastBroadcast    =  169;  // changed from 65 to 169
+                            break;
+                        case MT_LOGOSTOP:
+                            // too long broadcast length from info file, delete last stop:
+                            // correct end mark, do not delete last stop
+                            // -9 / -169 / -284
+                            minLastStopAssumed  =   -8;
+                            minLastStartAssumed = -205;
+                            minPrevStopAssumed  = -314;
+                            minLastBroadcast    =   79;  // shortest last part of a broadcast with logo end mark
+                            minLastAd           =   11;  // very short ad is between broadcast
+                            break;
+                        case MT_VBORDERSTOP:
+                            minLastStopAssumed  =  288;
+                            minLastStartAssumed =   56;
+                            minPrevStopAssumed  = -477;
+                            minLastBroadcast    =    0;
+                            break;
+                        case MT_MOVEDSTOP:
+                            minLastStopAssumed  = 1000;  // do nothing
+                            minLastStartAssumed = 1000;
+                            minPrevStopAssumed  = 1000;
+                            minLastBroadcast    =    5;
+                            break;
+                        default:
+                            minLastStopAssumed  = 1000;  // do nothing
+                            minLastStartAssumed = 1000;
+                            minPrevStopAssumed  = 1000;
+                            minLastBroadcast    =    0;
+                        }
+                        dsyslog("cMarkAdStandalone::CheckMarks(): select previous stop if: end mark        >= %4ds after assumed end (%d)", minLastStopAssumed, newStopA);
+                        dsyslog("cMarkAdStandalone::CheckMarks():                          last start mark >= %4ds after assumed end (%d)", minLastStartAssumed, newStopA);
+                        dsyslog("cMarkAdStandalone::CheckMarks():                          last stop  mark >= %4ds after assumed end (%d)", minPrevStopAssumed, newStopA);
+                        // check end sequence
+                        if ((diffLastStopAssumed >= minLastStopAssumed) && (diffLastStartAssumed >= minLastStartAssumed) && (diffPrevStopAssumed >= minPrevStopAssumed)) {
+                            dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, assume too big recording length", prevStopMark->position);
                             marks.Del(lastStopMark->position);
                             marks.Del(lastStartMark->position);
                         }
                         else {
-                            // very short last ad is not in broadcast, this is between broadcast and next broadcast
-                            dsyslog("cMarkAdStandalone::CheckMarks(): min length of last ad < %4ds", minLastAd);
-                            if ((lastAd < minLastAd) && (prevStopMark->position >= newStopA)) {
-                                dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, last ad too short", prevStopMark->position);
+                            // very short last broadcast is preview after broadcast
+                            dsyslog("cMarkAdStandalone::CheckMarks(): min length of last broadcast < %4ds", minLastBroadcast);
+                            if (lastBroadcast < minLastBroadcast) {
+                                dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, last broadcast too short", prevStopMark->position);
                                 marks.Del(lastStopMark->position);
                                 marks.Del(lastStartMark->position);
+                            }
+                            else {
+                                // very short last ad is not in broadcast, this is between broadcast and next broadcast
+                                dsyslog("cMarkAdStandalone::CheckMarks(): min length of last ad < %4ds", minLastAd);
+                                if ((lastAd < minLastAd) && (lastStopMark->position >= newStopA) && (prevBroadcast >= 60)) { // prevent to cut off after logo detection failure
+                                    dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, last ad too short", prevStopMark->position);
+                                    marks.Del(lastStopMark->position);
+                                    marks.Del(lastStartMark->position);
+                                }
                             }
                         }
                     }
