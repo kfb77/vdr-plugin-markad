@@ -266,13 +266,7 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
     }
     *datePart = 0;    // cut off date part
 
-    char *cutName = strrchr(buffCutName, '/');
-    if (!cutName) {
-        dsyslog("cEncoder::OpenFile(): failed to find last '/'");
-        FREE(strlen(buffCutName)+1, "buffCutName");
-        free(buffCutName);
-        return false;
-    }
+    char *cutName = strrchr(buffCutName, '/');  // "/" exists, testet with variable datePart
     cutName++;   // ignore first char = /
     dsyslog("cEncoder::OpenFile(): cutName '%s'",cutName);
 

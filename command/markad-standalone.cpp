@@ -6748,13 +6748,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         return;
     }
     *datePart = 0;    // cut off date part
-    char *recName = strrchr(tmpDir, '/');
-    if (!recName) {
-        dsyslog("cMarkAdStandalone::cMarkAdStandalone(): failed to find last '/'");
-        FREE(strlen(tmpDir+1), "tmpDir");
-        free(tmpDir);
-        return;
-    }
+
+    char *recName = strrchr(tmpDir, '/');  // "/" exists, testet with variable datePart
     if (strstr(recName, "/@")) {
         isyslog("live-recording, disabling pre-/post timer");
         bLiveRecording = true;
