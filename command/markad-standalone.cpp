@@ -2510,29 +2510,6 @@ void cMarkAdStandalone::CheckStart() {
         }
     }
 
-// try black screen as start mark
-    if (!begin) {
-        dsyslog("cMarkAdStandalone::CheckStart(): search for end of black screen as start mark");
-        const cMark *noBlackStart = blackMarks.GetAround(120 * macontext.Video.Info.framesPerSecond, iStartA, MT_NOBLACKSTART);
-        if (noBlackStart) {
-            cMark *nextMark = marks.GetNext(noBlackStart->position, MT_ALL);
-            if (!nextMark || ((nextMark->type & 0x0F) == MT_STOP)) {  // do not insert black screen start before other start mark
-                char *comment = NULL;
-                if (asprintf(&comment, "start black screen (%d)*", noBlackStart->position) == -1) comment = NULL;
-                if (comment) {
-                    ALLOC(strlen(comment)+1, "comment");
-                }
-                begin = marks.Add(MT_NOBLACKSTART, MT_UNDEFINED, MT_UNDEFINED, noBlackStart->position, comment, false);
-                if (comment) {
-                    FREE(strlen(comment)+1, "comment");
-                    free(comment);
-                }
-                dsyslog("cMarkAdStandalone::CheckStart(): found end of black screen as start mark (%d)", begin->position);
-            }
-        }
-    }
-
-
     // no start mark found at all, set start after pre timer
     if (!begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, assume start time at pre recording time");
