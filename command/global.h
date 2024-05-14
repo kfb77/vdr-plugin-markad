@@ -31,6 +31,7 @@ typedef unsigned char uchar;
 #define MAXSTREAMS 10
 #define PLANES 3
 #define CORNERS 4
+#define MAX_ASSUMED 300        // max distance for valid mark from assumed start/stop
 
 // global types
 #define MT_UNDEFINED          (unsigned char) 0x00
