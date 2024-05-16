@@ -286,11 +286,11 @@ typedef struct sMarkAdContext {
         //!< <b>false:</b>  markad is running after recording
         //!<
 
-        bool isStartMarkSaved = false;    //!< <b>true:</b> dummy start mark is set to end of pre timer and saved
+        bool isStartMarkSaved   = false;  //!< <b>true:</b> dummy start mark is set to end of pre timer and saved
         //!< <b>false:</b> dummy start mark is not jet set
         //!<
 
-        int tStart = 0;                   //!< offset of timer start to recording start (pre timer)
+        int tStart              = -1;     //!< offset of timer start to recording start (pre timer)
         //!<
 
         sAspectRatio AspectRatio;   //!< set from info file and checked after chkSTART, valid for the recording

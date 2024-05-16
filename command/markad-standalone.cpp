@@ -6447,6 +6447,7 @@ bool cMarkAdStandalone::LoadInfo() {
             }
         }
     }
+
     if ((macontext.Info.AspectRatio.num == 0) && (macontext.Info.AspectRatio.den == 0)) isyslog("no aspect ratio found in vdr info");
     if (line) free(line);
 
@@ -6457,17 +6458,29 @@ bool cMarkAdStandalone::LoadInfo() {
             dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
             dsyslog("cMarkAdStandalone::LoadInfo():     timer start at %s", strtok(ctime(&startTime), "\n"));
 
-            // try VPS start event from markad.vps
-            macontext.Info.tStart = vps->GetStart(); // VPS start mark
+            // try to get start offset of broadcast from VPS event
+            int startVPS = vps->GetStart();
+            if (startVPS >= 0) dsyslog("cMarkAdStandalone::LoadInfo(): VPS   start at offset:               %5ds -> %d:%02d:%02dh", startVPS, startVPS / 3600, (startVPS % 3600) / 60, startVPS % 60);
+            int startEvent = static_cast<int> (startTime - rStart);
+            dsyslog("cMarkAdStandalone::LoadInfo(): event start at offset:               %5ds -> %d:%02d:%02dh", startEvent, startEvent / 3600, (startEvent % 3600) / 60, startEvent % 60);
+            if (startVPS)
+                if ((macontext.Info.ChannelName && criteria.GoodVPS(macontext.Info.ChannelName)) || (abs(startVPS - startEvent) <= 10 * 60)) {
+                    dsyslog("cMarkAdStandalone::LoadInfo(): VPS start event seems to be valid");
+                    macontext.Info.tStart = startVPS;
+                }
+                else dsyslog("cMarkAdStandalone::LoadInfo(): VPS start event seems to be invalid, %ds away from boadcast start event", abs(startVPS - startEvent));
+            else dsyslog("cMarkAdStandalone::LoadInfo(): no VPS start event found");
+
+
+            // try to get broadcast length from VPS start/stop events
             if (macontext.Info.tStart >= 0) {
-                dsyslog("cMarkAdStandalone::LoadInfo(): VPS start event at offset:           %5ds -> %d:%02d:%02dh", macontext.Info.tStart,  macontext.Info.tStart / 3600, (macontext.Info.tStart % 3600) / 60, macontext.Info.tStart % 60);
                 int vpsStop = vps->GetStop();
                 if (vpsStop > macontext.Info.tStart) {
                     dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop  event at offset:           %5ds -> %d:%02d:%02dh", vpsStop, vpsStop / 3600, (vpsStop % 3600) / 60, vpsStop % 60);
                     dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from vdr info file: %5ds -> %d:%02d:%02dh", length, length / 3600, (length % 3600) / 60, length % 60);
                     int lengthVPS = vpsStop - macontext.Info.tStart;
                     int diff      = lengthVPS - length;
-                    dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from VPS events:    %5ds -> %d:%02d:%02dh, %ds longer than length from vdr info file", lengthVPS, lengthVPS / 3600, (lengthVPS % 3600) / 60, length % 60, diff);
+                    dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from VPS events:    %5ds -> %d:%02d:%02dh, %ds longer than length from vdr info file", lengthVPS, lengthVPS / 3600, (lengthVPS % 3600) / 60, lengthVPS % 60, diff);
                     // invalid examples:
                     // -615 (accepted invalid VPS sequence, false stop, running after)
                     // changed from  506 to  298
@@ -6490,9 +6503,9 @@ bool cMarkAdStandalone::LoadInfo() {
                 }
             }
 
-            // try to get broadcast start offset from file infos
+            // no valid VPS start event, try to get broadcast start offset and broadcast length from info file
             if (macontext.Info.tStart < 0) {
-                macontext.Info.tStart = static_cast<int> (startTime - rStart);
+                macontext.Info.tStart = startEvent;
                 if (macontext.Info.tStart > 60 * 60) {   // more than 1h pre-timer make no sense, there must be a wrong directory time
                     isyslog("pre-time %is not valid, possible wrong directory time, set pre-timer to vdr default (2min)", macontext.Info.tStart);
                     macontext.Info.tStart = 120;
@@ -6511,15 +6524,12 @@ bool cMarkAdStandalone::LoadInfo() {
                 }
             }
         }
-        else {
-            macontext.Info.tStart = 0;
-        }
+        else macontext.Info.tStart = 0;
     }
     else {
         dsyslog("cMarkAdStandalone::LoadInfo(): start time and length from vdr info file not valid");
         macontext.Info.tStart = 0;
     }
-    fclose(f);
     dsyslog("cMarkAdStandalone::LoadInfo(): broadcast start %is after recording start", macontext.Info.tStart);
 
     if ((!length) && (!bLiveRecording)) {
@@ -6527,7 +6537,8 @@ bool cMarkAdStandalone::LoadInfo() {
         macontext.Info.AspectRatio.num = 0;
         macontext.Info.AspectRatio.den = 0;
     }
-
+    fclose(f);
+    dsyslog("cMarkAdStandalone::LoadInfo(): length of broadcast  %5ds -> %d:%02d:%02dh", length, length / 3600, (length % 3600) / 60, length % 60);
     if (!macontext.Info.ChannelName) {
         return false;
     }
@@ -6644,7 +6655,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     macontext = {};
     macontext.Config = config;
 
-    macontext.Info.tStart = iStart = iStop = iStopA = 0;
+    iStart = iStop = iStopA = 0;
 
     if (!config->noPid) {
         CreatePidfile();
