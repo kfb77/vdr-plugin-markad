@@ -1442,7 +1442,8 @@ void cMarkAdBlackScreen::Clear() {
 //          1 blackscreen end (notice: this is a START mark)
 //
 int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) {
-#define BLACKNESS 19  // maximum brightness to detect a blackscreen, +1 to detect end of blackscreen, changed from 17 to 19 because of undetected black screen
+#define BLACKNESS    19  // maximum brightness to detect a blackscreen, +1 to detect end of blackscreen, changed from 17 to 19 because of undetected black screen
+#define WHITE_LOWER 220  // minimum brightness to detect white lower border
     if (!maContext) return 0;
     if (!maContext->Video.Data.valid) return 0;
     if (maContext->Video.Info.framesPerSecond == 0) return 0;
@@ -1473,8 +1474,8 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
     else maxBrightnessLower = (BLACKNESS + 1) * maContext->Video.Info.width * PIXEL_COUNT_LOWER;
 
     // limit for white lower border
-    if (lowerBorderStatus == BLACKLOWER_INVISIBLE) minBrightnessLower = (255 - (2 * BLACKNESS)) * maContext->Video.Info.width * PIXEL_COUNT_LOWER;
-    else minBrightnessLower = (255 - 1 - (2 * BLACKNESS)) * maContext->Video.Info.width * PIXEL_COUNT_LOWER;
+    if (lowerBorderStatus == BLACKLOWER_INVISIBLE) minBrightnessLower = WHITE_LOWER * maContext->Video.Info.width * PIXEL_COUNT_LOWER;
+    else minBrightnessLower = (WHITE_LOWER - 1) * maContext->Video.Info.width * PIXEL_COUNT_LOWER;
 
     int maxBrightnessGrey = 28 * maContext->Video.Info.width * maContext->Video.Info.height;
 
