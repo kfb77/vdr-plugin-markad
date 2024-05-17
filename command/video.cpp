@@ -1359,7 +1359,7 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNu
 
 #define DIFF_SCENE_CHANGE 110
 #define DIFF_SCENE_BLEND_START  60
-#define DIFF_SCENE_BLEND_STOP   30
+#define DIFF_SCENE_BLEND_STOP   40
 #define SCENE_BLEND_FRAMES  5
 // end of scene
     if (diffQuote >= DIFF_SCENE_CHANGE) {
