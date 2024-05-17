@@ -25,6 +25,9 @@
 /* forward declarations */
 class cOSDMessage;
 
+#define MIN_LOWER_BORDER  640
+#define MAX_LOWER_BORDER 5680
+
 /**
  * markad main class
  */

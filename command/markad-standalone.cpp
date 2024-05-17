@@ -723,26 +723,31 @@ void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *mark) {
 bool cMarkAdStandalone::HaveLowerBorder(const cMark *mark) {
     if (!mark) return false;
     if ((mark->type & 0x0F) == MT_START) {
-        // check sequence MT_NOLOWERBORDERSTART -> MT_NOLOWERBORDERSTOP -> MT_LOGOSTOP -> MT_LOGOSTART (mark) -> MT_LOGOSTOP
-        cMark *nextLogoStop = marks.GetNext(mark->position, MT_LOGOSTOP);
+        // check sequence MT_NOLOWERBORDERSTART -> MT_NOLOWERBORDERSTOP -> MT_LOGOSTOP -> MT_LOGOSTART (mark) [-> MT_LOGOSTOP]
         cMark *prevLogoStop = marks.GetPrev(mark->position, MT_LOGOSTOP);
-        if (nextLogoStop && prevLogoStop) {
+        if (prevLogoStop) {
             cMark *lowerStop = blackMarks.GetPrev(prevLogoStop->position, MT_NOLOWERBORDERSTART);
             if (lowerStop) {
                 cMark *lowerStart = blackMarks.GetPrev(lowerStop->position, MT_NOLOWERBORDERSTOP);
                 if (lowerStart) {
+                    int diffLogoStartLogoStop = INT_MAX;
+                    int nextLogoStopPosition  = INT_MAX;
+                    cMark *nextLogoStop = marks.GetNext(mark->position, MT_LOGOSTOP);
+                    if (nextLogoStop) {
+                        nextLogoStopPosition  = nextLogoStop->position;
+                        diffLogoStartLogoStop = 1000 * (nextLogoStop->position - mark->position) / macontext.Video.Info.framesPerSecond;
+                    }
                     int diffLowerStartLowerStop = 1000 * (lowerStop->position    - lowerStart->position)   / macontext.Video.Info.framesPerSecond;
                     int diffLowerStopLogoStop   = 1000 * (prevLogoStop->position - lowerStop->position)    / macontext.Video.Info.framesPerSecond;
                     int diffLogoStopLogoStart   = 1000 * (mark->position         - prevLogoStop->position) / macontext.Video.Info.framesPerSecond;
-                    int diffLogoStartLogoStop   = 1000 * (nextLogoStop->position - mark->position)         / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::HaveLowerBorder(): MT_NOLOWERBORDERSTART (%d) -> %dms -> MT_NOLOWERBORDERSTOP (%d) -> %dms -> MT_LOGOSTOP (%d) -> %dms -> MT_LOGOSTART (%d) -> %dms -> MT_LOGOSTOP (%d)", lowerStart->position, diffLowerStartLowerStop, lowerStop->position, diffLowerStopLogoStop, prevLogoStop->position, diffLogoStopLogoStart, mark->position, diffLogoStartLogoStop, nextLogoStop->position);
+                    dsyslog("cMarkAdStandalone::HaveLowerBorder(): MT_NOLOWERBORDERSTART (%d) -> %dms -> MT_NOLOWERBORDERSTOP (%d) -> %dms -> MT_LOGOSTOP (%d) -> %dms -> MT_LOGOSTART (%d) -> %dms -> MT_LOGOSTOP (%d)", lowerStart->position, diffLowerStartLowerStop, lowerStop->position, diffLowerStopLogoStop, prevLogoStop->position, diffLogoStopLogoStart, mark->position, diffLogoStartLogoStop, nextLogoStopPosition);
 // valid example
-// TODO
+// MT_NOLOWERBORDERSTART (3723) -> 4520ms -> MT_NOLOWERBORDERSTOP (3836) -> 7360ms -> MT_LOGOSTOP (4020) -> 120ms -> MT_LOGOSTART (4023) -> 2147483647ms -> MT_LOGOSTOP (2147483647)
 //
 // invalid example
 // MT_NOLOWERBORDERSTART (8231) -> 4440ms -> MT_NOLOWERBORDERSTOP (8342) -> 240ms -> MT_LOGOSTOP (8348) -> 160ms -> MT_LOGOSTART (8352) -> 6960ms -> MT_LOGOSTOP (8526)
-                    if ((diffLowerStartLowerStop >= 4400) && (diffLowerStartLowerStop <= 4440) &&
-                            (diffLowerStopLogoStop < 240) && (diffLogoStopLogoStart < 160) && (diffLogoStartLogoStop > 6960)) {
+                    if ((diffLowerStartLowerStop >= MIN_LOWER_BORDER) && (diffLowerStartLowerStop <= MAX_LOWER_BORDER) &&
+                            (diffLowerStopLogoStop <= 7360) && (diffLogoStopLogoStart <= 120) && (diffLogoStartLogoStop > 6960)) {
                         dsyslog("cMarkAdStandalone::HaveLowerBorder(): logo start mark (%d): lower border closing credits before are valid", mark->position);
                         return true;
                     }
