@@ -1460,7 +1460,7 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
         return 0;
     }
 
-#define PIXEL_COUNT_LOWER  90  // count pixel from bottom for detetion of lower border
+#define PIXEL_COUNT_LOWER 40  // count pixel from bottom for detetion of lower border, changed from 90 to 40
     int maxBrightnessAll;
     int maxBrightnessLower;   // for detetion of black lower border
     int minBrightnessLower;   // for detetion of white lower border
