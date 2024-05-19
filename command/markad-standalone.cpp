@@ -5446,7 +5446,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     break;
                 case MT_LOGOSTART:
                     // rule 1: logo start very short before broadcast start
-                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && (diffBefore >= 1640) && (diffAfter <= 80)) diffBefore = INT_MAX;
+                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && (diffBefore >= 1560) && (diffAfter <= 80)) diffBefore = INT_MAX;
 
                     if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxBefore = 4800;
                     else                                                              maxBefore = 1599;
@@ -5469,8 +5469,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxBefore = 1180;
                         break;
                     case MT_VPSSTART:
-                        // rule 1: VPS start in long static scene or closing credits from end of previous broadcast
-                        if (diffAfter >= 2760) diffBefore = INT_MAX;
+                        // rule 1: use nearest scene change to VPS event
+                        if (diffAfter < diffBefore) diffBefore = INT_MAX;
 
                         maxBefore = 3340;
                         break;
@@ -5501,8 +5501,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter = 9160;  // changed from 1760 to 9160
                     break;
                 case MT_LOGOSTART:
-                    if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxAfter =   0; // with fade in logo, scene after is always false
-                    else                                                              maxAfter = 959;
+                    if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxAfter =  0; // with fade in logo, scene after is always false
+                    else                                                              maxAfter = 80; // some channels starts logo short before broadcast
                     break;
                 case MT_ASPECTSTART:
                     maxAfter =  320;
@@ -5565,13 +5565,10 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter = 8520;  // changed from 6480 to 8520
                     break;
                 case MT_LOGOSTOP:
-                    // rule 1: fade out logo but delay logo stop detection from bright scene or pattern in background
-                    if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && (diffBefore <= 280) && (diffAfter >= 2440)) diffAfter = INT_MAX;
+                    // rule 1: if not fade out logo, we have delayed logo stop from detection fault (bright picture or patten in background)
+                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && (diffAfter > 120)) diffAfter = INT_MAX;
 
-                    // rule 2: if not fade out logo, we have delayed logo stop from detection fault (bright picture or patten in background)
-                    else if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && (diffAfter > 80)) diffAfter = INT_MAX;
-
-                    maxAfter = 4800;
+                    maxAfter = 5639;
                     break;
                 case MT_HBORDERSTOP:
                     if ((diffBefore <= 440) && (diffAfter >= 1720)) diffAfter = INT_MAX;
@@ -5594,7 +5591,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxAfter = 2520;
                         break;
                     case MT_SOUNDSTOP:
-                        maxAfter = 80;
+                        maxAfter = 160;
                         break;
                     case MT_VPSSTOP:
                         // rule 1: scene change short before
@@ -5651,7 +5648,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxBefore = 80;
                         break;
                     case MT_SOUNDSTOP:
-                        maxBefore = 2800;
+                        maxBefore = 1079;
                         break;
                     case MT_VPSSTOP:
                         maxBefore = 8440;   // chaned from 1320 to 1440 to 8440
