@@ -1540,7 +1540,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int
     cMarkAdBlackBordersHoriz *hborder = new cMarkAdBlackBordersHoriz(maContext, criteria);
     ALLOC(sizeof(*hborder), "hborder");
 
-    cMarkAdBlackBordersVert *vborder = new cMarkAdBlackBordersVert(maContext);
+    cMarkAdBlackBordersVert *vborder = new cMarkAdBlackBordersVert(maContext, criteria);
     ALLOC(sizeof(*vborder), "vborder");
 
     sAreaT *area = ptr_Logo->GetArea();

@@ -1,0 +1,114 @@
+[1mdiff --git a/command/debug.h b/command/debug.h[m
+[1mindex 7a49257d0..6bbc7ea48 100644[m
+[1m--- a/command/debug.h[m
+[1m+++ b/command/debug.h[m
+[36m@@ -54,7 +54,7 @@[m
+ // #define DEBUG_COMPARE_FRAME_RANGE BOTTOM_RIGHT[m
+ [m
+ // debug vborder detection[m
+[31m-// #define DEBUG_VBORDER[m
+[32m+[m[32m#define DEBUG_VBORDER[m
+ [m
+ // debug hborder detection[m
+ // #define DEBUG_HBORDER[m
+[1mdiff --git a/command/logo.cpp b/command/logo.cpp[m
+[1mindex c2861205c..317323f2f 100644[m
+[1m--- a/command/logo.cpp[m
+[1m+++ b/command/logo.cpp[m
+[36m@@ -1540,7 +1540,7 @@[m [mint cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int[m
+     cMarkAdBlackBordersHoriz *hborder = new cMarkAdBlackBordersHoriz(maContext, criteria);[m
+     ALLOC(sizeof(*hborder), "hborder");[m
+ [m
+[31m-    cMarkAdBlackBordersVert *vborder = new cMarkAdBlackBordersVert(maContext);[m
+[32m+[m[32m    cMarkAdBlackBordersVert *vborder = new cMarkAdBlackBordersVert(maContext, criteria);[m
+     ALLOC(sizeof(*vborder), "vborder");[m
+ [m
+     sAreaT *area = ptr_Logo->GetArea();[m
+[1mdiff --git a/command/video.cpp b/command/video.cpp[m
+[1mindex 879cf99e9..e48a5480e 100644[m
+[1m--- a/command/video.cpp[m
+[1m+++ b/command/video.cpp[m
+[36m@@ -1667,8 +1667,9 @@[m [mint cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {[m
+ }[m
+ [m
+ [m
+[31m-cMarkAdBlackBordersVert::cMarkAdBlackBordersVert(sMarkAdContext *maContextParam) {[m
+[32m+[m[32mcMarkAdBlackBordersVert::cMarkAdBlackBordersVert(sMarkAdContext *maContextParam, cCriteria *criteriaParam) {[m
+     maContext = maContextParam;[m
+[32m+[m[32m    criteria  = criteriaParam;[m
+     Clear();[m
+ }[m
+ [m
+[36m@@ -1688,7 +1689,7 @@[m [mint cMarkAdBlackBordersVert::GetFirstBorderFrame() const {[m
+ [m
+ [m
+ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {[m
+[31m-#define CHECKWIDTH 8            // changed from 10 to 8[m
+[32m+[m[32m#define CHECKWIDTH 10           // do not reduce, very small vborder are unreliable to detect, better use logo in this case[m
+ #define BRIGHTNESS_V_SURE   33  // changed from 26 to 33, some channels has flying pictures in border, some channels has not complete black border[m
+ #define BRIGHTNESS_V_MAYBE 101  // some channel have logo or infos in one border, so we must accept a higher value, changed from 100 to 101[m
+     if (!maContext) {[m
+[36m@@ -1700,6 +1701,12 @@[m [mint cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {[m
+         dsyslog("cMarkAdBlackBordersVert::Process(): video frames per second  not valid");[m
+         return VBORDER_ERROR;[m
+     }[m
+[32m+[m[32m    // set limits[m
+[32m+[m[32m    int brightnessSure  = BRIGHTNESS_V_SURE;[m
+[32m+[m[32m    if (criteria->LogoInBorder(maContext->Info.ChannelName)) brightnessSure = BRIGHTNESS_V_SURE + 1;  // for pixel from logo[m
+[32m+[m[32m    int brightnessMaybe = BRIGHTNESS_V_SURE;[m
+[32m+[m[32m    if (criteria->InfoInBorder(maContext->Info.ChannelName)) brightnessMaybe = BRIGHTNESS_V_MAYBE;    // for pixel from info in border[m
+[32m+[m
+     *borderFrame = -1;[m
+     int valLeft  =  0;[m
+     int valRight =  0;[m
+[36m@@ -1721,7 +1728,7 @@[m [mint cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {[m
+     valLeft /= cnt;[m
+ [m
+     // check right border[m
+[31m-    if (valLeft <= BRIGHTNESS_V_MAYBE) {[m
+[32m+[m[32m    if (valLeft <= brightnessMaybe) {[m
+         cnt = 0;[m
+         for (int y = 0; y < maContext->Video.Info.height; y++) {[m
+             for (int x = maContext->Video.Info.width - CHECKWIDTH; x < maContext->Video.Info.width; x++) {[m
+[36m@@ -1739,7 +1746,7 @@[m [mint cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {[m
+     if (borderframenumber >= 0) dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d):  frist vborder: [bright (%5d), dark (%5d)], duration: %ds", frameNumber, borderframenumber, darkFrameNumber, static_cast<int> ((frameNumber - borderframenumber) / maContext->Video.Info.framesPerSecond));[m
+ #endif[m
+ #define BRIGHTNESS_MIN 25306252      // changed from 23679342 to 25306252, based on a very dark scene without border[m
+[31m-    if (((valLeft <= BRIGHTNESS_V_MAYBE) && (valRight <= BRIGHTNESS_V_SURE)) || ((valLeft <= BRIGHTNESS_V_SURE) && (valRight <= BRIGHTNESS_V_MAYBE))) {[m
+[32m+[m[32m    if (((valLeft <= brightnessMaybe) && (valRight <= brightnessSure)) || ((valLeft <= brightnessSure) && (valRight <= brightnessMaybe))) {[m
+         // vborder detected[m
+         if (borderframenumber == -1) {   // first vborder detected[m
+             // prevent false detection in a very dark scene, we have to get at least one vborder in a bright picture to accept start frame[m
+[36m@@ -2089,7 +2096,7 @@[m [mcMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContextParam, cCriteria *criteriaPa[m
+     hborder = new cMarkAdBlackBordersHoriz(maContext, criteria);[m
+     ALLOC(sizeof(*hborder), "hborder");[m
+ [m
+[31m-    vborder = new cMarkAdBlackBordersVert(maContext);[m
+[32m+[m[32m    vborder = new cMarkAdBlackBordersVert(maContext, criteria);[m
+     ALLOC(sizeof(*vborder), "vborder");[m
+ [m
+     logo = new cMarkAdLogo(maContext, criteria, recordingIndexMarkAdVideo);[m
+[1mdiff --git a/command/video.h b/command/video.h[m
+[1mindex aab80558a..4d1b4ee72 100644[m
+[1m--- a/command/video.h[m
+[1m+++ b/command/video.h[m
+[36m@@ -548,8 +548,9 @@[m [mpublic:[m
+     /**[m
+      * constructor of class to detect vertical border[m
+      * @param maContextParam markad context[m
+[32m+[m[32m     * @param criteriaParam  detection criteria[m
+      */[m
+[31m-    explicit cMarkAdBlackBordersVert(sMarkAdContext *maContextParam);[m
+[32m+[m[32m    explicit cMarkAdBlackBordersVert(sMarkAdContext *maContextParam, cCriteria *criteriaParam);[m
+ [m
+     /**[m
+      * get first frame number with border[m
+[36m@@ -580,6 +581,8 @@[m [mprivate:[m
+     //!<[m
+     sMarkAdContext *maContext = NULL;    //!< markad context[m
+     //!<[m
+[32m+[m[32m    cCriteria *criteria       = NULL;    //!< pointer to class with decoding states and criteria[m
+[32m+[m[32m    //!<[m
+ #ifdef DEBUG_VBORDER[m
+     int minBrightness         = INT_MAX;[m
+     int maxBrightness         = 0;[m

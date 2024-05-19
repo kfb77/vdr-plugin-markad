@@ -548,8 +548,9 @@ public:
     /**
      * constructor of class to detect vertical border
      * @param maContextParam markad context
+     * @param criteriaParam  detection criteria
      */
-    explicit cMarkAdBlackBordersVert(sMarkAdContext *maContextParam);
+    explicit cMarkAdBlackBordersVert(sMarkAdContext *maContextParam, cCriteria *criteriaParam);
 
     /**
      * get first frame number with border
@@ -579,6 +580,8 @@ private:
     int darkFrameNumber       = INT_MAX; //!< first vborder frame, but need to check, because of dark picture
     //!<
     sMarkAdContext *maContext = NULL;    //!< markad context
+    //!<
+    cCriteria *criteria       = NULL;    //!< pointer to class with decoding states and criteria
     //!<
 #ifdef DEBUG_VBORDER
     int minBrightness         = INT_MAX;

@@ -1667,8 +1667,9 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
 }
 
 
-cMarkAdBlackBordersVert::cMarkAdBlackBordersVert(sMarkAdContext *maContextParam) {
+cMarkAdBlackBordersVert::cMarkAdBlackBordersVert(sMarkAdContext *maContextParam, cCriteria *criteriaParam) {
     maContext = maContextParam;
+    criteria  = criteriaParam;
     Clear();
 }
 
@@ -1688,7 +1689,7 @@ int cMarkAdBlackBordersVert::GetFirstBorderFrame() const {
 
 
 int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
-#define CHECKWIDTH 8            // changed from 10 to 8
+#define CHECKWIDTH 10           // do not reduce, very small vborder are unreliable to detect, better use logo in this case
 #define BRIGHTNESS_V_SURE   33  // changed from 26 to 33, some channels has flying pictures in border, some channels has not complete black border
 #define BRIGHTNESS_V_MAYBE 101  // some channel have logo or infos in one border, so we must accept a higher value, changed from 100 to 101
     if (!maContext) {
@@ -1700,6 +1701,12 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
         dsyslog("cMarkAdBlackBordersVert::Process(): video frames per second  not valid");
         return VBORDER_ERROR;
     }
+    // set limits
+    int brightnessSure  = BRIGHTNESS_V_SURE;
+    if (criteria->LogoInBorder(maContext->Info.ChannelName)) brightnessSure = BRIGHTNESS_V_SURE + 1;  // for pixel from logo
+    int brightnessMaybe = BRIGHTNESS_V_SURE;
+    if (criteria->InfoInBorder(maContext->Info.ChannelName)) brightnessMaybe = BRIGHTNESS_V_MAYBE;    // for pixel from info in border
+
     *borderFrame = -1;
     int valLeft  =  0;
     int valRight =  0;
@@ -1721,7 +1728,7 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
     valLeft /= cnt;
 
     // check right border
-    if (valLeft <= BRIGHTNESS_V_MAYBE) {
+    if (valLeft <= brightnessMaybe) {
         cnt = 0;
         for (int y = 0; y < maContext->Video.Info.height; y++) {
             for (int x = maContext->Video.Info.width - CHECKWIDTH; x < maContext->Video.Info.width; x++) {
@@ -1739,7 +1746,7 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
     if (borderframenumber >= 0) dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d):  frist vborder: [bright (%5d), dark (%5d)], duration: %ds", frameNumber, borderframenumber, darkFrameNumber, static_cast<int> ((frameNumber - borderframenumber) / maContext->Video.Info.framesPerSecond));
 #endif
 #define BRIGHTNESS_MIN 25306252      // changed from 23679342 to 25306252, based on a very dark scene without border
-    if (((valLeft <= BRIGHTNESS_V_MAYBE) && (valRight <= BRIGHTNESS_V_SURE)) || ((valLeft <= BRIGHTNESS_V_SURE) && (valRight <= BRIGHTNESS_V_MAYBE))) {
+    if (((valLeft <= brightnessMaybe) && (valRight <= brightnessSure)) || ((valLeft <= brightnessSure) && (valRight <= brightnessMaybe))) {
         // vborder detected
         if (borderframenumber == -1) {   // first vborder detected
             // prevent false detection in a very dark scene, we have to get at least one vborder in a bright picture to accept start frame
@@ -2089,7 +2096,7 @@ cMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContextParam, cCriteria *criteriaPa
     hborder = new cMarkAdBlackBordersHoriz(maContext, criteria);
     ALLOC(sizeof(*hborder), "hborder");
 
-    vborder = new cMarkAdBlackBordersVert(maContext);
+    vborder = new cMarkAdBlackBordersVert(maContext, criteria);
     ALLOC(sizeof(*vborder), "vborder");
 
     logo = new cMarkAdLogo(maContext, criteria, recordingIndexMarkAdVideo);
