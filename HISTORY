@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-05-19: Version 3.6.4
+- check if VPS start event is valid
+- fix hborder detetion with info banner on top
+- prevent to detect dark scene as lower border:wq
+- some minor bug fixes and optimizations, see git
+
 2024-05-10: Version 3.6.3
 - fix preview detection
 
