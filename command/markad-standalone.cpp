@@ -845,6 +845,25 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
                 }
             }
         }
+
+        // check sequence MT_LOGOSTART (mark) -> MT_SOUNDSTOP -> MT_SOUNDSTART
+        // broadcast start with long silence in opening credits
+        cMark *silenceStart = silenceMarks.GetNext(mark->position, MT_SOUNDSTOP);
+        if (silenceStart) {
+            silenceStop = silenceMarks.GetNext(silenceStart->position, MT_SOUNDSTART);
+            if (silenceStop) {
+                int diffLogoStartSilenceStart   = 1000 * (silenceStart->position  - mark->position)         / macontext.Video.Info.framesPerSecond;
+                int diffSilenceStartSilenceStop = 1000 * (silenceStop->position   - silenceStart->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTART (%6d) -> %4dms -> MT_SOUNDSTOP (%6d) -> %4dms -> MT_SOUNDSTART (%6d)", mark->position, diffLogoStartSilenceStart, silenceStart->position, diffSilenceStartSilenceStop, silenceStop->position);
+                // valid example
+                // MT_LOGOSTART (  8632) ->  400ms -> MT_SOUNDSTOP (  8642) -> 5720ms -> MT_SOUNDSTART (  8785)
+                if ((diffLogoStartSilenceStart <= 400) && (diffSilenceStartSilenceStop >= 5720)) {
+                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence sequence is valid", mark->position);
+                    return true;
+                }
+                dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence sequence is invalid", mark->position);
+            }
+        }
     }
 
     // check stop mark
