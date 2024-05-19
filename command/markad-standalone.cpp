@@ -5149,35 +5149,35 @@ void cMarkAdStandalone::SilenceOptimization() {
             bool moved = false;
             int diffBefore   = INT_MAX;
             int diffAfter    = INT_MAX;
-            int lengthAfter  = 0;
+            int lengthBefore = -1;
             cMark *soundStartBefore = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTART);
             cMark *soundStartAfter  = silenceMarks.GetNext(mark->position - 1, MT_SOUNDSTART);
             if (soundStartBefore) {
                 diffBefore = 1000 * (mark->position - soundStartBefore->position) / macontext.Video.Info.framesPerSecond;
                 cMark *soundStopBefore = silenceMarks.GetPrev(soundStartBefore->position, MT_SOUNDSTOP);
                 if (soundStopBefore) {
-                    int lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / macontext.Video.Info.framesPerSecond;
+                    lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / macontext.Video.Info.framesPerSecond;
                     const cMark *black = blackMarks.GetAround(macontext.Video.Info.framesPerSecond, soundStopBefore->position, MT_BLACKCHANGE, 0xF0);
                     bool blackBefore = false;
                     if (black) blackBefore = true;
                     const cMark *lower = blackMarks.GetAround(macontext.Video.Info.framesPerSecond, soundStopBefore->position, MT_LOWERBORDERCHANGE, 0xF0);
                     bool lowerBefore      = false;
                     if (lower) lowerBefore = true;
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%5d) to (%5d) %8dms before, length %4dms, black %d, lower %d", mark->position, soundStopBefore->position, soundStartBefore->position, diffBefore, lengthBefore, blackBefore, lowerBefore);
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) to (%6d) %8dms before, length %4dms, black %d, lower %d", mark->position, soundStopBefore->position, soundStartBefore->position, diffBefore, lengthBefore, blackBefore, lowerBefore);
                 }
             }
             if (soundStartAfter) {
                 diffAfter = 1000 * (soundStartAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
                 cMark *soundStopAfter  = silenceMarks.GetPrev(soundStartAfter->position, MT_SOUNDSTOP);
                 if (soundStopAfter) {
-                    lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / macontext.Video.Info.framesPerSecond;
-                    bool blackAfter = false;
+                    int lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / macontext.Video.Info.framesPerSecond;
+                    bool blackAfter  = false;
                     const cMark *black = blackMarks.GetAround(macontext.Video.Info.framesPerSecond, soundStopAfter->position, MT_BLACKCHANGE, 0xF0);
                     if (black) blackAfter = true;
                     bool lowerAfter = false;
                     const cMark *lower = blackMarks.GetAround(macontext.Video.Info.framesPerSecond, soundStopAfter->position, MT_LOWERBORDERCHANGE, 0xF0);
                     if (lower) blackAfter = true;
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%5d) to (%5d) %8dms after,  length %4dms, black %d, lower %d", mark->position, soundStopAfter->position, soundStartAfter->position, diffAfter, lengthAfter, blackAfter, lowerAfter);
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) to (%6d) %8dms after,  length %4dms, black %d, lower %d", mark->position, soundStopAfter->position, soundStartAfter->position, diffAfter, lengthAfter, blackAfter, lowerAfter);
                 }
             }
             // try silence before start position
@@ -5194,14 +5194,17 @@ void cMarkAdStandalone::SilenceOptimization() {
                     if ((diffBefore >=  600) && (diffAfter <=  360)) diffBefore = INT_MAX;
                     if ((diffBefore >= 2040) && (diffAfter <= 3460)) diffBefore = INT_MAX;
 
-                    if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxBefore = 8680;
-                    else                                                              maxBefore = 2519;
+                    if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) {
+                        if (lengthBefore >= 120) maxBefore = 8399;
+                        else                     maxBefore = 8079;
+                    }
+                    else                         maxBefore = 1599;
                     break;
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        // rule 1: silence before preview and before broadcast start, no black border
-                        if ((diffBefore > diffAfter) && (diffAfter <= 231440)) diffBefore = INT_MAX;
+                        // rule 1: refer silence after VPS start event
+                        if (diffAfter <= 231440) diffBefore = INT_MAX;
 
                         if (criteria.GoodVPS(macontext.Info.ChannelName)) maxBefore =  30259;
                         else                                              maxBefore = 171080;
@@ -5232,20 +5235,19 @@ void cMarkAdStandalone::SilenceOptimization() {
                 int maxAfter = 0;
                 switch (mark->type) {
                 case MT_ASSUMEDSTART:
-                    maxAfter = 227620;  // changed from 55600 to 227620
+                    maxAfter = 227620;
                     break;
                 case MT_LOGOSTART:
-                    maxAfter = 4319;  // silence in broadcast after openen credists 4320ms after logo start
+                    maxAfter = 0;    // silence after logo start is always invalid
                     break;
                 case MT_VBORDERSTART:
-                    // only optimize start mark, we can miss real vborder start because of black screen between broadcast
-                    if (mark->position == marks.GetFirst()->position) maxAfter = 7340; // changed from 1800 to 7340
-                    else maxAfter = 0;
+                    if (mark->position == marks.GetFirst()->position) maxAfter = 359;
+                    else                                              maxAfter =   0;
                     break;
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if (lengthAfter >= 120) maxAfter = 231440;
+                        maxAfter = 231440;
                         break;
                     default:
                         maxAfter = 0;
@@ -5283,7 +5285,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 soundStartBefore = silenceMarks.GetNext(soundStopBefore->position, MT_SOUNDSTART);
                 if (soundStartBefore) {
                     lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): silence from (%5d) to (%5d) %8ldms before, length %4dms", mark->position, soundStopBefore->position, soundStartBefore->position, diffBefore, lengthBefore);
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): silence from (%6d) to (%6d) %8ldms before, length %4dms", mark->position, soundStopBefore->position, soundStartBefore->position, diffBefore, lengthBefore);
                 }
                 // check lower border for silence before
                 const cMark *lowerStart = blackMarks.GetPrev(soundStopBefore->position, MT_NOLOWERBORDERSTOP);
@@ -5300,7 +5302,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     const cMark *black = blackMarks.GetAround(macontext.Video.Info.framesPerSecond, soundStopAfter->position, MT_BLACKCHANGE, 0xF0);
                     if (black) blackAfter = true;
                     lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): silence from (%5d) to (%5d) %8dms after,  length %4dms, black screen %d", mark->position, soundStopAfter->position, soundStartAfter->position, diffAfter, lengthAfter, blackAfter);
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): silence from (%6d) to (%6d) %8dms after,  length %4dms, black screen %d", mark->position, soundStopAfter->position, soundStartAfter->position, diffAfter, lengthAfter, blackAfter);
                 }
             }
             // try silence after stop mark
@@ -5344,7 +5346,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 }
                 if (diffAfter <= maxAfter) {
                     int newPos = soundStartAfter->position;
-                    if (!macontext.Config->fullDecode) newPos = recordingIndexMark->GetIFrameAfter(newPos);
+                    if ((diffAfter <= 40) && (lengthAfter >= 920)) newPos = soundStopAfter->position; // near and long silence is in separator after broadcast stop
                     mark = marks.Move(mark, newPos, MT_SOUNDSTOP);
                     if (mark) {
                         moved = true;
@@ -5358,7 +5360,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 int maxBefore = 0;
                 switch (mark->type) {
                 case MT_ASSUMEDSTOP:
-                    maxBefore = 191720;
+                    maxBefore = 173639;
                     break;
                 case MT_LOGOSTOP:
                     maxBefore = 239;
@@ -5367,7 +5369,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxBefore = 1100;
                     break;
                 case MT_VBORDERSTOP:
-                    maxBefore = 540;
+                    maxBefore = 0;
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
