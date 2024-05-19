@@ -1623,8 +1623,7 @@ int cMarkAdBlackBordersHoriz::Process(const int FrameNumber, int *borderFrame) {
     dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder brightness top %4d bottom %4d (expect one <=%d and one <= %d)", FrameNumber, valTop, valBottom, brightnessSure, brightnessMaybe);
 #endif
 
-    if (((borderstatus == HBORDER_VISIBLE) && ((valTop <= brightnessMaybe) && (valBottom <= brightnessSure) || (valTop <= brightnessSure) && (valBottom <= brightnessMaybe))) ||
-            ((borderstatus <  HBORDER_VISIBLE) && (valBottom <= brightnessSure) && (valTop <= brightnessSure))) {
+    if ((valTop <= brightnessMaybe) && (valBottom <= brightnessSure) || (valTop <= brightnessSure) && (valBottom <= brightnessMaybe)) {
         // hborder detected
 #ifdef DEBUG_HBORDER
         int duration = (FrameNumber - borderframenumber) / maContext->Video.Info.framesPerSecond;
