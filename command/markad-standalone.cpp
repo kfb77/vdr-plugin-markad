@@ -1911,7 +1911,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
                 begin = lStart;
                 break;
             }
-            if (HaveLowerBorder(lStart)) {
+            if (!begin && HaveLowerBorder(lStart)) {
                 begin = lStart;
                 break;
             }
@@ -1932,7 +1932,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
                 dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) has closing credits in frame before, valid start mark found", lStart->position);
                 begin = lStart;
             }
-            if (HaveLowerBorder(lStart)) {
+            if (!begin && HaveLowerBorder(lStart)) {
                 begin = lStart;
                 break;
             }
