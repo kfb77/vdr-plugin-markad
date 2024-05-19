@@ -2067,7 +2067,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
 
 cMark *cMarkAdStandalone::Check_HBORDERSTART() {
     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): search for hborder start mark");
-    cMark *hStart = marks.GetAround(240 * macontext.Video.Info.framesPerSecond, iStartA, MT_HBORDERSTART);
+    cMark *hStart = marks.GetAround(MAX_ASSUMED * macontext.Video.Info.framesPerSecond, iStartA, MT_HBORDERSTART);
     if (hStart) { // we found a hborder start mark
         dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start found at (%d)", hStart->position);
 
@@ -2134,10 +2134,15 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
             dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start mark at recording start found, we have a double episode");
             criteria.SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED);
         }
-        else {
-            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): no horizontal border start mark found, disable horizontal border detection and delete hborder marks. if any");
-            criteria.SetDetectionState(MT_HBORDERCHANGE, false);
-            marks.DelType(MT_HBORDERCHANGE, 0xF0);  // maybe the is a late invalid hborder start marks, exists sometimes with old vborder recordings
+        else { // currect broadcast has no hborder
+            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): no horizontal border start mark found, disable horizontal border detection and cleanup marks");
+            criteria.SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_DISABLED);
+            // keep last hborder stop, maybe can use it as start mark
+            const cMark *lastBorderStop = marks.GetPrev(INT_MAX, MT_HBORDERSTOP);
+            if (lastBorderStop) { // delete all marks before hborder stop, they can not be a valid start mark
+                marks.DelFromTo(0, lastBorderStop->position - 1, MT_ALL, 0xFF);
+            }
+            else marks.DelType(MT_HBORDERCHANGE, 0xF0);  // maybe the is a late invalid hborder start marks, exists sometimes with old vborder recordings
         }
         return NULL;
     }
