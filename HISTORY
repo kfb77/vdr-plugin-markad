@@ -1,10 +1,15 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-30-05: Version 3.6.5
+- fix vborder start mark selection with early advertisement
+- ignore frames with unexpected channel count
+- some minor bug fixes and optimizations, see git
+
 2024-05-19: Version 3.6.4
 - check if VPS start event is valid
-- fix hborder detetion with info banner on top
-- prevent to detect dark scene as lower border:wq
+- fix hborder detection with info banner on top
+- prevent to detect dark scene as lower border
 - some minor bug fixes and optimizations, see git
 
 2024-05-10: Version 3.6.3
