@@ -4930,6 +4930,12 @@ void cMarkAdStandalone::LowerBorderOptimization() {
 #define MIN_LOWER_BORDER  640
 #define MAX_LOWER_BORDER 5680
     while (mark) {
+        // only for VPS marks
+        if (((mark->type & 0xF0) != MT_MOVED) || ((mark->newType & 0xF0) != MT_VPSCHANGE)) {
+            mark = mark->Next();
+            continue;
+        }
+
         int lengthBefore   = 0;
         int lengthAfter    = 0;
 
@@ -4975,7 +4981,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                     switch (mark->newType) {
                     case MT_VPSSTART:
                         if ((lengthBefore >= MIN_LOWER_BORDER) && (lengthBefore <= MAX_LOWER_BORDER)) {
-                            if (criteria.GoodVPS(macontext.Info.ChannelName)) maxBefore =  40059;
+                            if (criteria.GoodVPS(macontext.Info.ChannelName)) maxBefore =   7859;
                             else                                              maxBefore = 139360;
                         }
                         break;
@@ -5002,7 +5008,8 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        maxAfter = 304480;
+                        if (criteria.GoodVPS(macontext.Info.ChannelName)) maxAfter =  16639;
+                        else                                              maxAfter = 304480;
                         break;
                     default:
                         maxAfter = -1;
@@ -5030,14 +5037,18 @@ void cMarkAdStandalone::LowerBorderOptimization() {
             long int diffBefore      = INT_MAX;
             const cMark *startBefore = blackMarks.GetPrev(mark->position + 1, MT_NOLOWERBORDERSTOP);
             const cMark *stopBefore  = NULL;
-            if (startBefore) {
-                diffBefore = 1000 * (mark->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
+            while (startBefore) {
                 stopBefore = blackMarks.GetNext(startBefore->position, MT_NOLOWERBORDERSTART);
-                if (stopBefore) {
-                    lengthBefore = 1000 * (stopBefore->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::LowerBorderOptimization(): stop  mark (%6d): lower border from (%6d) to (%6d), %7ldms before -> length %5dms", mark->position, startBefore->position, stopBefore->position, diffBefore, lengthBefore);
-                }
-                else startBefore = NULL; // no pair, this is invalid
+                if (!stopBefore) break;
+                diffBefore = 1000 * (mark->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
+                lengthBefore = 1000 * (stopBefore->position - startBefore->position) / macontext.Video.Info.framesPerSecond;
+                dsyslog("cMarkAdStandalone::LowerBorderOptimization(): stop  mark (%6d): lower border from (%6d) to (%6d), %7ldms before -> length %5dms", mark->position, startBefore->position, stopBefore->position, diffBefore, lengthBefore);
+                if ((lengthBefore >= MIN_LOWER_BORDER) && (lengthBefore <= MAX_LOWER_BORDER)) break;
+                startBefore = blackMarks.GetPrev(startBefore->position, MT_NOLOWERBORDERSTOP);  // previous start of lower border
+            }
+            if ((lengthBefore < MIN_LOWER_BORDER) || (lengthBefore > MAX_LOWER_BORDER)) { // we got no valid result
+                startBefore = NULL;
+                stopBefore  = NULL;
             }
 
             // get lower border after stop mark
@@ -5068,7 +5079,8 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        maxAfter = 257760;
+                        if (criteria.GoodVPS(macontext.Info.ChannelName)) maxAfter =  71519;
+                        else                                              maxAfter = 257760;
                         break;
                     default:
                         maxAfter = -1;
@@ -5098,7 +5110,8 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if (lengthBefore > 880) maxBefore = 117800;
+                        if (criteria.GoodVPS(macontext.Info.ChannelName)) maxBefore =  6579;
+                        else                                              maxBefore = 99879;
                         break;
                     default:
                         maxBefore = -1;
@@ -5350,7 +5363,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxBefore = 191720;
                     break;
                 case MT_LOGOSTOP:
-                    maxBefore = 11680;
+                    maxBefore = 239;
                     break;
                 case MT_CHANNELSTOP:
                     maxBefore = 1100;
