@@ -540,10 +540,13 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast  94, brightness 158
 // contrast  25, brightness 153
 // contrast   6, brightness 172
+// contrast   3, brightness 218    bright separator without logo
+// contrast   2, brightness 213    bright separator without logo
 
     if (maContext->Video.Logo.pixelRatio > LOW_PIXEL_LOGO) { // normal logo
         // build the curve
-        if (((contrastLogo   <= 13) &&                               (brightnessLogo >= 176)) ||
+        if (((contrastLogo   <= 3) &&                                (brightnessLogo >= 219)) ||
+                ((contrastLogo   >    3) && (contrastLogo <=  13) && (brightnessLogo >= 176)) ||
                 ((contrastLogo   >   13) && (contrastLogo <= 131) && (brightnessLogo >= 171)) ||
                 ((contrastLogo   >  125) && (contrastLogo <= 131) && (brightnessLogo >= 153)) ||
                 ((contrastLogo   >  131) && (contrastLogo <= 149) && (brightnessLogo >= 140)) ||
@@ -560,13 +563,15 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 //
 // not detected logo in bright area, also not detected with bridgtness reduction, take it as invalid
 // contrast 202, brightness 100
-// contrast 202, brightness  85 NEW
+// contrast 202, brightness  85
 // contrast 199, brightness 102
 // contrast 198, brightness 107
 //
 // contrast 189, brightness 127
 // contrast 189, brightness 117
 // contrast 188, brightness 173
+//
+// contrast 136, brightness 156  NEW
 // contrast 109, brightness 165
 //
 // contrast  94, brightness 191
@@ -591,7 +596,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
         if (((contrastLogo <=  20)                          && (brightnessLogo >  197)) ||
                 ((contrastLogo >   20) && (contrastLogo <=  51) && (brightnessLogo >= 184)) ||
                 ((contrastLogo >   51) && (contrastLogo <=  94) && (brightnessLogo >= 173)) ||
-                ((contrastLogo >   94) && (contrastLogo <= 140) && (brightnessLogo >= 165)) ||
+                ((contrastLogo >   94) && (contrastLogo <= 140) && (brightnessLogo >= 156)) ||
                 ((contrastLogo >  140) && (contrastLogo <= 197) && (brightnessLogo >= 117)) ||
                 ((contrastLogo >  197)                          && (brightnessLogo >=  85))) {
 #ifdef DEBUG_LOGO_DETECTION
@@ -922,7 +927,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 // if we have a change from logo visable to logo invisable with very close result, verify it
                 ((area.intensity >= AREA_INTENSITY_NO_TRUST) && (area.status == LOGO_VISIBLE) && (rPixel < (mPixel * logo_imark)) && (rPixel > (QUOTE_NO_TRUST * mPixel * logo_imark))) ||
                 ((area.intensity >= 56) && (maContext->Video.Logo.pixelRatio <= 16))) &&  // logo with low pixel count, check with lower value
-                (area.intensity < 220) &&  // if we are too bright, this will not work, max changed from 200 to 220
+                (area.intensity <= 221) &&  // if we are too bright, this will not work, max changed from 220 to 221
                 ((((area.status == LOGO_INVISIBLE) || (area.status == LOGO_UNINITIALIZED)) && (rPixel < (mPixel * logo_vmark))) || // only status is no logo visable
                  // and we have no clear result or
                  ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * logo_imark))))) {                                            // status is logo and we found no logo
@@ -976,9 +981,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                     return LOGO_NOCHANGE; // there is a pattern on the backbround, no logo detection possible
                 }
                 // check new brightness
-                if (((area.intensity >  164) && (rPixel >  0)) || // still too bright, we can not use the result
-                        // chaged from 160 to 164 for separator image without logo
-                        ((area.intensity >= 226) && (rPixel == 0))) { // chnaged from 208 to 226, try to get bright ad in frame without logo
+                if ((area.intensity >  164) && (rPixel >  0)) { // still too bright, we can not use the result
 #ifdef DEBUG_LOGO_DETECTION
                     dsyslog("cMarkAdLogo::Detect(): frame (%6d) brightness reducation successful, but logo area still too bright", frameCurrent);
 #endif

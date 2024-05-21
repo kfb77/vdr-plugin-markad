@@ -25,8 +25,12 @@
 /* forward declarations */
 class cOSDMessage;
 
+// valid lover border length
 #define MIN_LOWER_BORDER  640
 #define MAX_LOWER_BORDER 5680
+
+// max distance for valid mark from assumed start/stop
+#define MAX_ASSUMED 300
 
 /**
  * markad main class
