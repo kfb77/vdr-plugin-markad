@@ -563,7 +563,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
                 cMark *prevLogoStart = marks.GetPrev(end->position, MT_LOGOSTART);
                 if (prevLogoStart) {
                     int deltaLogoStart = 1000 * (end->position - prevLogoStart->position) / macontext.Video.Info.framesPerSecond;
-#define MIN_LOGO_START_STOP 1480   // very short logo start/stop can be false positiv logo detection, changed from 600 to 1480
+#define MIN_LOGO_START_STOP 2480   // very short logo start/stop can be false positiv logo detection or preview in ad before, changed from 1480 to 2480
                     if (deltaLogoStart <= MIN_LOGO_START_STOP ) {
                         dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): very short logo start (%d) stop (%d) pair is invalid, length %dms (expect >%ds), delete marks", prevLogoStart->position, end->position, deltaLogoStart, MIN_LOGO_START_STOP);
                         marks.Del(end);
