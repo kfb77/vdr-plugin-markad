@@ -1224,7 +1224,8 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     int staticQuote = 0;
     if (infoLogo.frameCountFinal > 0) staticQuote = 1000 * infoLogo.staticCountFinal / infoLogo.frameCountFinal;
     dsyslog("cDetectLogoStopStart::IsInfoLogo(): static picture quote %d", staticQuote);
-    if (staticQuote >= 990) found = false;
+#define MAX_STATIC_QUOTE 990
+    if (staticQuote >= MAX_STATIC_QUOTE) found = false;
 
     // check if "no logo" corner has same matches as logo corner, in this case it must be a static scene (e.g. static preview picture in frame or adult warning) and no info logo
     if (found) {
@@ -1303,7 +1304,9 @@ bool cDetectLogoStopStart::IsInfoLogo() {
             found = false;
         }
     }
-    else if (evaluateLogoStopStartPair) ClosingCredit(); // we have to check for closing credits anyway, because we are called in start part and need this info to select start mark
+    else { // we have to check for closing credits anyway, because we use this info to select start or end mark
+        if (evaluateLogoStopStartPair && (staticQuote < MAX_STATIC_QUOTE)) ClosingCredit();  // do not check if detected static pictures
+    }
     return found;
 }
 
