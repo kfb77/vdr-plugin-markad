@@ -418,7 +418,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
             dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_VBORDERSTOP too far after assumed stop, ignoring");
             return NULL;
         }
-        if (criteria.LogoInBorder(macontext.Info.ChannelName)) {
+        if (criteria.LogoInBorder(macontext.Info.ChannelName) && !criteria.LogoInterruption(macontext.Info.ChannelName)) { // not with random logo interruption
             cMark *logoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
             if (logoStop) {
                 int deltaLogoStop = 1000 * (end->position - logoStop->position) / macontext.Video.Info.framesPerSecond;
@@ -2247,17 +2247,22 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start found at (%d)", vStart->position);
     cMark *vStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is not valid
     if (vStop) {
-        cMark *vNextStart = marks.GetNext(vStop->position, MT_VBORDERSTART);
         int markDiff = (vStop->position - vStart->position) / macontext.Video.Info.framesPerSecond;
         dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop found at (%d), %ds after vertical border start", vStop->position, markDiff);
-        if (vNextStart) {
-            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start (%d) after vertical border stop (%d) found, start mark at (%d) is valid", vNextStart->position, vStop->position, vStart->position);
+
+        // prevent to get start of last part of previous broadcast as start mark
+        cMark *vNextStart = marks.GetNext(vStop->position,  MT_VBORDERSTART);
+        cMark *vPrevStart = marks.GetPrev(vStart->position, MT_VBORDERSTART);
+        if (vNextStart || vPrevStart) {
+            if (vNextStart) dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start (%d) after  vertical border stop  (%d) found, start mark at (%d) is valid", vNextStart->position, vStop->position, vStart->position);
+            if (vPrevStart) dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start (%d) before vertical border start (%d) found, start mark at (%d) is valid", vPrevStart->position, vStart->position, vStart->position);
         }
         else { // we have only start/stop vborder in start part, this is from broadcast before
-            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no vertical border start found after start (%d) and stop (%d)", vStart->position, vStop->position);
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no next vertical border start found after start (%d) and stop (%d)", vStart->position, vStop->position);
             // example
+            // start vertical border    at 0:05:03.23 -> stop  vertical border    at 0:09:04.91 (241s) valid first part, no next vborder start because of long ad after
             // start vertical border    at 0:01:04.80 -> stop  vertical border    at 0:06:25.92 (321s) is from broadcast before
-            if ((vStart->position < IGNORE_AT_START) || (markDiff <= 321)) {  // vbordet start/stop from previous broadcast
+            if ((vStart->position < IGNORE_AT_START) || ((vStart->position < iStartA) && (markDiff <= 321))) {  // vbordet start/stop from previous broadcast
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop at (%d) %ds after vertical border start (%d) in start part found, this is from previous broadcast, delete all marks before", vStop->position, markDiff, vStart->position);
                 criteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE);
                 // broadcast start can not be before vborder stop from previous broadcast, keep vborder stop as possible start mark
@@ -2289,16 +2294,8 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         return NULL;
     }
 
-    // check if we have a logo start after vborder start to prevent a false vborder start/stop from dark scene as start mark
-    if (criteria.LogoInBorder(macontext.Info.ChannelName)) {
-        cMark *logoStart  = marks.GetAround(30 * macontext.Video.Info.framesPerSecond, vStart->position, MT_LOGOSTART);
-        if (!logoStart) {
-            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no logo start mark around vborder start (%d), delete invalid vborder marks from dark scene", vStart->position);
-            marks.DelType(MT_VBORDERCHANGE, 0xF0);
-            return NULL;
-        }
-    }
-    else {
+    // check if we have a logo start before vborder start, prevent a false vborder start/stop from dark scene as start mark
+    if (!criteria.LogoInBorder(macontext.Info.ChannelName)) {  // not possible for logo in border channel because vborder start and logo start can be on same position
         // valid example:
         // double episode 4:3 and vborder, too short vborder in broadcast before because closing credits overlay vborder, vborder start is valid start mark
         // start aspect ratio       at 0:00:00.00, inBroadCast 0
@@ -2324,10 +2321,10 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     else criteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED);
 
     // check logo start after vborder start to prevent to get closing credit from previous recording as start mark
-    if (criteria.LogoInBorder(macontext.Info.ChannelName)) {
-        cMark *logoStart  = marks.GetNext(vStart->position, MT_LOGOSTART);
+    if (criteria.LogoInBorder(macontext.Info.ChannelName) && !criteria.LogoInterruption(macontext.Info.ChannelName)) {  // prevent to get logo interruption as false start mark
+        cMark *logoStart = marks.GetNext(vStart->position, MT_LOGOSTART);
         if (logoStart) {
-            int diffStart  = (logoStart->position  - vStart->position) / macontext.Video.Info.framesPerSecond;
+            int diffStart = (logoStart->position - vStart->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): found logo start (%d) %ds after vborder start (%d)", logoStart->position, diffStart, vStart->position);
             if ((diffStart >= 10) && (diffStart <= 30)) {  // near logo start is fade in logo
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark position (%d) includes previous closing credits, use logo start (%d) instead", vStart->position, logoStart->position);
@@ -2338,15 +2335,17 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     }
 
     // check logo stop after vborder start to prevent to get closing credit from previous recording as start mark
-    cMark *logoStop  = marks.GetNext(vStart->position, MT_LOGOSTOP);
-    if (logoStop) {
-        int diffStop  = (logoStop->position  - vStart->position) / macontext.Video.Info.framesPerSecond;
-        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): found logo stop (%d) %ds after vborder start (%d)", logoStop->position, diffStop, vStart->position);
-        if (diffStop <= 51) {  // changed from 25 to 51
-            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark position (%d) includes previous closing credits, use logo stop (%d) instead", vStart->position, logoStop->position);
-            marks.Del(vStart->position);
-            logoStop = marks.ChangeType(logoStop, MT_START);
-            return logoStop;
+    if (!criteria.LogoInterruption(macontext.Info.ChannelName)) {  // prevent to get logo interruption as false start mark
+        cMark *logoStop  = marks.GetNext(vStart->position, MT_LOGOSTOP);
+        if (logoStop) {
+            int diffStop  = (logoStop->position  - vStart->position) / macontext.Video.Info.framesPerSecond;
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): found logo stop (%d) %ds after vborder start (%d)", logoStop->position, diffStop, vStart->position);
+            if (diffStop <= 51) {  // changed from 25 to 51
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark position (%d) includes previous closing credits, use logo stop (%d) instead", vStart->position, logoStop->position);
+                marks.Del(vStart->position);
+                logoStop = marks.ChangeType(logoStop, MT_START);
+                return logoStop;
+            }
         }
     }
     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): delete logo marks if any");

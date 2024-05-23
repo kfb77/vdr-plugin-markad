@@ -23,11 +23,10 @@
 #define LOGO_IMARK 0.18        //!< percentage of pixels for invisible changed from 0,15 to 0,18
 //!<
 
-#define MIN_H_BORDER_SECS 135  //!< minimum length of horizontal border, changed from 120 to 135, found 130s black opening credits in broadast
+#define MIN_H_BORDER_SECS 81  //!< minimum length of horizontal border
 //!<
-#define MIN_V_BORDER_SECS 224  //!< minimum length of vertical border before it is accepted <br>
-//!< changed from 140 to 224 <br>
-//!< need a long sequence to prevent long darks scenes detected as border <br>
+#define MIN_V_BORDER_SECS 82  //!< minimum length of vertical border before it is accepted <br>
+//!< shortest valid vborder part in broadcast found with length 82s
 //!< keep it greater than MIN_H_BORDER_SECS for detecting long black screens
 
 
