@@ -1915,7 +1915,8 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     // try to select best logo start mark based on closing credits follow
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check for logo start mark based on closing credits from previous broadcast");
-    if (evaluateLogoStopStartPair) {
+    // prevent to detect ad in frame from previous broadcast as closing credits
+    if (evaluateLogoStopStartPair && !evaluateLogoStopStartPair->AdInFrameWithLogoChannel(macontext.Info.ChannelName)) {
         // search from nearest logo start mark to end, first mark can be before iStartA
         lStart = lStartAssumed;
         while (!begin && lStart) {
@@ -1923,14 +1924,10 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check logo start mark (%d) based on closing credits after assumed start", lStart->position);
             int status = evaluateLogoStopStartPair->GetIsClosingCreditsBefore(lStart->position);
             int diffAssumed = (lStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
-            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d): %ds after assumed start (%d), closing credits status %d", lStart->position, diffAssumed, iStartA, status);
             if ((diffAssumed < -MAX_ASSUMED) || (diffAssumed > MAX_ASSUMED)) break;
+            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d): %ds after assumed start (%d), closing credits status %d", lStart->position, diffAssumed, iStartA, status);
             if (status == STATUS_YES) {
                 dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) has closing credits in frame before, valid start mark found", lStart->position);
-                begin = lStart;
-                break;
-            }
-            if (!begin && HaveLowerBorder(lStart)) {
                 begin = lStart;
                 break;
             }
@@ -1951,18 +1948,40 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
                 dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) has closing credits in frame before, valid start mark found", lStart->position);
                 begin = lStart;
             }
-            if (!begin && HaveLowerBorder(lStart)) {
-                begin = lStart;
-                break;
-            }
         }
     }
 
+    // try to select best logo start mark based on lower border
+    lStart = lStartAssumed;
+    while (!begin) { // search from nearest logo start mark to end, first mark can be before iStartA
+        if (HaveLowerBorder(lStart)) {
+            begin = lStart;
+            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) has lower border before, valid start mark found", lStart->position);
+            break;
+        }
+        lStart = marks.GetNext(lStart->position, MT_LOGOSTART);
+        if (!lStart) break;
+        int diffAssumed = (lStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
+        if ((diffAssumed < -MAX_ASSUMED) || (diffAssumed > MAX_ASSUMED)) break;
+    }
+    lStart = lStartAssumed;
+    while (!begin) {  // search from nearest logo start mark to recording start
+        lStart = marks.GetPrev(lStart->position, MT_LOGOSTART);
+        if (!lStart) break;
+        int diffAssumed = (lStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
+        if ((diffAssumed < -MAX_ASSUMED) || (diffAssumed > MAX_ASSUMED)) break;
+        if (HaveLowerBorder(lStart)) {
+            begin = lStart;
+            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) has lower border before, valid start mark found", lStart->position);
+        }
+    }
+
+    // try to select best logo start mark based on black screen, silence or info logo sequence
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check for logo start mark with black screen or silence separator");
     lStart = lStartAssumed;
     while (!begin && lStart) {
-        int diffAssumed = (lStart->position - iStartA)          / macontext.Video.Info.framesPerSecond;
+        int diffAssumed = (lStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
         LogSeparator();
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check logo start mark (%d), %ds after assumed start", lStart->position, diffAssumed);
         if (diffAssumed > MAX_ASSUMED) {
