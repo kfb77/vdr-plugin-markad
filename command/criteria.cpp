@@ -166,8 +166,8 @@ void cCriteria::SetMarkTypeState(const int type, const int state) {
         vborder = state;
         if (vborder == CRITERIA_USED) {
             SetDetectionState(MT_SCENECHANGE,   false);
-            SetDetectionState(MT_SOUNDCHANGE,   false);
-            SetDetectionState(MT_BLACKCHANGE,   false);
+            SetDetectionState(MT_SOUNDCHANGE,   true);   // use silence to select black screen mark
+            SetDetectionState(MT_BLACKCHANGE,   true);   // use black screen to correct vborder marks
             SetDetectionState(MT_LOGOCHANGE,    false);
             SetDetectionState(MT_HBORDERCHANGE, false);
             SetDetectionState(MT_ASPECTCHANGE,  false);
