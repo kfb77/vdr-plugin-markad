@@ -4605,13 +4605,13 @@ void cMarkAdStandalone::BlackScreenOptimization() {
             if (startBefore) {
                 int maxBefore = -1;
                 switch (mark->type) {
+                case MT_ASSUMEDSTART:
+                    maxBefore = 22080;
+                    break;
                 case MT_LOGOSTART:
-                    // rule 1: black screen before separator and between separator and broadcast start
-                    if ((diffBefore >= 2020) && (diffBefore <= 3020) && (diffAfter <= 40)) diffBefore = INT_MAX;
-
-                    if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && silenceBefore)            maxBefore = 6840;
-                    else if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && (lengthBefore > 40)) maxBefore = 4960;
-                    else                                                                                            maxBefore = 3020;
+                    if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && silenceBefore) maxBefore = 6840;
+                    else if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN)               maxBefore = 5360;
+                    else                                                                                 maxBefore = 3020;
                     break;
                 case MT_CHANNELSTART:
                     maxBefore = 1240;
@@ -4633,6 +4633,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
 
                         if (criteria.GoodVPS(macontext.Info.ChannelName)) maxBefore = 26099;
                         else if (silenceBefore)                           maxBefore = 81800;
+                        else if (lengthBefore >= 600)                     maxBefore = 88400;
                         else if (lengthBefore >= 240)                     maxBefore = 50480;
                         else                                              maxBefore =     0;  // do not accept short black screen, too much false positiv
                         break;
@@ -4665,12 +4666,18 @@ void cMarkAdStandalone::BlackScreenOptimization() {
             if (!moved && startAfter) { // move even to same position to prevent scene change do a move
                 int maxAfter = -1;
                 switch (mark->type) {
+                case MT_ASSUMEDSTART:
+                    maxAfter = 73240;
+                    break;
                 case MT_LOGOSTART:
-                    maxAfter = 2439;  //  first black screen in broadcast 2440ms after logo start
+                    maxAfter = 2240;
                     break;
                 case MT_HBORDERSTART:
                     if (silenceAfter && (lengthAfter >= 1520)) maxAfter = 4520;  // separator picture with hbrder before start
                     else                                       maxAfter =   -1;
+                    break;
+                case MT_VBORDERSTART:
+                    if (lengthAfter < maxAfter) maxAfter = 6120;  // prevent to use black screen with text at broadcast start
                     break;
                 case MT_CHANNELSTART:
                     maxAfter = 4319;   // black sceen after start of broadcast 4320ms (3840)
@@ -4763,8 +4770,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 int maxAfter = -1;
                 switch (mark->type) {
                 case MT_ASSUMEDSTOP:
-                    if (lengthAfter >= 120) maxAfter = 98720;
-                    else                    maxAfter = 25119;
+                    if (lengthAfter >= 120) maxAfter = 280200;
+                    else                    maxAfter =  25119;
                     break;
                 case MT_LOGOSTOP:
                     // rule 1: black screen before from before logo stop to after logo stop
@@ -4774,12 +4781,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     else if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) &&
                              (diffBefore <= 4580) && (lengthBefore >= 600) && (diffAfter <= 3240) && (lengthAfter <= 520)) diffAfter = INT_MAX;
 
-                    // rule 3: very long black before logo stop is closing credits
-                    else if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) &&
-                             (diffBefore <= 10680) && (lengthBefore >= 4480)) diffAfter = INT_MAX;
-
-                    if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && (lengthAfter >= 80)) maxAfter = 4960;
-                    else                                                                                        maxAfter = 1399;
+                    if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT)) maxAfter = 2160;
+                    else                                                                 maxAfter = 1399;
                     break;
                 case MT_HBORDERSTOP:
                     // rule 1: black screen with silence short before hborder stop is end of closing creditsA
@@ -4811,9 +4814,9 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         // rule 4: valid black screen with silence around before
                         else if (silenceBefore && !silenceAfter && (diffBefore <= 6260) && (diffAfter >= 4180)) diffAfter = INT_MAX;
 
-                        if (criteria.GoodVPS(macontext.Info.ChannelName)) maxAfter =  45939;
-                        else if (lengthAfter >= 80)                       maxAfter = 228359;
-                        else                                              maxAfter =   7439;   // black screen in next broadcast after 7440ms
+                        if (criteria.GoodVPS(macontext.Info.ChannelName)) maxAfter =  12779;
+                        else if (lengthAfter >= 80)                       maxAfter = 231480;
+                        else                                              maxAfter =  11560;
                         break;
                     case MT_CLOSINGCREDITSSTOP:
                         maxAfter = 11040;
@@ -4860,8 +4863,13 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     break;
                 case MT_LOGOSTOP:
                     if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) maxBefore =     0;  // never use black screen before fade out logo
-                    else if (lengthBefore >= 4480)                                     maxBefore = 10680;
-                    else                                                               maxBefore =  6519;
+                    else                                                               maxBefore =  5139;
+                    break;
+                case MT_VBORDERSTOP:
+                    maxBefore = 6840;
+                    break;
+                case MT_CHANNELSTOP:
+                    maxBefore = 2040;
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
@@ -4880,9 +4888,6 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     default:
                         maxBefore = -1;
                     }
-                    break;
-                case MT_CHANNELSTOP:
-                    maxBefore = 2040;
                     break;
                 default:
                     maxBefore = -1;
