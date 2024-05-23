@@ -4344,28 +4344,6 @@ void cMarkAdStandalone::MarkadCut() {
 }
 
 
-void cMarkAdStandalone::BorderMarkOptimization() {
-    LogSeparator(false);
-    dsyslog("cMarkAdStandalone::BorderMarkOptimization(): start border mark optimization");
-
-    // first boder start mark can be too early if previous broacast has dark closing credits
-    cMark *mark = marks.GetFirst();
-    if (mark && ((mark->type == MT_VBORDERSTART) || (mark->type == MT_HBORDERSTART))) {
-        cMark *blackMark = blackMarks.GetNext(mark->position, MT_NOBLACKSTART);
-        if (blackMark) {
-            int diffBlack = 1000 * (blackMark->position - mark->position) / macontext.Video.Info.framesPerSecond;
-            dsyslog("cMarkAdStandalone::BorderMarkOptimization(): black screen (%d) %dms after border start mark (%d)", blackMark->position, diffBlack, mark->position);
-            if (diffBlack <= 2600) { // changed from 1520 to 2560 to 2600
-                marks.Move(mark, blackMark->position - 1, MT_NOBLACKSTART);
-                marks.Save(directory, &macontext, false);
-                return;
-            }
-        }
-    }
-    return;
-}
-
-
 // logo mark optimization
 // do it with all mark types, because even with channel marks from a double episode, logo marks can be the only valid end mark type
 // - move logo marks before intrudiction logo
@@ -7505,7 +7483,6 @@ int main(int argc, char *argv[]) {
 
             cmasta->BlackScreenOptimization();   // mark optimization with black scene
             cmasta->SilenceOptimization();       // mark optimization with mute scene
-            cmasta->BorderMarkOptimization();    // vborder and hborder mark optimization (to correct too eary black screen start marks from closing credit of previous recording)
             cmasta->LowerBorderOptimization();   // mark optimization with lower border
             cmasta->SceneChangeOptimization();   // final optimization with scene changes (if we habe nothing else, try this as last resort)
 
