@@ -61,6 +61,7 @@ bool cCriteria::LogoInBorder(const char *channelName) {
     if (!channelName) return false;
 
     if (CompareChannelName(channelName, "arte",           IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "Comedy_Central", IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "NITRO",          IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "ONE_HD",         IGNORE_HD)) return true;
