@@ -988,12 +988,12 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     int diffBlackStopLogoStart  = 1000 * (mark->position       - blackStop->position)  / macontext.Video.Info.framesPerSecond;
                     dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%d)\t%d\tMT_NOBLACKSTOP (%d)\t%d\tMT_NOBLACKSTART (%d)\t%d\tMT_LOGOSTART (%d)\t%d\tMT_LOGOSTOP (%d)", stopBefore->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, mark->position, diffLogoStartLogoStop, stopAfterPosition);
                     // black screen short after end mark of previous broadcast
-                    if ((diffLogoStopBlackStart <= 7040) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 38720)) {
+                    if ((diffLogoStopBlackStart <= 7040) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 38720) && (diffLogoStartLogoStop > 9760)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen sequence is valid");
                         return true;
                     }
                     // black screen short before start mark of broadcast
-                    if ((diffLogoStopBlackStart >= 30040) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 2600)) {
+                    if ((diffLogoStopBlackStart >= 30040) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 2600) && (diffLogoStartLogoStop > 27440)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen sequence is valid");
                         return true;
                     }
@@ -1053,6 +1053,7 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
         }
 
         // check squence MT_LOGOSTOP ->  MT_NOBLACKSTOP -> MT_LOGOSTART (mark) -> MT_NOBLACKSTART
+        // black screen around logo start mark
         blackStop = blackMarks.GetNext(mark->position, MT_NOBLACKSTART);
         if (blackStop) {
             cMark *blackStart = blackMarks.GetPrev(blackStop->position, MT_NOBLACKSTOP);
@@ -1066,9 +1067,10 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
 // valid example
 // MT_LOGOSTOP (16022)-> 79080ms -> MT_NOBLACKSTOP (19976) ->   40ms -> MT_LOGOSTART (19978) ->  440ms -> MT_NOBLACKSTART (20000)
 // MT_LOGOSTOP ( 7582)->   720ms -> MT_NOBLACKSTOP ( 7600) -> 2800ms -> MT_LOGOSTART ( 7670) -> 1880ms -> MT_NOBLACKSTART ( 7717) long black opening credits, fade in logo  (TELE 5)
+// MT_LOGOSTOP ( 8017)-> 21000ms -> MT_NOBLACKSTOP ( 8542) ->    0ms -> MT_LOGOSTART ( 8542) -> 2920ms -> MT_NOBLACKSTART ( 8615) -> Comedy Central
                     if ((diffLogoStopBlackStart  >= 0) && (diffLogoStopBlackStart  <= 79080) &&
                             (diffBlackStartLogoStart >= 0) && (diffBlackStartLogoStart <= 2800) &&
-                            (diffLogoStartBlackStop  >= 0) && (diffLogoStartBlackStop  <= 1880)) {
+                            (diffLogoStartBlackStop  >= 0) && (diffLogoStartBlackStop  <= 2920)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen sequence is valid");
                         return true;
                     }
