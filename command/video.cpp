@@ -883,9 +883,14 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 #define QUOTE_NO_TRUST        0.75 // at least this quote of matches we should have
 #define AREA_INTENSITY_TRUST    54 // we trust detection, use higher invisable value
 #define QUOTE_TRUST              2 // uplift factor for logo invisable threshold
-    if (processed == 1) {   // we have only 1 plane (no coloured logo
+    // in dark scene we can use stronger detection
+    // don't miss logo invisable for:
+    // - down shiftet logo in add (Pro7_MAXX), will only work on dark background
+    // - part of logo in black screen as stop mark instead of no logo (Comedy_Central)
+    if (area.intensity <= AREA_INTENSITY_TRUST) logo_imark *= QUOTE_TRUST;
 
-        if (area.intensity <= AREA_INTENSITY_TRUST) logo_imark *= QUOTE_TRUST;  // in dark scene we can use stronger detection, don't miss logo invisable for down shiftet logo in add (Pro7_MAXX)
+    // we have only 1 plane (no coloured logo)
+    if (processed == 1) {
         // prevent to detect logo start on very bright background, this is not possible
         if ((area.status == LOGO_INVISIBLE) && (rPixel > (mPixel * logo_vmark)) && area.intensity >= 218) {  // possible state change from invisible to visible
 #ifdef DEBUG_LOGO_DETECTION
