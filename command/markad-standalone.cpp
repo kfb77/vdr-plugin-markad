@@ -1877,7 +1877,6 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     cMark *begin = NULL;
 
     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): search for logo start mark");
-    RemoveLogoChangeMarks();
 
     // cleanup invalid logo start marks
     cMark *lStart = marks.GetFirst();
@@ -2489,6 +2488,8 @@ void cMarkAdStandalone::CheckStart() {
         }
         macontext.Video.Info.frameDarkOpeningCredits = 0; // reset state for long dark opening credits of next braodcast
     }
+
+    RemoveLogoChangeMarks(); // cleanup invalid logo marks, done before border check because we use logo marks to correct border marks
 
 // horizontal border start
     if (!begin) begin = Check_HBORDERSTART();
