@@ -1607,7 +1607,32 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
 //
 void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason only known and tested channels
     LogSeparator(true);
-    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start mark pairs with special logo");
+    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start mark and pairs with special logo");
+
+    // channel has logo interruption in broadcast
+    if (criteria.LogoInterruption(macontext.Info.ChannelName)) {
+        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): channel has logo interruption in broadcast, delete all short logo stop/start pairs");
+        cMark *mark = marks.GetFirst();
+        while (mark) {
+            if (mark->type == MT_LOGOSTOP) {
+                cMark *nextMark = mark->Next();
+                if (nextMark && (nextMark->type == MT_LOGOSTART)) {
+                    int diff = 1000 * (nextMark->position - mark->position) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): MT_LOGOSTOP (%5d) -> %5dms -> MT_LOGOSTART (%5d)", mark->position, diff, nextMark->position);
+                    if (diff <= 759) {  // valid stop/start pait with 760ms
+                        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): delete MT_LOGOSTOP (%5d) and MT_LOGOSTART (%5d)", mark->position, nextMark->position);
+                        cMark *markTMP = nextMark->Next();
+                        marks.Del(mark->position);
+                        marks.Del(nextMark->position);
+                        mark = markTMP;
+                        continue;
+                    }
+                }
+            }
+            mark = mark->Next();
+        }
+        return;
+    }
 
     if (!evaluateLogoStopStartPair) {
         evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair();
