@@ -834,7 +834,7 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, sRecordi
     for (cTimer *Timer = Timers.First(); Timer; Timer = Timers.Next(Timer))
 #endif
         {
-            if (Timer->Recording()) {
+            if (Timer->Recording() && Timer->Local()) {
                 dsyslog("markad: cStatusMarkAd::GetEventID(): timer recording: %s", Timer->File());
                 if (Timer->File() && (strcmp(Name, Timer->File()) == 0)) {
                     if (abs(Timer->StartTime() - time(NULL)) < timeDiff) {  // maybe we have two timer the same file name, take the nearest start time
