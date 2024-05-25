@@ -462,47 +462,45 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
     }
 
     // try to select best logo end mark based on closing credits follow
-    if (evaluateLogoStopStartPair) {
-        LogSeparator(false);
-        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for best logo end mark based on closing credits after logo stop");
-        // search from nearest logo stop mark to end
-        cMark *lEnd = lEndAssumed;
-        while (!end && lEnd) {
-            int diffAssumed = (lEnd->position - iStopA) / macontext.Video.Info.framesPerSecond;
-            if (diffAssumed >= 0) {
-                int status = evaluateLogoStopStartPair->GetIsClosingCreditsAfter(lEnd->position);
-                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d): %ds after assumed stop (%d), closing credits status %d", lEnd->position, diffAssumed, iStopA, status);
-                if (diffAssumed > MAX_ASSUMED) break;
-                if (status == STATUS_YES) {
-                    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d) closing credits follow, valid end mark found", lEnd->position);
-                    end = lEnd;
-                }
+    LogSeparator(false);
+    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for best logo end mark based on closing credits after logo stop");
+    // search from nearest logo stop mark to end
+    cMark *lEnd = lEndAssumed;
+    while (!end && lEnd) {
+        int diffAssumed = (lEnd->position - iStopA) / macontext.Video.Info.framesPerSecond;
+        if (diffAssumed >= 0) {
+            int status = evaluateLogoStopStartPair->GetIsClosingCreditsAfter(lEnd->position);
+            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d): %ds after assumed stop (%d), closing credits status %d", lEnd->position, diffAssumed, iStopA, status);
+            if (diffAssumed > MAX_ASSUMED) break;
+            if (status == STATUS_YES) {
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d) closing credits follow, valid end mark found", lEnd->position);
+                end = lEnd;
             }
-            lEnd = marks.GetNext(lEnd->position, MT_LOGOSTOP);
         }
-        // search before nearest logo stop mark
-        lEnd = lEndAssumed;
-        while (!end) {
-            if (!lEnd) break;
-            int diffAssumed = (iStopA - lEnd->position) / macontext.Video.Info.framesPerSecond;
-            if (diffAssumed > 0) {
-                int status = evaluateLogoStopStartPair->GetIsClosingCreditsAfter(lEnd->position);
-                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d): %ds before assumed stop (%d), closing credits status %d", lEnd->position, diffAssumed, iStopA, status);
-                if (diffAssumed > MAX_ASSUMED) break;
-                if (status == STATUS_YES) {
-                    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d) closing credits follow, valid end mark found", lEnd->position);
-                    end = lEnd;
-                }
+        lEnd = marks.GetNext(lEnd->position, MT_LOGOSTOP);
+    }
+    // search before nearest logo stop mark
+    lEnd = lEndAssumed;
+    while (!end) {
+        if (!lEnd) break;
+        int diffAssumed = (iStopA - lEnd->position) / macontext.Video.Info.framesPerSecond;
+        if (diffAssumed > 0) {
+            int status = evaluateLogoStopStartPair->GetIsClosingCreditsAfter(lEnd->position);
+            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d): %ds before assumed stop (%d), closing credits status %d", lEnd->position, diffAssumed, iStopA, status);
+            if (diffAssumed > MAX_ASSUMED) break;
+            if (status == STATUS_YES) {
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): stop mark (%d) closing credits follow, valid end mark found", lEnd->position);
+                end = lEnd;
             }
-            lEnd = marks.GetPrev(lEnd->position, MT_LOGOSTOP);
         }
+        lEnd = marks.GetPrev(lEnd->position, MT_LOGOSTOP);
     }
 
     // try to select best logo end mark based on long black screen or silence
     LogSeparator(false);
     dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for logo end mark based black screen, silence or closing logo sequence separator");
     // search from nearest logo stop mark to end
-    cMark *lEnd = lEndAssumed;
+    lEnd = lEndAssumed;
     while (!end && lEnd) {
         int diffAssumed = (lEnd->position - iStopA) / macontext.Video.Info.framesPerSecond;
         LogSeparator(false);
@@ -1634,10 +1632,6 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
         return;
     }
 
-    if (!evaluateLogoStopStartPair) {
-        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair();
-        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
-    }
     evaluateLogoStopStartPair->CheckLogoStopStartPairs(&macontext, &marks, &blackMarks, iStart, chkSTART, iStopA);
 
     char *indexToHMSFStop      = NULL;
@@ -1946,7 +1940,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check for logo start mark based on closing credits from previous broadcast");
     // prevent to detect ad in frame from previous broadcast as closing credits
-    if (evaluateLogoStopStartPair && !evaluateLogoStopStartPair->AdInFrameWithLogoChannel(macontext.Info.ChannelName)) {
+    if (!evaluateLogoStopStartPair->AdInFrameWithLogoChannel(macontext.Info.ChannelName)) {
         // search from nearest logo start mark to end, first mark can be before iStartA
         lStart = lStartAssumed;
         while (!begin && lStart) {
@@ -4470,7 +4464,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 }
                 if (adInFrameEndPosition >= 0) {
                     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", markLogo->position, adInFrameEndPosition);
-                    if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->IncludesInfoLogo(markLogo->position, adInFrameEndPosition))) {
+                    if (evaluateLogoStopStartPair->IncludesInfoLogo(markLogo->position, adInFrameEndPosition)) {
                         dsyslog("cMarkAdStandalone::LogoMarkOptimization(): deleted info logo part in this range, this could not be a advertising in frame");
                         adInFrameEndPosition = -1;
                     }
@@ -4529,7 +4523,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 ptr_cDecoder->DecodeDir(directory);
             }
             // detect frames
-            if (evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsAdInFrame(markLogo->position) >= STATUS_UNKNOWN) && (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position))) {
+            if ((evaluateLogoStopStartPair->GetIsAdInFrame(markLogo->position) >= STATUS_UNKNOWN) && (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position))) {
                 int newStopPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(false);
                 if (newStopPosition >= 0) {
                     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", newStopPosition, markLogo->position);
@@ -5680,9 +5674,6 @@ void cMarkAdStandalone::ProcessOverlap() {
     if (duplicate) return;
     if (!ptr_cDecoder) return;
     if ((length == 0) || (startTime == 0)) {  // no recording length or start time from info file
-        FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
-        delete evaluateLogoStopStartPair;
-        evaluateLogoStopStartPair = NULL;
         return;
     }
     if (time(NULL) < (startTime+(time_t) length)) return;  // we are running during recording and has not reached end of recording
@@ -5740,10 +5731,6 @@ void cMarkAdStandalone::ProcessOverlap() {
     // check last stop mark if closing credits follows
     LogSeparator(false);
     dsyslog("cMarkAdStandalone::ProcessOverlap(): check last stop mark for advertisement in frame with logo or closing credits");
-    if (!evaluateLogoStopStartPair) {  // not set if we have no logo marks at all
-        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair();
-        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
-    }
     cMark *lastStop = marks.GetLast();
     if (lastStop) {
         // check end mark
@@ -5766,9 +5753,6 @@ void cMarkAdStandalone::ProcessOverlap() {
             }
         }
     }
-    FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
-    delete evaluateLogoStopStartPair;
-    evaluateLogoStopStartPair = NULL;
 
     if (save) marks.Save(directory, &macontext, false);
     dsyslog("cMarkAdStandalone::ProcessOverlap(): end");
@@ -6674,8 +6658,13 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     if (!abortNow) {
         video = new cMarkAdVideo(&macontext, &criteria, recordingIndex);
         ALLOC(sizeof(*video), "video");
+
         audio = new cMarkAdAudio(&macontext, recordingIndex);
         ALLOC(sizeof(*audio), "audio");
+
+        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair();
+        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+
         if (macontext.Info.ChannelName) isyslog("channel: %s", macontext.Info.ChannelName);
     }
 
@@ -6685,6 +6674,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
 cMarkAdStandalone::~cMarkAdStandalone() {
     if (!abortNow) marks.Save(directory, &macontext, true);
+
     if ((!abortNow) && (!duplicate)) {
         LogSeparator();
 
@@ -6818,7 +6808,6 @@ cMarkAdStandalone::~cMarkAdStandalone() {
     if (evaluateLogoStopStartPair) {
         FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
         delete evaluateLogoStopStartPair;
-        evaluateLogoStopStartPair = NULL;
     }
 
     RemovePidfile();

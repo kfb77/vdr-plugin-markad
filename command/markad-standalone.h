@@ -57,6 +57,7 @@ public:
         video                     = NULL;
         audio                     = NULL;
         osd                       = NULL;
+        evaluateLogoStopStartPair = NULL;
         duplicate                 = origin.duplicate,
         isREEL                    = origin.isREEL;
         MaxFiles                  = origin.MaxFiles;
@@ -69,7 +70,6 @@ public:
         chkSTOP                   = origin.chkSTOP;
         inBroadCast               = origin.inBroadCast;
         indexFile                 = origin.indexFile;
-        evaluateLogoStopStartPair = origin.evaluateLogoStopStartPair;
         ptr_cDecoderLogoChange    = origin.ptr_cDecoderLogoChange;
         iStopinBroadCast          = origin.iStopinBroadCast;
         endMarkPos                = origin.endMarkPos;
