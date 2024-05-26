@@ -669,9 +669,9 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
 
 
 // detect short logo stop/start before final end mark or after final start mark
-// they can be undetected info logos, introduction logos or text previews over the logo (e.g. SAT.1)
-// only called if we are sure this is the correct logo end mark (closing credit detected or separator detected)
-// prevent to later move end mark/start mark to previous/after logo mark from undetected logo change
+// they can be logo detection failure, undetected info logos, introduction logos or text previews over the logo (e.g. SAT.1)
+// only called if we are sure this is the correct logo start/end mark by closing credit detected or separator detected
+// prevent to later move end mark/start mark to previous/after logo mark from invalid logo stop/start pairs
 void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *mark) {
     if (!mark) return;
     if (mark->type == MT_LOGOSTART) { // cleanup logo
@@ -683,12 +683,13 @@ void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *mark) {
             int deltaStop = 1000 * (nextLogoStop->position  - mark->position)         / macontext.Video.Info.framesPerSecond;
             int adLength  = 1000 * (nextLogoStart->position - nextLogoStop->position) / macontext.Video.Info.framesPerSecond;
             dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): MT_LOGOSTART (%5d) -> %6dms -> MT_LOGOSTOP (%5d) -> %6dms -> MT_LOGOSTART (%5d)", mark->position, deltaStop, nextLogoStop->position, adLength, nextLogoStart->position);
-            // valid example
+            // example of invald logo stop/start pairs in start part
             // MT_LOGOSTART ( 5343) ->  33280ms -> MT_LOGOSTOP ( 6175) ->   1240ms -> MT_LOGOSTART ( 6206)
             // MT_LOGOSTART ( 5439) ->  33320ms -> MT_LOGOSTOP ( 6272) ->   1120ms -> MT_LOGOSTART ( 6300)
             // MT_LOGOSTART ( 5439) ->  41040ms -> MT_LOGOSTOP ( 6465) ->    400ms -> MT_LOGOSTART ( 6475)
-            if ((deltaStop <= 41040) && (adLength <= 6240)) {
-                dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): undetected info logo from (%d) to (%d), delete marks", nextLogoStop->position, nextLogoStart->position);
+            // MT_LOGOSTART (13421) ->  55220ms -> MT_LOGOSTOP (16182) ->    900ms -> MT_LOGOSTART (16227)  -> arte HD, logo detection failure
+            if ((deltaStop <= 55220) && (adLength <= 6240)) {
+                dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): logo detection failure or undetected info logo from (%d) to (%d), delete marks", nextLogoStop->position, nextLogoStart->position);
                 marks.Del(nextLogoStop->position);
                 marks.Del(nextLogoStart->position);
             }
