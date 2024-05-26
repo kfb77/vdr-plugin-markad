@@ -2662,32 +2662,67 @@ void cMarkAdStandalone::CheckStart() {
 void cMarkAdStandalone::CheckStartMark() {
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckStartMark(): check for short start/stop pairs at start");
-    DebugMarks();                   //  only for debugging
-    cMark *mark = marks.GetFirst(); // this is the start mark
-    if (mark) {
-        cMark *markStop = marks.GetNext(mark->position, MT_STOP, 0x0F);
-        if (markStop) {
-            int minFirstBroadcast = 60;                              // more trust strong marks
-            if (mark->type <= MT_LOGOSTART) minFirstBroadcast = 106; // changed from 77 to 80 to 106
-            int lengthFirstBroadcast = (markStop->position - mark->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
-            dsyslog("cMarkAdStandalone::CheckStartMark(): first broadcast length %ds from (%d) to (%d) (expect <=%ds)", lengthFirstBroadcast, mark->position, markStop->position, minFirstBroadcast);
-            cMark *markStart = marks.GetNext(markStop->position, MT_START, 0x0F);
-            if (markStart) {
-                int lengthFirstAd = 1000 * (markStart->position - markStop->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
-                dsyslog("cMarkAdStandalone::CheckStartMark(): first advertising length %dms from (%d) to (%d)", lengthFirstAd, markStop->position, markStart->position);
-                if (lengthFirstAd <= 1000) {
-                    dsyslog("cMarkAdStandalone::CheckStartMark(): very short first advertising, this can be a logo detection failure");
+    DebugMarks();
+    cMark *startMark = marks.GetFirst(); // this is the start mark
+    if (startMark) {
+        // check logo start mark
+        if (startMark->type == MT_LOGOSTART) {
+            dsyslog("cMarkAdStandalone::CheckStartMark(): final logo start mark selection");
+            cMark *logoStop1  = marks.GetNext(startMark->position, MT_LOGOSTOP);
+            if (logoStop1) {
+                cMark *logoStart2 = marks.GetNext(logoStop1->position, MT_LOGOSTART);
+                if (logoStart2) {
+                    cMark *logoStop2 = marks.GetNext(logoStart2->position, MT_LOGOSTOP);
+                    if (logoStop2) {
+                        int lengthBroadcast1    = (logoStop1->position  - startMark->position)  / macontext.Video.Info.framesPerSecond;
+                        int lengthAd            = (logoStart2->position - logoStop1->position)  / macontext.Video.Info.framesPerSecond;
+                        int lengthBroadcast2    = (logoStop2->position  - logoStart2->position) / macontext.Video.Info.framesPerSecond;
+                        int newDiffAfterAssumed = (logoStart2->position - iStart)               / macontext.Video.Info.framesPerSecond;
+                        dsyslog("cMarkAdStandalone::CheckMarks(): MT_LOGOSTART (%4d) -> %4ds -> MT_LOGOSTOP (%4d) -> %4ds ->  MT_LOGOSTART (%4d) (%4ds after assumed) -> %4ds -> MT_LOGOSTOP (%4d)",  startMark->position, lengthBroadcast1,  logoStop1->position, lengthAd, logoStart2->position, newDiffAfterAssumed, lengthBroadcast2, logoStop2->position);
+// example of valid logo start mark
+// MT_LOGOSTART (7115) -> 82s -> MT_LOGOSTOP (9169) ->  0s ->  MT_LOGOSTART (9188) (66s after assumed) ->    10s -> MT_LOGOSTOP (9458) -> Comedy Central, preview direct after stop
+//
+// example of invalid logo start mark
+// MT_LOGOSTART (2944) -> 25s -> MT_LOGOSTOP (3584) -> 50s ->  MT_LOGOSTART (4848) (193s after assumed) -> 1213s -> MT_LOGOSTOP (35173) -> sixx, start of preview before broadcast
+                        if ((lengthBroadcast1 <= 105)  && (lengthAd <= 50) &&
+                                (lengthBroadcast2 >= 1213) &&   // if second broadcast part is very long, this maybe the valid first part
+                                (newDiffAfterAssumed <= 387)) {
+                            dsyslog("cMarkAdStandalone::CheckMarks(): current start mark invalid, delete start (%d) and stop (%d) mark", startMark->position, logoStop1->position);
+                            marks.Del(startMark->position);
+                            marks.Del(logoStop1->position);
+                        }
+                    }
                 }
-                else {
-                    if (lengthFirstBroadcast < minFirstBroadcast) {
-                        dsyslog("cMarkAdStandalone::CheckStartMark(): too short STOP/START/STOP sequence at start, delete first pair");
-                        marks.Del(mark->position);
-                        marks.Del(markStop->position);
+            }
+        }
+        else {
+            // check non logo start mark
+            dsyslog("cMarkAdStandalone::CheckStartMark(): final start mark selection");
+            cMark *markStop = marks.GetNext(startMark->position, MT_STOP, 0x0F);
+            if (markStop) {
+                int minFirstBroadcast = 60;                              // more trust strong marks
+                if (startMark->type < MT_LOGOSTART) minFirstBroadcast = 106;  // changed from 77 to 80 to 106
+                int lengthFirstBroadcast = (markStop->position - startMark->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
+                dsyslog("cMarkAdStandalone::CheckStartMark(): first broadcast length %ds from (%d) to (%d) (expect <=%ds)", lengthFirstBroadcast, startMark->position, markStop->position, minFirstBroadcast);
+                cMark *markStart = marks.GetNext(markStop->position, MT_START, 0x0F);
+                if (markStart) {
+                    int lengthFirstAd = 1000 * (markStart->position - markStop->position) / macontext.Video.Info.framesPerSecond; // length of the first broadcast part
+                    dsyslog("cMarkAdStandalone::CheckStartMark(): first advertising length %dms from (%d) to (%d)", lengthFirstAd, markStop->position, markStart->position);
+                    if (lengthFirstAd <= 1000) {
+                        dsyslog("cMarkAdStandalone::CheckStartMark(): very short first advertising, this can be a logo detection failure");
+                    }
+                    else {
+                        if (lengthFirstBroadcast < minFirstBroadcast) {
+                            dsyslog("cMarkAdStandalone::CheckStartMark(): too short STOP/START/STOP sequence at start, delete first pair");
+                            marks.Del(startMark->position);
+                            marks.Del(markStop->position);
+                        }
                     }
                 }
             }
         }
     }
+    return;
 }
 
 
@@ -3122,42 +3157,6 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
 // check for short start/stop pairs at the start part
     CheckStartMark();
 
-// check for short stop/start logo pair at start part in case of late recording start, ad between broadcasts are short, ad in broadcast are long
-// example invalid current logo start mark
-// first pair:  start ( 4795), stop ( 7444), length  105s, length ad after 24s
-// second pair: start ( 8066), stop (42550), length 1379s, 322s after assumed start
-//
-// first pair:  start ( 1587), stop ( 4212), length  105s, length ad after 28s
-// second pair: start ( 4912), stop (37267), length 1294s, 196s after assumed start
-//
-// first pair:  start ( 1933), stop ( 4559), length  105s, length ad after 30s
-// second pair: start ( 5330), stop (53354), length 1920s, 213s after assumed start
-    LogSeparator();
-    dsyslog("cMarkAdStandalone::CheckMarks(): final logo start mark selection");
-    DebugMarks();     //  only for debugging
-    cMark *logoStart1 = marks.GetNext(-1, MT_LOGOSTART);
-    if (logoStart1) {
-        cMark *logoStop1  = marks.GetNext(logoStart1->position, MT_LOGOSTOP);
-        if (logoStop1) {
-            cMark *logoStart2 = marks.GetNext(logoStop1->position, MT_LOGOSTART);
-            if (logoStart2) {
-                cMark *allStop2 = marks.GetNext(logoStart2->position, MT_STOP, 0x0F);
-                if (allStop2) {
-                    int lengthBroadcast1    = (logoStop1->position  - logoStart1->position) / macontext.Video.Info.framesPerSecond;
-                    int lengthAd            = (logoStart2->position - logoStop1->position)  / macontext.Video.Info.framesPerSecond;
-                    int lengthBroadcast2    = (allStop2->position   - logoStart2->position) / macontext.Video.Info.framesPerSecond;
-                    int newDiffAfterAssumed = (logoStart2->position - iStart)               / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckMarks(): first pair:  start (%5d), stop (%5d), length %4ds, length ad after %ds", logoStart1->position, logoStop1->position, lengthBroadcast1, lengthAd);
-                    dsyslog("cMarkAdStandalone::CheckMarks(): second pair: start (%5d), stop (%5d), length %4ds, %ds after assumed start", logoStart2->position, allStop2->position, lengthBroadcast2, newDiffAfterAssumed);
-                    if ((lengthBroadcast1 <= 105)  && (lengthAd <= 30) && (lengthBroadcast2 >= 1294) && (newDiffAfterAssumed <= 387)) {
-                        dsyslog("cMarkAdStandalone::CheckMarks(): current start mark invalid, delete start (%d) and stop (%d) mark", logoStart1->position, logoStop1->position);
-                        marks.Del(logoStart1->position);
-                        marks.Del(logoStop1->position);
-                    }
-                }
-            }
-        }
-    }
 
 // if we have a VPS events, move start and stop mark to VPS event
     LogSeparator();
