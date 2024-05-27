@@ -57,8 +57,14 @@ void cMarkAdAudio::AddMark(int type, int position, const int channelsBefore, con
 
 bool cMarkAdAudio::ChannelChange(int channelsBefore, int channelsAfter) {
     if ((channelsBefore == 0) || (channelsAfter == 0)) return false;  // no channel count information
-    if ((channelsBefore != 2) && (channelsBefore != 6)) return false; // invalid channel count, maybe malformed audio packet
-    if ((channelsAfter  != 2) && (channelsAfter  != 6)) return false; // invalid channel count, maybe malformed audio packet
+    if ((channelsBefore != 2) && (channelsBefore != 6)) {  // invalid status of channel count
+        dsyslog("cMarkAdAudio::ChannelChange(): invald status of channel count: %d", channelsBefore);
+        return false;
+    }
+    if ((channelsAfter  != 2) && (channelsAfter  != 6)) { // invalid channel count in stream, maybe malformed audio packet
+        dsyslog("cMarkAdAudio::ChannelChange(): ignoring unexpected channel count %d in audio stream", channelsAfter);
+        return false;
+    }
     if (channelsBefore != channelsAfter) return true;
     return false;
 }
@@ -130,8 +136,11 @@ sMarkAdMarks *cMarkAdAudio::Process(const int frameNumber) {
 
     // check channel change
     for (short int stream = 0; stream < MAXSTREAMS; stream++) {
-        if ((macontext->Audio.Info.Channels[stream] != 0) && (channels[stream] == 0)) dsyslog("cMarkAdAudio::ChannelChange(): new audio stream %d start at frame (%d)", stream, macontext->Audio.Info.channelChangeFrame);
-        if (ChannelChange(macontext->Audio.Info.Channels[stream], channels[stream])) {
+        if (((macontext->Audio.Info.Channels[stream] == 2) || (macontext->Audio.Info.Channels[stream] == 6)) && (channels[stream] == 0)) {
+            channels[stream] = macontext->Audio.Info.Channels[stream];
+            dsyslog("cMarkAdAudio::Process(): audio stream %d start at frame (%d) with %d channels", stream, macontext->Audio.Info.channelChangeFrame, channels[stream]);
+        }
+        if (ChannelChange(channels[stream], macontext->Audio.Info.Channels[stream])) {
             if (macontext->Audio.Info.Channels[stream] > 2) {  // channel start
                 int markFrame = recordingIndexAudio->GetVideoFrameToPTS(macontext->Audio.Info.channelChangePTS, false); // get video frame with pts after channel change
                 if (markFrame < 0) {
@@ -156,8 +165,8 @@ sMarkAdMarks *cMarkAdAudio::Process(const int frameNumber) {
                 }
                 AddMark(MT_CHANNELSTOP, markFrame, channels[stream], macontext->Audio.Info.Channels[stream]);
             }
+            channels[stream] = macontext->Audio.Info.Channels[stream];   // ignore invalid channel changes
         }
-        channels[stream] = macontext->Audio.Info.Channels[stream];
     }
 
     // return list of new marks
