@@ -153,7 +153,7 @@ bool cExtractLogo::Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_ac
                 if (ptr_actLogoInfo->sobel[plane][i] == 0) black++;
             }
             if (plane > 0) {
-                if (black <= 194) {  // increased from 140 to 194
+                if (black <= 230) {  // increased from 194 to 230 (N24 DOKU)
                     dsyslog("cExtractLogo::Save(): not enough pixel (%i) in plane %i", black, plane);
                     continue;
                 }
