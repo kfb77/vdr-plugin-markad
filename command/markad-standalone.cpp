@@ -3029,21 +3029,14 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
 // preview example
 // tbd
 // no preview example
+//                         broadcast before                  ad before                           broadcast                          short ad                           broadcast after
+// MT_LOGOSTART (40485) -> 940800s -> MT_LOGOSTOP (64005) -> 612600s -> [MT_LOGOSTART (79320) -> 79800ms -> MT_LOGOSTOP (81315)] -> 12000ms -> MT_LOGOSTART (81615) -> 1365600ms -> MT_STOP (115755)
+//
 //                          broadcast                           short ad                            broadcast                            short logo interruption           ad in frame with logo
 // MT_LOGOSTART (149051) -> 1899920s -> MT_LOGOSTOP (196549) -> 11440s -> [MT_LOGOSTART (196835) -> 132360ms -> MT_LOGOSTOP (200144)] -> 200ms -> MT_LOGOSTART (200149) -> 19960ms -> MT_LOGOSTOP (200648)
 
         if ((lengthAdBefore >= 800) || (lengthAdAfter >= 360)) {  // check if we have ad before or after preview. if not it is a logo detection failure
-            // before changed from 1400 to 1360 to 800 to 360
-            // after changed from 3200 to 2160 to 1560 to 800
-            if (((lengthAdBefore >= 120) && (lengthAdBefore <= 585000) && (lengthAdAfter >= 200)) || // if advertising before is long this is the next start mark
-                    // previews can be at start of advertising (e.g. DMAX)
-                    // before min changed from 920 to 520 to 200 to 120
-                    // before max changed from 500000 to 560000 to 585000
-                    // found very short logo invisible betweewn broascast
-                    // and first preview
-                    // after min changed from 840 to 560 to 520 to 200
-                    ((lengthAdBefore >= 354200) && (lengthAdAfter >= 80))) {   // accept very short logo interuption after long ad
-                // this is between last preview and broadcast start
+            if (((lengthAdBefore >= 120) && (lengthAdBefore <= 585000) && (lengthAdAfter >= 200))) { // if advertising before is long this is the next start mark
                 if (lengthPreview < 132360) {
                     // check if this logo stop and next logo start are closing credits, in this case stop mark is valid
                     bool isNextClosingCredits = evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCreditsAfter(startAfter->position) == STATUS_YES);
