@@ -1266,10 +1266,14 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {  // special ca
         if (!start2After) return false;
         int diffMarkStop1After        = 1000 * (stop1After->position  - mark->position)       / macontext.Video.Info.framesPerSecond;
         int diffStop1AfterStart2After = 1000 * (start2After->position - stop1After->position) / macontext.Video.Info.framesPerSecond;
-        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTART (%5d) -> %dms -> MT_LOGOSTOP (%5d) -> %dms -> MT_LOGOSTART (%5d)", mark->position, diffMarkStop1After, stop1After->position, diffStop1AfterStart2After, start2After->position);
+        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTART (%5d) -> %4dms -> MT_LOGOSTOP (%5d) -> %4dms -> MT_LOGOSTART (%5d)", mark->position, diffMarkStop1After, stop1After->position, diffStop1AfterStart2After, start2After->position);
         // valid example
-        // MT_LOGOSTART ( 5439) -> 5920ms -> MT_LOGOSTOP ( 5587) -> 1120ms -> MT_LOGOSTART ( 5615)
-        if ((diffMarkStop1After <= 5920) && (diffStop1AfterStart2After <= 1120)) {
+        // MT_LOGOSTART ( 5439) -> 5920ms -> MT_LOGOSTOP ( 5587) -> 1120ms -> MT_LOGOSTART ( 5615) -> kabel eins
+        //
+        // invald example
+        // MT_LOGOSTART ( 3833) ->  480ms -> MT_LOGOSTOP ( 3845) ->  480ms  -> MT_LOGOSTART ( 3857) -> DMAX
+        if ((diffMarkStop1After > 480) && (diffMarkStop1After <= 5920) &&
+                (diffStop1AfterStart2After > 480) && (diffStop1AfterStart2After <= 1120)) {
             dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): found opening info logo sequence");
             return true;
         }
@@ -1289,12 +1293,12 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {  // special ca
         int diffStop1Start1 = 1000 * (start1Before->position - stop1Before->position)  / macontext.Video.Info.framesPerSecond;
         int diffStart2Stop1 = 1000 * (stop1Before->position  - start2Before->position) / macontext.Video.Info.framesPerSecond;
         int diffStop2Start2 = 1000 * (start2Before->position - stop2Before->position)  / macontext.Video.Info.framesPerSecond;
-        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTOP (%5d) %dms MT_LOGOSTART (%5d) %dms MT_LOGOSTOP (%5d) %dms MT_LOGOSTART (%5d) %dms MT_LOGOSTOP (%5d)", stop2Before->position, diffStop2Start2, start2Before->position, diffStart2Stop1, stop1Before->position, diffStop1Start1, start1Before->position, diffStart1Mark, mark->position);
+        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTOP (%5d) -> %dms -> MT_LOGOSTART (%5d) -> %dms -> MT_LOGOSTOP (%5d) -> %dms -> MT_LOGOSTART (%5d) -> %dms -> MT_LOGOSTOP (%5d)", stop2Before->position, diffStop2Start2, start2Before->position, diffStart2Stop1, stop1Before->position, diffStop1Start1, start1Before->position, diffStart1Mark, mark->position);
         // valid examples
         // MT_LOGOSTOP (185315) 1080ms MT_LOGOSTART (185342)  8160ms MT_LOGOSTOP (185546) 840ms MT_LOGOSTART (185567)  18880ms MT_LOGOSTOP (186039)
         //
         // invalid example
-        // MT_LOGOSTOP (29039)   240ms MT_LOGOSTART (29045) 742640ms MT_LOGOSTOP  (47611) 200ms MT_LOGOSTART  (47616) 769200ms MT_LOGOSTOP (66846)
+        // MT_LOGOSTART ( 3833) -> 480ms -> MT_LOGOSTOP ( 3845) -> 480ms -> MT_LOGOSTART ( 3857)
         if ((diffStop2Start2 <=  1080) &&                                   // change from logo to closing logo
                 (diffStart2Stop1 >=  8160) && (diffStart2Stop1 <= 10000) && // closing logo deteted as logo
                 (diffStop1Start1 <=   840) &&                               // change from closing logo to logo
