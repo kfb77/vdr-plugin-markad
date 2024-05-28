@@ -1224,7 +1224,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     int staticQuote = 0;
     if (infoLogo.frameCountFinal > 0) staticQuote = 1000 * infoLogo.staticCountFinal / infoLogo.frameCountFinal;
     dsyslog("cDetectLogoStopStart::IsInfoLogo(): static picture quote %d", staticQuote);
-#define MAX_STATIC_QUOTE 990
+#define MAX_STATIC_QUOTE 991   // changed from 990 to 991
     if (staticQuote >= MAX_STATIC_QUOTE) found = false;
 
     // check if "no logo" corner has same matches as logo corner, in this case it must be a static scene (e.g. static preview picture in frame or adult warning) and no info logo
