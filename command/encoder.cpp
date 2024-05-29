@@ -1099,7 +1099,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
             avFrameOut = av_frame_alloc();
             if (!avFrameOut) {
                 dsyslog("cDecoder::WritePacket(): av_frame_alloc for avFrameOut ailed");
-                return NULL;
+                return false;
             }
             ALLOC(sizeof(*avFrameOut), "avFrameOut");
             if (!ReSampleAudio(avFrame, avFrameOut, streamIndexOut)) {
