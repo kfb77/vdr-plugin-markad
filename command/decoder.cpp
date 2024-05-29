@@ -27,11 +27,9 @@ void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_lis
             dsyslog("AVlog(): error in vasprintf");
             return;
         }
-#ifdef DEBUG_MEM
-        int length = strlen(logMsg) + 1;
-        ALLOC(length, "logMsg");
-#endif
-        if (logMsg[strlen(logMsg) - 1] == '\n') logMsg[strlen(logMsg) - 1] = 0;
+        int length = strlen(logMsg);
+        ALLOC(length + 1, "logMsg");
+        if (logMsg[length - 1] == '\n') logMsg[length - 1] = 0;
 
         if ((strcmp(logMsg, "co located POCs unavailable") == 0) || // this will happen with h.264 coding because of partial decoding
                 (strcmp(logMsg, "mmco: unref short failure") == 0) ||
@@ -39,9 +37,7 @@ void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_lis
             tsyslog("AVlog(): %s", logMsg);
         }
         else dsyslog("AVlog(): %s", logMsg);
-#ifdef DEBUG_MEM
-        FREE(length, "logMsg");
-#endif
+        FREE(length + 1, "logMsg");
         free(logMsg);
     }
     return;
