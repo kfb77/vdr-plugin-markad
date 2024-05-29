@@ -37,11 +37,11 @@ cMark::cMark(const int typeParam, const int oldTypeParam, const int newTypeParam
         comment = strdup(commentParam);
         ALLOC(strlen(comment)+1, "comment");
     }
-    else comment = NULL;
+    else comment = nullptr;
 
-    prev          = NULL;
-    next          = NULL;
-    timeOffsetPTS = NULL;
+    prev          = nullptr;
+    next          = nullptr;
+    timeOffsetPTS = nullptr;
     secOffsetPTS  = -1;
 }
 
@@ -84,7 +84,7 @@ char *cMark::GetTime() {
 
 cMarks::cMarks() {
     strcpy(filename, "marks");
-    first = last = NULL;
+    first = last = nullptr;
     count = 0;
 }
 
@@ -218,8 +218,8 @@ void cMarks::DelAll() {
         Del(mark);
         mark=next;
     }
-    first = NULL;
-    last = NULL;
+    first = nullptr;
+    last = nullptr;
 }
 
 
@@ -273,10 +273,10 @@ void cMarks::Del(cMark *mark) {
         // we are the first mark
         first = mark->Next();
         if (first) {
-            first->SetPrev(NULL);
+            first->SetPrev(nullptr);
         }
         else {
-            last = NULL;
+            last = nullptr;
         }
     }
     else {
@@ -287,7 +287,7 @@ void cMarks::Del(cMark *mark) {
         }
         else {
             // we are the last
-            mark->Prev()->SetNext(NULL);
+            mark->Prev()->SetNext(nullptr);
             last=mark->Prev();
         }
     }
@@ -303,7 +303,7 @@ cMark *cMarks::First() {
 
 
 cMark *cMarks::Get(const int position) {
-    if (!first) return NULL; // no elements yet
+    if (!first) return nullptr; // no elements yet
 
     cMark *mark = first;
     while (mark) {
@@ -320,35 +320,35 @@ cMark *cMarks::GetAround(const int frames, const int position, const int type, c
 
     cMark *m1 = GetPrev(position, type, mask);
     cMark *m2 = GetNext(position, type, mask);
-    if (!m1 && !m2) return NULL;
+    if (!m1 && !m2) return nullptr;
 
     if (!m1 && m2) {
-        if (abs(position - m2->position) > frames) return NULL;
+        if (abs(position - m2->position) > frames) return nullptr;
         else return m2;
     }
     if (m1 && !m2) {
-        if (abs(position - m1->position) > frames) return NULL;
+        if (abs(position - m1->position) > frames) return nullptr;
         return m1;
     }
     if (m1 && m2) {
         if (abs(m1->position - position) > abs(m2->position - position)) {
-            if (abs(position - m2->position) > frames) return NULL;
+            if (abs(position - m2->position) > frames) return nullptr;
             else return m2;
         }
         else {
-            if (abs(position - m1->position) > frames) return NULL;
+            if (abs(position - m1->position) > frames) return nullptr;
             return m1;
         }
     }
     else {
         dsyslog("cMarks::GetAround(): invalid marks found");
-        return NULL;
+        return nullptr;
     }
 }
 
 
 cMark *cMarks::GetPrev(const int position, const int type, const int mask) {
-    if (!first) return NULL; // no elements yet
+    if (!first) return nullptr; // no elements yet
 
     // first advance
     cMark *mark = first;
@@ -373,7 +373,7 @@ cMark *cMarks::GetPrev(const int position, const int type, const int mask) {
 
 
 cMark *cMarks::GetNext(const int position, const int type, const int mask) {
-    if (!first) return NULL; // no elements yet
+    if (!first) return nullptr; // no elements yet
     cMark *mark = first;
     while (mark) {
         if (type == 0xFF) {
@@ -385,7 +385,7 @@ cMark *cMarks::GetNext(const int position, const int type, const int mask) {
         mark = mark->Next();
     }
     if (mark) return mark;
-    return NULL;
+    return nullptr;
 }
 
 
@@ -400,7 +400,7 @@ cMark *cMarks::Add(const int type, const int oldType, const int newType, const i
         if (type == dupMark->type) return dupMark;      // same type at same position, ignore add
         if ((type & 0xF0) == (dupMark->type & 0xF0)) {  // start and stop mark of same type at same position, delete both
             Del(dupMark->position);
-            return NULL;
+            return nullptr;
         }
         if (type > dupMark->type) {  // keep the stronger mark
             if (dupMark->comment && comment) {
@@ -418,7 +418,7 @@ cMark *cMarks::Add(const int type, const int oldType, const int newType, const i
     }
 
     cMark *newMark = new cMark(type, oldType, newType, position, comment, inBroadCast);
-    if (!newMark) return NULL;
+    if (!newMark) return nullptr;
     ALLOC(sizeof(*newMark), "mark");
 
     if (!first) {
@@ -433,7 +433,7 @@ cMark *cMarks::Add(const int type, const int oldType, const int newType, const i
             if (!mark->Next()) {
                 if (position > mark->position) {
                     // add as last element
-                    newMark->Set(mark, NULL);
+                    newMark->Set(mark, nullptr);
                     mark->SetNext(newMark);
                     last = newMark;
                     break;
@@ -442,7 +442,7 @@ cMark *cMarks::Add(const int type, const int oldType, const int newType, const i
                     // add before
                     if (!mark->Prev()) {
                         // add as first element
-                        newMark->Set(NULL, mark);
+                        newMark->Set(nullptr, mark);
                         mark->SetPrev(newMark);
                         first = newMark;
                         break;
@@ -474,11 +474,11 @@ cMark *cMarks::Add(const int type, const int oldType, const int newType, const i
             }
             mark = mark->Next();
         }
-        if (!mark)return NULL;
+        if (!mark)return nullptr;
         count++;
         return newMark;
     }
-    return NULL;
+    return nullptr;
 }
 
 
@@ -486,7 +486,7 @@ cMark *cMarks::Add(const int type, const int oldType, const int newType, const i
 // return pointer to text, calling function has to free memory
 //
 char *cMarks::TypeToText(const int type) {
-    char *text = NULL;
+    char *text = nullptr;
     switch (type & 0xFF0) {
     case MT_UNDEFINED:
         if (asprintf(&text, "undefined") != -1) {
@@ -624,11 +624,11 @@ char *cMarks::TypeToText(const int type) {
 
 
 cMark *cMarks::ChangeType(cMark *mark, const int newType) {
-    if (!mark) return NULL;
-    if ((newType != MT_START) && (newType != MT_STOP)) return NULL;
+    if (!mark) return nullptr;
+    if ((newType != MT_START) && (newType != MT_STOP)) return nullptr;
     mark->type = MT_TYPECHANGE | newType;
-    char *comment = NULL;
-    if (asprintf(&comment,"%s used as %s mark",mark->comment, (newType == MT_START)? "START" : "STOP") == -1) return NULL;
+    char *comment = nullptr;
+    if (asprintf(&comment,"%s used as %s mark",mark->comment, (newType == MT_START)? "START" : "STOP") == -1) return nullptr;
     ALLOC(strlen(comment)+1, "comment");
 
     FREE(strlen(mark->comment)+1, "comment");
@@ -642,36 +642,36 @@ cMark *cMarks::ChangeType(cMark *mark, const int newType) {
 // return pointer to new mark
 //
 cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType) {
-    if (!mark) return NULL;
+    if (!mark) return nullptr;
     // check if old and new type is valid
     if ((mark->type & 0x0F) != (newType & 0x0F)) {
         esyslog("cMarks::Move(): old mark (%d) type 0x%X and new mark (%d) type 0x%X is invalid", mark->position, mark->type, newPosition, newType);
-        return NULL;
+        return nullptr;
     }
     // prevent move to position on with a mark exists with different base type (START/STOP)
     const cMark *checkPos = Get(newPosition);
     if (checkPos && ((checkPos->type & 0x0F) != (newType & 0x0F))) {  // will result in invalid sequence
         esyslog("cMarks::Move(): move failed, mark with different type exists on new position (%d) type 0x%X, new type 0x%X", newPosition, checkPos->type, newType);
-        return NULL;
+        return nullptr;
     }
     // prevent invalid sequence after move
     const cMark *beforeNewPos = GetPrev(newPosition, MT_ALL);
     if (beforeNewPos && (beforeNewPos->position == mark->position)) beforeNewPos = GetPrev(mark->position, MT_ALL);
     if (beforeNewPos && ((beforeNewPos->type & 0x0F) == (newType & 0x0F))) {
         esyslog("cMarks::Move(): move to (%d) will result in invalid sequence, mark before (%d) has same type", newPosition, beforeNewPos->position);
-        return NULL;
+        return nullptr;
     }
     const cMark *afterNewPos = GetNext(newPosition, MT_ALL);
     if (afterNewPos && (afterNewPos->position == mark->position)) afterNewPos = GetNext(mark->position, MT_ALL);
     if (afterNewPos && ((afterNewPos->type & 0x0F) == (newType & 0x0F))) {
         esyslog("cMarks::Move(): move to (%d) will result in invalid sequence, mark after (%d) has same type", newPosition, afterNewPos->position);
-        return NULL;
+        return nullptr;
     }
 
     // delete old mark, add new mark
-    char *comment = NULL;
+    char *comment = nullptr;
     const char *indexToHMSF = GetTime(mark);
-    cMark *newMark = NULL;
+    cMark *newMark = nullptr;
     char* typeText = TypeToText(newType);
 
     if (indexToHMSF && typeText) {
@@ -707,9 +707,9 @@ void cMarks::RegisterIndex(cIndex *recordingIndex) {
 char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR, int *offsetSeconds) {
     if (!recordingIndexMarks) {
         esyslog("cMarks::IndexToHMSF(): frame (%d): recording index not set", frameNumber);
-        return NULL;
+        return nullptr;
     }
-    char *indexToHMSF = NULL;
+    char *indexToHMSF = nullptr;
     double Seconds = 0;
     int f = 0;
     int time_ms = recordingIndexMarks->GetTimeFromFrame(frameNumber, isVDR);
@@ -719,14 +719,14 @@ char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR, int *offsetSe
     if (time_ms >= 0) f = int(modf(float(time_ms) / 1000, &Seconds) * 100);                 // convert ms to 1/100 s
     else {
         esyslog("cMarks::IndexToHMSF(): failed to get time from frame (%d)", frameNumber);
-        return NULL;
+        return nullptr;
     }
     int s = int(Seconds);
     if (offsetSeconds) *offsetSeconds = s;
     int m = s / 60 % 60;
     int h = s / 3600;
     s %= 60;
-    if (asprintf(&indexToHMSF, "%d:%02d:%02d.%02d", h, m, s, f) == -1) return NULL;  // memory debug managed by calling function
+    if (asprintf(&indexToHMSF, "%d:%02d:%02d.%02d", h, m, s, f) == -1) return nullptr;  // memory debug managed by calling function
     return indexToHMSF;
 }
 
@@ -737,7 +737,7 @@ char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR, int *offsetSe
  * @return char array of time stamp with format HH:MM:SS.FF
  */
 char *cMarks::GetTime(cMark *mark) {
-    if (!mark) return NULL;
+    if (!mark) return nullptr;
     char *timeChar = mark->GetTime();
     if (!timeChar) {
         int timeSec = -1;
@@ -753,12 +753,12 @@ char *cMarks::GetTime(cMark *mark) {
 
 
 bool cMarks::Backup(const char *directory) {
-    char *fpath = NULL;
+    char *fpath = nullptr;
     if (asprintf(&fpath, "%s/%s", directory, filename) == -1) return false;
     ALLOC(strlen(fpath)+1, "fpath");
 
     // make backup of old marks, filename convention taken from noad
-    char *bpath = NULL;
+    char *bpath = nullptr;
     if (asprintf(&bpath, "%s/%s0", directory, filename) == -1) {
         FREE(strlen(fpath)+1, "fpath");
         free(fpath);
@@ -782,7 +782,7 @@ int cMarks::Length() const {
     }
     int length = 0;
     cMark *startMark = first;
-    cMark *stopMark  = NULL;
+    cMark *stopMark  = nullptr;
     while (startMark) {
         if ((startMark->type & 0x0F) == MT_START) {
             stopMark = startMark->Next();
@@ -815,7 +815,7 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
     }
     dsyslog("cMarks::Save(): save marks, isRunningRecording=%d force=%d", maContext->Info.isRunningRecording, force);
 
-    char *fpath = NULL;
+    char *fpath = nullptr;
     if (asprintf(&fpath, "%s/%s", directory, filename) == -1) return false;
     ALLOC(strlen(fpath)+1, "fpath");
 
@@ -860,7 +860,7 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
 
     if (geteuid() == 0) {
         // if we are root, set fileowner to owner of 001.vdr/00001.ts file
-        char *spath = NULL;
+        char *spath = nullptr;
         if (asprintf(&spath, "%s/00001.ts", directory) != -1) {
             ALLOC(strlen(spath)+1, "spath");
             struct stat statbuf;

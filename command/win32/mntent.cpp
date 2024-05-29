@@ -43,7 +43,7 @@ time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
     int mlen;
     int oldmlen = 0;
     bool useatime = false;
-    while ((ent = getmntent(mounts)) != NULL) {
+    while ((ent = getmntent(mounts)) != nullptr) {
         if (strstr(directory, ent->mnt_dir)) {
             mlen = strlen(ent->mnt_dir);
             if (mlen > oldmlen) {

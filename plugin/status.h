@@ -27,14 +27,14 @@ enum eVpsLog {
 class cEpgEventLog;
 
 struct sRecording {
-    char        *title             = NULL;
-    char        *fileName          = NULL;
+    char        *title             = nullptr;
+    char        *fileName          = nullptr;
     pid_t        pid               = 0;
     char         status            = 0;
     bool         changedByUser     = false;
     bool         ignoreEIT         = false;
     // event
-    char        *eventTitle        = NULL;
+    char        *eventTitle        = nullptr;
     tEventID     eventID           = 0;
     tEventID     eventNextID       = 0;
     tEventID     eitEventID        = 0;
@@ -47,7 +47,7 @@ struct sRecording {
     time_t       timerStopTime     = 0;
     bool         timerVPS          = false;
     tChannelID   timerChannelID    = tChannelID::InvalidID;
-    char        *timerChannelName  = NULL;
+    char        *timerChannelName  = nullptr;
     // VPS
     int          runningStatus     = 0;
     time_t       recStart          = 0;
@@ -65,16 +65,16 @@ public:
     explicit cEpgEventLog(const char *recDir);
     ~cEpgEventLog();
     cEpgEventLog(const cEpgEventLog &origin) {   //  copy constructor, not used, only for formal reason
-        eventLogFile = NULL;
+        eventLogFile = nullptr;
     };
     cEpgEventLog &operator =(const cEpgEventLog *origin) {   // operator=, not used, only for formal reason
-        eventLogFile = NULL;
+        eventLogFile = nullptr;
         return *this;
     };
     void LogState(const int severity, const sRecording *recording, const int newState, const char* action);
     void LogEvent(const int severity, const char *title, char *eventLog);
 private:
-    FILE *eventLogFile = NULL;
+    FILE *eventLogFile = nullptr;
 };
 
 
@@ -86,8 +86,8 @@ class cStatusMarkAd : public cStatus {
 private:
     struct sRecording recs[MAXDEVICES*MAXRECEIVERS];
     int             max_recs = -1;
-    const char      *bindir  = NULL;
-    const char      *logodir = NULL;
+    const char      *bindir  = nullptr;
+    const char      *logodir = nullptr;
     int             actpos   = 0;
     struct          setup *setup;
     int             runningRecordings = 0;
@@ -95,7 +95,7 @@ private:
     bool getPid(int Position);
     bool getStatus(int Position);
     bool Replaying();
-    int Get(const char *FileName, const char *Name = NULL);
+    int Get(const char *FileName, const char *Name = nullptr);
     int Add(const char *Name, const char *FileName, sRecording *recording);
     void Remove(int pos, bool Kill = false);
     void Remove(const char *Name, bool Kill = false);
@@ -106,7 +106,7 @@ private:
     void SaveVPSTimer(const char *FileName, const bool timerVPS);
     void SaveVPSEvents(const int index);
     bool StoreVPSStatus(const char *status, const int index);
-    cEpgHandlerMarkad *epgHandlerMarkad = NULL;
+    cEpgHandlerMarkad *epgHandlerMarkad = nullptr;
 protected:
     virtual void Recording(const cDevice *Device, const char *Name, const char *FileName, bool On);
     virtual void Replaying(const cControl *Control, const char *Name, const char *FileName, bool On);
@@ -138,7 +138,7 @@ public:
     virtual bool HandleEitEvent(cSchedule *Schedule, const SI::EIT::Event *EitEvent, uchar TableID, uchar Version);
     virtual bool HandleEvent(cEvent *Event);
 private:
-    cStatusMarkAd *StatusMarkAd = NULL;
+    cStatusMarkAd *StatusMarkAd = nullptr;
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 };
 #endif

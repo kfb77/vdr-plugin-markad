@@ -87,13 +87,13 @@ enum {
  * corner area after sobel transformation
  */
 typedef struct sAreaT {
-    uchar **sobel      = NULL;       //!< monochrome picture from edge after sobel transformation, memory will be allocated after we know video resolution
+    uchar **sobel      = nullptr;       //!< monochrome picture from edge after sobel transformation, memory will be allocated after we know video resolution
     //!<
 
-    uchar **mask       = NULL;       //!< monochrome mask of logo, memory will be allocated after we know video resolution
+    uchar **mask       = nullptr;       //!< monochrome mask of logo, memory will be allocated after we know video resolution
     //!<
 
-    uchar **result     = NULL;       //!< result of sobel + mask, memory will be allocated after we know video resolution
+    uchar **result     = nullptr;       //!< result of sobel + mask, memory will be allocated after we know video resolution
     //!<
 
     int rPixel[PLANES];              //!< black pixel in result
@@ -229,7 +229,7 @@ private:
         //!<
     } sHistBuffer;
 
-    sMarkAdContext *maContext = NULL;  //!< markad context
+    sMarkAdContext *maContext = nullptr;  //!< markad context
 
     sHistBuffer *histbuf[2];           //!< simple frame histogram with frame number
     //!<
@@ -356,7 +356,7 @@ private:
      * @param frameNumber frame number
      * @param picture save picture
      * @param plane number
-     * @param debug = NULL: save was called by --extract function, != NULL: save was called by debug statements, add debug identifier to filename
+     * @param debug = nullptr: save was called by --extract function, != nullptr: save was called by debug statements, add debug identifier to filename
      * return: true if successful, false otherwise
      */
     bool Save(const int frameNumber, uchar **picture, const short int plane, const char *debug);
@@ -381,7 +381,7 @@ private:
         BOTTOM_RIGHT
     };
 
-    cIndex *recordingIndexMarkAdLogo  = NULL;  //!< recording index
+    cIndex *recordingIndexMarkAdLogo  = nullptr;  //!< recording index
     //!<
     int logoHeight                    = 0;     //!< logo height
     //!<
@@ -393,9 +393,9 @@ private:
     //!<
     int GY[3][3];                              //!< GY Sobel mask
     //!<
-    sMarkAdContext *maContext         = NULL;  //!< markad context
+    sMarkAdContext *maContext         = nullptr;  //!< markad context
     //!<
-    cCriteria *criteria               = NULL;  //!< pointer to class with decoding states and criteria
+    cCriteria *criteria               = nullptr;  //!< pointer to class with decoding states and criteria
     //!<
     bool pixfmt_info                  = false; //!< true if unknown pixel error message was logged, false otherwise
     //!<
@@ -436,11 +436,11 @@ public:
     int Process(const int currentFrameNumber, int *changeFrameNumber);
 
 private:
-    sMarkAdContext *maContext = NULL;                  //!< markad context
+    sMarkAdContext *maContext = nullptr;                  //!< markad context
     //!<
     int prevFrameNumber       = -1;                    //!< previous frame number
     //!<
-    int *prevHistogram        = NULL;                  //!< histogram of previous frame
+    int *prevHistogram        = nullptr;                  //!< histogram of previous frame
     //!<
     int sceneStatus           = SCENE_UNINITIALIZED;   //!< status of scene change
     //!<
@@ -483,7 +483,7 @@ private:
     //!<
     int lowerBorderStatus = BLACKSCREEN_UNINITIALIZED; //!< status of lower part black screen detection
     //!<
-    sMarkAdContext *maContext = NULL;                  //!< markad context
+    sMarkAdContext *maContext = nullptr;                  //!< markad context
     //!<
 };
 
@@ -531,9 +531,9 @@ private:
     //!<
     int borderframenumber;            //!< frame number of detected horizontal border
     //!<
-    sMarkAdContext *maContext = NULL; //!< markad context
+    sMarkAdContext *maContext = nullptr; //!< markad context
     //!<
-    cCriteria *criteria       = NULL; //!< pointer to class with decoding states and criteria
+    cCriteria *criteria       = nullptr; //!< pointer to class with decoding states and criteria
     //!<
 };
 
@@ -578,9 +578,9 @@ private:
     //!<
     int darkFrameNumber       = INT_MAX; //!< first vborder frame, but need to check, because of dark picture
     //!<
-    sMarkAdContext *maContext = NULL;    //!< markad context
+    sMarkAdContext *maContext = nullptr;    //!< markad context
     //!<
-    cCriteria *criteria       = NULL;    //!< pointer to class with decoding states and criteria
+    cCriteria *criteria       = nullptr;    //!< pointer to class with decoding states and criteria
     //!<
 #ifdef DEBUG_VBORDER
     int minBrightness         = INT_MAX;
@@ -609,13 +609,13 @@ public:
      */
     cMarkAdVideo(const cMarkAdVideo &origin) {
         maContext                 = origin.maContext;
-        blackScreen               = NULL;
-        hborder                   = NULL;
-        vborder                   = NULL;
-        logo                      = NULL;
-        criteria                  = NULL;
-        recordingIndexMarkAdVideo = NULL;
-        sceneChange               = NULL;
+        blackScreen               = nullptr;
+        hborder                   = nullptr;
+        vborder                   = nullptr;
+        logo                      = nullptr;
+        criteria                  = nullptr;
+        recordingIndexMarkAdVideo = nullptr;
+        sceneChange               = nullptr;
         aspectRatioBeforeFrame    = 0;
     };
 
@@ -625,14 +625,14 @@ public:
     cMarkAdVideo &operator =(const cMarkAdVideo *origin) {
         maContext                 = origin->maContext;
         criteria                  = origin->criteria;
-        sceneChange               = NULL;
-        blackScreen               = NULL;
-        hborder                   = NULL;
-        vborder                   = NULL;
-        logo                      = NULL;
+        sceneChange               = nullptr;
+        blackScreen               = nullptr;
+        hborder                   = nullptr;
+        vborder                   = nullptr;
+        logo                      = nullptr;
         aspectRatio               = {};
         aspectRatioBeforeFrame    = 0;
-        recordingIndexMarkAdVideo = NULL;
+        recordingIndexMarkAdVideo = nullptr;
         videoMarks                = {};
         return *this;
     }
@@ -678,7 +678,7 @@ private:
      * @param after    video aspect ratio after mark position
      * @return true if free position in new mark array found, false otherwise
      */
-    bool AddMark(int type, int position, const sAspectRatio *before = NULL, const sAspectRatio *after = NULL);
+    bool AddMark(int type, int position, const sAspectRatio *before = nullptr, const sAspectRatio *after = nullptr);
 
     /**
      * check if video aspect ratio changes between the two aspect ratios
@@ -688,25 +688,25 @@ private:
      */
     static bool AspectRatioChange(const sAspectRatio &AspectRatioA, const sAspectRatio &AspectRatioB);
 
-    sMarkAdContext *maContext         = NULL; //!< markad context
+    sMarkAdContext *maContext         = nullptr; //!< markad context
     //!<
-    cCriteria *criteria               = NULL; //!< pointer to class for marks and decoding criteria
+    cCriteria *criteria               = nullptr; //!< pointer to class for marks and decoding criteria
     //!<
-    cIndex *recordingIndexMarkAdVideo = NULL; //!< recording index
+    cIndex *recordingIndexMarkAdVideo = nullptr; //!< recording index
     //!<
     sMarkAdMarks videoMarks           = {};   //!< array of marks to add to list
     //!<
     sAspectRatio aspectRatio;                 //!< video display aspect ratio (DAR)
     //!<
-    cMarkAdSceneChange *sceneChange   = NULL; //!< pointer to class cMarkAdsceneChange
+    cMarkAdSceneChange *sceneChange   = nullptr; //!< pointer to class cMarkAdsceneChange
     //!<
-    cMarkAdBlackScreen *blackScreen   = NULL; //!< pointer to class cMarkAdBlackScreen
+    cMarkAdBlackScreen *blackScreen   = nullptr; //!< pointer to class cMarkAdBlackScreen
     //!<
-    cMarkAdBlackBordersHoriz *hborder = NULL; //!< pointer to class cMarkAdBlackBordersHoriz
+    cMarkAdBlackBordersHoriz *hborder = nullptr; //!< pointer to class cMarkAdBlackBordersHoriz
     //!<
-    cMarkAdBlackBordersVert *vborder  = NULL; //!< pointer to class cMarkAdBlackBordersVert
+    cMarkAdBlackBordersVert *vborder  = nullptr; //!< pointer to class cMarkAdBlackBordersVert
     //!<
-    cMarkAdLogo *logo                 = NULL; //!< pointer to class cMarkAdLogo
+    cMarkAdLogo *logo                 = nullptr; //!< pointer to class cMarkAdLogo
     //!<
     int aspectRatioBeforeFrame        = 0;    //!< last frame number before aspect ratio change, needed for stop mark
     //!<

@@ -21,7 +21,7 @@
 
 
 cOSDMessage::cOSDMessage(const char *hostName, int portNumber) {
-    msg  = NULL;
+    msg  = nullptr;
     host = strdup(hostName);
     ALLOC(strlen(host)+1, "host");
     port = portNumber;
@@ -30,7 +30,7 @@ cOSDMessage::cOSDMessage(const char *hostName, int portNumber) {
 
 
 cOSDMessage::~cOSDMessage() {
-    if (tid) pthread_join(tid, NULL);
+    if (tid) pthread_join(tid, nullptr);
     if (msg) {
         FREE(strlen(msg)+1, "msg");
         free(msg);
@@ -47,7 +47,7 @@ bool cOSDMessage::ReadReply(int fd, char **reply) {
     char c = ' ';
     int repsize = 0;
     int msgsize = 0;
-    if (reply) *reply = NULL;
+    if (reply) *reply = nullptr;
     do {
         struct pollfd fds;
         fds.fd = fd;
@@ -65,7 +65,7 @@ bool cOSDMessage::ReadReply(int fd, char **reply) {
                 char *tmp = static_cast<char *>(realloc(*reply, repsize));
                 if (!tmp) {
                     free(*reply);
-                    *reply = NULL;
+                    *reply = nullptr;
                     return false;
                 }
                 else {
@@ -87,7 +87,7 @@ void *cOSDMessage::SendMessage(void *posd) {
     const struct hostent *host = gethostbyname(osd->host);
     if (!host) {
         osd->tid = 0;
-        return NULL;
+        return nullptr;
     }
 
     struct sockaddr_in name;
@@ -98,18 +98,18 @@ void *cOSDMessage::SendMessage(void *posd) {
 
     int sock;
     sock=socket(PF_INET, SOCK_STREAM, 0);
-    if (sock < 0) return NULL;
+    if (sock < 0) return nullptr;
 
     if (connect(sock, reinterpret_cast<struct sockaddr *>(&name), size) != 0 ) {
         close(sock);
-        return NULL;
+        return nullptr;
     }
 
-    char *reply = NULL;
+    char *reply = nullptr;
     if (!osd->ReadReply(sock, &reply)) {
         if (reply) free(reply);
         close(sock);
-        return NULL;
+        return nullptr;
     }
 
     ssize_t ret;
@@ -121,7 +121,7 @@ void *cOSDMessage::SendMessage(void *posd) {
 
         if (!osd->ReadReply(sock) || (ret == (ssize_t) - 1)) {
             close(sock);
-            return NULL;
+            return nullptr;
         }
     }
     else {
@@ -143,12 +143,12 @@ void *cOSDMessage::SendMessage(void *posd) {
     ret=write(sock, "QUIT\r\n", 6);
     if (ret != (ssize_t) - 1) osd->ReadReply(sock);
     close(sock);
-    return NULL;
+    return nullptr;
 }
 
 
 int cOSDMessage::Send(const char *format, ...) {
-    if (tid) pthread_join(tid, NULL);
+    if (tid) pthread_join(tid, nullptr);
     if (msg) free(msg);
     va_list ap;
     va_start(ap, format);
@@ -159,6 +159,6 @@ int cOSDMessage::Send(const char *format, ...) {
     ALLOC(strlen(msg)+1, "msg");
     va_end(ap);
 
-    if (pthread_create(&tid, NULL, reinterpret_cast<void *(*) (void *)>(&SendMessage), reinterpret_cast<void *>(this)) != 0 ) return -1;
+    if (pthread_create(&tid, nullptr, reinterpret_cast<void *(*) (void *)>(&SendMessage), reinterpret_cast<void *>(this)) != 0 ) return -1;
     return 0;
 }

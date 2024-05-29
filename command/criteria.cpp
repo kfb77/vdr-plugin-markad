@@ -268,7 +268,7 @@ void cCriteria::SetClosingCreditsState(const int position, const int state) {
 // return pointer to text, calling function has to free memory
 //
 char *cCriteria::StateToText(const int state) {
-    char *text = NULL;
+    char *text = nullptr;
     switch (state) {
     case CRITERIA_USED:
         if (asprintf(&text, "used") != -1) {

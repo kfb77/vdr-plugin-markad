@@ -74,7 +74,7 @@ private:
     static bool ChannelChange(int channelsBefore, int channelsAfter);
 
 
-    sMarkAdContext *macontext      = NULL;                   //!< markad context
+    sMarkAdContext *macontext      = nullptr;                   //!< markad context
     //!<
     int silenceStatus              = SILENCE_UNINITIALIZED;  //!< status of silence detection
     //!<
@@ -88,7 +88,7 @@ private:
     //!<
     int retry                      = 0;                      //!< retry count to get video frame after first sound PTS
     //!<
-    cIndex *recordingIndexAudio    = NULL;                   //!< recording index
+    cIndex *recordingIndexAudio    = nullptr;                   //!< recording index
     //!<
     short int channels[MAXSTREAMS] = {0};                    //!< count of audio channels per stream
     //!<

@@ -174,6 +174,6 @@ sMarkAdMarks *cMarkAdAudio::Process(const int frameNumber) {
         return &audioMarks;
     }
     else {
-        return NULL;
+        return nullptr;
     }
 }

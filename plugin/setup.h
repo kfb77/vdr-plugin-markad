@@ -29,16 +29,16 @@ struct setup {
     bool Log2Rec;
     bool LogoOnly;
     bool DeferredShutdown;
-    const char *LogoDir    = NULL;
-    char *LogLevel         = NULL;
-    char *aStopOffs        = NULL;
+    const char *LogoDir    = nullptr;
+    char *LogLevel         = nullptr;
+    char *aStopOffs        = nullptr;
     bool cDecoder          = false;
     bool MarkadCut         = false;
     bool ac3ReEncode       = false;
     int autoLogoConf       = -1;
-    int autoLogoMenu      = 2;
+    int autoLogoMenu       = 2;
     bool fulldecode        = false;
-    const char *PluginName = NULL;
+    const char *PluginName = nullptr;
 };
 
 

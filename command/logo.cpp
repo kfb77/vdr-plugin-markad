@@ -126,7 +126,7 @@ bool cExtractLogo::IsLogoColourChange(const sMarkAdContext *maContext, const int
 }
 
 
-bool cExtractLogo::Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber = -1, const char *debugText = NULL) { // framenumber >= 0: save from debug function
+bool cExtractLogo::Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber = -1, const char *debugText = nullptr) { // framenumber >= 0: save from debug function
     if (!maContext) return false;
     if (!ptr_actLogoInfo) return false;
     if ((logoHeight <= 0) || (logoWidth <= 0)) return false;
@@ -140,7 +140,7 @@ bool cExtractLogo::Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_ac
                 continue;
             }
         }
-        char *buf = NULL;
+        char *buf = nullptr;
         int height = logoHeight;
         int width = logoWidth;
         if (plane > 0) {
@@ -178,7 +178,7 @@ bool cExtractLogo::Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_ac
         }
         // Open file
         FILE *pFile=fopen(buf, "wb");
-        if (pFile==NULL)
+        if (pFile==nullptr)
         {
             FREE(sizeof(buf), "buf");
             free(buf);
@@ -721,7 +721,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
 #ifdef DEBUG_LOGO_RESIZE
     // save plane 0 of logo
     int cutStep = 0;
-    char *fileName = NULL;
+    char *fileName = nullptr;
     if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_Before.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep) >= 1) {
         ALLOC(strlen(fileName)+1, "fileName");
         SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
@@ -771,7 +771,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
 #ifdef DEBUG_LOGO_RESIZE
             // save plane 0 of logo
             if (whiteLines > 0) {
-                char *fileName = NULL;
+                char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutBottom%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
@@ -848,7 +848,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
 #ifdef DEBUG_LOGO_RESIZE
             if (whiteLines > 0) {
                 // save plane 0 of logo
-                char *fileName = NULL;
+                char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutTop%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
@@ -920,7 +920,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
 #ifdef DEBUG_LOGO_RESIZE
             // save plane 0 of logo
             if (whiteColumns > 0) {
-                char *fileName = NULL;
+                char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutRight%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
@@ -989,7 +989,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
 #ifdef DEBUG_LOGO_RESIZE
             // save plane 0 of logo
             if (whiteColumns > 0) {
-                char *fileName = NULL;
+                char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutRight%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
@@ -1367,7 +1367,7 @@ bool cExtractLogo::WaitForFrames(sMarkAdContext *maContext, cDecoder *ptr_cDecod
     if ((recordingFrameCount > (ptr_cDecoder->GetFrameNumber() + 200)) && (recordingFrameCount > minFrame)) return true; // we have already found enough frames
 
 #define WAITTIME 60
-    char *indexFile = NULL;
+    char *indexFile = nullptr;
     if (asprintf(&indexFile, "%s/index", maContext->Config->recDir) == -1) {
         dsyslog("cExtractLogo::WaitForFrames: out of memory in asprintf");
         return false;
@@ -1388,7 +1388,7 @@ bool cExtractLogo::WaitForFrames(sMarkAdContext *maContext, cDecoder *ptr_cDecod
             ret = true;  // recording has enough frames
             break;
         }
-        time_t now = time(NULL);
+        time_t now = time(nullptr);
         char systemTime[50] = {0};
         char indexTime[50] = {0};
         strftime(systemTime, sizeof(systemTime), "%d-%m-%Y %H:%M:%S", localtime(&now));
@@ -1526,7 +1526,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int
     bool resetAspectRatio = false;
 
 
-    gettimeofday(&startTime, NULL);
+    gettimeofday(&startTime, nullptr);
     sMarkAdContext maContextSaveState = {};
     maContextSaveState.Video = maContext->Video;     // save state of calling video context
     maContextSaveState.Audio = maContext->Audio;     // save state of calling audio context
@@ -1695,7 +1695,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int
 #if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 0
                         if (corner == DEBUG_LOGO_CORNER) {
                             for (int plane = 0; plane < PLANES; plane++) {
-                                char *fileName = NULL;
+                                char *fileName = nullptr;
                                 if (asprintf(&fileName,"%s/F%07d-P%1d-C%1d_SearchLogo.pgm", maContext->Config->recDir, iFrameNumber, plane, corner) >= 1) {
                                     ALLOC(strlen(fileName)+1, "fileName");
                                     if (plane == 0) SaveSobel(fileName, area->sobel[plane], logoWidth, logoHeight);
@@ -1919,7 +1919,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int
         }
     }
     dsyslog("----------------------------------------------------------------------------");
-    gettimeofday(&stopTime, NULL);
+    gettimeofday(&stopTime, nullptr);
     time_t sec = stopTime.tv_sec - startTime.tv_sec;
     suseconds_t usec = stopTime.tv_usec - startTime.tv_usec;
     if (usec < 0) {

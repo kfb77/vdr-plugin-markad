@@ -273,28 +273,28 @@ public:
     int GetIFrameRangeCount(int beginFrame, int endFrame);
 
 private:
-    cIndex *recordingIndexDecoder = NULL;  //!< recording index
+    cIndex *recordingIndexDecoder = nullptr;  //!< recording index
     //!<
-    char *recordingDir = NULL;             //!< name of recording directory
+    char *recordingDir = nullptr;             //!< name of recording directory
     //!<
     int fileNumber = 0;                    //!< current ts file number
     //!<
     int threadCount = 0;                   //!< thread count of decoder
     //!<
-    AVFormatContext *avctx = NULL;         //!< avformat context
+    AVFormatContext *avctx = nullptr;         //!< avformat context
     //!<
     AVPacket avpkt = {};                   //!< packet
     //!<
-    AVFrame *avFrame = NULL;               //!< frame
+    AVFrame *avFrame = nullptr;               //!< frame
     //!<
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100) // ffmpeg 4.5
-    const AVCodec *codec = NULL;           //!< codec
+    const AVCodec *codec = nullptr;           //!< codec
     //!<
 #else
-    AVCodec *codec = NULL;                 //!< codec
+    AVCodec *codec = nullptr;                 //!< codec
     //!<
 #endif
-    AVCodecContext **codecCtxArray = NULL; //!< codec context per stream
+    AVCodecContext **codecCtxArray = nullptr; //!< codec context per stream
     //!<
     int currFrameNumber            = -1;   //!< current decoded frame number
     //!<

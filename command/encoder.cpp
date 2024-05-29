@@ -25,10 +25,10 @@ bool cAC3VolumeFilter::Init(const AVChannelLayout channel_layout, const enum AVS
 bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFormat sample_fmt, const int sample_rate)
 #endif
 {
-    AVFilterContext *volume_ctx = NULL;
-    const AVFilter  *abuffer = NULL;
-    const AVFilter  *volume = NULL;
-    const AVFilter  *abuffersink = NULL;
+    AVFilterContext *volume_ctx = nullptr;
+    const AVFilter  *abuffer = nullptr;
+    const AVFilter  *volume = nullptr;
+    const AVFilter  *abuffersink = nullptr;
     char ch_layout[64] = {};
     int err = 0;
 
@@ -73,8 +73,8 @@ bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFo
     }, AV_OPT_SEARCH_CHILDREN);
     av_opt_set_int(filterSrc, "sample_rate",    sample_rate, AV_OPT_SEARCH_CHILDREN);
 
-// Now initialize the filter; we pass NULL options, since we have already set all the options above
-    err = avfilter_init_str(filterSrc, NULL);
+// Now initialize the filter; we pass nullptr options, since we have already set all the options above
+    err = avfilter_init_str(filterSrc, nullptr);
     if (err < 0) {
         dsyslog("cAC3VolumeFilter::Init(): Could not initialize the abuffer filter %i", err);
         return false;
@@ -92,7 +92,7 @@ bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFo
         return false;
     }
     av_opt_set(volume_ctx, "volume", AV_STRINGIFY(VOLUME), AV_OPT_SEARCH_CHILDREN);
-    err = avfilter_init_str(volume_ctx, NULL);
+    err = avfilter_init_str(volume_ctx, nullptr);
     if (err < 0) {
         dsyslog("cAC3VolumeFilter::Init(): Could not initialize the volume filter %i", err);
         return false;
@@ -110,7 +110,7 @@ bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFo
         return false;
     }
 // This filter takes no options
-    err = avfilter_init_str(filterSink, NULL);
+    err = avfilter_init_str(filterSink, nullptr);
     if (err < 0) {
         dsyslog("cAC3VolumeFilter::Init(): Could not initialize the abuffersink instance %i", err);
         return false;
@@ -129,7 +129,7 @@ bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFo
     }
 
 // Configure the graph
-    err = avfilter_graph_config(filterGraph, NULL);
+    err = avfilter_graph_config(filterGraph, nullptr);
     if (err < 0) {
         dsyslog("cAC3VolumeFilter::Init(): Error configuring the filter graph %i", err);
         return false;
@@ -200,7 +200,7 @@ void cEncoder::Reset(const int passEncoder) {
     EncoderStatus.frameBefore            = -2;
     EncoderStatus.ptsOutBefore           = -1;
     EncoderStatus.pts_dts_CutOffset      = 0;     // offset from the cut out frames
-    EncoderStatus.pts_dts_CyclicalOffset = NULL;  // offset from pts/dts cyclicle, multiple of 0x200000000
+    EncoderStatus.pts_dts_CyclicalOffset = nullptr;  // offset from pts/dts cyclicle, multiple of 0x200000000
     pass                                 = passEncoder;
 #ifdef DEBUG_CUT
     frameOut = 0;
@@ -213,7 +213,7 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
     if (!ptr_cDecoder) return false;
 
     int ret = 0;
-    char *filename = NULL;
+    char *filename = nullptr;
     char *buffCutName;
 
     ptr_cDecoder->Reset();
@@ -279,10 +279,10 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
     FREE(memsize_buffCutName, "buffCutName");
 #endif
     free(buffCutName);
-    datePart = NULL;
+    datePart = nullptr;
     dsyslog("cEncoder::OpenFile(): write to '%s'", filename);
 
-    avformat_alloc_output_context2(&avctxOut, NULL, NULL, filename);
+    avformat_alloc_output_context2(&avctxOut, nullptr, nullptr, filename);
     if (!avctxOut) {
         dsyslog("cEncoder::OpenFile(): Could not create output context");
         FREE(strlen(filename)+1, "filename");
@@ -301,12 +301,12 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
     }
 
     // find best streams (video should be stream 0)
-    int bestVideoStream = av_find_best_stream(avctxIn, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+    int bestVideoStream = av_find_best_stream(avctxIn, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
     if (bestVideoStream < 0) {
         dsyslog("cEncoder::OpenFile(): failed to find best video stream, rc=%d", bestVideoStream);
         return false;
     }
-    int bestAudioStream = av_find_best_stream(avctxIn, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+    int bestAudioStream = av_find_best_stream(avctxIn, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
     if (bestAudioStream < 0) {
         dsyslog("cEncoder::OpenFile(): failed to find best audio stream, rc=%d", bestAudioStream);
         return false;
@@ -377,7 +377,7 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
     }
     FREE(strlen(filename)+1, "filename");
     free(filename);
-    ret = avformat_write_header(avctxOut, NULL);
+    ret = avformat_write_header(avctxOut, nullptr);
     if (ret < 0) {
         dsyslog("cEncoder::OpenFile(): could not write header");
         return false;
@@ -456,12 +456,12 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
         return false;
     }
     codecCtxArrayOut[streamIndexOut]->thread_count = threadCount;
-    if (avcodec_open2(codecCtxArrayOut[streamIndexOut], codec, NULL) < 0) {
+    if (avcodec_open2(codecCtxArrayOut[streamIndexOut], codec, nullptr) < 0) {
         dsyslog("cEncoder::ChangeEncoderCodec(): avcodec_open2 for output stream %i failed", streamIndexOut);
         dsyslog("cEncoder::ChangeEncoderCodec(): call avcodec_free_context for stream %d", streamIndexOut);
         FREE(sizeof(*codecCtxArrayOut[streamIndexOut]), "codecCtxArrayOut[streamIndex]");
         avcodec_free_context(&codecCtxArrayOut[streamIndexOut]);
-        codecCtxArrayOut[streamIndexOut]=NULL;
+        codecCtxArrayOut[streamIndexOut]=nullptr;
         return false;
     }
     dsyslog("cEncoder::ChangeEncoderCodec(): avcodec_open2 for output stream %i successful", streamIndexOut);
@@ -829,19 +829,19 @@ bool cEncoder::InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, c
     }
 
     codecCtxArrayOut[streamIndexOut]->thread_count = threadCount;
-    if (avcodec_open2(codecCtxArrayOut[streamIndexOut], codec, NULL) < 0) {
+    if (avcodec_open2(codecCtxArrayOut[streamIndexOut], codec, nullptr) < 0) {
         esyslog("cEncoder::InitEncoderCodec(): avcodec_open2 for stream %d failed", streamIndexOut);
         dsyslog("cEncoder::InitEncoderCodec(): call avcodec_free_context for stream %d", streamIndexOut);
         FREE(sizeof(*codecCtxArrayOut[streamIndexOut]), "codecCtxArrayOut[streamIndex]");
         avcodec_free_context(&codecCtxArrayOut[streamIndexOut]);
-        codecCtxArrayOut[streamIndexOut] = NULL;
+        codecCtxArrayOut[streamIndexOut] = nullptr;
     }
     else dsyslog("cEncoder::InitEncoderCodec(): avcodec_open2 for stream %i successful", streamIndexOut);
 
     if (ptr_cDecoder->IsAudioAC3Stream(streamIndexIn) && maContext->Config->ac3ReEncode) {
         dsyslog("cEncoder::InitEncoderCodec(): AC3 input found at stream %i, initialize volume filter for output stream %d", streamIndexIn, streamIndexOut);
         if (ptr_cAC3VolumeFilter[streamIndexOut]) {
-            dsyslog("cEncoder::InitEncoderCodec(): ptr_cAC3VolumeFilter is not NULL for output stream %i", streamIndexOut);
+            dsyslog("cEncoder::InitEncoderCodec(): ptr_cAC3VolumeFilter is not nullptr for output stream %i", streamIndexOut);
             FREE(sizeof(*ptr_cAC3VolumeFilter[streamIndexOut]), "ptr_cAC3VolumeFilter");
             delete ptr_cAC3VolumeFilter[streamIndexOut];
         }
@@ -1094,7 +1094,7 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
         SaveFrame(frameNumber, avFrame);
 #endif
         // resample by libav not supported planar audio
-        AVFrame *avFrameOut = NULL;
+        AVFrame *avFrameOut = nullptr;
         if (ptr_cDecoder->IsAudioPacket() && (codecCtxArrayIn[streamIndexIn]->sample_fmt == AV_SAMPLE_FMT_S16P)) {
             avFrameOut = av_frame_alloc();
             if (!avFrameOut) {
@@ -1124,13 +1124,13 @@ bool cEncoder::WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder) {
 #endif
         // init avpktOut
         avpktOut.size            = 0;
-        avpktOut.data            = NULL;
+        avpktOut.data            = nullptr;
         avpktOut.side_data_elems = 0;
-        avpktOut.side_data       = NULL;
-        avpktOut.buf             = NULL;
+        avpktOut.side_data       = nullptr;
+        avpktOut.buf             = nullptr;
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 12<<8)+100)
-        avpktOut.opaque          = NULL;
-        avpktOut.opaque_ref      = NULL;
+        avpktOut.opaque          = nullptr;
+        avpktOut.opaque_ref      = nullptr;
 #endif
 
         avFrame->pict_type = AV_PICTURE_TYPE_NONE;  // encoder decides picture type
@@ -1292,7 +1292,7 @@ bool cEncoder::CloseFile(__attribute__((unused)) cDecoder *ptr_cDecoder) {  // u
     for (unsigned int streamIndex = 0; streamIndex < avctxOut->nb_streams; streamIndex++) {
         if (codecCtxArrayOut[streamIndex]) {
             if (codecCtxArrayOut[streamIndex]->codec_type == AVMEDIA_TYPE_SUBTITLE) continue; // draining encoder queue of subtitle stream is not valid, no encoding used
-            avcodec_send_frame(codecCtxArrayOut[streamIndex], NULL);  // prevent crash if we have no valid encoder codec context
+            avcodec_send_frame(codecCtxArrayOut[streamIndex], nullptr);  // prevent crash if we have no valid encoder codec context
         }
         else {
             dsyslog("cEncoder::CloseFile(): output codec context of stream %d not valid", streamIndex);
@@ -1306,17 +1306,17 @@ bool cEncoder::CloseFile(__attribute__((unused)) cDecoder *ptr_cDecoder) {  // u
 
         // init avpktOut
         avpktOut.size            = 0;
-        avpktOut.data            = NULL;
+        avpktOut.data            = nullptr;
         avpktOut.side_data_elems = 0;
-        avpktOut.side_data       = NULL;
-        avpktOut.buf             = NULL;
+        avpktOut.side_data       = nullptr;
+        avpktOut.buf             = nullptr;
 
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 12<<8)+100)
-        avpktOut.opaque          = NULL;
-        avpktOut.opaque_ref      = NULL;
+        avpktOut.opaque          = nullptr;
+        avpktOut.opaque_ref      = nullptr;
 #endif
 
-        while(EncodeFrame(ptr_cDecoder, codecCtxArrayOut[streamIndex], NULL, &avpktOut)) {
+        while(EncodeFrame(ptr_cDecoder, codecCtxArrayOut[streamIndex], nullptr, &avpktOut)) {
             avpktOut.stream_index = streamIndex;
             avpktOut.pos = -1;   // byte position in stream unknown
             // write packet
@@ -1397,7 +1397,7 @@ void cEncoder::SaveFrame(const int frame, AVFrame *avFrame) {
         sprintf(szFilename, "/tmp/frame%06dfull_P%d.pgm", frame, plane);
         // Open file
         FILE *pFile = fopen(szFilename, "wb");
-        if (pFile == NULL) {
+        if (pFile == nullptr) {
             dsyslog("cMarkAdStandalone::SaveFrame(): open file %s failed", szFilename);
             return;
         }

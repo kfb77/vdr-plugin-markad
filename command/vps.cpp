@@ -14,7 +14,7 @@
 cVPS::cVPS(const char *directory) {
     if (!directory) return;
 
-    char *fpath = NULL;
+    char *fpath = nullptr;
     if (asprintf(&fpath, "%s/%s", directory, "markad.vps") == -1) return;
     FILE *mf;
     mf = fopen(fpath, "r+");
@@ -25,7 +25,7 @@ cVPS::cVPS(const char *directory) {
     }
     free(fpath);
 
-    char   *line       = NULL;
+    char   *line       = nullptr;
     size_t length      = 0;
     char   typeVPS[16] = "";
     char   timeVPS[21] = "";

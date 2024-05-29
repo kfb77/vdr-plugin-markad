@@ -35,7 +35,7 @@ struct sLogoInfo {
     int hits = 0;            //!< number of similar other logos
     //!<
 
-    uchar **sobel = NULL;    //!< sobel transformed corner picture data
+    uchar **sobel = nullptr;    //!< sobel transformed corner picture data
     //!<
 };
 
@@ -86,7 +86,7 @@ public:
      * @param[out] rate0 match rate of the two logos
      * @return true if logo pair is similar, false otherwise
      */
-    bool CompareLogoPair(const sLogoInfo *logo1, const sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0 = 0, int match12 = 0, int *rate0 = NULL);
+    bool CompareLogoPair(const sLogoInfo *logo1, const sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0 = 0, int match12 = 0, int *rate0 = nullptr);
 
     bool abort = false;  //!< true if program abort is requestet, false otherwise
     //!<
@@ -246,11 +246,11 @@ private:
      */
     int AudioInBroadcast(const sMarkAdContext *maContext, const int iFrameNumber);
 
-    sMarkAdContext *maContextLogoSize = NULL;         //!< markad context
+    sMarkAdContext *maContextLogoSize = nullptr;         //!< markad context
     //!<
-    cCriteria *criteria               = NULL;         //!< detection criteria
+    cCriteria *criteria               = nullptr;         //!< detection criteria
     //!<
-    cIndex *recordingIndexLogo        = NULL;         //!< recording index
+    cIndex *recordingIndexLogo        = nullptr;         //!< recording index
     //!<
     std::vector<sLogoInfo> logoInfoVector[CORNERS];   //!< infos of all proccessed logos
     //!<

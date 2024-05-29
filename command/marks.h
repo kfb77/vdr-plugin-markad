@@ -28,7 +28,7 @@ public:
      * @param commentParam     mark comment
      * @param inBroadCastParam true if mark is in broadcast, false if mark is in advertising
      */
-    explicit cMark(const int typeParam = MT_UNDEFINED, const int oldTypeParam = MT_UNDEFINED, const int newTypeParam = MT_UNDEFINED, const int positionParam = 0, const char *commentParam = NULL, const bool inBroadCastParam = false);
+    explicit cMark(const int typeParam = MT_UNDEFINED, const int oldTypeParam = MT_UNDEFINED, const int newTypeParam = MT_UNDEFINED, const int positionParam = 0, const char *commentParam = nullptr, const bool inBroadCastParam = false);
 
     ~cMark();
 
@@ -76,7 +76,7 @@ public:
 
     /**
      * set PTS based time offset text from mark position
-     * @param time pointer to char array, NULL is valid and clears value
+     * @param time pointer to char array, nullptr is valid and clears value
      * @param offset in seconds from recording start
      */
     void SetTime(char* time, int offset);
@@ -89,7 +89,7 @@ public:
 
     /**
      * get PTS based time offset text from mark position
-     * @return char array of time stamp with format HH:MM:SS.FF, NULL if not set
+     * @return char array of time stamp with format HH:MM:SS.FF, nullptr if not set
      */
     char *GetTime();
 
@@ -102,7 +102,7 @@ public:
     //!<
     int position     = -1;             //!< mark frame position
     //!<
-    char *comment    = NULL;           //!< mark comment
+    char *comment    = nullptr;           //!< mark comment
     //!<
     bool inBroadCast = false;          //!< true if mark is in broadcast, false if mark is in advertising
     //!<
@@ -118,11 +118,11 @@ private:
      */
     cMark &operator=(const cMark &foo);
 
-    cMark *next         = NULL;       //!< next mark
+    cMark *next         = nullptr;       //!< next mark
     //!<
-    cMark *prev         = NULL;       //!< previous mark
+    cMark *prev         = nullptr;       //!< previous mark
     //!<
-    char *timeOffsetPTS = NULL;       //!< time stamp of the mark position
+    char *timeOffsetPTS = nullptr;       //!< time stamp of the mark position
     //!<
     int secOffsetPTS    = -1;         //!< offset in seconds to recording start of the mark position
     //!<
@@ -173,7 +173,7 @@ public:
      * @param inBroadCast true if mark is in broacast, false if mark is in advertising
      * @return ointer to new mark
      */
-    cMark *Add(const int type, const int oldType, const int newType, const int position, const char *comment = NULL, const bool inBroadCast = false);
+    cMark *Add(const int type, const int oldType, const int newType, const int position, const char *comment = nullptr, const bool inBroadCast = false);
 
     /**
      * convert frame number to time string
@@ -182,7 +182,7 @@ public:
      * @param offsetSeconds offset in seconds since recording start
      * @return time string
      */
-    char *IndexToHMSF(const int frameNumber, const bool isVDR, int *offsetSeconds = NULL);
+    char *IndexToHMSF(const int frameNumber, const bool isVDR, int *offsetSeconds = nullptr);
 
     /**
      * get PTS based time offset of mark position
@@ -362,13 +362,13 @@ public:
 
 private:
 
-    cIndex *recordingIndexMarks = NULL;  //!< recording index
+    cIndex *recordingIndexMarks = nullptr;  //!< recording index
     //!<
     char filename[1024]         = {0};   //!< name of marks file (default: marks)
     //!<
-    cMark *first                = NULL;  //!< pointer to first mark
+    cMark *first                = nullptr;  //!< pointer to first mark
     //!<
-    cMark *last                 = NULL;  //!< pointer to last mark
+    cMark *last                 = nullptr;  //!< pointer to last mark
     //!<
     int count                   = 0;     //!< number of current marks
     //!<

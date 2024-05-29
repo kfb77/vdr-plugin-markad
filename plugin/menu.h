@@ -23,10 +23,10 @@ public:
 
 class cMenuMarkAd : public cOsdMenu {
 private:
-    cStatusMarkAd *status = NULL;
+    cStatusMarkAd *status = nullptr;
     void SetHelpText(struct sRecording *Entry);
     bool write();
-    time_t last = time(NULL);;
+    time_t last = time(nullptr);;
     int lastpos = 0;
 public:
     explicit cMenuMarkAd(cStatusMarkAd *Status);

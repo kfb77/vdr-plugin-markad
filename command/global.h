@@ -161,9 +161,9 @@ typedef struct sMarkAdConfig {
     //!<
     int autoLogo = 2;           //!< 0 = off, 1 = deprecated, 2 = on
     //!<
-    const char *cmd    = NULL;  //!< cmd parameter
+    const char *cmd    = nullptr;  //!< cmd parameter
     //!<
-    const char *recDir = NULL;  //!< name of the recording directory
+    const char *recDir = nullptr;  //!< name of the recording directory
     //!<
     bool backupMarks;           //!< <b>true:</b> backup marks file before override <br>
     //!< <b>false:</b> do not backup marks file
@@ -303,7 +303,7 @@ typedef struct sMarkAdContext {
         //!<
 
 
-        char *ChannelName = NULL;  //!< name of the channel
+        char *ChannelName = nullptr;  //!< name of the channel
         //!<
 
         bool timerVPS = false;  //!< <b>true:</b> recording is from a VPS controlled timer <br>

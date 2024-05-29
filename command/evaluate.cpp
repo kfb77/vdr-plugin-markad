@@ -470,7 +470,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     // check blackscreen before stop/start
     // if direct before logo stop is a blackscreen mark stop/start pair, this logo stop is a valid stop mark
     cMark *blackStop  = blackMarks->GetPrev(logoStopStartPair->stopPosition, MT_NOBLACKSTOP);  // stop mark, blackscreen start
-    cMark *blackStart = NULL;
+    cMark *blackStart = nullptr;
     if (blackStop) blackStart = blackMarks->GetNext(blackStop->position, MT_NOBLACKSTART);     // start mark, bleckscreen end
     if (blackStop && blackStart && (logoStopStartPair->stopPosition >= blackStart->position)) {
         int diff = 1000 * (logoStopStartPair->stopPosition - blackStart->position) / framesPerSecond;
@@ -491,7 +491,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     }
     // check blackscreen in between stop/start
     blackStop = blackMarks->GetNext(logoStopStartPair->stopPosition, MT_NOBLACKSTOP);
-    blackStart = NULL;
+    blackStart = nullptr;
     if (blackStop) blackStart = blackMarks->GetNext(blackStop->position, MT_NOBLACKSTART);
     if (blackStop && blackStart && (blackStop->position <= logoStopStartPair->startPosition) && (blackStart->position <= logoStopStartPair->startPosition)) {
         int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;
@@ -504,7 +504,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     }
     // check blackscreen around stop (blackscreen starts before logo stop and ends between logo stop and start)
     blackStop = blackMarks->GetPrev(logoStopStartPair->stopPosition + 1, MT_NOBLACKSTOP);  // blackscreen can stop at the same position as logo stop
-    blackStart = NULL;
+    blackStart = nullptr;
     if (blackStop) blackStart = blackMarks->GetNext(blackStop->position, MT_NOBLACKSTART); // blackscreen can start at the same position as logo stop
     if (blackStop && blackStart && (blackStart->position >= logoStopStartPair->stopPosition) && (blackStart->position <= logoStopStartPair->startPosition)) {
         int diff = 1000 * (blackStart->position - logoStopStartPair->stopPosition) / framesPerSecond;
@@ -519,7 +519,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     }
     // check blackscreen around start blackscreen start between logo stop and logo start and ends after logo start)
     blackStop = blackMarks->GetPrev(logoStopStartPair->startPosition + 1, MT_NOBLACKSTOP);  // blackscreen can stop at the same position as logo stop
-    blackStart = NULL;
+    blackStart = nullptr;
     if (blackStop) blackStart = blackMarks->GetNext(blackStop->position, MT_NOBLACKSTART); // blackscreen can start at the same position as logo stop
     if (blackStop && blackStart && (blackStart->position >= logoStopStartPair->startPosition) && (blackStop->position >= logoStopStartPair->stopPosition)) {
         int diff = 1000 * (blackStart->position - logoStopStartPair->startPosition) / framesPerSecond;
@@ -857,7 +857,7 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
     dsyslog("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
     dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: search for frame", frameNumber, corner);
     // save plane 0 of sobel transformation
-    char *fileName = NULL;
+    char *fileName = nullptr;
     if (asprintf(&fileName,"%s/F__%07d-P0-C%1d.pgm", maContext->Config->recDir, frameNumber, corner) >= 1) {
         ALLOC(strlen(fileName)+1, "fileName");
         SaveSobel(fileName, picture, width, height);
@@ -1027,7 +1027,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
 
 #ifdef DEBUG_MARK_OPTIMIZATION
             // save plane 0 of sobel transformation
-            char *fileName = NULL;
+            char *fileName = nullptr;
             if (asprintf(&fileName,"%s/F__%07d-P0-C%1d.pgm", maContext->Config->recDir, frameNumber, corner) >= 1) {
                 ALLOC(strlen(fileName)+1, "fileName");
                 SaveSobel(fileName, area->sobel[0], logoWidth, logoHeight);

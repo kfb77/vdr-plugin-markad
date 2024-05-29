@@ -23,7 +23,7 @@ bool SaveSobel(const char *fileName, const uchar *picture, const int width, cons
 
     // Open file
     FILE *pFile = fopen(fileName, "wb");
-    if (pFile == NULL) return false;
+    if (pFile == nullptr) return false;
 
     // Write header
     fprintf(pFile, "P5\n%d %d\n255\n", width, height);
@@ -58,7 +58,7 @@ void SaveFrameBuffer(const sMarkAdContext *maContext, const char *fileName) {
     }
     // Open file
     FILE *pFile = fopen(fileName, "wb");
-    if (pFile == NULL) {
+    if (pFile == nullptr) {
         dsyslog("cMarkAdStandalone::SaveFrame(): open file %s failed", fileName);
         return;
     }
@@ -85,8 +85,8 @@ long int memUseMax = 0;
 struct memUse {
     int size = 0;
     int line = 0;
-    char *file = NULL;
-    char *var = NULL;
+    char *file = nullptr;
+    char *var = nullptr;
     int count = 0;
 };
 std::vector<memUse> memUseVector;

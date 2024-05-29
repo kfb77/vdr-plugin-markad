@@ -4,7 +4,7 @@
 #include <windows.h>
 
 bool process_is_elevated(void) {
-  HANDLE h = NULL;
+  HANDLE h = nullptr;
 
   if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &h)) {
      std::cerr << "OpenProcessToken failed with " << GetLastError() << std::endl;

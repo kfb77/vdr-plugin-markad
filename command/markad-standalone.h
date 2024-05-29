@@ -54,10 +54,10 @@ public:
         strcpy(title,origin.title);
         ptitle                    = title;
         directory                 = origin.directory;
-        video                     = NULL;
-        audio                     = NULL;
-        osd                       = NULL;
-        evaluateLogoStopStartPair = NULL;
+        video                     = nullptr;
+        audio                     = nullptr;
+        osd                       = nullptr;
+        evaluateLogoStopStartPair = nullptr;
         duplicate                 = origin.duplicate,
         isREEL                    = origin.isREEL;
         MaxFiles                  = origin.MaxFiles;
@@ -80,7 +80,7 @@ public:
         length                    = origin.length;
         startTime                 = origin.startTime;
         macontext                 = origin.macontext;
-        vps                       = NULL;
+        vps                       = nullptr;
         recordingIndexMark        = origin.recordingIndexMark;
         iFrameBefore              = origin.iFrameBefore;
         iFrameCurrent             = origin.iFrameCurrent;
@@ -96,9 +96,9 @@ public:
         strcpy(title,origin->title);
         ptitle                    = title;
         directory                 = origin->directory;
-        video                     = NULL;
-        audio                     = NULL;
-        osd                       = NULL;
+        video                     = nullptr;
+        audio                     = nullptr;
+        osd                       = nullptr;
         duplicate                 = origin->duplicate,
         isREEL                    = origin->isREEL;
         MaxFiles                  = origin->MaxFiles;
@@ -313,7 +313,7 @@ private:
      * @param path   target path
      * @param suffix fine name suffix
      */
-    void SaveFrame(const int frame, const char *path = NULL, const char *suffix = NULL);
+    void SaveFrame(const int frame, const char *path = nullptr, const char *suffix = nullptr);
 #endif
 
     /**
@@ -412,25 +412,25 @@ private:
     void RemovePidfile();
 
 
-    cMarkAdVideo *video = NULL;                                    //!< detect video marks for current frame
+    cMarkAdVideo *video = nullptr;                                    //!< detect video marks for current frame
     //!<
-    cMarkAdAudio *audio = NULL;                                    //!< detect audio marks for current frame
+    cMarkAdAudio *audio = nullptr;                                    //!< detect audio marks for current frame
     //!<
-    cOSDMessage *osd = NULL;                                       //!< OSD message text
+    cOSDMessage *osd = nullptr;                                       //!< OSD message text
     //!<
     sMarkAdContext macontext = {};                                 //!< markad context
     //!<
     cCriteria criteria;                                           //!< status of possible mark types of the broadcast
     //!<
-    cVPS *vps = NULL;                                              //!< VPS events of the broadast
+    cVPS *vps = nullptr;                                              //!< VPS events of the broadast
     //!<
-    cIndex *recordingIndexMark = NULL;                             //!< pointer to recording index class
+    cIndex *recordingIndexMark = nullptr;                             //!< pointer to recording index class
     //!<
     const char *directory;                                         //!< recording directory
     //!<
     char title[80];                                                //!< recoring title from info file
     //!<
-    char *ptitle = NULL;                                           //!< title of OSD message
+    char *ptitle = nullptr;                                           //!< title of OSD message
     //!<
     bool duplicate = false;                                        //!< true if another markad is running on the same recording
     //!<
@@ -476,7 +476,7 @@ private:
     //!<
     bool inBroadCast = false;                                      //!< true if are we in a broadcast, false if we are in advertising
     //!<
-    char *indexFile = NULL;                                        //!< file name of the VDR index file
+    char *indexFile = nullptr;                                        //!< file name of the VDR index file
     //!<
     int sleepcnt = 0;                                              //!< count of sleeps to wait for new frames when decode during recording
     //!<
@@ -488,9 +488,9 @@ private:
     //!<
     cMarks blackMarks;                                             //!< objects with all black screen marks
     //!<
-    cDecoder *ptr_cDecoderLogoChange = NULL;                       //!< pointer to class cDecoder, used as second instance to detect logo changes
+    cDecoder *ptr_cDecoderLogoChange = nullptr;                       //!< pointer to class cDecoder, used as second instance to detect logo changes
     //!<
-    cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = NULL;  //!< pointer to class cEvaluateLogoStopStartPair
+    cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = nullptr;  //!< pointer to class cEvaluateLogoStopStartPair
     //!<
     bool checkAudio = false;                                       //!< set to true after each i-Frame, reset to false after audio channel check
     //!<

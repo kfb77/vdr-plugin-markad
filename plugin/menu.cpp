@@ -38,7 +38,7 @@ cOsdMarkAd::cOsdMarkAd(struct sRecording *Entry) {
         break;
     }
 
-    char *buf = NULL;
+    char *buf = nullptr;
     if (asprintf(&buf, "%s\t %s", entry->title ? entry->title : entry->fileName,status) != -1) {
         ALLOC(strlen(buf)+1, "buf");
         SetText(buf,true);
@@ -74,7 +74,7 @@ cMenuMarkAd::cMenuMarkAd(cStatusMarkAd *Status):cOsdMenu(tr("markad status"), 15
         }
     }
     else {
-        SetHelpText(NULL);
+        SetHelpText(nullptr);
     }
     lastpos = 0;
 }
@@ -84,7 +84,7 @@ bool cMenuMarkAd::write() {
     Clear();
 
     bool header=false;
-    struct sRecording *Entry=NULL;
+    struct sRecording *Entry=nullptr;
     status->ResetActPos();
     do {
         status->GetNextActive(&Entry);
@@ -113,24 +113,24 @@ bool cMenuMarkAd::write() {
 
 void cMenuMarkAd::SetHelpText(struct sRecording *Entry) {
     if (!Entry) {
-        SetHelp(NULL,NULL);
+        SetHelp(nullptr,nullptr);
         return;
     }
 
     switch (Entry->status) {
     case 'R':
     case 'S':
-        SetHelp(tr("Pause"),NULL);
+        SetHelp(tr("Pause"),nullptr);
         break;
     case 'D':
     case 'Z':
-        SetHelp(NULL,NULL);
+        SetHelp(nullptr,nullptr);
         break;
     case 'T':
-        SetHelp(NULL,tr("Continue"));
+        SetHelp(nullptr,tr("Continue"));
         break;
     default:
-        SetHelp(NULL,NULL);
+        SetHelp(nullptr,nullptr);
         break;
     }
 }
@@ -149,7 +149,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key) {
                 dsyslog("sending TSTP to %i",entry->pid);
                 kill(entry->pid,SIGTSTP);
                 entry->changedByUser=true;
-                SetHelp(NULL,tr("Continue"));
+                SetHelp(nullptr,tr("Continue"));
             }
         }
         break;
@@ -161,7 +161,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key) {
                 dsyslog("sending CONT to %i",entry->pid);
                 kill(entry->pid,SIGCONT);
                 entry->changedByUser=true;
-                SetHelp(tr("Pause"),NULL);
+                SetHelp(tr("Pause"),nullptr);
             }
         }
         break;
@@ -185,7 +185,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key) {
         state = osBack;
         break;
     case kNone:
-        if (time(NULL)>(last+2)) {
+        if (time(nullptr)>(last+2)) {
             if (write()) {
                 cOsdMarkAd *osdCurrent = static_cast<cOsdMarkAd *>(Get(Current()));
                 if ((osdCurrent) && (osdCurrent->Selectable())) {
@@ -193,9 +193,9 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key) {
                 }
             }
             else {
-                SetHelpText(NULL);
+                SetHelpText(nullptr);
             }
-            last = time(NULL);
+            last = time(nullptr);
         }
         break;
     default:

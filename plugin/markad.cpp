@@ -24,7 +24,7 @@ cPluginMarkAd::cPluginMarkAd(void) {
     // Initialize any member variables here.
     // DON'T DO ANYTHING ELSE THAT MAY HAVE SIDE EFFECTS, REQUIRE GLOBAL
     // VDR OBJECTS TO EXIST OR PRODUCE ANY OUTPUT!
-    statusMonitor = NULL;
+    statusMonitor = nullptr;
     bindir = strdup(DEF_BINDIR);
     ALLOC(strlen(bindir)+1, "bindir");
     logodir = strdup(DEF_LOGODIR);
@@ -97,19 +97,19 @@ const char *cPluginMarkAd::CommandLineHelp(void) {
 bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
     // Command line argument processing
     static struct option long_options[] = {
-        { "bindir",       required_argument, NULL, 'b'},
-        { "logocachedir", required_argument, NULL, 'l'},
-        { "loglevel",     required_argument, NULL, '1'},
-        { "astopoffs",    required_argument, NULL, '2'},
-        { "cDecoder",     no_argument,       NULL, '3'},
-        { "cut",          no_argument,       NULL, '4'},
-        { "ac3reencode",  no_argument,       NULL, '5'},
-        { "autologo",     required_argument, NULL, '6'},
-        { NULL, 0, NULL, 0 }
+        { "bindir",       required_argument, nullptr, 'b'},
+        { "logocachedir", required_argument, nullptr, 'l'},
+        { "loglevel",     required_argument, nullptr, '1'},
+        { "astopoffs",    required_argument, nullptr, '2'},
+        { "cDecoder",     no_argument,       nullptr, '3'},
+        { "cut",          no_argument,       nullptr, '4'},
+        { "ac3reencode",  no_argument,       nullptr, '5'},
+        { "autologo",     required_argument, nullptr, '6'},
+        { nullptr, 0, nullptr, 0 }
     };
 
     int c;
-    while ((c = getopt_long(argc, argv, "b:l:", long_options, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "b:l:", long_options, nullptr)) != -1) {
         switch (c) {
         case 'b':
             if ((access(optarg,R_OK | X_OK)) != -1) {
@@ -186,7 +186,7 @@ bool cPluginMarkAd::Initialize(void) {
     dsyslog("markad: cPluginMarkAd::Initialize(): create status monitor");
     statusMonitor = new cStatusMarkAd(bindir, logodir, &setup);
     ALLOC(sizeof(*statusMonitor), "statusMonitor");
-    return (statusMonitor!=NULL);
+    return (statusMonitor!=nullptr);
 }
 
 
@@ -227,7 +227,7 @@ void cPluginMarkAd::Housekeeping(void) {
 void cPluginMarkAd::MainThreadHook(void) {
     // Perform actions in the context of the main program thread.
     // WARNING: Use with great care - see PLUGINS.html!
-    time_t now = time(NULL);
+    time_t now = time(nullptr);
     if (now > (lastcheck + 5)) {
         statusMonitor->Check();
         lastcheck = now;
@@ -243,7 +243,7 @@ cString cPluginMarkAd::Active(void) {
         return tr("markad still running");
     }
     dsyslog("markad: shutdown request accepted");
-    return NULL;
+    return nullptr;
 }
 
 
@@ -289,7 +289,7 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value) {
 
 const char *cPluginMarkAd::MainMenuEntry(void) {
     if (setup.HideMainMenuEntry)
-        return NULL;
+        return nullptr;
     else
         return tr("markad status");
 }
@@ -312,7 +312,7 @@ const char **cPluginMarkAd::SVDRPHelpPages(void) {
         "DEBUG_MEM\n"
         "     show current allocated heap memory",
 #endif
-        NULL
+        nullptr
     };
     return HelpPage;
 }
@@ -329,7 +329,7 @@ bool cPluginMarkAd::ReadTitle(const char *Directory) {
     f = fopen(buf,"r");
     FREE(strlen(buf)+1, "buf");
     free(buf);
-    buf = NULL;
+    buf = nullptr;
     if (!f) {
         if (asprintf(&buf, "%s/info.vdr",Directory) == -1) return false;
         ALLOC(strlen(buf)+1, "buf");
@@ -339,7 +339,7 @@ bool cPluginMarkAd::ReadTitle(const char *Directory) {
         if (!f) return false;
     }
 
-    char *line = NULL;
+    char *line = nullptr;
     size_t length;
     while (getline(&line, &length, f) != -1) {
         if (line[0] == 'T') {
@@ -370,7 +370,7 @@ cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int
     // start markad via SVDRP command, timerVPS will be detected by markad, we don't know this here
     if (strcasecmp(Command, "MARK") == 0) {
         if (Option) {
-            const char *Title = NULL;
+            const char *Title = nullptr;
             if (ReadTitle(Option)) Title = reinterpret_cast<char *>(&title);
             sRecording recording;
             if (statusMonitor->Start(Title, Option, true, &recording)) {
@@ -394,6 +394,6 @@ cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int
         return memListSVDR();
     }
 #endif
-    return NULL;
+    return nullptr;
 }
 VDRPLUGINCREATOR(cPluginMarkAd) // Don't touch this!

@@ -133,7 +133,7 @@ void cMarkAdLogo::Clear(const bool isRestart) {
             delete[] area.sobel[plane];
         }
         delete[] area.sobel;
-        area.sobel = NULL;
+        area.sobel = nullptr;
     }
     // free memory for sobel masks
     if (area.mask) {
@@ -142,7 +142,7 @@ void cMarkAdLogo::Clear(const bool isRestart) {
             delete[] area.mask[plane];
         }
         delete[] area.mask;
-        area.mask = NULL;
+        area.mask = nullptr;
     }
     // free memory for sobel result
     if (area.result) {
@@ -151,7 +151,7 @@ void cMarkAdLogo::Clear(const bool isRestart) {
             delete[] area.result[plane];
         }
         delete[] area.result;
-        area.result = NULL;
+        area.result = nullptr;
     }
     area = {};
 
@@ -220,7 +220,7 @@ int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) 
                 delete[] area.mask[planeTMP];
             }
             delete[] area.mask;
-            area.mask = NULL;
+            area.mask = nullptr;
         }
         area.mask = new uchar*[PLANES];
         for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
@@ -287,7 +287,7 @@ bool cMarkAdLogo::Save(const int frameNumber, uchar **picture, const short int p
         return false;
     }
 
-    char *buf = NULL;
+    char *buf = nullptr;
     if (debug) {
         if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i_debug_%s.pgm", "/tmp/", frameNumber, maContext->Info.ChannelName, area.AspectRatio.num, area.AspectRatio.den, plane, debug)==-1) return false;
     }
@@ -298,7 +298,7 @@ bool cMarkAdLogo::Save(const int frameNumber, uchar **picture, const short int p
 
     // Open file
     FILE *pFile = fopen(buf, "wb");
-    if (pFile == NULL) {
+    if (pFile == nullptr) {
         FREE(strlen(buf)+1, "buf");
         free(buf);
         return false;
@@ -639,7 +639,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
     if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
-        char *fileName = NULL;
+        char *fileName = nullptr;
         if (asprintf(&fileName,"%s/F__%07d_corrected.pgm", maContext->Config->recDir, frameNumber) >= 1) {
             ALLOC(strlen(fileName)+1, "fileName");
             SaveFrameBuffer(maContext, fileName);
@@ -827,7 +827,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                         width  /= 2;
                         height /= 2;
                     }
-                    char *fileName = NULL;
+                    char *fileName = nullptr;
                     if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_0sobel.pgm", maContext->Config->recDir, frameCurrent, plane, area.corner) >= 1) {
                         ALLOC(strlen(fileName)+1, "fileName");
                         SaveSobel(fileName, area.sobel[plane], width, height);
@@ -851,7 +851,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
             }
         }
         if (extract) {
-            if (!Save(frameCurrent, area.sobel, plane, NULL)) dsyslog("cMarkAdLogo::Detect(): save logo from frame (%d) failed", frameCurrent);
+            if (!Save(frameCurrent, area.sobel, plane, nullptr)) dsyslog("cMarkAdLogo::Detect(): save logo from frame (%d) failed", frameCurrent);
         }
         else {
 //            tsyslog("plane %i area.rPixel[plane] %i area.mPixel[plane] %i", plane, area.rPixel[plane], area.mPixel[plane]);
@@ -954,7 +954,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 #endif
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
                 if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
-                    char *fileName = NULL;
+                    char *fileName = nullptr;
                     if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_3sobelCorrected.pgm", maContext->Config->recDir, frameCurrent, area.corner) >= 1) {
                         ALLOC(strlen(fileName)+1, "fileName");
                         SaveSobel(fileName, area.sobel[0], maContext->Video.Logo.width, maContext->Video.Logo.height);
@@ -1219,7 +1219,7 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
                 criteria->SetDetectionState(MT_LOGOCHANGE, false);
             }
             else {
-                char *buf=NULL;
+                char *buf=nullptr;
                 if (asprintf(&buf,"%s-A%i_%i", maContext->Info.ChannelName, maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den) != -1) {
                     ALLOC(strlen(buf)+1, "buf");
                     area.corner = -1;
@@ -1248,7 +1248,7 @@ int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const 
                                 else dsyslog("cMarkAdLogo::Process(): new logo for %s found in recording",buf);
                                 FREE(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo"); // ptr_cExtraceLogo is valid because it was used above
                                 delete ptr_cExtractLogo;
-                                ptr_cExtractLogo = NULL;
+                                ptr_cExtractLogo = nullptr;
                                 if (Load(maContext->Config->recDir,buf,0) == 0) {  // try again recording directory
                                     isyslog("logo for %s %d:%d found in %s", maContext->Info.ChannelName, maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den, maContext->Config->recDir);
                                     logoStatus = true;
@@ -1338,7 +1338,7 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNu
     }
 
     // get simple histogramm from current frame
-    int *currentHistogram = NULL;
+    int *currentHistogram = nullptr;
     currentHistogram = static_cast<int *>(malloc(sizeof(int) * 256));
     ALLOC(sizeof(*currentHistogram), "SceneChangeHistogramm");
     memset(currentHistogram, 0, sizeof(int[256]));
@@ -1830,8 +1830,8 @@ int cMarkAdBlackBordersVert::Process(int frameNumber, int *borderFrame) {
 
 cMarkAdOverlap::cMarkAdOverlap(sMarkAdContext *maContextParam) {
     maContext          = maContextParam;
-    histbuf[OV_BEFORE] = NULL;
-    histbuf[OV_AFTER]  = NULL;
+    histbuf[OV_BEFORE] = nullptr;
+    histbuf[OV_AFTER]  = nullptr;
     Clear();
 }
 
@@ -1853,13 +1853,13 @@ void cMarkAdOverlap::Clear() {
     if (histbuf[OV_BEFORE]) {
         FREE(sizeof(*histbuf[OV_BEFORE]), "histbuf");
         delete[] histbuf[OV_BEFORE];
-        histbuf[OV_BEFORE] = NULL;
+        histbuf[OV_BEFORE] = nullptr;
     }
 
     if (histbuf[OV_AFTER]) {
         FREE(sizeof(*histbuf[OV_AFTER]), "histbuf");
         delete[] histbuf[OV_AFTER];
-        histbuf[OV_AFTER] = NULL;
+        histbuf[OV_AFTER] = nullptr;
     }
 
     similarCutOff    =  0;
@@ -2202,7 +2202,7 @@ bool cMarkAdVideo::AspectRatioChange(const sAspectRatio &AspectRatioA, const sAs
 
 
 sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, const int frameCurrent) {
-    if ((iFrameCurrent < 0) || (frameCurrent < 0)) return NULL;
+    if ((iFrameCurrent < 0) || (frameCurrent < 0)) return nullptr;
     if (iFrameBefore < 0) iFrameBefore = 0; // this could happen at the start of recording
 
     int useFrame;
@@ -2337,7 +2337,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
         return &videoMarks;
     }
     else {
-        return NULL;
+        return nullptr;
     }
 }
 

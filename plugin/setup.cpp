@@ -88,10 +88,10 @@ eOSState cSetupMarkAd::ProcessKey(eKeys Key) {
         if (((Key == kLeft) || (Key == kRight)) && (Current() == 0)) write();
         if ((Key == kDown) || (Key == kUp)) {
             if (Current() == lpos) {
-                SetHelp(NULL, NULL, NULL, tr("show list"));
+                SetHelp(nullptr, nullptr, nullptr, tr("show list"));
             }
             else {
-                SetHelp(NULL, NULL, NULL, NULL);
+                SetHelp(nullptr, nullptr, nullptr, nullptr);
             }
         }
         break;
@@ -157,7 +157,7 @@ void cSetupMarkAd::Store(void) {
 
 cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup) :cOsdMenu("",CHNUMWIDTH) {
     SetTitle(cString::sprintf("%s - %s '%s' %s",trVDR("Setup"),trVDR("Plugin"),Setup->PluginName,tr("list")));
-    SetHelp(NULL, NULL, NULL, tr("back"));
+    SetHelp(nullptr, nullptr, nullptr, tr("back"));
 
     DIR *dir = opendir(Setup->LogoDir);
     if (!dir) return;

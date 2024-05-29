@@ -7,12 +7,12 @@ ssize_t getline(char** lineptr, size_t* n, FILE* stream) {
   if ((n == nullptr) or
       (lineptr == nullptr) or
       (stream == nullptr)) {
-     /* Bad arguments (n or lineptr is NULL, or stream is not valid). */
+     /* Bad arguments (n or lineptr is nullptr, or stream is not valid). */
      errno = EINVAL;
      return -1;
      }
 
-  /* If *lineptr is set to NULL before the call, then getline() will
+  /* If *lineptr is set to nullptr before the call, then getline() will
    * allocate a buffer for storing the line.  This buffer should be
    * freed by the user program even if getline() failed.
    */

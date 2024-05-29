@@ -20,7 +20,7 @@ extern long int decodeTime_us;
 
 void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_list vl) {
     if (level <= AVLOGLEVEL) {
-        char *logMsg = NULL;
+        char *logMsg = nullptr;
         int rc = 0;
         rc = vasprintf(&logMsg, fmt, vl);
         if (rc == -1) {
@@ -51,7 +51,7 @@ cDecoder::cDecoder(int threads, cIndex *recordingIndex) {
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
     av_init_packet(&avpkt);
 #endif
-    codec = NULL;
+    codec = nullptr;
     if (threads < 1) threads = 1;
     if (threads > 16) threads = 16;
     dsyslog("cDecoder::cDecoder(): init with %i threads", threads);
@@ -142,7 +142,7 @@ AVCodecContext **cDecoder::GetAVCodecContext() {
 bool cDecoder::DecodeFile(const char *filename) {
     if (!filename) return false;
     dsyslog("cDecoder::DecodeFile(): filename: %s", filename);
-    AVFormatContext *avctxNextFile = NULL;
+    AVFormatContext *avctxNextFile = nullptr;
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(35<<8)+100)
     av_register_all();
 #endif
@@ -156,11 +156,11 @@ bool cDecoder::DecodeFile(const char *filename) {
         }
         FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
         free(codecCtxArray);
-        codecCtxArray = NULL;
+        codecCtxArray = nullptr;
     }
 
     // open first/next file
-    if (avformat_open_input(&avctxNextFile, filename, NULL, NULL) == 0) {
+    if (avformat_open_input(&avctxNextFile, filename, nullptr, nullptr) == 0) {
         ALLOC(sizeof(avctxNextFile), "avctx");
         dsyslog("cDecoder::DecodeFile(): opened file %s", filename);
         if (avctx) {
@@ -173,7 +173,7 @@ bool cDecoder::DecodeFile(const char *filename) {
         if (fileNumber <= 1) dsyslog("cDecoder::DecodeFile(): Could not open source file %s", filename);
         return false;
     }
-    if (avformat_find_stream_info(avctx, NULL) < 0) {
+    if (avformat_find_stream_info(avctx, nullptr) < 0) {
         dsyslog("cDecoder::DecodeFile(): Could not get stream infos %s", filename);
         return false;
     }
@@ -226,7 +226,7 @@ bool cDecoder::DecodeFile(const char *filename) {
             return false;
         }
         codecCtxArray[streamIndex]->thread_count = threadCount;
-        if (avcodec_open2(codecCtxArray[streamIndex], codec, NULL) < 0) {
+        if (avcodec_open2(codecCtxArray[streamIndex], codec, nullptr) < 0) {
             dsyslog("cDecoder::DecodeFile(): avcodec_open2 failed");
             return false;
         }
@@ -487,11 +487,11 @@ bool cDecoder::SeekToFrame(sMarkAdContext *maContext, int frameNumber) {
 
 
 AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
-    if (!avctx) return NULL;
-    if (!avpkt) return NULL;
+    if (!avctx) return nullptr;
+    if (!avpkt) return nullptr;
 
     struct timeval startDecode = {};
-    gettimeofday(&startDecode, NULL);
+    gettimeofday(&startDecode, nullptr);
 
     if (avFrame) {  // reset avFrame structure
         FREE(sizeof(*avFrame), "avFrame");
@@ -500,7 +500,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
     avFrame = av_frame_alloc();
     if (!avFrame) {
         dsyslog("cDecoder::DecodePacket(): av_frame_alloc failed");
-        return NULL;
+        return nullptr;
     }
     ALLOC(sizeof(*avFrame), "avFrame");
 
@@ -524,7 +524,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
             int ret                 = av_channel_layout_copy(&avFrame->ch_layout, &codecCtxArray[avpkt->stream_index]->ch_layout);
             if (ret < 0) {
                 dsyslog("cDecoder::DecodePacket(): av_channel_layout_copy failed, rc = %d", ret);
-                return NULL;
+                return nullptr;
             }
 #else
             avFrame->nb_samples     = av_get_channel_layout_nb_channels(avctx->streams[avpkt->stream_index]->codecpar->channel_layout);
@@ -541,15 +541,15 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
         }
         else {
             if (IsSubtitlePacket()) { // do not decode subtitle, even on fullencode use it without reencoding
-                FREE(sizeof(*avFrame), "avFrame");   // test if avFrame not NULL above
+                FREE(sizeof(*avFrame), "avFrame");   // test if avFrame not nullptr above
                 av_frame_free(&avFrame);
-                return NULL;
+                return nullptr;
             }
             else {
                 dsyslog("cDecoder::DecodePacket(): stream %d type not supported", avpkt->stream_index);
-                FREE(sizeof(*avFrame), "avFrame");   // test if avFrame not NULL above
+                FREE(sizeof(*avFrame), "avFrame");   // test if avFrame not nullptr above
                 av_frame_free(&avFrame);
-                return NULL;
+                return nullptr;
             }
         }
     }
@@ -568,7 +568,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
             FREE(sizeof(*avFrame), "avFrame");
             av_frame_free(&avFrame);
         }
-        return NULL;
+        return nullptr;
     }
 
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -600,7 +600,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
             FREE(sizeof(*avFrame), "avFrame");
             av_frame_free(&avFrame);
         }
-        return NULL;
+        return nullptr;
     }
     rc = avcodec_receive_frame(codecCtxArray[avpkt->stream_index],avFrame);
     if (rc < 0) {
@@ -619,7 +619,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
         if (avFrame) {
             FREE(sizeof(*avFrame), "avFrame");
             av_frame_free(&avFrame);
-            avFrame = NULL;
+            avFrame = nullptr;
         }
     }
 #else
@@ -632,7 +632,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
                 FREE(sizeof(*avFrame), "avFrame");
                 av_frame_free(&avFrame);
             }
-            return NULL;
+            return nullptr;
         }
     }
     else if (IsAudioPacket()) {
@@ -643,7 +643,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
                 FREE(sizeof(*avFrame), "avFrame");
                 av_frame_free(&avFrame);
             }
-            return NULL;
+            return nullptr;
         }
     }
 
@@ -653,7 +653,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
             FREE(sizeof(*avFrame), "avFrame");
             av_frame_free(&avFrame);
         }
-        return NULL;
+        return nullptr;
     }
     if ( !frame_ready ) {
         stateEAGAIN=true;
@@ -661,7 +661,7 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
             FREE(sizeof(*avFrame), "avFrame");
             av_frame_free(&avFrame);
         }
-        return NULL;
+        return nullptr;
     }
 #endif
     // check decoding error
@@ -673,12 +673,12 @@ AVFrame *cDecoder::DecodePacket(AVPacket *avpkt) {
         dsyslog("cDecoder::DecodePacket(): decoding of frame (%d) from stream %i failed: decode_error_flags %d, decoding errors %d", currFrameNumber, avpkt->stream_index, avFrame->decode_error_flags, decodeErrorCount);
         FREE(sizeof(*avFrame), "avFrame");
         av_frame_free(&avFrame);
-        avFrame = NULL;
+        avFrame = nullptr;
         avcodec_flush_buffers(codecCtxArray[avpkt->stream_index]);
     }
 
     struct timeval endDecode = {};
-    gettimeofday(&endDecode, NULL);
+    gettimeofday(&endDecode, nullptr);
     time_t sec = endDecode.tv_sec - startDecode.tv_sec;
     suseconds_t usec = endDecode.tv_usec - startDecode.tv_usec;
     if (usec < 0) {
@@ -701,7 +701,7 @@ bool cDecoder::GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, c
         return false;
     }
 
-    AVFrame *avFrameRef = NULL;
+    AVFrame *avFrameRef = nullptr;
 
     FrameData.Valid = false;
     if (decodeVideo && IsVideoPacket()) {

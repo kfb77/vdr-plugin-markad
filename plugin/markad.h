@@ -19,9 +19,9 @@ static const char *DESCRIPTION    = trNOOP("Mark advertisements");
 class cPluginMarkAd : public cPlugin {
 private:
     // Add any member variables or functions you may need here.
-    cStatusMarkAd *statusMonitor = NULL;
-    char *bindir = NULL;
-    char *logodir = NULL;
+    cStatusMarkAd *statusMonitor = nullptr;
+    char *bindir = nullptr;
+    char *logodir = nullptr;
     int loglevel = 0;
     int astopoffs = -1;
     bool MarkadCut = false;
@@ -53,7 +53,7 @@ public:
     virtual cOsdObject *MainMenuAction(void);
     virtual cMenuSetupPage *SetupMenu(void);
     virtual bool SetupParse(const char *Name, const char *Value);
-    virtual bool Service(const char *Id, void *Data = NULL);
+    virtual bool Service(const char *Id, void *Data = nullptr);
     virtual const char **SVDRPHelpPages(void);
     virtual cString SVDRPCommand(const char *Command, const char *Option, int &ReplyCode);
 };

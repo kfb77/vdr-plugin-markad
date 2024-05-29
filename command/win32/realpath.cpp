@@ -7,33 +7,33 @@
 
 char* realpath(const char* path, char* resolved_path) {
 
-  /* EINVAL path is NULL. */
-  if (path == NULL) {
+  /* EINVAL path is nullptr. */
+  if (path == nullptr) {
      errno = EINVAL;
-     return NULL;
+     return nullptr;
      }
 
-  /* If resolved_path is specified as NULL, then realpath() uses
+  /* If resolved_path is specified as nullptr, then realpath() uses
    * malloc(3) to allocate a buffer of up to PATH_MAX bytes to hold
    * the resolved pathname, and returns a pointer to this buffer.
    * The caller should deallocate this buffer using free(3).
    */
-  if (resolved_path == NULL) {
+  if (resolved_path == nullptr) {
      resolved_path = static_cast<char*>(malloc(PATH_MAX));
-     if (resolved_path == NULL) {
+     if (resolved_path == nullptr) {
         errno = ENOMEM;
-        return NULL;
+        return nullptr;
         }
      }
 
   struct stat statbuf;
   if (stat(path, &statbuf) != 0) {
-     return NULL; // stat() sets errno
+     return nullptr; // stat() sets errno
      }
 
   char* fp = _fullpath(resolved_path, path, PATH_MAX);
-  if (fp == NULL) {
-     return NULL; // assume valid errno from _fullpath()
+  if (fp == nullptr) {
+     return nullptr; // assume valid errno from _fullpath()
      }
 
   errno = 0;

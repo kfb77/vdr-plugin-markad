@@ -58,11 +58,11 @@ public:
     bool GetFrame(AVFrame *avFrame);
 
 private:
-    AVFilterGraph *filterGraph = NULL;   //!< filter graph
+    AVFilterGraph *filterGraph = nullptr;   //!< filter graph
     //!<
-    AVFilterContext *filterSrc = NULL;   //!< filter source
+    AVFilterContext *filterSrc = nullptr;   //!< filter source
     //!<
-    AVFilterContext *filterSink = NULL;  //!< filter sink
+    AVFilterContext *filterSink = nullptr;  //!< filter sink
     //!<
 };
 
@@ -165,15 +165,15 @@ private:
     //!<
     int threadCount = 0;                                          //!< encoder thread count
     //!<
-    AVFormatContext *avctxIn = NULL;                              //!< avformat context for input
+    AVFormatContext *avctxIn = nullptr;                              //!< avformat context for input
     //!<
-    AVFormatContext *avctxOut = NULL;                             //!< avformat context for output
+    AVFormatContext *avctxOut = nullptr;                             //!< avformat context for output
     //!<
-    AVCodecContext **codecCtxArrayIn = NULL;                      //!< avcodec context for each input stream
+    AVCodecContext **codecCtxArrayIn = nullptr;                      //!< avcodec context for each input stream
     //!<
-    AVCodecContext **codecCtxArrayOut = NULL;                     //!< avcodec context for each output stream
+    AVCodecContext **codecCtxArrayOut = nullptr;                     //!< avcodec context for each output stream
     //!<
-    SwrContext **swrArray = NULL;                                 //!< array of libswresample (lswr) for audiosample format conversion
+    SwrContext **swrArray = nullptr;                                 //!< array of libswresample (lswr) for audiosample format conversion
     //!<
     int64_t ptsBefore = 0;                                        //!< presentation timestamp of frame before
     //!<
@@ -183,7 +183,7 @@ private:
     //!<
     bool stateEAGAIN = false;                                     //!< true if encoder needs more frame, false otherwise
     //!<
-    cAC3VolumeFilter *ptr_cAC3VolumeFilter[MAXSTREAMS] = {NULL};  //!< AC3 volume filter
+    cAC3VolumeFilter *ptr_cAC3VolumeFilter[MAXSTREAMS] = {nullptr};  //!< AC3 volume filter
     //!<
 
     /**
@@ -194,23 +194,23 @@ private:
         //!<
         int frameBefore                 = -2;         //!< decoded frame number before current frame
         //!<
-        int64_t *ptsInBefore            = NULL;       //!< presentation timestamp of the previous frame from each input stream
+        int64_t *ptsInBefore            = nullptr;       //!< presentation timestamp of the previous frame from each input stream
         //!<
-        int64_t *dtsInBefore            = NULL;       //!< decoding timestamp of the previous frame from each input stream
+        int64_t *dtsInBefore            = nullptr;       //!< decoding timestamp of the previous frame from each input stream
         //!<
         int64_t ptsOutBefore            = -1;         //!< presentation timestamp of the previous frame from video output stream
         //!<
 
         int64_t pts_dts_CutOffset       = 0;          //!< offset from the cuted out frames
         //!<
-        int64_t *pts_dts_CyclicalOffset = NULL;       //!< offset from pts/dts cyclicle of each frame, multiple of 0x200000000
+        int64_t *pts_dts_CyclicalOffset = nullptr;       //!< offset from pts/dts cyclicle of each frame, multiple of 0x200000000
         //!<
         bool videoEncodeError           = false;      //!< true if we got an encoder error, false otherwise
         //!<
     } EncoderStatus;                                  //!< encoder status
 
     //!<
-    int *streamMap = NULL;                       //!< input stream to output stream map
+    int *streamMap = nullptr;                       //!< input stream to output stream map
     //!<
     int pass = 0;                                //!< encoding pass
     //!<
@@ -218,7 +218,7 @@ private:
      * structure for statistic data for 2 pass encoding
      */
     struct sAVstatsIn {
-        char *data = NULL; //!< statistic data generated from encoder
+        char *data = nullptr; //!< statistic data generated from encoder
         //!<
         long int size = 0; //!< size of statistic data
         //!<
