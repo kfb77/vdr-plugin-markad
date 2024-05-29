@@ -1937,7 +1937,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
     int separatorFrameBefore  = -1;
     int separatorFrameAfter   = -1;
 
-#define INTRODUCTION_MIN_LENGTH          4961  // changed from 4320 to 4961, prevent to get separator scene with length 4960ms before broadcast start
+#define INTRODUCTION_MIN_LENGTH          4480  // short introduction logo (sixx)
 #define INTRODUCTION_MAX_LENGTH         29080  // changed from 13840 to 29080, RTL2 have very long introduction logo
 #define INTRODUCTION_MAX_DIFF_SEPARATOR 20160  // max distance from sepatator frame to introduction logo start, changed from 10119 to 20160
     // somtime broacast start without logo before intruduction logo
