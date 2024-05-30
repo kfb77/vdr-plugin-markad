@@ -85,6 +85,13 @@ bool cCriteria::InfoInBorder(const char *channelName) {
     return false;
 }
 
+bool cCriteria::LogoColorChange(const char *channelName) {
+    if (!channelName) return false;
+
+    if (CompareChannelName(channelName, "DMAX",   IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "TELE_5", IGNORE_HD)) return true;
+    return false;
+}
 
 bool cCriteria::LogoRotating(const char *channelName) {
     if (!channelName) return false;

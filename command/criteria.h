@@ -68,6 +68,14 @@ public:
      */
     bool InfoInBorder(const char *channelName);
 
+
+    /**
+     * get status of channel has logo who changes Color
+     * @param channelName name of the channel
+     * @return status
+     */
+    bool LogoColorChange(const char *channelName);
+
     /**
      * get status of channel has logo rotating
      * @param channelName name of the channel

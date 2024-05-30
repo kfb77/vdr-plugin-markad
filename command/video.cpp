@@ -153,6 +153,15 @@ void cMarkAdLogo::Clear(const bool isRestart) {
         delete[] area.result;
         area.result = nullptr;
     }
+    // free memory for sobel inverse result
+    if (area.inverse) {
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.inverse");
+        for (int plane = 0; plane < PLANES; plane++) {
+            delete[] area.inverse[plane];
+        }
+        delete[] area.inverse;
+        area.inverse = nullptr;
+    }
     area = {};
 
     if (isRestart) area.status = LOGO_RESTART;
@@ -365,15 +374,13 @@ bool cMarkAdLogo::SetCoordinates(int *xstart, int *xend, int *ystart, int *yend,
 
 
 // reduce brightness and increase contrast
-// return result status as value from eBrightness
-//        BRIGHTNESS_SEPARATOR:                   possible separation image detected
-//        BRIGHTNESS_ERROR:                       if correction not possible
+// return true if we now have a valid detection result
 //
-int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber, int *contrastReduced) {  // frameNumber used only for debugging
+bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber, const int logo_vmark, const int logo_imark) {  // frameNumber used only for debugging
     int xstart, xend, ystart, yend;
-    if (!SetCoordinates(&xstart, &xend, &ystart, &yend, 0)) return BRIGHTNESS_ERROR;
+    if (!SetCoordinates(&xstart, &xend, &ystart, &yend, 0)) return false;
 
-// set coorginates for logo pixel part in logo corner
+// calculate coorginates for logo black pixel area in logo corner
     if ((logo_xstart == 0) && (logo_xend == 0) && (logo_ystart == 0) && (logo_yend == 0)) {
         switch (area.corner) {  // logo is usually in the inner part of the logo corner
 #define LOGO_MIN_PIXEL 30  // big enough to get in the main part of the logo
@@ -386,8 +393,8 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
             int pixelCount = 0;
             int column;
             int line;
-            for (column = 0; column <= logoWidth; column++) {
-                for (line = 0; line <= logoHeight; line++) {
+            for (column = 0; column < logoWidth; column++) {
+                for (line = 0; line < logoHeight; line++) {
                     if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
                     if (pixelCount > LOGO_MIN_PIXEL) break;
                 }
@@ -397,8 +404,8 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 
             // ystart is first line with pixel in logo area
             pixelCount = 0;
-            for (line = 0; line <= logoHeight; line++) {
-                for (column = 0; column <= logoWidth; column++) {
+            for (line = 0; line < logoHeight; line++) {
+                for (column = 0; column < logoWidth; column++) {
                     if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
                     if (pixelCount >= LOGO_MIN_PIXEL) break;
                 }
@@ -417,7 +424,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
             int column;
             int line;
             for (column = logoWidth; column >= 0; column--) {
-                for (line = 0; line <= logoHeight; line++) {
+                for (line = 0; line < logoHeight; line++) {
                     if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
                     if (pixelCount > LOGO_MIN_PIXEL) break;
                 }
@@ -427,8 +434,8 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 
             // ystart is first line with pixel in logo area
             pixelCount = 0;
-            for (line = 0; line <= logoHeight; line++) {
-                for (column = 0; column <= logoWidth; column++) {
+            for (line = 0; line < logoHeight; line++) {
+                for (column = 0; column < logoWidth; column++) {
                     if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
                     if (pixelCount >= LOGO_MIN_PIXEL) break;
                 }
@@ -437,6 +444,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
             logo_ystart = line;
             break;
         }
+        // TODO: calculate exact coordinates
         case BOTTOM_LEFT:
             logo_xstart = xend - (xend - xstart) / 2;
             logo_xend = xend;
@@ -450,7 +458,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
             logo_yend = yend - (yend - ystart) / 2;
             break;
         default:
-            return BRIGHTNESS_ERROR;
+            return false;
             break;
         }
 //        dsyslog("cMarkAdLogo::ReduceBrightness(): logo area: xstart %d xend %d, ystart %d yend %d", logo_xstart, logo_xend, logo_ystart, logo_yend);
@@ -474,7 +482,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
     dsyslog("cMarkAdLogo::ReduceBrightness(): logo area before reduction:  contrast %3d, brightness %3d", contrastLogo, brightnessLogo);
 #endif
 
-#define LOW_PIXEL_LOGO 62  // changed from 61 to 62
+#define LOW_PIXEL_LOGO 65  // changed from 62 to 65
 
 // check if contrast and brightness is valid
 // build a curve from examples
@@ -485,11 +493,11 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
     // false negativ, logo is visible but not detected
     // tbd
     //
-    if ((contrastLogo > 162) && (brightnessLogo < 96) && (maContext->Video.Logo.pixelRatio >  LOW_PIXEL_LOGO)) {
+    if ((contrastLogo > 162) && (brightnessLogo < 96) && (maContext->Video.Logo.pixelRatio > LOW_PIXEL_LOGO)) {
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): very high contrast with not very high brightness in logo area, trust detection (high pixel logo)");
 #endif
-        return BRIGHTNESS_VALID; // if the is a logo we have detected it
+        return true; // if there is a logo we should had detected it
     }
     // low pixel logo
     // false negativ, logo is visible but not detected
@@ -499,7 +507,7 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cMarkAdLogo::ReduceBrightness(): very high contrast with not very high brightness in logo area, trust detection (low pixel logo)");
 #endif
-        return BRIGHTNESS_VALID; // if the is a logo we have detected it
+        return true; // if the is a logo should had detected it
     }
 
 
@@ -532,36 +540,43 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast  21, brightness 177
 // contrast  17, brightness 182
 // contrast  16, brightness 182
-// contrast  13, brightness 176
 //
-// no logo in bright area, not detected without brightness reduction, detected with brightness reduction, take it as valid
+// logo or no logo in bright area, not detected without brightness reduction, detected with brightness reduction, take it as valid
+// contrast 170, brightness 141    bright background without logo
 // contrast 149, brightness 139
 // contrast 131, brightness 152
 // contrast  94, brightness 158
+//
+// contrast  52, brightness 189    bright background without logo
 // contrast  25, brightness 153
+//
+// contrast  14, brightness 195    bright scene without logo
+// contrast   8, brightness 207    no logo on bright background
 // contrast   6, brightness 172
 // contrast   3, brightness 218    bright separator without logo
 // contrast   2, brightness 213    bright separator without logo
 
     if (maContext->Video.Logo.pixelRatio > LOW_PIXEL_LOGO) { // normal logo
         // build the curve
-        if (((contrastLogo   <= 3) &&                                (brightnessLogo >= 219)) ||
-                ((contrastLogo   >    3) && (contrastLogo <=  13) && (brightnessLogo >= 176)) ||
-                ((contrastLogo   >   13) && (contrastLogo <= 131) && (brightnessLogo >= 171)) ||
+        if (((contrastLogo   <= 14) &&                                (brightnessLogo >= 219)) ||
+                ((contrastLogo   >   14) && (contrastLogo <=  52) && (brightnessLogo >= 190)) ||
+                ((contrastLogo   >   52) && (contrastLogo <= 131) && (brightnessLogo >= 171)) ||
                 ((contrastLogo   >  125) && (contrastLogo <= 131) && (brightnessLogo >= 153)) ||
-                ((contrastLogo   >  131) && (contrastLogo <= 149) && (brightnessLogo >= 140)) ||
-                ((contrastLogo   >  149) && (contrastLogo <= 194) && (brightnessLogo >= 120)) ||
+                ((contrastLogo   >  131) && (contrastLogo <= 180) && (brightnessLogo >= 142)) ||
+                ((contrastLogo   >  180) && (contrastLogo <= 194) && (brightnessLogo >= 120)) ||
                 ((contrastLogo   >  194) &&                          (brightnessLogo >= 110))) {
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cMarkAdLogo::ReduceBrightness(): contrast/brightness in logo area is invalid for brightness reduction (high pixel logo)");
 #endif
-            return BRIGHTNESS_ERROR; //  nothing we can work with
+            return false; //  nothing we can work with
         }
     }
+// ------------------------------------------------------------------------------------------------------------------------------------------
 // logo with LOW_PIXEL_LOGO/1000 or less pixel in logo corner (e.g. Kutonen_HD)
 // brightness reduction does not work very well if we have only a few pixel
 //
 // not detected logo in bright area, also not detected with bridgtness reduction, take it as invalid
+// contrast 255, brightness 223
 // contrast 202, brightness 100
 // contrast 202, brightness  85
 // contrast 199, brightness 102
@@ -571,38 +586,44 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 // contrast 189, brightness 117
 // contrast 188, brightness 173
 //
-// contrast 136, brightness 156  NEW
+// contrast 136, brightness 156
 // contrast 109, brightness 165
 //
 // contrast  94, brightness 191
 // contrast  91, brightness 173
 //
-// contrast  47, brightness 181   (conflict)
 // contrast  41, brightness 213
-// contrast  36, brightness 214
 //
-// contrast  20, brightness 215
+// contrast  28, brightness 205  bright background with logo
+// contrast  25, brightness 216  bright background with logo
+// contrast  21, brightness 215  bright background with logo
+// contrast  21, brightness 218  bright background with logo
+// contrast  20, brightness 214  bright background with logo
+// contrast  15, brightness 218  bright background with logo
+// contrast  17, brightness 220  bright background with logo
+// contrast  16, brightness 218  bright background with logo
+// contrast   8, brightness 221  bright background with logo
 //
-// no logo in bright area, not detected without brightness reduction, detected with brightness reduction, take it as valid
-// contrast 140, brightness 121
-// contrast 100, brightness 166
+// -----------------------------------------------------------------
+// no logo or no logo in bright area, not detected without brightness reduction, detected with brightness reduction, take it as valid
 //
-// contrast  51, brightness 183  -> NEW, sky as background
+// contrast  49, brightness 175  -> red separator picture without logo
 //
+// contrast  38, brightness 227  -> bright separator without logo  (conflict)
+// contrast  32, brightness 192  -> logo in bright background
 // contrast  20, brightness 197  -> bright ad in frame without logo
 // contrast   0, brightness 111  -> red sepator picture without logo
 //
     else {  // logo with low pixel count
-        if (((contrastLogo <=  20)                          && (brightnessLogo >  197)) ||
-                ((contrastLogo >   20) && (contrastLogo <=  51) && (brightnessLogo >= 184)) ||
-                ((contrastLogo >   51) && (contrastLogo <=  94) && (brightnessLogo >= 173)) ||
+        if (((contrastLogo <=  38)                              && (brightnessLogo >= 205)) ||
+                ((contrastLogo >   38) && (contrastLogo <=  94) && (brightnessLogo >= 176)) ||
                 ((contrastLogo >   94) && (contrastLogo <= 140) && (brightnessLogo >= 156)) ||
                 ((contrastLogo >  140) && (contrastLogo <= 197) && (brightnessLogo >= 117)) ||
                 ((contrastLogo >  197)                          && (brightnessLogo >=  85))) {
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cMarkAdLogo::ReduceBrightness(): contrast/brightness in logo area is invalid for brightness reduction (low pixel logo)");
 #endif
-            return BRIGHTNESS_ERROR; //  nothing we can work with
+            return false; //  nothing we can work with
         }
     }
 
@@ -615,8 +636,13 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 
 #define REDUCE_BRIGHTNESS 30
 #define INCREASE_CONTRAST 2
-    for (int line = ystart; line < yend; line++) {
-        for (int column = xstart; column < xend; column++) {
+    // reduce brightness and increase contrast, transform 1 pixel more than logo size to prevent to detect an edge with sobel transformation
+    for (int line = ystart - 1; line <= yend + 1; line++) {
+        if (line < 0) continue;
+        if (line > (maContext->Video.Info.height - 1)) continue;
+        for (int column = xstart - 1; column <= xend + 1; column++) {
+            if (column < 0) continue;
+            if (column > (maContext->Video.Info.width - 1)) continue;
             int pixel = maContext->Video.Data.Plane[0][line * maContext->Video.Data.PlaneLinesize[0] + column] - REDUCE_BRIGHTNESS;
             if (pixel < 0) pixel = 0;
             pixel = INCREASE_CONTRAST * (pixel - 128) + 128;
@@ -630,11 +656,11 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 #endif
         }
     }
-    *contrastReduced = maxPixel - minPixel;
 
 #ifdef DEBUG_LOGO_DETECTION
+    int contrastReduced = maxPixel - minPixel;
     int brightnessReduced = sumPixel / ((yend - ystart) * (xend - xstart));
-    dsyslog("cMarkAdLogo::ReduceBrightness(): after brightness correction: contrast %3d, brightness %3d", *contrastReduced, brightnessReduced);
+    dsyslog("cMarkAdLogo::ReduceBrightness(): after brightness correction: contrast %3d, brightness %3d", contrastReduced, brightnessReduced);
 #endif
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
@@ -649,7 +675,85 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
     }
 #endif
 
-    return BRIGHTNESS_CHANGED;
+// redo sobel transformation with reduced brightness and verfy result picture
+    // redo sobel transformation
+    area.rPixel[0] = 0;
+    SobelPlane(0, 0);       // only plane 0
+    int rPixel = area.rPixel[0];
+
+#ifdef DEBUG_LOGO_DETECTION
+    int mPixel = area.mPixel[0];
+    int iPixel = area.iPixel[0];
+    char detectStatus[] = "o";
+    if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
+    if (rPixel <= logo_imark) strcpy(detectStatus, "-");
+    dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameNumber, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, 1, detectStatus);
+#endif
+
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+    if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
+        char *fileName = nullptr;
+        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_3sobelCorrected.pgm", maContext->Config->recDir, frameNumber, area.corner) >= 1) {
+            ALLOC(strlen(fileName)+1, "fileName");
+            SaveSobel(fileName, area.sobel[0], maContext->Video.Logo.width, maContext->Video.Logo.height);
+            FREE(strlen(fileName)+1, "fileName");
+            free(fileName);
+        }
+        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_4resultCorrected.pgm", maContext->Config->recDir, frameNumber, area.corner) >= 1) {
+            ALLOC(strlen(fileName)+1, "fileName");
+            SaveSobel(fileName, area.result[0], maContext->Video.Logo.width, maContext->Video.Logo.height);
+            FREE(strlen(fileName)+1, "fileName");
+            free(fileName);
+        }
+    }
+#endif
+
+    // check background pattern
+    int black = 0;
+    for (int i = 0; i < logoHeight * logoWidth; i++) {
+        if (area.sobel[0][i] == 0) black++;
+    }
+    int quote = 100 * black / (logoHeight * logoWidth);
+#ifdef DEBUG_LOGO_DETECTION
+    dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): pixel quote after brightness reduction: %d%%", frameNumber, quote);
+#endif
+    if (quote > 22) { // changed from 27 to 25
+        if ((quote >= 60) && (area.status == LOGO_INVISIBLE)) {  // prevent false logo start detection from patten background
+            area.counter--;
+            if (area.counter < 0) area.counter = 0;
+        }
+        return false; // there is a pattern on the backbround, no logo detection possible
+    }
+
+    // now we trust logo visible
+    if (rPixel >= logo_vmark) {
+#ifdef DEBUG_LOGO_DETECTION
+        dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): valid logo visible after brightness reducation", frameNumber);
+#endif
+        return true;  // we have a clear result
+    }
+
+    // ignore matches on still bright picture
+    if ((area.intensity > 160) && (rPixel >= logo_imark / 5)) { // still too bright, trust only very low matches
+#ifdef DEBUG_LOGO_DETECTION
+        dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): logo area still too bright", frameNumber);
+#endif
+        return false;
+    }
+
+    // now we trust logo invisible
+    if (rPixel <= logo_imark) {
+#ifdef DEBUG_LOGO_DETECTION
+        dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): valid logo invisible after brightness reducation", frameNumber);
+#endif
+        return true;  // we have a clear result
+    }
+
+    // still no clear result
+#ifdef DEBUG_LOGO_DETECTION
+    dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d) no valid result after brightness reducation", frameNumber);
+#endif
+    return false;
 }
 
 
@@ -676,6 +780,14 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
             area.result[planeTMP] = new uchar[maxLogoPixel];
         }
         ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.result");
+    }
+    // alloc memory for mask invers result
+    if (!area.inverse) {
+        area.inverse = new uchar*[PLANES];
+        for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
+            area.inverse[planeTMP] = new uchar[maxLogoPixel];
+        }
+        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.inverse");
     }
 
     if ((logoWidth == 0) || (logoHeight == 0)) {
@@ -713,6 +825,7 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
     int sumX;
     int sumY;
     area.rPixel[plane] = 0;
+    area.iPixel[plane] = 0;
     if (plane == 0) area.intensity = 0;
 
 #ifdef DEBUG_SOBEL
@@ -761,8 +874,12 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
 
             // only store results in logo coordinates range
             if (area.valid[plane]) {  // if we are called by logo search, we have no valid area.mask
+                // area result
                 area.result[plane][(X - xStart) + (Y - yStart) * planeWidth] = (area.mask[plane][(X - xStart) + (Y - yStart) * planeWidth] + val) & 255;
-                if (!area.result[plane][(X - xStart) + (Y - yStart) * planeWidth]) area.rPixel[plane]++;
+                if (area.result[plane][(X - xStart) + (Y - yStart) * planeWidth] == 0) area.rPixel[plane]++;
+                // area inverted
+                area.inverse[plane][(X - xStart) + (Y - yStart) * planeWidth] = ((255 - area.mask[plane][(X - xStart) + (Y - yStart) * planeWidth]) + val) & 255;
+                if (area.inverse[plane][(X - xStart) + (Y - yStart) * planeWidth] == 0) area.iPixel[plane]++;
             }
         }
     }
@@ -795,22 +912,14 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     bool onlyFillArea = ( *logoFrameNumber < 0 );
     bool extract = (maContext->Config->logoExtraction != -1);
     if (*logoFrameNumber == -2) extract = true;
-    int rPixel = 0, mPixel = 0;
+    int rPixel = 0;
+    int mPixel = 0;
+    int iPixel = 0;
     int processed = 0;
     *logoFrameNumber = -1;
     if (area.corner == -1) return LOGO_NOCHANGE;
-    float logo_vmark = LOGO_VMARK;
-    float logo_imark = LOGO_IMARK;
 
-    if (criteria->LogoRotating(maContext->Info.ChannelName)) {  // reduce if we have a rotating logo (e.g. SAT_1), changed from 0.9 to 0.8
-        logo_vmark *= 0.8;
-        logo_imark *= 0.8;
-    }
-    if (criteria->LogoTransparent(maContext->Info.ChannelName)) { // reduce if we have a transparent logo (e.g. SRF_zwei_HD)
-        logo_vmark *= 0.9;
-        logo_imark *= 0.9;
-    }
-
+    // apply sobel transformation to all planes
     for (int plane = 0; plane < PLANES; plane++) {
         if ((area.valid[plane]) || (extract) || (onlyFillArea)) {
             int boundary = 0;               // logo detection ignores lines in corner with sobel.mask (logo), we want to use full logo surface
@@ -845,6 +954,12 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                         FREE(strlen(fileName)+1, "fileName");
                         free(fileName);
                     }
+                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_3inverse.pgm", maContext->Config->recDir, frameCurrent, plane, area.corner) >= 1) {
+                        ALLOC(strlen(fileName)+1, "fileName");
+                        SaveSobel(fileName, area.inverse[plane], width, height);
+                        FREE(strlen(fileName)+1, "fileName");
+                        free(fileName);
+                    }
                 }
 #endif
             }
@@ -856,189 +971,153 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 //            tsyslog("plane %i area.rPixel[plane] %i area.mPixel[plane] %i", plane, area.rPixel[plane], area.mPixel[plane]);
             rPixel += area.rPixel[plane];
             mPixel += area.mPixel[plane];
+            iPixel += area.iPixel[plane];
         }
     }
     if (extract || onlyFillArea) return LOGO_NOCHANGE;
     if (processed == 0) return LOGO_ERROR;  // we have no plane processed
 
+    // set logo visable and invisable limits
+    int logo_vmark = LOGO_VMARK * mPixel;
+    int logo_imark = LOGO_IMARK * mPixel;
+    if (criteria->LogoRotating(maContext->Info.ChannelName)) {  // reduce if we have a rotating logo (e.g. SAT_1), changed from 0.9 to 0.8
+        logo_vmark *= 0.8;
+        logo_imark *= 0.8;
+    }
+    if (criteria->LogoTransparent(maContext->Info.ChannelName)) { // reduce if we have a transparent logo (e.g. SRF_zwei_HD)
+        logo_vmark *= 0.9;
+        logo_imark *= 0.9;
+    }
+
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
     if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
-//        SaveFrameCorner(frameCurrent, 1);  // we are not called by logo.cpp frame debug
+        char *fileName = nullptr;
+        if (asprintf(&fileName,"%s/F__%07d.pgm", maContext->Config->recDir, frameCurrent) >= 1) {
+            ALLOC(strlen(fileName)+1, "fileName");
+            SaveFrameBuffer(maContext, fileName);
+            FREE(strlen(fileName)+1, "fileName");
+            free(fileName);
+        }
     }
 #endif
 
-#ifdef DEBUG_LOGO_DETECTION
-    char detectStatus[] = "o";
-    if (rPixel > (mPixel * logo_vmark)) strcpy(detectStatus, "+");
-    if (rPixel < (mPixel * logo_imark)) strcpy(detectStatus, "-");
-    dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
-    dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed, detectStatus);
-#endif
-    // if we only have one plane we are "vulnerable"
-    // to very bright pictures, so ignore them...
-    int brightnessState = BRIGHTNESS_UNINITIALIZED;
-    int contrastReduced = -1;
-#define AREA_INTENSITY_NO_TRUST 70 // we do not trust very close result under this area intensity
-#define QUOTE_NO_TRUST        0.75 // at least this quote of matches we should have
-#define AREA_INTENSITY_TRUST    54 // we trust detection, use higher invisable value
-#define QUOTE_TRUST              2 // uplift factor for logo invisable threshold
+    bool logoStatus     = false;
+
     // in dark scene we can use stronger detection
     // don't miss logo invisable for:
     // - down shiftet logo in add (Pro7_MAXX), will only work on dark background
     // - part of logo in black screen as stop mark instead of no logo (Comedy_Central)
+#define AREA_INTENSITY_TRUST    54 // we trust detection, use higher invisable value
+#define QUOTE_TRUST              2 // uplift factor for logo invisable threshold
     if (area.intensity <= AREA_INTENSITY_TRUST) logo_imark *= QUOTE_TRUST;
 
-    // we have only 1 plane (no coloured logo)
-    if (processed == 1) {
-        // prevent to detect logo start on very bright background, this is not possible
-        if ((area.status == LOGO_INVISIBLE) && (rPixel > (mPixel * logo_vmark)) && area.intensity >= 218) {  // possible state change from invisible to visible
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cMarkAdLogo::Detect(): frame (%6d) to bright %d for logo start", frameCurrent, area.intensity);
+    char detectStatus[] = "o";
+    if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
+    if (rPixel <= logo_imark) strcpy(detectStatus, "-");
+    dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
+    dsyslog("cMarkAdLogo::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
+#endif
+
+    // we have only 1 plane (no coloured logo)
+    // if we only have one plane we are "vulnerable"
+    // to very bright pictures, so ignore them...
+    if (processed == 1) {
+        // special cases where detection is not possible:
+        // prevent to detect logo start on very bright background, this is not possible
+        if ((area.status == LOGO_INVISIBLE) && (rPixel >= logo_vmark) && area.intensity >= 218) {  // possible state change from invisible to visible
+#ifdef DEBUG_LOGO_DETECTION
+            dsyslog("cMarkAdLogo::Detect(): frame (%6d) too bright %d for logo start", frameCurrent, area.intensity);
 #endif
             return LOGO_NOCHANGE;
         }
 
-        // prevent to detect background patten as logo start
-        if ((area.status == LOGO_INVISIBLE) && (rPixel > (mPixel * logo_vmark))) {  // possible state change from invisible to visible
-            int black = 0;
-            for (int i = 0; i < logoHeight * logoWidth; i++) {
-                if (area.sobel[0][i] == 0) black++;
-            }
-            int quote = 100 * black / (logoHeight * logoWidth);
+        // transparent logo decetion on bright backbround is imposible, changed from 189 to 173
+        if (criteria->LogoTransparent(maContext->Info.ChannelName) && (area.intensity >= 161)) {  // changed from 173 to 161
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cMarkAdLogo::Detect(): frame (%6d) pixel quote: %d%%", frameCurrent, quote);
+            dsyslog("cMarkAdLogo::Detect(): frame (%6d) with transparent logo too bright %d for detection", frameCurrent, area.intensity);
 #endif
-            // pattern in background, no logo detection possible
-            if (quote >= 46) {
-                return LOGO_NOCHANGE;
-                // changed from 27 to 45
-                // do not reduce, we need to detect logo on trees or gras background
-            }
-            // pattern in bright background, no current logo, no logo detection possible
-            if ((quote >= 45) && (area.intensity >= 160)) {
-                area.counter--;       // assume only pattern, no logo
-                return LOGO_NOCHANGE;
-            }
+            return LOGO_NOCHANGE;
         }
 
-// check area intensitiy
-        // transparent logo decetion on bright backbround is imposible, changed from 189 to 173
-        if (criteria->LogoTransparent(maContext->Info.ChannelName) && (area.intensity >= 161)) return LOGO_NOCHANGE;  // changed from 173 to 161
-#define MAX_AREA_INTENSITY 69  // change from 73 to 69
-        // notice: there can be very bright logo parts in dark areas, this will result in a lower brightness
-        // we handle this cases in ReduceBrightness() when we detect contrast
-        if (((area.intensity > MAX_AREA_INTENSITY) ||                                            // if area is bright
-                // if we have a change from logo visable to logo invisable with very close result, verify it
-                ((area.intensity >= AREA_INTENSITY_NO_TRUST) && (area.status == LOGO_VISIBLE) && (rPixel < (mPixel * logo_imark)) && (rPixel > (QUOTE_NO_TRUST * mPixel * logo_imark))) ||
-                ((area.intensity >= 56) && (maContext->Video.Logo.pixelRatio <= 16))) &&  // logo with low pixel count, check with lower value
-                (area.intensity <= 221) &&  // if we are too bright, this will not work, max changed from 220 to 221
-                ((((area.status == LOGO_INVISIBLE) || (area.status == LOGO_UNINITIALIZED)) && (rPixel < (mPixel * logo_vmark))) || // only status is no logo visable
-                 // and we have no clear result or
-                 ((area.status == LOGO_VISIBLE) && (rPixel < (mPixel * logo_imark))))) {                                            // status is logo and we found no logo
-            // reduce brightness and increase contrast
-            brightnessState = ReduceBrightness(frameCurrent, &contrastReduced);
-            if (brightnessState >= BRIGHTNESS_VALID) {  // we got a new contrast, redo logo detection
-                area.rPixel[0] = 0;
-                rPixel = 0;
-                mPixel = 0;
-                SobelPlane(0, 0);
-                rPixel += area.rPixel[0];
-                mPixel += area.mPixel[0];
+        // background pattern can mess up soble transformation result
+        // prevent to detect background pattern as new logo start
+        // prvent to miss logo stop from background pattern
+        if (((area.status == LOGO_INVISIBLE) && (rPixel >= logo_vmark)) || // logo state was invisible, new logo state visible
+                // logo state was visible, new state unclear result
+                // ignore very bright pictures, we can have low logo result even on pattern background, better do brighntness reduction before to get a clear result
+                ((area.status == LOGO_VISIBLE) && (rPixel > logo_imark) && (rPixel < logo_vmark) && area.intensity <= 141)) {
+            int black   = 0;
+            for (int i = 0; i < logoHeight * logoWidth; i++) {
+                if (area.sobel[0][i]     == 0) black++;
+            }
+            int quoteBlack   = 100 * black  / (logoHeight * logoWidth);
+            int quoteInverse = 100 * iPixel / ((logoHeight * logoWidth) -mPixel);
 #ifdef DEBUG_LOGO_DETECTION
-                dsyslog("cMarkAdLogo::Detect(): frame (%6d) corrected: new area intensity: %d, brightnessState: %d, contrastReduced: %d", frameCurrent, area.intensity, brightnessState, contrastReduced);
-                char detectStatus[] = "o";
-                if (rPixel > (mPixel * logo_vmark)) strcpy(detectStatus, "+");
-                if (rPixel < (mPixel * logo_imark)) strcpy(detectStatus, "-");
-                dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed, detectStatus);
+            dsyslog("cMarkAdLogo::Detect(): frame (%6d) black quote: %d%%, inverse quote %d%%", frameCurrent, quoteBlack, quoteInverse);
 #endif
-#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-                if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
-                    char *fileName = nullptr;
-                    if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_3sobelCorrected.pgm", maContext->Config->recDir, frameCurrent, area.corner) >= 1) {
-                        ALLOC(strlen(fileName)+1, "fileName");
-                        SaveSobel(fileName, area.sobel[0], maContext->Video.Logo.width, maContext->Video.Logo.height);
-                        FREE(strlen(fileName)+1, "fileName");
-                        free(fileName);
-                    }
-                    if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_4resultCorrected.pgm", maContext->Config->recDir, frameCurrent, area.corner) >= 1) {
-                        ALLOC(strlen(fileName)+1, "fileName");
-                        SaveSobel(fileName, area.result[0], maContext->Video.Logo.width, maContext->Video.Logo.height);
-                        FREE(strlen(fileName)+1, "fileName");
-                        free(fileName);
-                    }
+            // check logo state invisible, new logo visible
+            if ((area.status == LOGO_INVISIBLE) && (rPixel >= logo_vmark)) {
+                // pattern in background, no logo detection possible
+                if (quoteBlack >= 46) {
+                    return LOGO_NOCHANGE;
+                    // changed from 27 to 45
+                    // do not reduce, we need to detect logo on trees or gras background
                 }
-#endif
-                // check background pattern
-                int black = 0;
-                for (int i = 0; i < logoHeight * logoWidth; i++) {
-                    if (area.sobel[0][i] == 0) black++;
-                }
-                int quote = 100 * black / (logoHeight * logoWidth);
-#ifdef DEBUG_LOGO_DETECTION
-                dsyslog("cMarkAdLogo::Detect(): frame (%6d) pixel quote after brightness reduction: %d%%", frameCurrent, quote);
-#endif
-                if (quote > 22) { // changed from 27 to 25
-                    if ((quote >= 60) && (area.status == LOGO_INVISIBLE)) {  // prevent false logo start detection from patten background
-                        area.counter--;
-                        if (area.counter < 0) area.counter = 0;
-                    }
-                    return LOGO_NOCHANGE; // there is a pattern on the backbround, no logo detection possible
-                }
-                // check new brightness
-                if ((area.intensity >  164) && (rPixel >  0)) { // still too bright, we can not use the result
-#ifdef DEBUG_LOGO_DETECTION
-                    dsyslog("cMarkAdLogo::Detect(): frame (%6d) brightness reducation successful, but logo area still too bright", frameCurrent);
-#endif
+                // pattern in bright background, no current logo, no logo detection possible
+                if ((quoteBlack >= 45) && (area.intensity >= 160)) {
+                    area.counter--;       // assume only pattern, no logo
                     return LOGO_NOCHANGE;
                 }
-                if ((area.status == LOGO_INVISIBLE) && contrastReduced < 25) {  // if we have a very low contrast this could not be a new logo
-                    return LOGO_NOCHANGE;
-                }
-                // if we have a very low contrast and some matches this could be a logo on a very bright area
-                if ((area.status == LOGO_VISIBLE) && (area.intensity > 8) && (contrastReduced < 25) && (rPixel < (mPixel * logo_imark)) && (rPixel > (mPixel * logo_imark) / 3)) {
-                    return LOGO_NOCHANGE;
-                }
+                logoStatus = true;  // now we trust a positiv logo detection
             }
             else {
+                // check logo state visible, new unclear result, trust less bright picture more than bright picures
+                if (((quoteBlack >= 46) && ((quoteBlack - quoteInverse) <= 0)) ||                                   // eg. tree before bright sky
+                        ((area.intensity < 128) && (quoteBlack >= 21) && ((quoteBlack - quoteInverse) <= 4))) {
+                    rPixel = logo_imark; // set to invisible
+                    logoStatus = true;
 #ifdef DEBUG_LOGO_DETECTION
-                dsyslog("cMarkAdLogo::Detect(): frame (%6d) not valid after brightness reduction", frameCurrent);
+                    dsyslog("cMarkAdLogo::Detect(): frame (%6d) inverse quote above limit, assume matches only from patten and logo is invisible", frameCurrent);
 #endif
-                if ((brightnessState == BRIGHTNESS_SEPARATOR) && (area.status == LOGO_VISIBLE)) { // sepatation image detected
-                    area.intensity = 0; // force detection of sepatation image
                 }
-
-                // we have a low pixel logo
-                if ((area.intensity >= 56) && (maContext->Video.Logo.pixelRatio <= 16)) return LOGO_NOCHANGE;
-
-                // we have a close result and can not reduce brightness, do not trust result
-                if ((brightnessState == BRIGHTNESS_ERROR) && (area.intensity >= AREA_INTENSITY_NO_TRUST) && (area.status == LOGO_VISIBLE) &&
-                        (rPixel < (mPixel * logo_imark)) && (rPixel > (QUOTE_NO_TRUST * mPixel * logo_imark))) return LOGO_NOCHANGE;
             }
         }
+
+        // if current state is logo visible or uninitialized (to get an early logo start) and we have a lot of matches, now we trust logo is still there
+        if (!logoStatus &&
+                ((area.status == LOGO_VISIBLE) ||  (area.status == LOGO_UNINITIALIZED)) &&
+                (rPixel >= logo_imark)) {
+#ifdef DEBUG_LOGO_DETECTION
+            dsyslog("cMarkAdLogo::Detect(): frame (%6d) high machtes, trust logo still visable", frameCurrent);
+#endif
+            logoStatus = true;
+        }
+
+        // check if we have a valid logo visible/invisible result
+#define MAX_AREA_INTENSITY      69    // limit to reduce brightness if we have a high pixel logo
+#define MAX_AREA_INTENSITY_LOW  56    // limit to reduce brightness if we have a low pixel logo
+        int maxBrightness = MAX_AREA_INTENSITY;
+        if (maContext->Video.Logo.pixelRatio <= LOW_PIXEL_LOGO) maxBrightness = MAX_AREA_INTENSITY_LOW;
+        if (!logoStatus && (area.intensity <= maxBrightness) && (rPixel <= logo_imark)) logoStatus = true;  // we have no bright picture so we have a valid logo invisible result
+
         // if we have still no match, try to copy colour planes into grey planes
-        // we can even try this if plane 0 is too bright, maybe plane 1 or 2 are better
+        // some channel use coloured logo at broadcast start
         // for performance reason we do this only for the known channel
-        if (((area.intensity > MAX_AREA_INTENSITY) ||              // we have no valid result
-                (((rPixel < (mPixel * logo_vmark)) &&                  // we have a valid result, but maybe we can find a new coloured logo
-                  (area.status == LOGO_INVISIBLE)) ||
-                 ((rPixel < (mPixel * logo_imark)) &&                  // we have a valid result, but maybe we can re-find a coloured logo
-                  (area.status == LOGO_VISIBLE))))  &&
-                CompareChannelName(maContext->Info.ChannelName, "DMAX", IGNORE_HD)) { // and only on channel DMAX
+        if (!logoStatus && criteria->LogoColorChange(maContext->Info.ChannelName)) {
             // save state
             int intensityOld = area.intensity;
             int rPixelOld = rPixel;
-            int mPixelOld = mPixel;
 
             if (!isInitColourChange) {
                 LogoGreyToColour();
                 isInitColourChange = true;
             }
             rPixel = 0;
-            mPixel = 0;
             for (int plane = 1; plane < PLANES; plane++) {
                 // reset all planes
                 area.rPixel[plane] = 0;
-                area.valid[plane] = true;
+                area.valid[plane]  = true;
                 area.mPixel[plane] = area.mPixel[0] / 4;
                 SobelPlane(plane, 0);
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
@@ -1047,77 +1126,75 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 }
 #endif
                 rPixel += area.rPixel[plane];
-                mPixel += area.mPixel[plane];
                 area.valid[plane] = false;
                 area.mPixel[plane] = 0;
                 area.rPixel[plane] = 0;
             }
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cMarkAdLogo::Detect(): frame (%6d) maybe logo had a colour change, try plane 1 and plan 2", frameCurrent);
+            dsyslog("cMarkAdLogo::Detect(): frame (%6d) maybe colour change, try plane 1 and plan 2", frameCurrent);
             char detectStatus[] = "o";
-            if (rPixel > (mPixel * logo_vmark)) strcpy(detectStatus, "+");
-            if (rPixel < (mPixel * logo_imark)) strcpy(detectStatus, "-");
-            dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed, detectStatus);
+            if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
+            if (rPixel <= logo_imark) strcpy(detectStatus, "-");
+            dsyslog("cMarkAdLogo::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
 #endif
-            if (rPixel < (mPixel * logo_imark)) { // we found no coloured logo here, restore old state
+            if (rPixel <= logo_imark) { // we found no coloured logo here, restore old state
                 area.intensity = intensityOld;
                 rPixel = rPixelOld;
-                mPixel = mPixelOld;
             }
-            else brightnessState = BRIGHTNESS_VALID;  // ignore bightness, we found a coloured logo
+            if (rPixel >= logo_vmark) logoStatus = true;  // we found colored logo
         }
-        if ((area.intensity > MAX_AREA_INTENSITY) && // still too bright
-                ((brightnessState == BRIGHTNESS_ERROR) || (brightnessState == BRIGHTNESS_UNINITIALIZED)) &&
-                (rPixel < (mPixel * logo_vmark))) {  // accept it, if we can see a logo
-#ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cMarkAdLogo::Detect(): frame (%6d) too bright", frameCurrent);
-#endif
-            return LOGO_NOCHANGE;
+
+        // try to reduce brightness and increase contrast
+        // check area intensitiy
+        // notice: there can be very bright logo parts in dark areas, this will result in a lower brightness
+        // we handle this cases in ReduceBrightness() when we detect contrast
+        // check if area is bright
+        if (!logoStatus && (area.intensity > maxBrightness) && (area.intensity <= 221)) {  //  only if we don't have a valid result yet
+            // reduce brightness and increase contrast
+            logoStatus = ReduceBrightness(frameCurrent, logo_vmark, logo_imark);
+            if (logoStatus) rPixel = area.rPixel[0];  // set new pixel result
         }
     }
-    else {  // if we have more planes we can still have a problem with coloured logo on same colored background
-        // too bright
-        if ((area.status == LOGO_VISIBLE) && (area.intensity >= 134) &&             // too bright, logo detection can be wrong, changed from 142 to 134
-                // do not increase, will get too much false logo invisible on all planes
-                // prevent to detect logo on white backbround as logo stop
-                (rPixel > 0) && (rPixel < (mPixel * logo_imark))) return LOGO_NOCHANGE; // in very bright pictures try to get result only if we have some matches
+    else {
+        // if we have more planes we can still have a problem with coloured logo on same colored background
+        if ((rPixel >= logo_vmark)) logoStatus = true;  // trust logo visible result
+        if (rPixel == 0)            logoStatus = true;  // trust logo invisible result without any matches
 
-        // maybe coloured logo on same colored background, try without plane 0
-        if ((((area.status == LOGO_UNINITIALIZED) && (rPixel < (mPixel * logo_vmark))) ||  // at start make sure we get at least a quick initial logo visible
-                ((area.status == LOGO_INVISIBLE)     && (rPixel < (mPixel * logo_vmark)) && (rPixel > (mPixel * logo_imark * 0.8))) ||  // try get early logo start on bright background
-                ((area.status == LOGO_VISIBLE)       && (rPixel < (mPixel * logo_imark)) && (rPixel > (mPixel * logo_imark * 0.3)))) && // we have a some machtes but not enough
-                // changed from 0.5 to 0.4 to 0.3
-                (area.intensity > 50)) {  // changed from 120 to 50
+        // maybe coloured logo on same colored background, check planes separated, all planes must be under invisible limit
+        if (!logoStatus && (rPixel <= logo_imark) && (area.intensity <= 132)) {  // do not trust logo invisible detection on bright background
+            bool planeStatus = true;
+            for (int i = 0; i < PLANES; i++) {
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cMarkAdLogo::Detect():       plane 0: rp=%5d | mp=%5d", area.rPixel[0], area.mPixel[0]);
-            dsyslog("cMarkAdLogo::Detect():       plane 1: rp=%5d | mp=%5d", area.rPixel[1], area.mPixel[1]);
-            dsyslog("cMarkAdLogo::Detect():       plane 2: rp=%5d | mp=%5d", area.rPixel[2], area.mPixel[2]);
+                dsyslog("cMarkAdLogo::Detect():       plane %d: rp=%5d | ip=%5d | mp=%5d | mpV=%5.f | mpI=%5.f |", i, area.rPixel[i], area.iPixel[i], area.mPixel[i], area.mPixel[i] * LOGO_VMARK, area.mPixel[i] * LOGO_IMARK);
 #endif
-            if ((area.rPixel[1] + area.rPixel[2]) > 0) {  // if we have no result in plane 1/2, do not use it
-                rPixel -= area.rPixel[0]; //  try without plane 0
-                mPixel -= area.mPixel[0];
-#ifdef DEBUG_LOGO_DETECTION
-                char detectStatus[] = "o";
-                if (rPixel > (mPixel * logo_vmark)) strcpy(detectStatus, "+");
-                if (rPixel < (mPixel * logo_imark)) strcpy(detectStatus, "-");
-                dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed, detectStatus);
-#endif
+                if (area.rPixel[i] >= (area.mPixel[i] * LOGO_IMARK)) {
+                    planeStatus = false;
+                    break;
+                }
             }
+            logoStatus = planeStatus;
         }
+    }
+
+    if (!logoStatus) {
+#ifdef DEBUG_LOGO_DETECTION
+        dsyslog("cMarkAdLogo::Detect(): frame (%6d) no valid result", frameCurrent);
+#endif
+        return LOGO_NOCHANGE;
     }
 
 // set logo visible/unvisible status
-    // set initial start status
+// set initial start status
     if (area.status == LOGO_UNINITIALIZED) {
-        if (rPixel >= (mPixel * logo_vmark)) area.status = LOGO_VISIBLE;
-        if (rPixel <  (mPixel * logo_imark)) area.status = LOGO_INVISIBLE;  // wait for a clear result
+        if (rPixel >= logo_vmark) area.status = LOGO_VISIBLE;
+        if (rPixel <= logo_imark) area.status = LOGO_INVISIBLE;  // wait for a clear result
         if (area.frameNumber == -1) area.frameNumber = frameCurrent;
         *logoFrameNumber = area.frameNumber;
         return area.status;
     }
     if (area.status == LOGO_RESTART) {
-        if (rPixel >= (mPixel * logo_vmark)) area.status = LOGO_VISIBLE;
-        if (rPixel <  (mPixel * logo_imark)) area.status = LOGO_INVISIBLE;  // wait for a clear result
+        if (rPixel >= logo_vmark) area.status = LOGO_VISIBLE;
+        if (rPixel <= logo_imark) area.status = LOGO_INVISIBLE;  // wait for a clear result
         *logoFrameNumber = -1;   // no logo change report after detection restart
         area.frameNumber = frameCurrent;
         return area.status;
@@ -1125,7 +1202,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 
 
     int ret = LOGO_NOCHANGE;
-    if (rPixel >= (mPixel * logo_vmark)) {
+    if (rPixel >= logo_vmark) {
         if (area.status == LOGO_INVISIBLE) {
             if (area.counter >= LOGO_VMAXCOUNT) {
                 area.status = ret = LOGO_VISIBLE;
@@ -1143,7 +1220,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         }
     }
 
-    if (rPixel < (mPixel * logo_imark)) {
+    if (rPixel <=logo_imark) {
         if (area.status == LOGO_VISIBLE) {
             if (area.counter >= LOGO_IMAXCOUNT) {
                 area.status = ret = LOGO_INVISIBLE;
@@ -1153,9 +1230,8 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
             else {
                 if (!area.counter) area.frameNumber = frameBefore;
                 area.counter++;
-                if (brightnessState >= BRIGHTNESS_VALID) area.counter++;  // if we had optimzed the picture and still no match, this should be valid
-                if (rPixel < (mPixel * logo_imark / 2)) area.counter++;   // good detect for logo invisible
-                if (rPixel < (mPixel * logo_imark / 4)) area.counter++;   // good detect for logo invisible
+                if (rPixel <= (logo_imark / 2)) area.counter++;   // good detect for logo invisible
+                if (rPixel <= (logo_imark / 4)) area.counter++;   // good detect for logo invisible
                 if (rPixel == 0) {
                     area.counter++;   // very good detect for logo invisible
                     if (area.intensity <= 80) { // best detect, blackscreen without logo, increased from 30 to 70 to 80
@@ -1172,17 +1248,21 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         }
     }
 
-    if ((rPixel < (mPixel * logo_vmark)) && (rPixel > (mPixel * logo_imark))) {
-        area.counter--;  // we are more uncertain of logo state
+
+    // if we have no clear result, we are more uncertain of logo state
+    if ((rPixel < logo_vmark) && (rPixel > logo_imark)) {
+        area.counter--;
         if (area.counter < 0) area.counter = 0;
     }
+
 #ifdef DEBUG_LOGO_DETECTION
     strcpy(detectStatus, "o");
-    if (rPixel > (mPixel * logo_vmark)) strcpy(detectStatus, "+");
-    if (rPixel < (mPixel * logo_imark)) strcpy(detectStatus, "-");
-    dsyslog("cMarkAdLogo::Detect(): frame (%6d) rp=%5d | mp=%5d | mpV=%5.f | mpI=%5.f | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, mPixel, (mPixel * logo_vmark), (mPixel * logo_imark), area.intensity, area.counter, area.status, processed, detectStatus);
+    if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
+    if (rPixel <= logo_imark) strcpy(detectStatus, "-");
+    dsyslog("cMarkAdLogo::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
 #endif
+
     return ret;
 }
 

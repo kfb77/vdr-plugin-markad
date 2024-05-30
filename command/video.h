@@ -87,40 +87,46 @@ enum {
  * corner area after sobel transformation
  */
 typedef struct sAreaT {
-    uchar **sobel      = nullptr;       //!< monochrome picture from edge after sobel transformation, memory will be allocated after we know video resolution
+    uchar **sobel      = nullptr;              //!< monochrome picture from edge after sobel transformation, memory will be allocated after we know video resolution
     //!<
 
-    uchar **mask       = nullptr;       //!< monochrome mask of logo, memory will be allocated after we know video resolution
+    uchar **mask       = nullptr;              //!< monochrome mask of logo, memory will be allocated after we know video resolution
     //!<
 
-    uchar **result     = nullptr;       //!< result of sobel + mask, memory will be allocated after we know video resolution
+    uchar **result     = nullptr;              //!< result of sobel + mask, memory will be allocated after we know video resolution
     //!<
 
-    int rPixel[PLANES];              //!< black pixel in result
+    uchar **inverse    = nullptr;              //!< inverse result of sobel + mask, memory will be allocated after we know video resolution
     //!<
 
-    int mPixel[PLANES]    = {0};     //!< black pixel in mask
+    int mPixel[PLANES] = {0};                  //!< black pixel in mask
     //!<
 
-    int status;                      //!< logo status: on, off, uninitialized
+    int rPixel[PLANES] = {0};                  //!< black pixel in result
     //!<
 
-    int frameNumber       = -1;      //!< start/stop frame number
+    int iPixel[PLANES] = {0};                  //!< black pixel in inverse result
     //!<
 
-    int counter;                     //!< how many logo on, offs detected
+    int status         = LOGO_UNINITIALIZED;   //!< logo status: on, off, uninitialized
     //!<
 
-    int corner;                      //!< corner of logo
+    int frameNumber    = -1;                   //!< start/stop frame number
     //!<
 
-    int intensity;                   //!< area intensity (higher -> brighter)
+    int counter;                               //!< how many logo on, offs detected
     //!<
 
-    sAspectRatio AspectRatio;        //!< aspect ratio of the video
+    int corner;                                //!< corner of logo
     //!<
 
-    bool valid[PLANES];              //!< <b>true:</b> logo mask data (logo) are valid <br>
+    int intensity;                             //!< area intensity (higher -> brighter)
+    //!<
+
+    sAspectRatio AspectRatio;                  //!< aspect ratio of the video
+    //!<
+
+    bool valid[PLANES];                        //!< <b>true:</b> logo mask data (logo) are valid <br>
     //!< <b>false:</b> logo mask (logo) is not valid
     //!<
 } sAreaT;
@@ -305,17 +311,6 @@ public:
 private:
 
     /**
-     * enumeration for ReduceBrightness function return codes
-     */
-    enum eBrightness {
-        BRIGHTNESS_CHANGED       =  1,
-        BRIGHTNESS_VALID         =  0,           // picture is valid, no reduction necessary
-        BRIGHTNESS_SEPARATOR     = -1,
-        BRIGHTNESS_ERROR         = -2,
-        BRIGHTNESS_UNINITIALIZED = -3
-    };
-
-    /**
      * calculate coordinates of logo position (values for array index, from 0 to (Video.Info.width - 1) or (Video.Info.height)
      * @param[out] xstart x position of logo start
      * @param[out] xend   x position of logo end
@@ -332,7 +327,7 @@ private:
      * @param[out] contrastReduced logo area brightness after reduction if successful, otherwise unchanged
      * @return return code #eBrightness value
      */
-    int ReduceBrightness(const int frameNumber, int *contrastReduced);
+    bool ReduceBrightness(const int frameNumber, const int logo_vmark, const int logo_imark);
 
     /**
      * sobel transform one plane of the picture
@@ -360,13 +355,6 @@ private:
      * return: true if successful, false otherwise
      */
     bool Save(const int frameNumber, uchar **picture, const short int plane, const char *debug);
-
-    /**
-     * save the original corner picture /tmp and add debug identifier to filename
-     * @param frameNumber frame number
-     * @param debug identifier for debug
-     */
-    void SaveFrameCorner(const int frameNumber, const int debug);
 
     /**
      * copy all black pixels from logo pane 0 into plan 1 and plane 2,
