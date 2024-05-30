@@ -4652,6 +4652,9 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxBefore = 22080;
                     break;
                 case MT_LOGOSTART:
+                    // rule 1: very short blackscreen with silence after
+                    if (silenceAfter && (diffAfter <= 20)) diffBefore = INT_MAX;
+
                     if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && silenceBefore) maxBefore = 6840;
                     else if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN)               maxBefore = 5360;
                     else                                                                                 maxBefore = 3020;
@@ -4716,8 +4719,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxAfter = 2240;
                     break;
                 case MT_HBORDERSTART:
-                    if (silenceAfter && (lengthAfter >= 1520)) maxAfter = 4520;  // separator picture with hbrder before start
-                    else                                       maxAfter =   -1;
+                    maxAfter = 260;
                     break;
                 case MT_VBORDERSTART:
                     if (lengthAfter < maxAfter) maxAfter = 6120;  // prevent to use black screen with text at broadcast start
@@ -4818,14 +4820,14 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     break;
                 case MT_LOGOSTOP:
                     // rule 1: black screen before from before logo stop to after logo stop
-                    if (lengthBefore >= diffBefore) diffAfter = INT_MAX;
+                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && lengthBefore >= diffBefore) diffAfter = INT_MAX;
 
                     // rule 2: long black screen at end of broadcast, short black screen after preview
                     else if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) &&
                              (diffBefore <= 4580) && (lengthBefore >= 600) && (diffAfter <= 3240) && (lengthAfter <= 520)) diffAfter = INT_MAX;
 
-                    if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT)) maxAfter = 2160;
-                    else                                                                 maxAfter = 1399;
+                    if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) )  maxAfter = 4960;
+                    else                                                                   maxAfter = 1399;
                     break;
                 case MT_HBORDERSTOP:
                     // rule 1: black screen with silence short before hborder stop is end of closing creditsA
@@ -4938,19 +4940,22 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 if (diffBefore <= maxBefore) {
                     int newPos =  stopBefore->position;
                     if (mark->position == marks.GetLast()->position) {
-                        newPos += START_STOP_BLACK;  // end broadcast with some black picture
-                        if (newPos > (startBefore->position - 1)) newPos = (startBefore->position - 1);
+                        // keep full closing black screen around last stop mark
+                        // ignore if too long, in this case it contains opening credits from next broadcast
+                        if ((lengthBefore >= diffBefore) && (lengthBefore < 9080)) newPos = startBefore->position - 1;
                         else {
-                            if (lengthBefore < 5040) {  // next broadcast starts with a long dark scene
-                                int midBlack = (startBefore->position + stopBefore->position) / 2;  // for long black screen, take mid of a the black screen
-                                if (newPos < midBlack) newPos = midBlack;
+                            newPos =  stopBefore->position + START_STOP_BLACK;  // set end of broadcast with some black picture, not all, this can be opening credits of next broadcast
+                            if (newPos > (startBefore->position - 1)) newPos = (startBefore->position - 1);
+                            else {
+                                if (lengthBefore < 5040) {  // next broadcast starts with a long dark scene
+                                    int midBlack = (startBefore->position + stopBefore->position) / 2;  // for long black screen, take mid of a the black screen
+                                    if (newPos < midBlack) newPos = midBlack;
+                                }
                             }
                         }
                     }
                     mark = marks.Move(mark, newPos, MT_NOBLACKSTOP);
-                    if (mark) {
-                        save = true;
-                    }
+                    if (mark) save = true;
                     else break;
                 }
             }
