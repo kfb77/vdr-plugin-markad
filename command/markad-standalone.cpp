@@ -4971,8 +4971,6 @@ void cMarkAdStandalone::LowerBorderOptimization() {
     DebugMarks();
     bool save = false;
     cMark *mark = marks.GetFirst();
-#define MIN_LOWER_BORDER  640
-#define MAX_LOWER_BORDER 5680
     while (mark) {
         // only for VPS marks
         if (((mark->type & 0xF0) != MT_MOVED) || ((mark->newType & 0xF0) != MT_VPSCHANGE)) {
@@ -5154,8 +5152,8 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if (criteria.GoodVPS(macontext.Info.ChannelName)) maxBefore =  6579;
-                        else                                              maxBefore = 99879;
+                        if (criteria.GoodVPS(macontext.Info.ChannelName)) maxBefore =   6579;
+                        else                                              maxBefore = 106120;
                         break;
                     default:
                         maxBefore = -1;
