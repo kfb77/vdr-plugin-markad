@@ -5746,25 +5746,24 @@ void cMarkAdStandalone::ProcessOverlap() {
     LogSeparator(false);
     dsyslog("cMarkAdStandalone::ProcessOverlap(): check last stop mark for advertisement in frame with logo or closing credits");
     cMark *lastStop = marks.GetLast();
-    if (lastStop) {
-        // check end mark
-        if ((lastStop->type == MT_LOGOSTOP) ||
-                ((lastStop->type == MT_MOVEDSTOP) && (lastStop->newType != MT_NOADINFRAMESTOP) && (lastStop->newType != MT_TYPECHANGESTOP))) { // prevent double detection of ad in frame and closing credits
-            if (criteria.GetClosingCreditsState(lastStop->position) >= CRITERIA_UNKNOWN) {
-                dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after logo end mark");
-                if (MoveLastStopAfterClosingCredits(lastStop)) {
-                    save = true;
-                    dsyslog("cMarkAdStandalone::ProcessOverlap(): moved logo end mark after closing credit");
-                }
+    // check end mark
+    if (lastStop && ((lastStop->type == MT_LOGOSTOP) ||  // prevent double detection of ad in frame and closing credits
+                     ((lastStop->type == MT_MOVEDSTOP) && (lastStop->newType != MT_NOADINFRAMESTOP) && (lastStop->newType != MT_TYPECHANGESTOP)))) {
+        if (criteria.GetClosingCreditsState(lastStop->position) >= CRITERIA_UNKNOWN) {
+            dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after logo end mark");
+            if (MoveLastStopAfterClosingCredits(lastStop)) {
+                lastStop = nullptr;  // pointer lastStop after move invalid
+                save = true;
+                dsyslog("cMarkAdStandalone::ProcessOverlap(): moved logo end mark after closing credit");
             }
         }
-        // check border end mark
-        if ((lastStop->type == MT_HBORDERSTOP)) {
-            dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after border or moved end mark");
-            if (MoveLastStopAfterClosingCredits(lastStop)) {
-                save = true;
-                dsyslog("cMarkAdStandalone::ProcessOverlap(): moved border end mark after closing credit");
-            }
+    }
+    // check border end mark
+    if (lastStop && (lastStop->type == MT_HBORDERSTOP)) {
+        dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after border or moved end mark");
+        if (MoveLastStopAfterClosingCredits(lastStop)) {
+            save = true;
+            dsyslog("cMarkAdStandalone::ProcessOverlap(): moved border end mark after closing credit");
         }
     }
 
