@@ -5471,6 +5471,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     // rule 1: logo start very short before broadcast start
                     if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && (diffBefore >= 1560) && (diffAfter <= 80)) diffBefore = INT_MAX;
 
+                    // rule 2: scene start very short after logo start in old recording without fade in of fade in channel
+                    else if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && (diffBefore >= 1700) && (diffAfter <= 20)) diffBefore = INT_MAX;
+
                     if (criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) maxBefore = 4800;
                     else                                                              maxBefore = 1599;
                     break;
@@ -5589,13 +5592,14 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     break;
                 case MT_LOGOSTOP:
                     // rule 1: if not fade out logo, we have delayed logo stop from detection fault (bright picture or patten in background)
-                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && (diffAfter > 120)) diffAfter = INT_MAX;
+                    // scene change after far away or scene change before very near
+                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && ((diffAfter >= 280) || (diffBefore <= 320))) diffAfter = INT_MAX;
 
                     maxAfter = 5639;
                     break;
                 case MT_HBORDERSTOP:
                     if ((diffBefore <= 440) && (diffAfter >= 1720)) diffAfter = INT_MAX;
-                    maxAfter = 1239;
+                    maxAfter = 799;
                     break;
                 case MT_CHANNELSTOP:
                     // rule 1:
@@ -5614,6 +5618,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxAfter = 2520;
                         break;
                     case MT_SOUNDSTOP:
+                        // rule1: use scene change near by end of silence
+                        if (diffBefore < diffAfter) diffAfter = INT_MAX;
+
                         maxAfter = 160;
                         break;
                     case MT_VPSSTOP:
@@ -5657,7 +5664,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxBefore = 1120;
                     break;
                 case MT_LOGOSTOP:
-                    maxBefore = 1919;
+                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT)) maxBefore = 3000;
                     break;
                 case MT_HBORDERSTOP:
                     if (mark->position == marks.GetLast()->position) maxBefore = 440;
@@ -5671,7 +5678,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxBefore = 80;
                         break;
                     case MT_SOUNDSTOP:
-                        maxBefore = 1079;
+                        maxBefore = 2120;
                         break;
                     case MT_VPSSTOP:
                         maxBefore = 8440;   // chaned from 1320 to 1440 to 8440
