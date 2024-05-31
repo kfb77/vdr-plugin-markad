@@ -54,22 +54,21 @@ bool cEvaluateChannel::ClosingCreditsChannel(const char *channelName) {
 
 
 bool cEvaluateChannel::AdInFrameWithLogoChannel(const char *channelName) {
-// for performance reason only for known and tested channels for now
-    if (CompareChannelName(channelName, "Kabel_1_Austria",    IGNORE_HD) ||
-            CompareChannelName(channelName, "kabel_eins",     IGNORE_HD) ||
-            CompareChannelName(channelName, "Pro7_MAXX",      IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "ProSieben",      IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "ProSieben_MAXX", IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "RTL2",           IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "RTLZWEI",        IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "RTL_Television", IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "SAT_1",          IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "SIXX",           IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "VOX",            IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "VOXup",          IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "WELT",           IGNORE_HD | IGNORE_COUNTRY)) {
-        return true;
-    }
+// for performance reason only for known and tested channels
+    if (CompareChannelName(channelName, "DMF",             IGNORE_HD))                  return true;
+    if (CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD))                  return true;
+    if (CompareChannelName(channelName, "kabel_eins",      IGNORE_HD))                  return true;
+    if (CompareChannelName(channelName, "Pro7_MAXX",       IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "ProSieben",       IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "ProSieben_MAXX",  IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "RTL2",            IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "RTLZWEI",         IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "RTL_Television",  IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "SAT_1",           IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "SIXX",            IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "VOX",             IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "VOXup",           IGNORE_HD | IGNORE_COUNTRY)) return true;
+//          if (CompareChannelName(channelName, "WELT",           IGNORE_HD | IGNORE_COUNTRY)) return true;  // too much false positiv because of news ticker
     return false;
 }
 
