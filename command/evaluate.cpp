@@ -870,13 +870,13 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
     case TOP_LEFT:
         portion = FindFrameFirstPixel(picture, corner, width, height, 10, 0, 1, 1); // search from top left to bottom right
         // do not start at corner, maybe conrner was not exactly detected
-        if (portion < 230) {  // maybe we have a text under frame or the logo
+        if (portion <= 572) {  // maybe we have a text under frame or the logo
             int portionTMP = FindFrameFirstPixel(picture, corner, width, height, width / 2, 0, 1, 1); // search from top mid to bottom right
             if (portionTMP > portion) portion = portionTMP;
-            if (portion < 230) {  // maybe we have a text under frame or the logo
+            if (portion <= 572) {  // maybe we have a text under frame or the logo
                 portionTMP = FindFrameFirstPixel(picture, corner, width, height, 0, height / 2, 1, 0);  // search horizontal mid right mid left
                 if (portionTMP > portion) portion = portionTMP;
-                if (portion < 230) {  // maybe we have a text under frame or the logo
+                if (portion <= 572) {  // maybe we have a text under frame or the logo
                     portionTMP = FindFrameFirstPixel(picture, corner, width, height, 0, height * 9 / 10, 1, 0);  // search horizontal from 9/10 button left to right
                     if (portionTMP > portion) portion = portionTMP;
                 }
@@ -898,16 +898,16 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
 
     case BOTTOM_LEFT:
         portion = FindFrameFirstPixel(picture, corner, width, height, 0, height - 1, 1, -1); // search from buttom left to top right
-        if (portion <= 326) {  // maybe we have a text under frame
+        if (portion <= 382) {  // maybe we have a text under frame
             int portionTMP = FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, 1, -1); // search from bottom mid to top right
             if (portionTMP > portion) portion = portionTMP;
-            if (portion <= 326) {  // maybe we have only a part of the frame
+            if (portion <= 382) {  // maybe we have only a part of the frame
                 portionTMP = FindFrameFirstPixel(picture, corner, width, height, width / 3, height - 1, 1, -1); // search from bottom 1/3 left to top right
                 if (portionTMP > portion) portion = portionTMP;
-                if (portion <= 326) {  // maybe we have only a part of the frame
+                if (portion <= 382) {  // maybe we have only a part of the frame
                     portionTMP = FindFrameFirstPixel(picture, corner, width, height, 0, height / 2, 1, -1); // search from mid right  to top right
                     if (portionTMP > portion) portion = portionTMP;
-                    if (portion <= 326) {  // maybe we have only a part of the frame
+                    if (portion <= 382) {  // maybe we have only a part of the frame
                         portionTMP = FindFrameFirstPixel(picture, corner, width, height, width, 0, -1, 1); // search from top right to buttom left (horizontal line with text below)
                         if (portionTMP > portion) portion = portionTMP;
                     }
@@ -918,11 +918,11 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
 
     case BOTTOM_RIGHT:
         portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, height - 1, -1, -1);         // search from buttom right to top left
-        if (portion < 180) {  // maybe we have a text under frame
+        if (portion <= 205) {  // maybe we have a text under frame
             portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, height / 2, -1, -1);     // search from mid right to top left
-            if (portion < 180) {  // maybe we have a text under frame
+            if (portion <= 205) {  // maybe we have a text under frame
                 portion = FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, -1, -1); // search from buttom mid right to top left
-                if (portion < 180) {  // maybe we have a logo under frame (e.g. SAT.1)
+                if (portion <= 205) {  // maybe we have a logo under frame (e.g. SAT.1)
                     portion = FindFrameFirstPixel(picture, corner, width, height, width * 2 / 3, 0, -1, 1);   // search from 2/3 right top to left button
                 }
             }
