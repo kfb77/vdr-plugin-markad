@@ -1,6 +1,14 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-06-07: Version 3.6.6
+- return error code if no ts files found, thx to nobanzai@www.vdr-portal.de for reporting
+- fix crash if channel name is missing, thx to nobanzai@www.vdr-portal.d for reporting
+- optimize logo detection to recognize more of short interruption
+- fix heap-use-after-free
+- fix memory leak
+- some minor bug fixes and optimizations, see git
+
 2024-30-05: Version 3.6.5
 - fix vborder start mark selection with early advertisement
 - ignore frames with unexpected channel count
