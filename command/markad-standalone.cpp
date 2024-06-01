@@ -4440,31 +4440,29 @@ void cMarkAdStandalone::LogoMarkOptimization() {
 
             // check for advertising in frame with logo after logo start mark position
             int adInFrameEndPosition = -1;
-            if (markLogo->position > marks.GetFirst()->position) { // never saw a advertising in frame after first start mark
-                LogSeparator(false);
-                int searchEndPosition = markLogo->position + (60 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
-                // sometimes advertising in frame has text in "e.g. Werbung"
-                // check longer range to prevent to detect text as second logo
-                // changed from 35 to 60
+            LogSeparator(false);
+            int searchEndPosition = markLogo->position + (60 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
+            // sometimes advertising in frame has text in "e.g. Werbung"
+            // check longer range to prevent to detect text as second logo
+            // changed from 35 to 60
 
-                char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition, false);
-                if (indexToHMSFSearchEnd) {
-                    ALLOC(strlen(indexToHMSFSearchEnd)+1, "indexToHMSFSearchEnd");
-                }
-                if (indexToHMSFStartMark && indexToHMSFSearchEnd) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search advertising in frame with logo after logo start mark (%d) at %s to position (%d) at %s", markLogo->position, indexToHMSFStartMark, searchEndPosition, indexToHMSFSearchEnd);
-                if (indexToHMSFSearchEnd) {
-                    FREE(strlen(indexToHMSFSearchEnd)+1, "indexToHMSFSearchEnd");
-                    free(indexToHMSFSearchEnd);
-                }
-                if (ptr_cDetectLogoStopStart->Detect(markLogo->position, searchEndPosition)) {
-                    adInFrameEndPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(true);
-                }
-                if (adInFrameEndPosition >= 0) {
-                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", markLogo->position, adInFrameEndPosition);
-                    if (evaluateLogoStopStartPair->IncludesInfoLogo(markLogo->position, adInFrameEndPosition)) {
-                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): deleted info logo part in this range, this could not be a advertising in frame");
-                        adInFrameEndPosition = -1;
-                    }
+            char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition, false);
+            if (indexToHMSFSearchEnd) {
+                ALLOC(strlen(indexToHMSFSearchEnd)+1, "indexToHMSFSearchEnd");
+            }
+            if (indexToHMSFStartMark && indexToHMSFSearchEnd) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search advertising in frame with logo after logo start mark (%d) at %s to position (%d) at %s", markLogo->position, indexToHMSFStartMark, searchEndPosition, indexToHMSFSearchEnd);
+            if (indexToHMSFSearchEnd) {
+                FREE(strlen(indexToHMSFSearchEnd)+1, "indexToHMSFSearchEnd");
+                free(indexToHMSFSearchEnd);
+            }
+            if (ptr_cDetectLogoStopStart->Detect(markLogo->position, searchEndPosition)) {
+                adInFrameEndPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(true);
+            }
+            if (adInFrameEndPosition >= 0) {
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", markLogo->position, adInFrameEndPosition);
+                if (evaluateLogoStopStartPair->IncludesInfoLogo(markLogo->position, adInFrameEndPosition)) {
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): deleted info logo part in this range, this could not be a advertising in frame");
+                    adInFrameEndPosition = -1;
                 }
             }
             if (adInFrameEndPosition != -1) {  // if we found advertising in frame, use this
