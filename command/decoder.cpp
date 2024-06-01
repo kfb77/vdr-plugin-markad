@@ -15,6 +15,7 @@
 #include "decoder.h"
 #include "debug.h"
 
+// global variables
 extern long int decodeTime_us;
 
 
@@ -170,7 +171,10 @@ bool cDecoder::DecodeFile(const char *filename) {
         avctx = avctxNextFile;
     }
     else {
-        if (fileNumber <= 1) dsyslog("cDecoder::DecodeFile(): Could not open source file %s", filename);
+        if (fileNumber <= 1) {
+            esyslog("could not open source file %s", filename);
+            exit(EXIT_FAILURE);
+        }
         return false;
     }
     if (avformat_find_stream_info(avctx, nullptr) < 0) {

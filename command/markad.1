@@ -145,6 +145,14 @@ Usage: markad [options] cmd <recording>
  before                    markad started by vdr before the recording is complete, only valid together with --online
  edited                    markad started by vdr in edit function and exits immediately
  <record>                  is the name of the directory where the recording is stored
+.SH "EXIT STATUS"
+.TP
+.B 0
+Successful program execution
+.TP
+.B 1
+An non-recoverable error has been detected, markad has given up. See stderr, syslog or log file in the recording directory for more information
+
 .SH "AUTHOR"
 Written by Jochen Dolze <vdr@dolze.de>
 .SH "REPORTING BUGS"

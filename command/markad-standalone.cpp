@@ -46,6 +46,7 @@ cMarkAdStandalone *cmasta      = nullptr;
 bool restartLogoDetectionDone  = false;
 int SysLogLevel                = 2;
 bool abortNow                  = false;
+
 int logoSearchTime_ms          = 0;
 long int decodeTime_us         = 0;
 
@@ -6929,7 +6930,7 @@ int usage(int svdrpport) {
            "                             is stored\n\n",
            svdrpport
           );
-    return -1;
+    return EXIT_FAILURE;
 }
 
 
@@ -6986,26 +6987,30 @@ void freedir(void) {
 
 
 int main(int argc, char *argv[]) {
-    bool bAfter = false, bEdited = false;
-    bool bFork = false, bNice = false, bImmediateCall = false;
-    int niceLevel = 19;
-    int ioprio_class = 3;
-    int ioprio = 7;
-    char *tok,*str;
-    int ntok;
-    bool bPass2Only = false;
-    bool bPass1Only = false;
+    bool bAfter         = false;
+    bool bEdited        = false;
+    bool bFork          = false;
+    bool bNice          = false;
+    bool bImmediateCall = false;
+    int niceLevel       = 19;
+    int ioprio_class    = 3;
+    int ioprio          = 7;
+    char *tok           = nullptr;
+    char *str           = nullptr;
+    int ntok            = 0;
+    bool bPass2Only     = false;
+    bool bPass1Only     = false;
     struct sMarkAdConfig config = {};
 
     gettimeofday(&startAll, nullptr);
 
     // set defaults
     config.logoExtraction = -1;
-    config.logoWidth = -1;
-    config.logoHeight = -1;
-    config.threads = -1;
-    config.astopoffs = 0;
-    config.posttimer = 600;
+    config.logoWidth      = -1;
+    config.logoHeight     = -1;
+    config.threads        = -1;
+    config.astopoffs      = 0;
+    config.posttimer      = 600;
     strcpy(config.svdrphost, "127.0.0.1");
     strcpy(config.logoDirectory, "/var/lib/markad");
 
@@ -7075,7 +7080,7 @@ int main(int argc, char *argv[]) {
         case 'l':
             if ((strlen(optarg) + 1) > sizeof(config.logoDirectory)) {
                 fprintf(stderr, "markad: logo path too long: %s\n", optarg);
-                return 2;
+                return EXIT_FAILURE;
             }
             strncpy(config.logoDirectory, optarg, sizeof(config.logoDirectory) - 1);
             break;
@@ -7084,7 +7089,7 @@ int main(int argc, char *argv[]) {
             if (isnumber(optarg) || *optarg == '-') niceLevel = atoi(optarg);
             else {
                 fprintf(stderr, "markad: invalid priority level: %s\n", optarg);
-                return 2;
+                return EXIT_FAILURE;
             }
             bNice = true;
             break;
@@ -7093,17 +7098,17 @@ int main(int argc, char *argv[]) {
             str=strchr(optarg, ',');
             if (str) {
                 *str = 0;
-                ioprio = atoi(str+1);
+                ioprio = atoi(str + 1);
                 *str = ',';
             }
             ioprio_class = atoi(optarg);
             if ((ioprio_class < 1) || (ioprio_class > 3)) {
                 fprintf(stderr, "markad: invalid io-priority: %s\n", optarg);
-                return 2;
+                return EXIT_FAILURE;
             }
             if ((ioprio < 0) || (ioprio > 7)) {
                 fprintf(stderr, "markad: invalid io-priority: %s\n", optarg);
-                return 2;
+                return EXIT_FAILURE;
             }
             if (ioprio_class == 3) ioprio = 7;
             bNice = true;
@@ -7129,7 +7134,7 @@ int main(int argc, char *argv[]) {
                     config.logoExtraction = atoi(tok);
                     if ((config.logoExtraction < 0) || (config.logoExtraction > 3)) {
                         fprintf(stderr, "markad: invalid extractlogo value: %s\n", tok);
-                        return 2;
+                        return EXIT_FAILURE;
                     }
                     break;
                 case 1:
@@ -7161,7 +7166,7 @@ int main(int argc, char *argv[]) {
             break;
         case 'V':
             printf("markad %s - marks advertisements in VDR recordings\n", VERSION);
-            return 0;
+            return EXIT_SUCCESS;
         case '?':
             printf("unknown option ?\n");
             break;
@@ -7173,14 +7178,14 @@ int main(int argc, char *argv[]) {
         case 1: // --markfile
             if ((strlen(optarg) + 1) > sizeof(config.markFileName)) {
                 fprintf(stderr, "markad: mark file name too long: %s\n", optarg);
-                return 2;
+                return EXIT_FAILURE;
             }
             strncpy(config.markFileName, optarg, sizeof(config.markFileName) - 1);
             break;
         case 2: // --loglevel
             SysLogLevel = atoi(optarg);
             if (SysLogLevel > 10) SysLogLevel = 10;
-            if (SysLogLevel < 0) SysLogLevel = 2;
+            if (SysLogLevel <  0) SysLogLevel =  2;
             break;
         case 3: // --online
             if (optarg) {
@@ -7191,7 +7196,7 @@ int main(int argc, char *argv[]) {
             }
             if ((config.online != 1) && (config.online != 2)) {
                 fprintf(stderr, "markad: invalid online value: %s\n", optarg);
-                return 2;
+                return EXIT_FAILURE;
             }
             break;
         case 4: // --nopid
@@ -7200,7 +7205,7 @@ int main(int argc, char *argv[]) {
         case 5: // --svdrphost
             if ((strlen(optarg) + 1) > sizeof(config.svdrphost)) {
                 fprintf(stderr, "markad: svdrphost too long: %s\n", optarg);
-                return 2;
+                return EXIT_FAILURE;
             }
             strncpy(config.svdrphost, optarg, sizeof(config.svdrphost) - 1);
             break;
@@ -7210,21 +7215,21 @@ int main(int argc, char *argv[]) {
             }
             else {
                 fprintf(stderr, "markad: invalid svdrpport value: %s\n", optarg);
-                return 2;
+                return EXIT_FAILURE;
             }
             break;
         case 7: // --pass2only
             bPass2Only = true;
             if (bPass1Only) {
                 fprintf(stderr, "markad: you cannot use --pass2only with --pass1only\n");
-                return 2;
+                return EXIT_FAILURE;
             }
             break;
         case 8: // --pass1only
             bPass1Only = true;
             if (bPass2Only) {
                 fprintf(stderr, "markad: you cannot use --pass1only with --pass2only\n");
-                return 2;
+                return EXIT_FAILURE;
             }
             break;
         case 9: // --astopoffs
@@ -7233,14 +7238,14 @@ int main(int argc, char *argv[]) {
             }
             else {
                 fprintf(stderr, "markad: invalid astopoffs value: %s\n", optarg);
-                return 2;
+                return EXIT_FAILURE;
             }
             break;
         case 10: // --posttimer
             if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 1200) config.posttimer=atoi(optarg);
             else {
                 fprintf(stderr, "markad: invalid posttimer value: %s\n", optarg);
-                return 2;
+                return EXIT_FAILURE;
             }
             break;
         case 11: // --cDecoder
@@ -7263,11 +7268,11 @@ int main(int argc, char *argv[]) {
             if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 2) config.autoLogo = atoi(optarg);
             else {
                 fprintf(stderr, "markad: invalid autologo value: %s\n", optarg);
-                return 2;
+                return EXIT_FAILURE;
             }
             if (config.autoLogo == 1) {
                 fprintf(stderr,"markad: --autologo=1 is removed, will use --autologo=2 instead, please update your configuration\n");
-                config.autoLogo = 2;
+                config.autoLogo = 255;
             }
             break;
         case 17: // --fulldecode
@@ -7286,7 +7291,7 @@ int main(int argc, char *argv[]) {
                     else if (strcmp(tok, "best") == 0) config.bestEncode = true;
                     else {
                         fprintf(stderr, "markad: invalid --fullencode value: %s\n", tok);
-                        return 2;
+                        return EXIT_FAILURE;
                     }
                     break;
                 default:
@@ -7328,8 +7333,12 @@ int main(int argc, char *argv[]) {
                 bImmediateCall = true;
             }
             else {
-                if ( strstr(argv[optind], ".rec") != nullptr ) {
+                if (strstr(argv[optind], ".rec") != nullptr ) {
                     recDir = realpath(argv[optind], nullptr);
+                    if (!recDir) {
+                        fprintf(stderr, "invalid recording directory: %s\n", argv[optind]);
+                        return EXIT_FAILURE;
+                    }
                     config.recDir = recDir;
                 }
             }
@@ -7344,9 +7353,9 @@ int main(int argc, char *argv[]) {
     }
 
     // do nothing if called from vdr before/after the video is cutted
-    if (bEdited) return 0;
-    if ((bAfter) && (config.online)) return 0;
-    if ((config.before) && (config.online == 1) && recDir && (!strchr(recDir, '@'))) return 0;
+    if (bEdited) return EXIT_SUCCESS;
+    if ((bAfter) && (config.online)) return EXIT_SUCCESS;
+    if ((config.before) && (config.online == 1) && recDir && (!strchr(recDir, '@'))) return EXIT_SUCCESS;
 
     // we can run, if one of bImmediateCall, bAfter, bBefore or bNice is true
     // and recDir is given
@@ -7359,10 +7368,10 @@ int main(int argc, char *argv[]) {
             if (pid < 0) {
                 const char *err = strerror(errno);
                 fprintf(stderr, "%s\n", err);
-                return 2;
+                return EXIT_FAILURE;
             }
             if (pid != 0) {
-                return 0; // initial program immediately returns
+                return EXIT_SUCCESS; // initial program immediately returns
             }
             if (chdir("/") == -1) {
                 perror("chdir");
@@ -7443,17 +7452,17 @@ int main(int argc, char *argv[]) {
         struct stat statbuf;
         if (stat(recDir, &statbuf) == -1) {
             fprintf(stderr,"%s not found\n", recDir);
-            return -1;
+            return EXIT_FAILURE;
         }
 
         if (!S_ISDIR(statbuf.st_mode)) {
             fprintf(stderr, "%s is not a directory\n", recDir);
-            return -1;
+            return EXIT_FAILURE;
         }
 
         if (access(recDir, W_OK|R_OK) == -1) {
             fprintf(stderr,"cannot access %s\n", recDir);
-            return -1;
+            return EXIT_FAILURE;
         }
 
         // ignore some signals
@@ -7475,7 +7484,7 @@ int main(int argc, char *argv[]) {
 
         cmasta = new cMarkAdStandalone(recDir,&config, recordingIndex);
         ALLOC(sizeof(*cmasta), "cmasta");
-        if (!cmasta) return -1;
+        if (!cmasta) return EXIT_FAILURE;
 
         dsyslog("parameter --loglevel is set to %i", SysLogLevel);
 
@@ -7563,7 +7572,7 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG_MEM
         memList();
 #endif
-        return 0;
+        return EXIT_SUCCESS;
     }
     return usage(config.svdrpport);
 }
