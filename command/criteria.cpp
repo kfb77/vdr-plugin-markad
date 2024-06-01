@@ -57,14 +57,6 @@ int cCriteria::LogoFadeInOut(const char *channelName) {
 }
 
 
-// channel has short logo interruption in broadcast
-bool cCriteria::LogoInterruption(const char *channelName) {
-    if (CompareChannelName(channelName, "Comedy_Central", IGNORE_HD)) return true;
-
-    return false;
-}
-
-
 bool cCriteria::LogoInBorder(const char *channelName) {
     if (!channelName) return false;
 

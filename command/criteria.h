@@ -55,13 +55,6 @@ public:
     int LogoFadeInOut(const char *channelName);
 
     /**
-     * get status of channel has short logo interruption
-     * @param channelName name of the channel
-     * @return status
-     */
-    bool LogoInterruption(const char *channelName);
-
-    /**
      * get status of channel if logo is in hborder or vborder
      * @param channelName name of the channel
      * @return status

@@ -423,7 +423,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
             dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_VBORDERSTOP too far after assumed stop, ignoring");
             return nullptr;
         }
-        if (criteria.LogoInBorder(macontext.Info.ChannelName) && !criteria.LogoInterruption(macontext.Info.ChannelName)) { // not with random logo interruption
+        if (criteria.LogoInBorder(macontext.Info.ChannelName)) { // not with random logo interruption
             cMark *logoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
             if (logoStop) {
                 int deltaLogoStop = 1000 * (end->position - logoStop->position) / macontext.Video.Info.framesPerSecond;
@@ -1618,31 +1618,6 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start mark and pairs with special logo");
 
-    // channel has logo interruption in broadcast
-    if (criteria.LogoInterruption(macontext.Info.ChannelName)) {
-        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): channel has logo interruption in broadcast, delete all short logo stop/start pairs");
-        cMark *mark = marks.GetFirst();
-        while (mark) {
-            if (mark->type == MT_LOGOSTOP) {
-                cMark *nextMark = mark->Next();
-                if (nextMark && (nextMark->type == MT_LOGOSTART)) {
-                    int diff = 1000 * (nextMark->position - mark->position) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): MT_LOGOSTOP (%5d) -> %5dms -> MT_LOGOSTART (%5d)", mark->position, diff, nextMark->position);
-                    if (diff <= 759) {  // valid stop/start pait with 760ms
-                        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): delete MT_LOGOSTOP (%5d) and MT_LOGOSTART (%5d)", mark->position, nextMark->position);
-                        cMark *markTMP = nextMark->Next();
-                        marks.Del(mark->position);
-                        marks.Del(nextMark->position);
-                        mark = markTMP;
-                        continue;
-                    }
-                }
-            }
-            mark = mark->Next();
-        }
-        return;
-    }
-
     evaluateLogoStopStartPair->CheckLogoStopStartPairs(&macontext, &marks, &blackMarks, iStart, chkSTART, iStopA);
 
     char *indexToHMSFStop      = nullptr;
@@ -2342,7 +2317,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     else criteria.SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED);
 
     // check logo start after vborder start to prevent to get closing credit from previous recording as start mark
-    if (criteria.LogoInBorder(macontext.Info.ChannelName) && !criteria.LogoInterruption(macontext.Info.ChannelName)) {  // prevent to get logo interruption as false start mark
+    if (criteria.LogoInBorder(macontext.Info.ChannelName)) {  // prevent to get logo interruption as false start mark
         cMark *logoStart = marks.GetNext(vStart->position, MT_LOGOSTART);
         if (logoStart) {
             int diffStart = (logoStart->position - vStart->position) / macontext.Video.Info.framesPerSecond;
@@ -2356,17 +2331,15 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     }
 
     // check logo stop after vborder start to prevent to get closing credit from previous recording as start mark
-    if (!criteria.LogoInterruption(macontext.Info.ChannelName)) {  // prevent to get logo interruption as false start mark
-        cMark *logoStop  = marks.GetNext(vStart->position, MT_LOGOSTOP);
-        if (logoStop) {
-            int diffStop  = (logoStop->position  - vStart->position) / macontext.Video.Info.framesPerSecond;
-            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): found logo stop (%d) %ds after vborder start (%d)", logoStop->position, diffStop, vStart->position);
-            if (diffStop <= 51) {  // changed from 25 to 51
-                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark position (%d) includes previous closing credits, use logo stop (%d) instead", vStart->position, logoStop->position);
-                marks.Del(vStart->position);
-                logoStop = marks.ChangeType(logoStop, MT_START);
-                return logoStop;
-            }
+    cMark *logoStop  = marks.GetNext(vStart->position, MT_LOGOSTOP);
+    if (logoStop) {
+        int diffStop  = (logoStop->position  - vStart->position) / macontext.Video.Info.framesPerSecond;
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): found logo stop (%d) %ds after vborder start (%d)", logoStop->position, diffStop, vStart->position);
+        if (diffStop <= 51) {  // changed from 25 to 51
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark position (%d) includes previous closing credits, use logo stop (%d) instead", vStart->position, logoStop->position);
+            marks.Del(vStart->position);
+            logoStop = marks.ChangeType(logoStop, MT_START);
+            return logoStop;
         }
     }
     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): delete logo marks if any");
