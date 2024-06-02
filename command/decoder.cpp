@@ -431,6 +431,7 @@ bool cDecoder::GetNextPacket(const bool buildFrameIndex, const bool buildPTS_Ind
     offsetTime_ms_LastFile = offsetTime_ms_LastRead;
     dsyslog("cDecoder::GetNextPacket(): last frame of filenumber %d is (%d), end time %" PRId64 "ms (%3d:%02dmin)", fileNumber, currFrameNumber, offsetTime_ms_LastFile, static_cast<int> (offsetTime_ms_LastFile / 1000 / 60), static_cast<int> (offsetTime_ms_LastFile / 1000) % 60);
     if (decodeErrorFrame == currFrameNumber) decodeErrorCount--; // ignore malformed last frame of a file
+    av_packet_unref(&avpkt);
     return false;
 }
 
