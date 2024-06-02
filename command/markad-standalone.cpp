@@ -1664,6 +1664,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     if (iStart == 0) endRange = iStopA - (27 * macontext.Video.Info.framesPerSecond); // if we are called by CheckStop, get all pairs after this frame to detect at least closing credits
     // changed from 26 to 27
     while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo, &isStartMarkInBroadcast, endRange)) {
+        if (abortNow) return;
         if (!marks.Get(startPosition) || !marks.Get(stopPosition)) continue;  // at least one of the mark from pair was deleted, nothing to do
         LogSeparator();
         // free from loop before
