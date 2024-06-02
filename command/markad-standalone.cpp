@@ -2467,6 +2467,10 @@ void cMarkAdStandalone::CheckStart() {
             }
         }
     }
+
+    // for 4:3 broadcast cleanup all vborder marks, these are false detected from dark scene or, if realy exists, they are too small for reliable detection
+    if ((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) marks.DelType(MT_VBORDERCHANGE, 0xF0); // delete wrong vborder marks
+
     if (!macontext.Info.checkedAspectRatio) macontext.Info.checkedAspectRatio = true;  // now we are sure, aspect ratio is correct
 
 // aspect ratio start
