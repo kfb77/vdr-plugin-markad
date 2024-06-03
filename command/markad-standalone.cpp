@@ -3252,8 +3252,8 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
     }
 
 // check for better end mark not very far away from assuemd end
-    LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): check for better end mark in case of recording length is too big");
+    LogSeparator();
     DebugMarks();     //  only for debugging
 
 // get last 3 marks
@@ -3271,7 +3271,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
                     int diffLastStartAssumed = (lastStartMark->position - newStopA)                / macontext.Video.Info.framesPerSecond;
                     int diffPrevStopAssumed  = (prevStopMark->position  - newStopA)                / macontext.Video.Info.framesPerSecond;
                     int lastAd               = (lastStartMark->position - prevStopMark->position)  / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::CheckMarks(): last broadcast length %ds, last ad length %ds, previous broadcat length %d", lastBroadcast, lastAd, prevBroadcast);
+                    dsyslog("cMarkAdStandalone::CheckMarks(): MT_START (%d) -> %ds -> MT_STOP (%d) -> %ds -> MT_START (%d) -> %ds -> MT_STOP (%d)", prevStartMark->position, prevBroadcast, prevStopMark->position, lastAd, lastStartMark->position, lastBroadcast, lastStopMark->position);
                     dsyslog("cMarkAdStandalone::CheckMarks(): end mark          (%5d) %4ds after assumed end (%5d)", lastStopMark->position, diffLastStopAssumed, newStopA);
                     dsyslog("cMarkAdStandalone::CheckMarks(): start mark before (%5d) %4ds after assumed end (%5d)", lastStartMark->position, diffLastStartAssumed, newStopA);
                     dsyslog("cMarkAdStandalone::CheckMarks(): stop  mark before (%5d) %4ds after assumed end (%5d)", prevStopMark->position,  diffPrevStopAssumed, newStopA);
