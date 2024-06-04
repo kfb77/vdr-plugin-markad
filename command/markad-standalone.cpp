@@ -1867,12 +1867,12 @@ cMark *cMarkAdStandalone::Check_CHANNELSTART() {
                     // this can happen if previous broadcast has also 6 channel
                     if (diffAssumed <= -121) {
                         cMark *logoStop = marks.GetNext(channelStart->position, MT_LOGOSTOP);
-                        if (logoStop) {
+                        if (logoStop) {  // if channel start is from previous recording, we should have a logo stop mark near assumed start
                             cMark *logoStart = marks.GetNext(logoStop->position, MT_LOGOSTART);
                             if (logoStart) {
                                 int diffLogoStart = (logoStart->position - iStartA) / macontext.Video.Info.framesPerSecond;
                                 dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): found logo start mark (%d) %ds after assumed start", logoStart->position, diffLogoStart);
-                                if ((diffLogoStart >= -1) && (diffLogoStart <= 17)) {  // changed from 1 to 17
+                                if ((diffLogoStart >= -1) && (diffLogoStart <= 56)) {  // changed from 17 to 56
                                     dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): use logo start mark (%d) as start mark", logoStart->position);
                                     criteria.SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED);
                                     return logoStart;
