@@ -235,6 +235,10 @@ cMark *cMarkAdStandalone::Check_CHANNELSTOP() {
                 dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): MT_CHANNELSTART (%d) %ds before assumed stop (%d)", channelStartAfter->position, diffChannelStartiStopA, iStopA);
                 if ((diffAssumed > MAX_BEFORE_CHANNEL) && (diffChannelStartiStopA > 7)) {
                     dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): last MT_CHANNELSTOP (%d) too far before assumed stop and MT_CHANNELSTART (%d) far before assumed stop", end->position, channelStartAfter->position);
+                    // we have valid channel stop/start marks, but no channel end mark
+                    // delete all logo marks between, they contains no valid logo stop mark
+                    // prevent to select later false logo stop mark
+                    marks.DelFromTo(end->position + 1, channelStartAfter->position - 1, MT_LOGOCHANGE, 0xF0);
                     end = nullptr;
                 }
             }
