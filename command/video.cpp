@@ -334,7 +334,7 @@ bool cMarkAdLogo::SetCoordinates(int *xstart, int *xend, int *ystart, int *yend,
         *yend   = logoHeight - 1;
         break;
     case TOP_RIGHT:
-        *xstart = maContext->Video.Info.width - 1 - logoWidth;
+        *xstart = maContext->Video.Info.width - logoWidth;
         *xend   = maContext->Video.Info.width - 1;
         *ystart = 0;
         *yend   = logoHeight - 1;
@@ -342,13 +342,13 @@ bool cMarkAdLogo::SetCoordinates(int *xstart, int *xend, int *ystart, int *yend,
     case BOTTOM_LEFT:
         *xstart = 0;
         *xend   = logoWidth - 1;
-        *ystart = maContext->Video.Info.height - 1 - logoHeight;
+        *ystart = maContext->Video.Info.height - logoHeight;
         *yend   = maContext->Video.Info.height - 1;
         break;
     case BOTTOM_RIGHT:
-        *xstart = maContext->Video.Info.width  - 1 - logoWidth;
+        *xstart = maContext->Video.Info.width  - logoWidth;
         *xend   = maContext->Video.Info.width  - 1;
-        *ystart = maContext->Video.Info.height - 1 - logoHeight;
+        *ystart = maContext->Video.Info.height - logoHeight;
         *yend   = maContext->Video.Info.height - 1;
         break;
     default:
