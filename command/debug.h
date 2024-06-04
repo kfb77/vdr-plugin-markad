@@ -25,6 +25,9 @@
 // write logo detection information in log file
 // #define DEBUG_LOGO_DETECTION
 
+// debug sobel transformation
+// #define DEBUG_SOBEL
+
 // debug overlap detection
 // #define DEBUG_OVERLAP
 

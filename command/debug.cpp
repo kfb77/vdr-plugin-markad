@@ -21,6 +21,10 @@ bool SaveSobel(const char *fileName, const uchar *picture, const int width, cons
         return false;
     }
 
+#ifdef DEBUG_SOBEL
+    dsyslog("SaveSobel: logo size %dx%d", width, height);
+#endif
+
     // Open file
     FILE *pFile = fopen(fileName, "wb");
     if (pFile == nullptr) return false;

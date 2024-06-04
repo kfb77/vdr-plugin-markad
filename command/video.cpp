@@ -656,8 +656,6 @@ int cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber,
 bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
     if ((plane < 0) || (plane >= PLANES)) return false;
     if (!maContext->Video.Data.PlaneLinesize[plane]) return false;
-    if (boundary < 2) boundary = 2; // we have to stay at least 1 pixel away from max pixel because of X Gradient approximation (-1 to +1) to prevent heap-buffer-overflow
-    // need double of this for plane > 1
 
     // alloc memory for sobel transformed planes
     int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
@@ -687,52 +685,53 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
     }
     if ((maContext->Video.Info.pixFmt != 0) && (maContext->Video.Info.pixFmt != 12)) {
         if (!pixfmt_info) {
-            esyslog("unknown pixel format %i, please report!", maContext->Video.Info.pixFmt);
+            esyslog("unknown pixel format %d, please report!", maContext->Video.Info.pixFmt);
             pixfmt_info = true;
         }
         return false;
     }
-    int xstart = 0;
-    int xend   = 0;
-    int ystart = 0;
-    int yend   = 0;
-    if (!SetCoordinates(&xstart, &xend, &ystart, &yend, plane)) return false;
-    int xStart = xstart;
-    int xEnd   = xend;
-    int yStart = ystart;
-    int yEnd   = yend;
-    // we need 2 more pixel for sobel calculation to get a full logo picture
-    int div = 1;
-    if (plane > 0) div = 2;
-    if ((xstart > 0) && (xstart < ((maContext->Video.Info.width  / div) - 3))) xstart += 2;
-    if ((xend   > 0) && (xend   < ((maContext->Video.Info.width  / div) - 3))) xend   += 2;
-    if ((ystart > 0) && (ystart < ((maContext->Video.Info.height / div) - 3))) ystart += 2;
-    if ((yend   > 0) && (yend   < ((maContext->Video.Info.height / div) - 3))) yend   += 2;
-//    dsyslog("cMarkAdLogo::SobelPlane(): plane %d: xStart %d, xEnd %d, yStart %d, yEnd %d", plane, xStart, xEnd, yStart, yEnd);
-//    dsyslog("cMarkAdLogo::SobelPlane(): plane %d: xstart %d, xend %d, ystart %d, yend %d", plane, xstart, xend, ystart, yend);
 
-    int cutval = 127;
-    int width  = logoWidth;
+    // get logo coordinates
+    int xStart = 0;
+    int xEnd   = 0;
+    int yStart = 0;
+    int yEnd   = 0;
+    if (!SetCoordinates(&xStart, &xEnd, &yStart, &yEnd, plane)) return false;
+
+    int cutval     = 127;
+    int planeWidth = logoWidth;
+    int planeVideoWidth  = maContext->Video.Info.width;
+    int planeVideoHeight = maContext->Video.Info.height;
     if (plane > 0) {
-        boundary /= 2;
-        cutval   /= 2;
-        width    /= 2;
+        boundary         /= 2;
+        cutval           /= 2;
+        planeWidth       /= 2;
+        planeVideoWidth  /= 2;
+        planeVideoHeight /= 2;
     }
     int SUM;
-    int sumX, sumY;
+    int sumX;
+    int sumY;
     area.rPixel[plane] = 0;
     if (plane == 0) area.intensity = 0;
-    for (int Y = ystart; Y <= yend; Y++) {
-        for (int X = xstart; X <= xend; X++) {
+
+#ifdef DEBUG_SOBEL
+    dsyslog("cMarkAdLogo::SobelPlane(): plane %d: xStart %d, xEend %d, yStart %d, yEnd %d", plane, xStart, xEnd, yStart, yEnd);
+#endif
+
+    for (int Y = yStart; Y <= yEnd; Y++) {
+        for (int X = xStart; X <= xEnd; X++) {
             if (plane == 0) {
                 area.intensity += maContext->Video.Data.Plane[plane][X + (Y * maContext->Video.Data.PlaneLinesize[plane])];
             }
             sumX = 0;
             sumY = 0;
 
-            // image boundaries
-            if (Y <= (ystart + boundary) || Y >= (yend - boundary)) SUM = 0;
-            else if (X <= (xstart + boundary) || X >= (xend - boundary)) SUM = 0;
+            // image boundaries from coordinates
+            if ((X < (xStart + boundary))     || (X <= 0) ||
+                    (X >= (xEnd - boundary))  || (X >= (planeVideoWidth - 2)) ||
+                    (Y < (yStart + boundary)) || (Y <= 0) ||
+                    (Y > (yEnd - boundary))   || (Y >= (planeVideoHeight - 2))) SUM = 0;
             // convolution starts here
             else {
                 // X Gradient approximation
@@ -758,16 +757,16 @@ bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
 
             int val = 255 - (uchar) SUM;
 
-            area.sobel[plane][(X - xstart) + (Y - ystart) * width] = val;
+            area.sobel[plane][(X - xStart) + (Y - yStart) * planeWidth] = val;
 
             // only store results in logo coordinates range
-            if ((area.valid[plane] && (X >= xStart) && (X <= xEnd) && (Y >= yStart) && (Y <= yEnd))) {  // if we are called by logo search, we have no valid area.mask
-                area.result[plane][(X - xstart) + (Y - ystart) * width] = (area.mask[plane][(X - xstart) + (Y - ystart) * width] + val) & 255;
-                if (!area.result[plane][(X - xstart) + (Y - ystart) * width]) area.rPixel[plane]++;
+            if (area.valid[plane]) {  // if we are called by logo search, we have no valid area.mask
+                area.result[plane][(X - xStart) + (Y - yStart) * planeWidth] = (area.mask[plane][(X - xStart) + (Y - yStart) * planeWidth] + val) & 255;
+                if (!area.result[plane][(X - xStart) + (Y - yStart) * planeWidth]) area.rPixel[plane]++;
             }
         }
     }
-    if (!plane) area.intensity /= (logoHeight * width);
+    if (plane == 0) area.intensity /= (logoHeight * planeWidth);
     return true;
 }
 
