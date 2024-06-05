@@ -1365,12 +1365,21 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNu
     FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
     free(prevHistogram);
 
-#define DIFF_SCENE_CHANGE 110
+#define DIFF_SCENE_NEW         500   // new scene during blend, force new scene stop/start
+#define DIFF_SCENE_CHANGE      110
 #define DIFF_SCENE_BLEND_START  60
 #define DIFF_SCENE_BLEND_STOP   40
-#define SCENE_BLEND_FRAMES  5
+#define SCENE_BLEND_FRAMES       5
+// end of scene during active scene blend
+    if ((diffQuote >= DIFF_SCENE_NEW) && (sceneStatus == SCENE_BLEND)) {
+        *changeFrameNumber = prevFrameNumber;
+        sceneStatus        = SCENE_STOP;
+#ifdef DEBUG_SCENE_CHANGE
+        dsyslog("cMarkAdSceneChange::Process(): frame (%7d) end of scene during active blend", prevFrameNumber);
+#endif
+    }
 // end of scene
-    if (diffQuote >= DIFF_SCENE_CHANGE) {
+    else if (diffQuote >= DIFF_SCENE_CHANGE) {
         if (blendFrame < 0) blendFrame = prevFrameNumber;
         blendCount++;
         if ((blendCount <= SCENE_BLEND_FRAMES) && (sceneStatus != SCENE_STOP)) {
