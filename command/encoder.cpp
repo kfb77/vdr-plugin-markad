@@ -395,17 +395,11 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
     }
     if (!avCodecCtxIn) return false;
 
-
     // cleanup output codec context
-#if LIBAVCODEC_VERSION_INT >= ((60<<16)+(39<<8)+100)
     dsyslog("cEncoder::ChangeEncoderCodec(): call avcodec_free_context");
     FREE(sizeof(*codecCtxArrayOut[streamIndexOut]), "codecCtxArrayOut[streamIndex]");
     avcodec_free_context(&codecCtxArrayOut[streamIndexOut]);
-#else
-    dsyslog("cEncoder::ChangeEncoderCodec(): call avcodec_close");
-    FREE(sizeof(*codecCtxArrayOut[streamIndexOut]), "codecCtxArrayOut[streamIndex]");
-    avcodec_close(codecCtxArrayOut[streamIndexOut]);
-#endif
+
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100)  // ffmpeg 4.5
     const AVCodec *codec = avcodec_find_encoder(avctxIn->streams[streamIndexIn]->codecpar->codec_id);
 #elif LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -413,6 +407,7 @@ bool cEncoder::ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexI
 #else
     AVCodec *codec = avcodec_find_encoder(avctxIn->streams[streamIndexIn]->codec->codec_id);
 #endif
+
     if (!codec) {
         dsyslog("cEncoder::ChangeEncoderCodec(): could not find encoder for input stream %i", streamIndexIn);
         return false;
