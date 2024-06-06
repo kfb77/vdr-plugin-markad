@@ -6725,7 +6725,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
             else dsyslog("advertisement quote: %d%%", adQuote);
         }
         // log match of VPS events
-        vps->LogMatch(macontext.Info.ChannelName, &marks);
+        if (macontext.Info.ChannelName) vps->LogMatch(macontext.Info.ChannelName, &marks);
 
         dsyslog("processing statistics: ----------------------------------------------------------------------");
         time_t sec = endTime1.tv_sec - startTime1.tv_sec;

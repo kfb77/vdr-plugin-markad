@@ -60,8 +60,11 @@ cVPS::~cVPS() {
 
 void cVPS::LogMatch(char *channel, cMarks *marks) const {
     if (!marks) return;
+    if (!channel) return;
+
     int diffStart = -1;
-    int diffStop = -1;
+    int diffStop  = -1;
+
     int startVPS = GetStart();
     if (startVPS >= 0) {
         cMark *start = marks->GetFirst();

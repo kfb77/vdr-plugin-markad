@@ -12,6 +12,7 @@
 
 
 bool cEvaluateChannel::IsInfoLogoChannel(const char *channelName) {
+    if (!channelName) return false;
     // for performance reason only known and tested channels
     if (CompareChannelName(channelName, "Comedy_Central",  IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "DMAX",            IGNORE_HD | IGNORE_COUNTRY)) return true;
@@ -35,6 +36,7 @@ bool cEvaluateChannel::IsLogoChangeChannel(const char *channelName) {
 
 
 bool cEvaluateChannel::ClosingCreditsChannel(const char *channelName) {
+    if (!channelName) return false;
     // for performance reason only known and tested channels
     if (CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD) ||
             CompareChannelName(channelName, "kabel_eins",  IGNORE_HD) ||
@@ -54,6 +56,7 @@ bool cEvaluateChannel::ClosingCreditsChannel(const char *channelName) {
 
 
 bool cEvaluateChannel::AdInFrameWithLogoChannel(const char *channelName) {
+    if (!channelName) return false;
 // for performance reason only for known and tested channels
     if (CompareChannelName(channelName, "DMF",             IGNORE_HD))                  return true;
     if (CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD))                  return true;
@@ -74,6 +77,7 @@ bool cEvaluateChannel::AdInFrameWithLogoChannel(const char *channelName) {
 
 
 bool cEvaluateChannel::IntroductionLogoChannel(const char *channelName) {
+    if (!channelName) return false;
 // for performance reason only for known and tested channels for now
     if (CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD) ||
             CompareChannelName(channelName, "kabel_eins",  IGNORE_HD) ||
