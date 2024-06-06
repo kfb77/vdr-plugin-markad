@@ -1610,10 +1610,11 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
 }
 
 
-// remove stop/start logo mark pair if it detecs a part in the broadcast with logo changes
+// remove stop/start logo mark pair if it detects a part in the broadcast with logo changes
 // some channel e.g. TELE5 plays with the logo in the broadcast
 //
 void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason only known and tested channels
+    if (marks.Count(MT_LOGOCHANGE, 0xF0) == 0) return;  // nothing to do
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start mark and pairs with special logo");
 
