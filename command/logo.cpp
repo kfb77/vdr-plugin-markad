@@ -1584,6 +1584,8 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int
         }
         maContext->Video.Info.height = ptr_cDecoder->GetVideoHeight();
         maContext->Video.Info.width = ptr_cDecoder->GetVideoWidth();
+        // in case of missing vdr info file, set frame rate here
+        if (maContext->Video.Info.framesPerSecond == 0) maContext->Video.Info.framesPerSecond = ptr_cDecoder->GetVideoRealFrameRate();
         dsyslog("cExtractLogo::SearchLogo(): video resolution %dx%d", maContext->Video.Info.width, maContext->Video.Info.height);
         GetLogoSize(maContext, &logoHeight, &logoWidth);
         dsyslog("cExtractLogo::SearchLogo(): logo size %dx%d", logoWidth, logoHeight);

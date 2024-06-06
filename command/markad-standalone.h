@@ -59,7 +59,6 @@ public:
         osd                       = nullptr;
         evaluateLogoStopStartPair = nullptr;
         duplicate                 = origin.duplicate,
-        isREEL                    = origin.isREEL;
         MaxFiles                  = origin.MaxFiles;
         framecnt                  = origin.framecnt;
         gotendmark                = origin.gotendmark;
@@ -100,7 +99,6 @@ public:
         audio                     = nullptr;
         osd                       = nullptr;
         duplicate                 = origin->duplicate,
-        isREEL                    = origin->isREEL;
         MaxFiles                  = origin->MaxFiles;
         framecnt                  = origin->framecnt;
         gotendmark                = origin->gotendmark;
@@ -374,9 +372,8 @@ private:
 
     /**
      * log VDR info file
-     * @return true if successful, false otherwise
      */
-    bool LoadInfo();
+    void LoadInfo();
 
     /**
      * set user id of created files in recording directory
@@ -433,8 +430,6 @@ private:
     char *ptitle = nullptr;                                           //!< title of OSD message
     //!<
     bool duplicate = false;                                        //!< true if another markad is running on the same recording
-    //!<
-    bool isREEL = false;                                           //!< true if markad runs on a Reelbox VDR BM2LTS (VDR info file is info.txt), false otherwise
     //!<
     int MaxFiles = 65535;                                          //!< maximum number of ts files
     //!<

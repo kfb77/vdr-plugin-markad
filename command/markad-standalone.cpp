@@ -6201,9 +6201,9 @@ bool cMarkAdStandalone::CheckLogo() {
 }
 
 
-bool cMarkAdStandalone::LoadInfo() {
+void cMarkAdStandalone::LoadInfo() {
     char *buf;
-    if (asprintf(&buf, "%s/info", directory) == -1) return false;
+    if (asprintf(&buf, "%s/info", directory) == -1) return;
     ALLOC(strlen(buf)+1, "buf");
 
     if (macontext.Config->before) {
@@ -6218,13 +6218,15 @@ bool cMarkAdStandalone::LoadInfo() {
     buf = nullptr;
     if (!f) {
         // second try for reel vdr
-        if (asprintf(&buf, "%s/info.txt", directory) == -1) return false;
+        if (asprintf(&buf, "%s/info.txt", directory) == -1) return;
         ALLOC(strlen(buf)+1, "buf");
         f = fopen(buf,"r");
         FREE(strlen(buf)+1, "buf");
         free(buf);
-        if (!f) return false;
-        isREEL = true;
+    }
+    if (!f) {  // no vdr info file found
+        esyslog("vdr info file: not found");
+        return;
     }
 
     char *line = nullptr;
@@ -6263,13 +6265,16 @@ bool cMarkAdStandalone::LoadInfo() {
                     if (macontext.Info.ChannelName[i] == '/') macontext.Info.ChannelName[i] = '_';
                 }
             }
+            else {
+                esyslog("vdr info file: no channel name found");
+            }
         }
         if ((line[0] == 'E') && (!bLiveRecording)) {
             long st;
             int result = sscanf(line,"%*c %*10i %20li %6i %*2x %*2x", &st, &length);
             startTime=(time_t)st;
             if (result != 2) {
-                dsyslog("cMarkAdStandalone::LoadInfo(): vdr info file not valid, could not read start time and length");
+                esyslog("vdr info file: could not read start time and length");
                 startTime = 0;
                 length = 0;
             }
@@ -6427,12 +6432,7 @@ bool cMarkAdStandalone::LoadInfo() {
     }
     fclose(f);
     dsyslog("cMarkAdStandalone::LoadInfo(): length of broadcast  %5ds -> %d:%02d:%02dh", length, length / 3600, (length % 3600) / 60, length % 60);
-    if (!macontext.Info.ChannelName) {
-        return false;
-    }
-    else {
-        return true;
-    }
+    return;
 }
 
 
@@ -6526,7 +6526,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     gotendmark = false;
     inBroadCast = false;
     iStopinBroadCast = false;
-    isREEL = false;
     recordingIndexMark = recordingIndex;
     marks.RegisterIndex(recordingIndexMark);
     indexFile = nullptr;
@@ -6653,16 +6652,15 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     vps = new cVPS(directory);
     ALLOC(sizeof(*vps), "vps");
 
-    if (!LoadInfo()) {
-        esyslog("failed loading VDR info file");
-        macontext.Info.tStart = iStart = iStop = iStopA = 0;
-        criteria.SetDetectionState(MT_LOGOCHANGE, false);
+    // load data from vdr info file
+    LoadInfo();
+    if (!macontext.Info.ChannelName) {
+        if (asprintf(&macontext.Info.ChannelName, "unknown") == -1) {};
+        ALLOC(strlen(macontext.Info.ChannelName) + 1, "macontext.Info.ChannelName");
     }
-    else {
-        if (!CheckLogo() && (config->logoExtraction==-1) && (config->autoLogo == 0)) {
-            isyslog("no logo found, logo detection disabled");
-            criteria.SetDetectionState(MT_LOGOCHANGE, false);
-        }
+    if (!CheckLogo() && (config->logoExtraction == -1) && (config->autoLogo == 0)) {
+        isyslog("no logo found, logo detection disabled");
+        criteria.SetDetectionState(MT_LOGOCHANGE, false);
     }
 
     if (macontext.Info.tStart > 1) {
