@@ -6371,17 +6371,19 @@ bool cMarkAdStandalone::LoadInfo() {
             dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
             dsyslog("cMarkAdStandalone::LoadInfo():     timer start at %s", strtok(ctime(&startTime), "\n"));
 
-            // try to get start offset of broadcast from VPS event
-            int startVPS = vps->GetStart();
-            if (startVPS >= 0) dsyslog("cMarkAdStandalone::LoadInfo(): VPS   start at offset:               %5ds -> %d:%02d:%02dh", startVPS, startVPS / 3600, (startVPS % 3600) / 60, startVPS % 60);
+            //  start offset of broadcast from timer event
             int startEvent = static_cast<int> (startTime - rStart);
             dsyslog("cMarkAdStandalone::LoadInfo(): event start at offset:               %5ds -> %d:%02d:%02dh", startEvent, startEvent / 3600, (startEvent % 3600) / 60, startEvent % 60);
-            if (startVPS)
+            // start offset of broadcast from VPS event
+            int startVPS = vps->GetStart();
+            if (startVPS >= 0) {
+                dsyslog("cMarkAdStandalone::LoadInfo(): VPS   start at offset:               %5ds -> %d:%02d:%02dh", startVPS, startVPS / 3600, (startVPS % 3600) / 60, startVPS % 60);
                 if ((macontext.Info.ChannelName && criteria.GoodVPS(macontext.Info.ChannelName)) || (abs(startVPS - startEvent) <= 10 * 60)) {
                     dsyslog("cMarkAdStandalone::LoadInfo(): VPS start event seems to be valid");
                     macontext.Info.tStart = startVPS;
                 }
                 else dsyslog("cMarkAdStandalone::LoadInfo(): VPS start event seems to be invalid, %ds away from boadcast start event", abs(startVPS - startEvent));
+            }
             else dsyslog("cMarkAdStandalone::LoadInfo(): no VPS start event found");
 
 
