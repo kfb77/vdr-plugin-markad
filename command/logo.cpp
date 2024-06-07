@@ -554,6 +554,11 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
             logo.widthMax  =  88;
         }
 
+        // BR_Fernsehen_Süd_HD     16:9 1280W  720H:->  134W  84H TOP_LEFT
+        if (CompareChannelName(maContext->Info.ChannelName, "BR_Fernsehen", IGNORE_CITY)) {
+            logo.heightMax =  85;
+        }
+
         // Das_Erste_HD            16:9 1280W  720H:->  148W 114H TOP_RIGHT
         // Das_Erste_HD            16:9 1280W  720H:->  148W 128H TOP_RIGHT
         // Das_Erste_HD            16:9 1280W  720H:->  244W 114H TOP_RIGHT
