@@ -20,6 +20,7 @@ bool cCriteria::GoodVPS(const char *channelName) {
 
     if (CompareChannelName(channelName, "arte",         IGNORE_HD))               return true;
     if (CompareChannelName(channelName, "Das_Erste",    IGNORE_HD))               return true;
+    if (CompareChannelName(channelName, "hr-fernsehen", IGNORE_HD))               return true;
     if (CompareChannelName(channelName, "KiKA",         IGNORE_HD))               return true;
     if (CompareChannelName(channelName, "rbb",          IGNORE_HD | IGNORE_CITY)) return true;
     if (CompareChannelName(channelName, "WDR",          IGNORE_HD | IGNORE_CITY)) return true;
