@@ -153,7 +153,7 @@ bool cExtractLogo::Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_ac
                 if (ptr_actLogoInfo->sobel[plane][i] == 0) black++;
             }
             if (plane > 0) {
-                if (black <= 230) {  // increased from 194 to 230 (N24 DOKU)
+                if (black <= 194) {  // do not increase, will loss red krone.tv logo
                     dsyslog("cExtractLogo::Save(): not enough pixel (%i) in plane %i", black, plane);
                     continue;
                 }
