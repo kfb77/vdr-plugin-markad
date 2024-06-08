@@ -10,6 +10,8 @@
 #include "logo.h"
 
 
+extern bool abortNow;
+
 
 bool cEvaluateChannel::IsInfoLogoChannel(const char *channelName) {
     if (!channelName) return false;
@@ -1002,6 +1004,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         status = false;
     }
     while (status && (ptr_cDecoder->GetFrameNumber() < endPos)) {
+        if (abortNow) return false;
         if (!ptr_cDecoder->GetNextPacket(false, false)) {
             dsyslog("cDetectLogoStopStart::Detect(): GetNextPacket() failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
             status = false;
