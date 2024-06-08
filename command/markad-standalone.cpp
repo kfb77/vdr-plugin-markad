@@ -808,6 +808,7 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
             }
         }
         // check sequence MT_LOGOSTOP -> MT_SOUNDSTOP -> MT_LOGOSTART -> MT_SOUNDSTART
+        // silence around logo start
         silenceStop = silenceMarks.GetNext(mark->position - 1, MT_SOUNDSTART);   // end of silence can be on same frame as logo start
         if (silenceStop) {
             cMark *silenceStart = silenceMarks.GetPrev(mark->position, MT_SOUNDSTOP);
@@ -817,14 +818,18 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
                     int logoStopSilenceStart  = 1000 * (silenceStart->position - logoStop->position)     / macontext.Video.Info.framesPerSecond;
                     int silenceStartLogoStart = 1000 * (mark->position         - silenceStart->position) / macontext.Video.Info.framesPerSecond;
                     int logoStartSilenceStop  = 1000 * (silenceStop->position  - mark->position)         / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTOP (%6d) -> %4dms -> MT_SOUNDSTOP (%6d) -> %4dms -> MT_LOGOSTART (%6d) -> %4dms -> MT_SOUNDSTART (%6d)", logoStop->position, logoStopSilenceStart, silenceStart->position, silenceStartLogoStart, mark->position, logoStartSilenceStop, silenceStop->position);
+                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTOP (%6d) -> %5dms -> MT_SOUNDSTOP (%6d) -> %4dms -> MT_LOGOSTART (%6d) -> %4dms -> MT_SOUNDSTART (%6d)", logoStop->position, logoStopSilenceStart, silenceStart->position, silenceStartLogoStart, mark->position, logoStartSilenceStop, silenceStop->position);
 // valid example
 // MT_LOGOSTOP (  8282) ->  3920ms -> MT_SOUNDSTOP (  8380) ->   80ms -> MT_LOGOSTART (  8382) ->   40ms -> MT_SOUNDSTART (  8383)
 // MT_LOGOSTOP (  6556) -> 42040ms -> MT_SOUNDSTOP (  7607) ->  360ms -> MT_LOGOSTART (  7616) ->   40ms -> MT_SOUNDSTART (  7617) -> RTL Television
 // MT_LOGOSTOP (  6774) -> 36560ms -> MT_SOUNDSTOP (  7688) ->  360ms -> MT_LOGOSTART (  7697) ->    0ms -> MT_SOUNDSTART (  7697) -> RTL Television
 // MT_LOGOSTOP ( 13138) -> 13520ms -> MT_SOUNDSTOP ( 13476) ->  480ms -> MT_LOGOSTART ( 13488) ->   80ms -> MT_SOUNDSTART ( 13490) -> Comedy Central
 // MT_LOGOSTOP (  9990) -> 13800ms -> MT_SOUNDSTOP ( 10335) ->  200ms -> MT_LOGOSTART ( 10340) ->   80ms -> MT_SOUNDSTART ( 10342) -> Comedy Central
-                    if ((logoStopSilenceStart <= 42040) && (silenceStartLogoStart <= 480) && (logoStartSilenceStop <= 80)) {
+//
+// invalid example
+// MT_LOGOSTOP (  1358) ->   920ms -> MT_SOUNDSTOP (  1381) ->  280ms -> MT_LOGOSTART (  1388) ->    0ms -> MT_SOUNDSTART (  1388)  -> RTL Television preview start
+                    if ((logoStopSilenceStart > 920) && (logoStopSilenceStart <= 42040) &&
+                            (silenceStartLogoStart <= 480) && (logoStartSilenceStop <= 80)) {
                         dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence sequence is valid", mark->position);
                         return true;
                     }
@@ -934,7 +939,10 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
 //
 // invalid example
 // MT_SOUNDSTOP ( 88721) ->  120ms MT_LOGOSTOP ( 88724) ->  240ms -> MT_SOUNDSTART ( 88730) ->  65560ms -> MT_LOGOSTART ( 90369)  -> stop mark before last ad
-                    if ((silenceStartLogoStop <= 3400) && (logoStopSilenceStop <= 1200) && (silenceStopLogoStart <= 27540)) {
+// MT_SOUNDSTOP ( 40563) ->  240ms MT_LOGOSTOP ( 40569) ->   80ms -> MT_SOUNDSTART ( 40571) ->   4040ms -> MT_LOGOSTART ( 40672)  -> stop mark between preview and last valid start mark
+                    if ((silenceStartLogoStop <= 3400) &&
+                            (logoStopSilenceStop  > 80) && (logoStopSilenceStop <= 1200) &&
+                            (silenceStopLogoStart <= 27540)) {
                         dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo stop mark (%d): silence sequence is valid", mark->position);
                         return true;
                     }
