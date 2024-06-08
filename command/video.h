@@ -323,9 +323,10 @@ private:
 
     /**
      * reduce brightness of logo corner
-     * @param[in]  frameNumber     frame number, only used to debug
-     * @param[out] contrastReduced logo area brightness after reduction if successful, otherwise unchanged
-     * @return return code #eBrightness value
+     * @param  frameNumber  frame number, only used to debug
+     * @param  logo_vmark   count of pixel matches to accept logo visible
+     * @param  logo_imark   count of pixel matches to accept logo invisible
+     * @return true if we got a valid result, fasle otherwise
      */
     bool ReduceBrightness(const int frameNumber, const int logo_vmark, const int logo_imark);
 
@@ -371,31 +372,31 @@ private:
 
     cIndex *recordingIndexMarkAdLogo  = nullptr;  //!< recording index
     //!<
-    int logoHeight                    = 0;     //!< logo height
+    int logoHeight                    = 0;        //!< logo height
     //!<
-    int logoWidth                     = 0;     //!< logo width
+    int logoWidth                     = 0;        //!< logo width
     //!<
-    sAreaT area;                               //!< pixels of logo area
+    sAreaT area;                                  //!< pixels of logo area
     //!<
-    int GX[3][3];                              //!< GX Sobel mask
+    int GX[3][3];                                 //!< GX Sobel mask
     //!<
-    int GY[3][3];                              //!< GY Sobel mask
+    int GY[3][3];                                 //!< GY Sobel mask
     //!<
     sMarkAdContext *maContext         = nullptr;  //!< markad context
     //!<
     cCriteria *criteria               = nullptr;  //!< pointer to class with decoding states and criteria
     //!<
-    bool pixfmt_info                  = false; //!< true if unknown pixel error message was logged, false otherwise
+    bool pixfmt_info                  = false;    //!< true if unknown pixel error message was logged, false otherwise
     //!<
-    bool isInitColourChange           = false; //!< true if trnasformation of grey logo to coloured logo is done
+    bool isInitColourChange           = false;    //!< true if trnasformation of grey logo to coloured logo is done
     //!<
-    int logo_xstart                   = 0;     //!< x start coordinate of the visible part of the logo
+    int logo_xstart                   = -1;       //!< x start coordinate of the visible part of the logo
     //!<
-    int logo_xend                     = 0;     //!< x end coordinate of the visible part of the logo
+    int logo_xend                     = -1;       //!< x end coordinate of the visible part of the logo
     //!<
-    int logo_ystart                   = 0;     //!< y start coordinate of the visible part of the logo
+    int logo_ystart                   = -1;       //!< y start coordinate of the visible part of the logo
     //!<
-    int logo_yend                     = 0;     //!< y end coordinate of the visible part of the logo
+    int logo_yend                     = -1;       //!< y end coordinate of the visible part of the logo
     //!<
 };
 
