@@ -2553,7 +2553,8 @@ void cMarkAdStandalone::CheckStart() {
     }
 
     // still no start mark found, try channel stop marks from previous broadcast
-    if (!begin) { // try hborder stop mark as start mark
+    // for channel with good VPS events better use this, there maybe an ad after end of previous broadcast
+    if (!begin && !criteria.GoodVPS(macontext.Info.ChannelName)) {
         cMark *channelStop  = marks.GetNext(0, MT_CHANNELSTOP);
         if (channelStop) {
             cMark *channelStart = marks.GetNext(channelStop->position, MT_CHANNELSTART);
