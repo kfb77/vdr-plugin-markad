@@ -1614,7 +1614,11 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
 // some channel e.g. TELE5 plays with the logo in the broadcast
 //
 void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason only known and tested channels
-    if (marks.Count(MT_LOGOCHANGE, 0xF0) == 0) return;  // nothing to do
+    if (marks.Count(MT_LOGOCHANGE, 0xF0) == 0) return;                                              // nothing to do
+    if (!evaluateLogoStopStartPair->IsInfoLogoChannel(macontext.Info.ChannelName) &&
+            !evaluateLogoStopStartPair->IsLogoChangeChannel(macontext.Info.ChannelName) &&
+            !evaluateLogoStopStartPair->ClosingCreditsChannel(macontext.Info.ChannelName)) return;  // nothing to do
+
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start mark and pairs with special logo");
 
