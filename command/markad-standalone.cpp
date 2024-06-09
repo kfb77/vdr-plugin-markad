@@ -5592,9 +5592,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter = 8520;  // changed from 6480 to 8520
                     break;
                 case MT_LOGOSTOP:
-                    // rule 1: if not fade out logo, we have delayed logo stop from detection fault (bright picture or patten in background)
-                    // scene change after far away or scene change before very near
-                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && ((diffAfter >= 280) || (diffBefore <= 320))) diffAfter = INT_MAX;
+                    // rule 1: if no fade out logo, usually we have delayed logo stop from detection fault (bright picture or patten in background)
+                    // very near scene change can be valid from very short fade out logo
+                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_OUT) && (diffAfter > 200)) diffAfter = INT_MAX;
 
                     maxAfter = 5639;
                     break;
