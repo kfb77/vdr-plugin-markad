@@ -1601,7 +1601,7 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
         blackScreenStatus = BLACKSCREEN_VISIBLE;
         return ret; // detected start of black screen
     }
-    // full blackscreen now invisable
+    // full blackscreen now invisible
     if ((valAll > maxBrightnessAll) && ((valAll > maxBrightnessGrey) || (maxPixel > 73)) && (blackScreenStatus != BLACKSCREEN_INVISIBLE)) {  // TLC use one dark grey separator picture between broadcasts, changed from 50 to 73
         int ret = BLACKSCREEN_INVISIBLE;
         if (blackScreenStatus == BLACKSCREEN_UNINITIALIZED) ret = BLACKSCREEN_NOCHANGE;
