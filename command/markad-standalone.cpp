@@ -2452,6 +2452,18 @@ void cMarkAdStandalone::CheckStart() {
                     }
                 }
             }
+            else {   // we have no valid logo start (detection fault or border)
+                cMark *aspectStart = marks.GetNext(aspectStop->position, MT_ASPECTSTART);
+                if (aspectStart) {
+                    int lengthAd = (aspectStart - aspectStop) /  macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::CheckStart(): length of first ad %ds", length);
+                    if (lengthAd > 10) {
+                        dsyslog("cMarkAdStandalone::CheckStart(): length of ad is invalid, must be length of broadcast");
+                        SwapAspectRatio();
+                        macontext.Info.checkedAspectRatio = true;  // now we are sure, aspect ratio is correct
+                    }
+                }
+            }
         }
     }
 
