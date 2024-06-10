@@ -61,11 +61,6 @@ endif
 ifeq ($(CXXVERSION),5)
 	export CXXFLAGS += -std=c++11   # to prevent compiler errors with g++ V5
 endif
-ifeq ($(CXXVERSION),13)                 # prevent "warning: "_FORTIFY_SOURCE" redefined"
-	ifneq (,$(findstring D_FORTIFY_SOURCE,$(CXXFLAGS)))
-		export CXXFLAGS := -U_FORTIFY_SOURCE $(CXXFLAGS)   # append before options from vdr.pc
-	endif
-endif
 
 
 ### Includes and Defines (add further entries here):
