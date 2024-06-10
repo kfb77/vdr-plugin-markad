@@ -6394,7 +6394,7 @@ void cMarkAdStandalone::LoadInfo() {
                     // -615 (accepted invalid VPS sequence, false stop, running after)
                     // changed from  506 to  298
                     // changed from -620 to 615
-                    if ((diff >= 298) || (diff <= -615)) {
+                    if ((diff >= 285) || (diff <= -615)) {  // changed from 298 to 285 (how should be longer broadcast from VPS event be valid ?)
                         dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop event seems to be invalid, use length from vdr info file");
                         vps->SetStop(-1);  // set VPS stop event to invalid
                     }
