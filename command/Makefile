@@ -24,30 +24,22 @@ VERSION = $(shell grep 'static const char \*VERSION *=' ../version.h | awk '{ pr
 # check if we want to build without vdr
 ifndef NO_VDR
 # Use package data if installed...otherwise assume we're under the VDR source directory:
-PKGCFG = $(if $(VDRDIR),$(shell $(PKG_CONFIG) --variable=$(1) $(VDRDIR)/vdr.pc),$(shell PKG_CONFIG_PATH="$$PKG_CONFIG_PATH:../../../.." $(PKG_CONFIG) --variable=$(1) vdr))
-BINDIR = $(call PKGCFG,bindir)
-MANDIR = $(call PKGCFG,mandir)
-LIBDIR = $(call PKGCFG,libdir)
-LOCDIR = $(call PKGCFG,locdir)
-PLGCFG = $(call PKGCFG,plgcfg)
-CFGDIR = $(call PKGCFG,configdir)
+PKGCFG   = $(if $(VDRDIR),$(shell $(PKG_CONFIG) --variable=$(1) $(VDRDIR)/vdr.pc),$(shell PKG_CONFIG_PATH="$$PKG_CONFIG_PATH:../../../.." $(PKG_CONFIG) --variable=$(1) vdr))
+BINDIR   = $(call PKGCFG,bindir)
+MANDIR   = $(call PKGCFG,mandir)
+LIBDIR   = $(call PKGCFG,libdir)
+LOCDIR   = $(call PKGCFG,locdir)
+PLGCFG   = $(call PKGCFG,plgcfg)
+CFGDIR   = $(call PKGCFG,configdir)
+CXXFLAGS = $(call PKGCFG,cxxflags)
 endif
 
 ### set defaults
-BINDIR ?= /usr/bin
-LOCDIR ?= /usr/share/locale
-MANDIR ?= /usr/share/man
-
-
-### The C++ compiler and options:
+BINDIR   ?= /usr/bin
+LOCDIR   ?= /usr/share/locale
+MANDIR   ?= /usr/share/man
 CXX      ?= g++
-export CXXFLAGS ?= $(call PKGCFG,cxxflags)
-export CXXFLAGS ?= -g -rdynamic -O3 -funroll-loops -Wall -Woverloaded-virtual -Wno-parentheses
-
-DEBUG = $(filter -g ,$(CXXFLAGS))   # add -rdynamic if debug -g is set
-ifneq ($(DEBUG),)
-        export CXXFLAGS += -rdynamic -Wextra
-endif
+CXXFLAGS ?= -g -fPIC -rdynamic -O3 -funroll-loops -Wall -Woverloaded-virtual -Wno-parentheses
 
 ### compiler version dependent options
 CXXVERSION=$(shell $(CXX) -dumpversion | cut -d"." -f1)
