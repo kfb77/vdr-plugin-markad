@@ -1444,7 +1444,7 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNu
     FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
     free(prevHistogram);
 
-#define DIFF_SCENE_NEW         500   // new scene during blend, force new scene stop/start
+#define DIFF_SCENE_NEW         400   // new scene during blend, force new scene stop/start, changed from 500 to 400
 #define DIFF_SCENE_CHANGE      110
 #define DIFF_SCENE_BLEND_START  60
 #define DIFF_SCENE_BLEND_STOP   40
