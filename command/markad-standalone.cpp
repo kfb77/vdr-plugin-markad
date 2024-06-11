@@ -4461,81 +4461,85 @@ void cMarkAdStandalone::LogoMarkOptimization() {
         if (markLogo->type == MT_LOGOSTART) {
 
             const char *indexToHMSFStartMark = marks.GetTime(markLogo);
+            int introductionStartPosition = -1;
 
             // check for introduction logo before logo mark position
-            LogSeparator(false);
-            int searchStartPosition = markLogo->position - (30 * macontext.Video.Info.framesPerSecond); // introduction logos are usually 10s, somettimes longer, changed from 12 to 30
-            if (searchStartPosition < 0) searchStartPosition = 0;
+            if (ptr_cDetectLogoStopStart->IntroductionLogoChannel(macontext.Info.ChannelName)) {
+                LogSeparator(false);
+                int searchStartPosition = markLogo->position - (30 * macontext.Video.Info.framesPerSecond); // introduction logos are usually 10s, somettimes longer, changed from 12 to 30
+                if (searchStartPosition < 0) searchStartPosition = 0;
 
-            char *indexToHMSFSearchStart = marks.IndexToHMSF(searchStartPosition, false);
-            if (indexToHMSFSearchStart) {
-                ALLOC(strlen(indexToHMSFSearchStart)+1, "indexToHMSFSearchStart");
-            }
+                char *indexToHMSFSearchStart = marks.IndexToHMSF(searchStartPosition, false);
+                if (indexToHMSFSearchStart) {
+                    ALLOC(strlen(indexToHMSFSearchStart)+1, "indexToHMSFSearchStart");
+                }
 
-            if (indexToHMSFStartMark && indexToHMSFSearchStart) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search introduction logo from position (%d) at %s to logo start mark (%d) at %s", searchStartPosition, indexToHMSFSearchStart, markLogo->position, indexToHMSFStartMark);
-            if (indexToHMSFSearchStart) {
-                FREE(strlen(indexToHMSFSearchStart)+1, "indexToHMSFSearchStart");
-                free(indexToHMSFSearchStart);
-            }
-            int introductionStartPosition = -1;
-            if (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position)) {
-                introductionStartPosition = ptr_cDetectLogoStopStart->IntroductionLogo();
+                if (indexToHMSFStartMark && indexToHMSFSearchStart) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search introduction logo from position (%d) at %s to logo start mark (%d) at %s", searchStartPosition, indexToHMSFSearchStart, markLogo->position, indexToHMSFStartMark);
+                if (indexToHMSFSearchStart) {
+                    FREE(strlen(indexToHMSFSearchStart)+1, "indexToHMSFSearchStart");
+                    free(indexToHMSFSearchStart);
+                }
+                if (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position)) {
+                    introductionStartPosition = ptr_cDetectLogoStopStart->IntroductionLogo();
+                }
             }
 
             // check for advertising in frame with logo after logo start mark position
-            int adInFrameEndPosition = -1;
-            LogSeparator(false);
-            int searchEndPosition = markLogo->position + (60 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
-            // sometimes advertising in frame has text in "e.g. Werbung"
-            // check longer range to prevent to detect text as second logo
-            // changed from 35 to 60
+            if (ptr_cDetectLogoStopStart->AdInFrameWithLogoChannel(macontext.Info.ChannelName)) {
+                int adInFrameEndPosition = -1;
+                LogSeparator(false);
+                int searchEndPosition = markLogo->position + (60 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
+                // sometimes advertising in frame has text in "e.g. Werbung"
+                // check longer range to prevent to detect text as second logo
+                // changed from 35 to 60
 
-            char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition, false);
-            if (indexToHMSFSearchEnd) {
-                ALLOC(strlen(indexToHMSFSearchEnd)+1, "indexToHMSFSearchEnd");
-            }
-            if (indexToHMSFStartMark && indexToHMSFSearchEnd) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search advertising in frame with logo after logo start mark (%d) at %s to position (%d) at %s", markLogo->position, indexToHMSFStartMark, searchEndPosition, indexToHMSFSearchEnd);
-            if (indexToHMSFSearchEnd) {
-                FREE(strlen(indexToHMSFSearchEnd)+1, "indexToHMSFSearchEnd");
-                free(indexToHMSFSearchEnd);
-            }
-            if (ptr_cDetectLogoStopStart->Detect(markLogo->position, searchEndPosition)) {
-                adInFrameEndPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(true);
-            }
-            if (adInFrameEndPosition >= 0) {
-                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", markLogo->position, adInFrameEndPosition);
-                if (evaluateLogoStopStartPair->IncludesInfoLogo(markLogo->position, adInFrameEndPosition)) {
-                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): deleted info logo part in this range, this could not be a advertising in frame");
-                    adInFrameEndPosition = -1;
+                char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition, false);
+                if (indexToHMSFSearchEnd) {
+                    ALLOC(strlen(indexToHMSFSearchEnd)+1, "indexToHMSFSearchEnd");
                 }
-            }
-            if (adInFrameEndPosition != -1) {  // if we found advertising in frame, use this
-                if (!macontext.Config->fullDecode) adInFrameEndPosition = recordingIndexMark->GetIFrameAfter(adInFrameEndPosition + 1);  // we got last frame of ad, go to next iFrame for start mark
-                else adInFrameEndPosition++; // use next frame after ad in frame as start mark
-                markLogo = marks.Move(markLogo, adInFrameEndPosition, MT_NOADINFRAMESTART);
-                if (!markLogo) {
-                    esyslog("cMarkAdStandalone::LogoMarkOptimization(): move mark failed");
-                    break;
+                if (indexToHMSFStartMark && indexToHMSFSearchEnd) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): search advertising in frame with logo after logo start mark (%d) at %s to position (%d) at %s", markLogo->position, indexToHMSFStartMark, searchEndPosition, indexToHMSFSearchEnd);
+                if (indexToHMSFSearchEnd) {
+                    FREE(strlen(indexToHMSFSearchEnd)+1, "indexToHMSFSearchEnd");
+                    free(indexToHMSFSearchEnd);
                 }
-                save = true;
-            }
-            else {
-                if (introductionStartPosition != -1) {
-                    bool move = true;
-                    // check blackscreen between introduction logo start and logo start, there should be no long blackscreen, short blackscreen are from retrospect
-                    cMark *blackMarkStart = blackMarks.GetNext(introductionStartPosition, MT_NOBLACKSTART);
-                    cMark *blackMarkStop = blackMarks.GetNext(introductionStartPosition, MT_NOBLACKSTOP);
-                    if (blackMarkStart && blackMarkStop && (blackMarkStart->position <= markLogo->position) && (blackMarkStop->position <= markLogo->position)) {
-                        int innerLength = 1000 * (blackMarkStart->position - blackMarkStop->position) / macontext.Video.Info.framesPerSecond;
-                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found black screen start (%d) and stop (%d) between introduction logo (%d) and start mark (%d), length %dms", blackMarkStop->position, blackMarkStart->position, introductionStartPosition, markLogo->position, innerLength);
-                        if (innerLength > 1000) move = false;  // only move if we found no long blackscreen between introduction logo and logo start
+                if (ptr_cDetectLogoStopStart->Detect(markLogo->position, searchEndPosition)) {
+                    adInFrameEndPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(true);
+                }
+                if (adInFrameEndPosition >= 0) {
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", markLogo->position, adInFrameEndPosition);
+                    if (evaluateLogoStopStartPair->IncludesInfoLogo(markLogo->position, adInFrameEndPosition)) {
+                        dsyslog("cMarkAdStandalone::LogoMarkOptimization(): deleted info logo part in this range, this could not be a advertising in frame");
+                        adInFrameEndPosition = -1;
                     }
-                    if (move) markLogo = marks.Move(markLogo, introductionStartPosition, MT_INTRODUCTIONSTART);
+                }
+                if (adInFrameEndPosition != -1) {  // if we found advertising in frame, use this
+                    if (!macontext.Config->fullDecode) adInFrameEndPosition = recordingIndexMark->GetIFrameAfter(adInFrameEndPosition + 1);  // we got last frame of ad, go to next iFrame for start mark
+                    else adInFrameEndPosition++; // use next frame after ad in frame as start mark
+                    markLogo = marks.Move(markLogo, adInFrameEndPosition, MT_NOADINFRAMESTART);
                     if (!markLogo) {
                         esyslog("cMarkAdStandalone::LogoMarkOptimization(): move mark failed");
                         break;
                     }
                     save = true;
+                }
+                else {
+                    if (introductionStartPosition != -1) {
+                        bool move = true;
+                        // check blackscreen between introduction logo start and logo start, there should be no long blackscreen, short blackscreen are from retrospect
+                        cMark *blackMarkStart = blackMarks.GetNext(introductionStartPosition, MT_NOBLACKSTART);
+                        cMark *blackMarkStop = blackMarks.GetNext(introductionStartPosition, MT_NOBLACKSTOP);
+                        if (blackMarkStart && blackMarkStop && (blackMarkStart->position <= markLogo->position) && (blackMarkStop->position <= markLogo->position)) {
+                            int innerLength = 1000 * (blackMarkStart->position - blackMarkStop->position) / macontext.Video.Info.framesPerSecond;
+                            dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found black screen start (%d) and stop (%d) between introduction logo (%d) and start mark (%d), length %dms", blackMarkStop->position, blackMarkStart->position, introductionStartPosition, markLogo->position, innerLength);
+                            if (innerLength > 1000) move = false;  // only move if we found no long blackscreen between introduction logo and logo start
+                        }
+                        if (move) markLogo = marks.Move(markLogo, introductionStartPosition, MT_INTRODUCTIONSTART);
+                        if (!markLogo) {
+                            esyslog("cMarkAdStandalone::LogoMarkOptimization(): move mark failed");
+                            break;
+                        }
+                        save = true;
+                    }
                 }
             }
         }
