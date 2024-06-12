@@ -91,8 +91,10 @@ bool cCriteria::InfoInBorder(const char *channelName) {
 bool cCriteria::LogoColorChange(const char *channelName) {
     if (!channelName) return false;
 
-    if (CompareChannelName(channelName, "DMAX",   IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "TELE_5", IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "DMAX",           IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD)) return true;
+
     return false;
 }
 
