@@ -1617,7 +1617,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
 
     int retFrame              = -1;
 
-#define AD_IN_FRAME_STOP_OFFSET_MAX  15479  // changed from 15800 to 15479 because of false detection, do not increase, accept missing detection of preview direct after ad in frame without logo interuption
+#define AD_IN_FRAME_STOP_OFFSET_MAX   9759  // changed from 15479 to 9759 because of false detection of scene with door frame
 #define AD_IN_FRAME_START_OFFSET_MAX  4319  // changed from 4799 to 4319
 #define AD_IN_FRAME_LENGTH_MAX       34680  // changed from 30720 to 34680
 #define AD_IN_FRAME_LENGTH_MIN        6920  // shortest ad in frame found 6920ms, changed from 6960 to 6920
