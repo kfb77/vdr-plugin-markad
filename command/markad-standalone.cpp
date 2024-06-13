@@ -6654,7 +6654,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     char *libver = nullptr;
     if (asprintf(&libver, "%i.%i.%i", ver >> 16 & 0xFF, ver >> 8 & 0xFF, ver & 0xFF) != -1) {
         ALLOC(strlen(libver)+1, "libver");
-        isyslog("using libavcodec.so.%s (%d) with %i threads", libver, ver, config->threads);
+        dsyslog("using libavcodec.so.%s (%d) with %i threads", libver, ver, config->threads);
         if (ver != LIBAVCODEC_VERSION_INT) {
             esyslog("libavcodec header version %s", AV_STRINGIFY(LIBAVCODEC_VERSION));
             esyslog("header and library mismatch, do not report decoder bugs");
