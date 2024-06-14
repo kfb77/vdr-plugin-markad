@@ -1,6 +1,13 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-06-22: Version 3.6.8
+- detect long black opening credits after vborder broadcast
+- prevent to use false hborder marks from long opening credits
+- optimize logo detection with background pattern
+- prevent to detect closing banner as ad in frame with logo
+- some minor bug fixes and optimizations, see git
+
 2024-06-14: Version 3.6.7
 - fix check for valid aspect ratio from vdr info file
 - fix false logo stop detection on bright background
