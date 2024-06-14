@@ -482,30 +482,17 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
     dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): logo area before reduction: contrast %3d, brightness %3d", frameNumber, contrastLogo, brightnessLogo);
 #endif
 
-#define LOW_PIXEL_LOGO 70  // changed from 65 to 70, most of HD recording logo
-
 // check if contrast and brightness is valid
 // build a curve from examples
 
     // very high contrast with not very high brightness in logo area, trust detection
     //
-    // high pixel logo
-    // false negativ, logo is visible but not detected
-    // tbd
-    //
-    if ((contrastLogo > 162) && (brightnessLogo < 96) && (maContext->Video.Logo.pixelRatio > LOW_PIXEL_LOGO)) {
-#ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): very high contrast with not very high brightness in logo area, trust detection (high pixel logo)", frameNumber);
-#endif
-        return true; // if there is a logo we should had detected it
-    }
-    // low pixel logo
     // false negativ, logo is visible but not detected
     // contrast 202, brightness  85
     // contrast 200, brightness  85
-    if ((contrastLogo > 202) && (brightnessLogo <  85) && (maContext->Video.Logo.pixelRatio <= LOW_PIXEL_LOGO)) {
+    if ((contrastLogo > 202) && (brightnessLogo < 85)) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): very high contrast with not very high brightness in logo area, trust detection (low pixel logo)", frameNumber);
+        dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): very high contrast with not very high brightness in logo area, trust detection", frameNumber);
 #endif
         return true; // if the is a logo should had detected it
     }
@@ -536,8 +523,9 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
 // -----------------------------------------------------------------
 // logo or no logo in bright area, not detected without brightness reduction, detected with brightness reduction, take it as valid
 // contrast 170, brightness 141  -> bright background without logo
+// contrast 139, brightness 180  -> bright background without logo
 //
-// contrast  54, brightness 181  -> no logo in frame                        NEW
+// contrast  54, brightness 181  -> no logo in frame
 // contrast  52, brightness 189  -> bright background without logo
 //
 // contrast  49, brightness 175  -> red separator picture without logo
@@ -562,9 +550,8 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
             ((contrastLogo  >  10) && (contrastLogo <=  20) && (brightnessLogo > 197)) ||
             ((contrastLogo  >  20) && (contrastLogo <=  50) && (brightnessLogo > 192)) ||
             ((contrastLogo  >  50) && (contrastLogo <=  60) && (brightnessLogo > 189)) ||
-            ((contrastLogo  >  60) && (contrastLogo <= 125) && (brightnessLogo > 171)) ||
-            ((contrastLogo  > 125) && (contrastLogo <= 131) && (brightnessLogo > 153)) ||
-            ((contrastLogo  > 131) && (contrastLogo <= 180) && (brightnessLogo > 141)) ||
+            ((contrastLogo  >  60) && (contrastLogo <= 140) && (brightnessLogo > 180)) ||
+            ((contrastLogo  > 140) && (contrastLogo <= 180) && (brightnessLogo > 181)) ||
             ((contrastLogo  > 180) && (contrastLogo <= 194) && (brightnessLogo > 120)) ||
             ((contrastLogo  > 194) &&                          (brightnessLogo > 110))) {
 #ifdef DEBUG_LOGO_DETECTION
@@ -675,10 +662,12 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
     int quoteBlack   = 100 * black  /  (logoHeight * logoWidth);
     int quoteInverse = 100 * iPixel / ((logoHeight * logoWidth) - mPixel);
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cMarkAdLogo:ReduceBrightness(): frame (%6d): area intensity %d, black quote: %d%%, inverse quote %d%%", frameNumber, area.intensity, quoteBlack, quoteInverse);
+    dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): area intensity %3d, black quote: %d%%, inverse quote %d%%", frameNumber, area.intensity, quoteBlack, quoteInverse);
 #endif
-    // check if we have matches only from backbround patten
-    // no logo before brightness reduction, unclear result after, hight backgrund patten quote
+
+    // prevent to miss logo stop from background pattern
+    // check if we have new matches after brightness reduction only from backbround patten
+    // current state logo visable, no logo before brightness reduction, unclear result after, hight backgrund patten quote
     //
     // exmample no logo visible
     // area intensity 80, black quote: 32%, inverse quote 32%
@@ -692,11 +681,22 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
         return true;
     }
 
-    if (quoteBlack > 22) { // changed from 27 to 25
-        if ((quoteBlack >= 60) && (area.status == LOGO_INVISIBLE)) {  // prevent false logo start detection from patten background
-            area.counter--;
-            if (area.counter < 0) area.counter = 0;
-        }
+    // prevent get false logo start detection from patten background
+    // check if we have new matches after brightness reduction only from backbround patten
+    // current state logo invisable, unclear result before brightness reduction, logo visable after, hight backgrund patten quote
+    //
+    // example no logo visibale
+    // area intensity 122, black quote: 37%, inverse quote 35%
+    // area intensity  93, black quote: 52%, inverse quote 51%
+    // area intensity  31, black quote: 22%, inverse quote 19%
+    // area intensity  30, black quote: 21%, inverse quote 18%
+    // area intensity  30, black quote: 20%, inverse quote 18%
+    // area intensity  29, black quote: 20%, inverse quote 18%
+    // area intensity  29, black quote: 20%, inverse quote 17%
+    // area intensity  27, black quote: 18%, inverse quote 15%
+    // area intensity  27, black quote: 18%, inverse quote 15%
+    if ((area.status == LOGO_INVISIBLE) && (rPixelBefore < logo_vmark) && (rPixel > logo_vmark) &&
+            (area.intensity >= 27) && (quoteBlack >= 18) && (quoteInverse >= 15)) {
         return false; // there is a pattern on the backbround, no logo detection possible
     }
 
