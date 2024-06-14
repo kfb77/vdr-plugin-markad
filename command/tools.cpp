@@ -17,6 +17,13 @@ cTools::cTools() {
 cTools::~cTools() {
 }
 
+
+void cTools::LogSeparator(const bool main) {
+    if (main) dsyslog("=======================================================================================================================");
+    else      dsyslog("-----------------------------------------------------------------------------------------------------------------------");
+}
+
+
 bool cTools::CompareChannelName(const char *nameA, const char *nameB, const int flags) {
     std::string name1(nameA);
     std::string name2(nameB);

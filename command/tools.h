@@ -25,6 +25,13 @@ public:
     ~cTools();
 
     /**
+    * log a separator line
+    * @param main      true logs double line, single line otherwise
+    */
+    static void LogSeparator(const bool main = false);
+
+
+    /**
     * compare channel name pair
     * @param nameA      first name
     * @param nameB      second name

@@ -10,6 +10,7 @@
 
 #include <string.h>
 #include "global.h"
+#include "tools.h"
 #include "decoder.h"
 #include "index.h"
 
@@ -131,16 +132,23 @@ private:
 /**
  * class contains current marks
  */
-class cMarks {
+class cMarks : protected cTools {
 public:
     cMarks();
     ~cMarks();
+
+    /**
+     * write all current marks to log file
+     */
+    void Debug();
+
 
     /**
      * register recording index
      * @param recordingIndex recording index
      */
     void RegisterIndex(cIndex *recordingIndex);
+
 
     /**
      * calculate count of marks
@@ -149,6 +157,7 @@ public:
      * @return counf of mark
      */
     int Count(const int type = 0xFF, const int mask = 0xFF) const;
+
 
     /**
      * set marks filename

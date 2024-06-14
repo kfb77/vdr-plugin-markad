@@ -35,7 +35,7 @@ class cOSDMessage;
 /**
  * markad main class
  */
-class cMarkAdStandalone : private cEvaluateChannel {
+class cMarkAdStandalone : protected cEvaluateChannel {
 public:
 
     /**
@@ -360,12 +360,6 @@ private:
     void CheckMarks(const int endMarkPos);
 
     /**
-     * write a separator line to log file
-     * @param main true write "=", false write "-"
-     */
-    static void LogSeparator(const bool main = false);
-
-    /**
      * write all curent detected mark to log file
      */
     void DebugMarks();
@@ -381,15 +375,6 @@ private:
      * @return true if successful, false otherwise
      */
     bool SetFileUID(char *file);
-
-    /**
-     * process overlap detection with stop/start pair
-     * @param[in]      overlap detection object
-     * @param[in, out] mark1   stop mark before advertising, set to start position of detected overlap
-     * @param[in, out] mark2   start mark after advertising, set to end position of detected overlap
-     * @return true if overlap was detected, false otherwise
-     */
-    bool ProcessMarkOverlap(cMarkAdOverlap *overlap, cMark **mark1, cMark **mark2);
 
     /**
      * process next frame

@@ -31,7 +31,7 @@ enum eFadeInOut {
 /**
  * store valid mark creteria for broadcast
  */
-class cCriteria : public cMarks, cTools {
+class cCriteria : protected cMarks {
 public:
 
     /**
