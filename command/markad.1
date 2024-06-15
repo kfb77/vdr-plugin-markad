@@ -68,9 +68,6 @@ Usage: markad [options] cmd <recording>
 .BI \-B\ ,\ \-\-backupmarks
  make a backup of existing marks
 .TP 
-.BI \-I\ ,\ \-\-saveinfo
- correct information in info file
-.TP 
 .BI \-L\ ,\ \-\-extractlogo= <direction>[,width[,height]]
  extracts logo to /tmp as pgm files (must be renamed)
  <direction>  0 = top left,    1 = top right
@@ -107,34 +104,26 @@ Usage: markad [options] cmd <recording>
  filename so the entry 'Mark instant recording' in the menu
  \fISetup \- Recording\fR of the vdr should be set to 'yes'
 .TP 
-.BI \-\-pass1only
- process only first pass, setting of marks
-.TP 
-.BI \-\-pass2only
- process only second pass, fine adjustment of marks
-.TP 
 .BI \-\-svdrphost= \fR<ip/hostname>\fR " ( default is 127.0.0.1 ) "
  ip/hostname of a remote VDR for OSD messages
-.TP
-.BI \-\-astopoffs= \fR<value>\fR "  ( default is 0 ) "
- assumed stop offset in seconds range from 0 to 240
-.TP
-.BI \-\-posttimer= \fR<value>\fR " ( default is 600 ) "
- additional recording time in seconds after epg timer end
- range from 0 to 1200
-.TP
-.BI \-\-vps
- use VPS events from markad.vps to optimize start and stop marks
-.TP
-.BI \-\-cut
- cut video based on marks and store it in the recording directory
- there are no splits of the target file, make sure your filesystem can handle big files
 .TP
 .BI \-\-ac3reencode
  re-encode AC3 stream to fix low audio level of cutted video on same devices
  requires --cut
  use it only if you really need it, it is very CPU consuming
 .TP 
+.BI \-\-cut
+ cut video based on marks and store it in the recording directory
+ there are no splits of the target file, make sure your filesystem can handle big files
+.TP
+
+.BI \-\-hwaccel
+ decode video with VAAPI (Video Acceleration API). Your hardware must support this.
+.TP
+
+.BI \-\-vps
+ use VPS events from markad.vps to optimize start and stop marks
+.TP
 .BI \-\-svdrpport= \fR<port>\fR  "  ( default is 6419 ) "
  port of a remote VDR for OSD messages
 

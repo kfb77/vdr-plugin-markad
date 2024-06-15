@@ -127,6 +127,17 @@ typedef struct sLogoSize {
 
 
 /**
+ * video picture structure
+ */
+typedef struct sVideoPicture {
+    uchar *Plane[PLANES];  //!< array of picture planes (YUV420)
+    //!<
+    int PlaneLinesize[PLANES]; //!< size int bytes of each picture plane line
+    //!<
+} sVideoPicture;  //!< video picture data structure
+
+
+/**
  * markad configuration structure
  */
 typedef struct sMarkAdConfig {
@@ -148,10 +159,6 @@ typedef struct sMarkAdConfig {
     int logoHeight;             //!< height for logo extraction
     //!<
     int threads;                //!< number of threads for decoder and encoder
-    //!<
-    int astopoffs;              //!< assumed stop offset in seconds
-    //!<
-    int posttimer;              //!< time in second in the recording after assumed end of broadcast
     //!<
     bool useVPS = false;        //!< <b>true:</b> use information from vps file to optimize marks
     //!< <b>false:</b> do not use information from vps file to optimize marks
@@ -194,6 +201,10 @@ typedef struct sMarkAdConfig {
     //!< <b>false:</b> encode all video and audio streams
     //!<
     bool pts        = false;    //!< <b>true:</b> add pts based timestanp to marks<br>
+    //!< <b>false:</b> otherwise
+    bool hwaccel    = false;    //!< <b>true:</b>  decode video with VAAPI (Video Acceleration API)<br>
+    //!< <b>false:</b> otherwise
+    bool perftest   = false;    //!< <b>true:</b>  run decoder performance test before detect marks<br>
     //!< <b>false:</b> otherwise
 } sMarkAdConfig;
 

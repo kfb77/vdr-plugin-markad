@@ -11,6 +11,7 @@
 #include "global.h"
 #include "markad-standalone.h"
 #include "decoder.h"
+#include "decoderNEW.h"
 #include "video.h"
 #include "audio.h"
 #include "tools.h"

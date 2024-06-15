@@ -1,0 +1,8 @@
+
+- remove parameter "saveinfo"
+- remove parameter "pass1only"
+- remove parameter "pass2only"
+- remove parameter "astopoffs"
+- remove parameter "posttimer"
+
+- new decoder with VAAPI support
