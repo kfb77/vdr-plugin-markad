@@ -68,6 +68,7 @@ bool cCriteria::LogoInBorder(const char *channelName) {
     if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD)) return true;
 //    if (CompareChannelName(channelName, "NITRO",          IGNORE_HD)) return true;   // not in border
     if (CompareChannelName(channelName, "ONE_HD",         IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "RTLZWEI",        IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "SUPER_RTL",      IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD)) return true;
 
