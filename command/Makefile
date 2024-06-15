@@ -56,8 +56,8 @@ endif
 
 
 ### Includes and Defines (add further entries here):
-PKG-LIBS += libavcodec libavutil libavformat libavfilter libswresample
-PKG-INCLUDES += libavcodec libavutil libavformat libavfilter libswresample
+PKG-LIBS += libavcodec libavutil libavformat libavfilter libswresample libswscale
+PKG-INCLUDES += libavcodec libavutil libavformat libavfilter libswresample libswscale
 
 DEFINES += -D_GNU_SOURCE
 DEFINES += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
@@ -86,7 +86,7 @@ LIBS     += $(shell $(PKG_CONFIG) --libs $(PKG-LIBS)) -pthread
 
 
 ### The object files (add further files here):
-OBJS = markad-standalone.o marks.o video.o audio.o decoder.o encoder.o logo.o debug.o index.o evaluate.o osd.o criteria.o vps.o tools.o overlap.o
+OBJS = markad-standalone.o marks.o video.o audio.o decoder.o encoder.o logo.o debug.o index.o evaluate.o osd.o criteria.o vps.o tools.o overlap.o decoderNEW.o
 
 ### The main target:
 all: markad i18n

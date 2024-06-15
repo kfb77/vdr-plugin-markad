@@ -93,6 +93,9 @@
 // debug PTS and DTS of video cut
 // #define DEBUG_CUT
 
+// debug decoder
+// #define DEBUG_DECODER
+
 // debug encoder
 // #define DEBUG_ENCODER
 

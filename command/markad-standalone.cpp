@@ -60,9 +60,7 @@ struct timeval startTime5, endTime5 = {}; // pass 5 (cut recording) time
 struct timeval startTime6, endTime6 = {}; // pass 6 (mark pictures) time
 
 
-
 #ifdef POSIX
-
 static inline int ioprio_set(int which, int who, int ioprio) {
 #if defined(__i386__)
 #define __NR_ioprio_set         289
@@ -111,6 +109,7 @@ static inline int ioprio_get(int which, int who) {
 
 }
 
+#include "test.cpp"   // include test class after global variables are defined
 
 void syslog_with_tid(int priority, const char *format, ...) {
     va_list ap;
@@ -183,12 +182,12 @@ void cMarkAdStandalone::CalculateCheckPositions(int startframe) {
     dsyslog("cMarkAdStandalone::CalculateCheckPositions(): use frame rate %i", static_cast<int>(macontext.Video.Info.framesPerSecond));
 
     iStart = -startframe;
-    iStop = -(startframe + macontext.Video.Info.framesPerSecond * length) ;   // iStop change from - to + when frames reached iStop
+    iStop  = -(startframe + macontext.Video.Info.framesPerSecond * length) ;   // iStop change from - to + when frames reached iStop
 
-    iStartA = abs(iStart);
-    iStopA = startframe + macontext.Video.Info.framesPerSecond * (length + macontext.Config->astopoffs);
+    iStartA  = abs(iStart);
+    iStopA   = startframe + macontext.Video.Info.framesPerSecond * length;
     chkSTART = iStartA + macontext.Video.Info.framesPerSecond * 480; //  fit for later broadcast start
-    chkSTOP = startframe + macontext.Video.Info.framesPerSecond * (length + macontext.Config->posttimer);
+    chkSTOP  = startframe + macontext.Video.Info.framesPerSecond * (length + (2 * MAX_ASSUMED));
 
     dsyslog("cMarkAdStandalone::CalculateCheckPositions(): length of recording:   %4ds (%3dmin %2ds)", length, length / 60, length % 60);
     dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed start frame:  %5d  (%3dmin %2ds)", iStartA, static_cast<int>(iStartA / macontext.Video.Info.framesPerSecond / 60), static_cast<int>(iStartA / macontext.Video.Info.framesPerSecond) % 60);
@@ -2931,7 +2930,7 @@ void cMarkAdStandalone::CheckMarks(const int endMarkPos) {           // cleanup 
         esyslog("no marks at all detected, something went very wrong");
         return;
     }
-    int newStopA = firstMark->position + macontext.Video.Info.framesPerSecond * (length + macontext.Config->astopoffs);  // we have to recalculate iStopA
+    int newStopA = firstMark->position + macontext.Video.Info.framesPerSecond * (length + (2 * MAX_ASSUMED));  // we have to recalculate iStopA
     // remove invalid marks
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): remove invalid marks");
@@ -5634,7 +5633,7 @@ void cMarkAdStandalone::Reset() {
 }
 
 
-bool cMarkAdStandalone::ProcessFrame(cDecoder *ptr_cDecoder) {
+bool cMarkAdStandalone:: ProcessFrame(cDecoder *ptr_cDecoder) {
     if (!ptr_cDecoder) return false;
     if (!video) {
         esyslog("cMarkAdStandalone::ProcessFrame(): video not initialized");
@@ -6484,6 +6483,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         if (asprintf(&macontext.Info.ChannelName, "unknown") == -1) {};
         ALLOC(strlen(macontext.Info.ChannelName) + 1, "macontext.Info.ChannelName");
     }
+
+    // performance test
+    if (macontext.Config->perftest) {
+        cTest *test = new cTest(&macontext);
+        test->Perf();
+        delete test;
+    }
+
     if (!CheckLogo() && (config->logoExtraction == -1) && (config->autoLogo == 0)) {
         isyslog("no logo found, logo detection disabled");
         criteria.SetDetectionState(MT_LOGOCHANGE, false);
@@ -6844,8 +6851,6 @@ int main(int argc, char *argv[]) {
     char *tok           = nullptr;
     char *str           = nullptr;
     int ntok            = 0;
-    bool bPass2Only     = false;
-    bool bPass1Only     = false;
     struct sMarkAdConfig config = {};
 
     gettimeofday(&startAll, nullptr);
@@ -6855,8 +6860,6 @@ int main(int argc, char *argv[]) {
     config.logoWidth      = -1;
     config.logoHeight     = -1;
     config.threads        = -1;
-    config.astopoffs      = 0;
-    config.posttimer      = 600;
     strcpy(config.svdrphost, "127.0.0.1");
     strcpy(config.logoDirectory, "/var/lib/markad");
 
@@ -6875,6 +6878,8 @@ int main(int argc, char *argv[]) {
 
     atexit(freedir);
 
+// TODO: update plugin parameter call
+
     while (1) {
         int option_index = 0;
         static struct option long_options[] =
@@ -6886,7 +6891,6 @@ int main(int argc, char *argv[]) {
             {"ioprio",       1, 0, 'r'},
             {"verbose",      0, 0, 'v'},
             {"backupmarks",  0, 0, 'B'},
-            {"saveinfo",     0, 0, 'I'},
             {"extractlogo",  1, 0, 'L'},
             {"OSD",          0, 0, 'O' },
             {"log2rec",      0, 0, 'R'},
@@ -6898,19 +6902,16 @@ int main(int argc, char *argv[]) {
             {"nopid",        0, 0,  4},
             {"svdrphost",    1, 0,  5},
             {"svdrpport",    1, 0,  6},
-            {"pass2only",    0, 0,  7},
-            {"pass1only",    0, 0,  8},
-            {"astopoffs",    1, 0,  9},
-            {"posttimer",    1, 0, 10},
-            {"cDecoder",     0, 0, 11},
-            {"cut",          0, 0, 12},
-            {"ac3reencode",  0, 0, 13},
-            {"vps",          0, 0, 14},
-            {"logfile",      1, 0, 15},
-            {"autologo",     1, 0, 16},
-            {"fulldecode",   0, 0, 17},
-            {"fullencode",   1, 0, 18},
-            {"pts",          0, 0, 19},
+            {"cut",          0, 0,  7},
+            {"ac3reencode",  0, 0,  8},
+            {"vps",          0, 0,  9},
+            {"logfile",      1, 0, 10},
+            {"autologo",     1, 0, 11},
+            {"fulldecode",   0, 0, 12},
+            {"fullencode",   1, 0, 13},
+            {"pts",          0, 0, 14},     // undocumented, only for development use
+            {"hwaccel",      0, 0, 15},
+            {"perftest",     0, 0, 16},     // undocumented, only for development use
 
             {0, 0, 0, 0}
         };
@@ -7064,53 +7065,20 @@ int main(int argc, char *argv[]) {
                 return EXIT_FAILURE;
             }
             break;
-        case 7: // --pass2only
-            bPass2Only = true;
-            if (bPass1Only) {
-                fprintf(stderr, "markad: you cannot use --pass2only with --pass1only\n");
-                return EXIT_FAILURE;
-            }
-            break;
-        case 8: // --pass1only
-            bPass1Only = true;
-            if (bPass2Only) {
-                fprintf(stderr, "markad: you cannot use --pass1only with --pass2only\n");
-                return EXIT_FAILURE;
-            }
-            break;
-        case 9: // --astopoffs
-            if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 240) {
-                config.astopoffs = atoi(optarg);
-            }
-            else {
-                fprintf(stderr, "markad: invalid astopoffs value: %s\n", optarg);
-                return EXIT_FAILURE;
-            }
-            break;
-        case 10: // --posttimer
-            if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 1200) config.posttimer=atoi(optarg);
-            else {
-                fprintf(stderr, "markad: invalid posttimer value: %s\n", optarg);
-                return EXIT_FAILURE;
-            }
-            break;
-        case 11: // --cDecoder
-            fprintf(stderr, "markad: parameter --cDecoder: is depreciated, please remove it from your configuration\n");
-            break;
-        case 12: // --cut
+        case 7: // --cut
             config.MarkadCut = true;
             break;
-        case 13: // --ac3reencode
+        case 8: // --ac3reencode
             config.ac3ReEncode = true;
             break;
-        case 14: // --vps
+        case 9: // --vps
             config.useVPS = true;
             break;
-        case 15: // --logfile
+        case 10: // --logfile
             strncpy(config.logFile, optarg, sizeof(config.logFile) - 1);
             config.logFile[sizeof(config.logFile) - 1] = 0;
             break;
-        case 16: // --autologo
+        case 11: // --autologo
             if (isnumber(optarg) && atoi(optarg) >= 0 && atoi(optarg) <= 2) config.autoLogo = atoi(optarg);
             else {
                 fprintf(stderr, "markad: invalid autologo value: %s\n", optarg);
@@ -7121,10 +7089,10 @@ int main(int argc, char *argv[]) {
                 config.autoLogo = 255;
             }
             break;
-        case 17: // --fulldecode
+        case 12: // --fulldecode
             config.fullDecode = true;
             break;
-        case 18: // --fullencode
+        case 13: // --fullencode
             config.fullEncode = true;
             str = optarg;
             ntok = 0;
@@ -7147,8 +7115,14 @@ int main(int argc, char *argv[]) {
                 ntok++;
             }
             break;
-        case 19: // --pts
+        case 14: // --pts
             config.pts = true;
+            break;
+        case 15: // --hwaccel
+            config.hwaccel = true;
+            break;
+        case 16: // --perftest
+            config.perftest = true;
             break;
         default:
             printf ("markad: invalid option -%c\n", option);
@@ -7347,7 +7321,6 @@ int main(int argc, char *argv[]) {
 
         dsyslog("parameter --logocachedir is set to %s", config.logoDirectory);
         dsyslog("parameter --threads is set to %i", config.threads);
-        dsyslog("parameter --astopoffs is set to %i", config.astopoffs);
         if (LOG2REC) dsyslog("parameter --log2rec is set");
 
         if (config.useVPS) {
@@ -7372,12 +7345,12 @@ int main(int argc, char *argv[]) {
             if (config.bestEncode) dsyslog("encode best streams");
             else dsyslog("encode all streams");
         }
-        if (!bPass2Only) {
+        if (!abortNow ) {
             gettimeofday(&startTime2, nullptr);
             cmasta->ProcessFiles();
             gettimeofday(&endTime2, nullptr);
         }
-        if (!bPass1Only) {
+        if (!abortNow) {
             gettimeofday(&startTime3, nullptr);
             cmasta->LogoMarkOptimization();      // logo mark optimization
             gettimeofday(&endTime3, nullptr);
@@ -7392,7 +7365,7 @@ int main(int argc, char *argv[]) {
             cmasta->SceneChangeOptimization();   // final optimization with scene changes (if we habe nothing else, try this as last resort)
 
         }
-        if (config.MarkadCut) {
+        if (!abortNow && config.MarkadCut) {
             gettimeofday(&startTime5, nullptr);
             cmasta->MarkadCut();
             gettimeofday(&endTime5, nullptr);

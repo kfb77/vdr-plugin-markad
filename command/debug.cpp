@@ -48,6 +48,7 @@ bool SaveSobel(const char *fileName, const uchar *picture, const int width, cons
 #include <stdio.h>
 #include <stdlib.h>
 void SaveFrameBuffer(const sMarkAdContext *maContext, const char *fileName) {
+    dsyslog("SaveFrameBuffer(): fileName %s", fileName);
     if (!maContext->Video.Info.height) {
         dsyslog("SaveFrameBuffer(): maContext->Video.Info.height not set");
         return;
@@ -76,8 +77,9 @@ void SaveFrameBuffer(const sMarkAdContext *maContext, const char *fileName) {
     fclose(pFile);
 }
 #endif
-#ifdef DEBUG_MEM
 
+
+#ifdef DEBUG_MEM
 #include <stdlib.h>
 #include <cstring>
 #include <vector>
