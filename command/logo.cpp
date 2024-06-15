@@ -559,12 +559,13 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
             logo.heightMax =  85;
         }
 
+        // Das_Erste_HD            16:9 1280W  720H:->  146W 114H TOP_RIGHT
         // Das_Erste_HD            16:9 1280W  720H:->  148W 114H TOP_RIGHT
         // Das_Erste_HD            16:9 1280W  720H:->  148W 128H TOP_RIGHT
         // Das_Erste_HD            16:9 1280W  720H:->  244W 114H TOP_RIGHT
         // Das_Erste_HD            16:9 1280W  720H:->  244W  96H TOP_RIGHT    <- check eins Kinderprogramm Logo
         if (CompareChannelName(maContext->Info.ChannelName, "Das_Erste_HD", IGNORE_NOTHING)) {
-            logo.widthMin  = 148;
+            logo.widthMin  = 146;
             logo.widthMax  = 244;
             logo.heightMax = 128;
         }
