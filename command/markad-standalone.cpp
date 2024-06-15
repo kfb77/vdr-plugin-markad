@@ -5277,7 +5277,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     break;
                 case MT_LOGOSTART:
                     // rule 1: logo start very short before broadcast start
-                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && (diffBefore >= 1560) && (diffAfter <= 80)) diffBefore = INT_MAX;
+                    if (!(criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && (diffBefore >= 1120) && (diffAfter <= 120)) diffBefore = INT_MAX;
 
                     // rule 2: scene start very short after logo start in old recording without fade in of fade in channel
                     else if ((criteria.LogoFadeInOut(macontext.Info.ChannelName) & FADE_IN) && (diffBefore >= 1700) && (diffAfter <= 20)) diffBefore = INT_MAX;
@@ -5429,7 +5429,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         // rule1: use scene change near by end of silence
                         if (diffBefore < diffAfter) diffAfter = INT_MAX;
 
-                        maxAfter = 160;
+                        maxAfter = 360;
                         break;
                     case MT_VPSSTOP:
                         // rule 1: scene change short before
