@@ -5196,7 +5196,8 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxBefore = 173639;
                     break;
                 case MT_LOGOSTOP:
-                    maxBefore = 4440;  // delayed detected logo stop
+                    if (criteria.GoodVPS(macontext.Info.ChannelName)) maxBefore = 1279;
+                    else                                              maxBefore = 4440;
                     break;
                 case MT_CHANNELSTOP:
                     maxBefore = 1100;
