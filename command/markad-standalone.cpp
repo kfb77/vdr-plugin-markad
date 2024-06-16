@@ -4272,7 +4272,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                     free(indexToHMSFSearchEnd);
                 }
                 if (ptr_cDetectLogoStopStart->Detect(markLogo->position, searchEndPosition)) {
-                    adInFrameEndPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(true);
+                    adInFrameEndPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(true, false);
                 }
                 if (adInFrameEndPosition >= 0) {
                     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", markLogo->position, adInFrameEndPosition);
@@ -4336,7 +4336,9 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             }
             // detect frames
             if ((evaluateLogoStopStartPair->GetIsAdInFrame(markLogo->position) >= STATUS_UNKNOWN) && (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position))) {
-                int newStopPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(false);
+                bool isEndMark = false;
+                if (markLogo->position == marks.GetLast()->position) isEndMark = true;
+                int newStopPosition = ptr_cDetectLogoStopStart->AdInFrameWithLogo(false, isEndMark);
                 if (newStopPosition >= 0) {
                     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", newStopPosition, markLogo->position);
                     if (evaluateLogoStopStartPair->IncludesInfoLogo(newStopPosition, markLogo->position)) {

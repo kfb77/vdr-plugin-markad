@@ -1583,7 +1583,7 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
 // start search at current position, end at stopPosition
 // return first/last of advertising in frame with logo
 //
-int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
+int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool isEndMark) {
     if (!maContext)            return -1;
     if (!ptr_cDecoder)         return -1;
     if (compareResult.empty()) return -1;
@@ -1793,6 +1793,19 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark) {
         int secondFramePortionQuote = secondSumFramePortion / AdInFrame.frameCountFinal;
         if (firstFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of        best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[firstFrameCorner], firstSumFramePortion, AdInFrame.frameCountFinal, firstFramePortionQuote);
         if (secondFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of second best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[secondFrameCorner], secondSumFramePortion, AdInFrame.frameCountFinal, secondFramePortionQuote);
+        // prevent to detect closing banner as ad in frame
+        // example of bottom closing banner:
+        // average of all corners portion 307, TOP_LEFT 8,  TOP_RIGHT 0, BOTTOM_LEFT 932, BOTTOM_LEFT 932
+        int topleftQuote     = AdInFrame.sumFramePortionFinal[TOP_LEFT]    / AdInFrame.frameCountFinal;
+        int toprightQuote    = AdInFrame.sumFramePortionFinal[TOP_RIGHT]   / AdInFrame.frameCountFinal;
+        int bottomLeftQuote  = AdInFrame.sumFramePortionFinal[BOTTOM_LEFT] / AdInFrame.frameCountFinal;
+        int bottomRightQuote = AdInFrame.sumFramePortionFinal[BOTTOM_LEFT] / AdInFrame.frameCountFinal;
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): check closing banner: average of all corners portion %d, TOP_LEFT %d,  TOP_RIGHT %d, BOTTOM_LEFT %d, BOTTOM_LEFT %d", allFramePortionQuote, topleftQuote, toprightQuote, bottomLeftQuote, bottomRightQuote);
+        if (isEndMark && (allFramePortionQuote <= 307) && (topleftQuote <= 8) && (toprightQuote <= 0) && (bottomLeftQuote >= 932) && (bottomRightQuote >= 287)) {
+            dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): bottom closing banner found");
+            return -1;
+        }
+
         // example of ad in frame
         // best corner 568, second best corner 377, average of all corners 449
         // best corner 570, second best corner 378, average of all corners 458

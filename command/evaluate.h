@@ -324,7 +324,7 @@ public:
      * @return first frame of advertising in frame with logo before logo stop mark or last frame of advertising in frame with logo after logo start mark <br>
      *         -1 if no advertising in frame with logo was found
      */
-    int AdInFrameWithLogo(const bool isStartMark);
+    int AdInFrameWithLogo(const bool isStartMark, const bool isEndMark);
 
     /**
      * check if current range is a introduction logo
