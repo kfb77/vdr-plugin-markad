@@ -4627,7 +4627,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 switch (mark->type) {
                 case MT_ASSUMEDSTOP:
                     // rule 1: use short before if after is far away
-                    if ((diffBefore <= 6240) && (diffAfter >= 122280)) diffAfter = INT_MAX;
+                    if ((diffBefore <= 7600) && (diffAfter >= 61920)) diffAfter = INT_MAX;
 
                     if (lengthAfter >= 120) maxAfter = 280200;
                     else                    maxAfter =  25119;
@@ -4743,9 +4743,10 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if (lengthBefore >= 360)  maxBefore = 116120;
-                        else if (silenceBefore)   maxBefore =   6360;
-                        else                      maxBefore =   5800;  // changed from 5300 to 5800
+                        if (criteria.GoodVPS(macontext.Info.ChannelName)) maxBefore = 60000;
+                        else if (lengthBefore >= 360)                     maxBefore = 116120;
+                        else if (silenceBefore)                           maxBefore =   6360;
+                        else                                              maxBefore =   5800;
                         break;
                     case MT_CLOSINGCREDITSSTOP:
                         maxBefore = 15200;
