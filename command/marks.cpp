@@ -172,6 +172,7 @@ void cMarks::Del(const int position) {
     while (mark) {
         next = mark->Next();
         if (mark->position == position) {
+            dsyslog("cMarks::Del(): delete mark (%d)", position);
             Del(mark);
             return;
         }
