@@ -145,18 +145,20 @@ public:
 
     /**
      * register recording index
-     * @param recordingIndex recording index
+     * @param indexParam recording index
      */
-    void RegisterIndex(cIndex *recordingIndex);
+    void SetIndex(cIndex *indexParam) {
+        index = indexParam;
+    }
 
 
     /**
-     * calculate count of marks
-     * @param type marks type to count
-     * @param mask type mask
-     * @return counf of mark
+     * register frame rate
+     * @param frameRateParam frame rate of video
      */
-    int Count(const int type = 0xFF, const int mask = 0xFF) const;
+    void SetFrameRate(const int frameRateParam) {
+        frameRate = frameRateParam;
+    }
 
 
     /**
@@ -171,6 +173,13 @@ public:
         }
     }
 
+    /**
+     * calculate count of marks
+     * @param type marks type to count
+     * @param mask type mask
+     * @return counf of mark
+     */
+    int Count(const int type = 0xFF, const int mask = 0xFF) const;
 
     /**
      * add mark
@@ -235,7 +244,6 @@ public:
      * delete all marks
      */
     void DelAll();
-
 
     /**
      * delete marks with invalid squence (double start or stop marks)
@@ -371,15 +379,17 @@ public:
 
 private:
 
-    cIndex *recordingIndexMarks = nullptr;  //!< recording index
+    cIndex *index        = nullptr;  //!< recording index
     //!<
-    char filename[1024]         = {0};   //!< name of marks file (default: marks)
+    int frameRate        = 0;        //!< recording frame rate for fallback if we have no index (used by logo search)
     //!<
-    cMark *first                = nullptr;  //!< pointer to first mark
+    char filename[1024]  = {0};      //!< name of marks file (default: marks)
     //!<
-    cMark *last                 = nullptr;  //!< pointer to last mark
+    cMark *first         = nullptr;  //!< pointer to first mark
     //!<
-    int count                   = 0;     //!< number of current marks
+    cMark *last          = nullptr;  //!< pointer to last mark
+    //!<
+    int count            = 0;        //!< number of current marks
     //!<
 };
 #endif

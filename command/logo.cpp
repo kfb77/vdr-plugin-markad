@@ -15,7 +15,7 @@
 
 #include "logo.h"
 #include "index.h"
-
+#include "sobel.h"
 #include "debug.h"
 
 // based on this idee to find the logo in a recording:
@@ -35,20 +35,39 @@ extern bool abortNow;
 extern int logoSearchTime_ms;
 
 
+cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, char *hwaccel, const sAspectRatio AspectRatio) {
+    recDir            = recDirParam;
+    channelName       = channelNameParam;
 
-cExtractLogo::cExtractLogo(sMarkAdContext *maContext, cCriteria *criteriaParam, const sAspectRatio AspectRatio, cIndex *recordingIndex) {
-    maContextLogoSize   = maContext;
-    criteria            = criteriaParam;
+
+    // requested aspect ratio
     logoAspectRatio.num = AspectRatio.num;
     logoAspectRatio.den = AspectRatio.den;
-    recordingIndexLogo  = recordingIndex;
+
+    // create all used objects
+    decoder = new cDecoderNEW(recDir, threads, false, hwaccel, nullptr);    // recDir, threads, fullDecode, vaapi, index
+    ALLOC(sizeof(*decoder), "decoder");
+
+    criteria = new cCriteria();
+    ALLOC(sizeof(*criteria), "criteria");
+
+    // open first file to init decoder
+    if (decoder->ReadNextFile()) {
+        // create object for sobel transformation
+        sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0, 0, 5);  // log size unknown, boundary 5
+        ALLOC(sizeof(*sobel), "sobel");
+        logoSize = sobel->GetLogoSize();                                                   // max logo size of this video resolution
+
+        hborder = new cMarkAdBlackBordersHoriz(channelName, decoder->GetVideoRealFrameRate(), criteria);
+        ALLOC(sizeof(*hborder), "hborder");
+
+        vborder = new cMarkAdBlackBordersVert(channelName, decoder->GetVideoRealFrameRate(), criteria);
+        ALLOC(sizeof(*vborder), "vborder");
+    }
 }
 
 
 cExtractLogo::~cExtractLogo() {
-#ifdef DEBUG_MEM
-    int maxLogoPixel = GetMaxLogoPixel(maContextLogoSize->Video.Info.width);
-#endif
     for (int corner = 0; corner < CORNERS; corner++) {  // free memory of all corners
 #ifdef DEBUG_MEM
         int size = logoInfoVector[corner].size();
@@ -62,22 +81,43 @@ cExtractLogo::~cExtractLogo() {
                 delete[] actLogo->sobel[plane];
             }
             delete[] actLogo->sobel;
-            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * logoSize.height * logoSize.width, "actLogoInfo.sobel");
         }
         logoInfoVector[corner].clear();
     }
+
+    // cleanup used objects
+    FREE(sizeof(*decoder), "decoder");
+    delete decoder;
+
+    FREE(sizeof(*criteria), "criteria");
+    delete criteria;
+
+    FREE(sizeof(*sobel), "sobel");
+    delete sobel;
+
+    FREE(sizeof(*hborder), "hborder");
+    delete hborder;
+
+    FREE(sizeof(*vborder), "vborder");
+    delete vborder;
 }
 
 
-bool cExtractLogo::IsWhitePlane(const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane) {
-    if (!ptr_actLogoInfo) return false;
-    if (logoHeight < 1) return false;
-    if (logoWidth < 1) return false;
+int cExtractLogo::GetFrameRate() {
+    return decoder->GetVideoRealFrameRate();
+}
+
+bool cExtractLogo::IsWhitePlane(const sLogoInfo *actLogoInfo, const sLogoSize *logoSizePlane, const int plane) {
+    if (!actLogoInfo)                 return false;
+    if (!logoSizePlane)                   return false;
+    if (logoSizePlane->height < 1)        return false;
+    if (logoSizePlane->width  < 1)        return false;
     if ((plane < 0) || (plane >= PLANES)) return false;
 
     int countBlack = 0;
-    for (int i = 0; i < logoHeight * logoWidth; i++) {
-        if (ptr_actLogoInfo->sobel[plane][i] == 0) {
+    for (int i = 0; i < logoSizePlane->height * logoSizePlane->width; i++) {
+        if (actLogoInfo->sobel[plane][i] == 0) {
             countBlack++;
             if (countBlack >= 60) return false;   // only if there are some pixel, changed from 5 to 60
         }
@@ -86,37 +126,25 @@ bool cExtractLogo::IsWhitePlane(const sLogoInfo *ptr_actLogoInfo, const int logo
 }
 
 
-void cExtractLogo::GetLogoSize(const sMarkAdContext *maContext, int *logoHeight, int *logoWidth) {
-    if (!maContext) return;
-    if (!logoHeight) return;
-    if (!logoWidth) return;
-    sLogoSize DefaultLogoSize = GetDefaultLogoSize(maContext->Video.Info.width);
-    *logoHeight = DefaultLogoSize.height;
-    *logoWidth = DefaultLogoSize.width;
-}
-
-
 // check plane if the is a logo colour schnage
 // calculate quote of white pictures
 // return: true if only some frames have pixels in plane >=1, a channel with logo coulor change is detected
 //         false if almost all frames have pixel in plane >=1, this is realy a coloured logo
 //
-bool cExtractLogo::IsLogoColourChange(const sMarkAdContext *maContext, const int corner, const int plane) {
-    if (!maContext) return false;
+bool cExtractLogo::IsLogoColourChange(sLogoSize *logoSizeFinal, const int corner, const int plane) {
+    if (!logoSizeFinal) return false;
     if ((corner < 0) || (corner >= CORNERS)) return false;
 
-    int logoHeight = 0;
-    int logoWidth = 0;
-    GetLogoSize(maContext, &logoHeight, &logoWidth);
-    logoHeight /= 2;  // we use plane > 1 to check
-    logoWidth /= 2;
+    sLogoSize logoSizePlane = *logoSizeFinal;
+    logoSizePlane.height /= 2;  // we use plane > 1 to check
+    logoSizePlane.width  /= 2;
 
     int count = 0;
     int countWhite = 0;
 
     for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
         count++;
-        if (IsWhitePlane(&(*actLogo), logoHeight, logoWidth, plane)) countWhite++;
+        if (IsWhitePlane(&(*actLogo), &logoSizePlane, plane)) countWhite++;
     }
     if (count > 0) {
         dsyslog("cExtractLogo::isLogoColourChange(): %4d valid frames in corner %d, plane %d: %3d are white, ratio %3d%%", count, corner, plane, countWhite, countWhite * 100 / count);
@@ -126,31 +154,33 @@ bool cExtractLogo::IsLogoColourChange(const sMarkAdContext *maContext, const int
 }
 
 
-bool cExtractLogo::Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber = -1, const char *debugText = nullptr) { // framenumber >= 0: save from debug function
-    if (!maContext) return false;
-    if (!ptr_actLogoInfo) return false;
-    if ((logoHeight <= 0) || (logoWidth <= 0)) return false;
-    if ((corner < 0) || (corner >= CORNERS)) return false;
-    if (!maContext->Info.ChannelName) return false;
+bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFinal, const int corner, const int framenumber = -1, const char *debugText = nullptr) { // framenumber >= 0: save from debug function
+    if (!actLogoInfo)           return false;
+    if (!logoSizeFinal)             return false;
+    if (logoSizeFinal->height <= 0) return false;
+    if (logoSizeFinal->width  <= 0) return false;
+    if (corner <  0)                return false;
+    if (corner >= CORNERS)          return false;
+    if (!channelName)               return false;
 
     for (int plane = 0; plane < PLANES; plane++) {
         if ((framenumber < 0) && (plane > 0)) {
-            if (IsLogoColourChange(maContext, corner, plane)) {  // some channels have transparent or color changing logos, do not save plane > 0 in this case
+            if (IsLogoColourChange(logoSizeFinal, corner, plane)) {  // some channels have transparent or color changing logos, do not save plane > 0 in this case
                 dsyslog("cExtractLogo::Save(): logo is transparent or changed color, do not save plane %d", plane);
                 continue;
             }
         }
         char *buf = nullptr;
-        int height = logoHeight;
-        int width = logoWidth;
+        int height = logoSizeFinal->height;
+        int width  = logoSizeFinal->width;
         if (plane > 0) {
-            width /= 2;
+            width  /= 2;
             height /= 2;
         }
         if (framenumber < 0) { // no debug flag, save logo to recording directory
             int black = 0;
             for (int i = 0; i < height*width; i++) {
-                if (ptr_actLogoInfo->sobel[plane][i] == 0) black++;
+                if (actLogoInfo->sobel[plane][i] == 0) black++;
             }
             if (plane > 0) {
                 if (black <= 194) {  // do not increase, will loss red krone.tv logo
@@ -162,17 +192,17 @@ bool cExtractLogo::Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_ac
             }
             else dsyslog("cExtractLogo::Save(): %i pixel in plane %i", black, plane);
 
-            if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", maContext->Config->recDir, maContext->Info.ChannelName, logoAspectRatio.num, logoAspectRatio.den, plane)==-1) return false;
+            if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", recDir, channelName, logoAspectRatio.num, logoAspectRatio.den, plane)==-1) return false;
             ALLOC(strlen(buf)+1, "buf");
             dsyslog("cExtractLogo::Save(): store logo plane %d in %s", plane, buf);
-            if (plane == 0) isyslog("logo found for channel: %s %d:%d %dW %dH: %dW %dH %s", maContext->Info.ChannelName, logoAspectRatio.num, logoAspectRatio.den, maContext->Video.Info.width, maContext->Video.Info.height, logoWidth, logoHeight, aCorner[corner]);
+            if (plane == 0) isyslog("logo found for channel: %s %d:%d %dW %dH: %dW %dH %s", channelName, logoAspectRatio.num, logoAspectRatio.den, decoder->GetVideoWidth(), decoder->GetVideoHeight(), logoSizeFinal->width, logoSizeFinal->height, aCorner[corner]);
         }
         else {  // debug function, store logo to /tmp
             if (debugText) {
-                if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i_%s.pgm", "/tmp/",framenumber, maContext->Info.ChannelName, logoAspectRatio.num, logoAspectRatio.den, plane, debugText) == -1) return false;
+                if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i_%s.pgm", "/tmp/",framenumber, channelName, logoAspectRatio.num, logoAspectRatio.den, plane, debugText) == -1) return false;
             }
             else {
-                if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i.pgm", "/tmp/",framenumber, maContext->Info.ChannelName, logoAspectRatio.num, logoAspectRatio.den, plane) == -1) return false;
+                if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i.pgm", "/tmp/",framenumber, channelName, logoAspectRatio.num, logoAspectRatio.den, plane) == -1) return false;
             }
             ALLOC(strlen(buf)+1, "buf");
         }
@@ -189,7 +219,7 @@ bool cExtractLogo::Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_ac
         fprintf(pFile, "P5\n#C%i\n%d %d\n255\n", corner, width, height);
 
         // Write pixel data
-        if (!fwrite(ptr_actLogoInfo->sobel[plane], 1, width * height, pFile)) {
+        if (!fwrite(actLogoInfo->sobel[plane], 1, width * height, pFile)) {
             dsyslog("cExtractLogo::Save(): write data failed");
             fclose(pFile);
             FREE(sizeof(buf), "buf");
@@ -205,44 +235,43 @@ bool cExtractLogo::Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_ac
 }
 
 
-void cExtractLogo::CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, int *logoHeight, int *logoWidth, const int corner) const {
-    if (!logoInfo) return;
-    if (!logoHeight) return;
-    if (!logoWidth) return;
+void cExtractLogo::CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, sLogoSize *logoSizeFinal, const int corner) const {
+    if (!logoInfo)      return;
+    if (!logoSizeFinal) return;
     if ((corner < 0) || (corner >= CORNERS)) return;
 
 // plane 0 should have even pixel, we ve to calculate half of pixel for plane 1 and 2 without rest, accept one empty line
     if (cutPixelH % 2) cutPixelH--;
     if (cutPixelV % 2) cutPixelV--;
 
-    int heightPlane_1_2 = *logoHeight / 2;
-    int widthPlane_1_2 = *logoWidth / 2;
+    int heightPlane_1_2 = logoSizeFinal->height / 2;
+    int widthPlane_1_2  = logoSizeFinal->width  / 2;
 
     if (cutPixelH > 0) {
         dsyslog("cExtractLogo::CutOut(): cut out %3dp lines horizontal and %3dp column vertical", cutPixelH, cutPixelV);
         if (corner <= TOP_RIGHT) {  // top corners, cut from below
         }
         else { // bottom corners, cut from above
-            for (int i = 0; i < (*logoHeight - cutPixelH) * *logoWidth; i++) {
-                logoInfo->sobel[0][i] = logoInfo->sobel[0][i + cutPixelH * (*logoWidth)];
+            for (int i = 0; i < (logoSizeFinal->height - cutPixelH) * logoSizeFinal->width; i++) {
+                logoInfo->sobel[0][i] = logoInfo->sobel[0][i + cutPixelH * (logoSizeFinal->width)];
             }
         }
-        *logoHeight -= cutPixelH;
+        logoSizeFinal->height -= cutPixelH;
     }
 
     if (cutPixelV > 0) {
         dsyslog("cExtractLogo::CutOut(): cut out %3dp lines horizontal and %3dp column vertical", cutPixelH, cutPixelV);
         if ((corner == TOP_RIGHT) || (corner == BOTTOM_RIGHT)) {  // right corners, cut from left
-            for (int i = 0; i < *logoHeight * (*logoWidth - cutPixelV); i++) {
-                logoInfo->sobel[0][i] =  logoInfo->sobel[0][i + cutPixelV * (1 + (i / (*logoWidth - cutPixelV)))];
+            for (int i = 0; i < logoSizeFinal->height * (logoSizeFinal->width - cutPixelV); i++) {
+                logoInfo->sobel[0][i] =  logoInfo->sobel[0][i + cutPixelV * (1 + (i / (logoSizeFinal->width - cutPixelV)))];
             }
         }
         else { // left corners, cut from right
-            for (int i = 0; i < *logoHeight * (*logoWidth - cutPixelV); i++) {
-                logoInfo->sobel[0][i] =  logoInfo->sobel[0][i + cutPixelV * (i / (*logoWidth - cutPixelV))];
+            for (int i = 0; i < logoSizeFinal->height * (logoSizeFinal->width - cutPixelV); i++) {
+                logoInfo->sobel[0][i] =  logoInfo->sobel[0][i + cutPixelV * (i / (logoSizeFinal->width - cutPixelV))];
             }
         }
-        *logoWidth -= cutPixelV;
+        logoSizeFinal->width -= cutPixelV;
     }
 
 // resize plane 1 and 2
@@ -271,13 +300,12 @@ void cExtractLogo::CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, int
             }
         }
     }
-    dsyslog("cExtractLogo::CutOut(): logo size after cut out:    %3d width %3d height on corner %12s", *logoWidth, *logoHeight, aCorner[corner]);
+    dsyslog("cExtractLogo::CutOut(): logo size after cut out:    %3d width %3d height on corner %12s", logoSizeFinal->width, logoSizeFinal->height, aCorner[corner]);
 }
 
 
-bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logoHeight, const int logoWidth, const int logoCorner) {
-    if (!maContext) return false;
-    if ((logoHeight <= 0) || (logoWidth <= 0)) return false;
+bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner) {
+    if (!logoSizeFinal) return false;
     struct logo_struct {
         int widthMin  =  0;
         int widthMax  =  0;
@@ -286,7 +314,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         int corner    = -1;
     } logo;
 // define size of logos to prevent false logo detection
-    switch (maContext->Video.Info.width) {
+    switch (decoder->GetVideoWidth()) {
 
     case 544:
         // default values
@@ -297,11 +325,11 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         break;
 
     case 720:
-        if (CompareChannelName(maContext->Info.ChannelName, "arte", IGNORE_NOTHING)) {                 // arte                    16:9  720W  576H:->   50W 108H TOP_LEFT
+        if (CompareChannelName(channelName, "arte", IGNORE_NOTHING)) {                 // arte                    16:9  720W  576H:->   50W 108H TOP_LEFT
             logo.widthMin  =  50;
             logo.heightMax = 108;
         }
-        if (CompareChannelName(maContext->Info.ChannelName, "ATV2", IGNORE_NOTHING)) {                  // ATV2                    16:9  720W  576H:->  118W  68H TOP_LEFT
+        if (CompareChannelName(channelName, "ATV2", IGNORE_NOTHING)) {                  // ATV2                    16:9  720W  576H:->  118W  68H TOP_LEFT
             logo.widthMin  = 110;
             logo.widthMax  = 118;
         }
@@ -320,7 +348,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         // Disney_Channel           4:3  720W  576H:->  124W  72H TOP_LEFT
         // Disney_Channel           4:3  720W  576H:->  124W  74H TOP_LEFT
         // Disney_Channel           4:3  720W  576H:->  126W  74H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "Disney_Channel", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "Disney_Channel", IGNORE_NOTHING)) {
             logo.widthMin  = 110;
             logo.widthMax  = 152;
             logo.heightMin =  70;
@@ -331,29 +359,29 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         // DMAX                    16:9  720W  576H:->  126W  74H TOP_LEFT
         // DMAX                    16:9  720W  576H:->  126W  76H TOP_LEFT
         // DMAX                    16:9  720W  576H:->  128W  76H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "DMAX", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "DMAX", IGNORE_NOTHING)) {
             logo.widthMin  = 126;
             logo.heightMax =  76;
             logo.corner    = TOP_LEFT;   // "neue Folge" has same size as logo
         }
 
         //  K-TV                    16:9  720W  576H:->  122W  78H TOP_RIGHT
-        if (CompareChannelName(maContext->Info.ChannelName, "K-TV", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "K-TV", IGNORE_NOTHING)) {
             logo.widthMin  =  122;
         }
 
         // kabel_eins              16:9  720W  576H:->   88W  72H TOP_RIGHT
-        if (CompareChannelName(maContext->Info.ChannelName, "kabel_eins", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "kabel_eins", IGNORE_NOTHING)) {
             logo.widthMax  =  88;
             logo.heightMin =  72;
         }
 
-        if (CompareChannelName(maContext->Info.ChannelName, "MDR_Sachsen", IGNORE_NOTHING)) {           // MDR_Sachsen             16:9  720W  576H:->   92W  56H TOP_LEFT
+        if (CompareChannelName(channelName, "MDR_Sachsen", IGNORE_NOTHING)) {           // MDR_Sachsen             16:9  720W  576H:->   92W  56H TOP_LEFT
             logo.heightMin =  56;
         }
 
         // kabel_eins_Doku         16:9  720W  576H:->  132W  64H TOP_RIGHT
-        if (CompareChannelName(maContext->Info.ChannelName, "kabel_eins_Doku", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "kabel_eins_Doku", IGNORE_NOTHING)) {
             logo.widthMin  = 130;
             logo.widthMax  = 132;
             logo.heightMin =  64;
@@ -371,9 +399,9 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         // Nickelodeon             16:9  720W  576H:->  184W  80H TOP_LEFT
         // NICK_MTV+               16:9  720W  576H:->  146W  88H TOP_LEFT
         // NICK_MTV+               16:9  720W  576H:->  146W  90H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "NICK_CC+1", IGNORE_NOTHING) ||
-                CompareChannelName(maContext->Info.ChannelName, "NICK_MTV+", IGNORE_NOTHING) ||
-                CompareChannelName(maContext->Info.ChannelName, "Nickelodeon", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "NICK_CC+1", IGNORE_NOTHING) ||
+                CompareChannelName(channelName, "NICK_MTV+", IGNORE_NOTHING) ||
+                CompareChannelName(channelName, "Nickelodeon", IGNORE_NOTHING)) {
             logo.widthMin  = 144;
             logo.widthMax  = 184;
             logo.heightMin =  78;
@@ -383,31 +411,31 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         // Nick_Comedy_Central+1   16:9  720W  576H:->  138W  80H TOP_LEFT
         // Nick_Comedy_Central+1   16:9  720W  576H:->  144W  94H TOP_LEFT
         // Nick_Comedy_Central+1   16:9  720W  576H:->  120W 116H TOP_RIGHT
-        if (CompareChannelName(maContext->Info.ChannelName, "Nick_Comedy_Central+1", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "Nick_Comedy_Central+1", IGNORE_NOTHING)) {
             logo.widthMin  = 120;
             logo.heightMax = 116;
         }
 
-        if ((CompareChannelName(maContext->Info.ChannelName, "n-tv", IGNORE_COUNTRY)) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
-                (CompareChannelName(maContext->Info.ChannelName, "ntv", IGNORE_COUNTRY))) {             //  ntv                     16:9  720W  576H:->  226W  60H BOTTOM_LEFT
+        if ((CompareChannelName(channelName, "n-tv", IGNORE_COUNTRY)) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
+                (CompareChannelName(channelName, "ntv", IGNORE_COUNTRY))) {             //  ntv                     16:9  720W  576H:->  226W  60H BOTTOM_LEFT
             logo.widthMax  = INT_MAX;  // news ticker
             logo.heightMin =  58;
         }
 
         // ProSieben               16:9  720W  576H:->   84W  66H TOP_RIGHT
         // ProSieben               16:9  720W  576H:->   86W  66H TOP_RIGHT
-        if (CompareChannelName(maContext->Info.ChannelName, "ProSieben", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "ProSieben", IGNORE_NOTHING)) {
             logo.heightMax =  66;
             logo.widthMax  =  86;
         }
 
         // Pro7_MAXX               16:9  720W  576H:->  114W  64H TOP_RIGHT
         // Pro7_MAXX               16:9  720W  576H:->  140W  64H TOP_RIGHT
-        if (CompareChannelName(maContext->Info.ChannelName, "Pro7_MAXX", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "Pro7_MAXX", IGNORE_NOTHING)) {
             logo.heightMax  =   64;
         }
 
-        if (CompareChannelName(maContext->Info.ChannelName, "RTL_Television", IGNORE_NOTHING)) {        // RTL_Television          16:9  720W  576H:->  104W  60H TOP_LEFT (before 09/2021)
+        if (CompareChannelName(channelName, "RTL_Television", IGNORE_NOTHING)) {        // RTL_Television          16:9  720W  576H:->  104W  60H TOP_LEFT (before 09/2021)
             // RTL_Television          16:9  720W  576H:->  142W  60H TOP_LEFT (before 09/2021 RTL live logo)
             // RTL_Television          16:9  720W  576H:->  126W  68H TOP_LEFT (after  09/2021)
             // RTL_Television          16:9  720W  576H:->  146W  68H TOP_LEFT (after  09/2021 RTL live logo)
@@ -417,7 +445,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
             logo.heightMax =  68 ;
             logo.corner    = TOP_LEFT;
         }
-        if (CompareChannelName(maContext->Info.ChannelName, "RTL2", IGNORE_NOTHING)) {                  // RTL2                    16:9  720W  576H:->   82W  78H BOTTOM_RIGHT (new logo)
+        if (CompareChannelName(channelName, "RTL2", IGNORE_NOTHING)) {                  // RTL2                    16:9  720W  576H:->   82W  78H BOTTOM_RIGHT (new logo)
             // RTL2                    16:9  720W  576H:->   82W  80H BOTTOM_RIGHT (new Logo)
             // RTL2                    16:9  720W  576H:->  108W 108H BOTTOM_RIGHT (old logo)
             // RTL2                    16:9  720W  576H:->  108W 110H BOTTOM_RIGHT
@@ -430,21 +458,21 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         // RTLZWEI                 16:9  720W  576H:->   82W  80H BOTTOM_RIGHT
         // RTLZWEI                 16:9  720W  576H:->   84W  80H BOTTOM_RIGHT
         // RTLZWEI                  4:3  720W  576H:->   98W  80H BOTTOM_RIGHT
-        if (CompareChannelName(maContext->Info.ChannelName, "RTLZWEI", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "RTLZWEI", IGNORE_NOTHING)) {
             logo.widthMax  =  98;
             logo.heightMax =  80;
         }
 
         // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
         // RTLplus                  4:3  720W  576H:->  214W  66H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "RTLplus", IGNORE_NOTHING)) {               // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
+        if (CompareChannelName(channelName, "RTLplus", IGNORE_NOTHING)) {               // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
             logo.widthMin  = 168;
             logo.widthMax  = 214;
         }
 
         // RTLup                   16:9  720W  576H:->  142W  68H TOP_LEFT
         // RTLup                    4:3  720W  576H:->  166W  66H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "RTLup", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "RTLup", IGNORE_NOTHING)) {
             logo.widthMin  = 142;
             logo.widthMax  = 166;
         }
@@ -453,7 +481,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         // SIXX                    16:9  720W  576H:->  106W  54H TOP_RIGHT
         // SIXX                    16:9  720W  576H:->  118W  56H TOP_RIGHT
         // SIXX                     4:3  720W  576H:->  130W  54H TOP_RIGHT
-        if (CompareChannelName(maContext->Info.ChannelName, "SIXX", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "SIXX", IGNORE_NOTHING)) {
             logo.widthMin  = 106;
             logo.widthMax  = 130;
             logo.heightMin =  54;
@@ -462,7 +490,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
 
         // SUPER_RTL               16:9  720W  576H:->  160W  66H TOP_LEFT     -> logo RTL SUPER
         // SUPER_RTL               16:9  720W  576H:->   98W  48H TOP_LEFT     -> logo SUPER RTL
-        if (CompareChannelName(maContext->Info.ChannelName, "SUPER_RTL", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "SUPER_RTL", IGNORE_NOTHING)) {
             logo.widthMax  = 160;
             logo.heightMin =  48;
         }
@@ -472,7 +500,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         // TELE_5                  16:9  720W  576H:->   96W  76H TOP_LEFT
         // TELE_5                  16:9  720W  576H:->   98W  76H TOP_LEFT
         // TELE_5                   4:3  720W  576H:->   96W  76H BOTTOM_RIGHT
-        if (CompareChannelName(maContext->Info.ChannelName, "TELE_5", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "TELE_5", IGNORE_NOTHING)) {
             switch (logoCorner) {
             case TOP_LEFT:
                 logo.heightMin =  64;
@@ -496,34 +524,34 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
 
         // TLC                     16:9  720W  576H:->   94W  60H TOP_LEFT
         // TLC                     16:9  720W  576H:->   98W  60H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "TLC", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "TLC", IGNORE_NOTHING)) {
             logo.heightMin =  60;
             logo.heightMax =  65;
         }
 
-        if (CompareChannelName(maContext->Info.ChannelName, "TOGGO_plus", IGNORE_NOTHING)) {            // TOGGO_plus              16:9  720W  576H:->  104W  56H TOP_LEFT
+        if (CompareChannelName(channelName, "TOGGO_plus", IGNORE_NOTHING)) {            // TOGGO_plus              16:9  720W  576H:->  104W  56H TOP_LEFT
             logo.heightMin =  56;
         }
 
         // VOX                     16:9  720W  576H:->  108W  70H TOP_LEFT
         // VOX                      4:3  720W  576H:->  126W  70H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "VOX", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "VOX", IGNORE_NOTHING)) {
             logo.heightMin =  70;
             logo.heightMax =  70;
         }
 
         // VOXup                   16:9  720W  576H:->  110W  66H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "VOXup", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "VOXup", IGNORE_NOTHING)) {
             logo.heightMax =  66;
         }
 
         // WELT                    16:9  720W  576H:->  226W  62H BOTTOM_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "WELT", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "WELT", IGNORE_NOTHING)) {
             logo.heightMax = 64;
             logo.widthMax  = INT_MAX;  // news ticker
         }
 
-        if (CompareChannelName(maContext->Info.ChannelName, "Welt_der_Wunder", IGNORE_NOTHING)) {       // Welt_der_Wunder         16:9  720W  576H:->   94W 108H TOP_LEFT
+        if (CompareChannelName(channelName, "Welt_der_Wunder", IGNORE_NOTHING)) {       // Welt_der_Wunder         16:9  720W  576H:->   94W 108H TOP_LEFT
             // Welt_der_Wunder         16:9  720W  576H:->   96W 112H TOP_LEFT
             logo.widthMin  =  94;
             logo.heightMax = 112;
@@ -538,24 +566,24 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
 
     case 1280:
         // 3sat_HD                 16:9 1280W  720H:->  178W  94H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "3sat_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "3sat_HD", IGNORE_NOTHING)) {
             logo.widthMax  = 185;
         }
 
         // ARD_alpha_HD            16:9 1280W  720H:->  206W  78H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "ARD_alpha_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "ARD_alpha_HD", IGNORE_NOTHING)) {
             logo.heightMax =  78;
             logo.widthMax  = 206;
         }
 
         // arte_HD                 16:9 1280W  720H:->   88W 134H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "arte_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "arte_HD", IGNORE_NOTHING)) {
             logo.widthMin  =  88;
             logo.widthMax  =  88;
         }
 
         // BR_Fernsehen_Süd_HD     16:9 1280W  720H:->  134W  84H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "BR_Fernsehen", IGNORE_CITY)) {
+        if (CompareChannelName(channelName, "BR_Fernsehen", IGNORE_CITY)) {
             logo.heightMax =  85;
         }
 
@@ -564,76 +592,76 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         // Das_Erste_HD            16:9 1280W  720H:->  148W 128H TOP_RIGHT
         // Das_Erste_HD            16:9 1280W  720H:->  244W 114H TOP_RIGHT
         // Das_Erste_HD            16:9 1280W  720H:->  244W  96H TOP_RIGHT    <- check eins Kinderprogramm Logo
-        if (CompareChannelName(maContext->Info.ChannelName, "Das_Erste_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "Das_Erste_HD", IGNORE_NOTHING)) {
             logo.widthMin  = 146;
             logo.widthMax  = 244;
             logo.heightMax = 128;
         }
 
-        if (CompareChannelName(maContext->Info.ChannelName, "Einsfestival_HD", IGNORE_NOTHING)) {       // Einsfestival_HD         16:9 1280W  720H:->  300W  80H TOP_RIGHT
+        if (CompareChannelName(channelName, "Einsfestival_HD", IGNORE_NOTHING)) {       // Einsfestival_HD         16:9 1280W  720H:->  300W  80H TOP_RIGHT
             logo.widthMax  = 300;
         }
-        if (CompareChannelName(maContext->Info.ChannelName, "EinsPlus_HD", IGNORE_NOTHING)) {           // EinsPlus_HD             16:9 1280W  720H:->  334W  86H TOP_RIGHT
+        if (CompareChannelName(channelName, "EinsPlus_HD", IGNORE_NOTHING)) {           // EinsPlus_HD             16:9 1280W  720H:->  334W  86H TOP_RIGHT
             logo.widthMax  = 335;
         }
 
         // hr-fernsehen_HD         16:9 1280W  720H:->  196W  98H TOP_LEFT
         // hr-fernsehen_HD         16:9 1280W  720H:->  214W 100H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "hr-fernsehen_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "hr-fernsehen_HD", IGNORE_NOTHING)) {
             logo.widthMax  = 214;
             logo.heightMax = 100;
         }
 
         // KiKA_HD                 16:9 1280W  720H:->  228W 112H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "KiKA_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "KiKA_HD", IGNORE_NOTHING)) {
             logo.widthMin  = 228;
         }
 
-        if (CompareChannelName(maContext->Info.ChannelName, "MDR_Sachsen_HD", IGNORE_NOTHING)) {        // MDR_Sachsen_HD          16:9 1280W  720H:->  160W  70H TOP_LEFT
+        if (CompareChannelName(channelName, "MDR_Sachsen_HD", IGNORE_NOTHING)) {        // MDR_Sachsen_HD          16:9 1280W  720H:->  160W  70H TOP_LEFT
             logo.heightMax =  70;
         }
 
         // NDR_FS_HH_HD            16:9 1280W  720H:->  184W  86H TOP_LEFT
         // NDR_FS_HH_HD            16:9 1280W  720H:->  184W  88H TOP_LEFT
         // NDR_FS_NDS_HD           16:9 1280W  720H:->  184W  88H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "NDR_FS_HH_HD", IGNORE_NOTHING) ||
-                CompareChannelName(maContext->Info.ChannelName, "NDR_FS_NDS_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "NDR_FS_HH_HD", IGNORE_NOTHING) ||
+                CompareChannelName(channelName, "NDR_FS_NDS_HD", IGNORE_NOTHING)) {
             logo.heightMax =  88;
         }
 
         // ONE_HD                  16:9 1280W  720H:->  232W  80H TOP_RIGHT
-        if (CompareChannelName(maContext->Info.ChannelName, "ONE_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "ONE_HD", IGNORE_NOTHING)) {
             logo.widthMin =  232;
         }
 
         // phoenix_HD              16:9 1280W  720H:->  168W  72H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "phoenix_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "phoenix_HD", IGNORE_NOTHING)) {
             logo.widthMax =  168;
         }
 
-        if (CompareChannelName(maContext->Info.ChannelName, "rbb_Berlin_HD", IGNORE_NOTHING)) {         // rbb_Berlin_HD           16:9 1280W  720H:->  178W  90H TOP_RIGHT
+        if (CompareChannelName(channelName, "rbb_Berlin_HD", IGNORE_NOTHING)) {         // rbb_Berlin_HD           16:9 1280W  720H:->  178W  90H TOP_RIGHT
             logo.widthMax =  178;
         }
 
-        if (CompareChannelName(maContext->Info.ChannelName, "WDR_HD_Köln", IGNORE_NOTHING) ||         // WDR_HD_Köln             16:9 1280W  720H:->  224W  80H TOP_RIGHT
-                CompareChannelName(maContext->Info.ChannelName, "WDR_HD_Essen", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "WDR_HD_Köln", IGNORE_NOTHING) ||         // WDR_HD_Köln             16:9 1280W  720H:->  224W  80H TOP_RIGHT
+                CompareChannelName(channelName, "WDR_HD_Essen", IGNORE_NOTHING)) {
             logo.heightMax =  80;
         }
-        if (CompareChannelName(maContext->Info.ChannelName, "ZDF_HD", IGNORE_NOTHING)) {                // ZDF_HD                  16:9 1280W  720H:->  186W  94H TOP_LEFT
+        if (CompareChannelName(channelName, "ZDF_HD", IGNORE_NOTHING)) {                // ZDF_HD                  16:9 1280W  720H:->  186W  94H TOP_LEFT
             // ZDF_HD                  16:9 1280W  720H:->  186W  96H TOP_LEFT
             // ZDF_HD                  16:9 1280W  720H:->  188W  96H TOP_LEFT
             logo.widthMax =  188;
         }
 
         // ZDFinfo_HD              16:9 1280W  720H:->  196W  86H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "ZDFinfo_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "ZDFinfo_HD", IGNORE_NOTHING)) {
             logo.heightMax =  86;
         }
-        if (CompareChannelName(maContext->Info.ChannelName, "ANIXE+", IGNORE_NOTHING)) {                // ANIXE+                  16:9 1280W 1080H:->  294W 170H TOP_LEFT
+        if (CompareChannelName(channelName, "ANIXE+", IGNORE_NOTHING)) {                // ANIXE+                  16:9 1280W 1080H:->  294W 170H TOP_LEFT
             logo.widthMax  = 294;
             logo.heightMax = 170;
         }
-        if (CompareChannelName(maContext->Info.ChannelName, "Deluxe_Music_HD", IGNORE_NOTHING)) {       // Deluxe_Music_HD         16:9 1280W 1080H:->  334W 124H TOP_RIGHT
+        if (CompareChannelName(channelName, "Deluxe_Music_HD", IGNORE_NOTHING)) {       // Deluxe_Music_HD         16:9 1280W 1080H:->  334W 124H TOP_RIGHT
             logo.widthMax  = 334;
         }
 
@@ -645,7 +673,7 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         break;
 
     case 1440:
-        if (CompareChannelName(maContext->Info.ChannelName, "WELT_HD", IGNORE_NOTHING)) {               // WELT_HD                 16:9 1440W 1080H:->  396W 116H BOTTOM_LEFT
+        if (CompareChannelName(channelName, "WELT_HD", IGNORE_NOTHING)) {               // WELT_HD                 16:9 1440W 1080H:->  396W 116H BOTTOM_LEFT
             logo.widthMax  = INT_MAX;  // news ticker
         }
 
@@ -657,17 +685,17 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         break;
 
     case 1920:
-        if (CompareChannelName(maContext->Info.ChannelName, "13th_Street_HD", IGNORE_NOTHING)) {        // 13th_Street_HD:         16:9 1920W 1080H:->  218W 194H TOP_LEFT
+        if (CompareChannelName(channelName, "13th_Street_HD", IGNORE_NOTHING)) {        // 13th_Street_HD:         16:9 1920W 1080H:->  218W 194H TOP_LEFT
             logo.widthMin  = 217;
             logo.heightMax = 198;
         }
         // ANIXE_HD                16:9 1920W 1080H:->  396W 180H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "ANIXE_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "ANIXE_HD", IGNORE_NOTHING)) {
             logo.heightMin = 180;
         }
 
         // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
-        if (CompareChannelName(maContext->Info.ChannelName, "arte_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "arte_HD", IGNORE_NOTHING)) {
             logo.widthMax = 130;
         }
 
@@ -687,26 +715,26 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
         break;
 
     default:
-        dsyslog("cExtractLogo::CheckLogoSize(): no logo size rules for %dx%d", maContext->Video.Info.width, maContext->Video.Info.height);
+        dsyslog("cExtractLogo::CheckLogoSize(): no logo size rules for %dx%d",decoder->GetVideoWidth(), decoder->GetVideoHeight());
         return false;
         break;
     }
-    dsyslog("cExtractLogo::CheckLogoSize(): channel logo size rule for %s: W %d->%d, H %d->%d", maContext->Info.ChannelName, logo.widthMin, logo.widthMax, logo.heightMin, logo.heightMax);
+    dsyslog("cExtractLogo::CheckLogoSize(): channel logo size rule for %s: W %d->%d, H %d->%d", channelName, logo.widthMin, logo.widthMax, logo.heightMin, logo.heightMax);
 
-    if (logoWidth < logo.widthMin) {
-        dsyslog("cExtractLogo::CheckLogoSize(): logo too narrow %d, expect min %d", logoWidth, logo.widthMin);
+    if (logoSizeFinal->width < logo.widthMin) {
+        dsyslog("cExtractLogo::CheckLogoSize(): logo too narrow %d, expect min %d", logoSizeFinal->width, logo.widthMin);
         return false;
     }
-    if (logoWidth > logo.widthMax) {
-        dsyslog("cExtractLogo::CheckLogoSize(): logo too wide %d, expect max %d", logoWidth, logo.widthMax);
+    if (logoSizeFinal->width > logo.widthMax) {
+        dsyslog("cExtractLogo::CheckLogoSize(): logo too wide %d, expect max %d", logoSizeFinal->width, logo.widthMax);
         return false;
     }
-    if (logoHeight < logo.heightMin) {
-        dsyslog("cExtractLogo::CheckLogoSize(): logo too low %d, expect min %d", logoHeight, logo.heightMin);
+    if (logoSizeFinal->height < logo.heightMin) {
+        dsyslog("cExtractLogo::CheckLogoSize(): logo too low %d, expect min %d", logoSizeFinal->height, logo.heightMin);
         return false;
     }
-    if (logoHeight > logo.heightMax) {
-        dsyslog("cExtractLogo::CheckLogoSize(): logo too height %d, expect max %d", logoHeight, logo.heightMax);
+    if (logoSizeFinal->height > logo.heightMax) {
+        dsyslog("cExtractLogo::CheckLogoSize(): logo too height %d, expect max %d", logoSizeFinal->height, logo.heightMax);
         return false;
     }
     if ((logo.corner >= 0) && (logo.corner != logoCorner)) {
@@ -717,18 +745,21 @@ bool cExtractLogo::CheckLogoSize(const sMarkAdContext *maContext, const int logo
 }
 
 
-bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner) {
-    if (!maContext) return false;
-    if (!bestLogoInfo) return false;
-    if (!logoHeight) return false;
-    if (!logoWidth) return false;
-    if ((bestLogoCorner < 0) || (bestLogoCorner >= CORNERS)) return false;
+bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, const int bestLogoCorner) {
+    if (!bestLogoInfo)             return false;
+    if (!logoSizeFinal)            return false;
+    if (bestLogoCorner < 0)        return false;
+    if (bestLogoCorner >= CORNERS) return false;
+    if ((logoSizeFinal->width <= 0) || (logoSizeFinal->height <= 0)) {
+        dsyslog("cExtractLogo::Resize(): logo size %3d width %3d height on corner %12s not valid", logoSizeFinal->width, logoSizeFinal->height, aCorner[bestLogoCorner]);
+        return false;
+    }
 
 #ifdef DEBUG_LOGO_RESIZE
     // save plane 0 of logo
     int cutStep = 0;
     char *fileName = nullptr;
-    if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_Before.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep) >= 1) {
+    if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_Before.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep) >= 1) {
         ALLOC(strlen(fileName)+1, "fileName");
         SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
         FREE(strlen(fileName)+1, "fileName");
@@ -737,32 +768,31 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
     }
 #endif
 
-    dsyslog("cExtractLogo::Resize(): logo size before resize:    %3d width %3d height on corner %12s", *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
-    int logoHeightBeforeResize = *logoHeight;
-    int logoWidthBeforeResize = *logoWidth;
-    int acceptFalsePixelH = *logoWidth / 37;  // reduced from 60 to 20, increased to 30 for vertical logo of arte HD
+    dsyslog("cExtractLogo::Resize(): logo size before resize:    %3d width %3d height on corner %12s", logoSizeFinal->width, logoSizeFinal->height, aCorner[bestLogoCorner]);
+    int logoWidthBeforeResize  = logoSizeFinal->width;
+    int logoHeightBeforeResize = logoSizeFinal->height;
+    int acceptFalsePixelH = logoSizeFinal->width / 37;  // reduced from 60 to 20, increased to 30 for vertical logo of arte HD
     // increased to 37 to get full thin logos (e.g. arte HD)
     int acceptFalsePixelV;
-    if (maContext->Video.Info.width < 3840) acceptFalsePixelV = *logoHeight / 33; // increase from 27 to 33
-    // to get left start from SIXX logo
-    else acceptFalsePixelV = *logoHeight / 30; // UDH has thin logo structure
+    if (decoder->GetVideoWidth() < 3840) acceptFalsePixelV = logoSizeFinal->height / 33; // increase from 27 to 33 to get left start from SIXX logo
+    else acceptFalsePixelV = logoSizeFinal->height / 30;                                 // UDH has very thin logo structure
     dsyslog("cExtractLogo::Resize(): accept false pixel horizontal %d, vertical %d", acceptFalsePixelH, acceptFalsePixelV);
 
     for (int repeat = 1; repeat <= 2; repeat++) {
-        if ((*logoWidth <= 0) || (*logoHeight <= 0)) {
-            dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is not valid", maContext->Video.Info.width, maContext->Video.Info.height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
-            *logoHeight = logoHeightBeforeResize; // restore logo size
-            *logoWidth = logoWidthBeforeResize;
+        if ((logoSizeFinal->width <= 0) || (logoSizeFinal->height <= 0)) {
+            dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is not valid", decoder->GetVideoWidth(), decoder->GetVideoHeight(), logoSizeFinal->width, logoSizeFinal->height, aCorner[bestLogoCorner]);
+            logoSizeFinal->height = logoHeightBeforeResize; // restore logo size
+            logoSizeFinal->width  = logoWidthBeforeResize;
             return false;
         }
 
 // resize plane 0
         if (bestLogoCorner <= TOP_RIGHT) {  // top corners, calculate new height and cut from below
             int whiteLines = 0;
-            for (int line = *logoHeight - 1; line > 0; line--) {
+            for (int line = logoSizeFinal->height - 1; line > 0; line--) {
                 int blackPixel = 0;
-                for (int column = 0; column < *logoWidth; column++) {
-                    if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
+                for (int column = 0; column < logoSizeFinal->width; column++) {
+                    if (bestLogoInfo->sobel[0][line * (logoSizeFinal->width) + column] == 0) {
                         blackPixel++;
                         if (blackPixel > acceptFalsePixelH) break;
                     }
@@ -772,15 +802,15 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 }
                 else break;
             }
-            CutOut(bestLogoInfo, whiteLines, 0, logoHeight, logoWidth, bestLogoCorner);
+            CutOut(bestLogoInfo, whiteLines, 0, logoSizeFinal, bestLogoCorner);
 
 #ifdef DEBUG_LOGO_RESIZE
             // save plane 0 of logo
             if (whiteLines > 0) {
                 char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutBottom%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
+                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutBottom%d.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
-                    SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+                    SaveSobel(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
                     FREE(strlen(fileName)+1, "fileName");
                     free(fileName);
                     cutStep++;
@@ -797,14 +827,14 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
             int leftBlackPixel = INT_MAX;
             int rightBlackPixel = 0;
             int minWhiteLines;
-            if ((maContext->Video.Info.width) == 720) minWhiteLines = 2;
+            if (decoder->GetVideoWidth() == 720) minWhiteLines = 2;
             else minWhiteLines = 4;
-            for (int line = *logoHeight - 1; line > 0; line--) {
+            for (int line = logoSizeFinal->height - 1; line > 0; line--) {
                 int countBlackPixel = 0;
-                for (int column = 0; column < *logoWidth; column++) {
-                    if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
+                for (int column = 0; column < logoSizeFinal->width; column++) {
+                    if (bestLogoInfo->sobel[0][line * (logoSizeFinal->width) + column] == 0) {
                         countBlackPixel++;
-                        if (column < leftBlackPixel) leftBlackPixel = column;
+                        if (column < leftBlackPixel)  leftBlackPixel  = column;
                         if (column > rightBlackPixel) rightBlackPixel = column;
                     }
                 }
@@ -820,15 +850,15 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                     cutLine = line;
                 }
             }
-            int quoteAfterCut = 100 * cutLine / *logoHeight;
+            int quoteAfterCut = 100 * cutLine / logoSizeFinal->height;
             if ((topBlackLineOfLogo < cutLine) && (quoteAfterCut > 64)) {  // we may not cut off too much, this could not be text under logo, this is something on top of the logo
                 if (cutLine >= LOGO_MIN_LETTERING_H) {
-                    if ((((rightBlackPixel - leftBlackPixel) >= 38) && ((*logoHeight - cutLine) > 8)) || // cut our "love your" from TLC with 38 pixel width, do not cut out lines in the logo
-                            (((rightBlackPixel - leftBlackPixel) <= 20) && ((*logoHeight - cutLine) <= 8))) { // cut out small pixel errors
-                        dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, quote %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, *logoHeight - cutLine, leftBlackPixel, rightBlackPixel, quoteAfterCut);
-                        CutOut(bestLogoInfo, *logoHeight - cutLine, 0, logoHeight, logoWidth, bestLogoCorner);
+                    if ((((rightBlackPixel - leftBlackPixel) >= 38) && ((logoSizeFinal->height - cutLine) > 8)) || // cut our "love your" from TLC with 38 pixel width, do not cut out lines in the logo
+                            (((rightBlackPixel - leftBlackPixel) <= 20) && ((logoSizeFinal->height - cutLine) <= 8))) { // cut out small pixel errors
+                        dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, quote %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, logoSizeFinal->height - cutLine, leftBlackPixel, rightBlackPixel, quoteAfterCut);
+                        CutOut(bestLogoInfo, logoSizeFinal->height - cutLine, 0, logoSizeFinal, bestLogoCorner);
                     }
-                    else dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, width is invalid", cutLine, rightBlackPixel - leftBlackPixel, *logoHeight - cutLine, leftBlackPixel, rightBlackPixel);
+                    else dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, width is invalid", cutLine, rightBlackPixel - leftBlackPixel, logoSizeFinal->height - cutLine, leftBlackPixel, rightBlackPixel);
                 }
                 else dsyslog("cExtractLogo::Resize(): cutline at %d not valid", cutLine);
             }
@@ -836,10 +866,10 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
         }
         else { // bottom corners, calculate new height and cut from above
             int whiteLines = 0;
-            for (int line = 0; line < *logoHeight; line++) {
+            for (int line = 0; line < logoSizeFinal->height; line++) {
                 int blackPixel = 0;
-                for (int column = 0; column < *logoWidth; column++) {
-                    if ( bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
+                for (int column = 0; column < logoSizeFinal->width; column++) {
+                    if ( bestLogoInfo->sobel[0][line * (logoSizeFinal->width) + column] == 0) {
                         blackPixel++;
                         if (blackPixel > acceptFalsePixelH) break;
                     }
@@ -849,13 +879,13 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 }
                 else break;
             }
-            CutOut(bestLogoInfo, whiteLines, 0, logoHeight, logoWidth, bestLogoCorner);
+            CutOut(bestLogoInfo, whiteLines, 0, logoSizeFinal, bestLogoCorner);
 
 #ifdef DEBUG_LOGO_RESIZE
             if (whiteLines > 0) {
                 // save plane 0 of logo
                 char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutTop%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
+                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutTop%d.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
                     FREE(strlen(fileName)+1, "fileName");
@@ -873,12 +903,12 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
             int leftBlackPixel = INT_MAX;
             int rightBlackPixel = 0;
             int minWhiteLines;
-            if ((maContext->Video.Info.width) == 720) minWhiteLines = 2;
+            if (decoder->GetVideoWidth() == 720) minWhiteLines = 2;
             else minWhiteLines = 4;
-            for (int line = 0; line < *logoHeight; line++) {
+            for (int line = 0; line < logoSizeFinal->height; line++) {
                 int countBlackPixel = 0;
-                for (int column = *logoWidth - 1; column > 0; column--) {
-                    if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
+                for (int column = logoSizeFinal->width - 1; column > 0; column--) {
+                    if (bestLogoInfo->sobel[0][line * logoSizeFinal->width + column] == 0) {
                         countBlackPixel++;
                         if (column < leftBlackPixel) leftBlackPixel = column;
                         if (column > rightBlackPixel) rightBlackPixel = column;
@@ -896,11 +926,11 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                     cutLine = line;
                 }
             }
-            int quoteAfterCut = 100 * (*logoHeight - cutLine) / *logoHeight; // we may not cut off too much, this could not be text under logo, this is something on top of the logo e.g. RTL2
+            int quoteAfterCut = 100 * (logoSizeFinal->height - cutLine) / logoSizeFinal->height; // we may not cut off too much, this could not be text under logo, this is something on top of the logo e.g. RTL2
             if ((topBlackLineOfLogo > cutLine) && (quoteAfterCut > 52)) {  // changed from 48 to 52
                 if ((cutLine >= LOGO_MIN_LETTERING_H) && (cutLine < LOGO_MAX_LETTERING_H)) {
                     dsyslog("cExtractLogo::Resize(): found text above logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, quote %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, cutLine, leftBlackPixel, rightBlackPixel, quoteAfterCut);
-                    CutOut(bestLogoInfo, cutLine, 0, logoHeight, logoWidth, bestLogoCorner);
+                    CutOut(bestLogoInfo, cutLine, 0, logoSizeFinal, bestLogoCorner);
                 }
                 else dsyslog("cExtractLogo::Resize(): cutline at %d not valid (expect >=%d and <%d)", cutLine, LOGO_MIN_LETTERING_H, LOGO_MAX_LETTERING_H);
             }
@@ -908,10 +938,10 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
 
         if ((bestLogoCorner == TOP_RIGHT) || (bestLogoCorner == BOTTOM_RIGHT)) {  // right corners, cut from left
             int whiteColumns = 0;
-            for (int column = 0; column < *logoWidth - 1; column++) {
+            for (int column = 0; column < logoSizeFinal->width - 1; column++) {
                 int blackPixel = 0;
-                for (int line = 0; line < *logoHeight - 1; line++) {
-                    if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
+                for (int line = 0; line < logoSizeFinal->height - 1; line++) {
+                    if (bestLogoInfo->sobel[0][line * logoSizeFinal->width + column] == 0) {
                         blackPixel++;
                         if (blackPixel > acceptFalsePixelV) break;
                     }
@@ -921,13 +951,13 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 }
                 else break;
             }
-            CutOut(bestLogoInfo, 0, whiteColumns, logoHeight, logoWidth, bestLogoCorner);
+            CutOut(bestLogoInfo, 0, whiteColumns, logoSizeFinal, bestLogoCorner);
 
 #ifdef DEBUG_LOGO_RESIZE
             // save plane 0 of logo
             if (whiteColumns > 0) {
                 char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutRight%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
+                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutRight%d.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
                     FREE(strlen(fileName)+1, "fileName");
@@ -945,12 +975,12 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
             int topBlackPixelBefore = INT_MAX;
             int bottomBlackPixelBefore = 0;
             int bottomBlackPixel = 0;
-            for (int column = 0; column < *logoWidth; column++) {
+            for (int column = 0; column < logoSizeFinal->width; column++) {
                 bool isAllWhite = true;
                 topBlackPixel = topBlackPixelBefore;
                 bottomBlackPixel = bottomBlackPixelBefore;
-                for (int line = 0; line < *logoHeight; line++) {
-                    if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
+                for (int line = 0; line < logoSizeFinal->height; line++) {
+                    if (bestLogoInfo->sobel[0][line * logoSizeFinal->width + column] == 0) {
                         isAllWhite = false;
                         if (line < topBlackPixelBefore) topBlackPixelBefore = line;
                         if (line > bottomBlackPixelBefore) bottomBlackPixelBefore = line;
@@ -971,17 +1001,17 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
             if (lastBlackColumn > cutColumn) {
                 if ((bottomBlackPixel - topBlackPixel) <= 13) {
                     dsyslog("cExtractLogo::Resize(): found text before logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
-                    CutOut(bestLogoInfo, 0, cutColumn, logoHeight, logoWidth, bestLogoCorner);
+                    CutOut(bestLogoInfo, 0, cutColumn, logoSizeFinal, bestLogoCorner);
                 }
                 else dsyslog("cExtractLogo::Resize(): found text before logo, cut at column %d, pixel test: top %d bottom %d, text height %d is not valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
             }
         }
         else { // left corners, cut from right
             int whiteColumns = 0;
-            for (int column = *logoWidth - 1; column > 0; column--) {
+            for (int column = logoSizeFinal->width - 1; column > 0; column--) {
                 int blackPixel = 0;
-                for (int line = 0; line < *logoHeight; line++) {
-                    if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
+                for (int line = 0; line < logoSizeFinal->height; line++) {
+                    if (bestLogoInfo->sobel[0][line * logoSizeFinal->width + column] == 0) {
                         blackPixel++;
                         if (blackPixel > acceptFalsePixelV) break;
                     }
@@ -991,12 +1021,12 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 }
                 else break;
             }
-            CutOut(bestLogoInfo, 0, whiteColumns, logoHeight, logoWidth, bestLogoCorner);
+            CutOut(bestLogoInfo, 0, whiteColumns, logoSizeFinal, bestLogoCorner);
 #ifdef DEBUG_LOGO_RESIZE
             // save plane 0 of logo
             if (whiteColumns > 0) {
                 char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutRight%d.pgm", maContext->Config->recDir, bestLogoInfo->iFrameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
+                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutRight%d.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
                     FREE(strlen(fileName)+1, "fileName");
@@ -1006,7 +1036,7 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
             }
 #endif
             // search for columns to cut logos with text addon (e.g. "Neue Folge")
-            if (!CheckLogoSize(maContext, *logoHeight, *logoWidth, bestLogoCorner)) {
+            if (!CheckLogoSize(logoSizeFinal, bestLogoCorner)) {
                 dsyslog("cExtractLogo::Resize(): left logo: search for text right of logo, repeat %d", repeat);
                 int countWhite = 0;
                 int cutColumn = 0;
@@ -1014,12 +1044,12 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                 int topBlackPixelBefore = INT_MAX;
                 int bottomBlackPixelBefore = 0;
                 int bottomBlackPixel = 0;
-                for (int column = *logoWidth - 1; column > 0; column--) {
+                for (int column = logoSizeFinal->width - 1; column > 0; column--) {
                     bool isAllWhite = true;
                     topBlackPixel = topBlackPixelBefore;
                     bottomBlackPixel = bottomBlackPixelBefore;
-                    for (int line = 0; line < *logoHeight; line++) {
-                        if (bestLogoInfo->sobel[0][line * (*logoWidth) + column] == 0) {
+                    for (int line = 0; line < logoSizeFinal->height; line++) {
+                        if (bestLogoInfo->sobel[0][line * logoSizeFinal->width + column] == 0) {
                             isAllWhite = false;
                             if (line < topBlackPixelBefore) topBlackPixelBefore = line;
                             if (line > bottomBlackPixelBefore) bottomBlackPixelBefore = line;
@@ -1036,30 +1066,30 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
                         cutColumn = column;
                     }
                 }
-                if (cutColumn > static_cast<int>((*logoWidth * 0.5))) {  // do not cut too much, could be a space in the logo (e.g. VOXup)
+                if (cutColumn > static_cast<int>((logoSizeFinal->width * 0.5))) {  // do not cut too much, could be a space in the logo (e.g. VOXup)
                     if ((bottomBlackPixel - topBlackPixel) <= 24) {  // chnaged from 19 to 24 (ZDF HD tivi)
                         dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
-                        CutOut(bestLogoInfo, 0, *logoWidth - cutColumn, logoHeight, logoWidth, bestLogoCorner);
+                        CutOut(bestLogoInfo, 0, logoSizeFinal->width - cutColumn, logoSizeFinal, bestLogoCorner);
                     }
                     else dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel test: top %d bottom %d, text height %d is not valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
                 }
                 else dsyslog("cExtractLogo::Resize(): left logo: no text right of logo found, cutColumn %d, repeat %d", cutColumn, repeat);
             }
         }
-        dsyslog("cExtractLogo::Resize(): logo size after %d. resize:  %3d width %3d height on corner %12s", repeat, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
-        if ((*logoWidth <= 10) || (*logoHeight <= 10)) {
+        dsyslog("cExtractLogo::Resize(): logo size after %d. resize:  %3d width %3d height on corner %12s", repeat, logoSizeFinal->width, logoSizeFinal->height, aCorner[bestLogoCorner]);
+        if ((logoSizeFinal->width <= 10) || (logoSizeFinal->height <= 10)) {
             dsyslog("cExtractLogo::Resize(): logo size after resize is invalid");
             return false;
         }
     }
-    if (CheckLogoSize(maContext, *logoHeight, *logoWidth, bestLogoCorner)) {
-        dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is valid", maContext->Video.Info.width, maContext->Video.Info.height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
+    if (CheckLogoSize(logoSizeFinal, bestLogoCorner)) {
+        dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is valid", decoder->GetVideoWidth(), decoder->GetVideoHeight(), logoSizeFinal->width, logoSizeFinal->height, aCorner[bestLogoCorner]);
         return true;
     }
     else {
-        dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is not valid", maContext->Video.Info.width, maContext->Video.Info.height, *logoWidth, *logoHeight, aCorner[bestLogoCorner]);
-        *logoHeight = logoHeightBeforeResize; // restore logo size
-        *logoWidth = logoWidthBeforeResize;
+        dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is not valid", decoder->GetVideoWidth(), decoder->GetVideoHeight(), logoSizeFinal->width, logoSizeFinal->height, aCorner[bestLogoCorner]);
+        logoSizeFinal->height = logoHeightBeforeResize; // restore original logo size
+        logoSizeFinal->width  = logoWidthBeforeResize;
         return false;
     }
 }
@@ -1069,30 +1099,30 @@ bool cExtractLogo::Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoIn
 // used before picture is stored in logo cantidates list
 // return: true if valid
 //
-bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
+bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
 #define WHITEHORIZONTAL_BIG 10
 #define WHITEHORIZONTAL_SMALL 7 // reduced from 8 to 7
 #define WHITEVERTICAL_BIG 10
-    if ((logoHeight <= 0) || (logoWidth <= 0)) return 0;
-    if ((corner < 0) || (corner >= CORNERS)) return 0;
-    if (!ptr_actLogoInfo) return 0;
+    if ((logoSize.height <= 0) || (logoSize.width <= 0)) return false;
+    if ((corner < 0) || (corner >= CORNERS))             return false;
+    if (!actLogoInfo)                                return false;
     if (corner <= TOP_RIGHT) {
-        for (int i = 0 ; i < WHITEHORIZONTAL_BIG * logoWidth; i++) { // a valid top logo should have a white top part
-            if ((ptr_actLogoInfo->sobel[0][i] == 0) ||
-                    ((i < WHITEHORIZONTAL_BIG * logoWidth / 4) && ((ptr_actLogoInfo->sobel[1][i] == 0) || (ptr_actLogoInfo->sobel[2][i] == 0)))) {
+        for (int i = 0 ; i < WHITEHORIZONTAL_BIG * logoSize.width; i++) { // a valid top logo should have a white top part
+            if ((actLogoInfo->sobel[0][i] == 0) ||
+                    ((i < WHITEHORIZONTAL_BIG * logoSize.width / 4) && ((actLogoInfo->sobel[1][i] == 0) || (actLogoInfo->sobel[2][i] == 0)))) {
 #ifdef DEBUG_LOGO_CORNER
-                if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white top part", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
+                if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white top part", actLogoInfo->frameNumber, aCorner[corner]);
 #endif
                 return false;
             }
         }
-        if ((corner != TOP_RIGHT) || !CompareChannelName(maContext->Info.ChannelName, "SPORT1", IGNORE_NOTHING)) { // this channels have sometimes a big preview text below the logo on the right side
+        if ((corner != TOP_RIGHT) || !CompareChannelName(channelName, "SPORT1", IGNORE_NOTHING)) { // this channels have sometimes a big preview text below the logo on the right side
             // more general solution will be: make the possible logo size bigger
             // but this wll have a performence impact
-            for (int i = (logoHeight - WHITEHORIZONTAL_SMALL) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid top logo should have at least a small white bottom part in plane 0
-                if (ptr_actLogoInfo->sobel[0][i] == 0) {
+            for (int i = (logoSize.height - WHITEHORIZONTAL_SMALL) * logoSize.width; i < (logoSize.height * logoSize.width); i++) { // a valid top logo should have at least a small white bottom part in plane 0
+                if (actLogoInfo->sobel[0][i] == 0) {
 #ifdef DEBUG_LOGO_CORNER
-                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no small white bottom part in plane 0", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
+                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no small white bottom part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
 #endif
                     return false;
                 }
@@ -1101,19 +1131,19 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
 
     }
     else {
-        for (int i = (logoHeight - WHITEHORIZONTAL_BIG) * logoWidth; i < logoHeight*logoWidth; i++) { // a valid bottom logo should have a white bottom part in plane 0
-            if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
+        for (int i = (logoSize.height - WHITEHORIZONTAL_BIG) * logoSize.width; i < (logoSize.height * logoSize.width); i++) { // a valid bottom logo should have a white bottom part in plane 0
+            if (actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white bottom part in plane 0", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
+                if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white bottom part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
 #endif
                 return false;
             }
         }
-        if (!CompareChannelName(maContext->Info.ChannelName, "n-tv", IGNORE_HD)) {  // this channel has a news ticket with info banner above, we will not find a small white top part
-            for (int i = 0 ; i < WHITEHORIZONTAL_SMALL * logoWidth; i++) { // a valid bottom logo should have at least a small white top part in plane 0
-                if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
+        if (!CompareChannelName(channelName, "n-tv", IGNORE_HD)) {  // this channel has a news ticket with info banner above, we will not find a small white top part
+            for (int i = 0 ; i < WHITEHORIZONTAL_SMALL * logoSize.width; i++) { // a valid bottom logo should have at least a small white top part in plane 0
+                if (actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no small white top part in plane 0", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
+                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no small white top part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
 #endif
                     return false;
                 }
@@ -1123,10 +1153,10 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
 
     if ((corner == TOP_LEFT) || (corner == BOTTOM_LEFT)) { // a valid left logo should have white left part in pane 0
         for (int column = 0; column <= WHITEVERTICAL_BIG; column++) {
-            for (int i = column; i < logoHeight * logoWidth; i = i + logoWidth) {
-                if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
+            for (int i = column; i < logoSize.height * logoSize.width; i = i + logoSize.width) {
+                if (actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white left part in plane 0", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
+                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white left part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
 #endif
                     return false;
                 }
@@ -1135,10 +1165,10 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
     }
     else { // a valid right logo should have white right part in pane 0
         for (int column = 0; column <= WHITEVERTICAL_BIG; column++) {
-            for (int i = logoWidth - column; i < logoHeight * logoWidth; i = i + logoWidth) {
-                if (ptr_actLogoInfo->sobel[0][i] == 0 ) {
+            for (int i = logoSize.width - column; i < (logoSize.height * logoSize.width); i = i + logoSize.width) {
+                if (actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white right part in plane 0", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
+                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white right part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
 #endif
                     return false;
                 }
@@ -1147,38 +1177,40 @@ bool cExtractLogo::CheckValid(const sMarkAdContext *maContext, const sLogoInfo *
     }
 
     int blackPixel1 = 0;
-    for (int i = 0; i < logoHeight * logoWidth; i++) {
-        if (ptr_actLogoInfo->sobel[0][i] == 0) blackPixel1++;
+    for (int i = 0; i < (logoSize.height * logoSize.width); i++) {
+        if (actLogoInfo->sobel[0][i] == 0) blackPixel1++;
     }
     if (blackPixel1 < 300) {
 #ifdef DEBUG_LOGO_CORNER
-        if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has not enough pixel %d in plane 0", ptr_actLogoInfo->iFrameNumber, aCorner[corner], blackPixel1);
+        if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has not enough pixel %d in plane 0", actLogoInfo->frameNumber, aCorner[corner], blackPixel1);
 #endif
         return false;
     }
 #ifdef DEBUG_LOGO_CORNER
-    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s plane 0 is valid", ptr_actLogoInfo->iFrameNumber, aCorner[corner]);
+    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s plane 0 is valid", actLogoInfo->frameNumber, aCorner[corner]);
 #endif
     return true;
 }
 
 
-int cExtractLogo::Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
-    if (!maContext) return 0;
-    if (!ptr_actLogoInfo) return 0;
-    if ((logoHeight <= 0) || (logoWidth <= 0)) return 0;
-    if ((corner < 0) || (corner >= CORNERS)) return 0;
-    int hits=0;
+int cExtractLogo::Compare(sLogoInfo *actLogoInfo, const int logoHeight, const int logoWidth, const int corner) {
+    if (!actLogoInfo)  return 0;
+    if (logoHeight <= 0)   return 0;
+    if (logoWidth <= 0)    return 0;
+    if (corner < 0)        return 0;
+    if (corner >= CORNERS) return 0;
+
+    int hits = 0;
 
     for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
-        if (criteria->LogoRotating(maContext->Info.ChannelName)) {
-            if (CompareLogoPairRotating(maContext, &(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
+        if (criteria->LogoRotating(channelName)) {
+            if (CompareLogoPairRotating(&(*actLogo), actLogoInfo, logoHeight, logoWidth, corner)) {
                 hits++;
                 actLogo->hits++;
             }
         }
         else {
-            if (CompareLogoPair(&(*actLogo), ptr_actLogoInfo, logoHeight, logoWidth, corner)) {
+            if (CompareLogoPair(&(*actLogo), actLogoInfo, logoHeight, logoWidth, corner)) {
                 hits++;
                 actLogo->hits++;
             }
@@ -1191,23 +1223,25 @@ int cExtractLogo::Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLog
 /**
  * special detection for rotating logos
  */
-bool cExtractLogo::CompareLogoPairRotating(const sMarkAdContext *maContext, sLogoInfo *logo1, sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner) {
-    if (!logo1) return false;
-    if (!logo2) return false;
-    if ((corner < 0) || (corner >= CORNERS)) return false;
+bool cExtractLogo::CompareLogoPairRotating(sLogoInfo *logo1, sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner) {
+    if (!logo1)            return false;
+    if (!logo2)            return false;
+    if (corner < 0)        return false;
+    if (corner >= CORNERS) return false;
+
 // TODO do not hardcode the logo range
     int logoStartLine   = 0;
     int logoEndLine     = 0;
     int logoStartColumn = 0;
     int logoEndColumn   = 0;
-    if (CompareChannelName(maContext->Info.ChannelName, "SAT_1", IGNORE_NOTHING)) {
+    if (CompareChannelName(channelName, "SAT_1", IGNORE_NOTHING)) {
         logoStartLine   =  18;
         logoEndLine     =  75;
         logoStartColumn = 143;
         logoEndColumn   = 185;
     }
     else {
-        if (CompareChannelName(maContext->Info.ChannelName, "SAT_1_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "SAT_1_HD", IGNORE_NOTHING)) {
             logoStartLine   =  60;
             logoEndLine     = 133;
             logoStartColumn = 196;
@@ -1226,21 +1260,21 @@ bool cExtractLogo::CompareLogoPairRotating(const sMarkAdContext *maContext, sLog
             if ((line >= logoStartLine) && (line < logoEndLine) && (column >= logoStartColumn) && (column < logoEndColumn)) continue;
             if (logo1->sobel[0][line * logoWidth + column] == 0) {
 #ifdef DEBUG_LOGO_CORNER
-                dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo1 (%5i) pixel out of valid range: line %3i column %3i", logo1->iFrameNumber, line, column);
+                dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo1 (%5i) pixel out of valid range: line %3i column %3i", logo1->frameNumber, line, column);
 #endif
                 return false;
             }
             if (logo2->sobel[0][line * logoWidth + column] == 0) {
 #ifdef DEBUG_LOGO_CORNER
-                dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo2 (%5i) pixel out of valid range: line %3i column %3i", logo2->iFrameNumber, line, column);
+                dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo2 (%5i) pixel out of valid range: line %3i column %3i", logo2->frameNumber, line, column);
 #endif
                 return false;
             }
         }
     }
 #ifdef DEBUG_LOGO_CORNER
-    dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo1 (%5i) valid", logo1->iFrameNumber);
-    dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo2 (%5i) valid", logo2->iFrameNumber);
+    dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo1 (%5i) valid", logo1->frameNumber);
+    dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo2 (%5i) valid", logo2->frameNumber);
 #endif
 // merge pixel in logo range
     for (int line = logoStartLine; line <= logoEndLine; line++) {
@@ -1290,36 +1324,32 @@ bool cExtractLogo::CompareLogoPair(const sLogoInfo *logo1, const sLogoInfo *logo
 
     if ((rate_0 > match0) && (rate_1_2 > match12)) {
 #ifdef DEBUG_LOGO_CORNER
-        if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ++++ frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d), black %d (%d)", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, match0, rate_1_2, match12, oneBlack_0, MIN_BLACK_PLANE_0);  // only for debug
+        if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ++++ frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d), black %d (%d)", logo1->frameNumber, logo2->frameNumber, rate_0, match0, rate_1_2, match12, oneBlack_0, MIN_BLACK_PLANE_0);  // only for debug
 #endif
         return true;
     }
 #ifdef DEBUG_LOGO_CORNER
-    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ---- frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d), black %d (%d)", logo1->iFrameNumber, logo2->iFrameNumber, rate_0, match0, rate_1_2, match12, oneBlack_0, MIN_BLACK_PLANE_0);
+    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CompareLogoPair(): logo ---- frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d), black %d (%d)", logo1->frameNumber, logo2->frameNumber, rate_0, match0, rate_1_2, match12, oneBlack_0, MIN_BLACK_PLANE_0);
 #endif
     return false;
 }
 
 
-int cExtractLogo::DeleteFrames(const sMarkAdContext *maContext, const int from, const int to) {
-    if (!maContext) return 0;
+int cExtractLogo::DeleteFrames(const int from, const int to) {
     if (from >= to) return 0;
     int deleteCount = 0;
     dsyslog("cExtractLogo::DeleteFrames(): delete frames from %d to %d", from, to);
     for (int corner = 0; corner < CORNERS; corner++) {
         for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
             if (abortNow) return 0;
-            if (actLogo->iFrameNumber < from) continue;
-            if (actLogo->iFrameNumber <= to) {
+            if (actLogo->frameNumber < from) continue;
+            if (actLogo->frameNumber <= to) {
                 // free memory of sobel planes
                 for (int plane = 0; plane < PLANES; plane++) {
                     delete[] actLogo->sobel[plane];
                 }
                 delete[] actLogo->sobel;
-#ifdef DEBUG_MEM
-                int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
-#endif
-                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
+                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * logoSize.width * logoSize.height, "actLogoInfo.sobel");
 
                 // delete vector element
                 FREE(sizeof(*actLogo), "logoInfoVector");
@@ -1333,31 +1363,25 @@ int cExtractLogo::DeleteFrames(const sMarkAdContext *maContext, const int from, 
 }
 
 
-int cExtractLogo::GetFirstFrame(const sMarkAdContext *maContext) {
-    if (!maContext) return 0;
-
+int cExtractLogo::GetFirstFrame() {
     int firstFrame = INT_MAX;
     for (int corner = 0; corner < CORNERS; corner++) {
-        if (!logoInfoVector[corner].empty() && logoInfoVector[corner].front().iFrameNumber < firstFrame) firstFrame = logoInfoVector[corner].front().iFrameNumber;
+        if (!logoInfoVector[corner].empty() && logoInfoVector[corner].front().frameNumber < firstFrame) firstFrame = logoInfoVector[corner].front().frameNumber;
     }
     return firstFrame;
 }
 
 
-int cExtractLogo::GetLastFrame(const sMarkAdContext *maContext) {
-    if (!maContext) return 0;
-
+int cExtractLogo::GetLastFrame() {
     int lastFrame = 0;
     for (int corner = 0; corner < CORNERS; corner++) {
-        if (!logoInfoVector[corner].empty() && logoInfoVector[corner].back().iFrameNumber > lastFrame) lastFrame = logoInfoVector[corner].back().iFrameNumber;
+        if (!logoInfoVector[corner].empty() && logoInfoVector[corner].back().frameNumber > lastFrame) lastFrame = logoInfoVector[corner].back().frameNumber;
     }
     return lastFrame;
 }
 
 
-int cExtractLogo::CountFrames(const sMarkAdContext *maContext) {
-    if (!maContext) return 0;
-
+int cExtractLogo::CountFrames() {
     long unsigned int count = 0;
     for (int corner = 0; corner < CORNERS; corner++) {
         if (!logoInfoVector[corner].empty() && logoInfoVector[corner].size() > count) count = logoInfoVector[corner].size();
@@ -1366,15 +1390,14 @@ int cExtractLogo::CountFrames(const sMarkAdContext *maContext) {
 }
 
 
-bool cExtractLogo::WaitForFrames(sMarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame = 0) {
-    if (!maContext) return false;
-    if (!ptr_cDecoder) return false;
+bool cExtractLogo::WaitForFrames(cDecoderNEW *decoder, const int minFrame = 0) {
+    if (!decoder) return false;
 
-    if ((recordingFrameCount > (ptr_cDecoder->GetFrameNumber() + 200)) && (recordingFrameCount > minFrame)) return true; // we have already found enough frames
+    if ((recordingFrameCount > (decoder->GetFrameNumber() + 200)) && (recordingFrameCount > minFrame)) return true; // we have already found enough frames
 
 #define WAITTIME 60
     char *indexFile = nullptr;
-    if (asprintf(&indexFile, "%s/index", maContext->Config->recDir) == -1) {
+    if (asprintf(&indexFile, "%s/index", recDir) == -1) {
         dsyslog("cExtractLogo::WaitForFrames: out of memory in asprintf");
         return false;
     }
@@ -1389,8 +1412,8 @@ bool cExtractLogo::WaitForFrames(sMarkAdContext *maContext, cDecoder *ptr_cDecod
             break;
         }
         recordingFrameCount = indexStatus.st_size / 8;
-        dsyslog("cExtractLogo::WaitForFrames(): frames recorded (%d) read frames (%d) minFrame (%d)", recordingFrameCount, ptr_cDecoder->GetFrameNumber(), minFrame);
-        if ((recordingFrameCount > (ptr_cDecoder->GetFrameNumber() + 200)) && (recordingFrameCount > minFrame)) {
+        dsyslog("cExtractLogo::WaitForFrames(): frames recorded (%d) read frames (%d) minFrame (%d)", recordingFrameCount, decoder->GetFrameNumber(), minFrame);
+        if ((recordingFrameCount > (decoder->GetFrameNumber() + 200)) && (recordingFrameCount > minFrame)) {
             ret = true;  // recording has enough frames
             break;
         }
@@ -1401,11 +1424,10 @@ bool cExtractLogo::WaitForFrames(sMarkAdContext *maContext, cDecoder *ptr_cDecod
         strftime(indexTime, sizeof(indexTime), "%d-%m-%Y %H:%M:%S", localtime(&indexStatus.st_mtime));
         dsyslog("cExtractLogo::WaitForFrames(): index file size %" PRId64 " bytes, system time %s index time %s, wait %ds", indexStatus.st_size, systemTime, indexTime, WAITTIME);
         if ((difftime(now, indexStatus.st_mtime)) >= 2 * WAITTIME) {
-            dsyslog("cExtractLogo::isRunningRecording(): index not growing at frame (%d), old or interrupted recording", ptr_cDecoder->GetFrameNumber());
+            dsyslog("cExtractLogo::WaitForFrames(): index not growing at frame (%d), old or interrupted recording", decoder->GetFrameNumber());
             ret = false;
             break;
         }
-        maContext->Info.isRunningRecording = true;
         sleep(WAITTIME); // now we sleep and hopefully the index will grow
     }
     FREE(strlen(indexFile)+1, "indexFile");
@@ -1414,25 +1436,25 @@ bool cExtractLogo::WaitForFrames(sMarkAdContext *maContext, cDecoder *ptr_cDecod
 }
 
 
-void cExtractLogo::RemovePixelDefects(const sMarkAdContext *maContext, sLogoInfo *logoInfo, const int logoHeight, const int logoWidth, const int corner) {
-    if (!maContext) return;
-    if (!logoInfo) return;
-    if ((corner < 0) || (corner >= CORNERS)) return;
+void cExtractLogo::RemovePixelDefects(sLogoInfo *logoInfo, const int corner) {
+    if (!logoInfo)         return;
+    if (corner < 0)        return;
+    if (corner >= CORNERS) return;
 
 #if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 1
-    if ((corner == DEBUG_LOGO_CORNER) Save(maContext, logoInfo, logoHeight, logoWidth, corner, logoInfo->iFrameNumber);
+    if ((corner == DEBUG_LOGO_CORNER) Save(logoInfo, logoHeight, logoWidth, corner, logoInfo->frameNumber);
 #endif
 
     for (int plane = 0; plane < PLANES; plane++) {
         int height;
         int width;
         if (plane == 0) {
-                height = logoHeight;
-                width = logoWidth;
+                width  = logoSize.width;
+                height = logoSize.height;
             }
             else {
-                height = logoHeight / 2;
-                width = logoWidth / 2;
+                width  = logoSize.width  / 2;
+                height = logoSize.height / 2;
             }
             for (int line = height - 2; line >= 1; line--) {  // elements are from 0 to height -1 but we check neighbor pixel
                 for (int column = 0; column < width; column++) {
@@ -1445,7 +1467,7 @@ void cExtractLogo::RemovePixelDefects(const sMarkAdContext *maContext, sLogoInfo
                                 ( logoInfo->sobel[plane][(line - 1) * width + (column - 1)] == 255)) {
                             logoInfo->sobel[plane][line * width + column] = 255;
 #if defined(DEBUG_LOGO_CORNER)
-                            tsyslog("cExtractLogo::RemovePixelDefects(): fix single separate pixel found at line %d column %d at frame %d in plane %d", line, column, logoInfo->iFrameNumber, plane);
+                            tsyslog("cExtractLogo::RemovePixelDefects(): fix single separate pixel found at line %d column %d at frame %d in plane %d", line, column, logoInfo->frameNumber, plane);
 #endif
                         }
                     }
@@ -1463,335 +1485,251 @@ void cExtractLogo::RemovePixelDefects(const sMarkAdContext *maContext, sLogoInfo
             }
         }
 #if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 2
-    if (corner == DEBUG_LOGO_CORNER) Save(maContext, logoInfo, logoHeight, logoWidth, corner, logoInfo->iFrameNumber);
+    if (corner == DEBUG_LOGO_CORNER) Save(logoInfo, logoHeight, logoWidth, corner, logoInfo->frameNumber);
 #endif
 }
 
 
-int cExtractLogo::AudioInBroadcast(const sMarkAdContext *maContext, const int iFrameNumber) {
-    if (!maContext) return 0;
-
-// AudioState 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
-    bool is6Channel = false;
-    for (short int stream = 0; stream < MAXSTREAMS; stream++) {
-        if (maContext->Audio.Info.Channels[stream] > 2) {
-            is6Channel = true;
-            break;
+int cExtractLogo::AudioInBroadcast() {
+    // AudioState 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
+    if (decoder->GetAC3ChannelCount() > 2) {
+        if (audioState == 1) {
+            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 6 channel at frame (%d)", decoder->GetFrameNumber());
+            audioState = 2;
+            return audioState;
+        }
+        if (audioState == 3) {
+            dsyslog("cExtractLogo::AudioInBroadcast(): 6 channel start at frame (%d)", decoder->GetFrameNumber());
+            audioState = 2;
+            return audioState;
         }
     }
-    if (!is6Channel) {
-        if (AudioState == 0) {
-            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 2 channel at frame (%d)", iFrameNumber);
-            AudioState = 1;
-            return AudioState;
+    else {
+        if (audioState == 0) {
+            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 2 channel at frame (%d)", decoder->GetFrameNumber());
+            audioState = 1;
+            return audioState;
         }
-        if (AudioState == 2) {
-            dsyslog("cExtractLogo::AudioInBroadcast(): 2 channel start at frame (%d)", iFrameNumber);
-            AudioState = 3;
-            return AudioState;
-        }
-    }
-    if (is6Channel) {
-        if (AudioState == 1) {
-            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 6 channel at frame (%d)", iFrameNumber);
-            AudioState = 2;
-            return AudioState;
-        }
-        if (AudioState == 3) {
-            dsyslog("cExtractLogo::AudioInBroadcast(): 6 channel start at frame (%d)", iFrameNumber);
-            AudioState = 2;
-            return AudioState;
+        if (audioState == 2) {
+            dsyslog("cExtractLogo::AudioInBroadcast(): 2 channel start at frame (%d)", decoder->GetFrameNumber());
+            audioState = 3;
+            return audioState;
         }
     }
-    return AudioState;
+    return audioState;
 }
 
 
 // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
-int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int startFrame, const bool force) {
+int cExtractLogo::SearchLogo(int startFrame, const bool force) {
     dsyslog("----------------------------------------------------------------------------");
     dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d, force = %d", startFrame, logoAspectRatio.num, logoAspectRatio.den, force);
+    if (startFrame < 0) return LOGO_ERROR;
 
-    if (!maContext) {
-        dsyslog("cExtractLogo::SearchLogo(): maContext not valid");
-        return -1;
-    }
-    if (!recordingIndexLogo) return LOGOSEARCH_ERROR;
-    if (startFrame < 0)      return LOGOSEARCH_ERROR;
+    int  frameNumber            = 0;
+    int  iFrameCountAll         = 0;
+    bool logoFound              = false;
+    sLogoSize logoSizeFinal     = {0};          // logo size after logo found
 
+    // set start time for statistics
     struct timeval startTime;
-    struct timeval stopTime;
-
-    int  iFrameNumber     = 0;
-    int  iFrameCountAll   = 0;
-    int  logoHeight       = 0;
-    int  logoWidth        = 0;
-    bool retStatus        = true;
-    bool readNextFile     = true;
-    int  maxLogoPixel     = 0;
-    bool resetAspectRatio = false;
-
-
     gettimeofday(&startTime, nullptr);
-    sMarkAdContext maContextSaveState = {};
-    maContextSaveState.Video = maContext->Video;     // save state of calling video context
-    maContextSaveState.Audio = maContext->Audio;     // save state of calling audio context
 
-    cDecoder *ptr_cDecoder = new cDecoder(maContext->Config->threads, recordingIndexLogo);
-    ALLOC(sizeof(*ptr_cDecoder), "ptr_cDecoder");
-
-    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, criteria, recordingIndexLogo);
-    ALLOC(sizeof(*ptr_Logo), "SearchLogo-ptr_Logo");
-
-    cMarkAdBlackBordersHoriz *hborder = new cMarkAdBlackBordersHoriz(maContext, criteria);
-    ALLOC(sizeof(*hborder), "hborder");
-
-    cMarkAdBlackBordersVert *vborder = new cMarkAdBlackBordersVert(maContext, criteria);
-    ALLOC(sizeof(*vborder), "vborder");
-
-    sAreaT *area = ptr_Logo->GetArea();
-
-    if (!WaitForFrames(maContext, ptr_cDecoder)) {
+    if (!WaitForFrames(decoder)) {
         dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");
-        FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
-        delete ptr_cDecoder;
-        FREE(sizeof(*ptr_Logo), "SearchLogo-ptr_Logo");
-        delete ptr_Logo;
-        FREE(sizeof(*hborder), "hborder");
-        delete hborder;
-        FREE(sizeof(*vborder), "vborder");
-        delete vborder;
-        return LOGOSEARCH_ERROR;
+        return LOGO_ERROR;
     }
 
 // set start point
-    DeleteFrames(maContext, 0, startFrame);
-    int firstFrame = GetFirstFrame(maContext);
-    int lastFrame = GetLastFrame(maContext);
-    int countFrame = CountFrames(maContext);
+    DeleteFrames(0, startFrame - 1);
+    int firstFrame = GetFirstFrame();
+    int lastFrame = GetLastFrame();
+    int countFrame = CountFrames();
     if (firstFrame == INT_MAX) dsyslog("cExtractLogo::SearchLogo(): we have no frames already stored");
     else dsyslog("cExtractLogo::SearchLogo(): already have %d frames from (%d) to frame (%d)", countFrame, firstFrame, lastFrame);
     iFrameCountValid = countFrame;
     if (lastFrame > startFrame) startFrame = lastFrame;
 
-    while(retStatus && readNextFile && (ptr_cDecoder->DecodeDir(maContext->Config->recDir))) {
-        maContext->Info.vPidType = ptr_cDecoder->GetVideoType();
-        if (maContext->Info.vPidType == 0) {
-            dsyslog("cExtractLogo::SearchLogo(): video type not set");
-            FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
-            delete ptr_cDecoder;
-            FREE(sizeof(*ptr_Logo), "SearchLogo-ptr_Logo");
-            delete ptr_Logo;
-            FREE(sizeof(*hborder), "hborder");
-            delete hborder;
-            FREE(sizeof(*vborder), "vborder");
-            delete vborder;
-            return LOGOSEARCH_ERROR;
+    // seek to start position
+    if (decoder->GetFrameNumber() < startFrame) {
+        dsyslog("cExtractLogo::SearchLogo(): seek to frame %d", startFrame);
+        if (!WaitForFrames(decoder, startFrame)) {
+            dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() for startFrame %d failed", startFrame);
+            return LOGO_ERROR;
         }
-        maContext->Video.Info.height = ptr_cDecoder->GetVideoHeight();
-        maContext->Video.Info.width = ptr_cDecoder->GetVideoWidth();
-        // in case of missing vdr info file, set frame rate here
-        if (maContext->Video.Info.framesPerSecond == 0) maContext->Video.Info.framesPerSecond = ptr_cDecoder->GetVideoRealFrameRate();
-        dsyslog("cExtractLogo::SearchLogo(): video resolution %dx%d", maContext->Video.Info.width, maContext->Video.Info.height);
-        GetLogoSize(maContext, &logoHeight, &logoWidth);
-        dsyslog("cExtractLogo::SearchLogo(): logo size %dx%d", logoWidth, logoHeight);
+        if (!decoder->SeekToFrame(startFrame)) {
+            dsyslog("cExtractLogo::SearchLogo(): seek to start frame (%d) failed", startFrame);
+            return LOGO_ERROR;
+        }
+    }
 
-        while(ptr_cDecoder->GetNextPacket(true, false)) { // fill frame index, but not fill PTS ring buffer, it will get out of sequence
-            if (abortNow) {
-                dsyslog("cExtractLogo::SearchLogo(): aborted by user");
-                FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
-                delete ptr_cDecoder;
-                FREE(sizeof(*ptr_Logo), "SearchLogo-ptr_Logo");
-                delete ptr_Logo;
-                FREE(sizeof(*hborder), "hborder");
-                delete hborder;
-                FREE(sizeof(*vborder), "vborder");
-                delete vborder;
-                return LOGOSEARCH_ERROR;
-            }
+    // if no aspect ratio requestet, use current from video
+    if ((logoAspectRatio.num == 0) || (logoAspectRatio.den == 0)) {
+        sAspectRatio *aspectRatio = decoder->GetAspectRatio();
+        if (aspectRatio) {
+            logoAspectRatio.num = aspectRatio->num;
+            logoAspectRatio.den = aspectRatio->den;
+            dsyslog("cExtractLogo::SearchLogo(): no aspect ratio requested, set to aspect ratio of current video position %d:%d", logoAspectRatio.num, logoAspectRatio.den);
+        }
+        else {
+            esyslog("cExtractLogo::SearchLogo(): frame (%d): no valid aspect ratio in current frame", decoder->GetFrameNumber());
+            return LOGO_ERROR;
+        }
+    }
 
-            // write an early start mark for running recordings
-            if (maContext->Info.isRunningRecording && !maContext->Info.isStartMarkSaved && (iFrameNumber >= (maContext->Info.tStart * maContext->Video.Info.framesPerSecond))) {
-                dsyslog("cExtractLogo::SearchLogo(): recording is aktive, read frame (%d), now save dummy start mark at pre timer position %ds", iFrameNumber, maContext->Info.tStart);
-                cMarks marksTMP;
-                marksTMP.RegisterIndex(recordingIndexLogo);
-                marksTMP.Add(MT_ASSUMEDSTART, MT_UNDEFINED, MT_UNDEFINED, iFrameNumber, "timer start", true);
-                marksTMP.Save(maContext->Config->recDir, maContext, true);
-                maContext->Info.isStartMarkSaved = true;
-            }
-            if (!WaitForFrames(maContext, ptr_cDecoder)) {
-                dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at frame (%d), got %d valid frames of %d frames read", ptr_cDecoder->GetFrameNumber(), iFrameCountValid, iFrameCountAll);
-                retStatus=false;
-            }
-            if ((ptr_cDecoder->GetFrameInfo(maContext, true, false, false, false) && retStatus)) {
-                if (ptr_cDecoder->IsVideoPacket()) {
-                    iFrameNumber = ptr_cDecoder->GetFrameNumber();
-                    if (maxLogoPixel == 0) maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
 
-                    if (iFrameNumber < startFrame) {
-                        dsyslog("cExtractLogo::SearchLogo(): seek to frame %i", startFrame);
-                        if (!WaitForFrames(maContext, ptr_cDecoder, startFrame)) {
-                            dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() for startFrame %d failed", startFrame);
-                            retStatus = false;
-                        }
-                        if (!ptr_cDecoder->SeekToFrame(maContext, startFrame)) {
-                            dsyslog("cExtractLogo::SearchLogo(): seek to startFrame %d failed", startFrame);
-                            retStatus = false;
-                        }
-                        continue;
+    while (decoder->DecodeNextFrame()) {
+        if (abortNow) return LOGO_ERROR;
+
+        if (!WaitForFrames(decoder)) {
+            dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at frame (%d), got %d valid frames of %d frames read", decoder->GetFrameNumber(), iFrameCountValid, iFrameCountAll);
+            break;
+        }
+        frameNumber = decoder->GetFrameNumber();
+
+        iFrameCountAll++;
+
+        if (AudioInBroadcast()  == 3) {  // we are in advertising
+            continue;
+        }
+
+        // ignore frames with different aspect ration
+        sAspectRatio *aspectRatio = decoder->GetAspectRatio();
+        if ((logoAspectRatio.num != aspectRatio->num) || (logoAspectRatio.den != aspectRatio->den)) {
+            continue;
+        }
+
+        // get next video picture
+        sVideoPicture *picture = decoder->GetVideoPicture();
+        if (!picture) {
+            dsyslog("cExtractLogo::SearchLogo(): frame (%d): failed to get video data", decoder->GetFrameNumber());
+            continue;
+        }
+
+        if (!criteria->LogoInBorder(channelName)) {
+            int hBorderIFrame = -1;
+            int vBorderIFrame = -1;
+            int isHBorder = hborder->Process(picture, &hBorderIFrame);
+            int isVBorder = vborder->Process(picture, &vBorderIFrame);
+            if (isHBorder != HBORDER_ERROR) {
+                if (hBorderIFrame >= 0) {  // we had a change
+                    if (isHBorder == HBORDER_VISIBLE) {
+                        dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d)", hBorderIFrame, frameNumber);
+                        iFrameCountValid -= DeleteFrames(hBorderIFrame, frameNumber);
                     }
-                    iFrameCountAll++;
-
-                    if (AudioInBroadcast(maContext, iFrameNumber)  == 3) {  // we are in advertising
-                        continue;
-                    }
-
-                    if ((logoAspectRatio.num == 0) || (logoAspectRatio.den == 0)) {
-                        resetAspectRatio    = true;
-                        logoAspectRatio.num = maContext->Video.Info.AspectRatio.num;
-                        logoAspectRatio.den = maContext->Video.Info.AspectRatio.den;
-                        dsyslog("cExtractLogo::SearchLogo(): aspect ratio set to %d:%d", logoAspectRatio.num, logoAspectRatio.den);
-                    }
-                    if ((logoAspectRatio.num != maContext->Video.Info.AspectRatio.num) || (logoAspectRatio.den != maContext->Video.Info.AspectRatio.den)) {
-                        continue;
-                    }
-
-                    if (!criteria->LogoInBorder(maContext->Info.ChannelName)) {
-                        int hBorderIFrame = -1;
-                        int vBorderIFrame = -1;
-                        int isHBorder = hborder->Process(iFrameNumber, &hBorderIFrame);
-                        int isVBorder = vborder->Process(iFrameNumber, &vBorderIFrame);
-                        if (isHBorder != HBORDER_ERROR) {
-                            if (hBorderIFrame >= 0) {  // we had a change
-                                if (isHBorder == HBORDER_VISIBLE) {
-                                    dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d)", hBorderIFrame, iFrameNumber);
-                                    iFrameCountValid -= DeleteFrames(maContext, hBorderIFrame, iFrameNumber);
-                                }
-                                else {
-                                    dsyslog("cExtractLogo::SearchLogo(): no horizontal border from frame (%d)", iFrameNumber);
-                                }
-                            }
-                        }
-                        if (isVBorder != VBORDER_ERROR) {
-                            if (vBorderIFrame >= 0) {  // we had a change
-                                if (isVBorder == VBORDER_VISIBLE) {
-                                    dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d)", vBorderIFrame, iFrameNumber);
-                                    iFrameCountValid -= DeleteFrames(maContext, vBorderIFrame, iFrameNumber);
-                                }
-                                else {
-                                    dsyslog("cExtractLogo::SearchLogo(): no vertical border from frame (%d)", iFrameNumber);
-                                }
-                            }
-                        }
-                        if ((isHBorder == HBORDER_VISIBLE) || (isVBorder == VBORDER_VISIBLE)) {
-                            dsyslog("cExtractLogo::SearchLogo(): border frame detected, abort logo search");
-                            retStatus = false;
-                        }
-                    }
-
-                    iFrameCountValid++;
-                    if (!maContext->Video.Data.valid) {
-                        dsyslog("cExtractLogo::SearchLogo(): failed to get video data of frame (%d)", iFrameNumber);
-                        continue;
-                    }
-                    for (int corner = 0; corner < CORNERS; corner++) {
-                        int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, don't analyse, only fill area
-                        //                       -2: called by cExtractLogo, don't analyse, only fill area, store logos in /tmp for debug
-                        area->corner = corner;
-                        ptr_Logo->Detect(0, iFrameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
-
-#if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 0
-                        if (corner == DEBUG_LOGO_CORNER) {
-                            for (int plane = 0; plane < PLANES; plane++) {
-                                char *fileName = nullptr;
-                                if (asprintf(&fileName,"%s/F%07d-P%1d-C%1d_SearchLogo.pgm", maContext->Config->recDir, iFrameNumber, plane, corner) >= 1) {
-                                    ALLOC(strlen(fileName)+1, "fileName");
-                                    if (plane == 0) SaveSobel(fileName, area->sobel[plane], logoWidth, logoHeight);
-                                    else SaveSobel(fileName, area->sobel[plane], logoWidth / 2, logoHeight / 2);
-                                    FREE(strlen(fileName)+1, "fileName");
-                                    free(fileName);
-                                }
-                            }
-                        }
-#endif
-
-                        sLogoInfo actLogoInfo = {};
-                        actLogoInfo.iFrameNumber = iFrameNumber;
-
-                        // alloc memory and copy planes
-                        actLogoInfo.sobel = new uchar*[PLANES];
-                        for (int plane = 0; plane < PLANES; plane++) {
-                            actLogoInfo.sobel[plane] = new uchar[maxLogoPixel];
-                            memcpy(actLogoInfo.sobel[plane], area->sobel[plane], sizeof(uchar) * maxLogoPixel);
-                        }
-                        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
-
-                        if (CheckValid(maContext, &actLogoInfo, logoHeight, logoWidth, corner)) {
-                            RemovePixelDefects(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
-                            actLogoInfo.hits = Compare(maContext, &actLogoInfo, logoHeight, logoWidth, corner);
-
-                            try {
-                                logoInfoVector[corner].push_back(actLogoInfo);    // this allocates a lot of memory
-                            }
-                            catch(std::bad_alloc &e) {
-                                dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %d", iFrameNumber);
-                                retStatus = false;
-                                break;
-                            }
-                            ALLOC((sizeof(sLogoInfo)), "logoInfoVector");
-                        }
-                        else {  // corner sobel transformed picture not valid
-                            // free memory of sobel planes
-                            for (int plane = 0; plane < PLANES; plane++) {
-                                delete[] actLogoInfo.sobel[plane];
-                            }
-                            delete[] actLogoInfo.sobel;
-                            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "actLogoInfo.sobel");
-                        }
-                    }
-                    if (iFrameCountValid > 1000) {
-                        int firstBorder = hborder->GetFirstBorderFrame();
-                        if (firstBorder > 0) {
-                            dsyslog("cExtractLogo::SearchLogo(): detect unprocessed horizontal border from frame (%d) to frame (%d)", firstBorder, iFrameNumber);
-                            iFrameCountValid-=DeleteFrames(maContext, firstBorder, iFrameNumber);
-                        }
-                        firstBorder = vborder->GetFirstBorderFrame();
-                        if (firstBorder > 0) {
-                            dsyslog("cExtractLogo::SearchLogo(): detect unprocessed vertical border from frame (%d) to frame (%d)", firstBorder, iFrameNumber);
-                            iFrameCountValid-=DeleteFrames(maContext, firstBorder, iFrameNumber);
-                        }
-                    }
-                    if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES) || !retStatus) {
-                        readNextFile = false;  // force DecodeDir loop to exit
-                        break; // finish inner loop and find best match
+                    else {
+                        dsyslog("cExtractLogo::SearchLogo(): no horizontal border from frame (%d)", frameNumber);
                     }
                 }
             }
-            if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES) || !retStatus) {
-                readNextFile = false;  // force DecodeDir loop to exit
-                break; // finish outer loop and find best match
+            if (isVBorder != VBORDER_ERROR) {
+                if (vBorderIFrame >= 0) {  // we had a change
+                    if (isVBorder == VBORDER_VISIBLE) {
+                        dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d)", vBorderIFrame, frameNumber);
+                        iFrameCountValid -= DeleteFrames(vBorderIFrame, frameNumber);
+                    }
+                    else {
+                        dsyslog("cExtractLogo::SearchLogo(): no vertical border from frame (%d)", frameNumber);
+                    }
+                }
+            }
+            if ((isHBorder == HBORDER_VISIBLE) || (isVBorder == VBORDER_VISIBLE)) {
+                dsyslog("cExtractLogo::SearchLogo(): border frame detected, abort logo search");
+                break;
             }
         }
-    }
+        iFrameCountValid++;
 
-    if (!retStatus && (iFrameCountAll < MAXREADFRAMES) && ((iFrameCountAll > MAXREADFRAMES / 2) || (iFrameCountValid > 390))) {  // reached end of recording before we got 1000 valid frames, changed from 700 to 390
-        dsyslog("cExtractLogo::SearchLogo(): end of recording reached at frame (%d), read (%d) iFrames and got (%d) valid iFrames, try anyway", iFrameNumber, iFrameCountAll, iFrameCountValid);
-        retStatus = true;
-    }
-    else {
-        if (iFrameCountValid < 1000) {
-            dsyslog("cExtractLogo::SearchLogo(): read (%i) frames and could not get enough valid frames (%i)", iFrameCountAll, iFrameCountValid);
-            retStatus = false;
+        // do sobbel transformation of plane 0 of all corners
+        for (int corner = 0; corner < CORNERS; corner++) {
+            if (!sobel->SobelPlane(picture, nullptr, corner, 0)) continue; // call with no logo mask, plane 0
+
+#if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 0
+            if (corner == DEBUG_LOGO_CORNER) {
+                for (int plane = 0; plane < PLANES; plane++) {
+                    char *fileName = nullptr;
+                    if (asprintf(&fileName,"%s/F%07d-P%1d-C%1d_SearchLogo.pgm", recDir, frameNumber, plane, corner) >= 1) {
+                        ALLOC(strlen(fileName)+1, "fileName");
+                        if (plane == 0) SaveSobel(fileName, area->sobel[plane], logoSizeFinal.width, logoSizeFinal.height);
+                        else SaveSobel(fileName, area->sobel[plane], logoSiteFinal.width / 2, logoSizeFinal.height / 2);
+                        FREE(strlen(fileName)+1, "fileName");
+                        free(fileName);
+                    }
+                }
+            }
+#endif
+
+            sLogoInfo actLogoInfo = {};
+            actLogoInfo.frameNumber = frameNumber;
+
+            // alloc memory and copy planes
+            uchar **sobelPicture = sobel->GetSobelPlanes();
+            int logoPixel        = logoSize.height * logoSize.width;
+            actLogoInfo.sobel    = new uchar*[PLANES];
+            for (int plane = 0; plane < PLANES; plane++) {
+                actLogoInfo.sobel[plane] = new uchar[logoPixel];
+                memcpy(actLogoInfo.sobel[plane], sobelPicture[plane], sizeof(uchar) * logoPixel);
+            }
+            ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * logoPixel, "actLogoInfo.sobel");
+
+            if (CheckValid(&actLogoInfo, corner)) {
+                RemovePixelDefects(&actLogoInfo, corner);
+                actLogoInfo.hits = Compare(&actLogoInfo, logoSize.height, logoSize.width, corner);
+
+                try {
+                    logoInfoVector[corner].push_back(actLogoInfo);    // this allocates a lot of memory
+                }
+                catch(std::bad_alloc &e) {
+                    dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %d", frameNumber);
+                    break;
+                }
+                ALLOC((sizeof(sLogoInfo)), "logoInfoVector");
+            }
+            else {  // corner sobel transformed picture not valid
+                // free memory of sobel planes
+                for (int plane = 0; plane < PLANES; plane++) {
+                    delete[] actLogoInfo.sobel[plane];
+                }
+                delete[] actLogoInfo.sobel;
+                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * logoPixel, "actLogoInfo.sobel");
+            }
+        }
+        if (iFrameCountValid > 1000) {
+            int firstBorder = hborder->GetFirstBorderFrame();
+            if (firstBorder > 0) {
+                dsyslog("cExtractLogo::SearchLogo(): detect unprocessed horizontal border from frame (%d) to frame (%d)", firstBorder, frameNumber);
+                iFrameCountValid-=DeleteFrames(firstBorder, frameNumber);
+            }
+            firstBorder = vborder->GetFirstBorderFrame();
+            if (firstBorder > 0) {
+                dsyslog("cExtractLogo::SearchLogo(): detect unprocessed vertical border from frame (%d) to frame (%d)", firstBorder, frameNumber);
+                iFrameCountValid-=DeleteFrames(firstBorder, frameNumber);
+            }
+        }
+        if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES)) {
+            break; // finish read frames and find best match
         }
     }
 
-    // search for valid logo matches
+    bool doSearch = false;
+    if (iFrameCountAll > MAXREADFRAMES) {
+        dsyslog("cExtractLogo::SearchLogo(): %d valid frames of %d frames read, got enough iFrames at frame (%d), start analyze", iFrameCountValid, iFrameCountAll, decoder->GetFrameNumber());
+        doSearch = true;
+    }
+    else if ((iFrameCountAll < MAXREADFRAMES) && ((iFrameCountAll > MAXREADFRAMES / 2) || (iFrameCountValid > 390))) {
+        // reached end of recording (or part without border) before we got 1000 valid frames out of MAXREADFRAMES decoded
+        // but we got at least 390 valid frames out of MAXREADFRAMES / 2 decoded, we can work with that
+        dsyslog("cExtractLogo::SearchLogo(): end of recording reached at frame (%d), read (%d) iFrames and got (%d) valid iFrames, try anyway", frameNumber, iFrameCountAll, iFrameCountValid);
+        doSearch = true;
+    }
+    else dsyslog("cExtractLogo::SearchLogo(): read (%i) frames and could not get enough valid frames (%i)", iFrameCountAll, iFrameCountValid);
+
+// search for valid logo matches
     int logoCorner[CORNERS]     = {-1, -1, -1, -1};
     sLogoInfo logoInfo[CORNERS] = {};
     int rankResult              = -1;
 
-    if (retStatus) {
-        dsyslog("cExtractLogo::SearchLogo(): %d valid frames of %d frames read, got enough iFrames at frame (%d), start analyze", iFrameCountValid, iFrameCountAll, ptr_cDecoder->GetFrameNumber());
+    if (doSearch) {
         sLogoInfo actLogoInfo[CORNERS] = {};
         for (int corner = 0; corner < CORNERS; corner++) {
             for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
@@ -1799,7 +1737,7 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int
                     actLogoInfo[corner] = *actLogo;
                 }
             }
-            dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars out of %3zu valid frames at %s", actLogoInfo[corner].iFrameNumber, actLogoInfo[corner].hits, logoInfoVector[corner].size(), aCorner[corner]);
+            dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars out of %3zu valid frames at %s", actLogoInfo[corner].frameNumber, actLogoInfo[corner].hits, logoInfoVector[corner].size(), aCorner[corner]);
 
         }
 
@@ -1846,18 +1784,18 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int
                     ((logoInfo[rank].hits >= 20) && (sumHits <= logoInfo[rank].hits + 7)) ||   // if almost all hits are in the same corner than less are enough
                     ((logoInfo[rank].hits >= 10) && (sumHits <= logoInfo[rank].hits + 6)) ||   // if almost all hits are in the same corner than less are enough
                     ((logoInfo[rank].hits >=  5) && (sumHits == logoInfo[rank].hits))) {       // if all hits are in the same corner than less are enough
-                dsyslog("cExtractLogo::SearchLogo(): %d. best corner is %s at frame %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].iFrameNumber, logoInfo[rank].hits);
+                dsyslog("cExtractLogo::SearchLogo(): %d. best corner is %s at frame %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].frameNumber, logoInfo[rank].hits);
                 // check possible logo
-                int secondLogoHeight = logoHeight;
-                int secondLogoWidth  = logoWidth;
-                if (this->Resize(maContext, &logoInfo[rank], &logoHeight, &logoWidth, logoCorner[rank])) {  // logo can be valid
+                logoSizeFinal = logoSize;
+                if (Resize(&logoInfo[rank], &logoSizeFinal, logoCorner[rank])) {  // logo can be valid
                     done = rank;
                     rankResult = rank;
-                    dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. best corner %s was successful, H %d W %d", rank, aCorner[logoCorner[rank]], logoHeight, logoWidth);
-                    // check next best possible logo corner
+                    dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. best corner %s was successful, H %d W %d", rank, aCorner[logoCorner[rank]], logoSize.height, logoSize.width);
+                    // check next best possible logo corner, it is valid too, we can not decide
                     if (logoInfo[rank + 1].hits > (logoInfo[rank].hits * 0.8)) { // next best logo corner has high matches
-                        dsyslog("cExtractLogo::SearchLogo(): %d. best corner %d at frame %d with %d similars", rank + 1, logoCorner[rank + 1], logoInfo[rank + 1].iFrameNumber, logoInfo[rank + 1].hits);
-                        if (this->Resize(maContext, &logoInfo[rank + 1], &secondLogoHeight, &secondLogoWidth, logoCorner[rank + 1])) { // second best logo can be valid
+                        dsyslog("cExtractLogo::SearchLogo(): %d. best corner %d at frame %d with %d similars", rank + 1, logoCorner[rank + 1], logoInfo[rank + 1].frameNumber, logoInfo[rank + 1].hits);
+                        sLogoSize secondLogoSize = logoSize;
+                        if (Resize(&logoInfo[rank + 1], &secondLogoSize, logoCorner[rank + 1])) { // second best logo can be valid
                             dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. and %d. best corner is valid, still no clear result", rank, rank + 1);
                             rankResult = -1;
                             break;
@@ -1880,8 +1818,9 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int
                 if (logoCorner[rank] < 0) break;    // no more matches
                 if ((logoInfo[rank].hits >= 4) ||  // this is the very last try, use what we have, bettet than nothing, changed from 6 to 4
                         ((logoInfo[rank].hits >=  2) && (sumHits == logoInfo[rank].hits))) {  // all machtes in one corner
-                    dsyslog("cExtractLogo::SearchLogo(): try low match with %d best corner %s at frame %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].iFrameNumber, logoInfo[rank].hits);
-                    if (this->Resize(maContext, &logoInfo[rank], &logoHeight, &logoWidth, logoCorner[rank])) {
+                    dsyslog("cExtractLogo::SearchLogo(): try low match with %d best corner %s at frame %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].frameNumber, logoInfo[rank].hits);
+                    logoSizeFinal = logoSize;
+                    if (Resize(&logoInfo[rank], &logoSizeFinal, logoCorner[rank])) {
                         rankResult = rank;
                         break;
                     }
@@ -1893,40 +1832,20 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int
 
     if (rankResult < 0) {
         dsyslog("cExtractLogo::SearchLogo(): no valid logo found");
-        retStatus = false;
     }
-
-    if (retStatus) {
-        dsyslog("cExtractLogo::SearchLogo(): save corner %s as logo, H %d W %d", aCorner[logoCorner[rankResult]], logoHeight, logoWidth);
-        if (!Save(maContext, &logoInfo[rankResult], logoHeight, logoWidth, logoCorner[rankResult])) {
-            dsyslog("cExtractLogo::SearchLogo(): logo save failed");
-            retStatus = false;
-        }
-    }
-    FREE(sizeof(*ptr_Logo), "SearchLogo-ptr_Logo");  // new cMarkAdLogo(maContext, recordingIndexLogo);
-    delete ptr_Logo;
-
-// restore maContext
-    maContext->Video = maContextSaveState.Video;     // restore state of calling video context
-    maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
-
-// delete all used classes
-    FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
-    delete ptr_cDecoder;
-    FREE(sizeof(*hborder), "hborder");
-    delete hborder;
-    FREE(sizeof(*vborder), "vborder");
-    delete vborder;
-
-    if (retStatus) dsyslog("cExtractLogo::SearchLogo(): finished successfully, last frame %i", iFrameNumber);
     else {
-        dsyslog("cExtractLogo::SearchLogo(): failed, last frame %i", iFrameNumber);
-        if (resetAspectRatio) {
-            logoAspectRatio.num = maContext->Video.Info.AspectRatio.num;
-            logoAspectRatio.den = maContext->Video.Info.AspectRatio.den;
+        dsyslog("cExtractLogo::SearchLogo(): save corner %s as logo, H %d W %d", aCorner[logoCorner[rankResult]], logoSize.height, logoSize.width);
+        if (!SaveLogo(&logoInfo[rankResult], &logoSizeFinal, logoCorner[rankResult])) {
+            dsyslog("cExtractLogo::SearchLogo(): logo save failed");
         }
+        else logoFound = true;
     }
+
+    if (logoFound) dsyslog("cExtractLogo::SearchLogo(): finished successfully, last frame %i", frameNumber);
+    else dsyslog("cExtractLogo::SearchLogo(): failed, last frame %i", frameNumber);
+
     dsyslog("----------------------------------------------------------------------------");
+    struct timeval stopTime;
     gettimeofday(&stopTime, nullptr);
     time_t sec = stopTime.tv_sec - startTime.tv_sec;
     suseconds_t usec = stopTime.tv_usec - startTime.tv_usec;
@@ -1935,9 +1854,16 @@ int cExtractLogo::SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int
         sec--;
     }
     logoSearchTime_ms += sec * 1000 + usec / 1000;
-    if (retStatus) return LOGOSEARCH_FOUND;
+
+    if (abortNow) {
+        dsyslog("cExtractLogo::SearchLogo(): aborted by user");
+        return LOGO_ERROR;
+    }
+
+    if (logoFound) return LOGO_FOUND;
     else {
-        if (iFrameNumber > 0) return iFrameNumber;
-        else return LOGOSEARCH_ERROR;
+        if (frameNumber > 0) return frameNumber;   // return last frame from search to setup new search after this
+        else return LOGO_ERROR;                // nothing read, retry makes no sense
+
     }
 }

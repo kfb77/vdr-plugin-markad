@@ -757,23 +757,27 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType) {
 }
 
 
-void cMarks::RegisterIndex(cIndex *recordingIndex) {
-    recordingIndexMarks = recordingIndex;
-}
-
-
 char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR, int *offsetSeconds) {
-    if (!recordingIndexMarks) {
-        esyslog("cMarks::IndexToHMSF(): frame (%d): recording index not set", frameNumber);
-        return nullptr;
-    }
+    // offsetSeconds may be nullptr
     char *indexToHMSF = nullptr;
-    double Seconds = 0;
-    int f = 0;
-    int time_ms = recordingIndexMarks->GetTimeFromFrame(frameNumber, isVDR);
+    double Seconds    = 0;
+    int f             = 0;
+    int time_ms       = -1;
+
+    if (index) time_ms = index->GetTimeFromFrame(frameNumber, isVDR);
+    else { // called by logo search, we have no index
+        dsyslog("cMarks::IndexToHMSF(): no index available, use frame rate %d", frameRate);
+        if (frameRate <= 0) {
+            esyslog("cMarks::IndexToHMSF(): no frame rate set");
+            return nullptr;
+        }
+        else time_ms = frameNumber * 1000 / frameRate;
+    }
+
 #ifdef DEBUG_SAVEMARKS
     dsyslog("cMarks::IndexToHMSF():      frame (%d), offset from start %d, isVDR %d", frameNumber, time_ms, isVDR);
 #endif
+
     if (time_ms >= 0) f = int(modf(float(time_ms) / 1000, &Seconds) * 100);                 // convert ms to 1/100 s
     else {
         esyslog("cMarks::IndexToHMSF(): failed to get time from frame (%d)", frameNumber);
@@ -888,22 +892,37 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
     while (mark) {
         // for stop marks adjust timestamp from iFrame before to prevent short ad pictures, vdr cut only on iFrames
         int vdrMarkPosition = mark->position;
-        if ((mark->type & 0x0F) == MT_STOP) vdrMarkPosition = recordingIndexMarks->GetIFrameBefore(mark->position);
+        if ((mark->type & 0x0F) == MT_STOP) {
+            if (!index) {  // called by logo search, we have no index
+                dsyslog("cMarks::Save(): no index available, use frame rate %d", frameRate);
+                if (frameRate <= 0) {
+                    esyslog("cMarks::Save(): no frame rate set");
+                    return false;
+                }
+                else vdrMarkPosition = mark->position * 1000 / frameRate;
+            }
+            else vdrMarkPosition = index->GetIFrameBefore(mark->position);
+        }
 
 #ifdef DEBUG_SAVEMARKS
         dsyslog("-----------------------------------------------------------------------------");
         dsyslog("cMarks::Save(): mark frame number     (%d)", mark->position);
         dsyslog("cMarks::Save(): vdr mark frame number (%d)", vdrMarkPosition);
 #endif
-        const char *indexToHMSF_PTS = GetTime(mark);                          // PTS based timestamp
+        const char *indexToHMSF_PTS = GetTime(mark);                    // PTS based timestamp
+        if (!indexToHMSF_PTS) esyslog("cMarks::Save(): failed to get PTS timestamp for (%d)",  mark->position);
+
         char *indexToHMSF_VDR = IndexToHMSF(vdrMarkPosition, true);     // vdr based timestamp
         if (indexToHMSF_VDR) {
             ALLOC(strlen(indexToHMSF_VDR)+1, "indexToHMSF_VDR");
         }
+        else esyslog("cMarks::Save(): failed to get VDR timestamp for (%d)", vdrMarkPosition);
+
 #ifdef DEBUG_SAVEMARKS
         dsyslog("cMarks::Save(): mark frame number     (%d): indexToHMSF_PTS %s", mark->position,  indexToHMSF_PTS);
         dsyslog("cMarks::Save(): vdr mark frame number (%d): indexToHMSF_VDR %s", vdrMarkPosition, indexToHMSF_VDR);
 #endif
+
         if (indexToHMSF_VDR && indexToHMSF_PTS) {
             if (maContext->Config->pts) fprintf(mf, "%s (%6d)%s %s <- %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", indexToHMSF_PTS, mark->comment ? mark->comment : "");
             else fprintf(mf, "%s (%6d)%s %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", mark->comment ? mark->comment : "");

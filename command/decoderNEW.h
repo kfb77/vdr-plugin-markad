@@ -22,6 +22,7 @@ extern "C" {
 #include <libavutil/pixdesc.h>
 #include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
+#include <libavutil/avutil.h>
 
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(3<<8)+102)
 #include <libavutil/channel_layout.h>
@@ -72,30 +73,27 @@ public:
 
     /**
      * cDecoder constructor
-     * @param threads        count threads of ffmpeg decoder
-     * @param recordingIndex recording index class
+     * @param recDir            recording directory
+     * @param threadsParam      count threads of ffmpeg decoder
+     * @param fullDecodeParam   true if full decode, fals if only decode i-frames
+     * @param hwaccelParam      true if we use hwaccel
+     * @param indexParam        recording index class
      */
-    explicit cDecoderNEW(const char *recDir, int threadsParam, const bool fullDecodeParam, const bool vaapiParam, cIndex *indexParam);
+    explicit cDecoderNEW(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccel, cIndex *indexParam);
 
     ~cDecoderNEW();
 
     /**
      * set decoder to first/next file of the directory
-     * @param recDir name of the recording directory
      * @return true if first/next ts file found, false otherwise
      */
     bool ReadNextFile();
-
-
-
-
 
     /**
      * get number of decoding error
      * @return number of decoding errors
      */
     int GetErrorCount() const;
-
 
     /**
      * setup decoder codec context for current file
@@ -197,11 +195,16 @@ public:
      * seek decoder read position
      * only seek forward <br>
      * seek to i-frame before and start decode to fill decoder buffer
-     * @param maContext   markad context
-     * @param frameNumber frame number to seek
-     * @return true if successful, false otherwise
+     * @param seekNumber frame number to seek
+     * @return           true if successful, false otherwise
      */
-    bool SeekToFrame(sMarkAdContext *maContext, int frameNumber);
+    bool SeekToFrame(int seekNumber);
+
+    /**
+     * complete reset decoder without hwaccel
+     * @return return code from avcodec_send_packet
+     */
+    int ResetToSW();
 
     /**
      * send packet to decoder
@@ -258,6 +261,11 @@ public:
      */
     bool IsAudioPacket();
 
+    /** get current channel count of AC3 stream
+     * @return channel count of AC3, 0 if no AC3 stream exists
+     */
+    int GetAC3ChannelCount();
+
     /** check if stream is subtitle
      * @param streamIndex stream index
      * @return true if stream is subtitle, false otherwise
@@ -272,7 +280,7 @@ public:
     /** get current read video packet number
      * @return current read packet number
      */
-    int GetPacketNumber() const;
+//    int GetPacketNumber() const;
 
     /** get current decoded video frame number
      * @return current decoded frame number
@@ -297,6 +305,13 @@ public:
      */
     int GetIFrameRangeCount(int beginFrame, int endFrame);
 
+    /// get aspect ratio of current frame
+    /**
+     * @return  aspect ratio of current frame
+     */
+    sAspectRatio *GetAspectRatio();
+
+
 private:
     char *recordingDir                 = nullptr;                 //!< name of recording directory
     //!<
@@ -306,7 +321,7 @@ private:
     //!<
     bool fullDecode                    = false;                   //!< false if we decode only i-frames, true if we decode all frames
     //!<
-    bool vaapi                         = false;                   //!< enable vaapi hardware accelerated video decode and encode
+    bool useHWaccel                    = false;                   //!< enable hardware accelerated video decode and encode
     //!<
     enum AVHWDeviceType hwDeviceType   = AV_HWDEVICE_TYPE_NONE ;  //!< hardware device type
     //!<
@@ -342,6 +357,8 @@ private:
     int decoderSendState               = 0;                       //!< last return code of avcodec_send_packet()
     //!<
     sVideoPicture videoPicture         = {};                      //!< current decoded video picture
+    //!<
+    sAspectRatio DAR                   = {0};                     //!< display aspect ratio of current frame
     //!<
     long int currOffset                =  0;                      //!< current offset from recording start, sum duration of all video packets in AVStream->time_base
     //!<

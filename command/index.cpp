@@ -147,7 +147,7 @@ int cIndex::GetTimeFromFrame(const int frameNumber, const bool isVDR) {
 
     for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
 #ifdef DEBUG_SAVEMARKS
-        dsyslog("cIndex::GetTimeFromFrame(): frame (%6d): offset time is %6dms", frameIterator->frameNumber, frameIterator->ptsTimeOffset_ms);
+//        dsyslog("cIndex::GetTimeFromFrame(): frame (%6d): offset time is %6dms", frameIterator->frameNumber, frameIterator->ptsTimeOffset_ms);
 #endif
         if (frameIterator->frameNumber == frameNumber) {
             if (isVDR) {

@@ -15,6 +15,7 @@
 #include "video.h"
 #include "audio.h"
 #include "tools.h"
+#include "sobel.h"
 
 #define MAXREADFRAMES 3000
 
@@ -23,14 +24,14 @@
 #define BOTTOM_LEFT  2
 #define BOTTOM_RIGHT 3
 
-#define LOGOSEARCH_ERROR  -1
-#define LOGOSEARCH_FOUND   0
+#define LOGO_ERROR  -1
+#define LOGO_FOUND   0
 
 /**
  * logo after sobel transformation
  */
 struct sLogoInfo {
-    int iFrameNumber = -1;   //!< frame number of the logo
+    int frameNumber = -1;   //!< frame number of the logo
     //!<
 
     int hits = 0;            //!< number of similar other logos
@@ -49,31 +50,70 @@ public:
 
     /**
      * constructor for class to search end extract logo from recording
-     * @param maContext      markad context
-     * @param criteriaParam   detection criteria
-     * @param AspectRatio    video aspect ratio for requested logo
-     * @param recordingIndex recording index
+     * @param recDirParam      recording directory
+     * @param channelNameParam channel name
+     * @param threads          count of FFmpeg threads
+     * @param hwaccel          hwaccel device type, only vaapi supported
+     * @param AspectRatio      video aspect ratio for requested logo
      */
-    explicit cExtractLogo(sMarkAdContext *maContext, cCriteria *criteriaParam, const sAspectRatio AspectRatio, cIndex *recordingIndex);
+    explicit cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, char *hwaccel, const sAspectRatio AspectRatio);
     ~cExtractLogo();
 
     /**
+     * copy constructor
+     */
+    cExtractLogo(const cExtractLogo &origin) {
+        recDir              = nullptr;
+        channelName         = nullptr;
+        decoder             = nullptr;
+        criteria            = nullptr;
+        sobel               = nullptr;
+        hborder             = nullptr;
+        vborder             = nullptr;
+        recordingFrameCount = origin.recordingFrameCount;
+        audioState          = origin.audioState;
+        iFrameCountValid    = origin.iFrameCountValid;
+        memcpy(aCorner, origin.aCorner, sizeof(origin.aCorner));
+        for (int i = 0; i < CORNERS; i++) {
+            logoInfoVector[i]   = origin.logoInfoVector[i];
+        }
+    }
+
+    /**
+     * operator=
+     */
+    cExtractLogo &operator =(const cExtractLogo *origin) {
+        recDir              = nullptr;
+        channelName         = nullptr;
+        decoder             = nullptr;
+        criteria            = nullptr;
+        sobel               = nullptr;
+        hborder             = nullptr;
+        vborder             = nullptr;
+        recordingFrameCount = origin->recordingFrameCount;
+        audioState          = origin->audioState;
+        iFrameCountValid    = origin->iFrameCountValid;
+        memcpy(aCorner, origin->aCorner, sizeof(origin->aCorner));
+        for (int i = 0; i < CORNERS; i++) {
+            logoInfoVector[i]   = origin->logoInfoVector[i];
+        }
+        return *this;
+    }
+
+
+    /**
+     * get video frame rate from decoder
+     * @return frame rate
+     */
+    int GetFrameRate();
+
+    /**
      * search and extract logo from recording
-     * @param maContext    markad context
-     * @param criteria     detection criteria
      * @param startFrame   frame number to start search
      * @param force        finding a logo, even on weak matches
      * @return last read frame during search
      */
-    int SearchLogo(sMarkAdContext *maContext, cCriteria *criteria, int startFrame, const bool force);
-
-    /**
-     * get default logo size
-     * @param maContext       markad context
-     * @param[out] logoHeight default logo height
-     * @param[out] logoWidth  default logo width
-     */
-    void GetLogoSize(const sMarkAdContext *maContext, int *logoHeight, int *logoWidth);
+    int SearchLogo(int startFrame, const bool force);
 
     /**
      * compare logo pair
@@ -89,47 +129,38 @@ public:
      */
     bool CompareLogoPair(const sLogoInfo *logo1, const sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0 = 0, int match12 = 0, int *rate0 = nullptr);
 
-    bool abort = false;  //!< true if program abort is requestet, false otherwise
-    //!<
 private:
     /**
      * save logo picture, used for debugging
-     * @param maContext       markad context
-     * @param ptr_actLogoInfo logo pixel map
-     * @param logoHeight      logo height
-     * @param logoWidth       logo width
+     * @param actLogoInfo logo pixel map
+     * @param logoSizeFinal   logo size of final selected logo
      * @param corner          logo corner
      * @param framenumber     frame number
      * @param debugText       debug messaged appended to file name
-     * @return true if saved successful, false otherwise
+     * @return                true if saved successful, false otherwise
      */
-    bool Save(const sMarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner, const int framenumber,  const char *debugText);
+    bool SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFinal, const int corner, const int framenumber,  const char *debugText);
 
     /**
      * check if logo is valid
-     * @param maContext       markad context
-     * @param ptr_actLogoInfo logo pixel map
-     * @param logoHeight      logo height
-     * @param logoWidth       logo width
+     * @param actLogoInfo logo pixel map
      * @param corner          logo corner
-     * @return true if logo is valid
+     * @return                true if logo is valid
      */
-    bool CheckValid(const sMarkAdContext *maContext, const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
+    bool CheckValid(const sLogoInfo *actLogoInfo, const int corner);
 
     /**
      * compare logo with all other in list
-     * @param maContext       markad context
-     * @param ptr_actLogoInfo pixel map of logo
+     * @param actLogoInfo pixel map of logo
      * @param logoHeight      logo height
      * @param logoWidth       logo width
      * @param corner          logo corner
-     * @return true if logo pair is similar, false otherwise
+     * @return                true if logo pair is similar, false otherwise
      */
-    int Compare(const sMarkAdContext *maContext, sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
+    int Compare(sLogoInfo *actLogoInfo, const int logoHeight, const int logoWidth, const int corner);
 
     /**
      * compare rotating logo pair
-     * @param maContext  markad context
      * @param logo1      pixel map of logo 1
      * @param logo2      pixel map of logo 2
      * @param logoHeight logo height
@@ -137,133 +168,127 @@ private:
      * @param corner     logo corner
      * @return true if logo pair is similar, false otherwise
      */
-    bool CompareLogoPairRotating(const sMarkAdContext *maContext, sLogoInfo *logo1, sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner);
+    bool CompareLogoPairRotating(sLogoInfo *logo1, sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner);
 
     /**
      * cut logo picture
-     * @param logoInfo           logo pixel map
-     * @param cutPixelH          number of pixel to cut off horizontal
-     * @param cutPixelV          number of pixel ro cut off vertical
-     * @param[in,out] logoHeight logo height
-     * @param[in,out] logoWidth  logo width
-     * @param corner             logo corner
+     * @param logoInfo              logo pixel map
+     * @param cutPixelH             number of pixel to cut off horizontal
+     * @param cutPixelV             number of pixel ro cut off vertical
+     * @param[in,out] logoSizeFinal logo size of final setected logo
+     * @param corner                logo corner
      */
-    void CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, int *logoHeight, int *logoWidth, const int corner) const;
+    void CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, sLogoSize *logoSizeFinal, const int corner) const;
 
     /**
      * check if found logo size and corner is valid
-     * @param maContext  markad context
-     * @param logoHeight logo height
-     * @param logoWidth  logo width
-     * @param logoCorner corner of logo
-     * @return true if logo size and corner is valid, false otherwise
+     * @param logoSizeFinal final logo size
+     * @param logoCorner    corner of logo
+     * @return              true if logo size and corner is valid, false otherwise
      */
-    bool CheckLogoSize(const sMarkAdContext *maContext, const int logoHeight, const int logoWidth, const int logoCorner);
+    bool CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner);
 
     /**
      * remove white frame and resize logo
-     * @param maContext          markad context
-     * @param bestLogoInfo       logo pixel map
-     * @param[in,out] logoHeight logo height
-     * @param[in,out] logoWidth  logo width
-     * @param bestLogoCorner     logo corner
-     * @return true if successful, false otherwise
+     * @param bestLogoInfo          logo pixel map
+     * @param[in,out] logoSizeFinal size of final setected logo
+     * @param bestLogoCorner        logo corner
+     * @return                      true if successful, false otherwise
      */
-    bool Resize(const sMarkAdContext *maContext, sLogoInfo *bestLogoInfo, int *logoHeight, int *logoWidth, const int bestLogoCorner);
+    bool Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, const int bestLogoCorner);
 
     /**
      * check of plane has pixel
-     * @param ptr_actLogoInfo logo pixel
-     * @param logoHeight      logo height
-     * @param logoWidth       logo width
+     * @param actLogoInfo logo pixel
+     * @param logoSizePlane   logo size of this plane
      * @param plane           pixel plane number
-     * @return true if there are no pixel, false otherwise
+     * @return                true if there are no pixel, false otherwise
      */
-    static bool IsWhitePlane(const sLogoInfo *ptr_actLogoInfo, const int logoHeight, const int logoWidth, const int plane);
+    static bool IsWhitePlane(const sLogoInfo *actLogoInfo, const sLogoSize *logoSizePlane, const int plane);
 
     /**
      * check of logo had a changed colour
-     * @param maContext markad context
-     * @param corner    logo corner
-     * @param plane     number of plane
-     * @return true if logo changed colour, false otherwise
+     * @param logoSizeFinal  final size of selected logo
+     * @param corner         logo corner
+     * @param plane          number of plane
+     * @return               true if logo changed colour, false otherwise
      */
-    bool IsLogoColourChange(const sMarkAdContext *maContext, const int corner, const int plane);
+    bool IsLogoColourChange(sLogoSize *logoSizeFinal, const int corner, const int plane);
 
     /**
      * delete frames from logo list
-     * @param maContext markad context
      * @param from      start frame to delete from
      * @param to        end frame
      * @return          number of deleted frames
      */
-    int DeleteFrames(const sMarkAdContext *maContext, const int from, const int to);
+    int DeleteFrames(const int from, const int to);
 
     /**
      * wait for more frames if markad runs during recording
-     * @param maContext    markad context
-     * @param ptr_cDecoder decoder
-     * @param minFrame     minimum framenumber we need
-     * @return true if we have enough frames, false otherwise
+     * @param decoder   pointer to decoder
+     * @param minFrame  minimum framenumber we need
+     * @return          true if we have enough frames, false otherwise
      */
-    bool WaitForFrames(sMarkAdContext *maContext, cDecoder *ptr_cDecoder, const int minFrame);
+    bool WaitForFrames(cDecoderNEW *decoder, const int minFrame);
 
     /**
      * get first frame number of stored logos
-     * @param maContext markad context
      * @return first frame number of stored logos
      */
-    int GetFirstFrame(const sMarkAdContext *maContext);
+    int GetFirstFrame();
 
     /**
      * get last frame number of stored logos
-     * @param maContext markad context
      * @return last frame number of stored logos
      */
-    int GetLastFrame(const sMarkAdContext *maContext);
+    int GetLastFrame();
 
     /**
      * count of stored logo frames
-     * @param maContext markad context
      * @return count of stored logo frames
      */
-    int CountFrames(const sMarkAdContext *maContext);
+    int CountFrames();
 
     /**
      * remove single pixel defect in logo
-     * @param maContext         markad context
      * @param [in,out] logoInfo logo pixel map
-     * @param logoHeight        logo height
-     * @param logoWidth         logo width
      * @param corner            logo corner
      */
-    void RemovePixelDefects(const sMarkAdContext *maContext, sLogoInfo *logoInfo, const int logoHeight, const int logoWidth, const int corner);
+    void RemovePixelDefects(sLogoInfo *logoInfo, const int corner);
 
     /**
      * check audio channel status
-     * @param maContext markad context
-     * @param iFrameNumber   i-frame number
      * @return  0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
      */
-    int AudioInBroadcast(const sMarkAdContext *maContext, const int iFrameNumber);
+    int AudioInBroadcast();
 
-    sMarkAdContext *maContextLogoSize = nullptr;         //!< markad context
+    const char *recDir                = nullptr;      //!< recording directory
     //!<
-    cCriteria *criteria               = nullptr;         //!< detection criteria
+    const char *channelName           = nullptr;      //!< channel name, used for logo file name
     //!<
-    cIndex *recordingIndexLogo        = nullptr;         //!< recording index
+    cDecoderNEW *decoder              = nullptr;      //!< pointer to decoder
     //!<
-    std::vector<sLogoInfo> logoInfoVector[CORNERS];   //!< infos of all proccessed logos
+    cCriteria *criteria               = nullptr;      //!< channel criteria for logo detection
+    //!<
+    cSobel *sobel                     = nullptr;      //!< pointer to sobel transformation
+    //!<
+    cMarkAdBlackBordersHoriz *hborder = nullptr;      //!< pointer to hborder detection
+    //!<
+    cMarkAdBlackBordersVert *vborder  = nullptr;      //!< pointer to hborder detection
+    //!<
+    sLogoSize logoSize;                               //!< logo size, global variable keeps static start size
     //!<
     int recordingFrameCount           = 0;            //!< frame count of the recording
     //!<
     sAspectRatio logoAspectRatio      = {};           //!< video aspect ratio
     //!<
-    int AudioState                    = 0;            //!< 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
+    int audioState                    = 0;            //!< 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
     //!<
     int iFrameCountValid              = 0;            //!< number of valid i-frames
     //!<
     const char *aCorner[CORNERS]      = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" }; //!< array to transform enum corner to text
+    //!<
+    std::vector<sLogoInfo> logoInfoVector[CORNERS];   //!< infos of all proccessed logos
     //!<
 
 

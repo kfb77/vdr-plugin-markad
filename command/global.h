@@ -114,6 +114,16 @@ typedef unsigned char uchar;
 #define MT_NOADINFRAMESTART                  0xD41  // used to replace start mark, frame after ad in frame ends
 #define MT_NOADINFRAMESTOP                   0xD42  // used to replace stop mark, frame before ad in frame starts
 
+
+// corner index
+enum {
+    TOP_LEFT,
+    TOP_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_RIGHT
+};
+
+
 /**
  * logo size structure
  */
@@ -130,9 +140,15 @@ typedef struct sLogoSize {
  * video picture structure
  */
 typedef struct sVideoPicture {
-    uchar *Plane[PLANES];  //!< array of picture planes (YUV420)
+    uchar *plane[PLANES]      = {nullptr};  //!< array of picture planes (YUV420)
     //!<
-    int PlaneLinesize[PLANES]; //!< size int bytes of each picture plane line
+    int planeLineSize[PLANES] = {0};        //!< size int bytes of each picture plane line
+    //!<
+    int frameNumber           = -1;         //!< frame number of picture, -1 for invalid
+    //!<
+    int width                 = 0;          //!< video width
+    //!<
+    int height                = 0;          //!< viedeo height
     //!<
 } sVideoPicture;  //!< video picture data structure
 
@@ -141,47 +157,47 @@ typedef struct sVideoPicture {
  * markad configuration structure
  */
 typedef struct sMarkAdConfig {
-    char logFile[20] = {};      //!< name of the markad log file
+    char logFile[20]          = {};      //!< name of the markad log file
     //!<
-    char logoDirectory[1024];   //!< logo cache directory (default /var/lib/markad)
+    char logoDirectory[1024]  = {};   //!< logo cache directory (default /var/lib/markad)
     //!<
-    char markFileName[1024];    //!< name of the marks file (default marks)
+    char markFileName[255]    = {};    //!< name of the marks file (default marks)
     //!<
-    char svdrphost[1024];       //!< ip or name of vdr server (default localhost)
+    char svdrphost[1024]      = {};       //!< ip or name of vdr server (default localhost)
     //!<
-    int svdrpport;              //!< vdr svdrp port number
+    int svdrpport             = 0;              //!< vdr svdrp port number
     //!<
-    int logoExtraction = false; //!< <b>true:</b> extract logo and store to /tmp <br>
+    int logoExtraction        = false; //!< <b>true:</b> extract logo and store to /tmp <br>
     //!< <b>false:</b> normal markad operation
     //!<
-    int logoWidth;              //!< width for logo extractions
+    int logoWidth             = 0;              //!< width for logo extractions
     //!
-    int logoHeight;             //!< height for logo extraction
+    int logoHeight            = 0;             //!< height for logo extraction
     //!<
-    int threads;                //!< number of threads for decoder and encoder
+    int threads               = 0;                //!< number of threads for decoder and encoder
     //!<
-    bool useVPS = false;        //!< <b>true:</b> use information from vps file to optimize marks
+    bool useVPS               = false;        //!< <b>true:</b> use information from vps file to optimize marks
     //!< <b>false:</b> do not use information from vps file to optimize marks
-    bool MarkadCut = false;     //!< cut video after mark detection
+    bool MarkadCut            = false;     //!< cut video after mark detection
     //!<
-    bool ac3ReEncode = false;   //!< re-encode AC3 stream and adapt audio volume
+    bool ac3ReEncode          = false;   //!< re-encode AC3 stream and adapt audio volume
     //!<
-    int autoLogo = 2;           //!< 0 = off, 1 = deprecated, 2 = on
+    int autoLogo              = 2;           //!< 0 = off, 1 = deprecated, 2 = on
     //!<
-    const char *cmd    = nullptr;  //!< cmd parameter
+    const char *cmd           = nullptr;  //!< cmd parameter
     //!<
-    const char *recDir = nullptr;  //!< name of the recording directory
+    const char *recDir        = nullptr;  //!< name of the recording directory
     //!<
-    bool backupMarks;           //!< <b>true:</b> backup marks file before override <br>
+    bool backupMarks          = false;           //!< <b>true:</b> backup marks file before override <br>
     //!< <b>false:</b> do not backup marks file
     //!<
-    bool noPid;                 //!< <b>true:</b> do not write a PID file <br>
+    bool noPid                = false;                 //!< <b>true:</b> do not write a PID file <br>
     //!< <b>false:</b> write a PID file
     //!<
-    bool osd;                   //!< <b>true:</b> send screen messages to vdr <br>
+    bool osd                  = false;                   //!< <b>true:</b> send screen messages to vdr <br>
     //!< <b>false:</b> do not send screen messages to vdr
     //!<
-    int online = 0;             //!< start markad immediately when called with "before" as cmd
+    int online                = 0;             //!< start markad immediately when called with "before" as cmd
     //!< if online is 1, markad starts online for live-recordings
     //!< only, online=2 starts markad online for every recording
     //!< live-recordings are identified by having a '@' in the
@@ -189,22 +205,26 @@ typedef struct sMarkAdConfig {
     //!< Setup - Recording of the vdr should be set to 'yes'
     //!< ( default is 1 )
     //!<
-    bool before;                //!< <b>true:</b> markad started by vdr before the recording is complete, only valid together with --online <br>
+    bool before               = false;                //!< <b>true:</b> markad started by vdr before the recording is complete, only valid together with --online <br>
     //!<
-    bool fullDecode = false;    //!< <b>true:</b> decode all video frames <br>
+    bool fullDecode           = false;    //!< <b>true:</b> decode all video frames <br>
     //!< <b>false:</b> decode only iFrames
     //!<
-    bool fullEncode = false;    //!< <b>true:</b> full re-encode all frames, cut on all frame types <br>
+    bool fullEncode           = false;    //!< <b>true:</b> full re-encode all frames, cut on all frame types <br>
     //!< <b>false:</b> copy frames without re-encode, cut on iframe position
     //!<
-    bool bestEncode = true;     //!< <b>true:</b> encode all video and audio streams <br>
+    bool bestEncode           = true;     //!< <b>true:</b> encode all video and audio streams <br>
     //!< <b>false:</b> encode all video and audio streams
     //!<
-    bool pts        = false;    //!< <b>true:</b> add pts based timestanp to marks<br>
+    bool pts                  = false;    //!< <b>true:</b> add pts based timestanp to marks<br>
     //!< <b>false:</b> otherwise
-    bool hwaccel    = false;    //!< <b>true:</b>  decode video with VAAPI (Video Acceleration API)<br>
+    char hwaccel[16]          = {0};      //!< hardware acceleration, only vaapi supported
+    //!<
+    bool perftest             = false;    //!< <b>true:</b>  run decoder performance test before detect marks<br>
     //!< <b>false:</b> otherwise
-    bool perftest   = false;    //!< <b>true:</b>  run decoder performance test before detect marks<br>
+    char hwaccel[16]          = {0};      //!< hardware acceleration, only vaapi supported
+    //!<
+    bool perftest             = false;    //!< <b>true:</b>  run decoder performance test before detect marks<br>
     //!< <b>false:</b> otherwise
 } sMarkAdConfig;
 
@@ -292,38 +312,28 @@ typedef struct sMarkAdContext {
      * global markad state structure
      */
     struct sInfo {
-        bool isRunningRecording = false;  //!< <b>true:</b> markad is running during recording <br>
+        bool isRunningRecording        = false;    //!< <b>true:</b> markad is running during recording <br>
         //!< <b>false:</b>  markad is running after recording
         //!<
-
-        bool isStartMarkSaved   = false;  //!< <b>true:</b> dummy start mark is set to end of pre timer and saved
+        bool isStartMarkSaved          = false;  //!< <b>true:</b> dummy start mark is set to end of pre timer and saved
         //!< <b>false:</b> dummy start mark is not jet set
         //!<
-
-        int tStart              = -1;     //!< offset of timer start to recording start (pre timer)
+        int tStart                     = -1;       //!< offset of timer start to recording start (pre timer)
         //!<
-
-        sAspectRatio AspectRatio;   //!< set from info file and checked after chkSTART, valid for the recording
+        sAspectRatio AspectRatio       = {0};      //!< set from info file and checked after chkSTART, valid for the recording
         //!<
-
-        bool checkedAspectRatio = false;  //!< <b>true:</b> current video aspect ratio is verified <br>
+        bool checkedAspectRatio        = false;    //!< <b>true:</b> current video aspect ratio is verified <br>
         //!< <b>false:</b> current video aspect ratio is not jet verified
         //!<
-
-        short int Channels[MAXSTREAMS] = {0};  //!< count of audio channel of each audio stream
+        short int Channels[MAXSTREAMS] = {0};      //!< count of audio channel of each audio stream
         //!<
-
-
-        char *ChannelName = nullptr;  //!< name of the channel
+        char *ChannelName              = nullptr;  //!< name of the channel
         //!<
-
-        bool timerVPS = false;  //!< <b>true:</b> recording is from a VPS controlled timer <br>
+        bool timerVPS                  = false;    //!< <b>true:</b> recording is from a VPS controlled timer <br>
         //!< <b>false:</b> recording is not from a VPS controlled timer
         //!<
-
-        int vPidType = 0;  //!< video packet identifier type
+        int vPidType                   = 0;        //!< video packet identifier type
         //!<
-
     } Info; //!< global markad state infos
     //!<
 

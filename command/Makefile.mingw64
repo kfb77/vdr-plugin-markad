@@ -56,6 +56,7 @@ OBJS+= vps.o
 OBJS+= tools.o
 OBJS+= overlap.o
 OBJS+= decoderNEW.o
+OBJS+= sobel.o
 
 WIN32_SRC:=$(wildcard win32/*.cpp)
 

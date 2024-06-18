@@ -42,7 +42,6 @@
 bool SYSLOG                    = false;
 bool LOG2REC                   = false;
 cDecoder *ptr_cDecoder         = nullptr;
-cExtractLogo *ptr_cExtractLogo = nullptr;
 cMarkAdStandalone *cmasta      = nullptr;
 bool restartLogoDetectionDone  = false;
 int SysLogLevel                = 2;
@@ -1661,9 +1660,6 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     ALLOC(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
     ptr_cDecoderLogoChange->DecodeDir(directory);
 
-    cExtractLogo *ptr_cExtractLogoChange = new cExtractLogo(&macontext, &criteria, macontext.Video.Info.AspectRatio, recordingIndexMark);
-    ALLOC(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
-
     cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, &criteria, ptr_cDecoderLogoChange, recordingIndexMark, evaluateLogoStopStartPair);
     ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
@@ -1747,8 +1743,6 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     }
 
     // free objects
-    FREE(sizeof(*ptr_cExtractLogoChange), "ptr_cExtractLogoChange");
-    delete ptr_cExtractLogoChange;
     FREE(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
     delete ptr_cDecoderLogoChange;
     FREE(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
@@ -3570,11 +3564,13 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
     if (!isPause) {
         char *indexToHMSF = marks.IndexToHMSF(vpsFrame, false);
         if (indexToHMSF) {
-            ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
+            ALLOC(strlen(indexToHMSF) + 1, "indexToHMSF");
         }
-        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%d) at %s", (type == MT_START) ? "start" : "stop", vpsFrame, indexToHMSF);
-        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-        free(indexToHMSF);
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%d) at %s", (type == MT_START) ? "start" : "stop", vpsFrame, (indexToHMSF) ? indexToHMSF : "unknown");
+        if (indexToHMSF) {
+            FREE(strlen(indexToHMSF) + 1, "indexToHMSF");
+            free(indexToHMSF);
+        }
         mark = ((type == MT_START)) ? marks.GetNext(0, MT_START, 0x0F) : marks.GetPrev(INT_MAX, MT_STOP, 0x0F);
     }
     else {
@@ -3582,9 +3578,11 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
         if (indexToHMSF) {
             ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
         }
-        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%d) at %s", (type == MT_START) ? "pause start" : "pause stop", vpsFrame, indexToHMSF);
-        FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-        free(indexToHMSF);
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%d) at %s", (type == MT_START) ? "pause start" : "pause stop", vpsFrame, (indexToHMSF) ? indexToHMSF : "unknown");
+        if (indexToHMSF) {
+            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+            free(indexToHMSF);
+        }
         mark = ((type == MT_START)) ? marks.GetAround(delta, vpsFrame, MT_START, 0x0F) :  marks.GetAround(delta, vpsFrame, MT_STOP, 0x0F);
     }
     if (!mark) {
@@ -5787,7 +5785,7 @@ void cMarkAdStandalone::ProcessFiles() {
             if (macontext.Info.isRunningRecording && !macontext.Info.isStartMarkSaved && (ptr_cDecoder->GetFrameNumber() >= (macontext.Info.tStart * macontext.Video.Info.framesPerSecond))) {
                 dsyslog("cMarkAdStandalone::ProcessFiles(): recording is aktive, read frame (%d), now save dummy start mark at pre timer position %ds", ptr_cDecoder->GetFrameNumber(), macontext.Info.tStart);
                 cMarks marksTMP;
-                marksTMP.RegisterIndex(recordingIndexMark);
+                marksTMP.SetIndex(recordingIndexMark);
                 marksTMP.Add(MT_ASSUMEDSTART, MT_UNDEFINED, MT_UNDEFINED, ptr_cDecoder->GetFrameNumber(), "timer start", true);
                 marksTMP.Save(macontext.Config->recDir, &macontext, true);
                 macontext.Info.isStartMarkSaved = true;
@@ -5992,24 +5990,34 @@ bool cMarkAdStandalone::CheckLogo() {
             closedir(recDIR);
         }
         isyslog("no logo for %s %d:%d found in recording directory %s, trying to extract logo from recording", macontext.Info.ChannelName, macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den, macontext.Config->recDir);
-        ptr_cExtractLogo = new cExtractLogo(&macontext, &criteria, macontext.Info.AspectRatio, recordingIndexMark);
-        ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
+
+        cExtractLogo *extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->hwaccel, macontext.Info.AspectRatio);
+        ALLOC(sizeof(*extractLogo), "extractLogo");
+
+        // write an early start mark for running recordings to provide a guest start mark for direct play, marks file will be overridden by save of first real mark
+        if (macontext.Info.isRunningRecording) {
+            dsyslog("cExtractLogo::SearchLogo(): recording is aktive, now save dummy start mark at pre timer position %ds", macontext.Info.tStart);
+            cMarks marksTMP;
+            marksTMP.SetFrameRate(extractLogo->GetFrameRate());
+            marksTMP.Add(MT_ASSUMEDSTART, MT_UNDEFINED, MT_UNDEFINED, macontext.Info.tStart, "timer start", true);
+            marksTMP.Save(macontext.Config->recDir, &macontext, true);
+        }
+
         int startPos =  macontext.Info.tStart * 25;  // search logo from assumed start, we do not know the frame rate at this point, so we use 25
         if (startPos < 0) startPos = 0;  // consider late start of recording
-        int endpos = ptr_cExtractLogo->SearchLogo(&macontext, &criteria, startPos, false);
+        int endpos = extractLogo->SearchLogo(startPos, false);
         for (int retry = 2; retry <= 8; retry++) {  // do not reduce, we will not get some logos
             startPos += 5 * 60 * macontext.Video.Info.framesPerSecond; // next try 5 min later, now we know the frame rate
-            if (endpos > LOGOSEARCH_FOUND) {  // no logo found, endpos is last frame of search
+            if (endpos > LOGO_FOUND) {  // no logo found, endpos is last frame of search
                 dsyslog("cMarkAdStandalone::CheckLogo(): no logo found in recording, retry in %ind part of the recording at frame (%d)", retry, startPos);
-                endpos = ptr_cExtractLogo->SearchLogo(&macontext, &criteria, startPos, false);
+                endpos = extractLogo->SearchLogo(startPos, false);
             }
             else break;
         }
-        if (ptr_cExtractLogo) {
-            FREE(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
-            delete ptr_cExtractLogo;
-            ptr_cExtractLogo = nullptr;
-        }
+        FREE(sizeof(*extractLogo), "extractLogo");
+        delete extractLogo;
+        extractLogo = nullptr;
+
         if (endpos == 0) {
             dsyslog("cMarkAdStandalone::CheckLogo(): found logo in recording");
             gettimeofday(&endTime1, nullptr);
@@ -6352,7 +6360,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     inBroadCast = false;
     iStopinBroadCast = false;
     recordingIndexMark = recordingIndex;
-    marks.RegisterIndex(recordingIndexMark);
+    marks.SetIndex(recordingIndexMark);
     indexFile = nullptr;
     video = nullptr;
     audio = nullptr;
@@ -6489,6 +6497,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         cTest *test = new cTest(&macontext);
         test->Perf();
         delete test;
+        abortNow = true;
+        return;
     }
 
     if (!CheckLogo() && (config->logoExtraction == -1) && (config->autoLogo == 0)) {
@@ -6742,18 +6752,10 @@ int usage(int svdrpport) {
            "                  if online=1, markad starts online for live-recordings only\n"
            "                     online=2, markad starts online for every recording\n"
            "                  live-recordings are identified by having a '@' in the filename\n"
-           "                --pass1only\n"
-           "                  process only first pass, setting of marks\n"
-           "                --pass2only\n"
-           "                  process only second pass, fine adjustment of marks\n"
            "                --svdrphost=<ip/hostname> (default is 127.0.0.1)\n"
            "                  ip/hostname of a remote VDR for OSD messages\n"
            "                --svdrpport=<port> (default is %i)\n"
            "                  port of a remote VDR for OSD messages\n"
-           "                --astopoffs=<value> (default is 0)\n"
-           "                  assumed stop offset in seconds range from 0 to 240\n"
-           "                --posttimer=<value> (default is 600)\n"
-           "                  additional recording after timer end in seconds range from 0 to 1200\n"
            "                --vps\n"
            "                  use markad.vps from recording directory to optimize start, stop and break marks\n"
            "                --cut\n"
@@ -6773,6 +6775,9 @@ int usage(int svdrpport) {
            "                  use it only on powerful CPUs, it will double overall run time\n"
            "                  <streams>  all  = keep all video and audio streams of the recording\n"
            "                             best = only encode best video and best audio stream, drop rest\n"
+           "                --hwaccel=<hardware acceleration method>\n"
+           "                  use hardware acceleration for decoding/encoding\n"
+           "                  <hardware acceleration method>  only vaapi is supported but you can try any of your FFmpeg and hardware supports\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
            "nice                         runs markad directly and with nice(19)\n"
@@ -6910,7 +6915,7 @@ int main(int argc, char *argv[]) {
             {"fulldecode",   0, 0, 12},
             {"fullencode",   1, 0, 13},
             {"pts",          0, 0, 14},     // undocumented, only for development use
-            {"hwaccel",      0, 0, 15},
+            {"hwaccel",      1, 0, 15},
             {"perftest",     0, 0, 16},     // undocumented, only for development use
 
             {0, 0, 0, 0}
@@ -7119,7 +7124,11 @@ int main(int argc, char *argv[]) {
             config.pts = true;
             break;
         case 15: // --hwaccel
-            config.hwaccel = true;
+            if ((strlen(optarg) + 1) > sizeof(config.hwaccel)) {
+                fprintf(stderr, "markad: hwaccel type too long: %s\n", optarg);
+                return EXIT_FAILURE;
+            }
+            strncpy(config.hwaccel, optarg, sizeof(config.hwaccel) - 1);
             break;
         case 16: // --perftest
             config.perftest = true;
@@ -7345,6 +7354,9 @@ int main(int argc, char *argv[]) {
             if (config.bestEncode) dsyslog("encode best streams");
             else dsyslog("encode all streams");
         }
+        if (config.hwaccel[0] != 0) dsyslog("parameter --hwaccel=%s is set", config.hwaccel);
+        else dsyslog("use software decoder/encoder");
+
         if (!abortNow ) {
             gettimeofday(&startTime2, nullptr);
             cmasta->ProcessFiles();

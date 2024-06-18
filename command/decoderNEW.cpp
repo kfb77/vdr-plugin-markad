@@ -76,7 +76,7 @@ static enum AVPixelFormat get_hw_format(__attribute__((unused)) AVCodecContext *
 }
 
 
-cDecoderNEW::cDecoderNEW(const char *recDir, int threadsParam, const bool fullDecodeParam, const bool vaapiParam, cIndex *indexParam) {
+cDecoderNEW::cDecoderNEW(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccel, cIndex *indexParam) {
     dsyslog("cDecoderNEW::cDecoder(): create new decoder instance");
     // recording directory
     if (!recordingDir) {
@@ -95,22 +95,22 @@ cDecoderNEW::cDecoderNEW(const char *recDir, int threadsParam, const bool fullDe
     dsyslog("cDecoderNEW::cDecoder(): init with %d threads", threads);
     threads    = threadsParam;
     fullDecode = fullDecodeParam;
-    vaapi      = vaapiParam;
     index      = indexParam;     // index can be nullptr if we use no index (used in logo search)
 
     av_frame_unref(&avFrame);    // reset all fields to default
 
-// init vaapi device
-    if (vaapi) {
-        hwDeviceType = av_hwdevice_find_type_by_name("vaapi");
+// init hwaccel device
+    if (hwaccel[0] != 0) {
+        hwDeviceType = av_hwdevice_find_type_by_name(hwaccel);  // markad only support vaapi
         if (hwDeviceType == AV_HWDEVICE_TYPE_NONE) {
-            esyslog("hardware acceleration device type vaapi is not supported");
+            esyslog("hardware acceleration device type %s is not supported by hardware", hwaccel);
             isyslog("available hardware acceleration device types:");
             while((hwDeviceType = av_hwdevice_iterate_types(hwDeviceType)) != AV_HWDEVICE_TYPE_NONE) isyslog(" %s", av_hwdevice_get_type_name(hwDeviceType));
-            vaapi = false;
+            useHWaccel = false;
         }
         else {
             dsyslog("cDecoder::cDecoder(): hardware acceleration device type %s found", av_hwdevice_get_type_name(hwDeviceType));
+            useHWaccel = true;
         }
     }
 }
@@ -214,7 +214,7 @@ bool cDecoderNEW::InitDecoder(const char *filename) {
     av_register_all();
 #endif
     // free codec context before alloc for new file
-    if (codecCtxArray) {
+    if (codecCtxArray && avctx) {
         for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
             if (codecCtxArray[streamIndex]) {
                 FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
@@ -282,11 +282,12 @@ bool cDecoderNEW::InitDecoder(const char *filename) {
         }
 
         // check if hardware acceleration device type supports codec
-        if (vaapi && IsVideoStream(streamIndex)) {
+        if (useHWaccel && IsVideoStream(streamIndex)) {
             for (int i = 0; ; i++) {
                 const AVCodecHWConfig *config = avcodec_get_hw_config(codec, i);
                 if (!config) {
                     dsyslog("cDecoder::InitDecoder(): codec %s does not support hardware acceleration device type %s", codec->name, av_hwdevice_get_type_name(hwDeviceType));
+                    useHWaccel= false;
                     break;
                 }
                 dsyslog("cDecoderNEW::InitDecoder(): hw config: pix_fmt %d, method %d, device_type %d", config->pix_fmt, config->methods, config->device_type);
@@ -299,6 +300,7 @@ bool cDecoderNEW::InitDecoder(const char *filename) {
             }
         }
 
+        dsyslog("cDecoderNEW::InitDecoder(): create codec context");
         codecCtxArray[streamIndex] = avcodec_alloc_context3(codec);
         if (!codecCtxArray[streamIndex]) {
             dsyslog("cDecoderNEW::InitDecoder(): avcodec_alloc_context3 failed");
@@ -307,32 +309,26 @@ bool cDecoderNEW::InitDecoder(const char *filename) {
         ALLOC(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
 
         // link hardware acceleration to codec context
-        if (vaapi && (hw_pix_fmt != AV_PIX_FMT_NONE) && IsVideoStream(streamIndex)) {
-            bool linked = true;
-            int ret = av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_VAAPI, NULL, NULL, 0);
-            if (ret < 0) {
-                dsyslog("cDecoder::InitDecoder(): failed to link hardware acceleration device. Error code: %s", av_err2str(ret));
-                linked = false;
-            }
-            else if (!hw_device_ctx) {
-                dsyslog("cDecoder::InitDecoder(): failed to link hardware acceleration device, got no error code (FFmpeg bug ?)");
-                linked = false;
-            }
-            if (linked) {
-                dsyslog("cDecoder::InitDecoder(): linked hardware acceleration device successful for stream %d", streamIndex);
+        if (useHWaccel && (hw_pix_fmt != AV_PIX_FMT_NONE) && IsVideoStream(streamIndex)) {
+            dsyslog("cDecoderNEW::InitDecoder(): create hardware device context for %s", av_hwdevice_get_type_name(hwDeviceType));
+            int ret = av_hwdevice_ctx_create(&hw_device_ctx, hwDeviceType, NULL, NULL, 0);
+            if (ret >= 0) {
+                dsyslog("cDecoder::InitDecoder(): linked hardware acceleration device %s successful for stream %d", av_hwdevice_get_type_name(hwDeviceType), streamIndex);
                 codecCtxArray[streamIndex]->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-                if (!codecCtxArray[streamIndex]->hw_device_ctx) {
-                    dsyslog("cDecoder::InitDecoder(): hardware device reference create failed for stream %d", streamIndex);
-                    linked = false;
+                if (codecCtxArray[streamIndex]->hw_device_ctx) {
+                    dsyslog("cDecoder::InitDecoder(): hardware device reference created successful for stream %d", streamIndex);
+                    codecCtxArray[streamIndex]->get_format = get_hw_format;
+                    isyslog("use hardware acceleration for stream %d", streamIndex);
                 }
-                else dsyslog("cDecoder::InitDecoder(): hardware device reference created successful for stream %d", streamIndex);
-                codecCtxArray[streamIndex]->get_format = get_hw_format;
-                isyslog("use hardware acceleration for stream %d", streamIndex);
+                else {
+                    dsyslog("cDecoder::InitDecoder(): hardware device reference create failed for stream %d, fall back to software decoder", streamIndex);
+                    hwPixelFormat = AV_PIX_FMT_NONE;
+                    useHWaccel = false;
+                }
             }
             else {
-                isyslog("could not initialize hardware acceleration device, fall back to software decoder");
-                hwPixelFormat = AV_PIX_FMT_NONE;
-                vaapi = false;
+                dsyslog("cDecoder::InitDecoder(): failed to link hardware acceleration device %s. Error code: %s", av_hwdevice_get_type_name(hwDeviceType), av_err2str(ret));
+                useHWaccel = false;
             }
         }
 
@@ -554,9 +550,9 @@ bool cDecoderNEW::ReadPacket() {
 
 
 bool cDecoderNEW::ReadNextPacket() {
-    if (ReadPacket()) return true;         // read from current input ts file successfully
+    if (ReadPacket())    return true;     // read from current input ts file successfully
     if (!ReadNextFile()) return false;    // use next file
-    return ReadPacket();                   // first read from next ts file
+    return ReadPacket();                  // first read from next ts file
 }
 
 
@@ -614,68 +610,111 @@ sVideoPicture *cDecoderNEW::GetVideoPicture() {
     bool valid = true;
     for (int i = 0; i < PLANES; i++) {
         if (avFrame.data[i]) {
-            videoPicture.Plane[i]         = avFrame.data[i];
-            videoPicture.PlaneLinesize[i] = avFrame.linesize[i];
+            videoPicture.plane[i]         = avFrame.data[i];
+            videoPicture.planeLineSize[i] = avFrame.linesize[i];
         }
         else valid = false;
     }
-    if (valid) return &videoPicture;
+    if (valid) {
+        videoPicture.frameNumber = GetFrameNumber();
+        videoPicture.width       = GetVideoWidth();
+        videoPicture.height      = GetVideoHeight();
+        return &videoPicture;
+    }
     else return nullptr;
 }
 
 
+/*  for future use
 AVPacket *cDecoderNEW::GetPacket() {
     return &avpkt;
 }
+*/
 
 
-bool cDecoderNEW::SeekToFrame(sMarkAdContext *maContext, int frameNumber) {
-    dsyslog("cDecoderNEW::SeekToFrame(): current frame position (%d), seek to frame (%d)", packetNumber, frameNumber);
+// if we have no index, we do not preload decoder
+// if we do no full decode, we seek to next i-frame
+// only used by logo search, we don't care exact position in this case
+bool cDecoderNEW::SeekToFrame(int seekNumber) {
     if (!avctx) return false;
-    if (!maContext) return false;
+    if (!codecCtxArray) return false;
+    dsyslog("cDecoderNEW::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d)", packetNumber, frameNumber, seekNumber);
     if (packetNumber > frameNumber) {
-        dsyslog("cDecoderNEW::SeekToFrame(): current frame position (%d), could not seek backward to frame (%d)", packetNumber, frameNumber);
+        dsyslog("cDecoderNEW::SeekToFrame(): packet position (%d): could not seek backward to frame (%d)", packetNumber, frameNumber);
         return false;
     }
-    bool logDecode = true;
 
-    int iFrameBefore = index->GetIFrameBefore(frameNumber - 1);  // start decoding from iFrame before to fill decoder buffer
+    int iFrameBefore = 0;
+    if (index) iFrameBefore = index->GetIFrameBefore(seekNumber - 1);  // start decoding from iFrame before to fill decoder buffer
+    else iFrameBefore = seekNumber;                                    // if we have no index, we do not take care of fill decoder
     if (iFrameBefore == -1) {
-        iFrameBefore = 0;
         dsyslog("cDecoderNEW::SeekFrame(): index does not yet contain frame (%5d), decode from current frame (%d) to build index", frameNumber, packetNumber);
+        iFrameBefore = 0;
     }
 
     // flush decoder buffer
-    if (codecCtxArray) {
-        for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
-            if (codecCtxArray[streamIndex]) {
-                avcodec_flush_buffers(codecCtxArray[streamIndex]);
-            }
+    for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
+        if (codecCtxArray[streamIndex]) {
+            avcodec_flush_buffers(codecCtxArray[streamIndex]);
         }
-    }
-    else {
-        dsyslog("cDecoderNEW::SeekToFrame(): codec context not valid");
-        return false;
     }
 
-    while (packetNumber < frameNumber) {
-        if (!this->ReadPacket()) {  // build frame index but no pts index
-            if (!this->ReadNextFile()) {
-                dsyslog("cDecoderNEW::SeekFrame(): failed for frame (%d) at frame (%d)", frameNumber, packetNumber);
+    // read packets from current position to iFrameBefore
+    while (frameNumber < seekNumber) {    // we stop one frame before, next DecodePacket will return requestet frame
+        if (abortNow) return false;
+        if (!ReadPacket()) {
+            dsyslog("cDecoderNEW::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d) failed to read next packet", packetNumber, frameNumber, seekNumber);
+            return false;
+        }
+        if (packetNumber >= iFrameBefore) {  // start decoding to fill decoder queue
+            if (!DecodeNextFrame()) {
+                dsyslog("cDecoderNEW::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d) failed to decode next frame", packetNumber, frameNumber, seekNumber);
                 return false;
             }
-            continue;
-        }
-        if (packetNumber >= iFrameBefore) {
-            if (logDecode) {
-                dsyslog("cDecoderNEW::SeekToFrame(): start decode at frame (%d)", packetNumber);
-                logDecode = false;
-            }
-//            GetFrameInfo(maContext, true, maContext->Config->fullDecode, false, false);  // preload decoder bufferA
         }
     }
-    dsyslog("cDecoderNEW::SeekToFrame(): (%d) successful", packetNumber);
+    if (fullDecode) dsyslog("cDecoderNEW::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d) successful", packetNumber, frameNumber, seekNumber);
+    else dsyslog("cDecoderNEW::SeekToFrame(): packet (%d), frame (%d): seek to i-frame after (%d) successful", packetNumber, frameNumber, seekNumber);
     return true;
+}
+
+
+int cDecoderNEW::ResetToSW() {
+    // hardware decoding faild at first packet, something is wrong maybe not supported codec
+    // during init we got no error code
+    // cleanup current decoder
+    dsyslog("cDecoderNEW::ResetToSW(): cleanup hardware decoder");
+    av_packet_unref(&avpkt);
+    if (hw_device_ctx) av_buffer_unref(&hw_device_ctx);
+    if (nv12_to_yuv_ctx) {
+        FREE(sizeof(nv12_to_yuv_ctx), "nv12_to_yuv_ctx");  // pointer size, real size not possible because of extern declaration, only as reminder
+        sws_freeContext(nv12_to_yuv_ctx);
+    }
+    if (avctx && codecCtxArray) {
+        for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
+            if (codecCtxArray[streamIndex]) {
+                FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
+                avcodec_free_context(&codecCtxArray[streamIndex]);
+            }
+        }
+        FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
+        free(codecCtxArray);
+    }
+    if (avctx) {
+        FREE(sizeof(avctx), "avctx");
+        avformat_close_input(&avctx);
+    }
+    av_frame_unref(&avFrame);
+
+    // init decoder without hwaccel
+    dsyslog("cDecoderNEW::ResetToSW(): init software decoder");
+    useHWaccel   = false;
+    packetNumber = -1;
+    frameNumber  = -1;
+    fileNumber   = 0;
+    ReadNextFile();  // init decoder
+    ReadPacket();
+    return(SendPacketToDecoder());
 }
 
 
@@ -689,25 +728,33 @@ int cDecoderNEW::SendPacketToDecoder() {
     if (rc  < 0) {
         switch (rc) {
         case AVERROR(EAGAIN):
-            tsyslog("cDecoderNEW::SendPacketToDecoder(): avcodec_send_packet error EAGAIN at frame %d", packetNumber);
+            tsyslog("cDecoderNEW::SendPacketToDecoder(): packet (%d), stream %d: avcodec_send_packet error EAGAIN", packetNumber, avpkt.stream_index);
             break;
         case AVERROR(ENOMEM):
-            dsyslog("cDecoderNEW::SendPacketToDecoder(): avcodec_send_packet error ENOMEM at frame %d", packetNumber);
+            dsyslog("cDecoderNEW::SendPacketToDecoder(): packet (%d), stream %d: avcodec_send_packet error ENOMEM", packetNumber, avpkt.stream_index);
             break;
         case AVERROR(EINVAL):
-            dsyslog("cDecoderNEW::SendPacketToDecoder(): avcodec_send_packet error EINVAL at frame %d", packetNumber);
+            dsyslog("cDecoderNEW::SendPacketToDecoder(): packet (%d), stream %d: avcodec_send_packet error EINVAL", packetNumber, avpkt.stream_index);
             break;
         case AVERROR_INVALIDDATA:
-            dsyslog("cDecoderNEW::SendPacketToDecoder:(): avcodec_send_packet error AVERROR_INVALIDDATA at frame %d", packetNumber);
+            dsyslog("cDecoderNEW::SendPacketToDecoder(): packet (%d), stream %d: avcodec_send_packet error AVERROR_INVALIDDATA", packetNumber, avpkt.stream_index);
             break;
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
         case AAC_AC3_PARSE_ERROR_SYNC:
-            dsyslog("cDecoderNEW::SendPacketToDecoder:(): avcodec_send_packet error AAC_AC3_PARSE_ERROR_SYNC at frame %d", packetNumber);
+            dsyslog("cDecoderNEW::SendPacketToDecoder(): packet (%d), stream %d: avcodec_send_packet error AAC_AC3_PARSE_ERROR_SYNC", packetNumber, avpkt.stream_index);
             break;
 #endif
         default:
-            dsyslog("cDecoderNEW::SendPacketToDecoder(): avcodec_send_packet failed with rc=%d at frame %d",rc,packetNumber);
+            dsyslog("cDecoderNEW::SendPacketToDecoder(): packet (%d), stream %d: avcodec_send_packet failed with rc=%d: %s", packetNumber, avpkt.stream_index, rc, av_err2str(rc));
             break;
+        }
+        if ((frameNumber < 0)                                     &&  // we have no frame successful decoded
+                useHWaccel                                        &&  // we want to use hwaccel
+                IsVideoStream(avpkt.stream_index)                 &&  // is video stream
+                !codecCtxArray[avpkt.stream_index]->hw_frames_ctx &&  // faild to get hardware frame context
+                codecCtxArray[avpkt.stream_index]->hw_device_ctx) {   // harware device is linked
+            dsyslog("cDecoderNEW::SendPacketToDecoder(): packet (%d): stream %d: hardware decoding failed, fallback to software decoding", packetNumber, avpkt.stream_index);
+            rc = ResetToSW();
         }
     }
     return rc;
@@ -754,7 +801,7 @@ int cDecoderNEW::ReceiveFrameFromDecoder() {
         }
     }
 
-    if (!vaapi) {  // we do not need a buffer for avcodec_receive_frame() if we use hwaccel
+    if (!useHWaccel) {  // we do not need a buffer for avcodec_receive_frame() if we use hwaccel
         int rc = av_frame_get_buffer(&avFrame, 0);
         if (rc != 0) {
             char errTXT[64] = {0};
@@ -768,7 +815,7 @@ int cDecoderNEW::ReceiveFrameFromDecoder() {
     if (rc < 0) {
         switch (rc) {
         case AVERROR(EAGAIN):   // frame not ready
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%d): avcodec_receive_frame error EAGAIN", frameNumber);
+            dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%d): not ready, retry later", frameNumber);
             break;
         case AVERROR(EINVAL):
             esyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%d): avcodec_receive_frame error EINVAL", frameNumber);
@@ -782,7 +829,7 @@ int cDecoderNEW::ReceiveFrameFromDecoder() {
     }
 
     // we got a frame and have used hardware acceleration
-    if (vaapi) {
+    if (useHWaccel) {
         // retrieve data from GPU to CPU
         AVFrame swFrame = {};
         av_frame_unref(&swFrame);    // need to reset fields, other coredump, maybe bug in FFmepeg
@@ -930,6 +977,23 @@ bool cDecoderNEW::IsAudioAC3Packet() {
 }
 
 
+int cDecoderNEW::GetAC3ChannelCount() {
+    for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
+        if (!IsAudioAC3Stream(streamIndex)) continue;
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+        return avctx->streams[streamIndex]->codecpar->ch_layout.nb_channels;
+#else
+        return avctx->streams[streamIndex]->codecpar->channels;
+#endif
+#else
+        return avctx->streams[streamIndex]->codec->channels;
+#endif
+    }
+    return 0;
+}
+
+
 bool cDecoderNEW::IsSubtitleStream(const unsigned int streamIndex) {
     if (!avctx) return false;
     if (streamIndex >= avctx->nb_streams) {
@@ -956,14 +1020,15 @@ bool cDecoderNEW::IsSubtitlePacket() {
 }
 
 
+/* for future use
 int cDecoderNEW::GetPacketNumber() const {
     return packetNumber;
 }
+*/
+
 
 int cDecoderNEW::GetFrameNumber() const {
-    if (fullDecode) return frameNumber;
-    else return packetNumber;             // if we do not decode all videos frames, we will have no valid video frame number
-    // not exact because some packets are still in queue and are waitiing for decoding
+    return frameNumber;
 }
 
 
@@ -975,4 +1040,63 @@ int cDecoderNEW::GetIFrameCount() const {
 bool cDecoderNEW::IsInterlacedVideo() const {
     if (interlaced_frame > 0) return true;
     return false;
+}
+
+
+sAspectRatio *cDecoderNEW::GetAspectRatio() {
+    DAR.num = avFrame.sample_aspect_ratio.num;
+    DAR.den = avFrame.sample_aspect_ratio.den;
+    if ((DAR.num == 0) || (DAR.den == 0)) {
+        esyslog("cDecoderNEW::GetAspectRatio(): invalid aspect ratio (%d:%d) at frame (%d)", DAR.num, DAR.den, frameNumber);
+        return nullptr;
+    }
+    if ((DAR.num == 1) && (DAR.den == 1)) {
+        if ((avFrame.width == 1280) && (avFrame.height  ==  720) ||   // HD ready
+                (avFrame.width == 1920) && (avFrame.height  == 1080) ||   // full HD
+                (avFrame.width == 3840) && (avFrame.height  == 2160)) {   // UHD
+            DAR.num = 16;
+            DAR.den = 9;
+        }
+        else {
+            esyslog("cDecoderNEW::GetAspectRatio(): unknown aspect ratio to video width %d hight %d at frame %d)", avFrame.width, avFrame.height, frameNumber);
+            return nullptr;
+        }
+    }
+    else {
+        if ((DAR.num == 64) && (DAR.den == 45)) {        // generic PAR MPEG-2 for PAL
+            DAR.num = 16;
+            DAR.den =  9;
+        }
+        else if ((DAR.num == 16) && (DAR.den == 11)) {   // generic PAR MPEG-4 for PAL
+            DAR.num = 16;
+            DAR.den =  9;
+        }
+        else if ((DAR.num == 32) && (DAR.den == 17)) {
+            DAR.num = 16;
+            DAR.den =  9;
+        }
+        else if ((DAR.num == 16) && (DAR.den == 15)) {  // generic PAR MPEG-2 for PAL
+            DAR.num = 4;
+            DAR.den = 3;
+        }
+        else if ((DAR.num == 12) && (DAR.den == 11)) {  // generic PAR MPEG-4 for PAL
+            DAR.num = 4;
+            DAR.den = 3;
+        }
+        else if ((DAR.num == 4) && (DAR.den == 3)) {
+            if ((avFrame.width == 1440) && (avFrame.height  == 1080)) { // H.264 1440x1080 PAR 4:3 -> DAR 16:9
+                DAR.num = 16;
+                DAR.den =  9;
+            }
+        }
+        else if ((DAR.num == 3) && (DAR.den == 2)) {  // H.264 1280x1080
+            DAR.num = 16;
+            DAR.den =  9;
+        }
+        else {
+            esyslog("cDecoderNEW::GetAspectRatio(): unknown aspect ratio (%d:%d) at frame (%d)", DAR.num, DAR.den, frameNumber);
+            return nullptr;
+        }
+    }
+    return &DAR;
 }

@@ -51,7 +51,7 @@ public:
      * copy constructor, not used, only for formal reason
      */
     cMarkAdStandalone(const cMarkAdStandalone &origin) {   //  copy constructor, not used, only for formal reason
-        strcpy(title,origin.title);
+        strcpy(title, origin.title);
         ptitle                    = title;
         directory                 = origin.directory;
         video                     = nullptr;

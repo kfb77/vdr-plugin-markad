@@ -984,7 +984,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
     ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
     sAreaT *area = ptr_Logo->GetArea();
 
-    cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext, criteria, maContext->Video.Info.AspectRatio, recordingIndex);
+    cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext->Config->recDir,  maContext->Info.ChannelName, maContext->Config->threads, maContext->Config->hwaccel, maContext->Video.Info.AspectRatio);
     ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
 
     sLogoInfo *logo1[CORNERS];
@@ -994,10 +994,13 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         ALLOC(sizeof(*logo1[corner]), "logo");
     }
 
-    int logoHeight = 0;
-    int logoWidth  = 0;
-    ptr_cExtractLogo->GetLogoSize(maContext, &logoHeight, &logoWidth);  // default logo size of this resolution, not real logo size, info logos are greater than real logo
-    dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", logoWidth, logoHeight);
+    cSobel *sobel = new cSobel(ptr_cDecoder->GetVideoWidth(), ptr_cDecoder->GetVideoHeight(), 0, 0, 0);   // TODO
+    ALLOC(sizeof(*sobel), "sobel");
+    sLogoSize logoSize = sobel->GetLogoSize();  // default logo size of this resolution, not real logo size, info logos are greater than real logo
+    FREE(sizeof(*sobel), "sobel");
+    delete sobel;
+
+    dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", logoSize.width, logoSize.height);
 
     if (!ptr_cDecoder->SeekToFrame(maContext, startPos - 1)) {  // one frame before startPos because we start loop with GetNextPacket
         dsyslog("cDetectLogoStopStart::Detect(): SeekToFrame (%d) failed", startPos);
@@ -1042,11 +1045,11 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
             }
 #endif
 
-            compareInfo.framePortion[corner] = DetectFrame(frameNumber, area->sobel[0], logoWidth, logoHeight, corner);
+            compareInfo.framePortion[corner] = DetectFrame(frameNumber, area->sobel[0], logoSize.width, logoSize.height, corner);
 
             logo2[corner] = new sLogoInfo;
             ALLOC(sizeof(*logo2[corner]), "logo");
-            logo2[corner]->iFrameNumber = frameNumber;
+            logo2[corner]->frameNumber = frameNumber;
 
             // alloc memory and copy sobel transformed corner picture
             logo2[corner]->sobel = new uchar*[PLANES];
@@ -1058,13 +1061,13 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
 
 #define RATE_0_MIN     250
 #define RATE_12_MIN    950
-            if (logo1[corner]->iFrameNumber >= 0) {  // we have a logo pair
-                if (ptr_cExtractLogo->CompareLogoPair(logo1[corner], logo2[corner], logoHeight, logoWidth, corner, RATE_0_MIN, RATE_12_MIN, &compareInfo.rate[corner])) {
+            if (logo1[corner]->frameNumber >= 0) {  // we have a logo pair
+                if (ptr_cExtractLogo->CompareLogoPair(logo1[corner], logo2[corner], logoSize.height, logoSize.width, corner, RATE_0_MIN, RATE_12_MIN, &compareInfo.rate[corner])) {
                 }
             }
             if (corner == 0) {  // set current frame numbers, needed only once
-                compareInfo.frameNumber1 = logo1[corner]->iFrameNumber;
-                compareInfo.frameNumber2 = logo2[corner]->iFrameNumber;
+                compareInfo.frameNumber1 = logo1[corner]->frameNumber;
+                compareInfo.frameNumber2 = logo2[corner]->frameNumber;
             }
 
             // free memory
