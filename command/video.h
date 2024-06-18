@@ -363,13 +363,6 @@ private:
      */
     void LogoGreyToColour();
 
-    enum {
-        TOP_LEFT,
-        TOP_RIGHT,
-        BOTTOM_LEFT,
-        BOTTOM_RIGHT
-    };
-
     cIndex *recordingIndexMarkAdLogo  = nullptr;  //!< recording index
     //!<
     int logoHeight                    = 0;        //!< logo height
@@ -485,10 +478,11 @@ public:
 
     /**
      * constructor of class to detect horizental border
-     * @param maContextParam markad context
-     * @param criteriaParam  detection criteria
+     * @param channelNameParam  channel name
+     * @param frameRateParam    frame rate
+     * @param criteriaParam     detection criteria
      */
-    explicit cMarkAdBlackBordersHoriz(sMarkAdContext *maContextParam, cCriteria *criteriaParam);
+    explicit cMarkAdBlackBordersHoriz(const char *channelNameParam, const int frameRateParam, cCriteria *criteriaParam);
 
     /**
      * get first frame number with border
@@ -498,11 +492,11 @@ public:
 
     /**
      * process horizontal border detection of current frame
-     * @param  FrameNumber current frame number
+     * @param  picture     video picture to analyse
      * @param  borderFrame frame number of detected border
-     * @return border detection status
+     * @return             border detection status
      */
-    int Process(const int FrameNumber, int *borderFrame);
+    int Process(sVideoPicture *picture, int *borderFrame);
 
     /**
      * get horizontal border detection status
@@ -516,13 +510,17 @@ public:
     void Clear(const bool isRestart = false);
 
 private:
-    int borderstatus;                 //!< status of horizontal border detection
+    const char *channelName   = nullptr;  //!< channel name
     //!<
-    int borderframenumber;            //!< frame number of detected horizontal border
+    int frameRate             = 0;        //!< frame rate
     //!<
-    sMarkAdContext *maContext = nullptr; //!< markad context
+    int borderstatus;                     //!< status of horizontal border detection
     //!<
-    cCriteria *criteria       = nullptr; //!< pointer to class with decoding states and criteria
+    int borderframenumber;                //!< frame number of detected horizontal border
+    //!<
+    sMarkAdContext *maContext = nullptr;  //!< markad context
+    //!<
+    cCriteria *criteria       = nullptr;  //!< pointer to class with decoding states and criteria
     //!<
 };
 
@@ -535,10 +533,11 @@ public:
 
     /**
      * constructor of class to detect vertical border
-     * @param maContextParam markad context
-     * @param criteriaParam  detection criteria
+     * @param channelNameParam channel name
+     * @param frameRateParam   video frame rate
+     * @param criteriaParam    detection criteria
      */
-    explicit cMarkAdBlackBordersVert(sMarkAdContext *maContextParam, cCriteria *criteriaParam);
+    explicit cMarkAdBlackBordersVert(const char *channelNameParam, const int frameRateParam, cCriteria *criteriaParam);
 
     /**
      * get first frame number with border
@@ -548,11 +547,11 @@ public:
 
     /**
      * process vertical border detection of current frame
-     * @param frameNumber current frame number
+     * @param picture pointer to video picture to analyse
      * @param borderFrame frame number of detected border
      * @return border detection status
      */
-    int Process(int frameNumber, int *borderFrame);
+    int Process(sVideoPicture *picture, int *borderFrame);
 
 
     /**
@@ -561,15 +560,19 @@ public:
     void Clear(const bool isRestart = false);
 
 private:
-    int borderstatus;                    //!< status of vertical border detection
+    const char *channelName   = nullptr;   //!< channel name
     //!<
-    int borderframenumber     = -1;      //!< frame number of detected vertical border
+    int frameRate             = 0;         //!< frame rate of video
     //!<
-    int darkFrameNumber       = INT_MAX; //!< first vborder frame, but need to check, because of dark picture
+    cCriteria *criteria       = nullptr;   //!< pointer to class with decoding states and criteria
     //!<
-    sMarkAdContext *maContext = nullptr;    //!< markad context
+    int borderstatus;                      //!< status of vertical border detection
     //!<
-    cCriteria *criteria       = nullptr;    //!< pointer to class with decoding states and criteria
+    int borderframenumber     = -1;        //!< frame number of detected vertical border
+    //!<
+    int darkFrameNumber       = INT_MAX;   //!< first vborder frame, but need to check, because of dark picture
+    //!<
+    sMarkAdContext *maContext = nullptr;   //!< markad context
     //!<
 #ifdef DEBUG_VBORDER
     int minBrightness         = INT_MAX;

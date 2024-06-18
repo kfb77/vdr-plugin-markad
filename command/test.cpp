@@ -5,12 +5,24 @@
  *
  */
 
+/**
+* performance test class
+*/
 class cTest {
 private:
-    sMarkAdContext *maContext = {};
-    int testFrames = 30000;
+
+    sMarkAdContext *maContext = {};      //!< markad context
+    //!<
+    int testFrames            = 30000;   //!< count test frames to decode
+    //!<
+
 public:
-    cTest(sMarkAdContext *maContextParam) {
+
+    /**
+     * constructor for performance test class
+     * @param maContextParam markad context
+     */
+    explicit cTest(sMarkAdContext *maContextParam) {
         maContext = maContextParam;
 
     }
@@ -18,22 +30,26 @@ public:
     }
 
 
+    /**
+     * all decoder performance test
+     */
     void Perf() {
+        char no_hwaccel[16]       = {0};
         int oldDecoder[2][5]      = {};
         int newDecoder[2][5]      = {};
         int newDecoderVAAPI[2][5] = {};
         dsyslog("run decoder performance test");
 
         for (int pass = 0; pass <= 1; pass++) {
-            dsyslog("pass %d *************************************************************************************************************************************", pass);
+            dsyslog("pass %d *************************************************************************************************************", pass);
             for (int threads = 1; threads <=4; threads++) {
                 if (threads == 3) continue;
-                dsyslog("pass %d, threads %d: old decoder  ************************************************************************************************************", pass, threads);
+                dsyslog("pass %d, threads %d: old decoder  ************************************************************************************", pass, threads);
                 oldDecoder[pass][threads]      = PerfDecoder(threads);
-                dsyslog("pass %d, threads %d: new decoder  ************************************************************************************************************", pass, threads);
-                newDecoder[pass][threads]      = PerfDecoderNEW(threads, false);
-                dsyslog("pass %d, threads %d: new decoder  VAAPI ******************************************************************************************************", pass, threads);
-                newDecoderVAAPI[pass][threads] = PerfDecoderNEW(threads, true);
+                dsyslog("pass %d, threads %d: new decoder  ************************************************************************************", pass, threads);
+                newDecoder[pass][threads]      = PerfDecoderNEW(threads, no_hwaccel);
+                dsyslog("pass %d, threads %d: new decoder  hwaccel:%-10s *****************************************************************", pass, threads,  maContext->Config->hwaccel);
+                newDecoderVAAPI[pass][threads] = PerfDecoderNEW(threads, maContext->Config->hwaccel);
             }
         }
         for (int pass = 0; pass <= 1; pass++) {
@@ -41,32 +57,37 @@ public:
             for (int threads = 1; threads <=4; threads++) {
                 if (threads == 3) continue;
                 dsyslog("threads %d ********************************************************************", threads);
-                dsyslog("old decoder, threads %d:        %5dms", threads, oldDecoder[pass][threads]);
-                dsyslog("new decoder, threads %d:        %5dms", threads, newDecoder[pass][threads]);
-                dsyslog("new decoder, threads %d, vaapi: %5dms", threads, newDecoderVAAPI[pass][threads]);
+                dsyslog("old decoder, threads %d:                    %5dms", threads, oldDecoder[pass][threads]);
+                dsyslog("new decoder, threads %d:                    %5dms", threads, newDecoder[pass][threads]);
+                dsyslog("new decoder, threads %d, hwaccel:%-10s %5dms", threads, maContext->Config->hwaccel, newDecoderVAAPI[pass][threads]);
             }
         }
         dsyslog("*****************************************************************************");
     }
 
+
+    /**
+     * old decoder performance test
+     * @param threads count of FFmpeg threads
+     */
     int PerfDecoder(const int threads) {
         // decode frames with old decoder
         struct timeval startDecode = {};
         gettimeofday(&startDecode, nullptr);
         cIndex *index = new cIndex();
-        cDecoder *ptr_cDecoder = new cDecoder(threads, index);
+        cDecoder *decoderOLD = new cDecoder(threads, index);
 
-        while(ptr_cDecoder->DecodeDir(maContext->Config->recDir)) {
-            while(ptr_cDecoder->GetNextPacket(true, false)) { // fill frame index, but not fill PTS ring buffer, it will get out of sequence
-                if (ptr_cDecoder->IsVideoPacket()) {
-                    if (ptr_cDecoder->GetFrameInfo(maContext, true, false, false, false)) {
+        while(decoderOLD->DecodeDir(maContext->Config->recDir)) {
+            while(decoderOLD->GetNextPacket(true, false)) { // fill frame index, but not fill PTS ring buffer, it will get out of sequence
+                if (decoderOLD->IsVideoPacket()) {
+                    if (decoderOLD->GetFrameInfo(maContext, true, false, false, false)) {
                         if (abortNow) return -1;
-                        if (ptr_cDecoder->GetFrameNumber() >= testFrames) break;
+                        if (decoderOLD->GetFrameNumber() >= testFrames) break;
                     }
                 }
             }
         }
-        delete ptr_cDecoder;
+        delete decoderOLD;
         delete index;
 
         struct timeval endDecode = {};
@@ -78,18 +99,23 @@ public:
             sec--;
         }
 
-        long int decodeTime_us = sec * 1000000 + usec;
-        return decodeTime_us / 1000;
+        long int time_us = sec * 1000000 + usec;
+        return time_us / 1000;
 
     }
 
-    int PerfDecoderNEW(const int threads, const bool vaapi) {
+    /**
+     * new decoder performance test
+     * @param threads count of FFmpeg threads
+     * @param hwaccel true if hwaccel is used, false otherwise
+     */
+    int PerfDecoderNEW(const int threads, char *hwaccel) const {
         // decode frames with new decoder and new call
         struct timeval startDecode = {};
         gettimeofday(&startDecode, nullptr);
 
         // init new decoder
-        cDecoderNEW *decoder = new cDecoderNEW(maContext->Config->recDir, threads, false, vaapi, nullptr);  // threads, index flag, vaapi flag
+        cDecoderNEW *decoder = new cDecoderNEW(maContext->Config->recDir, threads, false, hwaccel, nullptr);  // threads, index flag, hwaccel flag
         while (decoder->DecodeNextFrame()) {
             if (abortNow) return -1;
             //        dsyslog("xxxx framenumber %d", decoder->GetFrameNumber());
@@ -106,8 +132,8 @@ public:
             usec += 1000000;
             sec--;
         }
-        long int decodeTime_us = sec * 1000000 + usec;
-        return decodeTime_us / 1000;
+        long int time_us = sec * 1000000 + usec;
+        return time_us / 1000;
     }
 
     /*
@@ -116,7 +142,7 @@ public:
             maContext->Video.Info.width  = 720;
             cIndex *index = new cIndex();
             cDecoder *ptr_cDecoder = new cDecoder(maContext->Config->threads, index);
-            cDecoderNEW *decoder = new cDecoderNEW(maContext->Config->recDir, 2, false, true, nullptr);  // threads, index flag, vaapi flag
+            cDecoderNEW *decoder = new cDecoderNEW(maContext->Config->recDir, 2, false, true, nullptr);  // threads, index flag, hwaccel flag
 
             bool all = true;
             while(ptr_cDecoder->DecodeDir(maContext->Config->recDir)) {
