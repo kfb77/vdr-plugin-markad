@@ -22,6 +22,7 @@ extern "C" {
 #include <libavutil/pixdesc.h>
 #include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
+#include <libavutil/avutil.h>
 
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(3<<8)+102)
 #include <libavutil/channel_layout.h>
@@ -198,6 +199,12 @@ public:
      * @return           true if successful, false otherwise
      */
     bool SeekToFrame(int seekNumber);
+
+    /**
+     * complete reset decoder without hwaccel
+     * @return return code from avcodec_send_packet
+     */
+    int ResetToSW();
 
     /**
      * send packet to decoder
