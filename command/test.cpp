@@ -115,11 +115,11 @@ public:
         gettimeofday(&startDecode, nullptr);
 
         // init new decoder
-        cDecoderNEW *decoder = new cDecoderNEW(maContext->Config->recDir, threads, false, hwaccel, nullptr);  // threads, index flag, hwaccel flag
-        while (decoder->DecodeNextFrame()) {
+        cDecoderNEW *decoder = new cDecoderNEW(maContext->Config->recDir, threads, false, hwaccel, nullptr);  // recodring directory, threads, full decode, hwaccel mathone, index flag
+        while (decoder->DecodeNextFrame(false)) {  // no audio decode
             if (abortNow) return -1;
-            //        dsyslog("xxxx framenumber %d", decoder->GetFrameNumber());
-            if (decoder->GetFrameNumber() >= testFrames) break;
+            //        dsyslog("xxxx framenumber %d", decoder->GetVideoFrameNumber());
+            if (decoder->GetVideoFrameNumber() >= testFrames) break;
         }
 
         delete decoder;
@@ -153,7 +153,7 @@ public:
                         if (ptr_cDecoder->GetFrameInfo(maContext, true, false, false, false)) {
 
                             char *fileName = nullptr;
-                            if (asprintf(&fileName,"%s/F__%07d_1old.pgm", maContext->Config->recDir, ptr_cDecoder->GetFrameNumber()) >= 1) {
+                            if (asprintf(&fileName,"%s/F__%07d_1old.pgm", maContext->Config->recDir, ptr_cDecoder->GetVideoFrameNumber()) >= 1) {
                                 ALLOC(strlen(fileName)+1, "fileName");
                                 SaveFrameBuffer(maContext, fileName);
                                 FREE(strlen(fileName)+1, "fileName");
@@ -163,14 +163,14 @@ public:
                             decoder->ReadNextPicture();
                             sVideoPicture *videoPicture = decoder->GetVideoPicture();
 
-                            dsyslog("frame old (%d), frame new (%d)", ptr_cDecoder->GetFrameNumber(), decoder->GetFrameNumber());
+                            dsyslog("frame old (%d), frame new (%d)", ptr_cDecoder->GetVideoFrameNumber(), decoder->GetVideoFrameNumber());
                             for (int plane = 0; plane < PLANES; plane++) {
                                 for (int line = 0; line <= 100; line++) {
                                     for (int column = 0; column <= 100; column++) {
                                         int oldPixel = maContext->Video.Data.Plane[plane][line * maContext->Video.Data.PlaneLinesize[plane] + column];
                                         int newPixel = videoPicture->Plane[plane][line * videoPicture->PlaneLinesize[plane] + column];
                                         if (oldPixel != newPixel) {
-                                            dsyslog("frame old (%d), frame new (%d): plane %d, line %d, column %d: pixel %d <-> %d", ptr_cDecoder->GetFrameNumber(), decoder->GetFrameNumber(), plane, line, column, oldPixel, newPixel);
+                                            dsyslog("frame old (%d), frame new (%d): plane %d, line %d, column %d: pixel %d <-> %d", ptr_cDecoder->GetVideoFrameNumber(), decoder->GetVideoFrameNumber(), plane, line, column, oldPixel, newPixel);
                                             all = false;
                                         }
                                     }
@@ -185,7 +185,7 @@ public:
                             }
 
                             fileName = nullptr;
-                            if (asprintf(&fileName,"%s/F__%07d_2new.pgm", maContext->Config->recDir, ptr_cDecoder->GetFrameNumber()) >= 1) {
+                            if (asprintf(&fileName,"%s/F__%07d_2new.pgm", maContext->Config->recDir, ptr_cDecoder->GetVideoFrameNumber()) >= 1) {
                                 ALLOC(strlen(fileName)+1, "fileName");
                                 SaveFrameBuffer(maContext, fileName);
                                 FREE(strlen(fileName)+1, "fileName");
@@ -193,7 +193,7 @@ public:
                             }
 
 
-                            if (ptr_cDecoder->GetFrameNumber() >= 30) break;
+                            if (ptr_cDecoder->GetVideoFrameNumber() >= 30) break;
                         }
                     }
                 }

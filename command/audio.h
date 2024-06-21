@@ -9,8 +9,10 @@
 #define __audio_h_
 
 #include "global.h"
-#include "index.h"
 #include "debug.h"
+#include "index.h"
+#include "decoderNEW.h"
+#include "criteria.h"
 
 enum {
     SILENCE_UNINITIALIZED = -2,
@@ -22,7 +24,7 @@ enum {
 /**
  *  detect audio channel changes and set channel marks
  */
-class cMarkAdAudio {
+class cAudio {
 public:
 
     /**
@@ -30,13 +32,13 @@ public:
      *  @param maContext markad context
      *  @param recordingIndex recording index
      */
-    explicit cMarkAdAudio(sMarkAdContext *maContext, cIndex *recordingIndex);
-    ~cMarkAdAudio();
+    explicit cAudio(cDecoderNEW *decoderParam, cCriteria *criteriaParam);
+    ~cAudio();
 
     /**
      *  compare current audio channels with channels before and add marks if channel count has changed
      */
-    sMarkAdMarks *Process(const int frameNumber);
+    sMarkAdMarks *Process();
 
     /**
      *  reset stored channel states of all audio streams
@@ -63,7 +65,7 @@ private:
     /**
      * detect silence marks
      */
-    void Silence(const int frameNumber);
+    void Silence();
 
     /**
      *  detect if there is a change of the audio channel count
@@ -74,7 +76,9 @@ private:
     static bool ChannelChange(int channelsBefore, int channelsAfter);
 
 
-    sMarkAdContext *macontext      = nullptr;                   //!< markad context
+    cDecoderNEW *decoder           = nullptr;                //!< pointer to decoder
+    //!<
+    cCriteria *criteria            = nullptr;                //!< pointer to analyse criteria
     //!<
     int silenceStatus              = SILENCE_UNINITIALIZED;  //!< status of silence detection
     //!<

@@ -9,13 +9,21 @@
 #include "criteria.h"
 
 
-cCriteria::cCriteria() {
+cCriteria::cCriteria(const char *channelNameParam) {
+    channelName = channelNameParam;
 }
+
+
 cCriteria::~cCriteria() {
 }
 
 
-bool cCriteria::GoodVPS(const char *channelName) {
+const char *cCriteria::GetChannelName() {
+    return channelName;
+}
+
+
+bool cCriteria::GoodVPS() {
     if (!channelName) return false;
 
     if (CompareChannelName(channelName, "arte",         IGNORE_HD))               return true;
@@ -30,7 +38,7 @@ bool cCriteria::GoodVPS(const char *channelName) {
 }
 
 
-int cCriteria::LogoFadeInOut(const char *channelName) {
+int cCriteria::LogoFadeInOut() {
     if (!channelName) return FADE_ERROR;
 
     if (CompareChannelName(channelName, "BR_Fernsehen",   IGNORE_HD | IGNORE_CITY)) return FADE_IN | FADE_OUT;
@@ -60,7 +68,7 @@ int cCriteria::LogoFadeInOut(const char *channelName) {
 }
 
 
-bool cCriteria::LogoInBorder(const char *channelName) {
+bool cCriteria::LogoInBorder() {
     if (!channelName) return false;
 
     if (CompareChannelName(channelName, "arte",           IGNORE_HD)) return true;
@@ -76,7 +84,7 @@ bool cCriteria::LogoInBorder(const char *channelName) {
 }
 
 
-bool cCriteria::InfoInBorder(const char *channelName) {
+bool cCriteria::InfoInBorder() {
     if (!channelName) return false;
 
     if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD)) return true;
@@ -90,7 +98,7 @@ bool cCriteria::InfoInBorder(const char *channelName) {
     return false;
 }
 
-bool cCriteria::LogoColorChange(const char *channelName) {
+bool cCriteria::LogoColorChange() {
     if (!channelName) return false;
 
     if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD)) return true;
@@ -101,14 +109,14 @@ bool cCriteria::LogoColorChange(const char *channelName) {
     return false;
 }
 
-bool cCriteria::LogoRotating(const char *channelName) {
+bool cCriteria::LogoRotating() {
     if (!channelName) return false;
     if (CompareChannelName(channelName, "SAT_1", IGNORE_HD)) return true;
     return false;
 }
 
 
-bool cCriteria::LogoTransparent(const char *channelName) {
+bool cCriteria::LogoTransparent() {
     if (!channelName) return false;
     if (CompareChannelName(channelName, "NITRO", IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "SRF_zwei", IGNORE_HD)) return true;

@@ -14,21 +14,21 @@
 #include "audio.h"
 
 
-cMarkAdAudio::cMarkAdAudio(sMarkAdContext *maContext, cIndex *recordingIndex) {
-    macontext           = maContext;
-    recordingIndexAudio = recordingIndex;
+cAudio::cAudio(cDecoderNEW *decoderParam, cCriteria *criteriaParam) {
+    decoder       = decoderParam;
+    criteriaParam = criteria;
     Clear();
     ResetMarks();
 }
 
 
-cMarkAdAudio::~cMarkAdAudio() {
+cAudio::~cAudio() {
     ResetMarks();
     Clear();
 }
 
 
-void cMarkAdAudio::Clear() {
+void cAudio::Clear() {
     silencePTS             = -1;
     silenceFrame           = -1;
     soundPTS               = -1;
@@ -37,14 +37,14 @@ void cMarkAdAudio::Clear() {
 }
 
 
-void cMarkAdAudio::ResetMarks() {
+void cAudio::ResetMarks() {
     audioMarks = {};
 }
 
 
-void cMarkAdAudio::AddMark(int type, int position, const int channelsBefore, const int channelsAfter) {
+void cAudio::AddMark(int type, int position, const int channelsBefore, const int channelsAfter) {
     if (audioMarks.Count >= audioMarks.maxCount) {  // array start with 0
-        esyslog("cMarkAdAudio::AddMark(): too much audio marks %d at once detected", audioMarks.Count);
+        esyslog("cAudio::AddMark(): too much audio marks %d at once detected", audioMarks.Count);
         return;
     }
     audioMarks.Number[audioMarks.Count].position       = position;
@@ -55,14 +55,14 @@ void cMarkAdAudio::AddMark(int type, int position, const int channelsBefore, con
 }
 
 
-bool cMarkAdAudio::ChannelChange(int channelsBefore, int channelsAfter) {
+bool cAudio::ChannelChange(int channelsBefore, int channelsAfter) {
     if ((channelsBefore == 0) || (channelsAfter == 0)) return false;  // no channel count information
     if ((channelsBefore != 2) && (channelsBefore != 6)) {  // invalid status of channel count
-        dsyslog("cMarkAdAudio::ChannelChange(): invald status of channel count: %d", channelsBefore);
+        dsyslog("cAudio::ChannelChange(): invald status of channel count: %d", channelsBefore);
         return false;
     }
     if ((channelsAfter  != 2) && (channelsAfter  != 6)) { // invalid channel count in stream, maybe malformed audio packet
-        dsyslog("cMarkAdAudio::ChannelChange(): ignoring unexpected channel count %d in audio stream", channelsAfter);
+        dsyslog("cAudio::ChannelChange(): ignoring unexpected channel count %d in audio stream", channelsAfter);
         return false;
     }
     if (channelsBefore != channelsAfter) return true;
@@ -70,22 +70,24 @@ bool cMarkAdAudio::ChannelChange(int channelsBefore, int channelsAfter) {
 }
 
 
-void cMarkAdAudio::Silence(__attribute__((unused)) const int frameNumber) {
-    if (macontext->Audio.Info.volume >= 0) {
+void cAudio::Silence() {
+    int volume = 100; // TODO: get audio volume from decoder
+    if (volume >= 0) {
 #ifdef DEBUG_VOLUME
-        dsyslog("cMarkAdAudio::Silence(): frame (%5d): macontext->Audio.Info.volume %4d, silenceFrame (%5d), silenceStatus %2d, hasZero %d", frameNumber, macontext->Audio.Info.volume, silenceFrame, silenceStatus, hasZero);
+        int frameNumber = decoder->GetVideoFrameNumber();
+        dsyslog("cAudio::Silence(): frame (%5d): volume %4d, silenceFrame (%5d), silenceStatus %2d, hasZero %d", frameNumber, volume, silenceFrame, silenceStatus, hasZero);
 #endif
         switch (silenceStatus) {
         case SILENCE_UNINITIALIZED:
-            if (macontext->Audio.Info.volume <= MAX_SILENCE_VOLUME) silenceStatus = SILENCE_TRUE;
+            if (volume <= MAX_SILENCE_VOLUME) silenceStatus = SILENCE_TRUE;
             else                                                    silenceStatus = SILENCE_FALSE;
             break;
         case SILENCE_FALSE:
-            if (macontext->Audio.Info.volume <= MAX_SILENCE_VOLUME) {
+            if (volume <= MAX_SILENCE_VOLUME) {
                 silenceStatus = SILENCE_TRUE;
-                silencePTS    = macontext->Audio.Info.PTS;
+//                silencePTS    = macontext->Audio.Info.PTS;  TODO: get PTS from decoder
                 silenceFrame  = recordingIndexAudio->GetVideoFrameToPTS(silencePTS, true); // get video frame from PTS before audio PTS
-                if (silenceFrame < 0) esyslog("cMarkAdAudio::Silence(): no video frame found before audio PTS %" PRId64, silencePTS);
+                if (silenceFrame < 0) esyslog("cAudio::Silence(): no video frame found before audio PTS %" PRId64, silencePTS);
             }
             else {
                 silencePTS   = -1;
@@ -93,17 +95,17 @@ void cMarkAdAudio::Silence(__attribute__((unused)) const int frameNumber) {
             }
             break;
         case SILENCE_TRUE:
-            if (macontext->Audio.Info.volume > MAX_SILENCE_VOLUME) {  // end of silence
+            if (volume > MAX_SILENCE_VOLUME) {  // end of silence
                 silenceStatus = SILENCE_FALSE;
-                soundPTS      = macontext->Audio.Info.PTS;
+//                soundPTS      = macontext->Audio.Info.PTS; TODO: get from decoder
             }
             break;
         }
-        if ((silenceStatus == SILENCE_TRUE) && (macontext->Audio.Info.volume == 0)) hasZero = true;
+        if ((silenceStatus == SILENCE_TRUE) && (volume == 0)) hasZero = true;
     }
     // sometimes audio frame PTS is before video frame PTS in stream
     if (retry >= 10) { // give up
-        esyslog("cMarkAdAudio::Silence(): no video frame found after audio PTS %" PRId64, soundPTS);
+        esyslog("cAudio::Silence(): no video frame found after audio PTS %" PRId64, soundPTS);
         silencePTS   = -1;
         silenceFrame = -1;
         soundPTS     = -1;
@@ -130,21 +132,22 @@ void cMarkAdAudio::Silence(__attribute__((unused)) const int frameNumber) {
 }
 
 
-sMarkAdMarks *cMarkAdAudio::Process(const int frameNumber) {
+sMarkAdMarks *cAudio::Process() {
     ResetMarks();
-    Silence(frameNumber);  // check volume
+    Silence();  // check volume
 
-    // check channel change
+    // check channel change  TODO get from decoder
+    /*
     for (short int stream = 0; stream < MAXSTREAMS; stream++) {
         if (((macontext->Audio.Info.Channels[stream] == 2) || (macontext->Audio.Info.Channels[stream] == 6)) && (channels[stream] == 0)) {
             channels[stream] = macontext->Audio.Info.Channels[stream];
-            dsyslog("cMarkAdAudio::Process(): audio stream %d start at frame (%d) with %d channels", stream, macontext->Audio.Info.channelChangeFrame, channels[stream]);
+            dsyslog("cAudio::Process(): audio stream %d start at frame (%d) with %d channels", stream, macontext->Audio.Info.channelChangeFrame, channels[stream]);
         }
         if (ChannelChange(channels[stream], macontext->Audio.Info.Channels[stream])) {
             if (macontext->Audio.Info.Channels[stream] > 2) {  // channel start
                 int markFrame = recordingIndexAudio->GetVideoFrameToPTS(macontext->Audio.Info.channelChangePTS, false); // get video frame with pts after channel change
                 if (markFrame < 0) {
-                    esyslog("cMarkAdAudio::Process(): no video frame found after audio PTS %" PRId64, macontext->Audio.Info.channelChangePTS);
+                    esyslog("cAudio::Process(): no video frame found after audio PTS %" PRId64, macontext->Audio.Info.channelChangePTS);
                     markFrame = macontext->Audio.Info.channelChangeFrame;
                 }
                 if (!macontext->Config->fullDecode) {
@@ -156,7 +159,7 @@ sMarkAdMarks *cMarkAdAudio::Process(const int frameNumber) {
             else { // channel stop, frame before is last frame in broadcast
                 int markFrame = recordingIndexAudio->GetVideoFrameToPTS(macontext->Audio.Info.channelChangePTS, false); // get video frame with pts after channel change
                 if (markFrame < 0) {
-                    esyslog("cMarkAdAudio::Process(): no video frame found after audio PTS %" PRId64, macontext->Audio.Info.channelChangePTS);
+                    esyslog("cAudio::Process(): no video frame found after audio PTS %" PRId64, macontext->Audio.Info.channelChangePTS);
                     markFrame = macontext->Audio.Info.channelChangeFrame;
                 }
                 if (!macontext->Config->fullDecode) {
@@ -168,7 +171,7 @@ sMarkAdMarks *cMarkAdAudio::Process(const int frameNumber) {
             channels[stream] = macontext->Audio.Info.Channels[stream];   // ignore invalid channel changes
         }
     }
-
+    */
     // return list of new marks
     if (audioMarks.Count > 0) {
         return &audioMarks;

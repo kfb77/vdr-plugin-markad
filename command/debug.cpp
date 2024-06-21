@@ -47,31 +47,34 @@ bool SaveSobel(const char *fileName, const uchar *picture, const int width, cons
 #if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER)
 #include <stdio.h>
 #include <stdlib.h>
-void SaveFrameBuffer(const sMarkAdContext *maContext, const char *fileName) {
-    dsyslog("SaveFrameBuffer(): fileName %s", fileName);
-    if (!maContext->Video.Info.height) {
-        dsyslog("SaveFrameBuffer(): maContext->Video.Info.height not set");
+void SaveVideoPicture(const char *fileName, sVideoPicture *picture) {
+    if (!fileName) {
+        esyslog("SaveVideoPicture(): fileName not valid");
+    }
+    if (!picture) {
+        esyslog("SaveVideoPicture(): picture not valid");
+    }
+    if (picture->height <= 0) {
+        esyslog("SaveVideoPicture(): height not valid");
         return;
     }
-    if (!maContext->Video.Info.width) {
-        dsyslog("SaveFrameBuffer(): maContext->Video.Info.width not set");
+    if (picture->width <= 0) {
+        dsyslog("SaveVideoPicture(): width not valid");
         return;
     }
-    if (!maContext->Video.Data.valid) {
-        dsyslog("SaveFrameBuffer(): maContext->Video.Data.valid not set");
-        return;
-    }
+//    dsyslog("SaveFrameBuffer(): fileName %s", fileName);
+
     // Open file
     FILE *pFile = fopen(fileName, "wb");
     if (pFile == nullptr) {
-        dsyslog("cMarkAdStandalone::SaveFrame(): open file %s failed", fileName);
+        dsyslog("SaveVideoPicture(): open file %s failed", fileName);
         return;
     }
     // Write header
-    fprintf(pFile, "P5\n%d %d\n255\n", maContext->Video.Info.width, maContext->Video.Info.height);
-    // Write pixel data
-    for (int line = 0; line < maContext->Video.Info.height; line++) {
-        if (fwrite(&maContext->Video.Data.Plane[0][line * maContext->Video.Data.PlaneLinesize[0]], 1, maContext->Video.Info.width, pFile)) {};
+    fprintf(pFile, "P5\n%d %d\n255\n", picture->width, picture->height);
+    // Write pixel data from plane 0
+    for (int line = 0; line < picture->height; line++) {
+        if (fwrite(&picture->plane[0][line * picture->planeLineSize[0]], 1, picture->width, pFile)) {};
     }
     // Close file
     fclose(pFile);

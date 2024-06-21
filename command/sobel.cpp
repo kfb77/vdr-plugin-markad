@@ -5,27 +5,18 @@
  *
  */
 
+#include <stdio.h>
 #include <math.h>
 
 #include "sobel.h"
-#include "debug.h"
 
 
-cSobel::cSobel(const int videoWidthParam, const int videoHeightParam, const int logoWidthParam, const int logoHeightParam, const int boundaryParam) {
+cSobel::cSobel(const int videoWidthParam, const int videoHeightParam, const int boundaryParam) {
 
     // set video size
     videoWidth  = videoWidthParam;
     videoHeight = videoHeightParam;
-
-    // set logo size
-    if ((logoWidthParam <= 0) || (logoHeightParam <= 0)) {  // called by logo search, we do not know the logo size
-        logoSize = GetMaxLogoSize();
-    }
-    else {
-        logoSize.width  = logoWidthParam;
-        logoSize.height = logoHeightParam;
-    }
-    boundary = boundaryParam;
+    boundary    = boundaryParam;
 
     // 3x3 GX Sobel mask
     GX[0][0] = -1;
@@ -49,73 +40,192 @@ cSobel::cSobel(const int videoWidthParam, const int videoHeightParam, const int 
     GY[2][1] = -2;
     GY[2][2] = -1;
 
-    // alloc memory for sobel transformed planes
-    int logoPixel = logoSize.width * logoSize.height;
-    sobelPicture = new uchar*[PLANES];
-    for (int plane = 0; plane < PLANES; plane++) {
-        sobelPicture[plane] = new uchar[logoPixel];
-    }
-    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * logoPixel, "sobelPicture");
-
-    // alloc memory for mask result (machtes)
-    sobelResult = new uchar*[PLANES];
-    for (int plane = 0; plane < PLANES; plane++) {
-        sobelResult[plane] = new uchar[logoPixel];
-    }
-    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * logoPixel, "sobelResult");
-
-    // alloc memory for mask invers result
-    sobelInverse = new uchar*[PLANES];
-    for (int plane = 0; plane < PLANES; plane++) {
-        sobelInverse[plane] = new uchar[logoPixel];
-    }
-    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * logoPixel, "sobelInverse");
-
-    dsyslog("cSobel::cSobel(): video %dx%d, logo %dx%d", videoWidth, videoHeight, logoSize.width, logoSize.height);
+    dsyslog("cSobel::cSobel(): video %dx%d", videoWidth, videoHeight);
 }
 
 
 cSobel::~cSobel() {
-    // free memory for sobel plane
-    if (sobelPicture) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * logoSize.width * logoSize.height, "sobelPicture");
-        for (int plane = 0; plane < PLANES; plane++) delete[] sobelPicture[plane];
-        delete[] sobelPicture;
-    }
-    // free memory for sobel result
-    if (sobelResult) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * logoSize.width * logoSize.height, "sobelResult");
-        for (int plane = 0; plane < PLANES; plane++) delete[] sobelResult[plane];
-        delete[] sobelResult;
-    }
-    // free memory for sobel inverse result
-    if (sobelInverse) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * logoSize.width * logoSize.height, "sobelInverse");
-        for (int plane = 0; plane < PLANES; plane++) delete[] sobelInverse[plane];
-        delete[] sobelInverse;
-    }
 }
 
 
-bool cSobel::SobelPlane(sVideoPicture *picture, uchar **logo, const int corner, const int plane) {
-    if (!picture) return false;
+bool cSobel::AllocAreaBuffer(sAreaT *area) {
+    if ((area->logoSize.width <= 0) || (area->logoSize.height <= 0)) {
+        esyslog("cSobel::AllocResultBuffer(): invalid logo size %d:%d", area->logoSize.width, area->logoSize.height);
+        return false;
+    }
+    // alloc memory for sobel transformed planes
+    int logoPixel = area->logoSize.width * area->logoSize.height;
+    area->sobel = new uchar*[PLANES];
+    for (int plane = 0; plane < PLANES; plane++) {
+        area->sobel[plane] = new uchar[logoPixel];
+    }
+    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * logoPixel, "area.sobel");
+
+    // alloc memory for logo
+    area->logo = new uchar*[PLANES];
+    for (int plane = 0; plane < PLANES; plane++) {
+        area->logo[plane] = new uchar[logoPixel];
+    }
+    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * logoPixel, "area.logo");
+
+    // alloc memory for mask result (machtes)
+    area->result = new uchar*[PLANES];
+    for (int plane = 0; plane < PLANES; plane++) {
+        area->result[plane] = new uchar[logoPixel];
+    }
+    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * logoPixel, "area.result");
+
+    // alloc memory for mask inverse result
+    area->inverse = new uchar*[PLANES];
+    for (int plane = 0; plane < PLANES; plane++) {
+        area->inverse[plane] = new uchar[logoPixel];
+    }
+    ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * logoPixel, "area.inverse");
+
+    return true;
+}
+
+
+bool cSobel::FreeAreaBuffer(sAreaT *area) {
+    if (!area->sobel && !area->result && !area->inverse) return true;  // nothing to do
+    if ((area->logoSize.width <= 0) || (area->logoSize.height <= 0)) {
+        esyslog("cSobel::FreeResultBuffer(): invalid logo size %d:%d", area->logoSize.width, area->logoSize.height);
+        return false;
+    }
+    // free memory for sobel plane
+    if (area->sobel) {
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * area->logoSize.width * area->logoSize.height, "area.sobel");
+        for (int plane = 0; plane < PLANES; plane++) delete[] area->sobel[plane];
+        delete[] area->sobel;
+        area->sobel = nullptr;
+    }
+    // free memory for logo
+    if (area->logo) {
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * area->logoSize.width * area->logoSize.height, "area.logo");
+        for (int plane = 0; plane < PLANES; plane++) delete[] area->logo[plane];
+        delete[] area->logo;
+        area->logo = nullptr;
+    }
+    // free memory for sobel result
+    if (area->result) {
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * area->logoSize.width * area->logoSize.height, "area.result");
+        for (int plane = 0; plane < PLANES; plane++) delete[] area->result[plane];
+        delete[] area->result;
+        area->result = nullptr;
+    }
+    // free memory for sobel inverse result
+    if (area->inverse) {
+        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * area->logoSize.width * area->logoSize.height, "area.inverse");
+        for (int plane = 0; plane < PLANES; plane++) delete[] area->inverse[plane];
+        delete[] area->inverse;
+        area->inverse = nullptr;
+    }
+    for (int plane = 0; plane < PLANES; plane++) {
+        area->valid[plane]  = false;
+        area->rPixel[plane] = 0;
+        area->iPixel[plane] = 0;
+    }
+    return true;
+}
+
+
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+int cSobel::SobelPicture(const char *recDir, sVideoPicture *picture, sAreaT *area) {
+#else
+int cSobel::SobelPicture(sVideoPicture *picture, sAreaT *area) {
+#endif
+    // apply sobel transformation to all planes
+    int processed = 0;
+    for (int plane = 0; plane < PLANES; plane++) {
+        if (area->valid[plane]) {
+            if (SobelPlane(picture, area, plane)) {
+                processed++;
+
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+                if ((picture->frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (picture->frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
+                    int width  = area->logoSize.width;
+                    int height = area->logoSize.height;
+                    if (plane > 0) {
+                        width  /= 2;
+                        height /= 2;
+                    }
+                    char *fileName = nullptr;
+                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_0_sobel.pgm", recDir, picture->frameNumber, plane, area->logoCorner) >= 1) {
+                        ALLOC(strlen(fileName) + 1, "fileName");
+                        SaveSobel(fileName, area->sobel[plane], width, height);
+                        FREE(strlen(fileName) + 1, "fileName");
+                        free(fileName);
+                    }
+                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_1_logo.pgm", recDir, picture->frameNumber, plane, area->logoCorner) >= 1) {
+                        ALLOC(strlen(fileName) + 1, "fileName");
+                        SaveSobel(fileName, area->logo[plane], width, height);
+                        FREE(strlen(fileName) + 1, "fileName");
+                        free(fileName);
+                    }
+                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_2_result.pgm", recDir, picture->frameNumber, plane, area->logoCorner) >= 1) {
+                        ALLOC(strlen(fileName) + 1, "fileName");
+                        SaveSobel(fileName, area->result[plane], width, height);
+                        FREE(strlen(fileName) + 1, "fileName");
+                        free(fileName);
+                    }
+                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_3_inverse.pgm", recDir, picture->frameNumber, plane, area->logoCorner) >= 1) {
+                        ALLOC(strlen(fileName) + 1, "fileName");
+                        SaveSobel(fileName, area->inverse[plane], width, height);
+                        FREE(strlen(fileName) + 1, "fileName");
+                        free(fileName);
+                    }
+                }
+//                dsyslog("cSobel::SobelPicture(): frame (%d), plane %d: rPixel[plane] %d <-> mPixel[plane] %d", picture->frameNumber, plane, area->rPixel[plane], area->mPixel[plane]);
+#endif
+            }
+        }
+    }
+    return processed;
+}
+
+
+bool cSobel::SobelPlane(sVideoPicture *picture, sAreaT *area, const int plane) {
+    if (!picture) {
+        esyslog("cSobel::SobelPlane(): picture missing");
+        return false;
+    }
+    if (!area) {
+        esyslog("cSobel::SobelPlane(): area missing");
+        return false;
+    }
+    if (!area->sobel) {
+        esyslog("cSobel::SobelPlane(): sobel missing");
+        return false;
+    }
+    if (!area->result) {
+        esyslog("cSobel::SobelPlane(): result missing");
+        return false;
+    }
+    if (!area->result) {
+        esyslog("cSobel::SobelPlane(): invers missing");
+        return false;
+    }
+
+    // reset values
+    area->rPixel[plane] = 0;
+    area->iPixel[plane] = 0;
 
     // get logo coordinates
     int xStart = 0;
     int xEnd   = 0;
     int yStart = 0;
     int yEnd   = 0;
-    if (!SetCoordinates(corner, plane, &xStart, &xEnd, &yStart, &yEnd)) return false;
+    if (!SetCoordinates(area, plane, &xStart, &xEnd, &yStart, &yEnd)) return false;
 
     int cutval           = 127;
-    int planeLogoWidth   = logoSize.width;
+    int planeLogoWidth   = area->logoSize.width;
     int planeVideoWidth  = videoWidth;
     int planeVideoHeight = videoHeight;
     int planeBoundary    = boundary;
     if (plane > 0) {
         planeBoundary    /= 2;
         cutval           /= 2;
-        planeLogoWidth       /= 2;
+        planeLogoWidth   /= 2;
         planeVideoWidth  /= 2;
         planeVideoHeight /= 2;
     }
@@ -129,7 +239,6 @@ bool cSobel::SobelPlane(sVideoPicture *picture, uchar **logo, const int corner, 
 #ifdef DEBUG_SOBEL
     dsyslog("cMarkAdLogo::SobelPlane(): plane %d: xStart %d, xEend %d, yStart %d, yEnd %d", plane, xStart, xEnd, yStart, yEnd);
 #endif
-
 
     for (int Y = yStart; Y <= yEnd; Y++) {
         for (int X = xStart; X <= xEnd; X++) {
@@ -169,28 +278,26 @@ bool cSobel::SobelPlane(sVideoPicture *picture, uchar **logo, const int corner, 
 
             int val = 255 - (uchar) SUM;
 
-            sobelPicture[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] = val;
+            area->sobel[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] = val;
 
             // only store results in logo coordinates range
-            if (logo) {  // if we are called by logo search, we have no valid logo
+            if (area->valid[plane]) {  // if we are called by logo search, we have no valid area->logo
                 // area result
-                sobelResult[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] = (logo[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] + val) & 255;
-                if (sobelResult[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] == 0) rPixel++;
+                area->result[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] = (area->logo[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] + val) & 255;
+                if (area->result[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] == 0) area->rPixel[plane]++;
                 // area inverted
-                sobelInverse[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] = ((255 - logo[plane][(X - xStart) + (Y - yStart) * planeLogoWidth]) + val) & 255;
-                if (sobelInverse[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] == 0) iPixel++;
+                area->inverse[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] = ((255 - area->logo[plane][(X - xStart) + (Y - yStart) * planeLogoWidth]) + val) & 255;
+                if (area->inverse[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] == 0) area->iPixel[plane]++;
             }
         }
 
     }
-    if (plane == 0) intensity /= (planeVideoHeight * planeVideoWidth);
+    if (plane == 0) {
+        area->intensity = intensity / (area->logoSize.width * area->logoSize.height);
+    }
     return true;
 }
 
-
-uchar **cSobel::GetSobelPlanes() {
-    return sobelPicture;
-}
 
 sLogoSize cSobel::GetMaxLogoSize() const {
     sLogoSize logoSizeMax;
@@ -229,35 +336,30 @@ sLogoSize cSobel::GetMaxLogoSize() const {
 }
 
 
-sLogoSize cSobel::GetLogoSize() const {
-    return logoSize;
-}
-
-
-bool cSobel::SetCoordinates(const int corner, const int plane, int *xstart, int *xend, int *ystart, int *yend) const {
-    switch (corner) {
+bool cSobel::SetCoordinates(sAreaT *area, const int plane, int *xstart, int *xend, int *ystart, int *yend) const {
+    switch (area->logoCorner) {
     case TOP_LEFT:
         *xstart = 0;
-        *xend   = logoSize.width  - 1;
+        *xend   = area->logoSize.width  - 1;
         *ystart = 0;
-        *yend   = logoSize.height - 1;
+        *yend   = area->logoSize.height - 1;
         break;
     case TOP_RIGHT:
-        *xstart = videoWidth - logoSize.width;
+        *xstart = videoWidth - area->logoSize.width;
         *xend   = videoWidth - 1;
         *ystart = 0;
-        *yend   = logoSize.height - 1;
+        *yend   = area->logoSize.height - 1;
         break;
     case BOTTOM_LEFT:
         *xstart = 0;
-        *xend   = logoSize.width - 1;
-        *ystart = videoHeight - logoSize.height;
+        *xend   = area->logoSize.width - 1;
+        *ystart = videoHeight - area->logoSize.height;
         *yend   = videoHeight - 1;
         break;
     case BOTTOM_RIGHT:
-        *xstart = videoWidth  - logoSize.width;
+        *xstart = videoWidth  - area->logoSize.width;
         *xend   = videoWidth  - 1;
-        *ystart = videoHeight - logoSize.height;
+        *ystart = videoHeight - area->logoSize.height;
         *yend   = videoHeight - 1;
         break;
     default:
@@ -271,5 +373,3 @@ bool cSobel::SetCoordinates(const int corner, const int plane, int *xstart, int 
     }
     return true;
 }
-
-

@@ -113,6 +113,7 @@ cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
 // used by logo change detection
 void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maContext, cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA) {
     if (!marks) return;
+    return;  // TODO
 
 #define LOGO_CHANGE_NEXT_STOP_MIN     6840  // in ms, do not increase, 6840ms is the shortest found distance between two logo changes
     // next stop max (=lenght next valid broadcast) found: 1242s
@@ -704,6 +705,8 @@ cDetectLogoStopStart::cDetectLogoStopStart(sMarkAdContext *maContextParam, cCrit
     ptr_cDecoder              = ptr_cDecoderParam;
     recordingIndex            = recordingIndexParam;
     evaluateLogoStopStartPair = evaluateLogoStopStartPairParam;
+//    sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0);  // boundary = 0   // TODO
+//    ALLOC(sizeof(*sobel), "sobel");
 }
 
 
@@ -961,7 +964,8 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
 #endif
         compareResult.clear();
     }
-    int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
+    sLogoSize logoSize = sobel->GetMaxLogoSize();  // default logo size of this resolution, not real logo size, info logos are greater than real logo
+    int maxLogoPixel   = logoSize.width * logoSize.height;
 
     // check if we have anything todo with this channel
     if (!IsInfoLogoChannel(maContext->Info.ChannelName) && !IsLogoChangeChannel(maContext->Info.ChannelName) && !ClosingCreditsChannel(maContext->Info.ChannelName)
@@ -980,9 +984,9 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
     endPos = recordingIndex->GetIFrameBefore(endFrame);
     dsyslog("cDetectLogoStopStart::Detect(): detect from i-frame (%d) to i-frame (%d)", startPos, endPos);
 
-    cMarkAdLogo *ptr_Logo = new cMarkAdLogo(maContext, criteria, recordingIndex);
-    ALLOC(sizeof(*ptr_Logo), "ptr_Logo");
-    sAreaT *area = ptr_Logo->GetArea();
+    cLogoDetect *logoDetect = new cLogoDetect(decoder, criteria, nullptr, nullptr);  // TODO
+    ALLOC(sizeof(*logoDetect), "logoDetect");
+    sAreaT *area = logoDetect->GetArea();
 
     cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext->Config->recDir,  maContext->Info.ChannelName, maContext->Config->threads, maContext->Config->hwaccel, maContext->Video.Info.AspectRatio);
     ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
@@ -994,9 +998,8 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         ALLOC(sizeof(*logo1[corner]), "logo");
     }
 
-    cSobel *sobel = new cSobel(ptr_cDecoder->GetVideoWidth(), ptr_cDecoder->GetVideoHeight(), 0, 0, 0);   // TODO
+    cSobel *sobel = new cSobel(ptr_cDecoder->GetVideoWidth(), ptr_cDecoder->GetVideoHeight(), 0);   // bondary = 0, TODO
     ALLOC(sizeof(*sobel), "sobel");
-    sLogoSize logoSize = sobel->GetLogoSize();  // default logo size of this resolution, not real logo size, info logos are greater than real logo
     FREE(sizeof(*sobel), "sobel");
     delete sobel;
 
@@ -1026,13 +1029,13 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
 
         sCompareInfo compareInfo;
         for (int corner = 0; corner < CORNERS; corner++) {
-            area->corner = corner;
+            area->logoCorner = corner;
             int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, don't analyse, only fill area
             //                       -2: called by cExtractLogo, don't analyse, only fill area, store logos in /tmp for debug
 #ifdef DEBUG_COMPARE_FRAME_RANGE
             if (corner == DEBUG_COMPARE_FRAME_RANGE) iFrameNumberNext = -2;
 #endif
-            ptr_Logo->Detect(0, frameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
+            logoDetect->Detect(0, frameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
 
 #ifdef DEBUG_MARK_OPTIMIZATION
             // save plane 0 of sobel transformation
@@ -1088,8 +1091,8 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
             ALLOC((sizeof(sCompareInfo)), "compareResult");
         }
     }
-    FREE(sizeof(*ptr_Logo), "ptr_Logo");
-    delete ptr_Logo;
+    FREE(sizeof(*logoDetect), "logoDetect");
+    delete logoDetect;
 
     // free memory of last logo
     for (int corner = 0; corner < CORNERS; corner++) {

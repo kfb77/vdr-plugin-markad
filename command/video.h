@@ -10,9 +10,11 @@
 #define __video_h_
 
 #include "global.h"
-#include "index.h"
+#include "debug.h"
+#include "decoderNEW.h"
 #include "criteria.h"
 #include "tools.h"
+#include "sobel.h"
 
 #define LOGO_VMAXCOUNT 3       //!< count of IFrames for detection of "logo visible"
 //!<
@@ -29,18 +31,6 @@
 //!< shortest valid vborder part in broadcast found with length 82s
 //!< keep it greater than MIN_H_BORDER_SECS for detecting long black screens
 
-
-/**
- * logo detection status
- */
-enum eLogoStatus {
-    LOGO_RESTART       = -4,
-    LOGO_ERROR         = -3,
-    LOGO_UNINITIALIZED = -2,
-    LOGO_INVISIBLE     = -1,
-    LOGO_NOCHANGE      =  0,
-    LOGO_VISIBLE       =  1
-};
 
 enum {
     SCENE_ERROR          = -3,
@@ -84,104 +74,19 @@ enum {
 
 
 /**
- * corner area after sobel transformation
- */
-typedef struct sAreaT {
-    uchar **sobel      = nullptr;              //!< monochrome picture from edge after sobel transformation, memory will be allocated after we know video resolution
-    //!<
-
-    uchar **mask       = nullptr;              //!< monochrome mask of logo, memory will be allocated after we know video resolution
-    //!<
-
-    uchar **result     = nullptr;              //!< result of sobel + mask, memory will be allocated after we know video resolution
-    //!<
-
-    uchar **inverse    = nullptr;              //!< inverse result of sobel + mask, memory will be allocated after we know video resolution
-    //!<
-
-    int mPixel[PLANES] = {0};                  //!< black pixel in mask
-    //!<
-
-    int rPixel[PLANES] = {0};                  //!< black pixel in result
-    //!<
-
-    int iPixel[PLANES] = {0};                  //!< black pixel in inverse result
-    //!<
-
-    int status         = LOGO_UNINITIALIZED;   //!< logo status: on, off, uninitialized
-    //!<
-
-    int frameNumber    = -1;                   //!< start/stop frame number
-    //!<
-
-    int counter;                               //!< how many logo on, offs detected
-    //!<
-
-    int corner;                                //!< corner of logo
-    //!<
-
-    int intensity;                             //!< area intensity (higher -> brighter)
-    //!<
-
-    sAspectRatio AspectRatio;                  //!< aspect ratio of the video
-    //!<
-
-    bool valid[PLANES];                        //!< <b>true:</b> logo mask data (logo) are valid <br>
-    //!< <b>false:</b> logo mask (logo) is not valid
-    //!<
-} sAreaT;
-
-
-/**
- * calculate logo default and maximum size dependent on video resolution
- */
-class cLogoSize {
-public:
-    cLogoSize();
-    ~cLogoSize();
-
-    /**
-     * calculate default logo size dependent on video resolution, used to extract logo from recording
-     * @param width video width in pixel
-     * @return default logo width and height in pixel
-     */
-    sLogoSize GetDefaultLogoSize(const int width);
-
-    /**
-     * calculatate maximum logo size dependent on video resolution
-     * @param width video width in pixel
-     * @return maximum valid logo width and height in pixel
-     */
-    sLogoSize GetMaxLogoSize(const int width);
-
-    /**
-     * get maximum pixel count of a logo dependent on video resolution
-     * @param width video width
-     * @return maximum pixel count of the logo
-     */
-    int GetMaxLogoPixel(const int width);
-
-private:
-    int videoWidth = 0;  //!< video width
-    //!<
-};
-
-
-/**
  * class to detect logo in recording
  */
-class cMarkAdLogo : private cLogoSize, cTools {
+class cLogoDetect : private cTools {
 public:
 
     /**
      * class to detect logo
-     * @param maContextParam        markad context
      * @param criteriaParam         detection critaria
      * @param recordingIndex        recording index
      */
-    explicit cMarkAdLogo(sMarkAdContext *maContextParam, cCriteria *criteriaParam, cIndex *recordingIndex);
+    explicit cLogoDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
 
-    ~cMarkAdLogo();
+    ~cLogoDetect();
 
     /**
      * detect logo status
@@ -200,7 +105,7 @@ public:
      * @param[out] logoFrameNumber frame number of detected logo state change
      * @return #eLogoStatus
      */
-    int Process(const int iFrameBefore, const int iFrameCurrent, const int frameCurrent, int *logoFrameNumber);
+    int Process(int *logoFrameNumber);
 
 
     /**
@@ -224,18 +129,6 @@ public:
     sAreaT *GetArea();
 
 private:
-
-    /**
-     * calculate coordinates of logo position (values for array index, from 0 to (Video.Info.width - 1) or (Video.Info.height)
-     * @param[out] xstart x position of logo start
-     * @param[out] xend   x position of logo end
-     * @param[out] ystart y position of logo start
-     * @param[out] yend   y position of logo end
-     * @param[in]  plane  number of plane
-     * @return true if successful, false otherwise
-     */
-    bool SetCoordinates(int *xstart, int *xend, int *ystart, int *yend, const int plane) const;
-
     /**
      * reduce brightness of logo corner
      * @param  frameNumber  frame number, only used to debug
@@ -243,15 +136,9 @@ private:
      * @param  logo_imark   count of pixel matches to accept logo invisible
      * @return true if we got a valid result, fasle otherwise
      */
-    bool ReduceBrightness(const int frameNumber, const int logo_vmark, const int logo_imark);
+    bool ReduceBrightness(const int logo_vmark, const int logo_imark);
 
-    /**
-     * sobel transform one plane of the picture
-     * @param plane number of plane
-     * @param boundary count pixel of outer frame to ignore in sobel transformation, need for logo extraction to avoid corner lines
-     * @return true if successful, false otherwise
-     */
-    bool SobelPlane(const int plane, int boundary);
+    bool LoadLogo();
 
     /**
      * load logo from file in directory
@@ -260,7 +147,7 @@ private:
      * @param plane number of plane
      * @return 0 on success, -1 file not found, -2 format error in logo file
      */
-    int Load(const char *directory, const char *file, const int plane);
+    bool LoadLogoPlane(const char *path, const char *logoName, const int plane);
 
     /**
      * save the area.corner picture after sobel transformation to /tmp
@@ -278,23 +165,17 @@ private:
      */
     void LogoGreyToColour();
 
-    cIndex *recordingIndexMarkAdLogo  = nullptr;  //!< recording index
+    cDecoderNEW *decoder              = nullptr;  //!< decoder
     //!<
-    int logoHeight                    = 0;        //!< logo height
+    cCriteria *criteria               = nullptr;  //!< decoding states and criteria
     //!<
-    int logoWidth                     = 0;        //!< logo width
+    const char *logoCacheDir          = nullptr;  //!< logo cache directory
     //!<
-    sAreaT area;                                  //!< pixels of logo area
+    const char *recDir                = nullptr;  //!< recording directory
     //!<
-    int GX[3][3];                                 //!< GX Sobel mask
+    cSobel *sobel                     = nullptr;  //!< sobel transformation
     //!<
-    int GY[3][3];                                 //!< GY Sobel mask
-    //!<
-    sMarkAdContext *maContext         = nullptr;  //!< markad context
-    //!<
-    cCriteria *criteria               = nullptr;  //!< pointer to class with decoding states and criteria
-    //!<
-    bool pixfmt_info                  = false;    //!< true if unknown pixel error message was logged, false otherwise
+    sAreaT area                       = {};       //!< pixels of logo area
     //!<
     bool isInitColourChange           = false;    //!< true if trnasformation of grey logo to coloured logo is done
     //!<
@@ -306,20 +187,20 @@ private:
     //!<
     int logo_yend                     = -1;       //!< y end coordinate of the visible part of the logo
     //!<
+    const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" }; //!< array to transform enum corner to text
+    //!<
 };
 
 /**
  * class to detect scene change
  */
-class cMarkAdSceneChange {
+class cSceneChangeDetect {
 public:
-
     /**
      * class to detect scene change
-     * @param maContextParam markad context
      */
-    explicit cMarkAdSceneChange(sMarkAdContext *maContextParam);
-    ~cMarkAdSceneChange();
+    cSceneChangeDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam);
+    ~cSceneChangeDetect();
 
     /**
      * process scene change detection
@@ -330,20 +211,22 @@ public:
      *          0 no status change <br>
      *          1 scene start
      */
-    int Process(const int currentFrameNumber, int *changeFrameNumber);
+    int Process(int *changeFrameNumber);
 
 private:
-    sMarkAdContext *maContext = nullptr;                  //!< markad context
+    cDecoderNEW *decoder = nullptr;               //!< pointer to decoder
     //!<
-    int prevFrameNumber       = -1;                    //!< previous frame number
+    cCriteria *criteria  = nullptr;               //!< analyse criteria
     //!<
-    int *prevHistogram        = nullptr;                  //!< histogram of previous frame
+    int prevFrameNumber  = -1;                    //!< previous frame number
     //!<
-    int sceneStatus           = SCENE_UNINITIALIZED;   //!< status of scene change
+    int *prevHistogram   = nullptr;               //!< histogram of previous frame
     //!<
-    int blendFrame            = -1;                    //!< frames number of first frame over blend limit
+    int sceneStatus      = SCENE_UNINITIALIZED;   //!< status of scene change
     //!<
-    int blendCount            = 0;                     //!< number of frames over blend limit
+    int blendFrame       = -1;                    //!< frames number of first frame over blend limit
+    //!<
+    int blendCount       = 0;                     //!< number of frames over blend limit
     //!<
 };
 
@@ -351,14 +234,13 @@ private:
 /**
  * class to detect black screen
  */
-class cMarkAdBlackScreen {
+class cBlackScreenDetect {
 public:
 
     /**
      * class to detect black screen
-     * @param maContextParam markad context
      */
-    explicit cMarkAdBlackScreen(sMarkAdContext *maContextParam);
+    explicit cBlackScreenDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam);
 
     /**
      * process black screen detection
@@ -368,7 +250,7 @@ public:
      *          0 no status change <br>
      *          1 blackscreen end (notice: this is a START mark)
      */
-    int Process(const int frameCurrent);
+    int Process();
 
     /**
      * clear blackscreen detection status
@@ -376,11 +258,13 @@ public:
     void Clear();
 
 private:
+    cDecoderNEW *decoder  = nullptr;                   //!< pointer to decoder
+    //!<
+    cCriteria *criteria   = nullptr;                   //!< pointer to class for marks and decoding criteria
+    //!<
     int blackScreenStatus = BLACKSCREEN_UNINITIALIZED; //!< status of black screen detection
     //!<
     int lowerBorderStatus = BLACKSCREEN_UNINITIALIZED; //!< status of lower part black screen detection
-    //!<
-    sMarkAdContext *maContext = nullptr;                  //!< markad context
     //!<
 };
 
@@ -388,7 +272,7 @@ private:
 /**
  * cladd to detect horizental border
  */
-class cMarkAdBlackBordersHoriz {
+class cHorizBorderDetect {
 public:
 
     /**
@@ -397,7 +281,8 @@ public:
      * @param frameRateParam    frame rate
      * @param criteriaParam     detection criteria
      */
-    explicit cMarkAdBlackBordersHoriz(const char *channelNameParam, const int frameRateParam, cCriteria *criteriaParam);
+    explicit cHorizBorderDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam);
+    ~cHorizBorderDetect();
 
     /**
      * get first frame number with border
@@ -411,7 +296,7 @@ public:
      * @param  borderFrame frame number of detected border
      * @return             border detection status
      */
-    int Process(sVideoPicture *picture, int *borderFrame);
+    int Process(int *borderFrame);
 
     /**
      * get horizontal border detection status
@@ -425,17 +310,19 @@ public:
     void Clear(const bool isRestart = false);
 
 private:
-    const char *channelName   = nullptr;  //!< channel name
+    cDecoderNEW *decoder      = nullptr;   //!< pointer to decoder
     //!<
-    int frameRate             = 0;        //!< frame rate
+    cCriteria *criteria       = nullptr;   //!< pointer to class with decoding states and criteria
     //!<
-    int borderstatus;                     //!< status of horizontal border detection
+    bool logoInBorder         = false;     //!< true if channel has logo in border
     //!<
-    int borderframenumber;                //!< frame number of detected horizontal border
+    bool infoInBorder         = false;     //!< true if channel has info banner in border
     //!<
-    sMarkAdContext *maContext = nullptr;  //!< markad context
+    int frameRate             = 0;         //!< frame rate
     //!<
-    cCriteria *criteria       = nullptr;  //!< pointer to class with decoding states and criteria
+    int borderstatus;                      //!< status of horizontal border detection
+    //!<
+    int borderframenumber;                 //!< frame number of detected horizontal border
     //!<
 };
 
@@ -443,7 +330,7 @@ private:
 /**
  * class to detect vertical border
  */
-class cMarkAdBlackBordersVert {
+class cVertBorderDetect {
 public:
 
     /**
@@ -452,7 +339,7 @@ public:
      * @param frameRateParam   video frame rate
      * @param criteriaParam    detection criteria
      */
-    explicit cMarkAdBlackBordersVert(const char *channelNameParam, const int frameRateParam, cCriteria *criteriaParam);
+    explicit cVertBorderDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam);
 
     /**
      * get first frame number with border
@@ -462,11 +349,10 @@ public:
 
     /**
      * process vertical border detection of current frame
-     * @param picture pointer to video picture to analyse
      * @param borderFrame frame number of detected border
      * @return border detection status
      */
-    int Process(sVideoPicture *picture, int *borderFrame);
+    int Process(int *borderFrame);
 
 
     /**
@@ -475,19 +361,21 @@ public:
     void Clear(const bool isRestart = false);
 
 private:
-    const char *channelName   = nullptr;   //!< channel name
-    //!<
-    int frameRate             = 0;         //!< frame rate of video
+    cDecoderNEW *decoder      = nullptr;   //!< pointer to decoder
     //!<
     cCriteria *criteria       = nullptr;   //!< pointer to class with decoding states and criteria
+    //!<
+    bool logoInBorder         = false;     //!< true if channel has logo in border
+    //!<
+    bool infoInBorder         = false;     //!< true if channel has info banner in border
+    //!<
+    int frameRate             = 0;         //!< frame rate of video
     //!<
     int borderstatus;                      //!< status of vertical border detection
     //!<
     int borderframenumber     = -1;        //!< frame number of detected vertical border
     //!<
     int darkFrameNumber       = INT_MAX;   //!< first vborder frame, but need to check, because of dark picture
-    //!<
-    sMarkAdContext *maContext = nullptr;   //!< markad context
     //!<
 #ifdef DEBUG_VBORDER
     int minBrightness         = INT_MAX;
@@ -499,59 +387,50 @@ private:
 /**
  * check packet for video based marks
  */
-class cMarkAdVideo {
+class cVideo {
 public:
 
     /**
      * constructor of class to check packet for video based marks
-     * @param maContextParam       markad context
      * @param criteriaParam        detection criteria
      * @param recordingIndex       recording index
      */
-    explicit cMarkAdVideo(sMarkAdContext *maContextParam, cCriteria *criteriaParam, cIndex *recordingIndex);
-    ~cMarkAdVideo();
+    explicit cVideo(cDecoderNEW *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
+    ~cVideo();
 
     /**
      * copy constructor, not used, only for formal reason
      */
-    cMarkAdVideo(const cMarkAdVideo &origin) {
-        maContext                 = origin.maContext;
-        blackScreen               = nullptr;
-        hborder                   = nullptr;
-        vborder                   = nullptr;
-        logo                      = nullptr;
+    cVideo(const cVideo &origin) {
+        sceneChangeDetect         = nullptr;
+        blackScreenDetect         = nullptr;
+        hBorderDetect             = nullptr;
+        vBorderDetect             = nullptr;
+        logoDetect                = nullptr;
         criteria                  = nullptr;
-        recordingIndexMarkAdVideo = nullptr;
-        sceneChange               = nullptr;
         aspectRatioBeforeFrame    = 0;
     };
 
     /**
      * operator=, not used, only for formal reason
      */
-    cMarkAdVideo &operator =(const cMarkAdVideo *origin) {
-        maContext                 = origin->maContext;
+    cVideo &operator =(const cVideo *origin) {
         criteria                  = origin->criteria;
-        sceneChange               = nullptr;
-        blackScreen               = nullptr;
-        hborder                   = nullptr;
-        vborder                   = nullptr;
-        logo                      = nullptr;
-        aspectRatio               = {};
+        sceneChangeDetect         = nullptr;
+        blackScreenDetect         = nullptr;
+        hBorderDetect             = nullptr;
+        vBorderDetect             = nullptr;
+        logoDetect                = nullptr;
         aspectRatioBeforeFrame    = 0;
-        recordingIndexMarkAdVideo = nullptr;
         videoMarks                = {};
         return *this;
     }
 
     /**
      * detect video packet based marks
-     * @param iFrameBefore  number of i-frame before last i-frame frame
-     * @param iFrameCurrent number of last i-frame
-     * @param frameCurrent  current frame number
      * @return array of detected marks from this video packet
      */
-    sMarkAdMarks *Process(int iFrameBefore, const int iFrameCurrent, const int frameCurrent);
+    sMarkAdMarks *Process();
 
     /**
      * reduce logo detection to plane 0
@@ -570,12 +449,12 @@ public:
      */
     void ClearBorder();
 
-private:
-
     /**
-     * reset array of new marks
+     * set ascpect ratio of broadcast
      */
-    void ResetMarks();
+    void SetAspectRatioBroadcast(sAspectRatio aspectRatio);
+
+private:
 
     /**
      * add a new mark to array of new marks
@@ -593,29 +472,33 @@ private:
      * @param[in]  AspectRatioB second video aspect ratio
      * @return true if aspect ratio changed, false otherwise
      */
-    static bool AspectRatioChange(const sAspectRatio &AspectRatioA, const sAspectRatio &AspectRatioB);
+    static bool AspectRatioChange(const sAspectRatio AspectRatioOld, const sAspectRatio *AspectRatioNew);
 
-    sMarkAdContext *maContext         = nullptr; //!< markad context
+    cDecoderNEW *decoder                  = nullptr;  //!< pointer to decoder
     //!<
-    cCriteria *criteria               = nullptr; //!< pointer to class for marks and decoding criteria
+    cCriteria *criteria                   = nullptr;  //!< pointer to class for marks and decoding criteria
     //!<
-    cIndex *recordingIndexMarkAdVideo = nullptr; //!< recording index
+    const char *recDir                    = nullptr;  //!< recording directory
     //!<
-    sMarkAdMarks videoMarks           = {};   //!< array of marks to add to list
+    const char *logoCacheDir              = nullptr;  //!< logo cache directory
     //!<
-    sAspectRatio aspectRatio;                 //!< video display aspect ratio (DAR)
+    sMarkAdMarks videoMarks               = {};       //!< array of marks to add to list
     //!<
-    cMarkAdSceneChange *sceneChange   = nullptr; //!< pointer to class cMarkAdsceneChange
+    sAspectRatio aspectRatioFrameBefore   = {0};      //!< video display aspect ratio (DAR) of frame before
     //!<
-    cMarkAdBlackScreen *blackScreen   = nullptr; //!< pointer to class cMarkAdBlackScreen
+    sAspectRatio aspectRatioBroadcast     = {0};      //!< broadcast display aspect ratio (DAR)
     //!<
-    cMarkAdBlackBordersHoriz *hborder = nullptr; //!< pointer to class cMarkAdBlackBordersHoriz
+    cSceneChangeDetect *sceneChangeDetect = nullptr;  //!< pointer to class cMarkAdsceneChange
     //!<
-    cMarkAdBlackBordersVert *vborder  = nullptr; //!< pointer to class cMarkAdBlackBordersVert
+    cBlackScreenDetect *blackScreenDetect = nullptr;  //!< pointer to class cBlackScreenDetect
     //!<
-    cMarkAdLogo *logo                 = nullptr; //!< pointer to class cMarkAdLogo
+    cHorizBorderDetect *hBorderDetect     = nullptr;  //!< pointer to class cHorizBorderDetect
     //!<
-    int aspectRatioBeforeFrame        = 0;    //!< last frame number before aspect ratio change, needed for stop mark
+    cVertBorderDetect *vBorderDetect      = nullptr;  //!< pointer to class cVertBorderDetect
+    //!<
+    cLogoDetect *logoDetect               = nullptr;  //!< pointer to class cLogoDetect
+    //!<
+    int aspectRatioBeforeFrame            = 0;        //!< last frame number before aspect ratio change, needed for stop mark
     //!<
 };
 #endif

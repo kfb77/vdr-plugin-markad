@@ -11,157 +11,35 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "debug.h"
 #include "video.h"
 #include "logo.h"
-
 
 // global variables
 extern bool abortNow;
 
-cLogoSize::cLogoSize() {
+
+cLogoDetect::cLogoDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam) {
+    decoder      = decoderParam;
+    criteria     = criteriaParam;
+    recDir       = recDirParam;
+    logoCacheDir = logoCacheDirParam;
+
+    // create object for sobel transformation
+    sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0);  // boundary = 0
+    ALLOC(sizeof(*sobel), "sobel");
 }
 
 
-cLogoSize::~cLogoSize() {
-}
-
-
-sLogoSize cLogoSize::GetDefaultLogoSize(const int width) {
-    sLogoSize logoSize;
-    if (videoWidth == 0) videoWidth = width;
-    switch (videoWidth) {
-    case 544:
-        logoSize.width  =  230;
-        logoSize.height =  130;
-        break;
-    case 720:
-        logoSize.width  =  230;
-        logoSize.height =  130;
-        break;
-    case 1280:
-        logoSize.width  =  400;
-        logoSize.height =  200;
-        break;
-    case 1440:
-        logoSize.width  =  400;
-        logoSize.height =  220;  // changed from 200 to 220 (BILD_HD)
-        break;
-    case 1920:
-        logoSize.width  =  400;
-        logoSize.height =  220;  // changed from 210 to 220
-        break;
-    case 3840:
-        logoSize.width  = 1500;
-        logoSize.height =  400;
-        break;
-    default:
-        dsyslog("cLogoSize::GetDefaultLogoSize() no default logo size rule for video width %d", videoWidth);
-        logoSize.width  =  400;
-        logoSize.height =  200;
-        break;
-    }
-    return logoSize;
-}
-
-
-sLogoSize cLogoSize::GetMaxLogoSize(const int width) {
-    sLogoSize logoSize;
-    if (videoWidth == 0) videoWidth = width;
-    sLogoSize DefaultLogoSize = GetDefaultLogoSize(width);
-    logoSize.width  = DefaultLogoSize.width  * 1.1;
-    logoSize.height = DefaultLogoSize.height * 1.1;
-    return logoSize;
-}
-
-
-int cLogoSize::GetMaxLogoPixel(const int width) {
-    sLogoSize MaxLogoSize = GetMaxLogoSize(width);
-    return MaxLogoSize.height * MaxLogoSize.width;
-}
-
-
-cMarkAdLogo::cMarkAdLogo(sMarkAdContext *maContextParam, cCriteria *criteriaParam, cIndex *recordingIndex) {
-    maContext                = maContextParam;
-    criteria                 = criteriaParam;
-    recordingIndexMarkAdLogo = recordingIndex;
-
-    // 3x3 GX Sobel mask
-    GX[0][0] = -1;
-    GX[0][1] =  0;
-    GX[0][2] =  1;
-    GX[1][0] = -2;
-    GX[1][1] =  0;
-    GX[1][2] =  2;
-    GX[2][0] = -1;
-    GX[2][1] =  0;
-    GX[2][2] =  1;
-
-    // 3x3 GY Sobel mask
-    GY[0][0] =  1;
-    GY[0][1] =  2;
-    GY[0][2] =  1;
-    GY[1][0] =  0;
-    GY[1][1] =  0;
-    GY[1][2] =  0;
-    GY[2][0] = -1;
-    GY[2][1] = -2;
-    GY[2][2] = -1;
-
-    pixfmt_info = false;
-    Clear();
-}
-
-
-cMarkAdLogo::~cMarkAdLogo() {
+cLogoDetect::~cLogoDetect() {
     Clear(false); // free memory for sobel plane
+    delete sobel;
+    FREE(sizeof(*sobel), "sobel");
 
 }
 
 
-void cMarkAdLogo::Clear(const bool isRestart) {
-#ifdef DEBUG_MEM
-    if (!maContext) return;
-    int maxLogoPixel = 0;
-    if (area.sobel || area.mask || area.result)  maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
-#endif
-
-    // free memory for sobel plane
-    if (area.sobel) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.sobel");
-        for (int plane = 0; plane < PLANES; plane++) {
-            delete[] area.sobel[plane];
-        }
-        delete[] area.sobel;
-        area.sobel = nullptr;
-    }
-    // free memory for sobel masks
-    if (area.mask) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
-        for (int plane = 0; plane < PLANES; plane++) {
-            delete[] area.mask[plane];
-        }
-        delete[] area.mask;
-        area.mask = nullptr;
-    }
-    // free memory for sobel result
-    if (area.result) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.result");
-        for (int plane = 0; plane < PLANES; plane++) {
-            delete[] area.result[plane];
-        }
-        delete[] area.result;
-        area.result = nullptr;
-    }
-    // free memory for sobel inverse result
-    if (area.inverse) {
-        FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.inverse");
-        for (int plane = 0; plane < PLANES; plane++) {
-            delete[] area.inverse[plane];
-        }
-        delete[] area.inverse;
-        area.inverse = nullptr;
-    }
+void cLogoDetect::Clear(const bool isRestart) {
+    sobel->FreeAreaBuffer(&area);
     area = {};
 
     if (isRestart) area.status = LOGO_RESTART;
@@ -169,206 +47,189 @@ void cMarkAdLogo::Clear(const bool isRestart) {
 }
 
 
-sAreaT * cMarkAdLogo::GetArea() {
+sAreaT * cLogoDetect::GetArea() {
     return &area;
 }
 
 
-int cMarkAdLogo::Load(const char *directory, const char *file, const int plane) {
-    if (!directory) return -1;
-    if (!file) return -1;
-    if ((plane < 0) || (plane >= PLANES)) {
-        dsyslog("cMarkAdLogo::Load(): plane %d not valid", plane);
-        return -3;
+bool cLogoDetect::LoadLogo() {
+    if (!logoCacheDir) {
+        esyslog("logo cache directory not set");
+        return false;
     }
-    dsyslog("cMarkAdLogo::Load(): try to find logo %s plane %d in %s", file, plane, directory);
-
-    char *path;
-    if (asprintf(&path, "%s/%s-P%i.pgm", directory, file, plane) == -1) return -3;
-    ALLOC(strlen(path)+1, "path");
-
-    // Load mask
-    FILE *pFile;
-    area.valid[plane] = false;
-    pFile=fopen(path, "rb");
-    FREE(strlen(path)+1, "path");
-    free(path);
-    if (!pFile) {
-        dsyslog("cMarkAdLogo::Load(): file not found for logo %s plane %d in %s",file, plane, directory);
-        return -1;
+    if (!recDir) {
+        esyslog("recording directory not set");
+        return false;
     }
-    else dsyslog("cMarkAdLogo::Load(): file found for logo %s plane %d in %s",file, plane, directory);
+    sobel->FreeAreaBuffer(&area);
+    bool foundLogo = false;
 
-    int width,height;
-    char c;
-    if (fscanf(pFile, "P5\n#%1c%1i %4i\n%3d %3d\n255\n#", &c, &area.corner, &area.mPixel[plane], &width, &height) != 5) {
-        fclose(pFile);
-        esyslog("format error in %s", file);
-        return -2;
+    // logo name
+    char *logoName=nullptr;
+    sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
+    if (asprintf(&logoName,"%s-A%d_%d", criteria->GetChannelName(), aspectRatio->num, aspectRatio->den) < 0) {
+        esyslog("cLogoDetect::LoadLogo(): asprintf failed");
+        return false;
     }
-    if (c == 'D') maContext->Audio.Options.ignoreDolbyDetection = true;
+    ALLOC(strlen(logoName) + 1, "logoName");
+    dsyslog("cLogoDetect::LoadLogo(): try to find logo %s", logoName);
 
-    if (height == 255) {
-        height = width;
-        width = area.mPixel[plane];
-        area.mPixel[plane] = 0;
-    }
-    sLogoSize MaxLogoSize = GetMaxLogoSize(maContext->Video.Info.width);
-    if ((width <= 0) || (height <= 0) || (width > MaxLogoSize.width) || (height > MaxLogoSize.height) || (area.corner < TOP_LEFT) || (area.corner > BOTTOM_RIGHT)) {
-        fclose(pFile);
-        esyslog("format error in %s", file);
-        return -2;
-    }
-
-    // alloc memory for mask planes (logo)
-    if (plane == 0) {
-        int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
-        if (area.mask) {
-            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
-            for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-                delete[] area.mask[planeTMP];
-            }
-            delete[] area.mask;
-            area.mask = nullptr;
+    // try logo cache directory
+    dsyslog("cLogoDetect::LoadLogo(): search in logo cache path: %s", logoCacheDir);
+    for (int plane = 0; plane < PLANES; plane++) {
+        int foundPlane = LoadLogoPlane(logoCacheDir, logoName, plane);
+        if (plane == 0) {            // we need at least plane 0
+            foundLogo = foundPlane;
+            if (!foundLogo) break;
         }
-        area.mask = new uchar*[PLANES];
-        for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-            area.mask[planeTMP] = new uchar[maxLogoPixel];
-            memset(area.mask[planeTMP], 0, sizeof(*area.mask[planeTMP]));
+    }
+    if (foundLogo) {
+        isyslog("logo %s found in logo cache directory: %s", logoName, logoCacheDir);
+    }
+
+    // try recording directory
+    dsyslog("cLogoDetect::LoadLogo(): search in recording directory: %s", recDir);
+    for (int plane = 0; plane < PLANES; plane++) {
+        bool foundPlane = LoadLogoPlane(recDir, logoName, plane);
+        if (plane == 0) {            // we need at least plane 0
+            foundLogo = foundPlane;
+            if (!foundLogo) break;
         }
-        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.mask");
-    }
-    // read logo from file
-    if (fread(area.mask[plane], 1, width * height, pFile) != (size_t)(width * height)) {
-        fclose(pFile);
-        esyslog("format error in %s", file);
-        return -2;
-    }
-    fclose(pFile);
-
-    // calculate pixel ratio for special logo detection
-    if (area.mPixel[plane] == 0) {
-        for (int i = 0; i < width * height; i++) {
-            if (!area.mask[plane][i]) area.mPixel[plane]++;
-        }
-        dsyslog("cMarkAdLogo::Load(): logo plane 0 has %d pixel", area.mPixel[plane]);
-        maContext->Video.Logo.pixelRatio = 1000 * area.mPixel[plane] / (width * height);
-        dsyslog("cMarkAdLogo::Load(): logo pixel ratio of plane 0 is: %d per mille", maContext->Video.Logo.pixelRatio);
     }
 
-    if (plane == 0) {   // plane 0 is the largest, use this values
-        logoWidth = width;
-        logoHeight = height;
-
+    // check if we have a logo
+    if (foundLogo) isyslog("logo %s found in recording directory: %s", logoName, recDir);
+    else {
+        isyslog("logo %s not found", logoName);
     }
+    FREE(strlen(logoName) + 1, "logoName");
+    free(logoName);
 
-    maContext->Video.Logo.corner = area.corner;
-    maContext->Video.Logo.height = logoHeight;
-    maContext->Video.Logo.width  = logoWidth;
-
-    area.valid[plane] = true;
-
-    return 0;
+    return foundLogo;
 }
 
 
+bool cLogoDetect::LoadLogoPlane(const char *path, const char *logoName, const int plane) {
+    if (!path) return false;
+    if (!logoName) return false;
+    if ((plane < 0) || (plane >= PLANES)) {
+        dsyslog("cLogoDetect::LoadLogoPlane(): plane %d not valid", plane);
+        return false;
+    }
+
+    // build full logo file name
+    char *logoFileName;
+    if (asprintf(&logoFileName, "%s/%s-P%i.pgm", path, logoName, plane) == -1) return false;
+    ALLOC(strlen(logoFileName) + 1, "logoFileName");
+    dsyslog("cLogoDetect::LoadLogoPlane(): logo file name %s", logoFileName);
+
+    // read logo file
+    FILE *pFile;
+    area.valid[plane] = false;
+    pFile = fopen(logoFileName, "rb");
+    FREE(strlen(logoFileName) + 1, "logoFileName");
+    free(logoFileName);
+    if (!pFile) {
+        dsyslog("cLogoDetect::LoadLogoPlane(): file not found for logo %s plane %d in %s",logoName, plane, path);
+        return false;
+    }
+    else dsyslog("cLogoDetect::LoadLogoPlane(): file found for logo %s plane %d in %s",logoName, plane, path);
+
+    // get logo size and corner
+    int width, height;
+    char c;
+    if (fscanf(pFile, "P5\n#%1c%1i %4i\n%3d %3d\n255\n#", &c, &area.logoCorner, &area.mPixel[plane], &width, &height) != 5) {
+        fclose(pFile);
+        esyslog("format error in %s", logoFileName);
+        return false;
+    }
+
+    if (height == 255) {
+        height = width;
+        width  = area.mPixel[plane];
+        area.mPixel[plane] = 0;
+    }
+    if ((width <= 0) || (height <= 0) || (area.logoCorner < TOP_LEFT) || (area.logoCorner > BOTTOM_RIGHT)) {
+        fclose(pFile);
+        esyslog("format error in %s", logoFileName);
+        return false;
+    }
+
+    // alloc buffer for logo and result
+    if (plane == 0) {   // plane 0 is the largest, use this values
+        area.logoSize.width  = width;
+        area.logoSize.height = height;
+        sobel->AllocAreaBuffer(&area);
+        dsyslog("cLogoDetect::LoadLogoPlane(): logo size %dX%d in corner %s", area.logoSize.width, area.logoSize.height, aCorner[area.logoCorner]);
+    }
+
+    // read logo from file
+    if (fread(area.logo[plane], 1, width * height, pFile) != (size_t)(width * height)) {
+        fclose(pFile);
+        esyslog("format error in %s", logoFileName);
+        return false;
+    }
+    fclose(pFile);
+
+    // calculate pixel for logo detection
+    if (area.mPixel[plane] == 0) {
+        for (int i = 0; i < width * height; i++) {
+            if (!area.logo[plane][i]) area.mPixel[plane]++;
+        }
+        dsyslog("cLogoDetect::LoadLogoPlane(): logo plane %d has %d pixel", plane, area.mPixel[plane]);
+    }
+
+    area.valid[plane] = true;
+    return true;
+}
+
+// TODO
 // save the area.corner picture after sobel transformation to /tmp
 // debug = 0: save was called by --extract function
 // debug > 0: save was called by debug statements, add debug identifier to filename
 // return: true if successful
 //
-bool cMarkAdLogo::Save(const int frameNumber, uchar **picture, const short int plane, const char *debug) {
-    if (!maContext) return false;
+bool cLogoDetect::Save(const int frameNumber, uchar **picture, const short int plane, const char *debug) {
     if ((plane<0) || (plane >= PLANES)) return false;
-    if (!maContext->Info.ChannelName) return false;
-    if (!maContext->Video.Info.width) {
-        dsyslog("cMarkAdLogo::Save(): maContext->Video.Info.width not set");
-        return false;
-    }
-    if (!maContext->Video.Info.height) {
-        dsyslog("cMarkAdLogo::Save(): maContext->Video.Info.height not set");
-        return false;
-    }
-    if (!maContext->Video.Data.valid) return false;
-    if (!maContext->Video.Data.PlaneLinesize[plane]) return false;
-    if ((logoWidth == 0) || (logoHeight == 0)) {
-        dsyslog("cMarkAdLogo::Save(): logoWidth or logoHeight not set");
+    if ((area.logoSize.width == 0) || (area.logoSize.height == 0)) {
+        dsyslog("cLogoDetect::Save(): logoWidth or logoHeight not set");
         return false;
     }
 
     char *buf = nullptr;
     if (debug) {
-        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i_debug_%s.pgm", "/tmp/", frameNumber, maContext->Info.ChannelName, area.AspectRatio.num, area.AspectRatio.den, plane, debug)==-1) return false;
+        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i_debug_%s.pgm", "/tmp/", frameNumber, criteria->GetChannelName(), area.logoAspectRatio.num, area.logoAspectRatio.den, plane, debug)==-1) return false;
     }
     else {
-        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i.pgm", "/tmp/", frameNumber, maContext->Info.ChannelName, area.AspectRatio.num, area.AspectRatio.den, plane)==-1) return false;
+        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i.pgm", "/tmp/", frameNumber, criteria->GetChannelName(), area.logoAspectRatio.num, area.logoAspectRatio.den, plane)==-1) return false;
     }
-    ALLOC(strlen(buf)+1, "buf");
+    ALLOC(strlen(buf) + 1, "buf");
 
     // Open file
     FILE *pFile = fopen(buf, "wb");
     if (pFile == nullptr) {
-        FREE(strlen(buf)+1, "buf");
+        FREE(strlen(buf) + 1, "buf");
         free(buf);
         return false;
     }
 
-    int width = logoWidth;
-    int height = logoHeight;
+    int width  = area.logoSize.width;
+    int height = area.logoSize.height;
 
     if (plane > 0) {
-        width /= 2;
+        width  /= 2;
         height /= 2;
     }
 
     // Write header
-    fprintf(pFile, "P5\n#C%i\n%d %d\n255\n", area.corner, width, height);
+    fprintf(pFile, "P5\n#C%i\n%d %d\n255\n", area.logoCorner, width, height);
 
     // Write pixel data
     if (fwrite(picture[plane], 1, width * height, pFile)) {};
     // Close file
     fclose(pFile);
-    FREE(strlen(buf)+1, "buf");
+    FREE(strlen(buf) + 1, "buf");
     free(buf);
-    return true;
-}
-
-
-bool cMarkAdLogo::SetCoordinates(int *xstart, int *xend, int *ystart, int *yend, const int plane) const {
-    switch (area.corner) {
-    case TOP_LEFT:
-        *xstart = 0;
-        *xend   = logoWidth  - 1;
-        *ystart = 0;
-        *yend   = logoHeight - 1;
-        break;
-    case TOP_RIGHT:
-        *xstart = maContext->Video.Info.width - logoWidth;
-        *xend   = maContext->Video.Info.width - 1;
-        *ystart = 0;
-        *yend   = logoHeight - 1;
-        break;
-    case BOTTOM_LEFT:
-        *xstart = 0;
-        *xend   = logoWidth - 1;
-        *ystart = maContext->Video.Info.height - logoHeight;
-        *yend   = maContext->Video.Info.height - 1;
-        break;
-    case BOTTOM_RIGHT:
-        *xstart = maContext->Video.Info.width  - logoWidth;
-        *xend   = maContext->Video.Info.width  - 1;
-        *ystart = maContext->Video.Info.height - logoHeight;
-        *yend   = maContext->Video.Info.height - 1;
-        break;
-    default:
-        return false;
-    }
-    if (plane > 0) {
-        *xstart /= 2;
-        *xend   /= 2;
-        *ystart /= 2;
-        *yend   /= 2;
-    }
     return true;
 }
 
@@ -376,13 +237,19 @@ bool cMarkAdLogo::SetCoordinates(int *xstart, int *xend, int *ystart, int *yend,
 // reduce brightness and increase contrast
 // return true if we now have a valid detection result
 //
-bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber, const int logo_vmark, const int logo_imark) {  // frameNumber used only for debugging
+bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {  // frameNumber used only for debugging
+    sVideoPicture *picture = decoder->GetVideoPicture();
+    if (!picture) {
+        dsyslog("cLogoDetect::ReduceBrightness picture not valid");
+        return VBORDER_ERROR;
+    }
+    int frameNumber = decoder->GetVideoFrameNumber();
     int xstart, xend, ystart, yend;
-    if (!SetCoordinates(&xstart, &xend, &ystart, &yend, 0)) return false;
+    if (!sobel->SetCoordinates(&area, 0, &xstart, &xend, &ystart, &yend)) return false;   // plane 0
 
 // calculate coorginates for logo black pixel area in logo corner
     if ((logo_xstart == -1) && (logo_xend == -1) && (logo_ystart == -1) && (logo_yend == -1)) {  // have to init
-        switch (area.corner) {  // logo is usually in the inner part of the logo corner
+        switch (area.logoCorner) {  // logo is usually in the inner part of the logo corner
 #define LOGO_MIN_PIXEL 30  // big enough to get in the main part of the logo
         case TOP_LEFT: {
             // xend and yend from logo coordinates
@@ -393,9 +260,9 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
             int pixelCount = 0;
             int column;
             int line;
-            for (column = 0; column < logoWidth; column++) {
-                for (line = 0; line < logoHeight; line++) {
-                    if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
+            for (column = 0; column < area.logoSize.width; column++) {
+                for (line = 0; line < area.logoSize.height; line++) {
+                    if (area.logo[0][line * area.logoSize.width + column] == 0) pixelCount++;
                     if (pixelCount > LOGO_MIN_PIXEL) break;
                 }
                 if (pixelCount > LOGO_MIN_PIXEL) break;
@@ -404,9 +271,9 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
 
             // ystart is first line with pixel in logo area
             pixelCount = 0;
-            for (line = 0; line < logoHeight; line++) {
-                for (column = 0; column < logoWidth; column++) {
-                    if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
+            for (line = 0; line < area.logoSize.height; line++) {
+                for (column = 0; column < area.logoSize.width; column++) {
+                    if (area.logo[0][line * area.logoSize.width + column] == 0) pixelCount++;
                     if (pixelCount >= LOGO_MIN_PIXEL) break;
                 }
                 if (pixelCount >= LOGO_MIN_PIXEL) break;
@@ -423,20 +290,20 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
             int pixelCount = 0;
             int column;
             int line;
-            for (column = logoWidth; column >= 0; column--) {
-                for (line = 0; line < logoHeight; line++) {
-                    if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
+            for (column = area.logoSize.width - 1; column >= 0; column--) {
+                for (line = 0; line < area.logoSize.height; line++) {
+                    if (area.logo[0][line * area.logoSize.width + column] == 0) pixelCount++;
                     if (pixelCount > LOGO_MIN_PIXEL) break;
                 }
                 if (pixelCount > LOGO_MIN_PIXEL) break;
             }
-            logo_xend = xend - (logoWidth - column);
+            logo_xend = xend - (area.logoSize.width - column);
 
             // ystart is first line with pixel in logo area
             pixelCount = 0;
-            for (line = 0; line < logoHeight; line++) {
-                for (column = 0; column < logoWidth; column++) {
-                    if (area.mask[0][line * logoWidth + column] == 0) pixelCount++;
+            for (line = 0; line < area.logoSize.height; line++) {
+                for (column = 0; column < area.logoSize.width; column++) {
+                    if (area.logo[0][line * area.logoSize.width + column] == 0) pixelCount++;
                     if (pixelCount >= LOGO_MIN_PIXEL) break;
                 }
                 if (pixelCount >= LOGO_MIN_PIXEL) break;
@@ -461,7 +328,7 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
             return false;
             break;
         }
-//        dsyslog("cMarkAdLogo::ReduceBrightness(): logo area: xstart %d xend %d, ystart %d yend %d", logo_xstart, logo_xend, logo_ystart, logo_yend);
+//        dsyslog("cLogoDetect::ReduceBrightness(): logo area: xstart %d xend %d, ystart %d yend %d", logo_xstart, logo_xend, logo_ystart, logo_yend);
     }
 
 // detect contrast and brightness of logo part
@@ -470,7 +337,7 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
     int sumPixel = 0;
     for (int line = logo_ystart; line <= logo_yend; line++) {
         for (int column = logo_xstart; column <= logo_xend; column++) {
-            int pixel = maContext->Video.Data.Plane[0][line * maContext->Video.Data.PlaneLinesize[0] + column];
+            int pixel = picture->plane[0][line * picture->planeLineSize[0] + column];
             if (pixel > maxPixel) maxPixel = pixel;
             if (pixel < minPixel) minPixel = pixel;
             sumPixel += pixel;
@@ -479,7 +346,7 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
     int brightnessLogo = sumPixel / ((logo_yend - logo_ystart + 1) * (logo_xend - logo_xstart + 1));
     int contrastLogo = maxPixel - minPixel;
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): logo area before reduction: contrast %3d, brightness %3d", frameNumber, contrastLogo, brightnessLogo);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area before reduction: contrast %3d, brightness %3d", frameNumber, contrastLogo, brightnessLogo);
 #endif
 
 // check if contrast and brightness is valid
@@ -492,7 +359,7 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
     // contrast 200, brightness  85
     if ((contrastLogo > 202) && (brightnessLogo < 85)) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): very high contrast with not very high brightness in logo area, trust detection", frameNumber);
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): very high contrast with not very high brightness in logo area, trust detection", frameNumber);
 #endif
         return true; // if the is a logo should had detected it
     }
@@ -555,7 +422,7 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
             ((contrastLogo  > 180) && (contrastLogo <= 194) && (brightnessLogo > 120)) ||
             ((contrastLogo  > 194) &&                          (brightnessLogo > 110))) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): contrast/brightness in logo area is invalid for brightness reduction", frameNumber);
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): contrast/brightness in logo area is invalid for brightness reduction", frameNumber);
 #endif
         return false; //  nothing we can work with
     }
@@ -570,16 +437,16 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
     // reduce brightness and increase contrast, transform 1 pixel more than logo size to prevent to detect an edge with sobel transformation
     for (int line = ystart - 1; line <= yend + 1; line++) {
         if (line < 0) continue;
-        if (line > (maContext->Video.Info.height - 1)) continue;
+        if (line > (picture->height - 1)) continue;
         for (int column = xstart - 1; column <= xend + 1; column++) {
             if (column < 0) continue;
-            if (column > (maContext->Video.Info.width - 1)) continue;
-            int pixel = maContext->Video.Data.Plane[0][line * maContext->Video.Data.PlaneLinesize[0] + column] - REDUCE_BRIGHTNESS;
+            if (column > (picture->width - 1)) continue;
+            int pixel = picture->plane[0][line * picture->planeLineSize[0] + column] - REDUCE_BRIGHTNESS;
             if (pixel < 0) pixel = 0;
             pixel = INCREASE_CONTRAST * (pixel - 128) + 128;
             if (pixel < 0) pixel = 0;
             if (pixel > 255) pixel = 255;
-            maContext->Video.Data.Plane[0][line * maContext->Video.Data.PlaneLinesize[0] + column] = pixel;
+            picture->plane[0][line * picture->planeLineSize[0] + column] = pixel;
             if ((line >= logo_ystart) && (line <= logo_yend) && (column >= logo_xstart) && (column <= logo_xend)) {
                 if (pixel > maxPixel) maxPixel = pixel;
                 if (pixel < minPixel) minPixel = pixel;
@@ -591,16 +458,16 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
     int brightnessReduced = sumPixel / ((logo_yend - logo_ystart + 1) * (logo_xend - logo_xstart + 1));
 
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): logo area after  reduction: contrast %3d, brightness %3d", frameNumber, contrastReduced, brightnessReduced);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area after  reduction: contrast %3d, brightness %3d", frameNumber, contrastReduced, brightnessReduced);
 #endif
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
     if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
         char *fileName = nullptr;
-        if (asprintf(&fileName,"%s/F__%07d_corrected.pgm", maContext->Config->recDir, frameNumber) >= 1) {
-            ALLOC(strlen(fileName)+1, "fileName");
-            SaveFrameBuffer(maContext, fileName);
-            FREE(strlen(fileName)+1, "fileName");
+        if (asprintf(&fileName,"%s/F__%07d_corrected.pgm", recDir, frameNumber) >= 1) {
+            ALLOC(strlen(fileName) + 1, "fileName");
+            SaveVideoPicture(fileName, decoder->GetVideoPicture());
+            FREE(strlen(fileName) + 1, "fileName");
             free(fileName);
         }
     }
@@ -609,7 +476,7 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
 // if we have a comple white picture after brightness reduction, we can not decide if there is a logo or not
     if ((contrastReduced == 0) && (brightnessReduced == 255)) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): detection impossible on white picture", frameNumber);
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): detection impossible on white picture", frameNumber);
 #endif
         return false;
     }
@@ -618,7 +485,7 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
     // redo sobel transformation
     int rPixelBefore = area.rPixel[0];
     area.rPixel[0] = 0;
-    SobelPlane(0, 0);       // only plane 0
+    sobel->SobelPlane(picture, &area, 0);       // only plane 0
     int rPixel = area.rPixel[0];
     int mPixel = area.mPixel[0];
     int iPixel = area.iPixel[0];
@@ -627,28 +494,28 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
     char detectStatus[] = "o";
     if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
     if (rPixel <= logo_imark) strcpy(detectStatus, "-");
-    dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameNumber, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, 1, detectStatus);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameNumber, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, 1, detectStatus);
 #endif
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
     if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
         char *fileName = nullptr;
-        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_3sobelCorrected.pgm", maContext->Config->recDir, frameNumber, area.corner) >= 1) {
-            ALLOC(strlen(fileName)+1, "fileName");
-            SaveSobel(fileName, area.sobel[0], maContext->Video.Logo.width, maContext->Video.Logo.height);
-            FREE(strlen(fileName)+1, "fileName");
+        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_3sobelCorrected.pgm", recDir, frameNumber, area.logoCorner) >= 1) {
+            ALLOC(strlen(fileName) + 1, "fileName");
+            SaveSobel(fileName, area.sobel[0], area.logoSize.width, area.logoSize.height);
+            FREE(strlen(fileName) + 1, "fileName");
             free(fileName);
         }
-        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_4resultCorrected.pgm", maContext->Config->recDir, frameNumber, area.corner) >= 1) {
-            ALLOC(strlen(fileName)+1, "fileName");
-            SaveSobel(fileName, area.result[0], maContext->Video.Logo.width, maContext->Video.Logo.height);
-            FREE(strlen(fileName)+1, "fileName");
+        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_4resultCorrected.pgm", recDir, frameNumber, area.logoCorner) >= 1) {
+            ALLOC(strlen(fileName) + 1, "fileName");
+            SaveSobel(fileName, area.result[0], area.logoSize.width, area.logoSize.height);
+            FREE(strlen(fileName) + 1, "fileName");
             free(fileName);
         }
-        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_3inverseCorrected.pgm", maContext->Config->recDir, frameNumber, area.corner) >= 1) {
-            ALLOC(strlen(fileName)+1, "fileName");
-            SaveSobel(fileName, area.inverse[0], maContext->Video.Logo.width, maContext->Video.Logo.height);
-            FREE(strlen(fileName)+1, "fileName");
+        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_3inverseCorrected.pgm", recDir, frameNumber, area.logoCorner) >= 1) {
+            ALLOC(strlen(fileName) + 1, "fileName");
+            SaveSobel(fileName, area.inverse[0], area.logoSize.width, area.logoSize.height);
+            FREE(strlen(fileName) + 1, "fileName");
             free(fileName);
         }
     }
@@ -656,13 +523,13 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
 
     // check background pattern
     int black = 0;
-    for (int i = 0; i < logoHeight * logoWidth; i++) {
+    for (int i = 0; i < area.logoSize.height * area.logoSize.width; i++) {
         if (area.sobel[0][i] == 0) black++;
     }
-    int quoteBlack   = 100 * black  /  (logoHeight * logoWidth);
-    int quoteInverse = 100 * iPixel / ((logoHeight * logoWidth) - mPixel);
+    int quoteBlack   = 100 * black  /  (area.logoSize.height * area.logoSize.width);
+    int quoteInverse = 100 * iPixel / ((area.logoSize.height * area.logoSize.width) - mPixel);
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): area intensity %3d, black quote: %d%%, inverse quote %d%%", frameNumber, area.intensity, quoteBlack, quoteInverse);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): area intensity %3d, black quote: %d%%, inverse quote %d%%", frameNumber, area.intensity, quoteBlack, quoteInverse);
 #endif
 
     // prevent to miss logo stop from background pattern
@@ -676,7 +543,7 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
     // area intensity 32, black quote: 25%, inverse quote 22%
     if ((area.status == LOGO_VISIBLE) && (area.intensity <= 86) && (rPixelBefore <= logo_imark) && (rPixel > logo_imark) && (rPixel < logo_vmark) &&
             (quoteBlack >= 25) && (quoteInverse >= 22)) {
-        dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): inverse quote above limit, assume matches only from patten and logo is invisible", frameNumber);
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): inverse quote above limit, assume matches only from patten and logo is invisible", frameNumber);
         area.rPixel[0] = logo_imark;  // set logo machtes to invisible
         return true;
     }
@@ -703,7 +570,7 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
     // now we trust logo visible
     if (rPixel >= logo_vmark) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): valid logo visible after brightness reducation", frameNumber);
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): valid logo visible after brightness reducation", frameNumber);
 #endif
         return true;  // we have a clear result
     }
@@ -711,7 +578,7 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
     // ignore matches on still bright picture
     if ((area.intensity > 160) && (rPixel >= logo_imark / 5)) { // still too bright, trust only very low matches
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): logo area still too bright", frameNumber);
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area still too bright", frameNumber);
 #endif
         return false;
     }
@@ -719,163 +586,32 @@ bool cMarkAdLogo::ReduceBrightness(__attribute__((unused)) const int frameNumber
     // now we trust logo invisible
     if (rPixel <= logo_imark) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d): valid logo invisible after brightness reducation", frameNumber);
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): valid logo invisible after brightness reducation", frameNumber);
 #endif
         return true;  // we have a clear result
     }
 
     // still no clear result
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cMarkAdLogo::ReduceBrightness(): frame (%6d) no valid result after brightness reducation", frameNumber);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d) no valid result after brightness reducation", frameNumber);
 #endif
     return false;
-}
-
-
-bool cMarkAdLogo::SobelPlane(const int plane, int boundary) {
-    if ((plane < 0) || (plane >= PLANES)) return false;
-    if (!maContext->Video.Data.PlaneLinesize[plane]) return false;
-
-    // alloc memory for sobel transformed planes
-    int maxLogoPixel = GetMaxLogoPixel(maContext->Video.Info.width);
-    if (!area.sobel) {
-        area.sobel = new uchar*[PLANES];
-        for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-            area.sobel[planeTMP] = new uchar[maxLogoPixel];
-        }
-        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.sobel");
-    }
-
-    // alloc memory for mask planes (logo) is done in Load()
-
-    // alloc memory for mask result (machtes)
-    if (!area.result) {
-        area.result = new uchar*[PLANES];
-        for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-            area.result[planeTMP] = new uchar[maxLogoPixel];
-        }
-        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.result");
-    }
-    // alloc memory for mask invers result
-    if (!area.inverse) {
-        area.inverse = new uchar*[PLANES];
-        for (int planeTMP = 0; planeTMP < PLANES; planeTMP++) {
-            area.inverse[planeTMP] = new uchar[maxLogoPixel];
-        }
-        ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "area.inverse");
-    }
-
-    if ((logoWidth == 0) || (logoHeight == 0)) {
-        sLogoSize DefaultLogoSize = GetDefaultLogoSize(maContext->Video.Info.width);
-        logoHeight = DefaultLogoSize.height;
-        logoWidth  = DefaultLogoSize.width;
-    }
-    if ((maContext->Video.Info.pixFmt != 0) && (maContext->Video.Info.pixFmt != 12)) {
-        if (!pixfmt_info) {
-            esyslog("unknown pixel format %d, please report!", maContext->Video.Info.pixFmt);
-            pixfmt_info = true;
-        }
-        return false;
-    }
-
-    // get logo coordinates
-    int xStart = 0;
-    int xEnd   = 0;
-    int yStart = 0;
-    int yEnd   = 0;
-    if (!SetCoordinates(&xStart, &xEnd, &yStart, &yEnd, plane)) return false;
-
-    int cutval     = 127;
-    int planeWidth = logoWidth;
-    int planeVideoWidth  = maContext->Video.Info.width;
-    int planeVideoHeight = maContext->Video.Info.height;
-    if (plane > 0) {
-        boundary         /= 2;
-        cutval           /= 2;
-        planeWidth       /= 2;
-        planeVideoWidth  /= 2;
-        planeVideoHeight /= 2;
-    }
-    int SUM;
-    int sumX;
-    int sumY;
-    area.rPixel[plane] = 0;
-    area.iPixel[plane] = 0;
-    if (plane == 0) area.intensity = 0;
-
-#ifdef DEBUG_SOBEL
-    dsyslog("cMarkAdLogo::SobelPlane(): plane %d: xStart %d, xEend %d, yStart %d, yEnd %d", plane, xStart, xEnd, yStart, yEnd);
-#endif
-
-    for (int Y = yStart; Y <= yEnd; Y++) {
-        for (int X = xStart; X <= xEnd; X++) {
-            if (plane == 0) {
-                area.intensity += maContext->Video.Data.Plane[plane][X + (Y * maContext->Video.Data.PlaneLinesize[plane])];
-            }
-            sumX = 0;
-            sumY = 0;
-
-            // image boundaries from coordinates
-            if ((X < (xStart + boundary))     || (X <= 0) ||
-                    (X >= (xEnd - boundary))  || (X >= (planeVideoWidth - 2)) ||
-                    (Y < (yStart + boundary)) || (Y <= 0) ||
-                    (Y > (yEnd - boundary))   || (Y >= (planeVideoHeight - 2))) SUM = 0;
-            // convolution starts here
-            else {
-                // X Gradient approximation
-                for (int I = -1; I <= 1; I++) {
-                    for (int J = -1; J <= 1; J++) {
-                        sumX = sumX + static_cast<int> ((*(maContext->Video.Data.Plane[plane] + X + I + (Y + J) * maContext->Video.Data.PlaneLinesize[plane])) * GX[I + 1][J + 1]);
-                    }
-                }
-
-                // Y Gradient approximation
-                for (int I = -1; I <= 1; I++) {
-                    for (int J = -1; J <= 1; J++) {
-                        sumY = sumY+ static_cast<int> ((*(maContext->Video.Data.Plane[plane] + X + I + (Y + J) * maContext->Video.Data.PlaneLinesize[plane])) * GY[I + 1][J + 1]);
-                    }
-                }
-
-                // Gradient Magnitude approximation
-                SUM = abs(sumX) + abs(sumY);
-            }
-
-            if (SUM >= cutval) SUM = 255;
-            if (SUM <  cutval) SUM =   0;
-
-            int val = 255 - (uchar) SUM;
-
-            area.sobel[plane][(X - xStart) + (Y - yStart) * planeWidth] = val;
-
-            // only store results in logo coordinates range
-            if (area.valid[plane]) {  // if we are called by logo search, we have no valid area.mask
-                // area result
-                area.result[plane][(X - xStart) + (Y - yStart) * planeWidth] = (area.mask[plane][(X - xStart) + (Y - yStart) * planeWidth] + val) & 255;
-                if (area.result[plane][(X - xStart) + (Y - yStart) * planeWidth] == 0) area.rPixel[plane]++;
-                // area inverted
-                area.inverse[plane][(X - xStart) + (Y - yStart) * planeWidth] = ((255 - area.mask[plane][(X - xStart) + (Y - yStart) * planeWidth]) + val) & 255;
-                if (area.inverse[plane][(X - xStart) + (Y - yStart) * planeWidth] == 0) area.iPixel[plane]++;
-            }
-        }
-    }
-    if (plane == 0) area.intensity /= (logoHeight * planeWidth);
-    return true;
 }
 
 
 // copy all black pixels from logo pane 0 into plan 1 and plane 2
 // we need this for channels with usually grey logos, but at start and end they can be red (DMAX)
 //
-void cMarkAdLogo::LogoGreyToColour() {
-    for (int line = 0; line < logoHeight; line++) {
-        for (int column = 0; column < logoWidth; column++) {
-            if (area.mask[0][line * logoWidth + column] == 0 ) {
-                area.mask[1][line / 2 * logoWidth / 2 + column / 2] = 0;
-                area.mask[2][line / 2 * logoWidth / 2 + column / 2] = 0;
+void cLogoDetect::LogoGreyToColour() {
+    for (int line = 0; line < area.logoSize.height; line++) {
+        for (int column = 0; column < area.logoSize.width; column++) {
+            if (area.logo[0][line * area.logoSize.width + column] == 0 ) {
+                area.logo[1][line / 2 * area.logoSize.width / 2 + column / 2] = 0;
+                area.logo[2][line / 2 * area.logoSize.width / 2 + column / 2] = 0;
             }
             else {
-                area.mask[1][line / 2 * logoWidth / 2 + column / 2] = 255;
-                area.mask[2][line / 2 * logoWidth / 2 + column / 2] = 255;
+                area.logo[1][line / 2 * area.logoSize.width / 2 + column / 2] = 255;
+                area.logo[2][line / 2 * area.logoSize.width / 2 + column / 2] = 255;
             }
         }
     }
@@ -883,98 +619,61 @@ void cMarkAdLogo::LogoGreyToColour() {
 
 
 // notice: if we are called by logo detection, <framenumber> is last iFrame before, otherwise it is current frame
-int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logoFrameNumber) {
-    bool onlyFillArea = ( *logoFrameNumber < 0 );
-    bool extract = (maContext->Config->logoExtraction != -1);
-    if (*logoFrameNumber == -2) extract = true;
-    int rPixel = 0;
-    int mPixel = 0;
-    int iPixel = 0;
-    int processed = 0;
+int cLogoDetect::Detect(const int frameBefore, const int frameCurrent, int *logoFrameNumber) {
+    int rPixel       =  0;
+    int mPixel       =  0;
+    int iPixel       =  0;
+    int processed    =  0;
     *logoFrameNumber = -1;
-    if (area.corner == -1) return LOGO_NOCHANGE;
+
+    sVideoPicture *picture = decoder->GetVideoPicture();
+    if (!picture) {
+        dsyslog("cVertBorderDetect::Process(): picture not valid");
+        return VBORDER_ERROR;
+    }
+    if(!picture->plane[0]) {
+        dsyslog("cVertBorderDetect::Process(): picture plane 0 not valid");
+        return VBORDER_ERROR;
+    }
+    if(picture->planeLineSize[0] <= 0) {
+        dsyslog("cVertBorderDetect::Process(): picture planeLineSize[0] valid");
+        return VBORDER_ERROR;
+    }
 
     // apply sobel transformation to all planes
-    for (int plane = 0; plane < PLANES; plane++) {
-        if ((area.valid[plane]) || (extract) || (onlyFillArea)) {
-            int boundary = 0;               // logo detection ignores lines in corner with sobel.mask (logo), we want to use full logo surface
-            if (onlyFillArea) boundary = 5; // called by cExtractLogo, need boundary to remove lines in corner
-            if (SobelPlane(plane, boundary)) {   // TODO: use new class
-                processed++;
-
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-                if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && !onlyFillArea) {
-                    int width  = maContext->Video.Logo.width;
-                    int height = maContext->Video.Logo.height;
-                    if (plane > 0) {
-                        width  /= 2;
-                        height /= 2;
-                    }
-                    char *fileName = nullptr;
-                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_0sobel.pgm", maContext->Config->recDir, frameCurrent, plane, area.corner) >= 1) {
-                        ALLOC(strlen(fileName)+1, "fileName");
-                        SaveSobel(fileName, area.sobel[plane], width, height);
-                        FREE(strlen(fileName)+1, "fileName");
-                        free(fileName);
-                    }
-                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_1mask.pgm", maContext->Config->recDir, frameCurrent, plane, area.corner) >= 1) {
-                        ALLOC(strlen(fileName)+1, "fileName");
-                        SaveSobel(fileName, area.mask[plane], width, height);
-                        FREE(strlen(fileName)+1, "fileName");
-                        free(fileName);
-                    }
-                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_2result.pgm", maContext->Config->recDir, frameCurrent, plane, area.corner) >= 1) {
-                        ALLOC(strlen(fileName)+1, "fileName");
-                        SaveSobel(fileName, area.result[plane], width, height);
-                        FREE(strlen(fileName)+1, "fileName");
-                        free(fileName);
-                    }
-                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_3inverse.pgm", maContext->Config->recDir, frameCurrent, plane, area.corner) >= 1) {
-                        ALLOC(strlen(fileName)+1, "fileName");
-                        SaveSobel(fileName, area.inverse[plane], width, height);
-                        FREE(strlen(fileName)+1, "fileName");
-                        free(fileName);
-                    }
-                }
-#endif
-            }
-        }
-        if (extract) {
-            if (!Save(frameCurrent, area.sobel, plane, nullptr)) dsyslog("cMarkAdLogo::Detect(): save logo from frame (%d) failed", frameCurrent);
-        }
-        else {
-//            tsyslog("plane %i area.rPixel[plane] %i area.mPixel[plane] %i", plane, area.rPixel[plane], area.mPixel[plane]);
-            rPixel += area.rPixel[plane];
-            mPixel += area.mPixel[plane];
-            iPixel += area.iPixel[plane];
+    processed = sobel->SobelPicture(recDir, picture, &area);
+    if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
+        char *fileName = nullptr;
+        if (asprintf(&fileName,"%s/F__%07d.pgm", recDir, frameCurrent) >= 1) {
+            ALLOC(strlen(fileName) + 1, "fileName");
+            SaveVideoPicture(fileName, decoder->GetVideoPicture());
+            FREE(strlen(fileName) + 1, "fileName");
+            free(fileName);
         }
     }
-    if (extract || onlyFillArea) return LOGO_NOCHANGE;
+#else
+    processed = sobel->SobelPicture(picture, &area);
+#endif
+    for (int plane = 0; plane < PLANES; plane++) {
+        rPixel += area.rPixel[plane];
+        mPixel += area.mPixel[plane];
+        iPixel += area.iPixel[plane];
+    }
+
     if (processed == 0) return LOGO_ERROR;  // we have no plane processed
 
     // set logo visible and invisible limits
     int logo_vmark = LOGO_VMARK * mPixel;
     int logo_imark = LOGO_IMARK * mPixel;
-    if (criteria->LogoRotating(maContext->Info.ChannelName)) {  // reduce if we have a rotating logo (e.g. SAT_1), changed from 0.9 to 0.8
+    if (criteria->LogoRotating()) {  // reduce if we have a rotating logo (e.g. SAT_1), changed from 0.9 to 0.8
         logo_vmark *= 0.8;
         logo_imark *= 0.8;
     }
-    if (criteria->LogoTransparent(maContext->Info.ChannelName)) { // reduce if we have a transparent logo (e.g. SRF_zwei_HD)
+    if (criteria->LogoTransparent()) { // reduce if we have a transparent logo (e.g. SRF_zwei_HD)
         logo_vmark *= 0.9;
         logo_imark *= 0.9;
     }
-
-#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-    if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
-        char *fileName = nullptr;
-        if (asprintf(&fileName,"%s/F__%07d.pgm", maContext->Config->recDir, frameCurrent) >= 1) {
-            ALLOC(strlen(fileName)+1, "fileName");
-            SaveFrameBuffer(maContext, fileName);
-            FREE(strlen(fileName)+1, "fileName");
-            free(fileName);
-        }
-    }
-#endif
 
     bool logoStatus     = false;
 
@@ -991,7 +690,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
     if (rPixel <= logo_imark) strcpy(detectStatus, "-");
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
-    dsyslog("cMarkAdLogo::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
+    dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
 #endif
 
     // we have only 1 plane (no coloured logo)
@@ -1002,15 +701,15 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         // prevent to detect logo start on very bright background, this is not possible
         if ((area.status == LOGO_INVISIBLE) && (rPixel >= logo_vmark) && area.intensity >= 218) {  // possible state change from invisible to visible
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cMarkAdLogo::Detect(): frame (%6d) too bright %d for logo start", frameCurrent, area.intensity);
+            dsyslog("cLogoDetect::Detect(): frame (%6d) too bright %d for logo start", frameCurrent, area.intensity);
 #endif
             return LOGO_NOCHANGE;
         }
 
         // transparent logo decetion on bright backbround is imposible, changed from 189 to 173
-        if (criteria->LogoTransparent(maContext->Info.ChannelName) && (area.intensity >= 161)) {  // changed from 173 to 161
+        if (criteria->LogoTransparent() && (area.intensity >= 161)) {  // changed from 173 to 161
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cMarkAdLogo::Detect(): frame (%6d) with transparent logo too bright %d for detection", frameCurrent, area.intensity);
+            dsyslog("cLogoDetect::Detect(): frame (%6d) with transparent logo too bright %d for detection", frameCurrent, area.intensity);
 #endif
             return LOGO_NOCHANGE;
         }
@@ -1022,13 +721,13 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 // ignore very bright pictures, we can have low logo result even on pattern background, better do brighntness reduction before to get a clear result
                 ((area.status == LOGO_VISIBLE) && (rPixel > logo_imark) && (rPixel < logo_vmark) && area.intensity <= 141)) {
             int black   = 0;
-            for (int i = 0; i < logoHeight * logoWidth; i++) {
+            for (int i = 0; i < area.logoSize.height * area.logoSize.width; i++) {
                 if (area.sobel[0][i]     == 0) black++;
             }
-            int quoteBlack   = 100 * black  / (logoHeight * logoWidth);
-            int quoteInverse = 100 * iPixel / ((logoHeight * logoWidth) - mPixel);
+            int quoteBlack   = 100 * black  /  (area.logoSize.height * area.logoSize.width);
+            int quoteInverse = 100 * iPixel / ((area.logoSize.height * area.logoSize.width) - mPixel);
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cMarkAdLogo::Detect(): frame (%6d): area intensity %3d, black quote: %d%%, inverse quote %d%%", frameCurrent, area.intensity, quoteBlack, quoteInverse);
+            dsyslog("cLogoDetect::Detect(): frame (%6d): area intensity %3d, black quote: %d%%, inverse quote %d%%", frameCurrent, area.intensity, quoteBlack, quoteInverse);
 #endif
             // state logo invisible and rPixel > logo_vmark
             if ((area.status == LOGO_INVISIBLE) && (rPixel >= logo_vmark)) {
@@ -1062,7 +761,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 int rPixelWithout = rPixel * (100 - quoteInverse) / 100;
                 if (rPixelWithout >= logo_vmark) {
 #ifdef DEBUG_LOGO_DETECTION
-                    dsyslog("cMarkAdLogo::Detect(): frame (%6d): rPixel without pattern quote %d, trust logo visible", frameCurrent, rPixelWithout);
+                    dsyslog("cLogoDetect::Detect(): frame (%6d): rPixel without pattern quote %d, trust logo visible", frameCurrent, rPixelWithout);
 #endif
                     logoStatus = true;  // now we trust a positiv logo detection
                 }
@@ -1071,7 +770,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                     if (area.intensity < 153) { // on very bright backgrund logo visible result is not possible
                         if ((quoteBlack >= 18) && (quoteInverse >= 16)) {  // with very bright backgrund logo visible is not possible
 #ifdef DEBUG_LOGO_DETECTION
-                            dsyslog("cMarkAdLogo::Detect(): frame (%6d): quote above limit, assume matches only from patten and logo is still invisible", frameCurrent);
+                            dsyslog("cLogoDetect::Detect(): frame (%6d): quote above limit, assume matches only from patten and logo is still invisible", frameCurrent);
 #endif
                             return LOGO_NOCHANGE;
                         }
@@ -1081,7 +780,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                             area.counter--;       // assume only pattern, no logo
                             if (area.counter <= 0) area.counter = 0;
 #ifdef DEBUG_LOGO_DETECTION
-                            dsyslog("cMarkAdLogo::Detect(): frame (%6d): quote above limit with bright background, assume matches only from patten and logo is still invisible", frameCurrent);
+                            dsyslog("cLogoDetect::Detect(): frame (%6d): quote above limit with bright background, assume matches only from patten and logo is still invisible", frameCurrent);
 #endif
                             return LOGO_NOCHANGE;
                         }
@@ -1115,7 +814,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                     rPixel = logo_imark; // set to invisible
                     logoStatus = true;
 #ifdef DEBUG_LOGO_DETECTION
-                    dsyslog("cMarkAdLogo::Detect(): frame (%6d) quote above limit, assume matches only from patten and logo is invisible", frameCurrent);
+                    dsyslog("cLogoDetect::Detect(): frame (%6d) quote above limit, assume matches only from patten and logo is invisible", frameCurrent);
 #endif
                 }
             }
@@ -1126,7 +825,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 ((area.status == LOGO_VISIBLE) ||  (area.status == LOGO_UNINITIALIZED)) &&
                 (rPixel > logo_imark)) {
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cMarkAdLogo::Detect(): frame (%6d) high machtes, trust logo still visible", frameCurrent);
+            dsyslog("cLogoDetect::Detect(): frame (%6d) high machtes, trust logo still visible", frameCurrent);
 #endif
             logoStatus = true;
         }
@@ -1138,7 +837,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         // if we have still no match, try to copy colour planes into grey planes
         // some channel use coloured logo at broadcast start
         // for performance reason we do this only for the known channel
-        if (!logoStatus && criteria->LogoColorChange(maContext->Info.ChannelName)) {
+        if (!logoStatus && criteria->LogoColorChange()) {
             // save state
             int intensityOld = area.intensity;
             int rPixelOld = rPixel;
@@ -1153,7 +852,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 area.rPixel[plane] = 0;
                 area.valid[plane]  = true;
                 area.mPixel[plane] = area.mPixel[0] / 4;
-                SobelPlane(plane, 0);
+                sobel->SobelPlane(picture, &area, 0);  // plane 0
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
                 if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
                     Save(frameCurrent, area.sobel, plane, "area.sobel_coloured");
@@ -1165,11 +864,11 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
                 area.rPixel[plane] = 0;
             }
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cMarkAdLogo::Detect(): frame (%6d): maybe colour change, try plane 1 and plan 2", frameCurrent);
+            dsyslog("cLogoDetect::Detect(): frame (%6d): maybe colour change, try plane 1 and plan 2", frameCurrent);
             char detectStatus[] = "o";
             if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
             if (rPixel <= logo_imark) strcpy(detectStatus, "-");
-            dsyslog("cMarkAdLogo::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
+            dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
 #endif
             if (rPixel <= logo_imark) { // we found no coloured logo here, restore old state
                 area.intensity = intensityOld;
@@ -1177,14 +876,14 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
             }
             if (rPixel >= logo_vmark) {
 #ifdef DEBUG_LOGO_DETECTION
-                dsyslog("cMarkAdLogo::Detect(): frame (%6d): logo visible in plane 1 and plan 2", frameCurrent);
+                dsyslog("cLogoDetect::Detect(): frame (%6d): logo visible in plane 1 and plan 2", frameCurrent);
 #endif
                 logoStatus = true;  // we found colored logo
             }
             // change from very low match to unclear result
             if ((rPixelOld <= (logo_imark / 10)) && (rPixel > logo_imark)) {
 #ifdef DEBUG_LOGO_DETECTION
-                dsyslog("cMarkAdLogo::Detect(): frame (%6d): unclear result in plane 1 and plan 2", frameCurrent);
+                dsyslog("cLogoDetect::Detect(): frame (%6d): unclear result in plane 1 and plan 2", frameCurrent);
 #endif
                 return LOGO_NOCHANGE;
             }
@@ -1197,7 +896,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         // changed max area.intensity from 221 to 234 t detect logo invisible on white separator
         if (!logoStatus && (area.intensity > MAX_AREA_INTENSITY) && (area.intensity <= 234)) {  //  only if we don't have a valid result yet
             // reduce brightness and increase contrast
-            logoStatus = ReduceBrightness(frameCurrent, logo_vmark, logo_imark);
+            logoStatus = ReduceBrightness(logo_vmark, logo_imark);
             if (logoStatus) rPixel = area.rPixel[0];  // set new pixel result
         }
     }
@@ -1212,7 +911,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
             for (int i = 0; i < PLANES; i++) {
                 if (area.mPixel[i] == 0) continue;   // plane has no logo
 #ifdef DEBUG_LOGO_DETECTION
-                dsyslog("cMarkAdLogo::Detect():       plane %d: rp=%5d | ip=%5d | mp=%5d | mpV=%5.f | mpI=%5.f |", i, area.rPixel[i], area.iPixel[i], area.mPixel[i], area.mPixel[i] * LOGO_VMARK, area.mPixel[i] * LOGO_IMARK);
+                dsyslog("cLogoDetect::Detect():       plane %d: rp=%5d | ip=%5d | mp=%5d | mpV=%5.f | mpI=%5.f |", i, area.rPixel[i], area.iPixel[i], area.mPixel[i], area.mPixel[i] * LOGO_VMARK, area.mPixel[i] * LOGO_IMARK);
 #endif
                 if (area.rPixel[i] >= (area.mPixel[i] * LOGO_IMARK)) {
                     planeStatus = false;
@@ -1225,7 +924,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 
     if (!logoStatus) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cMarkAdLogo::Detect(): frame (%6d) no valid result", frameCurrent);
+        dsyslog("cLogoDetect::Detect(): frame (%6d) no valid result", frameCurrent);
 #endif
         return LOGO_NOCHANGE;
     }
@@ -1235,15 +934,15 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     if (area.status == LOGO_UNINITIALIZED) {
         if (rPixel >= logo_vmark) area.status = LOGO_VISIBLE;
         if (rPixel <= logo_imark) area.status = LOGO_INVISIBLE;  // wait for a clear result
-        if (area.frameNumber == -1) area.frameNumber = frameCurrent;
-        *logoFrameNumber = area.frameNumber;
+        if (area.stateFrameNumber == -1) area.stateFrameNumber = frameCurrent;
+        *logoFrameNumber = area.stateFrameNumber;
         return area.status;
     }
     if (area.status == LOGO_RESTART) {
         if (rPixel >= logo_vmark) area.status = LOGO_VISIBLE;
         if (rPixel <= logo_imark) area.status = LOGO_INVISIBLE;  // wait for a clear result
         *logoFrameNumber = -1;   // no logo change report after detection restart
-        area.frameNumber = frameCurrent;
+        area.stateFrameNumber = frameCurrent;
         return area.status;
     }
 
@@ -1253,16 +952,16 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         if (area.status == LOGO_INVISIBLE) {
             if (area.counter >= LOGO_VMAXCOUNT) {
                 area.status = ret = LOGO_VISIBLE;
-                *logoFrameNumber = area.frameNumber;
+                *logoFrameNumber = area.stateFrameNumber;
                 area.counter = 0;
             }
             else {
-                if (!area.counter) area.frameNumber = frameCurrent;
+                if (!area.counter) area.stateFrameNumber = frameCurrent;
                 area.counter++;
             }
         }
         else {
-            area.frameNumber = frameCurrent;
+            area.stateFrameNumber = frameCurrent;
             area.counter = 0;
         }
     }
@@ -1271,20 +970,20 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
         if (area.status == LOGO_VISIBLE) {
             if (area.counter >= LOGO_IMAXCOUNT) {
                 area.status = ret = LOGO_INVISIBLE;
-                *logoFrameNumber = area.frameNumber;
+                *logoFrameNumber = area.stateFrameNumber;
                 area.counter = 0;
             }
             else {
-                if (!area.counter) area.frameNumber = frameBefore;
+                if (!area.counter) area.stateFrameNumber = frameBefore;
                 area.counter++;
                 if (rPixel <= (logo_imark / 2)) area.counter++;   // good detect for logo invisible
                 if (rPixel <= (logo_imark / 4)) area.counter++;   // good detect for logo invisible
                 if (rPixel == 0) {
                     area.counter++;   // very good detect for logo invisible
                     if (area.intensity <= 80) { // best detect, blackscreen without logo, increased from 30 to 70 to 80
-                        dsyslog("cMarkAdLogo::Detect(): black screen without logo detected at frame (%d)", frameCurrent);
+                        dsyslog("cLogoDetect::Detect(): black screen without logo detected at frame (%d)", frameCurrent);
                         area.status = ret = LOGO_INVISIBLE;
-                        *logoFrameNumber = area.frameNumber;
+                        *logoFrameNumber = area.stateFrameNumber;
                         area.counter = 0;
                     }
                 }
@@ -1306,7 +1005,7 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
     strcpy(detectStatus, "o");
     if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
     if (rPixel <= logo_imark) strcpy(detectStatus, "-");
-    dsyslog("cMarkAdLogo::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
+    dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
 #endif
 
@@ -1314,134 +1013,29 @@ int cMarkAdLogo::Detect(const int frameBefore, const int frameCurrent, int *logo
 }
 
 
-int cMarkAdLogo::Process(const int iFrameBefore, const int iFrameCurrent, const int frameCurrent, int *logoFrameNumber) {
-    if (!maContext) return LOGO_ERROR;
-    if (!maContext->Video.Data.valid) {
-        dsyslog("cMarkAdLogo::Process(): video data not valid at frame (%i)", iFrameCurrent);
-        return LOGO_ERROR;
-    }
-    if (!maContext->Video.Info.width) {
-        dsyslog("cMarkAdLogo::Process(): video width info missing");
-        return LOGO_ERROR;
-    }
-    if (!maContext->Video.Info.height) {
-        dsyslog("cMarkAdLogo::Process(): video high info missing");
-        return LOGO_ERROR;
-    }
-    if (!maContext->Config->logoDirectory[0]) {
-        dsyslog("cMarkAdLogo::Process(): logoDirectory missing");
-        return LOGO_ERROR;
-    }
-    if (!maContext->Info.ChannelName) {
-        dsyslog("cMarkAdLogo::Process(): ChannelName missing");
-        return LOGO_ERROR;
-    }
+int cLogoDetect::Process(int *logoFrameNumber) {
+    int frameNumber = decoder->GetVideoFrameNumber();
 
-    if (maContext->Config->logoExtraction == -1) {
-        if ((area.AspectRatio.num != maContext->Video.Info.AspectRatio.num) || (area.AspectRatio.den != maContext->Video.Info.AspectRatio.den)) {
-            dsyslog("cMarkAdLogo::Process(): aspect ratio changed from %i:%i to %i:%i, reload logo", area.AspectRatio.num, area.AspectRatio.den, maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den);
-            if (maContext->Info.checkedAspectRatio && (maContext->Info.AspectRatio.num == 4) && (maContext->Info.AspectRatio.den == 3) && (maContext->Video.Info.AspectRatio.num == 16) && (maContext->Video.Info.AspectRatio.den == 9)) {
-                dsyslog("cMarkAdLogo::Process(): recording is 4:3, current frame is 16:9, we do not need a logo");
-                criteria->SetDetectionState(MT_LOGOCHANGE, false);
-            }
-            else {
-                char *buf=nullptr;
-                if (asprintf(&buf,"%s-A%i_%i", maContext->Info.ChannelName, maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den) != -1) {
-                    ALLOC(strlen(buf)+1, "buf");
-                    area.corner = -1;
-                    bool logoStatus = false;
-                    if (Load(maContext->Config->logoDirectory, buf, 0) == 0) {   // logo cache directory
-                        isyslog("logo for %s %d:%d found in %s", maContext->Info.ChannelName, maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den, maContext->Config->logoDirectory);
-                        logoStatus = true;
-                        for (int plane = 1; plane < PLANES; plane++) {
-                            if (Load(maContext->Config->logoDirectory, buf, plane) == 0) dsyslog("logo %s for plane %i found in %s", buf, plane, maContext->Config->logoDirectory);
-                        }
-                    }
-                    else {
-                        if (Load(maContext->Config->recDir,buf,0) == 0) {  // recording directory
-                            isyslog("logo for %s %d:%d found in %s", maContext->Info.ChannelName, maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den, maContext->Config->recDir);
-                            logoStatus = true;
-                            for (int plane = 1; plane < PLANES; plane++) {
-                                if (Load(maContext->Config->recDir, buf, plane) == 0) dsyslog("logo %s plane %i found in %s", buf, plane, maContext->Config->recDir);
-                            }
-                        }
-                        else {
-                            if (maContext->Config->autoLogo > 0) {
-                                isyslog("no logo for %s (%d:%d) found in logo cache or recording directory, extract logo from recording", maContext->Info.ChannelName, maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den);
-
-                                // search logo from current frame
-                                cExtractLogo *extractLogo = new cExtractLogo(maContext->Config->recDir, maContext->Info.ChannelName, maContext->Config->threads, maContext->Config->hwaccel, maContext->Video.Info.AspectRatio);
-                                ALLOC(sizeof(*extractLogo), "extractLogo");
-                                if (extractLogo->SearchLogo(iFrameCurrent, true) > 0) dsyslog("cMarkAdLogo::Process(): no logo found in recording");
-                                else dsyslog("cMarkAdLogo::Process(): new logo for %s found in recording",buf);
-                                FREE(sizeof(*extractLogo), "extractLogo"); // ptr_cExtraceLogo is valid because it was used above
-                                delete extractLogo;
-                                extractLogo = nullptr;
-
-                                // try again in recording directory
-                                if (Load(maContext->Config->recDir,buf,0) == 0) {
-                                    isyslog("logo for %s %d:%d found in %s", maContext->Info.ChannelName, maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den, maContext->Config->recDir);
-                                    logoStatus = true;
-                                    for (int plane=1; plane < PLANES; plane++) {
-                                        if (Load(maContext->Config->recDir,buf,plane) == 0) dsyslog("logo %s plane %i found in %s", buf, plane, maContext->Config->recDir);
-                                    }
-                                }
-                                else dsyslog("cMarkAdLogo::Process(): no logo for %s %d:%d found in recording", maContext->Info.ChannelName, maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den);
-                            }
-                        }
-                    }
-                    if (!logoStatus) {
-                        isyslog("no valid logo found for %s %d:%d, disable logo detection", maContext->Info.ChannelName, maContext->Video.Info.AspectRatio.num, maContext->Video.Info.AspectRatio.den);
-                        criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_DISABLED);
-                    }
-                    FREE(strlen(buf)+1, "buf");
-                    free(buf);
-                }
-                else dsyslog("cMarkAdLogo::Process(): out of memory");
-            }
-            area.AspectRatio.num = maContext->Video.Info.AspectRatio.num;
-            area.AspectRatio.den = maContext->Video.Info.AspectRatio.den;
+    if (area.logoAspectRatio != *decoder->GetFrameAspectRatio()) {
+        dsyslog("cLogoDetect::Process(): aspect ratio changed from %d:%d to %d:%d, reload logo", area.logoAspectRatio.num, area.logoAspectRatio.den, decoder->GetFrameAspectRatio()->num, decoder->GetFrameAspectRatio()->den);
+        if (!LoadLogo()) {
+            isyslog("no valid logo found for %s %d:%d, disable logo detection", criteria->GetChannelName(), decoder->GetFrameAspectRatio()->num, decoder->GetFrameAspectRatio()->den);
+            criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_DISABLED);
         }
+        area.logoAspectRatio = *decoder->GetFrameAspectRatio();
     }
-    else {
-        if ((logoWidth == 0) || (logoHeight == 0)) {
-            sLogoSize DefaultLogoSize = GetDefaultLogoSize(maContext->Video.Info.width);
-            logoHeight = DefaultLogoSize.height;
-            logoWidth = DefaultLogoSize.width;
-        }
-        area.AspectRatio.num = maContext->Video.Info.AspectRatio.num;
-        area.AspectRatio.den = maContext->Video.Info.AspectRatio.den;
-        area.corner = maContext->Config->logoExtraction;
-        sLogoSize MaxLogoSize = GetMaxLogoSize(maContext->Video.Info.width);
-        if (maContext->Config->logoWidth != -1) {
-            if (MaxLogoSize.width >= maContext->Config->logoWidth) logoWidth = maContext->Config->logoWidth;
-            else {
-                esyslog("configured logo width of %d exceeds max logo width %d", maContext->Config->logoWidth, MaxLogoSize.width);
-                abortNow = true;
-                return LOGO_ERROR;
-            }
-        }
-        if (maContext->Config->logoHeight != -1) {
-            if (MaxLogoSize.height >= maContext->Config->logoHeight) logoHeight = maContext->Config->logoHeight;
-            else {
-                esyslog("configured logo height of %d exceeds max logo height %d", maContext->Config->logoHeight, MaxLogoSize.height);
-                abortNow = true;
-                return LOGO_ERROR;
-            }
-        }
-    }
-    if (maContext->Config->fullDecode)  return Detect(frameCurrent - 1,  frameCurrent, logoFrameNumber);
-    else return Detect(iFrameBefore, iFrameCurrent, logoFrameNumber);
+    return Detect(frameNumber - 1, frameNumber, logoFrameNumber);
 }
 
 
 // detect scene change
-cMarkAdSceneChange::cMarkAdSceneChange(sMarkAdContext *maContextParam) {
-    maContext = maContextParam;
+cSceneChangeDetect::cSceneChangeDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam) {
+    decoder  = decoderParam;
+    criteria = criteriaParam;
 }
 
 
-cMarkAdSceneChange::~cMarkAdSceneChange() {
+cSceneChangeDetect::~cSceneChangeDetect() {
     if (prevHistogram) {  // in case constructor called but never Process()
         FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
         free(prevHistogram);
@@ -1449,32 +1043,32 @@ cMarkAdSceneChange::~cMarkAdSceneChange() {
 }
 
 
-int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNumber) {
-    if (!maContext) return SCENE_ERROR;
+int cSceneChangeDetect::Process(int *changeFrameNumber) {
     if (!changeFrameNumber) return SCENE_ERROR;
-    if (!maContext->Video.Data.valid) return SCENE_ERROR;
-    if (maContext->Video.Info.framesPerSecond == 0) return SCENE_ERROR;
-    if (!maContext->Video.Info.height) {
-        dsyslog("cMarkAdSceneChange::Process(): missing maContext->Video.Info.height");
-        return SCENE_ERROR;
+
+    sVideoPicture *picture = decoder->GetVideoPicture();
+    if (!picture) {
+        dsyslog("cVertBorderDetect::Process(): picture not valid");
+        return VBORDER_ERROR;
     }
-    if (!maContext->Video.Info.width) {
-        dsyslog("cMarkAdSceneChange::Process(): missing maContext->Video.Info.width");
-        return SCENE_ERROR;
+    if(!picture->plane[0]) {
+        dsyslog("cVertBorderDetect::Process(): picture plane 0 not valid");
+        return VBORDER_ERROR;
     }
-    if (!maContext->Video.Data.Plane[0]) {
-        dsyslog("cMarkAdSceneChange::Process(): Video.Data.Plane[0] missing");
-        return SCENE_ERROR;
+    if(picture->planeLineSize[0] <= 0) {
+        dsyslog("cVertBorderDetect::Process(): picture planeLineSize[0] valid");
+        return VBORDER_ERROR;
     }
+    int frameNumber = decoder->GetVideoFrameNumber();
 
     // get simple histogramm from current frame
     int *currentHistogram = nullptr;
     currentHistogram = static_cast<int *>(malloc(sizeof(int) * 256));
     ALLOC(sizeof(*currentHistogram), "SceneChangeHistogramm");
     memset(currentHistogram, 0, sizeof(int[256]));
-    for (int Y = 0; Y < maContext->Video.Info.height; Y++) {
-        for (int X = 0; X < maContext->Video.Info.width; X++) {
-            uchar val = maContext->Video.Data.Plane[0][X + (Y * maContext->Video.Data.PlaneLinesize[0])];
+    for (int Y = 0; Y < picture->height; Y++) {
+        for (int X = 0; X < picture->width; X++) {
+            uchar val = picture->plane[0][X + (Y * picture->planeLineSize[0])];
             currentHistogram[val]++;
         }
     }
@@ -1488,9 +1082,9 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNu
     for (int i = 0; i < 256; i++) {
         difference += abs(prevHistogram[i] - currentHistogram[i]);  // calculte difference, smaller is more similar
     }
-    int diffQuote = 1000 * difference / (maContext->Video.Info.height * maContext->Video.Info.width * 2);
+    int diffQuote = 1000 * difference / (picture->height * picture->width * 2);
 #ifdef DEBUG_SCENE_CHANGE
-    dsyslog("cMarkAdSceneChange::Process(): previous frame (%7d) and current frame (%7d): status %2d, blendCount %2d, blendFrame %7d, difference %7ld, diffQute %4d", prevFrameNumber, currentFrameNumber, sceneStatus, blendCount, blendFrame, difference, diffQuote);
+    dsyslog("cSceneChangeDetect::Process(): previous frame (%7d) and current frame (%7d): status %2d, blendCount %2d, blendFrame %7d, difference %7ld, diffQute %4d", prevFrameNumber, currentFrameNumber, sceneStatus, blendCount, blendFrame, difference, diffQuote);
 #endif
     FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
     free(prevHistogram);
@@ -1505,7 +1099,7 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNu
         *changeFrameNumber = prevFrameNumber;
         sceneStatus        = SCENE_STOP;
 #ifdef DEBUG_SCENE_CHANGE
-        dsyslog("cMarkAdSceneChange::Process(): frame (%7d) end of scene during active blend", prevFrameNumber);
+        dsyslog("cSceneChangeDetect::Process(): frame (%7d) end of scene during active blend", prevFrameNumber);
 #endif
     }
 // end of scene
@@ -1517,7 +1111,7 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNu
             *changeFrameNumber = blendFrame;
             sceneStatus        = SCENE_STOP;
 #ifdef DEBUG_SCENE_CHANGE
-            dsyslog("cMarkAdSceneChange::Process(): frame (%7d) end of scene", prevFrameNumber);
+            dsyslog("cSceneChangeDetect::Process(): frame (%7d) end of scene", prevFrameNumber);
 #endif
         }
         else sceneStatus = SCENE_BLEND;
@@ -1530,7 +1124,7 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNu
             *changeFrameNumber = blendFrame;
             sceneStatus = SCENE_STOP;
 #ifdef DEBUG_SCENE_CHANGE
-            dsyslog("cMarkAdSceneChange::Process(): frame (%7d) scene blend start at frame (%d)", prevFrameNumber, blendFrame);
+            dsyslog("cSceneChangeDetect::Process(): frame (%7d) scene blend start at frame (%d)", prevFrameNumber, blendFrame);
 #endif
         }
         else sceneStatus = SCENE_BLEND;
@@ -1538,7 +1132,7 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNu
 // unclear result, keep state
     else if ((diffQuote < DIFF_SCENE_BLEND_START) && (diffQuote > DIFF_SCENE_BLEND_STOP)) {
 #ifdef DEBUG_SCENE_CHANGE
-        if (sceneStatus == SCENE_BLEND) dsyslog("cMarkAdSceneChange::Process(): frame (%7d) scene blend continue at frame (%d)", prevFrameNumber, blendFrame);
+        if (sceneStatus == SCENE_BLEND) dsyslog("cSceneChangeDetect::Process(): frame (%7d) scene blend continue at frame (%d)", prevFrameNumber, blendFrame);
 #endif
     }
 // start of next scene
@@ -1547,7 +1141,7 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNu
             *changeFrameNumber = prevFrameNumber;
             sceneStatus        = SCENE_START;
 #ifdef DEBUG_SCENE_CHANGE
-            dsyslog("cMarkAdSceneChange::Process(): frame (%7d) start of scene", prevFrameNumber);
+            dsyslog("cSceneChangeDetect::Process(): frame (%7d) start of scene", prevFrameNumber);
 #endif
         }
         else sceneStatus = SCENE_NOCHANGE;
@@ -1556,12 +1150,12 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNu
     }
 
     prevHistogram   = currentHistogram;
-    prevFrameNumber = currentFrameNumber;
+    prevFrameNumber = frameNumber;
 
 #ifdef DEBUG_SCENE_CHANGE
     if (*changeFrameNumber >= 0) {
-        if (sceneStatus == SCENE_START) dsyslog("cMarkAdSceneChange::Process(): new mark: MT_SCENESTART at frame (%7d)", *changeFrameNumber);
-        if (sceneStatus == SCENE_STOP)  dsyslog("cMarkAdSceneChange::Process(): new mark: MT_SCENESTOP  at frame (%7d)", *changeFrameNumber);
+        if (sceneStatus == SCENE_START) dsyslog("cSceneChangeDetect::Process(): new mark: MT_SCENESTART at frame (%7d)", *changeFrameNumber);
+        if (sceneStatus == SCENE_STOP)  dsyslog("cSceneChangeDetect::Process(): new mark: MT_SCENESTOP  at frame (%7d)", *changeFrameNumber);
     }
 #endif
 
@@ -1571,13 +1165,14 @@ int cMarkAdSceneChange::Process(const int currentFrameNumber, int *changeFrameNu
 
 
 // detect blackscreen
-cMarkAdBlackScreen::cMarkAdBlackScreen(sMarkAdContext *maContextParam) {
-    maContext = maContextParam;
+cBlackScreenDetect::cBlackScreenDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam) {
+    decoder  = decoderParam;
+    criteria = criteriaParam;
     Clear();
 }
 
 
-void cMarkAdBlackScreen::Clear() {
+void cBlackScreenDetect::Clear() {
     blackScreenStatus = BLACKSCREEN_UNINITIALIZED;
     lowerBorderStatus = BLACKSCREEN_UNINITIALIZED;
 }
@@ -1588,61 +1183,59 @@ void cMarkAdBlackScreen::Clear() {
 //          0 no status change
 //          1 blackscreen end (notice: this is a START mark)
 //
-int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) {
-#define BLACKNESS    19  // maximum brightness to detect a blackscreen, +1 to detect end of blackscreen, changed from 17 to 19 because of undetected black screen
-#define WHITE_LOWER 220  // minimum brightness to detect white lower border
-    if (!maContext) return 0;
-    if (!maContext->Video.Data.valid) return 0;
-    if (maContext->Video.Info.framesPerSecond == 0) return 0;
-    if (!maContext->Video.Info.height) {
-        dsyslog("cMarkAdBlackScreen::Process(): missing maContext->Video.Info.height");
-        return 0;
+int cBlackScreenDetect::Process() {
+#define BLACKNESS          19  // maximum brightness to detect a blackscreen, +1 to detect end of blackscreen, changed from 17 to 19 because of undetected black screen
+#define WHITE_LOWER       220  // minimum brightness to detect white lower border
+#define PIXEL_COUNT_LOWER  25  // count pixel from bottom for detetion of lower border, changed from 40 to 25
+    sVideoPicture *picture = decoder->GetVideoPicture();
+    if (!picture) {
+        dsyslog("cVertBorderDetect::Process(): picture not valid");
+        return VBORDER_ERROR;
     }
-    if (!maContext->Video.Info.width) {
-        dsyslog("cMarkAdBlackScreen::Process(): missing maContext->Video.Info.width");
-        return 0;
+    if(!picture->plane[0]) {
+        dsyslog("cVertBorderDetect::Process(): picture plane 0 not valid");
+        return VBORDER_ERROR;
     }
-    if (!maContext->Video.Data.Plane[0]) {
-        dsyslog("cMarkAdBlackScreen::Process(): Video.Data.Plane[0] missing");
-        return 0;
+    if(picture->planeLineSize[0] <= 0) {
+        dsyslog("cVertBorderDetect::Process(): picture planeLineSize[0] valid");
+        return VBORDER_ERROR;
     }
 
-#define PIXEL_COUNT_LOWER 25  // count pixel from bottom for detetion of lower border, changed from 40 to 25
     int maxBrightnessAll;
     int maxBrightnessLower;   // for detetion of black lower border
     int minBrightnessLower;   // for detetion of white lower border
 
     // calculate limit with hysteresis
-    if (blackScreenStatus == BLACKSCREEN_INVISIBLE) maxBrightnessAll = BLACKNESS * maContext->Video.Info.width * maContext->Video.Info.height;
-    else maxBrightnessAll = (BLACKNESS + 1) * maContext->Video.Info.width * maContext->Video.Info.height;
+    if (blackScreenStatus == BLACKSCREEN_INVISIBLE) maxBrightnessAll = BLACKNESS * picture->width * picture->height;
+    else maxBrightnessAll = (BLACKNESS + 1) * picture->width * picture->height;
 
     // limit for black lower border
-    if (lowerBorderStatus == BLACKLOWER_INVISIBLE) maxBrightnessLower = BLACKNESS * maContext->Video.Info.width * PIXEL_COUNT_LOWER;
-    else maxBrightnessLower = (BLACKNESS + 1) * maContext->Video.Info.width * PIXEL_COUNT_LOWER;
+    if (lowerBorderStatus == BLACKLOWER_INVISIBLE) maxBrightnessLower = BLACKNESS * picture->width * PIXEL_COUNT_LOWER;
+    else maxBrightnessLower = (BLACKNESS + 1) * picture->width * PIXEL_COUNT_LOWER;
 
     // limit for white lower border
-    if (lowerBorderStatus == BLACKLOWER_INVISIBLE) minBrightnessLower = WHITE_LOWER * maContext->Video.Info.width * PIXEL_COUNT_LOWER;
-    else minBrightnessLower = (WHITE_LOWER - 1) * maContext->Video.Info.width * PIXEL_COUNT_LOWER;
+    if (lowerBorderStatus == BLACKLOWER_INVISIBLE) minBrightnessLower = WHITE_LOWER * picture->width * PIXEL_COUNT_LOWER;
+    else minBrightnessLower = (WHITE_LOWER - 1) * picture->width * PIXEL_COUNT_LOWER;
 
-    int maxBrightnessGrey = 28 * maContext->Video.Info.width * maContext->Video.Info.height;
+    int maxBrightnessGrey = 28 * picture->width *picture->height;
 
     int valAll   = 0;
     int valLower = 0;
     int maxPixel = 0;
     // calculate blackness
-    for (int x = 0; x < maContext->Video.Info.width; x++) {
-        for (int y = 0; y < maContext->Video.Info.height; y++) {
-            int pixel = maContext->Video.Data.Plane[0][x + y * maContext->Video.Data.PlaneLinesize[0]];
+    for (int x = 0; x < picture->width; x++) {
+        for (int y = 0; y < picture->height; y++) {
+            int pixel = picture->plane[0][x + y * picture->planeLineSize[0]];
             valAll += pixel;
-            if (y > (maContext->Video.Info.height - PIXEL_COUNT_LOWER)) valLower += pixel;
+            if (y > (picture->height - PIXEL_COUNT_LOWER)) valLower += pixel;
             if (pixel > maxPixel) maxPixel = pixel;
         }
     }
 
 #ifdef DEBUG_BLACKSCREEN
-    int debugValAll   = valAll   / (maContext->Video.Info.width * maContext->Video.Info.height);
-    int debugValLower = valLower / (maContext->Video.Info.width * PIXEL_COUNT_LOWER);
-    dsyslog("cMarkAdBlackScreen::Process(): frame (%d): blackScreenStatus %d, blackness %3d (expect <%d for start, >%d for end), lowerBorderStatus %d, lower %3d", frameCurrent, blackScreenStatus, debugValAll, BLACKNESS, BLACKNESS, lowerBorderStatus, debugValLower);
+    int debugValAll   = valAll   / (picture.width * maContext->Video.Info.height);
+    int debugValLower = valLower / (picture.width * PIXEL_COUNT_LOWER);
+    dsyslog("cBlackScreenDetect::Process(): frame (%d): blackScreenStatus %d, blackness %3d (expect <%d for start, >%d for end), lowerBorderStatus %d, lower %3d", frameCurrent, blackScreenStatus, debugValAll, BLACKNESS, BLACKNESS, lowerBorderStatus, debugValLower);
 #endif
 
     // full blackscreen now visible
@@ -1681,101 +1274,112 @@ int cMarkAdBlackScreen::Process(__attribute__((unused)) const int frameCurrent) 
 }
 
 
-cMarkAdBlackBordersHoriz::cMarkAdBlackBordersHoriz(const char *channelNameParam, const int frameRateParam, cCriteria *criteriaParam) {
-    channelName = channelNameParam;
-    frameRate   = frameRateParam;
-    criteria    = criteriaParam;
+cHorizBorderDetect::cHorizBorderDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam) {
+    decoder      = decoderParam;
+    criteria     = criteriaParam;
+    frameRate    = decoder->GetVideoFrameRate();
+    logoInBorder = criteria->LogoInBorder();
+    infoInBorder = criteria->InfoInBorder();
     Clear();
 }
 
 
-int cMarkAdBlackBordersHoriz::GetFirstBorderFrame() const {
+cHorizBorderDetect::~cHorizBorderDetect() {
+}
+
+
+int cHorizBorderDetect::GetFirstBorderFrame() const {
     if (borderstatus != HBORDER_VISIBLE) return borderframenumber;
     else return -1;
 }
 
 
-int cMarkAdBlackBordersHoriz::State() const {
+int cHorizBorderDetect::State() const {
     return borderstatus;
 }
 
 
-void cMarkAdBlackBordersHoriz::Clear(const bool isRestart) {
-    dsyslog("cMarkAdBlackBordersHoriz::Clear():  clear hborder state");
+void cHorizBorderDetect::Clear(const bool isRestart) {
+    dsyslog("cHorizBorderDetect::Clear():  clear hborder state");
     if (isRestart) borderstatus = HBORDER_RESTART;
     else           borderstatus = HBORDER_UNINITIALIZED;
     borderframenumber = -1;
 }
 
 
-int cMarkAdBlackBordersHoriz::Process(sVideoPicture *picture, int *borderFrame) {
+int cHorizBorderDetect::Process(int *borderFrame) {
 #define CHECKHEIGHT           5  // changed from 8 to 5
 #define BRIGHTNESS_H_SURE    22
 #define BRIGHTNESS_H_MAYBE  137  // some channel have logo or infos in border, so we will detect a higher value, changed from 131 to 137
 #define NO_HBORDER          200  // internal limit for early loop exit, must be more than BRIGHTNESS_H_MAYBE
-    if (!maContext) return HBORDER_ERROR;
-    if (!maContext->Video.Data.valid) return HBORDER_ERROR;
-    if (maContext->Video.Info.framesPerSecond == 0) return HBORDER_ERROR;
-    if (!maContext->Video.Info.height) {
-        dsyslog("cMarkAdBlackBordersHoriz::Process() video hight missing");
-        return HBORDER_ERROR;
+
+    sVideoPicture *picture = decoder->GetVideoPicture();
+    if (!picture) {
+        dsyslog("cVertBorderDetect::Process(): picture not valid");
+        return VBORDER_ERROR;
     }
-    if (!maContext->Video.Data.PlaneLinesize[0]) {
-        dsyslog("cMarkAdBlackBordersHoriz::Process() Video.Data.PlaneLinesize[0] not initialized");
-        return HBORDER_ERROR;
+    if(!picture->plane[0]) {
+        dsyslog("cVertBorderDetect::Process(): picture plane 0 not valid");
+        return VBORDER_ERROR;
+    }
+    if(picture->planeLineSize[0] <= 0) {
+        dsyslog("cVertBorderDetect::Process(): picture planeLineSize[0] valid");
+        return VBORDER_ERROR;
     }
 
+    // set limits
     int brightnessSure  = BRIGHTNESS_H_SURE;
-    if (criteria->LogoInBorder(maContext->Info.ChannelName)) brightnessSure = BRIGHTNESS_H_SURE + 1;  // for pixel from logo
+    if (logoInBorder) brightnessSure = BRIGHTNESS_H_SURE + 1;  // for pixel from logo
     int brightnessMaybe = BRIGHTNESS_H_SURE;
-    if (criteria->InfoInBorder(maContext->Info.ChannelName)) brightnessMaybe = BRIGHTNESS_H_MAYBE;    // for pixel from info in border
-    *borderFrame = -1;   // framenumber of first hborder, otherwise -1
-    int height = maContext->Video.Info.height;
+    if (infoInBorder) brightnessMaybe = BRIGHTNESS_H_MAYBE;    // for pixel from info in border
 
-    int start     = (height - CHECKHEIGHT) * maContext->Video.Data.PlaneLinesize[0];
-    int end       = height * maContext->Video.Data.PlaneLinesize[0];
+    *borderFrame = -1;   // framenumber of first hborder, otherwise -1
+    int height = picture->height;
+
+    int start     = (height - CHECKHEIGHT) * picture->planeLineSize[0];
+    int end       = height * picture->planeLineSize[0];
     int valTop    = 0;
     int valBottom = 0;
     int cnt       = 0;
     int xz        = 0;
 
     for (int x = start; x < end; x++) {
-        if (xz < maContext->Video.Info.width) {
-            valBottom += maContext->Video.Data.Plane[0][x];
+        if (xz < picture->width) {
+            valBottom += picture->plane[0][x];
             cnt++;
         }
         xz++;
-        if (xz >= maContext->Video.Data.PlaneLinesize[0]) xz = 0;
+        if (xz >= picture->planeLineSize[0]) xz = 0;
     }
     valBottom /= cnt;
 
     // if we have a bottom border, test top border
     if (valBottom <= brightnessMaybe) {
-        start = maContext->Video.Data.PlaneLinesize[0];
-        end = maContext->Video.Data.PlaneLinesize[0] * CHECKHEIGHT;
+        start = picture->planeLineSize[0];
+        end = picture->planeLineSize[0] * CHECKHEIGHT;
         cnt = 0;
         xz  = 0;
         for (int x = start; x < end; x++) {
-            if (xz < maContext->Video.Info.width) {
-                valTop += maContext->Video.Data.Plane[0][x];
+            if (xz < picture->width) {
+                valTop += picture->plane[0][x];
                 cnt++;
             }
             xz++;
-            if (xz >= maContext->Video.Data.PlaneLinesize[0]) xz = 0;
+            if (xz >= picture->planeLineSize[0]) xz = 0;
         }
         valTop /= cnt;
     }
     else valTop = NO_HBORDER;   // we have no botton border, so we do not have to calculate top border
 
 #ifdef DEBUG_HBORDER
-    dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder brightness top %4d bottom %4d (expect one <=%d and one <= %d)", FrameNumber, valTop, valBottom, brightnessSure, brightnessMaybe);
+    dsyslog("cHorizBorderDetect::Process(): frame (%7d) hborder brightness top %4d bottom %4d (expect one <=%d and one <= %d)", FrameNumber, valTop, valBottom, brightnessSure, brightnessMaybe);
 #endif
 
     if ((valTop <= brightnessMaybe) && (valBottom <= brightnessSure) || (valTop <= brightnessSure) && (valBottom <= brightnessMaybe)) {
         // hborder detected
 #ifdef DEBUG_HBORDER
-        int duration = (FrameNumber - borderframenumber) / maContext->Video.Info.framesPerSecond;
-        dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder ++++++: borderstatus %d, borderframenumber (%d), duration %ds", picture->frameNumber, borderstatus, borderframenumber, duration);
+        int duration = (FrameNumber - borderframenumber) / decoder->GetVideoFrameRate();
+        dsyslog("cHorizBorderDetect::Process(): frame (%7d) hborder ++++++: borderstatus %d, borderframenumber (%d), duration %ds", picture->frameNumber, borderstatus, borderframenumber, duration);
 #endif
         if (borderframenumber == -1) {  // got first frame with hborder
             borderframenumber = picture->frameNumber;
@@ -1799,7 +1403,7 @@ int cMarkAdBlackBordersHoriz::Process(sVideoPicture *picture, int *borderFrame) 
     else {
         // no hborder detected
 #ifdef DEBUG_HBORDER
-        dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder ------: borderstatus %d, borderframenumber (%d)", picture->frameNumber, borderstatus, borderframenumber);
+        dsyslog("cHorizBorderDetect::Process(): frame (%7d) hborder ------: borderstatus %d, borderframenumber (%d)", picture->frameNumber, borderstatus, borderframenumber);
 #endif
         if (borderstatus != HBORDER_INVISIBLE) {
             if ((borderstatus == HBORDER_UNINITIALIZED) || (borderstatus == HBORDER_RESTART)) *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
@@ -1809,21 +1413,23 @@ int cMarkAdBlackBordersHoriz::Process(sVideoPicture *picture, int *borderFrame) 
         borderframenumber = -1; // restart from scratch
     }
 #ifdef DEBUG_HBORDER
-    dsyslog("cMarkAdBlackBordersHoriz::Process(): frame (%7d) hborder return: borderstatus %d, borderframenumber (%d), borderFrame (%d)", FrameNumber, borderstatus, borderframenumber, *borderFrame);
+    dsyslog("cHorizBorderDetect::Process(): frame (%7d) hborder return: borderstatus %d, borderframenumber (%d), borderFrame (%d)", FrameNumber, borderstatus, borderframenumber, *borderFrame);
 #endif
     return borderstatus;
 }
 
 
-cMarkAdBlackBordersVert::cMarkAdBlackBordersVert(const char *channelNameParam, const int frameRateParam, cCriteria *criteriaParam) {
-    channelName = channelNameParam;
-    frameRate   = frameRateParam;
-    criteria    = criteriaParam;
+cVertBorderDetect::cVertBorderDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam) {
+    decoder      = decoderParam;
+    criteria     = criteriaParam;
+    frameRate    = decoder->GetVideoFrameRate();
+    logoInBorder = criteria->LogoInBorder();
+    infoInBorder = criteria->InfoInBorder();
     Clear();
 }
 
 
-void cMarkAdBlackBordersVert::Clear(const bool isRestart) {
+void cVertBorderDetect::Clear(const bool isRestart) {
     if (isRestart) borderstatus = VBORDER_RESTART;
     else           borderstatus = VBORDER_UNINITIALIZED;
     borderframenumber = -1;
@@ -1831,48 +1437,49 @@ void cMarkAdBlackBordersVert::Clear(const bool isRestart) {
 }
 
 
-int cMarkAdBlackBordersVert::GetFirstBorderFrame() const {
+int cVertBorderDetect::GetFirstBorderFrame() const {
     if (borderstatus != VBORDER_VISIBLE) return borderframenumber;
     else return -1;
 }
 
 
-int cMarkAdBlackBordersVert::Process(sVideoPicture *picture, int *borderFrame) {
+int cVertBorderDetect::Process(int *borderFrame) {
 #define CHECKWIDTH 10           // do not reduce, very small vborder are unreliable to detect, better use logo in this case
 #define BRIGHTNESS_V_SURE   27  // changed from 33 to 27, some channels has dark separator before vborder start
 #define BRIGHTNESS_V_MAYBE 101  // some channel have logo or infos in one border, so we must accept a higher value, changed from 100 to 101
+    sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
-        dsyslog("cMarkAdBlackBordersVert::Process(): picture not valid");
+        dsyslog("cVertBorderDetect::Process(): picture not valid");
         return VBORDER_ERROR;
     }
     if(!picture->plane[0]) {
-        dsyslog("cMarkAdBlackBordersVert::Process(): picture plane 0 not valid");
+        dsyslog("cVertBorderDetect::Process(): picture plane 0 not valid");
         return VBORDER_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
-        dsyslog("cMarkAdBlackBordersVert::Process(): picture planeLineSize[0] valid");
+        dsyslog("cVertBorderDetect::Process(): picture planeLineSize[0] valid");
         return VBORDER_ERROR;
     }
     if (!borderFrame) {
-        dsyslog("cMarkAdBlackBordersVert::Process(): borderFrame not valid");
+        dsyslog("cVertBorderDetect::Process(): borderFrame not valid");
         return VBORDER_ERROR;
     }
     if (picture->width == 0) {
-        dsyslog("cMarkAdBlackBordersVert::Process(): picture width %d not valid", picture->width);
+        dsyslog("cVertBorderDetect::Process(): picture width %d not valid", picture->width);
     }
     if (picture->height == 0) {
-        dsyslog("cMarkAdBlackBordersVert::Process(): picture height %d not valid", picture->height);
+        dsyslog("cVertBorderDetect::Process(): picture height %d not valid", picture->height);
     }
     if (frameRate == 0) {
-        dsyslog("cMarkAdBlackBordersVert::Process(): video frames per second  not valid");
+        dsyslog("cVertBorderDetect::Process(): video frames per second  not valid");
         return VBORDER_ERROR;
     }
 
     // set limits
     int brightnessSure  = BRIGHTNESS_V_SURE;
-    if (criteria->LogoInBorder(channelName)) brightnessSure = BRIGHTNESS_V_SURE + 1;  // for pixel from logo
+    if (logoInBorder) brightnessSure = BRIGHTNESS_V_SURE + 1;  // for pixel from logo
     int brightnessMaybe = BRIGHTNESS_V_SURE;
-    if (criteria->InfoInBorder(channelName)) brightnessMaybe = BRIGHTNESS_V_MAYBE;    // for pixel from info in border
+    if (infoInBorder) brightnessMaybe = BRIGHTNESS_V_MAYBE;    // for pixel from info in border
 
     *borderFrame = -1;
     int valLeft  =  0;
@@ -1903,9 +1510,9 @@ int cMarkAdBlackBordersVert::Process(sVideoPicture *picture, int *borderFrame) {
     else valRight = INT_MAX;  // left side has no border, so we have not to check right side
 
 #ifdef DEBUG_VBORDER
-    dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d): vborder status: %d, valLeft: %10d, valRight: %10d", frameNumber, borderstatus, valLeft, valRight);
-    if (darkFrameNumber < INT_MAX) dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d):  frist vborder in dark picture: (%5d)", frameNumber, darkFrameNumber);
-    if (borderframenumber >= 0) dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d):  frist vborder: [bright (%5d), dark (%5d)], duration: %ds", frameNumber, borderframenumber, darkFrameNumber, static_cast<int> ((frameNumber - borderframenumber) / frameRate));
+    dsyslog("cVertBorderDetect::Process(): frame (%7d): vborder status: %d, valLeft: %10d, valRight: %10d", frameNumber, borderstatus, valLeft, valRight);
+    if (darkFrameNumber < INT_MAX) dsyslog("cVertBorderDetect::Process(): frame (%7d):  frist vborder in dark picture: (%5d)", frameNumber, darkFrameNumber);
+    if (borderframenumber >= 0) dsyslog("cVertBorderDetect::Process(): frame (%7d):  frist vborder: [bright (%5d), dark (%5d)], duration: %ds", frameNumber, borderframenumber, darkFrameNumber, static_cast<int> ((frameNumber - borderframenumber) / frameRate));
 #endif
 #define BRIGHTNESS_MIN (38 * picture->height * picture->width)  // changed from 51 to 38, dark part with vborder
     if (((valLeft <= brightnessMaybe) && (valRight <= brightnessSure)) || ((valLeft <= brightnessSure) && (valRight <= brightnessMaybe))) {
@@ -1935,7 +1542,7 @@ int cMarkAdBlackBordersVert::Process(sVideoPicture *picture, int *borderFrame) {
 #ifdef DEBUG_VBORDER
                 minBrightness = std::min(brightness, minBrightness);
                 maxBrightness = std::max(brightness, maxBrightness);
-                dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d) has a dark picture: %d, delay vborder start at (%7d), minBrightness %d, maxBrightness %d", picture->frameNumber, brightness, darkFrameNumber, minBrightness, maxBrightness);
+                dsyslog("cVertBorderDetect::Process(): frame (%7d) has a dark picture: %d, delay vborder start at (%7d), minBrightness %d, maxBrightness %d", picture->frameNumber, brightness, darkFrameNumber, minBrightness, maxBrightness);
 #endif
             }
             else {
@@ -1943,7 +1550,7 @@ int cMarkAdBlackBordersVert::Process(sVideoPicture *picture, int *borderFrame) {
 #ifdef DEBUG_VBORDER
                 minBrightness = INT_MAX;
                 maxBrightness = 0;
-                dsyslog("cMarkAdBlackBordersVert::Process(): frame (%7d) has a bright picture %d, accept vborder start at (%7d)", picture->frameNumber, brightness, borderframenumber);
+                dsyslog("cVertBorderDetect::Process(): frame (%7d) has a bright picture %d, accept vborder start at (%7d)", picture->frameNumber, brightness, borderframenumber);
 #endif
                 darkFrameNumber = INT_MAX;
             }
@@ -1982,94 +1589,85 @@ int cMarkAdBlackBordersVert::Process(sVideoPicture *picture, int *borderFrame) {
 }
 
 
-cMarkAdVideo::cMarkAdVideo(sMarkAdContext *maContextParam, cCriteria *criteriaParam, cIndex *recordingIndex) {
-    maContext                 = maContextParam;
-    criteria                  = criteriaParam;
-    recordingIndexMarkAdVideo = recordingIndex;
+cVideo::cVideo(cDecoderNEW *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam) {
+    dsyslog("cVideo::cVideo(): new object");
+    decoder      = decoderParam;
+    criteria     = criteriaParam;
+    recDir       = recDirParam;
+    logoCacheDir = logoCacheDirParam;
 
-    aspectRatio.num = 0;
-    aspectRatio.den = 0;
+    sceneChangeDetect = new cSceneChangeDetect(decoder, criteria);
+    ALLOC(sizeof(*sceneChangeDetect), "sceneChangeDetect");
 
-    sceneChange = new cMarkAdSceneChange(maContext);
-    ALLOC(sizeof(*sceneChange), "sceneChange");
+    blackScreenDetect = new cBlackScreenDetect(decoder, criteria);
+    ALLOC(sizeof(*blackScreenDetect), "blackScreenDetect");
 
-    blackScreen = new cMarkAdBlackScreen(maContext);
-    ALLOC(sizeof(*blackScreen), "blackScreen");
+    hBorderDetect = new cHorizBorderDetect(decoder, criteria);
+    ALLOC(sizeof(*hBorderDetect), "hBorderDetect");
 
-    hborder = new cMarkAdBlackBordersHoriz(maContext->Info.ChannelName, maContext->Video.Info.framesPerSecond, criteria);
-    ALLOC(sizeof(*hborder), "hborder");
+    vBorderDetect = new cVertBorderDetect(decoder, criteria);
+    ALLOC(sizeof(*vBorderDetect), "vBorderDetect");
 
-    vborder = new cMarkAdBlackBordersVert(maContext->Info.ChannelName, maContext->Video.Info.framesPerSecond, criteria);
-    ALLOC(sizeof(*vborder), "vborder");
-
-    logo = new cMarkAdLogo(maContext, criteria, recordingIndexMarkAdVideo);
-    ALLOC(sizeof(*logo), "cMarkAdVideo_logo");
-
-    Clear(false);
+    logoDetect = new cLogoDetect(decoder, criteria, recDir, logoCacheDir);
+    ALLOC(sizeof(*logoDetect), "logoDetect");
 }
 
 
-cMarkAdVideo::~cMarkAdVideo() {
-    ResetMarks();
-    if (sceneChange) {
-        FREE(sizeof(*sceneChange), "sceneChange");
-        delete sceneChange;
+cVideo::~cVideo() {
+    dsyslog("cVideo::cVideo(): delete object");
+    if (sceneChangeDetect) {
+        FREE(sizeof(*sceneChangeDetect), "sceneChangeDetect");
+        delete sceneChangeDetect;
     }
-    if (blackScreen) {
-        FREE(sizeof(*blackScreen), "blackScreen");
-        delete blackScreen;
+    if (blackScreenDetect) {
+        FREE(sizeof(*blackScreenDetect), "blackScreenDetect");
+        delete blackScreenDetect;
     }
-    if (hborder) {
-        FREE(sizeof(*hborder), "hborder");
-        delete hborder;
+    if (hBorderDetect) {
+        FREE(sizeof(*hBorderDetect), "hBorderDetect");
+        delete hBorderDetect;
     }
-    if (vborder) {
-        FREE(sizeof(*vborder), "vborder");
-        delete vborder;
+    if (vBorderDetect) {
+        FREE(sizeof(*vBorderDetect), "vBorderDetect");
+        delete vBorderDetect;
     }
-    if (logo) {
-        FREE(sizeof(*logo), "cMarkAdVideo_logo");
-        delete logo;
+    if (logoDetect) {
+        FREE(sizeof(*logoDetect), "logoDetect");
+        delete logoDetect;
     }
 }
 
 
-void cMarkAdVideo::Clear(const bool isRestart) {
-    dsyslog("cMarkAdVideo::Clear(): reset detection status, isRestart = %d", isRestart);
+void cVideo::Clear(const bool isRestart) {
+    dsyslog("cVideo::Clear(): reset detection status, isRestart = %d", isRestart);
     if (!isRestart) {
-        aspectRatio.num=0;
-        aspectRatio.den=0;
+        aspectRatioFrameBefore = {0};
     }
     if (isRestart) {  // only clear if detection is disabled
-        if (blackScreen && !criteria->GetDetectionState(MT_BLACKCHANGE))   blackScreen->Clear();
-        if (logo        && !criteria->GetDetectionState(MT_LOGOCHANGE))    logo->Clear(true);
-        if (vborder     && !criteria->GetDetectionState(MT_VBORDERCHANGE)) vborder->Clear(true);
-        if (hborder     && !criteria->GetDetectionState(MT_HBORDERCHANGE)) hborder->Clear(true);
+        if (blackScreenDetect && !criteria->GetDetectionState(MT_BLACKCHANGE))   blackScreenDetect->Clear();
+        if (logoDetect        && !criteria->GetDetectionState(MT_LOGOCHANGE))    logoDetect->Clear(true);
+        if (vBorderDetect     && !criteria->GetDetectionState(MT_VBORDERCHANGE)) vBorderDetect->Clear(true);
+        if (hBorderDetect     && !criteria->GetDetectionState(MT_HBORDERCHANGE)) hBorderDetect->Clear(true);
     }
     else {
-        if (blackScreen) blackScreen->Clear();
-        if (logo)    logo->Clear(false);
-        if (vborder) vborder->Clear(false);
-        if (hborder) hborder->Clear(false);
+        if (blackScreenDetect) blackScreenDetect->Clear();
+        if (logoDetect)        logoDetect->Clear(false);
+        if (vBorderDetect)     vBorderDetect->Clear(false);
+        if (hBorderDetect)     hBorderDetect->Clear(false);
     }
 }
 
 
-void cMarkAdVideo::ClearBorder() {
-    dsyslog("cMarkAdVideo::ClearBorder(): reset border detection status");
-    if (vborder) vborder->Clear();
-    if (hborder) hborder->Clear();
+void cVideo::ClearBorder() {
+    dsyslog("cVideo::ClearBorder(): reset border detection status");
+    if (vBorderDetect) vBorderDetect->Clear();
+    if (hBorderDetect) hBorderDetect->Clear();
 }
 
 
-void cMarkAdVideo::ResetMarks() {
-    videoMarks = {};
-}
-
-
-bool cMarkAdVideo::AddMark(int type, int position, const sAspectRatio *before, const sAspectRatio *after) {
+bool cVideo::AddMark(int type, int position, const sAspectRatio *before, const sAspectRatio *after) {
     if (videoMarks.Count >= videoMarks.maxCount) {  // array start with 0
-        esyslog("cMarkAdVideo::AddMark(): too much marks %d at once detected", videoMarks.Count);
+        esyslog("cVideo::AddMark(): too much marks %d at once detected", videoMarks.Count);
         return false;
     }
     if (before) {
@@ -2087,144 +1685,116 @@ bool cMarkAdVideo::AddMark(int type, int position, const sAspectRatio *before, c
 }
 
 
-bool cMarkAdVideo::AspectRatioChange(const sAspectRatio &AspectRatioA, const sAspectRatio &AspectRatioB) {
-    if (((AspectRatioA.num == 0) || (AspectRatioA.den == 0)) &&
-            ((AspectRatioB.num == 4) && (AspectRatioB.den == 3))) return true;
+bool cVideo::AspectRatioChange(const sAspectRatio AspectRatioOld, const sAspectRatio *AspectRatioNew) {
+    if (((AspectRatioOld.num == 0) || (AspectRatioOld.den == 0)) &&
+            ((AspectRatioNew->num == 4) && (AspectRatioNew->den == 3))) return true;
 
-    if ((AspectRatioA.num != AspectRatioB.num) && (AspectRatioA.den != AspectRatioB.den)) return true;
+    if ((AspectRatioOld.num != AspectRatioNew->num) && (AspectRatioOld.den != AspectRatioNew->den)) return true;
     return false;
 }
 
 
-sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, const int frameCurrent) {
-    if ((iFrameCurrent < 0) || (frameCurrent < 0)) return nullptr;
-    if (iFrameBefore < 0) iFrameBefore = 0; // this could happen at the start of recording
+void cVideo::SetAspectRatioBroadcast(sAspectRatio aspectRatio) {
+    dsyslog("cVideo::SetAspectRatioBroadcast(): set assumed broadcast aspect ratio to %d:%d", aspectRatio.num, aspectRatio.den);
+    aspectRatioBroadcast = aspectRatio;
+}
 
-    int useFrame;
-    if (maContext->Config->fullDecode) useFrame = frameCurrent;
-    else useFrame = iFrameCurrent;
-    ResetMarks();
+
+sMarkAdMarks *cVideo::Process() {
+    int frameNumber = decoder->GetVideoFrameNumber();
+    videoMarks = {};   // reset array of new marks
 
     // scene change detection
     if (criteria->GetDetectionState(MT_SCENECHANGE)) {
         int changeFrame = -1;
-        int sceneRet = sceneChange->Process(useFrame, &changeFrame);
+        int sceneRet = sceneChangeDetect->Process(&changeFrame);
         if (sceneRet == SCENE_START) AddMark(MT_SCENESTART, changeFrame);
         if (sceneRet == SCENE_STOP)  AddMark(MT_SCENESTOP,  changeFrame);
     }
 
     // black screen change detection
-    if ((frameCurrent > 0) && criteria->GetDetectionState(MT_BLACKCHANGE)) { // first frame can be invalid result
-        int blackret = blackScreen->Process(useFrame);
+    if ((frameNumber > 0) && criteria->GetDetectionState(MT_BLACKCHANGE)) { // first frame can be invalid result
+        int blackret = blackScreenDetect->Process();
         switch (blackret) {
         case BLACKSCREEN_INVISIBLE:
-            AddMark(MT_NOBLACKSTART, useFrame);  // first frame without blackscreen is start mark position
+            AddMark(MT_NOBLACKSTART, frameNumber);  // first frame without blackscreen is start mark position
             break;
         case BLACKSCREEN_VISIBLE:
-            AddMark(MT_NOBLACKSTOP,  useFrame);
+            AddMark(MT_NOBLACKSTOP,  frameNumber);
             break;
         case BLACKLOWER_INVISIBLE:
-            AddMark(MT_NOLOWERBORDERSTART, useFrame);  // first frame without lower border is start mark position
+            AddMark(MT_NOLOWERBORDERSTART, frameNumber);  // first frame without lower border is start mark position
             break;
         case BLACKLOWER_VISIBLE:
-            AddMark(MT_NOLOWERBORDERSTOP,  useFrame);
+            AddMark(MT_NOLOWERBORDERSTOP,  frameNumber);
             break;
         default:
             break;
         }
-    }
-    // TODO: get picture from decoder
-    sVideoPicture picture;
-    picture.frameNumber = useFrame;
-    picture.width = maContext->Video.Info.width;
-    picture.height = maContext->Video.Info.height;
-    for (int i = 0; i < PLANES; i++) {
-        picture.planeLineSize[i] = maContext->Video.Data.PlaneLinesize[i];
-        picture.plane[i] = maContext->Video.Data.Plane[i];
     }
 
     // hborder change detection
     int hret = HBORDER_ERROR;
     if (criteria->GetDetectionState(MT_HBORDERCHANGE)) {
         int hborderframenumber;
-        hret = hborder->Process(&picture, &hborderframenumber);  // we get start frame of hborder back
+        hret = hBorderDetect->Process(&hborderframenumber);  // we get start frame of hborder back
         if ((hret == HBORDER_VISIBLE) && (hborderframenumber >= 0)) {
             AddMark(MT_HBORDERSTART, hborderframenumber);
         }
         if ((hret == HBORDER_INVISIBLE) && (hborderframenumber >= 0)) {
-            if (maContext->Config->fullDecode)  AddMark(MT_HBORDERSTOP, useFrame - 1);
-            else AddMark(MT_HBORDERSTOP, iFrameBefore);  // we use iFrame before current frame as stop mark, this was the last frame with hborder
+            AddMark(MT_HBORDERSTOP, frameNumber - 1);
         }
     }
     else {
-        if (hborder && (hborder->State() != HBORDER_UNINITIALIZED)) hborder->Clear();
+        if (hBorderDetect && (hBorderDetect->State() != HBORDER_UNINITIALIZED)) hBorderDetect->Clear();
     }
 
     // vborder change detection
     if (criteria->GetDetectionState(MT_VBORDERCHANGE)) {
         int vborderframenumber;
 
-        int vret = vborder->Process(&picture, &vborderframenumber);
-        if ((vret == VBORDER_VISIBLE) && (vborderframenumber >= 0)) {
-            if (hret == HBORDER_VISIBLE) {
-                maContext->Video.Info.frameDarkOpeningCredits = vborderframenumber;
-                dsyslog("cMarkAdVideo::Process(): hborder and vborder detected at frame (%d), this is a very long black screen, maybe opening credits", vborderframenumber);
-            }
-            else AddMark(MT_VBORDERSTART, vborderframenumber);
-        }
-        if ((vret == VBORDER_INVISIBLE) && (vborderframenumber >= 0)) {
-            if (maContext->Config->fullDecode) AddMark(MT_VBORDERSTOP, useFrame - 1);
-            else AddMark(MT_VBORDERSTOP, iFrameBefore);
-        }
+        int vret = vBorderDetect->Process(&vborderframenumber);
+        if ((vret == VBORDER_VISIBLE) && (vborderframenumber >= 0)) AddMark(MT_VBORDERSTART, vborderframenumber);
+        if ((vret == VBORDER_INVISIBLE) && (vborderframenumber >= 0)) AddMark(MT_VBORDERSTOP, frameNumber - 1);
     }
-    else if (vborder) vborder->Clear();
+    else if (vBorderDetect) vBorderDetect->Clear();
 
     // aspect ratio change detection
     if (criteria->GetDetectionState(MT_ASPECTCHANGE)) {
-        if (AspectRatioChange(aspectRatio, maContext->Video.Info.AspectRatio)) {
-            if ((maContext->Info.AspectRatio.num == 4) && (maContext->Info.AspectRatio.den == 3)) {
-                if ((maContext->Video.Info.AspectRatio.num == 4) && (maContext->Video.Info.AspectRatio.den == 3)) {
-                    AddMark(MT_ASPECTSTART, frameCurrent, &aspectRatio, &maContext->Video.Info.AspectRatio);
-                }
-                else {
-                    int stopPos = recordingIndexMarkAdVideo->GetIFrameBefore(frameCurrent - 1);
-                    if (maContext->Video.Info.interlaced) {
-                        stopPos--;  // one frame before to get last full frame with old aspect ratio
-                        if (stopPos < 0) stopPos = 0;
-                    }
-                    AddMark(MT_ASPECTSTOP, stopPos, &aspectRatio, &maContext->Video.Info.AspectRatio);
-                }
+        // get aspect ratio from frame
+        sAspectRatio *aspectRatioFrame = decoder->GetFrameAspectRatio();
+        if (!aspectRatioFrame) {
+            esyslog("cVideo::Process(): frame (%d): get aspect ratio failed", frameNumber);
+            return nullptr;
+        }
+        if (AspectRatioChange(aspectRatioFrameBefore, aspectRatioFrame)) {
+            if ((aspectRatioBroadcast.num == 4) && (aspectRatioBroadcast.den == 3)) {
+                if ((aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) AddMark(MT_ASPECTSTART, frameNumber,     &aspectRatioFrameBefore, aspectRatioFrame);
+                else                                                              AddMark(MT_ASPECTSTOP,  frameNumber - 1, &aspectRatioFrameBefore, aspectRatioFrame);
             }
             else {
-                if ((maContext->Video.Info.AspectRatio.num == 16) && (maContext->Video.Info.AspectRatio.den == 9)) {
+                if ((aspectRatioBroadcast.num == 16) && (aspectRatioBroadcast.den == 9)) {
                     // do not set a initial 16:9 aspect ratio start mark for 16:9 videos, not useful
-                    if ((aspectRatio.num != 0) || (aspectRatio.den != 0)) AddMark(MT_ASPECTSTART, aspectRatioBeforeFrame, &aspectRatio, &maContext->Video.Info.AspectRatio);
+                    if ((aspectRatioFrameBefore.num != 0) || (aspectRatioFrameBefore.den != 0)) AddMark(MT_ASPECTSTART, aspectRatioBeforeFrame, &aspectRatioFrameBefore, aspectRatioFrame);
                 }
                 else {
-                    int stopPos = recordingIndexMarkAdVideo->GetIFrameBefore(frameCurrent - 1);
-                    if (maContext->Video.Info.interlaced) {
-                        stopPos--;  // one frame before to get last full frame with old aspect ratio
-                        if (stopPos < 0) stopPos = 0;
-                    }
-                    AddMark(MT_ASPECTSTOP, stopPos, &aspectRatio, &maContext->Video.Info.AspectRatio);
+                    AddMark(MT_ASPECTSTOP, frameNumber - 1, &aspectRatioFrameBefore, aspectRatioFrame);  // stop is one frame before aspect ratio change
                     // 16:9 -> 4:3, this is end of broadcast (16:9) and start of next broadcast (4:3)
                     // if we have activ hborder add hborder stop mark, because hborder state will be cleared
-                    if (hborder->State() == HBORDER_VISIBLE) {
-                        dsyslog("cMarkAdVideo::Process(): hborder activ during aspect ratio change from 16:9 to 4:3, add hborder stop mark");
-                        AddMark(MT_HBORDERSTOP, stopPos - 1);
+                    if (hBorderDetect->State() == HBORDER_VISIBLE) {
+                        dsyslog("cVideo::Process(): hborder activ during aspect ratio change from 16:9 to 4:3, add hborder stop mark");
+                        AddMark(MT_HBORDERSTOP, frameNumber - 2);
                     }
                 }
             }
-            aspectRatio.num = maContext->Video.Info.AspectRatio.num;   // store new aspect ratio
-            aspectRatio.den = maContext->Video.Info.AspectRatio.den;
+            aspectRatioFrameBefore = *aspectRatioFrame;   // store new aspect ratio
         }
-        else aspectRatioBeforeFrame = frameCurrent;
     }
 
     // logo change detection
     if (criteria->GetDetectionState(MT_LOGOCHANGE)) {
         int logoframenumber = 0;
-        int lret=logo->Process(iFrameBefore, iFrameCurrent, frameCurrent, &logoframenumber);
+        int lret=logoDetect->Process(&logoframenumber);
         if ((lret >= -1) && (lret != 0) && (logoframenumber != -1)) {
             if (lret > 0) {
                 AddMark(MT_LOGOSTART, logoframenumber);
@@ -2235,7 +1805,7 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
         }
     }
     else {
-        logo->SetStatusUninitialized();
+        logoDetect->SetStatusUninitialized();
     }
 
     if (videoMarks.Count > 0) {
@@ -2247,17 +1817,17 @@ sMarkAdMarks *cMarkAdVideo::Process(int iFrameBefore, const int iFrameCurrent, c
 }
 
 
-bool cMarkAdVideo::ReducePlanes() {
-    if (!logo) return false;
-    sAreaT *area = logo->GetArea();
+// disable colored planes
+bool cVideo::ReducePlanes() {
+    if (!logoDetect) return false;
+    sAreaT *area = logoDetect->GetArea();
     bool ret = false;
     for (int plane = 1; plane < PLANES; plane++) {
-        if (area->valid[plane]) {
-            area->valid[plane] = false;
-            area->mPixel[plane] = 0;
-            area->rPixel[plane] = 0;
-            ret = true;
-        }
+        area->logo[plane] = nullptr;
+        area->mPixel[plane] = 0;
+        area->rPixel[plane] = 0;
+        area->iPixel[plane] = 0;
+        ret = true;
     }
     return ret;
 }

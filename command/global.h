@@ -154,50 +154,115 @@ typedef struct sVideoPicture {
 
 
 /**
+ * video aspect ratio (DAR or PAR)
+ */
+typedef struct sAspectRatio {
+    int num = 0;  //!< video aspectio ratio numerator
+    //!<
+    int den = 0;  //!< video aspectio ratio denominator
+    //!<
+    bool operator != (const sAspectRatio& other) const {
+        if ((this->num != other.num) || (this->den != other.den)) return true;
+        return false;
+    }
+} sAspectRatio;
+
+
+/**
+ * logo detection status
+ */
+enum eLogoStatus {
+    LOGO_RESTART       = -4,
+    LOGO_ERROR         = -3,
+    LOGO_UNINITIALIZED = -2,
+    LOGO_INVISIBLE     = -1,
+    LOGO_NOCHANGE      =  0,
+    LOGO_VISIBLE       =  1
+};
+
+
+/**
+ * corner area after sobel transformation
+ */
+typedef struct sAreaT {
+    uchar **sobel        = nullptr;              //!< monochrome picture from edge after sobel transformation, memory will be allocated after we know video resolution
+    //!<
+    uchar **logo         = nullptr;              //!< monochrome mask of logo, memory will be allocated after we know video resolution
+    //!<
+    uchar **result       = nullptr;              //!< result of sobel + mask, memory will be allocated after we know video resolution
+    //!<
+    uchar **inverse      = nullptr;              //!< inverse result of sobel + mask, memory will be allocated after we know video resolution
+    //!<
+    bool valid[PLANES]   = {false};              //!< true if plane is valid
+    //!<
+    int mPixel[PLANES]   = {0};                  //!< black pixel in mask
+    //!<
+    int rPixel[PLANES]   = {0};                  //!< black pixel in result
+    //!<
+    int iPixel[PLANES]   = {0};                  //!< black pixel in inverse result
+    //!<
+    int status           = LOGO_UNINITIALIZED;   //!< logo status: on, off, uninitialized
+    //!<
+    int stateFrameNumber = -1;                   //!< last detected logo start/stop state change frame number
+    //!<
+    int counter          = 0;                    //!< how many logo on, offs detected
+    //!<
+    int intensity        = 0;                    //!< area intensity (higher -> brighter)
+    //!<
+    sLogoSize logoSize   = {0};                  //!< logo size
+    //!<
+    int logoCorner       = -1;                   //!< corner of logo
+    //!<
+    sAspectRatio logoAspectRatio;                //!< logo for video with this aspect ratio
+    //!<
+} sAreaT;
+
+
+/**
  * markad configuration structure
  */
 typedef struct sMarkAdConfig {
-    char logFile[20]          = {};      //!< name of the markad log file
+    char logFile[20]               = {};       //!< name of the markad log file
     //!<
-    char logoDirectory[1024]  = {};   //!< logo cache directory (default /var/lib/markad)
+    char logoCacheDirectory[1024]  = {};       //!< logo cache directory (default /var/lib/markad)
     //!<
-    char markFileName[255]    = {};    //!< name of the marks file (default marks)
+    char markFileName[255]         = {};       //!< name of the marks file (default marks)
     //!<
-    char svdrphost[1024]      = {};       //!< ip or name of vdr server (default localhost)
+    char svdrphost[1024]           = {};       //!< ip or name of vdr server (default localhost)
     //!<
-    int svdrpport             = 0;              //!< vdr svdrp port number
+    int svdrpport                  = 0;        //!< vdr svdrp port number
     //!<
-    int logoExtraction        = false; //!< <b>true:</b> extract logo and store to /tmp <br>
+    int logoExtraction             = false;    //!< <b>true:</b> extract logo and store to /tmp <br>
     //!< <b>false:</b> normal markad operation
     //!<
-    int logoWidth             = 0;              //!< width for logo extractions
+    int logoWidth                  = 0;        //!< width for logo extractions
     //!
-    int logoHeight            = 0;             //!< height for logo extraction
+    int logoHeight                 = 0;        //!< height for logo extraction
     //!<
-    int threads               = 0;                //!< number of threads for decoder and encoder
+    int threads                    = 0;        //!< number of threads for decoder and encoder
     //!<
-    bool useVPS               = false;        //!< <b>true:</b> use information from vps file to optimize marks
+    bool useVPS                    = false;    //!< <b>true:</b> use information from vps file to optimize marks
     //!< <b>false:</b> do not use information from vps file to optimize marks
-    bool MarkadCut            = false;     //!< cut video after mark detection
+    bool MarkadCut                 = false;    //!< cut video after mark detection
     //!<
-    bool ac3ReEncode          = false;   //!< re-encode AC3 stream and adapt audio volume
+    bool ac3ReEncode               = false;    //!< re-encode AC3 stream and adapt audio volume
     //!<
-    int autoLogo              = 2;           //!< 0 = off, 1 = deprecated, 2 = on
+    int autoLogo                   = 2;        //!< 0 = off, 1 = deprecated, 2 = on
     //!<
-    const char *cmd           = nullptr;  //!< cmd parameter
+    const char *cmd                = nullptr;  //!< cmd parameter
     //!<
-    const char *recDir        = nullptr;  //!< name of the recording directory
+    const char *recDir             = nullptr;  //!< name of the recording directory
     //!<
-    bool backupMarks          = false;           //!< <b>true:</b> backup marks file before override <br>
+    bool backupMarks               = false;    //!< <b>true:</b> backup marks file before override <br>
     //!< <b>false:</b> do not backup marks file
     //!<
-    bool noPid                = false;                 //!< <b>true:</b> do not write a PID file <br>
+    bool noPid                     = false;    //!< <b>true:</b> do not write a PID file <br>
     //!< <b>false:</b> write a PID file
     //!<
-    bool osd                  = false;                   //!< <b>true:</b> send screen messages to vdr <br>
+    bool osd                       = false;    //!< <b>true:</b> send screen messages to vdr <br>
     //!< <b>false:</b> do not send screen messages to vdr
     //!<
-    int online                = 0;             //!< start markad immediately when called with "before" as cmd
+    int online                     = 0;        //!< start markad immediately when called with "before" as cmd
     //!< if online is 1, markad starts online for live-recordings
     //!< only, online=2 starts markad online for every recording
     //!< live-recordings are identified by having a '@' in the
@@ -205,26 +270,22 @@ typedef struct sMarkAdConfig {
     //!< Setup - Recording of the vdr should be set to 'yes'
     //!< ( default is 1 )
     //!<
-    bool before               = false;                //!< <b>true:</b> markad started by vdr before the recording is complete, only valid together with --online <br>
+    bool before                    = false;    //!< <b>true:</b> markad started by vdr before the recording is complete, only valid together with --online <br>
     //!<
-    bool fullDecode           = false;    //!< <b>true:</b> decode all video frames <br>
+    bool fullDecode                = false;    //!< <b>true:</b> decode all video frames <br>
     //!< <b>false:</b> decode only iFrames
     //!<
-    bool fullEncode           = false;    //!< <b>true:</b> full re-encode all frames, cut on all frame types <br>
+    bool fullEncode                = false;    //!< <b>true:</b> full re-encode all frames, cut on all frame types <br>
     //!< <b>false:</b> copy frames without re-encode, cut on iframe position
     //!<
-    bool bestEncode           = true;     //!< <b>true:</b> encode all video and audio streams <br>
+    bool bestEncode                = true;     //!< <b>true:</b> encode all video and audio streams <br>
     //!< <b>false:</b> encode all video and audio streams
     //!<
-    bool pts                  = false;    //!< <b>true:</b> add pts based timestanp to marks<br>
+    bool pts                       = false;    //!< <b>true:</b> add pts based timestanp to marks<br>
     //!< <b>false:</b> otherwise
-    char hwaccel[16]          = {0};      //!< hardware acceleration, only vaapi supported
+    char hwaccel[16]               = {0};      //!< hardware acceleration methode
     //!<
-    bool perftest             = false;    //!< <b>true:</b>  run decoder performance test before detect marks<br>
-    //!< <b>false:</b> otherwise
-    char hwaccel[16]          = {0};      //!< hardware acceleration, only vaapi supported
-    //!<
-    bool perftest             = false;    //!< <b>true:</b>  run decoder performance test before detect marks<br>
+    bool perftest                  = false;    //!< <b>true:</b>  run decoder performance test before detect marks<br>
     //!< <b>false:</b> otherwise
 } sMarkAdConfig;
 
@@ -246,19 +307,6 @@ typedef struct sOverlapPos {
     int similarEnd         =  0; //!< similar value from the end of the overlap
     //!<
 } sOverlapPos;
-
-
-/**
- * video aspect ratio (DAR or PAR)
- */
-typedef struct sAspectRatio {
-    int num = 0;  //!< video aspectio ratio numerator
-    //!<
-
-    int den = 0;  //!< video aspectio ratio denominator
-    //!<
-
-} sAspectRatio;
 
 
 /**
@@ -293,6 +341,7 @@ typedef struct sMarkAdMarks {
 } sMarkAdMarks;
 
 
+
 #define MARKAD_PIDTYPE_VIDEO_H262 0x10
 #define MARKAD_PIDTYPE_VIDEO_H264 0x11
 #define MARKAD_PIDTYPE_VIDEO_H265 0x12
@@ -314,9 +363,6 @@ typedef struct sMarkAdContext {
     struct sInfo {
         bool isRunningRecording        = false;    //!< <b>true:</b> markad is running during recording <br>
         //!< <b>false:</b>  markad is running after recording
-        //!<
-        bool isStartMarkSaved          = false;  //!< <b>true:</b> dummy start mark is set to end of pre timer and saved
-        //!< <b>false:</b> dummy start mark is not jet set
         //!<
         int tStart                     = -1;       //!< offset of timer start to recording start (pre timer)
         //!<
@@ -357,10 +403,6 @@ typedef struct sMarkAdContext {
             //!<
             bool interlaced             = false;  //!< <b>true:</b>  video is interlaced <br>
             //!< <b>false:</b> video is progressive
-            //!<
-            int frameDarkOpeningCredits = -1;     //!< <b>true:</b>  video has a very long dark opening credits <br>
-            //!< <b>false:</b> video has no very long dark opening credits <br>
-            //!<
         } Info; //!< video stream infos
         //!<
 
@@ -373,8 +415,6 @@ typedef struct sMarkAdContext {
             int height         = 0;       //!< height of logo
             //!<
             int corner         = -1;      //!< corner of logo, -1 for undefined
-            //!<
-            int pixelRatio     = INT_MAX; //!< ratio of pixel in logo area, calculated: 1000 * logo pixel / (width * height)
             //!<
         } Logo;                           //!< logo infos
         //!<
@@ -403,17 +443,6 @@ typedef struct sMarkAdContext {
      * audio structure
      */
     struct sAudio {
-        /**
-         * audio detection options structure
-         */
-        struct sOptions {
-            bool ignoreDolbyDetection; //!< <b>true:</b> ignore audio channel count detection <br>
-            //!< <b>false:</b> detect audio channel count changes
-            //!<
-
-        } Options; //!< audio detection options
-        //!<
-
         /**
          * audio stream info structure
          */

@@ -37,36 +37,42 @@ public:
     /**
      * cCriteria constructor
      */
-    cCriteria();
+    cCriteria(const char *channelNameParam);
     ~cCriteria();
+
+    /**
+     * get channel name
+     * @return channel name
+     */
+    const char *GetChannelName();
 
     /**
      * get status of channel have exact VPS events
      * @param channelName name of the channel
      * @return status
      */
-    bool GoodVPS(const char *channelName);
+    bool GoodVPS();
 
     /**
      * get status of channel uses fade in/out/fade logo
      * @param channelName name of the channel
      * @return status
      */
-    int LogoFadeInOut(const char *channelName);
+    int LogoFadeInOut();
 
     /**
      * get status of channel if logo is in hborder or vborder
      * @param channelName name of the channel
      * @return status
      */
-    bool LogoInBorder(const char *channelName);
+    bool LogoInBorder();
 
     /**
      * get status of channel if infos are in hborder or vborder
      * @param channelName name of the channel
      * @return status
      */
-    bool InfoInBorder(const char *channelName);
+    bool InfoInBorder();
 
 
     /**
@@ -74,21 +80,21 @@ public:
      * @param channelName name of the channel
      * @return status
      */
-    bool LogoColorChange(const char *channelName);
+    bool LogoColorChange();
 
     /**
      * get status of channel has logo rotating
      * @param channelName name of the channel
      * @return status
      */
-    bool LogoRotating(const char *channelName);
+    bool LogoRotating();
 
     /**
      * get status of channel logo rotating
      * @param channelName name of the channel
      * @return status
      */
-    bool LogoTransparent(const char *channelName);
+    bool LogoTransparent();
 
 
     /**
@@ -152,6 +158,8 @@ private:
      */
     static char *StateToText(const int state);
 
+    const char* channelName   = nullptr;           //!< channel name
+    //!<
     int logo                  = CRITERIA_UNKNOWN;  //!< status of logo in broadcast
     //!<
     int hborder               = CRITERIA_UNKNOWN;  //!< status of hborder in broadcast

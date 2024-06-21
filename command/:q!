@@ -151,7 +151,6 @@ cDecoderNEW::~cDecoderNEW() {
 bool cDecoderNEW::ReadNextFile() {
     if (!recordingDir)      return false;
     if (fileNumber >= 1000) return false;  // limit for max ts files per recording
-    if (eof)                return false;
 
     char *filename;
     fileNumber++;
@@ -172,7 +171,6 @@ bool cDecoderNEW::ReadNextFile() {
     }
     else {
         dsyslog("cDecoderNEW:::ReadNextFile(): next file %s does not exists", filename);
-        eof = true;
     }
     FREE(strlen(filename), "filename");
     free(filename);
@@ -496,7 +494,6 @@ int cDecoderNEW::GetVideoRealFrameRate() {
 
 bool cDecoderNEW::ReadPacket() {
     if (!avctx) return false;
-    if (eof)    return false;
 
     av_packet_unref(&avpkt);
     if (av_read_frame(avctx, &avpkt) == 0 ) {
@@ -551,7 +548,6 @@ bool cDecoderNEW::ReadPacket() {
 
 
 bool cDecoderNEW::ReadNextPacket() {
-    if (eof)             return false;
     if (ReadPacket())    return true;     // read from current input ts file successfully
     if (!ReadNextFile()) return false;    // use next file
     return ReadPacket();                  // first read from next ts file
@@ -559,12 +555,14 @@ bool cDecoderNEW::ReadNextPacket() {
 
 
 bool cDecoderNEW::DecodeNextFrame(const bool audioDecode) {
+    bool moreInput = true;
     while (true) {
         if (abortNow) return false;
         switch (decoderSendState) {
         case 0:  // we had successful send last packet and we can try to send next packet
             // send next packets
-            if(ReadNextPacket()) {        // got a packet
+            if(moreInput) {
+                && ReadNextPacket()) {        // got a packet
                 if (!fullDecode  && !IsVideoIPacket()) continue;   // decode only iFrames, no audio decode without full decode
                 if (!audioDecode && !IsVideoPacket())  continue;   // decode only video frames
                 decoderSendState = SendPacketToDecoder(false);     // flash flag
@@ -574,7 +572,9 @@ bool cDecoderNEW::DecodeNextFrame(const bool audioDecode) {
             }
             else {
                 dsyslog("cDecoderNEW::DecodeNextFrame(): packet (%d): end of all ts files reached", packetNumber);
-                decoderSendState = SendPacketToDecoder(true);  // flush flag
+                decoderSendState = SendPacketToDecoder(true);  // flush queue
+                moreInput = false;
+            }
             }
             break;
         case -EAGAIN: // full queue at last send, send now again without read from input
@@ -582,10 +582,6 @@ bool cDecoderNEW::DecodeNextFrame(const bool audioDecode) {
 #ifdef DEBUG_DECODER
             dsyslog("cDecoderNEW::DecodeNextFrame(): packet (%5d): repeat send to decoder", packetNumber);
 #endif
-            break;
-        case AVERROR_EOF:
-            dsyslog("cDecoderNEW::DecodeNextFrame(): packet (%5d): end of file (AVERROR_EOF)", packetNumber);
-            return false;
             break;
         default:
             esyslog("cDecoderNEW::DecodeNextFrame(): packet (%5d): unexpected state of decoder send queue rc = %d: %s", packetNumber, decoderSendState, av_err2str(decoderSendState));
@@ -607,10 +603,7 @@ bool cDecoderNEW::DecodeNextFrame(const bool audioDecode) {
 #endif
             break;
         case -EIO:        // end of file
-            dsyslog("cDecoderNEW::DecodeNextFrame(): frame  (%5d): I/O error (EIO)", frameNumber);
-            break;
-        case AVERROR_EOF:        // end of file
-            dsyslog("cDecoderNEW::DecodeNextFrame(): frame  (%5d): end of file (AVERROR_EOF)", frameNumber);
+            dsyslog("cDecoderNEW::DecodeNextFrame(): frame  (%5d): end of file (EIO)", frameNumber);
             break;
         default:
             esyslog("cDecoderNEW::DecodeNextFrame(): frame  (%5d): unexpected return code from decoder rc = %d: %s", frameNumber, rc, av_err2str(rc));
@@ -759,11 +752,8 @@ int cDecoderNEW::SendPacketToDecoder(const bool flush) {
         case AVERROR_INVALIDDATA:
             dsyslog("cDecoderNEW::SendPacketToDecoder(): packet (%d), stream %d: avcodec_send_packet error AVERROR_INVALIDDATA", packetNumber, avpkt.stream_index);
             break;
-        case -EIO:
-            dsyslog("cDecoderWER::SendPacketToDecoder(): packet (%5d): I/O error (EIO)", frameNumber);
-            break;
-        case AVERROR_EOF:
-            dsyslog("cDecoderWER::SendPacketToDecoder(): packet (%5d): end of file (AVERROR_EOF)", frameNumber);
+        case -EIO:        // end of file
+            dsyslog("cDecoderWER::SendPacketToDecoder(): packet (%5d): end of file (EIO)", frameNumber);
             break;
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
         case AAC_AC3_PARSE_ERROR_SYNC:
@@ -847,10 +837,7 @@ int cDecoderNEW::ReceiveFrameFromDecoder() {
             esyslog("cDecoderNEW::ReceiveFrameFromDecoder(): frame (%d): avcodec_receive_frame error EINVAL", frameNumber);
             break;
         case -EIO:        // end of file
-            dsyslog("cDecoderNEW::ReceiveFrameFromDecoder(): frame (%5d): I/O error (EIO)", frameNumber);
-            break;
-        case AVERROR_EOF:        // end of file
-            dsyslog("cDecoderNEW::ReceiveFrameFromDecoder(): frame (%5d): end of file (AVERROR_EOF)", frameNumber);
+            dsyslog("cDecoderNEW::ReceiveFrameFromDecoder(): frame (%5d): end of file (EIO)", frameNumber);
             break;
         default:
             esyslog("cDecoderNEW::ReceiveFrameFromDecoder(): frame (%d): avcodec_receive_frame decode failed with return code %d", frameNumber, rc);
@@ -868,14 +855,7 @@ int cDecoderNEW::ReceiveFrameFromDecoder() {
 
         rc = av_hwframe_transfer_data(&swFrame, &avFrame, 0);
         if (rc < 0 ) {
-            switch (rc) {
-            case -EIO:        // end of file
-                dsyslog("cDecoderNEW::ReceiveFrameFromDecoder(): frame  (%5d): I/O error (EIO)", frameNumber);
-                break;
-            default:
-                esyslog("cDecoderNEW::ReceiveFrameFromDecoder(): frame (%d): av_hwframe_transfer_data rc = %d: %s", frameNumber, rc, av_err2str(rc));
-                break;
-            }
+            dsyslog("cDecoderNEW::ReceiveFrameFromDecoder(): frame (%d): error transferring the data to system memory: %s", frameNumber, av_err2str(rc));
             av_frame_unref(&swFrame);
             av_frame_unref(&avFrame);
             return rc;

@@ -143,6 +143,12 @@ public:
     int GetVideoWidth();
 
     /**
+     * get video frame rate
+     * @return video frame rate
+     */
+    int GetVideoFrameRate();
+
+    /**
      * get average video frame rate taken from avctx->streams[i]->avg_frame_rate
      * @return average video frame rate (avg_frame_rate)
      */
@@ -173,11 +179,12 @@ public:
     bool ReadNextPacket();
 
     /**
-    * get next picture from input stream
+    * get next packet(s) from input file, send to decoder and read next frame from decoder
     * read next packet from input stream and decode packet
+    * @param  audioDecode true if decode audio packets, false otherwise
     * @return true if we have a valid picture
     */
-    bool DecodeNextFrame();
+    bool DecodeNextFrame(const bool audioDecode);
 
     /**
     * get current picture from decoded frame
@@ -210,7 +217,7 @@ public:
      * send packet to decoder
      * @return return code from avcodec_send_packet
      */
-    int SendPacketToDecoder();
+    int SendPacketToDecoder(const bool flush);
 
     /**
      * receive frame from decoder
@@ -231,11 +238,22 @@ public:
     bool IsVideoPacket();
 
     /**
-     * check if current packet is a video i-frame
+     * check if current packet is a video i-frame packet
      * @return true if current packet is a video i-frame, false otherwise
      */
     bool IsVideoIPacket();
 
+    /**
+     * check if current frame is a video frame
+     * @return true if current frame is a video frame, false otherwise
+     */
+    bool IsVideoFrame();
+
+    /**
+     * check if current frame is a video i-frame
+     * @return true if current frame is a video i-frame, false otherwise
+     */
+    bool IsVideoIFrame();
 
     /**
      * check if stream is AC3
@@ -280,12 +298,12 @@ public:
     /** get current read video packet number
      * @return current read packet number
      */
-//    int GetPacketNumber() const;
+//    int GetVideoPacketNumber() const;
 
     /** get current decoded video frame number
      * @return current decoded frame number
      */
-    int GetFrameNumber() const;
+    int GetVideoFrameNumber() const;
 
     /** get current number of processed i-frames
      * @return current number of processed i-frames
@@ -309,7 +327,7 @@ public:
     /**
      * @return  aspect ratio of current frame
      */
-    sAspectRatio *GetAspectRatio();
+    sAspectRatio *GetFrameAspectRatio();
 
 
 private:
@@ -352,6 +370,8 @@ private:
     //!<
     int frameNumber                    = -1;                      //!< current decoded video frame number
     //!<
+    bool eof                           = false;                   //!< true if end of all ts files reached
+    //!<
     std::deque<int> frameNumberMap;                               //!< ring buffer to map frameNumer to packetNumber without full decoding
     //!<
     int decoderSendState               = 0;                       //!< last return code of avcodec_send_packet()
@@ -370,9 +390,9 @@ private:
     //!<
     int firstMP2Index                  = -1;                      //!< stream index for first MP2 audio stream
     //!<
-    int interlaced_frame = -1;             //!< -1 undefined, 0 the content of the picture is progressive, 1 the content of the picture is interlaced
+    int interlaced_frame               = -1;                      //!< -1 undefined, 0 the content of the picture is progressive, 1 the content of the picture is interlaced
     //!<
-    int videoRealFrameRate = 0;            //!< video stream real frame rate
+    int frameRate                      = 0;                       //!< video stream real frame rate
     //!<
     int64_t dtsBefore = -1;                //!< DTS of frame before
     //!<

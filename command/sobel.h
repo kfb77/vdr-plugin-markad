@@ -11,6 +11,7 @@
 #include <cstring>
 
 #include "global.h"
+#include "debug.h"
 
 /**
  * class to do sobel transformation
@@ -20,7 +21,7 @@ public:
     /**
      * constructor of sobel transformation
      */
-    cSobel(const int videoWidthParam, const int videoHeightParam, const int logoWidthParam, const int logoHeightParam, const int boundaryParam);
+    cSobel(const int videoWidthParam, const int videoHeightParam, const int boundaryParam);
     ~cSobel();
 
     /**
@@ -35,9 +36,6 @@ public:
         rPixel       = origin.rPixel;
         iPixel       = origin.iPixel;
         intensity    = origin.intensity;
-        sobelPicture = nullptr;
-        sobelResult  = nullptr;
-        sobelInverse = nullptr;
     }
 
     /**
@@ -52,11 +50,29 @@ public:
         rPixel       = origin->rPixel;
         iPixel       = origin->iPixel;
         intensity    = origin->intensity;
-        sobelPicture = nullptr;
-        sobelResult  = nullptr;
-        sobelInverse = nullptr;
         return *this;
     }
+
+    bool AllocAreaBuffer(sAreaT *area);
+    bool FreeAreaBuffer(sAreaT *area);
+
+    /**
+    * get max logo size for video resolution
+    * @return log size
+    */
+    sLogoSize GetMaxLogoSize() const;
+
+    /**
+    * sobel transformation of a all planes with a logo plane from input picture
+    * @param picture    input picture
+    * @param area       logo mask and result of transformation and machtes
+    * @return number of planes processed
+    */
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+    int SobelPicture(const char *recDir, sVideoPicture *picture, sAreaT *area);
+#else
+    int SobelPicture(sVideoPicture *picture, sAreaT *area);
+#endif
 
     /**
     * sobel transformation of a single plane from input picture
@@ -66,25 +82,18 @@ public:
     * @param plane      number of plane
     * @return true if successful, false otherwise
     */
-    bool SobelPlane(sVideoPicture *picture, uchar **logo, const int corner, const int plane);
+    bool SobelPlane(sVideoPicture *picture, sAreaT *area, const int plane);
 
     /**
-    * get size of logo
-    * @return logo width and heigth
-    */
-    sLogoSize GetLogoSize() const;
-
-    /**
-    * set coordinates from logo area in picture
-    * @return true if successful, false otherwise
-    */
-    bool SetCoordinates(const int corner, const int plane, int *xstart, int *xend, int *ystart, int *yend) const;
-
-    /**
-    * get all planes of result from sobels transformation
-    * @return pointer to result plane
-    */
-    uchar **GetSobelPlanes();
+     * calculate coordinates of logo position (values for array index, from 0 to (Video.Info.width - 1) or (Video.Info.height)
+     * @param[out] xstart x position of logo start
+     * @param[out] xend   x position of logo end
+     * @param[out] ystart y position of logo start
+     * @param[out] yend   y position of logo end
+     * @param[in]  plane  number of plane
+     * @return true if successful, false otherwise
+     */
+    bool SetCoordinates(sAreaT *area, const int plane, int *xstart, int *xend, int *ystart, int *yend) const;
 
     int GX[3][3]         = {0};      //!< GX Sobel mask
     //!<
@@ -94,8 +103,6 @@ public:
     //!<
     int videoHeight      = 0;        //!< videoHeight
     //!<
-    sLogoSize logoSize;              //!< logo size in pixel
-    //!<
     int boundary         = 0;        //!< pixel to ignore in edge
     //!<
     int rPixel           = 0;        //!< pixel match result
@@ -104,19 +111,7 @@ public:
     //!<
     int intensity        = 0;        //!< brightness of plane 0 picture
     //!<
-    uchar **sobelPicture = nullptr;  //!< monochrome picture from edge after sobel transformation
-    //!<
-    uchar **sobelResult  = nullptr;  //!< monochrome picture after logo mask applied (sobel + mask)
-    //!<
-    uchar **sobelInverse = nullptr;  //!< monochrome picture of inverse result of sobel + mask
-    //!<
 
 private:
-    /**
-    * get max logo size for video resolution
-    * @return log size
-    */
-    sLogoSize GetMaxLogoSize() const;
-
 };
 #endif

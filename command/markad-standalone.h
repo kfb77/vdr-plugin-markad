@@ -13,14 +13,18 @@
 #include "debug.h"
 #include "tools.h"
 #include "global.h"
-#include "video.h"
-#include "audio.h"
 #include "marks.h"
 #include "encoder.h"
-#include "evaluate.h"
 #include "osd.h"
 #include "criteria.h"
 #include "vps.h"
+#include "version.h"
+#include "logo.h"
+#include "index.h"
+#include "overlap.h"
+#include "decoderNEW.h"
+#include "evaluate.h"
+#include "video.h"
 
 /* forward declarations */
 class cOSDMessage;
@@ -42,9 +46,8 @@ public:
      * markad main constructor
      * @param directoryParam recording directory
      * @param config         markad context configuration
-     * @param recordingIndex recording index
      */
-    cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *config, cIndex *recordingIndex);
+    cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *config);
     ~cMarkAdStandalone();
 
     /**
@@ -59,31 +62,19 @@ public:
         osd                       = nullptr;
         evaluateLogoStopStartPair = nullptr;
         duplicate                 = origin.duplicate,
-        MaxFiles                  = origin.MaxFiles;
         framecnt                  = origin.framecnt;
         gotendmark                = origin.gotendmark;
         waittime                  = origin.waittime;
         iwaittime                 = origin.iwaittime;
         bLiveRecording            = origin.bLiveRecording;
-        chkSTART                  = origin.chkSTART;
-        chkSTOP                   = origin.chkSTOP;
         inBroadCast               = origin.inBroadCast;
         indexFile                 = origin.indexFile;
         ptr_cDecoderLogoChange    = origin.ptr_cDecoderLogoChange;
         iStopinBroadCast          = origin.iStopinBroadCast;
-        endMarkPos                = origin.endMarkPos;
-        iStopA                    = origin.iStopA;
-        iStartA                   = origin.iStartA;
-        iStop                     = origin.iStop;
-        iStart                    = origin.iStart;
         length                    = origin.length;
         startTime                 = origin.startTime;
         macontext                 = origin.macontext;
         vps                       = nullptr;
-        recordingIndexMark        = origin.recordingIndexMark;
-        iFrameBefore              = origin.iFrameBefore;
-        iFrameCurrent             = origin.iFrameCurrent;
-        frameCurrent              = origin.frameCurrent;
         checkAudio                = origin.checkAudio;
         sleepcnt = origin.sleepcnt;
     };
@@ -99,28 +90,16 @@ public:
         audio                     = nullptr;
         osd                       = nullptr;
         duplicate                 = origin->duplicate,
-        MaxFiles                  = origin->MaxFiles;
         framecnt                  = origin->framecnt;
         gotendmark                = origin->gotendmark;
         waittime                  = origin->waittime;
         iwaittime                 = origin->iwaittime;
         bLiveRecording            = origin->bLiveRecording;
-        chkSTART                  = origin->chkSTART;
-        chkSTOP                   = origin->chkSTOP;
         inBroadCast               = origin->inBroadCast;
         indexFile                 = origin->indexFile;
         sleepcnt                  = origin->sleepcnt;
         macontext                 = origin->macontext;
-        recordingIndexMark        = origin->recordingIndexMark;
-        iFrameBefore              = origin->iFrameBefore;
-        iFrameCurrent             = origin->iFrameCurrent;
-        frameCurrent              = origin->frameCurrent;
         length                    = origin->length;
-        iStart                    = origin->iStart;
-        iStop                     = origin->iStop;
-        iStartA                   = origin->iStartA;
-        iStopA                    = origin->iStopA;
-        endMarkPos                = origin->endMarkPos;
         ptr_cDecoderLogoChange    = origin->ptr_cDecoderLogoChange;
         evaluateLogoStopStartPair = origin->evaluateLogoStopStartPair;
         vps                       = origin->vps;
@@ -133,7 +112,7 @@ public:
     /**
      * process all ts files and detect marks
      */
-    void ProcessFiles();
+    void Recording();
 
     /**
      * process second pass, detect overlaps
@@ -284,9 +263,9 @@ private:
 
     /**
      * calculate position to check for start and end mark
-     * @param startframe frame position of pre-timer
+     * @param startframe frame position of pre-timer or VPS start event
      */
-    void CalculateCheckPositions(int startframe);
+    void CalculateCheckPositions(int startFrame);
 
     /**
      * check if timer is VPS controlled
@@ -329,11 +308,6 @@ private:
     void AddMarkVPS(const int offset, const int type, const bool isPause);
 
     /**
-     * reset frame counter, video and audio status
-     */
-    void Reset();
-
-    /**
      * check if the index is more advanced than our framecounter <br>
      * If not we wait. If we wait too much, we discard this check.
      */
@@ -357,7 +331,7 @@ private:
     /**
      * cleanup marks that make no sense
      */
-    void CheckMarks(const int endMarkPos);
+    void CheckMarks();
 
     /**
      * write all curent detected mark to log file
@@ -378,10 +352,9 @@ private:
 
     /**
      * process next frame
-     * @param ptr_cDecoder pointer to decoder class
      * @return true if successful, false otherwise
      */
-    bool ProcessFrame(cDecoder *ptr_cDecoder);
+    bool ProcessFrame();
 
     /**
      * create markad.pid file
@@ -393,86 +366,77 @@ private:
      */
     void RemovePidfile();
 
-
-    cMarkAdVideo *video = nullptr;                                    //!< detect video marks for current frame
+    cIndex *index                    = nullptr; //!< pointer to index object
+    //!
+    cDecoderNEW *decoder             = nullptr;  //!< pointer to decoder
+    //!
+    cCriteria *criteria              = nullptr;  //!< status of possible mark types of the broadcast
     //!<
-    cMarkAdAudio *audio = nullptr;                                    //!< detect audio marks for current frame
+    cVideo *video                    = nullptr;  //!< detect video marks for current frame
     //!<
-    cOSDMessage *osd = nullptr;                                       //!< OSD message text
+    cAudio *audio                    = nullptr;  //!< detect audio marks for current frame
     //!<
-    sMarkAdContext macontext = {};                                 //!< markad context
+    cOSDMessage *osd                 = nullptr;  //!< OSD message text
     //!<
-    cCriteria criteria;                                           //!< status of possible mark types of the broadcast
+    sMarkAdContext macontext         = {};       //!< markad context
     //!<
-    cVPS *vps = nullptr;                                              //!< VPS events of the broadast
+    cVPS *vps                        = nullptr;  //!< VPS events of the broadast
     //!<
-    cIndex *recordingIndexMark = nullptr;                             //!< pointer to recording index class
+    const char *directory            = nullptr;  //!< recording directory
     //!<
-    const char *directory;                                         //!< recording directory
+    char title[80]                   = {0};      //!< recoring title from info file
     //!<
-    char title[80];                                                //!< recoring title from info file
+    char *ptitle                     = nullptr;  //!< title of OSD message
     //!<
-    char *ptitle = nullptr;                                           //!< title of OSD message
+    bool duplicate                   = false;    //!< true if another markad is running on the same recording
     //!<
-    bool duplicate = false;                                        //!< true if another markad is running on the same recording
+    int framecnt                     = 0;        //!< processed frames of 1nd pass (detect marks)
     //!<
-    int MaxFiles = 65535;                                          //!< maximum number of ts files
+    bool gotendmark                  = false;    //!< true if a valid end mark was found, false otherwise
     //!<
-    int iFrameBefore = -1;                                         //!< i-frame number before last processed i-frame number
+    int waittime                     = 0;        //!< time waited for more frames if markad runs during recording
     //!<
-    int iFrameCurrent = -1;                                        //!< last processed i-frame number
+    int iwaittime                    = 0;        //!< time waited for continuation of interrupted recording
     //!<
-    int frameCurrent = -1;                                         //!< current processed frame number
+    bool bLiveRecording              = false;    //!< true if markad was started during recording, false otherwise
     //!<
-    int framecnt = 0;                                             //!< processed frames of 1nd pass (detect marks)
+    time_t startTime                 = 0;        //!< start time of the broadcast
     //!<
-    bool gotendmark = false;                                       //!< true if a valid end mark was found, false otherwise
+    int length                       = 0;        //!< length of broadcast in seconds
     //!<
-    int waittime = 0;                                              //!< time waited for more frames if markad runs during recording
+    int startA                       = 0;        //!< assumed start frame position
     //!<
-    int iwaittime = 0;                                             //!< time waited for continuation of interrupted recording
+    int stopA                        = 0;        //!< assumed end frame position
     //!<
-    bool bLiveRecording = false;                                   //!< true if markad was started during recording, false otherwise
+    int frameCheckStart              = 0;        //!< frame number to check for start mark
     //!<
-    time_t startTime = 0;                                          //!< start time of the broadcast
+    int frameCheckStop               = 0;        //!< frame number to check for end mark
     //!<
-    int length = 0;                                                //!< length of broadcast in seconds
+    bool doneCheckStart              = false;    //!< true, if CheckStart() was called
     //!<
-    int iStart = 0;                                                //!< pretimer (recording start before bradcast start) in frames (negative if unset)
+    bool doneCheckStop               = false;    //!< true, if CheckStop() was called
     //!<
-    int iStop = 0;                                                 //!< end frame position (negative if unset)
+    bool iStopinBroadCast            = false;    //!< true if we are in broadcast at iStop position, false otherwise
     //!<
-    int iStartA = 0;                                               //!< assumed start frame position
+    bool inBroadCast                 = false;    //!< true if are we in a broadcast, false if we are in advertising
     //!<
-    int iStopA = 0;                                                //!< assumed end frame position (negative if unset)
+    char *indexFile                  = nullptr;  //!< file name of the VDR index file
     //!<
-    int endMarkPos = 0;                                            //!< from checkStop calculated end position of the recording
+    int sleepcnt                     = 0;        //!< count of sleeps to wait for new frames when decode during recording
     //!<
-    bool iStopinBroadCast = false;                                 //!< true if we are in broadcast at iStop position, false otherwise
+    cMarks marks                     = {};       //!< objects with all strong marks
     //!<
-    int chkSTART = 0;                                              //!< frame number to check for start mark
+    cMarks sceneMarks                = {};       //!< objects with all scene change marks
     //!<
-    int chkSTOP = 0;                                               //!< frame number to check for end mark
+    cMarks silenceMarks              = {};       //!< objects with all mute scene marks
     //!<
-    bool inBroadCast = false;                                      //!< true if are we in a broadcast, false if we are in advertising
+    cMarks blackMarks                = {};       //!< objects with all black screen marks
     //!<
-    char *indexFile = nullptr;                                        //!< file name of the VDR index file
+    cDecoder *ptr_cDecoderLogoChange = nullptr;  //!< pointer to class cDecoder, used as second instance to detect logo changes
     //!<
-    int sleepcnt = 0;                                              //!< count of sleeps to wait for new frames when decode during recording
-    //!<
-    cMarks marks;                                                  //!< objects with all strong marks
-    //!<
-    cMarks sceneMarks;                                             //!< objects with all scene change marks
-    //!<
-    cMarks silenceMarks;                                           //!< objects with all mute scene marks
-    //!<
-    cMarks blackMarks;                                             //!< objects with all black screen marks
-    //!<
-    cDecoder *ptr_cDecoderLogoChange = nullptr;                       //!< pointer to class cDecoder, used as second instance to detect logo changes
+    bool checkAudio                  = false;    //!< set to true after each i-Frame, reset to false after audio channel check
     //!<
     cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = nullptr;  //!< pointer to class cEvaluateLogoStopStartPair
-    //!<
-    bool checkAudio = false;                                       //!< set to true after each i-Frame, reset to false after audio channel check
     //!<
 };
 #endif

@@ -5,7 +5,8 @@
  *
  */
 
-#include "global.h"
+#include "logo.h"   // include global.h via logo.h first to define POSIX
+
 #ifdef POSIX
 #include <sys/stat.h>
 #include <unistd.h>
@@ -13,10 +14,7 @@
 #include "win32/mingw64.h"
 #endif
 
-#include "logo.h"
-#include "index.h"
-#include "sobel.h"
-#include "debug.h"
+#include <sys/time.h>
 
 // based on this idee to find the logo in a recording:
 // 1. take 1000 iframes
@@ -48,20 +46,24 @@ cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam
     decoder = new cDecoderNEW(recDir, threads, false, hwaccel, nullptr);    // recDir, threads, fullDecode, vaapi, index
     ALLOC(sizeof(*decoder), "decoder");
 
-    criteria = new cCriteria();
+    criteria = new cCriteria(channelName);
     ALLOC(sizeof(*criteria), "criteria");
 
     // open first file to init decoder
     if (decoder->ReadNextFile()) {
         // create object for sobel transformation
-        sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0, 0, 5);  // log size unknown, boundary 5
+        sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 5);  // lboundary 5
         ALLOC(sizeof(*sobel), "sobel");
-        logoSize = sobel->GetLogoSize();                                                   // max logo size of this video resolution
 
-        hborder = new cMarkAdBlackBordersHoriz(channelName, decoder->GetVideoRealFrameRate(), criteria);
-        ALLOC(sizeof(*hborder), "hborder");
+        // allocate area result buffer
+        logoSize = sobel->GetMaxLogoSize();                                          // max logo size of this video resolutio
+        area.logoSize = logoSize;
+        sobel->AllocAreaBuffer(&area);                                             // allocate memory for result buffer
 
-        vborder = new cMarkAdBlackBordersVert(channelName, decoder->GetVideoRealFrameRate(), criteria);
+        hBorder = new cHorizBorderDetect(decoder, criteria);
+        ALLOC(sizeof(*hBorder), "hBorder");
+
+        vborder = new cVertBorderDetect(decoder, criteria);
         ALLOC(sizeof(*vborder), "vborder");
     }
 }
@@ -93,11 +95,12 @@ cExtractLogo::~cExtractLogo() {
     FREE(sizeof(*criteria), "criteria");
     delete criteria;
 
+    sobel->FreeAreaBuffer(&area);  // free memory for result buffer
     FREE(sizeof(*sobel), "sobel");
     delete sobel;
 
-    FREE(sizeof(*hborder), "hborder");
-    delete hborder;
+    FREE(sizeof(*hBorder), "hBorder");
+    delete hBorder;
 
     FREE(sizeof(*vborder), "vborder");
     delete vborder;
@@ -1203,7 +1206,7 @@ int cExtractLogo::Compare(sLogoInfo *actLogoInfo, const int logoHeight, const in
     int hits = 0;
 
     for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
-        if (criteria->LogoRotating(channelName)) {
+        if (criteria->LogoRotating()) {
             if (CompareLogoPairRotating(&(*actLogo), actLogoInfo, logoHeight, logoWidth, corner)) {
                 hits++;
                 actLogo->hits++;
@@ -1393,7 +1396,7 @@ int cExtractLogo::CountFrames() {
 bool cExtractLogo::WaitForFrames(cDecoderNEW *decoder, const int minFrame = 0) {
     if (!decoder) return false;
 
-    if ((recordingFrameCount > (decoder->GetFrameNumber() + 200)) && (recordingFrameCount > minFrame)) return true; // we have already found enough frames
+    if ((recordingFrameCount > (decoder->GetVideoFrameNumber() + 200)) && (recordingFrameCount > minFrame)) return true; // we have already found enough frames
 
 #define WAITTIME 60
     char *indexFile = nullptr;
@@ -1412,8 +1415,8 @@ bool cExtractLogo::WaitForFrames(cDecoderNEW *decoder, const int minFrame = 0) {
             break;
         }
         recordingFrameCount = indexStatus.st_size / 8;
-        dsyslog("cExtractLogo::WaitForFrames(): frames recorded (%d) read frames (%d) minFrame (%d)", recordingFrameCount, decoder->GetFrameNumber(), minFrame);
-        if ((recordingFrameCount > (decoder->GetFrameNumber() + 200)) && (recordingFrameCount > minFrame)) {
+        dsyslog("cExtractLogo::WaitForFrames(): frames recorded (%d) read frames (%d) minFrame (%d)", recordingFrameCount, decoder->GetVideoFrameNumber(), minFrame);
+        if ((recordingFrameCount > (decoder->GetVideoFrameNumber() + 200)) && (recordingFrameCount > minFrame)) {
             ret = true;  // recording has enough frames
             break;
         }
@@ -1424,7 +1427,7 @@ bool cExtractLogo::WaitForFrames(cDecoderNEW *decoder, const int minFrame = 0) {
         strftime(indexTime, sizeof(indexTime), "%d-%m-%Y %H:%M:%S", localtime(&indexStatus.st_mtime));
         dsyslog("cExtractLogo::WaitForFrames(): index file size %" PRId64 " bytes, system time %s index time %s, wait %ds", indexStatus.st_size, systemTime, indexTime, WAITTIME);
         if ((difftime(now, indexStatus.st_mtime)) >= 2 * WAITTIME) {
-            dsyslog("cExtractLogo::WaitForFrames(): index not growing at frame (%d), old or interrupted recording", decoder->GetFrameNumber());
+            dsyslog("cExtractLogo::WaitForFrames(): index not growing at frame (%d), old or interrupted recording", decoder->GetVideoFrameNumber());
             ret = false;
             break;
         }
@@ -1494,24 +1497,24 @@ int cExtractLogo::AudioInBroadcast() {
     // AudioState 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
     if (decoder->GetAC3ChannelCount() > 2) {
         if (audioState == 1) {
-            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 6 channel at frame (%d)", decoder->GetFrameNumber());
+            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 6 channel at frame (%d)", decoder->GetVideoFrameNumber());
             audioState = 2;
             return audioState;
         }
         if (audioState == 3) {
-            dsyslog("cExtractLogo::AudioInBroadcast(): 6 channel start at frame (%d)", decoder->GetFrameNumber());
+            dsyslog("cExtractLogo::AudioInBroadcast(): 6 channel start at frame (%d)", decoder->GetVideoFrameNumber());
             audioState = 2;
             return audioState;
         }
     }
     else {
         if (audioState == 0) {
-            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 2 channel at frame (%d)", decoder->GetFrameNumber());
+            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 2 channel at frame (%d)", decoder->GetVideoFrameNumber());
             audioState = 1;
             return audioState;
         }
         if (audioState == 2) {
-            dsyslog("cExtractLogo::AudioInBroadcast(): 2 channel start at frame (%d)", decoder->GetFrameNumber());
+            dsyslog("cExtractLogo::AudioInBroadcast(): 2 channel start at frame (%d)", decoder->GetVideoFrameNumber());
             audioState = 3;
             return audioState;
         }
@@ -1522,7 +1525,7 @@ int cExtractLogo::AudioInBroadcast() {
 
 // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
 int cExtractLogo::SearchLogo(int startFrame, const bool force) {
-    dsyslog("----------------------------------------------------------------------------");
+    LogSeparator(true);
     dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d, force = %d", startFrame, logoAspectRatio.num, logoAspectRatio.den, force);
     if (startFrame < 0) return LOGO_ERROR;
 
@@ -1551,7 +1554,7 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
     if (lastFrame > startFrame) startFrame = lastFrame;
 
     // seek to start position
-    if (decoder->GetFrameNumber() < startFrame) {
+    if (decoder->GetVideoFrameNumber() < startFrame) {
         dsyslog("cExtractLogo::SearchLogo(): seek to frame %d", startFrame);
         if (!WaitForFrames(decoder, startFrame)) {
             dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() for startFrame %d failed", startFrame);
@@ -1565,27 +1568,27 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
 
     // if no aspect ratio requestet, use current from video
     if ((logoAspectRatio.num == 0) || (logoAspectRatio.den == 0)) {
-        sAspectRatio *aspectRatio = decoder->GetAspectRatio();
+        sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
         if (aspectRatio) {
             logoAspectRatio.num = aspectRatio->num;
             logoAspectRatio.den = aspectRatio->den;
             dsyslog("cExtractLogo::SearchLogo(): no aspect ratio requested, set to aspect ratio of current video position %d:%d", logoAspectRatio.num, logoAspectRatio.den);
         }
         else {
-            esyslog("cExtractLogo::SearchLogo(): frame (%d): no valid aspect ratio in current frame", decoder->GetFrameNumber());
+            esyslog("cExtractLogo::SearchLogo(): frame (%d): no valid aspect ratio in current frame", decoder->GetVideoFrameNumber());
             return LOGO_ERROR;
         }
     }
 
 
-    while (decoder->DecodeNextFrame()) {
+    while (decoder->DecodeNextFrame(false)) {  // no audio decode
         if (abortNow) return LOGO_ERROR;
 
         if (!WaitForFrames(decoder)) {
-            dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at frame (%d), got %d valid frames of %d frames read", decoder->GetFrameNumber(), iFrameCountValid, iFrameCountAll);
+            dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at frame (%d), got %d valid frames of %d frames read", decoder->GetVideoFrameNumber(), iFrameCountValid, iFrameCountAll);
             break;
         }
-        frameNumber = decoder->GetFrameNumber();
+        frameNumber = decoder->GetVideoFrameNumber();
 
         iFrameCountAll++;
 
@@ -1594,7 +1597,7 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
         }
 
         // ignore frames with different aspect ration
-        sAspectRatio *aspectRatio = decoder->GetAspectRatio();
+        sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
         if ((logoAspectRatio.num != aspectRatio->num) || (logoAspectRatio.den != aspectRatio->den)) {
             continue;
         }
@@ -1602,15 +1605,15 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
         // get next video picture
         sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) {
-            dsyslog("cExtractLogo::SearchLogo(): frame (%d): failed to get video data", decoder->GetFrameNumber());
+            dsyslog("cExtractLogo::SearchLogo(): frame (%d): failed to get video data", decoder->GetVideoFrameNumber());
             continue;
         }
 
-        if (!criteria->LogoInBorder(channelName)) {
+        if (!criteria->LogoInBorder()) {
             int hBorderIFrame = -1;
             int vBorderIFrame = -1;
-            int isHBorder = hborder->Process(picture, &hBorderIFrame);
-            int isVBorder = vborder->Process(picture, &vBorderIFrame);
+            int isHBorder = hBorder->Process(&hBorderIFrame);
+            int isVBorder = vborder->Process(&vBorderIFrame);
             if (isHBorder != HBORDER_ERROR) {
                 if (hBorderIFrame >= 0) {  // we had a change
                     if (isHBorder == HBORDER_VISIBLE) {
@@ -1642,7 +1645,8 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
 
         // do sobbel transformation of plane 0 of all corners
         for (int corner = 0; corner < CORNERS; corner++) {
-            if (!sobel->SobelPlane(picture, nullptr, corner, 0)) continue; // call with no logo mask, plane 0
+            area.logoCorner = corner;
+            if (!sobel->SobelPlane(picture, &area, 0)) continue; // call with no logo mask, plane 0
 
 #if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 0
             if (corner == DEBUG_LOGO_CORNER) {
@@ -1663,12 +1667,11 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
             actLogoInfo.frameNumber = frameNumber;
 
             // alloc memory and copy planes
-            uchar **sobelPicture = sobel->GetSobelPlanes();
             int logoPixel        = logoSize.height * logoSize.width;
             actLogoInfo.sobel    = new uchar*[PLANES];
             for (int plane = 0; plane < PLANES; plane++) {
                 actLogoInfo.sobel[plane] = new uchar[logoPixel];
-                memcpy(actLogoInfo.sobel[plane], sobelPicture[plane], sizeof(uchar) * logoPixel);
+                memcpy(actLogoInfo.sobel[plane], area.sobel[plane], sizeof(uchar) * logoPixel);
             }
             ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * logoPixel, "actLogoInfo.sobel");
 
@@ -1695,7 +1698,7 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
             }
         }
         if (iFrameCountValid > 1000) {
-            int firstBorder = hborder->GetFirstBorderFrame();
+            int firstBorder = hBorder->GetFirstBorderFrame();
             if (firstBorder > 0) {
                 dsyslog("cExtractLogo::SearchLogo(): detect unprocessed horizontal border from frame (%d) to frame (%d)", firstBorder, frameNumber);
                 iFrameCountValid-=DeleteFrames(firstBorder, frameNumber);
@@ -1713,7 +1716,7 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
 
     bool doSearch = false;
     if (iFrameCountAll > MAXREADFRAMES) {
-        dsyslog("cExtractLogo::SearchLogo(): %d valid frames of %d frames read, got enough iFrames at frame (%d), start analyze", iFrameCountValid, iFrameCountAll, decoder->GetFrameNumber());
+        dsyslog("cExtractLogo::SearchLogo(): %d valid frames of %d frames read, got enough iFrames at frame (%d), start analyze", iFrameCountValid, iFrameCountAll, decoder->GetVideoFrameNumber());
         doSearch = true;
     }
     else if ((iFrameCountAll < MAXREADFRAMES) && ((iFrameCountAll > MAXREADFRAMES / 2) || (iFrameCountValid > 390))) {
@@ -1777,7 +1780,7 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
         // try good matches, use max 3 best corners
         int done = -1;
         for (int rank = 0; rank < CORNERS - 1; rank++) {
-            dsyslog("cExtractLogo::SearchLogo(): check %d. best corner -----------------------------------------------------------------------------------", rank);
+            dsyslog("cExtractLogo::SearchLogo(): check %d. best corner ---------------------------------------------------------------", rank);
             if (logoCorner[rank] < 0) break;    // no more matches
             if ((logoInfo[rank].hits >= 40) ||                                                 // we have a good result, changed from 50 to 46 to 40
                     ((logoInfo[rank].hits >= 30) && (sumHits <= logoInfo[rank].hits + 8)) ||   // if almost all hits are in the same corner than less are enough

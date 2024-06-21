@@ -224,7 +224,7 @@ private:
 /**
  * class to calculate logo size
  */
-class cDetectLogoStopStart : public cLogoSize, public cEvaluateChannel {
+class cDetectLogoStopStart : public cEvaluateChannel {
 public:
     /**
      * constructor for class to dectect special logo stop/start pair
@@ -336,7 +336,11 @@ private:
 
     sMarkAdContext *maContext;                              //!< markad context
     //!<
-    cCriteria *criteria;                                    //!< class for mark detection criteria
+    cDecoderNEW *decoder                                    = nullptr;  //!< decoder
+    //!<
+    cCriteria *criteria                                     = nullptr;  //!< class for mark detection criteria
+    //!<
+    cSobel *sobel                                           = nullptr;  // class for sobel transformation
     //!<
     cDecoder *ptr_cDecoder;                                 //!< decoder
     //!<

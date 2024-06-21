@@ -9,12 +9,14 @@
 #define __logo_h_
 
 #include "global.h"
-#include "markad-standalone.h"
+#include "debug.h"
+#include "tools.h"
+#include "video.h"
 #include "decoder.h"
 #include "decoderNEW.h"
-#include "video.h"
 #include "audio.h"
-#include "tools.h"
+#include "sobel.h"
+#include "index.h"
 #include "sobel.h"
 
 #define MAXREADFRAMES 3000
@@ -45,7 +47,7 @@ struct sLogoInfo {
 /**
  * class to extract logo from recording
  */
-class cExtractLogo : private cLogoSize, cTools {
+class cExtractLogo : protected cTools {
 public:
 
     /**
@@ -68,7 +70,7 @@ public:
         decoder             = nullptr;
         criteria            = nullptr;
         sobel               = nullptr;
-        hborder             = nullptr;
+        hBorder             = nullptr;
         vborder             = nullptr;
         recordingFrameCount = origin.recordingFrameCount;
         audioState          = origin.audioState;
@@ -88,7 +90,7 @@ public:
         decoder             = nullptr;
         criteria            = nullptr;
         sobel               = nullptr;
-        hborder             = nullptr;
+        hBorder             = nullptr;
         vborder             = nullptr;
         recordingFrameCount = origin->recordingFrameCount;
         audioState          = origin->audioState;
@@ -262,33 +264,35 @@ private:
      */
     int AudioInBroadcast();
 
-    const char *recDir                = nullptr;      //!< recording directory
+    const char *recDir           = nullptr;      //!< recording directory
     //!<
-    const char *channelName           = nullptr;      //!< channel name, used for logo file name
+    const char *channelName      = nullptr;      //!< channel name, used for logo file name
     //!<
-    cDecoderNEW *decoder              = nullptr;      //!< pointer to decoder
+    cDecoderNEW *decoder         = nullptr;      //!< pointer to decoder
     //!<
-    cCriteria *criteria               = nullptr;      //!< channel criteria for logo detection
+    cCriteria *criteria          = nullptr;      //!< channel criteria for logo detection
     //!<
-    cSobel *sobel                     = nullptr;      //!< pointer to sobel transformation
+    sAreaT area                  = {};           //!< sobel transformed pixels of logo area
     //!<
-    cMarkAdBlackBordersHoriz *hborder = nullptr;      //!< pointer to hborder detection
+    cSobel *sobel                = nullptr;      //!< pointer to sobel transformation
     //!<
-    cMarkAdBlackBordersVert *vborder  = nullptr;      //!< pointer to hborder detection
+    cHorizBorderDetect *hBorder  = nullptr;      //!< pointer to hBorder detection
     //!<
-    sLogoSize logoSize;                               //!< logo size, global variable keeps static start size
+    cVertBorderDetect *vborder   = nullptr;      //!< pointer to hBorder detection
     //!<
-    int recordingFrameCount           = 0;            //!< frame count of the recording
+    sLogoSize logoSize;                          //!< logo size, global variable keeps static start size, init in constructor
     //!<
-    sAspectRatio logoAspectRatio      = {};           //!< video aspect ratio
+    int recordingFrameCount      = 0;            //!< frame count of the recording
     //!<
-    int audioState                    = 0;            //!< 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
+    sAspectRatio logoAspectRatio = {};           //!< video aspect ratio
     //!<
-    int iFrameCountValid              = 0;            //!< number of valid i-frames
+    int audioState               = 0;            //!< 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
     //!<
-    const char *aCorner[CORNERS]      = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" }; //!< array to transform enum corner to text
+    int iFrameCountValid         = 0;            //!< number of valid i-frames
     //!<
     std::vector<sLogoInfo> logoInfoVector[CORNERS];   //!< infos of all proccessed logos
+    //!<
+    const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" }; //!< array to transform enum corner to text
     //!<
 
 
