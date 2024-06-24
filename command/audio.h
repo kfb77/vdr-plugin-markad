@@ -26,7 +26,6 @@ enum {
  */
 class cAudio {
 public:
-
     /**
      *  store maContext and recordingIndex for future use in this class
      *  @param maContext markad context
@@ -38,8 +37,13 @@ public:
     /**
      *  compare current audio channels with channels before and add marks if channel count has changed
      */
-    sMarkAdMarks *Process();
+    sMarkAdMarks *ChannelChange();
 
+    /**
+     * detect silence marks
+     */
+
+    sMarkAdMarks *Silence();
     /**
      *  reset stored channel states of all audio streams
      */
@@ -47,7 +51,6 @@ public:
 
 
 private:
-
     /**
      *  reset audio marks array
      */
@@ -62,23 +65,11 @@ private:
      */
     void AddMark(const int type, const int position, const int channelsBefore, const int channelsAfter);
 
-    /**
-     * detect silence marks
-     */
-    void Silence();
-
-    /**
-     *  detect if there is a change of the audio channel count
-     *  @param channelsBefore number of channels before
-     *  @param channelsAfter  number of channels now
-     *  @return true if channel count are different, false if not
-     */
-    static bool ChannelChange(int channelsBefore, int channelsAfter);
-
-
     cDecoderNEW *decoder           = nullptr;                //!< pointer to decoder
     //!<
     cCriteria *criteria            = nullptr;                //!< pointer to analyse criteria
+    //!<
+    int channelCountBefore         = 0;                      //!< AC3 channel count of frame before
     //!<
     int silenceStatus              = SILENCE_UNINITIALIZED;  //!< status of silence detection
     //!<
@@ -91,10 +82,6 @@ private:
     int64_t soundPTS               = -1;                     //!< PTS of first detected sound
     //!<
     int retry                      = 0;                      //!< retry count to get video frame after first sound PTS
-    //!<
-    cIndex *recordingIndexAudio    = nullptr;                   //!< recording index
-    //!<
-    short int channels[MAXSTREAMS] = {0};                    //!< count of audio channels per stream
     //!<
     sMarkAdMarks audioMarks        = {};                     //!< array of marks to add to list
     //!<

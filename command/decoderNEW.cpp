@@ -118,33 +118,11 @@ cDecoderNEW::cDecoderNEW(const char *recDir, int threadsParam, const bool fullDe
 
 cDecoderNEW::~cDecoderNEW() {
     dsyslog("cDecoderNEW::cDecoder(): delete decoder object");
-    av_packet_unref(&avpkt);
-    if (hw_device_ctx) av_buffer_unref(&hw_device_ctx);
-    if (nv12_to_yuv_ctx) {
-        FREE(sizeof(nv12_to_yuv_ctx), "nv12_to_yuv_ctx");  // pointer size, real size not possible because of extern declaration, only as reminder
-        sws_freeContext(nv12_to_yuv_ctx);
-    }
-    if (avctx && codecCtxArray) {
-        for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
-            if (codecCtxArray[streamIndex]) {
-                FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
-                avcodec_free_context(&codecCtxArray[streamIndex]);
-            }
-        }
-        FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
-        free(codecCtxArray);
-    }
-    if (avctx) {
-        dsyslog("cDecoderNEW::~cDecoder(): call avformat_close_input");
-        FREE(sizeof(avctx), "avctx");
-        avformat_close_input(&avctx);
-    }
+    Reset();
     if (recordingDir) {
         FREE(strlen(recordingDir), "recordingDir");
         free(recordingDir);
     }
-    av_frame_unref(&avFrame);
-    dsyslog("cDecoderNEW::~cDecoder(): decoder instance deleted");
 }
 
 
@@ -188,14 +166,6 @@ int cDecoderNEW::GetErrorCount() const {
 
 int cDecoderNEW::GetFileNumber() const {
     return fileNumber;
-}
-
-
-void cDecoderNEW::Reset() {
-    fileNumber   = 0;
-    packetNumber = -1;
-    frameNumber  = -1;
-    dtsBefore    = -1;
 }
 
 
@@ -500,6 +470,12 @@ bool cDecoderNEW::ReadPacket() {
 
     av_packet_unref(&avpkt);
     if (av_read_frame(avctx, &avpkt) == 0 ) {
+        // check packet DTS and PTS
+        if ((avpkt.dts == AV_NOPTS_VALUE) || (avpkt.pts == AV_NOPTS_VALUE)) {
+            dsyslog("cDecoderNEW::ReadPacket(): framenumber %5d: invalid packet, DTS or PTS not set", packetNumber);
+            return true;   // false only on EOF
+        }
+        // analyse video packet
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         if (avctx->streams[avpkt.stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
 #else
@@ -507,14 +483,8 @@ bool cDecoderNEW::ReadPacket() {
 #endif
         {
             packetNumber++;
+            if (packetNumber > 0) sumDuration += avpkt.duration;   // first packet is offset 0
 
-            // check packet DTS and PTS
-            if ((avpkt.dts == AV_NOPTS_VALUE) || (avpkt.pts == AV_NOPTS_VALUE)) {
-                dsyslog("cDecoderNEW::ReadPacket(): framenumber %5d: invalid packet, DTS or PTS not set", packetNumber);
-                return true;   // false only on EOF
-            }
-
-            currOffset += avpkt.duration;
 #ifdef DEBUG_FRAME_PTS
             dsyslog("cDecoderNEW::ReadPacket():  fileNumber %d, framenumber %5d, DTS %ld, PTS %ld, duration %ld, flags %d, dtsBefore %ld, time_base.num %d, time_base.den %d",  fileNumber, packetNumber, avpkt.dts, avpkt.pts, avpkt.duration, avpkt.flags, dtsBefore, avctx->streams[avpkt.stream_index]->time_base.num, avctx->streams[avpkt.stream_index]->time_base.den);
 #endif
@@ -539,14 +509,73 @@ bool cDecoderNEW::ReadPacket() {
             dtsBefore = avpkt.dts;
 
         }
+        // analyse AC3 audio packet for channel count, we do not need to decode
+        if (IsAudioAC3Packet()) {
+            if (avpkt.stream_index > MAXSTREAMS) {
+                esyslog("cDecoderNEW::ReadPacket(): to much streams %i", avpkt.stream_index);
+                return false;
+            }
+            int channelCount = 0;
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+            channelCount = avctx->streams[avpkt.stream_index]->codecpar->ch_layout.nb_channels;
+#else
+            channelCount = avctx->streams[avpkt.stream_index]->codecpar->channels;
+#endif
+#else
+            channelCount = avctx->streams[avpkt.stream_index]->codec->channels;
+#endif
+            if ((channelCount != 2) && (channelCount != 6)) { // only accept valid channel counts
+                dsyslog("cDecoderNEW::ReadPacket(): packet (%d), stream %d: ignore invalid channel count %d", packetNumber, avpkt.stream_index, channelCount);
+            }
+            else {
+                if (channelCount != audioAC3[avpkt.stream_index].channelCount) {
+                    dsyslog("cDecoderNEW::ReadPacket(): packet (%d), stream %d: audio channels changed from %d to %d at PTS %" PRId64, packetNumber, avpkt.stream_index, audioAC3[avpkt.stream_index].channelCount, channelCount, avpkt.pts);
+                    if ((channelCount != 2) || (audioAC3[avpkt.stream_index].channelCount != 0)) audioAC3[avpkt.stream_index].processed = false;  // ignore 0 -> 2 at recording start
+                    audioAC3[avpkt.stream_index].channelCount     = channelCount;
+                    audioAC3[avpkt.stream_index].pts              = avpkt.pts;
+                    audioAC3[avpkt.stream_index].videoFrameNumber = -1;
+                }
+            }
+        }
         return true;
     }
-    // end of file reached
+// end of file reached
     offsetTime_ms_LastFile = offsetTime_ms_LastRead;
     dsyslog("cDecoderNEW::ReadPacket(): last frame of filenumber %d is (%d), end time %" PRId64 "ms (%3d:%02dmin)", fileNumber, packetNumber, offsetTime_ms_LastFile, static_cast<int> (offsetTime_ms_LastFile / 1000 / 60), static_cast<int> (offsetTime_ms_LastFile / 1000) % 60);
     if (decodeErrorFrame == packetNumber) decodeErrorCount--; // ignore malformed last frame of a file
     av_packet_unref(&avpkt);
     return false;
+}
+
+
+sAudioAC3 *cDecoderNEW::GetChannelChange() {
+    for (unsigned int streamIndex = 0; streamIndex < MAXSTREAMS; streamIndex++) {
+        if (!audioAC3[streamIndex].processed) {
+            dsyslog("cDecoderNEW::GetChannelChange(): stream %d: unprocessed channel change", streamIndex);
+            if (audioAC3[streamIndex].videoFrameNumber < 0) {  // we have no video frame number, try to get from index it now
+                dsyslog("cDecoderNEW::GetChannelChange(): stream %d: calculate video from number for PTS %ld", streamIndex, audioAC3[streamIndex].pts);
+                if (fullDecode) {   // use PTS ring buffer to get exact video frame number
+                    if (audioAC3[streamIndex].channelCount == 2) {  // 6 -> 2 channel, this will result in stop  mark, use nearest video i-frame with PTS before
+                    }
+                    else {                                                 // 2 -> 6 channel, this will result in start mark, use nearest video i-frame with PTS after
+                    }
+                }
+                else {              // use i-frame index
+                    // 6 -> 2 channel, this will result in stop  mark, use nearest video i-frame with PTS before
+                    if (audioAC3[streamIndex].channelCount == 2) audioAC3[streamIndex].videoFrameNumber = index->GetIFrameBeforePTS(audioAC3[streamIndex].pts);
+                    // 2 -> 6 channel, this will result in start mark, use nearest video i-frame with PTS after
+                    else audioAC3[streamIndex].videoFrameNumber = index->GetIFrameAfterPTS(audioAC3[streamIndex].pts);
+                }
+            }
+            if (audioAC3[streamIndex].videoFrameNumber < 0) {   // PTS not yet in index
+                dsyslog("cDecoderNEW::GetChannelChange(): stream %d: PTS %ld not found in index", streamIndex, audioAC3[streamIndex].pts);
+                return nullptr;
+            }
+            return &audioAC3[streamIndex];                                      // valid channel change, no need to check all streams
+        }
+    }
+    return nullptr;
 }
 
 
@@ -694,16 +723,15 @@ bool cDecoderNEW::SeekToFrame(int seekNumber) {
 }
 
 
-int cDecoderNEW::ResetToSW() {
-    // hardware decoding faild at first packet, something is wrong maybe not supported codec
-    // during init we got no error code
-    // cleanup current decoder
-    dsyslog("cDecoderNEW::ResetToSW(): cleanup hardware decoder");
+void cDecoderNEW::Reset() {
+    dsyslog("cDecoderNEW::Reset(): reset decoder");
     av_packet_unref(&avpkt);
+    av_frame_unref(&avFrame);
     if (hw_device_ctx) av_buffer_unref(&hw_device_ctx);
     if (nv12_to_yuv_ctx) {
         FREE(sizeof(nv12_to_yuv_ctx), "nv12_to_yuv_ctx");  // pointer size, real size not possible because of extern declaration, only as reminder
         sws_freeContext(nv12_to_yuv_ctx);
+        nv12_to_yuv_ctx = nullptr;
     }
     if (avctx && codecCtxArray) {
         for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
@@ -714,20 +742,40 @@ int cDecoderNEW::ResetToSW() {
         }
         FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
         free(codecCtxArray);
+        codecCtxArray = nullptr;
     }
     if (avctx) {
         FREE(sizeof(avctx), "avctx");
         avformat_close_input(&avctx);
+        avctx = nullptr;
     }
-    av_frame_unref(&avFrame);
+    fileNumber       = 0;
+    packetNumber     = -1;
+    frameNumber      = -1;
+    dtsBefore        = -1;
+    decoderSendState = 0;
+    eof              = false;
+    packetFrameMap.clear();
+    sumDuration      = 0;
+}
 
+
+void cDecoderNEW::Restart() {
+    dsyslog("cDecoderNEW::Restart(): restart decoder");
+    Reset();
+    ReadNextFile();  // re-init decoder
+}
+
+
+int cDecoderNEW::ResetToSW() {
+    // hardware decoding faild at first packet, something is wrong maybe not supported codec
+    // during init we got no error code
+    // cleanup current decoder
     // init decoder without hwaccel
-    dsyslog("cDecoderNEW::ResetToSW(): init software decoder");
+    dsyslog("cDecoderNEW::ResetToSW(): reset hardware decoder und init software decoder");
+    Reset();
     useHWaccel   = false;
-    packetNumber = -1;
-    frameNumber  = -1;
-    fileNumber   = 0;
-    ReadNextFile();  // init decoder
+    ReadNextFile();  // re-init decoder without hwaccel
     ReadPacket();
     return(SendPacketToDecoder(false));
 }
@@ -735,9 +783,6 @@ int cDecoderNEW::ResetToSW() {
 
 int cDecoderNEW::SendPacketToDecoder(const bool flush) {
     if (!avctx) return AVERROR_EXIT;
-
-    // push current packet number to ring buffer
-    if (!fullDecode) frameNumberMap.push_back(packetNumber);
 
     int rc = 0;
     if (flush) {
@@ -782,6 +827,14 @@ int cDecoderNEW::SendPacketToDecoder(const bool flush) {
             dsyslog("cDecoderNEW::SendPacketToDecoder(): packet (%d): stream %d: hardware decoding failed, fallback to software decoding", packetNumber, avpkt.stream_index);
             rc = ResetToSW();
         }
+    }
+
+    // push current packet number and sum duration to ring buffer
+    if (!fullDecode && (rc == 0)) {
+        sPacketFrameMap nextPacketFrameMap;
+        nextPacketFrameMap.frameNumber = packetNumber;
+        nextPacketFrameMap.sumDuration = sumDuration;
+        packetFrameMap.push_back(nextPacketFrameMap);
     }
     return rc;
 }
@@ -884,6 +937,7 @@ int cDecoderNEW::ReceiveFrameFromDecoder() {
         // some filds in avFrame filled by receive, but no video data, copy to swFrame to keep it after pixel format transformation
         AVPictureType pict_type     = avFrame.pict_type;
         int64_t pts                 = avFrame.pts;
+        int64_t duration            = avFrame.duration;
 
         // transform pixel format
         av_frame_unref(&avFrame);
@@ -907,6 +961,7 @@ int cDecoderNEW::ReceiveFrameFromDecoder() {
         // restore values we lost during pixel transformation
         avFrame.pict_type           = pict_type;
         avFrame.pts                 = pts;
+        avFrame.duration            = duration;
         avFrame.sample_aspect_ratio = swFrame.sample_aspect_ratio;
         av_frame_unref(&swFrame);
     }
@@ -924,11 +979,18 @@ int cDecoderNEW::ReceiveFrameFromDecoder() {
     }
 
     // we got a frame, set new frame number
-    if (!fullDecode && !frameNumberMap.empty()) {
-        frameNumber = frameNumberMap.front();
-        frameNumberMap.pop_front();
+    int frameSumDuration = 0;
+    if (!fullDecode && !packetFrameMap.empty()) {
+        sPacketFrameMap nextPacketFrameMap = packetFrameMap.front();
+        frameNumber      = nextPacketFrameMap.frameNumber;
+        frameSumDuration = nextPacketFrameMap.sumDuration;
+        packetFrameMap.pop_front();
     }
-    else frameNumber++;
+    else {
+        frameNumber++;
+        sumDuration += avFrame.duration;
+        frameSumDuration = sumDuration;
+    }
 
     // build index
     if (index) {
@@ -948,8 +1010,8 @@ int cDecoderNEW::ReceiveFrameFromDecoder() {
         if (IsVideoIFrame()) {
             iFrameCount++;
             // store iframe number and pts offset, sum frame duration in index
-            int64_t frameTimeOffset_ms = 1000 * static_cast<int64_t>(currOffset) * avctx->streams[0]->time_base.num / avctx->streams[0]->time_base.den;  // need more space to calculate value
-            if (offsetTime_ms >= 0) index->Add(fileNumber, frameNumber, offsetTime_ms_LastFile + offsetTime_ms, frameTimeOffset_ms);
+            int64_t frameTimeOffset_ms = 1000 * static_cast<int64_t>(frameSumDuration) * avctx->streams[0]->time_base.num / avctx->streams[0]->time_base.den;  // need more space to calculate value
+            if (offsetTime_ms >= 0) index->Add(fileNumber, frameNumber, avFrame.pts, offsetTime_ms_LastFile + offsetTime_ms, frameTimeOffset_ms);
             else dsyslog("cDecoderNEW::ReceiveFrameFromDecoder():: failed to get pts for frame %d", packetNumber);
         }
     }

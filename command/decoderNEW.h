@@ -109,7 +109,12 @@ public:
     int GetFileNumber() const;
 
     /**
-     * reset decoder to first frame of first file
+     * restart decoder to first frame of first file
+     */
+    void Restart();
+
+    /**
+     * reset decoder
      */
     void Reset();
 
@@ -284,6 +289,8 @@ public:
      */
     int GetAC3ChannelCount();
 
+    sAudioAC3 *GetChannelChange();
+
     /** check if stream is subtitle
      * @param streamIndex stream index
      * @return true if stream is subtitle, false otherwise
@@ -372,7 +379,12 @@ private:
     //!<
     bool eof                           = false;                   //!< true if end of all ts files reached
     //!<
-    std::deque<int> frameNumberMap;                               //!< ring buffer to map frameNumer to packetNumber without full decoding
+    typedef struct sPacketFrameMap {
+        int frameNumber                = 0;
+        int64_t sumDuration            = 0;
+    } sPacketFrameMap;
+    //!<
+    std::deque<sPacketFrameMap> packetFrameMap;                   //!< ring buffer to map frameNumer to packetNumber without full decoding
     //!<
     int decoderSendState               = 0;                       //!< last return code of avcodec_send_packet()
     //!<
@@ -380,7 +392,7 @@ private:
     //!<
     sAspectRatio DAR                   = {0};                     //!< display aspect ratio of current frame
     //!<
-    long int currOffset                =  0;                      //!< current offset from recording start, sum duration of all video packets in AVStream->time_base
+    int64_t sumDuration                =  0;                      //!< current offset from recording start, sum duration of all video packets in AVStream->time_base
     //!<
     int iFrameCount                    =  0;                      //!< count of decoed i-frames
     //!<
@@ -394,11 +406,13 @@ private:
     //!<
     int frameRate                      = 0;                       //!< video stream real frame rate
     //!<
-    int64_t dtsBefore = -1;                //!< DTS of frame before
+    int64_t dtsBefore                  = -1;                      //!< DTS of frame before
     //!<
-    int decodeErrorCount = 0;              //!< number of decoding errors
+    int decodeErrorCount               = 0;                       //!< number of decoding errors
     //!<
-    int decodeErrorFrame = -1;             //!< frame number of last decoding error
+    int decodeErrorFrame               = -1;                      //!< frame number of last decoding error
+    //!<
+    sAudioAC3 audioAC3[MAXSTREAMS]     = {};                       //!< AC3 audio stream channel count state
     //!<
 };
 #endif

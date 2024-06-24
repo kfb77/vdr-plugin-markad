@@ -1776,93 +1776,47 @@ void cMarkAdStandalone::SwapAspectRatio() {
 cMark *cMarkAdStandalone::Check_CHANNELSTART() {
     dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): search for channel start mark");
 
-    cMark *channelStart = nullptr;
+    // delete very early first mark, if channels send ad with 6 channels, this can be wrong
+    cMark *channelStart = marks.GetAround(MAX_ASSUMED * macontext.Video.Info.framesPerSecond, startA, MT_CHANNELSTART);
+    if (channelStart && (channelStart->position < IGNORE_AT_START)) marks.Del(channelStart->position);
+
+    // search channel start mark
+    channelStart = marks.GetAround(MAX_ASSUMED * macontext.Video.Info.framesPerSecond, startA, MT_CHANNELSTART);
     // check audio streams
-    for (short int stream = 0; stream < MAXSTREAMS; stream++) {
-        if ((macontext.Info.Channels[stream] > 0) && (macontext.Audio.Info.Channels[stream] > 0) && (macontext.Info.Channels[stream] != macontext.Audio.Info.Channels[stream])) {
-            char as[20];
-            switch (macontext.Info.Channels[stream]) {
-            case 1:
-                strcpy(as, "mono");
-                break;
-            case 2:
-                strcpy(as, "stereo");
-                break;
-            case 6:
-                strcpy(as, "dd5.1");
-                break;
-            default:
-                strcpy(as, "??");
-                break;
-            }
-            char ad[20];
-            switch (macontext.Audio.Info.Channels[stream]) {
-            case 1:
-                strcpy(ad, "mono");
-                break;
-            case 2:
-                strcpy(ad, "stereo");
-                break;
-            case 6:
-                strcpy(ad, "dd5.1");
-                break;
-            default:
-                strcpy(ad, "??");
-                break;
-            }
-            isyslog("audio description in info (%s) wrong, we have %s", as, ad);
+    dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): channels start at (%d)", channelStart->position);
+    if (!channelStart) {
+        dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): channel change detected");
+        // we have a channel change, cleanup border and aspect ratio
+        video->ClearBorder();
+        marks.DelType(MT_ASPECTCHANGE, 0xF0);
+
+        int diffAssumed = (channelStart->position - startA) / macontext.Video.Info.framesPerSecond;
+        dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): audio channel start mark found at (%d) %ds after assumed start", channelStart->position, diffAssumed);
+        if (channelStart->position > stopA) {  // this could be a very short recording, 6 channel is in post recording
+            dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): audio channel start mark after assumed stop mark not valid");
+            return nullptr;
         }
-        macontext.Info.Channels[stream] = macontext.Audio.Info.Channels[stream];
 
-        if (macontext.Info.Channels[stream] > 0) {
-            isyslog("audio with %d channels in stream %d", macontext.Info.Channels[stream], stream);
-            if (!channelStart && macontext.Info.Channels[stream] == 6) {
-                criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE);
-                if (macontext.Audio.Info.channelChange) {
-                    dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): channel change detected");
-                    // we have a channel change, cleanup border and aspect ratio
-                    video->ClearBorder();
-                    marks.DelType(MT_ASPECTCHANGE, 0xF0);
-
-                    // start mark must be around startA
-                    channelStart = marks.GetAround(MAX_ASSUMED * macontext.Video.Info.framesPerSecond, startA, MT_CHANNELSTART);
-
-                    if (!channelStart) {          // previous recording had also 6 channels, try other marks
-                        dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): no audio channel start mark found");
-                        return nullptr;
-                    }
-
-                    int diffAssumed = (channelStart->position - startA) / macontext.Video.Info.framesPerSecond;
-                    dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): audio channel start mark found at (%d) %ds after assumed start", channelStart->position, diffAssumed);
-                    if (channelStart->position > stopA) {  // this could be a very short recording, 6 channel is in post recording
-                        dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): audio channel start mark after assumed stop mark not valid");
-                        return nullptr;
-                    }
-
-                    // for early channel start mark, check if there is a logo start mark stop/start pair near assumed start
-                    // this can happen if previous broadcast has also 6 channel
-                    if (diffAssumed <= -121) {
-                        cMark *logoStop = marks.GetNext(channelStart->position, MT_LOGOSTOP);
-                        if (logoStop) {  // if channel start is from previous recording, we should have a logo stop mark near assumed start
-                            cMark *logoStart = marks.GetNext(logoStop->position, MT_LOGOSTART);
-                            if (logoStart) {
-                                int diffLogoStart = (logoStart->position - startA) / macontext.Video.Info.framesPerSecond;
-                                dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): found logo start mark (%d) %ds after assumed start", logoStart->position, diffLogoStart);
-                                if ((diffLogoStart >= -1) && (diffLogoStart <= 56)) {  // changed from 17 to 56
-                                    dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): use logo start mark (%d) as start mark", logoStart->position);
-                                    criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED);
-                                    return logoStart;
-                                }
-                            }
-                        }
+        // for early channel start mark, check if there is a logo start mark stop/start pair near assumed start
+        // this can happen if previous broadcast has also 6 channel
+        if (diffAssumed <= -121) {
+            cMark *logoStop = marks.GetNext(channelStart->position, MT_LOGOSTOP);
+            if (logoStop) {  // if channel start is from previous recording, we should have a logo stop mark near assumed start
+                cMark *logoStart = marks.GetNext(logoStop->position, MT_LOGOSTART);
+                if (logoStart) {
+                    int diffLogoStart = (logoStart->position - startA) / macontext.Video.Info.framesPerSecond;
+                    dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): found logo start mark (%d) %ds after assumed start", logoStart->position, diffLogoStart);
+                    if ((diffLogoStart >= -1) && (diffLogoStart <= 56)) {  // changed from 17 to 56
+                        dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): use logo start mark (%d) as start mark", logoStart->position);
+                        criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED);
+                        return logoStart;
                     }
                 }
-                else dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): no audio channel change found till now, do not disable logo/border/aspect detection");
             }
         }
+        else  dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): no audio channel start mark found");
     }
-
-    // now we have a final channel start mark
+// now we have a final channel start mark
     if (channelStart) {
         marks.DelType(MT_LOGOCHANGE,    0xF0);
         marks.DelType(MT_HBORDERCHANGE, 0xF0);
@@ -1913,7 +1867,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     }
 
     // search for logo start mark around assumed start
-    cMark *lStartAssumed = marks.GetAround(startA + (MAX_ASSUMED * macontext.Video.Info.framesPerSecond), startA, MT_LOGOSTART);  // do not allow morde than 5 minutes from assued start
+    cMark *lStartAssumed = marks.GetAround(startA + (MAX_ASSUMED * macontext.Video.Info.framesPerSecond), startA, MT_LOGOSTART);
     if (!lStartAssumed) {
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): no logo start mark found");
         return nullptr;
@@ -2109,7 +2063,6 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     return begin;
 }
 
-#define IGNORE_AT_START 12   // ignore this number of frames at the start for start marks, they are initial marks from recording before, changed from 11 to 12
 
 cMark *cMarkAdStandalone::Check_HBORDERSTART() {
     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): search for hborder start mark");
@@ -4015,9 +3968,9 @@ void cMarkAdStandalone::CheckIndexGrowing()
 
 #ifdef DEBUG_MARK_FRAMES
 void cMarkAdStandalone::DebugMarkFrames() {
-    if (!ptr_cDecoder) return;
+    if (!decoder) return;
 
-    ptr_cDecoder->Reset();
+    decoder->Restart();   // restart decoder with first frame
     cMark *mark = marks.GetFirst();
     if (!mark) return;
 
@@ -4030,43 +3983,37 @@ void cMarkAdStandalone::DebugMarkFrames() {
     }
 
     mark = marks.GetFirst();
-    int oldFrameNumber = 0;
+    int oldFrameNumber = -1;
 
     // read and decode all video frames, we want to be sure we have a valid decoder state, this is a debug function, we don't care about performance
-    while(mark && (ptr_cDecoder->DecodeDir(directory))) {
-        while(mark && (ptr_cDecoder->GetNextPacket(false, false))) {
-            if (abortNow) return;
-            if (ptr_cDecoder->IsVideoPacket()) {
-                if (ptr_cDecoder->GetFrameInfo(&macontext, true, macontext.Config->fullDecode, false, false)) {
-                    int frameNumber = ptr_cDecoder->GetFrameNumber();
-                    int frameDistance = 1;
-                    if (!macontext.Config->fullDecode) frameDistance = frameNumber - oldFrameNumber;  // get distance between to frame numbers
-                    if (frameNumber >= (mark->position - (frameDistance * DEBUG_MARK_FRAMES))) {
-                        dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark frame (%5d) type 0x%X, write frame (%5d)", mark->position, mark->type, frameNumber);
-                        char suffix1[10] = "";
-                        char suffix2[10] = "";
-                        if ((mark->type & 0x0F) == MT_START) strcpy(suffix1, "START");
-                        if ((mark->type & 0x0F) == MT_STOP)  strcpy(suffix1, "STOP");
+    while (decoder->DecodeNextFrame(false)) {  // no audio
+        if (abortNow) return;
+        int frameNumber = decoder->GetVideoFrameNumber();
+        int frameDistance = 1;
+        if (!macontext.Config->fullDecode) frameDistance = frameNumber - oldFrameNumber;  // get distance between to frame numbers
+        if (frameNumber >= (mark->position - (frameDistance * DEBUG_MARK_FRAMES))) {
+            dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark frame (%5d) type 0x%X, write frame (%5d)", mark->position, mark->type, frameNumber);
+            char suffix1[10] = "";
+            char suffix2[10] = "";
+            if ((mark->type & 0x0F) == MT_START) strcpy(suffix1, "START");
+            if ((mark->type & 0x0F) == MT_STOP)  strcpy(suffix1, "STOP");
 
-                        if (frameNumber < mark->position)    strcpy(suffix2, "BEFORE");
-                        if ((macontext.Config->fullDecode)  && (frameNumber > mark->position))     strcpy(suffix2, "AFTER");
-                        if ((!macontext.Config->fullDecode) && (frameNumber > mark->position + 1)) strcpy(suffix2, "AFTER");  // for interlaced stream we will get the picture after the iFrame
-                        char *fileName = nullptr;
-                        if (asprintf(&fileName,"%s/F__%07d_%s_%s.pgm", macontext.Config->recDir, frameNumber, suffix1, suffix2) >= 1) {
-                            ALLOC(strlen(fileName)+1, "fileName");
-                            SaveVideoPicture(fileName, decoder->GetVideoPicture());
-                            FREE(strlen(fileName)+1, "fileName");
-                            free(fileName);
-                        }
-                        if (frameNumber >= (mark->position + (frameDistance * DEBUG_MARK_FRAMES))) {
-                            mark = mark->Next();
-                            if (!mark) break;
-                        }
-                    }
-                    oldFrameNumber = frameNumber;
-                }
+            if (frameNumber < mark->position)    strcpy(suffix2, "BEFORE");
+            if ((macontext.Config->fullDecode)  && (frameNumber > mark->position))     strcpy(suffix2, "AFTER");
+            if ((!macontext.Config->fullDecode) && (frameNumber > mark->position + 1)) strcpy(suffix2, "AFTER");  // for interlaced stream we will get the picture after the iFrame
+            char *fileName = nullptr;
+            if (asprintf(&fileName,"%s/F__%07d_%s_%s.pgm", macontext.Config->recDir, frameNumber, suffix1, suffix2) >= 1) {
+                ALLOC(strlen(fileName)+1, "fileName");
+                SaveVideoPicture(fileName, decoder->GetVideoPicture());
+                FREE(strlen(fileName)+1, "fileName");
+                free(fileName);
+            }
+            if (frameNumber >= (mark->position + (frameDistance * DEBUG_MARK_FRAMES))) {
+                mark = mark->Next();
+                if (!mark) break;
             }
         }
+        oldFrameNumber = frameNumber;
     }
 }
 #endif
@@ -5602,6 +5549,12 @@ bool cMarkAdStandalone::ProcessFrame() {
             }
         }
 
+        // detect channel changed, we do it by video picture because we need no audio decode
+        sMarkAdMarks *amarks = audio->ChannelChange();
+        if (amarks) {
+            for (int i = 0; i < amarks->Count; i++) AddMark(&amarks->Number[i]);
+        }
+
         // check start
         if (!doneCheckStart && inBroadCast && (frameNumber > frameCheckStart)) CheckStart();
 
@@ -5616,9 +5569,9 @@ bool cMarkAdStandalone::ProcessFrame() {
         }
     }
 
-    // detect audio based marks
+    // detect decoded audio based marks
     if (decoder->IsAudioPacket()) {
-        sMarkAdMarks *amarks = audio->Process();
+        sMarkAdMarks *amarks = audio->Silence();
         if (amarks) {
             for (int i = 0; i < amarks->Count; i++) AddMark(&amarks->Number[i]);
         }
@@ -7340,15 +7293,14 @@ int main(int argc, char *argv[]) {
             cmasta->MarkadCut();
             gettimeofday(&endTime5, nullptr);
         }
+        */
 
         // write debug mark pictures
         gettimeofday(&startTime6, nullptr);
-        #ifdef DEBUG_MARK_FRAMES
+#ifdef DEBUG_MARK_FRAMES
         cmasta->DebugMarkFrames(); // write frames picture of marks to recording directory
-        #endif
+#endif
         gettimeofday(&endTime6, nullptr);
-
-        */
 
         if (cmasta) {
             FREE(sizeof(*cmasta), "cmasta");

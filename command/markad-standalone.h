@@ -29,6 +29,9 @@
 /* forward declarations */
 class cOSDMessage;
 
+// ignore this number of frames at the start for start marks, they are initial marks from recording before, changed from 11 to 12
+#define IGNORE_AT_START 12
+
 // valid lover border length
 #define MIN_LOWER_BORDER  881
 #define MAX_LOWER_BORDER 11000

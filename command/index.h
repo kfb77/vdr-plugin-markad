@@ -31,7 +31,10 @@ public:
      * @param ptsTimeOffset_ms   offset in ms from recording start based on PTS fild
      * @param frameTimeOffset_ms offset in ms from recording start based sum of duration
      */
-    void Add(const int fileNumber, const int frameNumber, const int ptsTimeOffset_ms, const int frameTimeOffset_ms);
+    void Add(const int fileNumber, const int frameNumber, const int64_t pts, const int ptsTimeOffset_ms, const int frameTimeOffset_ms);
+
+    int GetIFrameBeforePTS(const int64_t pts);
+    int GetIFrameAfterPTS(const int64_t pts);
 
     /**
      * get i-frame before frameNumber
@@ -91,7 +94,9 @@ private:
     struct sIndexElement {
         int fileNumber         = -1;            //!< number of TS file
         //!<
-        int frameNumber        = -1;            //!< video frame number
+        int frameNumber        = -1;            //!< video i-frame number
+        //!<
+        int64_t pts            = -1;            //!< pts of i-frame
         //!<
         int ptsTimeOffset_ms   = -1;            //!< time offset from start of the recording in ms based on pts in frame, missing frame increase timestamp (imestamps for VLC player)
         //!<

@@ -33,7 +33,7 @@ cIndex::~cIndex() {
 
 
 // add a new entry to the list of frame timestamps
-void cIndex::Add(const int fileNumber, const int frameNumber, const int ptsTimeOffset_ms, const int frameTimeOffset_ms) {
+void cIndex::Add(const int fileNumber, const int frameNumber, const int64_t pts, const int ptsTimeOffset_ms, const int frameTimeOffset_ms) {
     if ((frameNumber > 0) && ((ptsTimeOffset_ms == 0) || (frameTimeOffset_ms == 0))) {
         esyslog("cIndex::Add(): invalid index entry at frame (%5d): ptsTimeOffset_ms %d, frameTimeOffset_ms %d", frameNumber, ptsTimeOffset_ms, frameTimeOffset_ms);
     }
@@ -42,6 +42,7 @@ void cIndex::Add(const int fileNumber, const int frameNumber, const int ptsTimeO
         sIndexElement newIndex;
         newIndex.fileNumber         = fileNumber;
         newIndex.frameNumber        = frameNumber;
+        newIndex.pts                = pts;
         newIndex.ptsTimeOffset_ms   = ptsTimeOffset_ms;
         newIndex.frameTimeOffset_ms = frameTimeOffset_ms;
 
@@ -49,7 +50,7 @@ void cIndex::Add(const int fileNumber, const int frameNumber, const int ptsTimeO
             indexVector.reserve(1000);
         }
 #ifdef DEBUG_INDEX
-        dsyslog("cIndex::Add(): fileNumber %d, frameNumber (%d), ptsTimeOffset_ms %d, frameTimeOffset_ms %d", fileNumber, frameNumber, ptsTimeOffset_ms, frameTimeOffset_ms);
+        dsyslog("cIndex::Add(): fileNumber %d, frameNumber (%5d), PTS %6ld: time offset: PTS %6d, VDR %6d", fileNumber, frameNumber, pts, ptsTimeOffset_ms, frameTimeOffset_ms);
 #endif
         indexVector.push_back(newIndex);
         ALLOC(sizeof(sIndexElement), "indexVector");
@@ -57,33 +58,46 @@ void cIndex::Add(const int fileNumber, const int frameNumber, const int ptsTimeO
 }
 
 
-// get nearest iFrame to given frame
-// if frame is a iFrame, frame will be returned
-// return: iFrame number
+// get iFrame before given PTS
+// return: iFrame number, -1 if index is not initialized or PTS not in index
 //
-/*  not used
-int cIndex::GetIFrameNear(int frame) {
+int cIndex::GetIFrameBeforePTS(const int64_t pts) {
     if (indexVector.empty()) {
-        dsyslog("cIndex::GetIFrameNear(): frame index not initialized");
+        esyslog("cIndex::GetIFrameBeforePTS(): frame index not initialized");
         return -1;
     }
-    int before_iFrame = -1;
-    int after_iFrame  = -1;
+    int iFrameBefore  = -1;
     for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->frameNumber >= frame) {
-            after_iFrame = frameIterator->frameNumber;
+        if (frameIterator->pts <= pts) iFrameBefore = frameIterator->frameNumber;
+        else break;
+    }
+    if (iFrameBefore < 0) esyslog("cIndex::GetIFrameBeforePTS(): PTS (%ld) not in index", pts);
+    return iFrameBefore; // frame not (yet) in index
+}
+
+
+// get iFrame after given PTS
+// return: iFrame number, -1 if index is not initialized or PTS not in index
+//
+int cIndex::GetIFrameAfterPTS(const int64_t pts) {
+    if (indexVector.empty()) {
+        esyslog("cIndex::GetIFrameAfterPTS(): frame index not initialized");
+        return -1;
+    }
+    int iFrameAfter = -1;
+    for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+        if (frameIterator->pts >= pts) {
+            iFrameAfter = frameIterator->frameNumber;
             break;
         }
-        else before_iFrame = frameIterator->frameNumber;
     }
-    if ((before_iFrame == -1) || (after_iFrame == -1)) {
-        dsyslog("cIndex::GetIFrameNear(): failed for frame (%d), index: first frame (%d) last frame (%d)", frame, indexVector.front().frameNumber, indexVector.back().frameNumber);
-        return -2; // frame not yet in index
+    if (iFrameAfter < 0) {
+        esyslog("cIndex::GetIFrameAfterPTS(): PTS (%ld) not in index", pts);
+        dsyslog("cIndex::GetTimeFromFrame(): index content: first PTS %ld , last PTS %ld", indexVector.front().pts, indexVector.back().pts);
     }
-    if ((after_iFrame - frame) < (frame - before_iFrame)) return after_iFrame;
-    else return before_iFrame;
+    dsyslog("cIndex::GetIFrameAfterPTS(): frame (%d) found", iFrameAfter);
+    return iFrameAfter; // frame not (yet) in index
 }
-*/
 
 
 // get iFrame before given frame
@@ -123,7 +137,6 @@ int cIndex::GetIFrameAfter(int frameNumber) {
         dsyslog("cIndex::GetIFrameAfter(): frame index not initialized");
         return -1;
     }
-
     std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](const sIndexElement &value) ->bool { if (value.frameNumber >= frameNumber) return true; else return false; });
     if (found != indexVector.end()) return found->frameNumber;
 

@@ -182,6 +182,17 @@ enum eLogoStatus {
 
 
 /**
+ * AC3 audio channel change
+ */
+typedef struct sAudioAC3 {
+    int channelCount     = 0;     // channel count
+    int64_t pts          = 0;     // packet pts of last change
+    int videoFrameNumber = -1;    // associated video frame number from PTS ring buffer
+    bool processed       = true;  // true if channel change is processed by audio channel mark detection
+} sAudioAC3;
+
+
+/**
  * corner area after sobel transformation
  */
 typedef struct sAreaT {
