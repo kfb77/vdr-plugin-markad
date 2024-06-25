@@ -11,7 +11,7 @@
 
 #include "global.h"
 #include "debug.h"
-#include "decoderNEW.h"
+#include "decoder.h"
 #include "criteria.h"
 #include "tools.h"
 #include "sobel.h"
@@ -84,7 +84,7 @@ public:
      * @param criteriaParam         detection critaria
      * @param recordingIndex        recording index
      */
-    explicit cLogoDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
+    explicit cLogoDetect(cDecoder *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
 
     ~cLogoDetect();
 
@@ -165,7 +165,7 @@ private:
      */
     void LogoGreyToColour();
 
-    cDecoderNEW *decoder              = nullptr;  //!< decoder
+    cDecoder *decoder              = nullptr;  //!< decoder
     //!<
     cCriteria *criteria               = nullptr;  //!< decoding states and criteria
     //!<
@@ -199,7 +199,7 @@ public:
     /**
      * class to detect scene change
      */
-    cSceneChangeDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam);
+    cSceneChangeDetect(cDecoder *decoderParam, cCriteria *criteriaParam);
     ~cSceneChangeDetect();
 
     /**
@@ -214,7 +214,7 @@ public:
     int Process(int *changeFrameNumber);
 
 private:
-    cDecoderNEW *decoder = nullptr;               //!< pointer to decoder
+    cDecoder *decoder = nullptr;               //!< pointer to decoder
     //!<
     cCriteria *criteria  = nullptr;               //!< analyse criteria
     //!<
@@ -240,7 +240,7 @@ public:
     /**
      * class to detect black screen
      */
-    explicit cBlackScreenDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam);
+    explicit cBlackScreenDetect(cDecoder *decoderParam, cCriteria *criteriaParam);
 
     /**
      * process black screen detection
@@ -258,7 +258,7 @@ public:
     void Clear();
 
 private:
-    cDecoderNEW *decoder  = nullptr;                   //!< pointer to decoder
+    cDecoder *decoder  = nullptr;                   //!< pointer to decoder
     //!<
     cCriteria *criteria   = nullptr;                   //!< pointer to class for marks and decoding criteria
     //!<
@@ -281,7 +281,7 @@ public:
      * @param frameRateParam    frame rate
      * @param criteriaParam     detection criteria
      */
-    explicit cHorizBorderDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam);
+    explicit cHorizBorderDetect(cDecoder *decoderParam, cCriteria *criteriaParam);
     ~cHorizBorderDetect();
 
     /**
@@ -310,7 +310,7 @@ public:
     void Clear(const bool isRestart = false);
 
 private:
-    cDecoderNEW *decoder      = nullptr;   //!< pointer to decoder
+    cDecoder *decoder      = nullptr;   //!< pointer to decoder
     //!<
     cCriteria *criteria       = nullptr;   //!< pointer to class with decoding states and criteria
     //!<
@@ -339,7 +339,7 @@ public:
      * @param frameRateParam   video frame rate
      * @param criteriaParam    detection criteria
      */
-    explicit cVertBorderDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam);
+    explicit cVertBorderDetect(cDecoder *decoderParam, cCriteria *criteriaParam);
 
     /**
      * get first frame number with border
@@ -361,7 +361,7 @@ public:
     void Clear(const bool isRestart = false);
 
 private:
-    cDecoderNEW *decoder      = nullptr;   //!< pointer to decoder
+    cDecoder *decoder      = nullptr;   //!< pointer to decoder
     //!<
     cCriteria *criteria       = nullptr;   //!< pointer to class with decoding states and criteria
     //!<
@@ -395,7 +395,7 @@ public:
      * @param criteriaParam        detection criteria
      * @param recordingIndex       recording index
      */
-    explicit cVideo(cDecoderNEW *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
+    explicit cVideo(cDecoder *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
     ~cVideo();
 
     /**
@@ -474,7 +474,7 @@ private:
      */
     static bool AspectRatioChange(const sAspectRatio AspectRatioOld, const sAspectRatio *AspectRatioNew);
 
-    cDecoderNEW *decoder                  = nullptr;  //!< pointer to decoder
+    cDecoder *decoder                  = nullptr;  //!< pointer to decoder
     //!<
     cCriteria *criteria                   = nullptr;  //!< pointer to class for marks and decoding criteria
     //!<

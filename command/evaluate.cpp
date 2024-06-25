@@ -242,10 +242,11 @@ void cEvaluateLogoStopStartPair::IsClosingCredits(cMarks *marks, sLogoStopStartP
 // check if stop/start pair could be a logo change
 //
 void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart, const int chkSTART) {
+    /* TODO
     if (framesPerSecond == 0) return;
-#define LOGO_CHANGE_LENGTH_MIN  3880  // min time in ms of a logo change section, chaned from 10000 to 9400 to 6760 to 5280 to 4401 to 3880
+    #define LOGO_CHANGE_LENGTH_MIN  3880  // min time in ms of a logo change section, chaned from 10000 to 9400 to 6760 to 5280 to 4401 to 3880
     // do not reduce, we can not detect too short parts
-#define LOGO_CHANGE_LENGTH_MAX 19319  // max time in ms of a logo change section, chaned from 21000 to 19319
+    #define LOGO_CHANGE_LENGTH_MAX 19319  // max time in ms of a logo change section, chaned from 21000 to 19319
     // check min length of stop/start logo pair
     int deltaStopStart = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition ) / framesPerSecond;
     dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ????? stop (%d) start (%d) pair: length %dms (expect >=%dms <=%dms)",
@@ -305,9 +306,9 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
     // check distance to logo start mark before
     // if length of logo change is valid, check distance to logo start mark before
     // if length of logo change is too short, may be a only short logo interuption during logo change, we can not check this, assume it as logo change
-#define LOGO_CHANGE_VALID_PREV_START_MAX  6920  // chnaged from 3000 to  6920
-#define LOGO_CHANGE_SHORT_PREV_START_MIN 19681  // change from 16600 to 19681
-#define LOGO_CHANGE_SHORT_PREV_START_MAX 30400
+    #define LOGO_CHANGE_VALID_PREV_START_MAX  6920  // chnaged from 3000 to  6920
+    #define LOGO_CHANGE_SHORT_PREV_START_MIN 19681  // change from 16600 to 19681
+    #define LOGO_CHANGE_SHORT_PREV_START_MAX 30400
     cMark *prevStart = marks->GetPrev(logoStopStartPair->stopPosition, MT_LOGOSTART);
     if (prevStart) {
         int deltaStartBefore = 1000 * (logoStopStartPair->stopPosition - prevStart->position) / framesPerSecond;
@@ -347,6 +348,7 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
         return;
     }
     dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         +++++ stop (%d) start (%d) pair: can be a logo change", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
+    */
 }
 
 
@@ -699,10 +701,10 @@ bool cEvaluateLogoStopStartPair::IncludesInfoLogo(const int stopPosition, const 
 }
 
 
-cDetectLogoStopStart::cDetectLogoStopStart(sMarkAdContext *maContextParam, cCriteria *criteriaParam, cDecoder *ptr_cDecoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam) {
+cDetectLogoStopStart::cDetectLogoStopStart(sMarkAdContext *maContextParam, cCriteria *criteriaParam, cDecoder *decoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam) {
     maContext                 = maContextParam;
     criteria                  = criteriaParam;
-    ptr_cDecoder              = ptr_cDecoderParam;
+    decoder              = decoderParam;
     recordingIndex            = recordingIndexParam;
     evaluateLogoStopStartPair = evaluateLogoStopStartPairParam;
 //    sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0);  // boundary = 0   // TODO
@@ -950,18 +952,19 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
 
 
 bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
+    /* TODO
     if (!maContext) return false;
-    if (!ptr_cDecoder) return false;
+    if (!decoder) return false;
     if (!recordingIndex) return false;
     if (startFrame >= endFrame) return false;
 
     if (!compareResult.empty()) {  // reset compare result
-#ifdef DEBUG_MEM
+    #ifdef DEBUG_MEM
         int size = compareResult.size();
         for (int i = 0 ; i < size; i++) {
             FREE(sizeof(sCompareInfo), "compareResult");
         }
-#endif
+    #endif
         compareResult.clear();
     }
     sLogoSize logoSize = sobel->GetMaxLogoSize();  // default logo size of this resolution, not real logo size, info logos are greater than real logo
@@ -998,27 +1001,27 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         ALLOC(sizeof(*logo1[corner]), "logo");
     }
 
-    cSobel *sobel = new cSobel(ptr_cDecoder->GetVideoWidth(), ptr_cDecoder->GetVideoHeight(), 0);   // bondary = 0, TODO
+    cSobel *sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0);   // bondary = 0, TODO
     ALLOC(sizeof(*sobel), "sobel");
     FREE(sizeof(*sobel), "sobel");
     delete sobel;
 
     dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", logoSize.width, logoSize.height);
 
-    if (!ptr_cDecoder->SeekToFrame(maContext, startPos - 1)) {  // one frame before startPos because we start loop with GetNextPacket
+    if (!decoder->SeekToFrame(maContext, startPos - 1)) {  // one frame before startPos because we start loop with GetNextPacket
         dsyslog("cDetectLogoStopStart::Detect(): SeekToFrame (%d) failed", startPos);
         status = false;
     }
-    while (status && (ptr_cDecoder->GetFrameNumber() < endPos)) {
+    while (status && (decoder->GetVideoFrameNumber() < endPos)) {
         if (abortNow) return false;
-        if (!ptr_cDecoder->GetNextPacket(false, false)) {
-            dsyslog("cDetectLogoStopStart::Detect(): GetNextPacket() failed at frame (%d)", ptr_cDecoder->GetFrameNumber());
+        if (!decoder->GetNextPacket(false, false)) {
+            dsyslog("cDetectLogoStopStart::Detect(): GetNextPacket() failed at frame (%d)", decoder->GetVideoFrameNumber());
             status = false;
         }
-        int frameNumber =  ptr_cDecoder->GetFrameNumber();
-        if (!ptr_cDecoder->IsVideoPacket()) continue;
-        if (!ptr_cDecoder->GetFrameInfo(maContext, true, maContext->Config->fullDecode, false, false)) {
-            if (ptr_cDecoder->IsVideoIFrame()) // if we have interlaced video this is expected, we have to read the next half picture
+        int frameNumber =  decoder->GetVideoFrameNumber();
+        if (!decoder->IsVideoPacket()) continue;
+        if (!decoder->GetFrameInfo(maContext, true, maContext->Config->fullDecode, false, false)) {
+            if (decoder->IsVideoIFrame()) // if we have interlaced video this is expected, we have to read the next half picture
                 tsyslog("cDetectLogoStopStart::Detect(): GetFrameInfo() failed at frame (%d)", frameNumber);
             continue;
         }
@@ -1032,12 +1035,12 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
             area->logoCorner = corner;
             int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, don't analyse, only fill area
             //                       -2: called by cExtractLogo, don't analyse, only fill area, store logos in /tmp for debug
-#ifdef DEBUG_COMPARE_FRAME_RANGE
+    #ifdef DEBUG_COMPARE_FRAME_RANGE
             if (corner == DEBUG_COMPARE_FRAME_RANGE) iFrameNumberNext = -2;
-#endif
+    #endif
             logoDetect->Detect(0, frameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
 
-#ifdef DEBUG_MARK_OPTIMIZATION
+    #ifdef DEBUG_MARK_OPTIMIZATION
             // save plane 0 of sobel transformation
             char *fileName = nullptr;
             if (asprintf(&fileName,"%s/F__%07d-P0-C%1d.pgm", maContext->Config->recDir, frameNumber, corner) >= 1) {
@@ -1046,7 +1049,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
                 FREE(strlen(fileName)+1, "fileName");
                 free(fileName);
             }
-#endif
+    #endif
 
             compareInfo.framePortion[corner] = DetectFrame(frameNumber, area->sobel[0], logoSize.width, logoSize.height, corner);
 
@@ -1062,8 +1065,8 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
             }
             ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "logo[corner]->sobel");
 
-#define RATE_0_MIN     250
-#define RATE_12_MIN    950
+    #define RATE_0_MIN     250
+    #define RATE_12_MIN    950
             if (logo1[corner]->frameNumber >= 0) {  // we have a logo pair
                 if (ptr_cExtractLogo->CompareLogoPair(logo1[corner], logo2[corner], logoSize.height, logoSize.width, corner, RATE_0_MIN, RATE_12_MIN, &compareInfo.rate[corner])) {
                 }
@@ -1113,13 +1116,15 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
     maContext->Video = maContextSaveState.Video;     // restore state of calling video context
     maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
     return status;
+    */
+    return false;
 }
 
 
 
 bool cDetectLogoStopStart::IsInfoLogo() {
     if (!maContext) return false;
-    if (!ptr_cDecoder) return false;
+    if (!decoder) return false;
     if (compareResult.empty()) return false;
 
     if (!IsInfoLogoChannel(maContext->Info.ChannelName)) {
@@ -1333,7 +1338,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 //
 bool cDetectLogoStopStart::IsLogoChange() {
     if (!maContext) return false;
-    if (!ptr_cDecoder) return false;
+    if (!decoder) return false;
     if (!recordingIndex) return false;
     if (compareResult.empty()) return false;
 
@@ -1591,7 +1596,7 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
 //
 int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool isEndMark) {
     if (!maContext)            return -1;
-    if (!ptr_cDecoder)         return -1;
+    if (!decoder)         return -1;
     if (compareResult.empty()) return -1;
 
 // for performance reason only for known and tested channels for now
@@ -1929,7 +1934,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
 // - no separator frame after similar logo corner frames
 int cDetectLogoStopStart::IntroductionLogo() {
     if (!maContext) return -1;
-    if (!ptr_cDecoder) return -1;
+    if (!decoder) return -1;
     if (compareResult.empty()) return -1;
 
 // for performance reason only for known and tested channels for now

@@ -22,7 +22,7 @@
 #include "logo.h"
 #include "index.h"
 #include "overlap.h"
-#include "decoderNEW.h"
+#include "decoder.h"
 #include "evaluate.h"
 #include "video.h"
 
@@ -72,7 +72,6 @@ public:
         bLiveRecording            = origin.bLiveRecording;
         inBroadCast               = origin.inBroadCast;
         indexFile                 = origin.indexFile;
-        ptr_cDecoderLogoChange    = origin.ptr_cDecoderLogoChange;
         iStopinBroadCast          = origin.iStopinBroadCast;
         length                    = origin.length;
         startTime                 = origin.startTime;
@@ -103,7 +102,6 @@ public:
         sleepcnt                  = origin->sleepcnt;
         macontext                 = origin->macontext;
         length                    = origin->length;
-        ptr_cDecoderLogoChange    = origin->ptr_cDecoderLogoChange;
         evaluateLogoStopStartPair = origin->evaluateLogoStopStartPair;
         vps                       = origin->vps;
         checkAudio                = origin->checkAudio;
@@ -371,7 +369,7 @@ private:
 
     cIndex *index                    = nullptr; //!< pointer to index object
     //!
-    cDecoderNEW *decoder             = nullptr;  //!< pointer to decoder
+    cDecoder *decoder             = nullptr;  //!< pointer to decoder
     //!
     cCriteria *criteria              = nullptr;  //!< status of possible mark types of the broadcast
     //!<
@@ -434,8 +432,6 @@ private:
     cMarks silenceMarks              = {};       //!< objects with all mute scene marks
     //!<
     cMarks blackMarks                = {};       //!< objects with all black screen marks
-    //!<
-    cDecoder *ptr_cDecoderLogoChange = nullptr;  //!< pointer to class cDecoder, used as second instance to detect logo changes
     //!<
     bool checkAudio                  = false;    //!< set to true after each i-Frame, reset to false after audio channel check
     //!<

@@ -37,8 +37,6 @@
 
 bool SYSLOG                    = false;
 bool LOG2REC                   = false;
-cDecoder *ptr_cDecoder         = nullptr;
-cMarkAdStandalone *cmasta      = nullptr;
 bool restartLogoDetectionDone  = false;
 int SysLogLevel                = 2;
 bool abortNow                  = false;
@@ -1586,17 +1584,10 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     if (!stopMark) return false;
     dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits after position (%d)", stopMark->position);
 
-    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, criteria, ptr_cDecoderLogoChange, index, nullptr);
-    ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
-
     int endPos = stopMark->position + (25 * macontext.Video.Info.framesPerSecond);  // try till 25s after stopMarkPosition
     int newPosition = -1;
-    if (ptr_cDetectLogoStopStart->Detect(stopMark->position, endPos)) {
-        newPosition = ptr_cDetectLogoStopStart->ClosingCredit();
-    }
-
-    FREE(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
-    delete ptr_cDetectLogoStopStart;
+    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, criteria, decoder, index, evaluateLogoStopStartPair);
+    ptr_cDetectLogoStopStart->Detect(stopMark->position, endPos);
 
     if (newPosition > stopMark->position) {
         dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): closing credits found, move stop mark to position (%d)", newPosition);
@@ -1632,12 +1623,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
     int isInfoLogo             = STATUS_UNKNOWN;
     int isStartMarkInBroadcast = STATUS_UNKNOWN;
 
-    // alloc new objects
-    ptr_cDecoderLogoChange = new cDecoder(macontext.Config->threads, index);
-    ALLOC(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
-    ptr_cDecoderLogoChange->DecodeDir(directory);
-
-    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, criteria, ptr_cDecoderLogoChange, index, evaluateLogoStopStartPair);
+    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, criteria, decoder, index, evaluateLogoStopStartPair);
     ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
     // loop through all logo stop/start pairs
@@ -1718,13 +1704,8 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {  // for performance reason onl
         FREE(strlen(indexToHMSFStart)+1, "indexToHMSF");
         free(indexToHMSFStart);
     }
-
-    // free objects
-    FREE(sizeof(*ptr_cDecoderLogoChange), "ptr_cDecoderLogoChange");
-    delete ptr_cDecoderLogoChange;
-    FREE(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
-    delete ptr_cDetectLogoStopStart;
-
+    ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
+    delete ptr_cDetectLogoStopStart; //TODO
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): marks after detect and remove logo stop/start mark pairs with special logo");
     DebugMarks();     //  only for debugging
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): end detect and remove logo stop/start mark pairs with special logo");
@@ -3467,7 +3448,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 
 
 void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool isPause) {
-    if (!ptr_cDecoder) return;
+    if (!decoder) return;
     int delta = macontext.Video.Info.framesPerSecond * 120;
     int vpsFrame = index->GetFrameFromOffset(offset * 1000);
     if (vpsFrame < 0) {
@@ -3893,7 +3874,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
         dsyslog("slept too much");
         return; // we already slept too much
     }
-    if (ptr_cDecoder) framecnt = ptr_cDecoder->GetFrameNumber();
+    if (decoder) framecnt = decoder->GetVideoFrameNumber();
     bool notenough = true;
     do {
         struct stat statbuf;
@@ -4021,8 +4002,8 @@ void cMarkAdStandalone::DebugMarkFrames() {
 
 void cMarkAdStandalone::MarkadCut() {
     if (abortNow) return;
-    if (!ptr_cDecoder) {
-        dsyslog("cMarkAdStandalone::MarkadCut(): ptr_cDecoder not set");
+    if (!decoder) {
+        dsyslog("cMarkAdStandalone::MarkadCut(): decoder not set");
         return;
     }
     LogSeparator(true);
@@ -4047,8 +4028,7 @@ void cMarkAdStandalone::MarkadCut() {
 
     for (int pass = passMin; pass <= passMax; pass ++) {
         dsyslog("cMarkAdStandalone::MarkadCut(): start pass: %d", pass);
-        ptr_cDecoder->Reset();
-        ptr_cDecoder->DecodeDir(directory);
+        decoder->Restart();
         ptr_cEncoder->Reset(pass);
 
         // set start and end mark of first part
@@ -4062,11 +4042,12 @@ void cMarkAdStandalone::MarkadCut() {
             esyslog("got invalid stop mark at (%d) type 0x%X", stopMark->position, stopMark->type);
             return;
         }
+        /* TODO
         int stopPos = stopMark->position;
 
         // open output file
-        ptr_cDecoder->SeekToFrame(&macontext, startMark->position - 1);  // seek to start posiition to get correct input video parameter
-        if (!ptr_cEncoder->OpenFile(directory, ptr_cDecoder)) {
+        decoder->SeekToFrame(startMark->position - 1);  // seek to start posiition to get correct input video parameter
+        if (!ptr_cEncoder->OpenFile(directory, decoder)) {
             esyslog("failed to open output file");
             FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
             delete ptr_cEncoder;
@@ -4076,15 +4057,15 @@ void cMarkAdStandalone::MarkadCut() {
 
         bool nextFile = true;
         // process input file
-        while(nextFile && ptr_cDecoder->DecodeDir(directory)) {
-            while(ptr_cDecoder->GetNextPacket(false, false)) {  // no frame index, no PTS ring buffer
-                int frameNumber = ptr_cDecoder->GetFrameNumber();
+        while(nextFile && decoder->DecodeDir(directory)) {
+            while(decoder->GetNextPacket(false, false)) {  // no frame index, no PTS ring buffer
+                int frameNumber = decoder->GetVideoFrameNumber();
                 // seek to frame before startPosition
                 if  (frameNumber < startMark->position) {  // will be called until we got next video frame, skip audio frame before
                     if (frameNumber < (startMark->position - 1)) {  // seek to next video frame before start mark
                         LogSeparator();
                         dsyslog("cMarkAdStandalone::MarkadCut(): decoding for start mark (%d) to end mark (%d) in pass: %d", startMark->position, stopMark->position, pass);
-                        ptr_cDecoder->SeekToFrame(&macontext, startMark->position - 1); // one frame before start frame, future iteratations will get video start frame
+                        decoder->SeekToFrame(startMark->position - 1); // one frame before start frame, future iteratations will get video start frame
                     }
                     continue;
                 }
@@ -4110,21 +4091,21 @@ void cMarkAdStandalone::MarkadCut() {
                     continue;
                 }
                 // read packet
-                AVPacket *pkt = ptr_cDecoder->GetPacket();
+                AVPacket *pkt = decoder->GetPacket();
                 if (!pkt) {
                     esyslog("failed to get packet from input stream at frame (%d)", frameNumber);
                     continue;
                 }
                 // decode/encode/write packet
-                if (!ptr_cEncoder->WritePacket(pkt, ptr_cDecoder)) {
+                if (!ptr_cEncoder->WritePacket(pkt, decoder)) {
                     dsyslog("cMarkAdStandalone::MarkadCut(): failed to write frame %d to output stream", frameNumber);  // no not abort, maybe next frame works
                 }
                 if (abortNow) {
-                    ptr_cEncoder->CloseFile(ptr_cDecoder);  // ptr_cEncoder must be valid here because it is used above
-                    if (ptr_cDecoder) {
-                        FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
-                        delete ptr_cDecoder;
-                        ptr_cDecoder = nullptr;
+                    ptr_cEncoder->CloseFile(decoder);  // ptr_cEncoder must be valid here because it is used above
+                    if (decoder) {
+                        FREE(sizeof(*decoder), "decoder");
+                        delete decoder;
+                        decoder = nullptr;
                     }
                     FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
                     delete ptr_cEncoder;
@@ -4133,12 +4114,13 @@ void cMarkAdStandalone::MarkadCut() {
                 }
             }
         }
-        if (!ptr_cEncoder->CloseFile(ptr_cDecoder)) {
+        */
+        if (!ptr_cEncoder->CloseFile(decoder)) {
             esyslog("failed to close output file");
             return;
         }
     }
-    dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %d", ptr_cDecoder->GetFrameNumber());
+    dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %d", decoder->GetVideoFrameNumber());
     FREE(sizeof(*ptr_cEncoder), "ptr_cEncoder");
     delete ptr_cEncoder;  // ptr_cEncoder must be valid here because it is used above
     ptr_cEncoder = nullptr;
@@ -4152,7 +4134,7 @@ void cMarkAdStandalone::MarkadCut() {
 // - remove stop/start from info logo
 //
 void cMarkAdStandalone::LogoMarkOptimization() {
-    if (!ptr_cDecoder) return;
+    if (!decoder) return;
 
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): start logo mark optimization");
@@ -4166,10 +4148,9 @@ void cMarkAdStandalone::LogoMarkOptimization() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): check for advertising in frame with logo after logo start and before logo stop mark and check for introduction logo");
 
-    ptr_cDecoder->Reset();
-    ptr_cDecoder->DecodeDir(directory);
+    decoder->Restart();
 
-    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, criteria, ptr_cDecoder, index, nullptr);
+    cDetectLogoStopStart *ptr_cDetectLogoStopStart = new cDetectLogoStopStart(&macontext, criteria, decoder, index, nullptr);
     ALLOC(sizeof(*ptr_cDetectLogoStopStart), "ptr_cDetectLogoStopStart");
 
     cMark *markLogo = marks.GetFirst();
@@ -4276,10 +4257,9 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 free(indexToHMSFSearchPosition);
             }
             // short start/stop pair can result in overlapping checks
-            if (ptr_cDecoder->GetFrameNumber() > searchStartPosition) {
-                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): current framenumber (%d) greater than framenumber to seek (%d), restart decoder", ptr_cDecoder->GetFrameNumber(), searchStartPosition);
-                ptr_cDecoder->Reset();
-                ptr_cDecoder->DecodeDir(directory);
+            if (decoder->GetVideoFrameNumber() > searchStartPosition) {
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): current framenumber (%d) greater than framenumber to seek (%d), restart decoder", decoder->GetVideoFrameNumber(), searchStartPosition);
+                decoder->Restart();
             }
             // detect frames
             if ((evaluateLogoStopStartPair->GetIsAdInFrame(markLogo->position) >= STATUS_UNKNOWN) && (ptr_cDetectLogoStopStart->Detect(searchStartPosition, markLogo->position))) {
@@ -5471,7 +5451,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
 void cMarkAdStandalone::ProcessOverlap() {
     if (abortNow)      return;
     if (duplicate)     return;
-    if (!ptr_cDecoder) return;
+    if (!decoder)      return;
     if ((length == 0) || (startTime == 0)) {  // no recording length or start time from info file
         return;
     }
@@ -5486,7 +5466,7 @@ void cMarkAdStandalone::ProcessOverlap() {
     LogSeparator(true);
     dsyslog("ProcessOverlap(): start overlap detection");
     DebugMarks();     //  only for debugging
-    cOverlap *overlap = new cOverlap(&macontext, ptr_cDecoder, index);
+    cOverlap *overlap = new cOverlap(&macontext, decoder, index);
     ALLOC(sizeof(*overlap), "overlap");
     save = overlap->DetectOverlap(&marks);
     FREE(sizeof(*overlap), "overlap");
@@ -5619,7 +5599,7 @@ bool cMarkAdStandalone::ProcessFrame() {
 
 
     // enough for frame read for manual logo extraction
-        if ((macontext.Config->logoExtraction != -1) && (ptr_cDecoder->GetIFrameCount() >= 512)) {    // extract logo
+        if ((macontext.Config->logoExtraction != -1) && (decoder->GetIFrameCount() >= 512)) {    // extract logo
             isyslog("finished logo extraction, please check /tmp for pgm files");
             abortNow=true;
             break;
@@ -6389,7 +6369,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
     // performance test
     if (macontext.Config->perftest) {
-        cTest *test = new cTest(&macontext);
+        cTest *test = new cTest(macontext.Info.ChannelName, macontext.Config->hwaccel);
         test->Perf();
         delete test;
         abortNow = true;
@@ -6436,7 +6416,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     marks.SetIndex(index);
 
     // create decoder
-    decoder = new cDecoderNEW(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, index);
+    decoder = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, index);
     ALLOC(sizeof(*decoder), "decoder");
 }
 
@@ -6466,11 +6446,11 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         delete osd;
         osd = nullptr;
     }
-    if (ptr_cDecoder) {
-        if (ptr_cDecoder->GetErrorCount() > 0) isyslog("decoding errors: %d", ptr_cDecoder->GetErrorCount());
-        FREE(sizeof(*ptr_cDecoder), "ptr_cDecoder");
-        delete ptr_cDecoder;
-        ptr_cDecoder = nullptr;
+    if (decoder) {
+        if (decoder->GetErrorCount() > 0) isyslog("decoding errors: %d", decoder->GetErrorCount());
+        FREE(sizeof(*decoder), "decoder");
+        delete decoder;
+        decoder = nullptr;
     }
     if (evaluateLogoStopStartPair) {
         FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
@@ -7218,7 +7198,7 @@ int main(int argc, char *argv[]) {
         cIndex *recordingIndex = new cIndex();
         ALLOC(sizeof(*recordingIndex), "recordingIndex");
 
-        cmasta = new cMarkAdStandalone(recDir, &config);
+        cMarkAdStandalone *cmasta = new cMarkAdStandalone(recDir, &config);
         ALLOC(sizeof(*cmasta), "cmasta");
         if (!cmasta) return EXIT_FAILURE;
 
@@ -7269,13 +7249,13 @@ int main(int argc, char *argv[]) {
         cmasta->Recording();
         gettimeofday(&endTime2, nullptr);
 
-        /*
 
-        // logo mark optimization
+        // mark optimization
         gettimeofday(&startTime3, nullptr);
         cmasta->LogoMarkOptimization();      // logo mark optimization
         gettimeofday(&endTime3, nullptr);
 
+        /*
         // overlap detection
         gettimeofday(&startTime4, nullptr);
         cmasta->ProcessOverlap();            // overlap and closing credits detection

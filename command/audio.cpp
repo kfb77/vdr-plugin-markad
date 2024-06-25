@@ -14,7 +14,7 @@
 #include "audio.h"
 
 
-cAudio::cAudio(cDecoderNEW *decoderParam, cCriteria *criteriaParam) {
+cAudio::cAudio(cDecoder *decoderParam, cCriteria *criteriaParam) {
     decoder       = decoderParam;
     criteriaParam = criteria;
     Clear();

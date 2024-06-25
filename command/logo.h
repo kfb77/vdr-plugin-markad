@@ -13,7 +13,6 @@
 #include "tools.h"
 #include "video.h"
 #include "decoder.h"
-#include "decoderNEW.h"
 #include "audio.h"
 #include "sobel.h"
 #include "index.h"
@@ -231,7 +230,7 @@ private:
      * @param minFrame  minimum framenumber we need
      * @return          true if we have enough frames, false otherwise
      */
-    bool WaitForFrames(cDecoderNEW *decoder, const int minFrame);
+    bool WaitForFrames(cDecoder *decoder, const int minFrame);
 
     /**
      * get first frame number of stored logos
@@ -268,7 +267,7 @@ private:
     //!<
     const char *channelName      = nullptr;      //!< channel name, used for logo file name
     //!<
-    cDecoderNEW *decoder         = nullptr;      //!< pointer to decoder
+    cDecoder *decoder         = nullptr;      //!< pointer to decoder
     //!<
     cCriteria *criteria          = nullptr;      //!< channel criteria for logo detection
     //!<

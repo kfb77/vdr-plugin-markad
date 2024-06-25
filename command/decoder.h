@@ -9,6 +9,7 @@
 #define __decoder_h_
 
 #include <vector>
+#include <deque>
 #include "global.h"
 #include "index.h"
 
@@ -17,6 +18,11 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libavformat/avio.h>
 #include <libavutil/file.h>
+// hwaccel
+#include <libavutil/pixdesc.h>
+#include <libavutil/imgutils.h>
+#include <libswscale/swscale.h>
+#include <libavutil/avutil.h>
 
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(3<<8)+102)
 #include <libavutil/channel_layout.h>
@@ -67,12 +73,21 @@ public:
 
     /**
      * cDecoder constructor
-     * @param threads        count threads of ffmpeg decoder
-     * @param recordingIndex recording index class
+     * @param recDir            recording directory
+     * @param threadsParam      count threads of ffmpeg decoder
+     * @param fullDecodeParam   true if full decode, fals if only decode i-frames
+     * @param hwaccelParam      true if we use hwaccel
+     * @param indexParam        recording index class
      */
-    explicit cDecoder(int threads, cIndex *recordingIndex);
+    explicit cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccel, cIndex *indexParam);
 
     ~cDecoder();
+
+    /**
+     * set decoder to first/next file of the directory
+     * @return true if first/next ts file found, false otherwise
+     */
+    bool ReadNextFile();
 
     /**
      * get number of decoding error
@@ -81,18 +96,11 @@ public:
     int GetErrorCount() const;
 
     /**
-     * set decoder to first/next file of the directory
-     * @param recDir name of the recording directory
-     * @return true if first/next ts file found, false otherwise
-     */
-    bool DecodeDir(const char *recDir);
-
-    /**
      * setup decoder codec context for current file
      * @param filename file name
      * @return true if setup was successful, false otherwiese
      */
-    bool DecodeFile(const char * filename);
+    bool InitDecoder(const char * filename);
 
     /**
      * get currently in progress TS file number
@@ -101,7 +109,12 @@ public:
     int GetFileNumber() const;
 
     /**
-     * reset decoder to first frame of first file
+     * restart decoder to first frame of first file
+     */
+    void Restart();
+
+    /**
+     * reset decoder
      */
     void Reset();
 
@@ -135,6 +148,12 @@ public:
     int GetVideoWidth();
 
     /**
+     * get video frame rate
+     * @return video frame rate
+     */
+    int GetVideoFrameRate();
+
+    /**
      * get average video frame rate taken from avctx->streams[i]->avg_frame_rate
      * @return average video frame rate (avg_frame_rate)
      */
@@ -146,18 +165,37 @@ public:
      */
     int GetVideoRealFrameRate();
 
-/// read next frame from current input ts file
     /**
+     * read packet from current input ts file and fills avpkt
      * increase frame counter if video frame <br>
      * increase i-frame counter if video i-frame <br>
      * add presentation timestamp for each frame to ring buffer <br>
      * add offset from recording start for each i-frame to recording index <br>
      *
-     * @param buildFrameIndex true will build i-frame index, false otherwise
-     * @param buildPTS_Index  true will fill PTS ring buffer, false will not fill PTS ring buffer (e.g. if called by logo search to avoid out of sequence elements)
      * @return true if successful, false if av_read_frame failed (e.g. end of file)
      */
-    bool GetNextPacket(const bool buildFrameIndex, bool buildPTS_Index);
+    bool ReadPacket();
+
+    /**
+     * read next packet from current input directory
+     * do the file changes if necessary
+     * @return true if successful, false if EOF of last ts file
+     */
+    bool ReadNextPacket();
+
+    /**
+    * get next packet(s) from input file, send to decoder and read next frame from decoder
+    * read next packet from input stream and decode packet
+    * @param  audioDecode true if decode audio packets, false otherwise
+    * @return true if we have a valid picture
+    */
+    bool DecodeNextFrame(const bool audioDecode);
+
+    /**
+    * get current picture from decoded frame
+    * @return pointer to picture
+    */
+    sVideoPicture *GetVideoPicture();
 
     /**
      * get current packet
@@ -165,36 +203,32 @@ public:
      */
     AVPacket *GetPacket();
 
-/// seek decoder read position
     /**
+     * seek decoder read position
      * only seek forward <br>
      * seek to i-frame before and start decode to fill decoder buffer
-     * @param maContext   markad context
-     * @param frameNumber frame number to seek
-     * @return true if successful, false otherwise
+     * @param seekNumber frame number to seek
+     * @return           true if successful, false otherwise
      */
-    bool SeekToFrame(sMarkAdContext *maContext, int frameNumber);
+    bool SeekToFrame(int seekNumber);
 
     /**
-     * decode audio or packet
-     * @param avpkt packet to decode
-     * @return decoded frame
+     * complete reset decoder without hwaccel
+     * @return return code from avcodec_send_packet
      */
-    AVFrame *DecodePacket(AVPacket *avpkt);
+    int ResetToSW();
 
-/// decode video packets and get audio/video infos
     /**
-     * decode video packets (audio frames are not decoded) <br>
-     * get aspect ratio for video frames <br>
-     * get audio channels for audio packets <br>
-     * fill video data planes
-     * @param[in,out] maContext       markad context
-     * @param[in]     decodeVideo     true if we do decoding of video frames, false if we do no decoding at all
-     * @param[in]     decodeFull      true if we do full decoding of all video frames, false if we decode only i-frames
-     * @param[in]     decodeVolume    true if we decode volume of audio frames, false otherwise
-     * @param[in]     decodeChannel   true if we decode count of channel from audio frames, false otherwise
+     * send packet to decoder
+     * @return return code from avcodec_send_packet
      */
-    bool GetFrameInfo(sMarkAdContext *maContext, const bool decodeVideo, const bool decodeFull, const bool decodeVolume, const bool decodeChannel);
+    int SendPacketToDecoder(const bool flush);
+
+    /**
+     * receive frame from decoder
+     * @return return code from avcodec_receive_frame
+     */
+    int ReceiveFrameFromDecoder();
 
     /** check if stream is video stream
      * @param streamIndex stream index
@@ -209,8 +243,20 @@ public:
     bool IsVideoPacket();
 
     /**
-     * check if current packet is a video i-frame
+     * check if current packet is a video i-frame packet
      * @return true if current packet is a video i-frame, false otherwise
+     */
+    bool IsVideoIPacket();
+
+    /**
+     * check if current frame is a video frame
+     * @return true if current frame is a video frame, false otherwise
+     */
+    bool IsVideoFrame();
+
+    /**
+     * check if current frame is a video i-frame
+     * @return true if current frame is a video i-frame, false otherwise
      */
     bool IsVideoIFrame();
 
@@ -238,6 +284,13 @@ public:
      */
     bool IsAudioPacket();
 
+    /** get current channel count of AC3 stream
+     * @return channel count of AC3, 0 if no AC3 stream exists
+     */
+    int GetAC3ChannelCount();
+
+    sAudioAC3 *GetChannelChange();
+
     /** check if stream is subtitle
      * @param streamIndex stream index
      * @return true if stream is subtitle, false otherwise
@@ -249,10 +302,15 @@ public:
      */
     bool IsSubtitlePacket();
 
-    /** get current frame number
-     * @return current frame number
+    /** get current read video packet number
+     * @return current read packet number
      */
-    int GetFrameNumber() const;
+//    int GetVideoPacketNumber() const;
+
+    /** get current decoded video frame number
+     * @return current decoded frame number
+     */
+    int GetVideoFrameNumber() const;
 
     /** get current number of processed i-frames
      * @return current number of processed i-frames
@@ -272,65 +330,89 @@ public:
      */
     int GetIFrameRangeCount(int beginFrame, int endFrame);
 
+    /// get aspect ratio of current frame
+    /**
+     * @return  aspect ratio of current frame
+     */
+    sAspectRatio *GetFrameAspectRatio();
+
+
 private:
-    cIndex *recordingIndexDecoder = nullptr;  //!< recording index
+    char *recordingDir                 = nullptr;                 //!< name of recording directory
     //!<
-    char *recordingDir = nullptr;             //!< name of recording directory
+    cIndex *index                      = nullptr;                 //!< recording index
     //!<
-    int fileNumber = 0;                    //!< current ts file number
+    int threads                        = 0;                       //!< thread count of decoder
     //!<
-    int threadCount = 0;                   //!< thread count of decoder
+    bool fullDecode                    = false;                   //!< false if we decode only i-frames, true if we decode all frames
     //!<
-    AVFormatContext *avctx = nullptr;         //!< avformat context
+    bool useHWaccel                    = false;                   //!< enable hardware accelerated video decode and encode
     //!<
-    AVPacket avpkt = {};                   //!< packet
+    enum AVHWDeviceType hwDeviceType   = AV_HWDEVICE_TYPE_NONE ;  //!< hardware device type
     //!<
-    AVFrame *avFrame = nullptr;               //!< frame
+    enum AVPixelFormat hwPixelFormat   = AV_PIX_FMT_NONE;         //!< hardware decoder pixel format
     //!<
-#if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100) // ffmpeg 4.5
-    const AVCodec *codec = nullptr;           //!< codec
+    AVBufferRef *hw_device_ctx         = nullptr;                 //!< hardware device context
+    //!<
+    struct SwsContext *nv12_to_yuv_ctx = nullptr;                 //!< pixel format conversion context
+    //!<
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100)               // ffmpeg 4.5
+    const AVCodec *codec               = nullptr;                 //!< codec
     //!<
 #else
-    AVCodec *codec = nullptr;                 //!< codec
+    AVCodec *codec                     = nullptr;                 //!< codec
     //!<
 #endif
-    AVCodecContext **codecCtxArray = nullptr; //!< codec context per stream
+    int fileNumber                     = 0;                       //!< current ts file number
     //!<
-    int currFrameNumber            = -1;   //!< current decoded frame number
+    AVFormatContext *avctx             = nullptr;                 //!< avformat context
     //!<
-    long int currOffset            =  0;   //!< current offset from recording start, sum duration of all video packets in AVStream->time_base
+    AVPacket avpkt                     = {};                      //!< packet from input file
     //!<
-    int iFrameCount                =  0;   //!< count of decoed i-frames
+    AVFrame avFrame                    = {};                      //!< decoded frame
     //!<
-    int64_t offsetTime_ms_LastFile =  0;   //!< offset from recording start of last file in ms
+    AVCodecContext **codecCtxArray     = nullptr;                 //!< codec context per stream
     //!<
-    int64_t offsetTime_ms_LastRead =  0;   //!< offset from recodring start of last frame in ms
+    int packetNumber                   = -1;                      //!< current read video packet number
     //!<
-    int firstMP2Index              = -1;   //!< stream index for first MP2 audio stream
+    int frameNumber                    = -1;                      //!< current decoded video frame number
     //!<
-    /**
-     * decoded frame data
-     */
-    struct sFrameData {
-        bool Valid = false;                //!< flag, if true data is valid
-        //!<
-        uchar *Plane[PLANES] = {};         //!< picture planes (YUV420)
-        //!<
-        int PlaneLinesize[PLANES] = {};    //!< size in bytes of each picture plane line
-        //!<
-    } FrameData;                           //!< decoded frame picture data
+    bool eof                           = false;                   //!< true if end of all ts files reached
     //!<
-    int interlaced_frame = -1;             //!< -1 undefined, 0 the content of the picture is progressive, 1 the content of the picture is interlaced
+    typedef struct sPacketFrameMap {
+        int frameNumber                = 0;
+        int64_t sumDuration            = 0;
+    } sPacketFrameMap;
     //!<
-    bool stateEAGAIN = false;              //!< true if decoder needs more frames, false otherwise
+    std::deque<sPacketFrameMap> packetFrameMap;                   //!< ring buffer to map frameNumer to packetNumber without full decoding
     //!<
-    int videoRealFrameRate = 0;            //!< video stream real frame rate
+    int decoderSendState               = 0;                       //!< last return code of avcodec_send_packet()
     //!<
-    int64_t dtsBefore = -1;                //!< DTS of frame before
+    sVideoPicture videoPicture         = {};                      //!< current decoded video picture
     //!<
-    int decodeErrorCount = 0;              //!< number of decoding errors
+    sAspectRatio DAR                   = {0};                     //!< display aspect ratio of current frame
     //!<
-    int decodeErrorFrame = -1;             //!< frame number of last decoding error
+    int64_t sumDuration                =  0;                      //!< current offset from recording start, sum duration of all video packets in AVStream->time_base
+    //!<
+    int iFrameCount                    =  0;                      //!< count of decoed i-frames
+    //!<
+    int64_t offsetTime_ms_LastFile     =  0;                      //!< offset from recording start of last file in ms
+    //!<
+    int64_t offsetTime_ms_LastRead     =  0;                      //!< offset from recodring start of last frame in ms
+    //!<
+    int firstMP2Index                  = -1;                      //!< stream index for first MP2 audio stream
+    //!<
+    int interlaced_frame               = -1;                      //!< -1 undefined, 0 the content of the picture is progressive, 1 the content of the picture is interlaced
+    //!<
+    int frameRate                      = 0;                       //!< video stream real frame rate
+    //!<
+    int64_t dtsBefore                  = -1;                      //!< DTS of frame before
+    //!<
+    int decodeErrorCount               = 0;                       //!< number of decoding errors
+    //!<
+    int decodeErrorFrame               = -1;                      //!< frame number of last decoding error
+    //!<
+    sAudioAC3 audioAC3[MAXSTREAMS]     = {};                       //!< AC3 audio stream channel count state
     //!<
 };
 #endif

@@ -43,7 +43,7 @@ cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam
     logoAspectRatio.den = AspectRatio.den;
 
     // create all used objects
-    decoder = new cDecoderNEW(recDir, threads, false, hwaccel, nullptr);    // recDir, threads, fullDecode, vaapi, index
+    decoder = new cDecoder(recDir, threads, false, hwaccel, nullptr);    // recDir, threads, fullDecode, vaapi, index
     ALLOC(sizeof(*decoder), "decoder");
 
     criteria = new cCriteria(channelName);
@@ -1393,7 +1393,7 @@ int cExtractLogo::CountFrames() {
 }
 
 
-bool cExtractLogo::WaitForFrames(cDecoderNEW *decoder, const int minFrame = 0) {
+bool cExtractLogo::WaitForFrames(cDecoder *decoder, const int minFrame = 0) {
     if (!decoder) return false;
 
     if ((recordingFrameCount > (decoder->GetVideoFrameNumber() + 200)) && (recordingFrameCount > minFrame)) return true; // we have already found enough frames

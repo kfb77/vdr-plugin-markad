@@ -18,7 +18,7 @@
 extern bool abortNow;
 
 
-cLogoDetect::cLogoDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam) {
+cLogoDetect::cLogoDetect(cDecoder *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam) {
     decoder      = decoderParam;
     criteria     = criteriaParam;
     recDir       = recDirParam;
@@ -1029,7 +1029,7 @@ int cLogoDetect::Process(int *logoFrameNumber) {
 
 
 // detect scene change
-cSceneChangeDetect::cSceneChangeDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam) {
+cSceneChangeDetect::cSceneChangeDetect(cDecoder *decoderParam, cCriteria *criteriaParam) {
     decoder  = decoderParam;
     criteria = criteriaParam;
 }
@@ -1165,7 +1165,7 @@ int cSceneChangeDetect::Process(int *changeFrameNumber) {
 
 
 // detect blackscreen
-cBlackScreenDetect::cBlackScreenDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam) {
+cBlackScreenDetect::cBlackScreenDetect(cDecoder *decoderParam, cCriteria *criteriaParam) {
     decoder  = decoderParam;
     criteria = criteriaParam;
     Clear();
@@ -1274,7 +1274,7 @@ int cBlackScreenDetect::Process() {
 }
 
 
-cHorizBorderDetect::cHorizBorderDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam) {
+cHorizBorderDetect::cHorizBorderDetect(cDecoder *decoderParam, cCriteria *criteriaParam) {
     decoder      = decoderParam;
     criteria     = criteriaParam;
     frameRate    = decoder->GetVideoFrameRate();
@@ -1419,7 +1419,7 @@ int cHorizBorderDetect::Process(int *borderFrame) {
 }
 
 
-cVertBorderDetect::cVertBorderDetect(cDecoderNEW *decoderParam, cCriteria *criteriaParam) {
+cVertBorderDetect::cVertBorderDetect(cDecoder *decoderParam, cCriteria *criteriaParam) {
     decoder      = decoderParam;
     criteria     = criteriaParam;
     frameRate    = decoder->GetVideoFrameRate();
@@ -1589,7 +1589,7 @@ int cVertBorderDetect::Process(int *borderFrame) {
 }
 
 
-cVideo::cVideo(cDecoderNEW *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam) {
+cVideo::cVideo(cDecoder *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam) {
     dsyslog("cVideo::cVideo(): new object");
     decoder      = decoderParam;
     criteria     = criteriaParam;

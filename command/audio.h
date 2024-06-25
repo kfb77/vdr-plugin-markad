@@ -11,7 +11,7 @@
 #include "global.h"
 #include "debug.h"
 #include "index.h"
-#include "decoderNEW.h"
+#include "decoder.h"
 #include "criteria.h"
 
 enum {
@@ -31,7 +31,7 @@ public:
      *  @param maContext markad context
      *  @param recordingIndex recording index
      */
-    explicit cAudio(cDecoderNEW *decoderParam, cCriteria *criteriaParam);
+    explicit cAudio(cDecoder *decoderParam, cCriteria *criteriaParam);
     ~cAudio();
 
     /**
@@ -65,7 +65,7 @@ private:
      */
     void AddMark(const int type, const int position, const int channelsBefore, const int channelsAfter);
 
-    cDecoderNEW *decoder           = nullptr;                //!< pointer to decoder
+    cDecoder *decoder           = nullptr;                //!< pointer to decoder
     //!<
     cCriteria *criteria            = nullptr;                //!< pointer to analyse criteria
     //!<

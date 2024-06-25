@@ -128,7 +128,7 @@ public:
 
 private:
     sMarkAdContext *maContext = nullptr;
-    cDecoder       *decoder   = nullptr;
+    cDecoder    *decoder   = nullptr;
     cIndex         *index     = nullptr;
     cMarks         *marks     = nullptr;
 };
