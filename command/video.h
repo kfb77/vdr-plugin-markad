@@ -88,6 +88,7 @@ public:
 
     ~cLogoDetect();
 
+    int GetLogoCorner();
     /**
      * detect logo status
      * @param[in]  frameBefore     frame number before
@@ -335,8 +336,7 @@ public:
 
     /**
      * constructor of class to detect vertical border
-     * @param channelNameParam channel name
-     * @param frameRateParam   video frame rate
+     * @param decoderParam     pointer to decoder
      * @param criteriaParam    detection criteria
      */
     explicit cVertBorderDetect(cDecoder *decoderParam, cCriteria *criteriaParam);
@@ -392,8 +392,10 @@ public:
 
     /**
      * constructor of class to check packet for video based marks
+     * @param decoderParam         decoder
      * @param criteriaParam        detection criteria
-     * @param recordingIndex       recording index
+     * @param recDirParam          recording directory
+     * @param logoCacheDirParam   logo cache directory
      */
     explicit cVideo(cDecoder *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
     ~cVideo();
@@ -402,29 +404,41 @@ public:
      * copy constructor, not used, only for formal reason
      */
     cVideo(const cVideo &origin) {
-        sceneChangeDetect         = nullptr;
-        blackScreenDetect         = nullptr;
-        hBorderDetect             = nullptr;
-        vBorderDetect             = nullptr;
-        logoDetect                = nullptr;
-        criteria                  = nullptr;
-        aspectRatioBeforeFrame    = 0;
+        recDir                  = nullptr;
+        logoCacheDir            = nullptr;
+        decoder                 = nullptr;
+        criteria                = nullptr;
+        sceneChangeDetect       = nullptr;
+        blackScreenDetect       = nullptr;
+        hBorderDetect           = nullptr;
+        vBorderDetect           = nullptr;
+        logoDetect              = nullptr;
+        aspectRatioBeforeFrame  = 0;
     };
 
     /**
      * operator=, not used, only for formal reason
      */
     cVideo &operator =(const cVideo *origin) {
-        criteria                  = origin->criteria;
-        sceneChangeDetect         = nullptr;
-        blackScreenDetect         = nullptr;
-        hBorderDetect             = nullptr;
-        vBorderDetect             = nullptr;
-        logoDetect                = nullptr;
-        aspectRatioBeforeFrame    = 0;
-        videoMarks                = {};
+        recDir                  = nullptr;
+        logoCacheDir            = nullptr;
+        decoder                 = nullptr;
+        criteria                = origin->criteria;
+        sceneChangeDetect       = nullptr;
+        blackScreenDetect       = nullptr;
+        hBorderDetect           = nullptr;
+        vBorderDetect           = nullptr;
+        logoDetect              = nullptr;
+        aspectRatioBeforeFrame  = 0;
+        videoMarks              = {};
         return *this;
     }
+
+    /**
+     * get corner index of loaded logo
+     * @return corner index of loaded logo, -1 if no valid logo found
+     */
+    int GetLogoCorner();
 
     /**
      * detect video packet based marks
@@ -466,15 +480,7 @@ private:
      */
     bool AddMark(int type, int position, const sAspectRatio *before = nullptr, const sAspectRatio *after = nullptr);
 
-    /**
-     * check if video aspect ratio changes between the two aspect ratios
-     * @param[in]  AspectRatioA first video aspact ratio
-     * @param[in]  AspectRatioB second video aspect ratio
-     * @return true if aspect ratio changed, false otherwise
-     */
-    static bool AspectRatioChange(const sAspectRatio AspectRatioOld, const sAspectRatio *AspectRatioNew);
-
-    cDecoder *decoder                  = nullptr;  //!< pointer to decoder
+    cDecoder *decoder                     = nullptr;  //!< pointer to decoder
     //!<
     cCriteria *criteria                   = nullptr;  //!< pointer to class for marks and decoding criteria
     //!<

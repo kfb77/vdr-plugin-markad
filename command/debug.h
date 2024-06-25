@@ -87,7 +87,7 @@
 // debug PTS ring buffer build
 // #define DEBUG_RING_PTS_ADD
 
-// debug PTS ring buffer missed PTS
+// debug PTS ring buffer PTS lookup
 // #define DEBUG_RING_PTS_LOOKUP
 
 // debug PTS and DTS of video cut

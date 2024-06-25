@@ -43,7 +43,7 @@ cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam
     logoAspectRatio.den = AspectRatio.den;
 
     // create all used objects
-    decoder = new cDecoder(recDir, threads, false, hwaccel, nullptr);    // recDir, threads, fullDecode, vaapi, index
+    decoder = new cDecoder(recDir, threads, false, hwaccel, false, nullptr);    // recDir, threads, fullDecode, hwaccel, forceHW, index
     ALLOC(sizeof(*decoder), "decoder");
 
     criteria = new cCriteria(channelName);
@@ -52,7 +52,7 @@ cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam
     // open first file to init decoder
     if (decoder->ReadNextFile()) {
         // create object for sobel transformation
-        sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 5);  // lboundary 5
+        sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 5);  // boundary 5
         ALLOC(sizeof(*sobel), "sobel");
 
         // allocate area result buffer
@@ -182,7 +182,7 @@ bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFin
         }
         if (framenumber < 0) { // no debug flag, save logo to recording directory
             int black = 0;
-            for (int i = 0; i < height*width; i++) {
+            for (int i = 0; i < height * width; i++) {
                 if (actLogoInfo->sobel[plane][i] == 0) black++;
             }
             if (plane > 0) {
@@ -1646,7 +1646,11 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
         // do sobbel transformation of plane 0 of all corners
         for (int corner = 0; corner < CORNERS; corner++) {
             area.logoCorner = corner;
-            if (!sobel->SobelPlane(picture, &area, 0)) continue; // call with no logo mask, plane 0
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+            if (sobel->SobelPicture(recDir, picture, &area, true) <= 0) continue; // call with no logo mask
+#else
+            if (sobel->SobelPicture(picture, &area, true) <= 0) continue; // call with no logo mask
+#endif
 
 #if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 0
             if (corner == DEBUG_LOGO_CORNER) {
@@ -1654,8 +1658,8 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
                     char *fileName = nullptr;
                     if (asprintf(&fileName,"%s/F%07d-P%1d-C%1d_SearchLogo.pgm", recDir, frameNumber, plane, corner) >= 1) {
                         ALLOC(strlen(fileName)+1, "fileName");
-                        if (plane == 0) SaveSobel(fileName, area->sobel[plane], logoSizeFinal.width, logoSizeFinal.height);
-                        else SaveSobel(fileName, area->sobel[plane], logoSiteFinal.width / 2, logoSizeFinal.height / 2);
+                        if (plane == 0) SaveSobel(fileName, area.sobel[plane], logoSizeFinal.width, logoSizeFinal.height);
+                        else SaveSobel(fileName, area.sobel[plane], logoSizeFinal.width / 2, logoSizeFinal.height / 2);
                         FREE(strlen(fileName)+1, "fileName");
                         free(fileName);
                     }

@@ -59,10 +59,10 @@ void SaveVideoPicture(const char *fileName, sVideoPicture *picture) {
         return;
     }
     if (picture->width <= 0) {
-        dsyslog("SaveVideoPicture(): width not valid");
+        esyslog("SaveVideoPicture(): width not valid");
         return;
     }
-//    dsyslog("SaveFrameBuffer(): fileName %s", fileName);
+//    dsyslog("SaveVideoPicure(): fileName %s", fileName);
 
     // Open file
     FILE *pFile = fopen(fileName, "wb");

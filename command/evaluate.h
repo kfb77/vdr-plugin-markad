@@ -14,6 +14,7 @@
 #include "marks.h"
 #include "video.h"
 #include "tools.h"
+#include "logo.h"
 
 /**
  * evaluate stop/start pair status
@@ -71,6 +72,8 @@ public:
  */
 class cEvaluateLogoStopStartPair : public cEvaluateChannel {
 public:
+    cEvaluateLogoStopStartPair(cDecoder *decoderParam, cCriteria *criteriaParam);
+    ~cEvaluateLogoStopStartPair();
 
     /**
      * logo stop / start pair
@@ -92,27 +95,22 @@ public:
         //!<
     };
 
-    cEvaluateLogoStopStartPair();
-    ~cEvaluateLogoStopStartPair();
-
     /**
      * check logo stop/start pairs
-     * @param maContext       markad context
      * @param marks           object with all marks
      * @param blackMarks      object with all black screen marks
      * @param iStart          assumed start frame position
      * @param chkSTART        frame position to check start part
      * @param iStopA          assumed end mark position
      */
-    void CheckLogoStopStartPairs(sMarkAdContext *maContext, cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA);
-
+    void CheckLogoStopStartPairs(cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA);
 
     /**
      * check if logo stop/start pair could be closing credits
      * @param[in]     marks             object with all marks
      * @param[in,out] logoStopStartPair structure of logo/stop start pair, result is stored here, isClosingCredits is set to -1 if the part is no logo change
      */
-    static void IsClosingCredits(cMarks *marks, sLogoStopStartPair *logoStopStartPair);
+    void IsClosingCredits(cMarks *marks, sLogoStopStartPair *logoStopStartPair);
 
     /**
      * check if logo stop/start pair could be a logo change
@@ -122,7 +120,7 @@ public:
      * @param[in]     iStart            assumed start mark position
      * @param[in]     chkSTART          search for start mark position
      */
-    static void IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart, const int chkSTART);
+    void IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int iStart, const int chkSTART);
 
     /**
      * check if logo stop/start pair could be an info logo
@@ -132,7 +130,7 @@ public:
      * @param framesPerSecond   video frame rate
      * @param iStopA            assumed stop frame number
      */
-    static void IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStopA);
+    void IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int iStopA);
 
     /**
      * get next logo stop/start pair
@@ -214,6 +212,10 @@ public:
     bool IncludesInfoLogo(const int stopPosition, const int startPosition);
 
 private:
+    cDecoder *decoder   = nullptr;
+    //!<
+    cCriteria *criteria = nullptr;
+    //!<
     std::vector<sLogoStopStartPair> logoPairVector;                 //!< logo stop/start pair vector
     //!<
     std::vector<sLogoStopStartPair>::iterator nextLogoPairIterator; //!< iterator for logo stop/start pair vector
@@ -228,13 +230,11 @@ class cDetectLogoStopStart : public cEvaluateChannel {
 public:
     /**
      * constructor for class to dectect special logo stop/start pair
-     * @param maContextParam                 markad context
-     * @param criteriaParam                  detection criteria
-     * @param decoderParam                   decoder
-     * @param recordingIndexParam            recording index
+     * @param criteriaParam         detection criteria
+     * @param decoderParam          decoder
      * @param evaluateLogoStopStartPairParam class to evaluate logo stop/start pairs
      */
-    cDetectLogoStopStart(sMarkAdContext *maContextParam, cCriteria *criteriaParam, cDecoder *decoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam);
+    cDetectLogoStopStart(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, cExtractLogo *extractLogoParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam, const int logoCornerParam);
 
     ~cDetectLogoStopStart();
 
@@ -251,7 +251,6 @@ public:
      */
     int FindFrameFirstPixel(const uchar *picture, const int corner, const int width, const int height, int startX, int startY, const int offsetX, const int offsetY);
 
-
     /**
      * find start position of a possible frame in a sobel transformed picture
      * @param         picture sobel transformed picture
@@ -263,7 +262,6 @@ public:
      * @param         offsetY y offset for each search step (usually +1 or -1)
      */
     int FindFrameStartPixel(const uchar *picture, const int width, const int height,  int startX, int startY, const int offsetX, const int offsetY);
-
 
     /**
      * find start position of a possible frame in a sobel transformed picture
@@ -333,36 +331,40 @@ public:
     int IntroductionLogo();
 
 private:
-
-    sMarkAdContext *maContext;                              //!< markad context
+    cDecoder *decoder         = nullptr;  //!< decoder
     //!<
-    cDecoder *decoder                                    = nullptr;  //!< decoder
+    cIndex *index             = nullptr;  //!< decoder
     //!<
-    cCriteria *criteria                                     = nullptr;  //!< class for mark detection criteria
+    cCriteria *criteria       = nullptr;  //!< class for mark detection criteria
     //!<
-    cSobel *sobel                                           = nullptr;  // class for sobel transformation
+    cExtractLogo *extractLogo = nullptr;
     //!<
-    cIndex *recordingIndex;                                 //!< recording index
+    sAreaT area               = {};
     //!<
-    cEvaluateLogoStopStartPair *evaluateLogoStopStartPair;  //!< class to evaluate logo stop/start pairs
+    int logoCorner            = -1;
     //!<
-    int startPos = 0;                                       //!< frame number of start position to compare
+    cSobel *sobel             = nullptr;  // class for sobel transformation
     //!<
-    int endPos   = 0;                                       //!< frame number of end position to compare
+    int startPos              = 0;        //!< frame number of start position to compare
+    //!<
+    int endPos                = 0;        //!< frame number of end position to compare
     //!<
     /**
      * compare two frames
      */
     struct sCompareInfo {
-        int frameNumber1 = 0;                //!< frame number 1
-        int frameNumber2 = 0;                //!< frame number 2
+        int frameNumber1          = 0;                //!< frame number 1
         //!<
-        int rate[CORNERS] = {0};             //!< similar rate of frame pair per corner
+        int frameNumber2          = 0;                //!< frame number 2
+        //!<
+        int rate[CORNERS]         = {0};             //!< similar rate of frame pair per corner
         //!<
         int framePortion[CORNERS] = {0};     //!< portion of frame pixels of corner
         //!<
     };
     std::vector<sCompareInfo> compareResult; //!< vector of frame compare results
+    //!<
+    cEvaluateLogoStopStartPair *evaluateLogoStopStartPair;  //!< class to evaluate logo stop/start pairs
     //!<
     const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" };  //!< array to convert corner anum to text
     //!<

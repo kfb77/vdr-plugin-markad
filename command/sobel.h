@@ -53,7 +53,18 @@ public:
         return *this;
     }
 
-    bool AllocAreaBuffer(sAreaT *area);
+    /**
+    * allocate buffer for sobel transformation result
+    * @param area result area
+    * @return true if sucessful, false otherwise
+    */
+    bool AllocAreaBuffer(sAreaT *area) const;
+
+    /**
+    * free buffer for sobel transformation result
+    * @param area result area
+    * @return true if sucessful, false otherwise
+    */
     bool FreeAreaBuffer(sAreaT *area);
 
     /**
@@ -66,31 +77,32 @@ public:
     * sobel transformation of a all planes with a logo plane from input picture
     * @param picture    input picture
     * @param area       logo mask and result of transformation and machtes
+    * @param ignoreLogo ignore missing logo, use by logo search and logo mark optimization
     * @return number of planes processed
     */
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-    int SobelPicture(const char *recDir, sVideoPicture *picture, sAreaT *area);
+    int SobelPicture(const char *recDir, sVideoPicture *picture, sAreaT *area, const bool ignoreLogo);
 #else
-    int SobelPicture(sVideoPicture *picture, sAreaT *area);
+    int SobelPicture(sVideoPicture *picture, sAreaT *area, const bool ignoreLogo);
 #endif
 
     /**
     * sobel transformation of a single plane from input picture
-    * @param picture    input picture
-    * @param logo       picture of logo
-    * @param corner     index of corner
-    * @param plane      number of plane
-    * @return true if successful, false otherwise
+    * @param picture    input video picture
+    * @param area       result area
+    * @param plane      number of video plane
+    * @return           true if successful, false otherwise
     */
     bool SobelPlane(sVideoPicture *picture, sAreaT *area, const int plane);
 
     /**
      * calculate coordinates of logo position (values for array index, from 0 to (Video.Info.width - 1) or (Video.Info.height)
+     * @param[out] area   result area
+     * @param[out] plane  video plane number
      * @param[out] xstart x position of logo start
      * @param[out] xend   x position of logo end
      * @param[out] ystart y position of logo start
      * @param[out] yend   y position of logo end
-     * @param[in]  plane  number of plane
      * @return true if successful, false otherwise
      */
     bool SetCoordinates(sAreaT *area, const int plane, int *xstart, int *xend, int *ystart, int *yend) const;

@@ -216,7 +216,7 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *ptr_cDecoder) {
     char *filename = nullptr;
     char *buffCutName;
 
-    ptr_cDecoder->Reset();
+    ptr_cDecoder->Restart();
 
     avctxIn = ptr_cDecoder->GetAVFormatContext();
     if (!avctxIn) {

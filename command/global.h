@@ -161,6 +161,10 @@ typedef struct sAspectRatio {
     //!<
     int den = 0;  //!< video aspectio ratio denominator
     //!<
+
+    /**
+     *  operator !=
+     */
     bool operator != (const sAspectRatio& other) const {
         if ((this->num != other.num) || (this->den != other.den)) return true;
         return false;
@@ -184,12 +188,16 @@ enum eLogoStatus {
 /**
  * AC3 audio channel change
  */
-typedef struct sAudioAC3 {
-    int channelCount     = 0;     // channel count
-    int64_t pts          = 0;     // packet pts of last change
-    int videoFrameNumber = -1;    // associated video frame number from PTS ring buffer
-    bool processed       = true;  // true if channel change is processed by audio channel mark detection
-} sAudioAC3;
+typedef struct sAudioAC3Channels {
+    int channelCount     = 0;     //!< channel count
+    //!<
+    int64_t pts          = 0;     //!< packet pts of last change
+    //!<
+    int videoFrameNumber = -1;    //!< associated video frame number from PTS ring buffer
+    //!<
+    bool processed       = true;  //!< true if channel change is processed by audio channel mark detection
+    //!<
+} sAudioAC3Channels;
 
 
 /**
@@ -295,6 +303,8 @@ typedef struct sMarkAdConfig {
     bool pts                       = false;    //!< <b>true:</b> add pts based timestanp to marks<br>
     //!< <b>false:</b> otherwise
     char hwaccel[16]               = {0};      //!< hardware acceleration methode
+    //!<
+    bool forceHW                   = false;    //!< force hwaccel for MPEG2
     //!<
     bool perftest                  = false;    //!< <b>true:</b>  run decoder performance test before detect marks<br>
     //!< <b>false:</b> otherwise

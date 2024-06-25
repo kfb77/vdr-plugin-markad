@@ -10,18 +10,19 @@
 */
 class cTest {
 private:
-    int testFrames            = 30000;   //!< count test frames to decode
-    //!<
 
 public:
 
     /**
      * constructor for performance test class
-     * @param maContextParam markad context
+     * @param recDirParam      recording directory
+     * @param fullDecodeParam  true if full decoding, false if decoding only i-frames
+     * @param hwaccelParam     hwaccel methode
      */
-    explicit cTest(const char *recDirParam, char *hwaccelParam) {
-        recDir  = recDirParam;
-        hwaccel = hwaccelParam;
+    explicit cTest(const char *recDirParam, const bool fullDecodeParam, char *hwaccelParam) {
+        recDir     = recDirParam;
+        fullDecode = fullDecodeParam;
+        hwaccel    = hwaccelParam;
     }
 
     ~cTest() {
@@ -32,8 +33,10 @@ public:
      * all decoder performance test
      */
     void Perf() {
+        int testFrames = 30000;              // count test frames to decode with decode i-frames only
+        if (fullDecode) testFrames = 5000;   // count test frames to decode with full decode
         char no_hwaccel[16]       = {0};
-        int resultDecoder[2][5]      = {};
+        int resultDecoder[2][5]   = {};
         int resultDecoderHW[2][5] = {};
         dsyslog("run decoder performance test");
 
@@ -42,9 +45,9 @@ public:
             for (int threads = 1; threads <=4; threads++) {
                 if (threads == 3) continue;
                 dsyslog("pass %d, threads %d: decoder software *******************************************************************************", pass, threads);
-                resultDecoder[pass][threads]      = PerfDecoder(threads, no_hwaccel);
-                dsyslog("pass %d, threads %d: decoder  hwaccel:%-10s *****************************************************************", pass, threads, hwaccel);
-                resultDecoderHW[pass][threads] = PerfDecoder(threads, hwaccel);
+                resultDecoder[pass][threads]   = PerfDecoder(testFrames, threads, no_hwaccel);
+                dsyslog("pass %d, threads %d: decoder hwaccel: %-10s *****************************************************************", pass, threads, hwaccel);
+                resultDecoderHW[pass][threads] = PerfDecoder(testFrames, threads, hwaccel);
             }
         }
         for (int pass = 0; pass <= 1; pass++) {
@@ -52,8 +55,8 @@ public:
             for (int threads = 1; threads <=4; threads++) {
                 if (threads == 3) continue;
                 dsyslog("threads %d ********************************************************************", threads);
-                dsyslog("decoder, threads %d:                    %5dms", threads, resultDecoder[pass][threads]);
-                dsyslog("decoder, threads %d, hwaccel:%-10s %5dms", threads, hwaccel, resultDecoderHW[pass][threads]);
+                dsyslog("decoder, threads %d:                     %5dms", threads, resultDecoder[pass][threads]);
+                dsyslog("decoder, threads %d, hwaccel: %-10s %5dms", threads, hwaccel, resultDecoderHW[pass][threads]);
             }
         }
         dsyslog("*****************************************************************************");
@@ -62,22 +65,21 @@ public:
 
     /**
     * decoder performance test
-    * @param threads count of FFmpeg threads
-    * @param hwaccel true if hwaccel is used, false otherwise
+    * @param testFrames count of test rames for performance test
+    * @param threads    count of FFmpeg threads
+    * @param hwaccel    hwaccel methode
     */
-    int PerfDecoder(const int threads, char *hwaccel) const {
+    int PerfDecoder(const int testFrames, const int threads, char *hwaccel) const {
         // decode frames
         struct timeval startDecode = {};
         gettimeofday(&startDecode, nullptr);
 
         // init decoder
-        cDecoder *decoder = new cDecoder(recDir, threads, false, hwaccel, nullptr);  // recodring directory, threads, full decode, hwaccel mathone, index flag
+        cDecoder *decoder = new cDecoder(recDir, threads, fullDecode, hwaccel, true, nullptr);  // recording directory, threads, full decode, hwaccel methode, force hwaccel, index flag
         while (decoder->DecodeNextFrame(false)) {  // no audio decode
             if (abortNow) return -1;
-            //        dsyslog("xxxx framenumber %d", decoder->GetVideoFrameNumber());
             if (decoder->GetVideoFrameNumber() >= testFrames) break;
         }
-
         delete decoder;
 
         struct timeval endDecode = {};
@@ -93,7 +95,11 @@ public:
     }
 
 private:
-    const char * recDir;
-    char * hwaccel;
+    const char * recDir = nullptr;  //!< recording directory
+    //!<
+    bool fullDecode     = false;    //!< true if full decoding, false if decoding only i-frames
+    //!<
+    char *hwaccel       = nullptr;  //!< hwaccel methode
+    //!<
 };
 

@@ -119,21 +119,20 @@ bool cLogoDetect::LoadLogoPlane(const char *path, const char *logoName, const in
 
     // build full logo file name
     char *logoFileName;
-    if (asprintf(&logoFileName, "%s/%s-P%i.pgm", path, logoName, plane) == -1) return false;
+    if (asprintf(&logoFileName, "%s/%s-P%d.pgm", path, logoName, plane) == -1) return false;
     ALLOC(strlen(logoFileName) + 1, "logoFileName");
-    dsyslog("cLogoDetect::LoadLogoPlane(): logo file name %s", logoFileName);
+    dsyslog("cLogoDetect::LoadLogoPlane(): search logo file name %s", logoFileName);
 
     // read logo file
-    FILE *pFile;
-    area.valid[plane] = false;
+    FILE *pFile = nullptr;
     pFile = fopen(logoFileName, "rb");
     FREE(strlen(logoFileName) + 1, "logoFileName");
     free(logoFileName);
     if (!pFile) {
-        dsyslog("cLogoDetect::LoadLogoPlane(): file not found for logo %s plane %d in %s",logoName, plane, path);
+        dsyslog("cLogoDetect::LoadLogoPlane(): file not found for logo %s plane %d in %s", logoName, plane, path);
         return false;
     }
-    else dsyslog("cLogoDetect::LoadLogoPlane(): file found for logo %s plane %d in %s",logoName, plane, path);
+    dsyslog("cLogoDetect::LoadLogoPlane(): file found for logo %s plane %d in %s", logoName, plane, path);
 
     // get logo size and corner
     int width, height;
@@ -174,13 +173,16 @@ bool cLogoDetect::LoadLogoPlane(const char *path, const char *logoName, const in
     // calculate pixel for logo detection
     if (area.mPixel[plane] == 0) {
         for (int i = 0; i < width * height; i++) {
-            if (!area.logo[plane][i]) area.mPixel[plane]++;
+            if ((area.logo[plane][i]) == 0) area.mPixel[plane]++;
         }
         dsyslog("cLogoDetect::LoadLogoPlane(): logo plane %d has %d pixel", plane, area.mPixel[plane]);
     }
-
     area.valid[plane] = true;
     return true;
+}
+
+int cLogoDetect::GetLogoCorner() {
+    return area.logoCorner;
 }
 
 // TODO
@@ -642,7 +644,7 @@ int cLogoDetect::Detect(const int frameBefore, const int frameCurrent, int *logo
 
     // apply sobel transformation to all planes
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-    processed = sobel->SobelPicture(recDir, picture, &area);
+    processed = sobel->SobelPicture(recDir, picture, &area, false);  // don't ignore logo
     if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
         char *fileName = nullptr;
         if (asprintf(&fileName,"%s/F__%07d.pgm", recDir, frameCurrent) >= 1) {
@@ -653,7 +655,7 @@ int cLogoDetect::Detect(const int frameBefore, const int frameCurrent, int *logo
         }
     }
 #else
-    processed = sobel->SobelPicture(picture, &area);
+    processed = sobel->SobelPicture(picture, &area, false);  // don't ignore logo
 #endif
     for (int plane = 0; plane < PLANES; plane++) {
         rPixel += area.rPixel[plane];
@@ -1638,6 +1640,10 @@ cVideo::~cVideo() {
 }
 
 
+int cVideo::GetLogoCorner () {
+    return logoDetect->GetLogoCorner();
+}
+
 void cVideo::Clear(const bool isRestart) {
     dsyslog("cVideo::Clear(): reset detection status, isRestart = %d", isRestart);
     if (!isRestart) {
@@ -1682,15 +1688,6 @@ bool cVideo::AddMark(int type, int position, const sAspectRatio *before, const s
     videoMarks.Number[videoMarks.Count].type     = type;
     videoMarks.Count++;
     return true;
-}
-
-
-bool cVideo::AspectRatioChange(const sAspectRatio AspectRatioOld, const sAspectRatio *AspectRatioNew) {
-    if (((AspectRatioOld.num == 0) || (AspectRatioOld.den == 0)) &&
-            ((AspectRatioNew->num == 4) && (AspectRatioNew->den == 3))) return true;
-
-    if ((AspectRatioOld.num != AspectRatioNew->num) && (AspectRatioOld.den != AspectRatioNew->den)) return true;
-    return false;
 }
 
 
@@ -1767,7 +1764,7 @@ sMarkAdMarks *cVideo::Process() {
             esyslog("cVideo::Process(): frame (%d): get aspect ratio failed", frameNumber);
             return nullptr;
         }
-        if (AspectRatioChange(aspectRatioFrameBefore, aspectRatioFrame)) {
+        if (aspectRatioFrameBefore != *aspectRatioFrame) {
             if ((aspectRatioBroadcast.num == 4) && (aspectRatioBroadcast.den == 3)) {
                 if ((aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) AddMark(MT_ASPECTSTART, frameNumber,     &aspectRatioFrameBefore, aspectRatioFrame);
                 else                                                              AddMark(MT_ASPECTSTOP,  frameNumber - 1, &aspectRatioFrameBefore, aspectRatioFrame);

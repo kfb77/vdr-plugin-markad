@@ -25,6 +25,7 @@ cOverlap::~cOverlap() {
 
 
 bool cOverlap::DetectOverlap(cMarks *marksParam) {
+    return false;
     /* TODO
     if (abortNow)    return false;
     if (!maContext)  return false;
@@ -91,6 +92,7 @@ bool cOverlap::DetectOverlap(cMarks *marksParam) {
 
 
 bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **mark1, cMark **mark2) {
+    return false;
     /* TODO
     if (!maContext) return false;
     if (!decoder)   return false;
@@ -351,8 +353,8 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
             return true;
         }
     }
-    */
     return false;
+    */
 }
 
 

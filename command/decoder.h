@@ -65,6 +65,7 @@ extern "C" {
 // #if LIBAVCODEC_VERSION_INT >= ((54<<16)+( 35<<8)+1)     avconv 9.20  (Ubuntu 14.04, End of Life: April 2024)
 
 
+
 /**
  * main decoder class
  */
@@ -79,9 +80,11 @@ public:
      * @param hwaccelParam      true if we use hwaccel
      * @param indexParam        recording index class
      */
-    explicit cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccel, cIndex *indexParam);
+    explicit cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccel, const bool forceHWparam, cIndex *indexParam);
 
     ~cDecoder();
+
+    const char* GetRecordingDir();
 
     /**
      * set decoder to first/next file of the directory
@@ -103,20 +106,9 @@ public:
     bool InitDecoder(const char * filename);
 
     /**
-     * get currently in progress TS file number
-     * @return file number
-     */
-    int GetFileNumber() const;
-
-    /**
      * restart decoder to first frame of first file
      */
     void Restart();
-
-    /**
-     * reset decoder
-     */
-    void Reset();
 
     /**
      * get libav format context
@@ -252,13 +244,13 @@ public:
      * check if current frame is a video frame
      * @return true if current frame is a video frame, false otherwise
      */
-    bool IsVideoFrame();
+    bool IsVideoFrame() const;
 
     /**
      * check if current frame is a video i-frame
      * @return true if current frame is a video i-frame, false otherwise
      */
-    bool IsVideoIFrame();
+    bool IsVideoIFrame() const;
 
     /**
      * check if stream is AC3
@@ -289,23 +281,17 @@ public:
      */
     int GetAC3ChannelCount();
 
-    sAudioAC3 *GetChannelChange();
+    sAudioAC3Channels *GetChannelChange();
+
+    int64_t GetPacketPTS();
+
+    int GetVolume();
 
     /** check if stream is subtitle
      * @param streamIndex stream index
      * @return true if stream is subtitle, false otherwise
      */
     bool IsSubtitleStream(const unsigned int streamIndex);
-
-    /** check if current packet is a subtitle
-     * @return true if current packet is subtitle, false otherwise
-     */
-    bool IsSubtitlePacket();
-
-    /** get current read video packet number
-     * @return current read packet number
-     */
-//    int GetVideoPacketNumber() const;
 
     /** get current decoded video frame number
      * @return current decoded frame number
@@ -336,8 +322,29 @@ public:
      */
     sAspectRatio *GetFrameAspectRatio();
 
-
 private:
+
+    typedef struct sPacketFrameMap {
+        int frameNumber                = 0;
+        int64_t sumDuration            = 0;
+    } sPacketFrameMap;
+
+    /**
+     * reset decoder
+     */
+    void Reset();
+
+    /**
+     * get currently in progress TS file number
+     * @return file number
+     */
+    int GetFileNumber() const;
+
+    /** check if current packet is a subtitle
+     * @return true if current packet is subtitle, false otherwise
+     */
+    bool IsSubtitlePacket();
+
     char *recordingDir                 = nullptr;                 //!< name of recording directory
     //!<
     cIndex *index                      = nullptr;                 //!< recording index
@@ -347,6 +354,8 @@ private:
     bool fullDecode                    = false;                   //!< false if we decode only i-frames, true if we decode all frames
     //!<
     bool useHWaccel                    = false;                   //!< enable hardware accelerated video decode and encode
+    //!<
+    bool forceHW                       = false;                   //!< force use of hardware accelerated video decode and encode for MEPG2
     //!<
     enum AVHWDeviceType hwDeviceType   = AV_HWDEVICE_TYPE_NONE ;  //!< hardware device type
     //!<
@@ -379,14 +388,11 @@ private:
     //!<
     bool eof                           = false;                   //!< true if end of all ts files reached
     //!<
-    typedef struct sPacketFrameMap {
-        int frameNumber                = 0;
-        int64_t sumDuration            = 0;
-    } sPacketFrameMap;
-    //!<
     std::deque<sPacketFrameMap> packetFrameMap;                   //!< ring buffer to map frameNumer to packetNumber without full decoding
     //!<
-    int decoderSendState               = 0;                       //!< last return code of avcodec_send_packet()
+    int decoderSendState               = 0;                       //!< last return code of SendPacketToDecoder()
+    //!<
+    int decoderReceiveState            = -EAGAIN;                 //!< last return code of ReceiveFrameFromDecoder()
     //!<
     sVideoPicture videoPicture         = {};                      //!< current decoded video picture
     //!<
@@ -412,7 +418,7 @@ private:
     //!<
     int decodeErrorFrame               = -1;                      //!< frame number of last decoding error
     //!<
-    sAudioAC3 audioAC3[MAXSTREAMS]     = {};                       //!< AC3 audio stream channel count state
+    sAudioAC3Channels audioAC3Channels[MAXSTREAMS] = {};          //!< AC3 audio stream channel count state
     //!<
 };
 #endif

@@ -9,7 +9,8 @@
 #include "debug.h"
 
 
-cIndex::cIndex() {
+cIndex::cIndex(const bool fullDecodeParam) {
+    fullDecode = fullDecodeParam;
     ptsRing.reserve(MAX_PTSRING + 2);  // pre alloc memory of static length ptsRing
     indexVector.clear();
     indexVector.reserve(1000);       // pre alloc memory for 1000 index elements
@@ -100,6 +101,19 @@ int cIndex::GetIFrameAfterPTS(const int64_t pts) {
 }
 
 
+int cIndex::GetFrameBefore(int frameNumber) {
+    if (fullDecode) return frameNumber - 1;
+    else {
+        int iFrameBefore = GetIFrameBefore(frameNumber);
+        if (iFrameBefore < 0) {
+            esyslog("cIndex::GetFrameBefore(): frame (%d): GetIFrameBefore() failed", frameNumber);
+            iFrameBefore = frameNumber - 1;
+        }
+        return iFrameBefore;
+    }
+}
+
+
 // get iFrame before given frame
 // if frame is a iFrame, frame will be returned
 // if frame > last iFrame from index, return last iFrame
@@ -107,7 +121,7 @@ int cIndex::GetIFrameAfterPTS(const int64_t pts) {
 //
 int cIndex::GetIFrameBefore(int frameNumber) {
     if (indexVector.empty()) {
-        dsyslog("cIndex::GetIFrameBefore(): frame index not initialized");
+        esyslog("cIndex::GetIFrameBefore(): frame index not initialized");
         return -1;
     }
     int before_iFrame = -1;
@@ -258,9 +272,9 @@ void cIndex::AddPTS(const int frameNumber, const int64_t pts) {
 }
 
 
-int cIndex::GetVideoFrameToPTS(const int64_t pts, const bool before) {
+int cIndex::GetFrameBeforePTS(const int64_t pts) {
     if (ptsRing.size() == 0) {
-        esyslog("cIndex::GetVideoFrameToPTS(): index is empty");
+        esyslog("cIndex::GetFrameBeforePTS(): index is empty");
         return -1;
     }
     struct sFrameType {
@@ -272,39 +286,69 @@ int cIndex::GetVideoFrameToPTS(const int64_t pts, const bool before) {
     int64_t ptsMax =  0;
     dsyslog("----------------------------------------------------------------------------------------------------------------------");
 #endif
-    if (!before) frame.pts = INT64_MAX;
 
     for (std::vector<sPTS_RingbufferElement>::iterator ptsIterator = ptsRing.begin(); ptsIterator != ptsRing.end(); ++ptsIterator) { // get framenumber after
 #ifdef DEBUG_RING_PTS_LOOKUP
-        dsyslog("cIndex::GetVideoFrameToPTS(): frame (%6d) PTS %" PRId64, ptsIterator->frameNumber, ptsIterator->pts);
+        dsyslog("cIndex::GetFrameBeforePTS(): frame (%6d) PTS %" PRId64, ptsIterator->frameNumber, ptsIterator->pts);
         ptsMin = std::min(ptsMin, ptsIterator->pts);
         ptsMax = std::max(ptsMax, ptsIterator->pts);
 #endif
-        if (before) {  // search smallest Video PTS before or equal given PTS
-            if ((ptsIterator->pts <= pts) && (ptsIterator->pts >= frame.pts)) {  // reset state if we found a frame with pts smaller than target, they can be out of sequence
-                frame.frameNumber = ptsIterator->frameNumber;
-                frame.pts         = ptsIterator->pts;
-            }
-        }
-        else {  // search smallest video PTS after given PTS
-            if ((ptsIterator->pts >= pts) && (ptsIterator->pts <= frame.pts)) {  // get frame with lowest pts after taget pts, we can not break here because it can out of sequence
-                frame.frameNumber = ptsIterator->frameNumber;
-                frame.pts         = ptsIterator->pts;
-            }
+        if ((ptsIterator->pts <= pts) && (ptsIterator->pts >= frame.pts)) {  // reset state if we found a frame with pts smaller than target, they can be out of sequence
+            frame.frameNumber = ptsIterator->frameNumber;
+            frame.pts         = ptsIterator->pts;
         }
     }
 #ifdef DEBUG_RING_PTS_LOOKUP
-    dsyslog("cIndex::GetVideoFrameToPTS(): PTS      min: %" PRId64, ptsMin);
-    dsyslog("cIndex::GetVideoFrameToPTS(): PTS searched: %" PRId64, pts);
-    dsyslog("cIndex::GetVideoFrameToPTS(): PTS      max: %" PRId64, ptsMax);
-    dsyslog("cIndex::GetVideoFrameToPTS(): index size %lu", ptsRing.size());
-    dsyslog("cIndex::GetVideoFrameToPTS(): found video frame (%d) PTS %" PRId64 " %s PTS %" PRId64, frame.frameNumber, frame.pts, (before) ? "before" : "after", pts);
+    dsyslog("cIndex::GetFrameBeforePTS(): PTS      min: %" PRId64, ptsMin);
+    dsyslog("cIndex::GetFrameBeforePTS(): PTS searched: %" PRId64, pts);
+    dsyslog("cIndex::GetFrameBeforePTS(): PTS      max: %" PRId64, ptsMax);
+    dsyslog("cIndex::GetFrameBeforePTS(): index size %lu", ptsRing.size());
+    dsyslog("cIndex::GetFrameBeforePTS(): found video frame (%d) PTS %" PRId64 " before PTS %" PRId64, frame.frameNumber, frame.pts, pts);
+    dsyslog("----------------------------------------------------------------------------------------------------------------------");
+    // missing audio PTS in index can happen if audio PTS is after video PTS
+    dsyslog("cIndex::GetFrameBeforePTS(): pts %ld: not found, index contains from %ld to %ld", pts, ptsMin, ptsMax);
+#endif
+    return frame.frameNumber;
+}
+
+
+
+int cIndex::GetFrameAfterPTS(const int64_t pts) {
+    if (ptsRing.size() == 0) {
+        esyslog("cIndex::GetFrameAfterPTS(): index is empty");
+        return -1;
+    }
+    struct sFrameType {
+        int frameNumber = -1;
+        int64_t pts     =  INT_MAX;
+    } frame;
+#ifdef DEBUG_RING_PTS_LOOKUP
+    int64_t ptsMin =  INT64_MAX;
+    int64_t ptsMax =  0;
     dsyslog("----------------------------------------------------------------------------------------------------------------------");
 #endif
-    if (frame.frameNumber < 0) {
-        if (ptsRing.front().frameNumber == 0) frame.frameNumber = 0;  // return start of recording
+
+    for (std::vector<sPTS_RingbufferElement>::iterator ptsIterator = ptsRing.begin(); ptsIterator != ptsRing.end(); ++ptsIterator) { // get framenumber after
+#ifdef DEBUG_RING_PTS_LOOKUP
+        dsyslog("cIndex::GetFrameAfterPTS(): frame (%6d) PTS %" PRId64, ptsIterator->frameNumber, ptsIterator->pts);
+        ptsMin = std::min(ptsMin, ptsIterator->pts);
+        ptsMax = std::max(ptsMax, ptsIterator->pts);
+#endif
+        // search smallest video PTS after given PTS
+        if ((ptsIterator->pts >= pts) && (ptsIterator->pts <= frame.pts)) {  // get frame with lowest pts after taget pts, we can not break here because it can out of sequence
+            frame.frameNumber = ptsIterator->frameNumber;
+            frame.pts         = ptsIterator->pts;
+        }
     }
-    // error message should be done by calling function
+#ifdef DEBUG_RING_PTS_LOOKUP
+    dsyslog("cIndex::GetFrameAfterPTS(): PTS      min: %" PRId64, ptsMin);
+    dsyslog("cIndex::GetFrameAfterPTS(): PTS searched: %" PRId64, pts);
+    dsyslog("cIndex::GetFrameAfterPTS(): PTS      max: %" PRId64, ptsMax);
+    dsyslog("cIndex::GetFrameAfterPTS(): index size %lu", ptsRing.size());
+    dsyslog("cIndex::GetFrameAfterPTS(): found video frame (%d) PTS %" PRId64 " after PTS %" PRId64, frame.frameNumber, frame.pts, pts);
+    dsyslog("----------------------------------------------------------------------------------------------------------------------");
     // missing audio PTS in index can happen if audio PTS is after video PTS
+    dsyslog("cIndex::GetFrameAfterPTS(): pts %ld: not found, index contains from %ld to %ld", pts, ptsMin, ptsMax);
+#endif
     return frame.frameNumber;
 }

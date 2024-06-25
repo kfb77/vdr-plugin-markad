@@ -27,7 +27,6 @@ enum eFadeInOut {
 };
 
 
-
 /**
  * store valid mark creteria for broadcast
  */
@@ -37,14 +36,14 @@ public:
     /**
      * cCriteria constructor
      */
-    cCriteria(const char *channelNameParam);
+    explicit cCriteria(const char *channelNameParam);
     ~cCriteria();
 
     /**
      * get channel name
      * @return channel name
      */
-    const char *GetChannelName();
+    const char *GetChannelName() const;
 
     /**
      * get status of channel have exact VPS events
@@ -74,7 +73,6 @@ public:
      */
     bool InfoInBorder();
 
-
     /**
      * get status of channel has logo who changes Color
      * @param channelName name of the channel
@@ -96,13 +94,11 @@ public:
      */
     bool LogoTransparent();
 
-
     /**
      * get status of a mark type
      * @return status
      */
     int GetMarkTypeState(const int type) const;
-
 
     /**
      * set status of a mark type
@@ -110,7 +106,6 @@ public:
      * @param state  set to this state
      */
     void SetMarkTypeState(const int type, const int state);
-
 
     /**
      * list mark type stati
@@ -122,13 +117,11 @@ public:
      */
     bool GetDetectionState(const int type) const;
 
-
     /**
      * get status of possible closing credits without logo
      * @return status
      */
     int GetClosingCreditsState(const int position) const;
-
 
     /**
      * set status of closing credits without logo
@@ -137,18 +130,15 @@ public:
      */
     void SetClosingCreditsState(const int position, const int state);
 
-
     /**
      * turn on/of detection of marks from type
      */
     void SetDetectionState(const int type, const bool state);
 
-
     /**
      * list detection stati
      */
     void ListDetection() const;
-
 
 private:
     /**
@@ -170,12 +160,10 @@ private:
     //!<
     int channel               = CRITERIA_UNKNOWN;  //!< status of channel changes in broadcast
     //!<
-
     int closingCreditsState   = CRITERIA_UNKNOWN;  //!< status of closing credits after end mark
     //!<
     int closingCreditsPos     = -1;                //!< mark position from status
     //!<
-
     bool sceneDetection       = true;              //!< true if we have to detect scene changes, false otherwise
     //!<
     bool soundDetection       = true;              //!< true if we have to detect silence, false otherwise

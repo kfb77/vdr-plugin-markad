@@ -58,6 +58,12 @@ public:
      */
     cMarkAdStandalone(const cMarkAdStandalone &origin) {   //  copy constructor, not used, only for formal reason
         strcpy(title, origin.title);
+        decoder                   = nullptr;
+        index                     = nullptr;
+        criteria                  = nullptr;
+        startA                    = origin.startA;
+        stopA                     = origin.stopA;
+        frameCheckStart           = origin.frameCheckStart;
         ptitle                    = title;
         directory                 = origin.directory;
         video                     = nullptr;
@@ -86,6 +92,12 @@ public:
      */
     cMarkAdStandalone &operator =(const cMarkAdStandalone *origin) {
         strcpy(title,origin->title);
+        decoder                   = nullptr;
+        index                     = nullptr;
+        criteria                  = nullptr;
+        startA                    = origin->startA;
+        stopA                     = origin->stopA;
+        frameCheckStart           = origin->frameCheckStart;
         ptitle                    = title;
         directory                 = origin->directory;
         video                     = nullptr;
@@ -369,9 +381,11 @@ private:
 
     cIndex *index                    = nullptr; //!< pointer to index object
     //!
-    cDecoder *decoder             = nullptr;  //!< pointer to decoder
+    cDecoder *decoder                = nullptr;  //!< pointer to decoder
     //!
     cCriteria *criteria              = nullptr;  //!< status of possible mark types of the broadcast
+    //!<
+    cExtractLogo *extractLogo        = nullptr;  //!< pointer to class to extract logo from recording
     //!<
     cVideo *video                    = nullptr;  //!< detect video marks for current frame
     //!<
@@ -436,6 +450,8 @@ private:
     bool checkAudio                  = false;    //!< set to true after each i-Frame, reset to false after audio channel check
     //!<
     cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = nullptr;  //!< pointer to class cEvaluateLogoStopStartPair
+    //!<
+    cDetectLogoStopStart *detectLogoStopStart             = nullptr;
     //!<
 };
 #endif

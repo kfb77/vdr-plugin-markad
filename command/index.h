@@ -21,7 +21,7 @@
  */
 class cIndex {
 public:
-    cIndex();
+    explicit cIndex(const bool fullDecodeParam);
     ~cIndex();
 
     /**
@@ -35,6 +35,13 @@ public:
 
     int GetIFrameBeforePTS(const int64_t pts);
     int GetIFrameAfterPTS(const int64_t pts);
+
+    /**
+     * get frame before frameNumber
+     * @param frameNumber number of frame
+     * @return f fullDecode frame number direct before frameNumber, else i-frame number before
+     */
+    int GetFrameBefore(int frameNumber);
 
     /**
      * get i-frame before frameNumber
@@ -80,14 +87,20 @@ public:
      */
     void AddPTS(const int frameNumber, const int64_t pts);
 
-    /** get first video frame number after given presentation timestamp of AC3 frame PTS
+    /** video frame number before given PTS of called PTS
      * @param pts  presentation timestamp
-     * @param before true will return frame number before PTS, false will return frame number after PTS
-     * @return first frame number after given presentation timestamp
+     * @return video frame number before given presentation timestamp
      */
-    int GetVideoFrameToPTS(const int64_t pts, const bool before = false);
+    int GetFrameBeforePTS(const int64_t pts);
+
+    /** video frame number after given PTS of called PTS
+     * @param pts  presentation timestamp
+     * @return video frame number after given presentation timestamp
+     */
+    int GetFrameAfterPTS(const int64_t pts);
 
 private:
+    bool fullDecode = false;
     /**
      * element of the video index
      */

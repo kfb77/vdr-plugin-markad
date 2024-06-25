@@ -48,7 +48,7 @@ cSobel::~cSobel() {
 }
 
 
-bool cSobel::AllocAreaBuffer(sAreaT *area) {
+bool cSobel::AllocAreaBuffer(sAreaT *area) const {
     if ((area->logoSize.width <= 0) || (area->logoSize.height <= 0)) {
         esyslog("cSobel::AllocResultBuffer(): invalid logo size %d:%d", area->logoSize.width, area->logoSize.height);
         return false;
@@ -130,14 +130,14 @@ bool cSobel::FreeAreaBuffer(sAreaT *area) {
 
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-int cSobel::SobelPicture(const char *recDir, sVideoPicture *picture, sAreaT *area) {
+int cSobel::SobelPicture(const char *recDir, sVideoPicture *picture, sAreaT *area, const bool ignoreLogo) {
 #else
-int cSobel::SobelPicture(sVideoPicture *picture, sAreaT *area) {
+int cSobel::SobelPicture(sVideoPicture *picture, sAreaT *area, const bool ignoreLogo) {
 #endif
     // apply sobel transformation to all planes
     int processed = 0;
     for (int plane = 0; plane < PLANES; plane++) {
-        if (area->valid[plane]) {
+        if (area->valid[plane] || ignoreLogo) {
             if (SobelPlane(picture, area, plane)) {
                 processed++;
 
@@ -281,7 +281,7 @@ bool cSobel::SobelPlane(sVideoPicture *picture, sAreaT *area, const int plane) {
             area->sobel[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] = val;
 
             // only store results in logo coordinates range
-            if (area->valid[plane]) {  // if we are called by logo search, we have no valid area->logo
+            if (area->valid[plane]) {  // if we are called by logo search, we have no valid logo
                 // area result
                 area->result[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] = (area->logo[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] + val) & 255;
                 if (area->result[plane][(X - xStart) + (Y - yStart) * planeLogoWidth] == 0) area->rPixel[plane]++;

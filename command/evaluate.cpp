@@ -7,7 +7,6 @@
 
 
 #include "evaluate.h"
-#include "logo.h"
 
 
 extern bool abortNow;
@@ -92,8 +91,10 @@ bool cEvaluateChannel::IntroductionLogoChannel(const char *channelName) {
 }
 
 
-cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair() {
+cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(cDecoder *decoderParam, cCriteria *criteriaParam) {
     dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): called");
+    decoder  = decoderParam;
+    criteria = criteriaParam;
 }
 
 
@@ -111,9 +112,18 @@ cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
 
 // Check logo stop/start pairs
 // used by logo change detection
-void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maContext, cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA) {
-    if (!marks) return;
-    return;  // TODO
+void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA) {
+    if (!marks) {
+        esyslog(" cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): marks missing");
+        return;
+    }
+    if (!decoder) {
+        esyslog(" cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): decoder missing");
+        return;
+    }
+
+    int frameRate = decoder->GetVideoFrameRate();
+    const char *channelName = criteria->GetChannelName();
 
 #define LOGO_CHANGE_NEXT_STOP_MIN     6840  // in ms, do not increase, 6840ms is the shortest found distance between two logo changes
     // next stop max (=lenght next valid broadcast) found: 1242s
@@ -143,21 +153,21 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): -----------------------------------------------------------------------------------------");
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): stop (%d) start (%d) pair", logoPairIterator->stopPosition, logoPairIterator->startPosition);
         // check for info logo section
-        if (IsInfoLogoChannel(maContext->Info.ChannelName)) IsInfoLogo(marks, blackMarks, &(*logoPairIterator), maContext->Video.Info.framesPerSecond, iStopA);
+        if (IsInfoLogoChannel(channelName)) IsInfoLogo(marks, blackMarks, &(*logoPairIterator), iStopA);
         else logoPairIterator->isInfoLogo = STATUS_DISABLED;
 
         // check for logo change section
-        if (IsLogoChangeChannel(maContext->Info.ChannelName)) IsLogoChange(marks, &(*logoPairIterator), maContext->Video.Info.framesPerSecond, iStart, chkSTART);
+        if (IsLogoChangeChannel(channelName)) IsLogoChange(marks, &(*logoPairIterator), iStart, chkSTART);
         else logoPairIterator->isLogoChange = STATUS_DISABLED;
 
         // check for closing credits section
-        if (ClosingCreditsChannel(maContext->Info.ChannelName)) IsClosingCredits(marks, &(*logoPairIterator));
+        if (ClosingCreditsChannel(channelName)) IsClosingCredits(marks, &(*logoPairIterator));
         else logoPairIterator->isClosingCredits = STATUS_DISABLED;
 
         // global information about logo pairs
         // mark after pair
         const cMark *markStop_AfterPair = marks->GetNext(logoPairIterator->stopPosition, MT_LOGOSTOP);
-        int deltaStopStart = (logoPairIterator->startPosition - logoPairIterator->stopPosition ) / maContext->Video.Info.framesPerSecond;
+        int deltaStopStart = (logoPairIterator->startPosition - logoPairIterator->stopPosition ) / frameRate;
         if (deltaStopStart >= LOGO_CHANGE_IS_ADVERTISING_MIN) {
             dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): ----- stop (%d) start (%d) pair: delta %ds (expect >=%ds) is a advertising", logoPairIterator->stopPosition, logoPairIterator->startPosition, deltaStopStart, LOGO_CHANGE_IS_ADVERTISING_MIN);
             logoPairIterator->isAdInFrame = STATUS_YES;
@@ -166,11 +176,11 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(sMarkAdContext *maConte
         // check next stop distance after stop/start pair
         int delta_Stop_AfterPair = 0;
         if (markStop_AfterPair) {  // we have a next logo stop
-            delta_Stop_AfterPair = (markStop_AfterPair->position - logoPairIterator->startPosition) / maContext->Video.Info.framesPerSecond;
+            delta_Stop_AfterPair = (markStop_AfterPair->position - logoPairIterator->startPosition) / frameRate;
         }
         else {  // this is the last logo stop we have
             if (iStart > 0) { // we were called by CheckStart, the next stop is not yet detected
-                int diff = (chkSTART - logoPairIterator->stopPosition) / maContext->Video.Info.framesPerSecond; // difference to current processed frame
+                int diff = (chkSTART - logoPairIterator->stopPosition) / frameRate; // difference to current processed frame
                 if (diff > LOGO_CHANGE_IS_BROADCAST_MIN) delta_Stop_AfterPair = diff;     // still no stop mark but we are in broadcast
                 else delta_Stop_AfterPair = LOGO_CHANGE_NEXT_STOP_MIN; // we can not ignore early stop start pairs because they can be logo changed short after start
             }
@@ -241,14 +251,14 @@ void cEvaluateLogoStopStartPair::IsClosingCredits(cMarks *marks, sLogoStopStartP
 
 // check if stop/start pair could be a logo change
 //
-void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStart, const int chkSTART) {
-    /* TODO
-    if (framesPerSecond == 0) return;
-    #define LOGO_CHANGE_LENGTH_MIN  3880  // min time in ms of a logo change section, chaned from 10000 to 9400 to 6760 to 5280 to 4401 to 3880
+void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair *logoStopStartPair, const int iStart, const int chkSTART) {
+    int frameRate = decoder->GetVideoFrameRate();
+    if (frameRate == 0) return;
+#define LOGO_CHANGE_LENGTH_MIN  3880  // min time in ms of a logo change section, chaned from 10000 to 9400 to 6760 to 5280 to 4401 to 3880
     // do not reduce, we can not detect too short parts
-    #define LOGO_CHANGE_LENGTH_MAX 19319  // max time in ms of a logo change section, chaned from 21000 to 19319
+#define LOGO_CHANGE_LENGTH_MAX 19319  // max time in ms of a logo change section, chaned from 21000 to 19319
     // check min length of stop/start logo pair
-    int deltaStopStart = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition ) / framesPerSecond;
+    int deltaStopStart = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition ) / frameRate;
     dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ????? stop (%d) start (%d) pair: length %dms (expect >=%dms <=%dms)",
             logoStopStartPair->stopPosition, logoStopStartPair->startPosition, deltaStopStart, LOGO_CHANGE_LENGTH_MIN, LOGO_CHANGE_LENGTH_MAX);
 
@@ -256,12 +266,12 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
     int delta_Stop_AfterPair = 0;
     cMark *markStop_AfterPair = marks->GetNext(logoStopStartPair->stopPosition, MT_LOGOSTOP);
     if (markStop_AfterPair) {  // we have a next logo stop
-        delta_Stop_AfterPair = 1000 * (markStop_AfterPair->position - logoStopStartPair->startPosition) / framesPerSecond;
+        delta_Stop_AfterPair = 1000 * (markStop_AfterPair->position - logoStopStartPair->startPosition) / frameRate;
         dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ????? stop (%d) start (%d) pair: next logo stop mark (%d) distance %dms (expect >=%dms)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, markStop_AfterPair-> position, delta_Stop_AfterPair, LOGO_CHANGE_NEXT_STOP_MIN);
     }
     else {  // this is the last logo stop we have
         if (iStart > 0) { // we were called by CheckStart, the next stop is not yet detected
-            int diff = 1000 * (chkSTART - logoStopStartPair->stopPosition) / framesPerSecond; // difference to current processed frame
+            int diff = 1000 * (chkSTART - logoStopStartPair->stopPosition) / frameRate; // difference to current processed frame
             if (diff > LOGO_CHANGE_IS_BROADCAST_MIN) delta_Stop_AfterPair = diff;     // still no stop mark but we are in broadcast
             else delta_Stop_AfterPair = LOGO_CHANGE_NEXT_STOP_MIN; // we can not ignore early stop start pairs because they can be logo changed short after start
         }
@@ -277,14 +287,14 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
         cMark *markNextStart = marks->GetNext(logoStopStartPair->startPosition, MT_LOGOSTART);
         if (markNextStart) {
             dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         next start mark (%d) found",  markNextStart->position);
-            int deltaStopStartNew = 1000 * (markNextStart->position - logoStopStartPair->stopPosition ) / framesPerSecond;
+            int deltaStopStartNew = 1000 * (markNextStart->position - logoStopStartPair->stopPosition ) / frameRate;
             if (deltaStopStartNew > LOGO_CHANGE_LENGTH_MAX) {
                 dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         next start mark (%d) too far away",  markNextStart->position);
             }
             else {
                 markStop_AfterPair = marks->GetNext(markNextStart->position, MT_LOGOSTOP);
                 if (markStop_AfterPair) {  // we have a next logo stop
-                    delta_Stop_AfterPair = 1000 * (markStop_AfterPair->position - logoStopStartPair->startPosition) / framesPerSecond;
+                    delta_Stop_AfterPair = 1000 * (markStop_AfterPair->position - logoStopStartPair->startPosition) / frameRate;
                 }
                 else {  // no logo stop mark after new logo start mark
                     dsyslog("cEvaluateLogoStopStartPair::IsLogoChange(): no stop mark found after start mark (%d) ",  markNextStart->position);
@@ -306,12 +316,12 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
     // check distance to logo start mark before
     // if length of logo change is valid, check distance to logo start mark before
     // if length of logo change is too short, may be a only short logo interuption during logo change, we can not check this, assume it as logo change
-    #define LOGO_CHANGE_VALID_PREV_START_MAX  6920  // chnaged from 3000 to  6920
-    #define LOGO_CHANGE_SHORT_PREV_START_MIN 19681  // change from 16600 to 19681
-    #define LOGO_CHANGE_SHORT_PREV_START_MAX 30400
+#define LOGO_CHANGE_VALID_PREV_START_MAX  6920  // chnaged from 3000 to  6920
+#define LOGO_CHANGE_SHORT_PREV_START_MIN 19681  // change from 16600 to 19681
+#define LOGO_CHANGE_SHORT_PREV_START_MAX 30400
     cMark *prevStart = marks->GetPrev(logoStopStartPair->stopPosition, MT_LOGOSTART);
     if (prevStart) {
-        int deltaStartBefore = 1000 * (logoStopStartPair->stopPosition - prevStart->position) / framesPerSecond;
+        int deltaStartBefore = 1000 * (logoStopStartPair->stopPosition - prevStart->position) / frameRate;
         dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         ????? stop (%d) start (%d) pair: previous logo start mark (%d), distance %dms", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, prevStart->position, deltaStartBefore);
         if (deltaStopStart >= LOGO_CHANGE_LENGTH_MIN) {  // valid length for logo change
             if (deltaStartBefore <= LOGO_CHANGE_VALID_PREV_START_MAX) {
@@ -348,14 +358,13 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
         return;
     }
     dsyslog("cEvaluateLogoStopStartPair::IsLogoChange():         +++++ stop (%d) start (%d) pair: can be a logo change", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
-    */
 }
 
 
 // check if stop/start pair could be a info logo
 //
-void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int framesPerSecond, const int iStopA) {
-    if (framesPerSecond <= 0) return;
+void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int iStopA) {
+    int frameRate = decoder->GetVideoFrameRate();
 #define LOGO_INFO_LENGTH_MIN  3720  // min time in ms of a info logo section, bigger values than in InfoLogo because of seek to iFrame, changed from 5000 to 4480 to 3720
 #define LOGO_INFO_LENGTH_MAX 22480  // max time in ms of a info logo section, changed from 17680 to 22480
     // RTL2 has very long info logos
@@ -374,7 +383,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     int maxNextStop = 5920;
     if (logoStopStartPair->stopPosition > iStopA) maxNextStop = 4560; // avoid merge info logo with logo end mark
     // check length
-    int length = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / framesPerSecond;
+    int length = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / frameRate;
     dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: length %dms (expect >=%dms and <=%dms)",
             logoStopStartPair->stopPosition, logoStopStartPair->startPosition, length, LOGO_INFO_LENGTH_MIN, LOGO_INFO_LENGTH_MAX);
 
@@ -382,7 +391,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     int delta_Stop_AfterPair = 0;
     cMark *markStop_AfterPair = marks->GetNext(logoStopStartPair->stopPosition, MT_LOGOSTOP);
     if (markStop_AfterPair) {  // we have a next logo stop
-        delta_Stop_AfterPair = 1000 * (markStop_AfterPair->position - logoStopStartPair->startPosition) / framesPerSecond;
+        delta_Stop_AfterPair = 1000 * (markStop_AfterPair->position - logoStopStartPair->startPosition) / frameRate;
         dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: next stop mark (%d) distance %dms (expect <%dms for merge)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, markStop_AfterPair->position, delta_Stop_AfterPair, maxNextStop);
     }
 
@@ -400,7 +409,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
             if (pairNextStart && pairNextStop) {
                 dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): next pair: stop (%d) start (%d) found", pairNextStop->position, pairNextStart->position);
                 // check distance to next logo stop mark after stop/start pair
-                int deltaStopAfterPair = 1000 * (pairNextStop->position - logoStopStartPair->startPosition) / framesPerSecond;
+                int deltaStopAfterPair = 1000 * (pairNextStop->position - logoStopStartPair->startPosition) / frameRate;
                 if (deltaStopAfterPair < LOGO_INFO_NEXT_STOP_MIN) {
                     dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): distance of next logo stop %dms too short, (expect >=%ds <=%ds), try next", delta_Stop_AfterPair, LOGO_INFO_NEXT_STOP_MIN, maxNextStop);
                     pairNextStart = marks->GetNext(pairNextStart->position, MT_LOGOSTART);
@@ -413,13 +422,13 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
                     }
                     else {
                         // check length of merged pair
-                        int lengthNew = 1000 * (pairNextStart->position - logoStopStartPair->stopPosition ) / framesPerSecond;
+                        int lengthNew = 1000 * (pairNextStart->position - logoStopStartPair->stopPosition ) / frameRate;
                         if ((lengthNew < LOGO_INFO_LENGTH_MIN) || (lengthNew > LOGO_INFO_LENGTH_MAX)) {
                             dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): merged pair would have no valid length %dms", lengthNew);
                             tryNext = false;
                         }
                         else {
-                            int lengthNext = 1000 * (pairNextStart->position - pairNextStop->position) / framesPerSecond;
+                            int lengthNext = 1000 * (pairNextStart->position - pairNextStop->position) / frameRate;
                             dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): length of next pair: %dms", lengthNext);
                             if ((length <= 560) && (lengthNext <= 840)) { // short invisible parts between/after previews
                                 // length     changed from 120 to 160 to 200 to 560
@@ -439,7 +448,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
                                 return;
                             }
                             logoStopStartPair->startPosition = pairNextStart->position;
-                            length = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / framesPerSecond;  // length of merged pair
+                            length = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / frameRate;  // length of merged pair
                             dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): replace start mark with next start mark (%d), new length %dms",  pairNextStart->position, length);
                             tryNext = false;
                         }
@@ -464,7 +473,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     // check next stop mark (length of next broadcast)
     cMark *nextStop = marks->GetNext(logoStopStartPair->startPosition, MT_LOGOSTOP);
     if (nextStop) {
-        int diff = 1000 * (nextStop->position - logoStopStartPair->startPosition) / framesPerSecond;
+        int diff = 1000 * (nextStop->position - logoStopStartPair->startPosition) / frameRate;
         dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: next broadcast ends at (%d) length %dms",
                 logoStopStartPair->stopPosition, logoStopStartPair->startPosition, nextStop->position, diff);
         if (diff < LOGO_INFO_BROADCAST_AFTER_MIN) {
@@ -481,8 +490,8 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     cMark *blackStart = nullptr;
     if (blackStop) blackStart = blackMarks->GetNext(blackStop->position, MT_NOBLACKSTART);     // start mark, bleckscreen end
     if (blackStop && blackStart && (logoStopStartPair->stopPosition >= blackStart->position)) {
-        int diff = 1000 * (logoStopStartPair->stopPosition - blackStart->position) / framesPerSecond;
-        int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;
+        int diff = 1000 * (logoStopStartPair->stopPosition - blackStart->position) / frameRate;
+        int lengthBlack = 1000 * (blackStart->position - blackStop->position) / frameRate;
         dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen before (%d) and (%d) length %dms, diff %dms (expect <%dms)",
                 logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position,
                 lengthBlack, diff, LOGO_INFO_SHORT_BLACKSCREEN_BEFORE_DIFF_MAX);
@@ -502,7 +511,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     blackStart = nullptr;
     if (blackStop) blackStart = blackMarks->GetNext(blackStop->position, MT_NOBLACKSTART);
     if (blackStop && blackStart && (blackStop->position <= logoStopStartPair->startPosition) && (blackStart->position <= logoStopStartPair->startPosition)) {
-        int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;
+        int lengthBlack = 1000 * (blackStart->position - blackStop->position) / frameRate;
         dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: in between blacksceen (%d) and (%d) length %dms", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position, lengthBlack);
         if (lengthBlack > 1240) {  // changed from 400 to 1240
             dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():      ----- stop (%d) start (%d) pair: in between blacksceen pair long, no info logo part", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
@@ -515,8 +524,8 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     blackStart = nullptr;
     if (blackStop) blackStart = blackMarks->GetNext(blackStop->position, MT_NOBLACKSTART); // blackscreen can start at the same position as logo stop
     if (blackStop && blackStart && (blackStart->position >= logoStopStartPair->stopPosition) && (blackStart->position <= logoStopStartPair->startPosition)) {
-        int diff = 1000 * (blackStart->position - logoStopStartPair->stopPosition) / framesPerSecond;
-        int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;
+        int diff = 1000 * (blackStart->position - logoStopStartPair->stopPosition) / frameRate;
+        int lengthBlack = 1000 * (blackStart->position - blackStop->position) / frameRate;
         dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen around logo stop mark from (%d) to (%d), length %dms, end of blackscreen %dms after logo stop mark", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position, lengthBlack, diff);
         if ((lengthBlack >= 560) && (lengthBlack < 4400)) {  // too long blackscreen can be opening credits
             // changed from 680 to 560
@@ -530,8 +539,8 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     blackStart = nullptr;
     if (blackStop) blackStart = blackMarks->GetNext(blackStop->position, MT_NOBLACKSTART); // blackscreen can start at the same position as logo stop
     if (blackStop && blackStart && (blackStart->position >= logoStopStartPair->startPosition) && (blackStop->position >= logoStopStartPair->stopPosition)) {
-        int diff = 1000 * (blackStart->position - logoStopStartPair->startPosition) / framesPerSecond;
-        int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;
+        int diff = 1000 * (blackStart->position - logoStopStartPair->startPosition) / frameRate;
+        int lengthBlack = 1000 * (blackStart->position - blackStop->position) / frameRate;
         dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen around start (%d) and (%d) length %dms, diff %dms", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position, lengthBlack, diff);
         if ((lengthBlack > 1200) && (diff < 1200)) {
             dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ----- stop (%d) start (%d) pair: blacksceen pair long and near, no info logo part", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
@@ -544,8 +553,8 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     blackStop = blackMarks->GetNext(logoStopStartPair->startPosition - 1, MT_NOBLACKSTOP);  // blackscreen can stop at the same position as logo stop
     blackStart = blackMarks->GetNext(logoStopStartPair->startPosition - 1, MT_NOBLACKSTART); // blackscreen can start at the same position as logo stop
     if (blackStop && blackStart) {
-        int diff = 1000 * (blackStart->position - logoStopStartPair->startPosition) / framesPerSecond;
-        int lengthBlack = 1000 * (blackStart->position - blackStop->position) / framesPerSecond;
+        int diff = 1000 * (blackStart->position - logoStopStartPair->startPosition) / frameRate;
+        int lengthBlack = 1000 * (blackStart->position - blackStop->position) / frameRate;
         dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: blacksceen after (%d) and (%d) length %dms, diff %dms", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, blackStop->position, blackStart->position, lengthBlack, diff);
         if ((lengthBlack > 2000) && (diff < 10)) {
             dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ---- stop (%d) start (%d) pair: blacksceen pair long and near, no info logo part", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
@@ -701,14 +710,17 @@ bool cEvaluateLogoStopStartPair::IncludesInfoLogo(const int stopPosition, const 
 }
 
 
-cDetectLogoStopStart::cDetectLogoStopStart(sMarkAdContext *maContextParam, cCriteria *criteriaParam, cDecoder *decoderParam, cIndex *recordingIndexParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam) {
-    maContext                 = maContextParam;
+cDetectLogoStopStart::cDetectLogoStopStart(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, cExtractLogo *extractLogoParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam, const int logoCornerParam) {
+    decoder                   = decoderParam;
+    index                     = indexParam;
     criteria                  = criteriaParam;
-    decoder              = decoderParam;
-    recordingIndex            = recordingIndexParam;
+    extractLogo               = extractLogoParam;
     evaluateLogoStopStartPair = evaluateLogoStopStartPairParam;
-//    sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0);  // boundary = 0   // TODO
-//    ALLOC(sizeof(*sobel), "sobel");
+    logoCorner                = logoCornerParam;
+
+    sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0);  // boundary = 0
+    ALLOC(sizeof(*sobel), "sobel");
+    sobel->AllocAreaBuffer(&area);
 }
 
 
@@ -720,6 +732,10 @@ cDetectLogoStopStart::~cDetectLogoStopStart() {
     }
 #endif
     compareResult.clear();
+
+    sobel->FreeAreaBuffer(&area);
+    FREE(sizeof(*sobel), "sobel");
+    delete sobel;
 }
 
 
@@ -952,47 +968,32 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
 
 
 bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
-    /* TODO
-    if (!maContext) return false;
     if (!decoder) return false;
-    if (!recordingIndex) return false;
     if (startFrame >= endFrame) return false;
 
     if (!compareResult.empty()) {  // reset compare result
-    #ifdef DEBUG_MEM
+#ifdef DEBUG_MEM
         int size = compareResult.size();
         for (int i = 0 ; i < size; i++) {
             FREE(sizeof(sCompareInfo), "compareResult");
         }
-    #endif
+#endif
         compareResult.clear();
     }
+    const char *channelName = criteria->GetChannelName();
     sLogoSize logoSize = sobel->GetMaxLogoSize();  // default logo size of this resolution, not real logo size, info logos are greater than real logo
     int maxLogoPixel   = logoSize.width * logoSize.height;
 
     // check if we have anything todo with this channel
-    if (!IsInfoLogoChannel(maContext->Info.ChannelName) && !IsLogoChangeChannel(maContext->Info.ChannelName) && !ClosingCreditsChannel(maContext->Info.ChannelName)
-            && !AdInFrameWithLogoChannel(maContext->Info.ChannelName) && !IntroductionLogoChannel(maContext->Info.ChannelName)) {
+    if (!IsInfoLogoChannel(channelName) && !IsLogoChangeChannel(channelName) && !ClosingCreditsChannel(channelName)
+            && !AdInFrameWithLogoChannel(channelName) && !IntroductionLogoChannel(channelName)) {
         dsyslog("cDetectLogoStopStart::Detect(): channel not in list for special logo detection");
         return false;
     }
-
-    sMarkAdContext maContextSaveState = {};
-    maContextSaveState.Video = maContext->Video;     // save state of calling video context
-    maContextSaveState.Audio = maContext->Audio;     // save state of calling audio context
-
-
     bool status = true;
-    startPos = recordingIndex->GetIFrameAfter(startFrame);
-    endPos = recordingIndex->GetIFrameBefore(endFrame);
+    startPos = index->GetIFrameAfter(startFrame);
+    endPos   = index->GetIFrameBefore(endFrame);
     dsyslog("cDetectLogoStopStart::Detect(): detect from i-frame (%d) to i-frame (%d)", startPos, endPos);
-
-    cLogoDetect *logoDetect = new cLogoDetect(decoder, criteria, nullptr, nullptr);  // TODO
-    ALLOC(sizeof(*logoDetect), "logoDetect");
-    sAreaT *area = logoDetect->GetArea();
-
-    cExtractLogo *ptr_cExtractLogo = new cExtractLogo(maContext->Config->recDir,  maContext->Info.ChannelName, maContext->Config->threads, maContext->Config->hwaccel, maContext->Video.Info.AspectRatio);
-    ALLOC(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
 
     sLogoInfo *logo1[CORNERS];
     sLogoInfo *logo2[CORNERS];
@@ -1001,46 +1002,31 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         ALLOC(sizeof(*logo1[corner]), "logo");
     }
 
-    cSobel *sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0);   // bondary = 0, TODO
-    ALLOC(sizeof(*sobel), "sobel");
-    FREE(sizeof(*sobel), "sobel");
-    delete sobel;
 
     dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", logoSize.width, logoSize.height);
 
-    if (!decoder->SeekToFrame(maContext, startPos - 1)) {  // one frame before startPos because we start loop with GetNextPacket
+    if (!decoder->SeekToFrame(startPos - 1)) {  // one frame before startPos because we start loop with GetNextPacket
         dsyslog("cDetectLogoStopStart::Detect(): SeekToFrame (%d) failed", startPos);
         status = false;
     }
-    while (status && (decoder->GetVideoFrameNumber() < endPos)) {
+
+    while (decoder->DecodeNextFrame(false)) {
         if (abortNow) return false;
-        if (!decoder->GetNextPacket(false, false)) {
-            dsyslog("cDetectLogoStopStart::Detect(): GetNextPacket() failed at frame (%d)", decoder->GetVideoFrameNumber());
-            status = false;
-        }
+
         int frameNumber =  decoder->GetVideoFrameNumber();
-        if (!decoder->IsVideoPacket()) continue;
-        if (!decoder->GetFrameInfo(maContext, true, maContext->Config->fullDecode, false, false)) {
-            if (decoder->IsVideoIFrame()) // if we have interlaced video this is expected, we have to read the next half picture
-                tsyslog("cDetectLogoStopStart::Detect(): GetFrameInfo() failed at frame (%d)", frameNumber);
-            continue;
-        }
-        if (!maContext->Video.Data.valid) {
-            dsyslog("cDetectLogoStopStart::Detect(): failed to get video data of i-frame (%d)", frameNumber);
-            continue;
-        }
+        if (frameNumber >= endPos) break;
+
+        sVideoPicture *picture = decoder->GetVideoPicture();
 
         sCompareInfo compareInfo;
         for (int corner = 0; corner < CORNERS; corner++) {
-            area->logoCorner = corner;
-            int iFrameNumberNext = -1;  // flag for detect logo: -1: called by cExtractLogo, don't analyse, only fill area
-            //                       -2: called by cExtractLogo, don't analyse, only fill area, store logos in /tmp for debug
-    #ifdef DEBUG_COMPARE_FRAME_RANGE
+            area.logoCorner = corner;
+            if (!sobel->SobelPlane(picture, &area, 0)) continue;   // plane 0
+#ifdef DEBUG_COMPARE_FRAME_RANGE
             if (corner == DEBUG_COMPARE_FRAME_RANGE) iFrameNumberNext = -2;
-    #endif
-            logoDetect->Detect(0, frameNumber, &iFrameNumberNext);  // we do not take care if we detect the logo, we only fill the area
+#endif
 
-    #ifdef DEBUG_MARK_OPTIMIZATION
+#ifdef DEBUG_MARK_OPTIMIZATION
             // save plane 0 of sobel transformation
             char *fileName = nullptr;
             if (asprintf(&fileName,"%s/F__%07d-P0-C%1d.pgm", maContext->Config->recDir, frameNumber, corner) >= 1) {
@@ -1049,9 +1035,9 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
                 FREE(strlen(fileName)+1, "fileName");
                 free(fileName);
             }
-    #endif
+#endif
 
-            compareInfo.framePortion[corner] = DetectFrame(frameNumber, area->sobel[0], logoSize.width, logoSize.height, corner);
+            compareInfo.framePortion[corner] = DetectFrame(frameNumber, area.sobel[0], logoSize.width, logoSize.height, corner);
 
             logo2[corner] = new sLogoInfo;
             ALLOC(sizeof(*logo2[corner]), "logo");
@@ -1061,14 +1047,14 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
             logo2[corner]->sobel = new uchar*[PLANES];
             for (int plane = 0; plane < PLANES; plane++) {
                 logo2[corner]->sobel[plane] = new uchar[maxLogoPixel];
-                memcpy(logo2[corner]->sobel[plane], area->sobel[plane], sizeof(uchar) * maxLogoPixel);
+                memcpy(logo2[corner]->sobel[plane], area.sobel[plane], sizeof(uchar) * maxLogoPixel);
             }
             ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "logo[corner]->sobel");
 
-    #define RATE_0_MIN     250
-    #define RATE_12_MIN    950
+#define RATE_0_MIN     250
+#define RATE_12_MIN    950
             if (logo1[corner]->frameNumber >= 0) {  // we have a logo pair
-                if (ptr_cExtractLogo->CompareLogoPair(logo1[corner], logo2[corner], logoSize.height, logoSize.width, corner, RATE_0_MIN, RATE_12_MIN, &compareInfo.rate[corner])) {
+                if (extractLogo->CompareLogoPair(logo1[corner], logo2[corner], logoSize.height, logoSize.width, corner, RATE_0_MIN, RATE_12_MIN, &compareInfo.rate[corner])) {
                 }
             }
             if (corner == 0) {  // set current frame numbers, needed only once
@@ -1094,8 +1080,6 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
             ALLOC((sizeof(sCompareInfo)), "compareResult");
         }
     }
-    FREE(sizeof(*logoDetect), "logoDetect");
-    delete logoDetect;
 
     // free memory of last logo
     for (int corner = 0; corner < CORNERS; corner++) {
@@ -1109,29 +1093,22 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         FREE(sizeof(*logo1[corner]), "logo");
         delete logo1[corner];
     }
-    FREE(sizeof(*ptr_cExtractLogo), "ptr_cExtractLogo");
-    delete ptr_cExtractLogo;
-
-    // restore maContext state
-    maContext->Video = maContextSaveState.Video;     // restore state of calling video context
-    maContext->Audio = maContextSaveState.Audio;     // restore state of calling audio context
     return status;
-    */
-    return false;
 }
 
 
-
 bool cDetectLogoStopStart::IsInfoLogo() {
-    if (!maContext) return false;
     if (!decoder) return false;
     if (compareResult.empty()) return false;
 
-    if (!IsInfoLogoChannel(maContext->Info.ChannelName)) {
+    const char *channelName = criteria->GetChannelName();
+    if (!IsInfoLogoChannel(channelName)) {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): skip this channel");
         return false;
     }
+
     dsyslog("cDetectLogoStopStart::IsInfoLogo(): detect from (%d) to (%d)", startPos, endPos);
+    int frameRate = decoder->GetVideoFrameRate();
 
     // start and stop frame of assumed info logo section
     struct sInfoLogo {
@@ -1169,12 +1146,12 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         bool isStatic             = true;
 
         for (int corner = 0; corner < CORNERS; corner++) {
-            if (((corner == maContext->Video.Logo.corner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) infoLogo.matchLogoCornerCount++;
-            if (((corner != maContext->Video.Logo.corner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) infoLogo.matchRestCornerCount++;
+            if (((corner ==logoCorner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) infoLogo.matchLogoCornerCount++;
+            if (((corner !=logoCorner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) infoLogo.matchRestCornerCount++;
             if ((*cornerResultIt).rate[corner] <= 0) countZero++;
             if (((*cornerResultIt).rate[corner] > 0) && ((*cornerResultIt).rate[corner] < 308)) isStatic = false;  // if all corner has high match, this is a separator picture
             sumPixel += (*cornerResultIt).rate[corner];
-            if (((*cornerResultIt).rate[corner] <=   0) && (corner != maContext->Video.Logo.corner)) darkCorner++;   // if we have no match, this can be a too dark corner
+            if (((*cornerResultIt).rate[corner] <=   0) && (corner !=logoCorner)) darkCorner++;   // if we have no match, this can be a too dark corner
         }
         // dark scene
         countFrames++;
@@ -1189,9 +1166,9 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 #endif
         }
 
-        if (((*cornerResultIt).rate[maContext->Video.Logo.corner] > INFO_LOGO_MACTH_MIN) || // do not rededuce to prevent false positiv
-                ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 142) && (lowMatchCornerCount <= 1)) { // allow one lower match for the change from new logo to normal logo
-            if ((*cornerResultIt).rate[maContext->Video.Logo.corner] <= INFO_LOGO_MACTH_MIN) {
+        if (((*cornerResultIt).rate[logoCorner] > INFO_LOGO_MACTH_MIN) || // do not rededuce to prevent false positiv
+                ((*cornerResultIt).rate[logoCorner] >= 142) && (lowMatchCornerCount <= 1)) { // allow one lower match for the change from new logo to normal logo
+            if ((*cornerResultIt).rate[logoCorner] <= INFO_LOGO_MACTH_MIN) {
                 lowMatchCornerCount++;
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INFOLOGO)
                 dsyslog("cDetectLogoStopStart::IsInfoLogo(): lowMatchCornerCount %d", lowMatchCornerCount);
@@ -1269,7 +1246,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): dark quote %d%%", darkQuote);
         if ((lastSeparatorFrame >= 0) && (darkQuote < 44)) {  // on dark scenes we can not detect separator image
             // darkQuote changed from 65 to 44
-            int diffSeparator = 1000 * (endPos - lastSeparatorFrame) / maContext->Video.Info.framesPerSecond;
+            int diffSeparator = 1000 * (endPos - lastSeparatorFrame) / frameRate;
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): last separator frame found (%d), %dms before end", lastSeparatorFrame, diffSeparator);
             if (diffSeparator < 1080) { // changed from 1160 to 1080
                 // we can get a false detected separator frame in a dark scene during change from info logo to normal logo near logo start
@@ -1288,8 +1265,8 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 #define INFO_LOGO_MIN_QUOTE          67  // changed from 65 to 67, no info logo: separator image with part time logo 66
     if (found) {
         // ignore short parts at start and end, this is fade in and fade out
-        int diffStart = 1000 * (infoLogo.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
-        int diffEnd = 1000 * (endPos - infoLogo.endFinal) / maContext->Video.Info.framesPerSecond;
+        int diffStart = 1000 * (infoLogo.startFinal - startPos) / frameRate;
+        int diffEnd = 1000 * (endPos - infoLogo.endFinal) / frameRate;
         int newStartPos = startPos;
         int newEndPos = endPos;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo start diff %dms, end diff %dms", diffStart, diffEnd);
@@ -1302,7 +1279,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
             if (diffEnd <= 1800) newEndPos = infoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): final range start (%d) end (%d)", newStartPos, newEndPos);
             int quote  = 100  * (infoLogo.endFinal - infoLogo.startFinal) / (newEndPos - newStartPos);
-            int length = 1000 * (infoLogo.endFinal - infoLogo.startFinal) / maContext->Video.Info.framesPerSecond;
+            int length = 1000 * (infoLogo.endFinal - infoLogo.startFinal) / frameRate;
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo: start (%d), end (%d), length %dms (expect >=%dms and <=%dms), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
             if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE)) {
                 dsyslog("cDetectLogoStopStart::IsInfoLogo(): found info logo");
@@ -1337,16 +1314,17 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 //         false if not
 //
 bool cDetectLogoStopStart::IsLogoChange() {
-    if (!maContext) return false;
     if (!decoder) return false;
-    if (!recordingIndex) return false;
+    if (!index) return false;
     if (compareResult.empty()) return false;
 
-    if (!IsLogoChangeChannel(maContext->Info.ChannelName)) {
+    const char *channelName = criteria->GetChannelName();
+    if (!IsLogoChangeChannel(channelName)) {
         dsyslog("cDetectLogoStopStart::isLogoChange(): skip this channel");
         return false;
     }
     dsyslog("cDetectLogoStopStart::isLogoChange(): check logo change between logo stop (%d) and logo start (%d)", startPos, endPos);
+    int frameRate = decoder->GetVideoFrameRate();
 
     int  highMatchCount          =  0;  // check if we have a lot of very similar pictures in the logo corner
     int  lowMatchCount           =  0;   // we need at least a hight quote of low similar pictures in the logo corner, if not there is no logo
@@ -1363,13 +1341,13 @@ bool cDetectLogoStopStart::IsLogoChange() {
 #endif
         // calculate matches
         count ++;
-        if ((*cornerResultIt).rate[maContext->Video.Logo.corner] > 250) {  // match on logo corner
+        if ((*cornerResultIt).rate[logoCorner] > 250) {  // match on logo corner
             highMatchCount++;
         }
-        if ((*cornerResultIt).rate[maContext->Video.Logo.corner] > 50) {   // match on logo corner
+        if ((*cornerResultIt).rate[logoCorner] > 50) {   // match on logo corner
             lowMatchCount++;
         }
-        if ((*cornerResultIt).rate[maContext->Video.Logo.corner] == 0) {   // no logo in the logo corner
+        if ((*cornerResultIt).rate[logoCorner] == 0) {   // no logo in the logo corner
             countNoLogoInLogoCorner++;
         }
 
@@ -1378,7 +1356,7 @@ bool cDetectLogoStopStart::IsLogoChange() {
         for (int corner = 0; corner < CORNERS; corner++) {
             matchPicture += (*cornerResultIt).rate[corner];
             match[corner] += (*cornerResultIt).rate[corner];
-            if (corner != maContext->Video.Logo.corner) {  // all but logo corner
+            if (corner !=logoCorner) {  // all but logo corner
                 matchNoLogoCornerPair += (*cornerResultIt).rate[corner];
             }
         }
@@ -1394,7 +1372,7 @@ bool cDetectLogoStopStart::IsLogoChange() {
         if (matchPicture <= 0) { // all 4 corners has no pixel
             dsyslog("cDetectLogoStopStart::isLogoChange(): separation image without pixel at all corners found");
             if (darkSceneStart >= 0) {
-                int diffDarkScene = 1000 * ((*cornerResultIt).frameNumber1 - darkSceneStart) / maContext->Video.Info.framesPerSecond;
+                int diffDarkScene = 1000 * ((*cornerResultIt).frameNumber1 - darkSceneStart) / frameRate;
                 dsyslog("cDetectLogoStopStart::isLogoChange(): dark scene start at (%d), distance to separator frame %dms", darkSceneStart, diffDarkScene);
                 if (diffDarkScene < 2400) return false;
             }
@@ -1420,9 +1398,9 @@ bool cDetectLogoStopStart::IsLogoChange() {
 #define LOGO_HIGH_QUOTE_MIN 86 // changed from 88 to 86
 #define LOGO_QUOTE_NO_LOGO 19
     dsyslog("cDetectLogoStopStart::isLogoChange(): logo corner high matches %d quote %d%% (expect >=%d%%), low matches %d quote %d%% (expect >=%d%%), noLogoQuote %d (expect <=%d))", highMatchCount, highMatchQuote, LOGO_HIGH_QUOTE_MIN, lowMatchCount, lowMatchQuote, LOGO_LOW_QUOTE_MIN, noLogoQuote, LOGO_QUOTE_NO_LOGO);
-    dsyslog("cDetectLogoStopStart::isLogoChange(): rate summery logo corner %5d (expect >=%d), summery other corner %5d, avg other corners %d", match[maContext->Video.Logo.corner], LOGO_CHANGE_LIMIT, matchNoLogoCorner, static_cast<int>(matchNoLogoCorner / 3));
+    dsyslog("cDetectLogoStopStart::isLogoChange(): rate summery logo corner %5d (expect >=%d), summery other corner %5d, avg other corners %d", match[logoCorner], LOGO_CHANGE_LIMIT, matchNoLogoCorner, static_cast<int>(matchNoLogoCorner / 3));
     if ((lowMatchQuote >= LOGO_LOW_QUOTE_MIN) && (noLogoQuote <= LOGO_QUOTE_NO_LOGO) &&
-            ((match[maContext->Video.Logo.corner] > LOGO_CHANGE_LIMIT) || (highMatchQuote >= LOGO_HIGH_QUOTE_MIN))) {
+            ((match[logoCorner] > LOGO_CHANGE_LIMIT) || (highMatchQuote >= LOGO_HIGH_QUOTE_MIN))) {
         dsyslog("cDetectLogoStopStart::isLogoChange(): matches over limit, logo change found");
         status = true;
     }
@@ -1436,19 +1414,19 @@ bool cDetectLogoStopStart::IsLogoChange() {
 
 // search for closing credits in frame without logo after broadcast end
 int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
-    if (!maContext) return -1;
-
-    if (!ClosingCreditsChannel(maContext->Info.ChannelName)) return -1;
+    const char *channelName = criteria->GetChannelName();
+    if (!ClosingCreditsChannel(channelName)) return -1;
     if (evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(startPos, endPos) == STATUS_NO) {
         dsyslog("cDetectLogoStopStart::ClosingCredit(): already known no closing credits from (%d) to (%d)", startPos, endPos);
         return -1;
     }
 
     dsyslog("cDetectLogoStopStart::ClosingCredit(): detect from (%d) to (%d)", startPos, endPos);
+    int frameRate = decoder->GetVideoFrameRate();
 
 #define CLOSING_CREDITS_LENGTH_MIN 6120  // changed from 9000 to 6120
     // because of silence detection before closing credits detection
-    int minLength = (1000 * (endPos - startPos) / maContext->Video.Info.framesPerSecond) - 2000;  // 2s buffer for change from closing credit to logo start
+    int minLength = (1000 * (endPos - startPos) / frameRate) - 2000;  // 2s buffer for change from closing credit to logo start
     if (minLength <= 3760) { // too short will result in false positive, changed from 1840 to 3760
         dsyslog("cDetectLogoStopStart::ClosingCredit(): length %dms too short for detection", minLength);
         return -1;
@@ -1488,7 +1466,7 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
             if (((*cornerResultIt).rate[corner] >= 260) || ((*cornerResultIt).rate[corner] == -1)) moreSimilarCorners++;  // changed from 715 to 260
             if (((*cornerResultIt).rate[corner] >= 545) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;        // changed from 605 to 545
             if ( (*cornerResultIt).rate[corner] ==  -1) noPixelCount++;
-            if (((*cornerResultIt).rate[corner] <=   0) && (corner != maContext->Video.Logo.corner)) darkCorner++;   // if we have no match, this can be a too dark corner
+            if (((*cornerResultIt).rate[corner] <=   0) && (corner !=logoCorner)) darkCorner++;   // if we have no match, this can be a too dark corner
         }
         countFrames++;
         if (darkCorner >= 2) countDark++;  // if at least two corners but logo corner has no match, this is a very dark scene
@@ -1508,7 +1486,7 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_CLOSINGCREDITS)
             if (ClosingCredits.start != -1) dsyslog("cDetectLogoStopStart::ClosingCredit(): end");
 #endif
-            if ((ClosingCredits.end - ClosingCredits.start) >= (minLength * maContext->Video.Info.framesPerSecond / 1000)) {  // first long enough part is the closing credit
+            if ((ClosingCredits.end - ClosingCredits.start) >= (minLength *frameRate / 1000)) {  // first long enough part is the closing credit
                 break;
             }
             // restet state
@@ -1533,9 +1511,9 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
     }
 
     // check if it is a closing credit
-    int startOffset = 1000 * (ClosingCredits.start - startPos) / maContext->Video.Info.framesPerSecond;
-    int endOffset   = 1000 * (endPos - ClosingCredits.end) / maContext->Video.Info.framesPerSecond;
-    int length      = 1000 * (ClosingCredits.end - ClosingCredits.start) / maContext->Video.Info.framesPerSecond;
+    int startOffset = 1000 * (ClosingCredits.start - startPos) / frameRate;
+    int endOffset   = 1000 * (endPos - ClosingCredits.end) / frameRate;
+    int length      = 1000 * (ClosingCredits.end - ClosingCredits.start) / frameRate;
     dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: start (%d) end (%d), offset start %dms end %dms, length %dms",
             ClosingCredits.start, ClosingCredits.end, startOffset, endOffset, length);
 
@@ -1559,7 +1537,7 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
     int frameCorner        = -1;
     for (int corner = 0; corner < CORNERS; corner++) {
         allSumFramePortion += ClosingCredits.sumFramePortion[corner];
-        if (noLogoCorner && (corner ==  maContext->Video.Logo.corner)) continue;  // if we are called from Info logo, we can false detect the info logo as frame
+        if (noLogoCorner && (corner == logoCorner)) continue;  // if we are called from Info logo, we can false detect the info logo as frame
         if (ClosingCredits.sumFramePortion[corner] > maxSumFramePortion) {
             maxSumFramePortion = ClosingCredits.sumFramePortion[corner];
             frameCorner = corner;
@@ -1595,18 +1573,19 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
 // return first/last of advertising in frame with logo
 //
 int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool isEndMark) {
-    if (!maContext)            return -1;
     if (!decoder)         return -1;
     if (compareResult.empty()) return -1;
 
 // for performance reason only for known and tested channels for now
-    if (!AdInFrameWithLogoChannel(maContext->Info.ChannelName)) {
+    const char *channelName = criteria->GetChannelName();
+    if (!AdInFrameWithLogoChannel(channelName)) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): skip this channel");
         return -1;
     }
 
     if (isStartMark) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): start search advertising in frame between logo start mark (%d) and (%d)", startPos, endPos);
     else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): start search advertising in frame between (%d) and logo stop mark at (%d)", startPos, endPos);
+    int frameRate = decoder->GetVideoFrameRate();
 
     struct sAdInFrame {
         int start                         = -1;
@@ -1658,7 +1637,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
 
         for (int corner = 0; corner < CORNERS; corner++) {
             // check if we have a still image before ad in frame
-            if (corner == maContext->Video.Logo.corner) {
+            if (corner ==logoCorner) {
                 if ((*cornerResultIt).rate[corner] < 476) isStillImage = false; // changed from 992 to 476
             }
             else {
@@ -1713,7 +1692,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
         }
         else {
             if ((AdInFrame.start != -1) && (AdInFrame.end != -1)) {  // we have a new pair
-                int startOffset = 1000 * (AdInFrame.start - startPos) / maContext->Video.Info.framesPerSecond;
+                int startOffset = 1000 * (AdInFrame.start - startPos) / frameRate;
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined (DEBUG_ADINFRAME)
                 dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): ad in frame start (%d) end (%d), isStartMark %d, startOffset %dms",  AdInFrame.start, AdInFrame.end, isStartMark, startOffset);
                 for (int corner = 0; corner < CORNERS; corner++) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): corner %d: AdInFrame.sumFramePortion %7d", corner, AdInFrame.sumFramePortion[corner]);
@@ -1744,10 +1723,10 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
 
     // select best found possible ad in frame sequence, in case of ad in frame before stop mark go to end position
     if (!isStartMark) {
-        int stopOffsetBefore = 1000 * (endPos             - AdInFrame.endFinal)   / maContext->Video.Info.framesPerSecond;
-        int stopOffsetLast   = 1000 * (endPos             - AdInFrame.end)        / maContext->Video.Info.framesPerSecond;
-        int lengthBefore     = 1000 * (AdInFrame.endFinal - AdInFrame.startFinal) / maContext->Video.Info.framesPerSecond;
-        int lengthLast       = 1000 * (AdInFrame.end      - AdInFrame.start)      / maContext->Video.Info.framesPerSecond;
+        int stopOffsetBefore = 1000 * (endPos             - AdInFrame.endFinal)   / frameRate;
+        int stopOffsetLast   = 1000 * (endPos             - AdInFrame.end)        / frameRate;
+        int lengthBefore     = 1000 * (AdInFrame.endFinal - AdInFrame.startFinal) / frameRate;
+        int lengthLast       = 1000 * (AdInFrame.end      - AdInFrame.start)      / frameRate;
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): select best found possible ad in frame before logo stop mark, min length %dms, max stop offset %dms", AD_IN_FRAME_LENGTH_MIN, AD_IN_FRAME_STOP_OFFSET_MAX);
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): before possible ad in frame from (%d) to (%d), length %5dms, stop offset %5dms", AdInFrame.startFinal, AdInFrame.endFinal, lengthBefore, stopOffsetBefore);
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): last   possible ad in frame from (%d) to (%d), length %5dms, stop offset %5dms", AdInFrame.start, AdInFrame.end, lengthLast, stopOffsetLast);
@@ -1782,14 +1761,14 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
     for (int corner = 0; corner < CORNERS; corner++) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of frame portion from corner %-12s: %7d", aCorner[corner], AdInFrame.sumFramePortionFinal[corner]);
         allSumFramePortion += AdInFrame.sumFramePortionFinal[corner];
-        if (corner == maContext->Video.Logo.corner) continue;  // ignore logo corner, we have a static picture in that corner
+        if (corner ==logoCorner) continue;  // ignore logo corner, we have a static picture in that corner
         if (AdInFrame.sumFramePortionFinal[corner] > firstSumFramePortion) {
             firstSumFramePortion  = AdInFrame.sumFramePortionFinal[corner];
             firstFrameCorner      = corner;
         }
     }
     for (int corner = 0; corner < CORNERS; corner++) {
-        if ((corner == maContext->Video.Logo.corner) || (corner == firstFrameCorner)) continue;
+        if ((corner ==logoCorner) || (corner == firstFrameCorner)) continue;
         if (AdInFrame.sumFramePortionFinal[corner] > secondSumFramePortion) {
             secondSumFramePortion = AdInFrame.sumFramePortionFinal[corner];
             secondFrameCorner     = corner;
@@ -1876,7 +1855,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
         if (AdInFrame.frameCountFinal > 0) framePortionQuote = AdInFrame.sumFramePortionFinal[corner] / AdInFrame.frameCountFinal;
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): corner %-12s: %4d high matches, high matches quote %3d: (of %2d frames)", aCorner[corner], isCornerLogo[corner], logoQuote, countFrames);
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo():                    : corner portion quote: %3d (of %3d frames)", framePortionQuote, AdInFrame.frameCountFinal);
-        if (corner == maContext->Video.Logo.corner) continue;  // in logo corner we expect logo
+        if (corner == logoCorner) continue;  // in logo corner we expect logo
         if ((logoQuote >= 855) && (framePortionQuote <= 764) && (allFramePortionQuote <= 472)) {
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): additional logo found in corner %s", aCorner[corner]);
             countLogo++;
@@ -1893,7 +1872,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
         StillImage.endFinal   = StillImage.end;
     }
     if (StillImage.start != -1) {
-        int stillImageLength = 1000 * (StillImage.endFinal -  StillImage.startFinal) / maContext->Video.Info.framesPerSecond;
+        int stillImageLength = 1000 * (StillImage.endFinal -  StillImage.startFinal) / frameRate;
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): still image before advertising in frame from (%d) to (%d), length %dms", StillImage.startFinal, StillImage.endFinal, stillImageLength);
         if ((StillImage.endFinal == AdInFrame.startFinal) && (stillImageLength < 3000)) { // too long detected still images are invalid, changed from 30360 to 5280 to 4320 to 3000
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): move advertising in frame start (%d) to still image start (%d)", AdInFrame.startFinal, StillImage.startFinal);
@@ -1903,9 +1882,9 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
     else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): no still image before advertising in frame found");
 
     // check advertising in frame
-    int startOffset = 1000 * (AdInFrame.startFinal - startPos) / maContext->Video.Info.framesPerSecond;
-    int stopOffset  = 1000 * (endPos - AdInFrame.endFinal) / maContext->Video.Info.framesPerSecond;
-    int length      = 1000 * (AdInFrame.endFinal - AdInFrame.startFinal) / maContext->Video.Info.framesPerSecond;
+    int startOffset = 1000 * (AdInFrame.startFinal - startPos) / frameRate;
+    int stopOffset  = 1000 * (endPos - AdInFrame.endFinal) / frameRate;
+    int length      = 1000 * (AdInFrame.endFinal - AdInFrame.startFinal) / frameRate;
     dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start (%d) end (%d)", AdInFrame.startFinal, AdInFrame.endFinal);
     dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start offset %dms (expect <=%dms for start marks), stop offset %dms (expect <=%dms for stop mark), length %dms (expect >=%dms and <=%dms)", startOffset, AD_IN_FRAME_START_OFFSET_MAX, stopOffset, AD_IN_FRAME_STOP_OFFSET_MAX, length, AD_IN_FRAME_LENGTH_MIN, AD_IN_FRAME_LENGTH_MAX);
 
@@ -1933,15 +1912,16 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
 // - a range of similar frames in the logo corner, but no still image
 // - no separator frame after similar logo corner frames
 int cDetectLogoStopStart::IntroductionLogo() {
-    if (!maContext) return -1;
     if (!decoder) return -1;
     if (compareResult.empty()) return -1;
 
 // for performance reason only for known and tested channels for now
-    if (!IntroductionLogoChannel(maContext->Info.ChannelName)) {
+    const char *channelName = criteria->GetChannelName();
+    if (!IntroductionLogoChannel(channelName)) {
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): skip this channel");
         return -1;
     }
+    int frameRate = decoder->GetVideoFrameRate();
 
     struct introductionLogo {
         int start             = -1;
@@ -1990,7 +1970,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
         for (int corner = 0; corner < CORNERS; corner++) {
             if ((*cornerResultIt).rate[corner]  <=  0) {
                 countNoMatch++;
-                if (corner != maContext->Video.Logo.corner) darkCorner++;   // if we have no match, this can be a too dark corner
+                if (corner != logoCorner) darkCorner++;   // if we have no match, this can be a too dark corner
             }
             if ((*cornerResultIt).rate[corner]  <   0) countNoPixel++;
             if ((*cornerResultIt).rate[corner]  <= 65) countLow++;
@@ -2093,7 +2073,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
 
         // detect introduction logo
         if (separatorFrameBefore >= 0) { // introduction logo start is after separator frame
-            if ((*cornerResultIt).rate[maContext->Video.Logo.corner] >= 82) { // changed from 99 to 82 (change from one intro logo to another intro logo, kabel eins)
+            if ((*cornerResultIt).rate[logoCorner] >= 82) { // changed from 99 to 82 (change from one intro logo to another intro logo, kabel eins)
                 if (introductionLogo.start == -1) introductionLogo.start = (*cornerResultIt).frameNumber1;
                 introductionLogo.end = (*cornerResultIt).frameNumber2;
                 introductionLogo.framePortion += sumFramePortion;
@@ -2121,8 +2101,8 @@ int cDetectLogoStopStart::IntroductionLogo() {
     }
 
     // select final introduction logo range
-    int lengthLast    = 1000 * (introductionLogo.end - introductionLogo.start) / maContext->Video.Info.framesPerSecond;
-    int lastdiffStart = 1000 * (endPos               - introductionLogo.end)   / maContext->Video.Info.framesPerSecond;
+    int lengthLast    = 1000 * (introductionLogo.end - introductionLogo.start) / frameRate;
+    int lastdiffStart = 1000 * (endPos               - introductionLogo.end)   / frameRate;
     dsyslog("cDetectLogoStopStart::IntroductionLogo(): INTRODUCTION_MIN_LENGTH %dms", INTRODUCTION_MIN_LENGTH);
     dsyslog("cDetectLogoStopStart::IntroductionLogo(): last         range: from (%d) to (%d), sum frame portion %4d, frames %3d, length %dms, diff start mark %dms", introductionLogo.start, introductionLogo.end, introductionLogo.framePortion, introductionLogo.frames, lengthLast, lastdiffStart);
     dsyslog("cDetectLogoStopStart::IntroductionLogo(): current best range: from (%d) to (%d), avg frame portion %4d", introductionLogo.startFinal, introductionLogo.endFinal, introductionLogo.framePortionFinal);
@@ -2143,7 +2123,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
 
     // check separator frame before introduction logo
     if (separatorFrameBefore >= 0) {
-        int diffSeparator = 1000 * (endPos - separatorFrameBefore) / maContext->Video.Info.framesPerSecond;
+        int diffSeparator = 1000 * (endPos - separatorFrameBefore) / frameRate;
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator frame before introduction logo found (%d), %dms before start mark", separatorFrameBefore, diffSeparator);
     }
     else {
@@ -2163,10 +2143,10 @@ int cDetectLogoStopStart::IntroductionLogo() {
         stillImage.startFinal = stillImage.start;
         stillImage.endFinal   = stillImage.end;
     }
-    int length        = 1000 * (introductionLogo.endFinal   - introductionLogo.startFinal) / maContext->Video.Info.framesPerSecond;
+    int length        = 1000 * (introductionLogo.endFinal   - introductionLogo.startFinal) / frameRate;
     if ((stillImage.startFinal >= 0) && (stillImage.endFinal > 0)) {
-        int lengthStillImage = 1000 * (stillImage.endFinal - stillImage.startFinal) / maContext->Video.Info.framesPerSecond;
-        int diffStartMark    = 1000 * (endPos              - stillImage.endFinal)   / maContext->Video.Info.framesPerSecond;
+        int lengthStillImage = 1000 * (stillImage.endFinal - stillImage.startFinal) / frameRate;
+        int diffStartMark    = 1000 * (endPos              - stillImage.endFinal)   / frameRate;
         int maxQuote = length * 0.7; // changed from 0.8 to 0.7
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): still image after introduction from (%d) to (%d), length %dms (expect >=%dms), distance to start mark %dms (expect <=%dms)", stillImage.startFinal, stillImage.endFinal, lengthStillImage, maxQuote, diffStartMark, INTRODUCTION_STILL_MAX_DIFF_END);
         if ((lengthStillImage >= maxQuote) && (diffStartMark <= INTRODUCTION_STILL_MAX_DIFF_END)) return -1;
@@ -2174,8 +2154,8 @@ int cDetectLogoStopStart::IntroductionLogo() {
 
 // check introduction logo
     // check length and distances
-    int diffEnd       = 1000 * (endPos                      - introductionLogo.endFinal) / maContext->Video.Info.framesPerSecond;
-    int diffSeparator = 1000 * (introductionLogo.startFinal - separatorFrameBefore)      / maContext->Video.Info.framesPerSecond;
+    int diffEnd       = 1000 * (endPos                      - introductionLogo.endFinal) / frameRate;
+    int diffSeparator = 1000 * (introductionLogo.startFinal - separatorFrameBefore)      / frameRate;
     dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), length %dms (expect >=%dms <=%dms)", introductionLogo.startFinal, introductionLogo.endFinal, length, INTRODUCTION_MIN_LENGTH, INTRODUCTION_MAX_LENGTH);
     dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), diff to logo start mark %dms (expect <=%dms)", introductionLogo.startFinal, introductionLogo.endFinal, diffEnd, INTRODUCTION_MAX_DIFF_END);
     dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), diff to separator frame (%d) %dms (expect <=%dms)", introductionLogo.startFinal, introductionLogo.endFinal, separatorFrameBefore, diffSeparator, INTRODUCTION_MAX_DIFF_SEPARATOR);

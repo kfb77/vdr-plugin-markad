@@ -18,7 +18,7 @@ cCriteria::~cCriteria() {
 }
 
 
-const char *cCriteria::GetChannelName() {
+const char *cCriteria::GetChannelName() const {
     return channelName;
 }
 
@@ -98,6 +98,7 @@ bool cCriteria::InfoInBorder() {
     return false;
 }
 
+
 bool cCriteria::LogoColorChange() {
     if (!channelName) return false;
 
@@ -108,6 +109,7 @@ bool cCriteria::LogoColorChange() {
 
     return false;
 }
+
 
 bool cCriteria::LogoRotating() {
     if (!channelName) return false;
@@ -123,7 +125,6 @@ bool cCriteria::LogoTransparent() {
     return false;
 
 }
-
 
 
 int cCriteria::GetMarkTypeState(const int type) const {
