@@ -49,10 +49,12 @@ cSobel::~cSobel() {
 
 
 bool cSobel::AllocAreaBuffer(sAreaT *area) const {
-    if ((area->logoSize.width <= 0) || (area->logoSize.height <= 0)) {
-        esyslog("cSobel::AllocResultBuffer(): invalid logo size %d:%d", area->logoSize.width, area->logoSize.height);
-        return false;
+    // if we have no area logo size, we use max size for this resolution
+    if ((area->logoSize.width == 0) || (area->logoSize.height == 0)) {
+        area->logoSize = GetMaxLogoSize();
     }
+    dsyslog("cSobel::AllocResultBuffer(): logo size %d:%d", area->logoSize.width, area->logoSize.height);
+
     // alloc memory for sobel transformed planes
     int logoPixel = area->logoSize.width * area->logoSize.height;
     area->sobel = new uchar*[PLANES];

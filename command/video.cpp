@@ -808,7 +808,7 @@ int cLogoDetect::Detect(const int frameBefore, const int frameCurrent, int *logo
                 // area intensity 103, black quote: 35%, inverse quote 34%  -> no logo, tree and sky in backbground
                 // area intensity  76, black quote: 15%, inverse quote 14%
                 //
-                // check logo state visible, new unclear result, trust less bright picture more than bright picures
+                // check logo state visible, new unclear result, trust less bright picture more than bright pictures
                 if (
                     (                           (area.intensity <= 76) && (quoteBlack >= 15) && (quoteInverse >= 14)) ||
                     ((area.intensity >= 103) && (area.intensity < 118) && (quoteBlack >= 35) && (quoteInverse >= 34)) ||

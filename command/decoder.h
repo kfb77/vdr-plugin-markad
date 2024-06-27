@@ -10,7 +10,9 @@
 
 #include <vector>
 #include <deque>
+
 #include "global.h"
+#include "tools.h"
 #include "index.h"
 
 extern "C" {
@@ -69,7 +71,7 @@ extern "C" {
 /**
  * main decoder class
  */
-class cDecoder {
+class cDecoder : protected cTools {
 public:
 
     /**
@@ -84,7 +86,16 @@ public:
 
     ~cDecoder();
 
+    /**
+    * restart decoder to first frame of first file
+    */
+    bool Restart();
+
+    bool GetFullDecode();
+
     const char* GetRecordingDir();
+
+    int GetThreadCount();
 
     /**
      * set decoder to first/next file of the directory
@@ -104,11 +115,6 @@ public:
      * @return true if setup was successful, false otherwiese
      */
     bool InitDecoder(const char * filename);
-
-    /**
-     * restart decoder to first frame of first file
-     */
-    void Restart();
 
     /**
      * get libav format context
@@ -176,6 +182,12 @@ public:
     bool ReadNextPacket();
 
     /**
+    * send current packet (no ream from file) to decoder and receive decoded frame
+    * @return true if send and receive was sucessful, false otherwise
+    */
+    bool DecodePacket();
+
+    /**
     * get next packet(s) from input file, send to decoder and read next frame from decoder
     * read next packet from input stream and decode packet
     * @param  audioDecode true if decode audio packets, false otherwise
@@ -196,19 +208,18 @@ public:
     AVPacket *GetPacket();
 
     /**
-     * seek decoder read position
-     * only seek forward <br>
-     * seek to i-frame before and start decode to fill decoder buffer
-     * @param seekNumber frame number to seek
-     * @return           true if successful, false otherwise
+     * get current frame
+     * @return current frame
      */
-    bool SeekToFrame(int seekNumber);
+    AVFrame *GetFrame();
 
     /**
-     * complete reset decoder without hwaccel
-     * @return return code from avcodec_send_packet
+     * seek decoder read position to frame/i-frame before, next ReadPacket will read seekFrameNumber
+     * only seek forward <br>
+     * @param seekFrameNumber frame number to seek
+     * @return                true if successful, false otherwise
      */
-    int ResetToSW();
+    bool SeekToFrameBefore(int seekNumberNumber);
 
     /**
      * send packet to decoder
@@ -293,6 +304,11 @@ public:
      */
     bool IsSubtitleStream(const unsigned int streamIndex);
 
+    /** get current read video packet number
+     * @return current packet number
+     */
+    int GetVideoPacketNumber() const;
+
     /** get current decoded video frame number
      * @return current decoded frame number
      */
@@ -322,6 +338,11 @@ public:
      */
     sAspectRatio *GetFrameAspectRatio();
 
+    /** check if current packet is a subtitle
+     * @return true if current packet is subtitle, false otherwise
+     */
+    bool IsSubtitlePacket();
+
 private:
 
     typedef struct sPacketFrameMap {
@@ -335,15 +356,16 @@ private:
     void Reset();
 
     /**
+     * complete reset decoder without hwaccel
+     * @return return code from avcodec_send_packet
+     */
+    int ResetToSW();
+
+    /**
      * get currently in progress TS file number
      * @return file number
      */
     int GetFileNumber() const;
-
-    /** check if current packet is a subtitle
-     * @return true if current packet is subtitle, false otherwise
-     */
-    bool IsSubtitlePacket();
 
     char *recordingDir                 = nullptr;                 //!< name of recording directory
     //!<
@@ -386,6 +408,8 @@ private:
     //!<
     int frameNumber                    = -1;                      //!< current decoded video frame number
     //!<
+    int videoWidth                     = 0;
+    int videoHeight                    = 0;
     bool eof                           = false;                   //!< true if end of all ts files reached
     //!<
     std::deque<sPacketFrameMap> packetFrameMap;                   //!< ring buffer to map frameNumer to packetNumber without full decoding

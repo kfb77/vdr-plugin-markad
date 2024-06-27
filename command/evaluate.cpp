@@ -718,9 +718,9 @@ cDetectLogoStopStart::cDetectLogoStopStart(cDecoder *decoderParam, cIndex *index
     evaluateLogoStopStartPair = evaluateLogoStopStartPairParam;
     logoCorner                = logoCornerParam;
 
-    sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0);  // boundary = 0
+    sobel = new cSobel(0, 0, 0);  // full corner area size for this resolution, boundary = 0
     ALLOC(sizeof(*sobel), "sobel");
-    sobel->AllocAreaBuffer(&area);
+    if (!sobel->AllocAreaBuffer(&area)) esyslog("cDetectLogoStopStart::cDetectLogoStopStart(): allocate buffer for area failed");
 }
 
 
@@ -981,8 +981,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         compareResult.clear();
     }
     const char *channelName = criteria->GetChannelName();
-    sLogoSize logoSize = sobel->GetMaxLogoSize();  // default logo size of this resolution, not real logo size, info logos are greater than real logo
-    int maxLogoPixel   = logoSize.width * logoSize.height;
+    int maxLogoPixel = area.logoSize.width * area.logoSize.height;
 
     // check if we have anything todo with this channel
     if (!IsInfoLogoChannel(channelName) && !IsLogoChangeChannel(channelName) && !ClosingCreditsChannel(channelName)
@@ -1003,9 +1002,9 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
     }
 
 
-    dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", logoSize.width, logoSize.height);
+    dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", area.logoSize.width, area.logoSize.height);
 
-    if (!decoder->SeekToFrame(startPos - 1)) {  // one frame before startPos because we start loop with GetNextPacket
+    if (!decoder->SeekToFrameBefore(startPos)) {  // one frame before startPos because we start loop with GetNextPacket
         dsyslog("cDetectLogoStopStart::Detect(): SeekToFrame (%d) failed", startPos);
         status = false;
     }
@@ -1037,7 +1036,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
             }
 #endif
 
-            compareInfo.framePortion[corner] = DetectFrame(frameNumber, area.sobel[0], logoSize.width, logoSize.height, corner);
+            compareInfo.framePortion[corner] = DetectFrame(frameNumber, area.sobel[0], area.logoSize.width, area.logoSize.height, corner);
 
             logo2[corner] = new sLogoInfo;
             ALLOC(sizeof(*logo2[corner]), "logo");
@@ -1054,7 +1053,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
 #define RATE_0_MIN     250
 #define RATE_12_MIN    950
             if (logo1[corner]->frameNumber >= 0) {  // we have a logo pair
-                if (extractLogo->CompareLogoPair(logo1[corner], logo2[corner], logoSize.height, logoSize.width, corner, RATE_0_MIN, RATE_12_MIN, &compareInfo.rate[corner])) {
+                if (extractLogo->CompareLogoPair(logo1[corner], logo2[corner], area.logoSize.height, area.logoSize.width, corner, RATE_0_MIN, RATE_12_MIN, &compareInfo.rate[corner])) {
                 }
             }
             if (corner == 0) {  // set current frame numbers, needed only once

@@ -56,9 +56,8 @@ cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam
         ALLOC(sizeof(*sobel), "sobel");
 
         // allocate area result buffer
-        logoSize = sobel->GetMaxLogoSize();                                          // max logo size of this video resolutio
-        area.logoSize = logoSize;
-        sobel->AllocAreaBuffer(&area);                                             // allocate memory for result buffer
+        area.logoSize = {0};                        // use max logo size of this video resolutio
+        sobel->AllocAreaBuffer(&area);              // allocate memory for result buffer
 
         hBorder = new cHorizBorderDetect(decoder, criteria);
         ALLOC(sizeof(*hBorder), "hBorder");
@@ -1560,7 +1559,7 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
             dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() for startFrame %d failed", startFrame);
             return LOGO_ERROR;
         }
-        if (!decoder->SeekToFrame(startFrame)) {
+        if (!decoder->SeekToFrameBefore(startFrame)) {
             dsyslog("cExtractLogo::SearchLogo(): seek to start frame (%d) failed", startFrame);
             return LOGO_ERROR;
         }

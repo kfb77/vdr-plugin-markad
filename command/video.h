@@ -205,12 +205,11 @@ public:
 
     /**
      * process scene change detection
-     * @param[in]   currentFrameNumber current frame number
      * @param[out]  changeFrameNumber  frame number of scene change
      * @return      scene change status: <br>
-     *         -1 scene stop <br>
-     *          0 no status change <br>
-     *          1 scene start
+     *              -1 scene stop <br>
+     *              0 no status change <br>
+     *              1 scene start
      */
     int Process(int *changeFrameNumber);
 

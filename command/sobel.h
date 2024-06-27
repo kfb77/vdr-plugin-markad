@@ -68,12 +68,6 @@ public:
     bool FreeAreaBuffer(sAreaT *area);
 
     /**
-    * get max logo size for video resolution
-    * @return log size
-    */
-    sLogoSize GetMaxLogoSize() const;
-
-    /**
     * sobel transformation of a all planes with a logo plane from input picture
     * @param picture    input picture
     * @param area       logo mask and result of transformation and machtes
@@ -107,6 +101,13 @@ public:
      */
     bool SetCoordinates(sAreaT *area, const int plane, int *xstart, int *xend, int *ystart, int *yend) const;
 
+private:
+    /**
+    * get max logo size for video resolution
+    * @return log size
+    */
+    sLogoSize GetMaxLogoSize() const;
+
     int GX[3][3]         = {0};      //!< GX Sobel mask
     //!<
     int GY[3][3]         = {0};      //!< GY Sobel mask
@@ -123,7 +124,5 @@ public:
     //!<
     int intensity        = 0;        //!< brightness of plane 0 picture
     //!<
-
-private:
 };
 #endif

@@ -96,7 +96,7 @@ cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodePa
     if (threads > 16) threads = 16;
 
     fullDecode = fullDecodeParam;
-    dsyslog("cDecoder::cDecoder(): init with %d threads, full decode %d, hwaccel %s", threads, fullDecode, hwaccel);
+    dsyslog("cDecoder::cDecoder(): init with %d threads, %s, hwaccel %s", threads, (fullDecode) ? "full decode" : "i-frame decode", hwaccel);
     index      = indexParam;     // index can be nullptr if we use no index (used in logo search)
     forceHW    = forceHWparam;
 
@@ -129,8 +129,76 @@ cDecoder::~cDecoder() {
 }
 
 
+void cDecoder::Reset() {
+    dsyslog("cDecoder::Reset(): reset decoder");
+    av_packet_unref(&avpkt);
+    av_frame_unref(&avFrame);
+    if (hw_device_ctx) av_buffer_unref(&hw_device_ctx);
+    if (nv12_to_yuv_ctx) {
+        FREE(sizeof(nv12_to_yuv_ctx), "nv12_to_yuv_ctx");  // pointer size, real size not possible because of extern declaration, only as reminder
+        sws_freeContext(nv12_to_yuv_ctx);
+        nv12_to_yuv_ctx = nullptr;
+    }
+    if (avctx && codecCtxArray) {
+        for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
+            if (codecCtxArray[streamIndex]) {
+                FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
+                avcodec_free_context(&codecCtxArray[streamIndex]);
+            }
+        }
+        FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
+        free(codecCtxArray);
+        codecCtxArray = nullptr;
+    }
+    if (avctx) {
+        FREE(sizeof(avctx), "avctx");
+        avformat_close_input(&avctx);
+        avctx = nullptr;
+    }
+    fileNumber       = 0;
+    packetNumber     = -1;
+    frameNumber      = -1;
+    dtsBefore        = -1;
+    decoderSendState = 0;
+    eof              = false;
+    packetFrameMap.clear();
+    sumDuration      = 0;
+}
+
+
+bool cDecoder::Restart() {
+    dsyslog("cDecoder::Restart(): restart decoder");
+    Reset();
+    return(ReadNextFile());  // re-init decoder
+}
+
+
+int cDecoder::ResetToSW() {
+    // hardware decoding faild at first packet, something is wrong maybe not supported codec
+    // during init we got no error code
+    // cleanup current decoder
+    // init decoder without hwaccel
+    dsyslog("cDecoder::ResetToSW(): reset hardware decoder und init software decoder");
+    Reset();
+    useHWaccel   = false;
+    ReadNextFile();  // re-init decoder without hwaccel
+    ReadPacket();
+    return(SendPacketToDecoder(false));
+}
+
+
+bool cDecoder::GetFullDecode() {
+    return fullDecode;
+}
+
+
 const char* cDecoder::GetRecordingDir() {
     return recordingDir;
+}
+
+
+int cDecoder::GetThreadCount() {
+    return threads;
 }
 
 bool cDecoder::ReadNextFile() {
@@ -165,7 +233,6 @@ bool cDecoder::ReadNextFile() {
 }
 
 
-
 int cDecoder::GetErrorCount() const {
     return decodeErrorCount;
 }
@@ -189,6 +256,7 @@ AVCodecContext **cDecoder::GetAVCodecContext() {
 bool cDecoder::InitDecoder(const char *filename) {
     if (!filename) return false;
 
+    LogSeparator(false);
     dsyslog("cDecoder::InitDecoder(): filename: %s", filename);
     AVFormatContext *avctxNextFile = nullptr;
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(35<<8)+100)
@@ -338,6 +406,8 @@ bool cDecoder::InitDecoder(const char *filename) {
     }
     dsyslog("cDecoder::InitDecoder(): first MP2 audio stream index: %d", firstMP2Index);
     if (fileNumber <= 1) offsetTime_ms_LastFile = 0;
+
+    LogSeparator(false);
     return true;
 }
 
@@ -349,15 +419,12 @@ int cDecoder::GetVideoType() {
         if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             switch (avctx->streams[i]->codecpar->codec_id) {
             case AV_CODEC_ID_MPEG2VIDEO:
-                dsyslog("cDecoder::GetVideoType(): video coding format: H.262");
                 return MARKAD_PIDTYPE_VIDEO_H262;
                 break;
             case AV_CODEC_ID_H264:
-                dsyslog("cDecoder::GetVideoType(): video coding format: H.264");
                 return MARKAD_PIDTYPE_VIDEO_H264;
                 break;
             case AV_CODEC_ID_H265:
-                dsyslog("cDecoder::GetVideoType(): video coding format: H.265");
                 return MARKAD_PIDTYPE_VIDEO_H265;
                 break;
             default:
@@ -368,11 +435,9 @@ int cDecoder::GetVideoType() {
 #else
         if (avctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
             if (avctx->streams[i]->codec->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
-                dsyslog("cDecoder::GetVideoType(): found H.262 Video");
                 return MARKAD_PIDTYPE_VIDEO_H262;
             }
             if (avctx->streams[i]->codec->codec_id == AV_CODEC_ID_H264) {
-                dsyslog("cDecoder::GetVideoType(): found H.264 Video");
                 return MARKAD_PIDTYPE_VIDEO_H264;
             }
             dsyslog("cDecoder::GetVideoType(): unknown coded id %i", avctx->streams[i]->codec->codec_id);
@@ -385,37 +450,33 @@ int cDecoder::GetVideoType() {
 }
 
 
-int cDecoder::GetVideoHeight() {
-    if (!avctx) return 0;
-    for (unsigned int i=0; i<avctx->nb_streams; i++) {
+int cDecoder::GetVideoWidth() {
+    if ((videoWidth <= 0) && avctx) {
+        for (unsigned int i=0; i < avctx->nb_streams; i++) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-        if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-            return avctx->streams[i]->codecpar->height;
+            if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) videoWidth = avctx->streams[i]->codecpar->width;
 #else
-        if (avctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
-            return avctx->streams[i]->codec->height;
+            if (avctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)    videoWidth = avctx->streams[i]->codec->width;
 #endif
         }
     }
-    dsyslog("cDecoder::GetVideoHeight(): failed");
-    return 0;
+    if (videoWidth <= 0) dsyslog("cDecoder::GetVideoWidth(): failed");
+    return videoWidth;
 }
 
 
-int cDecoder::GetVideoWidth() {
-    if (!avctx) return 0;
-    for (unsigned int i=0; i<avctx->nb_streams; i++) {
+int cDecoder::GetVideoHeight() {
+    if ((videoHeight <= 0) && avctx) {
+        for (unsigned int i=0; i < avctx->nb_streams; i++) {
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-        if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-            return avctx->streams[i]->codecpar->width;
+            if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) videoHeight = avctx->streams[i]->codecpar->height;
 #else
-        if (avctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
-            return avctx->streams[i]->codec->width;
+            if (avctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)    videoHeight = avctx->streams[i]->codec->height;
 #endif
         }
     }
-    dsyslog("cDecoder::GetVideoWidth(): failed");
-    return 0;
+    if (videoHeight <= 0) esyslog("cDecoder::GetVideoHeight(): failed");
+    return videoHeight;
 }
 
 
@@ -555,6 +616,16 @@ bool cDecoder::ReadPacket() {
     return false;
 }
 
+AVPacket *cDecoder::GetPacket() {
+    return &avpkt;
+}
+
+
+AVFrame *cDecoder::GetFrame() {
+    return &avFrame;
+}
+
+
 int64_t cDecoder::GetPacketPTS() {
     return avpkt.pts;
 }
@@ -637,6 +708,15 @@ bool cDecoder::ReadNextPacket() {
     if (ReadPacket())    return true;     // read from current input ts file successfully
     if (!ReadNextFile()) return false;    // use next file
     return ReadPacket();                  // first read from next ts file
+}
+
+
+bool cDecoder::DecodePacket() {
+    decoderSendState = SendPacketToDecoder(false);      // send packet to decoder, no flash flag
+    if (decoderSendState != 0) return false;
+    decoderReceiveState = ReceiveFrameFromDecoder();  // retry receive
+    if (decoderReceiveState != 0) return false;
+    return true;
 }
 
 
@@ -737,21 +817,23 @@ sVideoPicture *cDecoder::GetVideoPicture() {
 }
 
 
+
+bool cDecoder::SeekToFrameBefore(int seekFrameNumber) {
+// seek to frame before (full decode) or i-frame before (no full decode), next ReadPacket will load the taget seekFrameNumber
 // if we have no index, we do not preload decoder
-// if we do no full decode, we seek to next i-frame
-// only used by logo search, we don't care exact position in this case
-bool cDecoder::SeekToFrame(int seekNumber) {
+// if we do no full decode and seekFrame i-frame number, we seek to next i-frame
     if (!avctx) return false;
     if (!codecCtxArray) return false;
-    dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d)", packetNumber, frameNumber, seekNumber);
-    if (packetNumber > frameNumber) {
-        dsyslog("cDecoder::SeekToFrame(): packet position (%d): could not seek backward to frame (%d)", packetNumber, frameNumber);
+    dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d)", packetNumber, frameNumber, seekFrameNumber);
+
+    if (packetNumber > seekFrameNumber) {
+        esyslog("cDecoder::SeekToFrame(): packet position (%d): could not seek backward to frame (%d)", packetNumber, seekFrameNumber);
         return false;
     }
 
     int iFrameBefore = 0;
-    if (index) iFrameBefore = index->GetIFrameBefore(seekNumber - 1);  // start decoding from iFrame before to fill decoder buffer
-    else iFrameBefore = seekNumber;                                    // if we have no index, we do not take care of fill decoder
+    if (index) iFrameBefore = index->GetIFrameBefore(seekFrameNumber - 1);  // start decoding from iFrame before to fill decoder buffer
+    else iFrameBefore = seekFrameNumber;                                    // if we have no index, we do not take care of fill decoder
     if (iFrameBefore == -1) {
         dsyslog("cDecoder::SeekFrame(): index does not yet contain frame (%5d), decode from current frame (%d) to build index", frameNumber, packetNumber);
         iFrameBefore = 0;
@@ -765,80 +847,22 @@ bool cDecoder::SeekToFrame(int seekNumber) {
     }
 
     // read packets from current position to iFrameBefore
-    while (frameNumber < seekNumber) {    // we stop one frame before, next DecodePacket will return requestet frame
+    while (frameNumber < seekFrameNumber) {    // we stop one frame before, next DecodePacket will return requestet frame
         if (abortNow) return false;
         if (!ReadPacket()) {
-            dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d) failed to read next packet", packetNumber, frameNumber, seekNumber);
+            dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d) failed to read next packet", packetNumber, frameNumber, seekFrameNumber);
             return false;
         }
         if (packetNumber >= iFrameBefore) {  // start decoding to fill decoder queue
             if (!DecodeNextFrame(false)) {   // no audio decode
-                dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d) failed to decode next frame", packetNumber, frameNumber, seekNumber);
+                dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d) failed to decode next frame", packetNumber, frameNumber, seekFrameNumber);
                 return false;
             }
         }
     }
-    if (fullDecode) dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d) successful", packetNumber, frameNumber, seekNumber);
-    else dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to i-frame after (%d) successful", packetNumber, frameNumber, seekNumber);
+    if (fullDecode) dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d) successful", packetNumber, frameNumber, seekFrameNumber);
+    else dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to i-frame after (%d) successful", packetNumber, frameNumber, seekFrameNumber);
     return true;
-}
-
-
-void cDecoder::Reset() {
-    dsyslog("cDecoder::Reset(): reset decoder");
-    av_packet_unref(&avpkt);
-    av_frame_unref(&avFrame);
-    if (hw_device_ctx) av_buffer_unref(&hw_device_ctx);
-    if (nv12_to_yuv_ctx) {
-        FREE(sizeof(nv12_to_yuv_ctx), "nv12_to_yuv_ctx");  // pointer size, real size not possible because of extern declaration, only as reminder
-        sws_freeContext(nv12_to_yuv_ctx);
-        nv12_to_yuv_ctx = nullptr;
-    }
-    if (avctx && codecCtxArray) {
-        for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
-            if (codecCtxArray[streamIndex]) {
-                FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
-                avcodec_free_context(&codecCtxArray[streamIndex]);
-            }
-        }
-        FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
-        free(codecCtxArray);
-        codecCtxArray = nullptr;
-    }
-    if (avctx) {
-        FREE(sizeof(avctx), "avctx");
-        avformat_close_input(&avctx);
-        avctx = nullptr;
-    }
-    fileNumber       = 0;
-    packetNumber     = -1;
-    frameNumber      = -1;
-    dtsBefore        = -1;
-    decoderSendState = 0;
-    eof              = false;
-    packetFrameMap.clear();
-    sumDuration      = 0;
-}
-
-
-void cDecoder::Restart() {
-    dsyslog("cDecoder::Restart(): restart decoder");
-    Reset();
-    ReadNextFile();  // re-init decoder
-}
-
-
-int cDecoder::ResetToSW() {
-    // hardware decoding faild at first packet, something is wrong maybe not supported codec
-    // during init we got no error code
-    // cleanup current decoder
-    // init decoder without hwaccel
-    dsyslog("cDecoder::ResetToSW(): reset hardware decoder und init software decoder");
-    Reset();
-    useHWaccel   = false;
-    ReadNextFile();  // re-init decoder without hwaccel
-    ReadPacket();
-    return(SendPacketToDecoder(false));
 }
 
 
@@ -964,7 +988,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
         case AVERROR(EINVAL):
             esyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%i5d): avcodec_receive_frame error EINVAL", frameNumber);
             break;
-        case -EIO:              // end of file
+        case -EIO:              // I/O error
             dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%5d): I/O error (EIO)", frameNumber);
             break;
         case AVERROR_EOF:       // end of file
@@ -1232,6 +1256,11 @@ bool cDecoder::IsSubtitlePacket() {
     if (avctx->streams[avpkt.stream_index]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) return true;
 #endif
     return false;
+}
+
+
+int cDecoder::GetVideoPacketNumber() const {
+    return packetNumber;
 }
 
 

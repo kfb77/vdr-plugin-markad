@@ -74,9 +74,9 @@ public:
 
     /**
      * constructor
-     * @param macontext markad context
+     * @param decoderParam pointer to decoder
      */
-    explicit cEncoder(sMarkAdContext *macontext);
+    explicit cEncoder(cDecoder *decoderParam, const bool fullEncodeParam, const bool bestStreamParam, const bool ac3ReEncodeParam);
 
     ~cEncoder();
 
@@ -90,53 +90,53 @@ public:
     /**
      * open output file
      * @param directory    output directory
-     * @param ptr_cDecoder encoder class
+     * @param decoder encoder class
      * @return true if successful, false otherwise
      */
-    bool OpenFile(const char *directory, cDecoder *ptr_cDecoder);
+    bool OpenFile(const char *directory, cDecoder *decoder);
 
     /** write packet to output file
      * @param avpktIn      packet from input stream
-     * @param ptr_cDecoder decoder class
+     * @param decoder decoder class
      * @return true if successful, flase otherwise
      */
-    bool WritePacket(AVPacket *avpktIn, cDecoder *ptr_cDecoder);
+    bool WritePacket();
 
     /**
      * close output file
-     * @param ptr_cDecoder decoder class
+     * @param decoder decoder class
      * @return true if successful, false otherwise
      */
-    bool CloseFile(cDecoder *ptr_cDecoder);
+    bool CloseFile(cDecoder *decoder);
 
 private:
     /** encode frame
-     * @param ptr_cDecoder decoder
+     * @param decoder decoder
      * @param avCodecCtx   codec context
      * @param avFrame      decodes frame
      * @param avpkt        encoded packet
      */
-    bool EncodeFrame(cDecoder *ptr_cDecoder, AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacket *avpkt);
+    bool EncodeFrame(cDecoder *decoder, AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacket *avpkt);
 
     /**
      * init encoder codec
-     * @param ptr_cDecoder   decoder
+     * @param decoder   decoder
      * @param directory      recording directory
      * @param streamIndexIn  input stream index
      * @param streamIndexOut output stream index
      * @return true if successful, false otherwise
      */
-    bool InitEncoderCodec(cDecoder *ptr_cDecoder, const char *directory, const unsigned int streamIndexIn, const unsigned int streamIndexOut);
+    bool InitEncoderCodec(cDecoder *decoder, const char *directory, const unsigned int streamIndexIn, const unsigned int streamIndexOut);
 
     /**
      * change audio encoder channel count
-     * @param ptr_cDecoder   decoder
+     * @param decoder   decoder
      * @param streamIndexIn  stream index input stream
      * @param streamIndexOut stream index output stream
      * @param avCodecCtxIn   input stream codec context
      * @return true if successful, false otherwise
      */
-    bool ChangeEncoderCodec(cDecoder *ptr_cDecoder, const int streamIndexIn, const int streamIndexOut, AVCodecContext *avCodecCtxIn);
+    bool ChangeEncoderCodec(cDecoder *decoder, const int streamIndexIn, const int streamIndexOut, AVCodecContext *avCodecCtxIn);
 
     /**
      * save video frame as picture, used for debugging
@@ -161,9 +161,13 @@ private:
      */
     bool CheckStats(const int max_b_frames) const;
 
-    sMarkAdContext *maContext;                                    //!< markad context
+    cDecoder *decoder                 = nullptr;                  //!< decoder
     //!<
-    int threadCount = 0;                                          //!< encoder thread count
+    bool fullEncode                   = false;                    //!< true for full re-encode video and audio
+    //!<
+    bool bestStream                   = false;
+    //!<
+    bool ac3ReEncode                  = false;
     //!<
     AVFormatContext *avctxIn = nullptr;                              //!< avformat context for input
     //!<
@@ -183,7 +187,7 @@ private:
     //!<
     bool stateEAGAIN = false;                                     //!< true if encoder needs more frame, false otherwise
     //!<
-    cAC3VolumeFilter *ptr_cAC3VolumeFilter[MAXSTREAMS] = {nullptr};  //!< AC3 volume filter
+    cAC3VolumeFilter *volumeFilterAC3[MAXSTREAMS] = {nullptr};  //!< AC3 volume filter
     //!<
 
     /**
