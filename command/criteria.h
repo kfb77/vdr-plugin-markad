@@ -47,49 +47,42 @@ public:
 
     /**
      * get status of channel have exact VPS events
-     * @param channelName name of the channel
      * @return status
      */
     bool GoodVPS();
 
     /**
      * get status of channel uses fade in/out/fade logo
-     * @param channelName name of the channel
      * @return status
      */
     int LogoFadeInOut();
 
     /**
      * get status of channel if logo is in hborder or vborder
-     * @param channelName name of the channel
      * @return status
      */
     bool LogoInBorder();
 
     /**
      * get status of channel if infos are in hborder or vborder
-     * @param channelName name of the channel
      * @return status
      */
     bool InfoInBorder();
 
     /**
      * get status of channel has logo who changes Color
-     * @param channelName name of the channel
      * @return status
      */
     bool LogoColorChange();
 
     /**
      * get status of channel has logo rotating
-     * @param channelName name of the channel
      * @return status
      */
     bool LogoRotating();
 
     /**
      * get status of channel logo rotating
-     * @param channelName name of the channel
      * @return status
      */
     bool LogoTransparent();

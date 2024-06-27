@@ -21,6 +21,10 @@
  */
 class cIndex {
 public:
+    /**
+     * recording index class
+     * @param fullDecodeParam full decode state of decoder
+     */
     explicit cIndex(const bool fullDecodeParam);
     ~cIndex();
 
@@ -28,18 +32,30 @@ public:
      * add new frame to index
      * @param fileNumber         number of ts file
      * @param frameNumber        number of frame
+     * @param pts                frame PTS
      * @param ptsTimeOffset_ms   offset in ms from recording start based on PTS fild
      * @param frameTimeOffset_ms offset in ms from recording start based sum of duration
      */
     void Add(const int fileNumber, const int frameNumber, const int64_t pts, const int ptsTimeOffset_ms, const int frameTimeOffset_ms);
 
+    /**
+     * get frameNumber before PTS
+     * @param pts frame PTS
+     * @return frame number before pts
+     */
     int GetIFrameBeforePTS(const int64_t pts);
+
+    /**
+     * get frameNumber after PTS
+     * @param pts frame PTS
+     * @return frame number after pts
+     */
     int GetIFrameAfterPTS(const int64_t pts);
 
     /**
      * get frame before frameNumber
      * @param frameNumber number of frame
-     * @return f fullDecode frame number direct before frameNumber, else i-frame number before
+     * @return if fullDecode frame number direct before frameNumber, else i-frame number before
      */
     int GetFrameBefore(int frameNumber);
 
@@ -100,23 +116,25 @@ public:
     int GetFrameAfterPTS(const int64_t pts);
 
 private:
-    bool fullDecode = false;
+    bool fullDecode = false;                    //!< decoder full decode modi
+
     /**
      * element of the video index
      */
     struct sIndexElement {
-        int fileNumber         = -1;            //!< number of TS file
+        int fileNumber         = -1;             //!< number of TS file
         //!<
-        int frameNumber        = -1;            //!< video i-frame number
+        int frameNumber        = -1;             //!< video i-frame number
         //!<
-        int64_t pts            = -1;            //!< pts of i-frame
+        int64_t pts            = -1;             //!< pts of i-frame
         //!<
-        int ptsTimeOffset_ms   = -1;            //!< time offset from start of the recording in ms based on pts in frame, missing frame increase timestamp (imestamps for VLC player)
+        int ptsTimeOffset_ms   = -1;             //!< time offset from start of the recording in ms based on pts in frame, missing frame increase timestamp (imestamps for VLC player)
         //!<
-        int frameTimeOffset_ms = -1;            //!< time offset from start of the recording in ms based in frame duration, missing frames are ignored (timestamps for VDR)
+        int frameTimeOffset_ms = -1;             //!< time offset from start of the recording in ms based in frame duration, missing frames are ignored (timestamps for VDR)
         //!<
     };
-    std::vector<sIndexElement> indexVector;     //!< recording index
+    std::vector<sIndexElement> indexVector;      //!< recording index
+
     //!<
     /**
      * ring buffer element to store frame presentation timestamp

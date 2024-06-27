@@ -72,6 +72,9 @@ public:
  */
 class cEvaluateLogoStopStartPair : public cEvaluateChannel {
 public:
+    /**
+     * class to evaluate stop / start pair for special logos (info logo, logo change nd introduction logo"
+     */
     cEvaluateLogoStopStartPair(cDecoder *decoderParam, cCriteria *criteriaParam);
     ~cEvaluateLogoStopStartPair();
 
@@ -116,7 +119,6 @@ public:
      * check if logo stop/start pair could be a logo change
      * @param[in]     marks             object with all marks
      * @param[in,out] logoStopStartPair structure of logo/stop start pair, result is stored here, isLogoChange is set to -1 if the part is no logo change
-     * @param[in]     framesPerSecond   video frame rate
      * @param[in]     iStart            assumed start mark position
      * @param[in]     chkSTART          search for start mark position
      */
@@ -127,7 +129,6 @@ public:
      * @param marks             object with all marks
      * @param blackMarks        object with all black screen marks
      * @param logoStopStartPair structure of logo/stop start pair, result is stored here
-     * @param framesPerSecond   video frame rate
      * @param iStopA            assumed stop frame number
      */
     void IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int iStopA);
@@ -212,9 +213,9 @@ public:
     bool IncludesInfoLogo(const int stopPosition, const int startPosition);
 
 private:
-    cDecoder *decoder   = nullptr;
+    cDecoder *decoder   = nullptr;                                  //!< pointer to decoder
     //!<
-    cCriteria *criteria = nullptr;
+    cCriteria *criteria = nullptr;                                  //!< analyse criteria
     //!<
     std::vector<sLogoStopStartPair> logoPairVector;                 //!< logo stop/start pair vector
     //!<
@@ -230,13 +231,31 @@ class cDetectLogoStopStart : public cEvaluateChannel {
 public:
     /**
      * constructor for class to dectect special logo stop/start pair
-     * @param criteriaParam         detection criteria
-     * @param decoderParam          decoder
+     * @param decoderParam            pointer to decoder
+     * @param indexParam              pointer to recording index
+     * @param criteriaParam           detection criteria
+     * @param extractLogoParam        pointer to logo extraction (needed to compare sobel transformed picture)
+     * @param logoCornerParam         logo corner index
+     * evaluateLogoStopStartPairParam class to evaluate logo stop/pairs
      * @param evaluateLogoStopStartPairParam class to evaluate logo stop/start pairs
      */
     cDetectLogoStopStart(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, cExtractLogo *extractLogoParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam, const int logoCornerParam);
 
     ~cDetectLogoStopStart();
+
+    /**
+    * copy constructor
+    */
+    cDetectLogoStopStart(const cDetectLogoStopStart &origin) {
+    }
+
+    /**
+     * operator=
+     */
+    cDetectLogoStopStart &operator =(const cDetectLogoStopStart *origin) {
+        return *this;
+    }
+
 
     /**
      * find first pixel in a sobel transformed picture
@@ -319,6 +338,7 @@ public:
     /**
      * check if current range is an advertising in frame with logo
      * @param isStartMark true if called to check after start mark, false if called to check before stop mark
+     * @param isEndMark   true if called to check after stop mark, false if called to check before stop mark
      * @return first frame of advertising in frame with logo before logo stop mark or last frame of advertising in frame with logo after logo start mark <br>
      *         -1 if no advertising in frame with logo was found
      */
@@ -337,13 +357,13 @@ private:
     //!<
     cCriteria *criteria       = nullptr;  //!< class for mark detection criteria
     //!<
-    cExtractLogo *extractLogo = nullptr;
+    cExtractLogo *extractLogo = nullptr;  //!< pointer to logo extraction class
     //!<
-    sAreaT area               = {};
+    sAreaT area               = {};       //!< result area
     //!<
-    int logoCorner            = -1;
+    int logoCorner            = -1;       //!< index of logo corner
     //!<
-    cSobel *sobel             = nullptr;  // class for sobel transformation
+    cSobel *sobel             = nullptr;  //!< class for sobel transformation
     //!<
     int startPos              = 0;        //!< frame number of start position to compare
     //!<
@@ -353,16 +373,16 @@ private:
      * compare two frames
      */
     struct sCompareInfo {
-        int frameNumber1          = 0;                //!< frame number 1
+        int frameNumber1          = 0;       //!< frame number 1
         //!<
-        int frameNumber2          = 0;                //!< frame number 2
+        int frameNumber2          = 0;       //!< frame number 2
         //!<
-        int rate[CORNERS]         = {0};             //!< similar rate of frame pair per corner
+        int rate[CORNERS]         = {0};     //!< similar rate of frame pair per corner
         //!<
         int framePortion[CORNERS] = {0};     //!< portion of frame pixels of corner
         //!<
     };
-    std::vector<sCompareInfo> compareResult; //!< vector of frame compare results
+    std::vector<sCompareInfo> compareResult;                //!< vector of frame compare results
     //!<
     cEvaluateLogoStopStartPair *evaluateLogoStopStartPair;  //!< class to evaluate logo stop/start pairs
     //!<

@@ -44,7 +44,7 @@ bool SaveSobel(const char *fileName, const uchar *picture, const int width, cons
 
 // save currect content of the frame buffer (plane 0) to fileName
 //
-#if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER)
+#if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_DECODER_SEEK)
 #include <stdio.h>
 #include <stdlib.h>
 void SaveVideoPicture(const char *fileName, sVideoPicture *picture) {
@@ -53,6 +53,7 @@ void SaveVideoPicture(const char *fileName, sVideoPicture *picture) {
     }
     if (!picture) {
         esyslog("SaveVideoPicture(): picture not valid");
+        return;
     }
     if (picture->height <= 0) {
         esyslog("SaveVideoPicture(): height not valid");

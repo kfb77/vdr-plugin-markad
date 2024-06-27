@@ -181,7 +181,7 @@ bool cLogoDetect::LoadLogoPlane(const char *path, const char *logoName, const in
     return true;
 }
 
-int cLogoDetect::GetLogoCorner() {
+int cLogoDetect::GetLogoCorner() const {
     return area.logoCorner;
 }
 
@@ -1640,7 +1640,7 @@ cVideo::~cVideo() {
 }
 
 
-int cVideo::GetLogoCorner () {
+int cVideo::GetLogoCorner () const {
     return logoDetect->GetLogoCorner();
 }
 
@@ -1731,10 +1731,9 @@ sMarkAdMarks *cVideo::Process() {
     }
 
     // hborder change detection
-    int hret = HBORDER_ERROR;
     if (criteria->GetDetectionState(MT_HBORDERCHANGE)) {
         int hborderframenumber;
-        hret = hBorderDetect->Process(&hborderframenumber);  // we get start frame of hborder back
+        int hret = hBorderDetect->Process(&hborderframenumber);  // we get start frame of hborder back
         if ((hret == HBORDER_VISIBLE) && (hborderframenumber >= 0)) {
             AddMark(MT_HBORDERSTART, hborderframenumber);
         }

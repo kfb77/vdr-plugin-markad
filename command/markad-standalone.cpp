@@ -175,7 +175,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startFrame) {
     startA = startFrame;
     stopA  = startA + macontext.Video.Info.framesPerSecond * length;
     frameCheckStart = startA + macontext.Video.Info.framesPerSecond * (1.5 * MAX_ASSUMED) ; //  fit for later broadcast start
-    frameCheckStop  = startFrame + macontext.Video.Info.framesPerSecond * (length + (2 * MAX_ASSUMED));
+    frameCheckStop  = startFrame + macontext.Video.Info.framesPerSecond * (length + (1.5 * MAX_ASSUMED));
 
     dsyslog("cMarkAdStandalone::CalculateCheckPositions(): length of recording:   %4ds (%3d:%2dmin)", length, length / 60, length % 60);
     dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed start frame:  %5d  (%3d:%2dmin)", startA, static_cast<int>(startA / macontext.Video.Info.framesPerSecond / 60), static_cast<int>(startA / macontext.Video.Info.framesPerSecond) % 60);
@@ -1329,7 +1329,7 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
 }
 
 
-int cMarkAdStandalone::CheckStop() {
+void cMarkAdStandalone::CheckStop() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStop(): start check stop (%d)", decoder->GetVideoFrameNumber());
 
@@ -1569,9 +1569,7 @@ int cMarkAdStandalone::CheckStop() {
     dsyslog("cMarkAdStandalone::CheckStop(): end check stop");
     doneCheckStop = true;
     LogSeparator();
-    if (end) return end->position;
-    else return 0;
-
+    return;
 }
 
 
@@ -1583,6 +1581,12 @@ int cMarkAdStandalone::CheckStop() {
 bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     if (!stopMark) return false;
     dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits after position (%d)", stopMark->position);
+
+    // init objects for logo mark optimization
+    if (!detectLogoStopStart) {  // init in RemoveLogoChangeMarks(), but maybe not used
+        detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, extractLogo, nullptr, video->GetLogoCorner());
+        ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
+    }
 
     int endPos = stopMark->position + (25 * macontext.Video.Info.framesPerSecond);  // try till 25s after stopMarkPosition
     int newPosition = -1;
@@ -1600,24 +1604,36 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
 }
 
 
-// remove stop/start logo mark pair if it detects a part in the broadcast with logo changes
-// some channel e.g. TELE5 plays with the logo in the broadcast
+// remove logo stop/start pairs from logo changes / info logo / introduction logo
+// have to be done before end mark selection to prevent to select wrong end mark
 //
-void cMarkAdStandalone::RemoveLogoChangeMarks() {       // for performance reason only known and tested channels
-    if (marks.Count(MT_LOGOCHANGE, 0xF0) == 0) return;  // nothing to do
-
+void cMarkAdStandalone::RemoveLogoChangeMarks() {
     LogSeparator(true);
-    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start mark and pairs with special logo");
+    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start marks from special logo");
 
-    // init objects for logo mark optimization
-    detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, extractLogo, nullptr, video->GetLogoCorner());
-    ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
-    evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder, criteria);
-    ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+    if (marks.Count(MT_LOGOCHANGE, 0xF0) < 4) {  // only if there are at last one corect logo stop/start and one logo/stop/start from
+        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): to less logo marks");
+        return;
+    }
 
     if (!evaluateLogoStopStartPair->IsInfoLogoChannel(macontext.Info.ChannelName) &&
             !evaluateLogoStopStartPair->IsLogoChangeChannel(macontext.Info.ChannelName) &&
-            !evaluateLogoStopStartPair->ClosingCreditsChannel(macontext.Info.ChannelName)) return;  // nothing to do
+            !evaluateLogoStopStartPair->ClosingCreditsChannel(macontext.Info.ChannelName)) {  // for performance reason only known and tested channels
+        dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): channel not in list for special logo");
+        return;
+    }
+
+    // init objects for logo mark optimization
+    decoder->Restart();  // read position is at the end of the recording from mark detection, restart read position
+    if (!detectLogoStopStart) {
+        detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, extractLogo, nullptr, video->GetLogoCorner());
+        ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
+    }
+    if (!evaluateLogoStopStartPair) {
+        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder, criteria);
+        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+    }
+
 
     evaluateLogoStopStartPair->CheckLogoStopStartPairs(&marks, &blackMarks, startA, frameCheckStart, stopA);
 
@@ -1814,6 +1830,11 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     cMark *begin = nullptr;
 
     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): search for logo start mark");
+
+    if (!evaluateLogoStopStartPair) {
+        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder, criteria);
+        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+    }
 
     // cleanup invalid logo start marks
     cMark *lStart = marks.GetFirst();
@@ -4047,8 +4068,6 @@ void cMarkAdStandalone::MarkadCut() {
             return;
         }
 
-        // open output file
-//        decoder->SeekToFrameBefore(startMark->position - 1);  // seek to start posiition to get correct input video parameter
         if (!encoder->OpenFile(directory, decoder)) {
             esyslog("failed to open output file");
             FREE(sizeof(*encoder), "encoder");
@@ -4058,18 +4077,20 @@ void cMarkAdStandalone::MarkadCut() {
         }
 
         // process input file
-        int frameNumber = -1;
+        int frameNumber;
         while(decoder->ReadNextPacket()) {
             if (macontext.Config->fullEncode) frameNumber = decoder->GetVideoFrameNumber();
-            else                              frameNumber = decoder->GetVideoPacketNumber();  // if we do not encode, we do not decode and we have no valid decoder frame number
+            else                              frameNumber = decoder->GetVideoPacketNumber();  // if we do not encode, we do not decode and so we have no valid decoder frame number
             // seek to frame before startPosition
             if  (frameNumber < startMark->position) {  // will be called until we got next video frame, skip audio frame before
                 if (frameNumber < (startMark->position - 1)) {  // seek to next video frame before start mark
                     LogSeparator();
                     dsyslog("cMarkAdStandalone::MarkadCut(): decoding for start mark (%d) to end mark (%d) in pass: %d", startMark->position, stopMark->position, pass);
-                    decoder->SeekToFrameBefore(startMark->position); // one frame/i-frame before start frame, future iteratations will get video start frame
+                    if (!decoder->SeekExactToFrame(startMark->position)) {  // packet is now in decoder
+                        esyslog("cMarkAdStandalone::MarkadCut(): seek to start mark (%d) failed", startMark->position);
+                        break;
+                    }
                 }
-                continue;
             }
             // stop mark reached, set next startPosition
             if  (frameNumber > stopMark->position) {
@@ -4092,6 +4113,21 @@ void cMarkAdStandalone::MarkadCut() {
             if (!encoder->WritePacket()) {
                 dsyslog("cMarkAdStandalone::MarkadCut(): failed to write frame %d to output stream", frameNumber);  // no not abort, maybe next frame works
             }
+
+#ifdef DEBUG_CUT  // first picures after start mark after
+            if (decoder->IsVideoFrame() && (frameNumber <= startMark->position + DEBUG_CUT)) {
+                debugFrameCount++;
+                dsyslog("cMarkAdStandalone::MarkadCut(): frame (%d): picture count %d", frameNumber, debugFrameCount);
+                char *fileName = nullptr;
+                if (asprintf(&fileName,"%s/F__%07d_CUT.pgm", macontext.Config->recDir, frameNumber) >= 1) {
+                    ALLOC(strlen(fileName)+1, "fileName");
+                    SaveVideoPicture(fileName, decoder->GetVideoPicture());
+                    FREE(strlen(fileName)+1, "fileName");
+                    free(fileName);
+                }
+            }
+#endif
+
             if (abortNow) {
                 encoder->CloseFile(decoder);  // encoder must be valid here because it is used above
                 if (decoder) {
@@ -5463,7 +5499,7 @@ void cMarkAdStandalone::ProcessOverlap() {
     LogSeparator(true);
     dsyslog("ProcessOverlap(): start overlap detection");
     DebugMarks();     //  only for debugging
-    cOverlap *overlap = new cOverlap(&macontext, decoder, index);
+    cOverlap *overlap = new cOverlap(decoder, index);
     ALLOC(sizeof(*overlap), "overlap");
     save = overlap->DetectOverlap(&marks);
     FREE(sizeof(*overlap), "overlap");
@@ -5673,7 +5709,7 @@ void cMarkAdStandalone::Recording() {
     }
 
     // we reached end of recording without CheckStart() or CheckStop() called
-    if (!doneCheckStart || !doneCheckStart) {
+    if (!doneCheckStart || !doneCheckStop) {
         dsyslog("cMarkAdStandalone::Recording(): frame (%d): recording ends unexpected before assumed stop (%d)", decoder->GetVideoFrameNumber(), stopA);
         esyslog("end of recording before recording length from info file reached");
     }
@@ -7278,13 +7314,12 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG_MARK_FRAMES
             cmasta->DebugMarkFrames(); // write frames picture of marks to recording directory
 #endif
-        }
-        if (cmasta) {
-            FREE(sizeof(*cmasta), "cmasta");
-            delete cmasta;
-            cmasta = nullptr;
 
         }
+        FREE(sizeof(*cmasta), "cmasta");
+        delete cmasta;
+        cmasta = nullptr;
+
         gettimeofday(&endTime6, nullptr);
 
 #ifdef DEBUG_MEM

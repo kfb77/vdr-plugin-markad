@@ -53,7 +53,7 @@ bool cSobel::AllocAreaBuffer(sAreaT *area) const {
     if ((area->logoSize.width == 0) || (area->logoSize.height == 0)) {
         area->logoSize = GetMaxLogoSize();
     }
-    dsyslog("cSobel::AllocResultBuffer(): logo size %d:%d", area->logoSize.width, area->logoSize.height);
+    dsyslog("cSobel::AllocResultBuffer(): logo size %dx%d", area->logoSize.width, area->logoSize.height);
 
     // alloc memory for sobel transformed planes
     int logoPixel = area->logoSize.width * area->logoSize.height;
@@ -136,6 +136,16 @@ int cSobel::SobelPicture(const char *recDir, sVideoPicture *picture, sAreaT *are
 #else
 int cSobel::SobelPicture(sVideoPicture *picture, sAreaT *area, const bool ignoreLogo) {
 #endif
+
+    if (!ignoreLogo && !area->valid[0]) {
+        esyslog("cSobel::SobelPicture(): at least plane 0 must be valid for logo detection");
+        return 0;
+    }
+    if ((area->logoSize.width <= 0) || (area->logoSize.height <= 0)) {
+        esyslog("cSobel::SobelPicture(): logo size %dx%d invalid", area->logoSize.width, area->logoSize.height);
+        return 0;
+    }
+
     // apply sobel transformation to all planes
     int processed = 0;
     for (int plane = 0; plane < PLANES; plane++) {
@@ -203,8 +213,8 @@ bool cSobel::SobelPlane(sVideoPicture *picture, sAreaT *area, const int plane) {
         esyslog("cSobel::SobelPlane(): result missing");
         return false;
     }
-    if (!area->result) {
-        esyslog("cSobel::SobelPlane(): invers missing");
+    if (!area->inverse) {
+        esyslog("cSobel::SobelPlane(): inverse missing");
         return false;
     }
 

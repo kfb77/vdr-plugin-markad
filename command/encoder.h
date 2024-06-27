@@ -74,7 +74,10 @@ public:
 
     /**
      * constructor
-     * @param decoderParam pointer to decoder
+     * @param decoderParam      pointer to decoder
+     * @param fullEncodeParam   true if full re-encodin
+     * @param bestStreamParam   true only encode best video and audio stream
+     * @param ac3ReEncodeParam  true if AC3 re-endcode with volume adjust
      */
     explicit cEncoder(cDecoder *decoderParam, const bool fullEncodeParam, const bool bestStreamParam, const bool ac3ReEncodeParam);
 
@@ -90,14 +93,12 @@ public:
     /**
      * open output file
      * @param directory    output directory
-     * @param decoder encoder class
+     * @param decoder      encoder class
      * @return true if successful, false otherwise
      */
     bool OpenFile(const char *directory, cDecoder *decoder);
 
     /** write packet to output file
-     * @param avpktIn      packet from input stream
-     * @param decoder decoder class
      * @return true if successful, flase otherwise
      */
     bool WritePacket();
@@ -165,19 +166,21 @@ private:
     //!<
     bool fullEncode                   = false;                    //!< true for full re-encode video and audio
     //!<
-    bool bestStream                   = false;
+    bool bestStream                   = false;                    //!< true if only endcode best video and audio stream
     //!<
-    bool ac3ReEncode                  = false;
+    bool ac3ReEncode                  = false;                    //!< true if ac3 re-encode with volume adjust
     //!<
-    AVFormatContext *avctxIn = nullptr;                              //!< avformat context for input
+    int decoderFrameNumber            = -1;                       //!< current frame number of decoder
     //!<
-    AVFormatContext *avctxOut = nullptr;                             //!< avformat context for output
+    AVFormatContext *avctxIn = nullptr;                           //!< avformat context for input
     //!<
-    AVCodecContext **codecCtxArrayIn = nullptr;                      //!< avcodec context for each input stream
+    AVFormatContext *avctxOut = nullptr;                          //!< avformat context for output
     //!<
-    AVCodecContext **codecCtxArrayOut = nullptr;                     //!< avcodec context for each output stream
+    AVCodecContext **codecCtxArrayIn = nullptr;                   //!< avcodec context for each input stream
     //!<
-    SwrContext **swrArray = nullptr;                                 //!< array of libswresample (lswr) for audiosample format conversion
+    AVCodecContext **codecCtxArrayOut = nullptr;                  //!< avcodec context for each output stream
+    //!<
+    SwrContext **swrArray = nullptr;                              //!< array of libswresample (lswr) for audiosample format conversion
     //!<
     int64_t ptsBefore = 0;                                        //!< presentation timestamp of frame before
     //!<

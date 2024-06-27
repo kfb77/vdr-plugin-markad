@@ -81,14 +81,34 @@ public:
 
     /**
      * class to detect logo
+     * @param decoderParam          decoder
      * @param criteriaParam         detection critaria
-     * @param recordingIndex        recording index
+     * @param recDirParam           recording directory
+     * @param logoCacheDirParam     logo cache directory
      */
     explicit cLogoDetect(cDecoder *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
 
     ~cLogoDetect();
 
-    int GetLogoCorner();
+    /**
+     * copy constructor
+     */
+    cLogoDetect(const cLogoDetect &origin) {
+    }
+
+    /**
+     * operator=
+     */
+    cLogoDetect &operator =(const cLogoDetect *origin) {
+        return *this;
+    }
+
+    /**
+     * get logo corner
+     * @return index of logo corner
+     */
+    int GetLogoCorner() const;
+
     /**
      * detect logo status
      * @param[in]  frameBefore     frame number before
@@ -100,9 +120,6 @@ public:
 
     /**
      * process logo detection of current frame
-     * @param[in]  iFrameBefore    i-frame before last i-frame
-     * @param[in]  iFrameCurrent   last i-frame
-     * @param[in]  frameCurrent    current frame number
      * @param[out] logoFrameNumber frame number of detected logo state change
      * @return #eLogoStatus
      */
@@ -132,21 +149,24 @@ public:
 private:
     /**
      * reduce brightness of logo corner
-     * @param  frameNumber  frame number, only used to debug
      * @param  logo_vmark   count of pixel matches to accept logo visible
      * @param  logo_imark   count of pixel matches to accept logo invisible
      * @return true if we got a valid result, fasle otherwise
      */
     bool ReduceBrightness(const int logo_vmark, const int logo_imark);
 
+    /**
+     * load logo from file in directory
+     * @return true on success, false otherwise
+     */
     bool LoadLogo();
 
     /**
      * load logo from file in directory
-     * @param directory source directory
-     * @param file name of file
+     * @param path source directory
+     * @param logoName name of logo
      * @param plane number of plane
-     * @return 0 on success, -1 file not found, -2 format error in logo file
+     * @return true on success, false otherwise
      */
     bool LoadLogoPlane(const char *path, const char *logoName, const int plane);
 
@@ -166,7 +186,7 @@ private:
      */
     void LogoGreyToColour();
 
-    cDecoder *decoder              = nullptr;  //!< decoder
+    cDecoder *decoder                 = nullptr;  //!< decoder
     //!<
     cCriteria *criteria               = nullptr;  //!< decoding states and criteria
     //!<
@@ -244,7 +264,6 @@ public:
 
     /**
      * process black screen detection
-     * @param frameCurrent current frame number
      * @return black screen status: <br>
      *         -1 blackscreen start (notice: this is a STOP mark) <br>
      *          0 no status change <br>
@@ -277,8 +296,7 @@ public:
 
     /**
      * constructor of class to detect horizental border
-     * @param channelNameParam  channel name
-     * @param frameRateParam    frame rate
+     * @param decoderParam      pointer to decoder
      * @param criteriaParam     detection criteria
      */
     explicit cHorizBorderDetect(cDecoder *decoderParam, cCriteria *criteriaParam);
@@ -291,8 +309,6 @@ public:
     int GetFirstBorderFrame() const;
 
     /**
-     * process horizontal border detection of current frame
-     * @param  picture     video picture to analyse
      * @param  borderFrame frame number of detected border
      * @return             border detection status
      */
@@ -437,7 +453,7 @@ public:
      * get corner index of loaded logo
      * @return corner index of loaded logo, -1 if no valid logo found
      */
-    int GetLogoCorner();
+    int GetLogoCorner() const;
 
     /**
      * detect video packet based marks

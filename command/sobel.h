@@ -65,7 +65,7 @@ public:
     * @param area result area
     * @return true if sucessful, false otherwise
     */
-    bool FreeAreaBuffer(sAreaT *area);
+    static bool FreeAreaBuffer(sAreaT *area);
 
     /**
     * sobel transformation of a all planes with a logo plane from input picture

@@ -79,7 +79,8 @@ public:
      * @param recDir            recording directory
      * @param threadsParam      count threads of ffmpeg decoder
      * @param fullDecodeParam   true if full decode, fals if only decode i-frames
-     * @param hwaccelParam      true if we use hwaccel
+     * @param hwaccel           true if we use hwaccel
+     * @param forceHWparam      true if force use of hwaccel on MPEG2 codec
      * @param indexParam        recording index class
      */
     explicit cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccel, const bool forceHWparam, cIndex *indexParam);
@@ -91,10 +92,19 @@ public:
     */
     bool Restart();
 
+    /**
+    * get full decoder state
+    */
     bool GetFullDecode();
 
-    const char* GetRecordingDir();
+    /**
+    * get recording directory
+    */
+//    const char* GetRecordingDir();
 
+    /**
+    * get decoder thread count
+    */
     int GetThreadCount();
 
     /**
@@ -214,12 +224,32 @@ public:
     AVFrame *GetFrame();
 
     /**
-     * seek decoder read position to frame/i-frame before, next ReadPacket will read seekFrameNumber
+     * seek decoder read position to <seekFrameNumber)
+     * next DecodePacket() will generate frameNumber = seekFrameNumber
+     * only seek forward <br>
+     + used by video cut to seek exact to start mark position
+     * @param seekFrameNumber frame number to seek
+     * @return                true if successful, false otherwise
+     */
+    bool SeekExactToFrame(int seekFrameNumber);
+
+    /**
+     * seek decoder read position to <seekFrameNumber)
+     * next DecodePacket() will generate frameNumber = seekFrameNumber
      * only seek forward <br>
      * @param seekFrameNumber frame number to seek
      * @return                true if successful, false otherwise
      */
-    bool SeekToFrameBefore(int seekNumberNumber);
+    bool SeekToFrame(int seekFrameNumber);
+
+    /**
+     * seek decoder read position to frame before
+     * next DecodeNextFrame will generate frameNumber = seekFrameNumber
+     * only seek forward <br>
+     * @param seekFrameNumber frame number to seek
+     * @return                true if successful, false otherwise
+     */
+    bool SeekToFrameBefore(int seekFrameNumber);
 
     /**
      * send packet to decoder
@@ -292,10 +322,19 @@ public:
      */
     int GetAC3ChannelCount();
 
+    /** get last channel change
+     * @return pointer to sAudioAC3Channels structure if there was a change, nullptr otherwise
+     */
     sAudioAC3Channels *GetChannelChange();
 
+    /** get current packet PTS
+     * @return PTS
+     */
     int64_t GetPacketPTS();
 
+    /** get current vulume of MP2 stream
+     * @return MP2 volume
+     */
     int GetVolume();
 
     /** check if stream is subtitle
@@ -317,7 +356,7 @@ public:
     /** get current number of processed i-frames
      * @return current number of processed i-frames
      */
-    int GetIFrameCount() const;
+//    int GetIFrameCount() const;
 
     /**
      * check if video stream is interlaced
@@ -345,9 +384,13 @@ public:
 
 private:
 
+    /** structure used to map packet number to frame number
+     */
     typedef struct sPacketFrameMap {
-        int frameNumber                = 0;
-        int64_t sumDuration            = 0;
+        int frameNumber                = 0;  //!< frame number
+        //!<
+        int64_t sumDuration            = 0;  //!< sum of frame duration
+        //!<
     } sPacketFrameMap;
 
     /**
@@ -408,8 +451,10 @@ private:
     //!<
     int frameNumber                    = -1;                      //!< current decoded video frame number
     //!<
-    int videoWidth                     = 0;
-    int videoHeight                    = 0;
+    int videoWidth                     = 0;                       //!< video width
+    //!<
+    int videoHeight                    = 0;                       //!< video height
+    //!<
     bool eof                           = false;                   //!< true if end of all ts files reached
     //!<
     std::deque<sPacketFrameMap> packetFrameMap;                   //!< ring buffer to map frameNumer to packetNumber without full decoding

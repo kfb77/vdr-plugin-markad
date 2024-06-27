@@ -23,7 +23,7 @@ public:
 
     /**
      * constructor of overlap detection
-     * @param maContextParam markad context
+     * @param decoderParam pointer to decoder
      */
     explicit cOverlapAroundAd(cDecoder *decoderParam);
 
@@ -33,11 +33,12 @@ public:
     /**
      * if beforeAd == true preload frames before stop mark in histogram buffer array, otherwise preload frames after start mark <br>
      * if we got frameCount, start compare
-     * @param[in,out] overlapPos new stop and start mark pair after overlap detection, -1 if no overlap was found
-     * @param[in]     frameNumber    current frame number
-     * @param[in]     frameCount     number of frames to process
-     * @param[in]     beforeAd       true if called with a frame before advertising, false otherwise
-     * @param[in]     h264           true if HD video, false otherwise
+     * @param[in]     picture      video picture
+     * @param[in,out] overlapPos   new stop and start mark pair after overlap detection, -1 if no overlap was found
+     * @param[in]     frameNumber  current frame number
+     * @param[in]     frameCount   number of frames to process
+     * @param[in]     beforeAd     true if called with a frame before advertising, false otherwise
+     * @param[in]     h264         true if HD video, false otherwise
      */
     void Process(sVideoPicture *picture, sOverlapPos *overlapPos, const int frameNumber, const int frameCount, const bool beforeAd, const bool h264);
 
@@ -61,7 +62,8 @@ private:
 
     /**
      * get a simple histogram of current frame
-     * @param[in,out] dest histogram
+     * @param[in]     picture    video picture
+     * @param[in,out] dest       histogram
      */
     void GetHistogram(sVideoPicture *picture, simpleHistogram &dest) const;
 
@@ -105,32 +107,35 @@ private:
  */
 class cOverlap : private cTools {
 public:
-    cOverlap(sMarkAdContext *maContextParam, cDecoder *decoderParam, cIndex *indexParam);
+    /**
+     * process overlap detection with all ads
+     * @param  decoderParam  pointer to decoder
+     * @param  indexParam    pointer to index
+     */
+    cOverlap(cDecoder *decoderParam, cIndex *indexParam);
     ~cOverlap();
 
     /**
-     * detect overlaps before/after advertising
-     * @param decoder    pointer to decoder
-     * @param ndex       pointer to index
-     * @param marks      current marks
-     * @param directory  name of the recording directory
-     * @return true if overlaps have been found, false otherwise
+     * detect overlap
+     * @param marksParam      current marks
      */
     bool DetectOverlap(cMarks *marksParam);
 
     /**
      * process overlap detection with stop/start pair
-     * @param[in]      overlap detection object
-     * @param[in, out] mark1   stop mark before advertising, set to start position of detected overlap
-     * @param[in, out] mark2   start mark after advertising, set to end position of detected overlap
+     * @param[in]      overlapAroundAd detection object
+     * @param[in, out] mark1           stop mark before advertising, set to start position of detected overlap
+     * @param[in, out] mark2           start mark after advertising, set to end position of detected overlap
      * @return true if overlap was detected, false otherwise
      */
     bool ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **mark1, cMark **mark2);
 
 private:
-    sMarkAdContext *maContext = nullptr;
-    cDecoder    *decoder   = nullptr;
-    cIndex         *index     = nullptr;
-    cMarks         *marks     = nullptr;
+    cDecoder *decoder         = nullptr;   //!< decoder
+    //!<
+    cIndex   *index           = nullptr;   //!< recording index
+    //!<
+    cMarks   *marks           = nullptr;   //!< marks
+    //!<
 };
 #endif

@@ -279,8 +279,6 @@ private:
     //!<
     cVertBorderDetect *vborder   = nullptr;      //!< pointer to hBorder detection
     //!<
-    sLogoSize logoSize;                          //!< logo size, global variable keeps static start size, init in constructor
-    //!<
     int recordingFrameCount      = 0;            //!< frame count of the recording
     //!<
     sAspectRatio logoAspectRatio = {};           //!< video aspect ratio

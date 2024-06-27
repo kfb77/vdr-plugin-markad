@@ -718,8 +718,9 @@ cDetectLogoStopStart::cDetectLogoStopStart(cDecoder *decoderParam, cIndex *index
     evaluateLogoStopStartPair = evaluateLogoStopStartPairParam;
     logoCorner                = logoCornerParam;
 
-    sobel = new cSobel(0, 0, 0);  // full corner area size for this resolution, boundary = 0
+    sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0);  // boundary = 0
     ALLOC(sizeof(*sobel), "sobel");
+    // area.logoSize not set, alloc meomory max size for this resolution
     if (!sobel->AllocAreaBuffer(&area)) esyslog("cDetectLogoStopStart::cDetectLogoStopStart(): allocate buffer for area failed");
 }
 

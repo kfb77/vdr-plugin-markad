@@ -82,7 +82,7 @@ cExtractLogo::~cExtractLogo() {
                 delete[] actLogo->sobel[plane];
             }
             delete[] actLogo->sobel;
-            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * logoSize.height * logoSize.width, "actLogoInfo.sobel");
+            FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * area.logoSize.height * area.logoSize.width, "actLogoInfo.sobel");
         }
         logoInfoVector[corner].clear();
     }
@@ -1105,13 +1105,13 @@ bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
 #define WHITEHORIZONTAL_BIG 10
 #define WHITEHORIZONTAL_SMALL 7 // reduced from 8 to 7
 #define WHITEVERTICAL_BIG 10
-    if ((logoSize.height <= 0) || (logoSize.width <= 0)) return false;
+    if ((area.logoSize.height <= 0) || (area.logoSize.width <= 0)) return false;
     if ((corner < 0) || (corner >= CORNERS))             return false;
     if (!actLogoInfo)                                return false;
     if (corner <= TOP_RIGHT) {
-        for (int i = 0 ; i < WHITEHORIZONTAL_BIG * logoSize.width; i++) { // a valid top logo should have a white top part
+        for (int i = 0 ; i < WHITEHORIZONTAL_BIG * area.logoSize.width; i++) { // a valid top logo should have a white top part
             if ((actLogoInfo->sobel[0][i] == 0) ||
-                    ((i < WHITEHORIZONTAL_BIG * logoSize.width / 4) && ((actLogoInfo->sobel[1][i] == 0) || (actLogoInfo->sobel[2][i] == 0)))) {
+                    ((i < WHITEHORIZONTAL_BIG * area.logoSize.width / 4) && ((actLogoInfo->sobel[1][i] == 0) || (actLogoInfo->sobel[2][i] == 0)))) {
 #ifdef DEBUG_LOGO_CORNER
                 if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white top part", actLogoInfo->frameNumber, aCorner[corner]);
 #endif
@@ -1121,7 +1121,7 @@ bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
         if ((corner != TOP_RIGHT) || !CompareChannelName(channelName, "SPORT1", IGNORE_NOTHING)) { // this channels have sometimes a big preview text below the logo on the right side
             // more general solution will be: make the possible logo size bigger
             // but this wll have a performence impact
-            for (int i = (logoSize.height - WHITEHORIZONTAL_SMALL) * logoSize.width; i < (logoSize.height * logoSize.width); i++) { // a valid top logo should have at least a small white bottom part in plane 0
+            for (int i = (area.logoSize.height - WHITEHORIZONTAL_SMALL) * area.logoSize.width; i < (area.logoSize.height * area.logoSize.width); i++) { // a valid top logo should have at least a small white bottom part in plane 0
                 if (actLogoInfo->sobel[0][i] == 0) {
 #ifdef DEBUG_LOGO_CORNER
                     if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no small white bottom part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
@@ -1133,7 +1133,7 @@ bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
 
     }
     else {
-        for (int i = (logoSize.height - WHITEHORIZONTAL_BIG) * logoSize.width; i < (logoSize.height * logoSize.width); i++) { // a valid bottom logo should have a white bottom part in plane 0
+        for (int i = (area.logoSize.height - WHITEHORIZONTAL_BIG) * area.logoSize.width; i < (area.logoSize.height * area.logoSize.width); i++) { // a valid bottom logo should have a white bottom part in plane 0
             if (actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
                 if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white bottom part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
@@ -1142,7 +1142,7 @@ bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
             }
         }
         if (!CompareChannelName(channelName, "n-tv", IGNORE_HD)) {  // this channel has a news ticket with info banner above, we will not find a small white top part
-            for (int i = 0 ; i < WHITEHORIZONTAL_SMALL * logoSize.width; i++) { // a valid bottom logo should have at least a small white top part in plane 0
+            for (int i = 0 ; i < WHITEHORIZONTAL_SMALL * area.logoSize.width; i++) { // a valid bottom logo should have at least a small white top part in plane 0
                 if (actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
                     if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no small white top part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
@@ -1155,7 +1155,7 @@ bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
 
     if ((corner == TOP_LEFT) || (corner == BOTTOM_LEFT)) { // a valid left logo should have white left part in pane 0
         for (int column = 0; column <= WHITEVERTICAL_BIG; column++) {
-            for (int i = column; i < logoSize.height * logoSize.width; i = i + logoSize.width) {
+            for (int i = column; i < area.logoSize.height * area.logoSize.width; i = i + area.logoSize.width) {
                 if (actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
                     if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white left part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
@@ -1167,7 +1167,7 @@ bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
     }
     else { // a valid right logo should have white right part in pane 0
         for (int column = 0; column <= WHITEVERTICAL_BIG; column++) {
-            for (int i = logoSize.width - column; i < (logoSize.height * logoSize.width); i = i + logoSize.width) {
+            for (int i = area.logoSize.width - column; i < (area.logoSize.height * area.logoSize.width); i = i + area.logoSize.width) {
                 if (actLogoInfo->sobel[0][i] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
                     if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white right part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
@@ -1179,7 +1179,7 @@ bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
     }
 
     int blackPixel1 = 0;
-    for (int i = 0; i < (logoSize.height * logoSize.width); i++) {
+    for (int i = 0; i < (area.logoSize.height * area.logoSize.width); i++) {
         if (actLogoInfo->sobel[0][i] == 0) blackPixel1++;
     }
     if (blackPixel1 < 300) {
@@ -1351,7 +1351,7 @@ int cExtractLogo::DeleteFrames(const int from, const int to) {
                     delete[] actLogo->sobel[plane];
                 }
                 delete[] actLogo->sobel;
-                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * logoSize.width * logoSize.height, "actLogoInfo.sobel");
+                FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * area.logoSize.width * area.logoSize.height, "actLogoInfo.sobel");
 
                 // delete vector element
                 FREE(sizeof(*actLogo), "logoInfoVector");
@@ -1451,12 +1451,12 @@ void cExtractLogo::RemovePixelDefects(sLogoInfo *logoInfo, const int corner) {
         int height;
         int width;
         if (plane == 0) {
-                width  = logoSize.width;
-                height = logoSize.height;
+                width  = area.logoSize.width;
+                height = area.logoSize.height;
             }
             else {
-                width  = logoSize.width  / 2;
-                height = logoSize.height / 2;
+                width  = area.logoSize.width  / 2;
+                height = area.logoSize.height / 2;
             }
             for (int line = height - 2; line >= 1; line--) {  // elements are from 0 to height -1 but we check neighbor pixel
                 for (int column = 0; column < width; column++) {
@@ -1646,9 +1646,15 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
         for (int corner = 0; corner < CORNERS; corner++) {
             area.logoCorner = corner;
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-            if (sobel->SobelPicture(recDir, picture, &area, true) <= 0) continue; // call with no logo mask
+            if (sobel->SobelPicture(recDir, picture, &area, true) <= 0) {
+                esyslog("cExtractLogo::SearchLogo(): sobel transformation failed");
+                continue; // call with no logo mask
+            }
 #else
-            if (sobel->SobelPicture(picture, &area, true) <= 0) continue; // call with no logo mask
+            if (sobel->SobelPicture(picture, &area, true) <= 0) {
+                esyslog("cExtractLogo::SearchLogo(): sobel transformation failed");
+                continue; // ignoreLogo = true, call with no logo mask
+            }
 #endif
 
 #if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 0
@@ -1657,7 +1663,7 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
                     char *fileName = nullptr;
                     if (asprintf(&fileName,"%s/F%07d-P%1d-C%1d_SearchLogo.pgm", recDir, frameNumber, plane, corner) >= 1) {
                         ALLOC(strlen(fileName)+1, "fileName");
-                        if (plane == 0) SaveSobel(fileName, area.sobel[plane], logoSizeFinal.width, logoSizeFinal.height);
+                        if (plane == 0) SaveSobel(fileName, area.sobel[plane], area.logoSize.width, area.logoSize.height);
                         else SaveSobel(fileName, area.sobel[plane], logoSizeFinal.width / 2, logoSizeFinal.height / 2);
                         FREE(strlen(fileName)+1, "fileName");
                         free(fileName);
@@ -1670,8 +1676,8 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
             actLogoInfo.frameNumber = frameNumber;
 
             // alloc memory and copy planes
-            int logoPixel        = logoSize.height * logoSize.width;
-            actLogoInfo.sobel    = new uchar*[PLANES];
+            int logoPixel     = area.logoSize.height * area.logoSize.width;
+            actLogoInfo.sobel = new uchar*[PLANES];
             for (int plane = 0; plane < PLANES; plane++) {
                 actLogoInfo.sobel[plane] = new uchar[logoPixel];
                 memcpy(actLogoInfo.sobel[plane], area.sobel[plane], sizeof(uchar) * logoPixel);
@@ -1680,7 +1686,7 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
 
             if (CheckValid(&actLogoInfo, corner)) {
                 RemovePixelDefects(&actLogoInfo, corner);
-                actLogoInfo.hits = Compare(&actLogoInfo, logoSize.height, logoSize.width, corner);
+                actLogoInfo.hits = Compare(&actLogoInfo, area.logoSize.height, area.logoSize.width, corner);
 
                 try {
                     logoInfoVector[corner].push_back(actLogoInfo);    // this allocates a lot of memory
@@ -1792,15 +1798,15 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
                     ((logoInfo[rank].hits >=  5) && (sumHits == logoInfo[rank].hits))) {       // if all hits are in the same corner than less are enough
                 dsyslog("cExtractLogo::SearchLogo(): %d. best corner is %s at frame %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].frameNumber, logoInfo[rank].hits);
                 // check possible logo
-                logoSizeFinal = logoSize;
+                logoSizeFinal = area.logoSize;
                 if (Resize(&logoInfo[rank], &logoSizeFinal, logoCorner[rank])) {  // logo can be valid
                     done = rank;
                     rankResult = rank;
-                    dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. best corner %s was successful, H %d W %d", rank, aCorner[logoCorner[rank]], logoSize.height, logoSize.width);
+                    dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. best corner %s was successful, H %d W %d", rank, aCorner[logoCorner[rank]], area.logoSize.height, area.logoSize.width);
                     // check next best possible logo corner, it is valid too, we can not decide
                     if (logoInfo[rank + 1].hits > (logoInfo[rank].hits * 0.8)) { // next best logo corner has high matches
                         dsyslog("cExtractLogo::SearchLogo(): %d. best corner %d at frame %d with %d similars", rank + 1, logoCorner[rank + 1], logoInfo[rank + 1].frameNumber, logoInfo[rank + 1].hits);
-                        sLogoSize secondLogoSize = logoSize;
+                        sLogoSize secondLogoSize = area.logoSize;
                         if (Resize(&logoInfo[rank + 1], &secondLogoSize, logoCorner[rank + 1])) { // second best logo can be valid
                             dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. and %d. best corner is valid, still no clear result", rank, rank + 1);
                             rankResult = -1;
@@ -1825,7 +1831,7 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
                 if ((logoInfo[rank].hits >= 4) ||  // this is the very last try, use what we have, bettet than nothing, changed from 6 to 4
                         ((logoInfo[rank].hits >=  2) && (sumHits == logoInfo[rank].hits))) {  // all machtes in one corner
                     dsyslog("cExtractLogo::SearchLogo(): try low match with %d best corner %s at frame %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].frameNumber, logoInfo[rank].hits);
-                    logoSizeFinal = logoSize;
+                    logoSizeFinal = area.logoSize;
                     if (Resize(&logoInfo[rank], &logoSizeFinal, logoCorner[rank])) {
                         rankResult = rank;
                         break;
@@ -1840,7 +1846,7 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
         dsyslog("cExtractLogo::SearchLogo(): no valid logo found");
     }
     else {
-        dsyslog("cExtractLogo::SearchLogo(): save corner %s as logo, H %d W %d", aCorner[logoCorner[rankResult]], logoSize.height, logoSize.width);
+        dsyslog("cExtractLogo::SearchLogo(): save corner %s as logo, H %d W %d", aCorner[logoCorner[rankResult]], area.logoSize.height, area.logoSize.width);
         if (!SaveLogo(&logoInfo[rankResult], &logoSizeFinal, logoCorner[rankResult])) {
             dsyslog("cExtractLogo::SearchLogo(): logo save failed");
         }

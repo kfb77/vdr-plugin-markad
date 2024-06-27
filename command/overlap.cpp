@@ -13,8 +13,7 @@ extern bool abortNow;
 
 
 // --------------------------------------------------------------------------------------------------------------------------------
-cOverlap::cOverlap(sMarkAdContext *maContextParam, cDecoder *decoderParam, cIndex *indexParam) {
-    maContext = maContextParam;
+cOverlap::cOverlap(cDecoder *decoderParam, cIndex *indexParam) {
     decoder   = decoderParam;
     index     = indexParam;
 }
@@ -26,14 +25,13 @@ cOverlap::~cOverlap() {
 
 bool cOverlap::DetectOverlap(cMarks *marksParam) {
     if (abortNow)    return false;
-    if (!maContext)  return false;
     if (!decoder)    return false;
     if (!index)      return false;
     if (!marksParam) return false;
     marks = marksParam;
 
     LogSeparator(true);
-    dsyslog("cOverlap::DetectOverlap(): start overlap detection of %s", maContext->Config->recDir);
+    dsyslog("cOverlap::DetectOverlap(): start overlap detection");
     marks->Debug();
     if (marks->Count() < 4) {
         dsyslog("cOverlap::DetectOverlap(): not enough marks for overlap detection");
@@ -86,7 +84,6 @@ bool cOverlap::DetectOverlap(cMarks *marksParam) {
 
 
 bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **mark1, cMark **mark2) {
-    if (!maContext) return false;
     if (!decoder)   return false;
     if (!index)     return false;
     if (!marks)     return false;

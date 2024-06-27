@@ -90,11 +90,17 @@
 // debug PTS ring buffer PTS lookup
 // #define DEBUG_RING_PTS_LOOKUP
 
+// debug video cut position, write <count> frames after start mark to recording directory
+// #define DEBUG_CUT <count>
+
 // debug PTS and DTS of video cut
-// #define DEBUG_CUT
+// #define DEBUG_PTS_DTS_CUT
 
 // debug decoder
 // #define DEBUG_DECODER
+
+// debug seek from decoder
+// #define DEBUG_DECODER_SEEK
 
 // debug encoder
 // #define DEBUG_ENCODER

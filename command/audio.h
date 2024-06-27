@@ -23,12 +23,16 @@ class cAudio {
 public:
     /**
      *  store maContext and recordingIndex for future use in this class
-     *  @param maContext markad context
-     *  @param recordingIndex recording index
+     *  @param decoderParam   pointer to decoder
+     *  @param indexParam     recording index
+     *  @param criteriaParam  analyse criteria
      */
     explicit cAudio(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam);
     ~cAudio();
 
+    /**
+     *  detect audio based marks
+     */
     sMarkAdMarks *Detect();
 
 private:
@@ -36,10 +40,14 @@ private:
      * MP2 stream silence
      */
     typedef struct sAudioMP2Silence {
-        int64_t startPTS     = -1;
-        int startFrameNumber = -1;
-        int64_t stopPTS      = -1;
-        int stopFrameNumber  = -1;
+        int64_t startPTS     = -1;    //!< start PTS
+        //!<
+        int startFrameNumber = -1;    //!< start frame number
+        //!<
+        int64_t stopPTS      = -1;    //!< stop PTS
+        //!<
+        int stopFrameNumber  = -1;    //!< stop frame number
+        //!<
     } sAudioMP2Silence;
 
     /**

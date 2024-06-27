@@ -102,9 +102,9 @@ int cIndex::GetIFrameAfterPTS(const int64_t pts) {
 
 
 int cIndex::GetFrameBefore(int frameNumber) {
-    if (fullDecode) return frameNumber - 1;
+    if (fullDecode) return (frameNumber - 1);
     else {
-        int iFrameBefore = GetIFrameBefore(frameNumber);
+        int iFrameBefore = GetIFrameBefore(frameNumber - 1);  // if frameNumber is i-frame, GetIFrameBefore() will return same frameNumber
         if (iFrameBefore < 0) {
             esyslog("cIndex::GetFrameBefore(): frame (%d): GetIFrameBefore() failed", frameNumber);
             iFrameBefore = frameNumber - 1;

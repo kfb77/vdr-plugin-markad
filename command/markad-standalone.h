@@ -54,9 +54,9 @@ public:
     ~cMarkAdStandalone();
 
     /**
-     * copy constructor, not used, only for formal reason
+     * copy constructor
      */
-    cMarkAdStandalone(const cMarkAdStandalone &origin) {   //  copy constructor, not used, only for formal reason
+    cMarkAdStandalone(const cMarkAdStandalone &origin) {   //  copy constructor
         strcpy(title, origin.title);
         decoder                   = nullptr;
         index                     = nullptr;
@@ -88,7 +88,7 @@ public:
     };
 
     /**
-     * operator=, not used, only for formal reason
+     * operator=
      */
     cMarkAdStandalone &operator =(const cMarkAdStandalone *origin) {
         strcpy(title,origin->title);
@@ -261,7 +261,7 @@ private:
     /**
      * check for end mark
      */
-    int CheckStop();
+    void CheckStop();
 
     /**
      * move search for closing credits and move last logo stop mark after this
@@ -276,7 +276,7 @@ private:
 
     /**
      * calculate position to check for start and end mark
-     * @param startframe frame position of pre-timer or VPS start event
+     * @param startFrame frame position of pre-timer or VPS start event
      */
     void CalculateCheckPositions(int startFrame);
 
@@ -451,7 +451,7 @@ private:
     //!<
     cEvaluateLogoStopStartPair *evaluateLogoStopStartPair = nullptr;  //!< pointer to class cEvaluateLogoStopStartPair
     //!<
-    cDetectLogoStopStart *detectLogoStopStart             = nullptr;
+    cDetectLogoStopStart *detectLogoStopStart             = nullptr;  //!< pointer to class cDetectLogoStopStart
     //!<
 };
 #endif
