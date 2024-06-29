@@ -92,7 +92,7 @@ public:
     /**
     * get full decoder state
     */
-    bool GetFullDecode();
+    bool GetFullDecode() const;
 
     /**
     * get recording directory
@@ -102,7 +102,7 @@ public:
     /**
     * get decoder thread count
     */
-    int GetThreadCount();
+    int GetThreadCount() const;
 
     /**
      * set decoder to first/next file of the directory
@@ -190,7 +190,7 @@ public:
 
     /**
     * send current packet (no ream from file) to decoder and receive decoded frame
-    * @return true if send and receive was sucessful, false otherwise
+    * @return true if send and receive was successful, false otherwise
     */
     bool DecodePacket();
 
@@ -237,7 +237,7 @@ public:
      * @param seekFrameNumber frame number to seek
      * @return                true if successful, false otherwise
      */
-    bool SeekToFrame(int seekFrameNumber);
+//    bool SeekToFrame(int seekFrameNumber);
 
     /**
      * seek decoder read position to frame before
@@ -327,7 +327,7 @@ public:
     /** get current packet PTS
      * @return PTS
      */
-    int64_t GetPacketPTS();
+    int64_t GetPacketPTS() const;
 
     /** get current vulume of MP2 stream
      * @return MP2 volume

@@ -56,14 +56,14 @@ public:
     /**
     * allocate buffer for sobel transformation result
     * @param area result area
-    * @return true if sucessful, false otherwise
+    * @return true if successful, false otherwise
     */
     bool AllocAreaBuffer(sAreaT *area) const;
 
     /**
     * free buffer for sobel transformation result
     * @param area result area
-    * @return true if sucessful, false otherwise
+    * @return true if successful, false otherwise
     */
     static bool FreeAreaBuffer(sAreaT *area);
 

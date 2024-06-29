@@ -54,10 +54,10 @@ public:
      * @param recDirParam      recording directory
      * @param channelNameParam channel name
      * @param threads          count of FFmpeg threads
-     * @param hwaccel          hwaccel device type, only vaapi supported
+     * @param hwaccel          device type of hwaccel
      * @param AspectRatio      video aspect ratio for requested logo
      */
-    explicit cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, char *hwaccel, const sAspectRatio AspectRatio);
+    explicit cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, char *hwaccel, const bool forceHW, const sAspectRatio AspectRatio);
     ~cExtractLogo();
 
     /**

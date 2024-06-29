@@ -90,8 +90,8 @@ cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodePa
     av_log_set_level(AVLOGLEVEL);
     av_log_set_callback(AVlog);
 
-    // FFmpeg threads
-    threads    = threadsParam;
+    // FFmpeg thread count
+    threads = threadsParam;
     if (threads <  1) threads =  1;
     if (threads > 16) threads = 16;
 
@@ -174,7 +174,7 @@ bool cDecoder::Restart() {
 
 
 int cDecoder::ResetToSW() {
-    // hardware decoding faild at first packet, something is wrong maybe not supported codec
+    // hardware decoding failed at first packet, something is wrong maybe not supported codec
     // during init we got no error code
     // cleanup current decoder
     // init decoder without hwaccel
@@ -187,7 +187,7 @@ int cDecoder::ResetToSW() {
 }
 
 
-bool cDecoder::GetFullDecode() {
+bool cDecoder::GetFullDecode() const {
     return fullDecode;
 }
 
@@ -199,7 +199,7 @@ const char* cDecoder::GetRecordingDir() {
 */
 
 
-int cDecoder::GetThreadCount() {
+int cDecoder::GetThreadCount() const {
     return threads;
 }
 
@@ -629,7 +629,7 @@ AVFrame *cDecoder::GetFrame() {
 }
 
 
-int64_t cDecoder::GetPacketPTS() {
+int64_t cDecoder::GetPacketPTS() const {
     return avpkt.pts;
 }
 
@@ -752,7 +752,7 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
                 if(ReadNextPacket()) {        // got a packet
                     if (!fullDecode  && !IsVideoIPacket()) continue;    // decode only iFrames, no audio decode without full decode
                     if (!audioDecode && !IsVideoPacket())  continue;    // decode only video frames
-                    if (!IsVideoPacket() && !IsAudioPacket()) continue; // ingore all other types (e.g. subtitle
+                    if (!IsVideoPacket() && !IsAudioPacket()) continue; // ignore all other types (e.g. subtitle
                     decoderSendState = SendPacketToDecoder(false);      // send packet to decoder, no flash flag
 #ifdef DEBUG_DECODER
                     dsyslog("cDecoder::SendNextPacketToDecoder(): packet (%5d), stream %d: send to decoder", packetNumber, avpkt.stream_index);
@@ -845,14 +845,14 @@ bool cDecoder::SeekExactToFrame(int seekFrameNumber) {   // TODO still not exact
         if (!fullDecode && !IsVideoIPacket()) continue;
 
 #ifdef DEBUG_DECODER_SEEK
-        dsyslog("cDecoder::SeekToFrame(): packet (%d) flags %d, frame (%d) pict_type %d, seek to frame (%d), frameBefore (%d): read", packetNumber, avpkt.flags, frameNumber, avFrame.pict_type, seekFrameNumber, frameBefore);
+        dsyslog("cDecoder::SeekExactToFrame(): packet (%d) flags %d, frame (%d) pict_type %d, seek to frame (%d), frameBefore (%d): read", packetNumber, avpkt.flags, frameNumber, avFrame.pict_type, seekFrameNumber, frameBefore);
 #endif
 
         if (frameNumber < frameBefore) {
             DecodePacket();  // ignore error
 
 #ifdef DEBUG_DECODER_SEEK
-            dsyslog("cDecoder::SeekToFrame(): packet (%d) flags %d, frame (%d) pict_type %d, seek to frame (%d), frameBefore (%d): decode", packetNumber, avpkt.flags, frameNumber, avFrame.pict_type, seekFrameNumber, frameBefore);
+            dsyslog("cDecoder::SeekExactToFrame(): packet (%d) flags %d, frame (%d) pict_type %d, seek to frame (%d), frameBefore (%d): decode", packetNumber, avpkt.flags, frameNumber, avFrame.pict_type, seekFrameNumber, frameBefore);
             if (frameNumber >= (frameBefore - (DEBUG_MARK_FRAMES * ((fullDecode) ? 1 : 12)))) {
                 char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F__%07d_SEEK.pgm", recordingDir, frameNumber) >= 1) {
@@ -872,6 +872,7 @@ bool cDecoder::SeekExactToFrame(int seekFrameNumber) {   // TODO still not exact
 }
 
 
+/*
 bool cDecoder::SeekToFrame(int seekFrameNumber) {
     if (!avctx) return false;
     if (!codecCtxArray) return false;
@@ -932,6 +933,7 @@ bool cDecoder::SeekToFrame(int seekFrameNumber) {
     dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d): successful", packetNumber, frameNumber, seekFrameNumber);
     return true;
 }
+*/
 
 
 bool cDecoder::SeekToFrameBefore(int seekFrameNumber) {
@@ -1051,8 +1053,8 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
         if ((frameNumber < 0)                                     &&  // we have no frame successful decoded
                 useHWaccel                                        &&  // we want to use hwaccel
                 IsVideoStream(avpkt.stream_index)                 &&  // is video stream
-                !codecCtxArray[avpkt.stream_index]->hw_frames_ctx &&  // faild to get hardware frame context
-                codecCtxArray[avpkt.stream_index]->hw_device_ctx) {   // harware device is linked
+                !codecCtxArray[avpkt.stream_index]->hw_frames_ctx &&  // failed to get hardware frame context
+                codecCtxArray[avpkt.stream_index]->hw_device_ctx) {   // hardware device is linked
             dsyslog("cDecoder::SendPacketToDecoder(): packet (%d): stream %d: hardware decoding failed, fallback to software decoding", packetNumber, avpkt.stream_index);
             rc = ResetToSW();
         }

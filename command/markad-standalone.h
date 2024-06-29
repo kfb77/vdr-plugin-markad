@@ -84,6 +84,11 @@ public:
         macontext                 = origin.macontext;
         vps                       = nullptr;
         checkAudio                = origin.checkAudio;
+        detectLogoStopStart       = origin.detectLogoStopStart;
+        doneCheckStop             = origin.doneCheckStop;
+        doneCheckStart            = origin.doneCheckStart;
+        frameCheckStop            = origin.frameCheckStop;
+        extractLogo               = nullptr;
         sleepcnt = origin.sleepcnt;
     };
 
@@ -119,6 +124,11 @@ public:
         checkAudio                = origin->checkAudio;
         startTime                 = origin->startTime;
         iStopinBroadCast          = origin->iStopinBroadCast;
+        detectLogoStopStart       = origin->detectLogoStopStart;
+        doneCheckStop             = origin->doneCheckStop;
+        doneCheckStart            = origin->doneCheckStart;
+        frameCheckStop            = origin->frameCheckStop;
+        extractLogo               = origin->extractLogo;
         return *this;
     }
 

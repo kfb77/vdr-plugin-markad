@@ -1616,6 +1616,11 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {
         return;
     }
 
+    // check if this channel has special logos
+    if (!evaluateLogoStopStartPair) {
+        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder, criteria);
+        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+    }
     if (!evaluateLogoStopStartPair->IsInfoLogoChannel(macontext.Info.ChannelName) &&
             !evaluateLogoStopStartPair->IsLogoChangeChannel(macontext.Info.ChannelName) &&
             !evaluateLogoStopStartPair->ClosingCreditsChannel(macontext.Info.ChannelName)) {  // for performance reason only known and tested channels
@@ -1623,17 +1628,11 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {
         return;
     }
 
-    // init objects for logo mark optimization
     decoder->Restart();  // read position is at the end of the recording from mark detection, restart read position
     if (!detectLogoStopStart) {
         detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, extractLogo, nullptr, video->GetLogoCorner());
         ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
     }
-    if (!evaluateLogoStopStartPair) {
-        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder, criteria);
-        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
-    }
-
 
     evaluateLogoStopStartPair->CheckLogoStopStartPairs(&marks, &blackMarks, startA, frameCheckStart, stopA);
 
@@ -5637,7 +5636,7 @@ void cMarkAdStandalone::Recording() {
     }
     macontext.Video.Info.framesPerSecond = decoder->GetVideoFrameRate();
 
-    // calulate assumed start and end position
+    // calculate assumed start and end position
     CalculateCheckPositions(macontext.Info.tStart * macontext.Video.Info.framesPerSecond);
 
     // write an early start mark for running recordings
@@ -5675,7 +5674,7 @@ void cMarkAdStandalone::Recording() {
     // cleanup marks that make no sense
     CheckMarks();
 
-    // recording stoped before end of broadcast, add end mark at end of recording
+    // recording stopped before end of broadcast, add end mark at end of recording
     if ((inBroadCast) && (!gotendmark) && (decoder->GetVideoFrameNumber() > 0)) {
         sMarkAdMark tempmark;
         tempmark.type = MT_RECORDINGSTOP;
@@ -5853,7 +5852,7 @@ bool cMarkAdStandalone::CheckLogo() {
         }
         isyslog("no logo for %s %d:%d found in recording directory %s, trying to extract logo from recording", macontext.Info.ChannelName, macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den, macontext.Config->recDir);
 
-        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->hwaccel, macontext.Info.AspectRatio);
+        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Info.AspectRatio);
         ALLOC(sizeof(*extractLogo), "extractLogo");
 
         // write an early start mark for running recordings to provide a guest start mark for direct play, marks file will be overridden by save of first real mark
@@ -6033,7 +6032,7 @@ void cMarkAdStandalone::LoadInfo() {
             }
         }
     }
-    // create criteria
+    // create criteria object
     criteria = new cCriteria(macontext.Info.ChannelName);
     ALLOC(sizeof(*criteria), "criteria");
 
@@ -6352,7 +6351,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
     // manually extract logo from recording
     if (config->logoExtraction >= 0) {
-        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->hwaccel, macontext.Info.AspectRatio);
+        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Info.AspectRatio);
         ALLOC(sizeof(*extractLogo), "extractLogo");
         extractLogo->ManuallyExtractLogo(config->logoExtraction, config->logoWidth, config->logoHeight);
         ALLOC(sizeof(*extractLogo), "extractLogo");
@@ -6397,7 +6396,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     ALLOC(sizeof(*index), "index");
     marks.SetIndex(index);
 
-    // create decoder
+    // create decoder object
     decoder = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, macontext.Config->forceHW, index);
     ALLOC(sizeof(*decoder), "decoder");
 }
@@ -6647,7 +6646,7 @@ int usage(int svdrpport) {
            "                             best = only encode best video and best audio stream, drop rest\n"
            "                --hwaccel=<hardware acceleration method>\n"
            "                  use hardware acceleration for decoding\n"
-           "                  <hardware acceleration method> all methods suported by FFmpeg (ffmpeg -hide_banner -hwaccels)\n"
+           "                  <hardware acceleration method> all methods supported by FFmpeg (ffmpeg -hide_banner -hwaccels)\n"
            "                                                 e.g.: vdpau, cuda, vaapi, vulkan, ...\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"

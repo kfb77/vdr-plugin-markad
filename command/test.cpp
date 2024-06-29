@@ -67,7 +67,7 @@ public:
     * decoder performance test
     * @param testFrames count of test rames for performance test
     * @param threads    count of FFmpeg threads
-    * @param hwaccel    hwaccel methode
+    * @param hwaccel    string of hwaccel methode
     */
     int PerfDecoder(const int testFrames, const int threads, char *hwaccel) const {
         // decode frames

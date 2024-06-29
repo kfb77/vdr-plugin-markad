@@ -94,12 +94,34 @@ public:
      * copy constructor
      */
     cLogoDetect(const cLogoDetect &origin) {
+        memcpy(aCorner, origin.aCorner, sizeof(origin.aCorner));
+        logo_xstart = origin.logo_xstart;
+        logo_xend = origin.logo_xend;
+        logo_ystart = origin.logo_ystart;
+        logo_yend = origin.logo_yend;
+        isInitColourChange = origin.isInitColourChange;
+        sobel = nullptr;
+        recDir = origin.recDir;
+        logoCacheDir = origin.logoCacheDir;
+        criteria = origin.criteria;
+        decoder = origin.decoder;
     }
 
     /**
      * operator=
      */
     cLogoDetect &operator =(const cLogoDetect *origin) {
+        memcpy(aCorner, origin->aCorner, sizeof(origin->aCorner));
+        logo_xstart = origin->logo_xstart;
+        logo_xend = origin->logo_xend;
+        logo_ystart = origin->logo_ystart;
+        logo_yend = origin->logo_yend;
+        isInitColourChange = origin->isInitColourChange;
+        sobel = origin->sobel;
+        recDir = origin->recDir;
+        logoCacheDir = origin->logoCacheDir;
+        criteria = origin->criteria;
+        decoder = origin->decoder;
         return *this;
     }
 

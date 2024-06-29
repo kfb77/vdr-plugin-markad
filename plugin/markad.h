@@ -28,7 +28,7 @@ private:
     bool MarkadCut               = false;
     bool ac3ReEncode             = false;
     int autoLogoConf             = -1;
-    struct setup setup           = {};
+    struct setup setup;
     char title[80]               = {};
     time_t lastcheck             = 0;
 public:

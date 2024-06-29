@@ -113,7 +113,7 @@ public:
      * @param[in]     marks             object with all marks
      * @param[in,out] logoStopStartPair structure of logo/stop start pair, result is stored here, isClosingCredits is set to -1 if the part is no logo change
      */
-    void IsClosingCredits(cMarks *marks, sLogoStopStartPair *logoStopStartPair);
+    static void IsClosingCredits(cMarks *marks, sLogoStopStartPair *logoStopStartPair);
 
     /**
      * check if logo stop/start pair could be a logo change
@@ -247,12 +247,34 @@ public:
     * copy constructor
     */
     cDetectLogoStopStart(const cDetectLogoStopStart &origin) {
+        memcpy(aCorner, origin.aCorner, sizeof(origin.aCorner));
+        evaluateLogoStopStartPair = origin.evaluateLogoStopStartPair;
+        compareResult = origin.compareResult;
+        startPos = origin.startPos;
+        endPos = origin.endPos;
+        sobel = nullptr;
+        logoCorner = origin.logoCorner;
+        extractLogo = origin.extractLogo;
+        criteria = origin.criteria;
+        index = origin.index;
+        decoder =origin.decoder;
     }
 
     /**
      * operator=
      */
     cDetectLogoStopStart &operator =(const cDetectLogoStopStart *origin) {
+        memcpy(aCorner, origin->aCorner, sizeof(origin->aCorner));
+        evaluateLogoStopStartPair = origin->evaluateLogoStopStartPair;
+        compareResult = origin->compareResult;
+        startPos = origin->startPos;
+        endPos = origin->endPos;
+        sobel = origin->sobel;
+        logoCorner = origin->logoCorner;
+        extractLogo = origin->extractLogo;
+        criteria = origin->criteria;
+        index = origin->index;
+        decoder = origin->decoder;
         return *this;
     }
 
@@ -356,8 +378,6 @@ private:
     cIndex *index             = nullptr;  //!< decoder
     //!<
     cCriteria *criteria       = nullptr;  //!< class for mark detection criteria
-    //!<
-    cExtractLogo *extractLogo = nullptr;  //!< pointer to logo extraction class
     //!<
     sAreaT area               = {};       //!< result area
     //!<

@@ -93,7 +93,7 @@ public:
     /**
      * open output file
      * @param directory    output directory
-     * @param decoder      encoder class
+     * @param decoder      pointer to decoder
      * @return true if successful, false otherwise
      */
     bool OpenFile(const char *directory, cDecoder *decoder);
@@ -105,14 +105,14 @@ public:
 
     /**
      * close output file
-     * @param decoder decoder class
+     * @param decoder pinter to decoder
      * @return true if successful, false otherwise
      */
     bool CloseFile(cDecoder *decoder);
 
 private:
     /** encode frame
-     * @param decoder decoder
+     * @param decoder pointer to decoder
      * @param avCodecCtx   codec context
      * @param avFrame      decodes frame
      * @param avpkt        encoded packet
@@ -121,7 +121,7 @@ private:
 
     /**
      * init encoder codec
-     * @param decoder   decoder
+     * @param decoder  pointer to decoder
      * @param directory      recording directory
      * @param streamIndexIn  input stream index
      * @param streamIndexOut output stream index
@@ -131,7 +131,7 @@ private:
 
     /**
      * change audio encoder channel count
-     * @param decoder   decoder
+     * @param decoder  pointer to decoder
      * @param streamIndexIn  stream index input stream
      * @param streamIndexOut stream index output stream
      * @param avCodecCtxIn   input stream codec context

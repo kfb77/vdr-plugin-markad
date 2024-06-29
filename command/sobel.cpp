@@ -253,7 +253,7 @@ bool cSobel::SobelPlane(sVideoPicture *picture, sAreaT *area, const int plane) {
     intensity = 0;
 
 #ifdef DEBUG_SOBEL
-    dsyslog("cMarkAdLogo::SobelPlane(): plane %d: xStart %d, xEend %d, yStart %d, yEnd %d", plane, xStart, xEnd, yStart, yEnd);
+    dsyslog("cSobel::SobelPlane(): plane %d: xStart %d, xEend %d, yStart %d, yEnd %d", plane, xStart, xEnd, yStart, yEnd);
 #endif
 
     for (int Y = yStart; Y <= yEnd; Y++) {
