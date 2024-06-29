@@ -25,10 +25,13 @@ cPluginMarkAd::cPluginMarkAd(void) {
     // DON'T DO ANYTHING ELSE THAT MAY HAVE SIDE EFFECTS, REQUIRE GLOBAL
     // VDR OBJECTS TO EXIST OR PRODUCE ANY OUTPUT!
     statusMonitor = nullptr;
+
     bindir = strdup(DEF_BINDIR);
     ALLOC(strlen(bindir)+1, "bindir");
+
     logodir = strdup(DEF_LOGODIR);
     ALLOC(strlen(logodir)+1, "logodir");
+
     title[0]                = 0;
     setup.ProcessDuring     = PROCESS_NEVER;
     setup.whileRecording    = true;
@@ -36,10 +39,10 @@ cPluginMarkAd::cPluginMarkAd(void) {
     setup.OSDMessage        = false;
     setup.Verbose           = false;
     setup.HideMainMenuEntry = false;
-    setup.SecondPass        = true;
     setup.Log2Rec           = false;
     setup.LogoOnly          = true;
     setup.DeferredShutdown  = true;
+    setup.hwaccel           = 0;
 }
 
 
@@ -101,7 +104,6 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
         { "logocachedir", required_argument, nullptr, 'l'},
         { "loglevel",     required_argument, nullptr, '1'},
         { "astopoffs",    required_argument, nullptr, '2'},
-        { "cDecoder",     no_argument,       nullptr, '3'},
         { "cut",          no_argument,       nullptr, '4'},
         { "ac3reencode",  no_argument,       nullptr, '5'},
         { "autologo",     required_argument, nullptr, '6'},
@@ -146,15 +148,12 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
             astopoffs = atoi(optarg);
             break;
         case '3':
-            fprintf(stderr,"markad: parameter --cDecoder: is depreciated, please remove it from your configuration\n");
-            break;
-        case '4':
             MarkadCut = true;
             break;
-        case '5':
+        case '4':
             ac3ReEncode = true;
             break;
-        case '6':
+        case '5':
             autoLogoConf = atoi(optarg);
             break;
         default:
@@ -267,21 +266,21 @@ cMenuSetupPage *cPluginMarkAd::SetupMenu(void) {
 
 bool cPluginMarkAd::SetupParse(const char *Name, const char *Value) {
     // Parse setup parameters and store their values.
-    if (!strcasecmp(Name,"Execution")) setup.ProcessDuring = atoi(Value);
-    else if (!strcasecmp(Name,"useVPS")) setup.useVPS = atoi(Value);
-    else if (!strcasecmp(Name,"logVPS")) setup.logVPS = atoi(Value);
-    else if (!strcasecmp(Name,"whileRecording")) setup.whileRecording = atoi(Value);
-    else if (!strcasecmp(Name,"whileReplaying")) setup.whileReplaying = atoi(Value);
-    else if (!strcasecmp(Name,"OSDMessage")) setup.OSDMessage = atoi(Value);
-    else if (!strcasecmp(Name,"svdrPort")) setup.svdrPort = atoi(Value);
-    else if (!strcasecmp(Name,"Verbose")) setup.Verbose = atoi(Value);
-    else if (!strcasecmp(Name,"HideMainMenuEntry")) setup.HideMainMenuEntry = atoi(Value)?true:false;
-    else if (!strcasecmp(Name,"SecondPass")) setup.SecondPass = atoi(Value);
-    else if (!strcasecmp(Name,"Log2Rec")) setup.Log2Rec = atoi(Value);
-    else if (!strcasecmp(Name,"LogoOnly")) setup.LogoOnly = atoi(Value);
-    else if (!strcasecmp(Name,"DeferredShutdown")) setup.DeferredShutdown = atoi(Value);
-    else if (!strcasecmp(Name,"AutoLogoExtraction")) setup.autoLogoMenu = atoi(Value);
-    else if (!strcasecmp(Name,"FullDecode")) setup.fulldecode = atoi(Value);
+    if (!strcasecmp(Name,"Execution"))               setup.ProcessDuring     = atoi(Value);
+    else if (!strcasecmp(Name,"useVPS"))             setup.useVPS            = atoi(Value);
+    else if (!strcasecmp(Name,"logVPS"))             setup.logVPS            = atoi(Value);
+    else if (!strcasecmp(Name,"whileRecording"))     setup.whileRecording    = atoi(Value);
+    else if (!strcasecmp(Name,"whileReplaying"))     setup.whileReplaying    = atoi(Value);
+    else if (!strcasecmp(Name,"OSDMessage"))         setup.OSDMessage        = atoi(Value);
+    else if (!strcasecmp(Name,"svdrPort"))           setup.svdrPort          = atoi(Value);
+    else if (!strcasecmp(Name,"Verbose"))            setup.Verbose           = atoi(Value);
+    else if (!strcasecmp(Name,"HideMainMenuEntry"))  setup.HideMainMenuEntry = atoi(Value)?true:false;
+    else if (!strcasecmp(Name,"Log2Rec"))            setup.Log2Rec           = atoi(Value);
+    else if (!strcasecmp(Name,"LogoOnly"))           setup.LogoOnly          = atoi(Value);
+    else if (!strcasecmp(Name,"DeferredShutdown"))   setup.DeferredShutdown  = atoi(Value);
+    else if (!strcasecmp(Name,"AutoLogoExtraction")) setup.autoLogoMenu      = atoi(Value);
+    else if (!strcasecmp(Name,"FullDecode"))         setup.fulldecode        = atoi(Value);
+    else if (!strcasecmp(Name,"hwaccel"))            setup.hwaccel           = atoi(Value);
     else return false;
     return true;
 }

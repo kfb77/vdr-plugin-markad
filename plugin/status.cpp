@@ -694,6 +694,7 @@ void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSE
 bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool direct, sRecording *recording) {
     if ((direct) && (Get(FileName) != -1)) return false;
 
+    // prepare sutoLogo Option
     char *autoLogoOption = nullptr;
     if (setup->autoLogoConf >= 0) {
         if(!asprintf(&autoLogoOption," --autologo=%i ", setup->autoLogoConf)) {
@@ -736,11 +737,20 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool dir
         ALLOC(strlen(cmdOption) + 1, "cmdOption");
     }
 
+    // prepare hwaccel Option
+    char *hwaccelOption = nullptr;
+    if (setup->hwaccel > 0) {
+        if(!asprintf(&hwaccelOption," --hwaccel=%s ", setup->hwaccelTexts[setup->hwaccel])) {
+            esyslog("markad: asprintf hwaccelOption ouf of memory");
+            return false;
+        }
+        ALLOC(strlen(autoLogoOption)+1, "hwaccelOption");
+    }
+
     cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->Verbose ? " -v " : "",
                                    setup->OSDMessage ? svdrPortOption : "",
-                                   setup->SecondPass ? "" : " --pass1only ",
                                    setup->Log2Rec ? " -R " : "",
                                    setup->LogLevel ? setup->LogLevel : "",
                                    setup->aStopOffs ? setup->aStopOffs : "",
@@ -749,6 +759,7 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool dir
                                    setup->ac3ReEncode ? " --ac3reencode " : "",
                                    autoLogoOption ? autoLogoOption : "",
                                    setup->fulldecode ? " --fulldecode " : "",
+                                   hwaccelOption ? hwaccelOption : "",
                                    logodir,
                                    cmdOption,
                                    FileName);

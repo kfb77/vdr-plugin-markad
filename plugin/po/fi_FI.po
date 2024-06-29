@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
-"POT-Creation-Date: 2024-04-16 09:36+0200\n"
+"POT-Creation-Date: 2024-06-29 17:56+0200\n"
 "PO-Revision-Date: 2021-07-23 01:07+0300\n"
 "Last-Translator: Ville-Pekka Vainio <vpvainio@iki.fi>\n"
 "Language-Team: Finnish <vdr@linuxtv.org>\n"
@@ -93,9 +93,6 @@ msgstr "Käytä vain logollisilla kanavilla"
 msgid "deferred shutdown"
 msgstr "Viivästetty sammutus"
 
-msgid "optimize marks (overlaps and logo marks adjustments"
-msgstr "Optimoi merkinnät (päällekkäisyydet ja logomerkintöjen hienosäätö)"
-
 msgid "OSD message"
 msgstr "Käytä kuvaruutuviestejä"
 
@@ -114,8 +111,11 @@ msgstr "Piilota valinta päävalikosta"
 msgid "extract logos from recording"
 msgstr "Ota logot tallenteesta"
 
-msgid "full decode recording (WARNING: high cpu consumption)"
-msgstr "Tallenteen täysi dekoodaus (VAROITUS: käyttää paljon prosessoriaikaa)"
+msgid "full decode recording"
+msgstr ""
+
+msgid "hardware acceleration"
+msgstr ""
 
 msgid "show list"
 msgstr "Näytä lista"
@@ -125,3 +125,6 @@ msgstr "Lista"
 
 msgid "back"
 msgstr "Takaisin"
+
+msgid "off"
+msgstr ""

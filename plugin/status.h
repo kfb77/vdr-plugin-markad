@@ -85,11 +85,11 @@ class cEpgHandlerMarkad;
 class cStatusMarkAd : public cStatus {
 private:
     struct sRecording recs[MAXDEVICES*MAXRECEIVERS];
-    int             max_recs = -1;
-    const char      *bindir  = nullptr;
-    const char      *logodir = nullptr;
-    int             actpos   = 0;
-    struct          setup *setup;
+    int             max_recs          = -1;
+    const char      *bindir           = nullptr;
+    const char      *logodir          = nullptr;
+    int             actpos            = 0;
+    struct          setup *setup      = nullptr;
     int             runningRecordings = 0;
 
     bool getPid(int Position);
@@ -112,7 +112,7 @@ protected:
     virtual void Replaying(const cControl *Control, const char *Name, const char *FileName, bool On);
     virtual void TimerChange(const cTimer *Timer, eTimerChange Change);
 public:
-    cStatusMarkAd(const char *BinDir,const char *LogoDir, struct setup *Setup);
+    cStatusMarkAd(const char *BinDir, const char *LogoDir, struct setup *Setup);
     ~cStatusMarkAd();
     bool MarkAdRunning(void);
     void ResetActPos(void) {

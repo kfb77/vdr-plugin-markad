@@ -117,8 +117,8 @@ class Config:
         self.autologo = 2
         self.fulldecode = False
         self.fullencode = None
+        self.hwaccel = None
         self.threads = 1
-        self.astopoffs = 0
         self.log2rec=False
         self.vps=False
         self.cut=False
@@ -227,12 +227,6 @@ class Config:
         if ret is not None: self.threads = ret
 
         try:
-            ret = config.getint('MARKAD', 'astopoffs')
-        except (configparser.NoSectionError, configparser.NoOptionError):
-            ret = None
-        if ret is not None: self.astopoffs = ret
-
-        try:
             ret = config.getboolean('MARKAD', 'log2rec')
         except (configparser.NoSectionError, configparser.NoOptionError):
             ret = False
@@ -296,10 +290,10 @@ class Config:
         if args.maxrecordings is not None: self.maxrecordings = args.maxrecordings
         if args.autologo is not None: self.autologo = args.autologo
         if args.threads is not None: self.threads = args.threads
-        if args.astopoffs is not None: self.astopoffs = args.astopoffs
         if args.log2rec: self.log2rec = args.log2rec
         if args.fulldecode: self.fulldecode = args.fulldecode
-        if args.fulldecode: self.fullencode = args.fullencode
+        if args.fullencode: self.fullencode = args.fullencode
+        if args.hwaccel: self.hwaccel = args.hwaccel
         if args.cut: self.cut = args.cut
         if args.checkOnly: self.checkOnly = args.checkOnly
         if args.vps: self.vps = args.vps
@@ -536,14 +530,15 @@ class CheckPath:
             for filename in glob.glob(self.root + "/F__*.pgm"):
                 os.remove(filename)
             config.maxrecordings -= 1
-            cmd = '%s/markad --logocachedir=%s --loglevel=%i --autologo=%i --threads=%i --astopoffs=%i --priority=%i' % (config.bindir, config.logocachedir, config.markad_loglevel, config.autologo, config.threads, config.astopoffs, config.nice)
+            cmd = '%s/markad --logocachedir=%s --loglevel=%i --autologo=%i --threads=%i' % (config.bindir, config.logocachedir, config.markad_loglevel, config.autologo, config.threads)
+            if config.nice != 19: cmd = cmd + " --priority=" + str(config.nice)
             if config.log2rec: cmd = cmd + " --log2rec"
             if config.vps: cmd = cmd + " --vps"
             if config.fulldecode: cmd = cmd + " --fulldecode"
             if config.fullencode: cmd = cmd + " --fullencode=" + config.fullencode
+            if config.hwaccel: cmd = cmd + " --hwaccel=" + config.hwaccel
             if config.cut: cmd = cmd + " --cut"
             if config.ac3reencode: cmd = cmd + " --ac3reencode"
-            if config.vps: cmd = cmd + " --vps"
             if config.pts: cmd = cmd + " --pts"
             cmd = cmd + ' - ' + self.ConvertPath(self.root)
             log.dsyslog("markad call: "+cmd)
@@ -626,8 +621,8 @@ parser.add_argument('--logocachedir', dest="logocachedir",  metavar="<directory>
 parser.add_argument('--autologo=', metavar="<option>", type=int, choices=range(0, 3), dest="autologo", action="store", help='sets --autologo of markad to the specified value, see markad for more detailsi (default 2)')
 parser.add_argument('--fulldecode', dest="fulldecode", action='store_true', default=False, help='sets --fulldecode of markad to the specified value, see markad for more details')
 parser.add_argument('--fullencode=', dest="fullencode",  metavar="<streams>", action="store", help='streams to encode (best or all)')
+parser.add_argument('--hwaccel=', dest="hwaccel",  metavar="<hwaccel_method>", action="store", help='hwaccel')
 parser.add_argument('--threads=', metavar="<number>", type=int, choices=range(1, 17), dest="threads", action="store", help='sets --threads of markad to the specified value, see markad for more details (default 1)')
-parser.add_argument('--astopoffs=', metavar="<value>", type=int, choices=range(0, 241), dest="astopoffs", action="store", help='sets --astopoffs of markad to the specified value, see markad for more details (default 0)')
 parser.add_argument('--log2rec', dest="log2rec", action='store_true', default=False, help='sets --log2rec of markad to the specified value, see markad for more details')
 parser.add_argument('--cut', dest="cut", action='store_true', default=False, help='sets --cut of markad to the specified value, see markad for more details')
 parser.add_argument('--ac3reencode', dest="ac3reencode", action='store_true', default=False, help='sets --ac3reencode of markad to the specified value, see markad for more details')

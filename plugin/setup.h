@@ -16,54 +16,57 @@
 
 
 struct setup {
-    int ProcessDuring     = PROCESS_NEVER;
-    bool useVPS           = false;
-    bool logVPS           = false;
-    bool whileRecording;
-    bool whileReplaying;
-    bool OSDMessage;
+    int ProcessDuring      = PROCESS_NEVER;
+    bool useVPS            = false;
+    bool logVPS            = false;
+    bool whileRecording    = false;;
+    bool whileReplaying    = false;;
+    bool OSDMessage        = false;
     int  svdrPort          = 6419;
-    bool Verbose;
-    bool SecondPass;
-    bool HideMainMenuEntry;
-    bool Log2Rec;
-    bool LogoOnly;
-    bool DeferredShutdown;
+    bool Verbose           = false;
+    bool HideMainMenuEntry = false;
+    bool Log2Rec           = false;
+    bool LogoOnly          = false;
+    bool DeferredShutdown  = false;
     const char *LogoDir    = nullptr;
     char *LogLevel         = nullptr;
     char *aStopOffs        = nullptr;
-    bool cDecoder          = false;
     bool MarkadCut         = false;
     bool ac3ReEncode       = false;
     int autoLogoConf       = -1;
     int autoLogoMenu       = 2;
     bool fulldecode        = false;
+    int hwaccel            = 0;
     const char *PluginName = nullptr;
+#define MAX_HWACCEL 5
+    const char *hwaccelTexts[MAX_HWACCEL] = {tr("off"), "vaapi", "vdpau", "vdpau", "cuda"};
 };
 
 
 class cSetupMarkAd : public cMenuSetupPage {
 private:
-    const char *processTexts[3];
-    const char *autoLogoTexts[3];
-    struct setup *setup;
-    int autologomenu;
-    int fulldecode;
-    int processduring;
-    int usevps = 0;
-    int logvps = 0;
-    int whilerecording;
-    int whilereplaying;
-    int osdmsg;
-    int svdrPort = 6419;
-    int verbose;
-    int secondpass;
-    int hidemainmenuentry;
-    int log2rec;
-    int logoonly;
-    int deferredshutdown;
     void write(void);
-    int lpos;
+
+    const char *processTexts[3]           = {};
+    const char *autoLogoTexts[3]          = {};
+
+    struct setup *setup          = nullptr;
+    int autologomenu             = 0;
+    int fulldecode               = 0;
+    int hwaccel                  = 0;
+    int processduring            = 0;
+    int usevps                   = 0;
+    int logvps                   = 0;
+    int whilerecording           = 0;
+    int whilereplaying           = 0;
+    int osdmsg                   = 0;
+    int svdrPort                 = 6419;
+    int verbose                  = 0;
+    int hidemainmenuentry        = 0;
+    int log2rec                  = 0;
+    int logoonly                 = 0;
+    int deferredshutdown         = 0;
+    int lpos                     = 0;
 protected:
     virtual void Store(void);
 public:

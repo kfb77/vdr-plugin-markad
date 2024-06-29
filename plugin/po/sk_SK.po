@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: markad\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
-"POT-Creation-Date: 2024-04-16 09:36+0200\n"
+"POT-Creation-Date: 2024-06-29 17:56+0200\n"
 "PO-Revision-Date: 2011-03-01 20:26+0100\n"
 "Last-Translator: milan hrala <hrala.milan@gmail.com>\n"
 "Language-Team: milan hrala <grala.milan@gmail.com>\n"
@@ -94,9 +94,6 @@ msgstr "Snímať kanály iba s logom"
 msgid "deferred shutdown"
 msgstr ""
 
-msgid "optimize marks (overlaps and logo marks adjustments"
-msgstr ""
-
 msgid "OSD message"
 msgstr "OSD správa"
 
@@ -115,7 +112,10 @@ msgstr "schovať v hlavnom menu"
 msgid "extract logos from recording"
 msgstr ""
 
-msgid "full decode recording (WARNING: high cpu consumption)"
+msgid "full decode recording"
+msgstr ""
+
+msgid "hardware acceleration"
 msgstr ""
 
 msgid "show list"
@@ -126,3 +126,6 @@ msgstr "zoznam"
 
 msgid "back"
 msgstr "späť"
+
+msgid "off"
+msgstr ""

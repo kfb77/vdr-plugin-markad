@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
-"POT-Creation-Date: 2024-04-16 09:36+0200\n"
+"POT-Creation-Date: 2024-06-29 17:56+0200\n"
 "PO-Revision-Date: 2011-02-12 11:30+0100\n"
 "Last-Translator: Javier Bradineras <jbradi@hotmail.com>\n"
 "Language-Team: Spanish <vdr@linuxtv.org>\n"
@@ -94,9 +94,6 @@ msgstr "Escanea únicamente canales con logo"
 msgid "deferred shutdown"
 msgstr ""
 
-msgid "optimize marks (overlaps and logo marks adjustments"
-msgstr ""
-
 msgid "OSD message"
 msgstr "Mensaje OSD"
 
@@ -115,7 +112,10 @@ msgstr "Ocultar en menú principal"
 msgid "extract logos from recording"
 msgstr ""
 
-msgid "full decode recording (WARNING: high cpu consumption)"
+msgid "full decode recording"
+msgstr ""
+
+msgid "hardware acceleration"
 msgstr ""
 
 msgid "show list"
@@ -126,3 +126,6 @@ msgstr "Lista"
 
 msgid "back"
 msgstr "Atrás"
+
+msgid "off"
+msgstr ""

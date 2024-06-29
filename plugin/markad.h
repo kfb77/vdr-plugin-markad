@@ -18,19 +18,19 @@ static const char *DESCRIPTION    = trNOOP("Mark advertisements");
 
 class cPluginMarkAd : public cPlugin {
 private:
-    // Add any member variables or functions you may need here.
-    cStatusMarkAd *statusMonitor = nullptr;
-    char *bindir = nullptr;
-    char *logodir = nullptr;
-    int loglevel = 0;
-    int astopoffs = -1;
-    bool MarkadCut = false;
-    bool ac3ReEncode = false;
-    int autoLogoConf = -1;
-    struct setup setup;
-    char title[80];
-    time_t lastcheck = 0;
     bool ReadTitle(const char *Directory);
+
+    cStatusMarkAd *statusMonitor = nullptr;
+    char *bindir                 = nullptr;
+    char *logodir                = nullptr;
+    int loglevel                 = 0;
+    int astopoffs                = -1;
+    bool MarkadCut               = false;
+    bool ac3ReEncode             = false;
+    int autoLogoConf             = -1;
+    struct setup setup           = {};
+    char title[80]               = {};
+    time_t lastcheck             = 0;
 public:
     cPluginMarkAd(void);
     virtual ~cPluginMarkAd();

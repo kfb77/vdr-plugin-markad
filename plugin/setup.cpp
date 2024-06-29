@@ -20,12 +20,12 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
     svdrPort          = setup->svdrPort;
     verbose           = setup->Verbose;
     hidemainmenuentry = setup->HideMainMenuEntry;
-    secondpass        = setup->SecondPass;
     log2rec           = setup->Log2Rec;
     logoonly          = setup->LogoOnly;
     deferredshutdown  = setup->DeferredShutdown;
-    autologomenu     = setup->autoLogoMenu;
+    autologomenu      = setup->autoLogoMenu;
     fulldecode        = setup->fulldecode;
+    hwaccel           = setup->hwaccel;
 
     processTexts[PROCESS_AFTER]  = tr("after");
     processTexts[PROCESS_DURING] = tr("during");
@@ -57,14 +57,14 @@ void cSetupMarkAd::write(void) {
         Add(new cMenuEditBoolItem(tr("scan only channels with logo"), &logoonly), true);
         lpos = Current();
         Add(new cMenuEditBoolItem(tr("deferred shutdown"), &deferredshutdown));
-        Add(new cMenuEditBoolItem(tr("optimize marks (overlaps and logo marks adjustments"), &secondpass));
         Add(new cMenuEditBoolItem(tr("OSD message"), &osdmsg));
         Add(new cMenuEditIntItem(tr("SVDR port number"), &svdrPort));
         Add(new cMenuEditBoolItem(tr("verbose logging"), &verbose));
         Add(new cMenuEditBoolItem(tr("log to recording directory"), &log2rec));
         Add(new cMenuEditBoolItem(tr("hide mainmenu entry"), &hidemainmenuentry));
         if (setup->autoLogoConf < 0) Add(new cMenuEditStraItem(tr("extract logos from recording"), &autologomenu, 3, autoLogoTexts));
-        Add(new cMenuEditBoolItem(tr("full decode recording (WARNING: high cpu consumption)"), &fulldecode));
+        Add(new cMenuEditBoolItem(tr("full decode recording"), &fulldecode));
+        Add(new cMenuEditStraItem(tr("hardware acceleration"), &hwaccel, MAX_HWACCEL, setup->hwaccelTexts));
 
         if (current == -1) {
             SetCurrent(first);
@@ -119,7 +119,6 @@ void cSetupMarkAd::Store(void) {
     SetupStore("logVPS", logvps);
     SetupStore("whileRecording", whilerecording);
     SetupStore("whileReplaying", whilereplaying);
-    SetupStore("SecondPass", secondpass);
     SetupStore("OSDMessage", osdmsg);
     SetupStore("svdrPort", svdrPort);
     SetupStore("Verbose", verbose);
@@ -129,22 +128,23 @@ void cSetupMarkAd::Store(void) {
     SetupStore("DeferredShutdown", deferredshutdown);
     SetupStore("AutoLogoExtraction", autologomenu);
     SetupStore("FullDecode", fulldecode);
+    SetupStore("hwaccel", hwaccel);
 
-    setup->ProcessDuring = static_cast<int>(processduring);
-    setup->useVPS = static_cast<bool>(usevps);
-    setup->logVPS = static_cast<bool>(logvps);
-    setup->whileRecording = static_cast<bool>(whilerecording);
-    setup->whileReplaying = static_cast<bool>(whilereplaying);
-    setup->OSDMessage = static_cast<bool>(osdmsg);
-    setup->svdrPort = static_cast<int>(svdrPort);
-    setup->SecondPass = static_cast<bool>(secondpass);
-    setup->Verbose = static_cast<bool>(verbose);
+    setup->ProcessDuring     = static_cast<int>(processduring);
+    setup->useVPS            = static_cast<bool>(usevps);
+    setup->logVPS            = static_cast<bool>(logvps);
+    setup->whileRecording    = static_cast<bool>(whilerecording);
+    setup->whileReplaying    = static_cast<bool>(whilereplaying);
+    setup->OSDMessage        = static_cast<bool>(osdmsg);
+    setup->svdrPort          = static_cast<int>(svdrPort);
+    setup->Verbose           = static_cast<bool>(verbose);
     setup->HideMainMenuEntry = static_cast<bool>(hidemainmenuentry);
-    setup->DeferredShutdown = static_cast<bool>(deferredshutdown);
-    setup->autoLogoMenu = static_cast<int>(autologomenu);
-    setup->fulldecode = static_cast<bool>(fulldecode);
-    setup->Log2Rec = log2rec;
-    setup->LogoOnly = logoonly;
+    setup->DeferredShutdown  = static_cast<bool>(deferredshutdown);
+    setup->autoLogoMenu      = static_cast<int>(autologomenu);
+    setup->fulldecode        = static_cast<bool>(fulldecode);
+    setup->hwaccel           = static_cast<int>(hwaccel);
+    setup->Log2Rec           = log2rec;
+    setup->LogoOnly          = logoonly;
 }
 
 
