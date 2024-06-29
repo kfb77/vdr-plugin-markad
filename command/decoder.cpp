@@ -653,7 +653,7 @@ int cDecoder::GetVolume() {
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
                 if ((level / avFrame.nb_samples / avFrame.ch_layout.nb_channels) > MAX_SILENCE_VOLUME) break;  // non silence reached
 #else
-                if ((level / avFrameRef->nb_samples / avFrameRef->channels)      > MAX_SILENCE_VOLUME) break;  // non silence reached
+                if ((level / avFrame.nb_samples / avFrame.channels)              > MAX_SILENCE_VOLUME) break;  // non silence reached
 #endif
 #endif
             }
@@ -1162,7 +1162,11 @@ int cDecoder::ReceiveFrameFromDecoder() {
         // some filds in avFrame filled by receive, but no video data, copy to swFrame to keep it after pixel format transformation
         AVPictureType pict_type     = avFrame.pict_type;
         int64_t pts                 = avFrame.pts;
+#if LIBAVCODEC_VERSION_INT > ((59<<16)+(37<<8)+100)   // FFmpeg 5.1.4
         int64_t duration            = avFrame.duration;
+#else
+        int64_t duration            = avFrame.pkt_duration;
+#endif
 
         // transform pixel format
         av_frame_unref(&avFrame);
@@ -1186,7 +1190,11 @@ int cDecoder::ReceiveFrameFromDecoder() {
         // restore values we lost during pixel transformation
         avFrame.pict_type           = pict_type;
         avFrame.pts                 = pts;
+#if LIBAVCODEC_VERSION_INT > ((59<<16)+(37<<8)+100)   // FFmpeg 5.1.4
         avFrame.duration            = duration;
+#else
+        avFrame.pkt_duration        = duration;
+#endif
         avFrame.sample_aspect_ratio = swFrame.sample_aspect_ratio;
         av_frame_unref(&swFrame);
     }

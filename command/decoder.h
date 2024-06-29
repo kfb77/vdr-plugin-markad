@@ -47,25 +47,22 @@ extern "C" {
 
 // supported libavcodec versions
 //
-// full supported markad ffmpeg versions (based on Ubuntu LTS has Standard Support, 5 years)
+// full supported markad FFmpeg versions (based on Ubuntu LTS has Standard Support, 5 years)
 //
-// #if LIBAVCODEC_VERSION_INT >= ((60<<16)+( 31<<8)+102)   ffmpeg 6.1.1  (Ubuntu 24.04, End of Standard Support: April 2029)
-// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   ffmpeg 4.4.2  (Ubuntu 22.04, End of Standard Support: April 2027)
-// #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 54<<8)+100)   ffmpeg 4.2.7  (Ubuntu 20.04, End of Standard Support: April 2025)
-#define LIBAVCODEC_VERSION_VALID ((58<<16)+( 54<<8)+100)   // oldest full supported version
+//  #if LIBAVCODEC_VERSION_INT >= ((60<<16)+( 31<<8)+102)   FFmpeg 6.1.1  (Ubuntu 24.04, End of Standard Support: April 2029)
+//  #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   FFmpeg 4.4.2  (Ubuntu 22.04, End of Standard Support: April 2027)
+//  #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 54<<8)+100)   FFmpeg 4.2.7  (Ubuntu 20.04, End of Standard Support: April 2025)
+#define LIBAVCODEC_VERSION_VALID  ((58<<16)+( 54<<8)+100) // oldest full supported version
 
-
-// deprecated markad ffmpeg versions without full features and with limited support (based on Ubuntu LTS is End of Standard Support + 5 years time for system update)
+// deprecated markad FFmpeg versions without full features and with limited support
 //
-// #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   ffmpeg 3.4.11 (Ubuntu 18.04, End of Life: April 2028)
-// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 60<<8)+100)   ffmpeg 2.8.17 (Ubuntu 16.04) End of Life: April 2026)
-#define LIBAVCODEC_VERSION_DEPRECATED ((56<<16)+( 60<<8)+100)   // oldest deprecated version, older is invalid
+#define LIBAVCODEC_VERSION_DEPRECATED ((58<<16)+( 54<<8)+ 99) // oldest deprecated version, older is invalid
 
-
-// end of life markad ffmpeg versions
+// end of life markad FFmpeg versions
 //
-// #if LIBAVCODEC_VERSION_INT >= ((54<<16)+( 35<<8)+1)     avconv 9.20  (Ubuntu 14.04, End of Life: April 2024)
-
+// #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   FFmpeg 3.4.11 (Ubuntu 18.04, End of Life: April 2028)
+// #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 60<<8)+100)   FFmpeg 2.8.17 (Ubuntu 16.04) End of Life: April 2026)
+// #if LIBAVCODEC_VERSION_INT >= ((54<<16)+( 35<<8)+  1)   avconv 9.20   (Ubuntu 14.04, End of Life: April 2024)
 
 
 /**
@@ -77,7 +74,7 @@ public:
     /**
      * cDecoder constructor
      * @param recDir            recording directory
-     * @param threadsParam      count threads of ffmpeg decoder
+     * @param threadsParam      count threads of FFmpeg decoder
      * @param fullDecodeParam   true if full decode, fals if only decode i-frames
      * @param hwaccel           true if we use hwaccel
      * @param forceHWparam      true if force use of hwaccel on MPEG2 codec
@@ -430,7 +427,7 @@ private:
     //!<
     struct SwsContext *nv12_to_yuv_ctx = nullptr;                 //!< pixel format conversion context
     //!<
-#if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100)               // ffmpeg 4.5
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100)               // FFmpeg 4.5
     const AVCodec *codec               = nullptr;                 //!< codec
     //!<
 #else

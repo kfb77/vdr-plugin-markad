@@ -1,6 +1,16 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-xx-xx: Version 4.0.0
+- new decoder with hardware acceleration support
+- new libavcodec minimum version: 58.54.100 (FFmpeg 4.2.7)
+- remove parameter "saveinfo"
+- remove parameter "pass1only"
+- remove parameter "pass2only"
+- remove parameter "astopoffs"
+- remove parameter "posttimer"
+- add parameter "--hwaccel=<methode>"
+
 2024-06-22: Version 3.6.8
 - detect long black opening credits after vborder broadcast
 - prevent to use false hborder marks from long opening credits
