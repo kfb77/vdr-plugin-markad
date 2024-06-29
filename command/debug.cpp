@@ -8,40 +8,6 @@
 #include "debug.h"
 
 
-// save picture to recording directory
-// return: true if successful
-//
-#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_LOGO_SAVE) || defined(DEBUG_FRAME_DETECTION)
-#include <stdio.h>
-#include <stdlib.h>
-bool SaveSobel(const char *fileName, const uchar *picture, const int width, const int height) {
-    if (!fileName) return false;
-    if ((width == 0) || (height == 0)) {
-        dsyslog("SaveSobel: logo width or logo height not set");
-        return false;
-    }
-
-#ifdef DEBUG_SOBEL
-    dsyslog("SaveSobel: logo size %dx%d", width, height);
-#endif
-
-    // Open file
-    FILE *pFile = fopen(fileName, "wb");
-    if (pFile == nullptr) return false;
-
-    // Write header
-    fprintf(pFile, "P5\n%d %d\n255\n", width, height);
-
-    // Write pixel data
-    if (fwrite(picture, 1, width * height, pFile)) {};
-
-    // Close file
-    fclose(pFile);
-    return true;
-}
-#endif
-
-
 // save currect content of the frame buffer (plane 0) to fileName
 //
 #if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_DECODER_SEEK)

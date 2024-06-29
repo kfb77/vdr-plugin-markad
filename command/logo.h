@@ -130,6 +130,8 @@ public:
      */
     bool CompareLogoPair(const sLogoInfo *logo1, const sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0 = 0, int match12 = 0, int *rate0 = nullptr);
 
+    void ManuallyExtractLogo(const int corner, const int width, const int height);
+
 private:
     /**
      * save logo picture, used for debugging

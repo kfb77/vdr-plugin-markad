@@ -171,16 +171,6 @@ private:
     bool LoadLogoPlane(const char *path, const char *logoName, const int plane);
 
     /**
-     * save the area.corner picture after sobel transformation to /tmp
-     * @param frameNumber frame number
-     * @param picture save picture
-     * @param plane number
-     * @param debug = nullptr: save was called by --extract function, != nullptr: save was called by debug statements, add debug identifier to filename
-     * return: true if successful, false otherwise
-     */
-    bool Save(const int frameNumber, uchar **picture, const short int plane, const char *debug);
-
-    /**
      * copy all black pixels from logo pane 0 into plan 1 and plane 2,
      * we need this for channels with usually grey logos, but at start and end they can be red (DMAX)
      */

@@ -185,56 +185,6 @@ int cLogoDetect::GetLogoCorner() const {
     return area.logoCorner;
 }
 
-// TODO
-// save the area.corner picture after sobel transformation to /tmp
-// debug = 0: save was called by --extract function
-// debug > 0: save was called by debug statements, add debug identifier to filename
-// return: true if successful
-//
-bool cLogoDetect::Save(const int frameNumber, uchar **picture, const short int plane, const char *debug) {
-    if ((plane<0) || (plane >= PLANES)) return false;
-    if ((area.logoSize.width == 0) || (area.logoSize.height == 0)) {
-        dsyslog("cLogoDetect::Save(): logoWidth or logoHeight not set");
-        return false;
-    }
-
-    char *buf = nullptr;
-    if (debug) {
-        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i_debug_%s.pgm", "/tmp/", frameNumber, criteria->GetChannelName(), area.logoAspectRatio.num, area.logoAspectRatio.den, plane, debug)==-1) return false;
-    }
-    else {
-        if (asprintf(&buf,"%s/%07d-%s-A%i_%i-P%i.pgm", "/tmp/", frameNumber, criteria->GetChannelName(), area.logoAspectRatio.num, area.logoAspectRatio.den, plane)==-1) return false;
-    }
-    ALLOC(strlen(buf) + 1, "buf");
-
-    // Open file
-    FILE *pFile = fopen(buf, "wb");
-    if (pFile == nullptr) {
-        FREE(strlen(buf) + 1, "buf");
-        free(buf);
-        return false;
-    }
-
-    int width  = area.logoSize.width;
-    int height = area.logoSize.height;
-
-    if (plane > 0) {
-        width  /= 2;
-        height /= 2;
-    }
-
-    // Write header
-    fprintf(pFile, "P5\n#C%i\n%d %d\n255\n", area.logoCorner, width, height);
-
-    // Write pixel data
-    if (fwrite(picture[plane], 1, width * height, pFile)) {};
-    // Close file
-    fclose(pFile);
-    FREE(strlen(buf) + 1, "buf");
-    free(buf);
-    return true;
-}
-
 
 // reduce brightness and increase contrast
 // return true if we now have a valid detection result

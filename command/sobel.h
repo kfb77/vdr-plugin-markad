@@ -101,6 +101,8 @@ public:
      */
     bool SetCoordinates(sAreaT *area, const int plane, int *xstart, int *xend, int *ystart, int *yend) const;
 
+    bool SaveSobelPlane(const char *fileName, const uchar *picture, const int width, const int height);
+
 private:
     /**
     * get max logo size for video resolution

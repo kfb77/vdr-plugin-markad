@@ -3558,7 +3558,6 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
 void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     if (!mark) return;
     if (!mark->type) return;
-    if ((macontext.Config) && (macontext.Config->logoExtraction != -1)) return;
     if (gotendmark) return;
     if (mark->type <= MT_UNDEFINED) {
         esyslog("cMarkAdStandalone::AddMark(): mark type 0x%X invalid", mark->type);
@@ -3886,9 +3885,6 @@ void cMarkAdStandalone::CheckIndexGrowing()
 
     if (!indexFile) {
         dsyslog("cMarkAdStandalone::CheckIndexGrowing(): no index file found");
-        return;
-    }
-    if (macontext.Config->logoExtraction != -1) {
         return;
     }
     if (sleepcnt >= 2) {
@@ -5596,46 +5592,6 @@ bool cMarkAdStandalone::ProcessFrame() {
 }
 
 
-/* TODO extract logo in own function
-   else {
-        if ((logoWidth == 0) || (logoHeight == 0)) {
-            sLogoSize DefaultLogoSize = GetDefaultLogoSize(maContext->Video.Info.width);
-            logoHeight = DefaultLogoSize.height;
-            logoWidth = DefaultLogoSize.width;
-        }
-        area.AspectRatio.num = maContext->Video.Info.AspectRatio.num;
-        area.AspectRatio.den = maContext->Video.Info.AspectRatio.den;
-        area.corner = maContext->Config->logoExtraction;
-        sLogoSize MaxLogoSize = GetMaxLogoSize(maContext->Video.Info.width);
-        if (maContext->Config->logoWidth != -1) {
-            if (MaxLogoSize.width >= maContext->Config->logoWidth) logoWidth = maContext->Config->logoWidth;
-            else {
-                esyslog("configured logo width of %d exceeds max logo width %d", maContext->Config->logoWidth, MaxLogoSize.width);
-                abortNow = true;
-                return LOGO_ERROR;
-            }
-        }
-        if (maContext->Config->logoHeight != -1) {
-            if (MaxLogoSize.height >= maContext->Config->logoHeight) logoHeight = maContext->Config->logoHeight;
-            else {
-                esyslog("configured logo height of %d exceeds max logo height %d", maContext->Config->logoHeight, MaxLogoSize.height);
-                abortNow = true;
-                return LOGO_ERROR;
-            }
-        }
-    }
-
-
-    // enough for frame read for manual logo extraction
-        if ((macontext.Config->logoExtraction != -1) && (decoder->GetIFrameCount() >= 512)) {    // extract logo
-            isyslog("finished logo extraction, please check /tmp for pgm files");
-            abortNow=true;
-            break;
-        }
-
-
-*/
-
 void cMarkAdStandalone::Recording() {
     if (abortNow) return;
 
@@ -6394,8 +6350,18 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         ALLOC(strlen(macontext.Info.ChannelName) + 1, "macontext.Info.ChannelName");
     }
 
+    // manually extract logo from recording
+    if (config->logoExtraction >= 0) {
+        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->hwaccel, macontext.Info.AspectRatio);
+        ALLOC(sizeof(*extractLogo), "extractLogo");
+        extractLogo->ManuallyExtractLogo(config->logoExtraction, config->logoWidth, config->logoHeight);
+        ALLOC(sizeof(*extractLogo), "extractLogo");
+        delete extractLogo;
+        return;
+    }
 
-    if (!CheckLogo() && (config->logoExtraction == -1) && (config->autoLogo == 0)) {
+    // check if we have a logo or we can extract it from recording
+    if (!CheckLogo() && (config->autoLogo == 0)) {
         isyslog("no logo found, logo detection disabled");
         criteria->SetDetectionState(MT_LOGOCHANGE, false);
     }
@@ -6629,7 +6595,7 @@ int usage(int svdrpport) {
            "-B              --backupmarks\n"
            "                  make a backup of existing marks\n"
            "-L              --extractlogo=<direction>[,width[,height]]\n"
-           "                  extracts logo to /tmp as pgm files (must be renamed)\n"
+           "                  extracts logo to recording directory as pgm files (must be renamed)\n"
            "                  <direction>  0 = top left,    1 = top right\n"
            "                               2 = bottom left, 3 = bottom right\n"
            "-O              --OSD\n"
@@ -6767,8 +6733,8 @@ int main(int argc, char *argv[]) {
 
     // set defaults
     config.logoExtraction = -1;
-    config.logoWidth      = -1;
-    config.logoHeight     = -1;
+    config.logoWidth      =  0;
+    config.logoHeight     =  0;
     config.threads        = -1;
     strcpy(config.svdrphost, "127.0.0.1");
     strcpy(config.logoCacheDirectory, "/var/lib/markad");
@@ -7273,48 +7239,50 @@ int main(int argc, char *argv[]) {
         if (config.hwaccel[0] != 0) dsyslog("parameter --hwaccel=%s is set", config.hwaccel);
         else dsyslog("use software decoder/encoder");
 
-        // performance test
-        if (config.perftest) {
-            cTest *test = new cTest(config.recDir, config.fullDecode, config.hwaccel);
-            test->Perf();
-            delete test;
-        }
-        else {
-
-            // detect marks
-            gettimeofday(&startTime2, nullptr);
-            cmasta->Recording();
-            gettimeofday(&endTime2, nullptr);
-
-            // logo mark optimization
-            gettimeofday(&startTime3, nullptr);
-            cmasta->LogoMarkOptimization();      // logo mark optimization
-            gettimeofday(&endTime3, nullptr);
-
-            // overlap detection
-            gettimeofday(&startTime4, nullptr);
-            cmasta->ProcessOverlap();            // overlap and closing credits detection
-            gettimeofday(&endTime4, nullptr);
-
-            // minor mark position optimization
-            cmasta->BlackScreenOptimization();   // mark optimization with black scene
-            cmasta->SilenceOptimization();       // mark optimization with mute scene
-            cmasta->LowerBorderOptimization();   // mark optimization with lower border
-            cmasta->SceneChangeOptimization();   // final optimization with scene changes (if we habe nothing else, try this as last resort)
-
-            // video cut
-            if (config.MarkadCut) {
-                gettimeofday(&startTime5, nullptr);
-                cmasta->MarkadCut();
-                gettimeofday(&endTime5, nullptr);
+        if (config.logoExtraction == -1) {
+            // performance test
+            if (config.perftest) {
+                cTest *test = new cTest(config.recDir, config.fullDecode, config.hwaccel);
+                test->Perf();
+                delete test;
             }
+            else {
 
-            // write debug mark pictures
-            gettimeofday(&startTime6, nullptr);
+                // detect marks
+                gettimeofday(&startTime2, nullptr);
+                cmasta->Recording();
+                gettimeofday(&endTime2, nullptr);
+
+                // logo mark optimization
+                gettimeofday(&startTime3, nullptr);
+                cmasta->LogoMarkOptimization();      // logo mark optimization
+                gettimeofday(&endTime3, nullptr);
+
+                // overlap detection
+                gettimeofday(&startTime4, nullptr);
+                cmasta->ProcessOverlap();            // overlap and closing credits detection
+                gettimeofday(&endTime4, nullptr);
+
+                // minor mark position optimization
+                cmasta->BlackScreenOptimization();   // mark optimization with black scene
+                cmasta->SilenceOptimization();       // mark optimization with mute scene
+                cmasta->LowerBorderOptimization();   // mark optimization with lower border
+                cmasta->SceneChangeOptimization();   // final optimization with scene changes (if we habe nothing else, try this as last resort)
+
+                // video cut
+                if (config.MarkadCut) {
+                    gettimeofday(&startTime5, nullptr);
+                    cmasta->MarkadCut();
+                    gettimeofday(&endTime5, nullptr);
+                }
+
+                // write debug mark pictures
+                gettimeofday(&startTime6, nullptr);
 #ifdef DEBUG_MARK_FRAMES
-            cmasta->DebugMarkFrames(); // write frames picture of marks to recording directory
+                cmasta->DebugMarkFrames(); // write frames picture of marks to recording directory
 #endif
 
+            }
         }
         FREE(sizeof(*cmasta), "cmasta");
         delete cmasta;

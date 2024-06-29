@@ -55,10 +55,6 @@ cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam
         sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 5);  // boundary 5
         ALLOC(sizeof(*sobel), "sobel");
 
-        // allocate area result buffer
-        area.logoSize = {0};                        // use max logo size of this video resolutio
-        sobel->AllocAreaBuffer(&area);              // allocate memory for result buffer
-
         hBorder = new cHorizBorderDetect(decoder, criteria);
         ALLOC(sizeof(*hBorder), "hBorder");
 
@@ -1522,20 +1518,70 @@ int cExtractLogo::AudioInBroadcast() {
 }
 
 
+void cExtractLogo::ManuallyExtractLogo(const int corner, const int width, const int height) {
+    // allocate area result buffer
+    area.logoSize.width  = width;
+    area.logoSize.height = height;
+    area.logoCorner      = corner;
+    sobel->AllocAreaBuffer(&area);              // allocate memory for result buffer
+
+    while (decoder->DecodeNextFrame(false)) {
+        if (abortNow) return;
+        int frameNumber = decoder->GetVideoFrameNumber();
+        sVideoPicture *picture = decoder->GetVideoPicture();
+        if (picture) {
+            // logo name
+            char *logoName=nullptr;
+            sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
+            if (asprintf(&logoName,"%s-A%d_%d", criteria->GetChannelName(), aspectRatio->num, aspectRatio->den) < 0) {
+                esyslog("cExtractLogo::ManuallyExtractLogo(): asprintf failed");
+                return;
+            }
+            ALLOC(strlen(logoName) + 1, "logoName");
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+            if (sobel->SobelPicture(recDir, picture, &area, true) > 0)
+#else
+            if (sobel->SobelPicture(picture, &area, true) > 0)
+#endif
+            {
+                for (int plane = 0; plane < PLANES; plane++) {
+                    char *fileName = nullptr;
+                    if (asprintf(&fileName,"%s/F%07d-%s-P%d.pgm", recDir, frameNumber, logoName, plane) >= 1) {
+                        ALLOC(strlen(fileName)+1, "fileName");
+                        if (plane == 0) sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width, area.logoSize.height);
+                        else sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width / 2, area.logoSize.height / 2);
+                        FREE(strlen(fileName)+1, "fileName");
+                        free(fileName);
+                    }
+                }
+
+            }
+            FREE(strlen(logoName) + 1, "logoName");
+            free (logoName);
+        }
+        if (frameNumber > 2000) break;
+    }
+}
+
+
 // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
 int cExtractLogo::SearchLogo(int startFrame, const bool force) {
     LogSeparator(true);
     dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d, force = %d", startFrame, logoAspectRatio.num, logoAspectRatio.den, force);
     if (startFrame < 0) return LOGO_ERROR;
 
+    // set start time for statistics
+    struct timeval startTime;
+    gettimeofday(&startTime, nullptr);
+
     int  frameNumber            = 0;
     int  iFrameCountAll         = 0;
     bool logoFound              = false;
     sLogoSize logoSizeFinal     = {0};          // logo size after logo found
 
-    // set start time for statistics
-    struct timeval startTime;
-    gettimeofday(&startTime, nullptr);
+    // allocate area result buffer
+    area.logoSize = {0};                        // use max logo size of this video resolutio
+    sobel->AllocAreaBuffer(&area);              // allocate memory for result buffer
 
     if (!WaitForFrames(decoder)) {
         dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");

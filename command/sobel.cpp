@@ -5,6 +5,7 @@
  *
  */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 
@@ -227,7 +228,10 @@ bool cSobel::SobelPlane(sVideoPicture *picture, sAreaT *area, const int plane) {
     int xEnd   = 0;
     int yStart = 0;
     int yEnd   = 0;
-    if (!SetCoordinates(area, plane, &xStart, &xEnd, &yStart, &yEnd)) return false;
+    if (!SetCoordinates(area, plane, &xStart, &xEnd, &yStart, &yEnd)) {
+        esyslog("cSobel::SobelPlane(): unable to set coordinates");
+        return false;
+    }
 
     int cutval           = 127;
     int planeLogoWidth   = area->logoSize.width;
@@ -375,6 +379,7 @@ bool cSobel::SetCoordinates(sAreaT *area, const int plane, int *xstart, int *xen
         *yend   = videoHeight - 1;
         break;
     default:
+        esyslog("cSobel::SetCoordinates(): corner %d invalid", area->logoCorner);
         return false;
     }
     if (plane > 0) {
@@ -383,5 +388,40 @@ bool cSobel::SetCoordinates(sAreaT *area, const int plane, int *xstart, int *xen
         *ystart /= 2;
         *yend   /= 2;
     }
+    return true;
+}
+
+// save sobel plane as picture
+// return: true if successful
+//
+bool cSobel::SaveSobelPlane(const char *fileName, const uchar *picture, const int width, const int height) {
+    if (!fileName) {
+        esyslog("cSobel::SaveSobelPlane(): file name missing");
+        return false;
+    }
+    if ((width == 0) || (height == 0)) {
+        esyslog("SaveSobelPlane: logo width or logo height not set");
+        return false;
+    }
+
+#ifdef DEBUG_SOBEL
+    dsyslog("SaveSobelPlane: logo size %dx%d", width, height);
+#endif
+
+    // Open file
+    FILE *pFile = fopen(fileName, "wb");
+    if (pFile == nullptr) {
+        esyslog("cSobel::SaveSobelPlane(): failed to open file: %s", fileName);
+        return false;
+    }
+
+    // Write header
+    fprintf(pFile, "P5\n%d %d\n255\n", width, height);
+
+    // Write pixel data
+    if (fwrite(picture, 1, width * height, pFile)) {};
+
+    // Close file
+    fclose(pFile);
     return true;
 }
