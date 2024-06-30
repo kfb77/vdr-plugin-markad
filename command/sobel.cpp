@@ -90,11 +90,11 @@ bool cSobel::AllocAreaBuffer(sAreaT *area) const {
 
 
 bool cSobel::FreeAreaBuffer(sAreaT *area) {
-    if (!area->sobel && !area->result && !area->inverse) return true;  // nothing to do
     if ((area->logoSize.width <= 0) || (area->logoSize.height <= 0)) {
         esyslog("cSobel::FreeResultBuffer(): invalid logo size %d:%d", area->logoSize.width, area->logoSize.height);
         return false;
     }
+    dsyslog("cSobel::FreeResultBuffer(): logo size %dx%d", area->logoSize.width, area->logoSize.height);
     // free memory for sobel plane
     if (area->sobel) {
         FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * area->logoSize.width * area->logoSize.height, "area.sobel");

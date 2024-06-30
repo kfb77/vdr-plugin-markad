@@ -1580,8 +1580,7 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
     sLogoSize logoSizeFinal     = {0};          // logo size after logo found
 
     // allocate area result buffer
-    area.logoSize = {0};                        // use max logo size of this video resolutio
-    sobel->AllocAreaBuffer(&area);              // allocate memory for result buffer
+    if ((area.logoSize.height == 0) || (area.logoSize.width == 0)) sobel->AllocAreaBuffer(&area);  // allocate memory for result buffer with max logo size for this video resolution
 
     if (!WaitForFrames(decoder)) {
         dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");
