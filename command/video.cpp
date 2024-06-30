@@ -969,7 +969,7 @@ int cLogoDetect::Process(int *logoFrameNumber) {
     int frameNumber = decoder->GetVideoFrameNumber();
 
     if (area.logoAspectRatio != *decoder->GetFrameAspectRatio()) {
-        dsyslog("cLogoDetect::Process(): aspect ratio changed from %d:%d to %d:%d, reload logo", area.logoAspectRatio.num, area.logoAspectRatio.den, decoder->GetFrameAspectRatio()->num, decoder->GetFrameAspectRatio()->den);
+        dsyslog("cLogoDetect::Process(): frame (%d): aspect ratio changed from %d:%d to %d:%d, reload logo", frameNumber, area.logoAspectRatio.num, area.logoAspectRatio.den, decoder->GetFrameAspectRatio()->num, decoder->GetFrameAspectRatio()->den);
         if (!LoadLogo()) {
             isyslog("no valid logo found for %s %d:%d, disable logo detection", criteria->GetChannelName(), decoder->GetFrameAspectRatio()->num, decoder->GetFrameAspectRatio()->den);
             criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_DISABLED);
@@ -1711,32 +1711,44 @@ sMarkAdMarks *cVideo::Process() {
     if (criteria->GetDetectionState(MT_ASPECTCHANGE)) {
         // get aspect ratio from frame
         sAspectRatio *aspectRatioFrame = decoder->GetFrameAspectRatio();
-        if (!aspectRatioFrame) {
-            esyslog("cVideo::Process(): frame (%d): get aspect ratio failed", frameNumber);
-            return nullptr;
-        }
-        if (aspectRatioFrameBefore != *aspectRatioFrame) {
-            if ((aspectRatioBroadcast.num == 4) && (aspectRatioBroadcast.den == 3)) {
-                if ((aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) AddMark(MT_ASPECTSTART, frameNumber, &aspectRatioFrameBefore, aspectRatioFrame);
-                else                                                              AddMark(MT_ASPECTSTOP, index->GetFrameBefore(frameNumber), &aspectRatioFrameBefore, aspectRatioFrame);
-            }
-            else {
-                if ((aspectRatioBroadcast.num == 16) && (aspectRatioBroadcast.den == 9)) {
-                    // do not set a initial 16:9 aspect ratio start mark for 16:9 videos, not useful
-                    if ((aspectRatioFrameBefore.num != 0) || (aspectRatioFrameBefore.den != 0)) AddMark(MT_ASPECTSTART, aspectRatioBeforeFrame, &aspectRatioFrameBefore, aspectRatioFrame);
+        if (aspectRatioFrame) {
+            if (aspectRatioFrameBefore != *aspectRatioFrame) {     // change of aspect ratio
+
+                // we don't know video aspect ratio, we assume current frame aspect ratio is broadcast ascpect ratio and correct this in CheckStart()
+                if ((aspectRatioBroadcast.num == 0) && (aspectRatioBroadcast.den == 0)) {
+                    dsyslog("cVideo::Process(): unknown broadcast aspect ratio, assume %d:%d", aspectRatioFrame->num, aspectRatioFrame->den);
+                    aspectRatioBroadcast = *aspectRatioFrame;
                 }
-                else {
-                    AddMark(MT_ASPECTSTOP, index->GetFrameBefore(frameNumber), &aspectRatioFrameBefore, aspectRatioFrame);  // stop is one frame before aspect ratio change
-                    // 16:9 -> 4:3, this is end of broadcast (16:9) and start of next broadcast (4:3)
-                    // if we have activ hborder add hborder stop mark, because hborder state will be cleared
-                    if (hBorderDetect->State() == HBORDER_VISIBLE) {
-                        dsyslog("cVideo::Process(): hborder activ during aspect ratio change from 16:9 to 4:3, add hborder stop mark");
-                        AddMark(MT_HBORDERSTOP, index->GetFrameBefore(index->GetFrameBefore(frameNumber)));
+
+                // we assume 4:3 broadcast
+                if ((aspectRatioBroadcast.num == 4) && (aspectRatioBroadcast.den == 3)) {
+                    if ((aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) AddMark(MT_ASPECTSTART, frameNumber, &aspectRatioFrameBefore, aspectRatioFrame);
+                    else                                                              AddMark(MT_ASPECTSTOP, index->GetFrameBefore(frameNumber), &aspectRatioFrameBefore, aspectRatioFrame);
+                }
+
+                // we assume 16:9 broadcast
+                if ((aspectRatioBroadcast.num == 16) && (aspectRatioBroadcast.den == 9)) {
+                    if ((aspectRatioFrame->num == 16) && (aspectRatioFrame->den == 9)) {
+                        if ((aspectRatioFrameBefore.num) > 0 && (aspectRatioFrameBefore.den > 0)) {  // no 16:9 aspect ratio start at recording start of 16:9 broadcast
+                            AddMark(MT_ASPECTSTART, index->GetFrameBefore(frameNumber), &aspectRatioFrameBefore, aspectRatioFrame);  // stop is one frame before aspect ratio change
+                        }
+                        else {
+                        }
+                    }
+                    else {
+                        AddMark(MT_ASPECTSTOP, frameNumber, &aspectRatioFrameBefore, aspectRatioFrame);
+                        // 16:9 -> 4:3, this is end of broadcast (16:9) and start of next broadcast (4:3)
+                        // if we have activ hborder add hborder stop mark, because hborder state will be cleared
+                        if (hBorderDetect->State() == HBORDER_VISIBLE) {
+                            dsyslog("cVideo::Process(): hborder activ during aspect ratio change from 16:9 to 4:3, add hborder stop mark");
+                            AddMark(MT_HBORDERSTOP, index->GetFrameBefore(index->GetFrameBefore(frameNumber)));
+                        }
                     }
                 }
+                aspectRatioFrameBefore = *aspectRatioFrame;   // store new aspect ratio
             }
-            aspectRatioFrameBefore = *aspectRatioFrame;   // store new aspect ratio
         }
+        else esyslog("cVideo::Process(): frame (%d): get aspect ratio failed", frameNumber);
     }
 
     // logo change detection

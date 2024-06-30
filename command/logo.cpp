@@ -39,7 +39,9 @@ cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam
 
 
     // requested aspect ratio
-    requestedLogoAspectRatio = requestedAspectRatio;
+    // requestedLogoAspectRatio = requestedAspectRatio;  avoid cppceck warning:
+    requestedLogoAspectRatio.num = requestedAspectRatio.num;
+    requestedLogoAspectRatio.den = requestedAspectRatio.den;
 
     // create all used objects
     decoder = new cDecoder(recDir, threads, false, hwaccel, forceHW, nullptr);    // recDir, threads, fullDecode, hwaccel, forceHW, index

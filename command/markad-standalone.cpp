@@ -3679,7 +3679,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
                 ALLOC(strlen(comment)+1, "comment");
             }
             if ((macontext.Config->autoLogo > 0) && (mark->position > 0) && (criteria->GetMarkTypeState(MT_LOGOCHANGE) == CRITERIA_DISABLED)) {
-                isyslog("aspect ratio change from %2d:%d to %2d:%d at frame (%d), logo detection reenabled", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position);
+                isyslog("AddMark(): frame (%d): aspect ratio change from %2d:%d to %2d:%d, logo detection reenabled", mark->position, mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den);
                 criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_UNKNOWN);
             }
         }

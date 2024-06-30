@@ -283,7 +283,7 @@ private:
     //!<
     int recordingFrameCount               = 0;            //!< frame count of the recording
     //!<
-    sAspectRatio requestedLogoAspectRatio;                //!< aspect ratio of requested logo
+    sAspectRatio requestedLogoAspectRatio = {0};          //!< aspect ratio of requested logo
     //!<
     int audioState                        = 0;            //!< 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
     //!<
