@@ -33,14 +33,13 @@ extern bool abortNow;
 extern int logoSearchTime_ms;
 
 
-cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, char *hwaccel, const bool forceHW, const sAspectRatio AspectRatio) {
+cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, char *hwaccel, const bool forceHW, const sAspectRatio requestedAspectRatio) {
     recDir            = recDirParam;
     channelName       = channelNameParam;
 
 
     // requested aspect ratio
-    logoAspectRatio.num = AspectRatio.num;
-    logoAspectRatio.den = AspectRatio.den;
+    requestedLogoAspectRatio = requestedAspectRatio;
 
     // create all used objects
     decoder = new cDecoder(recDir, threads, false, hwaccel, forceHW, nullptr);    // recDir, threads, fullDecode, hwaccel, forceHW, index
@@ -152,7 +151,7 @@ bool cExtractLogo::IsLogoColourChange(sLogoSize *logoSizeFinal, const int corner
 }
 
 
-bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFinal, const int corner, const int framenumber = -1, const char *debugText = nullptr) { // framenumber >= 0: save from debug function
+bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFinal, const sAspectRatio logoAspectRatio, const int corner, const int framenumber = -1, const char *debugText = nullptr) { // framenumber >= 0: save from debug function
     if (!actLogoInfo)           return false;
     if (!logoSizeFinal)             return false;
     if (logoSizeFinal->height <= 0) return false;
@@ -1567,14 +1566,13 @@ void cExtractLogo::ManuallyExtractLogo(const int corner, const int width, const 
 // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
 int cExtractLogo::SearchLogo(int startFrame, const bool force) {
     LogSeparator(true);
-    dsyslog("cExtractLogo::SearchLogo(): start extract logo from frame %i with aspect ratio %d:%d, force = %d", startFrame, logoAspectRatio.num, logoAspectRatio.den, force);
+    dsyslog("cExtractLogo::SearchLogo(): extract logo from frame %d requested aspect ratio %d:%d, force = %d", startFrame, requestedLogoAspectRatio.num, requestedLogoAspectRatio.den, force);
     if (startFrame < 0) return LOGO_ERROR;
 
     // set start time for statistics
     struct timeval startTime;
     gettimeofday(&startTime, nullptr);
 
-    int  frameNumber            = 0;
     int  iFrameCountAll         = 0;
     bool logoFound              = false;
     sLogoSize logoSizeFinal     = {0};          // logo size after logo found
@@ -1598,8 +1596,9 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
     if (lastFrame > startFrame) startFrame = lastFrame;
 
     // seek to start position
-    if (decoder->GetVideoFrameNumber() < startFrame) {
-        dsyslog("cExtractLogo::SearchLogo(): seek to frame %d", startFrame);
+    int frameNumber = decoder->GetVideoFrameNumber();
+    if (frameNumber < startFrame) {
+        dsyslog("cExtractLogo::SearchLogo(): frame (%d): seek to frame %d", frameNumber, startFrame);
         if (!WaitForFrames(decoder, startFrame)) {
             dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() for startFrame %d failed", startFrame);
             return LOGO_ERROR;
@@ -1611,11 +1610,11 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
     }
 
     // if no aspect ratio requestet, use current from video
-    if ((logoAspectRatio.num == 0) || (logoAspectRatio.den == 0)) {
+    sAspectRatio logoAspectRatio = requestedLogoAspectRatio;
+    if ((logoAspectRatio.num == 0) || (logoAspectRatio.den == 0))  {
         sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
         if (aspectRatio) {
-            logoAspectRatio.num = aspectRatio->num;
-            logoAspectRatio.den = aspectRatio->den;
+            logoAspectRatio = *aspectRatio;
             dsyslog("cExtractLogo::SearchLogo(): no aspect ratio requested, set to aspect ratio of current video position %d:%d", logoAspectRatio.num, logoAspectRatio.den);
         }
         else {
@@ -1640,10 +1639,11 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
             continue;
         }
 
-        // ignore frames with different aspect ration
-        sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
-        if ((logoAspectRatio.num != aspectRatio->num) || (logoAspectRatio.den != aspectRatio->den)) {
-            continue;
+        // stop search if different aspect ratio
+        sAspectRatio *videoAspectRatio = decoder->GetFrameAspectRatio();
+        if (logoAspectRatio != *videoAspectRatio) {
+            dsyslog("cExtractLogo::SearchLogo(): frame (%d): aspect ratio requested %d:%d but video aspect ration %d:%d", frameNumber, logoAspectRatio.num, logoAspectRatio.den, videoAspectRatio->num, videoAspectRatio->den);
+            break;
         }
 
         // get next video picture
@@ -1892,7 +1892,7 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
     }
     else {
         dsyslog("cExtractLogo::SearchLogo(): save corner %s as logo, H %d W %d", aCorner[logoCorner[rankResult]], area.logoSize.height, area.logoSize.width);
-        if (!SaveLogo(&logoInfo[rankResult], &logoSizeFinal, logoCorner[rankResult])) {
+        if (!SaveLogo(&logoInfo[rankResult], &logoSizeFinal, logoAspectRatio, logoCorner[rankResult])) {
             dsyslog("cExtractLogo::SearchLogo(): logo save failed");
         }
         else logoFound = true;

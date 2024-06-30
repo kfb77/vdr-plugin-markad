@@ -57,7 +57,7 @@ public:
      * @param hwaccel          device type of hwaccel
      * @param AspectRatio      video aspect ratio for requested logo
      */
-    explicit cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, char *hwaccel, const bool forceHW, const sAspectRatio AspectRatio);
+    explicit cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, char *hwaccel, const bool forceHW, const sAspectRatio requestedAspectRatio);
     ~cExtractLogo();
 
     /**
@@ -142,7 +142,7 @@ private:
      * @param debugText       debug messaged appended to file name
      * @return                true if saved successful, false otherwise
      */
-    bool SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFinal, const int corner, const int framenumber,  const char *debugText);
+    bool SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFinal, const sAspectRatio logoAspectRatio, const int corner, const int framenumber,  const char *debugText);
 
     /**
      * check if logo is valid
@@ -265,33 +265,33 @@ private:
      */
     int AudioInBroadcast();
 
-    const char *recDir           = nullptr;      //!< recording directory
+    const char *recDir                    = nullptr;      //!< recording directory
     //!<
-    const char *channelName      = nullptr;      //!< channel name, used for logo file name
+    const char *channelName               = nullptr;      //!< channel name, used for logo file name
     //!<
-    cDecoder *decoder         = nullptr;      //!< pointer to decoder
+    cDecoder *decoder                     = nullptr;      //!< pointer to decoder
     //!<
-    cCriteria *criteria          = nullptr;      //!< channel criteria for logo detection
+    cCriteria *criteria                   = nullptr;      //!< channel criteria for logo detection
     //!<
-    sAreaT area                  = {};           //!< sobel transformed pixels of logo area
+    sAreaT area                           = {};           //!< sobel transformed pixels of logo area
     //!<
-    cSobel *sobel                = nullptr;      //!< pointer to sobel transformation
+    cSobel *sobel                         = nullptr;      //!< pointer to sobel transformation
     //!<
-    cHorizBorderDetect *hBorder  = nullptr;      //!< pointer to hBorder detection
+    cHorizBorderDetect *hBorder           = nullptr;      //!< pointer to hBorder detection
     //!<
-    cVertBorderDetect *vborder   = nullptr;      //!< pointer to hBorder detection
+    cVertBorderDetect *vborder            = nullptr;      //!< pointer to hBorder detection
     //!<
-    int recordingFrameCount      = 0;            //!< frame count of the recording
+    int recordingFrameCount               = 0;            //!< frame count of the recording
     //!<
-    sAspectRatio logoAspectRatio = {};           //!< video aspect ratio
+    sAspectRatio requestedLogoAspectRatio;                //!< aspect ratio of requested logo
     //!<
-    int audioState               = 0;            //!< 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
+    int audioState                        = 0;            //!< 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
     //!<
-    int iFrameCountValid         = 0;            //!< number of valid i-frames
+    int iFrameCountValid                  = 0;            //!< number of valid i-frames
+    //!<
+    const char *aCorner[CORNERS]          = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" }; //!< array to transform enum corner to text
     //!<
     std::vector<sLogoInfo> logoInfoVector[CORNERS];   //!< infos of all proccessed logos
-    //!<
-    const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" }; //!< array to transform enum corner to text
     //!<
 
 
