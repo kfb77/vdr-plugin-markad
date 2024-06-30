@@ -114,16 +114,28 @@ int cIndex::GetFrameBefore(int frameNumber) {
         int iFrameBefore = GetIFrameBefore(frameNumber - 1);  // if frameNumber is i-frame, GetIFrameBefore() will return same frameNumber
         if (iFrameBefore < 0) {
             esyslog("cIndex::GetFrameBefore(): frame (%d): GetIFrameBefore() failed", frameNumber);
-            iFrameBefore = frameNumber - 1;
+            iFrameBefore = frameNumber - 1;  // fallback
         }
         return iFrameBefore;
     }
 }
 
 
+int cIndex::GetFrameAfter(int frameNumber) {
+    if (fullDecode) return (frameNumber + 1);
+    else {
+        int iFrameAfter = GetIFrameAfter(frameNumber);
+        if (iFrameAfter < 0) {
+            esyslog("cIndex::GetFrameAfter(): frame (%d): GetIFrameAfter() failed", frameNumber);
+            return - 1;
+        }
+        return iFrameAfter;
+    }
+}
+
+
 // get iFrame before given frame
-// if frame is a iFrame, frame will be returned
-// if frame > last iFrame from index, return last iFrame
+// if frame is a iFrame, i-frame before will be returned
 // return: iFrame number, -1 if index is not initialized
 //
 int cIndex::GetIFrameBefore(int frameNumber) {
@@ -134,34 +146,33 @@ int cIndex::GetIFrameBefore(int frameNumber) {
     int before_iFrame = -1;
     int iFrameBefore  = -1;
     for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->frameNumber == frameNumber) {
-            iFrameBefore = frameNumber; // given frame is a iFrame
-            break;
-        }
         if (frameIterator->frameNumber > frameNumber) {
             iFrameBefore = before_iFrame;
             break;
         }
         else before_iFrame = frameIterator->frameNumber;
     }
-    if (iFrameBefore < 0) iFrameBefore = indexVector.back().frameNumber;  // use last iFrame from index
+    if (iFrameBefore < 0) {
+        esyslog("cIndex::GetFrameBefore(): frame (%d): GetIFrameAfter() failed", frameNumber);
+        return -1;
+    }
     return iFrameBefore; // frame not (yet) in index
 }
 
 
 // get iFrame after given frame
-// if frame is a iFrame, frame will be returned
-// return: iFrame number
+// if frame is a iFrame, next i-frame will be returned
+// return: i-frame number
 //
 int cIndex::GetIFrameAfter(int frameNumber) {
     if (indexVector.empty()) {
         dsyslog("cIndex::GetIFrameAfter(): frame index not initialized");
         return -1;
     }
-    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](const sIndexElement &value) ->bool { if (value.frameNumber >= frameNumber) return true; else return false; });
+    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](const sIndexElement &value) ->bool { if (value.frameNumber > frameNumber) return true; else return false; });
     if (found != indexVector.end()) return found->frameNumber;
 
-    dsyslog("cIndex::GetIFrameAfter(): failed for frame (%d)", frameNumber);
+    esyslog("cIndex::GetIFrameAfter(): failed for frame (%d)", frameNumber);
     return -1;
 
 }

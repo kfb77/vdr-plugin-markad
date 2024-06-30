@@ -53,7 +53,14 @@ public:
     int GetIFrameAfterPTS(const int64_t pts);
 
     /**
-     * get frame before frameNumber
+     * get frame after <frameNumber>
+     * @param frameNumber number of frame
+     * @return if fullDecode frame number direct after frameNumber, else i-frame number after
+     */
+    int GetFrameAfter(int frameNumber);
+
+    /**
+     * get frame before <frameNumber>
      * @param frameNumber number of frame
      * @return if fullDecode frame number direct before frameNumber, else i-frame number before
      */

@@ -4432,6 +4432,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                             int midBlack = (startBefore->position + stopBefore->position) / 2;  // for long black screen, take mid of a the black screen
                             if (newPos < midBlack) newPos = midBlack;
                         }
+                        newPos = index->GetFrameAfter(newPos - 1);  // if not full decoding, this will set to next i-Frame
                     }
                     mark = marks.Move(mark, newPos, MT_NOBLACKSTART);
                     if (mark) {
@@ -4499,6 +4500,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                                 if (newPos > midBlack) newPos = midBlack;
                             }
                         }
+                        newPos = index->GetFrameAfter(newPos - 1);  // if not full decoding, this will set to next i-Frame
                     }
                     mark = marks.Move(mark, newPos, MT_NOBLACKSTART);
                     if (mark) {
@@ -4516,21 +4518,22 @@ void cMarkAdStandalone::BlackScreenOptimization() {
             int   diffAfter          = INT_MAX;
             bool  silenceBefore      = false;
             bool  silenceAfter       = false;
-            const cMark *startBefore = nullptr;
             const cMark *startAfter  = nullptr;
-            const cMark *stopBefore  = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTOP);
             const cMark *stopAfter   = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTOP);
-            if (stopBefore) {
-                diffBefore = 1000 * (mark->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
-                startBefore = blackMarks.GetNext(stopBefore->position, MT_NOBLACKSTART);
-                if (startBefore) {
-                    lengthBefore = 1000 * (startBefore->position - stopBefore->position) / macontext.Video.Info.framesPerSecond;
+
+            const cMark *blackStartBefore = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTOP);
+            const cMark *blackStopBefore  = nullptr;
+            if (blackStartBefore) {
+                diffBefore = 1000 * (mark->position - blackStartBefore->position) / macontext.Video.Info.framesPerSecond;
+                blackStopBefore = blackMarks.GetNext(blackStartBefore->position, MT_NOBLACKSTART);
+                if (blackStopBefore) {
+                    lengthBefore = 1000 * (blackStopBefore->position - blackStartBefore->position) / macontext.Video.Info.framesPerSecond;
                     // check if there is silence around black screen
-                    cMark *silence = silenceMarks.GetAround(macontext.Video.Info.framesPerSecond, stopBefore->position, MT_SOUNDCHANGE, 0xF0);
+                    cMark *silence = silenceMarks.GetAround(macontext.Video.Info.framesPerSecond, blackStartBefore->position, MT_SOUNDCHANGE, 0xF0);
                     if (silence) silenceBefore = true;
-                    dsyslog("cMarkAdStandalone::BlackScreenOptimization(): stop  mark (%6d): found black screen from (%6d) to (%6d), %7ldms before -> length %5dms, silence around %d", mark->position, stopBefore->position, startBefore->position, diffBefore, lengthBefore, silenceBefore);
+                    dsyslog("cMarkAdStandalone::BlackScreenOptimization(): stop  mark (%6d): found black screen from (%6d) to (%6d), %7ldms before -> length %5dms, silence around %d", mark->position, blackStartBefore->position, blackStopBefore->position, diffBefore, lengthBefore, silenceBefore);
                 }
-                else stopBefore = nullptr; // no pair, this is invalid
+                else blackStartBefore = nullptr; // no pair, this is invalid
             }
             if (stopAfter) {
                 diffAfter = 1000 * (stopAfter->position - mark->position) / macontext.Video.Info.framesPerSecond;
@@ -4646,7 +4649,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 }
             }
             // try black screen before stop mark
-            if (!moved && stopBefore) {  // move even to same position to prevent scene change for move again
+            if (!moved && blackStartBefore) {  // move even to same position to prevent scene change for move again
                 int maxBefore = -1;
                 switch (mark->type) {
                 case MT_ASSUMEDSTOP:
@@ -4688,17 +4691,17 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxBefore = -1;
                 }
                 if (diffBefore <= maxBefore) {
-                    int newPos =  stopBefore->position;
+                    int newPos =  blackStartBefore->position;
                     if (mark->position == marks.GetLast()->position) {
                         // keep full closing black screen around last stop mark
                         // ignore if too long, in this case it contains opening credits from next broadcast
-                        if ((lengthBefore >= diffBefore) && (lengthBefore < 9080)) newPos = startBefore->position - 1;
+                        if ((lengthBefore >= diffBefore) && (lengthBefore < 9080)) newPos = blackStopBefore->position;
                         else {
-                            newPos =  stopBefore->position + START_STOP_BLACK;  // set end of broadcast with some black picture, not all, this can be opening credits of next broadcast
-                            if (newPos > (startBefore->position - 1)) newPos = (startBefore->position - 1);
+                            newPos =  blackStartBefore->position + START_STOP_BLACK;  // set end of broadcast with some black picture, not all, this can be opening credits of next broadcast
+                            if (newPos > (blackStopBefore->position - 1)) newPos = (blackStopBefore->position - 1);
                             else {
                                 if (lengthBefore < 5040) {  // next broadcast starts with a long dark scene
-                                    int midBlack = (startBefore->position + stopBefore->position) / 2;  // for long black screen, take mid of a the black screen
+                                    int midBlack = (blackStopBefore->position + blackStartBefore->position) / 2;  // for long black screen, take mid of a the black screen
                                     if (newPos < midBlack) newPos = midBlack;
                                 }
                             }
