@@ -91,7 +91,7 @@
 // #define DEBUG_RING_PTS_LOOKUP
 
 // debug video cut position, write <count> frames after start mark to recording directory
-// #define DEBUG_CUT <count>
+#define DEBUG_CUT 40
 
 // debug PTS and DTS of video cut
 // #define DEBUG_PTS_DTS_CUT

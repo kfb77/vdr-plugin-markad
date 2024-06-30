@@ -819,9 +819,37 @@ sVideoPicture *cDecoder::GetVideoPicture() {
     else return nullptr;
 }
 
+// seek read position to video packet <seekPacket>
+// seek frame is read but not decoded
+bool cDecoder::SeekToPacket(int seekPacketNumber) {
+    dsyslog("cDecoder::SeekToPacketBefore(): packet (%d): seek to packet (%d)", packetNumber, seekPacketNumber);
+
+    // seek backward is invalid
+    if (packetNumber >= seekPacketNumber) {
+        esyslog("cDecoder::SeekToPacketBefore(): can not seek backwards");
+        return false;
+    }
+
+    // flush decoder buffer
+    // we do no decoding but maybe calling function does
+    for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
+        if (codecCtxArray[streamIndex]) {
+            avcodec_flush_buffers(codecCtxArray[streamIndex]);
+        }
+    }
+
+    while (ReadNextPacket()) {
+        if (abortNow) return false;
+        if (packetNumber >= seekPacketNumber) break;
+    }
+    dsyslog("cDecoder::SeekToPacketBefore(): packet (%d): seek to packet (%d) successful", packetNumber, seekPacketNumber);
+    return true;
+}
+
+
 // seek exact to frame
 // used by video cut
-// seek frame is read but nut decoded, decoding will be done by encoder
+// seek frame is read but not decoded, decoding will be done by encoder
 bool cDecoder::SeekExactToFrame(int seekFrameNumber) {   // TODO still not exact frame
     dsyslog("cDecoder::SeekExaktToFrame(): packet (%d), frame (%d): seek to frame (%d)", packetNumber, frameNumber, seekFrameNumber);
 

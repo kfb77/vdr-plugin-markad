@@ -930,7 +930,6 @@ bool cEncoder::WritePacket() {
     if (decoder->GetFullDecode()) decoderFrameNumber = decoder->GetVideoFrameNumber();
     else decoderFrameNumber = decoder->GetVideoPacketNumber();  // decoder has no framenumber without decoding
 
-
     // check if stream is valid
     avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
     AVPacket *avpkt = decoder->GetPacket();
@@ -1232,6 +1231,7 @@ bool cEncoder::WritePacket() {
 
 
 bool cEncoder::EncodeFrame(cDecoder *decoder, AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacket *avpkt) {
+    dsyslog("cEncoder::EncodeFrame(): xxxxx packetNumber (%d)", decoder->GetVideoPacketNumber());
     if (!decoder) return false;
     if (!avCodecCtx) {
         dsyslog("cEncoder::EncodeFrame(): codec context not set");

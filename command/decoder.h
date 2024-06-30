@@ -221,6 +221,14 @@ public:
     AVFrame *GetFrame();
 
     /**
+    * seek read position to video packet <seekPacket>
+    * seek frame is read but not decoded
+    * @param seekPacketNumber packet number to seek
+    * @return                true if successful, false otherwise
+    */
+    bool SeekToPacket(int seekPacketNumber);
+
+    /**
      * seek decoder read position to <seekFrameNumber)
      * next DecodePacket() will generate frameNumber = seekFrameNumber
      * only seek forward <br>
