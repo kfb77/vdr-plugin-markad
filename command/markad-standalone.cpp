@@ -5607,7 +5607,7 @@ void cMarkAdStandalone::Recording() {
     }
 
     // create object to analyse video picture
-    video = new cVideo(decoder, criteria, macontext.Config->recDir, macontext.Config->logoCacheDirectory);
+    video = new cVideo(decoder, index, criteria, macontext.Config->recDir, macontext.Config->logoCacheDirectory);
     ALLOC(sizeof(*video), "video");
     video->SetAspectRatioBroadcast(macontext.Info.AspectRatio);
     // create object to analyse audio picture

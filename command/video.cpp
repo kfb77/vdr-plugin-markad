@@ -1541,9 +1541,10 @@ int cVertBorderDetect::Process(int *borderFrame) {
 }
 
 
-cVideo::cVideo(cDecoder *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam) {
+cVideo::cVideo(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam) {
     dsyslog("cVideo::cVideo(): new object");
     decoder      = decoderParam;
+    index        = indexParam;
     criteria     = criteriaParam;
     recDir       = recDirParam;
     logoCacheDir = logoCacheDirParam;
@@ -1715,8 +1716,8 @@ sMarkAdMarks *cVideo::Process() {
         }
         if (aspectRatioFrameBefore != *aspectRatioFrame) {
             if ((aspectRatioBroadcast.num == 4) && (aspectRatioBroadcast.den == 3)) {
-                if ((aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) AddMark(MT_ASPECTSTART, frameNumber,     &aspectRatioFrameBefore, aspectRatioFrame);
-                else                                                              AddMark(MT_ASPECTSTOP,  frameNumber - 1, &aspectRatioFrameBefore, aspectRatioFrame);
+                if ((aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) AddMark(MT_ASPECTSTART, frameNumber, &aspectRatioFrameBefore, aspectRatioFrame);
+                else                                                              AddMark(MT_ASPECTSTOP, index->GetFrameBefore(frameNumber), &aspectRatioFrameBefore, aspectRatioFrame);
             }
             else {
                 if ((aspectRatioBroadcast.num == 16) && (aspectRatioBroadcast.den == 9)) {
@@ -1724,12 +1725,12 @@ sMarkAdMarks *cVideo::Process() {
                     if ((aspectRatioFrameBefore.num != 0) || (aspectRatioFrameBefore.den != 0)) AddMark(MT_ASPECTSTART, aspectRatioBeforeFrame, &aspectRatioFrameBefore, aspectRatioFrame);
                 }
                 else {
-                    AddMark(MT_ASPECTSTOP, frameNumber - 1, &aspectRatioFrameBefore, aspectRatioFrame);  // stop is one frame before aspect ratio change
+                    AddMark(MT_ASPECTSTOP, index->GetFrameBefore(frameNumber), &aspectRatioFrameBefore, aspectRatioFrame);  // stop is one frame before aspect ratio change
                     // 16:9 -> 4:3, this is end of broadcast (16:9) and start of next broadcast (4:3)
                     // if we have activ hborder add hborder stop mark, because hborder state will be cleared
                     if (hBorderDetect->State() == HBORDER_VISIBLE) {
                         dsyslog("cVideo::Process(): hborder activ during aspect ratio change from 16:9 to 4:3, add hborder stop mark");
-                        AddMark(MT_HBORDERSTOP, frameNumber - 2);
+                        AddMark(MT_HBORDERSTOP, index->GetFrameBefore(index->GetFrameBefore(frameNumber)));
                     }
                 }
             }

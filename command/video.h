@@ -424,17 +424,18 @@ public:
      * @param recDirParam          recording directory
      * @param logoCacheDirParam   logo cache directory
      */
-    explicit cVideo(cDecoder *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
+    explicit cVideo(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
     ~cVideo();
 
     /**
      * copy constructor, not used, only for formal reason
      */
     cVideo(const cVideo &origin) {
+        decoder                 = nullptr;
+        index                   = nullptr;
+        criteria                = nullptr;
         recDir                  = nullptr;
         logoCacheDir            = nullptr;
-        decoder                 = nullptr;
-        criteria                = nullptr;
         sceneChangeDetect       = nullptr;
         blackScreenDetect       = nullptr;
         hBorderDetect           = nullptr;
@@ -447,10 +448,11 @@ public:
      * operator=, not used, only for formal reason
      */
     cVideo &operator =(const cVideo *origin) {
+        decoder                 = nullptr;
+        index                   = nullptr;
+        criteria                = origin->criteria;
         recDir                  = nullptr;
         logoCacheDir            = nullptr;
-        decoder                 = nullptr;
-        criteria                = origin->criteria;
         sceneChangeDetect       = nullptr;
         blackScreenDetect       = nullptr;
         hBorderDetect           = nullptr;
@@ -508,6 +510,8 @@ private:
     bool AddMark(int type, int position, const sAspectRatio *before = nullptr, const sAspectRatio *after = nullptr);
 
     cDecoder *decoder                     = nullptr;  //!< pointer to decoder
+    //!<
+    cIndex *index                         = nullptr;  //!< pointer to index
     //!<
     cCriteria *criteria                   = nullptr;  //!< pointer to class for marks and decoding criteria
     //!<

@@ -102,6 +102,7 @@ int cIndex::GetIFrameAfterPTS(const int64_t pts) {
 
 
 int cIndex::GetFrameBefore(int frameNumber) {
+    if (frameNumber == 0) return 0;
     if (fullDecode) return (frameNumber - 1);
     else {
         int iFrameBefore = GetIFrameBefore(frameNumber - 1);  // if frameNumber is i-frame, GetIFrameBefore() will return same frameNumber
