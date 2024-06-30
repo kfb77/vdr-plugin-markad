@@ -832,7 +832,7 @@ int cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, const int widt
     int pixelError    = 0;   // accept missing pixel in the frame from detection errors
     int sumPixelError = 0;
     *endX = startX;
-    while (((*endX + pixelError) >= 0) && ((*endX + pixelError) < width)) {
+    while (((*endX + pixelError + offsetX) >= 0) && ((*endX + pixelError + offsetX) < width)) {
         if (picture[startY * width + *endX + pixelError + offsetX] == 0) {
             *endX += (offsetX + pixelError);
             pixelError = 0;
