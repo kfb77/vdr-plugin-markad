@@ -712,11 +712,10 @@ bool cEvaluateLogoStopStartPair::IncludesInfoLogo(const int stopPosition, const 
 }
 
 
-cDetectLogoStopStart::cDetectLogoStopStart(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, cExtractLogo *extractLogoParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam, const int logoCornerParam) {
+cDetectLogoStopStart::cDetectLogoStopStart(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam, const int logoCornerParam) {
     decoder                   = decoderParam;
     index                     = indexParam;
     criteria                  = criteriaParam;
-    extractLogo               = extractLogoParam;
     evaluateLogoStopStartPair = evaluateLogoStopStartPairParam;
     logoCorner                = logoCornerParam;
 
@@ -968,6 +967,53 @@ int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNum
 }
 
 
+bool cDetectLogoStopStart::CompareLogoPair(const sLogoInfo *logo1, const sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int *rate0) {
+    if (!logo1) return false;
+    if (!logo2) return false;
+    if ((corner < 0) || (corner >= CORNERS)) return false;
+
+#define RATE_0_MIN     250
+#define RATE_12_MIN    950
+
+    int similar_0 = 0;
+    int similar_1_2 = 0;
+    int oneBlack_0 = 0;
+    int rate_0 = 0;
+    int rate_1_2 = 0;
+    for (int i = 0; i < logoHeight*logoWidth; i++) {    // compare all black pixel in plane 0
+        if ((logo1->sobel[0][i] == 255) && (logo2->sobel[0][i] == 255)) continue;   // ignore white pixel
+        else oneBlack_0 ++;
+        if (logo1->sobel[0][i] == logo2->sobel[0][i]) {
+            similar_0++;
+        }
+    }
+    for (int i = 0; i < logoHeight / 2 * logoWidth / 2; i++) {    // compare all pixel in plane 1 and 2
+        for (int plane = 1; plane < PLANES; plane ++) {
+            if (logo1->sobel[plane][i] == logo2->sobel[plane][i]) similar_1_2++;
+        }
+    }
+#define MIN_BLACK_PLANE_0 100
+    if (oneBlack_0 > MIN_BLACK_PLANE_0) rate_0 = 1000 * similar_0 / oneBlack_0;   // accept only if we found some pixels
+    else rate_0 = 0;
+    if (oneBlack_0 == 0) rate_0 = -1;  // tell calling function, we found no pixel
+    rate_1_2 = 1000 * similar_1_2 / (logoHeight * logoWidth) * 2;
+
+    if (rate0) *rate0 = rate_0;
+
+    if ((rate_0 > RATE_0_MIN) && (rate_1_2 > RATE_12_MIN)) {
+#ifdef DEBUG_LOGO_CORNER
+        if (corner == DEBUG_LOGO_CORNER) dsyslog("cDetectLogoStopStart::CompareLogoPair(): logo ++++ frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d), black %d (%d)", logo1->frameNumber, logo2->frameNumber, rate_0, RATE_0_MIN, rate_1_2, RATE_12_MIN, oneBlack_0, MIN_BLACK_PLANE_0);  // only for debug
+#endif
+        return true;
+    }
+#ifdef DEBUG_LOGO_CORNER
+    if (corner == DEBUG_LOGO_CORNER) dsyslog("cDetectLogoStopStart::CompareLogoPair(): logo ---- frame (%5d) and (%5d), rate_0: %4d (%d), rate_1_2: %4d (%d), black %d (%d)", logo1->frameNumber, logo2->frameNumber, rate_0, RATE_0_MIN, rate_1_2, RATE_12_MIN, oneBlack_0, MIN_BLACK_PLANE_0);
+#endif
+    return false;
+}
+
+
+
 bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
     if (!decoder) return false;
     if (startFrame >= endFrame) return false;
@@ -1051,10 +1097,8 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
             }
             ALLOC(sizeof(uchar*) * PLANES * sizeof(uchar) * maxLogoPixel, "logo[corner]->sobel");
 
-#define RATE_0_MIN     250
-#define RATE_12_MIN    950
             if (logo1[corner]->frameNumber >= 0) {  // we have a logo pair
-                if (extractLogo->CompareLogoPair(logo1[corner], logo2[corner], area.logoSize.height, area.logoSize.width, corner, RATE_0_MIN, RATE_12_MIN, &compareInfo.rate[corner])) {
+                if (CompareLogoPair(logo1[corner], logo2[corner], area.logoSize.height, area.logoSize.width, corner, &compareInfo.rate[corner])) {
                 }
             }
             if (corner == 0) {  // set current frame numbers, needed only once

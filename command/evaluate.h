@@ -239,7 +239,7 @@ public:
      * evaluateLogoStopStartPairParam class to evaluate logo stop/pairs
      * @param evaluateLogoStopStartPairParam class to evaluate logo stop/start pairs
      */
-    cDetectLogoStopStart(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, cExtractLogo *extractLogoParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam, const int logoCornerParam);
+    cDetectLogoStopStart(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam, const int logoCornerParam);
 
     ~cDetectLogoStopStart();
 
@@ -254,7 +254,6 @@ public:
         endPos = origin.endPos;
         sobel = nullptr;
         logoCorner = origin.logoCorner;
-        extractLogo = origin.extractLogo;
         criteria = origin.criteria;
         index = origin.index;
         decoder =origin.decoder;
@@ -271,7 +270,6 @@ public:
         endPos = origin->endPos;
         sobel = origin->sobel;
         logoCorner = origin->logoCorner;
-        extractLogo = origin->extractLogo;
         criteria = origin->criteria;
         index = origin->index;
         decoder = origin->decoder;
@@ -373,6 +371,8 @@ public:
     int IntroductionLogo();
 
 private:
+    bool CompareLogoPair(const sLogoInfo *logo1, const sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int *rate0);
+
     cDecoder *decoder         = nullptr;  //!< decoder
     //!<
     cIndex *index             = nullptr;  //!< decoder

@@ -1584,7 +1584,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
 
     // init objects for logo mark optimization
     if (!detectLogoStopStart) {  // init in RemoveLogoChangeMarks(), but maybe not used
-        detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, extractLogo, nullptr, video->GetLogoCorner());
+        detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, nullptr, video->GetLogoCorner());
         ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
     }
 
@@ -1630,7 +1630,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {
 
     decoder->Restart();  // read position is at the end of the recording from mark detection, restart read position
     if (!detectLogoStopStart) {
-        detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, extractLogo, nullptr, video->GetLogoCorner());
+        detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, nullptr, video->GetLogoCorner());
         ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
     }
 
