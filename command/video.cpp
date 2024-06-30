@@ -39,7 +39,7 @@ cLogoDetect::~cLogoDetect() {
 
 
 void cLogoDetect::Clear(const bool isRestart) {
-    sobel->FreeAreaBuffer(&area);
+    if ((area.logoSize.width != 0) || (area.logoSize.height != 0)) sobel->FreeAreaBuffer(&area);
     area = {};
 
     if (isRestart) area.status = LOGO_RESTART;
@@ -61,7 +61,7 @@ bool cLogoDetect::LoadLogo() {
         esyslog("recording directory not set");
         return false;
     }
-    sobel->FreeAreaBuffer(&area);
+    Clear(false);   // reset area
     bool foundLogo = false;
 
     // logo name
