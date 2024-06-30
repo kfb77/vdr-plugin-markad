@@ -973,6 +973,7 @@ int cLogoDetect::Process(int *logoFrameNumber) {
         if (!LoadLogo()) {
             isyslog("no valid logo found for %s %d:%d, disable logo detection", criteria->GetChannelName(), decoder->GetFrameAspectRatio()->num, decoder->GetFrameAspectRatio()->den);
             criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_DISABLED);
+            return LOGO_ERROR;
         }
         area.logoAspectRatio = *decoder->GetFrameAspectRatio();
     }
