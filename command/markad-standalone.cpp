@@ -5664,17 +5664,23 @@ void cMarkAdStandalone::Recording() {
     }
 
     // we reached end of recording without CheckStart() or CheckStop() called
-    if (!doneCheckStart || !doneCheckStop) {
-        dsyslog("cMarkAdStandalone::Recording(): frame (%d): recording ends unexpected before assumed stop (%d)", decoder->GetVideoFrameNumber(), stopA);
-        esyslog("end of recording before recording length from info file reached");
+    if (!doneCheckStop && (decoder->GetVideoFrameNumber() <= stopA)) {
+        dsyslog("cMarkAdStandalone::Recording(): frame (%d): stopA (%d)", decoder->GetVideoFrameNumber(), stopA);
+        esyslog("end of recording before recording length from VDR info file reached");
     }
-    if (!doneCheckStart) CheckStart();
-    if (!doneCheckStop)  CheckStop();
+    if (!doneCheckStart) {
+        dsyslog("cMarkAdStandalone::Recording(): frame (%d): recording ends before CheckStart() done, call it now", decoder->GetVideoFrameNumber());
+        CheckStart();
+    }
+    if (!doneCheckStop) {
+        dsyslog("cMarkAdStandalone::Recording(): frame (%d): recording ends before CheckStop() done, call it now", decoder->GetVideoFrameNumber());
+        CheckStop();
+    }
 
-    // cleanup marks that make no sense
+// cleanup marks that make no sense
     CheckMarks();
 
-    // recording stopped before end of broadcast, add end mark at end of recording
+// recording stopped before end of broadcast, add end mark at end of recording
     if ((inBroadCast) && (!gotendmark) && (decoder->GetVideoFrameNumber() > 0)) {
         sMarkAdMark tempmark;
         tempmark.type = MT_RECORDINGSTOP;
