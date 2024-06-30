@@ -82,11 +82,12 @@ public:
     /**
      * class to detect logo
      * @param decoderParam          decoder
+     * @param indexParam            index
      * @param criteriaParam         detection critaria
      * @param recDirParam           recording directory
      * @param logoCacheDirParam     logo cache directory
      */
-    explicit cLogoDetect(cDecoder *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
+    explicit cLogoDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
 
     ~cLogoDetect();
 
@@ -104,6 +105,7 @@ public:
         recDir = origin.recDir;
         logoCacheDir = origin.logoCacheDir;
         criteria = origin.criteria;
+        index = origin.index;
         decoder = origin.decoder;
     }
 
@@ -121,6 +123,7 @@ public:
         recDir = origin->recDir;
         logoCacheDir = origin->logoCacheDir;
         criteria = origin->criteria;
+        index = origin->index;
         decoder = origin->decoder;
         return *this;
     }
@@ -133,12 +136,10 @@ public:
 
     /**
      * detect logo status
-     * @param[in]  frameBefore     frame number before
-     * @param[in]  frameCurrent    current frame number
      * @param[out] logoFrameNumber frame number of logo change
      * @return 1 = logo, 0 = unknown, -1 = no logo
      */
-    int Detect(const int frameBefore, const int frameCurrent, int *logoFrameNumber); // return: 1 = logo, 0 = unknown, -1 = no logo
+    int Detect(int *logoFrameNumber); // return: 1 = logo, 0 = unknown, -1 = no logo
 
     /**
      * process logo detection of current frame
@@ -199,6 +200,8 @@ private:
     void LogoGreyToColour();
 
     cDecoder *decoder                 = nullptr;  //!< decoder
+    //!<
+    cIndex *index                     = nullptr;  //!< index
     //!<
     cCriteria *criteria               = nullptr;  //!< decoding states and criteria
     //!<

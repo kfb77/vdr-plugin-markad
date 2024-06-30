@@ -18,8 +18,9 @@
 extern bool abortNow;
 
 
-cLogoDetect::cLogoDetect(cDecoder *decoderParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam) {
+cLogoDetect::cLogoDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam) {
     decoder      = decoderParam;
+    index        = indexParam;
     criteria     = criteriaParam;
     recDir       = recDirParam;
     logoCacheDir = logoCacheDirParam;
@@ -571,12 +572,14 @@ void cLogoDetect::LogoGreyToColour() {
 
 
 // notice: if we are called by logo detection, <framenumber> is last iFrame before, otherwise it is current frame
-int cLogoDetect::Detect(const int frameBefore, const int frameCurrent, int *logoFrameNumber) {
+int cLogoDetect::Detect(int *logoFrameNumber) {
     int rPixel       =  0;
     int mPixel       =  0;
     int iPixel       =  0;
     int processed    =  0;
     *logoFrameNumber = -1;
+
+    int frameNumber = decoder->GetVideoFrameNumber();
 
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
@@ -886,7 +889,7 @@ int cLogoDetect::Detect(const int frameBefore, const int frameCurrent, int *logo
     if (area.status == LOGO_UNINITIALIZED) {
         if (rPixel >= logo_vmark) area.status = LOGO_VISIBLE;
         if (rPixel <= logo_imark) area.status = LOGO_INVISIBLE;  // wait for a clear result
-        if (area.stateFrameNumber == -1) area.stateFrameNumber = frameCurrent;
+        if (area.stateFrameNumber == -1) area.stateFrameNumber = frameNumber;
         *logoFrameNumber = area.stateFrameNumber;
         return area.status;
     }
@@ -894,7 +897,7 @@ int cLogoDetect::Detect(const int frameBefore, const int frameCurrent, int *logo
         if (rPixel >= logo_vmark) area.status = LOGO_VISIBLE;
         if (rPixel <= logo_imark) area.status = LOGO_INVISIBLE;  // wait for a clear result
         *logoFrameNumber = -1;   // no logo change report after detection restart
-        area.stateFrameNumber = frameCurrent;
+        area.stateFrameNumber = frameNumber;
         return area.status;
     }
 
@@ -908,12 +911,12 @@ int cLogoDetect::Detect(const int frameBefore, const int frameCurrent, int *logo
                 area.counter = 0;
             }
             else {
-                if (!area.counter) area.stateFrameNumber = frameCurrent;
+                if (!area.counter) area.stateFrameNumber = frameNumber;
                 area.counter++;
             }
         }
         else {
-            area.stateFrameNumber = frameCurrent;
+            area.stateFrameNumber = frameNumber;
             area.counter = 0;
         }
     }
@@ -926,14 +929,14 @@ int cLogoDetect::Detect(const int frameBefore, const int frameCurrent, int *logo
                 area.counter = 0;
             }
             else {
-                if (!area.counter) area.stateFrameNumber = frameBefore;
+                if (!area.counter) area.stateFrameNumber = index->GetFrameBefore(frameNumber);
                 area.counter++;
                 if (rPixel <= (logo_imark / 2)) area.counter++;   // good detect for logo invisible
                 if (rPixel <= (logo_imark / 4)) area.counter++;   // good detect for logo invisible
                 if (rPixel == 0) {
                     area.counter++;   // very good detect for logo invisible
                     if (area.intensity <= 80) { // best detect, blackscreen without logo, increased from 30 to 70 to 80
-                        dsyslog("cLogoDetect::Detect(): black screen without logo detected at frame (%d)", frameCurrent);
+                        dsyslog("cLogoDetect::Detect(): black screen without logo detected at frame (%d)", frameNumber);
                         area.status = ret = LOGO_INVISIBLE;
                         *logoFrameNumber = area.stateFrameNumber;
                         area.counter = 0;
@@ -977,7 +980,7 @@ int cLogoDetect::Process(int *logoFrameNumber) {
         }
         area.logoAspectRatio = *decoder->GetFrameAspectRatio();
     }
-    return Detect(frameNumber - 1, frameNumber, logoFrameNumber);
+    return Detect(logoFrameNumber);
 }
 
 
@@ -1562,7 +1565,7 @@ cVideo::cVideo(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaPa
     vBorderDetect = new cVertBorderDetect(decoder, criteria);
     ALLOC(sizeof(*vBorderDetect), "vBorderDetect");
 
-    logoDetect = new cLogoDetect(decoder, criteria, recDir, logoCacheDir);
+    logoDetect = new cLogoDetect(decoder, index, criteria, recDir, logoCacheDir);
     ALLOC(sizeof(*logoDetect), "logoDetect");
 }
 

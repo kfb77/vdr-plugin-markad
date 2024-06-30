@@ -3978,7 +3978,10 @@ void cMarkAdStandalone::DebugMarkFrames() {
     if (!macontext.Config->fullDecode) {
         while (mark) {
             if (abortNow) return;
-            if (mark->position != index->GetIFrameBefore(mark->position)) esyslog("cMarkAdStandalone::DebugMarkFrames(): mark at (%d) type 0x%X is not an iFrame position", mark->position, mark->type);
+            if (mark->position != index->GetIFrameBefore(mark->position)) {
+                esyslog("cMarkAdStandalone::DebugMarkFrames(): mark at (%d) type 0x%X is not an iFrame position", mark->position, mark->type);
+                dsyslog("cMarkAdStandalone::DebugMarkFrames(): frame (%d): i-frame before (%d)", mark->position, index->GetIFrameBefore(mark->position));
+            }
             mark=mark->Next();
         }
     }
