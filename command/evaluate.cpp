@@ -774,16 +774,14 @@ int cDetectLogoStopStart::FindFrameFirstPixel(const uchar *picture, const int co
         return 0;
     } // case
 
-    for (int i = 0; i < width; i++) {
+    while ((searchX >= 0) && (searchX < width) && (searchY >= 0) && (searchY < height)) {
         if (picture[searchY * width + searchX] == 0) {  // pixel found
             foundX = searchX;
             foundY = searchY;
             break;
         }
         searchX += offsetX;
-        if ((searchX < 0) || (searchX >= width)) break;
         searchY += offsetY;
-        if ((searchY < 0) || (searchY >= height)) break;
     }
 #ifdef DEBUG_FRAME_DETECTION
     dsyslog("-----------------------------------------------------------------------------------------------------------------------------------------------");
@@ -832,7 +830,6 @@ int cDetectLogoStopStart::FindFrameStartPixel(const uchar *picture, const int wi
 
 
 int cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, const int width, const int height, const int startX, const int startY, const int offsetX, const int offsetY, int *endX, int *endY) {
-    dsyslog("xxxx width %d, height %d, *endX %d, *endY %d", width, height, *endX, *endY);
     int pixelError    = 0;   // accept missing pixel in the frame from detection errors
     int sumPixelError = 0;
     *endX = startX;
