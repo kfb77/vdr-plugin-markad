@@ -588,8 +588,10 @@ bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPositi
     *isInfoLogo             = nextLogoPairIterator->isInfoLogo;
     *isStartMarkInBroadcast = nextLogoPairIterator->isStartMarkInBroadcast;
     ++nextLogoPairIterator;
+    dsyslog("cEvaluateLogoStopStartPair::GetNextPair(): stopPosition (%d), startPosition (%d)", *stopPosition, *startPosition);
     return true;
 }
+
 
 int cEvaluateLogoStopStartPair::GetIsAdInFrame(const int stopPosition) {
     std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [stopPosition](sLogoStopStartPair const &value) ->bool { if (value.stopPosition == stopPosition) return true; else return false; });
@@ -830,6 +832,7 @@ int cDetectLogoStopStart::FindFrameStartPixel(const uchar *picture, const int wi
 
 
 int cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, const int width, const int height, const int startX, const int startY, const int offsetX, const int offsetY, int *endX, int *endY) {
+    dsyslog("xxxx width %d, height %d, *endX %d, *endY %d", width, height, *endX, *endY);
     int pixelError    = 0;   // accept missing pixel in the frame from detection errors
     int sumPixelError = 0;
     *endX = startX;
@@ -848,7 +851,7 @@ int cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, const int widt
     pixelError    = 0;   // accept missing pixel in the frame from detection errors
     sumPixelError = 0;
     *endY = startY;
-    while ((*endY + pixelError >= 0) && (*endY + pixelError < height)) {
+    while (((*endY + pixelError + offsetY) >= 0) && ((*endY + pixelError + offsetY) < height)) {
         if (picture[(*endY + pixelError + offsetY) * width + startX] == 0) {
             *endY += (offsetY + pixelError);
             pixelError = 0;
