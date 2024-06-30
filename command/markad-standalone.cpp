@@ -1580,6 +1580,8 @@ void cMarkAdStandalone::CheckStop() {
 //
 bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     if (!stopMark) return false;
+    if (criteria->GetClosingCreditsState(stopMark->position) < CRITERIA_UNKNOWN) return false;
+
     dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits after position (%d)", stopMark->position);
 
     // init objects for logo mark optimization
@@ -1587,6 +1589,8 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
         detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, nullptr, video->GetLogoCorner());
         ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
     }
+    // need to reset read position from decoder if no overlap detection was done before
+    if (stopMark->position < decoder->GetVideoFrameNumber()) decoder->Restart();
 
     int endPos = stopMark->position + (25 * macontext.Video.Info.framesPerSecond);  // try till 25s after stopMarkPosition
     int newPosition = -1;
@@ -5507,13 +5511,10 @@ void cMarkAdStandalone::ProcessOverlap() {
     // check end mark
     if (lastStop && ((lastStop->type == MT_LOGOSTOP) ||  // prevent double detection of ad in frame and closing credits
                      ((lastStop->type == MT_MOVEDSTOP) && (lastStop->newType != MT_NOADINFRAMESTOP) && (lastStop->newType != MT_TYPECHANGESTOP)))) {
-        if (criteria->GetClosingCreditsState(lastStop->position) >= CRITERIA_UNKNOWN) {
-            dsyslog("cMarkAdStandalone::ProcessOverlap(): search for closing credits after logo end mark");
-            if (MoveLastStopAfterClosingCredits(lastStop)) {
-                lastStop = nullptr;  // pointer lastStop after move invalid
-                save = true;
-                dsyslog("cMarkAdStandalone::ProcessOverlap(): moved logo end mark after closing credit");
-            }
+        if (MoveLastStopAfterClosingCredits(lastStop)) {
+            lastStop = nullptr;  // pointer lastStop after move invalid
+            save = true;
+            dsyslog("cMarkAdStandalone::ProcessOverlap(): moved logo end mark after closing credit");
         }
     }
     // check border end mark
