@@ -732,7 +732,7 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
                 if (!IsVideoPacket()) continue;    // start decode with first video
                 decoderSendState = SendPacketToDecoder(false);      // send packet to decoder, no flash flag
 #ifdef DEBUG_DECODER
-                dsyslog("cDecoder::SendNextPacketToDecoder(): packet (%5d), stream %d: send to decoder", packetNumber, avpkt.stream_index);
+                dsyslog("cDecoder::DecodeNextFrame(): packet (%5d), stream %d: send to decoder", packetNumber, avpkt.stream_index);
 #endif
             }
             break;
@@ -745,6 +745,8 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
 
         // send next packet to decoder
         switch (decoderSendState) {
+        case AVERROR_INVALIDDATA:
+            dsyslog("cDecoder::DecodeNextFrame(): packet (%5d), stream %d: invalid", packetNumber, avpkt.stream_index);
         case 0:  // we had successful send last packet and we can send next packet
             // send next packets
             while (true) {   // read until we got a valid packet type
@@ -755,11 +757,11 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
                     if (!IsVideoPacket() && !IsAudioPacket()) continue; // ignore all other types (e.g. subtitle
                     decoderSendState = SendPacketToDecoder(false);      // send packet to decoder, no flash flag
 #ifdef DEBUG_DECODER
-                    dsyslog("cDecoder::SendNextPacketToDecoder(): packet (%5d), stream %d: send to decoder", packetNumber, avpkt.stream_index);
+                    dsyslog("cDecoder::DecodeNextFrame(): packet (%5d), stream %d: send to decoder", packetNumber, avpkt.stream_index);
 #endif
                 }
                 else {
-                    dsyslog("cDecoder::SendNextPacketToDecoder(): packet (%5d): end of all ts files reached", packetNumber);
+                    dsyslog("cDecoder::DecodeNextFrame(): packet (%5d): end of all ts files reached", packetNumber);
                     decoderSendState = SendPacketToDecoder(true);  // flush flag
                 }
                 break;
@@ -767,19 +769,21 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
             break;
         case -EAGAIN: // full queue at last send, send now again without read from input, this should not happen
             decoderSendState = SendPacketToDecoder(false);
-            esyslog("cDecoder::SendNextPacketToDecoder(): packet (%5d): repeat send to decoder", packetNumber);
+            esyslog("cDecoder::DecodeNextFrame(): packet (%5d): repeat send to decoder", packetNumber);
             break;
         case AVERROR_EOF:
-            dsyslog("cDecoder::SendNextPacketToDecoder(): packet (%5d): end of file (AVERROR_EOF)", packetNumber);
+            dsyslog("cDecoder::DecodeNextFrame(): packet (%5d): end of file (AVERROR_EOF)", packetNumber);
             break;
         default:
-            esyslog("cDecoder::SendNextPacketToDecoder(): packet (%5d): unexpected state of decoder send queue rc = %d: %s", packetNumber, decoderSendState, av_err2str(decoderSendState));
+            esyslog("cDecoder::DecodeNextFrame(): packet (%5d): unexpected state of decoder send queue rc = %d: %s", packetNumber, decoderSendState, av_err2str(decoderSendState));
+            return false;
             break;
         }
 
         // retry receive
         decoderReceiveState = ReceiveFrameFromDecoder();  // retry receive
     }
+    // now we have received a frame or an error
     switch (decoderReceiveState) {
     case 0:
 #ifdef DEBUG_DECODER
