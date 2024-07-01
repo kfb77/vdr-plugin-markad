@@ -405,6 +405,7 @@ bool cDecoder::InitDecoder(const char *filename) {
         if (IsVideoStream(streamIndex)) {
             dsyslog("cDecoder::InitDecoder(): average framerate %d/%d", avctx->streams[streamIndex]->avg_frame_rate.num, avctx->streams[streamIndex]->avg_frame_rate.den);
             dsyslog("cDecoder::InitDecoder(): real    framerate %d/%d", avctx->streams[streamIndex]->r_frame_rate.num, avctx->streams[streamIndex]->r_frame_rate.den);
+            if (index) index->SetStartPTS(avctx->streams[streamIndex]->start_time, avctx->streams[streamIndex]->time_base);  // register stream infos in index
         }
     }
     dsyslog("cDecoder::InitDecoder(): first MP2 audio stream index: %d", firstMP2Index);
@@ -553,8 +554,6 @@ bool cDecoder::ReadPacket() {
         // analyse video packet
         if (IsVideoPacket()) {
             packetNumber++;
-            // without full decoding we have to sum packet duration here
-            if (!fullDecode && (packetNumber > 0)) sumDuration += avpkt.duration;   // offset to packet start, first packet is offset 0
 
 #ifdef DEBUG_FRAME_PTS
             dsyslog("cDecoder::ReadPacket():  fileNumber %d, framenumber %5d, DTS %ld, PTS %ld, duration %ld, flags %d, dtsBefore %ld, time_base.num %d, time_base.den %d",  fileNumber, packetNumber, avpkt.dts, avpkt.pts, avpkt.duration, avpkt.flags, dtsBefore, avctx->streams[avpkt.stream_index]->time_base.num, avctx->streams[avpkt.stream_index]->time_base.den);
@@ -570,7 +569,7 @@ bool cDecoder::ReadPacket() {
                         decodeErrorFrame = packetNumber;
                     }
                     if (dtsDiff <= 0) { // ignore frames with negativ DTS difference
-                        dsyslog("cDecoder::ReadPacket(): DTS continuity error at frame (%d), difference %dms should be %dms, ignore frame, decoding errors %d", packetNumber, dtsDiff, dtsStep, decodeErrorCount);
+                        esyslog("cDecoder::ReadPacket(): DTS continuity error at frame (%d), difference %dms should be %dms, ignore frame, decoding errors %d", packetNumber, dtsDiff, dtsStep, decodeErrorCount);
                         dtsBefore = avpkt.dts;  // store even wrong DTS to continue after error
                         return true;  // false only on EOF
                     }
@@ -578,6 +577,19 @@ bool cDecoder::ReadPacket() {
                 }
             }
             dtsBefore = avpkt.dts;
+
+            // build index
+            if (index) {
+                if (packetNumber > 0) sumDuration += avpkt.duration;   // offset to packet start, first packet is offset 0
+                // store each frame number and pts in a PTS ring buffer
+                index->AddPTS(packetNumber, avpkt.pts);
+
+                // store PTS and sum duration of all i-frames
+                if (IsVideoIPacket()) {
+                    int64_t frameTimeOffset_ms = 1000 * static_cast<int64_t>(sumDuration) * avctx->streams[avpkt.stream_index]->time_base.num / avctx->streams[avpkt.stream_index]->time_base.den;  // need more space to calculate value
+                    index->Add(fileNumber, packetNumber, avpkt.pts, frameTimeOffset_ms);
+                }
+            }
 
         }
         // analyse AC3 audio packet for channel count, we do not need to decode
@@ -940,7 +952,6 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
     if (!fullDecode && (rc == 0)) {
         sPacketFrameMap nextPacketFrameMap;
         nextPacketFrameMap.frameNumber = packetNumber;
-        nextPacketFrameMap.sumDuration = sumDuration;
         packetFrameMap.push_back(nextPacketFrameMap);
     }
     return rc;
@@ -1093,41 +1104,12 @@ int cDecoder::ReceiveFrameFromDecoder() {
 
 // we got a video frame, set new frame number and offset from start adn build index
     if (IsVideoFrame()) {
-        int frameSumDuration = 0;
-        if (fullDecode) {
-            frameNumber++;
-            if (frameNumber > 0) sumDuration += avpkt.duration;   // offset from first video frame
-            frameSumDuration = sumDuration;
-        }
+        if (fullDecode) frameNumber++;
         else {
             if (!packetFrameMap.empty()) {
                 sPacketFrameMap nextPacketFrameMap = packetFrameMap.front();
                 frameNumber      = nextPacketFrameMap.frameNumber;
-                frameSumDuration = nextPacketFrameMap.sumDuration;
                 packetFrameMap.pop_front();
-            }
-        }
-        // build index
-        if (index) {
-            // store each frame number and pts in a PTS ring buffer
-            index->AddPTS(frameNumber, avpkt.pts);
-            int64_t offsetTime_ms = -1;
-            if (avpkt.pts != AV_NOPTS_VALUE) {
-                int64_t tmp_pts = avpkt.pts - avctx->streams[avpkt.stream_index]->start_time;
-                if ( tmp_pts < 0 ) {
-                    tmp_pts += 0x200000000;    // libavodec restart at 0 if pts greater than 0x200000000
-                }
-                offsetTime_ms = 1000 * tmp_pts * av_q2d(avctx->streams[avpkt.stream_index]->time_base);
-                offsetTime_ms_LastRead = offsetTime_ms_LastFile + offsetTime_ms;
-            }
-
-            // store PTS of all i-frames
-            if (IsVideoIFrame()) {
-                iFrameCount++;
-                // store iframe number and pts offset, sum frame duration in index
-                int64_t frameTimeOffset_ms = 1000 * static_cast<int64_t>(frameSumDuration) * avctx->streams[avpkt.stream_index]->time_base.num / avctx->streams[avpkt.stream_index]->time_base.den;  // need more space to calculate value
-                if (offsetTime_ms >= 0) index->Add(fileNumber, frameNumber, avpkt.pts, offsetTime_ms_LastFile + offsetTime_ms, frameTimeOffset_ms);
-                else dsyslog("cDecoder::ReceiveFrameFromDecoder():: failed to get pts for frame %d", packetNumber);
             }
         }
     }
@@ -1291,13 +1273,6 @@ int cDecoder::GetVideoPacketNumber() const {
 int cDecoder::GetVideoFrameNumber() const {
     return frameNumber;
 }
-
-
-/*
-int cDecoder::GetIFrameCount() const {
-    return iFrameCount;
-}
-*/
 
 
 bool cDecoder::IsInterlacedVideo() const {

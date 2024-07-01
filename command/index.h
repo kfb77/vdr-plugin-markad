@@ -15,6 +15,12 @@
 
 #include "global.h"
 
+
+extern "C" {
+#include <libavcodec/avcodec.h>
+}
+
+
 /**
  * recording index class
  * store offset from start in ms of each i-frame
@@ -36,7 +42,7 @@ public:
      * @param ptsTimeOffset_ms   offset in ms from recording start based on PTS fild
      * @param frameTimeOffset_ms offset in ms from recording start based sum of duration
      */
-    void Add(const int fileNumber, const int frameNumber, const int64_t pts, const int ptsTimeOffset_ms, const int frameTimeOffset_ms);
+    void Add(const int fileNumber, const int frameNumber, const int64_t pts, const int frameTimeOffset_ms);
 
     /**
      * get frameNumber before PTS
@@ -122,8 +128,30 @@ public:
      */
     int GetFrameAfterPTS(const int64_t pts);
 
+    /** return sum of packet duration from i-frame if called with an i-frame number, otherwise from i-frame after
+     * @param  frameNumber frame number
+     * @return   sum of duration
+     */
+    int GetSumDurationFromFrame(const int frameNumber);
+
+    /** return PTS from i-frame if called with an i-frame number, otherwise from i-frame after
+     * @param  frameNumber frame number
+     * @return   presentation timestamp of frame
+     */
+    int64_t GetPTSfromFrame(const int frameNumber);
+
+    /** set start PTS of video stream
+     * @param pts  presentation timestamp of video stream start
+     */
+    void SetStartPTS(const int64_t start_time_param, const AVRational time_base_param);
+
 private:
-    bool fullDecode = false;                    //!< decoder full decode modi
+    bool fullDecode       = false;               //!< decoder full decode modi
+    //!<
+    int64_t start_time    = 0;                   //!< PTS of video stream start
+    //!<
+    AVRational time_base  = {0};                 //!<  time base of video stream
+    //!<
 
     /**
      * element of the video index
@@ -134,8 +162,6 @@ private:
         int frameNumber        = -1;             //!< video i-frame number
         //!<
         int64_t pts            = -1;             //!< pts of i-frame
-        //!<
-        int ptsTimeOffset_ms   = -1;             //!< time offset from start of the recording in ms based on pts in frame, missing frame increase timestamp (imestamps for VLC player)
         //!<
         int frameTimeOffset_ms = -1;             //!< time offset from start of the recording in ms based in frame duration, missing frames are ignored (timestamps for VDR)
         //!<
@@ -155,6 +181,6 @@ private:
     std::vector<sPTS_RingbufferElement> ptsRing; //!< ring buffer for PTS per frameA
     //!<
 
-#define MAX_PTSRING 100                              // maximum Element in ptsRing Ring Buffer
+#define MAX_PTSRING 100                          // maximum Element in ptsRing Ring Buffer
 };
 #endif

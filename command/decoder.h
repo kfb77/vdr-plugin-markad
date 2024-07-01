@@ -337,11 +337,6 @@ public:
      */
     int GetVideoFrameNumber() const;
 
-    /** get current number of processed i-frames
-     * @return current number of processed i-frames
-     */
-//    int GetIFrameCount() const;
-
     /**
      * check if video stream is interlaced
      * @return true if video stream is interlaced, false otherwise
@@ -372,8 +367,6 @@ private:
      */
     typedef struct sPacketFrameMap {
         int frameNumber                = 0;  //!< frame number
-        //!<
-        int64_t sumDuration            = 0;  //!< sum of frame duration
         //!<
     } sPacketFrameMap;
 
@@ -452,8 +445,6 @@ private:
     sAspectRatio DAR                   = {0};                     //!< display aspect ratio of current frame
     //!<
     int64_t sumDuration                =  0;                      //!< current offset from recording start, sum duration of all video packets in AVStream->time_base
-    //!<
-    int iFrameCount                    =  0;                      //!< count of decoed i-frames
     //!<
     int64_t offsetTime_ms_LastFile     =  0;                      //!< offset from recording start of last file in ms
     //!<

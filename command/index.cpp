@@ -33,10 +33,17 @@ cIndex::~cIndex() {
 }
 
 
+void cIndex::SetStartPTS(const int64_t start_time_param, const AVRational time_base_param) {
+    dsyslog("cIndex::SetStartPTS(): PTS %ld: start of video stream, time base %d/%d", start_time_param, time_base_param.num, time_base_param.den);
+    start_time = start_time_param;
+    time_base  = time_base_param;
+}
+
+
 // add a new entry to the list of frame timestamps
-void cIndex::Add(const int fileNumber, const int frameNumber, const int64_t pts, const int ptsTimeOffset_ms, const int frameTimeOffset_ms) {
-    if ((frameNumber > 0) && ((ptsTimeOffset_ms == 0) || (frameTimeOffset_ms == 0))) {
-        esyslog("cIndex::Add(): invalid index entry at frame (%5d): ptsTimeOffset_ms %d, frameTimeOffset_ms %d", frameNumber, ptsTimeOffset_ms, frameTimeOffset_ms);
+void cIndex::Add(const int fileNumber, const int frameNumber, const int64_t pts, const int frameTimeOffset_ms) {
+    if ((frameNumber > 0) && (frameTimeOffset_ms == 0)) {
+        esyslog("cIndex::Add(): invalid index entry at frame (%5d): frameTimeOffset_ms %d", frameNumber, frameTimeOffset_ms);
     }
     if (indexVector.empty() || (frameNumber > indexVector.back().frameNumber)) {
         // add new frame timestamp to vector
@@ -44,14 +51,13 @@ void cIndex::Add(const int fileNumber, const int frameNumber, const int64_t pts,
         newIndex.fileNumber         = fileNumber;
         newIndex.frameNumber        = frameNumber;
         newIndex.pts                = pts;
-        newIndex.ptsTimeOffset_ms   = ptsTimeOffset_ms;
         newIndex.frameTimeOffset_ms = frameTimeOffset_ms;
 
         if (indexVector.size() == indexVector.capacity()) {
             indexVector.reserve(1000);
         }
 #ifdef DEBUG_INDEX
-        dsyslog("cIndex::Add(): fileNumber %d, frameNumber (%5d), PTS %6ld: time offset: PTS %6d, VDR %6d", fileNumber, frameNumber, pts, ptsTimeOffset_ms, frameTimeOffset_ms);
+        dsyslog("cIndex::Add(): fileNumber %d, frameNumber (%5d), PTS %6ld: time offset VDR %6dms", fileNumber, frameNumber, pts, frameTimeOffset_ms);
 #endif
         indexVector.push_back(newIndex);
         ALLOC(sizeof(sIndexElement), "indexVector");
@@ -98,7 +104,7 @@ int cIndex::GetIFrameAfterPTS(const int64_t pts) {
     std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [pts](sIndexElement const &value) ->bool { if (value.pts >= pts) return true; else return false; });
     if (found == indexVector.end()) {
         esyslog("cIndex::GetIFrameAfterPTS(): PTS (%ld) not in index", pts);
-        dsyslog("cIndex::GetTimeFromFrame(): index content: first PTS %ld , last PTS %ld", indexVector.front().pts, indexVector.back().pts);
+        dsyslog("cIndex::GetIFrameAfterPTS(): index content: first PTS %ld , last PTS %ld", indexVector.front().pts, indexVector.back().pts);
         return -1;
     }
 
@@ -178,6 +184,30 @@ int cIndex::GetIFrameAfter(int frameNumber) {
 }
 
 
+// return sum of packet duration from i-frame if called with an i-frame number, otherwise from i-frame after
+int cIndex::GetSumDurationFromFrame(const int frameNumber) {
+    // if frame number not yet in index, return PTS from last frame
+    if (frameNumber >= indexVector.back().frameNumber) return indexVector.back().frameTimeOffset_ms;
+
+    for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+        if (frameIterator->frameNumber >= frameNumber) return frameIterator->frameTimeOffset_ms;
+    }
+    return -1;  // this shout never reached
+}
+
+
+// return PTS from i-frame if called with an i-frame number, otherwise from i-frame after
+int64_t cIndex::GetPTSfromFrame(const int frameNumber) {
+    // if frame number not yet in index, return PTS from last frame
+    if (frameNumber >= indexVector.back().frameNumber) return indexVector.back().pts;
+
+    for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+        if (frameIterator->frameNumber >= frameNumber) return frameIterator->pts;
+    }
+    return -1;  // this shout never reached
+}
+
+
 int cIndex::GetTimeFromFrame(const int frameNumber, const bool isVDR) {
     if (indexVector.empty()) {
         esyslog("cIndex::GetTimeFromFrame(): frame index not initialized");
@@ -186,55 +216,23 @@ int cIndex::GetTimeFromFrame(const int frameNumber, const bool isVDR) {
 #ifdef DEBUG_SAVEMARKS
     dsyslog("cIndex::GetTimeFromFrame(): frameNumber (%d), isVDR %d", frameNumber, isVDR);
 #endif
-    int before_ms     = -1;
-    int before_iFrame = -1;
-    int offset        = -1;
 
-    for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-#ifdef DEBUG_SAVEMARKS
-//        dsyslog("cIndex::GetTimeFromFrame(): frame (%6d): offset time is %6dms", frameIterator->frameNumber, frameIterator->ptsTimeOffset_ms);
-#endif
-        if (frameIterator->frameNumber == frameNumber) {
-            if (isVDR) {
-                offset = frameIterator->frameTimeOffset_ms;
-                break;
-            }
-            else {
-                offset = frameIterator->ptsTimeOffset_ms;
-                break;
-            }
-        }
-        if (frameIterator->frameNumber > frameNumber) {
-            if (abs(frameNumber - before_iFrame) < abs(frameNumber - frameIterator->frameNumber)) {
-                offset = before_ms;
-                break;
-            }
-            else {
-                if (isVDR) {
-                    offset = frameIterator->frameTimeOffset_ms;
-                    break;
-                }
-                else {
-                    offset = frameIterator->ptsTimeOffset_ms;
-                    break;
-                }
-            }
-        }
-        else {
-            before_iFrame = frameIterator->frameNumber;
-            if (isVDR) before_ms = frameIterator->frameTimeOffset_ms;
-            else       before_ms = frameIterator->ptsTimeOffset_ms;
-        }
+    if (isVDR) {  // use sum of packet duration
+        return GetSumDurationFromFrame(frameNumber);
     }
-    if (frameNumber > (indexVector.back().frameNumber - 30)) {  // we are after last iFrame but before next iFrame, possible not read jet, use last iFrame
-        if (isVDR) offset = indexVector.back().frameTimeOffset_ms;
-        else offset = indexVector.back().ptsTimeOffset_ms;
+    else {  // use PTS based time from i-frame index
+        int64_t framePTS = GetPTSfromFrame(frameNumber);
+        if (framePTS < 0) {
+            esyslog("cIndex::GetTimeFromFrame(): frame (%d): get PTS failed", frameNumber);
+            return -1;
+        }
+        framePTS -= start_time;
+        if (framePTS < 0 ) {
+            framePTS += 0x200000000;    // libavodec restart at 0 if pts greater than 0x200000000
+        }
+        int offsetTime_ms = 1000 * framePTS * av_q2d(time_base);
+        return offsetTime_ms;
     }
-#ifdef DEBUG_SAVEMARKS
-    dsyslog("cIndex::GetTimeFromFrame(): frame (%d): offset from start %dms, isVDR %d", frameNumber, offset, isVDR);
-#endif
-    if (offset < 0) esyslog("cIndex::GetTimeFromFrame(): could not find time for frame (%d), list content: first frame (%d) , last frame (%d)", frameNumber, indexVector.front().frameNumber, indexVector.back().frameNumber);
-    return offset;
 }
 
 
@@ -243,12 +241,12 @@ int cIndex::GetFrameFromOffset(int offset_ms) {
         dsyslog("cIndex::GetFrameFromOffset: frame index not initialized");
         return -1;
     }
-    int iFrameBefore = 0;
+    int64_t pts = (offset_ms / av_q2d(time_base) / 1000) + start_time;
     for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->ptsTimeOffset_ms > offset_ms) return iFrameBefore;
-        iFrameBefore = frameIterator->frameNumber;
+        if (frameIterator->pts > pts) return frameIterator->frameNumber;
     }
-    return iFrameBefore;  // return last frame if offset is not in recording, needed for VPS stopped recordings
+    esyslog("cIndex::GetFrameFromOffset(): frame number to offset %dms not found", offset_ms);
+    return -1;
 }
 
 

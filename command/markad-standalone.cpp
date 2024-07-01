@@ -3978,6 +3978,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
     cMark *mark = marks.GetFirst();
     if (!mark) return;
 
+    // if no fullDecode, check if all marks are on i-frame position
     if (!macontext.Config->fullDecode) {
         while (mark) {
             if (abortNow) return;
