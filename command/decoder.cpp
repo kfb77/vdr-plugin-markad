@@ -970,13 +970,15 @@ int cDecoder::ReceiveFrameFromDecoder() {
         avFrame.format         = codecCtxArray[avpkt.stream_index]->sample_fmt;
         int ret                = av_channel_layout_copy(&avFrame.ch_layout, &codecCtxArray[avpkt.stream_index]->ch_layout);
         if (ret < 0) {
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): av_channel_layout_copy failed, rc = %d", ret);
+            esyslog("cDecoder::ReceiveFrameFromDecoder(): av_channel_layout_copy failed, rc = %d", ret);
             av_frame_unref(&avFrame);
             return AVERROR_EXIT;
         }
 #else
         avFrame.nb_samples     = av_get_channel_layout_nb_channels(avctx->streams[avpkt.stream_index]->codecpar->channel_layout);
         avFrame.channel_layout = avctx->streams[avpkt.stream_index]->codecpar->channel_layout;
+        avFrame.format         = avctx->streams[avpkt.stream_index]->codecpar->format;
+        avFrame.sample_rate    = avctx->streams[avpkt.stream_index]->codecpar->sample_rate;
 #endif
     }
     else {
@@ -989,7 +991,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
         if (rc != 0) {
             char errTXT[64] = {0};
             av_strerror(rc, errTXT, sizeof(errTXT));
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): stream index %d: av_frame_get_buffer failed: %s", avpkt.stream_index, errTXT);
+            esyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%d), frame (%d), stream index %d: av_frame_get_buffer failed: %s", packetNumber, frameNumber, avpkt.stream_index, errTXT);
             av_frame_unref(&avFrame);
             return AVERROR_EXIT;
         }
