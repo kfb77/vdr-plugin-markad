@@ -455,19 +455,19 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
         char *fileName = nullptr;
         if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_3sobelCorrected.pgm", recDir, frameNumber, area.logoCorner) >= 1) {
             ALLOC(strlen(fileName) + 1, "fileName");
-            SaveSobel(fileName, area.sobel[0], area.logoSize.width, area.logoSize.height);
+            sobel->SaveSobelPlane(fileName, area.sobel[0], area.logoSize.width, area.logoSize.height);
             FREE(strlen(fileName) + 1, "fileName");
             free(fileName);
         }
         if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_4resultCorrected.pgm", recDir, frameNumber, area.logoCorner) >= 1) {
             ALLOC(strlen(fileName) + 1, "fileName");
-            SaveSobel(fileName, area.result[0], area.logoSize.width, area.logoSize.height);
+            sobel->SaveSobelPlane(fileName, area.result[0], area.logoSize.width, area.logoSize.height);
             FREE(strlen(fileName) + 1, "fileName");
             free(fileName);
         }
         if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_3inverseCorrected.pgm", recDir, frameNumber, area.logoCorner) >= 1) {
             ALLOC(strlen(fileName) + 1, "fileName");
-            SaveSobel(fileName, area.inverse[0], area.logoSize.width, area.logoSize.height);
+            sobel->SaveSobelPlane(fileName, area.inverse[0], area.logoSize.width, area.logoSize.height);
             FREE(strlen(fileName) + 1, "fileName");
             free(fileName);
         }
@@ -598,9 +598,9 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
     // apply sobel transformation to all planes
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
     processed = sobel->SobelPicture(recDir, picture, &area, false);  // don't ignore logo
-    if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
+    if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
         char *fileName = nullptr;
-        if (asprintf(&fileName,"%s/F__%07d.pgm", recDir, frameCurrent) >= 1) {
+        if (asprintf(&fileName,"%s/F__%07d.pgm", recDir, frameNumber) >= 1) {
             ALLOC(strlen(fileName) + 1, "fileName");
             SaveVideoPicture(fileName, decoder->GetVideoPicture());
             FREE(strlen(fileName) + 1, "fileName");
@@ -645,7 +645,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
     if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
     if (rPixel <= logo_imark) strcpy(detectStatus, "-");
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
-    dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
+    dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameNumber, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
 #endif
 
     // we have only 1 plane (no coloured logo)
@@ -656,7 +656,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
         // prevent to detect logo start on very bright background, this is not possible
         if ((area.status == LOGO_INVISIBLE) && (rPixel >= logo_vmark) && area.intensity >= 218) {  // possible state change from invisible to visible
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cLogoDetect::Detect(): frame (%6d) too bright %d for logo start", frameCurrent, area.intensity);
+            dsyslog("cLogoDetect::Detect(): frame (%6d) too bright %d for logo start", frameNumber, area.intensity);
 #endif
             return LOGO_NOCHANGE;
         }
@@ -664,7 +664,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
         // transparent logo decetion on bright backbround is imposible, changed from 189 to 173
         if (criteria->LogoTransparent() && (area.intensity >= 161)) {  // changed from 173 to 161
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cLogoDetect::Detect(): frame (%6d) with transparent logo too bright %d for detection", frameCurrent, area.intensity);
+            dsyslog("cLogoDetect::Detect(): frame (%6d) with transparent logo too bright %d for detection", frameNumber, area.intensity);
 #endif
             return LOGO_NOCHANGE;
         }
@@ -682,7 +682,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
             int quoteBlack   = 100 * black  /  (area.logoSize.height * area.logoSize.width);
             int quoteInverse = 100 * iPixel / ((area.logoSize.height * area.logoSize.width) - mPixel);
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cLogoDetect::Detect(): frame (%6d): area intensity %3d, black quote: %d%%, inverse quote %d%%", frameCurrent, area.intensity, quoteBlack, quoteInverse);
+            dsyslog("cLogoDetect::Detect(): frame (%6d): area intensity %3d, black quote: %d%%, inverse quote %d%%", frameNumber, area.intensity, quoteBlack, quoteInverse);
 #endif
             // state logo invisible and rPixel > logo_vmark
             if ((area.status == LOGO_INVISIBLE) && (rPixel >= logo_vmark)) {
@@ -716,7 +716,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
                 int rPixelWithout = rPixel * (100 - quoteInverse) / 100;
                 if (rPixelWithout >= logo_vmark) {
 #ifdef DEBUG_LOGO_DETECTION
-                    dsyslog("cLogoDetect::Detect(): frame (%6d): rPixel without pattern quote %d, trust logo visible", frameCurrent, rPixelWithout);
+                    dsyslog("cLogoDetect::Detect(): frame (%6d): rPixel without pattern quote %d, trust logo visible", frameNumber, rPixelWithout);
 #endif
                     logoStatus = true;  // now we trust a positiv logo detection
                 }
@@ -725,7 +725,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
                     if (area.intensity < 153) { // on very bright backgrund logo visible result is not possible
                         if ((quoteBlack >= 18) && (quoteInverse >= 16)) {  // with very bright backgrund logo visible is not possible
 #ifdef DEBUG_LOGO_DETECTION
-                            dsyslog("cLogoDetect::Detect(): frame (%6d): quote above limit, assume matches only from patten and logo is still invisible", frameCurrent);
+                            dsyslog("cLogoDetect::Detect(): frame (%6d): quote above limit, assume matches only from patten and logo is still invisible", frameNumber);
 #endif
                             return LOGO_NOCHANGE;
                         }
@@ -735,7 +735,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
                             area.counter--;       // assume only pattern, no logo
                             if (area.counter <= 0) area.counter = 0;
 #ifdef DEBUG_LOGO_DETECTION
-                            dsyslog("cLogoDetect::Detect(): frame (%6d): quote above limit with bright background, assume matches only from patten and logo is still invisible", frameCurrent);
+                            dsyslog("cLogoDetect::Detect(): frame (%6d): quote above limit with bright background, assume matches only from patten and logo is still invisible", frameNumber);
 #endif
                             return LOGO_NOCHANGE;
                         }
@@ -769,7 +769,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
                     rPixel = logo_imark; // set to invisible
                     logoStatus = true;
 #ifdef DEBUG_LOGO_DETECTION
-                    dsyslog("cLogoDetect::Detect(): frame (%6d) quote above limit, assume matches only from patten and logo is invisible", frameCurrent);
+                    dsyslog("cLogoDetect::Detect(): frame (%6d) quote above limit, assume matches only from patten and logo is invisible", frameNumber);
 #endif
                 }
             }
@@ -780,7 +780,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
                 ((area.status == LOGO_VISIBLE) ||  (area.status == LOGO_UNINITIALIZED)) &&
                 (rPixel > logo_imark)) {
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cLogoDetect::Detect(): frame (%6d) high machtes, trust logo still visible", frameCurrent);
+            dsyslog("cLogoDetect::Detect(): frame (%6d) high machtes, trust logo still visible", frameNumber);
 #endif
             logoStatus = true;
         }
@@ -809,8 +809,16 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
                 area.mPixel[plane] = area.mPixel[0] / 4;
                 sobel->SobelPlane(picture, &area, 0);  // plane 0
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-                if ((frameCurrent > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameCurrent < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
-                    Save(frameCurrent, area.sobel, plane, "area.sobel_coloured");
+                if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
+                    /* TODO
+                            char *fileName = nullptr;
+                            if (asprintf(&fileName,"%s/F__%07d_corrected.pgm", recDir, frameNumber) >= 1) {
+                                ALLOC(strlen(fileName) + 1, "fileName");
+                                SaveVideoPicture(fileName, decoder->GetVideoPicture());
+                                FREE(strlen(fileName) + 1, "fileName");
+                                free(fileName);
+                            }
+                    */
                 }
 #endif
                 rPixel += area.rPixel[plane];
@@ -819,11 +827,11 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
                 area.rPixel[plane] = 0;
             }
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cLogoDetect::Detect(): frame (%6d): maybe colour change, try plane 1 and plan 2", frameCurrent);
+            dsyslog("cLogoDetect::Detect(): frame (%6d): maybe colour change, try plane 1 and plan 2", frameNumber);
             char detectStatus[] = "o";
             if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
             if (rPixel <= logo_imark) strcpy(detectStatus, "-");
-            dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
+            dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameNumber, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
 #endif
             if (rPixel <= logo_imark) { // we found no coloured logo here, restore old state
                 area.intensity = intensityOld;
@@ -831,14 +839,14 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
             }
             if (rPixel >= logo_vmark) {
 #ifdef DEBUG_LOGO_DETECTION
-                dsyslog("cLogoDetect::Detect(): frame (%6d): logo visible in plane 1 and plan 2", frameCurrent);
+                dsyslog("cLogoDetect::Detect(): frame (%6d): logo visible in plane 1 and plan 2", frameNumber);
 #endif
                 logoStatus = true;  // we found colored logo
             }
             // change from very low match to unclear result
             if ((rPixelOld <= (logo_imark / 10)) && (rPixel > logo_imark)) {
 #ifdef DEBUG_LOGO_DETECTION
-                dsyslog("cLogoDetect::Detect(): frame (%6d): unclear result in plane 1 and plan 2", frameCurrent);
+                dsyslog("cLogoDetect::Detect(): frame (%6d): unclear result in plane 1 and plan 2", frameNumber);
 #endif
                 return LOGO_NOCHANGE;
             }
@@ -879,7 +887,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
 
     if (!logoStatus) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::Detect(): frame (%6d) no valid result", frameCurrent);
+        dsyslog("cLogoDetect::Detect(): frame (%6d) no valid result", frameNumber);
 #endif
         return LOGO_NOCHANGE;
     }
@@ -960,7 +968,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
     strcpy(detectStatus, "o");
     if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
     if (rPixel <= logo_imark) strcpy(detectStatus, "-");
-    dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameCurrent, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
+    dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameNumber, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
 #endif
 
@@ -1191,7 +1199,7 @@ int cBlackScreenDetect::Process() {
 #ifdef DEBUG_BLACKSCREEN
     int debugValAll   = valAll   / (picture.width * maContext->Video.Info.height);
     int debugValLower = valLower / (picture.width * PIXEL_COUNT_LOWER);
-    dsyslog("cBlackScreenDetect::Process(): frame (%d): blackScreenStatus %d, blackness %3d (expect <%d for start, >%d for end), lowerBorderStatus %d, lower %3d", frameCurrent, blackScreenStatus, debugValAll, BLACKNESS, BLACKNESS, lowerBorderStatus, debugValLower);
+    dsyslog("cBlackScreenDetect::Process(): frame (%d): blackScreenStatus %d, blackness %3d (expect <%d for start, >%d for end), lowerBorderStatus %d, lower %3d", frameNumber, blackScreenStatus, debugValAll, BLACKNESS, BLACKNESS, lowerBorderStatus, debugValLower);
 #endif
 
     // full blackscreen now visible

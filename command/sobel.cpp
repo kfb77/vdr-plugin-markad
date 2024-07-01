@@ -165,25 +165,25 @@ int cSobel::SobelPicture(sVideoPicture *picture, sAreaT *area, const bool ignore
                     char *fileName = nullptr;
                     if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_0_sobel.pgm", recDir, picture->frameNumber, plane, area->logoCorner) >= 1) {
                         ALLOC(strlen(fileName) + 1, "fileName");
-                        SaveSobel(fileName, area->sobel[plane], width, height);
+                        SaveSobelPlane(fileName, area->sobel[plane], width, height);
                         FREE(strlen(fileName) + 1, "fileName");
                         free(fileName);
                     }
                     if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_1_logo.pgm", recDir, picture->frameNumber, plane, area->logoCorner) >= 1) {
                         ALLOC(strlen(fileName) + 1, "fileName");
-                        SaveSobel(fileName, area->logo[plane], width, height);
+                        SaveSobelPlane(fileName, area->logo[plane], width, height);
                         FREE(strlen(fileName) + 1, "fileName");
                         free(fileName);
                     }
                     if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_2_result.pgm", recDir, picture->frameNumber, plane, area->logoCorner) >= 1) {
                         ALLOC(strlen(fileName) + 1, "fileName");
-                        SaveSobel(fileName, area->result[plane], width, height);
+                        SaveSobelPlane(fileName, area->result[plane], width, height);
                         FREE(strlen(fileName) + 1, "fileName");
                         free(fileName);
                     }
                     if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_3_inverse.pgm", recDir, picture->frameNumber, plane, area->logoCorner) >= 1) {
                         ALLOC(strlen(fileName) + 1, "fileName");
-                        SaveSobel(fileName, area->inverse[plane], width, height);
+                        SaveSobelPlane(fileName, area->inverse[plane], width, height);
                         FREE(strlen(fileName) + 1, "fileName");
                         free(fileName);
                     }
