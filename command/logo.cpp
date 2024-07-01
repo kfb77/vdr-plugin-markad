@@ -1605,7 +1605,7 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
             dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() for startFrame %d failed", startFrame);
             return LOGO_ERROR;
         }
-        if (!decoder->SeekToFrameBefore(startFrame)) {
+        if (!decoder->SeekToPacket(startFrame)) {
             dsyslog("cExtractLogo::SearchLogo(): seek to start frame (%d) failed", startFrame);
             return LOGO_ERROR;
         }

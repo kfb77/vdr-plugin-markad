@@ -151,7 +151,7 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
     }
 
     // seek to start frame
-    if (!decoder->SeekToFrameBefore(fRangeBegin)) {
+    if (!decoder->SeekToPacket(fRangeBegin)) {
         esyslog("could not seek to frame (%i)", fRangeBegin);
         return false;
     }
@@ -198,7 +198,7 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
         FREE(strlen(indexToHMSF)+1, "indexToHMSF");
         free(indexToHMSF);
     }
-    if (!decoder->SeekToFrameBefore(fRangeBegin)) {
+    if (!decoder->SeekToPacket(fRangeBegin)) {
         esyslog("could not seek to frame (%d)", fRangeBegin);
         return false;
     }

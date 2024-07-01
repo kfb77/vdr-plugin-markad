@@ -1051,7 +1051,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
 
     dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", area.logoSize.width, area.logoSize.height);
 
-    if (!decoder->SeekToFrameBefore(startPos)) {  // one frame before startPos because we start loop with GetNextPacket
+    if (!decoder->SeekToPacket(startPos)) {  // one frame before startPos because we start loop with GetNextPacket
         dsyslog("cDetectLogoStopStart::Detect(): SeekToFrame (%d) failed", startPos);
         status = false;
     }

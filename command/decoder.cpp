@@ -342,7 +342,7 @@ bool cDecoder::InitDecoder(const char *filename) {
             for (int i = 0; ; i++) {
                 const AVCodecHWConfig *config = avcodec_get_hw_config(codec, i);
                 if (!config) {
-                    dsyslog("cDecoder::InitDecoder(): codec %s does not support hardware acceleration device type %s", codec->name, av_hwdevice_get_type_name(hwDeviceType));
+                    isyslog("cDecoder::InitDecoder(): codec %s not supported by hardware acceleration device type %s", codec->name, av_hwdevice_get_type_name(hwDeviceType));
                     useHWaccel= false;
                     break;
                 }
@@ -819,14 +819,15 @@ sVideoPicture *cDecoder::GetVideoPicture() {
     else return nullptr;
 }
 
-// seek read position to video packet <seekPacket>
+
+// seek read position to video packet <seekPacketNumber>
 // seek frame is read but not decoded
 bool cDecoder::SeekToPacket(int seekPacketNumber) {
-    dsyslog("cDecoder::SeekToPacketBefore(): packet (%d): seek to packet (%d)", packetNumber, seekPacketNumber);
+    dsyslog("cDecoder::SeekToPacket(): packet (%d): seek to packet (%d)", packetNumber, seekPacketNumber);
 
     // seek backward is invalid
     if (packetNumber >= seekPacketNumber) {
-        esyslog("cDecoder::SeekToPacketBefore(): can not seek backwards");
+        esyslog("cDecoder::SeekToPacket(): can not seek backwards");
         return false;
     }
 
@@ -842,192 +843,31 @@ bool cDecoder::SeekToPacket(int seekPacketNumber) {
         if (abortNow) return false;
         if (packetNumber >= seekPacketNumber) break;
     }
-    dsyslog("cDecoder::SeekToPacketBefore(): packet (%d): seek to packet (%d) successful", packetNumber, seekPacketNumber);
+    frameNumber = packetNumber;
+    dsyslog("cDecoder::SeekToPacket(): packet (%d): seek to packet (%d) successful", packetNumber, seekPacketNumber);
     return true;
 }
 
 
-// seek exact to frame
-// used by video cut
-// seek frame is read but not decoded, decoding will be done by encoder
-bool cDecoder::SeekExactToFrame(int seekFrameNumber) {   // TODO still not exact frame
-    dsyslog("cDecoder::SeekExaktToFrame(): packet (%d), frame (%d): seek to frame (%d)", packetNumber, frameNumber, seekFrameNumber);
-
-    // seek backward is invalid
-    if (frameNumber >= seekFrameNumber) {
-        esyslog("cDecoder::SeekExcatToFrame(): can not seek backwards");
-        return false;
-    }
-
-    // flush decoder buffer
-    for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
-        if (codecCtxArray[streamIndex]) {
-            avcodec_flush_buffers(codecCtxArray[streamIndex]);
-        }
-    }
-
-    int frameBefore = index->GetFrameBefore(seekFrameNumber);
-    while (ReadNextPacket()) {
-        if (abortNow) return false;
-        if (!IsVideoPacket()) continue;
-        if (!fullDecode && !IsVideoIPacket()) continue;
-
-#ifdef DEBUG_DECODER_SEEK
-        dsyslog("cDecoder::SeekExactToFrame(): packet (%d) flags %d, frame (%d) pict_type %d, seek to frame (%d), frameBefore (%d): read", packetNumber, avpkt.flags, frameNumber, avFrame.pict_type, seekFrameNumber, frameBefore);
-#endif
-
-        if (frameNumber < frameBefore) {
-            DecodePacket();  // ignore error
-
-#ifdef DEBUG_DECODER_SEEK
-            dsyslog("cDecoder::SeekExactToFrame(): packet (%d) flags %d, frame (%d) pict_type %d, seek to frame (%d), frameBefore (%d): decode", packetNumber, avpkt.flags, frameNumber, avFrame.pict_type, seekFrameNumber, frameBefore);
-            if (frameNumber >= (frameBefore - (DEBUG_MARK_FRAMES * ((fullDecode) ? 1 : 12)))) {
-                char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F__%07d_SEEK.pgm", recordingDir, frameNumber) >= 1) {
-                    ALLOC(strlen(fileName)+1, "fileName");
-                    SaveVideoPicture(fileName, GetVideoPicture());
-                    FREE(strlen(fileName)+1, "fileName");
-                    free(fileName);
-                }
-            }
-            LogSeparator();
-#endif
-
-        }
-        else break;
-    }
-    return true;
-}
-
-
-/*
+// seek to and decode video frame number <seekFrameNumber>
 bool cDecoder::SeekToFrame(int seekFrameNumber) {
-    if (!avctx) return false;
-    if (!codecCtxArray) return false;
-    dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d)", packetNumber, frameNumber, seekFrameNumber);
-
-    // flush decoder buffer
-    for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
-        if (codecCtxArray[streamIndex]) {
-            avcodec_flush_buffers(codecCtxArray[streamIndex]);
-        }
-    }
-    // read and drop all packets before i-frame before, we read after loop check, do not remove "-1"
-    int dropPacket = - 1;
-    if (index) dropPacket = index->GetIFrameBefore(seekFrameNumber - 1) - 1;  // all frames before i-frame before, next read is i-frame before
-    if (dropPacket == -1) {
-        dsyslog("cDecoder::SeekToFrame(): index does not yet contain frame (%5d), decode from current packet (%d) to build index", seekFrameNumber, packetNumber);
-    }
-#ifdef DEBUG_DECODER_SEEK
-    dsyslog("cDecoder::SeekTo(): drop all packets to (%d) i-frame before is: (%d)", dropPacket, (index) ? index->GetIFrameBefore(seekFrameNumber - 1) : 0);
-#endif
-    // read packets from current position to before dropPacket
-    while (packetNumber < dropPacket) {
-        if (abortNow) return false;
-        if (!ReadPacket()) {
-            dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d), seek to frame (%d): failed to read next packet", packetNumber, frameNumber, seekFrameNumber);
-            return false;
-        }
-    }
-    frameNumber = packetNumber;  // sync counter at frame before i-frame
-#ifdef DEBUG_DECODER_SEEK   // debug test read and decode, frameNumber should be seekFrameNumber
-    dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d), seekFrameNumber (%d): after drop packets", packetNumber, frameNumber, seekFrameNumber);
-#endif
-
-    // now read and decode from i-frame before to fill queue with all packets from i-frame before to current frame (maybe no i-frame)
-    int stopDecode = index->GetFrameBefore(seekFrameNumber);
-    while (frameNumber < stopDecode) {    // we stop one frame before, next DecodePacket will return requestet frame
-        if (abortNow) return false;
-        if (!ReadNextPacket()) return false;
-        if (!IsVideoPacket()) continue;
-        if (!fullDecode && !IsVideoIPacket()) continue;
-#ifdef DEBUG_DECODER_SEEK
-        dsyslog("cDecoder::SeekToFrame(): packet (%d) flags %d, frame (%d) pict_type %d, seek to frame (%d): packet read", packetNumber, avpkt.flags, frameNumber, avFrame.pict_type, seekFrameNumber);
-#endif
-        if (frameNumber < seekFrameNumber) {
-            DecodePacket();  // ignore error
-#ifdef DEBUG_DECODER_SEEK
-            dsyslog("cDecoder::SeekToFrame(): packet (%d) flags %d, frame (%d) pict_type %d, seek to frame (%d): packet decoded", packetNumber, avpkt.flags, frameNumber, avFrame.pict_type, seekFrameNumber);
-            char *fileName = nullptr;
-            if (asprintf(&fileName,"%s/F__%07d_seek.pgm", recordingDir, frameNumber) >= 1) {
-                ALLOC(strlen(fileName)+1, "fileName");
-                SaveVideoPicture(fileName, GetVideoPicture());
-                FREE(strlen(fileName)+1, "fileName");
-                free(fileName);
-            }
-#endif
-        }
-    }
-    dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d): successful", packetNumber, frameNumber, seekFrameNumber);
-    return true;
-}
-*/
-
-
-bool cDecoder::SeekToFrameBefore(int seekFrameNumber) {
-// seek to frame before (full decode) or i-frame before (no full decode), next ReadPacket will load the taget seekFrameNumber
-// if we have no index, we do not preload decoder
-// if we do no full decode and seekFrame is i-frame number, we seek to next i-frame
-    if (!avctx) return false;
-    if (!codecCtxArray) return false;
-    dsyslog("cDecoder::SeekToFrameBefore(): packet (%d), frame (%d): seek to frame before (%d)", packetNumber, frameNumber, seekFrameNumber);
-
-    if (frameNumber > seekFrameNumber) {
-        esyslog("cDecoder::SeekToFrameBefore(): frame position (%d): could not seek backward to frame (%d)", frameNumber, seekFrameNumber);
+// seek to i-frame packet before
+    int seekPacket = index->GetIFrameBefore(seekFrameNumber);
+    if (!SeekToPacket(seekPacket)) {
+        esyslog("cDecoder::SeekToFrame(): seek to i-frame packet (%d) before seek frame (%d) failed", seekPacket, seekFrameNumber);
         return false;
     }
 
-    // flush decoder buffer
-    for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
-        if (codecCtxArray[streamIndex]) {
-            avcodec_flush_buffers(codecCtxArray[streamIndex]);
-        }
-    }
-    // read and drop all packets before i-frame before, we read after loop check, do not remove "-1"
-    int dropPacket = - 1;
-    if (index) dropPacket = index->GetIFrameBefore(seekFrameNumber) - 1;  // all frames before i-frame before, next read is i-frame before
-    if (dropPacket == -1) {
-        dsyslog("cDecoder::SeekToFrameBefore(): index does not yet contain frame (%5d), decode from current packet (%d) to build index", seekFrameNumber, packetNumber);
-    }
-
-#ifdef DEBUG_DECODER_SEEK
-    dsyslog("cDecoder::SeekToFrameBefore(): drop all packets to (%d) i-frame before is: (%d)", dropPacket, (index) ? index->GetIFrameBefore(seekFrameNumber) : 0);
-#endif
-
-    // read packets from current position to before dropFrame
-    while (packetNumber < dropPacket) {
+    // fill decoder queue from i-frame before to startPos
+    while (true) {
         if (abortNow) return false;
-        if (!ReadPacket()) {
-            dsyslog("cDecoder::SeekToFrameBefore(): packet (%d), frame (%d), seek to frame (%d): failed to read next packet", packetNumber, frameNumber, seekFrameNumber);
-            return false;
+        if (IsVideoPacket()) {
+            DecodePacket();  // ignore error
+            dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): preload decoder queue", packetNumber, frameNumber);
+            if (frameNumber >= seekFrameNumber) break;
         }
+        if (!ReadNextPacket()) return false;
     }
-    frameNumber = packetNumber;  // sync counter at frame before i-frame
-
-#ifdef DEBUG_DECODER_SEEK   // debug test read and decode, frameNumber should be seekFrameNumber
-    dsyslog("cDecoder::SeekToFrameBefore(): packet (%d), frame (%d), seekFrameNumber (%d) after drop packets", packetNumber, frameNumber, seekFrameNumber);
-#endif
-
-    int decodeFrame = seekFrameNumber - 1;  // fallback if we have no index
-    if (index) decodeFrame = index->GetFrameBefore(seekFrameNumber);
-    if (decodeFrame == -1) {
-        dsyslog("cDecoder::SeekToFrameBefore(): index does not yet contain frame (%5d), decode from current frame (%d) to build index", seekFrameNumber, packetNumber);
-        decodeFrame = seekFrameNumber - 1;
-    }
-
-#ifdef DEBUG_DECODER_SEEK
-    dsyslog("cDecoder::SeekToFrameBefore(): decode all packets to (%d)", decodeFrame);
-#endif
-
-    // now read and decode from i-frame before to fill queue with all packets from i-frame before to current frame (maybe no i-frame)
-    while (frameNumber < decodeFrame) {    // we stop one frame before, next DecodePacket will return requestet frame
-        if (abortNow) return false;
-        if (!DecodeNextFrame(false)) {   // no audio decode, we read after loop check
-            dsyslog("cDecoder::SeekToFrameBefore(): packet (%d), frame (%d): seek to frame (%d) failed to decode next frame", packetNumber, frameNumber, seekFrameNumber);
-            return false;
-        }
-    }
-    dsyslog("cDecoder::SeekToFrameBefore(): packet (%d), frame (%d): seek to frame before (%d) successful", packetNumber, frameNumber, seekFrameNumber);
     return true;
 }
 

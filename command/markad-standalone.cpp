@@ -4044,7 +4044,7 @@ void cMarkAdStandalone::MarkadCut() {
     DebugMarks();     //  only for debugging
 
     // init encoder
-    cEncoder *encoder = new cEncoder(decoder, macontext.Config->fullEncode, macontext.Config->bestEncode, macontext.Config->ac3ReEncode);
+    cEncoder *encoder = new cEncoder(decoder, index, macontext.Config->recDir, macontext.Config->fullEncode, macontext.Config->bestEncode, macontext.Config->ac3ReEncode);
     ALLOC(sizeof(*encoder), "encoder");
 
     int passMin = 0;
@@ -4075,7 +4075,7 @@ void cMarkAdStandalone::MarkadCut() {
 
         // if no decoding/encoding adjust position to i-frame
         if (!macontext.Config->fullEncode) {
-            startPos = index->GetIFrameAfter(startPos + 1);  // without decode, first i-frame is too early, don't know why
+            startPos = index->GetIFrameAfter(startPos);
             if (startPos < 0) {
                 esyslog("cMarkAdStandalone::MarkadCut(): get i-frame before (%d) failed", startMark->position);
                 return;
@@ -4088,7 +4088,7 @@ void cMarkAdStandalone::MarkadCut() {
         }
 
         // open output file
-        if (!encoder->OpenFile(directory, decoder)) {
+        if (!encoder->OpenFile()) {
             esyslog("failed to open output file");
             FREE(sizeof(*encoder), "encoder");
             delete encoder;
@@ -4096,96 +4096,47 @@ void cMarkAdStandalone::MarkadCut() {
             return;
         }
 
-        // process input file
-        int frameNumber;
-        while(decoder->ReadNextPacket()) {
-            // take care of abort
-            if (abortNow) {
-                encoder->CloseFile(decoder);  // encoder must be valid here because it is used above
-                FREE(sizeof(*decoder), "decoder");
-                delete decoder;
-                decoder = nullptr;
-                FREE(sizeof(*encoder), "encoder");
-                delete encoder;
-                encoder = nullptr;
-                return;
-            }
-            // if we do not encode, we do not decode and so we have no valid decoder frame number
-            if (macontext.Config->fullEncode) frameNumber = decoder->GetVideoFrameNumber();
-            else                              frameNumber = decoder->GetVideoPacketNumber();
-            // seek to frame before startPosition
-            if (frameNumber < startPos) {  // will be called until we got next video frame, skip audio frame before
-                LogSeparator();
-                dsyslog("cMarkAdStandalone::MarkadCut(): decoding for start mark (%d) to end mark (%d) in pass: %d", startMark->position, stopMark->position, pass);
-                if (macontext.Config->fullEncode) {
-                    if (!decoder->SeekToPacket(index->GetIFrameBefore(startPos))) {  // seek to i-frame before to fill decoder queue, i-frame packet before is now in decoder
-                        esyslog("cMarkAdStandalone::MarkadCut(): seek to start mark (%d) failed", startMark->position);
-                        break;
-                    }
+        // cut out all start/stop pairs
+        while (true) {
+            if (abortNow) return;
+            if (!encoder->CutOut(startPos, stopPos)) break;
+
+            // next start/stop pair
+            if (stopMark->Next() && stopMark->Next()->Next()) {  // next mark pair
+                startMark = stopMark->Next();
+                if ((startMark->type & 0x0F) != MT_START) {
+                    esyslog("got invalid start mark at (%d) type 0x%X", startMark->position, startMark->type);
+                    break;
                 }
-                else {
-                    if (!decoder->SeekToPacket(startPos)) {  // ReadNextPacket() will read startPos
-                        esyslog("cMarkAdStandalone::MarkadCut(): seek to packet before (%d) failed", startMark->position);
-                        break;
-                    }
+                stopMark = startMark->Next();
+                if ((stopMark->type & 0x0F) != MT_STOP) {
+                    esyslog("got invalid stop mark at (%d) type 0x%X", stopMark->position, stopMark->type);
+                    break;
                 }
-            }
-            // stop mark reached, set next startPosition
-            if (frameNumber > stopPos) {
-                if (stopMark->Next() && stopMark->Next()->Next()) {  // next mark pair
-                    startMark = stopMark->Next();
-                    if ((startMark->type & 0x0F) != MT_START) {
-                        esyslog("got invalid start mark at (%d) type 0x%X", startMark->position, startMark->type);
+                startPos = startMark->position;
+                stopPos  = stopMark->position;
+                // if no decoding/encoding adjust position to i-frame
+                if (!macontext.Config->fullEncode) {
+                    startPos = index->GetIFrameAfter(startPos);
+                    if (startPos < 0) {
+                        esyslog("cMarkAdStandalone::MarkadCut(): get i-frame before (%d) failed", startMark->position);
                         return;
                     }
-                    stopMark = startMark->Next();
-                    if ((stopMark->type & 0x0F) != MT_STOP) {
-                        esyslog("got invalid stop mark at (%d) type 0x%X", stopMark->position, stopMark->type);
+                    stopPos = index->GetIFrameBefore(stopPos);
+                    if (stopPos < 0) {
+                        esyslog("cMarkAdStandalone::MarkadCut(): get i-frame after (%d) failed", stopMark->position);
                         return;
                     }
-                    startPos = startMark->position;
-                    stopPos  = stopMark->position;
-                    // if no decoding/encoding adjust position to i-frame
-                    if (!macontext.Config->fullEncode) {
-                        startPos = index->GetIFrameAfter(startPos);
-                        if (startPos < 0) {
-                            esyslog("cMarkAdStandalone::MarkadCut(): get i-frame before (%d) failed", startMark->position);
-                            return;
-                        }
-                        stopPos = index->GetIFrameBefore(stopPos);
-                        if (stopPos < 0) {
-                            esyslog("cMarkAdStandalone::MarkadCut(): get i-frame after (%d) failed", stopMark->position);
-                            return;
-                        }
-                    }
-
                 }
-                else break;
-                continue;       // read next packet and seek to new start frame
-            }
-            // decode/encode/write current packet
-            if (!encoder->WritePacket(startPos)) {
-                dsyslog("cMarkAdStandalone::MarkadCut(): failed to write frame %d to output stream", frameNumber);  // no not abort, maybe next frame works
-            }
-            #ifdef DEBUG_CUT  // first picures after start mark after
-            if (!macontext.Config->fullEncode) decoder->DecodePacket();   // no decoding from encoder, do it here
-            if (decoder->IsVideoFrame() && (frameNumber <= startMark->position + DEBUG_CUT)) {
-                char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F__%07d_CUT.pgm", macontext.Config->recDir, frameNumber) >= 1) {
-                    ALLOC(strlen(fileName)+1, "fileName");
-                    SaveVideoPicture(fileName, decoder->GetVideoPicture());
-                    FREE(strlen(fileName)+1, "fileName");
-                    free(fileName);
-                }
-            }
-#endif
 
+            }
+            else break;
+        }
 
-        }
-        if (!encoder->CloseFile(decoder)) {
-            esyslog("failed to close output file");
-            return;
-        }
+    }
+    if (!encoder->CloseFile()) {
+        esyslog("failed to close output file");
+        return;
     }
     dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %d", decoder->GetVideoFrameNumber());
     FREE(sizeof(*encoder), "encoder");

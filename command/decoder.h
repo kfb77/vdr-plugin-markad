@@ -229,32 +229,11 @@ public:
     bool SeekToPacket(int seekPacketNumber);
 
     /**
-     * seek decoder read position to <seekFrameNumber)
-     * next DecodePacket() will generate frameNumber = seekFrameNumber
-     * only seek forward <br>
-     + used by video cut to seek exact to start mark position
-     * @param seekFrameNumber frame number to seek
-     * @return                true if successful, false otherwise
-     */
-    bool SeekExactToFrame(int seekFrameNumber);
-
-    /**
-     * seek decoder read position to <seekFrameNumber)
-     * next DecodePacket() will generate frameNumber = seekFrameNumber
-     * only seek forward <br>
-     * @param seekFrameNumber frame number to seek
-     * @return                true if successful, false otherwise
-     */
-//    bool SeekToFrame(int seekFrameNumber);
-
-    /**
-     * seek decoder read position to frame before
-     * next DecodeNextFrame will generate frameNumber = seekFrameNumber
-     * only seek forward <br>
-     * @param seekFrameNumber frame number to seek
-     * @return                true if successful, false otherwise
-     */
-    bool SeekToFrameBefore(int seekFrameNumber);
+    * seek to and decode video frame number <seekFrameNumber>
+    * @param seekFameNumber number number to seek and decode
+    * @return                true if successful, false otherwise
+    */
+    bool SeekToFrame(int seekFrameNumber);
 
     /**
      * send packet to decoder

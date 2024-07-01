@@ -183,8 +183,10 @@ bool cAC3VolumeFilter::GetFrame(AVFrame *avFrame) {
 
 
 
-cEncoder::cEncoder(cDecoder *decoderParam, const bool fullEncodeParam, const bool bestStreamParam, const bool ac3ReEncodeParam) {
+cEncoder::cEncoder(cDecoder *decoderParam, cIndex *indexParam, const char *recDirParam, const bool fullEncodeParam, const bool bestStreamParam, const bool ac3ReEncodeParam) {
     decoder     = decoderParam;
+    index       = indexParam;
+    recDir      = recDirParam;
     fullEncode  = fullEncodeParam;
     bestStream  = bestStreamParam;
     ac3ReEncode = ac3ReEncodeParam;
@@ -225,8 +227,8 @@ void cEncoder::Reset(const int passEncoder) {
 }
 
 
-bool cEncoder::OpenFile(const char *directory, cDecoder *decoder) {
-    if (!directory) return false;
+bool cEncoder::OpenFile() {
+    if (!recDir) return false;
     if (!decoder) return false;
 
     int ret = 0;
@@ -263,7 +265,7 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *decoder) {
     ALLOC(sizeof(int) * avctxIn->nb_streams, "streamMap");
     memset(streamMap, -1, sizeof(int) * avctxIn->nb_streams);
 
-    if (asprintf(&buffCutName,"%s", directory)==-1) {
+    if (asprintf(&buffCutName,"%s", recDir) == -1) {
         dsyslog("cEncoder::OpenFile(): failed to allocate string, out of memory?");
         return false;
     }
@@ -285,7 +287,7 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *decoder) {
     cutName++;   // ignore first char = /
     dsyslog("cEncoder::OpenFile(): cutName '%s'",cutName);
 
-    if (asprintf(&filename,"%s/%s.ts", directory, cutName)==-1) {
+    if (asprintf(&filename,"%s/%s.ts", recDir, cutName) == -1) {
         dsyslog("cEncoder::OpenFile(): failed to allocate string, out of memory?");
         return false;
     }
@@ -332,27 +334,27 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *decoder) {
     }
 
     // init all needed encoder
-    for (int index = 0; index < static_cast<int>(avctxIn->nb_streams); index++) {
-        if (!codecCtxArrayIn[index]) break;   // if we have no input codec we can not decode and encode this stream and all after
+    for (int streamIndex = 0; streamIndex < static_cast<int>(avctxIn->nb_streams); streamIndex++) {
+        if (!codecCtxArrayIn[streamIndex]) break;   // if we have no input codec we can not decode and encode this stream and all after
         if (fullEncode && bestStream) {
-            if (index == bestVideoStream) streamMap[index] = 0;
-            if (index == bestAudioStream) streamMap[index] = 1;
+            if (streamIndex == bestVideoStream) streamMap[streamIndex] = 0;
+            if (streamIndex == bestAudioStream) streamMap[streamIndex] = 1;
         }
         else {
-            if (decoder->IsVideoStream(index) || decoder->IsAudioStream(index) || decoder->IsSubtitleStream(index)) streamMap[index] = index;
+            if (decoder->IsVideoStream(streamIndex) || decoder->IsAudioStream(streamIndex) || decoder->IsSubtitleStream(streamIndex)) streamMap[streamIndex] = streamIndex;
             else {
-                dsyslog("cEncoder::OpenFile(): stream %d is no audio, no video and no subtitle, ignoring", index);
-                streamMap[index] = -1;
+                dsyslog("cEncoder::OpenFile(): stream %d is no audio, no video and no subtitle, ignoring", streamIndex);
+                streamMap[streamIndex] = -1;
             }
         }
-        dsyslog("cEncoder::OpenFile(): source stream %d -----> target stream %d", index, streamMap[index]);
-        if (streamMap[index] >= 0) {  // only init used streams
-            if (decoder->IsAudioStream(index) && codecCtxArrayIn[index]->sample_rate == 0) {  // ignore mute audio stream
-                dsyslog("cEncoder::OpenFile(): input stream %d: sample_rate not set, ignore mute audio stream", index);
-                streamMap[index] = -1;
+        dsyslog("cEncoder::OpenFile(): source stream %d -----> target stream %d", streamIndex, streamMap[streamIndex]);
+        if (streamMap[streamIndex] >= 0) {  // only init used streams
+            if (decoder->IsAudioStream(streamIndex) && codecCtxArrayIn[streamIndex]->sample_rate == 0) {  // ignore mute audio stream
+                dsyslog("cEncoder::OpenFile(): input stream %d: sample_rate not set, ignore mute audio stream", streamIndex);
+                streamMap[streamIndex] = -1;
             }
             else {
-                if (!InitEncoderCodec(decoder, directory, index, streamMap[index])) {
+                if (!InitEncoderCodec(streamIndex, streamMap[streamIndex])) {
                     esyslog("cEncoder::OpenFile(): InitEncoderCodec failed");
                     // cleanup memory
                     FREE(strlen(filename)+1, "filename");
@@ -401,7 +403,7 @@ bool cEncoder::OpenFile(const char *directory, cDecoder *decoder) {
 }
 
 
-bool cEncoder::ChangeEncoderCodec(cDecoder *decoder, const int streamIndexIn,  const int streamIndexOut, AVCodecContext *avCodecCtxIn) {
+bool cEncoder::ChangeEncoderCodec(const int streamIndexIn,  const int streamIndexOut, AVCodecContext *avCodecCtxIn) {
     if(!decoder) return false;
     if (!avctxIn) return false;
     if (streamIndexIn >= static_cast<int>(avctxIn->nb_streams)) {
@@ -548,7 +550,7 @@ bool cEncoder::CheckStats(const int max_b_frames) const {
 }
 
 
-bool cEncoder::InitEncoderCodec(cDecoder *decoder, const char *directory, const unsigned int streamIndexIn, const unsigned int streamIndexOut) {
+bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned int streamIndexOut) {
     if (!decoder) return false;
     if (!avctxIn) return false;
     if (!avctxOut) return false;
@@ -639,8 +641,8 @@ bool cEncoder::InitEncoderCodec(cDecoder *decoder, const char *directory, const 
 
         // calculate target mpeg2 video stream bit rate from recording
         int bit_rate = avctxIn->bit_rate; // overall recording bitrate
-        for (unsigned int index = 0; index < avctxIn->nb_streams; index ++) {
-            if (codecCtxArrayIn[index] && !decoder->IsVideoStream(index)) bit_rate -= codecCtxArrayIn[index]->bit_rate;  // audio streams bit rate
+        for (unsigned int streamIndex = 0; streamIndex < avctxIn->nb_streams; streamIndex ++) {
+            if (codecCtxArrayIn[streamIndex] && !decoder->IsVideoStream(streamIndex)) bit_rate -= codecCtxArrayIn[streamIndex]->bit_rate;  // audio streams bit rate
         }
         dsyslog("cEncoder::InitEncoderCodec(): target video bit rate %d", bit_rate);
 
@@ -667,7 +669,7 @@ bool cEncoder::InitEncoderCodec(cDecoder *decoder, const char *directory, const 
             av_opt_set(codecCtxArrayOut[streamIndexOut]->priv_data, "x264opts", "force-cfr", 0);  // constand frame rate
             // set pass stats file
             char *passlogfile;
-            if (asprintf(&passlogfile,"%s/encoder", directory) == -1) {
+            if (asprintf(&passlogfile,"%s/encoder", recDir) == -1) {
                 dsyslog("cEncoder::InitEncoderCodec(): failed to allocate string, out of memory?");
                 return false;
             }
@@ -918,7 +920,70 @@ bool cEncoder::ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int 
 }
 
 
-bool cEncoder::WritePacket(const int startFrame) {
+bool cEncoder::CutOut(int startPos, int stopPos) {
+    LogSeparator();
+    dsyslog("cEncoder::CutOut(): packet (%d), frame (%d): cut out from start position (%d) to stop position (%d) in pass: %d", decoder->GetVideoPacketNumber(), decoder->GetVideoFrameNumber(), startPos, stopPos, pass);
+
+    // if we do not encode, we do not decode and so we have no valid decoder frame number
+    int pos = 0;
+    if (fullEncode) pos = decoder->GetVideoFrameNumber();
+    else            pos = decoder->GetVideoPacketNumber();
+    if (pos >= startPos) {
+        esyslog("cEncoder::CutOut(): invalid decoder read position");
+    }
+
+    // seek to start position
+    if (fullEncode) {
+        if (!decoder->SeekToFrame(startPos)) {
+            esyslog("cMarkAdStandalone::MarkadCut(): seek to start mark (%d) failed", startPos);
+            return false;
+        }
+    }
+    else {
+        if (!decoder->SeekToPacket(startPos)) {  // ReadNextPacket() will read startPos
+            esyslog("cMarkAdStandalone::MarkadCut(): seek to packet before (%d) failed", startPos);
+            return false;
+        }
+    }
+
+    while (pos < stopPos) {
+        if (abortNow) return false;
+
+#ifdef DEBUG_CUT  // first picures after start mark after
+        if (!fullEncode) decoder->DecodePacket();   // no decoding from encoder, do it here
+        if (decoder->IsVideoFrame() && ((abs(pos - startPos) <= DEBUG_CUT) || (abs(pos - stopPos) <= DEBUG_CUT))) {
+            char *fileName = nullptr;
+            if (asprintf(&fileName,"%s/F__%07d_CUT.pgm", recDir, pos) >= 1) {
+                ALLOC(strlen(fileName)+1, "fileName");
+                SaveVideoPicture(fileName, decoder->GetVideoPicture());
+                FREE(strlen(fileName)+1, "fileName");
+                free(fileName);
+            }
+        }
+#endif
+
+        // write current packet
+        if (!WritePacket()) return false;
+
+        // read (and decode if full decode) next packet
+        if (fullEncode) {
+            while (true) {
+                if (!decoder->ReadNextPacket()) return false;
+                if (!decoder->DecodePacket()) continue; // decode packet, no error break, maybe we only need more frames to decode (e.g. interlaced video)
+                pos = decoder->GetVideoFrameNumber();
+                break;
+            }
+        }
+        else {
+            if (!decoder->ReadNextPacket()) return false;
+            pos = decoder->GetVideoPacketNumber();
+        }
+    }
+    return true;
+}
+
+
+bool cEncoder::WritePacket() {
     if (!avctxOut ) {
         dsyslog("cEncoder::WritePacket(): got no AVFormatContext from output file");
         return false;
@@ -1043,16 +1108,6 @@ bool cEncoder::WritePacket(const int startFrame) {
             return false;
         }
 
-        // decode packet
-        if (!decoder->DecodePacket()) return true; // no error, maybe we only need more frames to decode (e.g. interlaced video)
-
-        // seek to start mark was to i-frame before, fill decoder queue from i-frame before to start mark
-        while (decoderFrameNumber < startFrame) {
-            if (abortNow) return false;
-            dsyslog("cEncoder::WritePacket(): packet (%d), frame (%d): before start position (%d), ignore", decoder->GetVideoPacketNumber(), decoderFrameNumber, startFrame);
-            decoder->DecodeNextFrame(false);
-            decoderFrameNumber = decoder->GetVideoFrameNumber();
-        }
 
         AVFrame *avFrame = decoder->GetFrame();
 
@@ -1095,7 +1150,7 @@ bool cEncoder::WritePacket(const int startFrame) {
                 dsyslog("cEncoder::WritePacket(): number of channels of input stream %d changed at frame %d from %d to %d", streamIndexIn, decoderFrameNumber, codecCtxArrayOut[streamIndexOut]->channels, codecCtxArrayIn[streamIndexIn]->channels);
 #endif
 
-                if(!ChangeEncoderCodec(decoder, streamIndexIn, streamIndexOut, codecCtxArrayIn[streamIndexIn])) {
+                if(!ChangeEncoderCodec(streamIndexIn, streamIndexOut, codecCtxArrayIn[streamIndexIn])) {
                     esyslog("encoder initialization failed for output stream index %d, source is stream index %d", streamIndexOut, streamIndexIn);
                     return false;
                 }
@@ -1164,7 +1219,7 @@ bool cEncoder::WritePacket(const int startFrame) {
             EncoderStatus.videoEncodeError = false;
         }
         if (codecCtxArrayOut[streamIndexOut]) {
-            if (!EncodeFrame(decoder, codecCtxArrayOut[streamIndexOut], avFrame, &avpktOut)) {
+            if (!EncodeFrame(codecCtxArrayOut[streamIndexOut], avFrame, &avpktOut)) {
                 av_packet_unref(&avpktOut);
                 if (stateEAGAIN) {
                     //                    dsyslog("cEncoder::WritePacket(): encoder for output stream %d at frame %d need more frames", streamIndexOut, decoderFrameNumber);
@@ -1243,7 +1298,7 @@ bool cEncoder::WritePacket(const int startFrame) {
 }
 
 
-bool cEncoder::EncodeFrame(cDecoder *decoder, AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacket *avpkt) {
+bool cEncoder::EncodeFrame(AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacket *avpkt) {
     if (!decoder) return false;
     if (!avCodecCtx) {
         dsyslog("cEncoder::EncodeFrame(): codec context not set");
@@ -1310,7 +1365,7 @@ bool cEncoder::EncodeFrame(cDecoder *decoder, AVCodecContext *avCodecCtx, AVFram
 }
 
 
-bool cEncoder::CloseFile(__attribute__((unused)) cDecoder *decoder) {  // unused for libavcodec 56
+bool cEncoder::CloseFile() {
     int ret = 0;
 
     // empty all encoder queue
@@ -1342,7 +1397,7 @@ bool cEncoder::CloseFile(__attribute__((unused)) cDecoder *decoder) {  // unused
         avpktOut.opaque_ref      = nullptr;
 #endif
 
-        while(EncodeFrame(decoder, codecCtxArrayOut[streamIndex], nullptr, &avpktOut)) {
+        while(EncodeFrame(codecCtxArrayOut[streamIndex], nullptr, &avpktOut)) {
             avpktOut.stream_index = streamIndex;
             avpktOut.pos = -1;   // byte position in stream unknown
             // write packet

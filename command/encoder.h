@@ -6,6 +6,8 @@
  */
 
 #include "debug.h"
+#include "tools.h"
+#include "index.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -69,7 +71,7 @@ private:
 /**
  * main encoder class
  */
-class cEncoder {
+class cEncoder : protected cTools {
 public:
 
     /**
@@ -79,7 +81,7 @@ public:
      * @param bestStreamParam   true only encode best video and audio stream
      * @param ac3ReEncodeParam  true if AC3 re-endcode with volume adjust
      */
-    explicit cEncoder(cDecoder *decoderParam, const bool fullEncodeParam, const bool bestStreamParam, const bool ac3ReEncodeParam);
+    explicit cEncoder(cDecoder *decoderParam, cIndex *indexParam, const char* recDirParam, const bool fullEncodeParam, const bool bestStreamParam, const bool ac3ReEncodeParam);
 
     ~cEncoder();
 
@@ -96,20 +98,26 @@ public:
      * @param decoder      pointer to decoder
      * @return true if successful, false otherwise
      */
-    bool OpenFile(const char *directory, cDecoder *decoder);
+    bool OpenFile();
+
+    /** cut out video from <startPos> to <stopPos>
+     * @param startPos start frame position
+     * @param stopPos  stop frame position
+     * @return true if successful, false otherwise
+     */
+    bool CutOut(int startPos, int stopPos);
 
     /** write packet to output file
-     * @param startFrame start
-     * @return true if successful, flase otherwise
+     * @return true if successful, false otherwise
      */
-    bool WritePacket(const int startFrame);
+    bool WritePacket();
 
     /**
      * close output file
      * @param decoder pinter to decoder
      * @return true if successful, false otherwise
      */
-    bool CloseFile(cDecoder *decoder);
+    bool CloseFile();
 
 private:
     /** encode frame
@@ -118,7 +126,7 @@ private:
      * @param avFrame      decodes frame
      * @param avpkt        encoded packet
      */
-    bool EncodeFrame(cDecoder *decoder, AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacket *avpkt);
+    bool EncodeFrame(AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacket *avpkt);
 
     /**
      * init encoder codec
@@ -128,7 +136,7 @@ private:
      * @param streamIndexOut output stream index
      * @return true if successful, false otherwise
      */
-    bool InitEncoderCodec(cDecoder *decoder, const char *directory, const unsigned int streamIndexIn, const unsigned int streamIndexOut);
+    bool InitEncoderCodec(const unsigned int streamIndexIn, const unsigned int streamIndexOut);
 
     /**
      * change audio encoder channel count
@@ -138,7 +146,7 @@ private:
      * @param avCodecCtxIn   input stream codec context
      * @return true if successful, false otherwise
      */
-    bool ChangeEncoderCodec(cDecoder *decoder, const int streamIndexIn, const int streamIndexOut, AVCodecContext *avCodecCtxIn);
+    bool ChangeEncoderCodec(const int streamIndexIn, const int streamIndexOut, AVCodecContext *avCodecCtxIn);
 
     /**
      * save video frame as picture, used for debugging
@@ -164,6 +172,10 @@ private:
     bool CheckStats(const int max_b_frames) const;
 
     cDecoder *decoder                 = nullptr;                  //!< decoder
+    //!<
+    cIndex *index                     = nullptr;                  //!< index
+    //!<
+    const char *recDir                = nullptr;                  //!< recording directory
     //!<
     bool fullEncode                   = false;                    //!< true for full re-encode video and audio
     //!<
