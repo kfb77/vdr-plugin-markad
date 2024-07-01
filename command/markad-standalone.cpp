@@ -6384,9 +6384,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     }
 
     if (asprintf(&indexFile, "%s/index", directory) == -1) indexFile = nullptr;
-    if (indexFile) {
-        ALLOC(strlen(indexFile)+1, "indexFile");
-    }
+    if (indexFile) ALLOC(strlen(indexFile) + 1, "indexFile");
 
     // load VPS events
     vps = new cVPS(directory);
@@ -6453,6 +6451,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
 
 cMarkAdStandalone::~cMarkAdStandalone() {
+    dsyslog("cMarkAdStandalone::~cMarkAdStandalone(): delete object");
     if (abortNow) return;
     marks.Save(directory, &macontext, true);
 
@@ -7243,8 +7242,8 @@ int main(int argc, char *argv[]) {
 
         // init cMarkAdStandalone here, we need now log to recording
         cMarkAdStandalone *cmasta = new cMarkAdStandalone(recDir, &config);
-        ALLOC(sizeof(*cmasta), "cmasta");
         if (!cmasta) return EXIT_FAILURE;
+        ALLOC(sizeof(*cmasta), "cmasta");
 
         dsyslog("parameter --loglevel is set to %i", SysLogLevel);
 
