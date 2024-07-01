@@ -195,6 +195,7 @@ cEncoder::cEncoder(cDecoder *decoderParam, cIndex *indexParam, const char *recDi
 
 
 cEncoder::~cEncoder() {
+    dsyslog("cEncoder::~cEncoder(): delete object");
     for (unsigned int i = 0; i < avctxOut->nb_streams; i++) {
         if (volumeFilterAC3[i]) {
             FREE(sizeof(*volumeFilterAC3[i]), "volumeFilterAC3");
@@ -207,7 +208,6 @@ cEncoder::~cEncoder() {
         free(stats_in.data);
     }
 
-    dsyslog("cEncoder::~cEncoder(): call avformat_free_context");
     FREE(sizeof(*avctxOut), "avctxOut");
     avformat_free_context(avctxOut);
 }

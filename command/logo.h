@@ -110,11 +110,11 @@ public:
 
     /**
      * search and extract logo from recording
-     * @param startFrame   frame number to start search
-     * @param force        finding a logo, even on weak matches
+     * @param startPacket   frame number to start search
+     * @param force         finding a logo, even on weak matches
      * @return last read frame during search
      */
-    int SearchLogo(int startFrame, const bool force);
+    int SearchLogo(int startPacket, const bool force);
 
     /**
      * compare logo pair

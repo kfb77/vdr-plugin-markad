@@ -3972,6 +3972,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
 void cMarkAdStandalone::DebugMarkFrames() {
     if (!decoder) return;
 
+    LogSeparator(true);
     decoder->Restart();   // restart decoder with first frame
     cMark *mark = marks.GetFirst();
     if (!mark) return;
@@ -4138,10 +4139,11 @@ void cMarkAdStandalone::MarkadCut() {
         esyslog("failed to close output file");
         return;
     }
-    dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %d", decoder->GetVideoFrameNumber());
     FREE(sizeof(*encoder), "encoder");
     delete encoder;  // encoder must be valid here because it is used above
     encoder = nullptr;
+
+    dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %d", decoder->GetVideoFrameNumber());
 }
 
 

@@ -1566,10 +1566,10 @@ void cExtractLogo::ManuallyExtractLogo(const int corner, const int width, const 
 
 
 // return -1 internal error, 0 ok, > 0 no logo found, return last framenumber of search
-int cExtractLogo::SearchLogo(int startFrame, const bool force) {
+int cExtractLogo::SearchLogo(int startPacket, const bool force) {
     LogSeparator(true);
-    dsyslog("cExtractLogo::SearchLogo(): extract logo from frame %d requested aspect ratio %d:%d, force = %d", startFrame, requestedLogoAspectRatio.num, requestedLogoAspectRatio.den, force);
-    if (startFrame < 0) return LOGO_ERROR;
+    dsyslog("cExtractLogo::SearchLogo(): extract logo from packet %d requested aspect ratio %d:%d, force = %d", startPacket, requestedLogoAspectRatio.num, requestedLogoAspectRatio.den, force);
+    if (startPacket < 0) return LOGO_ERROR;
 
     // set start time for statistics
     struct timeval startTime;
@@ -1588,30 +1588,31 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
     }
 
 // set start point
-    DeleteFrames(0, startFrame - 1);
+    DeleteFrames(0, startPacket - 1);
     int firstFrame = GetFirstFrame();
     int lastFrame = GetLastFrame();
     int countFrame = CountFrames();
     if (firstFrame == INT_MAX) dsyslog("cExtractLogo::SearchLogo(): we have no frames already stored");
     else dsyslog("cExtractLogo::SearchLogo(): already have %d frames from (%d) to frame (%d)", countFrame, firstFrame, lastFrame);
     iFrameCountValid = countFrame;
-    if (lastFrame > startFrame) startFrame = lastFrame;
+    if (lastFrame > startPacket) startPacket = lastFrame;
 
     // seek to start position
     int frameNumber = decoder->GetVideoFrameNumber();
-    if (frameNumber < startFrame) {
-        dsyslog("cExtractLogo::SearchLogo(): frame (%d): seek to frame %d", frameNumber, startFrame);
-        if (!WaitForFrames(decoder, startFrame)) {
-            dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() for startFrame %d failed", startFrame);
+    if (frameNumber < startPacket) {
+        dsyslog("cExtractLogo::SearchLogo(): frame (%d): seek to packet (%d)", frameNumber, startPacket);
+        if (!WaitForFrames(decoder, startPacket)) {
+            dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() for start packet (%d) failed", startPacket);
             return LOGO_ERROR;
         }
-        if (!decoder->SeekToPacket(startFrame)) {
-            dsyslog("cExtractLogo::SearchLogo(): seek to start frame (%d) failed", startFrame);
+        if (!decoder->SeekToPacket(startPacket)) {
+            dsyslog("cExtractLogo::SearchLogo(): seek to start packet (%d) failed", startPacket);
             return LOGO_ERROR;
         }
     }
 
     // if no aspect ratio requestet, use current from video
+    decoder->DecodeNextFrame(false);   // decode one video frame to get current aspect ratio
     sAspectRatio logoAspectRatio = requestedLogoAspectRatio;
     if ((logoAspectRatio.num == 0) || (logoAspectRatio.den == 0))  {
         sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
@@ -1620,8 +1621,8 @@ int cExtractLogo::SearchLogo(int startFrame, const bool force) {
             dsyslog("cExtractLogo::SearchLogo(): no aspect ratio requested, set to aspect ratio of current video position %d:%d", logoAspectRatio.num, logoAspectRatio.den);
         }
         else {
-            esyslog("cExtractLogo::SearchLogo(): frame (%d): no valid aspect ratio in current frame", decoder->GetVideoFrameNumber());
-            return LOGO_ERROR;
+            dsyslog("cExtractLogo::SearchLogo(): frame (%d): no valid aspect ratio in current frame", decoder->GetVideoFrameNumber());
+            return decoder->GetVideoFrameNumber() + 1;   // allow retry with frame after
         }
     }
 

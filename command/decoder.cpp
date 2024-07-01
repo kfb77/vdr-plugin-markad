@@ -851,7 +851,11 @@ bool cDecoder::SeekToPacket(int seekPacketNumber) {
 
 // seek to and decode video frame number <seekFrameNumber>
 bool cDecoder::SeekToFrame(int seekFrameNumber) {
-// seek to i-frame packet before
+    if (!index) { // no possible without index
+        esyslog("cDecoder::SeekToFrame(): no index available");
+        return false;
+    }
+    // seek to i-frame packet before
     int seekPacket = index->GetIFrameBefore(seekFrameNumber);
     if (!SeekToPacket(seekPacket)) {
         esyslog("cDecoder::SeekToFrame(): seek to i-frame packet (%d) before seek frame (%d) failed", seekPacket, seekFrameNumber);
@@ -1300,7 +1304,7 @@ sAspectRatio *cDecoder::GetFrameAspectRatio() {
     DAR.num = avFrame.sample_aspect_ratio.num;
     DAR.den = avFrame.sample_aspect_ratio.den;
     if ((DAR.num == 0) || (DAR.den == 0)) {
-        esyslog("cDecoder::GetAspectRatio(): invalid aspect ratio (%d:%d) at frame (%d)", DAR.num, DAR.den, frameNumber);
+        esyslog("cDecoder::GetAspectRatio(): packet (%d), frame (%d): invalid aspect ratio (%d:%d)", packetNumber, frameNumber, DAR.num, DAR.den);
         return nullptr;
     }
     if ((DAR.num == 1) && (DAR.den == 1)) {
