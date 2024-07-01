@@ -21,6 +21,10 @@ av_always_inline std::string av_err2string(int errnum) {
 #endif  // av_err2str
 
 
+// global variables
+extern bool abortNow;
+
+
 cAC3VolumeFilter::cAC3VolumeFilter() {
 }
 
@@ -914,7 +918,7 @@ bool cEncoder::ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int 
 }
 
 
-bool cEncoder::WritePacket() {
+bool cEncoder::WritePacket(const int startFrame) {
     if (!avctxOut ) {
         dsyslog("cEncoder::WritePacket(): got no AVFormatContext from output file");
         return false;
@@ -1041,6 +1045,15 @@ bool cEncoder::WritePacket() {
 
         // decode packet
         if (!decoder->DecodePacket()) return true; // no error, maybe we only need more frames to decode (e.g. interlaced video)
+
+        // seek to start mark was to i-frame before, fill decoder queue from i-frame before to start mark
+        while (decoderFrameNumber < startFrame) {
+            if (abortNow) return false;
+            dsyslog("cEncoder::WritePacket(): packet (%d), frame (%d): before start position (%d), ignore", decoder->GetVideoPacketNumber(), decoderFrameNumber, startFrame);
+            decoder->DecodeNextFrame(false);
+            decoderFrameNumber = decoder->GetVideoFrameNumber();
+        }
+
         AVFrame *avFrame = decoder->GetFrame();
 
 #ifdef DEBUG_PTS_DTS_CUT

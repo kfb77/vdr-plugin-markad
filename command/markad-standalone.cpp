@@ -4118,11 +4118,10 @@ void cMarkAdStandalone::MarkadCut() {
                 LogSeparator();
                 dsyslog("cMarkAdStandalone::MarkadCut(): decoding for start mark (%d) to end mark (%d) in pass: %d", startMark->position, stopMark->position, pass);
                 if (macontext.Config->fullEncode) {
-                    if (!decoder->SeekToFrameBefore(startMark->position)) {  // packet is now in decoder
+                    if (!decoder->SeekToPacket(index->GetIFrameBefore(startPos))) {  // seek to i-frame before to fill decoder queue, i-frame packet before is now in decoder
                         esyslog("cMarkAdStandalone::MarkadCut(): seek to start mark (%d) failed", startMark->position);
                         break;
                     }
-                    if (!decoder->ReadNextPacket()) break;   // read next packet, decode will be done by encoder
                 }
                 else {
                     if (!decoder->SeekToPacket(startPos)) {  // ReadNextPacket() will read startPos
@@ -4165,11 +4164,10 @@ void cMarkAdStandalone::MarkadCut() {
                 continue;       // read next packet and seek to new start frame
             }
             // decode/encode/write current packet
-            if (!encoder->WritePacket()) {
+            if (!encoder->WritePacket(startPos)) {
                 dsyslog("cMarkAdStandalone::MarkadCut(): failed to write frame %d to output stream", frameNumber);  // no not abort, maybe next frame works
             }
-
-#ifdef DEBUG_CUT  // first picures after start mark after
+            #ifdef DEBUG_CUT  // first picures after start mark after
             if (!macontext.Config->fullEncode) decoder->DecodePacket();   // no decoding from encoder, do it here
             if (decoder->IsVideoFrame() && (frameNumber <= startMark->position + DEBUG_CUT)) {
                 char *fileName = nullptr;
@@ -4181,6 +4179,7 @@ void cMarkAdStandalone::MarkadCut() {
                 }
             }
 #endif
+
 
         }
         if (!encoder->CloseFile(decoder)) {

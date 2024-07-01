@@ -99,9 +99,10 @@ public:
     bool OpenFile(const char *directory, cDecoder *decoder);
 
     /** write packet to output file
+     * @param startFrame start
      * @return true if successful, flase otherwise
      */
-    bool WritePacket();
+    bool WritePacket(const int startFrame);
 
     /**
      * close output file
