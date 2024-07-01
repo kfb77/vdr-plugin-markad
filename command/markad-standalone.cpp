@@ -4075,7 +4075,7 @@ void cMarkAdStandalone::MarkadCut() {
 
         // if no decoding/encoding adjust position to i-frame
         if (!macontext.Config->fullEncode) {
-            startPos = index->GetIFrameAfter(startPos + 1);  // without decode, first i-frame is too early
+            startPos = index->GetIFrameAfter(startPos + 1);  // without decode, first i-frame is too early, don't know why
             if (startPos < 0) {
                 esyslog("cMarkAdStandalone::MarkadCut(): get i-frame before (%d) failed", startMark->position);
                 return;
@@ -4102,11 +4102,9 @@ void cMarkAdStandalone::MarkadCut() {
             // take care of abort
             if (abortNow) {
                 encoder->CloseFile(decoder);  // encoder must be valid here because it is used above
-                if (decoder) {
-                    FREE(sizeof(*decoder), "decoder");
-                    delete decoder;
-                    decoder = nullptr;
-                }
+                FREE(sizeof(*decoder), "decoder");
+                delete decoder;
+                decoder = nullptr;
                 FREE(sizeof(*encoder), "encoder");
                 delete encoder;
                 encoder = nullptr;
@@ -4120,10 +4118,11 @@ void cMarkAdStandalone::MarkadCut() {
                 LogSeparator();
                 dsyslog("cMarkAdStandalone::MarkadCut(): decoding for start mark (%d) to end mark (%d) in pass: %d", startMark->position, stopMark->position, pass);
                 if (macontext.Config->fullEncode) {
-                    if (!decoder->SeekExactToFrame(startMark->position)) {  // packet is now in decoder
+                    if (!decoder->SeekToFrameBefore(startMark->position)) {  // packet is now in decoder
                         esyslog("cMarkAdStandalone::MarkadCut(): seek to start mark (%d) failed", startMark->position);
                         break;
                     }
+                    if (!decoder->ReadNextPacket()) break;   // read next packet, decode will be done by encoder
                 }
                 else {
                     if (!decoder->SeekToPacket(startPos)) {  // ReadNextPacket() will read startPos

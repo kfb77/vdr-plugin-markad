@@ -967,7 +967,7 @@ bool cDecoder::SeekToFrame(int seekFrameNumber) {
 bool cDecoder::SeekToFrameBefore(int seekFrameNumber) {
 // seek to frame before (full decode) or i-frame before (no full decode), next ReadPacket will load the taget seekFrameNumber
 // if we have no index, we do not preload decoder
-// if we do no full decode and seekFrame i-frame number, we seek to next i-frame
+// if we do no full decode and seekFrame is i-frame number, we seek to next i-frame
     if (!avctx) return false;
     if (!codecCtxArray) return false;
     dsyslog("cDecoder::SeekToFrameBefore(): packet (%d), frame (%d): seek to frame before (%d)", packetNumber, frameNumber, seekFrameNumber);
@@ -1022,7 +1022,7 @@ bool cDecoder::SeekToFrameBefore(int seekFrameNumber) {
     // now read and decode from i-frame before to fill queue with all packets from i-frame before to current frame (maybe no i-frame)
     while (frameNumber < decodeFrame) {    // we stop one frame before, next DecodePacket will return requestet frame
         if (abortNow) return false;
-        if (!DecodeNextFrame(false)) {   // no audio decode, we read after loop check, do not remove "-1"
+        if (!DecodeNextFrame(false)) {   // no audio decode, we read after loop check
             dsyslog("cDecoder::SeekToFrameBefore(): packet (%d), frame (%d): seek to frame (%d) failed to decode next frame", packetNumber, frameNumber, seekFrameNumber);
             return false;
         }
