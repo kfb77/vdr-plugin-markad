@@ -33,6 +33,7 @@
 #endif
 
 #include "markad-standalone.h"
+#include "debug.h"
 #include "audio.h"
 
 bool SYSLOG                    = false;

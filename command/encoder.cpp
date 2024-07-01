@@ -1231,7 +1231,6 @@ bool cEncoder::WritePacket() {
 
 
 bool cEncoder::EncodeFrame(cDecoder *decoder, AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacket *avpkt) {
-    dsyslog("cEncoder::EncodeFrame(): xxxxx packetNumber (%d)", decoder->GetVideoPacketNumber());
     if (!decoder) return false;
     if (!avCodecCtx) {
         dsyslog("cEncoder::EncodeFrame(): codec context not set");

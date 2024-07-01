@@ -91,7 +91,7 @@
 // #define DEBUG_RING_PTS_LOOKUP
 
 // debug video cut position, write <count> frames after start mark to recording directory
-#define DEBUG_CUT 40
+#define DEBUG_CUT 5
 
 // debug PTS and DTS of video cut
 // #define DEBUG_PTS_DTS_CUT
@@ -150,7 +150,7 @@ extern void syslog_with_tid(int priority, const char *format, ...) __attribute__
 bool SaveSobel(const char *fileName, const uchar *picture, const int width, const int height);
 #endif
 
-#if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER)
+#if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_DECODER_SEEK) || defined(DEBUG_CUT)
 void SaveVideoPicture(const char *fileName, sVideoPicture *picture);
 #endif
 

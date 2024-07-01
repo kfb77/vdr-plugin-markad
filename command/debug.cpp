@@ -10,7 +10,7 @@
 
 // save currect content of the frame buffer (plane 0) to fileName
 //
-#if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_DECODER_SEEK)
+#if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_DECODER_SEEK) || defined(DEBUG_CUT)
 #include <stdio.h>
 #include <stdlib.h>
 void SaveVideoPicture(const char *fileName, sVideoPicture *picture) {
