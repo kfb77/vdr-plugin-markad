@@ -1272,7 +1272,7 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
 }
 
 
-// special case opening/closing logo sequence from kabel eins, unable to detect info logo change from this channel
+// special case opening logo sequence from kabel eins, unable to detect info logo change from this channel, too much and too short
 bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
     if (!mark) return false;
     // check logo start mark
@@ -1286,11 +1286,12 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
         dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTART (%5d) -> %4dms -> MT_LOGOSTOP (%5d) -> %4dms -> MT_LOGOSTART (%5d)", mark->position, diffMarkStop1After, stop1After->position, diffStop1AfterStart2After, start2After->position);
         // valid example
         // MT_LOGOSTART ( 5439) -> 5920ms -> MT_LOGOSTOP ( 5587) -> 1120ms -> MT_LOGOSTART ( 5615) -> kabel eins
+        // MT_LOGOSTART ( 7913) -> 4480ms -> MT_LOGOSTOP ( 8025) -> 2200ms -> MT_LOGOSTART ( 8080) -> kabel eins
         //
         // invald example
         // MT_LOGOSTART ( 3833) ->  480ms -> MT_LOGOSTOP ( 3845) ->  480ms  -> MT_LOGOSTART ( 3857) -> DMAX
-        if ((diffMarkStop1After > 480) && (diffMarkStop1After <= 5920) &&
-                (diffStop1AfterStart2After > 480) && (diffStop1AfterStart2After <= 1120)) {
+        if ((diffMarkStop1After >= 4480) && (diffMarkStop1After <= 5920) &&
+                (diffStop1AfterStart2After >= 1120) && (diffStop1AfterStart2After <= 2200)) {
             dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): found opening info logo sequence");
             return true;
         }
