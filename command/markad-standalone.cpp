@@ -1585,7 +1585,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     if (!stopMark) return false;
     if (criteria->GetClosingCreditsState(stopMark->position) < CRITERIA_UNKNOWN) return false;
 
-    dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits after position (%d)", stopMark->position);
+    dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits in frame without logo after position (%d)", stopMark->position);
 
     // init objects for logo mark optimization
     if (!detectLogoStopStart) {  // init in RemoveLogoChangeMarks(), but maybe not used
@@ -1597,7 +1597,9 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
 
     int endPos = stopMark->position + (25 * macontext.Video.Info.framesPerSecond);  // try till 25s after stopMarkPosition
     int newPosition = -1;
-    detectLogoStopStart->Detect(stopMark->position, endPos);
+    if (detectLogoStopStart->Detect(stopMark->position, endPos)) {
+        newPosition = detectLogoStopStart->ClosingCredit();
+    }
 
     if (newPosition > stopMark->position) {
         dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): closing credits found, move stop mark to position (%d)", newPosition);
@@ -5545,7 +5547,7 @@ void cMarkAdStandalone::ProcessOverlap() {
 
     // check last stop mark if closing credits follows
     LogSeparator(false);
-    dsyslog("cMarkAdStandalone::ProcessOverlap(): check last stop mark for advertisement in frame with logo or closing credits");
+    dsyslog("cMarkAdStandalone::ProcessOverlap(): check last stop mark for advertisement in frame with logo or closing credits in frame without logo");
     cMark *lastStop = marks.GetLast();
     // check end mark
     if (lastStop && ((lastStop->type == MT_LOGOSTOP) ||  // prevent double detection of ad in frame and closing credits
