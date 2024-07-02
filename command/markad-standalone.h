@@ -42,7 +42,7 @@ class cOSDMessage;
 /**
  * markad main class
  */
-class cMarkAdStandalone : protected cEvaluateChannel {
+class cMarkAdStandalone : private cTools {
 public:
 
     /**
@@ -282,7 +282,7 @@ private:
     /**
      * remove all logo marks based on logo changes
      */
-    void RemoveLogoChangeMarks();
+    void RemoveLogoChangeMarks(const bool checkStart);
 
     /**
      * calculate position to check for start and end mark
@@ -391,7 +391,7 @@ private:
 
     cIndex *index                    = nullptr; //!< pointer to index object
     //!
-    cDecoder *decoder                = nullptr;  //!< pointer to decoder
+    cDecoder *decoder                = nullptr;  //!< pointer to main decoder
     //!
     cCriteria *criteria              = nullptr;  //!< status of possible mark types of the broadcast
     //!<

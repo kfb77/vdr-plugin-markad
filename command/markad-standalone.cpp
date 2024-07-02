@@ -457,7 +457,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
 
     cMark *lEnd = nullptr;
     // try to select best logo end mark based on closing credits follow
-    if (evaluateLogoStopStartPair->ClosingCreditsChannel(macontext.Info.ChannelName)) {
+    if (criteria->IsClosingCreditsChannel()) {
         LogSeparator(false);
         dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): search for best logo end mark based on closing credits after logo stop");
         // search from nearest logo stop mark to end
@@ -1366,7 +1366,7 @@ void cMarkAdStandalone::CheckStop() {
         aStart = marks.GetNext(aStart->position, MT_ASPECTSTART);
     }
     // remove logo change marks
-    if (criteria->GetMarkTypeState(MT_CHANNELCHANGE) >= CRITERIA_UNKNOWN) RemoveLogoChangeMarks();
+    if (criteria->GetMarkTypeState(MT_CHANNELCHANGE) >= CRITERIA_UNKNOWN) RemoveLogoChangeMarks(false);
 
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStop(): marks after first cleanup:");
@@ -1591,7 +1591,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
         detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, nullptr, video->GetLogoCorner());
         ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
     }
-    // need to reset read position from decoder if no overlap detection was done before
+    // check current read position of decoder
     if (stopMark->position < decoder->GetVideoFrameNumber()) decoder->Restart();
 
     int endPos = stopMark->position + (25 * macontext.Video.Info.framesPerSecond);  // try till 25s after stopMarkPosition
@@ -1613,31 +1613,51 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
 // remove logo stop/start pairs from logo changes / info logo / introduction logo
 // have to be done before end mark selection to prevent to select wrong end mark
 //
-void cMarkAdStandalone::RemoveLogoChangeMarks() {
+void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start marks from special logo");
 
-    if (marks.Count(MT_LOGOCHANGE, 0xF0) < 4) {  // only if there are at last one corect logo stop/start and one logo/stop/start from
+    // only if there are at last one corect logo stop/start and one logo/stop/start from special logo
+    if (marks.Count(MT_LOGOCHANGE, 0xF0) < 4) {
         dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): to less logo marks");
         return;
     }
-
-    // check if this channel has special logos
-    if (!evaluateLogoStopStartPair) {
-        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder, criteria);
-        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
-    }
-    if (!evaluateLogoStopStartPair->IsInfoLogoChannel(macontext.Info.ChannelName) &&
-            !evaluateLogoStopStartPair->IsLogoChangeChannel(macontext.Info.ChannelName) &&
-            !evaluateLogoStopStartPair->ClosingCreditsChannel(macontext.Info.ChannelName)) {  // for performance reason only known and tested channels
+    // check if this channel has special logos, for performance reason only known and tested channels
+    if (!criteria->IsInfoLogoChannel() && !criteria->IsLogoChangeChannel() && !criteria->IsClosingCreditsChannel()) {
         dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): channel not in list for special logo");
         return;
     }
 
-    decoder->Restart();  // read position is at the end of the recording from mark detection, restart read position
+    // do not messup decoder read position if called by CheckStart(), use new instance for detection
+    // use local variables with same name as global
+    cDecoder *decoder_local = decoder;
+    if (checkStart) {
+        decoder_local = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, macontext.Config->forceHW, index);
+        ALLOC(sizeof(*decoder_local), "decoder_local");
+        if (!decoder_local->ReadNextFile()) { // force init decoder to get infos about video (frame rate is used by cEvaluateLogoStopStartPair)
+            esyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): failed to open first video file");
+            return;
+        }
+        if (detectLogoStopStart) {
+            esyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): object detectLogoStopStart should not exists");
+            return;
+        }
+        if (evaluateLogoStopStartPair) {
+            esyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): object evaluateLogoStopStartPair should not exists");
+            return;
+        }
+    }
+    else decoder_local->Restart();  // we are called from CheckStop(), decoder read position is at end of recording
+
+    // check if objects exists, otherwise create new with global varibles
     if (!detectLogoStopStart) {
-        detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, nullptr, video->GetLogoCorner());
+        detectLogoStopStart = new cDetectLogoStopStart(decoder_local, index, criteria, nullptr, video->GetLogoCorner());
         ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
+    }
+
+    if (!evaluateLogoStopStartPair) {
+        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder_local, criteria);
+        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
     }
 
     evaluateLogoStopStartPair->CheckLogoStopStartPairs(&marks, &blackMarks, startA, frameCheckStart, stopA);
@@ -1687,7 +1707,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {
             if ((isInfoLogo <= STATUS_NO) && (isLogoChange <= STATUS_NO)) detectLogoStopStart->ClosingCredit();
 
             // check for info logo if  we are called by CheckStart and we are in broadcast
-            if ((startA > 0) && evaluateLogoStopStartPair->IntroductionLogoChannel(macontext.Info.ChannelName) && (isStartMarkInBroadcast == STATUS_YES)) {
+            if ((startA > 0) && criteria->IsIntroductionLogoChannel() && (isStartMarkInBroadcast == STATUS_YES)) {
                 // do not delete info logo, it can be introduction logo, it looks the same
                 // expect we have another start very short before
                 cMark *lStartBefore = marks.GetPrev(stopPosition, MT_LOGOSTART);
@@ -1719,7 +1739,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {
         }
     }
 
-    // delete last timer string
+    // delete buffer and objects
     if (indexToHMSFStop) {
         FREE(strlen(indexToHMSFStop)+1, "indexToHMSF");
         free(indexToHMSFStop);
@@ -1728,6 +1748,20 @@ void cMarkAdStandalone::RemoveLogoChangeMarks() {
         FREE(strlen(indexToHMSFStart)+1, "indexToHMSF");
         free(indexToHMSFStart);
     }
+
+    // delete only one time used object from CheckStart() call
+    if (checkStart) {
+        FREE(sizeof(*decoder_local), "decoder_local");
+        delete decoder_local;
+        decoder_local = nullptr;
+        FREE(sizeof(*detectLogoStopStart), "detectLogoStopStart");
+        delete detectLogoStopStart;
+        detectLogoStopStart = nullptr;
+        FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+        delete evaluateLogoStopStartPair;
+        evaluateLogoStopStartPair = nullptr;
+    }
+
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): marks after detect and remove logo stop/start mark pairs with special logo");
     DebugMarks();     //  only for debugging
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): end detect and remove logo stop/start mark pairs with special logo");
@@ -1884,8 +1918,8 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check for logo start mark based on closing credits from previous broadcast");
     // prevent to detect ad in frame from previous broadcast as closing credits
-    if (!evaluateLogoStopStartPair->AdInFrameWithLogoChannel(macontext.Info.ChannelName) &&
-            evaluateLogoStopStartPair->ClosingCreditsChannel(macontext.Info.ChannelName)) {
+    if (!criteria->IsAdInFrameWithLogoChannel() &&
+            criteria->IsClosingCreditsChannel()) {
         // search from nearest logo start mark to end, first mark can be before startA
         lStart = lStartAssumed;
         while (!begin && lStart) {
@@ -2512,7 +2546,8 @@ void cMarkAdStandalone::CheckStart() {
 
     // before we can check border marks, we have to check with is valid
 
-    RemoveLogoChangeMarks(); // cleanup invalid logo marks, done before border check because we use logo marks to correct border marks
+    // cleanup invalid logo marks, done before border check because we use logo marks to correct border marks, call without decoder, do not messup read position
+    RemoveLogoChangeMarks(true);
 
 // horizontal border start
     if (!begin) begin = Check_HBORDERSTART();
@@ -2982,7 +3017,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 
 // invalid stop/start pair from change introduction logo (detected as logo) to normal logo
 // MT_LOGOSTART ( 99981) ->    7720ms -> MT_LOGOSTOP (100174) ->    1120ms -> MT_LOGOSTART (100202) -> 1098840ms -> MT_STOP (127673) -> introdution logo change (kabel eins)
-                    if (evaluateLogoStopStartPair->IntroductionLogoChannel(macontext.Info.ChannelName) &&
+                    if (criteria->IsIntroductionLogoChannel() &&
                             (prevLogoStart_Stop     <= 7720) &&
                             (stop_nextLogoStart     <= 1120) &&
                             (nextLogoStart_nextStop >= 1098840)) {
@@ -3016,7 +3051,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // MT_LOGOSTART ( 49262) ->    8160ms -> MT_LOGOSTOP ( 49466) ->     640ms -> MT_LOGOSTART ( 49482) -> 1196440ms -> MT_STOP ( 79393) -> second of double logo change (TELE 5)
 // MT_LOGOSTART ( 49474) ->    8200ms -> MT_LOGOSTOP ( 49679) ->     640ms -> MT_LOGOSTART ( 49695) -> 1163720ms -> MT_STOP ( 78788) -> second of double logo change (TELE 5)
 // MT_LOGOSTART ( 82486) ->    8440ms -> MT_LOGOSTOP ( 82697) ->     400ms -> MT_LOGOSTART ( 82707) ->  462880ms -> MT_STOP ( 94279) -> second of double logo change (TELE 5)
-                    if (evaluateLogoStopStartPair->IsLogoChangeChannel(macontext.Info.ChannelName) &&
+                    if (criteria->IsLogoChangeChannel() &&
                             (prevLogoStart_Stop     >= 1120) && (prevLogoStart_Stop     <=    8440) &&
                             (stop_nextLogoStart     >=  280) && (stop_nextLogoStart     <=    1120) &&
                             (nextLogoStart_nextStop >=  560) && (nextLogoStart_nextStop <= 1303560)) {
@@ -4185,7 +4220,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             int introductionStartPosition = -1;
 
             // check for introduction logo before logo mark position
-            if (detectLogoStopStart->IntroductionLogoChannel(macontext.Info.ChannelName)) {
+            if (criteria->IsIntroductionLogoChannel()) {
                 LogSeparator(false);
                 int searchStartPosition = markLogo->position - (30 * macontext.Video.Info.framesPerSecond); // introduction logos are usually 10s, somettimes longer, changed from 12 to 30
                 if (searchStartPosition < 0) searchStartPosition = 0;
@@ -4206,7 +4241,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             }
 
             // check for advertising in frame with logo after logo start mark position
-            if (detectLogoStopStart->AdInFrameWithLogoChannel(macontext.Info.ChannelName)) {
+            if (criteria->IsAdInFrameWithLogoChannel()) {
                 int adInFrameEndPosition = -1;
                 LogSeparator(false);
                 int searchEndPosition = markLogo->position + (60 * macontext.Video.Info.framesPerSecond); // advertising in frame are usually 30s
@@ -6452,7 +6487,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
     FREE(sizeof(*criteria), "criteria");
     delete criteria;
 
-    // log statistics
+// log statistics
     if ((!abortNow) && (!duplicate)) {
         LogSeparator();
 
@@ -6548,7 +6583,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         }
     }
 
-    // cleanup objects used in statistics
+// cleanup objects used in statistics
     if (vps) {
         FREE(sizeof(*vps), "vps");
         delete vps;

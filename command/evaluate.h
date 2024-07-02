@@ -30,47 +30,9 @@ enum eEvaluateStatus {
 
 
 /**
- * class to evaluate channel special logos types
- */
-class cEvaluateChannel : protected cTools {
-public:
-
-    /**
-     * check if channel could have info logos
-     * @return true if channel could have info logos, false otherwise
-     */
-    bool IsInfoLogoChannel(const char *channelName);
-
-    /**
-     * check if channel could have logo changes
-     * @return true if channel could have logo changes, false otherwise
-     */
-    bool IsLogoChangeChannel(const char *channelName);
-
-    /**
-     * check if channel could have closing credits without logo
-     * @return true if channel could have closing credits without logo, false otherwise
-     */
-    bool ClosingCreditsChannel(const char *channelName);
-
-    /**
-     * check if channel could have advertising in frame with logo
-     * @return true if channel advertising in frame with logo, false otherwise
-     */
-    bool AdInFrameWithLogoChannel(const char *channelName);
-
-    /**
-     * check for introduction logo
-     * @return true if introduction logo detected, false otherwise
-     */
-    bool IntroductionLogoChannel(const char *channelName);
-};
-
-
-/**
  * class to evaluate logo stop/start pair
  */
-class cEvaluateLogoStopStartPair : public cEvaluateChannel {
+class cEvaluateLogoStopStartPair {
 public:
     /**
      * class to evaluate stop / start pair for special logos (info logo, logo change nd introduction logo"
@@ -227,7 +189,7 @@ private:
 /**
  * class to calculate logo size
  */
-class cDetectLogoStopStart : public cEvaluateChannel {
+class cDetectLogoStopStart {
 public:
     /**
      * constructor for class to dectect special logo stop/start pair

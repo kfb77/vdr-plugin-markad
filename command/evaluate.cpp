@@ -12,85 +12,6 @@
 extern bool abortNow;
 
 
-bool cEvaluateChannel::IsInfoLogoChannel(const char *channelName) {
-    if (!channelName) return false;
-    // for performance reason only known and tested channels
-    if (CompareChannelName(channelName, "Comedy_Central",  IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "DMAX",            IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "kabel_eins",      IGNORE_HD))                  return true;   // only for info (e.g. Teletext)
-    if (CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD | IGNORE_COUNTRY)) return true;   // only for info (e.g. Teletext)
-    if (CompareChannelName(channelName, "SIXX",            IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "SAT_1",           IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "WELT",            IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "RTL2",            IGNORE_HD | IGNORE_COUNTRY)) return true;
-    return false;
-}
-
-
-bool cEvaluateChannel::IsLogoChangeChannel(const char *channelName) {
-    // for performance reason only known and tested channels
-    if (CompareChannelName(channelName, "TELE_5", IGNORE_HD | IGNORE_COUNTRY)) {  // has special logo changes
-        return true;
-    }
-    return false;
-}
-
-
-bool cEvaluateChannel::ClosingCreditsChannel(const char *channelName) {
-    if (!channelName) return false;
-    // for performance reason only known and tested channels
-    if (CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD) ||
-            CompareChannelName(channelName, "kabel_eins",  IGNORE_HD) ||
-            CompareChannelName(channelName, "krone_tv",    IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "SAT_1",       IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "SAT_1_Gold",  IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "SIXX",        IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "DMAX",        IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "Pro7_MAXX",   IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "RTL2",        IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "ProSieben",   IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "ZDF",         IGNORE_HD | IGNORE_COUNTRY)) {
-        return true;
-    }
-    return false;
-}
-
-
-bool cEvaluateChannel::AdInFrameWithLogoChannel(const char *channelName) {
-    if (!channelName) return false;
-// for performance reason only for known and tested channels
-    if (CompareChannelName(channelName, "DMF",             IGNORE_HD))                  return true;
-    if (CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD))                  return true;
-    if (CompareChannelName(channelName, "kabel_eins",      IGNORE_HD))                  return true;
-    if (CompareChannelName(channelName, "Pro7_MAXX",       IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "ProSieben",       IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "ProSieben_MAXX",  IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "RTL2",            IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "RTLZWEI",         IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "RTL_Television",  IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "SAT_1",           IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "SIXX",            IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "VOX",             IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "VOXup",           IGNORE_HD | IGNORE_COUNTRY)) return true;
-//          if (CompareChannelName(channelName, "WELT",           IGNORE_HD | IGNORE_COUNTRY)) return true;  // too much false positiv because of news ticker
-    return false;
-}
-
-
-bool cEvaluateChannel::IntroductionLogoChannel(const char *channelName) {
-    if (!channelName) return false;
-// for performance reason only for known and tested channels for now
-    if (CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD) ||
-            CompareChannelName(channelName, "kabel_eins",  IGNORE_HD) ||
-            CompareChannelName(channelName, "SIXX",        IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "SAT_1",       IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "RTL2",        IGNORE_HD | IGNORE_COUNTRY)) {
-        return true;
-    }
-    return false;
-}
-
-
 cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(cDecoder *decoderParam, cCriteria *criteriaParam) {
     dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): called");
     decoder  = decoderParam;
@@ -123,7 +44,6 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
     }
 
     int frameRate = decoder->GetVideoFrameRate();
-    const char *channelName = criteria->GetChannelName();
 
 #define LOGO_CHANGE_NEXT_STOP_MIN     6840  // in ms, do not increase, 6840ms is the shortest found distance between two logo changes
     // next stop max (=lenght next valid broadcast) found: 1242s
@@ -153,15 +73,15 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): -----------------------------------------------------------------------------------------");
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): stop (%d) start (%d) pair", logoPairIterator->stopPosition, logoPairIterator->startPosition);
         // check for info logo section
-        if (IsInfoLogoChannel(channelName)) IsInfoLogo(marks, blackMarks, &(*logoPairIterator), iStopA);
+        if (criteria->IsInfoLogoChannel()) IsInfoLogo(marks, blackMarks, &(*logoPairIterator), iStopA);
         else logoPairIterator->isInfoLogo = STATUS_DISABLED;
 
         // check for logo change section
-        if (IsLogoChangeChannel(channelName)) IsLogoChange(marks, &(*logoPairIterator), iStart, chkSTART);
+        if (criteria->IsLogoChangeChannel()) IsLogoChange(marks, &(*logoPairIterator), iStart, chkSTART);
         else logoPairIterator->isLogoChange = STATUS_DISABLED;
 
         // check for closing credits section
-        if (ClosingCreditsChannel(channelName)) IsClosingCredits(marks, &(*logoPairIterator));
+        if (criteria->IsClosingCreditsChannel()) IsClosingCredits(marks, &(*logoPairIterator));
         else logoPairIterator->isClosingCredits = STATUS_DISABLED;
 
         // global information about logo pairs
@@ -365,6 +285,10 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
 //
 void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int iStopA) {
     int frameRate = decoder->GetVideoFrameRate();
+    if (frameRate <= 0) {
+        esyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): invalid video frame rate %d", frameRate);
+        return;
+    }
 #define LOGO_INFO_LENGTH_MIN  3720  // min time in ms of a info logo section, bigger values than in InfoLogo because of seek to iFrame, changed from 5000 to 4480 to 3720
 #define LOGO_INFO_LENGTH_MAX 22480  // max time in ms of a info logo section, changed from 17680 to 22480
     // RTL2 has very long info logos
@@ -663,6 +587,10 @@ int cEvaluateLogoStopStartPair::GetIsClosingCreditsBefore(const int startPositio
 
 
 int cEvaluateLogoStopStartPair::GetIsClosingCreditsAfter(const int stopPosition) {
+    if (logoPairVector.empty()) {
+        esyslog("cEvaluateLogoStopStartPair::GetIsClosingCreditsAfter(): logoPairVector is empty");
+        return STATUS_ERROR;
+    }
     std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [stopPosition](sLogoStopStartPair const &value) ->bool { if (value.stopPosition == stopPosition) return true; else return false; });
 
     if (found != logoPairVector.end()) {
@@ -1027,12 +955,11 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
 #endif
         compareResult.clear();
     }
-    const char *channelName = criteria->GetChannelName();
     int maxLogoPixel = area.logoSize.width * area.logoSize.height;
 
     // check if we have anything todo with this channel
-    if (!IsInfoLogoChannel(channelName) && !IsLogoChangeChannel(channelName) && !ClosingCreditsChannel(channelName)
-            && !AdInFrameWithLogoChannel(channelName) && !IntroductionLogoChannel(channelName)) {
+    if (!criteria->IsInfoLogoChannel() && !criteria->IsLogoChangeChannel() && !criteria->IsClosingCreditsChannel()
+            && !criteria->IsAdInFrameWithLogoChannel() && !criteria->IsIntroductionLogoChannel()) {
         dsyslog("cDetectLogoStopStart::Detect(): channel not in list for special logo detection");
         return false;
     }
@@ -1145,8 +1072,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     if (!decoder) return false;
     if (compareResult.empty()) return false;
 
-    const char *channelName = criteria->GetChannelName();
-    if (!IsInfoLogoChannel(channelName)) {
+    if (!criteria->IsInfoLogoChannel()) {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): skip this channel");
         return false;
     }
@@ -1362,8 +1288,7 @@ bool cDetectLogoStopStart::IsLogoChange() {
     if (!index) return false;
     if (compareResult.empty()) return false;
 
-    const char *channelName = criteria->GetChannelName();
-    if (!IsLogoChangeChannel(channelName)) {
+    if (!criteria->IsLogoChangeChannel()) {
         dsyslog("cDetectLogoStopStart::isLogoChange(): skip this channel");
         return false;
     }
@@ -1458,8 +1383,7 @@ bool cDetectLogoStopStart::IsLogoChange() {
 
 // search for closing credits in frame without logo after broadcast end
 int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
-    const char *channelName = criteria->GetChannelName();
-    if (!ClosingCreditsChannel(channelName)) return -1;
+    if (!criteria->IsClosingCreditsChannel()) return -1;
     if (evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(startPos, endPos) == STATUS_NO) {
         dsyslog("cDetectLogoStopStart::ClosingCredit(): already known no closing credits from (%d) to (%d)", startPos, endPos);
         return -1;
@@ -1621,8 +1545,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
     if (compareResult.empty()) return -1;
 
 // for performance reason only for known and tested channels for now
-    const char *channelName = criteria->GetChannelName();
-    if (!AdInFrameWithLogoChannel(channelName)) {
+    if (!criteria->IsAdInFrameWithLogoChannel()) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): skip this channel");
         return -1;
     }
@@ -1960,8 +1883,7 @@ int cDetectLogoStopStart::IntroductionLogo() {
     if (compareResult.empty()) return -1;
 
 // for performance reason only for known and tested channels for now
-    const char *channelName = criteria->GetChannelName();
-    if (!IntroductionLogoChannel(channelName)) {
+    if (!criteria->IsIntroductionLogoChannel()) {
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): skip this channel");
         return -1;
     }

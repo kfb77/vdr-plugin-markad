@@ -554,7 +554,6 @@ bool cDecoder::ReadPacket() {
         // analyse video packet
         if (IsVideoPacket()) {
             packetNumber++;
-
 #ifdef DEBUG_FRAME_PTS
             dsyslog("cDecoder::ReadPacket():  fileNumber %d, framenumber %5d, DTS %ld, PTS %ld, duration %ld, flags %d, dtsBefore %ld, time_base.num %d, time_base.den %d",  fileNumber, packetNumber, avpkt.dts, avpkt.pts, avpkt.duration, avpkt.flags, dtsBefore, avctx->streams[avpkt.stream_index]->time_base.num, avctx->streams[avpkt.stream_index]->time_base.den);
 #endif
@@ -840,7 +839,13 @@ sVideoPicture *cDecoder::GetVideoPicture() {
 // seek frame is read but not decoded
 bool cDecoder::SeekToPacket(int seekPacketNumber) {
     dsyslog("cDecoder::SeekToPacket(): packet (%d): seek to packet (%d)", packetNumber, seekPacketNumber);
-
+    if (!avctx) {  // seek without init decoder before, do it now
+        dsyslog("cDecoder::SeekToPacket(): seek without decoder initialized, do it now");
+        if (ReadNextFile()) {
+            esyslog("cDecoder::SeekToPacket(): failed to nit decoder");
+            return false;
+        }
+    }
     // seek backward is invalid
     if (packetNumber >= seekPacketNumber) {
         esyslog("cDecoder::SeekToPacket(): can not seek backwards");
@@ -1157,11 +1162,14 @@ bool cDecoder::IsVideoFrame() const {
     return true;
 }
 
+
+/*
 bool cDecoder::IsVideoIFrame() const {
     if (!avctx) return false;
     if (avFrame.pict_type == AV_PICTURE_TYPE_I) return true;
     return false;
 }
+*/
 
 
 bool cDecoder::IsAudioStream(const unsigned int streamIndex) {

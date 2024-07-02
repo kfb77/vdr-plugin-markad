@@ -196,7 +196,6 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
         dsyslog("cLogoDetect::ReduceBrightness picture not valid");
         return VBORDER_ERROR;
     }
-    int frameNumber = decoder->GetVideoFrameNumber();
     int xstart, xend, ystart, yend;
     if (!sobel->SetCoordinates(&area, 0, &xstart, &xend, &ystart, &yend)) return false;   // plane 0
 
@@ -299,6 +298,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
     int brightnessLogo = sumPixel / ((logo_yend - logo_ystart + 1) * (logo_xend - logo_xstart + 1));
     int contrastLogo = maxPixel - minPixel;
 #ifdef DEBUG_LOGO_DETECTION
+    int frameNumber = decoder->GetVideoFrameNumber();
     dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area before reduction: contrast %3d, brightness %3d", frameNumber, contrastLogo, brightnessLogo);
 #endif
 
@@ -496,7 +496,9 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
     // area intensity 32, black quote: 25%, inverse quote 22%
     if ((area.status == LOGO_VISIBLE) && (area.intensity <= 86) && (rPixelBefore <= logo_imark) && (rPixel > logo_imark) && (rPixel < logo_vmark) &&
             (quoteBlack >= 25) && (quoteInverse >= 22)) {
+#ifdef DEBUG_LOGO_DETECTION
         dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): inverse quote above limit, assume matches only from patten and logo is invisible", frameNumber);
+#endif
         area.rPixel[0] = logo_imark;  // set logo machtes to invisible
         return true;
     }
