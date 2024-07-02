@@ -1195,7 +1195,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     if (found) {
         infoLogo.matchRestCornerCountFinal /= 3;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): count matches greater than limit of %d: %d logo corner, avg rest corners %d", INFO_LOGO_MACTH_MIN, infoLogo.matchLogoCornerCountFinal, infoLogo.matchRestCornerCountFinal);
-        if (infoLogo.matchLogoCornerCountFinal <= (infoLogo.matchRestCornerCountFinal + 3)) {  // changed from 2 to 3
+        if (infoLogo.matchLogoCornerCountFinal <= (infoLogo.matchRestCornerCountFinal + 9)) {  // changed from 3 to 9, part time static separator picture with blends (kabel eins)
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): too much similar corners, this must be a static ad or preview picture");
             found = false;
         }
@@ -1232,7 +1232,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
     // prevent to get info box after preview as info logo, length 3760
 #define INFO_LOGO_MAX_LENGTH      17040  // chnaged from 15640 to 15880 to 17040
     // RTL2 has very long info logos
-#define INFO_LOGO_MIN_QUOTE          67  // changed from 65 to 67, no info logo: separator image with part time logo 66
+#define INFO_LOGO_MIN_QUOTE          71  // changed from 67 to 71, no info logo: separator image with part time logo 70
     if (found) {
         // ignore short parts at start and end, this is fade in and fade out
         int diffStart = 1000 * (infoLogo.startFinal - startPos) / frameRate;
