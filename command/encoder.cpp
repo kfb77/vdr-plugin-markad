@@ -969,8 +969,10 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         if (fullEncode) {
             while (true) {
                 if (!decoder->ReadNextPacket()) return false;
-                if (!decoder->DecodePacket()) continue; // decode packet, no error break, maybe we only need more frames to decode (e.g. interlaced video)
-                pos = decoder->GetVideoFrameNumber();
+                if (decoder->IsVideoPacket() || decoder->IsAudioPacket()) { // only decode audio or video packetes, no subtitle, this will be copyed
+                    if (!decoder->DecodePacket()) continue; // decode packet, no error break, maybe we only need more frames to decode (e.g. interlaced video)
+                    pos = decoder->GetVideoFrameNumber();
+                }
                 break;
             }
         }
