@@ -4170,11 +4170,11 @@ void cMarkAdStandalone::MarkadCut() {
             }
             else break;
         }
-
-    }
-    if (!encoder->CloseFile()) {
-        esyslog("failed to close output file");
-        return;
+        // close file to write index in pass 1
+        if (!encoder->CloseFile()) {
+            esyslog("failed to close output file");
+            return;
+        }
     }
     FREE(sizeof(*encoder), "encoder");
     delete encoder;  // encoder must be valid here because it is used above
