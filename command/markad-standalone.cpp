@@ -1287,11 +1287,12 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
         // valid example
         // MT_LOGOSTART ( 5439) -> 5920ms -> MT_LOGOSTOP ( 5587) -> 1120ms -> MT_LOGOSTART ( 5615) -> kabel eins
         // MT_LOGOSTART ( 7913) -> 4480ms -> MT_LOGOSTOP ( 8025) -> 2200ms -> MT_LOGOSTART ( 8080) -> kabel eins
+        // MT_LOGOSTART ( 8298) -> 7760ms -> MT_LOGOSTOP ( 8492) -> 1080ms -> MT_LOGOSTART ( 8519)
         //
         // invald example
         // MT_LOGOSTART ( 3833) ->  480ms -> MT_LOGOSTOP ( 3845) ->  480ms  -> MT_LOGOSTART ( 3857) -> DMAX
-        if ((diffMarkStop1After >= 4480) && (diffMarkStop1After <= 5920) &&
-                (diffStop1AfterStart2After >= 1120) && (diffStop1AfterStart2After <= 2200)) {
+        if ((diffMarkStop1After >= 4480) && (diffMarkStop1After <= 7760) &&
+                (diffStop1AfterStart2After >= 1080) && (diffStop1AfterStart2After <= 2200)) {
             dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): found opening info logo sequence");
             return true;
         }
@@ -3015,12 +3016,15 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // MT_LOGOSTART ( 37720) ->   26280ms -> MT_LOGOSTOP ( 38377) ->     840ms -> MT_LOGOSTART ( 38398) ->  254120ms -> MT_STOP (44751)
 //
 
-// invalid stop/start pair from change introduction logo (detected as logo) to normal logo
+// invalid stop/start pair from introduction logo change (detected as logo) to normal logo (kabel eins)
 // MT_LOGOSTART ( 99981) ->    7720ms -> MT_LOGOSTOP (100174) ->    1120ms -> MT_LOGOSTART (100202) -> 1098840ms -> MT_STOP (127673) -> introdution logo change (kabel eins)
+// MT_LOGOSTART ( 41139) ->    7760ms -> MT_LOGOSTOP ( 41333) ->    1080ms -> MT_LOGOSTART ( 41360) ->  872280ms -> MT_STOP ( 63167) -> introdution logo change (kabel eins)
+// MT_LOGOSTART ( 74781) ->    7800ms -> MT_LOGOSTOP ( 74976) ->    1040ms -> MT_LOGOSTART ( 75002) ->  416280ms -> MT_STOP ( 85409) -> introdution logo change (kabel eins)
+// MT_LOGOSTART ( 63508) ->    7920ms -> MT_LOGOSTOP ( 63706) ->     880ms -> MT_LOGOSTART ( 63728) -> 1204960ms -> MT_STOP ( 93852) -> introdution logo change (kabel eins)
                     if (criteria->IsIntroductionLogoChannel() &&
-                            (prevLogoStart_Stop     <= 7720) &&
-                            (stop_nextLogoStart     <= 1120) &&
-                            (nextLogoStart_nextStop >= 1098840)) {
+                            (prevLogoStart_Stop     <=   7920) &&
+                            (stop_nextLogoStart     <=   1120) &&
+                            (nextLogoStart_nextStop >= 416280)) {
                         dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from introduction logo, deleting", mark->position, nextLogoStart->position);
                         cMark *tmp = nextStop;
                         marks.Del(nextLogoStart);
