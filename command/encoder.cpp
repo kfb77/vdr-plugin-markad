@@ -996,7 +996,6 @@ bool cEncoder::WritePacket() {
     }
     if ((pass == 1) && !decoder->IsVideoPacket()) return true;  // first pass we only need to encode video stream
 
-
     // set decoder frame/packet number
     if (decoder->GetFullDecode()) decoderFrameNumber = decoder->GetVideoFrameNumber();
     else decoderFrameNumber = decoder->GetVideoPacketNumber();  // decoder has no framenumber without decoding
@@ -1115,7 +1114,7 @@ bool cEncoder::WritePacket() {
 
 #ifdef DEBUG_PTS_DTS_CUT
         if (pass == 2) {
-            dsyslog("cEncoder::WritePacket(): in  frame  (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", decoderFrameNumber, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - inputFramePTSbefore[streamIndexIn], EncoderStatus.pts_dts_CutOffset);
+            dsyslog("cEncoder::WritePacket(): frame (%5d) stream %d in:  PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", decoderFrameNumber, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - inputFramePTSbefore[streamIndexIn], EncoderStatus.pts_dts_CutOffset);
             inputFramePTSbefore[streamIndexIn] = avFrame->pts;
         }
 #endif
@@ -1132,7 +1131,7 @@ bool cEncoder::WritePacket() {
             // check monotonically increasing pts in frame after decoding
             // prevent "AVlog(): Assertion pict_type == rce->new_pict_type failed at src/libavcodec/ratecontrol.c:939" with ffmpeg 4.2.2
             if (EncoderStatus.ptsOutBefore > avFrame->pts) {
-                dsyslog("cEncoder::WritePacket(): got non monotonically increasing pts %" PRId64 " from video decoder, pts before was %" PRId64, avFrame->pts, EncoderStatus.ptsOutBefore);
+                esyslog("cEncoder::WritePacket(): frame (%d): got non monotonically increasing pts %" PRId64 " from video decoder, pts before was %" PRId64, decoderFrameNumber, avFrame->pts, EncoderStatus.ptsOutBefore);
                 return false;
             }
             EncoderStatus.ptsOutBefore = avFrame->pts;

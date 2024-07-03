@@ -239,7 +239,7 @@ private:
     } stats_in;                  //!< variable for statistic data for 2 pass encoding
     //!<
 
-#ifdef DEBUG_CUT
+#ifdef DEBUG_PTS_DTS_CUT
     int64_t inputPacketPTSbefore[MAXSTREAMS]  = {0};
     int64_t inputFramePTSbefore[MAXSTREAMS]   = {0};
     int64_t outputPacketPTSbefore[MAXSTREAMS] = {0};

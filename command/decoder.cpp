@@ -877,7 +877,7 @@ bool cDecoder::SeekToFrame(int seekFrameNumber) {
         return false;
     }
     // seek to i-frame packet before
-    int seekPacket = index->GetIFrameBefore(seekFrameNumber);
+    int seekPacket = index->GetIFrameBefore(seekFrameNumber - 1);  // if seekFrameNumber is i-frame we want i-frame before, we need some frames to preload
     if (!SeekToPacket(seekPacket)) {
         esyslog("cDecoder::SeekToFrame(): seek to i-frame packet (%d) before seek frame (%d) failed", seekPacket, seekFrameNumber);
         return false;
@@ -893,6 +893,7 @@ bool cDecoder::SeekToFrame(int seekFrameNumber) {
         }
         if (!ReadNextPacket()) return false;
     }
+    dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): successful", packetNumber, frameNumber);
     return true;
 }
 
