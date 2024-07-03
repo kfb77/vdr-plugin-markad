@@ -1652,7 +1652,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
     }
     else decoder_local->Restart();  // we are called from CheckStop(), decoder read position is at end of recording
 
-    // check if objects exists, otherwise create new with global varibles
+    // check if objects exists, otherwise create new with global variables
     if (!detectLogoStopStart) {
         detectLogoStopStart = new cDetectLogoStopStart(decoder_local, index, criteria, nullptr, video->GetLogoCorner());
         ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");

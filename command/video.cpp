@@ -966,7 +966,7 @@ int cSceneChangeDetect::Process(int *changeFrameNumber) {
     }
     int diffQuote = 1000 * difference / (picture->height * picture->width * 2);
 #ifdef DEBUG_SCENE_CHANGE
-    dsyslog("cSceneChangeDetect::Process(): previous frame (%7d) and current frame (%7d): status %2d, blendCount %2d, blendFrame %7d, difference %7ld, diffQute %4d", prevFrameNumber, currentFrameNumber, sceneStatus, blendCount, blendFrame, difference, diffQuote);
+    dsyslog("cSceneChangeDetect::Process(): previous frame (%7d) and current frame (%7d): status %2d, blendCount %2d, blendFrame %7d, difference %7ld, diffQute %4d", prevFrameNumber, frameNumber, sceneStatus, blendCount, blendFrame, difference, diffQuote);
 #endif
     FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
     free(prevHistogram);
@@ -974,7 +974,7 @@ int cSceneChangeDetect::Process(int *changeFrameNumber) {
 #define DIFF_SCENE_NEW         400   // new scene during blend, force new scene stop/start, changed from 500 to 400
 #define DIFF_SCENE_CHANGE      110
 #define DIFF_SCENE_BLEND_START  60
-#define DIFF_SCENE_BLEND_STOP   40
+#define DIFF_SCENE_BLEND_STOP   46   // changed from 40 to 46
 #define SCENE_BLEND_FRAMES       5
 // end of scene during active scene blend
     if ((diffQuote >= DIFF_SCENE_NEW) && (sceneStatus == SCENE_BLEND)) {

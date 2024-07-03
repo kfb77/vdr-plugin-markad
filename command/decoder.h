@@ -224,14 +224,14 @@ public:
     * seek read position to video packet <seekPacket>
     * seek frame is read but not decoded
     * @param seekPacketNumber packet number to seek
-    * @return                true if successful, false otherwise
+    * @return                 true if successful, false otherwise
     */
     bool SeekToPacket(int seekPacketNumber);
 
     /**
     * seek to and decode video frame number <seekFrameNumber>
-    * @param seekFameNumber number number to seek and decode
-    * @return                true if successful, false otherwise
+    * @param seekFameNumber frame number to seek and decode
+    * @return               true if successful, false otherwise
     */
     bool SeekToFrame(int seekFrameNumber);
 
