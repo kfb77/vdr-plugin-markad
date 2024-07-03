@@ -681,100 +681,16 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
             for (int i = 0; i < area.logoSize.height * area.logoSize.width; i++) {
                 if (area.sobel[0][i]     == 0) black++;
             }
-            int quoteBlack   = 100 * black  /  (area.logoSize.height * area.logoSize.width);
             int quoteInverse = 100 * iPixel / ((area.logoSize.height * area.logoSize.width) - mPixel);
 #ifdef DEBUG_LOGO_DETECTION
+            int quoteBlack   = 100 * black  /  (area.logoSize.height * area.logoSize.width);
             dsyslog("cLogoDetect::Detect(): frame (%6d): area intensity %3d, black quote: %d%%, inverse quote %d%%", frameNumber, area.intensity, quoteBlack, quoteInverse);
 #endif
-            // state logo invisible and rPixel > logo_vmark
-            if ((area.status == LOGO_INVISIBLE) && (rPixel >= logo_vmark)) {
-                // example logo visible and (rPixel >= logo_vmark)
-                // tbd
-                //
-                // example logo invisible but (rPixel >= logo_vmark) from pattern in background
-                // area intensity 154, black quote: 47%, inverse quote 46%
-                // area intensity 154, black quote: 47%, inverse quote 46%
-                // area intensity 154, black quote: 46%, inverse quote 45%
-                // area intensity 153, black quote: 47%, inverse quote 46%
-                //
-                // area intensity 141, black quote: 23%, inverse quote 20%
-                // area intensity 136, black quote: 23%, inverse quote 20%
-                // area intensity 126, black quote: 26%, inverse quote 23%
-                // area intensity  90, black quote: 19%, inverse quote 16%
-                // area intensity  89, black quote: 18%, inverse quote 16%
-                // area intensity  77, black quote: 23%, inverse quote 21%
-                // area intensity  75, black quote: 24%, inverse quote 21%
-                // area intensity  73, black quote: 24%, inverse quote 21%
-                // area intensity  73, black quote: 22%, inverse quote 20%
-                // area intensity  71, black quote: 24%, inverse quote 22%
-                // area intensity  68, black quote: 24%, inverse quote 22%
-                // area intensity  67, black quote: 26%, inverse quote 24%
-                // area intensity  66, black quote: 24%, inverse quote 22%
-                // area intensity  65, black quote: 25%, inverse quote 23%
-                // area intensity  63, black quote: 24%, inverse quote 22%
-
-                // asume uniformly background pattern, quoteInverse matches are from background pattern
-                // if still logo visible without this trust detection
-                int rPixelWithout = rPixel * (100 - quoteInverse) / 100;
-                if (rPixelWithout >= logo_vmark) {
+            int rPixelWithout = rPixel * (100 - quoteInverse) / 100;
 #ifdef DEBUG_LOGO_DETECTION
-                    dsyslog("cLogoDetect::Detect(): frame (%6d): rPixel without pattern quote %d, trust logo visible", frameNumber, rPixelWithout);
+            dsyslog("cLogoDetect::Detect(): frame (%6d): rPixel without pattern quote %d, trust logo visible", frameNumber, rPixelWithout);
 #endif
-                    logoStatus = true;  // now we trust a positiv logo detection
-                }
-
-                else {
-                    if (area.intensity < 153) { // on very bright backgrund logo visible result is not possible
-                        if ((quoteBlack >= 18) && (quoteInverse >= 16)) {  // with very bright backgrund logo visible is not possible
-#ifdef DEBUG_LOGO_DETECTION
-                            dsyslog("cLogoDetect::Detect(): frame (%6d): quote above limit, assume matches only from patten and logo is still invisible", frameNumber);
-#endif
-                            return LOGO_NOCHANGE;
-                        }
-                    }
-                    else { // pattern in bright background, no current logo visible but detected
-                        if ((quoteBlack >= 46) && (quoteInverse >= 45)) {
-                            area.counter--;       // assume only pattern, no logo
-                            if (area.counter <= 0) area.counter = 0;
-#ifdef DEBUG_LOGO_DETECTION
-                            dsyslog("cLogoDetect::Detect(): frame (%6d): quote above limit with bright background, assume matches only from patten and logo is still invisible", frameNumber);
-#endif
-                            return LOGO_NOCHANGE;
-                        }
-                    }
-                    logoStatus = true;  // now we trust a positiv logo detection
-                }
-            }
-            else {
-                // prevent to miss logo stop from background pattern
-                // state logo visible and logo_imark < rPixel < logo_vmark
-                //
-                // logo visible example
-                // area intensity 120, black quote: 37%, inverse quote 37%
-                // area intensity 119, black quote: 38%, inverse quote 38%
-                // area intensity 119, black quote: 22%, inverse quote 21%
-                // area intensity 118, black quote: 37%, inverse quote 36%
-                // area intensity 108, black quote: 25%, inverse quote 24%
-                // area intensity 104, black quote: 28%, inverse quote 27%
-                // area intensity 102, black quote: 25%, inverse quote 25%
-                // area intensity  99, black quote: 24%, inverse quote 18%
-                //
-                // logo invisible example
-                // area intensity 103, black quote: 35%, inverse quote 34%  -> no logo, tree and sky in backbground
-                // area intensity  76, black quote: 15%, inverse quote 14%
-                //
-                // check logo state visible, new unclear result, trust less bright picture more than bright pictures
-                if (
-                    (                           (area.intensity <= 76) && (quoteBlack >= 15) && (quoteInverse >= 14)) ||
-                    ((area.intensity >= 103) && (area.intensity < 118) && (quoteBlack >= 35) && (quoteInverse >= 34)) ||
-                    ((area.intensity >= 118) &&                           (quoteBlack >= 38) && (quoteInverse >= 38))) {
-                    rPixel = logo_imark; // set to invisible
-                    logoStatus = true;
-#ifdef DEBUG_LOGO_DETECTION
-                    dsyslog("cLogoDetect::Detect(): frame (%6d) quote above limit, assume matches only from patten and logo is invisible", frameNumber);
-#endif
-                }
-            }
+            rPixel = rPixelWithout; // now use this result for detection
         }
 
 // if current state is logo visible or uninitialized (to get an early logo start) and we have a lot of matches, now we trust logo is still there
