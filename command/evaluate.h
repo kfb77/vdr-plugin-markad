@@ -193,12 +193,10 @@ class cDetectLogoStopStart {
 public:
     /**
      * constructor for class to dectect special logo stop/start pair
-     * @param decoderParam            pointer to decoder
-     * @param indexParam              pointer to recording index
-     * @param criteriaParam           detection criteria
-     * @param extractLogoParam        pointer to logo extraction (needed to compare sobel transformed picture)
-     * @param logoCornerParam         logo corner index
-     * evaluateLogoStopStartPairParam class to evaluate logo stop/pairs
+     * @param decoderParam                   pointer to decoder
+     * @param indexParam                     pointer to recording index
+     * @param criteriaParam                  detection criteria
+     * @param logoCornerParam                logo corner index
      * @param evaluateLogoStopStartPairParam class to evaluate logo stop/start pairs
      */
     cDetectLogoStopStart(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, cEvaluateLogoStopStartPair *evaluateLogoStopStartPairParam, const int logoCornerParam);
@@ -280,7 +278,6 @@ public:
 
     /**
      * detect a frame in a sobel transformed picture
-     * @param frameNumber current frame number
      * @param picture     plane 0 of sobel transformed picture
      * @param width       picture width in pixel
      * @param height      picture height in pixel
@@ -333,6 +330,16 @@ public:
     int IntroductionLogo();
 
 private:
+    /**
+     * compair two logos
+     * @param logo1      first logo
+     * @param logo2      second logo
+     * @param logoHeight logo height
+     * @param logoWidth  logo width
+     * @param corner     logo corner
+     * @param rate0      similar rate
+     * @return true if compair was successful
+     */
     bool CompareLogoPair(const sLogoInfo *logo1, const sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int *rate0);
 
     cDecoder *decoder         = nullptr;  //!< decoder

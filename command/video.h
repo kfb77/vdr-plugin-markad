@@ -415,9 +415,10 @@ public:
 
     /**
      * constructor of class to check packet for video based marks
-     * @param decoderParam         decoder
-     * @param criteriaParam        detection criteria
-     * @param recDirParam          recording directory
+     * @param decoderParam        decoder
+     * @param indexParam          recording index
+     * @param criteriaParam       detection criteria
+     * @param recDirParam         recording directory
      * @param logoCacheDirParam   logo cache directory
      */
     explicit cVideo(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);

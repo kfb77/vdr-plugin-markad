@@ -6697,6 +6697,8 @@ int usage(int svdrpport) {
            "                  use hardware acceleration for decoding\n"
            "                  <hardware acceleration method> all methods supported by FFmpeg (ffmpeg -hide_banner -hwaccels)\n"
            "                                                 e.g.: vdpau, cuda, vaapi, vulkan, ...\n"
+           "                --perftest>\n"
+           "                  run decoder performance test and compare software and hardware decoder\n"
            "\ncmd: one of\n"
            "-                            dummy-parameter if called directly\n"
            "nice                         runs markad directly and with nice(19)\n"
@@ -6801,8 +6803,6 @@ int main(int argc, char *argv[]) {
     }
 
     atexit(freedir);
-
-// TODO: update plugin parameter call
 
     while (1) {
         int option_index = 0;

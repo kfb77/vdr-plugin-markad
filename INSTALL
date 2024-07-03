@@ -6,7 +6,7 @@ Prerequisite:
 - git
 - pkgconf or pkg-config
 - vdr-dev         (>= version 2.2)
-- libavcodec-dev  (>= 56.60.100 from FFmpeg 2.8.17)
+- libavcodec-dev  (>= 58.54.100 FFmpeg 4.2.7)
 - libavformat-dev
 - libavfilter-dev
 - libswresample-dev
@@ -27,14 +27,11 @@ The simplest way to compile this package is:
      entry in /etc/services:
      svdrp	6419/tcp	# svdrp (vdr)
 
-
-
 ---------------------------------------------------------------------------------------------------
-complete build commands for yavdr distribution:
+complete build commands for Debian / Ubuntu
 
 sudo bash
-apt-get install vdr-dev
-apt-get build-dep vdr-plugin-markad-ng
+apt-get install build-essential git pkgconf vdr-dev libavcodec-dev libavformat-dev libavfilter-dev libswresample-dev
 cd /usr/src
 git clone https://github.com/kfb77/vdr-plugin-markad
 cd vdr-plugin-markad
@@ -43,7 +40,6 @@ service vdr stop
 make install
 service vdr start
 ---------------------------------------------------------------------------------------------------
-
 
 See README for recommended plugin default settings.
 If you have any problems post here: https://www.vdr-portal.de

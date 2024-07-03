@@ -39,7 +39,6 @@ public:
      * @param fileNumber         number of ts file
      * @param frameNumber        number of frame
      * @param pts                frame PTS
-     * @param ptsTimeOffset_ms   offset in ms from recording start based on PTS fild
      * @param frameTimeOffset_ms offset in ms from recording start based sum of duration
      */
     void Add(const int fileNumber, const int frameNumber, const int64_t pts, const int frameTimeOffset_ms);
@@ -59,14 +58,14 @@ public:
     int GetIFrameAfterPTS(const int64_t pts);
 
     /**
-     * get frame after <frameNumber>
+     * get frame number after frame
      * @param frameNumber number of frame
      * @return if fullDecode frame number direct after frameNumber, else i-frame number after
      */
     int GetFrameAfter(int frameNumber);
 
     /**
-     * get frame before <frameNumber>
+     * get frame number before frame number
      * @param frameNumber number of frame
      * @return if fullDecode frame number direct before frameNumber, else i-frame number before
      */
@@ -141,7 +140,8 @@ public:
     int64_t GetPTSfromFrame(const int frameNumber);
 
     /** set start PTS of video stream
-     * @param pts  presentation timestamp of video stream start
+     * @param start_time_param  PTS start time of video stream
+     * @param time_base_param   time base of video stream
      */
     void SetStartPTS(const int64_t start_time_param, const AVRational time_base_param);
 

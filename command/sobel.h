@@ -101,6 +101,13 @@ public:
      */
     bool SetCoordinates(sAreaT *area, const int plane, int *xstart, int *xend, int *ystart, int *yend) const;
 
+    /**
+     * save sobel plane as picture to file
+     * @param fileName file name
+     * @param picture  pointer to picture
+     * @param width    picture width
+     * @param height   picture height
+     */
     bool SaveSobelPlane(const char *fileName, const uchar *picture, const int width, const int height);
 
 private:

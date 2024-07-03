@@ -51,11 +51,12 @@ public:
 
     /**
      * constructor for class to search end extract logo from recording
-     * @param recDirParam      recording directory
-     * @param channelNameParam channel name
-     * @param threads          count of FFmpeg threads
-     * @param hwaccel          device type of hwaccel
-     * @param AspectRatio      video aspect ratio for requested logo
+     * @param recDirParam          recording directory
+     * @param channelNameParam     channel name
+     * @param threads              count of FFmpeg threads
+     * @param hwaccel              device type of hwaccel
+     * @param forceHW              force hwaccel for MPEG2 codec
+     * @param requestedAspectRatio video aspect ratio for requested logo
      */
     explicit cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, char *hwaccel, const bool forceHW, const sAspectRatio requestedAspectRatio);
     ~cExtractLogo();
@@ -130,6 +131,12 @@ public:
      */
     bool CompareLogoPair(const sLogoInfo *logo1, const sLogoInfo *logo2, const int logoHeight, const int logoWidth, const int corner, int match0 = 0, int match12 = 0, int *rate0 = nullptr);
 
+    /**
+     * manually extrct logo from recording
+     * @param corner  video picture corner
+     * @param width   logo width
+     * @param height  logo height
+     */
     void ManuallyExtractLogo(const int corner, const int width, const int height);
 
 private:
@@ -137,6 +144,7 @@ private:
      * save logo picture, used for debugging
      * @param actLogoInfo logo pixel map
      * @param logoSizeFinal   logo size of final selected logo
+     * @param logoAspectRatio logo from this video aspect ratio
      * @param corner          logo corner
      * @param framenumber     frame number
      * @param debugText       debug messaged appended to file name

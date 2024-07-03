@@ -168,11 +168,19 @@ typedef struct sAspectRatio {
     bool operator != (const sAspectRatio& other) const {
         if ((this->num != other.num) || (this->den != other.den)) return true;
         return false;
+
     }
+    /**
+     *  operator ==
+     */
     bool operator == (const sAspectRatio& other) const {
         if ((this->num == other.num) && (this->den == other.den)) return true;
         return false;
     }
+
+    /**
+     *  operator =
+     */
     sAspectRatio& operator = (const sAspectRatio& other) {
         num = other.num;
         den = other.den;

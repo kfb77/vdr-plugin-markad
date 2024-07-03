@@ -39,7 +39,7 @@ struct setup {
     int hwaccel            = 0;
     const char *PluginName = nullptr;
 #define MAX_HWACCEL 5
-    const char *hwaccelTexts[MAX_HWACCEL] = {tr("off"), "vaapi", "vdpau", "vdpau", "cuda"};
+    const char *hwaccelTexts[MAX_HWACCEL] = {tr("off"), "vaapi", "vdpau", "vulkan", "cuda"};
 };
 
 

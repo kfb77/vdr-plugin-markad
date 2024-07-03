@@ -117,9 +117,14 @@ Usage: markad [options] cmd <recording>
  there are no splits of the target file, make sure your filesystem can handle big files
 .TP
 
-.BI \-\-hwaccel= <hardware_acceleration_method >
- use hardware acceleration for decoding/encoding
- only vaapi is supported but you can try any of your FFmpeg and hardware supports
+.BI \-\-hwaccel= <hardware_acceleration_methode>
+ use hardware acceleration for decoding
+ all methods supported by FFmpeg (ffmpeg -hide_banner -hwaccels)
+ e.g.: vaapi, vdpau, vulkan, cuda ...
+.TP
+
+.BI \-\-perftest
+ run decoder performance test and compare software and hardware decoder
 .TP
 
 .BI \-\-vps
