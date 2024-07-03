@@ -150,13 +150,6 @@ public:
 
 
     /**
-     * set logo dection status of area to LOGO_UNINITIALIZED
-     */
-    void SetStatusUninitialized() {
-        area.status = LOGO_UNINITIALIZED;
-    }
-
-    /**
      * clear status and free memory
      * @param isRestart   true if called from full video detection (blackscreen, logo, border) restart at pass 1, false otherwise
      */

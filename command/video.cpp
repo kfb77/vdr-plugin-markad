@@ -902,6 +902,7 @@ int cLogoDetect::Process(int *logoFrameNumber) {
         if (!LoadLogo()) {
             isyslog("no valid logo found for %s %d:%d, disable logo detection", criteria->GetChannelName(), decoder->GetFrameAspectRatio()->num, decoder->GetFrameAspectRatio()->den);
             criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_DISABLED);
+            area.status = LOGO_UNINITIALIZED;
             return LOGO_ERROR;
         }
         area.logoAspectRatio = *decoder->GetFrameAspectRatio();
@@ -1682,19 +1683,12 @@ sMarkAdMarks *cVideo::Process() {
 
     // logo change detection
     if (criteria->GetDetectionState(MT_LOGOCHANGE)) {
-        int logoframenumber = 0;
+        int logoframenumber = -1;
         int lret=logoDetect->Process(&logoframenumber);
-        if ((lret >= -1) && (lret != 0) && (logoframenumber != -1)) {
-            if (lret > 0) {
-                AddMark(MT_LOGOSTART, logoframenumber);
-            }
-            else {
-                AddMark(MT_LOGOSTOP, logoframenumber);
-            }
+        if (logoframenumber != -1) {
+            if (lret == LOGO_VISIBLE)   AddMark(MT_LOGOSTART, logoframenumber);
+            if (lret == LOGO_INVISIBLE) AddMark(MT_LOGOSTOP,  logoframenumber);
         }
-    }
-    else {
-        logoDetect->SetStatusUninitialized();
     }
 
     if (videoMarks.Count > 0) {
