@@ -118,7 +118,7 @@
 // #define DEBUG_INTRODUCTION
 
 // debug closing credits detection
-#define DEBUG_CLOSINGCREDITS
+// #define DEBUG_CLOSINGCREDITS
 
 // debug frame detection for closing credits or ad in frame
 // #define DEBUG_FRAME_DETECTION

@@ -3136,11 +3136,13 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             if (((lengthAdBefore >= 120) && (lengthAdBefore <= 585000) && (lengthAdAfter >= 200))) { // if advertising before is long this is the next start mark
                 if (lengthPreview < 132360) {
                     // check if this logo stop and next logo start are closing credits, in this case stop mark is valid
-                    bool isNextClosingCredits = evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCreditsAfter(startAfter->position) == STATUS_YES);
+                    bool isNextClosingCredits = false;
+                    if (criteria->IsClosingCreditsChannel()) isNextClosingCredits = evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCreditsAfter(startAfter->position) == STATUS_YES);
                     if (!isNextClosingCredits || (stopMark->position != marks.GetLast()->position)) { // check valid only for last mark
                         // check if this logo start mark and previuos logo stop mark are closing credits with logo, in this case logo start mark is valid
                         // this only work on the first logo stark mark because there are closing credits in previews
-                        bool isThisClosingCredits = evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCreditsAfter(mark->position) == STATUS_YES);
+                        bool isThisClosingCredits = false;
+                        if (criteria->IsClosingCreditsChannel()) isThisClosingCredits = evaluateLogoStopStartPair && (evaluateLogoStopStartPair->GetIsClosingCreditsAfter(mark->position) == STATUS_YES);
                         if (!isThisClosingCredits || (stopMark->position != marks.GetFirst()->position)) {
                             isyslog("found preview between logo start mark (%d) and logo stop mark (%d) in advertisement, deleting marks", mark->position, stopMark->position);
                             cMark *tmp = startBefore;  // continue with mark before
