@@ -1384,6 +1384,7 @@ bool cDetectLogoStopStart::IsLogoChange() {
 // search for closing credits in frame without logo after broadcast end
 int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
     if (!criteria->IsClosingCreditsChannel()) return -1;
+
     if (evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(startPos, endPos) == STATUS_NO) {
         dsyslog("cDetectLogoStopStart::ClosingCredit(): already known no closing credits from (%d) to (%d)", startPos, endPos);
         return -1;

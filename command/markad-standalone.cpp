@@ -1589,7 +1589,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
 
     // init objects for logo mark optimization
     if (!detectLogoStopStart) {  // init in RemoveLogoChangeMarks(), but maybe not used
-        detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, nullptr, video->GetLogoCorner());
+        detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, evaluateLogoStopStartPair, video->GetLogoCorner());
         ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
     }
     // check current read position of decoder
@@ -1654,7 +1654,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
 
     // check if objects exists, otherwise create new with global variables
     if (!detectLogoStopStart) {
-        detectLogoStopStart = new cDetectLogoStopStart(decoder_local, index, criteria, nullptr, video->GetLogoCorner());
+        detectLogoStopStart = new cDetectLogoStopStart(decoder_local, index, criteria, evaluateLogoStopStartPair, video->GetLogoCorner());
         ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
     }
 
@@ -4202,17 +4202,23 @@ void cMarkAdStandalone::LogoMarkOptimization() {
     if (!decoder)                   return;
     if (!index)                     return;
     if (!criteria)                  return;
-    if (!extractLogo)               return;
-    if (!evaluateLogoStopStartPair) return;
-    if (!video)                     return;
+    if (!evaluateLogoStopStartPair) {
+        esyslog("cMarkAdStandalone::LogoMarkOptimization(): evaluateLogoStopStartPair missing");
+        return;
+    }
 
-    LogSeparator(true);
-
-    LogSeparator(true);
-    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): start logo mark optimization");
     if (marks.Count(MT_LOGOCHANGE, 0xF0) == 0) {
         dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no logo marks used");
         return;
+    }
+
+    LogSeparator(true);
+    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): start logo mark optimization");
+
+    // init objects for logo mark optimization
+    if (!detectLogoStopStart) {  // init in RemoveLogoChangeMarks(), but maybe not used
+        detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, evaluateLogoStopStartPair, video->GetLogoCorner());
+        ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
     }
 
     decoder->Restart();
