@@ -1620,7 +1620,7 @@ sMarkAdMarks *cVideo::Process() {
             AddMark(MT_HBORDERSTART, hborderframenumber);
         }
         if ((hret == HBORDER_INVISIBLE) && (hborderframenumber >= 0)) {
-            AddMark(MT_HBORDERSTOP, frameNumber - 1);
+            AddMark(MT_HBORDERSTOP, index->GetFrameBefore(frameNumber));
         }
     }
     else {
@@ -1633,7 +1633,7 @@ sMarkAdMarks *cVideo::Process() {
 
         int vret = vBorderDetect->Process(&vborderframenumber);
         if ((vret == VBORDER_VISIBLE) && (vborderframenumber >= 0)) AddMark(MT_VBORDERSTART, vborderframenumber);
-        if ((vret == VBORDER_INVISIBLE) && (vborderframenumber >= 0)) AddMark(MT_VBORDERSTOP, frameNumber - 1);
+        if ((vret == VBORDER_INVISIBLE) && (vborderframenumber >= 0)) AddMark(MT_VBORDERSTOP, index->GetFrameBefore(frameNumber));
     }
     else if (vBorderDetect) vBorderDetect->Clear();
 
