@@ -5045,10 +5045,10 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxBefore = 82980;
                     break;
                 case MT_LOGOSTART:
-                    if ((diffBefore >=  600) && (diffAfter <=  360)) diffBefore = INT_MAX;
-                    if ((diffBefore >= 2040) && (diffAfter <= 3460)) diffBefore = INT_MAX;
+                    // rule 1: logo start is in ad, silence before and after ad
+                    if ((diffBefore >=  3140) && (diffAfter <=  3740)) diffBefore = INT_MAX;
 
-                    if (criteria->LogoFadeInOut() & FADE_IN) maxBefore = 7079;
+                    if (criteria->LogoFadeInOut() & FADE_IN) maxBefore = 3119;
                     else                                     maxBefore = 1599;
                     break;
                 case MT_MOVEDSTART:
