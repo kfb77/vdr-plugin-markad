@@ -2735,8 +2735,10 @@ void cMarkAdStandalone::CheckStartMark() {
 // MT_LOGOSTART ( 2377) ->   2s -> MT_LOGOSTOP ( 2441) ->  290s ->  MT_LOGOSTART ( 9697) -> 1207s -> MT_LOGOSTOP (39877) -> Disney Channel, ad with false detected logo
 // MT_LOGOSTART ( 4621) ->   1s -> MT_LOGOSTOP ( 4660) ->  325s ->  MT_LOGOSTART (12786) -> 1173s -> MT_LOGOSTOP (42121) -> Disney Channel, ad with false detected logo
 // MT_LOGOSTART ( 3448) ->   3s -> MT_LOGOSTOP ( 3533) ->  370s ->  MT_LOGOSTART (12786) -> 1126s -> MT_LOGOSTOP (40948) -> Disney Channel, ad with false detected logo
-                        if ((lengthBroadcast1 <= 105)  && (lengthAd <= 370) &&
-                                (lengthBroadcast2 >= 796)) {   // if second broadcast part is very long, this maybe the valid first part
+// MT_LOGOSTART ( 7249) ->   7s -> MT_LOGOSTOP ( 7435) ->  460s ->  MT_LOGOSTART (18940) ->  718s -> MT_LOGOSTOP (36895) -> RTL Television, delayed broadcast start
+
+                        if ((lengthBroadcast1 <= 25)  && (lengthAd >= 50) &&
+                                (lengthBroadcast2 >= 718)) {   // if second broadcast part is very long, this maybe the valid first part
                             dsyslog("cMarkAdStandalone::CheckStartMark(): current start mark invalid, delete start (%d) and stop (%d) mark", startMark->position, logoStop1->position);
                             marks.Del(startMark->position);
                             marks.Del(logoStop1->position);
