@@ -365,6 +365,10 @@ public:
     bool IsSubtitlePacket();
 
 private:
+    /** set start and end time of decoding, use for statitics
+     * @param start true for start decoding, false otherwise
+     */
+    void Time(bool start);
 
     /** structure used to map packet number to frame number
      */
@@ -456,6 +460,10 @@ private:
     int decodeErrorCount               = 0;                       //!< number of decoding errors
     //!<
     int decodeErrorFrame               = -1;                      //!< frame number of last decoding error
+    //!<
+    struct timeval startDecode         = {};                      //!< time stamp of SendPacketToDecoder()
+    //!<
+    bool timeStartCalled               = false;                   //!< state of Time(true) was called
     //!<
     sAudioAC3Channels audioAC3Channels[MAXSTREAMS] = {};          //!< AC3 audio stream channel count state
     //!<
