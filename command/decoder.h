@@ -384,12 +384,6 @@ private:
      */
     int ResetToSW();
 
-    /**
-     * get currently in progress TS file number
-     * @return file number
-     */
-    int GetFileNumber() const;
-
     char *recordingDir                 = nullptr;                 //!< name of recording directory
     //!<
     cIndex *index                      = nullptr;                 //!< recording index

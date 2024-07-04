@@ -240,11 +240,6 @@ int cDecoder::GetErrorCount() const {
 }
 
 
-int cDecoder::GetFileNumber() const {
-    return fileNumber;
-}
-
-
 AVFormatContext *cDecoder::GetAVFormatContext() {
     return avctx;
 }
