@@ -191,10 +191,20 @@ int cIndex::GetSumDurationFromFrame(const int frameNumber) {
     // if frame number not yet in index, return PTS from last frame
     if (frameNumber >= indexVector.back().frameNumber) return indexVector.back().frameTimeOffset_ms;
 
-    for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->frameNumber >= frameNumber) return frameIterator->frameTimeOffset_ms;
+    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](sIndexElement const &value) ->bool { if (value.frameNumber >= frameNumber) return true; else return false; });
+    if (found == indexVector.end()) {
+        esyslog("cIndex::GetSumDurationFromFrame(): frame (%d) not in index", frameNumber);
+        dsyslog("cIndex::GetSumDurationFromFrame(): index content: first frame (%d) , last frame (%d)", indexVector.front().frameNumber, indexVector.back().frameNumber);
+        return -1;
     }
-    return -1;  // this shout never reached
+    return found->frameTimeOffset_ms;
+
+    /*
+        for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+            if (frameIterator->frameNumber >= frameNumber) return frameIterator->frameTimeOffset_ms;
+        }
+
+    */
 }
 
 
@@ -203,10 +213,21 @@ int64_t cIndex::GetPTSfromFrame(const int frameNumber) {
     // if frame number not yet in index, return PTS from last frame
     if (frameNumber >= indexVector.back().frameNumber) return indexVector.back().pts;
 
-    for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->frameNumber >= frameNumber) return frameIterator->pts;
+    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](sIndexElement const &value) ->bool { if (value.frameNumber >= frameNumber) return true; else return false; });
+    if (found == indexVector.end()) {
+        esyslog("cIndex::GetSumDurationFromFrame(): frame (%d) not in index", frameNumber);
+        dsyslog("cIndex::GetSumDurationFromFrame(): index content: first frame (%d) , last frame (%d)", indexVector.front().frameNumber, indexVector.back().frameNumber);
+        return -1;
     }
-    return -1;  // this shout never reached
+    return found->pts;
+
+    /*
+
+        for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+            if (frameIterator->frameNumber >= frameNumber) return frameIterator->pts;
+        }
+        return -1;  // this shout never reached
+    */
 }
 
 
@@ -243,12 +264,26 @@ int cIndex::GetFrameFromOffset(int offset_ms) {
         dsyslog("cIndex::GetFrameFromOffset: frame index not initialized");
         return -1;
     }
+    // convert offset in ms to PTS
     int64_t pts = (offset_ms / av_q2d(time_base) / 1000) + start_time;
-    for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->pts > pts) return frameIterator->frameNumber;
+
+    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [pts](sIndexElement const &value) ->bool { if (value.pts >= pts) return true; else return false; });
+    if (found == indexVector.end()) {
+        esyslog("cIndex::GetFrameFromOffset(): offset_ms %dms not in index", offset_ms);
+        dsyslog("cIndex::GetFrameFromOffset(): search for PTS %ld, index content: first PTS %ld , last PTS %ld", pts, indexVector.front().pts, indexVector.back().pts);
+        return -1;
     }
-    esyslog("cIndex::GetFrameFromOffset(): frame number to offset %dms not found", offset_ms);
-    return -1;
+
+    dsyslog("cIndex::GetFrameFromOffset(): frame (%d) found", found->frameNumber);
+    return found->frameNumber;
+
+    /*
+        for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
+            if (frameIterator->pts >= pts) return frameIterator->frameNumber;
+        }
+        esyslog("cIndex::GetFrameFromOffset(): frame number to offset %dms not found", offset_ms);
+        return -1;
+    */
 }
 
 
