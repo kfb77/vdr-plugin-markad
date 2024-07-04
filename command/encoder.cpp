@@ -706,7 +706,7 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
             }
         }
         // set interlaced
-        if (decoder->IsInterlacedVideo()) {
+        if (decoder->IsInterlacedFrame()) {
             codecCtxArrayOut[streamIndexOut]->flags |= AV_CODEC_FLAG_INTERLACED_DCT;
             codecCtxArrayOut[streamIndexOut]->flags |= AV_CODEC_FLAG_INTERLACED_ME;
         }

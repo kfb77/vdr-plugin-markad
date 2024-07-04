@@ -484,13 +484,12 @@ int cDecoder::GetVideoHeight() {
 
 
 int cDecoder::GetVideoFrameRate() {
-    if (frameRate > 0) return frameRate;
-
     // always read frame rate from first file
     // found some Finnish H.264 interlaced recordings who changed real bite rate in second TS file header
-    // frame rate can not change, ignore this and keep frame rate from first TS file
-    if ((GetFileNumber() == 1) && IsInterlacedVideo() && (GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264) &&
-            (GetVideoAvgFrameRate() == 25) && (GetVideoRealFrameRate() == 50)) {
+    // frame rate can not change, ignore this and use cacheid frame rate from first TS file
+    if (frameRate > 0) return frameRate;
+
+    if (IsInterlacedFrame() && (GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264) && (GetVideoAvgFrameRate() == 25) && (GetVideoRealFrameRate() == 50)) {
         frameRate = GetVideoRealFrameRate();
         dsyslog("cDecoder::GetVideoFrameRate() use real frame rate %d", frameRate);
     }
@@ -499,7 +498,6 @@ int cDecoder::GetVideoFrameRate() {
         dsyslog("cDecoder::GetVideoFrameRate() use avg frame rate %d", frameRate);
     }
     return frameRate;
-
 }
 
 
@@ -1283,9 +1281,14 @@ int cDecoder::GetFrameNumber() const {
 }
 
 
-bool cDecoder::IsInterlacedVideo() const {
-    if (interlaced_frame > 0) return true;
-    return false;
+bool cDecoder::IsInterlacedFrame() const {
+#if LIBAVCODEC_VERSION_INT < ((60<<16)+(22<<8)+100)
+    dsyslog("cDecoder::IsInterlacedFrame(): %s video format", (avFrame.interlaced_frame) ? "interlaced" : "progressive");
+    return avFrame.interlaced_frame;
+#else
+    dsyslog("cDecoder::IsInterlacedFrame(): %s video format", (AV_FRAME_FLAG_INTERLACED) ? "interlaced" : "progressive");
+    return AV_FRAME_FLAG_INTERLACED;
+#endif
 }
 
 

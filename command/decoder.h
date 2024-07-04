@@ -344,7 +344,7 @@ public:
      * check if video stream is interlaced
      * @return true if video stream is interlaced, false otherwise
      */
-    bool IsInterlacedVideo() const;
+    bool IsInterlacedFrame() const;
 
     /** get number of i-frames between to frames
      * @param beginFrame
@@ -454,8 +454,6 @@ private:
     int64_t offsetTime_ms_LastRead     =  0;                      //!< offset from recodring start of last frame in ms
     //!<
     int firstMP2Index                  = -1;                      //!< stream index for first MP2 audio stream
-    //!<
-    int interlaced_frame               = -1;                      //!< -1 undefined, 0 the content of the picture is progressive, 1 the content of the picture is interlaced
     //!<
     int frameRate                      = 0;                       //!< video stream real frame rate
     //!<

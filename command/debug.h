@@ -79,7 +79,7 @@
 // #define DEBUG_MARK_FRAMES 2
 
 // debug framenumber pts index build
-#define DEBUG_INDEX
+// #define DEBUG_INDEX
 
 // debug frame PTS
 // #define DEBUG_FRAME_PTS
