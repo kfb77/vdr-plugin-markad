@@ -5483,7 +5483,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 int maxBefore = 0;
                 switch (mark->type) {
                 case MT_ASSUMEDSTOP:
-                    maxBefore = 1120;
+                    maxBefore = 12840;
                     break;
                 case MT_LOGOSTOP:
                     if (!(criteria->LogoFadeInOut() & FADE_OUT)) maxBefore = 3000;
