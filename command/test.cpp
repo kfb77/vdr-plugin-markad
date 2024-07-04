@@ -78,7 +78,7 @@ public:
         cDecoder *decoder = new cDecoder(recDir, threads, fullDecode, hwaccel, true, nullptr);  // recording directory, threads, full decode, hwaccel methode, force hwaccel, index flag
         while (decoder->DecodeNextFrame(false)) {  // no audio decode
             if (abortNow) return -1;
-            if (decoder->GetVideoFrameNumber() >= testFrames) break;
+            if (decoder->GetFrameNumber() >= testFrames) break;
         }
         delete decoder;
 

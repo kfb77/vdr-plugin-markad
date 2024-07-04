@@ -922,12 +922,12 @@ bool cEncoder::ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int 
 
 bool cEncoder::CutOut(int startPos, int stopPos) {
     LogSeparator();
-    dsyslog("cEncoder::CutOut(): packet (%d), frame (%d): cut out from start position (%d) to stop position (%d) in pass: %d", decoder->GetVideoPacketNumber(), decoder->GetVideoFrameNumber(), startPos, stopPos, pass);
+    dsyslog("cEncoder::CutOut(): packet (%d), frame (%d): cut out from start position (%d) to stop position (%d) in pass: %d", decoder->GetPacketNumber(), decoder->GetFrameNumber(), startPos, stopPos, pass);
 
     // if we do not encode, we do not decode and so we have no valid decoder frame number
     int pos = 0;
-    if (fullEncode) pos = decoder->GetVideoFrameNumber();
-    else            pos = decoder->GetVideoPacketNumber();
+    if (fullEncode) pos = decoder->GetFrameNumber();
+    else            pos = decoder->GetPacketNumber();
     if (pos >= startPos) {
         esyslog("cEncoder::CutOut(): invalid decoder read position");
     }
@@ -971,14 +971,14 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
                 if (!decoder->ReadNextPacket()) return false;
                 if (decoder->IsVideoPacket() || decoder->IsAudioPacket()) { // only decode audio or video packetes, no subtitle, this will be copyed
                     if (!decoder->DecodePacket()) continue; // decode packet, no error break, maybe we only need more frames to decode (e.g. interlaced video)
-                    pos = decoder->GetVideoFrameNumber();
+                    pos = decoder->GetFrameNumber();
                 }
                 break;
             }
         }
         else {
             if (!decoder->ReadNextPacket()) return false;
-            pos = decoder->GetVideoPacketNumber();
+            pos = decoder->GetPacketNumber();
         }
     }
     return true;
@@ -997,8 +997,8 @@ bool cEncoder::WritePacket() {
     if ((pass == 1) && !decoder->IsVideoPacket()) return true;  // first pass we only need to encode video stream
 
     // set decoder frame/packet number
-    if (decoder->GetFullDecode()) decoderFrameNumber = decoder->GetVideoFrameNumber();
-    else decoderFrameNumber = decoder->GetVideoPacketNumber();  // decoder has no framenumber without decoding
+    if (decoder->GetFullDecode()) decoderFrameNumber = decoder->GetFrameNumber();
+    else decoderFrameNumber = decoder->GetPacketNumber();  // decoder has no framenumber without decoding
 
     // check if stream is valid
     avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
@@ -1333,7 +1333,7 @@ bool cEncoder::EncodeFrame(AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacke
     if (rcReceive < 0) {
         switch (rcReceive) {
         case AVERROR(EAGAIN):
-//                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_packet() error EAGAIN at frame %d", decoder->GetVideoFrameNumber());
+//                dsyslog("cEncoder::EncodeFrame(): avcodec_receive_packet() error EAGAIN at frame %d", decoder->GetFrameNumber());
             stateEAGAIN=true;
             break;
         case AVERROR(EINVAL):
@@ -1343,7 +1343,7 @@ bool cEncoder::EncodeFrame(AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacke
             dsyslog("cEncoder::EncodeFrame(): frame (%d): avcodec_receive_packet() end of file (AVERROR_EOF)", decoderFrameNumber);
             break;
         default:
-            esyslog("cEncoder::EncodeFrame(): frame (%d): avcodec_receive_packet() failed with rc = %d: %s", decoder->GetVideoFrameNumber(), rcReceive, av_err2str(rcReceive));
+            esyslog("cEncoder::EncodeFrame(): frame (%d): avcodec_receive_packet() failed with rc = %d: %s", decoder->GetFrameNumber(), rcReceive, av_err2str(rcReceive));
             break;
         }
         return false;
@@ -1353,7 +1353,7 @@ bool cEncoder::EncodeFrame(AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacke
     if (decoder->IsAudioPacket()) {
         int rcEncode = avcodec_encode_audio2(avCodecCtx, avpkt, avFrame, &frame_ready);
         if (rcEncode < 0) {
-            dsyslog("cEncoder::EncodeFrame(): frame (%d), stream %d: avcodec_encode_audio2 %d failed with rc = %d: %s", decoder->GetVideoFrameNumber(), avpkt->stream_index, rcEncode,  av_err2str(rcReceive));
+            dsyslog("cEncoder::EncodeFrame(): frame (%d), stream %d: avcodec_encode_audio2 %d failed with rc = %d: %s", decoder->GetFrameNumber(), avpkt->stream_index, rcEncode,  av_err2str(rcReceive));
             return false;
         }
     }

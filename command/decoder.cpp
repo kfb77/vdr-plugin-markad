@@ -14,7 +14,6 @@
 #include "win32/mingw64.h"
 #endif
 #include "decoder.h"
-#include "debug.h"
 
 
 // global variables
@@ -192,11 +191,11 @@ bool cDecoder::GetFullDecode() const {
 }
 
 
-/*
+#ifdef DEBUG_FRAME_DETECTION
 const char* cDecoder::GetRecordingDir() {
     return recordingDir;
 }
-*/
+#endif
 
 
 int cDecoder::GetThreadCount() const {
@@ -1274,12 +1273,12 @@ bool cDecoder::IsSubtitlePacket() {
 }
 
 
-int cDecoder::GetVideoPacketNumber() const {
+int cDecoder::GetPacketNumber() const {
     return packetNumber;
 }
 
 
-int cDecoder::GetVideoFrameNumber() const {
+int cDecoder::GetFrameNumber() const {
     return frameNumber;
 }
 

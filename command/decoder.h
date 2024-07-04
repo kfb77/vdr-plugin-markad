@@ -12,6 +12,7 @@
 #include <deque>
 
 #include "global.h"
+#include "debug.h"
 #include "tools.h"
 #include "index.h"
 
@@ -94,10 +95,12 @@ public:
     */
     bool GetFullDecode() const;
 
+#ifdef DEBUG_FRAME_DETECTION
     /**
     * get recording directory
     */
-//    const char* GetRecordingDir();
+    const char* GetRecordingDir();
+#endif
 
     /**
     * get decoder thread count
@@ -330,12 +333,12 @@ public:
     /** get current read video packet number
      * @return current packet number
      */
-    int GetVideoPacketNumber() const;
+    int GetPacketNumber() const;
 
     /** get current decoded video frame number
      * @return current decoded frame number
      */
-    int GetVideoFrameNumber() const;
+    int GetFrameNumber() const;
 
     /**
      * check if video stream is interlaced

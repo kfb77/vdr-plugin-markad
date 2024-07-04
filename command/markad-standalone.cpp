@@ -1334,7 +1334,7 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
 
 void cMarkAdStandalone::CheckStop() {
     LogSeparator(true);
-    dsyslog("cMarkAdStandalone::CheckStop(): start check stop (%d)", decoder->GetVideoFrameNumber());
+    dsyslog("cMarkAdStandalone::CheckStop(): start check stop (%d)", decoder->GetFrameNumber());
 
     char *indexToHMSF = marks.IndexToHMSF(stopA, false);
     if (indexToHMSF) {
@@ -1593,7 +1593,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
         ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
     }
     // check current read position of decoder
-    if (stopMark->position < decoder->GetVideoFrameNumber()) decoder->Restart();
+    if (stopMark->position < decoder->GetFrameNumber()) decoder->Restart();
 
     int endPos = stopMark->position + (25 * macontext.Video.Info.framesPerSecond);  // try till 25s after stopMarkPosition
     int newPosition = -1;
@@ -2394,7 +2394,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
 
 void cMarkAdStandalone::CheckStart() {
     LogSeparator(true);
-    dsyslog("cMarkAdStandalone::CheckStart(): checking start at frame (%d) check start planed at (%d)", decoder->GetVideoFrameNumber(), frameCheckStart);
+    dsyslog("cMarkAdStandalone::CheckStart(): checking start at frame (%d) check start planed at (%d)", decoder->GetFrameNumber(), frameCheckStart);
     int maxStart = startA + (length * macontext.Video.Info.framesPerSecond / 2);  // half of recording
     char *indexToHMSFStart = marks.IndexToHMSF(startA, false);
     if (indexToHMSFStart) {
@@ -3941,7 +3941,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
         dsyslog("slept too much");
         return; // we already slept too much
     }
-    if (decoder) framecnt = decoder->GetVideoFrameNumber();
+    if (decoder) framecnt = decoder->GetFrameNumber();
     bool notenough = true;
     do {
         struct stat statbuf;
@@ -4041,7 +4041,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
     // read and decode all video frames, we want to be sure we have a valid decoder state, this is a debug function, we don't care about performance
     while (decoder->DecodeNextFrame(false)) {  // no audio
         if (abortNow) return;
-        int frameNumber = decoder->GetVideoFrameNumber();
+        int frameNumber = decoder->GetFrameNumber();
         int frameDistance = 1;
         if (!macontext.Config->fullDecode) frameDistance = frameNumber - oldFrameNumber;  // get distance between to frame numbers
         if (frameNumber >= (mark->position - (frameDistance * DEBUG_MARK_FRAMES))) {
@@ -4190,7 +4190,7 @@ void cMarkAdStandalone::MarkadCut() {
     delete encoder;  // encoder must be valid here because it is used above
     encoder = nullptr;
 
-    dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %d", decoder->GetVideoFrameNumber());
+    dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %d", decoder->GetFrameNumber());
 }
 
 
@@ -4332,8 +4332,8 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 free(indexToHMSFSearchPosition);
             }
             // short start/stop pair can result in overlapping checks
-            if (decoder->GetVideoFrameNumber() > searchStartPosition) {
-                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): current framenumber (%d) greater than framenumber to seek (%d), restart decoder", decoder->GetVideoFrameNumber(), searchStartPosition);
+            if (decoder->GetFrameNumber() > searchStartPosition) {
+                dsyslog("cMarkAdStandalone::LogoMarkOptimization(): current framenumber (%d) greater than framenumber to seek (%d), restart decoder", decoder->GetFrameNumber(), searchStartPosition);
                 decoder->Restart();
             }
             // detect frames
@@ -5584,7 +5584,7 @@ void cMarkAdStandalone::ProcessOverlap() {
 
 
 bool cMarkAdStandalone::ProcessFrame() {
-    int frameNumber = decoder->GetVideoFrameNumber();
+    int frameNumber = decoder->GetFrameNumber();
     if (decoder->IsVideoFrame()) {
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
@@ -5716,16 +5716,16 @@ void cMarkAdStandalone::Recording() {
     }
 
     // we reached end of recording without CheckStart() or CheckStop() called
-    if (!doneCheckStop && (decoder->GetVideoFrameNumber() <= stopA)) {
-        dsyslog("cMarkAdStandalone::Recording(): frame (%d): stopA (%d)", decoder->GetVideoFrameNumber(), stopA);
+    if (!doneCheckStop && (decoder->GetFrameNumber() <= stopA)) {
+        dsyslog("cMarkAdStandalone::Recording(): frame (%d): stopA (%d)", decoder->GetFrameNumber(), stopA);
         esyslog("end of recording before recording length from VDR info file reached");
     }
     if (!doneCheckStart) {
-        dsyslog("cMarkAdStandalone::Recording(): frame (%d): recording ends before CheckStart() done, call it now", decoder->GetVideoFrameNumber());
+        dsyslog("cMarkAdStandalone::Recording(): frame (%d): recording ends before CheckStart() done, call it now", decoder->GetFrameNumber());
         CheckStart();
     }
     if (!doneCheckStop) {
-        dsyslog("cMarkAdStandalone::Recording(): frame (%d): recording ends before CheckStop() done, call it now", decoder->GetVideoFrameNumber());
+        dsyslog("cMarkAdStandalone::Recording(): frame (%d): recording ends before CheckStop() done, call it now", decoder->GetFrameNumber());
         CheckStop();
     }
 
@@ -5733,10 +5733,10 @@ void cMarkAdStandalone::Recording() {
     CheckMarks();
 
 // recording stopped before end of broadcast, add end mark at end of recording
-    if ((inBroadCast) && (!gotendmark) && (decoder->GetVideoFrameNumber() > 0)) {
+    if ((inBroadCast) && (!gotendmark) && (decoder->GetFrameNumber() > 0)) {
         sMarkAdMark tempmark;
         tempmark.type = MT_RECORDINGSTOP;
-        tempmark.position = decoder->GetVideoFrameNumber();
+        tempmark.position = decoder->GetFrameNumber();
         AddMark(&tempmark);
     }
     if (!abortNow) marks.Save(directory, &macontext, false);

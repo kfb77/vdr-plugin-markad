@@ -298,7 +298,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
     int brightnessLogo = sumPixel / ((logo_yend - logo_ystart + 1) * (logo_xend - logo_xstart + 1));
     int contrastLogo = maxPixel - minPixel;
 #ifdef DEBUG_LOGO_DETECTION
-    int frameNumber = decoder->GetVideoFrameNumber();
+    int frameNumber = decoder->GetFrameNumber();
     dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area before reduction: contrast %3d, brightness %3d", frameNumber, contrastLogo, brightnessLogo);
 #endif
 
@@ -581,7 +581,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
     int processed    =  0;
     *logoFrameNumber = -1;
 
-    int frameNumber = decoder->GetVideoFrameNumber();
+    int frameNumber = decoder->GetFrameNumber();
 
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
@@ -895,7 +895,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
 
 
 int cLogoDetect::Process(int *logoFrameNumber) {
-    int frameNumber = decoder->GetVideoFrameNumber();
+    int frameNumber = decoder->GetFrameNumber();
 
     if (area.logoAspectRatio != *decoder->GetFrameAspectRatio()) {
         dsyslog("cLogoDetect::Process(): frame (%d): aspect ratio changed from %d:%d to %d:%d, reload logo", frameNumber, area.logoAspectRatio.num, area.logoAspectRatio.den, decoder->GetFrameAspectRatio()->num, decoder->GetFrameAspectRatio()->den);
@@ -942,7 +942,7 @@ int cSceneChangeDetect::Process(int *changeFrameNumber) {
         dsyslog("cVertBorderDetect::Process(): picture planeLineSize[0] valid");
         return VBORDER_ERROR;
     }
-    int frameNumber = decoder->GetVideoFrameNumber();
+    int frameNumber = decoder->GetFrameNumber();
 
     // get simple histogramm from current frame
     int *currentHistogram = nullptr;
@@ -1580,7 +1580,7 @@ void cVideo::SetAspectRatioBroadcast(sAspectRatio aspectRatio) {
 
 
 sMarkAdMarks *cVideo::Process() {
-    int frameNumber = decoder->GetVideoFrameNumber();
+    int frameNumber = decoder->GetFrameNumber();
     videoMarks = {};   // reset array of new marks
 
     // scene change detection

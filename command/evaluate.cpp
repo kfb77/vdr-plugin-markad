@@ -670,13 +670,54 @@ cDetectLogoStopStart::~cDetectLogoStopStart() {
 
 
 int cDetectLogoStopStart::FindFrameFirstPixel(const uchar *picture, const int corner, const int width, const int height, int startX, int startY, const int offsetX, const int offsetY) {
+
+    // set start coordinates to detect boundary
+#define X_BOUNDARY 5   // ignore pixel at left and right  edge, can be a very small vertical    border
+#define Y_BOUNDARY 5   // ignore pixel at top  and bottom edge, can be a very small horizonatal border
+    startX = std::max(startX, X_BOUNDARY);
+    startX = std::min(startX, width - X_BOUNDARY);
+    startY = std::max(startY, Y_BOUNDARY);
+    startY = std::min(startY, height - Y_BOUNDARY);
+
     int foundX        = -1;
     int foundY        = -1;
-    int searchX       = startX;
-    int searchY       = startY;
+
+#ifdef DEBUG_FRAME_DETECTION
+    int searchX       = startX;   // keep startX for debug function
+    int searchY       = startY;   // keep startY for debug function
+#endif
+
+    while ((startX >= X_BOUNDARY) && (startX < (width - X_BOUNDARY) && (startY >= Y_BOUNDARY) && (startY < (height - Y_BOUNDARY)))) {
+        if (picture[startY * width + startX] == 0) {  // pixel found
+            foundX = startX;
+            foundY = startY;
+            break;
+        }
+        startX += offsetX;
+        startY += offsetY;
+    }
+
+#ifdef DEBUG_FRAME_DETECTION_PICTURE
+    // save plane 0 of sobel transformation
+    if (decoder->GetFrameNumber() == DEBUG_FRAME_DETECTION_PICTURE) {
+        char *fileName = nullptr;
+        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_FindFrameFirstPixel.pgm", decoder->GetRecordingDir(), decoder->GetFrameNumber(), corner) >= 1) {
+            ALLOC(strlen(fileName)+1, "fileName");
+            sobel->SaveSobelPlane(fileName, picture, width, height);
+            FREE(strlen(fileName)+1, "fileName");
+            free(fileName);
+        }
+    }
+#endif
+
+#ifdef DEBUG_FRAME_DETECTION
+    dsyslog("-----------------------------------------------------------------------------------------------------------------------------------------------");
+    dsyslog("cDetectLogoStopStart::FindFrameFirstPixel(): frame (%d) corner %d: start (%d,%d), direction (%d,%d): found (%d,%d)", decoder->GetFrameNumber(), corner, searchX, searchY, offsetX, offsetY, foundX, foundY);
+#endif
+
+    // future search direction depends on corner
     int searchOffsetX = 0;
     int searchOffsetY = 0;
-
     switch (corner) {
     case 0: // TOP_LEFT
         searchOffsetX = 1;
@@ -701,19 +742,6 @@ int cDetectLogoStopStart::FindFrameFirstPixel(const uchar *picture, const int co
         return 0;
     } // case
 
-    while ((searchX >= 0) && (searchX < width) && (searchY >= 0) && (searchY < height)) {
-        if (picture[searchY * width + searchX] == 0) {  // pixel found
-            foundX = searchX;
-            foundY = searchY;
-            break;
-        }
-        searchX += offsetX;
-        searchY += offsetY;
-    }
-#ifdef DEBUG_FRAME_DETECTION
-    dsyslog("-----------------------------------------------------------------------------------------------------------------------------------------------");
-    dsyslog("cDetectLogoStopStart::FindFrameFirstPixel(): search for first pixel: start (%d,%d), direction (%d,%d): found (%d,%d)", startX, startY, offsetX, offsetY, foundX, foundY);
-#endif
     if ((foundX >= 0) && (foundY >= 0)) return FindFrameStartPixel(picture, width, height, foundX, foundY, -searchOffsetX, -searchOffsetY);
     return 0;
 }
@@ -802,27 +830,14 @@ int cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, const int widt
 // detect frame in sobel transformed picture
 // sobel transformes lines can be interrupted, try also pixel next to start point
 // return portion of frame pixel in picture
-int cDetectLogoStopStart::DetectFrame(__attribute__((unused)) const int frameNumber, const uchar *picture, const int width, const int height, const int corner) {
+int cDetectLogoStopStart::DetectFrame(const uchar *picture, const int width, const int height, const int corner) {
     if (!picture) return 0;
 
     int portion =  0;
 
-#ifdef DEBUG_FRAME_DETECTION
-    dsyslog("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-    dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: search for frame", frameNumber, corner);
-    // save plane 0 of sobel transformation
-    char *fileName = nullptr;
-    if (asprintf(&fileName,"%s/F__%07d-P0-C%1d.pgm", maContext->Config->recDir, frameNumber, corner) >= 1) {
-        ALLOC(strlen(fileName)+1, "fileName");
-        SaveSobel(fileName, picture, width, height);
-        FREE(strlen(fileName)+1, "fileName");
-        free(fileName);
-    }
-#endif
-
     switch (corner) {
     case TOP_LEFT:
-        portion = FindFrameFirstPixel(picture, corner, width, height, 10, 0, 1, 1); // search from top left to bottom right
+        portion = FindFrameFirstPixel(picture, corner, width, height, 0, 0, 1, 1); // search from top left to bottom right
         // do not start at corner, maybe conrner was not exactly detected
         if (portion <= 572) {  // maybe we have a text under frame or the logo
             int portionTMP = FindFrameFirstPixel(picture, corner, width, height, width / 2, 0, 1, 1); // search from top mid to bottom right
@@ -986,7 +1001,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
     while (decoder->DecodeNextFrame(false)) {
         if (abortNow) return false;
 
-        int frameNumber =  decoder->GetVideoFrameNumber();
+        int frameNumber =  decoder->GetFrameNumber();
         if (frameNumber >= endPos) break;
 
         sVideoPicture *picture = decoder->GetVideoPicture();
@@ -1010,7 +1025,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
             }
 #endif
 
-            compareInfo.framePortion[corner] = DetectFrame(frameNumber, area.sobel[0], area.logoSize.width, area.logoSize.height, corner);
+            compareInfo.framePortion[corner] = DetectFrame(area.sobel[0], area.logoSize.width, area.logoSize.height, corner);
 
             logo2[corner] = new sLogoInfo;
             ALLOC(sizeof(*logo2[corner]), "logo");

@@ -123,6 +123,9 @@
 // debug frame detection for closing credits or ad in frame
 // #define DEBUG_FRAME_DETECTION
 
+// write sobel transformed pictures from frame detection to recording directory
+// #define DEBUG_FRAME_DETECTION_PICTURE <frame number>
+
 // debug timestamps from final marks to save
 // #define DEBUG_SAVEMARKS
 

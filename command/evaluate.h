@@ -283,7 +283,7 @@ public:
      * @param height      picture height in pixel
      * @param corner      source corner of picture
      */
-    int DetectFrame(const int frameNumber, const uchar *picture, const int width, const int height, const int corner);
+    int DetectFrame(const uchar *picture, const int width, const int height, const int corner);
 
     /**
      * compare all frames in range and calculate similar rate
